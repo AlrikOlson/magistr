@@ -34,11 +34,18 @@
 			"command": "./scripts/legacy-gui-ratchet.sh",
 			"name": "legacy-gui",
 			"required": true
+		},
+		{
+			"command": "./scripts/mock-parity-gate.sh",
+			"name": "mock-parity",
+			"required": false
 		}
 	],
 	"format": {
 		"command": "cargo fmt",
-		"extensions": ["rs"]
+		"extensions": [
+			"rs"
+		]
 	},
 	"hints": [],
 	"project": {

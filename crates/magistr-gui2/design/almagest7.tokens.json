@@ -1,0 +1,448 @@
+{
+  "generated_by": "scripts/almagest-tokens.py",
+  "geometry": {
+    "card_radius": 11.0,
+    "hairline": 1.0,
+    "leading": 1.5,
+    "rail_width": 248.0,
+    "turn_max_width": 600.0
+  },
+  "palette": {
+    "day": {
+      "base": [
+        241,
+        240,
+        245
+      ],
+      "blue": [
+        30,
+        95,
+        224
+      ],
+      "deep": [
+        232,
+        231,
+        238
+      ],
+      "edge": [
+        217,
+        215,
+        228
+      ],
+      "glow_g": [
+        47,
+        143,
+        42
+      ],
+      "glow_m": [
+        125,
+        63,
+        208
+      ],
+      "glow_p": [
+        217,
+        93,
+        16
+      ],
+      "green": [
+        47,
+        143,
+        42
+      ],
+      "hairc": {
+        "alpha": 0.34,
+        "rgb": [
+          139,
+          138,
+          160
+        ]
+      },
+      "mantle": [
+        250,
+        249,
+        252
+      ],
+      "mauve": [
+        125,
+        63,
+        208
+      ],
+      "ov0": [
+        139,
+        138,
+        160
+      ],
+      "peach": [
+        217,
+        93,
+        16
+      ],
+      "red": [
+        195,
+        28,
+        61
+      ],
+      "s0": [
+        213,
+        211,
+        224
+      ],
+      "s1": [
+        192,
+        190,
+        208
+      ],
+      "sb0": [
+        103,
+        101,
+        127
+      ],
+      "sb1": [
+        86,
+        84,
+        113
+      ],
+      "teal": [
+        18,
+        138,
+        138
+      ],
+      "tx": [
+        63,
+        61,
+        88
+      ],
+      "yellow": [
+        181,
+        118,
+        20
+      ]
+    },
+    "night": {
+      "base": [
+        22,
+        22,
+        34
+      ],
+      "blue": [
+        143,
+        182,
+        250
+      ],
+      "deep": [
+        15,
+        15,
+        24
+      ],
+      "edge": [
+        38,
+        38,
+        58
+      ],
+      "glow_g": [
+        163,
+        224,
+        160
+      ],
+      "glow_m": [
+        199,
+        164,
+        245
+      ],
+      "glow_p": [
+        247,
+        177,
+        132
+      ],
+      "green": [
+        163,
+        224,
+        160
+      ],
+      "hairc": {
+        "alpha": 0.4,
+        "rgb": [
+          65,
+          65,
+          96
+        ]
+      },
+      "mantle": [
+        28,
+        28,
+        43
+      ],
+      "mauve": [
+        199,
+        164,
+        245
+      ],
+      "ov0": [
+        107,
+        107,
+        136
+      ],
+      "peach": [
+        247,
+        177,
+        132
+      ],
+      "red": [
+        240,
+        144,
+        165
+      ],
+      "s0": [
+        45,
+        45,
+        66
+      ],
+      "s1": [
+        65,
+        65,
+        96
+      ],
+      "sb0": [
+        165,
+        163,
+        192
+      ],
+      "sb1": [
+        187,
+        185,
+        212
+      ],
+      "teal": [
+        147,
+        221,
+        210
+      ],
+      "tx": [
+        214,
+        212,
+        232
+      ],
+      "yellow": [
+        245,
+        223,
+        165
+      ]
+    }
+  },
+  "source": "almagest-seventh-edition.html",
+  "spacing": {
+    "chip_pad_x": 11.0,
+    "chip_pad_y": 3.0,
+    "composer_pad_bottom": 18.0,
+    "composer_pill_gap": 10.0,
+    "composer_pill_height": 36.75,
+    "composer_pill_pad_side": 16.0,
+    "crumb_gap": 7.0,
+    "crumb_mark_gap": 5.0,
+    "footer_gap": 14.0,
+    "footer_height": 34.75,
+    "footer_pad_side": 20.0,
+    "meter_label_gap": 5.0,
+    "meter_note_gap": 4.0,
+    "meter_tick_width": 2.0,
+    "meter_track_height": 4.0,
+    "rail_cap_gap": 12.0,
+    "rail_ledger_indent": 14.0,
+    "rail_ledger_pitch": 11.0,
+    "rail_pad_side": 16.0,
+    "rail_pad_top": 18.0,
+    "rail_row_pad": 6.0,
+    "rail_section_cap_gap": 8.0,
+    "rail_section_gap": 18.0,
+    "review_agent_cap_gap": 20.0,
+    "review_agent_pitch": 18.5,
+    "review_card_pad_side": 12.0,
+    "review_card_pad_top": 7.0,
+    "review_file_pitch": 24.2,
+    "review_files_pad_side": 20.0,
+    "review_files_pad_top": 16.0,
+    "review_note_gap": 14.0,
+    "review_pane_pad_side": 26.0,
+    "review_pane_pad_top": 16.0,
+    "review_scope_cap_gap": 10.0,
+    "stage_block_gap": 12.0,
+    "stage_cap_gap": 8.0,
+    "stage_header_gap": 14.0,
+    "stage_header_height": 51.75,
+    "stage_header_pad_bottom": 12.0,
+    "stage_header_pad_left": 92.0,
+    "stage_header_pad_top": 15.0,
+    "stage_pad_side": 30.0,
+    "stage_pad_top": 20.0
+  },
+  "voices": {
+    "badge": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 9.0,
+      "tracking_em": 0.08,
+      "transform": "none",
+      "weight": 400
+    },
+    "button": {
+      "family": "sans",
+      "line_height": 0.0,
+      "px": 12.0,
+      "tracking_em": 0.01,
+      "transform": "none",
+      "weight": 600
+    },
+    "cap": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 9.5,
+      "tracking_em": 0.12,
+      "transform": "uppercase",
+      "weight": 400
+    },
+    "chapter_title": {
+      "family": "serif",
+      "line_height": 0.0,
+      "px": 24.0,
+      "tracking_em": -0.01,
+      "transform": "none",
+      "weight": 400
+    },
+    "chip": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 10.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "crumb": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 11.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "diffline": {
+      "family": "mono",
+      "line_height": 1.75,
+      "px": 10.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "heading": {
+      "family": "sans",
+      "line_height": 0.0,
+      "px": 15.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 600
+    },
+    "hint": {
+      "family": "sans",
+      "line_height": 0.0,
+      "px": 10.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "kbd": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 9.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "ledger_meta": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 10.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "ledger_name": {
+      "family": "sans",
+      "line_height": 0.0,
+      "px": 12.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 550
+    },
+    "meter_value": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 10.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "phase": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 10.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "prose": {
+      "family": "sans",
+      "line_height": 1.65,
+      "px": 13.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "receipt_key": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 9.5,
+      "tracking_em": 0.08,
+      "transform": "uppercase",
+      "weight": 400
+    },
+    "slot": {
+      "family": "sans",
+      "line_height": 0.0,
+      "px": 12.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "stat": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 13.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "steer": {
+      "family": "sans",
+      "line_height": 0.0,
+      "px": 12.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "theme_label": {
+      "family": "sans",
+      "line_height": 0.0,
+      "px": 11.5,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    },
+    "value": {
+      "family": "mono",
+      "line_height": 0.0,
+      "px": 11.0,
+      "tracking_em": 0.0,
+      "transform": "none",
+      "weight": 400
+    }
+  }
+}

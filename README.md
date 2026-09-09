@@ -25,8 +25,8 @@ Prebuilt binaries are available on the [releases page](https://github.com/AlrikO
 - [Documentation](docs/index.md)
 
 The Rust crates are under `crates/`; the documentation website is in
-`apps/website/`. The native desktop interface is developed on the
-[`gui2` branch](https://github.com/AlrikOlson/magistr/tree/gui2).
+`apps/website/`. This branch includes the native desktop interface. See the
+[desktop guide](docs/architecture/desktop.md) for its dependencies and fixture runner.
 
 ## License
 

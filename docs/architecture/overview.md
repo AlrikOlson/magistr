@@ -13,6 +13,7 @@ presentation. The root Cargo manifest groups the Rust crates into one workspace.
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
 | `magistr-cockpit` | Shared interface state, updates, layout vocabulary, and effect ports |
 | `magistr-tui` | Terminal input, rendering, graphics protocols, and runtime |
+| `magistr-gui2` | Native desktop rendering, input, and accessibility |
 | `magistr-theme` | Shared color and theme vocabulary |
 | `magistr-protocol` | Transport types |
 
@@ -52,4 +53,4 @@ authentication and governed dispatch are not wired into the CLI or interfaces.
 provenance, and licenses remain beside
 the files they document.
 
-[Desktop development](desktop.md) is maintained on the `gui2` branch.
+The [desktop interface](desktop.md) renders the same cockpit model in a native window.

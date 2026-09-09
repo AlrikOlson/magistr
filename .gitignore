@@ -89,3 +89,9 @@ secrets.json
 *.key
 *.p12
 *.pfx
+
+# Desktop reference images
+!crates/magistr-gui2/tests/golden/**/*.png
+!crates/magistr-gui2/tests/mocks/**/*.png
+crates/magistr-gui2/tests/**/*.new.png
+crates/magistr-gui2/tests/**/*.diff.png

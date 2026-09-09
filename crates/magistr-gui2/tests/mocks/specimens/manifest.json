@@ -1,0 +1,641 @@
+[
+  {
+    "id": "control-data-chip-live",
+    "figure": 0,
+    "selector": ".chip7.acc",
+    "pad": 0,
+    "media": "both",
+    "width": 143,
+    "height": 24
+  },
+  {
+    "id": "control-data-chip-gates",
+    "figure": 0,
+    "selector": ".chip7.ok",
+    "pad": 0,
+    "media": "both",
+    "width": 81,
+    "height": 24
+  },
+  {
+    "id": "control-data-chip-num",
+    "figure": 0,
+    "selector": ".chip7:has(.num)",
+    "pad": 0,
+    "media": "both",
+    "width": 100,
+    "height": 24
+  },
+  {
+    "id": "control-nav-chip",
+    "figure": 0,
+    "selector": ".chip7:not(.acc):has(.dot7)",
+    "pad": 0,
+    "media": "both",
+    "width": 143,
+    "height": 24
+  },
+  {
+    "id": "control-nav-crumb",
+    "figure": 0,
+    "selector": ".crumb",
+    "pad": 0,
+    "media": "both",
+    "width": 155,
+    "height": 17
+  },
+  {
+    "id": "control-action-primary",
+    "figure": 0,
+    "selector": ".btn7.pri",
+    "pad": 0,
+    "media": "both",
+    "width": 154,
+    "height": 32
+  },
+  {
+    "id": "control-action-secondary",
+    "figure": 0,
+    "selector": ".btn7:not(.pri):not(.neg)",
+    "pad": 0,
+    "media": "both",
+    "width": 131,
+    "height": 32
+  },
+  {
+    "id": "control-action-negative",
+    "figure": 0,
+    "selector": ".btn7.neg",
+    "pad": 0,
+    "media": "both",
+    "width": 86,
+    "height": 32
+  },
+  {
+    "id": "control-key-cap",
+    "figure": 0,
+    "selector": ".btn7.pri .kbd7",
+    "pad": 0,
+    "media": "both",
+    "width": 20,
+    "height": 18
+  },
+  {
+    "id": "control-slot",
+    "figure": 0,
+    "selector": "div[style*=\"dashed\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 198,
+    "height": 44
+  },
+  {
+    "id": "star-pending",
+    "figure": 1,
+    "selector": "svg > g:nth-of-type(1)",
+    "pad": 3,
+    "media": "both",
+    "width": 15,
+    "height": 15
+  },
+  {
+    "id": "star-ready",
+    "figure": 1,
+    "selector": "svg > circle:nth-of-type(2)",
+    "pad": 3,
+    "media": "both",
+    "width": 20,
+    "height": 20
+  },
+  {
+    "id": "star-executing",
+    "figure": 1,
+    "selector": "svg > circle:nth-of-type(3)",
+    "pad": 3,
+    "media": "both",
+    "width": 16,
+    "height": 16
+  },
+  {
+    "id": "star-stuck",
+    "figure": 1,
+    "selector": "svg > circle:nth-of-type(4)",
+    "pad": 3,
+    "media": "both",
+    "width": 15,
+    "height": 15
+  },
+  {
+    "id": "star-blocked",
+    "figure": 1,
+    "selector": "svg > g:nth-of-type(2)",
+    "pad": 3,
+    "media": "both",
+    "width": 21,
+    "height": 21
+  },
+  {
+    "id": "star-done",
+    "figure": 1,
+    "selector": "svg > circle:nth-of-type(6)",
+    "pad": 3,
+    "media": "both",
+    "width": 12,
+    "height": 12
+  },
+  {
+    "id": "edge-dependency-done",
+    "figure": 1,
+    "selector": "svg > line:nth-of-type(1)",
+    "pad": 3,
+    "media": "both",
+    "width": 126,
+    "height": 6
+  },
+  {
+    "id": "edge-dependency-ahead",
+    "figure": 1,
+    "selector": "svg > line:nth-of-type(2)",
+    "pad": 3,
+    "media": "both",
+    "width": 126,
+    "height": 6
+  },
+  {
+    "id": "star-hue-core",
+    "figure": 1,
+    "selector": "svg > circle:nth-of-type(7)",
+    "pad": 3,
+    "media": "both",
+    "width": 14,
+    "height": 14
+  },
+  {
+    "id": "star-hue-api",
+    "figure": 1,
+    "selector": "svg > circle:nth-of-type(8)",
+    "pad": 3,
+    "media": "both",
+    "width": 14,
+    "height": 14
+  },
+  {
+    "id": "star-hue-ops",
+    "figure": 1,
+    "selector": "svg > circle:nth-of-type(9)",
+    "pad": 3,
+    "media": "both",
+    "width": 14,
+    "height": 14
+  },
+  {
+    "id": "card-plan",
+    "figure": 2,
+    "selector": ".float7[style*=\"width:330px\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 330,
+    "height": 172
+  },
+  {
+    "id": "card-ground-attention",
+    "figure": 2,
+    "selector": ".float7[style*=\"--peach\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 330,
+    "height": 60
+  },
+  {
+    "id": "card-toast-shipped",
+    "figure": 2,
+    "selector": ".float7[style*=\"padding:12px 15px\"]:not([style*=\"--peach\"])",
+    "pad": 0,
+    "media": "both",
+    "width": 330,
+    "height": 100
+  },
+  {
+    "id": "cap-severity-attention",
+    "figure": 2,
+    "selector": ".cap7[style*=\"--peach\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 296,
+    "height": 14
+  },
+  {
+    "id": "cap-severity-positive",
+    "figure": 2,
+    "selector": ".cap7[style*=\"--green\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 300,
+    "height": 14
+  },
+  {
+    "id": "block-diff",
+    "figure": 2,
+    "selector": "div[style*=\"overflow:hidden\"][style*=\"border-radius:11px\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 330,
+    "height": 86
+  },
+  {
+    "id": "row-diff-del",
+    "figure": 2,
+    "selector": ".diffline.d",
+    "pad": 0,
+    "media": "both",
+    "width": 328,
+    "height": 18
+  },
+  {
+    "id": "row-diff-add",
+    "figure": 2,
+    "selector": ".diffline.a",
+    "pad": 0,
+    "media": "both",
+    "width": 328,
+    "height": 18
+  },
+  {
+    "id": "row-diff-ctx",
+    "figure": 2,
+    "selector": ".diffline.c",
+    "pad": 0,
+    "media": "both",
+    "width": 328,
+    "height": 18
+  },
+  {
+    "id": "block-receipts-ledger",
+    "figure": 2,
+    "selector": "div.mono[style*=\"line-height:2\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 330,
+    "height": 84
+  },
+  {
+    "id": "indicator-phases",
+    "figure": 3,
+    "selector": ".mono[style*=\"gap:12px\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 219,
+    "height": 16
+  },
+  {
+    "id": "indicator-spark",
+    "figure": 3,
+    "selector": "svg[aria-label=\"activity\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 120,
+    "height": 20
+  },
+  {
+    "id": "bar-budget",
+    "figure": 3,
+    "selector": "div[style*=\"height:3px\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 150,
+    "height": 3
+  },
+  {
+    "id": "indicator-counter",
+    "figure": 3,
+    "selector": "span.mono.num",
+    "pad": 10,
+    "media": "both",
+    "width": 97,
+    "height": 37
+  },
+  {
+    "id": "control-composer",
+    "figure": 3,
+    "selector": "div[style*=\"border-radius:999px\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 300,
+    "height": 34
+  },
+  {
+    "id": "row-cmdk-result",
+    "figure": 3,
+    "selector": "div[style*=\"--glow-m\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 280,
+    "height": 33
+  },
+  {
+    "id": "pane-sky",
+    "figure": 4,
+    "selector": ".app7",
+    "pad": 0,
+    "media": "night",
+    "width": 540,
+    "height": 300
+  },
+  {
+    "id": "pane-chart",
+    "figure": 5,
+    "selector": ".app7",
+    "pad": 0,
+    "media": "day",
+    "width": 540,
+    "height": 300
+  },
+  {
+    "id": "control-segment",
+    "figure": 6,
+    "selector": "div[style*=\"display:inline-flex\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 232,
+    "height": 26
+  },
+  {
+    "id": "card-think-pin",
+    "figure": 6,
+    "selector": ".float7:has(.spc)",
+    "pad": 0,
+    "media": "both",
+    "width": 270,
+    "height": 90
+  },
+  {
+    "id": "card-signal",
+    "figure": 6,
+    "selector": ".float7:has(.btn7.acc):not([style*=\"--red\"])",
+    "pad": 0,
+    "media": "both",
+    "width": 270,
+    "height": 97
+  },
+  {
+    "id": "card-ground-danger",
+    "figure": 6,
+    "selector": ".float7[style*=\"--red\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 290,
+    "height": 97
+  },
+  {
+    "id": "cap-severity-danger",
+    "figure": 6,
+    "selector": ".cap7[style*=\"--red\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 262,
+    "height": 14
+  },
+  {
+    "id": "control-search-field",
+    "figure": 6,
+    "selector": "div[style*=\"border-radius:11px\"][style*=\"display:flex\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 280,
+    "height": 37
+  },
+  {
+    "id": "row-status-executing",
+    "figure": 7,
+    "selector": ".srow",
+    "pad": 0,
+    "media": "both",
+    "width": 270,
+    "height": 31
+  },
+  {
+    "id": "row-status-blocked",
+    "figure": 7,
+    "selector": ".srow:has([style*=\"--red\"])",
+    "pad": 0,
+    "media": "both",
+    "width": 270,
+    "height": 30
+  },
+  {
+    "id": "meter",
+    "figure": 7,
+    "selector": ".meter",
+    "pad": 0,
+    "media": "both",
+    "width": 220,
+    "height": 25
+  },
+  {
+    "id": "row-receipt-commit",
+    "figure": 7,
+    "selector": ".rr:has(use[href=\"#ic-commit\"])",
+    "pad": 0,
+    "media": "both",
+    "width": 270,
+    "height": 30
+  },
+  {
+    "id": "row-receipt-gates",
+    "figure": 7,
+    "selector": ".rr:has(.gled)",
+    "pad": 0,
+    "media": "both",
+    "width": 270,
+    "height": 27
+  },
+  {
+    "id": "led-gate-on",
+    "figure": 7,
+    "selector": ".gled.on",
+    "pad": 0,
+    "media": "both",
+    "width": 9,
+    "height": 9
+  },
+  {
+    "id": "led-gate-off",
+    "figure": 7,
+    "selector": ".gled:not(.on)",
+    "pad": 0,
+    "media": "both",
+    "width": 9,
+    "height": 9
+  },
+  {
+    "id": "badge-mode-off",
+    "figure": 7,
+    "selector": ".mode7.never",
+    "pad": 0,
+    "media": "both",
+    "width": 36,
+    "height": 18
+  },
+  {
+    "id": "badge-mode-auto",
+    "figure": 7,
+    "selector": ".mode7.auto",
+    "pad": 0,
+    "media": "both",
+    "width": 42,
+    "height": 18
+  },
+  {
+    "id": "row-rule-off",
+    "figure": 7,
+    "selector": ".rr:has(.mode7.never)",
+    "pad": 0,
+    "media": "both",
+    "width": 200,
+    "height": 31
+  },
+  {
+    "id": "key-hint",
+    "figure": 7,
+    "selector": ".khint7",
+    "pad": 0,
+    "media": "both",
+    "width": 51,
+    "height": 18
+  },
+  {
+    "id": "viz-ring-gauge",
+    "figure": 9,
+    "selector": "svg[height=\"44\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 44,
+    "height": 44
+  },
+  {
+    "id": "viz-heatmap",
+    "figure": 9,
+    "selector": ".heat",
+    "pad": 0,
+    "media": "both",
+    "width": 157,
+    "height": 34
+  },
+  {
+    "id": "viz-skeleton-row",
+    "figure": 9,
+    "selector": ".skel",
+    "pad": 0,
+    "media": "both",
+    "width": 168,
+    "height": 12
+  },
+  {
+    "id": "viz-ghost-stars",
+    "figure": 9,
+    "selector": "svg[height=\"34\"]",
+    "pad": 2,
+    "media": "both",
+    "width": 48,
+    "height": 38
+  },
+  {
+    "id": "control-theme-card",
+    "figure": 10,
+    "selector": ".tcard:not(.on)",
+    "pad": 0,
+    "media": "both",
+    "width": 96,
+    "height": 78
+  },
+  {
+    "id": "control-theme-card-chosen",
+    "figure": 10,
+    "selector": ".tcard.on",
+    "pad": 0,
+    "media": "both",
+    "width": 96,
+    "height": 78
+  },
+  {
+    "id": "control-switch-on",
+    "figure": 10,
+    "selector": ".tgl.on",
+    "pad": 0,
+    "media": "both",
+    "width": 32,
+    "height": 19
+  },
+  {
+    "id": "control-switch-off",
+    "figure": 10,
+    "selector": ".tgl:not(.on)",
+    "pad": 0,
+    "media": "both",
+    "width": 32,
+    "height": 19
+  },
+  {
+    "id": "settings-nav-active",
+    "figure": 10,
+    "selector": ".sni.on",
+    "pad": 0,
+    "media": "both",
+    "width": 180,
+    "height": 30
+  },
+  {
+    "id": "settings-nav-idle",
+    "figure": 10,
+    "selector": ".sni:not(.on)",
+    "pad": 0,
+    "media": "both",
+    "width": 180,
+    "height": 30
+  },
+  {
+    "id": "elevation-overlay",
+    "figure": 11,
+    "selector": ".float7.ov7",
+    "pad": 0,
+    "media": "both",
+    "width": 520,
+    "height": 302
+  },
+  {
+    "id": "elevation-popover",
+    "figure": 16,
+    "selector": ".float7.ov7",
+    "pad": 0,
+    "media": "both",
+    "width": 400,
+    "height": 108
+  },
+  {
+    "id": "ground-severity-danger",
+    "figure": 17,
+    "selector": ".float7.rise[style*=\"--red\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 520,
+    "height": 58
+  },
+  {
+    "id": "ground-severity-attention",
+    "figure": 17,
+    "selector": ".float7.rise[style*=\"--peach\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 520,
+    "height": 58
+  },
+  {
+    "id": "ground-severity-positive",
+    "figure": 17,
+    "selector": ".float7.rise[style*=\"--green\"]",
+    "pad": 0,
+    "media": "both",
+    "width": 520,
+    "height": 65
+  }
+]

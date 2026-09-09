@@ -10,6 +10,7 @@ members = [
     "crates/magistr-theme",
     "crates/magistr-cockpit",
     "crates/magistr-tui",
+    "crates/magistr-gui2",
 ]
 default-members = ["crates/magistr-cli"]
 resolver = "3"
