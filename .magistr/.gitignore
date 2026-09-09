@@ -2,7 +2,4 @@
 *
 !.gitignore
 !project.json
-!legacy-gui-ratchet.json
-!lint-structure-allowlist.txt
-!lint-dep-direction-allowlist.txt
-!lint-fn-length-allowlist.txt
+!roadmap.yaml
