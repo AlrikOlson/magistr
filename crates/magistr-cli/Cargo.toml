@@ -65,3 +65,4 @@ insta = "1"
 predicates = "3"
 proptest = "1"
 rand = "0.8"
+syn = { version = "2", features = ["full", "visit"] }

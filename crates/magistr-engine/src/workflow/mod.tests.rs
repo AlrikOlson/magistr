@@ -14,86 +14,6 @@ fn test_config() -> WorkflowConfig {
     }
 }
 
-// ── WorkflowPhase tests ─────────────────────────────────────────────
-
-#[test]
-fn phase_labels() {
-    assert_eq!(WorkflowPhase::Researching.label(), "Researching");
-    assert_eq!(WorkflowPhase::Planning.label(), "Planning");
-    assert_eq!(WorkflowPhase::Executing.label(), "Executing");
-    assert_eq!(WorkflowPhase::Verifying.label(), "Verifying");
-    assert_eq!(WorkflowPhase::Complete.label(), "Complete");
-}
-
-#[test]
-fn phase_step_indices() {
-    assert_eq!(WorkflowPhase::Researching.step_index(), 0);
-    assert_eq!(WorkflowPhase::Planning.step_index(), 1);
-    assert_eq!(WorkflowPhase::Executing.step_index(), 2);
-    assert_eq!(WorkflowPhase::Verifying.step_index(), 3);
-    assert_eq!(WorkflowPhase::Complete.step_index(), 4);
-}
-
-#[test]
-fn phase_from_name() {
-    assert_eq!(
-        WorkflowPhase::from_name("research"),
-        Some(WorkflowPhase::Researching)
-    );
-    assert_eq!(
-        WorkflowPhase::from_name("Researching"),
-        Some(WorkflowPhase::Researching)
-    );
-    assert_eq!(
-        WorkflowPhase::from_name("plan"),
-        Some(WorkflowPhase::Planning)
-    );
-    assert_eq!(
-        WorkflowPhase::from_name("execute"),
-        Some(WorkflowPhase::Executing)
-    );
-    assert_eq!(
-        WorkflowPhase::from_name("verify"),
-        Some(WorkflowPhase::Verifying)
-    );
-    assert_eq!(
-        WorkflowPhase::from_name("done"),
-        Some(WorkflowPhase::Complete)
-    );
-    assert_eq!(WorkflowPhase::from_name("unknown"), None);
-}
-
-#[test]
-fn phase_display() {
-    assert_eq!(WorkflowPhase::Researching.to_string(), "Researching");
-    assert_eq!(WorkflowPhase::Complete.to_string(), "Complete");
-}
-
-#[test]
-fn phase_is_terminal() {
-    assert!(WorkflowPhase::Complete.is_terminal());
-    assert!(!WorkflowPhase::Researching.is_terminal());
-    assert!(!WorkflowPhase::Verifying.is_terminal());
-}
-
-#[test]
-fn phase_all_returns_ordered() {
-    let all = WorkflowPhase::all();
-    assert_eq!(all.len(), 5);
-    for (i, phase) in all.iter().enumerate() {
-        assert_eq!(phase.step_index(), i);
-    }
-}
-
-#[test]
-fn phase_serialization_roundtrip() {
-    let phase = WorkflowPhase::Executing;
-    let json = serde_json::to_string(&phase).unwrap();
-    assert_eq!(json, "\"executing\"");
-    let deserialized: WorkflowPhase = serde_json::from_str(&json).unwrap();
-    assert_eq!(deserialized, phase);
-}
-
 // ── WorkflowEngine tests ────────────────────────────────────────────
 
 #[test]
@@ -235,39 +155,6 @@ fn record_failed_sets_status() {
     let mut engine = WorkflowEngine::new(test_config());
     engine.record_failed();
     assert_eq!(engine.iteration().last_status, IterationStatus::Failed);
-}
-
-#[test]
-fn iteration_status_display() {
-    assert_eq!(IterationStatus::None.to_string(), "none");
-    assert_eq!(IterationStatus::Committed.to_string(), "committed");
-    assert_eq!(IterationStatus::NoCommit.to_string(), "no_commit");
-    assert_eq!(IterationStatus::Failed.to_string(), "failed");
-}
-
-// ── WorkflowCommand tests ────────────────────────────────────────────
-
-#[test]
-fn command_names() {
-    assert_eq!(WorkflowCommand::StartIteration.name(), "start_iteration");
-    assert_eq!(WorkflowCommand::Pause.name(), "pause");
-    assert_eq!(WorkflowCommand::Resume.name(), "resume");
-    assert_eq!(WorkflowCommand::Skip.name(), "skip");
-    assert_eq!(WorkflowCommand::AbortLoop.name(), "abort_loop");
-}
-
-#[test]
-fn command_display() {
-    assert_eq!(WorkflowCommand::Pause.to_string(), "pause");
-    assert_eq!(WorkflowCommand::AbortLoop.to_string(), "abort_loop");
-}
-
-#[test]
-fn command_serialization_roundtrip() {
-    let cmd = WorkflowCommand::Pause;
-    let json = serde_json::to_string(&cmd).unwrap();
-    let parsed: WorkflowCommand = serde_json::from_str(&json).unwrap();
-    assert_eq!(parsed, cmd);
 }
 
 #[test]

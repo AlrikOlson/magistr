@@ -1,6 +1,10 @@
-//! magistr-engine — pure domain model for magistr's engine layer.
+//! Magistr orchestration and native workflow integration.
 //!
-//! This crate defines the backend-agnostic domain types for:
+//! Deterministic policy, run rules and gate values live in `magistr-domain`;
+//! compatibility exports here preserve existing callers. This crate also owns
+//! runtime and native-store adapters and is not an effect-free boundary.
+//!
+//! It provides backend-agnostic services and values for:
 //! - **Session lifecycle** — `EngineSession`, `SessionStatus`, `SessionEvent`, `SessionCommand`
 //! - **Session migration** — `SessionSnapshot`, `SessionResidency`, `RestoredSession`
 //! - **Workflow orchestration** — `WorkflowEngine`, `WorkflowPhase`, `WorkflowConfig`

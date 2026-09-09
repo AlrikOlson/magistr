@@ -9,6 +9,10 @@ motivates consolidating ownership. The observations below come from these source
 snapshots and executable scenarios. **The intended contracts are decisions for
 subsequent implementation; this baseline changes no production behavior.**
 
+The subsequent [domain extraction](domain.md) moves pure values and rules without
+changing these characterized runtime policies. Its scoped identities are ready
+for application adapters; existing session wire IDs remain compatible.
+
 ## Objects and owners
 
 | Object | Current authority or owner | Intended boundary |
