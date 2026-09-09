@@ -6,6 +6,7 @@ description = "Frontend-agnostic domain types for Magistr — shared between TUI
 license = "MIT"
 
 [dependencies]
+magistr-domain = { path = "../magistr-domain" }
 chrono = { version = "0.4", features = ["serde"] }
 glob = "0.3"
 ignore = "0.4"

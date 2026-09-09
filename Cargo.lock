@@ -2268,6 +2268,7 @@ dependencies = [
  "serde_json",
  "shell-escape",
  "similar",
+ "syn 2.0.117",
  "tar",
  "tempfile",
  "think-and-ship",
@@ -2316,6 +2317,7 @@ dependencies = [
  "glob",
  "ignore",
  "libc",
+ "magistr-domain",
  "magistr-engine",
  "serde",
  "serde_json",
@@ -2329,10 +2331,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "magistr-domain"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "magistr-engine"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "magistr-domain",
  "serde",
  "serde_json",
  "sha2",

@@ -8,7 +8,8 @@ records the refactor's intended policies, and names executable behavior scenario
 | Component | Responsibility |
 | --- | --- |
 | `magistr-cli` | Commands, project setup, runtime integration, and MCP service startup |
-| `magistr-core` | Configuration, presets, and shared domain and project types |
+| `magistr-domain` | Deterministic identities, run rules, policy, and verification values |
+| `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
 | `magistr-acp` | Agent Client Protocol transport |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
@@ -17,6 +18,9 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-tui` | Terminal input, rendering, graphics protocols, and runtime |
 | `magistr-theme` | Shared color and theme vocabulary |
 | `magistr-protocol` | Transport types |
+
+The [domain boundary](domain.md) enforces effect-free dependencies and preserves
+engine compatibility exports while application and session ownership migrate.
 
 ## Workflow and tools
 

@@ -96,11 +96,7 @@ impl WorkflowEngine {
     /// Skipping phases forward is allowed. Regression is not.
     #[instrument(skip(self), fields(from = %self.phase, to = %to))]
     pub fn advance_phase(&mut self, to: WorkflowPhase) -> Result<()> {
-        if to.step_index() <= self.phase.step_index() && !self.phase.is_terminal() {
-            // Allow re-entering the same phase (idempotent)
-            if to == self.phase {
-                return Ok(());
-            }
+        if !self.phase.can_advance_to(to) {
             return Err(EngineError::invalid_phase_transition(self.phase, to));
         }
         self.phase = to;
@@ -121,12 +117,12 @@ impl WorkflowEngine {
 
     /// Whether the spec is fully complete.
     pub fn is_spec_complete(&self) -> bool {
-        self.iteration.spec_total > 0 && self.iteration.spec_checked >= self.iteration.spec_total
+        self.iteration.is_spec_complete()
     }
 
     /// Whether the iteration limit has been reached.
     pub fn is_iteration_limit_reached(&self) -> bool {
-        self.iteration.iteration >= self.iteration.max_iterations
+        self.iteration.is_iteration_limit_reached()
     }
 
     /// Whether the loop should stop due to repeated no-commit failures.

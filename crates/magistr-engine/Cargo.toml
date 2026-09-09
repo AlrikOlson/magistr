@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 # think-and-ship needs 1.89 (std::fs::File advisory locking).
 rust-version = "1.89"
-description = "Pure domain model for Magistr — session lifecycle, events, commands, workflow orchestration, cost governance, roadmap tracking. Zero TUI dependencies."
+description = "Magistr session and workflow orchestration, cost governance, and native store integration"
 license = "MIT"
 
 [dependencies]
+magistr-domain = { path = "../magistr-domain" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
