@@ -2234,6 +2234,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "magistr-application"
+version = "0.1.0"
+dependencies = [
+ "magistr-domain",
+]
+
+[[package]]
 name = "magistr-cli"
 version = "0.1.0"
 dependencies = [

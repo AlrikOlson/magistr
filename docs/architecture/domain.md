@@ -48,7 +48,9 @@ The existing `magistr_core::SessionId` remains the unscoped provider wire value
 used in agent messages. Its `bind_provider_id` adapter requires both a provider
 namespace and an independently allocated domain session. Existing transport
 payloads and stored runtime sessions are unchanged. Shared session supervision
-and application command admission are subsequent architecture work.
+and production command admission are subsequent architecture work. The
+[application contracts](application.md) now reuse these identities for scoped
+use cases, with concrete adapters supplied by hosts.
 
 ## Compatibility and run rules
 

@@ -7,20 +7,25 @@ use syn::{Expr, Meta, Token};
 
 /// Scan every Rust source, including cfg-disabled modules and separate tests.
 pub(super) fn check_tree(root: &Path) -> Vec<String> {
+    check_tree_with_async(root, false)
+}
+
+/// Application contracts await injected ports without depending on an executor.
+pub(super) fn check_tree_with_async(root: &Path, allow_async: bool) -> Vec<String> {
     let mut errors = Vec::new();
     let lib = root.join("src/lib.rs");
     match std::fs::read_to_string(&lib) {
-        Ok(text) => errors.extend(check_source(&text, true)),
+        Ok(text) => errors.extend(check_source_with_async(&text, true, allow_async)),
         Err(error) => errors.push(format!("{}: {error}", lib.display())),
     }
     if root.join("build.rs").exists() {
-        errors.push("domain build.rs is an effect escape".into());
+        errors.push("contract build.rs is an effect escape".into());
     }
-    scan_directory(root, &lib, &mut errors);
+    scan_directory(root, &lib, allow_async, &mut errors);
     errors
 }
 
-fn scan_directory(directory: &Path, lib: &Path, errors: &mut Vec<String>) {
+fn scan_directory(directory: &Path, lib: &Path, allow_async: bool, errors: &mut Vec<String>) {
     let entries = match std::fs::read_dir(directory) {
         Ok(entries) => entries,
         Err(error) => {
@@ -45,13 +50,16 @@ fn scan_directory(directory: &Path, lib: &Path, errors: &mut Vec<String>) {
             }
         };
         if kind.is_symlink() {
-            errors.push(format!("{}: domain source symlink escape", path.display()));
+            errors.push(format!(
+                "{}: contract source symlink escape",
+                path.display()
+            ));
         } else if kind.is_dir() {
-            scan_directory(&path, lib, errors);
+            scan_directory(&path, lib, allow_async, errors);
         } else if path != lib && path.extension().is_some_and(|ext| ext == "rs") {
             match std::fs::read_to_string(&path) {
                 Ok(text) => errors.extend(
-                    check_source(&text, false)
+                    check_source_with_async(&text, false, allow_async)
                         .into_iter()
                         .map(|error| format!("{}: {error}", path.display())),
                 ),
@@ -62,18 +70,29 @@ fn scan_directory(directory: &Path, lib: &Path, errors: &mut Vec<String>) {
 }
 
 pub(super) fn check_source(text: &str, crate_root: bool) -> Vec<String> {
+    check_source_with_async(text, crate_root, false)
+}
+
+pub(super) fn check_source_with_async(
+    text: &str,
+    crate_root: bool,
+    allow_async: bool,
+) -> Vec<String> {
     let file = match syn::parse_file(text) {
         Ok(file) => file,
-        Err(error) => return vec![format!("unparsed domain source: {error}")],
+        Err(error) => return vec![format!("unparsed contract source: {error}")],
     };
-    let mut guard = SourceGuard::default();
+    let mut guard = SourceGuard {
+        allow_async,
+        errors: Vec::new(),
+    };
     if crate_root {
         if !file
             .attrs
             .iter()
             .any(|attr| matches!(&attr.meta, Meta::Path(path) if path.is_ident("no_std")))
         {
-            guard.reject("domain lib.rs must declare #![no_std]");
+            guard.reject("contract lib.rs must declare #![no_std]");
         }
         if !file.attrs.iter().any(|attr| {
             attr.path().is_ident("forbid")
@@ -81,21 +100,53 @@ pub(super) fn check_source(text: &str, crate_root: bool) -> Vec<String> {
                     .parse_args::<syn::Path>()
                     .is_ok_and(|path| path.is_ident("unsafe_code"))
         }) {
-            guard.reject("domain lib.rs must declare #![forbid(unsafe_code)]");
+            guard.reject("contract lib.rs must declare #![forbid(unsafe_code)]");
         }
     }
     guard.visit_file(&file);
     guard.errors
 }
 
-#[derive(Default)]
 struct SourceGuard {
+    allow_async: bool,
     errors: Vec<String>,
 }
 
 impl SourceGuard {
     fn reject(&mut self, message: impl Into<String>) {
         self.errors.push(message.into());
+    }
+
+    fn effect_name(&self, name: &syn::Ident) -> bool {
+        name == "std"
+            || (self.allow_async
+                && matches!(
+                    name.to_string().as_str(),
+                    "tokio"
+                        | "async_std"
+                        | "smol"
+                        | "reqwest"
+                        | "ureq"
+                        | "libc"
+                        | "magistr_core"
+                        | "magistr"
+                        | "magistr_engine"
+                        | "magistr_store"
+                        | "magistr_protocol"
+                        | "magistr_mcp"
+                        | "rmcp"
+                        | "think_and_ship"
+                        | "magistr_acp"
+                        | "magistr_acp_agent"
+                        | "magistr_cockpit"
+                        | "magistr_theme"
+                        | "magistr_tui"
+                        | "magistr_desktop"
+                        | "magistr_gui"
+                        | "ratatui"
+                        | "crossterm"
+                        | "rusqlite"
+                ))
     }
 
     fn check_meta(&mut self, meta: &Meta) {
@@ -241,28 +292,32 @@ impl<'ast> Visit<'ast> for SourceGuard {
     }
 
     fn visit_path(&mut self, path: &'ast syn::Path) {
-        if path.segments.iter().any(|segment| segment.ident == "std") {
-            self.reject(format!("standard-library effect path {}", path_name(path)));
+        if path
+            .segments
+            .iter()
+            .any(|segment| self.effect_name(&segment.ident))
+        {
+            self.reject(format!("adapter effect path {}", path_name(path)));
         }
         visit::visit_path(self, path);
     }
 
     fn visit_use_path(&mut self, path: &'ast syn::UsePath) {
-        if path.ident == "std" {
-            self.reject("standard-library effect import");
+        if self.effect_name(&path.ident) {
+            self.reject(format!("adapter effect import {}", path.ident));
         }
         visit::visit_use_path(self, path);
     }
 
     fn visit_use_name(&mut self, name: &'ast syn::UseName) {
-        if name.ident == "std" {
-            self.reject("standard-library effect import");
+        if self.effect_name(&name.ident) {
+            self.reject(format!("adapter effect import {}", name.ident));
         }
     }
 
     fn visit_use_rename(&mut self, rename: &'ast syn::UseRename) {
-        if rename.ident == "std" {
-            self.reject("aliased standard-library effect import");
+        if self.effect_name(&rename.ident) {
+            self.reject(format!("aliased adapter effect import {}", rename.ident));
         }
     }
 
@@ -292,7 +347,7 @@ impl<'ast> Visit<'ast> for SourceGuard {
     }
 
     fn visit_signature(&mut self, signature: &'ast syn::Signature) {
-        if signature.unsafety.is_some() || signature.asyncness.is_some() {
+        if signature.unsafety.is_some() || (!self.allow_async && signature.asyncness.is_some()) {
             self.reject("unsafe or async domain function");
         }
         visit::visit_signature(self, signature);
@@ -312,12 +367,20 @@ impl<'ast> Visit<'ast> for SourceGuard {
         visit::visit_item_trait(self, item);
     }
 
-    fn visit_expr_async(&mut self, _: &'ast syn::ExprAsync) {
-        self.reject("async runtime boundary");
+    fn visit_expr_async(&mut self, expression: &'ast syn::ExprAsync) {
+        if self.allow_async {
+            visit::visit_expr_async(self, expression);
+        } else {
+            self.reject("async runtime boundary");
+        }
     }
 
-    fn visit_expr_await(&mut self, _: &'ast syn::ExprAwait) {
-        self.reject("async runtime boundary");
+    fn visit_expr_await(&mut self, expression: &'ast syn::ExprAwait) {
+        if self.allow_async {
+            visit::visit_expr_await(self, expression);
+        } else {
+            self.reject("async runtime boundary");
+        }
     }
 
     fn visit_macro(&mut self, mac: &'ast syn::Macro) {
@@ -328,7 +391,12 @@ impl<'ast> Visit<'ast> for SourceGuard {
             .unwrap_or(&name);
         // Macro token trees are not visited by syn. Parse every allowed macro's
         // arguments explicitly; unknown grammars fail closed, including macro_rules.
-        if leaf == "matches" {
+        if self.allow_async && matches!(name.as_str(), "core::pin::pin" | "pin") {
+            match syn::parse2::<Expr>(mac.tokens.clone()) {
+                Ok(expression) => self.visit_expr(&expression),
+                Err(_) => self.reject("unparsed pin! argument"),
+            }
+        } else if leaf == "matches" {
             match syn::parse2::<MatchArguments>(mac.tokens.clone()) {
                 Ok(args) => {
                     self.visit_expr(&args.expression);
