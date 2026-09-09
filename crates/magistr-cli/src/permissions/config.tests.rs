@@ -116,3 +116,15 @@ fn config_path_location() {
     let path = config_path(Path::new("/my/project"));
     assert_eq!(path, PathBuf::from("/my/project/.claude/permissions.toml"));
 }
+
+#[test]
+fn explicit_legacy_noninteractive_setting_survives_config_roundtrip() {
+    let config =
+        PermissionConfig::from_toml("noninteractive = \"legacy-automatic-approval\"\n").unwrap();
+    assert!(
+        config
+            .to_toml()
+            .unwrap()
+            .contains("legacy-automatic-approval")
+    );
+}

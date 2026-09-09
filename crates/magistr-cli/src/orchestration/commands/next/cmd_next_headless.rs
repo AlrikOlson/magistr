@@ -13,11 +13,12 @@ use crate::workflow;
 ///
 /// Streams agent output to stdout (plain or NDJSON), then emits an
 /// iteration report with status, spec progress, and duration.
-/// Auto-approves all permission requests.
+/// Applies the shared project policy; unanswered approvals are refused by default.
 pub async fn cmd_next_headless(
     dir: &std::path::Path,
     backend: agent::Backend,
     format: HeadlessFormat,
+    profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
 
@@ -32,13 +33,11 @@ pub async fn cmd_next_headless(
     wf.cleanup().suggest()?;
     let prompt = wf.build_prompt().suggest()?;
 
-    let config = workflow_agent_config(&prompt, &dir, backend);
+    let config = workflow_agent_config(&prompt, &dir, backend).permission_profile(profile);
 
     let mut session = agent::session::AgentSession::start(config)
         .await
         .suggest()?;
-
-    session.spawn_auto_approve_permissions();
 
     let budget_limit: Option<f64> = std::env::var("MAGISTR_BUDGET")
         .ok()
@@ -109,6 +108,7 @@ pub(super) fn workflow_agent_config(
 ) -> agent::AgentConfig {
     agent::AgentConfig::new(prompt, dir)
         .backend(backend)
+        .workflow_permissions(true)
         .allowed_tools(agent::ToolPermissions::for_workflow().into_strings())
         .with_project_context(dir)
 }

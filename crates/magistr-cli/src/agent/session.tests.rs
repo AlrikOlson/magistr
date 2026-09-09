@@ -114,35 +114,58 @@ fn acp_session_state_eq() {
     assert_ne!(AcpSessionState::Cancelled, AcpSessionState::Failed);
 }
 
-async fn headless_permission_response(
+fn test_policy() -> Box<dyn magistr_cockpit::agent::SessionPolicy> {
+    Box::new(
+        crate::permissions::SessionPermissionPolicy::new(
+            crate::permissions::PermissionProfile::Standard,
+            vec![],
+            vec![],
+            vec![],
+            false,
+        )
+        .audit_to(None),
+    )
+}
+
+fn permission_request(
     options: &[(&str, magistr_acp::AcpPermissionOptionKind)],
+) -> (
+    magistr_acp::AcpPermissionRequest,
+    tokio::sync::oneshot::Receiver<magistr_acp::AcpPermissionResponse>,
+) {
+    let (response_tx, response_rx) = tokio::sync::oneshot::channel();
+    (
+        magistr_acp::AcpPermissionRequest {
+            tool_call_id: "headless-call".into(),
+            tool_title: "Edit".into(),
+            tool_input: serde_json::json!({"file_path": ".magistr/project.json"}),
+            tool_kind: Some(agent_client_protocol::schema::v1::ToolKind::Edit),
+            options: options
+                .iter()
+                .map(|(id, kind)| magistr_acp::AcpPermissionOption {
+                    option_id: (*id).into(),
+                    kind: *kind,
+                })
+                .collect(),
+            response_tx,
+        },
+        response_rx,
+    )
+}
+
+async fn permission_response(
+    options: &[(&str, magistr_acp::AcpPermissionOptionKind)],
+    handling: crate::permissions::NoninteractivePolicy,
 ) -> magistr_acp::AcpPermissionResponse {
     let (mut session, _messages) = AgentSession::from_channel();
     let (requests, receiver) = mpsc::unbounded_channel();
     session.acp_permission_rx = Some(receiver);
-    let task = session.spawn_auto_approve_permissions().unwrap();
+    assert!(session.spawn_permission_worker(test_policy(), handling));
     assert!(session.take_acp_permission_rx().is_none());
-    assert!(session.spawn_auto_approve_permissions().is_none());
-
-    let (response_tx, response_rx) = tokio::sync::oneshot::channel();
-    assert!(
-        requests
-            .send(magistr_acp::AcpPermissionRequest {
-                tool_call_id: "headless-call".into(),
-                tool_title: "Edit protected configuration".into(),
-                tool_input: serde_json::json!({"file_path": ".magistr/project.json"}),
-                tool_kind: Some(agent_client_protocol::schema::v1::ToolKind::Edit),
-                options: options
-                    .iter()
-                    .map(|(id, kind)| magistr_acp::AcpPermissionOption {
-                        option_id: (*id).into(),
-                        kind: *kind,
-                    })
-                    .collect(),
-                response_tx,
-            })
-            .is_ok()
-    );
+    assert!(!session.spawn_permission_worker(test_policy(), handling));
+    let task = session.permission_worker.take().unwrap();
+    let (request, response_rx) = permission_request(options);
+    assert!(requests.send(request).is_ok());
     drop(requests);
     tokio::time::timeout(std::time::Duration::from_secs(2), task)
         .await
@@ -152,35 +175,42 @@ async fn headless_permission_response(
 }
 
 #[tokio::test]
-async fn headless_permissions_prefer_allow_once_without_a_project_policy() {
+async fn legacy_permissions_prefer_allow_once_under_the_project_policy() {
     use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionResponse};
-
-    let response = headless_permission_response(&[
-        ("deny", Kind::RejectOnce),
-        ("always", Kind::AllowAlways),
-        ("once", Kind::AllowOnce),
-    ])
+    let response = permission_response(
+        &[
+            ("deny", Kind::RejectOnce),
+            ("always", Kind::AllowAlways),
+            ("once", Kind::AllowOnce),
+        ],
+        crate::permissions::NoninteractivePolicy::LegacyAutomaticApproval,
+    )
     .await;
     assert!(matches!(response, AcpPermissionResponse::Selected(id) if id == "once"));
 }
 
 #[tokio::test]
-async fn headless_permissions_fall_back_to_the_first_option_even_when_it_rejects() {
+async fn legacy_permissions_cancel_instead_of_selecting_rejection_or_standing_grant() {
     use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionResponse};
-
-    let response =
-        headless_permission_response(&[("deny", Kind::RejectOnce), ("always", Kind::AllowAlways)])
-            .await;
-    assert!(matches!(response, AcpPermissionResponse::Selected(id) if id == "deny"));
+    let response = permission_response(
+        &[("deny", Kind::RejectOnce), ("always", Kind::AllowAlways)],
+        crate::permissions::NoninteractivePolicy::LegacyAutomaticApproval,
+    )
+    .await;
+    assert!(matches!(response, AcpPermissionResponse::Cancelled));
 }
 
 #[tokio::test]
-async fn headless_permissions_cancel_when_no_option_is_offered() {
-    let response = headless_permission_response(&[]).await;
-    assert!(matches!(
-        response,
-        magistr_acp::AcpPermissionResponse::Cancelled
-    ));
+async fn noninteractive_permissions_cancel_when_no_allow_option_is_offered() {
+    use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionResponse};
+    for options in [&[][..], &[("deny", Kind::RejectOnce)][..]] {
+        let response = permission_response(
+            options,
+            crate::permissions::NoninteractivePolicy::LegacyAutomaticApproval,
+        )
+        .await;
+        assert!(matches!(response, AcpPermissionResponse::Cancelled));
+    }
 }
 
 #[test]
@@ -188,11 +218,94 @@ fn a_taken_permission_receiver_cannot_be_claimed_by_the_headless_worker() {
     let (mut session, _messages) = AgentSession::from_channel();
     let (requests, receiver) = mpsc::unbounded_channel();
     session.acp_permission_rx = Some(receiver);
-
     let receiver = session.take_acp_permission_rx().unwrap();
     assert!(session.take_acp_permission_rx().is_none());
-    assert!(session.spawn_auto_approve_permissions().is_none());
+    assert!(!session.spawn_permission_worker(test_policy(), Default::default()));
     assert!(!requests.is_closed(), "the caller still owns the receiver");
     drop(receiver);
     assert!(requests.is_closed());
+}
+
+#[tokio::test]
+async fn noninteractive_default_refuses_unanswered_edits() {
+    use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionResponse};
+    let response = permission_response(&[("once", Kind::AllowOnce)], Default::default()).await;
+    assert!(matches!(response, AcpPermissionResponse::Cancelled));
+}
+
+#[tokio::test]
+async fn cancelling_a_session_answers_queued_requests_with_cancelled() {
+    use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionResponse};
+    let (mut session, _messages) = AgentSession::from_channel();
+    let (requests, receiver) = mpsc::unbounded_channel();
+    session.acp_permission_rx = Some(receiver);
+    session.spawn_permission_worker(
+        test_policy(),
+        crate::permissions::NoninteractivePolicy::LegacyAutomaticApproval,
+    );
+    let (request, response) = permission_request(&[("once", Kind::AllowOnce)]);
+    requests.send(request).unwrap();
+    session.cancel();
+    assert!(matches!(
+        response.await,
+        Ok(AcpPermissionResponse::Cancelled)
+    ));
+    assert!(requests.is_closed());
+}
+
+#[tokio::test]
+async fn dropping_a_session_stops_its_permission_worker() {
+    use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionResponse};
+    let (mut session, _messages) = AgentSession::from_channel();
+    let (requests, receiver) = mpsc::unbounded_channel();
+    session.acp_permission_rx = Some(receiver);
+    session.spawn_permission_worker(
+        test_policy(),
+        crate::permissions::NoninteractivePolicy::LegacyAutomaticApproval,
+    );
+    let (request, response) = permission_request(&[("once", Kind::AllowOnce)]);
+    requests.send(request).unwrap();
+    drop(session);
+    assert!(matches!(
+        response.await,
+        Ok(AcpPermissionResponse::Cancelled)
+    ));
+    assert!(requests.is_closed());
+}
+
+#[tokio::test]
+async fn a_dropped_reply_does_not_stop_the_permission_worker() {
+    use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionResponse};
+    let (mut session, _messages) = AgentSession::from_channel();
+    let (requests, receiver) = mpsc::unbounded_channel();
+    session.acp_permission_rx = Some(receiver);
+    session.spawn_permission_worker(test_policy(), Default::default());
+    let (request, response) = permission_request(&[("once", Kind::AllowOnce)]);
+    drop(response);
+    requests.send(request).unwrap();
+    let (request, response) = permission_request(&[("once", Kind::AllowOnce)]);
+    requests.send(request).unwrap();
+    assert!(matches!(
+        response.await,
+        Ok(AcpPermissionResponse::Cancelled)
+    ));
+}
+
+#[test]
+fn cancelled_and_aborted_sessions_refuse_followup_input() {
+    let (mut cancelled, _messages, captured) = AgentSession::from_channel_with_followups();
+    cancelled.cancel();
+    assert!(
+        cancelled
+            .send_followup("Must not start another turn")
+            .is_err()
+    );
+    assert!(captured.lock().unwrap().is_empty());
+    let (mut aborted, _messages) = AgentSession::from_channel();
+    aborted.abort();
+    assert!(
+        aborted
+            .send_followup("Must not start another turn")
+            .is_err()
+    );
 }

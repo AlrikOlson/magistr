@@ -1,4 +1,5 @@
 use super::*;
+use crate::permissions::CockpitPolicy;
 use magistr_engine::policy::RiskTier;
 
 use magistr_acp::AcpPermissionRequest;
@@ -789,4 +790,154 @@ mod charter {
         assert!(entries[0].allowed);
         assert_eq!(entries[0].reason, "delegated: delegate:write:crates/x");
     }
+}
+
+#[test]
+fn remembered_refusal_caps_workflow_shortcuts() {
+    let mut policy = policy(PermissionProfile::Yolo, true);
+    let target = write_request("/repo/src/main.rs");
+    policy.answered(&target, PermissionKind::RejectAlways);
+    assert_eq!(policy.decide(&target), PolicyDecision::Deny);
+}
+
+#[test]
+fn written_condition_caps_safe_command_shortcuts() {
+    let mut policy = policy(PermissionProfile::Yolo, false);
+    let target = request(
+        "Bash",
+        serde_json::json!({"command":"cargo test"}),
+        Some(ToolKind::Execute),
+    );
+    policy.constrain(&target, "ask before running expensive tests");
+    assert!(matches!(policy.decide(&target), PolicyDecision::Ask(_)));
+}
+
+#[test]
+fn protected_targets_include_delete_and_move_requests() {
+    for kind in [ToolKind::Delete, ToolKind::Move] {
+        let mut policy = CockpitPolicy::new(
+            PermissionProfile::Yolo,
+            vec![],
+            vec![],
+            vec![PathBuf::from("/repo/ROADMAP.md")],
+            true,
+        )
+        .audit_to(None);
+        let target = request(
+            "change target",
+            serde_json::json!({"paths":["/repo/ordinary.rs", "/repo/ROADMAP.md"]}),
+            Some(kind),
+        );
+        assert_eq!(policy.decide(&target), PolicyDecision::Deny, "{kind:?}");
+    }
+}
+
+#[test]
+fn a_remembered_path_allow_cannot_widen_a_multi_target_call() {
+    let mut policy =
+        policy(PermissionProfile::Cautious, false).rooted_at(Some(PathBuf::from("/repo")));
+    policy.answered(
+        &write_request("/repo/crates/allowed/a.rs"),
+        PermissionKind::AllowAlways,
+    );
+    let target = request(
+        "Write",
+        serde_json::json!({"paths":["/repo/crates/allowed/b.rs", "/repo/crates/other/c.rs"]}),
+        Some(ToolKind::Edit),
+    );
+    assert!(matches!(policy.decide(&target), PolicyDecision::Ask(_)));
+}
+
+#[test]
+fn shared_decisions_carry_stable_request_scope_and_behavior_version() {
+    let make = || {
+        policy(PermissionProfile::Cautious, false)
+            .rooted_at(Some(PathBuf::from("/repo")))
+            .on_model(Some("model-a".into()))
+    };
+    let target = write_request("src/main.rs");
+    let mut first = make();
+    let baseline = first.evaluate_request(&target);
+    assert_eq!(baseline, make().evaluate_request(&target));
+    assert!(!baseline.reason.is_empty());
+    assert!(!baseline.scope.is_empty());
+    let different_target = first.evaluate_request(&write_request("src/other.rs"));
+    assert_ne!(baseline.scope, different_target.scope);
+    assert_eq!(baseline.policy_version, different_target.policy_version);
+    let other_project = make()
+        .rooted_at(Some(PathBuf::from("/other")))
+        .evaluate_request(&target);
+    assert_ne!(baseline.scope, other_project.scope);
+    assert_ne!(baseline.policy_version, other_project.policy_version);
+    let other_model = make()
+        .on_model(Some("model-b".into()))
+        .evaluate_request(&target);
+    assert_ne!(baseline.scope, other_model.scope);
+    assert_ne!(baseline.policy_version, other_model.policy_version);
+    first.answered(&target, PermissionKind::AllowOnce);
+    assert_eq!(
+        baseline.policy_version,
+        first.policy_version(),
+        "tallies do not change authorization"
+    );
+    first.answered(&target, PermissionKind::RejectAlways);
+    let refused = first.evaluate_request(&target);
+    assert_eq!(refused.outcome, PermissionOutcome::Deny);
+    assert_ne!(baseline.policy_version, refused.policy_version);
+    assert_eq!(baseline.scope, refused.scope);
+}
+
+#[test]
+fn governance_matches_normalized_absolute_and_project_relative_paths() {
+    for pattern in ["src/private/*", "/repo/src/private/*"] {
+        let mut policy = policy(PermissionProfile::Yolo, true)
+            .rooted_at(Some(PathBuf::from("/repo")))
+            .governed_by(PolicyEngine::new(vec![PolicyRule::new(
+                "private",
+                PolicyCondition::path(pattern),
+                Effect::Deny,
+            )]));
+        for target in [
+            "./src/private/key",
+            "src/ordinary/../private/key",
+            "/repo/src/private/key",
+        ] {
+            assert_eq!(
+                policy.decide(&write_request(target)),
+                PolicyDecision::Deny,
+                "{pattern}: {target}"
+            );
+        }
+    }
+}
+
+#[test]
+fn remembered_allow_does_not_follow_a_path_that_escapes_its_scope() {
+    let mut policy =
+        policy(PermissionProfile::Cautious, false).rooted_at(Some(PathBuf::from("/repo")));
+    policy.answered(
+        &write_request("crates/allowed/a.rs"),
+        PermissionKind::AllowAlways,
+    );
+    assert!(matches!(
+        policy.decide(&write_request("crates/allowed/../private/key")),
+        PolicyDecision::Ask(_)
+    ));
+    policy.answered(&write_request("/outside/a.rs"), PermissionKind::AllowAlways);
+    assert!(matches!(
+        policy.decide(&write_request("crates/other/a.rs")),
+        PolicyDecision::Ask(_)
+    ));
+}
+
+#[test]
+fn standing_answers_do_not_turn_glob_shaped_tool_titles_into_wildcard_rules() {
+    let mut policy = policy(PermissionProfile::Cautious, false);
+    let target = request("*", serde_json::json!({}), None);
+    policy.answered(&target, PermissionKind::AllowAlways);
+    assert!(policy.charter().delegations.is_empty());
+    assert!(matches!(
+        policy.decide(&write_request("src/main.rs")),
+        PolicyDecision::Ask(_)
+    ));
 }

@@ -8,6 +8,7 @@ pub async fn cmd_next_loop(
     dir: &std::path::Path,
     max_iterations: u32,
     backend: agent::Backend,
+    profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     use workflow::iteration::{IterationLoop, PostCheckResult, PreCheckResult};
 
@@ -80,7 +81,8 @@ pub async fn cmd_next_loop(
         iter_loop.persist().suggest()?;
         // Run one /next cycle
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
-        if let Err(error) = crate::commands::run::cmd_run(&prompt, None, false, None, backend).await
+        if let Err(error) =
+            crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile).await
         {
             iter_loop.post_iteration_check();
             iter_loop.advance();

@@ -4,6 +4,7 @@
 //! With ACP as the only backend, there is no trait indirection — the
 //! session owns the concrete `AcpBackend` directly.
 
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tracing::instrument;
 
@@ -48,6 +49,10 @@ pub struct AgentSession {
     message_rx: mpsc::UnboundedReceiver<Result<AgentMessage>>,
     /// The session ID returned from the most recent Result message.
     session_id: Option<SessionId>,
+    /// The owned policy worker ends on cancel/drop; its grant lock orders cancellation.
+    permission_worker: Option<tokio::task::JoinHandle<()>>,
+    permission_stop: Option<tokio::sync::oneshot::Sender<()>>,
+    permission_cancelled: Arc<Mutex<bool>>,
     /// Optional ACP permission request receiver (present only for ACP backends).
     acp_permission_rx: Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>>,
 }
@@ -57,15 +62,21 @@ impl AgentSession {
     #[instrument(skip_all, name = "agent_session_start")]
     pub async fn start(config: super::AgentConfig) -> Result<Self> {
         let config = config.apply_user_defaults();
+        let (policy, handling) = config.session_permission_policy();
         let (backend, message_rx, acp_permission_rx) =
             super::backend::AcpBackend::start(config).await?;
 
-        Ok(Self {
+        let mut session = Self {
             backend: SessionBackend::Acp(backend),
             message_rx,
             session_id: None,
             acp_permission_rx,
-        })
+            permission_worker: None,
+            permission_stop: None,
+            permission_cancelled: Arc::new(Mutex::new(false)),
+        };
+        session.spawn_permission_worker(Box::new(policy), handling);
+        Ok(session)
     }
 
     /// Create a test session from a raw message channel.
@@ -84,6 +95,9 @@ impl AgentSession {
             message_rx: msg_rx,
             session_id: None,
             acp_permission_rx: None,
+            permission_worker: None,
+            permission_stop: None,
+            permission_cancelled: Arc::new(Mutex::new(false)),
         };
         (session, msg_tx)
     }
@@ -109,51 +123,105 @@ impl AgentSession {
             message_rx: msg_rx,
             session_id: None,
             acp_permission_rx: None,
+            permission_worker: None,
+            permission_stop: None,
+            permission_cancelled: Arc::new(Mutex::new(false)),
         };
         (session, msg_tx, follow_ups)
     }
 
     /// Take the ACP permission request receiver, if present.
     ///
-    /// Returns `Some` for ACP backends, `None` for test channels.
-    /// Can only be called once — subsequent calls return `None`.
+    /// Real startup already transfers this receiver to the shared policy worker,
+    /// so successfully started sessions return `None`. Before attachment, ownership
+    /// can be taken only once; subsequent calls also return `None`.
     pub fn take_acp_permission_rx(
         &mut self,
     ) -> Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>> {
         self.acp_permission_rx.take()
     }
 
-    /// Spawn a background task that auto-approves all permission requests.
-    ///
-    /// Use for non-interactive agent sessions (roadmap generation, background
-    /// tasks) where there's no TUI modal to prompt the user. Selects
-    /// `AllowOnce` when available, falls back to the first option.
-    ///
-    /// Returns `Some(JoinHandle)` for ACP backends, `None` for test channels.
-    /// The handle is fire-and-forget — it exits when the session ends.
-    pub fn spawn_auto_approve_permissions(&mut self) -> Option<tokio::task::JoinHandle<()>> {
-        use magistr_acp::{AcpPermissionOptionKind, AcpPermissionResponse};
+    /// Attach the shared policy to the session's sole request receiver.
+    fn spawn_permission_worker(
+        &mut self,
+        mut policy: Box<dyn magistr_cockpit::agent::SessionPolicy>,
+        handling: crate::permissions::NoninteractivePolicy,
+    ) -> bool {
+        let Some(mut rx) = self.take_acp_permission_rx() else {
+            return false;
+        };
+        let cancelled = Arc::clone(&self.permission_cancelled);
+        let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel();
+        self.permission_stop = Some(stop_tx);
+        self.permission_worker = Some(tokio::spawn(async move {
+            loop {
+                let request = tokio::select! {
+                    biased;
+                    _ = &mut stop_rx => {
+                        rx.close();
+                        while let Ok(request) = rx.try_recv() {
+                            let _ = request.response_tx.send(magistr_acp::AcpPermissionResponse::Cancelled);
+                        }
+                        return;
+                    }
+                    request = rx.recv() => request,
+                };
+                let Some(request) = request else {
+                    break;
+                };
+                let response = super::noninteractive_response::noninteractive_response(
+                    policy.as_mut(),
+                    &request,
+                    handling,
+                );
+                // Cancellation and answering serialize through this lock. Once cancel
+                // returns no queued request can receive a new grant.
+                let is_cancelled = cancelled
+                    .lock()
+                    .expect("permission cancellation lock poisoned");
+                let response = if *is_cancelled {
+                    magistr_acp::AcpPermissionResponse::Cancelled
+                } else {
+                    response
+                };
+                let _ = request.response_tx.send(response);
+            }
+        }));
+        true
+    }
 
-        self.take_acp_permission_rx().map(|mut rx| {
-            tokio::spawn(async move {
-                while let Some(req) = rx.recv().await {
-                    let response = req
-                        .options
-                        .iter()
-                        .find(|o| o.kind == AcpPermissionOptionKind::AllowOnce)
-                        .or(req.options.first())
-                        .map_or(AcpPermissionResponse::Cancelled, |opt| {
-                            AcpPermissionResponse::Selected(opt.option_id.clone())
-                        });
-                    let _ = req.response_tx.send(response);
-                }
-            })
-        })
+    fn stop_permission_worker(&mut self) {
+        *self
+            .permission_cancelled
+            .lock()
+            .expect("permission cancellation lock poisoned") = true;
+        if let Some(stop) = self.permission_stop.take() {
+            let _ = stop.send(());
+        }
+        // The owned worker finishes its short cancellation drain asynchronously.
+        self.permission_worker.take();
+        if let Some(mut requests) = self.acp_permission_rx.take() {
+            requests.close();
+            while let Ok(request) = requests.try_recv() {
+                let _ = request
+                    .response_tx
+                    .send(magistr_acp::AcpPermissionResponse::Cancelled);
+            }
+        }
     }
 
     /// Send a follow-up message in the current conversation.
     #[instrument(skip_all)]
     pub fn send_followup(&self, content: &str) -> Result<()> {
+        if *self
+            .permission_cancelled
+            .lock()
+            .expect("permission cancellation lock poisoned")
+        {
+            return Err(crate::error::MagistrError::Acp(
+                "Cannot continue a cancelled or aborted session; start a new session".into(),
+            ));
+        }
         match &self.backend {
             SessionBackend::Acp(backend) => backend.send_followup(content),
             #[cfg(test)]
@@ -199,6 +267,7 @@ impl AgentSession {
     /// immediate cleanup.
     #[instrument(skip_all)]
     pub fn abort(&mut self) {
+        self.stop_permission_worker();
         match &mut self.backend {
             SessionBackend::Acp(backend) => backend.abort(),
             #[cfg(test)]
@@ -208,9 +277,11 @@ impl AgentSession {
 
     /// Gracefully cancel the current operation.
     ///
-    /// Sends `session/cancel` so the agent stops after its current tool call.
+    /// Sends `session/cancel` and ends this session's usable stream.
+    /// Follow-up input requires a new session after cancellation.
     #[instrument(skip_all)]
     pub fn cancel(&mut self) {
+        self.stop_permission_worker();
         match &mut self.backend {
             SessionBackend::Acp(backend) => backend.cancel(),
             #[cfg(test)]

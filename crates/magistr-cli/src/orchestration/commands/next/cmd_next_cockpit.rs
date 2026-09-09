@@ -13,7 +13,11 @@ use crate::workflow::iteration::IterationLoop;
 /// One iteration on the cockpit: an [`IterationLoop`] with a budget of
 /// one and no state on disk — a crash leaves nothing for `next-loop` to
 /// recover.
-pub async fn cmd_next_cockpit(dir: &Path, backend: Backend) -> eyre::Result<()> {
+pub async fn cmd_next_cockpit(
+    dir: &Path,
+    backend: Backend,
+    profile: crate::permissions::PermissionProfile,
+) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
     let native = crate::roadmap::open_native_engines(&dir);
     let wf = WorkflowConfig::load(&dir)
@@ -30,5 +34,5 @@ pub async fn cmd_next_cockpit(dir: &Path, backend: Backend) -> eyre::Result<()> 
     let iter_loop = IterationLoop::open(&dir, &wf.spec_path, 1, native)
         .suggest()?
         .with_run_mode(magistr_engine::workflow::RunMode::OneChunk);
-    super::run_cockpit_loop(&dir, wf, iter_loop, backend, false).await
+    super::run_cockpit_loop(&dir, wf, iter_loop, backend, false, profile).await
 }

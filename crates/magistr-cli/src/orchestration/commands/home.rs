@@ -30,18 +30,19 @@ pub async fn cmd_home(env: &crate::env::MagistrEnv) -> eyre::Result<()> {
     match model.launch().cloned() {
         Some(LaunchAction::Next) => {
             let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
-            let profile = super::run::resolve_permission_profile(None)
+            let profile = super::run::resolve_permission_profile(&root, None)
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
             super::next::cmd_next_tui(&root, backend, profile, env).await
         }
         Some(LaunchAction::Loop) => {
             let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
-            super::next::cmd_next_loop_tui(&root, LOOP_ITERATIONS, backend, env).await
+            let profile = super::run::resolve_permission_profile(&root, None)?;
+            super::next::cmd_next_loop_tui(&root, LOOP_ITERATIONS, backend, profile, env).await
         }
         Some(LaunchAction::Gates) => super::validate::cmd_validate(&root).await,
         Some(LaunchAction::Resume(session_id)) => {
             let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
-            let profile = super::run::resolve_permission_profile(None)
+            let profile = super::run::resolve_permission_profile(&root, None)
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
             super::run::cmd_run_cockpit(resume_config(&root, session_id, backend), profile).await
         }
@@ -50,7 +51,7 @@ pub async fn cmd_home(env: &crate::env::MagistrEnv) -> eyre::Result<()> {
         // the new folder.
         Some(LaunchAction::Born { dir, .. }) => {
             let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
-            let profile = super::run::resolve_permission_profile(None)
+            let profile = super::run::resolve_permission_profile(std::path::Path::new(&dir), None)
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
             super::next::cmd_next_tui(std::path::Path::new(&dir), backend, profile, env).await
         }

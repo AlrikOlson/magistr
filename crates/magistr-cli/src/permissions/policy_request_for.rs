@@ -30,7 +30,20 @@ pub fn policy_request_for(
         request = request.with_command(command);
     }
 
-    for field in ["file_path", "path", "notebook_path", "target_file"] {
+    for field in [
+        "file_path",
+        "path",
+        "notebook_path",
+        "target_file",
+        "source",
+        "destination",
+        "source_path",
+        "destination_path",
+        "old_path",
+        "new_path",
+        "from",
+        "to",
+    ] {
         if let Some(path) = tool_input.get(field).and_then(|v| v.as_str()) {
             request = request.with_path(path);
         }

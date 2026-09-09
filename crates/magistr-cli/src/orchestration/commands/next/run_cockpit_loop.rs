@@ -41,6 +41,7 @@ pub(crate) async fn run_cockpit_loop(
     iter_loop: IterationLoop,
     backend: Backend,
     persist: bool,
+    profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let engines = if wf.is_native() {
         match EngineClient::open(dir) {
@@ -80,6 +81,7 @@ pub(crate) async fn run_cockpit_loop(
         commands,
         Connector::live(),
     )
+    .permission_profile(profile)
     .persisting(persist)
     .auto_pause(auto_pause)
     .goal(goal, judge(goal, native, dir, backend), goal_note);
@@ -119,8 +121,6 @@ pub(crate) async fn run_cockpit_loop(
     // The rail is governed the way the driver's sessions are: the
     // project's profile under workflow mode — the terminal draws none
     // of it, but the one seeder binds every entry point alike.
-    let profile = crate::orchestration::commands::run::resolve_permission_profile(None)
-        .unwrap_or(crate::permissions::PermissionProfile::Standard);
     let model = crate::orchestration::commands::run::seed_supervision(model, dir, profile, true);
     let model = runtime.run(model).await;
     if let Some(feed) = feed {

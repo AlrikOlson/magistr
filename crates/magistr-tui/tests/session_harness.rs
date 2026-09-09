@@ -298,29 +298,35 @@ fn button_cell(title: &str, button: Widget) -> (u16, u16) {
 }
 
 #[tokio::test]
-async fn a_permission_answered_always_by_key_round_trips_and_suppresses_the_repeat() {
+async fn a_permission_answered_always_by_key_still_obeys_the_next_policy_ask() {
     let script = Script::new()
         .startup_replies(MS(0))
         .text(MS(300), "A")
         .text(MS(600), "again\r")
-        .text(MS(900), "\x04");
+        .text(MS(900), "d")
+        .text(MS(1200), "\x04");
     let (model, observed, capture, deliveries, arrivals) = run(
         script,
         FakeAcpAgent::new().asking_permission("Bash"),
         SessionOptions::new().opening_prompt("run the tests"),
     )
     .await;
-    assert_strip_in_next_frame(&capture, &arrivals, "⚠ Bash needs permission");
+    assert_eq!(arrivals.permission_requests().len(), 2);
+    for arrived in arrivals.permission_requests() {
+        let frame = screen_of_first_write_after(&capture, arrived)
+            .expect("the next frame shows the permission request");
+        assert!(frame.contains("⚠ Bash needs permission"), "{frame}");
+    }
     assert_eq!(observed.prompts(), ["run the tests", "again"]);
     assert_eq!(
         observed.outcomes(),
-        [Some("allow_always".to_owned()), Some("allow".to_owned())],
-        "the first answer came from the key, the second from the session's allowed set"
+        [Some("allow_always".to_owned()), Some("reject".to_owned())],
+        "the policy's next ask must reach the user despite the earlier Always choice"
     );
     assert_eq!(
         model.permissions_seen(),
-        1,
-        "the repeat never reached the cockpit"
+        2,
+        "remembered permission scopes belong to the policy"
     );
     assert_eq!(model.permissions_pending(), 0);
     assert_eq!(model.turn_state(), TurnState::AwaitingInput);
@@ -463,6 +469,33 @@ async fn ctrl_c_cancels_the_turn_in_flight_and_the_second_ctrl_c_quits() {
         .map(|r| r.text.as_str())
         .collect();
     assert_eq!(notes, ["cancelling…", "turn ended early: cancelled"]);
+}
+
+#[tokio::test]
+async fn ctrl_c_cancels_pending_permission_and_removes_the_card() {
+    let script = Script::new()
+        .startup_replies(MS(0))
+        .text(MS(300), "\x03")
+        .text(MS(650), "\x04");
+    let (model, observed, capture, deliveries, _arrivals) = run(
+        script,
+        FakeAcpAgent::new().asking_permission("Bash"),
+        SessionOptions::new().opening_prompt("run the tests"),
+    )
+    .await;
+    assert_eq!(observed.cancels(), 1);
+    assert_eq!(observed.outcomes(), [None], "the ACP answer is Cancelled");
+    assert_eq!(model.permissions_pending(), 0);
+    assert_eq!(model.turn_state(), TurnState::AwaitingInput);
+    let cancel = deliveries.instants()[1];
+    assert!(screen_before(&capture, cancel).contains("needs permission"));
+    let quit = *deliveries.instants().last().expect("the quit");
+    assert!(!screen_before(&capture, quit).contains("needs permission"));
+    assert!(
+        rows(&model)
+            .iter()
+            .all(|(_, text)| !text.contains("denied after"))
+    );
 }
 
 #[tokio::test]

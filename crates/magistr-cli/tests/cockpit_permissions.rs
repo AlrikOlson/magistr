@@ -186,3 +186,58 @@ async fn a_request_the_policy_cannot_decide_still_reaches_the_strip() {
     );
     assert_eq!(model.permissions_seen(), 1, "the strip was shown");
 }
+
+#[tokio::test]
+async fn a_remembered_refusal_blocks_workflow_auto_approval_in_the_real_session() {
+    use magistr_engine::policy::{Charter, PolicyCondition, PolicyEffect, PolicyRule};
+    let mut charter = Charter::default();
+    charter.delegate(PolicyRule::new(
+        "refuse:write",
+        PolicyCondition::tool("Write"),
+        PolicyEffect::Deny,
+    ));
+    let policy = CockpitPolicy::new(
+        PermissionProfile::Yolo,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+    )
+    .chartered(charter, None)
+    .audit_to(None);
+    let (model, observed) = run(
+        script(),
+        FakeAcpAgent::new()
+            .asking_permission("Write")
+            .with_kind(ToolKind::Edit)
+            .with_input(serde_json::json!({"file_path": "/repo/src/main.rs"})),
+        policy,
+    )
+    .await;
+    assert_eq!(observed.outcomes(), [Some("reject".to_owned())]);
+    assert_eq!(model.permissions_seen(), 0, "refusal never becomes an ask");
+}
+
+#[tokio::test]
+async fn a_protected_delete_is_refused_in_the_real_workflow_session() {
+    let policy = CockpitPolicy::new(
+        PermissionProfile::Yolo,
+        Vec::new(),
+        Vec::new(),
+        vec![PathBuf::from("/repo/.magistr/project.json")],
+        true,
+    )
+    .rooted_at(Some(PathBuf::from("/repo")))
+    .audit_to(None);
+    let (model, observed) = run(
+        script(),
+        FakeAcpAgent::new()
+            .asking_permission("Remove project configuration")
+            .with_kind(ToolKind::Delete)
+            .with_input(serde_json::json!({"path": ".magistr/project.json"})),
+        policy,
+    )
+    .await;
+    assert_eq!(observed.outcomes(), [Some("reject".to_owned())]);
+    assert_eq!(model.permissions_seen(), 0);
+}

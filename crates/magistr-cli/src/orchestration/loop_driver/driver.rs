@@ -89,6 +89,7 @@ pub struct LoopDriver {
     iter_loop: IterationLoop,
     wf: WorkflowConfig,
     backend: Backend,
+    permission_profile: Option<PermissionProfile>,
     inbox: Inbox,
     commands: Commands,
     jobs: Jobs,
@@ -228,6 +229,7 @@ impl LoopDriver {
             iter_loop,
             wf,
             backend,
+            permission_profile: None,
             inbox,
             commands,
             connector,
@@ -254,6 +256,13 @@ impl LoopDriver {
             checkpoints: None,
             ledger: None,
         }
+    }
+
+    /// Use the profile explicitly selected by the launching interface.
+    #[must_use]
+    pub fn permission_profile(mut self, profile: PermissionProfile) -> Self {
+        self.permission_profile = Some(profile);
+        self
     }
 
     /// The ledger the loop checkpoints on: one state per iteration
@@ -648,7 +657,9 @@ impl LoopDriver {
         // Workflow mode: reads, edits and the gate commands are
         // auto-approved so an unattended iteration never stalls on the
         // strip — the same policy the legacy workflow runner applied.
-        let profile = resolve_permission_profile(None).unwrap_or(PermissionProfile::Standard);
+        let profile = self.permission_profile.unwrap_or_else(|| {
+            resolve_permission_profile(cwd, None).unwrap_or(PermissionProfile::Standard)
+        });
         let policy = cockpit_policy_for_project(cwd, profile, true, None);
         // The engine port acts on the loop's own in-process engines, so a
         // pin or checkpoint from the cockpit works mid-iteration too.

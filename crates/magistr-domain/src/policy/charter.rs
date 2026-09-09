@@ -102,6 +102,22 @@ impl Charter {
             .delegations
             .iter()
             .filter(|rule| rule.matches(request))
+            // Permitting effects must cover the complete operation. A path condition
+            // matches any target for restrictive rules, but cannot lend its
+            // approval to unrelated targets in a multi-file request.
+            .filter(|rule| {
+                !matches!(rule.effect, PolicyEffect::Allow | PolicyEffect::Warn)
+                    || request.paths.iter().enumerate().all(|(index, path)| {
+                        let mut target = request.clone();
+                        target.paths = alloc::vec![path.clone()];
+                        target.path_aliases = request
+                            .path_aliases
+                            .get(index)
+                            .map(|aliases| alloc::vec![aliases.clone()])
+                            .unwrap_or_default();
+                        rule.matches(&target)
+                    })
+            })
             .collect();
         let Some(effect) = matches.iter().map(|rule| rule.effect).max() else {
             return PolicyDecision {

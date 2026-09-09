@@ -20,6 +20,7 @@ pub mod policy_request_for;
 pub mod profile_action;
 pub mod resolve_against;
 pub mod risk_level;
+pub mod session_permission_policy;
 
 // ── Rules ──────────────────────────────────────────────────────────
 pub mod auto_allow_rule;
@@ -29,6 +30,7 @@ pub mod rules_from_quality_gates;
 // ── Config ─────────────────────────────────────────────────────────
 pub mod config_path;
 pub mod load_config;
+pub mod noninteractive_policy;
 pub mod permission_config;
 pub mod save_config;
 
@@ -91,6 +93,7 @@ pub use high_risk_bash_patterns::HIGH_RISK_BASH_PATTERNS;
 pub use load_config::load_config;
 #[allow(unused_imports)]
 pub use load_entries::load_entries;
+pub use noninteractive_policy::NoninteractivePolicy;
 #[allow(unused_imports)]
 pub use permission_config::PermissionConfig;
 #[allow(unused_imports)]
@@ -113,6 +116,8 @@ pub use rule_matcher::RuleMatcher;
 pub use rules_from_quality_gates::rules_from_quality_gates;
 #[allow(unused_imports)]
 pub use save_config::save_config;
+#[allow(unused_imports)]
+pub use session_permission_policy::SessionPermissionPolicy;
 #[allow(unused_imports)]
 pub use suggest_trust_upgrade::suggest_trust_upgrade;
 #[allow(unused_imports)]

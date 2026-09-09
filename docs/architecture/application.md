@@ -129,5 +129,7 @@ cargo test -p magistr-application --doc
 Formatting and every required gate in `.magistr/project.json` remain mandatory,
 including existing interface and architecture-index checks. This chunk changes
 no rendering, goldens, motion rules or roadmap export policy. Live provider
-supervision, shared permission enforcement, native routing, durable command
-admission, full setup consolidation and host migration remain subsequent chunks.
+supervision, native routing, durable command admission, full setup consolidation
+and host migration remain subsequent chunks. Shared permission decisions are now
+implemented by the [permission service](permissions.md); production adapters use
+that policy while the scoped permission-command facade remains a separate contract.

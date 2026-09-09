@@ -16,6 +16,8 @@ pub enum DecisionReason {
     /// Decided by a rule the reader wrote into the charter — the
     /// delegation's id.
     Delegation(String),
+    /// Explanation supplied by the shared domain policy service.
+    PolicyResolution(String),
 }
 
 impl fmt::Display for DecisionReason {
@@ -26,6 +28,7 @@ impl fmt::Display for DecisionReason {
             Self::BatchApproval(pattern) => write!(f, "batch approval: {pattern}"),
             Self::GovernancePolicy(rule) => write!(f, "policy rule: {rule}"),
             Self::Delegation(rule) => write!(f, "delegated: {rule}"),
+            Self::PolicyResolution(reason) => f.write_str(reason),
         }
     }
 }

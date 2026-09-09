@@ -10,6 +10,7 @@ pub async fn cmd_run(
     continue_conversation: bool,
     model: Option<&str>,
     backend: agent::Backend,
+    profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let cwd = std::env::current_dir()?;
     // Model governance: the roster decides which models are
@@ -18,6 +19,7 @@ pub async fn cmd_run(
 
     let config = agent::AgentConfig::new(prompt, &cwd)
         .backend(backend)
+        .permission_profile(profile)
         .with_run_args(model.as_deref(), resume, continue_conversation)
         .with_project_context(&cwd);
 

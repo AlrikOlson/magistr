@@ -159,6 +159,12 @@ pub enum AgentEvent {
         /// How long the transport waited, in seconds.
         after_secs: u64,
     },
+    /// A pending request was cancelled by the user, session shutdown, or
+    /// an invalid response. Remove its card without recording a timeout denial.
+    PermissionCancelled {
+        /// The request's session-unique cockpit id.
+        id: u64,
+    },
     /// A chunk of raw output from one of the agent's terminals — the
     /// bytes the command wrote, escapes and all, in order — kept by
     /// terminal id ([`Model::terminal_output`]) for the pane that paints

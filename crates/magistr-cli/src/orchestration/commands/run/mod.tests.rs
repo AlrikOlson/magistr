@@ -163,38 +163,38 @@ async fn drain_session_turn_skips_non_text_messages() {
 
 #[test]
 fn resolve_profile_from_trust_flag_cautious() {
-    let profile = resolve_permission_profile(Some("cautious")).unwrap();
+    let profile = resolve_permission_profile(std::path::Path::new("."), Some("cautious")).unwrap();
     assert_eq!(profile, PermissionProfile::Cautious);
 }
 
 #[test]
 fn resolve_profile_from_trust_flag_yolo() {
-    let profile = resolve_permission_profile(Some("yolo")).unwrap();
+    let profile = resolve_permission_profile(std::path::Path::new("."), Some("yolo")).unwrap();
     assert_eq!(profile, PermissionProfile::Yolo);
 }
 
 #[test]
 fn resolve_profile_from_trust_flag_trusted() {
-    let profile = resolve_permission_profile(Some("trusted")).unwrap();
+    let profile = resolve_permission_profile(std::path::Path::new("."), Some("trusted")).unwrap();
     assert_eq!(profile, PermissionProfile::Trusted);
 }
 
 #[test]
 fn resolve_profile_from_trust_flag_standard() {
-    let profile = resolve_permission_profile(Some("standard")).unwrap();
+    let profile = resolve_permission_profile(std::path::Path::new("."), Some("standard")).unwrap();
     assert_eq!(profile, PermissionProfile::Standard);
 }
 
 #[test]
 fn resolve_profile_invalid_flag_errors() {
-    let result = resolve_permission_profile(Some("invalid"));
+    let result = resolve_permission_profile(std::path::Path::new("."), Some("invalid"));
     assert!(result.is_err());
 }
 
 #[test]
 fn resolve_profile_none_defaults_to_standard() {
     // Without a project config, falls back to Standard
-    let profile = resolve_permission_profile(None).unwrap();
+    let profile = resolve_permission_profile(std::path::Path::new("."), None).unwrap();
     assert_eq!(profile, PermissionProfile::Standard);
 }
 

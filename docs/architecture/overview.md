@@ -24,6 +24,8 @@ The [domain boundary](domain.md) enforces effect-free dependencies and preserves
 engine compatibility exports while application and session ownership migrate.
 The [application contracts](application.md) define the next boundary through
 project-scoped use cases and effect ports; production host migration remains separate.
+The [permission service](permissions.md) supplies one decision implementation for
+received agent requests across cockpit and noninteractive sessions.
 
 ## Workflow and tools
 
