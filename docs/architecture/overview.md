@@ -2,6 +2,8 @@
 
 Magistr separates project configuration, workflow state, agent transport, and
 presentation. The root Cargo manifest groups the Rust crates into one workspace.
+The [contract baseline](contracts.md) maps current owners and entry paths,
+records the refactor's intended policies, and names executable behavior scenarios.
 
 | Component | Responsibility |
 | --- | --- |

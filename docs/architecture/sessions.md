@@ -1,7 +1,10 @@
 # Sessions and providers
 
 `AgentConfig` selects a provider for each session. The shared `connect_transport`
-path serves the CLI backend, terminal cockpit, native desktop, and loop connector.
+path serves the CLI backend, terminal cockpit, and loop connector. The native
+desktop executable on the audited `gui2` branch runs fixtures; its live session
+connection is not integrated. See the [contract baseline](contracts.md) for
+entry paths, behavioral differences, and intended consolidation policies.
 
 | Provider ID | Session type |
 | --- | --- |
