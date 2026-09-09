@@ -212,6 +212,26 @@ fn gather_populates_all_fields() {
 }
 
 #[test]
+fn gathered_context_is_accepted_by_the_engine_without_conversion() {
+    let (dir, spec_path) = setup_project("- [x] Done\n- [ ] Remaining\n");
+    let core_context = ContextBuilder::new(dir.path(), &spec_path).gather();
+    let engine_context: magistr_engine::ProjectContext = core_context.clone();
+    let handle = magistr_engine::EngineHandle::new(
+        "context-compatibility",
+        magistr_engine::WorkflowConfig::default(),
+        magistr_engine::BudgetConfig::default(),
+    );
+    handle.set_project_context(engine_context);
+    let wire = serde_json::to_value(handle.project_context()).expect("serialize project context");
+    let restored: ProjectContext = serde_json::from_value(wire).expect("restore project context");
+
+    assert_eq!(restored, core_context);
+    assert_eq!(restored.spec_total, 2);
+    assert_eq!(restored.spec_checked, 1);
+    assert_eq!(restored.spec_unchecked, 1);
+}
+
+#[test]
 fn recovery_includes_last_commit_only() {
     let (dir, spec_path) = setup_project("- [ ] Todo\n");
 

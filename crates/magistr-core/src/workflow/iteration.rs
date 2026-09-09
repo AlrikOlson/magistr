@@ -9,6 +9,8 @@
 
 use std::path::{Path, PathBuf};
 
+pub use magistr_domain::workflow::IterationStatus;
+use magistr_domain::workflow::{RunMode, RunState, StopReason};
 use magistr_engine::NativeEngines;
 use serde::{Deserialize, Serialize};
 
@@ -19,35 +21,28 @@ use crate::workflow::spec::{self, SpecSummary};
 // ── Persisted state ─────────────────────────────────────────────────────────
 
 /// JSON-serializable iteration state, persisted to `.magistr/loop-state.json`.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct IterationState {
-    /// Current iteration number (0-based internally, displayed as 1-based).
+    /// Compatibility projection of `run.completed_attempts`.
     pub iteration: u32,
-    /// Maximum iterations allowed.
+    /// Compatibility projection of `run.max_iterations`.
     pub max_iterations: u32,
+    /// Canonical run policy and stopping evidence. Required for safe recovery.
+    pub run: RunState,
+    /// Attempt whose Git baseline was captured, retained across recovery.
+    #[serde(deserialize_with = "required_option")]
+    pub attempt_started: Option<u32>,
     /// Git HEAD SHA before the current iteration started.
     /// Used to detect whether the iteration produced a commit.
+    #[serde(deserialize_with = "required_option")]
     pub last_commit_sha: Option<String>,
     /// Status of the last completed iteration.
+    #[serde(with = "legacy_iteration_status")]
     pub last_status: IterationStatus,
     /// Spec progress: number of checked items at last check.
     pub spec_checked: usize,
     /// Spec progress: total number of items at last check.
     pub spec_total: usize,
-}
-
-/// Status of a completed iteration.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum IterationStatus {
-    /// No iteration has completed yet.
-    None,
-    /// Iteration completed successfully (commit was made).
-    Success,
-    /// Iteration completed but no commit was made.
-    NoCommit,
-    /// Iteration failed (agent error).
-    Failed,
 }
 
 // ── Pre/post check results ──────────────────────────────────────────────────
@@ -64,6 +59,8 @@ pub enum PreCheckResult {
     /// Stop the loop — the think-and-ship roadmap has no ready chunk
     /// (`roadmap_next` is `None`: everything left is done, blocked or backlog).
     NoReadyChunk,
+    /// Stop for another canonical run reason, including recovery guards.
+    Stopped(StopReason),
 }
 
 /// Result of a post-iteration check.
@@ -97,16 +94,13 @@ pub struct IterationLoop {
     project_dir: PathBuf,
     /// Path to the spec file.
     spec_path: PathBuf,
-    /// Number of consecutive no-commit iterations.
-    consecutive_no_commits: u32,
+    /// Prevent constructor options from replacing recovered run semantics.
+    recovered: bool,
     /// The in-process think-and-ship engines when the project runs the
     /// native roadmap: the next chunk comes from `roadmap_next` and progress
     /// from the roadmap, not from the spec file.
     native: Option<NativeEngines>,
 }
-
-/// Maximum consecutive iterations without a commit before auto-stopping.
-const MAX_NO_COMMIT_RETRIES: u32 = 2;
 
 /// Default max iterations when `MAGISTR_MAX_ITERATIONS` is not set.
 const DEFAULT_MAX_ITERATIONS: u32 = 10;
@@ -156,6 +150,8 @@ impl IterationLoop {
         let state = IterationState {
             iteration: 0,
             max_iterations,
+            run: RunState::new(RunMode::ChunkLoop, max_iterations, None),
+            attempt_started: None,
             last_commit_sha: git_head_sha(&project_dir),
             last_status: IterationStatus::None,
             spec_checked: summary.checked,
@@ -166,9 +162,29 @@ impl IterationLoop {
             state,
             project_dir,
             spec_path,
-            consecutive_no_commits: 0,
+            recovered: false,
             native,
         })
+    }
+
+    /// Open a new run only when no recovery file exists. Invalid or stopped
+    /// checkpoints remain authoritative and are never silently replaced.
+    pub fn open_or_recover(
+        project_dir: impl Into<PathBuf>,
+        spec_path: impl Into<PathBuf>,
+        max_iterations: u32,
+        native: Option<NativeEngines>,
+    ) -> Result<Self> {
+        let project_dir = project_dir.into();
+        let spec_path = spec_path.into();
+        if loop_state_path(&project_dir)
+            .try_exists()
+            .map_err(|error| MagistrError::io(loop_state_path(&project_dir), error))?
+        {
+            Self::recover_with(project_dir, spec_path, native)
+        } else {
+            Self::open(project_dir, spec_path, max_iterations, native)
+        }
     }
 
     /// Recover from a previously persisted state (crash recovery).
@@ -191,17 +207,72 @@ impl IterationLoop {
 
         let content =
             std::fs::read_to_string(&state_path).map_err(|e| MagistrError::io(&state_path, e))?;
-        let state: IterationState = serde_json::from_str(&content)
-            .map_err(|e| MagistrError::parse("JSON", "loop-state.json", e))?;
+        let state: IterationState = serde_json::from_str(&content).map_err(recovery_error)?;
+        validate_state(&state).map_err(recovery_error)?;
         let native = native.or_else(|| auto_native(&project_dir));
 
         Ok(Self {
             state,
             project_dir,
             spec_path,
-            consecutive_no_commits: 0,
+            recovered: true,
             native,
         })
+    }
+
+    /// Select a mode for a pristine new run. Recovery retains the saved mode.
+    #[must_use]
+    pub fn with_run_mode(mut self, mode: RunMode) -> Self {
+        if !self.recovered
+            && self.state.run.completed_attempts == 0
+            && self.state.run.last_settled_attempt.is_none()
+            && self.state.attempt_started.is_none()
+        {
+            self.state.run.mode = mode;
+        }
+        self
+    }
+
+    /// Canonical counters, limits, observations and terminal state.
+    #[must_use]
+    pub fn run_state(&self) -> &RunState {
+        &self.state.run
+    }
+
+    /// Configure a budget while retaining any stricter recovered limit.
+    /// Omitting an option does not remove a previously persisted limit.
+    pub fn set_budget_limit(&mut self, limit: Option<f64>) -> Result<()> {
+        let Some(limit) = limit else {
+            return Ok(());
+        };
+        if !limit.is_finite() || limit < 0.0 {
+            return Err(MagistrError::Budget(
+                "Run budget limit must be finite and nonnegative".into(),
+            ));
+        }
+        if self
+            .state
+            .run
+            .budget_limit_usd
+            .is_some_and(|saved| limit > saved)
+        {
+            return Err(MagistrError::Budget(
+                "Cannot weaken a persisted run budget; start an explicit new run to change it"
+                    .into(),
+            ));
+        }
+        self.state.run.budget_limit_usd = Some(limit);
+        Ok(())
+    }
+
+    /// Observe cumulative spend for the whole run, including prior providers.
+    pub fn observe_budget(&mut self, total_usd: f64) {
+        self.state.run.observe_budget(total_usd);
+    }
+
+    /// Persistable terminal outcome; subsequent observations cannot clear it.
+    pub fn stop(&mut self, reason: StopReason) {
+        self.state.run.stop(reason);
     }
 
     /// Drive the loop from the think-and-ship roadmap (`None` keeps the
@@ -238,9 +309,9 @@ impl IterationLoop {
 
     /// Run pre-iteration checks. Returns whether to continue or stop.
     pub fn pre_iteration_check(&mut self) -> Result<PreCheckResult> {
-        // Check max iterations
-        if self.state.iteration >= self.state.max_iterations {
-            return Ok(PreCheckResult::MaxIterations);
+        if let Some(reason) = self.state.run.stop_reason() {
+            self.stop(reason);
+            return Ok(pre_check_stop(reason));
         }
 
         // Check if all spec items are done
@@ -249,15 +320,21 @@ impl IterationLoop {
         self.state.spec_total = summary.total;
 
         if summary.all_done() {
-            return Ok(if self.native.is_some() {
-                PreCheckResult::NoReadyChunk
+            let reason = if self.native.is_some() {
+                StopReason::NoReadyChunk
             } else {
-                PreCheckResult::SpecComplete
-            });
+                StopReason::SpecComplete
+            };
+            self.stop(reason);
+            return Ok(pre_check_stop(reason));
         }
 
-        // Capture current HEAD for post-iteration commit detection
-        self.state.last_commit_sha = git_head_sha(&self.project_dir);
+        // A recovered in-flight attempt retains its original baseline so a
+        // commit observed after a restart still counts as that attempt's work.
+        if self.state.attempt_started != Some(self.state.run.completed_attempts) {
+            self.state.last_commit_sha = git_head_sha(&self.project_dir);
+            self.state.attempt_started = Some(self.state.run.completed_attempts);
+        }
 
         Ok(PreCheckResult::Continue)
     }
@@ -271,22 +348,22 @@ impl IterationLoop {
             (None, Some(_)) => true, // First commit in repo
             _ => false,
         };
+        self.state.run.record_commit(commit_made);
 
         if commit_made {
-            self.state.last_status = IterationStatus::Success;
-            self.consecutive_no_commits = 0;
+            self.state.last_status = IterationStatus::Committed;
             PostCheckResult::CommitMade {
                 new_sha: current_sha.unwrap_or_default(),
             }
         } else {
             self.state.last_status = IterationStatus::NoCommit;
-            self.consecutive_no_commits += 1;
             PostCheckResult::NoCommit {
                 guidance: format!(
                     "The previous iteration did not produce a commit. \
                      This is attempt {} of {}. Please ensure you commit your changes \
                      at the end of the iteration. If you're stuck, try a different approach.",
-                    self.consecutive_no_commits, MAX_NO_COMMIT_RETRIES
+                    self.state.run.consecutive_no_commits,
+                    RunState::MAX_NO_COMMITS
                 ),
             }
         }
@@ -294,22 +371,26 @@ impl IterationLoop {
 
     /// Advance to the next iteration. Call after post-iteration check.
     pub fn advance(&mut self) {
-        self.state.iteration += 1;
+        self.state.run.advance_attempt();
+        self.state.iteration = self.state.run.completed_attempts;
+        self.state.attempt_started = None;
     }
 
     /// Whether the loop should stop due to repeated no-commit failures.
     #[must_use]
     pub fn should_stop_no_commits(&self) -> bool {
-        self.consecutive_no_commits >= MAX_NO_COMMIT_RETRIES
+        self.state.run.is_no_progress_exhausted()
     }
 
     /// Mark the current iteration as failed (agent error).
     pub fn mark_failed(&mut self) {
         self.state.last_status = IterationStatus::Failed;
+        self.stop(StopReason::Failed);
     }
 
     /// Persist state to `.magistr/loop-state.json`.
     pub fn persist(&self) -> Result<()> {
+        validate_state(&self.state).map_err(recovery_error)?;
         let state_path = loop_state_path(&self.project_dir);
 
         // Ensure .magistr/ directory exists
@@ -341,19 +422,19 @@ impl IterationLoop {
     /// Current iteration number (0-based).
     #[must_use]
     pub fn iteration(&self) -> u32 {
-        self.state.iteration
+        self.state.run.completed_attempts
     }
 
     /// Maximum iterations allowed.
     #[must_use]
     pub fn max_iterations(&self) -> u32 {
-        self.state.max_iterations
+        self.state.run.max_iterations
     }
 
     /// Current iteration for display (1-based).
     #[must_use]
     pub fn display_iteration(&self) -> u32 {
-        self.state.iteration + 1
+        self.state.run.completed_attempts.saturating_add(1)
     }
 
     /// Reference to the full persisted state.
@@ -396,11 +477,80 @@ impl IterationLoop {
     /// Number of consecutive iterations without a commit.
     #[must_use]
     pub fn consecutive_no_commits(&self) -> u32 {
-        self.consecutive_no_commits
+        self.state.run.consecutive_no_commits
     }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+fn pre_check_stop(reason: StopReason) -> PreCheckResult {
+    match reason {
+        StopReason::IterationLimit => PreCheckResult::MaxIterations,
+        StopReason::SpecComplete => PreCheckResult::SpecComplete,
+        StopReason::NoReadyChunk => PreCheckResult::NoReadyChunk,
+        reason => PreCheckResult::Stopped(reason),
+    }
+}
+
+fn required_option<'de, D, T>(deserializer: D) -> std::result::Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer)
+}
+
+fn validate_state(state: &IterationState) -> std::result::Result<(), &'static str> {
+    state.run.validate()?;
+    if state.iteration != state.run.completed_attempts
+        || state.max_iterations != state.run.max_iterations
+    {
+        return Err("legacy iteration projections disagree with canonical run state");
+    }
+    if state
+        .attempt_started
+        .is_some_and(|attempt| attempt != state.run.completed_attempts)
+    {
+        return Err("Git baseline belongs to a different attempt than the run cursor");
+    }
+    Ok(())
+}
+
+fn recovery_error(cause: impl std::fmt::Display) -> MagistrError {
+    MagistrError::Workflow(format!(
+        "Cannot recover loop-state.json: {cause}. Preserve or remove .magistr/loop-state.json \
+         explicitly to start a new run; missing stopping evidence cannot be inferred."
+    ))
+}
+
+/// The loop-state DTO historically spelled `Committed` as `success`. The
+/// canonical type remains shared while this file keeps its established wire value.
+mod legacy_iteration_status {
+    use super::IterationStatus;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub(super) fn serialize<S>(status: &IterationStatus, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match status {
+            IterationStatus::Committed => serializer.serialize_str("success"),
+            status => serde::Serialize::serialize(status, serializer),
+        }
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<IterationStatus, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        if value == "success" {
+            Ok(IterationStatus::Committed)
+        } else {
+            IterationStatus::deserialize(serde::de::value::StringDeserializer::new(value))
+        }
+    }
+}
 
 /// Path to the loop state file within the project's `.magistr/` directory.
 fn loop_state_path(project_dir: &Path) -> PathBuf {

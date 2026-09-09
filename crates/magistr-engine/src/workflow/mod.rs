@@ -33,3 +33,4 @@ pub use workflow_phase::WorkflowPhase;
 #[cfg(test)]
 #[path = "mod.tests.rs"]
 mod tests;
+pub use magistr_domain::workflow::{RunMode, RunState, StopReason};

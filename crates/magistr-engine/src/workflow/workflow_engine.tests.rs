@@ -77,6 +77,7 @@ fn advance_iteration_resets_phase() {
 fn committed_resets_no_commit_counter() {
     let mut e = default_engine();
     e.record_no_commit();
+    e.advance_iteration();
     e.record_no_commit();
     assert_eq!(e.consecutive_no_commits(), 2);
     e.record_committed();
@@ -96,12 +97,13 @@ fn should_stop_on_iteration_limit() {
 #[test]
 fn should_stop_on_repeated_no_commits() {
     let mut e = default_engine();
-    for _ in 0..3 {
-        e.record_no_commit();
-    }
+    e.record_no_commit();
+    assert!(!e.should_stop_no_commits());
+    e.advance_iteration();
+    e.record_no_commit();
     assert!(
         e.should_stop_no_commits(),
-        "3 consecutive no-commits should trigger stop"
+        "2 consecutive no-commit attempts should trigger stop"
     );
 }
 
@@ -154,7 +156,7 @@ fn restore_iteration_puts_the_loop_back_where_a_snapshot_says() {
         spec_checked: 3,
         spec_total: 9,
     };
-    engine.restore_iteration(state.clone(), 2);
+    engine.restore_iteration(state.clone(), 2).unwrap();
 
     assert_eq!(engine.iteration(), &state);
     assert_eq!(engine.consecutive_no_commits(), 2);
@@ -165,12 +167,70 @@ fn restore_iteration_puts_the_loop_back_where_a_snapshot_says() {
 fn a_restored_no_commit_count_still_stops_the_loop() {
     let mut engine = default_engine();
     let state = engine.iteration().clone();
-    // Two no-commits on the old machine, one on the new one.
-    engine.restore_iteration(state, 2);
-    assert!(!engine.should_stop_no_commits());
-    engine.record_no_commit();
+    // Two no-commits already exhaust the shared run policy.
+    engine.restore_iteration(state, 2).unwrap();
     assert!(
         engine.should_stop_no_commits(),
         "migrating must not launder the loop's own stop condition"
     );
+}
+
+#[test]
+fn duplicate_settlement_cannot_exhaust_the_run() {
+    let mut engine = engine_with_max_iterations(10);
+    engine.record_no_commit();
+    engine.record_no_commit();
+    assert_eq!(engine.consecutive_no_commits(), 1);
+    assert!(!engine.should_stop_no_commits());
+    engine.advance_iteration();
+    engine.record_no_commit();
+    assert!(engine.should_stop_no_commits());
+    assert!(
+        engine
+            .validate_command(&WorkflowCommand::StartIteration)
+            .is_err()
+    );
+}
+
+#[test]
+fn starting_from_complete_cannot_step_past_the_iteration_ceiling() {
+    let mut engine = engine_with_max_iterations(1);
+    engine.record_committed();
+    engine.advance_phase(WorkflowPhase::Complete).unwrap();
+    assert!(
+        engine
+            .execute_command(&WorkflowCommand::StartIteration)
+            .is_err()
+    );
+    assert_eq!(engine.iteration().iteration, 0);
+}
+
+#[test]
+fn conversation_and_one_chunk_apply_the_shared_mode_policy() {
+    for mode in [RunMode::Conversation, RunMode::OneChunk] {
+        let mut engine = WorkflowEngine::with_run_mode(WorkflowConfig::default(), mode);
+        engine.record_no_commit();
+        assert_eq!(
+            engine.stop_reason(),
+            (mode == RunMode::OneChunk).then_some(StopReason::OneChunkComplete)
+        );
+        if mode == RunMode::Conversation {
+            engine.advance_iteration();
+            engine.record_no_commit();
+            engine.update_spec_progress(1, 1);
+            assert!(!engine.should_stop());
+        }
+    }
+}
+
+#[test]
+fn the_legacy_restore_helper_cannot_lower_known_stopping_evidence() {
+    let mut engine = engine_with_max_iterations(10);
+    let pristine = engine.iteration().clone();
+    engine.record_no_commit();
+    engine.advance_iteration();
+    engine.record_no_commit();
+    assert!(engine.restore_iteration(pristine, 0).is_err());
+    assert!(engine.should_stop_no_commits());
+    assert_eq!(engine.iteration().iteration, 1);
 }

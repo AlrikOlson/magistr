@@ -420,10 +420,126 @@ fn the_no_commit_stop_condition_travels_with_the_snapshot() {
     // The count itself is exercised where `record_no_commit` lives
     // (workflow_engine.tests.rs); what matters here is that the handle
     // carries it in both directions rather than resetting it.
-    let mut snapshot = first_process().capture();
-    snapshot.consecutive_no_commits = 2;
+    let snapshot = first_process().capture().with_no_commits(2);
 
     let resumed = second_process();
     resumed.resume(&snapshot).expect("restores");
     assert_eq!(resumed.capture().consecutive_no_commits, 2);
+}
+
+#[test]
+fn resumed_budget_keeps_prior_spend_and_its_original_limit() {
+    let original = EngineHandle::new("charged", test_config(), BudgetConfig::with_limit(3.0));
+    original.record_cost(2.5, 200, 100);
+    let resumed = second_process();
+    resumed.resume(&original.capture()).unwrap();
+    assert_eq!(resumed.total_cost_usd(), 2.5);
+    resumed.record_cost(0.5, 20, 10);
+    assert!(resumed.is_budget_exceeded());
+    assert_eq!(resumed.capture().cost.total_usd, resumed.total_cost_usd());
+}
+
+#[test]
+fn resumed_abort_cannot_start_another_attempt() {
+    let original = test_handle();
+    original
+        .workflow_command(WorkflowCommand::AbortLoop)
+        .unwrap();
+    let resumed = second_process();
+    resumed.resume(&original.capture()).unwrap();
+    assert!(resumed.should_stop());
+    assert!(
+        resumed
+            .workflow_command(WorkflowCommand::StartIteration)
+            .is_err()
+    );
+}
+
+#[test]
+fn pause_and_budget_warning_survive_process_recovery() {
+    let original = EngineHandle::new(
+        "warned",
+        test_config(),
+        BudgetConfig::with_limit_and_warn(3.0, 1.0),
+    );
+    original.record_cost(1.5, 200, 100);
+    original.workflow_command(WorkflowCommand::Pause).unwrap();
+    let resumed = second_process();
+    resumed.resume(&original.capture()).unwrap();
+    assert!(resumed.is_paused());
+    resumed.workflow_command(WorkflowCommand::Resume).unwrap();
+    let mut rx = resumed.subscribe();
+    resumed.record_cost(0.1, 20, 10);
+    while let Ok(event) = rx.try_recv() {
+        assert!(!matches!(
+            event,
+            EngineEvent::Cost(CostEvent::BudgetWarning { .. })
+        ));
+    }
+    assert!(!resumed.should_stop());
+}
+
+#[test]
+fn a_cancelled_provider_result_cannot_admit_another_attempt_after_recovery() {
+    let original = test_handle();
+    original
+        .set_session_status(SessionStatus::InProgress)
+        .unwrap();
+    original
+        .set_session_status(SessionStatus::Cancelled)
+        .unwrap();
+    let resumed = second_process();
+    resumed.resume(&original.capture()).unwrap();
+    assert_eq!(
+        resumed.capture().run.terminal_reason,
+        Some(crate::workflow::StopReason::Cancelled)
+    );
+    assert!(
+        resumed
+            .workflow_command(WorkflowCommand::StartIteration)
+            .is_err()
+    );
+}
+
+#[test]
+fn a_live_checkpoint_cannot_rewind_spend_attempts_or_terminal_outcomes() {
+    let charged = EngineHandle::new("live", test_config(), BudgetConfig::with_limit(2.0));
+    let before_spend = charged.capture();
+    charged.record_cost(3.0, 200, 100);
+    assert!(charged.resume(&before_spend).is_err());
+    assert_eq!(charged.total_cost_usd(), 3.0);
+    assert!(charged.is_budget_exceeded());
+
+    let advanced = test_handle();
+    let before_attempt = advanced.capture();
+    advanced.advance_iteration();
+    assert!(advanced.resume(&before_attempt).is_err());
+    assert_eq!(advanced.capture().run.completed_attempts, 1);
+
+    let aborted = test_handle();
+    let before_abort = aborted.capture();
+    aborted
+        .workflow_command(WorkflowCommand::AbortLoop)
+        .unwrap();
+    assert!(aborted.resume(&before_abort).is_err());
+    assert_eq!(
+        aborted.capture().run.terminal_reason,
+        Some(crate::workflow::StopReason::Aborted)
+    );
+}
+
+#[test]
+fn a_live_checkpoint_cannot_reset_no_progress_or_replace_the_session() {
+    let original = test_handle();
+    let before = original.capture();
+    original.workflow_command(WorkflowCommand::Skip).unwrap();
+    let mut lowered = original.capture();
+    lowered.consecutive_no_commits = 0;
+    lowered.run.consecutive_no_commits = 0;
+    assert!(original.resume(&lowered).is_err());
+    lowered = original.capture();
+    lowered.session_id = "another-run".into();
+    assert!(original.resume(&lowered).is_err());
+    assert!(original.resume(&before).is_err());
+    assert_eq!(original.capture().consecutive_no_commits, 1);
 }

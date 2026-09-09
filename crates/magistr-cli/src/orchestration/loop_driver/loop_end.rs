@@ -1,5 +1,6 @@
 //! Why the loop stopped.
 
+use magistr_engine::workflow::StopReason;
 use std::fmt;
 
 /// How the iteration loop ended.
@@ -23,6 +24,32 @@ pub enum LoopEnd {
     /// The judge said the chunk's acceptance cannot be met as written:
     /// the chunk is blocked on a human with this reason.
     NeedsHuman(String),
+}
+
+impl LoopEnd {
+    pub(super) fn from_stop(reason: StopReason, max: u32) -> Self {
+        match reason {
+            StopReason::NoProgress => Self::NoCommits,
+            StopReason::IterationLimit | StopReason::OneChunkComplete => Self::MaxIterations(max),
+            StopReason::SpecComplete => Self::SpecComplete,
+            StopReason::NoReadyChunk => Self::NoReadyChunk,
+            StopReason::Aborted => Self::Aborted,
+            StopReason::Cancelled => Self::CockpitClosed,
+            other => Self::Failed(other.to_string()),
+        }
+    }
+
+    pub(super) fn stop_reason(&self) -> StopReason {
+        match self {
+            Self::NoReadyChunk => StopReason::NoReadyChunk,
+            Self::SpecComplete => StopReason::SpecComplete,
+            Self::MaxIterations(_) => StopReason::IterationLimit,
+            Self::NoCommits => StopReason::NoProgress,
+            Self::Aborted => StopReason::Aborted,
+            Self::CockpitClosed => StopReason::Cancelled,
+            Self::Failed(_) | Self::NeedsHuman(_) => StopReason::Failed,
+        }
+    }
 }
 
 impl fmt::Display for LoopEnd {

@@ -12,4 +12,7 @@ extern crate alloc;
 pub mod gate;
 pub mod identity;
 pub mod policy;
+pub mod project;
 pub mod workflow;
+
+pub use project::ProjectContext;

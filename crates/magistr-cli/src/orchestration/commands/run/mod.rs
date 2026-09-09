@@ -123,7 +123,7 @@ mod seed_supervision;
 pub use cmd_run::cmd_run;
 pub use cmd_run_cockpit::cmd_run_cockpit;
 pub use cmd_run_headless::cmd_run_headless;
-pub(crate) use cmd_run_headless::{HeadlessOutcome, drain_headless};
+pub(crate) use cmd_run_headless::{HeadlessOutcome, drain_headless, drain_headless_observing};
 pub use cmd_run_tui::cmd_run_tui;
 pub use cockpit_policy_for_project::cockpit_policy_for_project;
 pub use collect_gate_commands::collect_gate_commands;

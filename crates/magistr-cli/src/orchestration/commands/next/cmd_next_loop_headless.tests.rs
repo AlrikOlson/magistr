@@ -41,6 +41,7 @@ async fn loop_budget_uses_recorded_spend_across_sessions() {
             &mut cumulative_cost,
             &mut Vec::new(),
             &mut Vec::new(),
+            &mut |_| Ok(()),
         )
         .await
         .unwrap();
@@ -64,6 +65,7 @@ async fn loop_budget_uses_recorded_spend_across_sessions() {
         &mut cumulative_cost,
         &mut Vec::new(),
         &mut errors,
+        &mut |_| Ok(()),
     )
     .await
     .unwrap();
@@ -74,7 +76,7 @@ async fn loop_budget_uses_recorded_spend_across_sessions() {
             .contains("$0.3000 >= $0.2500")
     );
     assert!(spend.is_none(), "no result means no invented ledger row");
-    assert_eq!(cumulative_cost, 0.75);
+    assert_eq!(cumulative_cost, 1.05);
 }
 
 #[tokio::test]
@@ -89,11 +91,159 @@ async fn loop_without_cost_limit_still_accounts_for_recorded_spend() {
         &mut cumulative_cost,
         &mut Vec::new(),
         &mut Vec::new(),
+        &mut |_| Ok(()),
     )
     .await
     .unwrap();
     assert_eq!(outcome, HeadlessOutcome::Ok);
     assert_eq!(cumulative_cost, 0.75);
+}
+
+#[tokio::test]
+async fn loop_final_result_cost_enforces_the_remaining_budget_without_usage_updates() {
+    for (cost, expected) in [
+        (0.24, HeadlessOutcome::Ok),
+        (0.25, HeadlessOutcome::BudgetExceeded),
+        (0.3, HeadlessOutcome::BudgetExceeded),
+    ] {
+        let (mut session, tx) = mock_session();
+        tx.send(Ok(result_message(cost))).unwrap();
+        let mut cumulative_cost = 0.75;
+        let mut checkpointed = None;
+        let (outcome, spend) = drain_iteration(
+            &mut session,
+            HeadlessFormat::Plain,
+            Some(1.0),
+            &mut cumulative_cost,
+            &mut Vec::new(),
+            &mut Vec::new(),
+            &mut |total| {
+                checkpointed = Some(total);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(outcome, expected, "final session cost {cost}");
+        assert_eq!(spend.unwrap().cost_usd, cost);
+        assert_eq!(cumulative_cost, 0.75 + cost);
+        assert_eq!(checkpointed, Some(cumulative_cost));
+    }
+}
+
+#[tokio::test]
+async fn loop_eof_without_a_terminal_result_is_an_agent_error() {
+    for reported_cost in [None, Some(0.25)] {
+        let (mut session, tx) = mock_session();
+        if let Some(cost) = reported_cost {
+            tx.send(Ok(AgentMessage::UsageUpdate {
+                context_tokens_used: 100,
+                context_window_size: 1000,
+                cost_usd: Some(cost),
+            }))
+            .unwrap();
+        }
+        drop(tx);
+        let mut cumulative_cost = 0.75;
+        let mut observations = Vec::new();
+        let (outcome, spend) = drain_iteration(
+            &mut session,
+            HeadlessFormat::Json,
+            Some(2.0),
+            &mut cumulative_cost,
+            &mut Vec::new(),
+            &mut Vec::new(),
+            &mut |total| {
+                observations.push(total);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(outcome, HeadlessOutcome::AgentError);
+        assert!(
+            spend.is_none(),
+            "EOF must not manufacture a completed session"
+        );
+        assert_eq!(cumulative_cost, 0.75 + reported_cost.unwrap_or(0.0));
+        assert_eq!(
+            observations,
+            reported_cost
+                .map(|cost| 0.75 + cost)
+                .into_iter()
+                .collect::<Vec<_>>()
+        );
+    }
+}
+
+#[tokio::test]
+async fn loop_stream_error_preserves_usage_in_the_recovery_checkpoint() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = dir.path().join("SPEC.md");
+    std::fs::write(&spec, "- [ ] Pending task\n").unwrap();
+    let mut iter_loop = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    iter_loop.set_budget_limit(Some(2.0)).unwrap();
+    iter_loop.observe_budget(0.75);
+    iter_loop.pre_iteration_check().unwrap();
+    iter_loop.persist().unwrap();
+
+    let (mut session, tx) = mock_session();
+    tx.send(Ok(AgentMessage::UsageUpdate {
+        context_tokens_used: 100,
+        context_window_size: 1000,
+        cost_usd: Some(0.25),
+    }))
+    .unwrap();
+    tx.send(Err(crate::error::MagistrError::Acp(
+        "transport disconnected".into(),
+    )))
+    .unwrap();
+    let mut cumulative_cost = iter_loop.run_state().budget_total_usd;
+    let error = drain_iteration(
+        &mut session,
+        HeadlessFormat::Plain,
+        Some(2.0),
+        &mut cumulative_cost,
+        &mut Vec::new(),
+        &mut Vec::new(),
+        &mut |total| {
+            iter_loop.observe_budget(total);
+            iter_loop.persist().suggest()?;
+            Ok(())
+        },
+    )
+    .await
+    .unwrap_err();
+    assert!(error.to_string().contains("transport disconnected"));
+    let recovered = IterationLoop::recover(dir.path(), &spec).unwrap();
+    assert_eq!(recovered.run_state().budget_total_usd, 1.0);
+    assert_eq!(recovered.run_state().budget_limit_usd, Some(2.0));
+    assert_eq!(recovered.iteration(), 0);
+}
+
+#[tokio::test]
+async fn loop_checkpoint_failure_precedes_terminal_result_output() {
+    let (mut session, tx) = mock_session();
+    tx.send(Ok(result_message(0.5))).unwrap();
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let error = drain_iteration(
+        &mut session,
+        HeadlessFormat::Json,
+        None,
+        &mut 0.0,
+        &mut out,
+        &mut err,
+        &mut |_| Err(eyre::eyre!("checkpoint disk unavailable")),
+    )
+    .await
+    .unwrap_err();
+    assert!(error.to_string().contains("checkpoint disk unavailable"));
+    assert!(
+        out.is_empty(),
+        "uncheckpointed completion must not be emitted"
+    );
+    assert!(err.is_empty());
 }
 
 #[tokio::test]
@@ -122,6 +272,7 @@ async fn loop_session_outcomes_reach_the_process_exit_status() {
             &mut 0.0,
             &mut Vec::new(),
             &mut Vec::new(),
+            &mut |_| Ok(()),
         )
         .await
         .unwrap();

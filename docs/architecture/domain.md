@@ -8,7 +8,8 @@ filesystem, network client, or renderer.
 | Module | Ownership |
 | --- | --- |
 | `identity` | Scoped Magistr identifiers and explicit provider conversation bindings |
-| `workflow` | Phase transitions, iteration status and values, spec completion and iteration-limit predicates, workflow command values |
+| `workflow` | Canonical phases, run modes and stopping policy, attempt settlement, iteration status and values, spec completion, workflow command values |
+| `project` | Project context snapshot supplied by effectful adapters |
 | `policy` | Existing governance rules, matching, severity composition, charter decisions and model tiers |
 | `gate` | Gate kinds, statuses and observed outcomes |
 
@@ -54,16 +55,86 @@ and application command admission are subsequent architecture work.
 Engine policy and gate modules re-export the domain's types **and module paths**.
 Existing imports therefore use the same definitions, rather than copied models.
 The engine retains configuration, lifecycle hooks, tracing and effect adapters.
-`WorkflowEngine` delegates phase admission and spec/iteration-limit predicates
-to the domain values.
+Core and engine now re-export the same
+[`WorkflowPhase`](../../crates/magistr-domain/src/workflow/workflow_phase.rs),
+[`IterationStatus`](../../crates/magistr-domain/src/workflow/iteration_status.rs)
+and [`ProjectContext`](../../crates/magistr-domain/src/project.rs) values.
+Phase labels are explicit: the domain supplies `Researching`, for example, and
+the [core notification adapter](../../crates/magistr-core/src/workflow_state.rs)
+adds progress punctuation. Equal and forward phase transitions remain accepted,
+and a completed phase can restart at any phase. Spec completion still requires
+a nonempty spec and checked count at least the total. Gate labels, icons,
+cached-pass behavior and serialization remain compatible.
 
-This extraction preserves the [contract baseline](contracts.md): equal and
-forward phase transitions are accepted, and a completed phase can restart at
-any phase. Spec completion requires a nonempty spec and checked count at least
-the total. The iteration limit stops at or beyond the configured count.
-The historical two-versus-three no-progress thresholds and recovery differences
-remain unchanged until canonical run-state consolidation. Gate status labels,
-icons, cached-pass behavior and serialization remain compatible.
+Architecture chunk `arch-03-run-semantics` implements the run-policy decisions
+recorded in the [contract baseline](contracts.md#implemented-run-consolidation).
+[`RunMode`](../../crates/magistr-domain/src/workflow/run_mode.rs) distinguishes
+conversation, one-chunk execution and bounded chunk loops.
+[`RunState`](../../crates/magistr-domain/src/workflow/run_state.rs) owns the
+attempt cursor, iteration ceiling, consecutive no-commit count, cumulative
+budget observation and limit, settlement marker and terminal reason.
+[`StopReason`](../../crates/magistr-domain/src/workflow/stop_reason.rs) names
+completion, limits, no progress, budget, cancellation, failure, abort and pause.
+Conversation has no Git no-progress guard; one-chunk mode stops after its
+selected attempt; chunk loops stop after two consecutive no-commit attempts.
+Repeated settlement of the same attempt cannot increase that count. An observed
+commit clears it, while recovery and provider restarts retain it. Only an
+explicit pause is resumable through the domain's resume operation; a later
+observation does not clear another terminal reason.
+
+[`IterationLoop`](../../crates/magistr-core/src/workflow/iteration.rs) and
+[`WorkflowEngine`](../../crates/magistr-engine/src/workflow/workflow_engine.rs)
+delegate admission and settlement decisions to `RunState`. Core's loop-state
+DTO retains its old iteration/max fields as validated projections and preserves
+the historical `success` JSON spelling for canonical `Committed`. The domain
+iteration projection retains `u32` spec counts; core spec/context collections
+retain `usize` counts. `WorkflowPhase::step_index` and `ProjectContext` use the
+existing core `usize` API width without narrowing adapter observations.
+
+The [context builder](../../crates/magistr-core/src/workflow/context_builder.rs)
+still gathers Git/filesystem/native observations and formats prompts. Supplying
+its shared `ProjectContext` to the engine requires no model conversion and does
+not establish an execution cycle.
+
+## Recovery boundaries
+
+Headless, plain and cockpit next-loop commands use core's `open_or_recover`.
+Recovered mode, limits, budget, settlement marker and terminal state remain
+authoritative. The persisted Git baseline belongs to an explicit attempt, so a
+restart cannot hide a commit made while the process was absent. Missing run
+evidence or inconsistent compatibility projections refuse recovery. Legacy
+`.magistr/loop-state.json` files without this evidence require an explicit new
+run: preserve the file elsewhere or remove it deliberately. Recovery never
+silently supplies a zero count or overwrites the invalid checkpoint. Completed
+run checkpoints are retained too; starting another run requires the same explicit
+file preservation or removal.
+
+Headless loops checkpoint priced usage before reporting it and save settlement
+before fallible progress output. Cockpit loops retain observed cumulative cents
+across provider sessions and drain queued observations before opening a successor.
+Headless EOF without a terminal result records failure; cancelled or incomplete
+cockpit turns cannot proceed to verification. These adapters preserve evidence
+they actually receive, without estimating unreported provider spend.
+
+Engine [`SessionSnapshot`](../../crates/magistr-engine/src/session/session_snapshot.rs)
+format version 2 requires the canonical run and complete
+[`CostGovernor`](../../crates/magistr-engine/src/cost/cost_governor.rs), including
+budget policy, spend, warning state and attribution. Restoration validates run,
+iteration, count and cost projections before installing them. Version 1 and
+missing required evidence are refused. The
+[`EngineHandle`](../../crates/magistr-engine/src/handle/engine_handle.rs) installs
+the recovered governor rather than constructing a new budget from session cost.
+A fresh handle can import a valid snapshot; a live handle refuses an older one
+that would erase known spend, counters, limits, warnings or terminal outcomes.
+The cockpit ledger's engine snapshot and the production loop checkpoint remain
+separate adapters. Plain command drains still expose a coarse success/error result;
+shared provider supervision is needed to unify their terminal-event contract.
+Peer reservations and worker request/receipt state remain separately owned by
+the [peer journal](peers.md); they are not session-snapshot fields.
+
+These changes do not provide a shared provider supervisor or redesign atomic
+checkpoint writes and durable operations. Those remain subsequent `arch-08`
+and `arch-13` work. No live-provider recovery or desktop integration is claimed.
 
 ## Enforcement and verification
 
@@ -90,7 +161,7 @@ requires reviewing the new capability.
 Focused verification:
 
 ```sh
-cargo nextest run -p magistr-domain -p magistr-engine
+cargo nextest run -p magistr-domain -p magistr-engine -p magistr-core
 cargo nextest run -p magistr-cli --test domain_boundary
 cargo test -p magistr-domain --doc
 ```
@@ -98,6 +169,9 @@ cargo test -p magistr-domain --doc
 The moved policy/gate suites retain their behavior and serialization assertions.
 Additional tests cover identity scope separation, invalid serialized keys,
 provider correlation, the phase transition matrix, stop boundaries, and negative
-dependency/source fixtures. Formatting and every configured standard/custom gate
+dependency/source fixtures. Run suites cover duplicate settlement, two-attempt
+stopping, observed-commit reset, retained budgets and terminal outcomes, invalid
+legacy recovery, and full engine-governor restoration. Core context tests pass
+the gathered value directly to the engine; compatibility tests pin phase labels,
+API widths and every legacy iteration-status spelling. Formatting and every configured standard/custom gate
 remain required. This boundary changes no interface rendering or goldens.
-

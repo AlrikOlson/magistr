@@ -37,6 +37,16 @@ fn set_workflow_phase_same_no_message() {
 }
 
 #[test]
+fn completed_phase_message_has_no_progress_punctuation() {
+    let mut state = WorkflowState::default();
+    state.set_workflow_phase(WorkflowPhase::Verifying);
+    assert_eq!(
+        state.set_workflow_phase(WorkflowPhase::Complete),
+        Some("Phase: Complete".into())
+    );
+}
+
+#[test]
 fn push_gate_history() {
     let mut state = WorkflowState::default();
     // Empty results should not push.

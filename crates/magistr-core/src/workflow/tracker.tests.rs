@@ -1134,10 +1134,10 @@ fn multiple_tdd_cycles_stay_in_execute() {
 
 #[test]
 fn phase_labels_and_step_indices() {
-    assert_eq!(WorkflowPhase::Researching.label(), "Researching...");
-    assert_eq!(WorkflowPhase::Planning.label(), "Planning...");
-    assert_eq!(WorkflowPhase::Executing.label(), "Executing...");
-    assert_eq!(WorkflowPhase::Verifying.label(), "Verifying...");
+    assert_eq!(WorkflowPhase::Researching.label(), "Researching");
+    assert_eq!(WorkflowPhase::Planning.label(), "Planning");
+    assert_eq!(WorkflowPhase::Executing.label(), "Executing");
+    assert_eq!(WorkflowPhase::Verifying.label(), "Verifying");
     assert_eq!(WorkflowPhase::Complete.label(), "Complete");
 
     assert_eq!(WorkflowPhase::Researching.step_index(), 0);

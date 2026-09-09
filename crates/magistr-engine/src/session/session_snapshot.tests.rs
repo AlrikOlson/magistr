@@ -161,6 +161,11 @@ fn a_status_that_asserts_nothing_about_a_live_process_is_kept() {
     ] {
         let mut snapshot = captured();
         snapshot.status = status;
+        match status {
+            SessionStatus::Cancelled => snapshot.run.stop(StopReason::Cancelled),
+            SessionStatus::Failed => snapshot.run.stop(StopReason::Failed),
+            _ => {}
+        }
         let restored = snapshot.restore().expect("restores");
         assert_eq!(restored.session.status(), status);
         assert_eq!(restored.resumed_from, None, "no downgrade for {status}");
@@ -227,4 +232,47 @@ fn a_snapshot_written_before_the_repo_field_still_parses() {
 fn a_snapshot_with_no_repo_says_nothing_about_one() {
     let json = serde_json::to_string(&captured()).expect("serialize");
     assert!(!json.contains("repo"), "{json}");
+}
+
+#[test]
+fn legacy_snapshots_cannot_silently_reset_stopping_evidence() {
+    for field in ["run", "cost_governor", "consecutive_no_commits"] {
+        let mut value = serde_json::to_value(captured()).unwrap();
+        value.as_object_mut().unwrap().remove(field);
+        assert!(
+            serde_json::from_value::<SessionSnapshot>(value).is_err(),
+            "{field}"
+        );
+    }
+    let mut old = captured();
+    old.version = 1;
+    assert!(old.restore().is_err());
+}
+
+#[test]
+fn contradictory_projection_or_budget_is_refused_before_restoring() {
+    let mut snapshot = captured();
+    snapshot.consecutive_no_commits = 2;
+    assert!(snapshot.restore().is_err());
+    let mut snapshot = captured();
+    snapshot.run.budget_limit_usd = Some(10.0);
+    assert!(snapshot.restore().is_err());
+    let mut snapshot = captured();
+    snapshot.roadmap.checked_tasks = 0;
+    assert!(snapshot.restore().is_err());
+}
+
+#[test]
+fn terminal_capture_and_count_builder_cannot_erase_stopping_evidence() {
+    let mut session = EngineSession::new("cancelled");
+    session.set_status(SessionStatus::InProgress).unwrap();
+    session.set_status(SessionStatus::Cancelled).unwrap();
+    let mut snapshot = SessionSnapshot::capture(&session, iteration(2), Utc::now())
+        .with_no_commits(2)
+        .with_no_commits(0);
+    assert_eq!(snapshot.consecutive_no_commits, 2);
+    assert_eq!(snapshot.run.terminal_reason, Some(StopReason::Cancelled));
+    assert!(snapshot.restore().is_ok());
+    snapshot.run.terminal_reason = None;
+    assert!(snapshot.restore().is_err());
 }

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
 use crate::error::{EngineError, Result};
+use magistr_domain::workflow::{RunMode, RunState, StopReason};
 
 use super::iteration_state::IterationState;
 use super::iteration_status::IterationStatus;
@@ -21,22 +22,18 @@ pub struct WorkflowEngine {
     config: WorkflowConfig,
     /// Iteration tracking (for loop mode).
     iteration: IterationState,
-    /// Count of consecutive iterations with no commit.
-    consecutive_no_commits: u32,
-    /// Whether the loop is paused (will stop after current iteration).
-    #[serde(default)]
-    paused: bool,
-    /// Whether the loop has been aborted.
-    #[serde(default)]
-    aborted: bool,
+    /// Shared run policy; the iteration value above is a compatibility view.
+    run: RunState,
 }
-
-/// Maximum consecutive no-commit iterations before stopping.
-const MAX_NO_COMMITS: u32 = 3;
 
 impl WorkflowEngine {
     /// Create a new workflow engine.
     pub fn new(config: WorkflowConfig) -> Self {
+        Self::with_run_mode(config, RunMode::ChunkLoop)
+    }
+
+    /// Construct an explicitly selected execution mode.
+    pub fn with_run_mode(config: WorkflowConfig, mode: RunMode) -> Self {
         let max_iterations = config.max_iterations;
         Self {
             phase: WorkflowPhase::Researching,
@@ -48,9 +45,7 @@ impl WorkflowEngine {
                 spec_checked: 0,
                 spec_total: 0,
             },
-            consecutive_no_commits: 0,
-            paused: false,
-            aborted: false,
+            run: RunState::new(mode, max_iterations, None),
         }
     }
 
@@ -69,22 +64,37 @@ impl WorkflowEngine {
     }
 
     pub fn consecutive_no_commits(&self) -> u32 {
-        self.consecutive_no_commits
+        self.run.consecutive_no_commits
+    }
+
+    pub fn run(&self) -> &RunState {
+        &self.run
+    }
+
+    /// Record an external terminal outcome without inferring successful work.
+    pub fn stop(&mut self, reason: StopReason) {
+        self.run.stop(reason);
+    }
+
+    /// Install the governor's configured limit and cumulative observation.
+    pub fn observe_budget(&mut self, total_usd: f64, limit_usd: Option<f64>) {
+        self.run.budget_limit_usd = limit_usd;
+        self.run.observe_budget(total_usd);
     }
 
     /// Current iteration for display (1-based).
     pub fn display_iteration(&self) -> u32 {
-        self.iteration.iteration + 1
+        self.iteration.iteration.saturating_add(1)
     }
 
     /// Whether the loop is paused.
     pub fn is_paused(&self) -> bool {
-        self.paused
+        self.run.terminal_reason == Some(StopReason::Paused)
     }
 
     /// Whether the loop has been aborted.
     pub fn is_aborted(&self) -> bool {
-        self.aborted
+        self.run.terminal_reason == Some(StopReason::Aborted)
     }
 
     // ── Phase transitions ───────────────────────────────────────────────
@@ -122,21 +132,24 @@ impl WorkflowEngine {
 
     /// Whether the iteration limit has been reached.
     pub fn is_iteration_limit_reached(&self) -> bool {
-        self.iteration.is_iteration_limit_reached()
+        self.run.is_iteration_limit_reached()
     }
 
     /// Whether the loop should stop due to repeated no-commit failures.
     pub fn should_stop_no_commits(&self) -> bool {
-        self.consecutive_no_commits >= MAX_NO_COMMITS
+        self.run.is_no_progress_exhausted()
     }
 
     /// Whether any stop condition is met.
     pub fn should_stop(&self) -> bool {
-        self.is_spec_complete()
-            || self.is_iteration_limit_reached()
-            || self.should_stop_no_commits()
-            || self.paused
-            || self.aborted
+        self.stop_reason().is_some()
+    }
+
+    pub fn stop_reason(&self) -> Option<StopReason> {
+        self.run.stop_reason().or_else(|| {
+            (self.run.mode != RunMode::Conversation && self.is_spec_complete())
+                .then_some(StopReason::SpecComplete)
+        })
     }
 
     /// Update spec progress counts.
@@ -149,42 +162,77 @@ impl WorkflowEngine {
     pub fn record_committed(&mut self) {
         debug!(iteration = self.iteration.iteration, "iteration committed");
         self.iteration.last_status = IterationStatus::Committed;
-        self.consecutive_no_commits = 0;
+        self.run.record_commit(true);
     }
 
     /// Record an iteration with no commit.
     pub fn record_no_commit(&mut self) {
         debug!(
             iteration = self.iteration.iteration,
-            consecutive = self.consecutive_no_commits + 1,
+            consecutive = self.run.consecutive_no_commits.saturating_add(1),
             "iteration had no commit"
         );
         self.iteration.last_status = IterationStatus::NoCommit;
-        self.consecutive_no_commits += 1;
+        self.run.record_commit(false);
     }
 
     /// Record a failed iteration.
     pub fn record_failed(&mut self) {
         debug!(iteration = self.iteration.iteration, "iteration failed");
         self.iteration.last_status = IterationStatus::Failed;
+        self.run.stop(StopReason::Failed);
     }
 
     /// Put the loop back where a snapshot says it was.
     ///
     /// `consecutive_no_commits` is restored alongside the iteration
     /// state on purpose. It is a *stop condition*, not a statistic: a
-    /// loop that has failed to commit twice is one iteration from
-    /// stopping, and dropping the count on a migration would let a
-    /// wedged loop launder its own stop by moving machines.
-    pub fn restore_iteration(&mut self, iteration: IterationState, consecutive_no_commits: u32) {
+    /// loop that has failed to commit twice must stop. Dropping the count would
+    /// let a wedged loop launder its own stop by moving machines.
+    /// New checkpoints must use `restore_run` to carry settlement and budget state.
+    pub fn restore_iteration(
+        &mut self,
+        iteration: IterationState,
+        consecutive_no_commits: u32,
+    ) -> Result<()> {
+        let mut run = self.run.clone();
+        run.completed_attempts = iteration.iteration;
+        run.max_iterations = iteration.max_iterations;
+        run.consecutive_no_commits = consecutive_no_commits;
+        self.restore_run(iteration, run)
+    }
+
+    /// Restore validated canonical run evidence and its compatibility view.
+    pub fn restore_run(&mut self, iteration: IterationState, run: RunState) -> Result<()> {
+        run.validate()
+            .map_err(|message| EngineError::Precondition(message.into()))?;
+        if run.completed_attempts != iteration.iteration
+            || run.max_iterations != iteration.max_iterations
+        {
+            return Err(EngineError::Precondition(
+                "run and iteration checkpoint disagree".into(),
+            ));
+        }
+        if !self.run.is_pristine() || self.phase != WorkflowPhase::Researching {
+            run.validate_recovery(&self.run)
+                .map_err(|message| EngineError::Precondition(message.into()))?;
+            if self.is_spec_complete() && !iteration.is_spec_complete() {
+                return Err(EngineError::Precondition(
+                    "checkpoint would erase observed spec completion".into(),
+                ));
+            }
+        }
+        self.config.max_iterations = run.max_iterations;
         self.iteration = iteration;
-        self.consecutive_no_commits = consecutive_no_commits;
+        self.run = run;
+        Ok(())
     }
 
     /// Advance to the next iteration.
     #[instrument(skip(self), fields(iteration = self.iteration.iteration))]
     pub fn advance_iteration(&mut self) {
-        self.iteration.iteration += 1;
+        self.run.advance_attempt();
+        self.iteration.iteration = self.run.completed_attempts;
         self.reset_for_next_iteration();
     }
 
@@ -194,12 +242,23 @@ impl WorkflowEngine {
     pub fn validate_command(&self, command: &WorkflowCommand) -> Result<()> {
         match command {
             WorkflowCommand::StartIteration => {
-                if self.aborted {
+                if let Some(reason) = self.stop_reason() {
                     return Err(EngineError::invalid_command(
                         command,
-                        "aborted",
-                        "cannot start iteration after abort",
+                        reason,
+                        "cannot start another attempt while the run is stopped",
                     ));
+                }
+                if self.phase == WorkflowPhase::Complete {
+                    let mut next = self.run.clone();
+                    next.advance_attempt();
+                    if let Some(reason) = next.stop_reason() {
+                        return Err(EngineError::invalid_command(
+                            command,
+                            reason,
+                            "next attempt exceeds the run policy",
+                        ));
+                    }
                 }
                 if self.phase != WorkflowPhase::Researching && self.phase != WorkflowPhase::Complete
                 {
@@ -212,24 +271,24 @@ impl WorkflowEngine {
                 Ok(())
             }
             WorkflowCommand::Pause => {
-                if self.paused {
+                if self.is_paused() {
                     return Err(EngineError::invalid_command(
                         command,
                         "paused",
                         "already paused",
                     ));
                 }
-                if self.aborted {
+                if let Some(reason) = self.run.terminal_reason {
                     return Err(EngineError::invalid_command(
                         command,
-                        "aborted",
-                        "cannot pause after abort",
+                        reason,
+                        "cannot pause a terminal run",
                     ));
                 }
                 Ok(())
             }
             WorkflowCommand::Resume => {
-                if !self.paused {
+                if !self.is_paused() {
                     return Err(EngineError::invalid_command(
                         command,
                         "running",
@@ -239,21 +298,23 @@ impl WorkflowEngine {
                 Ok(())
             }
             WorkflowCommand::Skip => {
-                if self.aborted {
+                if let Some(reason) = self.stop_reason() {
                     return Err(EngineError::invalid_command(
                         command,
-                        "aborted",
-                        "cannot skip after abort",
+                        reason,
+                        "cannot skip while the run is stopped",
                     ));
                 }
                 Ok(())
             }
             WorkflowCommand::AbortLoop => {
-                if self.aborted {
+                if let Some(reason) = self.run.terminal_reason
+                    && reason != StopReason::Paused
+                {
                     return Err(EngineError::invalid_command(
                         command,
-                        "aborted",
-                        "already aborted",
+                        reason,
+                        "run already has a terminal outcome",
                     ));
                 }
                 Ok(())
@@ -276,17 +337,17 @@ impl WorkflowEngine {
                 // Already in Researching — nothing more to do.
             }
             WorkflowCommand::Pause => {
-                self.paused = true;
+                self.run.stop(StopReason::Paused);
             }
             WorkflowCommand::Resume => {
-                self.paused = false;
+                self.run.resume();
             }
             WorkflowCommand::Skip => {
                 self.record_no_commit();
                 self.advance_iteration();
             }
             WorkflowCommand::AbortLoop => {
-                self.aborted = true;
+                self.run.stop(StopReason::Aborted);
             }
         }
         Ok(())

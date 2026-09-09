@@ -26,12 +26,8 @@ pub async fn cmd_next_loop_cockpit(
         .suggest()?
         .with_native(native.clone());
     wf.cleanup()?;
-    let iter_loop = if IterationLoop::has_persisted_state(&dir) {
-        IterationLoop::recover_with(&dir, &wf.spec_path, native).suggest()?
-    } else {
-        let il = IterationLoop::open(&dir, &wf.spec_path, max_iterations, native).suggest()?;
-        il.persist().suggest()?;
-        il
-    };
+    let iter_loop =
+        IterationLoop::open_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;
+    iter_loop.persist().suggest()?;
     super::run_cockpit_loop(&dir, wf, iter_loop, backend, true).await
 }

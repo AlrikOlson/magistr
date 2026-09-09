@@ -1,9 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::cost::{BudgetConfig, CostGovernor};
 use crate::error::EngineError;
 use crate::roadmap::RoadmapProgress;
-use crate::workflow::IterationState;
+use crate::workflow::{IterationState, RunMode, RunState, StopReason};
 
 use super::engine_session::EngineSession;
 use super::repo_state::RepoState;
@@ -65,11 +66,14 @@ pub struct SessionSnapshot {
     /// How many iterations in a row have ended without a commit.
     ///
     /// Carried because it is a *stop condition*, not a statistic: a loop
-    /// two no-commits deep is one iteration from stopping, and a
+    /// two no-commits deep must stop, and a
     /// migration that dropped the count would let a wedged loop launder
     /// its own stop by moving machines.
-    #[serde(default)]
     pub consecutive_no_commits: u32,
+    /// Canonical run admission and settlement evidence.
+    pub run: RunState,
+    /// Budget configuration, accumulated spend, warning state and attribution.
+    pub cost_governor: CostGovernor,
     /// Accumulated cost and token usage.
     pub cost: SessionCost,
     /// Roadmap progress as of the capture.
@@ -103,7 +107,7 @@ impl SessionSnapshot {
     /// The snapshot format this build writes and is the only one it
     /// reads. A document from any other version is refused rather than
     /// interpreted.
-    pub const VERSION: u32 = 1;
+    pub const VERSION: u32 = 2;
 
     /// Write down a session and where its workflow loop had got to.
     ///
@@ -118,6 +122,19 @@ impl SessionSnapshot {
         iteration: IterationState,
         captured_at: DateTime<Utc>,
     ) -> Self {
+        let mut run = RunState::new(RunMode::ChunkLoop, iteration.max_iterations, None);
+        run.completed_attempts = iteration.iteration;
+        run.observe_budget(session.cost().total_usd);
+        match session.status() {
+            SessionStatus::Cancelled => run.stop(StopReason::Cancelled),
+            SessionStatus::Failed => run.stop(StopReason::Failed),
+            _ => {}
+        }
+        let roadmap = RoadmapProgress {
+            checked_tasks: iteration.spec_checked,
+            total_tasks: iteration.spec_total,
+            ..RoadmapProgress::default()
+        };
         Self {
             version: Self::VERSION,
             session_id: session.session_id().to_owned(),
@@ -125,8 +142,11 @@ impl SessionSnapshot {
             phase: session.phase(),
             iteration,
             consecutive_no_commits: 0,
+            run,
+            cost_governor: CostGovernor::new(BudgetConfig::none())
+                .with_cost(session.cost().clone()),
             cost: session.cost().clone(),
-            roadmap: RoadmapProgress::default(),
+            roadmap,
             roadmap_cursor: None,
             created_at: session.created_at(),
             captured_at,
@@ -148,16 +168,37 @@ impl SessionSnapshot {
         self
     }
 
-    /// Record how many iterations in a row have ended without a commit.
+    /// Add a known no-commit count without erasing previously captured evidence.
     #[must_use]
     pub fn with_no_commits(mut self, consecutive_no_commits: u32) -> Self {
-        self.consecutive_no_commits = consecutive_no_commits;
+        let known = consecutive_no_commits
+            .max(self.consecutive_no_commits)
+            .max(self.run.consecutive_no_commits);
+        self.consecutive_no_commits = known;
+        self.run.consecutive_no_commits = known;
+        self
+    }
+
+    /// Supply the run owned by the workflow adapter.
+    #[must_use]
+    pub fn with_run(mut self, run: RunState) -> Self {
+        self.consecutive_no_commits = run.consecutive_no_commits;
+        self.run = run;
+        self
+    }
+
+    /// Preserve the complete live governor rather than reconstructing its policy.
+    #[must_use]
+    pub fn with_cost_governor(mut self, governor: CostGovernor) -> Self {
+        self.cost_governor = governor;
         self
     }
 
     /// Record roadmap progress and the chunk being worked on.
     #[must_use]
     pub fn with_roadmap(mut self, roadmap: RoadmapProgress, cursor: Option<String>) -> Self {
+        self.iteration.spec_checked = roadmap.checked_tasks;
+        self.iteration.spec_total = roadmap.total_tasks;
         self.roadmap = roadmap;
         self.roadmap_cursor = cursor;
         self
@@ -210,6 +251,35 @@ impl SessionSnapshot {
             )));
         }
 
+        self.run
+            .validate()
+            .map_err(|message| EngineError::Precondition(message.into()))?;
+        if self.run.completed_attempts != self.iteration.iteration
+            || self.run.max_iterations != self.iteration.max_iterations
+            || self.run.consecutive_no_commits != self.consecutive_no_commits
+            || self.iteration.spec_checked != self.roadmap.checked_tasks
+            || self.iteration.spec_total != self.roadmap.total_tasks
+            || self.run.budget_total_usd != self.cost.total_usd
+            || self.run.budget_limit_usd != self.cost_governor.budget().limit
+            || self.cost_governor.cost() != &self.cost
+        {
+            return Err(EngineError::Precondition(
+                "session checkpoint run, iteration and budget observations disagree".into(),
+            ));
+        }
+        if matches!(
+            self.status,
+            SessionStatus::Cancelled | SessionStatus::Failed
+        ) && self
+            .run
+            .terminal_reason
+            .is_none_or(|reason| reason == StopReason::Paused)
+        {
+            return Err(EngineError::Precondition(
+                "terminal session checkpoint is missing its terminal run outcome".into(),
+            ));
+        }
+
         let blocking = self.blocking();
         if !blocking.is_empty() {
             let named = blocking
@@ -238,6 +308,8 @@ impl SessionSnapshot {
             session,
             iteration: self.iteration.clone(),
             consecutive_no_commits: self.consecutive_no_commits,
+            run: self.run.clone(),
+            cost_governor: self.cost_governor.clone(),
             roadmap: self.roadmap.clone(),
             roadmap_cursor: self.roadmap_cursor.clone(),
             severed: self.residencies.clone(),

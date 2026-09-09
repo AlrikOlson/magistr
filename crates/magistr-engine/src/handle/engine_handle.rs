@@ -15,7 +15,8 @@ use crate::session::{
 use crate::tas::{NativeEngines, NativeFrame, NativeRoadmapSnapshot};
 use crate::workflow::lifecycle_event::LifecycleEvent;
 use crate::workflow::{
-    HookResolver, WorkflowCommand, WorkflowConfig, WorkflowEngine, WorkflowPhase,
+    HookResolver, RunMode, StopReason, WorkflowCommand, WorkflowConfig, WorkflowEngine,
+    WorkflowPhase,
 };
 
 use super::engine_event::EngineEvent;
@@ -69,10 +70,28 @@ impl EngineHandle {
         workflow_config: WorkflowConfig,
         budget_config: BudgetConfig,
     ) -> Self {
+        Self::with_run_mode(
+            session_id,
+            workflow_config,
+            budget_config,
+            RunMode::ChunkLoop,
+        )
+    }
+
+    /// Construct a handle with an explicit run mode, separate from its host.
+    #[must_use]
+    pub fn with_run_mode(
+        session_id: impl Into<String>,
+        workflow_config: WorkflowConfig,
+        budget_config: BudgetConfig,
+        mode: RunMode,
+    ) -> Self {
         let (event_tx, _) = broadcast::channel(EVENT_CHANNEL_CAPACITY);
+        let mut workflow = WorkflowEngine::with_run_mode(workflow_config, mode);
+        workflow.observe_budget(0.0, budget_config.limit);
         let state = EngineState {
             session: EngineSession::new(session_id),
-            workflow: WorkflowEngine::new(workflow_config),
+            workflow,
             cost_governor: CostGovernor::new(budget_config),
             roadmap: RoadmapManager::empty(),
             project_context: ProjectContext::empty(),
@@ -120,6 +139,11 @@ impl EngineHandle {
     pub fn set_session_status(&self, status: SessionStatus) -> Result<()> {
         let mut state = self.lock();
         state.session.set_status(status)?;
+        match status {
+            SessionStatus::Cancelled => state.workflow.stop(StopReason::Cancelled),
+            SessionStatus::Failed => state.workflow.stop(StopReason::Failed),
+            _ => {}
+        }
         if status.is_terminal() {
             self.emit(EngineEvent::Session(SessionEvent::SessionEnded {
                 status,
@@ -174,7 +198,8 @@ impl EngineHandle {
             state.workflow.iteration().clone(),
             Utc::now(),
         )
-        .with_no_commits(state.workflow.consecutive_no_commits())
+        .with_run(state.workflow.run().clone())
+        .with_cost_governor(state.cost_governor.clone())
         .with_roadmap(state.roadmap.progress().clone(), cursor)
     }
 
@@ -197,11 +222,34 @@ impl EngineHandle {
         let restored = snapshot.restore()?;
 
         let mut state = self.lock();
-        state.session = restored.session.clone();
-        state.workflow.force_phase(restored.session.phase());
+        let fresh = state.session.status() == SessionStatus::Created
+            && state.workflow.phase() == WorkflowPhase::Researching
+            && state.workflow.run().is_pristine();
+        if !fresh {
+            if state.session.session_id() != restored.session.session_id() {
+                return Err(crate::EngineError::Precondition(
+                    "cannot replace a live session with another run's checkpoint".into(),
+                ));
+            }
+            restored
+                .run
+                .validate_recovery(state.workflow.run())
+                .map_err(|message| crate::EngineError::Precondition(message.into()))?;
+            if !restored
+                .cost_governor
+                .preserves_observations(&state.cost_governor)
+            {
+                return Err(crate::EngineError::Precondition(
+                    "checkpoint would rewind known cost or budget observations".into(),
+                ));
+            }
+        }
         state
             .workflow
-            .restore_iteration(restored.iteration.clone(), restored.consecutive_no_commits);
+            .restore_run(restored.iteration.clone(), restored.run.clone())?;
+        state.session = restored.session.clone();
+        state.workflow.force_phase(restored.session.phase());
+        state.cost_governor = restored.cost_governor.clone();
         state
             .workflow
             .update_spec_progress(restored.roadmap.checked_tasks, restored.roadmap.total_tasks);
@@ -328,6 +376,9 @@ impl EngineHandle {
         let events = state
             .cost_governor
             .record_turn(cost_usd, input_tokens, output_tokens);
+        let total = state.cost_governor.total_cost_usd();
+        let limit = state.cost_governor.budget().limit;
+        state.workflow.observe_budget(total, limit);
         drop(state);
 
         for event in events {
@@ -351,6 +402,9 @@ impl EngineHandle {
     pub fn extend_budget(&self, new_limit: f64) {
         let mut state = self.lock();
         if let Some(event) = state.cost_governor.extend_budget(new_limit) {
+            let total = state.cost_governor.total_cost_usd();
+            let limit = state.cost_governor.budget().limit;
+            state.workflow.observe_budget(total, limit);
             drop(state);
             self.emit(EngineEvent::Cost(event));
         }

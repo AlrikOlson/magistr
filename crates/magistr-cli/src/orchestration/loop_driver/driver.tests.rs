@@ -340,6 +340,110 @@ fn notes(model: &Model) -> Vec<String> {
         .collect()
 }
 
+#[tokio::test]
+async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
+    let dir = project("true", "true", "true");
+    let spec = dir.path().join("ROADMAP.md");
+    let wf = WorkflowConfig::load(dir.path()).unwrap();
+    let mut iter_loop = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    iter_loop.set_budget_limit(Some(2.0)).unwrap();
+    iter_loop.observe_budget(1.0);
+    let terminal = FakeTerminal::new(SIZE, Script::new());
+    let mut runtime = Runtime::new(terminal, Options::new(Env::new("xterm-kitty", false, None)));
+    let (connector, _) = fake_connector(FakeAcpAgent::new());
+    let mut driver = LoopDriver::new(
+        iter_loop,
+        wf,
+        Backend::Acp,
+        runtime.inbox(),
+        runtime.commands().unwrap(),
+        connector,
+    );
+
+    for (cents, expected_total) in [(25, 1.25), (75, 2.0)] {
+        let transport = driver
+            .connector
+            .connect(AgentConfig::new("", dir.path()).backend(Backend::Acp))
+            .await
+            .unwrap();
+        let (session, session_tx) = driver.open_session(transport, dir.path(), None);
+        let before = driver.iter_loop.run_state().budget_total_usd;
+        // These final updates are queued after the turn consumer has stopped.
+        // Repeated cumulative updates from one session must count only once.
+        for _ in 0..2 {
+            driver
+                .tap()
+                .send(Msg::Agent(AgentEvent::Usage {
+                    used: 100,
+                    size: 1000,
+                    cost_cents: Some(cents),
+                    elapsed_secs: None,
+                }))
+                .unwrap();
+        }
+        assert_eq!(driver.iter_loop.run_state().budget_total_usd, before);
+        drop(session_tx);
+        driver.close_session(session).await;
+        assert_eq!(
+            driver.iter_loop.run_state().budget_total_usd,
+            expected_total
+        );
+    }
+
+    let recovered = IterationLoop::recover(dir.path(), &spec).unwrap();
+    assert_eq!(recovered.run_state().budget_total_usd, 2.0);
+    assert_eq!(
+        recovered.run_state().stop_reason(),
+        Some(magistr_engine::workflow::StopReason::BudgetExceeded)
+    );
+}
+
+#[tokio::test]
+async fn cancelled_and_incomplete_turns_cannot_start_verification() {
+    for end in [
+        TurnEnd::Cancelled,
+        TurnEnd::MaxTokens,
+        TurnEnd::MaxTurnRequests,
+        TurnEnd::Refusal,
+        TurnEnd::Other,
+    ] {
+        let dir = project("true", "true", "true");
+        let wf = WorkflowConfig::load(dir.path()).unwrap();
+        let iter_loop =
+            IterationLoop::with_max(dir.path(), dir.path().join("ROADMAP.md"), 5).unwrap();
+        let terminal = FakeTerminal::new(SIZE, Script::new());
+        let mut runtime =
+            Runtime::new(terminal, Options::new(Env::new("xterm-kitty", false, None)));
+        let (connector, _) = fake_connector(FakeAcpAgent::new());
+        let mut driver = LoopDriver::new(
+            iter_loop,
+            wf,
+            Backend::Acp,
+            runtime.inbox(),
+            runtime.commands().unwrap(),
+            connector,
+        );
+        driver
+            .tap()
+            .send(Msg::Agent(AgentEvent::TurnEnded(end)))
+            .unwrap();
+        let (session_tx, _session_rx) = unbounded_channel();
+        let outcome = driver
+            .turn(&session_tx, Instant::now(), &mut ticker())
+            .await;
+        assert!(
+            !matches!(outcome, Turn::Ended),
+            "{end:?} cannot certify an ended work attempt"
+        );
+        let expected = if end == TurnEnd::Cancelled {
+            magistr_engine::workflow::StopReason::Cancelled
+        } else {
+            magistr_engine::workflow::StopReason::Failed
+        };
+        assert_eq!(driver.iter_loop.run_state().stop_reason(), Some(expected));
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_budget() {
     let dir = project("true", "sh -c 'exit 0'", "false");
@@ -404,9 +508,12 @@ async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_b
             .any(|r| r.text == "did the thing"),
         "the agent's reply is on the stage"
     );
-    assert!(
-        !IterationLoop::has_persisted_state(dir.path()),
-        "the state was cleaned up at the end"
+    let mut restored = IterationLoop::recover(dir.path(), dir.path().join("ROADMAP.md"))
+        .expect("the terminal state stays recoverable");
+    assert_eq!(restored.iteration(), 1);
+    assert_eq!(
+        restored.pre_iteration_check().unwrap(),
+        PreCheckResult::MaxIterations
     );
     assert!(model.quit_requested());
 }

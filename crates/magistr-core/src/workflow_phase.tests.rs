@@ -1,8 +1,16 @@
 use super::*;
 
 #[test]
+fn workflow_phase_is_the_shared_domain_value() {
+    let core_phase = WorkflowPhase::from_name("execute").expect("known phase");
+    let domain_phase: magistr_domain::workflow::WorkflowPhase = core_phase;
+    let engine_phase: magistr_engine::WorkflowPhase = domain_phase;
+    assert_eq!(core_phase, engine_phase);
+}
+
+#[test]
 fn label_returns_human_readable() {
-    assert_eq!(WorkflowPhase::Researching.label(), "Researching...");
+    assert_eq!(WorkflowPhase::Researching.label(), "Researching");
     assert_eq!(WorkflowPhase::Complete.label(), "Complete");
 }
 
@@ -38,5 +46,5 @@ fn from_name_short_and_participle() {
 
 #[test]
 fn display_matches_label() {
-    assert_eq!(format!("{}", WorkflowPhase::Executing), "Executing...");
+    assert_eq!(format!("{}", WorkflowPhase::Executing), "Executing");
 }

@@ -91,7 +91,9 @@ fn pre_check_stops_when_spec_complete() {
 fn pre_check_stops_at_max_iterations() {
     let (dir, spec_path) = setup_project("- [ ] item 1\n");
     let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 3).unwrap();
-    loop_mgr.state.iteration = 3; // Already at max
+    for _ in 0..3 {
+        loop_mgr.advance();
+    } // Already at max
 
     assert_eq!(
         loop_mgr.pre_iteration_check().unwrap(),
@@ -135,7 +137,7 @@ fn post_check_detects_new_commit() {
 
     let result = loop_mgr.post_iteration_check();
     assert!(matches!(result, PostCheckResult::CommitMade { .. }));
-    assert_eq!(loop_mgr.last_status(), IterationStatus::Success);
+    assert_eq!(loop_mgr.last_status(), IterationStatus::Committed);
     assert_eq!(loop_mgr.consecutive_no_commits(), 0);
 }
 
@@ -229,7 +231,7 @@ fn persist_and_recover_roundtrip() {
     let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
     loop_mgr.advance();
     loop_mgr.advance();
-    loop_mgr.state.last_status = IterationStatus::Success;
+    loop_mgr.state.last_status = IterationStatus::Committed;
 
     loop_mgr.persist().unwrap();
 
@@ -243,7 +245,7 @@ fn persist_and_recover_roundtrip() {
 }
 
 #[test]
-fn recovery_retains_iteration_state_but_resets_the_no_commit_stop_counter() {
+fn recovery_retains_no_commit_stop_before_another_attempt() {
     let (dir, spec_path) = setup_project("- [ ] item 1\n");
     let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
     for _ in 0..2 {
@@ -257,18 +259,215 @@ fn recovery_retains_iteration_state_but_resets_the_no_commit_stop_counter() {
     assert!(loop_mgr.should_stop_no_commits());
     loop_mgr.persist().unwrap();
 
-    // Characterize the current loop-state.json contract. Engine snapshots
-    // preserve this counter separately; this recovery path does not.
     let mut recovered = IterationLoop::recover(dir.path(), &spec_path).unwrap();
     assert_eq!(recovered.state(), loop_mgr.state());
     assert_eq!(recovered.iteration(), 2);
     assert_eq!(recovered.last_status(), IterationStatus::NoCommit);
-    assert_eq!(recovered.consecutive_no_commits(), 0);
-    assert!(!recovered.should_stop_no_commits());
-    assert_eq!(
+    assert_eq!(recovered.consecutive_no_commits(), 2);
+    assert!(recovered.should_stop_no_commits());
+    assert_ne!(
         recovered.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
     );
+    assert_eq!(
+        recovered.run_state().terminal_reason,
+        Some(StopReason::NoProgress)
+    );
+}
+
+#[test]
+fn repeated_post_check_settles_each_attempt_once_even_after_recovery() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
+    loop_mgr.pre_iteration_check().unwrap();
+    let first = loop_mgr.post_iteration_check();
+    assert_eq!(loop_mgr.post_iteration_check(), first);
+    assert_eq!(loop_mgr.consecutive_no_commits(), 1);
+    loop_mgr.persist().unwrap();
+
+    let mut recovered = IterationLoop::recover(dir.path(), &spec_path).unwrap();
+    assert_eq!(recovered.post_iteration_check(), first);
+    assert_eq!(recovered.consecutive_no_commits(), 1);
+    recovered.advance();
+    recovered.pre_iteration_check().unwrap();
+    recovered.post_iteration_check();
+    assert_eq!(recovered.consecutive_no_commits(), 2);
+}
+
+#[test]
+fn recovery_refuses_legacy_state_without_known_run_counters() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    std::fs::write(
+        loop_state_path(dir.path()),
+        r#"{"iteration":2,"max_iterations":8,"last_commit_sha":"abc", "last_status":"no_commit","spec_checked":0,"spec_total":1}"#,
+    ).unwrap();
+
+    let error = match IterationLoop::recover(dir.path(), &spec_path) {
+        Ok(_) => panic!("unknown no-commit count must not be recovered as zero"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("new run"), "{error}");
+}
+
+#[test]
+fn recovery_observes_commit_against_the_persisted_attempt_baseline() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
+    loop_mgr.pre_iteration_check().unwrap();
+    loop_mgr.post_iteration_check();
+    loop_mgr.advance();
+    loop_mgr.pre_iteration_check().unwrap();
+    loop_mgr.persist().unwrap();
+
+    let committed = std::process::Command::new("git")
+        .args(["commit", "--allow-empty", "-m", "feat: recovered attempt"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(committed.status.success());
+
+    let mut recovered = IterationLoop::recover(dir.path(), &spec_path).unwrap();
+    recovered.pre_iteration_check().unwrap();
+    assert!(matches!(
+        recovered.post_iteration_check(),
+        PostCheckResult::CommitMade { .. }
+    ));
+    assert_eq!(recovered.consecutive_no_commits(), 0);
+}
+
+#[test]
+fn recovered_run_keeps_mode_budget_limits_and_terminal_reason() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7)
+        .unwrap()
+        .with_run_mode(RunMode::OneChunk);
+    loop_mgr.set_budget_limit(Some(5.0)).unwrap();
+    loop_mgr.observe_budget(3.5);
+    loop_mgr.stop(StopReason::Cancelled);
+    loop_mgr.persist().unwrap();
+
+    let mut recovered = IterationLoop::open_or_recover(dir.path(), &spec_path, 99, None)
+        .unwrap()
+        .with_run_mode(RunMode::ChunkLoop);
+    recovered.observe_budget(0.5);
+    recovered.set_budget_limit(None).unwrap();
+    assert!(recovered.set_budget_limit(Some(10.0)).is_err());
+    assert_eq!(recovered.run_state(), loop_mgr.run_state());
+    assert_eq!(recovered.max_iterations(), 7);
+    assert_eq!(
+        recovered.pre_iteration_check().unwrap(),
+        PreCheckResult::Stopped(StopReason::Cancelled)
+    );
+}
+
+#[test]
+fn budget_exhaustion_survives_recovery_and_prevents_next_attempt() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
+    loop_mgr.set_budget_limit(Some(2.0)).unwrap();
+    loop_mgr.observe_budget(2.0);
+    loop_mgr.persist().unwrap();
+
+    let mut recovered = IterationLoop::recover(dir.path(), &spec_path).unwrap();
+    assert_eq!(
+        recovered.pre_iteration_check().unwrap(),
+        PreCheckResult::Stopped(StopReason::BudgetExceeded)
+    );
+    recovered.stop(StopReason::Failed);
+    assert_eq!(
+        recovered.run_state().terminal_reason,
+        Some(StopReason::BudgetExceeded)
+    );
+    assert_eq!(recovered.iteration(), 0);
+    assert_eq!(recovered.state().attempt_started, None);
+}
+
+#[test]
+fn recovery_refuses_missing_counters_and_inconsistent_legacy_projections() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
+    let original = serde_json::to_value(loop_mgr.state()).unwrap();
+    let mut missing_count = original.clone();
+    missing_count["run"]
+        .as_object_mut()
+        .unwrap()
+        .remove("consecutive_no_commits");
+    let mut inconsistent_iteration = original.clone();
+    inconsistent_iteration["iteration"] = 2.into();
+    let mut inconsistent_limit = original.clone();
+    inconsistent_limit["max_iterations"] = 70.into();
+    let mut missing_attempt = original.clone();
+    missing_attempt
+        .as_object_mut()
+        .unwrap()
+        .remove("attempt_started");
+    let mut missing_git_baseline = original;
+    missing_git_baseline
+        .as_object_mut()
+        .unwrap()
+        .remove("last_commit_sha");
+    for state in [
+        missing_count,
+        inconsistent_iteration,
+        inconsistent_limit,
+        missing_attempt,
+        missing_git_baseline,
+    ] {
+        let json = serde_json::to_string(&state).unwrap();
+        std::fs::write(loop_state_path(dir.path()), &json).unwrap();
+        let error = match IterationLoop::open_or_recover(dir.path(), &spec_path, 99, None) {
+            Ok(_) => panic!("invalid state must not silently become a new run"),
+            Err(error) => error,
+        };
+        assert!(error.to_string().contains("new run"), "{error}");
+        assert_eq!(
+            std::fs::read_to_string(loop_state_path(dir.path())).unwrap(),
+            json
+        );
+    }
+}
+
+#[test]
+fn run_modes_share_policy_without_applying_chunk_loop_git_guard_to_conversations() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    for mode in [RunMode::Conversation, RunMode::OneChunk] {
+        let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7)
+            .unwrap()
+            .with_run_mode(mode);
+        loop_mgr.pre_iteration_check().unwrap();
+        loop_mgr.post_iteration_check();
+        loop_mgr.advance();
+        assert_eq!(loop_mgr.consecutive_no_commits(), 0);
+        assert_eq!(
+            loop_mgr.pre_iteration_check().unwrap(),
+            match mode {
+                RunMode::OneChunk => PreCheckResult::Stopped(StopReason::OneChunkComplete),
+                _ => PreCheckResult::Continue,
+            }
+        );
+    }
+}
+
+#[test]
+fn loop_state_keeps_legacy_status_spelling_while_using_domain_status() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
+    for (legacy, canonical) in [
+        ("none", IterationStatus::None),
+        ("success", IterationStatus::Committed),
+        ("no_commit", IterationStatus::NoCommit),
+        ("failed", IterationStatus::Failed),
+    ] {
+        let mut state = serde_json::to_value(loop_mgr.state()).unwrap();
+        state["last_status"] = legacy.into();
+        let decoded: IterationState = serde_json::from_value(state).unwrap();
+        let shared: magistr_domain::workflow::IterationStatus = decoded.last_status;
+        assert_eq!(shared, canonical);
+        assert_eq!(
+            serde_json::to_value(decoded).unwrap()["last_status"],
+            legacy
+        );
+    }
 }
 
 #[test]
@@ -314,8 +513,13 @@ fn state_serializes_to_json() {
     let state = IterationState {
         iteration: 3,
         max_iterations: 10,
+        run: RunState {
+            completed_attempts: 3,
+            ..RunState::new(RunMode::ChunkLoop, 10, None)
+        },
+        attempt_started: None,
         last_commit_sha: Some("abc1234".to_string()),
-        last_status: IterationStatus::Success,
+        last_status: IterationStatus::Committed,
         spec_checked: 5,
         spec_total: 12,
     };
@@ -331,6 +535,13 @@ fn state_deserializes_from_json() {
     let json = r#"{
             "iteration": 2,
             "max_iterations": 8,
+            "run": {
+                "mode": "chunk_loop", "completed_attempts": 2, "max_iterations": 8,
+                "consecutive_no_commits": 1, "budget_total_usd": 0.0,
+                "budget_limit_usd": null, "terminal_reason": null,
+                "last_settled_attempt": 1
+            },
+            "attempt_started": null,
             "last_commit_sha": "def5678",
             "last_status": "no_commit",
             "spec_checked": 3,
@@ -350,7 +561,7 @@ fn state_deserializes_from_json() {
 fn iteration_status_roundtrip() {
     for status in [
         IterationStatus::None,
-        IterationStatus::Success,
+        IterationStatus::Committed,
         IterationStatus::NoCommit,
         IterationStatus::Failed,
     ] {
