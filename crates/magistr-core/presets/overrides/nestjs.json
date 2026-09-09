@@ -1,0 +1,12 @@
+{
+  "quality_gate": {
+    "check": "npx nest build --tsc",
+    "test": "npx jest --passWithNoTests",
+    "lint": "npx eslint \"{src,apps,libs,test}/**/*.ts\" --max-warnings 0"
+  },
+  "testing": {
+    "companion_pattern": "{name}.spec.{ext}",
+    "test_dir": "alongside"
+  },
+  "extra_allowed_tools": ["Bash(nest:*)"]
+}

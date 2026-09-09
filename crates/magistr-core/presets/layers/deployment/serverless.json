@@ -1,0 +1,8 @@
+{
+  "format": {
+    "exclusions": [".serverless", ".aws-sam"]
+  },
+  "extra_allowed_tools": [
+    "Bash(serverless:*)", "Bash(sls:*)", "Bash(sam:*)", "Bash(aws lambda:*)"
+  ]
+}

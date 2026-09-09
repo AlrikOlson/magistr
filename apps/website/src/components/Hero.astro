@@ -1,0 +1,72 @@
+---
+import TerminalFrame from "./TerminalFrame.astro";
+
+interface Props {
+  demoSrc?: string;
+}
+
+const { demoSrc = "/demo.cast" } = Astro.props;
+---
+
+<section class="relative pt-28 pb-16 sm:pt-36 sm:pb-24">
+  <!-- Gradient glow behind hero -->
+  <div
+    class="pointer-events-none absolute inset-0 overflow-hidden"
+    aria-hidden="true"
+  >
+    <div
+      class="absolute top-1/4 left-1/2 h-[500px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-15 blur-[120px]"
+      style="background: radial-gradient(circle, var(--color-accent), var(--color-purple), transparent);"
+    ></div>
+  </div>
+
+  <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <!-- Left: copy -->
+      <div class="text-center lg:text-left">
+        <img
+          src="/logo.png"
+          alt="Magistr M logo"
+          class="mx-auto mb-6 h-20 w-20 sm:h-24 sm:w-24 lg:mx-0"
+          width="96"
+          height="96"
+        />
+        <h1 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+          AI-powered dev toolkit
+          <span class="text-accent">for the terminal</span>
+        </h1>
+        <p class="mt-6 text-lg leading-relaxed text-text-muted sm:text-xl">
+          Auto-detects your stack, scaffolds agent configs with hooks and rules,
+          then orchestrates autonomous plan-execute-verify iterations — all in a
+          polished TUI.
+        </p>
+
+        <!-- CTA -->
+        <div class="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
+          <a
+            id="install-btn"
+            href="/docs/installation"
+            class="shimmer-cta group flex items-center gap-3 rounded-lg border border-accent/30 bg-accent/10 px-5 py-3 text-sm text-accent transition-all hover:border-accent/50 hover:bg-accent/20"
+          >
+            Build from source &rarr;
+          </a>
+          <a
+            href="https://github.com/AlrikOlson/magistr"
+            class="text-sm text-text-muted transition-colors hover:text-text"
+          >
+            View on GitHub &rarr;
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Right: terminal demo -->
+      <div class="relative">
+        <TerminalFrame title="Magistr — terminal" class="shadow-2xl">
+          <div id="demo-player" class="aspect-video" data-src={demoSrc}></div>
+        </TerminalFrame>
+      </div>
+    </div>
+  </div>
+</section>
+

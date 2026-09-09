@@ -1,0 +1,23 @@
+{
+  "quality_gate": {
+    "check": "npx tsc --noEmit",
+    "test": "npm test",
+    "lint": "npm run lint"
+  },
+  "format": {
+    "extensions": ["ts", "tsx", "js", "jsx", "json", "css", "md"],
+    "command": "npx prettier --write --ignore-path .gitignore {file}",
+    "exclusions": ["node_modules", "dist", "build", ".next", "coverage"]
+  },
+  "testing": {
+    "companion_pattern": "{name}.test.{ext}",
+    "test_dir": "alongside"
+  },
+  "allowed_tools": [
+    "Bash(npm:*)", "Bash(npx:*)", "Bash(node:*)", "Bash(pnpm:*)",
+    "Bash(yarn:*)", "Bash(bun:*)", "Bash(git:*)", "Bash(rm:*)",
+    "Bash(tail:*)", "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)",
+    "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

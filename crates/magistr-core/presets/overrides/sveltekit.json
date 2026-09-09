@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "npx svelte-check --tsconfig ./tsconfig.json",
+    "test": "npx vitest run"
+  },
+  "format": {
+    "exclusions": ["node_modules", "dist", ".svelte-kit", "build"]
+  },
+  "extra_allowed_tools": []
+}

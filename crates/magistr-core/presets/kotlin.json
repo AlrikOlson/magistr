@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "./gradlew compileKotlin",
+    "test": "./gradlew test",
+    "lint": "ktlint"
+  },
+  "format": {
+    "extensions": ["kt", "kts"],
+    "command": "ktfmt {file}",
+    "exclusions": ["build", ".gradle"]
+  },
+  "testing": {
+    "companion_pattern": "{name}Test.{ext}",
+    "test_dir": "src/test/kotlin/"
+  },
+  "allowed_tools": [
+    "Bash(gradle:*)", "Bash(./gradlew:*)", "Bash(kotlin:*)", "Bash(ktlint:*)",
+    "Bash(git:*)", "Bash(rm:*)", "Bash(tail:*)", "Bash(grep:*)",
+    "Bash(mkdir:*)", "Bash(echo:*)", "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

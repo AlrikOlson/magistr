@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: screen(&m)
+---
+▲ magistr  ▘ streaming                                                     00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │▎ The wrap keeps every row inside the stage      │
+│roadmap ╭────────────────────────────────────────────────────────────╮be.     │
+│signals │                                                            │        │
+│        │ ⚑ PLAN · APPROVAL REQUIRED           Checkpoint cp-1 saved │        │
+│        │                                                            │o a     │
+│        │ Re-bless 12 golden screenshots                             │        │
+│        │ 1. Render the 6 surfaces in both themes                    │        │
+│        │ 2. Compare with goldens. Only status-bar rows may change   │        │
+│        │ 3. Update matching goldens. Reject all others              │────────│
+│        │                                                            │        │
+│        │ Allow A Deny D                 ⇧A · ALWAYS ALLOW (GOLDENS) │        │
+│        │                                                            │        │
+│        │ › Add a condition. Example: allow, stop if other rows cha… │────────│
+│        │                                                            │        │
+╰────────╰────────────────────────────────────────────────────────────╯────────╯
+╭─ needs you ────────────────────────────────────────────────────────────── 1 ─╮
+│⚠ Re-bless 12 golden screenshots needs permission · cp-1 saved                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+›
+ A  allow   ⇧A  always   D  deny

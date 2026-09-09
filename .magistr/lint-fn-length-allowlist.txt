@@ -1,0 +1,1 @@
+crates/magistr-core/src/types/archetype_registry.rs:lookup_entry

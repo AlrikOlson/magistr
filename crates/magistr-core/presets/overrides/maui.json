@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "dotnet build --warnaserror --no-restore",
+    "test": "dotnet test --no-build"
+  },
+  "format": {
+    "extensions": ["cs", "xaml", "css"]
+  },
+  "extra_allowed_tools": []
+}

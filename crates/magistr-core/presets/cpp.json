@@ -1,0 +1,23 @@
+{
+  "quality_gate": {
+    "check": "cmake --build build --parallel",
+    "test": "ctest --test-dir build --output-on-failure",
+    "lint": "find src -name '*.cpp' -o -name '*.c' -o -name '*.cc' -o -name '*.h' -o -name '*.hpp' | xargs clang-tidy"
+  },
+  "format": {
+    "extensions": ["cpp", "hpp", "c", "h", "cc", "cxx"],
+    "command": "clang-format -i {file}",
+    "exclusions": ["build", "cmake-build-debug", "cmake-build-release"]
+  },
+  "testing": {
+    "companion_pattern": "{name}_test.{ext}",
+    "test_dir": "tests/"
+  },
+  "allowed_tools": [
+    "Bash(cmake:*)", "Bash(make:*)", "Bash(ctest:*)", "Bash(g++:*)",
+    "Bash(clang++:*)", "Bash(clang-format:*)", "Bash(clang-tidy:*)",
+    "Bash(git:*)", "Bash(rm:*)", "Bash(tail:*)", "Bash(grep:*)",
+    "Bash(mkdir:*)", "Bash(echo:*)", "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

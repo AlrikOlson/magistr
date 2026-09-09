@@ -1,0 +1,8 @@
+{
+  "format": {
+    "exclusions": [".docker"]
+  },
+  "extra_allowed_tools": [
+    "Bash(docker:*)", "Bash(docker-compose:*)", "Bash(docker compose:*)"
+  ]
+}

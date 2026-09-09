@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "mix compile --warnings-as-errors",
+    "test": "mix test"
+  },
+  "format": {
+    "exclusions": ["_build", "deps", "priv/static/assets"]
+  },
+  "extra_allowed_tools": ["mix phx.server", "mix phx.routes"]
+}

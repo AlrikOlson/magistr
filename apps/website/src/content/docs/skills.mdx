@@ -1,0 +1,58 @@
+---
+title: Skills
+description: Project workflows for Codex and Claude Code.
+order: 3
+category: reference
+---
+
+# Skills
+
+Magistr installs project skills that guide an agent through planning, execution,
+and verification. Codex discovers them under `.agents/skills` and invokes them
+as `$next`, for example. Claude Code uses `.claude/skills` and `/next`.
+
+## Project skills
+
+| Skill | Work it performs |
+| --- | --- |
+| `craft` | Loads project conventions and the runtime contract |
+| `init` | Interviews and configures a project |
+| `next` | Completes one ready roadmap chunk |
+| `next-loop` | Repeats complete iterations within the requested limit |
+| `roadmap` | Advances one chunk through the next workflow |
+| `roadmap-refresh` | Researches and updates the roadmap without implementation |
+| `signals` | Researches stakeholder feedback and records its disposition |
+| `validate` | Runs standard and required custom gates |
+| `workbench-routing` | Routes workspace navigation and edits through Workbench |
+
+## One iteration
+
+The next skill recovers an existing objective or selects one ready chunk. It
+reads the code, records a native execution plan, implements the change, verifies
+acceptance and required gates, and commits the scoped result. It stops after
+that chunk and preserves unrelated active objectives.
+
+The next-loop skill repeats those complete iterations within the user's bound;
+without an explicit iteration count its default maximum is ten. It runs in the
+current agent session.
+
+Validation uses `.magistr/project.json`, including required custom gates, and
+records each result on the verification task.
+
+## Customize skills
+
+A skill is a directory with a `SKILL.md`, for example:
+
+```text
+.agents/skills/review/SKILL.md
+.claude/skills/review/SKILL.md
+```
+
+Give it a name, description, and focused instructions. Keep project-specific
+rules in project instructions or customized skills. Reinitialization preserves
+customized and unrecorded skill files.
+
+Reusable Magistr workflows are maintained in
+`crates/magistr-cli/templates/workflows`, with separate host adapters. The
+Codex launcher selects Magistr's project skills over personal skills with the
+same metadata names without editing the personal files.

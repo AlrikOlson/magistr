@@ -1,0 +1,1714 @@
+//! The task that walks the loop.
+
+use std::path::Path;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+use magistr_acp::{AcpEvent, AcpSender};
+use magistr_cockpit::agent::{AgentEvent, SessionOptions, TurnEnd, spawn_session};
+use magistr_cockpit::channel::{Commands, Inbox};
+use magistr_cockpit::checkpoint::{CheckpointPort, detach};
+use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
+use magistr_cockpit::engine::{EngineEvent, NativeEnginePort, StoreSeed};
+use magistr_cockpit::job::Jobs;
+use magistr_engine::tas::{BlockerKind, Chunk};
+use magistr_engine::{ChunkStatus, NativeEngines, NativeFrame};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::sync::oneshot;
+use tokio::task::JoinHandle;
+use tokio::time::{Interval, MissedTickBehavior};
+use tokio_util::sync::CancellationToken;
+
+use super::connector::Connector;
+use super::failure_brief::failure_brief;
+use super::gate_job::gate_job;
+use super::gate_outcome::GateOutcome;
+use super::iteration_metrics::IterationMetrics;
+use super::loop_end::LoopEnd;
+use super::loop_report::LoopReport;
+use crate::agent::{AgentConfig, Backend, ToolPermissions};
+use crate::orchestration::commands::run::{cockpit_policy_for_project, resolve_permission_profile};
+use crate::orchestration::goal::{
+    AgentGoal, Decision, Delegation, Delivery, DeliveryKind, GateEvidence, GoalMode, Judge,
+    JudgeInput,
+};
+use crate::permissions::PermissionProfile;
+use crate::utils::gate::{GateVerdict, nextest_junit_report_path};
+use crate::validate::{Gate, gate_command};
+use crate::workflow::WorkflowConfig;
+use crate::workflow::iteration::{IterationLoop, PostCheckResult, PreCheckResult};
+
+/// How long a session gets to end its agent once its turn is over.
+const SESSION_GRACE: Duration = Duration::from_secs(5);
+/// How often the strip's clock is refreshed while an iteration runs.
+const TICK: Duration = Duration::from_secs(1);
+
+/// How long a delegated session gets to complete its handshake before
+/// the attempt is called off.
+const NEGOTIATE_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// How long after the handshake the command list may still arrive — the
+/// agent sends `available_commands_update` on its own timer right after
+/// `session/new`.
+const COMMANDS_GRACE: Duration = Duration::from_secs(1);
+
+/// How long a delivered goal gets to be confirmed by the optimistic
+/// echo. The echo arrives ~3 ms after a recognised delivery; a wait
+/// this long is already a no.
+const ECHO_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// A moment for an abandoning `clear` to reach the wire before its
+/// session is dropped.
+const CLEAR_GRACE: Duration = Duration::from_millis(300);
+
+/// How long the cockpit gets to ask for the boundary checkpoint it was
+/// told to mint — one fold and one command back, normally milliseconds.
+const LEDGER_ASK_GRACE: Duration = Duration::from_secs(2);
+
+/// How long a boundary checkpoint gets to land before the loop goes on
+/// without waiting — one `git status` on a large tree, not a hung one.
+const LEDGER_SAVE_GRACE: Duration = Duration::from_secs(10);
+
+/// The iteration loop as a task beside the cockpit's runtime.
+///
+/// Built from the loop's state and configuration, the runtime's
+/// [`Inbox`] and [`Commands`], and a [`Connector`]; [`LoopDriver::spawn`]
+/// runs it until the loop ends or the cockpit closes. Per iteration it
+/// checks the loop's preconditions, honours a pause / skip / abort the
+/// user asked for at the boundary, builds the prompt, connects the agent
+/// and runs the session until the turn ends, then runs the gates as
+/// jobs, records the commit check and — by configuration — pauses on
+/// failed gates, and advances (persisting the loop's state when asked).
+///
+/// With a [`Judge`] ([`LoopDriver::goal`]) it is the native goal loop:
+/// after the gates it asks the judge about the iteration's
+/// chunk and acts on the reconciled [`Decision`] — completes the chunk
+/// through the engines, iterates with the reason on the stage, reports
+/// a disagreement, or blocks the chunk on a human and ends.
+pub struct LoopDriver {
+    iter_loop: IterationLoop,
+    wf: WorkflowConfig,
+    backend: Backend,
+    inbox: Inbox,
+    commands: Commands,
+    jobs: Jobs,
+    connector: Connector,
+    persist: bool,
+    auto_pause: bool,
+    goal: GoalMode,
+    goal_note: Option<String>,
+    judge: Option<Arc<dyn Judge>>,
+    /// What delegation settled to, once negotiated (delegated modes only).
+    delegated: Option<DelegationOutcome>,
+    /// How long a delivered goal may wait for its echo.
+    echo_timeout: Duration,
+    tap_tx: UnboundedSender<Msg>,
+    tap_rx: UnboundedReceiver<Msg>,
+    paused: bool,
+    /// A step is running: the boundary after this iteration pauses.
+    stepping: bool,
+    pending: Option<LoopCmd>,
+    completed: Vec<String>,
+    /// The chunk the iteration's prompt was built for.
+    target: Option<String>,
+    /// What the last iteration's red gates left for the next prompt: the
+    /// failure rows themselves, not a sentence about them. One-shot —
+    /// appended to the next prompt and cleared.
+    carry: Option<String>,
+    /// The agent's own words this iteration — the judge's transcript tail.
+    transcript: String,
+    iterations: u32,
+    /// What each iteration cost, for the report.
+    metrics: Vec<IterationMetrics>,
+    /// The highest context level the agent reported this turn.
+    tokens_seen: Option<u64>,
+    /// The session's checkpoint spine, when the loop runs on a native
+    /// project: what the boundary checkpoint is taken on, and what
+    /// serves every other ledger verb the loop's cockpit asks for.
+    /// Shared with the blocking thread that runs a verb, as the
+    /// session's is.
+    checkpoints: Option<Arc<Mutex<Box<dyn CheckpointPort>>>>,
+    /// The ledger verb in flight, if one is — what a boundary waits for.
+    ledger: Option<JoinHandle<()>>,
+}
+
+/// What the driver woke up for.
+enum Wake {
+    /// A message a tapped producer posted on the cockpit.
+    Tap(Msg),
+    /// A command from the cockpit.
+    Cmd(Cmd),
+    /// A ledger verb was taken up on the driver's own port, off this
+    /// task; its answer reaches the cockpit when it lands.
+    Ledger,
+    /// A gate job returned.
+    Gate(GateOutcome),
+    /// Every gate job is gone without returning.
+    GatesGone,
+    /// The clock ticked.
+    Tick,
+    /// The cockpit is gone.
+    Closed,
+}
+
+/// What the boundary before an iteration decided.
+enum Boundary {
+    Go,
+    Skip,
+    Abort,
+    Closed,
+}
+
+/// How an agent turn ended.
+enum Turn {
+    Ended,
+    Failed(String),
+    Closed,
+}
+
+/// What an iteration led to.
+enum Step {
+    Next,
+    Closed,
+    End(LoopEnd),
+}
+
+/// What the loop has settled about delegation — negotiated once, then
+/// remembered for every later iteration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DelegationOutcome {
+    /// A delivery was confirmed by the echo; later iterations use the
+    /// same kind directly.
+    Chosen(DeliveryKind),
+    /// No delivery confirmed; the native loop drives from here on.
+    NativeFallback,
+}
+
+/// What a delegated turn came to.
+enum Delegated {
+    /// The agent's own goal loop ran the iteration to its end.
+    Ran,
+    /// No delivery was confirmed — the caller runs the native turn.
+    Fallback,
+    /// The cockpit is gone.
+    Closed,
+}
+
+/// One delivery attempt's outcome.
+enum Attempt {
+    /// The echo confirmed the delivery, and the agent's loop ran to its
+    /// end.
+    Confirmed(DeliveryKind),
+    /// This session does not offer the vehicle at all.
+    Unavailable(String),
+    /// Issued, never echoed; cleared and abandoned.
+    Unconfirmed(String),
+    /// The cockpit is gone.
+    Closed,
+}
+
+impl LoopDriver {
+    /// A driver over `iter_loop` for the project `wf` describes, running
+    /// agents on `backend` through `connector`, reporting on `inbox` and
+    /// deciding by `commands`. Persistence and auto-pause are on.
+    #[must_use]
+    pub fn new(
+        iter_loop: IterationLoop,
+        wf: WorkflowConfig,
+        backend: Backend,
+        inbox: Inbox,
+        commands: Commands,
+        connector: Connector,
+    ) -> Self {
+        let (tap_tx, tap_rx) = unbounded_channel();
+        Self {
+            jobs: Jobs::new(inbox.clone()),
+            iter_loop,
+            wf,
+            backend,
+            inbox,
+            commands,
+            connector,
+            persist: true,
+            auto_pause: true,
+            goal: GoalMode::Off,
+            goal_note: None,
+            judge: None,
+            delegated: None,
+            echo_timeout: ECHO_TIMEOUT,
+            carry: None,
+            tap_tx,
+            tap_rx,
+            paused: false,
+            stepping: false,
+            pending: None,
+            completed: Vec::new(),
+            target: None,
+            transcript: String::new(),
+            iterations: 0,
+            metrics: Vec::new(),
+            tokens_seen: None,
+            checkpoints: None,
+            ledger: None,
+        }
+    }
+
+    /// The ledger the loop checkpoints on: one state per iteration
+    /// boundary, wearing that iteration's gate verdicts, plus whatever
+    /// ledger verb the loop's cockpit asks for meanwhile. Without one
+    /// the loop takes no checkpoints and the spine stays empty.
+    #[must_use]
+    pub fn checkpoints(mut self, port: Box<dyn CheckpointPort>) -> Self {
+        self.checkpoints = Some(Arc::new(Mutex::new(port)));
+        self
+    }
+
+    /// Who drives the goal loop: `mode` is what the cockpit is told, and
+    /// `judge`, when there is one, is asked after every iteration's gates
+    /// on a native project. A delegated mode hands each iteration to the
+    /// agent's own `/goal` (agent_goal.rs), confirmed per delivery by the
+    /// optimistic echo; when no delivery confirms, the loop reports it
+    /// and falls back to this same judge. Without a judge the driver
+    /// runs the plain loop (`MAGISTR_GOAL=off`). `note` is what parsing
+    /// the mode had to say (an unknown value), put on the stage ahead of
+    /// the first iteration.
+    #[must_use]
+    pub fn goal(
+        mut self,
+        mode: GoalMode,
+        judge: Option<Arc<dyn Judge>>,
+        note: Option<String>,
+    ) -> Self {
+        self.goal = mode;
+        self.judge = judge;
+        self.goal_note = note;
+        self
+    }
+
+    /// The line that says which mode drives, and whether a judge sits
+    /// behind it.
+    fn goal_line(&self) -> String {
+        let mode = self.goal.label();
+        match (self.goal, self.judge.is_some()) {
+            (GoalMode::Off, _) => "goal loop: off — one iteration at a time, no judge".to_owned(),
+            (GoalMode::Native, true) => {
+                format!("goal loop: {mode} — magistr's own judge decides after the gates")
+            }
+            (GoalMode::Native, false) => format!(
+                "goal loop: {mode} — no judge this loop (the project has no roadmap chunk to judge)"
+            ),
+            (_, fallback) => format!(
+                "goal loop: {mode} — delegating to the agent's own /goal, confirmed by its echo; magistr is blind inside it, and no echo falls back to {}",
+                if fallback {
+                    "the native judge"
+                } else {
+                    "plain iterations"
+                }
+            ),
+        }
+    }
+
+    /// Wait at most this long for the optimistic echo after a delivery
+    /// (tests shrink it; the default is [`ECHO_TIMEOUT`]).
+    #[must_use]
+    pub const fn goal_echo_timeout(mut self, timeout: Duration) -> Self {
+        self.echo_timeout = timeout;
+        self
+    }
+
+    /// Whether this iteration should try (or keep using) a delegated
+    /// delivery.
+    const fn delegating(&self) -> bool {
+        self.goal.is_delegated()
+            && !matches!(self.delegated, Some(DelegationOutcome::NativeFallback))
+    }
+
+    /// The loop's record of who drove the goal loop — `None` unless a
+    /// delegated mode was asked for; the negotiated outcome otherwise.
+    fn goal_record(&self) -> Option<String> {
+        if !self.goal.is_delegated() {
+            return None;
+        }
+        Some(match self.delegated {
+            Some(DelegationOutcome::Chosen(kind)) => format!("delegated ({})", kind.label()),
+            Some(DelegationOutcome::NativeFallback) => {
+                format!("{} → native (no echo)", self.goal.label())
+            }
+            None => format!("{} (never negotiated)", self.goal.label()),
+        })
+    }
+
+    /// Whether the loop's state is written to `.magistr/loop-state.json`
+    /// after every iteration and removed at the end (`magistr next`, the
+    /// single iteration, keeps no state).
+    #[must_use]
+    pub const fn persisting(mut self, persist: bool) -> Self {
+        self.persist = persist;
+        self
+    }
+
+    /// Whether failed gates pause the loop at the next boundary.
+    #[must_use]
+    pub const fn auto_pause(mut self, auto_pause: bool) -> Self {
+        self.auto_pause = auto_pause;
+        self
+    }
+
+    /// The observer for a tapped inbox: what a producer posts through
+    /// `inbox.tap(driver.tap())` reaches the driver too — the entry
+    /// point subscribes the engine feed this way so the driver counts the
+    /// chunks an iteration completes.
+    #[must_use]
+    pub fn tap(&self) -> UnboundedSender<Msg> {
+        self.tap_tx.clone()
+    }
+
+    /// Run the loop as a task; the report comes back when it ends.
+    pub fn spawn(self) -> JoinHandle<LoopReport> {
+        tokio::spawn(self.run())
+    }
+
+    async fn run(mut self) -> LoopReport {
+        let end = loop {
+            let pre = match self.iter_loop.pre_iteration_check() {
+                Ok(pre) => pre,
+                Err(e) => break LoopEnd::Failed(format!("pre-iteration check failed: {e}")),
+            };
+            match pre {
+                PreCheckResult::Continue => {}
+                PreCheckResult::NoReadyChunk => break LoopEnd::NoReadyChunk,
+                PreCheckResult::SpecComplete => break LoopEnd::SpecComplete,
+                PreCheckResult::MaxIterations => {
+                    break LoopEnd::MaxIterations(self.iter_loop.max_iterations());
+                }
+            }
+            match self.boundary().await {
+                Boundary::Go => {}
+                Boundary::Skip => {
+                    self.note(format!(
+                        "skipped iteration {}",
+                        self.iter_loop.display_iteration()
+                    ));
+                    self.advance();
+                    continue;
+                }
+                Boundary::Abort => break LoopEnd::Aborted,
+                Boundary::Closed => break LoopEnd::CockpitClosed,
+            }
+            match self.iteration().await {
+                Ok(Step::Next) => {}
+                Ok(Step::Closed) => break LoopEnd::CockpitClosed,
+                Ok(Step::End(end)) => break end,
+                Err(why) => {
+                    self.post(LoopEvent::Failed(why.clone()));
+                    break LoopEnd::Failed(why);
+                }
+            }
+            self.advance();
+        };
+        if self.persist {
+            let _ = self.iter_loop.cleanup();
+        }
+        if end != LoopEnd::CockpitClosed {
+            self.post(LoopEvent::Ended(end.to_string()));
+        }
+        LoopReport::new(self.iterations, end)
+            .with_goal(self.goal_record())
+            .with_metrics(std::mem::take(&mut self.metrics))
+    }
+
+    /// The boundary before an iteration: a skip or abort asked for
+    /// meanwhile takes effect; a step that ran its one iteration pauses
+    /// here and says so; a pause waits here for the user's decision.
+    async fn boundary(&mut self) -> Boundary {
+        if let Some(decision) = self.take_decision() {
+            return decision;
+        }
+        if self.stepping {
+            // The stepped iteration is behind us: hold, and say so the
+            // way the auto-pause does, so the strip reads paused without
+            // a second key from the user.
+            self.stepping = false;
+            self.paused = true;
+            self.post(LoopEvent::Paused(format!(
+                "stepped iteration {}",
+                self.iter_loop.display_iteration().saturating_sub(1)
+            )));
+        }
+        if !self.paused {
+            return Boundary::Go;
+        }
+        self.note("paused — space resumes · s steps one iteration · x skips the next · esc aborts");
+        loop {
+            match self.wake(None, None).await {
+                Wake::Cmd(Cmd::Loop(cmd)) => {
+                    self.decide(cmd);
+                    if !self.paused {
+                        return self.take_decision().unwrap_or(Boundary::Go);
+                    }
+                }
+                Wake::Closed => return Boundary::Closed,
+                _ => {}
+            }
+        }
+    }
+
+    fn take_decision(&mut self) -> Option<Boundary> {
+        match self.pending.take()? {
+            LoopCmd::Skip => Some(Boundary::Skip),
+            LoopCmd::Abort => Some(Boundary::Abort),
+            LoopCmd::Pause | LoopCmd::Resume | LoopCmd::Step => None,
+        }
+    }
+
+    /// One iteration: the stage cleared, the prompt built, the agent
+    /// connected and run to the end of its turn, the gates run, the
+    /// commit check recorded.
+    async fn iteration(&mut self) -> Result<Step, String> {
+        let (display, max) = (
+            self.iter_loop.display_iteration(),
+            self.iter_loop.max_iterations(),
+        );
+        let summary = self
+            .iter_loop
+            .spec_summary()
+            .map_err(|e| format!("cannot read the roadmap's progress: {e}"))?;
+        self.post(LoopEvent::Started {
+            iteration: display,
+            max,
+        });
+        self.note(format!(
+            "iteration {display} of {max} — {}/{} done",
+            summary.checked, summary.total
+        ));
+        if self.iterations == 0 {
+            if let Some(note) = self.goal_note.take() {
+                self.note(note);
+            }
+            self.note(self.goal_line());
+        }
+        self.transcript.clear();
+        self.target = None;
+        if let Some(engines) = self.iter_loop.native() {
+            engines.reload_ship();
+            engines.reload_signal();
+            // The store re-read whole: the rail shows a plan — the Trace
+            // tab the steps and gates, and the Roadmap tab's inbox the
+            // signals — recorded while no feed was attached, without
+            // waiting for a frame.
+            self.inbox
+                .send(Msg::Engine(EngineEvent::Seed(StoreSeed::read(engines))));
+            // The chunk the prompt is about to be built for: what the
+            // judge is asked about if the agent starts nothing itself.
+            self.target = engines.roadmap_next().map(|chunk| chunk.id);
+        }
+        let prompt = self
+            .iter_loop
+            .next_prompt(&self.wf.project_config)
+            .map_err(|e| format!("failed to build the prompt: {e}"))?;
+        // What the last iteration's red gates measured, carried forward as
+        // the rows themselves. Before the gates kept their output there was
+        // nothing here to carry but a sentence.
+        let prompt = match self.carry.take() {
+            Some(brief) => format!("{prompt}\n\n{brief}"),
+            None => prompt,
+        };
+        let cwd = self.wf.project_dir.clone();
+        let started = Instant::now();
+        let mut ticks = ticker();
+        self.completed.clear();
+        self.metrics.push(IterationMetrics::default());
+        self.tokens_seen = None;
+        let delegated = if self.delegating() {
+            match self.delegated_turn(&cwd, started, &mut ticks).await? {
+                Delegated::Ran => true,
+                Delegated::Closed => return Ok(Step::Closed),
+                Delegated::Fallback => false,
+            }
+        } else {
+            false
+        };
+        if !delegated {
+            let config = AgentConfig::new(&prompt, &cwd)
+                .backend(self.backend)
+                .allowed_tools(ToolPermissions::for_workflow().into_strings())
+                .with_project_context(&cwd);
+            self.post(LoopEvent::Stage(LoopStage::Connecting));
+            let transport = match self.connector.connect(config).await {
+                Ok(transport) => transport,
+                Err(e) => {
+                    self.iter_loop.mark_failed();
+                    return Err(format!("failed to start the agent: {e}"));
+                }
+            };
+            let (session, session_tx) = self.open_session(transport, &cwd, Some(&prompt));
+            self.post(LoopEvent::Stage(LoopStage::Agent));
+            let turn = self.turn(&session_tx, started, &mut ticks).await;
+            drop(session_tx);
+            let _ = tokio::time::timeout(SESSION_GRACE, session).await;
+            match turn {
+                Turn::Ended => {}
+                Turn::Closed => return Ok(Step::Closed),
+                Turn::Failed(why) => {
+                    self.iter_loop.mark_failed();
+                    return Err(why);
+                }
+            }
+        }
+        self.iterations += 1;
+        let turn = started.elapsed();
+        let tokens = self.tokens_seen.take();
+        self.measure(|m| {
+            m.turn = turn;
+            m.tokens = tokens;
+        });
+        let gates_at = Instant::now();
+        let Some(gates) = self.gates(started, &mut ticks).await else {
+            return Ok(Step::Closed);
+        };
+        let gates_took = gates_at.elapsed();
+        self.measure(|m| m.gates = gates_took);
+        if !self.boundary_checkpoint(display, &gates).await {
+            return Ok(Step::Closed);
+        }
+        if let Some(end) = self.settle(&gates) {
+            return Ok(Step::End(end));
+        }
+        if delegated {
+            self.note(
+                "delegated iteration settled — the agent's own evaluator judged it; magistr saw no verdict",
+            );
+            return Ok(Step::Next);
+        }
+        Ok(self
+            .judged(&gates, (display, max), started, &mut ticks)
+            .await)
+    }
+
+    /// The cockpit session over a connected transport: the events onto
+    /// the inbox (tapped for this driver), the runtime's commands in,
+    /// the workflow permission policy, the workbench and the engines.
+    fn open_session(
+        &self,
+        transport: magistr_acp::AcpTransport,
+        cwd: &Path,
+        opening: Option<&str>,
+    ) -> (JoinHandle<()>, UnboundedSender<Cmd>) {
+        let (session_tx, session_commands) = Commands::channel();
+        // Workflow mode: reads, edits and the gate commands are
+        // auto-approved so an unattended iteration never stalls on the
+        // strip — the same policy the legacy workflow runner applied.
+        let profile = resolve_permission_profile(None).unwrap_or(PermissionProfile::Standard);
+        let policy = cockpit_policy_for_project(cwd, profile, true, None);
+        // The engine port acts on the loop's own in-process engines, so a
+        // pin or checkpoint from the cockpit works mid-iteration too.
+        let engine = self
+            .iter_loop
+            .native()
+            .map(|engines| Box::new(NativeEnginePort::new(engines.clone())) as _);
+        // The loop's cockpit reaches the same workbench the agent does:
+        // the project's configured workbench-mcp, over its stdio.
+        let workbench = crate::orchestration::commands::workbench_port::workbench_port(cwd);
+        let mut options = SessionOptions::new();
+        if let Some(prompt) = opening {
+            options = options.opening_prompt(prompt);
+        }
+        let session = spawn_session(
+            transport,
+            self.inbox.tap(self.tap_tx.clone()),
+            session_commands,
+            options,
+            Box::new(policy),
+            workbench,
+            engine,
+            // The session holds no ledger of its own on the loop: every
+            // checkpoint verb — the boundary's save, a `/checkpoint-now`,
+            // a risky ask's `cp-N` — is served by the driver's port
+            // instead ([`LoopDriver::ledger`]), off the session's relay,
+            // and the boundary's is taken only once the session is gone.
+            None,
+        );
+        (session, session_tx)
+    }
+
+    /// The boundary checkpoint: the iteration's state, taken once its
+    /// gates are in.
+    ///
+    /// The cockpit mints the row and asks for it back under that name;
+    /// this task serves the ask on the port, off its own thread, and —
+    /// alone among the port's callers — waits for the answer, because
+    /// nothing else is going on: the iteration's session is gone and
+    /// the next handshake has not begun. That ordering is the whole of
+    /// the fix for flake, where one git read at `Started`
+    /// sat on the delegated goal's echo deadline; here the two are
+    /// sequential on one task, by construction. Both waits are bounded
+    /// so a stalled runtime or a hung `git` cannot wedge the loop, and
+    /// a late answer still lands on its row. `false` when the cockpit
+    /// closed meanwhile.
+    async fn boundary_checkpoint(&mut self, iteration: u32, gates: &[GateOutcome]) -> bool {
+        if self.checkpoints.is_none() {
+            return true;
+        }
+        self.post(LoopEvent::Boundary {
+            iteration,
+            gates: gates
+                .iter()
+                .map(|gate| (gate.name.clone(), gate.passed()))
+                .collect(),
+        });
+        let asked = tokio::time::sleep(LEDGER_ASK_GRACE);
+        tokio::pin!(asked);
+        loop {
+            tokio::select! {
+                wake = self.wake(None, None) => match wake {
+                    Wake::Ledger => break,
+                    Wake::Closed => return false,
+                    Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                    Wake::Tap(_) | Wake::Cmd(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Tick => {}
+                },
+                () = &mut asked => {
+                    self.note(format!(
+                        "checkpoint for iteration {iteration}: the cockpit did not ask for it in time"
+                    ));
+                    return true;
+                }
+            }
+        }
+        if let Some(save) = self.ledger.take()
+            && tokio::time::timeout(LEDGER_SAVE_GRACE, save).await.is_err()
+        {
+            self.note(format!(
+                "checkpoint for iteration {iteration} is still saving — going on without it"
+            ));
+        }
+        true
+    }
+
+    /// Serve one ledger verb on the port, off this task; the answer
+    /// reaches the cockpit as `Msg::Checkpoint` when it lands.
+    fn ledger(&mut self, cmd: CheckpointCmd) {
+        if let Some(port) = &self.checkpoints {
+            self.ledger = Some(detach(port, cmd, &self.inbox));
+        }
+    }
+
+    /// One delegated turn: the objective compiled from the iteration's
+    /// chunk, then a fresh session per candidate delivery — remembered
+    /// across iterations once one confirms. Confirmation is the
+    /// optimistic echo and nothing else (agent_goal.rs): it proves
+    /// delivery and recognition, never acceptance or progress. No
+    /// confirmation reports visibly and falls back to the native loop.
+    async fn delegated_turn(
+        &mut self,
+        cwd: &Path,
+        started: Instant,
+        ticks: &mut Interval,
+    ) -> Result<Delegated, String> {
+        let chunk = self.iter_loop.native().and_then(|engines| {
+            let id = self.target.clone()?;
+            engines.roadmap_chunks().into_iter().find(|c| c.id == id)
+        });
+        let objective =
+            AgentGoal::compile_objective(chunk.as_ref().map(|c| (c.id.as_str(), c.title.as_str())));
+        let picks: Vec<DeliveryKind> = match self.delegated {
+            Some(DelegationOutcome::Chosen(kind)) => vec![kind],
+            Some(DelegationOutcome::NativeFallback) => Vec::new(),
+            None => match self.goal {
+                GoalMode::Extension => vec![DeliveryKind::Extension],
+                GoalMode::Command => vec![DeliveryKind::Command],
+                GoalMode::Auto => vec![DeliveryKind::Extension, DeliveryKind::Command],
+                GoalMode::Native | GoalMode::Off => Vec::new(),
+            },
+        };
+        for pick in picks {
+            match self
+                .goal_attempt(cwd, &objective, pick, started, ticks)
+                .await?
+            {
+                Attempt::Confirmed(kind) => {
+                    self.delegated = Some(DelegationOutcome::Chosen(kind));
+                    return Ok(Delegated::Ran);
+                }
+                Attempt::Unavailable(why) => {
+                    self.note(format!("goal {}: {why}", pick.label()));
+                }
+                Attempt::Unconfirmed(why) => self.post(LoopEvent::Failed(format!(
+                    "goal {}: {why} — the delivery was cleared and abandoned",
+                    pick.label()
+                ))),
+                Attempt::Closed => return Ok(Delegated::Closed),
+            }
+        }
+        self.delegated = Some(DelegationOutcome::NativeFallback);
+        self.post(LoopEvent::Failed(format!(
+            "MAGISTR_GOAL={} asked to delegate the loop, but no delivery was confirmed by the agent's echo — running magistr's own loop instead",
+            self.goal.label()
+        )));
+        Ok(Delegated::Fallback)
+    }
+
+    /// One delivery attempt on its own session, cleaned up whatever
+    /// happened.
+    async fn goal_attempt(
+        &mut self,
+        cwd: &Path,
+        objective: &str,
+        pick: DeliveryKind,
+        started: Instant,
+        ticks: &mut Interval,
+    ) -> Result<Attempt, String> {
+        let config = AgentConfig::new(objective, cwd)
+            .backend(self.backend)
+            .allowed_tools(ToolPermissions::for_workflow().into_strings())
+            .with_project_context(cwd);
+        self.post(LoopEvent::Stage(LoopStage::Connecting));
+        let mut transport = match self.connector.connect(config).await {
+            Ok(transport) => transport,
+            Err(e) => {
+                self.iter_loop.mark_failed();
+                return Err(format!("failed to start the agent: {e}"));
+            }
+        };
+        let sender = match transport.sender() {
+            Ok(sender) => sender,
+            Err(e) => return Err(e.to_string()),
+        };
+        let Some(mut tap) = transport.tap_events() else {
+            return Err("the transport's event stream was already taken".to_owned());
+        };
+        let (session, session_tx) = self.open_session(transport, cwd, None);
+        self.post(LoopEvent::Stage(LoopStage::Agent));
+        let outcome = self
+            .deliver(
+                &sender,
+                &mut tap,
+                &session_tx,
+                objective,
+                pick,
+                started,
+                ticks,
+            )
+            .await;
+        drop(session_tx);
+        let _ = tokio::time::timeout(SESSION_GRACE, session).await;
+        outcome
+    }
+
+    /// Negotiate, issue, confirm by the echo, and run to the end of the
+    /// agent's own goal loop.
+    // The seven are the attempt's own session handles plus the loop's
+    // clock — bundling them would be a struct for one call site.
+    #[allow(clippy::too_many_arguments)]
+    async fn deliver(
+        &mut self,
+        sender: &AcpSender,
+        tap: &mut UnboundedReceiver<AcpEvent>,
+        session: &UnboundedSender<Cmd>,
+        objective: &str,
+        pick: DeliveryKind,
+        started: Instant,
+        ticks: &mut Interval,
+    ) -> Result<Attempt, String> {
+        // Phase 1 — the handshake, and for the command the advertised
+        // list (it may land before or after `Initialized`; after gets
+        // [`COMMANDS_GRACE`]).
+        let mut delegation = Delegation::new();
+        let negotiate = tokio::time::Instant::now() + NEGOTIATE_TIMEOUT;
+        let mut grace: Option<tokio::time::Instant> = None;
+        loop {
+            if delegation.initialized()
+                && (pick == DeliveryKind::Extension || delegation.commands_listed())
+            {
+                break;
+            }
+            let deadline = match (grace, delegation.initialized()) {
+                (Some(grace), _) => grace,
+                (None, true) => {
+                    let g = tokio::time::Instant::now() + COMMANDS_GRACE;
+                    grace = Some(g);
+                    g
+                }
+                (None, false) => negotiate,
+            };
+            tokio::select! {
+                event = tap.recv() => match event {
+                    Some(event) => delegation.observe(&event),
+                    None => {
+                        return Ok(Attempt::Unconfirmed(
+                            "the session ended during negotiation".to_owned(),
+                        ));
+                    }
+                },
+                wake = self.wake(None, Some(ticks)) => match wake {
+                    Wake::Closed => return Ok(Attempt::Closed),
+                    Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                    Wake::Cmd(other) => {
+                        let _ = session.send(other);
+                    }
+                    Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                    Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
+                        return Err(format!("the agent failed: {e}"));
+                    }
+                    Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                },
+                () = tokio::time::sleep_until(deadline) => break,
+            }
+        }
+        let Some(delivery) = delegation.candidate_of_kind(pick) else {
+            return Ok(Attempt::Unavailable(
+                match pick {
+                    DeliveryKind::Extension => "the agent advertises no usable goal extension",
+                    DeliveryKind::Command => "the agent lists no goal command",
+                }
+                .to_owned(),
+            ));
+        };
+
+        // Phase 2 — issue the delivery and wait for the optimistic echo.
+        let mut pending: Option<oneshot::Receiver<magistr_acp::Result<serde_json::Value>>> = None;
+        match &delivery {
+            Delivery::Extension { method, session_id } => {
+                self.note(format!("goal ({method}) → {objective}"));
+                pending = Some(
+                    sender
+                        .extension(method, AgentGoal::set_params(session_id, objective))
+                        .map_err(|e| e.to_string())?,
+                );
+            }
+            Delivery::Command { name } => {
+                let turn = AgentGoal::command_turn(name, objective);
+                self.note(format!("goal → {turn}"));
+                sender.prompt(&turn).map_err(|e| e.to_string())?;
+            }
+        }
+        let echo_deadline = tokio::time::Instant::now() + self.echo_timeout;
+        let mut turn_ended = false;
+        let confirmed = loop {
+            tokio::select! {
+                event = tap.recv() => match event {
+                    Some(AcpEvent::SessionUpdate { update, .. })
+                        if AgentGoal::echo(&update, objective) =>
+                    {
+                        break true;
+                    }
+                    Some(_) => {}
+                    None => break false,
+                },
+                answer = extension_answer(&mut pending) => {
+                    // Resolved before any echo: the goal turn ran with no
+                    // recognition (or the method refused). The echo may
+                    // still be a step behind the response — keep waiting.
+                    let failed = answer.map(|result| result.is_err()).unwrap_or(true);
+                    pending = None;
+                    if failed {
+                        break false;
+                    }
+                }
+                wake = self.wake(None, Some(ticks)) => match wake {
+                    Wake::Closed => return Ok(Attempt::Closed),
+                    Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                    Wake::Cmd(other) => {
+                        let _ = session.send(other);
+                    }
+                    Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                    Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(_))) => turn_ended = true,
+                    Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
+                        return Err(format!("the agent failed: {e}"));
+                    }
+                    Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                },
+                () = tokio::time::sleep_until(echo_deadline) => break false,
+            }
+        };
+        if !confirmed {
+            self.clear_delivery(sender, &delivery, turn_ended, ticks)
+                .await;
+            return Ok(Attempt::Unconfirmed(format!(
+                "no echo within {:.1} s",
+                self.echo_timeout.as_secs_f64()
+            )));
+        }
+
+        // Phase 3 — confirmed: the agent's own loop runs; magistr waits
+        // for its end (the extension request resolving, or the command
+        // turn's end) and stays blind in between.
+        self.note(format!(
+            "goal loop delegated ({}) — confirmed by the agent's echo (delivery and recognition, not progress); magistr is blind until it ends",
+            delivery.label()
+        ));
+        let extension = matches!(delivery, Delivery::Extension { .. });
+        if extension && pending.is_none() {
+            // Resolved during the echo wait: the loop is already over.
+            self.inbox
+                .send(Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)));
+        } else if !extension && turn_ended {
+            // The command turn's end reached the cockpit's tap while the
+            // echo was still being waited for on the transport's — the
+            // two taps are polled in a random order, and under load the
+            // relay can be a whole turn ahead. That end was consumed
+            // above; waiting for it again here is waiting for a message
+            // that will never come, which is what hung a loaded test
+            // until the cockpit was closed under it.
+        } else {
+            let mut tap = Some(tap);
+            loop {
+                tokio::select! {
+                    event = drained(&mut tap) => {
+                        if event.is_none() {
+                            tap = None;
+                            if pending.is_none() {
+                                break;
+                            }
+                        }
+                    }
+                    answer = extension_answer(&mut pending) => {
+                        pending = None;
+                        if let Ok(Err(e)) = answer {
+                            self.note(format!("the goal loop ended with an error: {e}"));
+                        }
+                        if extension {
+                            // The goal turn was the agent's own, so no
+                            // `PromptResponse` reaches the cockpit: the
+                            // request resolving is the turn's end.
+                            self.inbox.send(Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)));
+                            break;
+                        }
+                    }
+                    wake = self.wake(None, Some(ticks)) => match wake {
+                        Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(_))) if !extension => break,
+                        Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
+                            return Err(format!("the agent failed: {e}"));
+                        }
+                        Wake::Closed => return Ok(Attempt::Closed),
+                        Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                        Wake::Cmd(other) => {
+                            let _ = session.send(other);
+                        }
+                        Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                        Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                    },
+                }
+            }
+        }
+        Ok(Attempt::Confirmed(pick))
+    }
+
+    /// Abandon a delivery that was issued but never confirmed: the goal
+    /// — if the agent did set one — is cleared through the same
+    /// vehicle, so falling back cannot leave two goals set.
+    async fn clear_delivery(
+        &mut self,
+        sender: &AcpSender,
+        delivery: &Delivery,
+        turn_ended: bool,
+        ticks: &mut Interval,
+    ) {
+        match delivery {
+            Delivery::Extension { method, session_id } => {
+                let _ = sender.extension(method, AgentGoal::clear_params(session_id));
+            }
+            Delivery::Command { name } => {
+                if !turn_ended {
+                    let _ = sender.cancel();
+                    // The transport drops a prompt while one is in
+                    // flight, so wait for the turn's end first.
+                    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+                    loop {
+                        tokio::select! {
+                            wake = self.wake(None, Some(ticks)) => match wake {
+                                Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(_)))
+                                | Wake::Closed => break,
+                                _ => {}
+                            },
+                            () = tokio::time::sleep_until(deadline) => break,
+                        }
+                    }
+                }
+                let _ = sender.prompt(&AgentGoal::command_clear_turn(name));
+            }
+        }
+        tokio::time::sleep(CLEAR_GRACE).await;
+    }
+
+    /// The native goal loop's half of an iteration: the target chunk
+    /// re-read after the agent's own process wrote the store, the judge
+    /// asked on the driver's own wake loop (so a quit, a pause and the
+    /// clock all still land while it thinks), the verdict reported, and
+    /// the reconciled decision carried out through the engines.
+    async fn judged(
+        &mut self,
+        gates: &[GateOutcome],
+        iteration: (u32, u32),
+        started: Instant,
+        ticks: &mut Interval,
+    ) -> Step {
+        let Some(judge) = self.judge.clone() else {
+            return Step::Next;
+        };
+        let Some(engines) = self.iter_loop.native().cloned() else {
+            return Step::Next;
+        };
+        engines.reload_roadmap();
+        let Some(chunk) = self.target_chunk(&engines) else {
+            self.note("judge not asked: no chunk to judge this iteration");
+            return Step::Next;
+        };
+        // A chunk the agent finished, blocked or retired during its turn
+        // is not a question for the judge: the only verdict on a chunk
+        // nobody could have worked is "not worked", and it costs a
+        // small-model call to hear it. The next iteration's target is
+        // roadmap_next's answer, which skips all three. A blocker is
+        // read off `blocked_by`, the field roadmap_next skips on — the
+        // roadmap's `set_blocked_by` records the reason and leaves the
+        // status where it was, so `ChunkStatus::Blocked` alone would
+        // miss exactly the agent that did the right thing.
+        if let Some(blocker) = &chunk.blocked_by {
+            self.note(format!(
+                "judge not asked: {} was blocked by the agent this iteration — {}",
+                chunk.id, blocker.reason
+            ));
+            return Step::Next;
+        }
+        match chunk.status {
+            ChunkStatus::Done => {
+                self.note(format!(
+                    "judge not asked: {} was completed by the agent this iteration",
+                    chunk.id
+                ));
+                return Step::Next;
+            }
+            ChunkStatus::Blocked => {
+                self.note(format!(
+                    "judge not asked: {} was blocked by the agent this iteration",
+                    chunk.id
+                ));
+                return Step::Next;
+            }
+            ChunkStatus::Obsoleted => {
+                self.note(format!(
+                    "judge not asked: {} was obsoleted by the agent this iteration",
+                    chunk.id
+                ));
+                return Step::Next;
+            }
+            ChunkStatus::Backlog | ChunkStatus::Pending | ChunkStatus::InProgress => {}
+        }
+        let evidence: Vec<GateEvidence> = gates.iter().map(GateEvidence::from).collect();
+        let input = JudgeInput {
+            chunk: chunk.id.clone(),
+            title: chunk.title.clone(),
+            acceptance: chunk.acceptance.clone(),
+            gates: evidence.clone(),
+            transcript_tail: std::mem::take(&mut self.transcript),
+            iteration,
+        };
+        self.post(LoopEvent::Stage(LoopStage::Judge));
+        self.note(format!("asking the judge about {}", chunk.id));
+        let asked = Instant::now();
+        let mut ask = Box::pin(async move { judge.judge(&input).await });
+        let verdict = loop {
+            tokio::select! {
+                verdict = &mut ask => break verdict,
+                wake = self.wake(None, Some(ticks)) => match wake {
+                    Wake::Closed => return Step::Closed,
+                    Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                    Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                    Wake::Tap(_)
+                    | Wake::Cmd(_)
+                    | Wake::Gate(_)
+                    | Wake::GatesGone
+                    | Wake::Ledger => {}
+                },
+            }
+        };
+        let judge_took = asked.elapsed();
+        self.measure(|m| m.judge = Some(judge_took));
+        self.post(LoopEvent::Verdict {
+            iteration: iteration.0,
+            ok: verdict.ok,
+            impossible: verdict.impossible,
+            reason: verdict.reason.clone(),
+        });
+        match Decision::reconcile(&verdict, &evidence) {
+            Decision::Complete { reason } => {
+                self.complete(&engines, &chunk, &reason);
+                Step::Next
+            }
+            Decision::Continue { .. } => {
+                // The reason is already on the stage: the Verdict event
+                // above put it there, so the note only says what follows.
+                self.note(format!(
+                    "judge: not yet — the next iteration takes {} again",
+                    chunk.id
+                ));
+                Step::Next
+            }
+            Decision::Disagreement { reason, failed } => {
+                self.post(LoopEvent::Failed(format!(
+                    "the judge says {} is met ({reason}) but the gates disagree: {} failed — the chunk stays in progress",
+                    chunk.id,
+                    failed.join(", ")
+                )));
+                Step::Next
+            }
+            Decision::Stop { reason } => self.stop(&engines, &chunk, &reason),
+        }
+    }
+
+    /// The chunk the judge is asked about: the iteration's target when
+    /// the agent took it in progress, else whatever is in progress, else
+    /// the target as it stands.
+    fn target_chunk(&self, engines: &NativeEngines) -> Option<Chunk> {
+        let chunks = engines.roadmap_chunks();
+        let target = |c: &&Chunk| self.target.as_deref() == Some(c.id.as_str());
+        let in_progress = |c: &&Chunk| c.status == ChunkStatus::InProgress;
+        chunks
+            .iter()
+            .find(|c| target(c) && in_progress(c))
+            .or_else(|| chunks.iter().find(in_progress))
+            .or_else(|| chunks.iter().find(target))
+            .cloned()
+    }
+
+    /// Complete `chunk` through the engines (starting one the agent
+    /// never started, since the lifecycle refuses pending → done) and
+    /// put the completion frame in front of the cockpit.
+    fn complete(&mut self, engines: &NativeEngines, chunk: &Chunk, reason: &str) {
+        if chunk.status == ChunkStatus::Pending
+            && let Err(e) = engines.roadmap_start_chunk(&chunk.id)
+        {
+            self.post(LoopEvent::Failed(format!(
+                "the judge says {} is met but the engines refused to start it: {e}",
+                chunk.id
+            )));
+            return;
+        }
+        match engines.roadmap_complete_chunk(&chunk.id, None) {
+            Ok(done) => {
+                self.completed.push(done.id.clone());
+                self.post_chunk_frame(&done, "chunk_completed");
+                self.note(format!("judge: met — {reason}; {} completed", chunk.id));
+            }
+            Err(e) => self.post(LoopEvent::Failed(format!(
+                "the judge says {} is met but the engines refused to complete it: {e}",
+                chunk.id
+            ))),
+        }
+    }
+
+    /// Block `chunk` on a human with the judge's reason — the dock's
+    /// blocker card — and end the loop.
+    fn stop(&mut self, engines: &NativeEngines, chunk: &Chunk, reason: &str) -> Step {
+        match engines.roadmap_set_blocked_by(
+            &chunk.id,
+            BlockerKind::AwaitingHuman,
+            format!("the judge stopped the loop: {reason}"),
+            None,
+        ) {
+            Ok(blocked) => self.post_chunk_frame(&blocked, "chunk_changed"),
+            Err(e) => self.post(LoopEvent::Failed(format!(
+                "could not block {} on a human: {e}",
+                chunk.id
+            ))),
+        }
+        Step::End(LoopEnd::NeedsHuman(reason.to_owned()))
+    }
+
+    /// A roadmap mutation of the driver's own, as the broadcast frame the
+    /// server would have written — the rail, the dock and the Roadmap tab
+    /// fold it through the one path they already have; the in-process
+    /// engines write no socket.
+    fn post_chunk_frame(&self, chunk: &Chunk, kind: &str) {
+        let payload = serde_json::to_value(chunk).unwrap_or(serde_json::Value::Null);
+        self.inbox.send(Msg::Engine(EngineEvent::Frame(NativeFrame {
+            family: "roadmap".to_owned(),
+            kind: kind.to_owned(),
+            payload: serde_json::json!({ "family": "roadmap", "type": kind, "chunk": payload }),
+        })));
+    }
+
+    /// The agent's turn: the cockpit's commands forwarded to the session,
+    /// the clock kept, until the turn ends.
+    async fn turn(
+        &mut self,
+        session: &UnboundedSender<Cmd>,
+        started: Instant,
+        ticks: &mut Interval,
+    ) -> Turn {
+        loop {
+            match self.wake(None, Some(ticks)).await {
+                Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(_))) => return Turn::Ended,
+                Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
+                    return Turn::Failed(format!("the agent failed: {e}"));
+                }
+                Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                Wake::Cmd(other) => {
+                    let _ = session.send(other);
+                }
+                Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                Wake::Closed => return Turn::Closed,
+                Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+            }
+        }
+    }
+
+    /// The gates as jobs, every one announced on the strip; `None` when
+    /// the cockpit closed meanwhile — cancelling the jobs on the way
+    /// out, so no gate's process outlives the quit.
+    ///
+    /// One at a time. `cargo check`, `cargo nextest` and `cargo clippy`
+    /// contend for one build lock on one target directory, so racing them
+    /// buys no wall clock and costs the ability to say which gate spent
+    /// which second. A red required gate gets exactly one more run: green
+    /// on the retry is a flake, named rather than hidden, and not a reason
+    /// to stop the loop; red twice is real.
+    async fn gates(&mut self, started: Instant, ticks: &mut Interval) -> Option<Vec<GateOutcome>> {
+        // The agent is gone and its feed with it (the socket is the
+        // agent's own mcp-serve's): the stage is what the cockpit shows
+        // in its place.
+        self.post(LoopEvent::Stage(LoopStage::Gates));
+        let cancel = CancellationToken::new();
+        // The trace the gates are recorded into was written by the agent's
+        // own `magistr mcp-serve`, in another process; persistence is
+        // merge-on-save and never reload-on-read, so this handle cannot see
+        // that task until it re-reads. Once per set, not once per gate.
+        let engines = self.iter_loop.native().cloned();
+        if let Some(engines) = &engines {
+            engines.reload_ship();
+        }
+        let mut said_why_not = false;
+        // The loop's gates are the project's top-level `quality_gate`,
+        // deliberately not `resolve_gates`' per-archetype specs: sharing
+        // the *runner* with `magistr_gate` must not silently change which
+        // commands the loop runs.
+        let quality_gate = self.wf.project_config.quality_gate.clone();
+        let mut outcomes = Vec::new();
+        for gate in Gate::all() {
+            let command = gate_command(&quality_gate, gate);
+            if command.trim().is_empty() {
+                continue;
+            }
+            let first = match self
+                .one_gate(gate.label(), command, &cancel, started, ticks)
+                .await
+            {
+                GateStep::Ran(outcome) => outcome,
+                GateStep::Gone => continue,
+                GateStep::Closed => {
+                    cancel.cancel();
+                    return None;
+                }
+            };
+            if !first.is_retryable() {
+                self.record_gate(engines.as_ref(), &first, &mut said_why_not);
+                outcomes.push(first);
+                continue;
+            }
+            self.note(format!(
+                "{} failed (exit {}) — running it once more to tell a flake from a failure",
+                first.name, first.exit_code
+            ));
+            match self
+                .one_gate(gate.label(), command, &cancel, started, ticks)
+                .await
+            {
+                GateStep::Ran(again) if again.passed() => {
+                    let flake = again.as_flake_of(&first);
+                    self.record_gate(engines.as_ref(), &flake, &mut said_why_not);
+                    outcomes.push(flake);
+                }
+                // Red twice is real, and the second run's own evidence is
+                // the fresher of the two.
+                GateStep::Ran(again) => {
+                    self.record_gate(engines.as_ref(), &again, &mut said_why_not);
+                    outcomes.push(again);
+                }
+                GateStep::Gone => {
+                    self.record_gate(engines.as_ref(), &first, &mut said_why_not);
+                    outcomes.push(first);
+                }
+                GateStep::Closed => {
+                    cancel.cancel();
+                    return None;
+                }
+            }
+        }
+        Some(outcomes)
+    }
+
+    /// Forward one gate to the execution trace as a verified check, with
+    /// its real exit code, its command and its captured output — the same
+    /// record `magistr_gate` writes for the agent's own gates, and which
+    /// the driver's had no counterpart to at all: it ran three cargos
+    /// between every iteration and wrote nothing about any of them.
+    ///
+    /// A `cargo nextest` whose profile writes a junit report has it parsed
+    /// into the record additively; the exit code decides `passed`, never
+    /// the report, and a missing file is "not parsed" rather than a
+    /// failure. `said` keeps a set that cannot be recorded to one note on
+    /// the stage instead of one per gate.
+    fn record_gate(
+        &mut self,
+        engines: Option<&NativeEngines>,
+        gate: &GateOutcome,
+        said: &mut bool,
+    ) {
+        let Some(engines) = engines else {
+            if !*said {
+                *said = true;
+                self.note("gates not recorded: no think-and-ship engines");
+            }
+            return;
+        };
+        // An absolute path: `read_report` uses it verbatim, and the loop
+        // makes no promise about its own working directory.
+        let report =
+            nextest_junit_report_path(&gate.command).map(|rel| self.wf.project_dir.join(rel));
+        let report = report.as_ref().map(|path| path.to_string_lossy());
+        if let Err(why) = engines.ship_record_gate(
+            None,
+            &gate.name,
+            gate.command.clone(),
+            gate.exit_code,
+            gate.details(),
+            gate.required,
+            report.as_ref().map(|path| ("junit", path.as_ref())),
+        ) && !*said
+        {
+            *said = true;
+            self.note(format!("gates not recorded: {why}"));
+        }
+    }
+
+    /// One gate as a job, awaited to its outcome on a channel of its own
+    /// — so a job that vanishes without reporting is still detected per
+    /// gate, the way one shared channel could only detect it for all.
+    async fn one_gate(
+        &mut self,
+        name: &'static str,
+        command: &str,
+        cancel: &CancellationToken,
+        started: Instant,
+        ticks: &mut Interval,
+    ) -> GateStep {
+        let (report, mut outcomes_rx) = unbounded_channel();
+        // The gate's own way out: a child of the driver's token, so the
+        // cockpit closing still ends it, and the held kill ends this gate alone — its process group, the way a
+        // timeout would — and the run comes back cancelled.
+        let own = cancel.child_token();
+        let job = self.jobs.spawn_job(gate_job(
+            name,
+            command.to_owned(),
+            self.wf.project_dir.clone(),
+            report,
+            self.inbox.clone(),
+            own.clone(),
+        ));
+        self.post(LoopEvent::GateStarted {
+            name: name.to_owned(),
+            job,
+        });
+        loop {
+            match self.wake(Some(&mut outcomes_rx), Some(ticks)).await {
+                Wake::Gate(outcome) => return GateStep::Ran(outcome),
+                Wake::GatesGone => return GateStep::Gone,
+                Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                Wake::Cmd(Cmd::Kill(KillCmd::Gate(gate))) if gate == name => own.cancel(),
+                Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                Wake::Closed => return GateStep::Closed,
+                Wake::Tap(_) | Wake::Cmd(_) | Wake::Ledger => {}
+            }
+        }
+    }
+
+    /// After the gates: the commit check, the chunks the feed saw
+    /// completed, the gates' verdict and the auto-pause; the reason to
+    /// stop, if there is one.
+    fn settle(&mut self, gates: &[GateOutcome]) -> Option<LoopEnd> {
+        match self.iter_loop.post_iteration_check() {
+            PostCheckResult::CommitMade { new_sha } => {
+                let short = new_sha.get(..7).unwrap_or(new_sha.as_str());
+                self.note(format!("committed {short}"));
+            }
+            PostCheckResult::NoCommit { guidance } => {
+                self.note(format!("no commit this iteration — {guidance}"));
+                if self.iter_loop.should_stop_no_commits() {
+                    return Some(LoopEnd::NoCommits);
+                }
+            }
+        }
+        if self.iter_loop.is_native() {
+            if self.completed.is_empty() {
+                self.note("no roadmap chunk was completed this iteration");
+            } else {
+                self.note(format!("completed chunk(s): {}", self.completed.join(", ")));
+            }
+        }
+        let flaky: Vec<&str> = gates
+            .iter()
+            .filter(|gate| gate.verdict == GateVerdict::Flaky)
+            .map(|gate| gate.name.as_str())
+            .collect();
+        if !flaky.is_empty() {
+            self.note(format!(
+                "flaky, passed on the retry: {} — not treated as a failure",
+                flaky.join(", ")
+            ));
+        }
+        let failed: Vec<String> = gates
+            .iter()
+            .filter(|gate| !gate.passed())
+            .map(|gate| format!("{} {}", gate.name, gate.verdict.label()))
+            .collect();
+        if gates.is_empty() {
+            self.note("no quality gates configured");
+        } else if failed.is_empty() {
+            let secs: f64 = gates.iter().map(|g| g.duration.as_secs_f64()).sum();
+            self.note(format!("quality gates passed in {secs:.1}s"));
+        } else {
+            let names = failed.join(", ");
+            self.post(LoopEvent::Failed(format!("quality gates failed: {names}")));
+            if self.auto_pause {
+                self.paused = true;
+                self.post(LoopEvent::Paused(format!("quality gates failed: {names}")));
+            }
+            self.verify(gates);
+        }
+        None
+    }
+
+    /// The gates as the independent verifier of the agent's own claim.
+    ///
+    /// They run after the agent has already run its own gates, completed
+    /// its chunk and committed, so they can prevent none of it — the
+    /// commit boundary is the inner/outer-loop split and the pre-commit
+    /// position is already held by the agent's `magistr_gate`. Their
+    /// authority is over the ROADMAP instead: a chunk the
+    /// agent completed itself while a required gate is red does not stay
+    /// done. Nothing here reaches git; no commit is reverted, reset or
+    /// stashed. `Done -> InProgress` is the roadmap's own legal
+    /// transition, the one its lifecycle table names `reopen`.
+    ///
+    /// Reopening is also what puts the chunk back in front of
+    /// [`Decision::reconcile`](crate::orchestration::goal::Decision):
+    /// `judged` skips a chunk that is `Done`, which is exactly what the
+    /// `/next` workflow tells the agent to leave behind, so the authority
+    /// rule could never run on the real path. It runs now.
+    ///
+    /// Three kinds of red are deliberately not evidence of anything and
+    /// reopen nothing: a flake (it passed), a cancelled gate (the cockpit
+    /// is closing and nobody let it finish), and a gate the project
+    /// registered not-required (it is expected to fail).
+    fn verify(&mut self, gates: &[GateOutcome]) {
+        let red: Vec<&GateOutcome> = gates
+            .iter()
+            .filter(|gate| gate.required && !gate.passed() && gate.verdict.is_evidence())
+            .collect();
+        if red.is_empty() {
+            return;
+        }
+        self.carry = Some(failure_brief(&red));
+        let Some(engines) = self.iter_loop.native().cloned() else {
+            return;
+        };
+        engines.reload_roadmap();
+        // Two witnesses to the same fact, because either can be the only
+        // one present. The feed's `chunk_completed` frames are what the
+        // driver saw this iteration; the chunk the prompt was built for,
+        // now reading Done in the store the agent's own `magistr
+        // mcp-serve` wrote, is the route `judged` already trusts.
+        let mut ids = self.completed.clone();
+        if let Some(target) = self.target.clone()
+            && !ids.contains(&target)
+        {
+            ids.push(target);
+        }
+        let names: Vec<&str> = red.iter().map(|gate| gate.name.as_str()).collect();
+        let names = names.join(", ");
+        for id in ids {
+            // Only a chunk that is actually done gets reopened: nothing
+            // here may move a chunk that was merely started.
+            if engines.roadmap_chunk(&id).map(|chunk| chunk.status) != Some(ChunkStatus::Done) {
+                continue;
+            }
+            match engines.roadmap_set_status(&id, ChunkStatus::InProgress) {
+                Ok(chunk) => {
+                    self.note(format!("{id} reopened: {names} is red"));
+                    self.post_chunk_frame(&chunk, "chunk_changed");
+                }
+                Err(e) => self.note(format!("could not reopen {id}: {e}")),
+            }
+        }
+    }
+
+    /// Advance the loop, persist when asked, clear the workflow's files.
+    fn advance(&mut self) {
+        self.iter_loop.advance();
+        if self.persist
+            && let Err(e) = self.iter_loop.persist()
+        {
+            self.note(format!("could not persist the loop's state: {e}"));
+        }
+        let _ = self.wf.cleanup();
+    }
+
+    /// A loop decision from the cockpit: pauses and resumes take effect
+    /// as flags, a step arms the pause for the boundary after the
+    /// iteration it lets run, a skip or an abort waits for the boundary.
+    /// Every decision but Step ends a step in flight — the newest word
+    /// wins.
+    fn decide(&mut self, cmd: LoopCmd) {
+        self.stepping = false;
+        match cmd {
+            LoopCmd::Pause => self.paused = true,
+            LoopCmd::Resume => self.paused = false,
+            LoopCmd::Step => {
+                self.paused = false;
+                self.stepping = true;
+            }
+            LoopCmd::Skip | LoopCmd::Abort => {
+                self.paused = false;
+                self.pending = Some(cmd);
+            }
+        }
+    }
+
+    /// The next thing to act on: a tapped message (roadmap completions
+    /// counted on the way), a command, a gate outcome, a tick, or the
+    /// cockpit gone.
+    async fn wake(
+        &mut self,
+        gates: Option<&mut UnboundedReceiver<GateOutcome>>,
+        ticks: Option<&mut Interval>,
+    ) -> Wake {
+        let (tap, commands) = (&mut self.tap_rx, &mut self.commands);
+        let wake = tokio::select! {
+            msg = tap.recv() => msg.map_or(Wake::Closed, Wake::Tap),
+            cmd = commands.next() => cmd.map_or(Wake::Closed, Wake::Cmd),
+            outcome = recv_gate(gates) => outcome.map_or(Wake::GatesGone, Wake::Gate),
+            () = tick(ticks) => Wake::Tick,
+        };
+        match wake {
+            Wake::Tap(msg) => {
+                self.observe(&msg);
+                Wake::Tap(msg)
+            }
+            // A ledger verb — the boundary's own save, or a
+            // `/checkpoint-now`, `/restore` or `/fork` typed on the
+            // loop's cockpit — is the driver's to serve when it carries
+            // the port: off this task, and never forwarded to a session
+            // that holds no port to drop it on.
+            Wake::Cmd(Cmd::Checkpoint(cmd)) if self.checkpoints.is_some() => {
+                self.ledger(cmd);
+                Wake::Ledger
+            }
+            other => other,
+        }
+    }
+
+    /// A roadmap `chunk_completed` frame names a chunk this iteration
+    /// completed; the agent's own words are kept for the judge.
+    fn observe(&mut self, msg: &Msg) {
+        match msg {
+            Msg::Engine(EngineEvent::Frame(frame))
+                if frame.family == "roadmap" && frame.kind == "chunk_completed" =>
+            {
+                if let Some(id) = frame.payload["chunk"]["id"].as_str() {
+                    self.completed.push(id.to_owned());
+                }
+            }
+            Msg::Agent(AgentEvent::Text(text)) => self.transcript.push_str(text),
+            // ACP's `UsageUpdate.used` is the context's level; the
+            // highest level of the turn is what the turn put in context.
+            Msg::Agent(AgentEvent::Usage { used, size, .. }) => {
+                tracing::info!(target: "magistr::loop", used, size, "usage");
+                self.tokens_seen = Some(self.tokens_seen.map_or(*used, |seen| seen.max(*used)));
+            }
+            Msg::Agent(AgentEvent::TurnEnded(end)) => {
+                tracing::info!(target: "magistr::loop", ?end, "turn ended");
+            }
+            _ => {}
+        }
+    }
+
+    /// Record onto the running iteration's metrics; nothing before the
+    /// first iteration starts.
+    fn measure(&mut self, record: impl FnOnce(&mut IterationMetrics)) {
+        if let Some(metrics) = self.metrics.last_mut() {
+            record(metrics);
+        }
+    }
+
+    fn post(&self, event: LoopEvent) {
+        // Every report but the clock goes on the log too, timestamped,
+        // for a run measured from outside the cockpit.
+        if !matches!(event, LoopEvent::Elapsed(_)) {
+            tracing::info!(target: "magistr::loop", ?event, "loop");
+        }
+        self.inbox.send(Msg::Loop(event));
+    }
+
+    fn note(&self, text: impl Into<String>) {
+        self.post(LoopEvent::Note(text.into()));
+    }
+}
+
+fn ticker() -> Interval {
+    let mut interval = tokio::time::interval(TICK);
+    interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
+    // The first tick is immediate; the clock starts at zero anyway.
+    interval.reset();
+    interval
+}
+
+/// What awaiting one gate ended in.
+enum GateStep {
+    /// The gate returned its run.
+    Ran(GateOutcome),
+    /// The job is gone without reporting.
+    Gone,
+    /// The cockpit closed mid-gate.
+    Closed,
+}
+
+/// The next gate outcome, or never when no gates run.
+async fn recv_gate(rx: Option<&mut UnboundedReceiver<GateOutcome>>) -> Option<GateOutcome> {
+    match rx {
+        Some(rx) => rx.recv().await,
+        None => std::future::pending().await,
+    }
+}
+
+/// A pending extension request's answer; none pending never resolves.
+/// The caller clears the slot after a resolution — a spent receiver
+/// must not be polled again.
+async fn extension_answer(
+    rx: &mut Option<oneshot::Receiver<magistr_acp::Result<serde_json::Value>>>,
+) -> Result<magistr_acp::Result<serde_json::Value>, oneshot::error::RecvError> {
+    match rx.as_mut() {
+        Some(rx) => rx.await,
+        None => std::future::pending().await,
+    }
+}
+
+/// The next tapped transport event; an exhausted tap never resolves.
+async fn drained(tap: &mut Option<&mut UnboundedReceiver<AcpEvent>>) -> Option<AcpEvent> {
+    match tap.as_mut() {
+        Some(tap) => tap.recv().await,
+        None => std::future::pending().await,
+    }
+}
+
+/// The next tick, or never when the clock is not running.
+async fn tick(ticks: Option<&mut Interval>) {
+    match ticks {
+        Some(ticks) => {
+            ticks.tick().await;
+        }
+        None => std::future::pending().await,
+    }
+}
+
+#[cfg(test)]
+#[path = "driver.tests.rs"]
+mod tests;

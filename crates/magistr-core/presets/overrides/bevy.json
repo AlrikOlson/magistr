@@ -1,0 +1,8 @@
+{
+  "quality_gate": {
+    "check": "cargo check --workspace --all-targets",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings",
+    "test": "cargo nextest run --workspace"
+  },
+  "extra_allowed_tools": []
+}

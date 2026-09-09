@@ -1,0 +1,11 @@
+{
+  "quality_gate": {
+    "check": "mvn compile -q",
+    "test": "mvn test -q",
+    "lint": "mvn checkstyle:check -q"
+  },
+  "extra_allowed_tools": [
+    "Bash(mvn:*)",
+    "Bash(gradle:*)"
+  ]
+}

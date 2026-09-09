@@ -1,0 +1,97 @@
+---
+title: Configuration
+description: Project commands, native workflow state, and generated agent files.
+order: 2
+category: getting-started
+---
+
+# Configuration
+
+`magistr init` writes project configuration to `.magistr/project.json`. It records
+the detected stack, quality commands, formatting, and testing conventions.
+Generated agent instructions and skills live beside it in the selected agent's
+configuration directories.
+
+## Project configuration
+
+A small Rust project's configuration can look like this:
+
+```json
+{
+  "project": {
+    "name": "my-project",
+    "description": "A Rust application",
+    "type": "cli"
+  },
+  "stack": {
+    "language": "rust",
+    "framework": "none",
+    "package_manager": "cargo",
+    "test_framework": "cargo-nextest",
+    "linter": "clippy",
+    "formatter": "rustfmt"
+  },
+  "quality_gate": {
+    "check": "cargo check --all-targets",
+    "test": "cargo nextest run",
+    "lint": "cargo clippy -- -D warnings"
+  },
+  "format": {
+    "command": "cargo fmt",
+    "extensions": ["rs"]
+  },
+  "testing": {
+    "companion_pattern": "{name}.tests.{ext}",
+    "test_dir": "alongside"
+  },
+  "roadmap_backend": "think-and-ship",
+  "roadmap_exports": false,
+  "reference_repos": [],
+  "state_prefix": "my-project"
+}
+```
+
+Keep the commands appropriate to your repository. Multi-language projects can
+also carry `archetypes` with their own command/directory pairs. The gate resolver
+deduplicates equivalent commands in the same directory.
+
+## Required checks
+
+`quality_gate` defines compilation, tests, and lint. `format` is separate.
+Additional checks go in `custom_gates`, for example:
+
+```json
+{
+  "custom_gates": [
+    { "name": "docs", "command": "npm run check:docs", "required": true }
+  ]
+}
+```
+
+The validation skill runs required custom gates alongside the standard checks
+and records their results in the project's execution history.
+
+## Roadmap and agent files
+
+Native `think-and-ship` state is the default roadmap backend. With
+`roadmap_exports: false`, use native roadmap tools rather than creating Markdown
+or JSON roadmap files. Native projects omit the optional `spec` configuration
+used by the YAML backend.
+
+The `magistr` MCP server embeds the workflow tools. Workbench handles workspace
+navigation and edits. Codex setup writes `.codex/config.toml`, a managed block in
+`AGENTS.md`, `.codex/run`, and `.agents/skills`. Claude setup uses `CLAUDE.md`,
+`.claude/rules`, and `.claude/skills`.
+
+## Refresh and removal
+
+```sh
+magistr init . --agent codex --force --yes
+```
+
+Refresh preserves project state and customized files. For a read-only JSON
+preview, use `--dry-run --json` without `--force` or `--yes`.
+
+`magistr codex-remove .` removes unchanged, recorded Codex integration files.
+`magistr reset` deletes local project configuration and workflow state,
+including legacy state directories, after confirmation.

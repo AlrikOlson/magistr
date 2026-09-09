@@ -1,0 +1,2 @@
+crates/magistr-cli/src/detection/validate.rs
+crates/magistr-cli/src/orchestration/commands/config_manage.rs

@@ -1,0 +1,11 @@
+---
+description: Magistr repository workflow
+globs: ["**/*"]
+alwaysApply: true
+---
+
+Follow `AGENTS.md` and `.claude/rules/conventions.md`.
+Use the configured Magistr and Workbench tools.
+Keep roadmap and execution records in native state.
+Run the checks in `.magistr/project.json` before committing.
+Scope changes to the requested task and preserve other sessions' work.

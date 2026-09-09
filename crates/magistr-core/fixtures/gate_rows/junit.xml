@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="nextest-run" tests="3" failures="1" errors="1" uuid="c1" timestamp="2026-08-26T23:00:00Z" time="1.1">
+    <testsuite name="magistr-cli" tests="3" disabled="0" errors="1" failures="1">
+        <testcase name="tui::sidebar::task_list::tests::parse_plan_tag" classname="magistr-cli" timestamp="2026-08-26T23:00:00Z" time="0.011">
+        </testcase>
+        <testcase name="tui::stream::viewport::tests::viewport_window_performance_100k_lines" classname="magistr-cli" timestamp="2026-08-26T23:00:01Z" time="1.023">
+            <failure type="test failure" message="viewport_window took 593ms for 100K lines (should be &lt;500ms)&#10;more detail on a second line"/>
+            <system-out>running 1 test</system-out>
+        </testcase>
+        <testcase name="headless_iteration_is_guarded" classname="magistr-cli::next_iteration_integration" timestamp="2026-08-26T23:00:02Z" time="0.004">
+            <error type="test failure" message="assertion failed: `(left == right)`"></error>
+        </testcase>
+    </testsuite>
+</testsuites>

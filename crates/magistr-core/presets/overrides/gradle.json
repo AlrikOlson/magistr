@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "./gradlew compileJava",
+    "test": "./gradlew test",
+    "lint": "./gradlew check"
+  },
+  "extra_allowed_tools": [
+    "Bash(./gradlew:*)"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "cargo check --workspace --all-targets",
+    "test": "cargo nextest run --workspace",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings"
+  },
+  "format": {
+    "extensions": ["rs"],
+    "command": "cargo fmt",
+    "exclusions": ["target"]
+  },
+  "testing": {
+    "companion_pattern": "{name}.tests.{ext}",
+    "test_dir": "alongside"
+  },
+  "allowed_tools": [
+    "Bash(cargo:*)", "Bash(rustc:*)", "Bash(git:*)", "Bash(rm:*)",
+    "Bash(tail:*)", "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)",
+    "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

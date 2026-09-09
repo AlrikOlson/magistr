@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "npx tsc --noEmit",
+    "test": "npx vitest run"
+  },
+  "format": {
+    "exclusions": ["node_modules", "dist", "build"]
+  },
+  "extra_allowed_tools": []
+}

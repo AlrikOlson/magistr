@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "npx next lint && npx tsc --noEmit",
+    "test": "npx vitest run"
+  },
+  "format": {
+    "exclusions": ["node_modules", "dist", "build", ".next", "coverage", "out"]
+  },
+  "extra_allowed_tools": []
+}

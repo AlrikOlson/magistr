@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": null,
+    "test": null,
+    "lint": null
+  },
+  "extra_allowed_tools": [
+    "Bash(sqlx:*)", "Bash(psql:*)", "Bash(pg_dump:*)"
+  ]
+}

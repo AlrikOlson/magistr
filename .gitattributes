@@ -1,0 +1,4 @@
+# Every text file is LF on every platform: the templates are scaffolded
+# byte for byte, the scripts run under bash, and the captures are
+# compared exactly. Binaries are detected.
+* text=auto eol=lf

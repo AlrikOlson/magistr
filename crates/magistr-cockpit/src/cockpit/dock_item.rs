@@ -1,0 +1,75 @@
+//! One card on the Needs-you dock.
+
+use super::permission::Permission;
+use super::proposal_kind::ProposalKind;
+use crate::theme::Icons;
+
+/// Something that needs the human: a typed card on the dock, in the
+/// order it arrived.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DockItem {
+    /// A tool wants to run; an edit request is the diff-approval card.
+    Permission(Permission),
+    /// An open roadmap proposal on a chunk: accept it or reject it.
+    Proposal {
+        /// The chunk the proposal is on.
+        chunk: String,
+        /// Which field it wants to change.
+        kind: ProposalKind,
+        /// The suggested value, as the card shows it.
+        suggestion: String,
+        /// Why, as the proposer recorded it.
+        reason: String,
+    },
+    /// A chunk blocked awaiting a human decision: clear the blocker.
+    Blocker {
+        /// The blocked chunk.
+        chunk: String,
+        /// What it waits on.
+        reason: String,
+    },
+}
+
+impl DockItem {
+    /// The card's one-line text, without its buttons.
+    #[must_use]
+    pub fn text(&self, icons: &Icons) -> String {
+        match self {
+            Self::Permission(p) if p.is_edit() => saved(
+                format!("{} {} — approve the diff", icons.edit, p.title()),
+                p,
+            ),
+            Self::Permission(p) => saved(
+                format!("{} {} needs permission", icons.warning, p.title()),
+                p,
+            ),
+            Self::Proposal {
+                chunk,
+                kind,
+                suggestion,
+                reason,
+            } => format!(
+                "{} {chunk}: {} → {suggestion} ({reason})",
+                icons.signal,
+                kind.label()
+            ),
+            Self::Blocker { chunk, reason } => {
+                format!("{} {chunk} blocked: {reason}", icons.blocker)
+            }
+        }
+    }
+}
+
+/// A risky allow names the state it can be undone to.
+/// A request no checkpoint was taken before reads exactly as it always
+/// did, which is what keeps every card that is not risky unmoved.
+fn saved(text: String, permission: &Permission) -> String {
+    match permission.checkpoint() {
+        Some(id) => format!("{text} · {id} saved"),
+        None => text,
+    }
+}
+
+#[cfg(test)]
+#[path = "dock_item.tests.rs"]
+mod tests;

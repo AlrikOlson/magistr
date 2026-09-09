@@ -1,0 +1,15 @@
+{
+  "quality_gate": {
+    "check": "php artisan --version && php -l $(find app -name '*.php' | head -50)",
+    "test": "php artisan test",
+    "lint": "vendor/bin/phpstan analyse --no-progress"
+  },
+  "format": {
+    "exclusions": ["vendor", "storage", "bootstrap/cache", "public/build"]
+  },
+  "testing": {
+    "companion_pattern": "{name}Test.{ext}",
+    "test_dir": "tests"
+  },
+  "extra_allowed_tools": ["Bash(artisan:*)", "Bash(php:artisan)"]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Magistr",
+  "short_name": "Magistr",
+  "description": "AI-powered dev toolkit for the terminal",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#1a1b26",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/favicon-16.png", "type": "image/png", "sizes": "16x16" },
+    { "src": "/favicon-32.png", "type": "image/png", "sizes": "32x32" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}

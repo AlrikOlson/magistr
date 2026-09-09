@@ -1,0 +1,91 @@
+# Rust
+/target/
+/magistr
+
+# Local Cargo configuration
+.cargo/
+
+# Runtime state
+.magistr/current-plan.md
+.magistr/current-task.md
+.magistr/iteration-log.md
+.magistr/loop-state.json
+.magistr/session-state.json
+.magistr/charter.json
+.magistr/scope/
+.magistr/deliverables/
+.magistr/*.db
+.magistr/*.log
+
+# Claude state files
+.claude/current-plan.md
+.claude/current-task.md
+.claude/iteration-log.md
+.claude/iterations.log
+.claude/session-state.json
+.claude/settings.local.json
+# Local worktrees
+.claude/worktrees/
+
+# Local Codex configuration
+/.codex/config.toml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+dist/
+
+# Temporary/generated
+# Generated roadmap views
+/ROADMAP.md
+/ROADMAP.json
+.mcp.json
+.codescope.toml
+.firecrawl
+vendor/
+*.png
+# Versioned screenshots; exclude unreviewed candidates
+!crates/magistr-tui/tests/golden/**/*.png
+crates/magistr-tui/tests/golden/**/*.new.png
+.magistr-roadmap.yml.lock
+
+
+*.bin
+*.cache
+# Workbench state
+.workbench/
+
+# Local configuration and notes
+/.claude/projects/
+/.cursor/mcp.json
+/.think-and-ship/
+/.magistr/roadmap.yaml
+/.magistr/split-progress.md
+**/.magistr-roadmap.yml
+**/.magistr/iteration-log.md
+**/.magistr/carbon-icon-mapping.md
+/BUSINESS_PLAN.md
+/STARTUP.md
+/IDEAS.md
+/MANUAL_TODO.md
+/ENCYCLOPEDIA.md
+/pitch/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+!.env.sample
+credentials.json
+secrets.json
+*.key
+*.p12
+*.pfx

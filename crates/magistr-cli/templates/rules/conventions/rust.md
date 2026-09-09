@@ -1,0 +1,88 @@
+# Rust Conventions
+
+## Toolchain
+
+- Edition 2024, stable toolchain.
+- `cargo check --all-targets` before commit. `cargo clippy -- -D warnings` treats all warnings as errors.
+- `cargo fmt` enforced — no style debates.
+
+## Error Handling
+
+- No `unwrap()` in library code. Use `?` for propagation, `expect("context")` only when invariants are truly guaranteed.
+- `thiserror` for library error types, `color-eyre` / `anyhow` for application-level errors.
+- Return `Result<T, E>` from fallible functions. Never use `panic!` for recoverable errors.
+- Wrap errors with context: `.map_err(|e| ...)` or `.context("what failed")`.
+
+## Naming
+
+- `snake_case` for modules, functions, variables, and methods.
+- `PascalCase` for types, enums, traits, and type aliases.
+- `SCREAMING_SNAKE_CASE` for constants and statics.
+- Prefix boolean functions/methods with `is_`, `has_`, `can_`, `should_`.
+
+## Patterns
+
+- Builder pattern for structs with many optional fields.
+- Newtype wrappers (`struct UserId(u64)`) for domain types that deserve type safety.
+- Accept `impl Into<T>` or `AsRef<T>` for flexible API boundaries.
+- Mark return values with `#[must_use]` when ignoring them is almost certainly a bug.
+- Prefer iterators and combinators over manual loops. Chain `.map()`, `.filter()`, `.collect()`.
+- Use `enum` with variants over boolean flags or stringly-typed dispatch.
+
+## Async
+
+- Use `tokio` as the async runtime. Annotate entry points with `#[tokio::main]` or `#[tokio::test]`.
+- Prefer `tokio::select!` for racing futures. Always include a cancellation branch.
+- Use `tokio::spawn` for background work. Hold the `JoinHandle` and await it before shutdown.
+- Never block the async runtime with synchronous I/O — use `tokio::task::spawn_blocking` instead.
+- Prefer `tokio::sync::mpsc` for channels, `tokio::sync::Mutex` only when shared state is unavoidable.
+- Cancel-safety: document whether async functions are safe to drop mid-`.await`.
+- Use `async fn` in traits via `async-trait` crate or native async traits (Rust 1.75+).
+
+## Traits
+
+- Keep traits focused: one responsibility per trait (Interface Segregation).
+- Provide blanket impls where sensible: `impl<T: Read> MyTrait for T`.
+- Use associated types for 1:1 relationships, generics for 1:N: `type Output` vs `fn process<T>()`.
+- Derive standard traits in this order: `Debug, Clone, Copy, PartialEq, Eq, Hash, Default`.
+- Prefer `impl Trait` in return position over `Box<dyn Trait>` when the concrete type is fixed.
+- Seal traits that shouldn't be implemented outside the crate using a private super-trait.
+
+## Lifetimes
+
+- Elide lifetimes whenever the compiler allows it — only annotate when required.
+- Prefer owned types in public APIs. Use borrows (`&T`, `&str`) in internal hot paths.
+- Use `Cow<'_, str>` when a function sometimes allocates and sometimes borrows.
+- Avoid lifetime parameters on structs unless the struct genuinely borrows data it doesn't own.
+
+## Testing
+
+- Inline unit tests in `#[cfg(test)] mod tests {}` at the bottom of each module.
+- Integration tests in `tests/` directory.
+- Use `assert_eq!`, `assert_ne!`, `assert!(cond, "message")`. Prefer `assert_matches!` for enum variants.
+- Test error paths, not just happy paths.
+- Use `tempfile` for filesystem tests — never write to fixed paths.
+- Use `#[tokio::test]` for async tests. Prefer `tokio::time::pause()` over real sleeps.
+- Use `insta` for snapshot testing complex output (serialized structs, rendered UI, error messages).
+- Prefer `proptest` or `quickcheck` for property-based testing of pure functions.
+
+## Workspace
+
+- Use Cargo workspaces for multi-crate projects. Shared deps go in workspace `Cargo.toml`.
+- Feature flags: use `default = []` and let consumers opt in. Document each feature.
+- Use `#[cfg(feature = "...")]` for conditional compilation. Keep feature-gated code minimal.
+
+## Anti-Patterns
+
+- No `clone()` to silence the borrow checker — fix the ownership model instead.
+- No `Box<dyn Any>` — use concrete types or proper trait objects.
+- No `unsafe` without a `// SAFETY:` comment justifying the invariant.
+- No wildcard imports (`use foo::*`) except in test modules and preludes.
+- No raw `println!` — use structured output, logging, or the TUI renderer.
+- No `#[allow(clippy::...)]` without a comment explaining why the lint is wrong here.
+
+## Dependencies
+
+- Minimize dependency count. Prefer std-lib solutions when reasonable.
+- Pin major versions in `Cargo.toml`. Use `cargo update` deliberately, not blindly.
+- Audit new deps: check maintenance status, transitive dependency count, and unsafe usage.

@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "php -l $(find src -name '*.php' | head -50)",
+    "test": "vendor/bin/phpunit",
+    "lint": "vendor/bin/phpstan analyse --no-progress"
+  },
+  "format": {
+    "extensions": ["php"],
+    "command": "vendor/bin/php-cs-fixer fix {file} --quiet",
+    "exclusions": ["vendor", "storage", "bootstrap/cache"]
+  },
+  "testing": {
+    "companion_pattern": "{name}Test.{ext}",
+    "test_dir": "tests"
+  },
+  "allowed_tools": [
+    "Bash(php:*)", "Bash(composer:*)", "Bash(artisan:*)", "Bash(git:*)", "Bash(rm:*)",
+    "Bash(tail:*)", "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)",
+    "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

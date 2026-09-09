@@ -1,0 +1,9 @@
+{
+  "sessionUpdate": "available_commands_update",
+  "availableCommands": [
+    { "name": "compact", "description": "Clear conversation history but keep a summary in context", "input": null },
+    { "name": "goal", "description": "Set a goal — keep working until the condition is met", "input": null },
+    { "name": "next", "description": "/next", "input": null },
+    { "name": "review", "description": "Review a pull request", "input": { "hint": "[pr-number]" } }
+  ]
+}

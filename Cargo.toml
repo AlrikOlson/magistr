@@ -1,0 +1,26 @@
+[workspace]
+members = [
+    "crates/magistr-cli",
+    "crates/magistr-engine",
+    "crates/magistr-protocol",
+    "crates/magistr-acp",
+    "crates/magistr-acp-agent",
+    "crates/magistr-core",
+    "crates/magistr-mcp",
+    "crates/magistr-theme",
+    "crates/magistr-cockpit",
+    "crates/magistr-tui",
+]
+default-members = ["crates/magistr-cli"]
+resolver = "3"
+
+[profile.dev]
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+# Same for test profile (inherits from dev, but explicit is clearer)
+[profile.test]
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+

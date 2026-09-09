@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "go build ./...",
+    "test": "go test ./...",
+    "lint": "golangci-lint run --timeout 5m"
+  },
+  "format": {
+    "extensions": ["go"],
+    "command": "gofmt -w {file}",
+    "exclusions": ["vendor"]
+  },
+  "testing": {
+    "companion_pattern": "{name}_test.{ext}",
+    "test_dir": "alongside"
+  },
+  "allowed_tools": [
+    "Bash(go:*)", "Bash(golangci-lint:*)", "Bash(git:*)", "Bash(rm:*)",
+    "Bash(tail:*)", "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)",
+    "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

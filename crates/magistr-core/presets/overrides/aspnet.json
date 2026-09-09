@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "dotnet build --no-restore --warnaserror",
+    "test": "dotnet test --no-build --verbosity normal"
+  },
+  "format": {
+    "exclusions": ["bin", "obj", "wwwroot/lib"]
+  },
+  "extra_allowed_tools": ["dotnet ef", "dotnet user-secrets"]
+}

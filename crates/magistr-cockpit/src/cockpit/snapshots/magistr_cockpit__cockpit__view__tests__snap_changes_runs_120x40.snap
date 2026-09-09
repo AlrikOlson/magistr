@@ -1,0 +1,44 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: screen(&m)
+---
+▲ magistr  idle                                                                                                    00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
+│no objective yet          │ │changes · 2 files · +6 −1                                                                │
+│roadmap 0/0 done          │ │run test · 1 failed of 3                                                                 │
+│signals 0                 │ │▸ src/lib.rs · +2 −1 · parse ok                                                          │
+│                          │ │▸ src/parser.rs · +4 −0 · parse failed                                                   │
+│                          │ │✗ cockpit::view::tests::snap_edit_card · snapshot mismatch                               │
+│                          │ │✓ cockpit::update::tests::keys · 12ms                                                    │
+│                          │ │✓ turn::stream::tests::wrap · 3ms                                                        │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+›
+ enter  send   ↑↓  history   ctrl-d  quit

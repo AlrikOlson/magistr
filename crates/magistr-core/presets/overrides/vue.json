@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "npx vue-tsc --noEmit",
+    "test": "npx vitest run"
+  },
+  "format": {
+    "exclusions": ["node_modules", "dist", ".nuxt", ".output", ".nitro"]
+  },
+  "extra_allowed_tools": []
+}

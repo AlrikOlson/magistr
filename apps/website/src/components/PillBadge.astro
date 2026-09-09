@@ -1,0 +1,26 @@
+---
+interface Props {
+  color?: "accent" | "green" | "pink" | "orange" | "purple";
+  class?: string;
+}
+
+const { color = "accent", class: className = "" } = Astro.props;
+
+const colorClasses: Record<string, string> = {
+  accent: "text-accent border-accent/30 bg-accent/10",
+  green: "text-green border-green/30 bg-green/10",
+  pink: "text-pink border-pink/30 bg-pink/10",
+  orange: "text-orange border-orange/30 bg-orange/10",
+  purple: "text-purple border-purple/30 bg-purple/10",
+};
+---
+
+<span
+  class:list={[
+    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+    colorClasses[color],
+    className,
+  ]}
+>
+  <slot />
+</span>

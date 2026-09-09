@@ -1,0 +1,7 @@
+{
+  "quality_gate": {
+    "check": "go vet ./...",
+    "test": "go test -race ./..."
+  },
+  "extra_allowed_tools": []
+}

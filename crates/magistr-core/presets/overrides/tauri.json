@@ -1,0 +1,11 @@
+{
+  "quality_gate": {
+    "check": "cargo check --workspace --all-targets",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings",
+    "test": "cargo nextest run --workspace"
+  },
+  "format": {
+    "exclusions": ["target", "node_modules", "dist", "src-tauri/gen"]
+  },
+  "extra_allowed_tools": ["cargo tauri"]
+}

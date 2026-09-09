@@ -1,0 +1,23 @@
+# https://nexte.st/docs/configuration/
+# Select ignored tests with the --run-ignored CLI flag.
+
+[profile.default]
+status-level = "all"
+failure-output = "immediate"
+
+[profile.default.junit]
+path = "junit.xml"
+
+# cargo nextest run -p magistr-tui --release -P perf --run-ignored only
+[profile.perf]
+default-filter = "binary(=perf) | binary(=pixel_perf)"
+
+[profile.perf.junit]
+path = "junit.xml"
+
+[profile.ci]
+fail-fast = false
+failure-output = "immediate-final"
+
+[profile.ci.junit]
+path = "junit.xml"

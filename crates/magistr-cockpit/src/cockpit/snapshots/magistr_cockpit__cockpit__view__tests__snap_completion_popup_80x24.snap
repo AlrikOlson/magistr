@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: "screen(&completing(Size::new(80, 24)))"
+---
+▲ magistr  awaiting input                                                  00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │▎ All done here.                                 │
+│roadmap 0/0 done          │ │                                                 │
+│signals 0                 │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+src/main.rs
+src/cockpit/prompt.rs
+src/cockpit/view.rs
+README.md
+› read @
+ ↑↓  select   enter  accept   esc  close

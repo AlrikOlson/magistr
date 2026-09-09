@@ -1,0 +1,44 @@
+---
+import TerminalFrame from "./TerminalFrame.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  icon: string;
+  accent?: string;
+  castSrc?: string;
+}
+
+const { title, description, icon, accent = "accent", castSrc } = Astro.props;
+
+const accentClasses: Record<string, string> = {
+  accent: "text-accent border-accent/20 bg-accent/5",
+  green: "text-green border-green/20 bg-green/5",
+  pink: "text-pink border-pink/20 bg-pink/5",
+  orange: "text-orange border-orange/20 bg-orange/5",
+  purple: "text-purple border-purple/20 bg-purple/5",
+};
+
+const iconClass = accentClasses[accent] ?? accentClasses.accent;
+---
+
+<div
+  class="feature-card group rounded-xl border border-border p-6 transition-all hover:border-border-hover hover:shadow-lg"
+  style="background-color: var(--color-bg-card);"
+>
+  <div class={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border ${iconClass}`}>
+    {icon.startsWith("/") ? (
+      <img src={icon} alt={title} class="h-6 w-6" loading="lazy" />
+    ) : (
+      <span class="text-lg">{icon}</span>
+    )}
+  </div>
+  <h3 class="mb-2 text-lg font-semibold text-text">{title}</h3>
+  <p class="text-sm leading-relaxed text-text-muted">{description}</p>
+
+  {castSrc && (
+    <TerminalFrame class="feature-demo mt-4" title="demo">
+      <div class="aspect-video" data-cast-src={castSrc}></div>
+    </TerminalFrame>
+  )}
+</div>

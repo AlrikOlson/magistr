@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: s
+---
+▲ magistr  idle                                                            00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │╭─ project ─────────────────────────────────────╮│
+│roadmap 0/0 done          │ ││⚠ not configured                               ││
+│signals 0                 │ ││run `magistr init` to set this project up      ││
+│                          │ │╰───────────────────────────────────────────────╯│
+│                          │ │╭─ roadmap ─────────────────────────────────────╮│
+│                          │ ││no roadmap yet                                 ││
+│                          │ │╰───────────────────────────────────────────────╯│
+│                          │ │╭─ actions ─────────────────────────────────────╮│
+│                          │ ││ n  next iteration l  loop g  gates m  roadmap ││
+│                          │ │╰───────────────────────────────────────────────╯│
+│                          │ │╭─ sessions ────────────────────────────────────╮│
+│                          │ ││none yet                                       ││
+│                          │ │╰───────────────────────────────────────────────╯│
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+›
+ n  next iteration   l  loop   g  gates   m  roadmap   ?  keyboard help

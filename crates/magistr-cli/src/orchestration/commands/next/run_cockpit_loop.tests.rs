@@ -1,0 +1,90 @@
+//! The entry point's order is the acceptance: the engines (native only)
+//! before the terminal with their failure printed, the driver built on
+//! the runtime's commands and spawned before the run, the feed tapped for
+//! it, the report after the summary; both `next` dispatches default to
+//! the cockpit with the legacy shell behind the hatch.
+
+const SOURCE: &str = include_str!("run_cockpit_loop.rs");
+
+fn position(needle: &str) -> usize {
+    SOURCE
+        .find(needle)
+        .unwrap_or_else(|| panic!("run_cockpit_loop.rs mentions {needle:?}"))
+}
+
+#[test]
+fn the_engines_open_before_the_terminal_and_their_failure_is_printed() {
+    let native = position("wf.is_native()");
+    let engines = position("EngineClient::open(");
+    let terminal = position("RealTerminal::stdio()");
+    assert!(
+        native < engines,
+        "the store is opened on a native project only"
+    );
+    assert!(engines < terminal, "the store is checked before raw mode");
+    assert_eq!(
+        SOURCE[engines..terminal].matches("println!(").count(),
+        1,
+        "the failure is printed on a normal stdout"
+    );
+}
+
+#[test]
+fn the_driver_is_spawned_before_the_run_on_a_tapped_feed_and_reported_after() {
+    let commands = position(".commands()");
+    let driver = position("LoopDriver::new(");
+    let live = position("Connector::live()");
+    let tap = position(".tap(driver.tap())");
+    let spawn = position("driver.spawn()");
+    let run = position(".run(");
+    let grace = position("timeout(LOOP_GRACE, looping)");
+    let summary = position("Summary::of(");
+    let report = position("println!(\"{report}\")");
+    assert!(commands < driver, "the commands are taken for the driver");
+    assert!(
+        driver < live && live < tap,
+        "the live connector, the feed tapped for the driver"
+    );
+    assert!(
+        tap < spawn && spawn < run,
+        "the driver runs beside the cockpit"
+    );
+    assert!(
+        run < grace,
+        "the driver is waited for once the terminal is back"
+    );
+    assert!(grace < summary && summary < report);
+}
+
+#[test]
+fn both_dispatches_build_the_cockpit_only_with_no_environment_hatch() {
+    let module = include_str!("mod.rs");
+    assert!(
+        !module.contains("MAGISTR_TUI"),
+        "the MAGISTR_TUI=legacy hatch is gone from the next dispatches"
+    );
+    for (name, dispatch, cockpit) in [
+        (
+            "cmd_next_tui.rs",
+            include_str!("cmd_next_tui.rs"),
+            "cmd_next_cockpit(",
+        ),
+        (
+            "cmd_next_loop_tui.rs",
+            include_str!("cmd_next_loop_tui.rs"),
+            "cmd_next_loop_cockpit(",
+        ),
+    ] {
+        dispatch
+            .find(cockpit)
+            .unwrap_or_else(|| panic!("{name} dispatches to the cockpit"));
+        assert!(
+            !dispatch.contains("TuiShell::run("),
+            "{name}: the legacy shell is unreachable"
+        );
+        assert!(
+            !dispatch.contains("legacy_tui_requested"),
+            "{name}: no hatch read remains"
+        );
+    }
+}

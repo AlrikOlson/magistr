@@ -1,0 +1,11 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 65b550dec9948997da470c772efdade37297d72fbeefc3b61bf883f12969fdc8 # shrinks to keys = [KeyEvent { code: Enter, modifiers: KeyModifiers(0x0), kind: Press, state: KeyEventState(0x0) }, KeyEvent { code: Char('a'), modifiers: KeyModifiers(ALT), kind: Press, state: KeyEventState(0x0) }, KeyEvent { code: Enter, modifiers: KeyModifiers(0x0), kind: Press, state: KeyEventState(0x0) }]
+cc 1d5b99169659ba0262df1c68e834ce29a33263973557b0ee349bb4ab8f8adeb9 # shrinks to view_id = Roadmap, keys = [KeyEvent { code: Enter, modifiers: KeyModifiers(0x0), kind: Press, state: KeyEventState(0x0) }, KeyEvent { code: Char('a'), modifiers: KeyModifiers(SHIFT | ALT), kind: Press, state: KeyEventState(0x0) }, KeyEvent { code: Enter, modifiers: KeyModifiers(0x0), kind: Press, state: KeyEventState(0x0) }]
+cc e459f325cc9cde38782483cf71e681cabfa1fb02664b3eff36ae0fad3f705e6a # shrinks to view_id = Roadmap, keys = [KeyEvent { code: Enter, modifiers: KeyModifiers(0x0), kind: Press, state: KeyEventState(0x0) }, KeyEvent { code: Char('a'), modifiers: KeyModifiers(ALT), kind: Press, state: KeyEventState(0x0) }, KeyEvent { code: Enter, modifiers: KeyModifiers(0x0), kind: Press, state: KeyEventState(0x0) }], (w, h) = (1, 1)
+cc ffa4379a2a83031414817d91b8a9f1a72c6843f675f37dcef62f2d3b1488b959 # shrinks to (w, h) = (14, 17)
+cc 9607c9daea19d785ed6fd8b2d45d9e0eaa111e91510a7f5637c7decdc4b27f6a # shrinks to view_id = Home, keys = [KeyEvent { code: Char('a'), modifiers: KeyModifiers(0x0), kind: Press, state: KeyEventState(0x0) }], (w, h) = (10, 44)

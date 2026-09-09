@@ -1,0 +1,44 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: screen(&m)
+---
+▲ magistr  idle                                                                                                    00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
+│no objective yet          │ │▤ src/lib.rs · esc closes                                                                │
+│roadmap 0/0 done          │ │fn renamed() {}                                                                          │
+│signals 0                 │ │pub use renamed as old;                                                                  │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+›
+ esc  close viewer   tab / shift-tab  switch stage tab

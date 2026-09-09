@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: s
+---
+▲ magistr  idle                                                            00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │╭─ project ─────────────────────────────────────╮│
+│roadmap 2/4 done          │ ││magistr · Rust / Cargo                         ││
+│▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ ││master, clean · ACP (available)                ││
+│▲ Tabs                    │ │╰───────────────────────────────────────────────╯│
+│0 before · 1 after        │ │╭─ roadmap ─────────────────────────────────────╮│
+│signals 0                 │ ││▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 2/4││
+│                          │ ││next ▸ nothing ready                           ││
+│                          │ ││2 done · 1 active · 1 pending · 0 backlog      ││
+│                          │ │╰───────────────────────────────────────────────╯│
+│                          │ │╭─ actions ─────────────────────────────────────╮│
+│                          │ ││ n  next iteration l  loop g  gates m  roadmap ││
+│                          │ │╰───────────────────────────────────────────────╯│
+│                          │ │╭─ sessions ────────────────────────────────────╮│
+│                          │ ││✓ Aug 28 14:02  12m 30s  shipped the roadmap…  ││
+│                          │ ││✗ Aug 27 19:41  3m 05s  gates failed on lint   ││
+│                          │ │╰───────────────────────────────────────────────╯│
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+›
+ n  next iteration   l  loop   g  gates   m  roadmap   ?  keyboard help

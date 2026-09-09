@@ -1,0 +1,27 @@
+---
+source: crates/magistr-tui/src/layout/tree.tests.rs
+expression: shown
+---
+stretch (the default)
+30x6
+AAAAAAAA..BBBBBBBB..CCCCCCCCCC
+AAAAAAAA..BBBBBBBB..CCCCCCCCCC
+..........BBBBBBBB..CCCCCCCCCC
+..........BBBBBBBB..CCCCCCCCCC
+....................CCCCCCCCCC
+....................CCCCCCCCCC
+A depth=1 x=0 y=0 w=8 h=2
+B depth=1 x=10 y=0 w=8 h=4
+C depth=1 x=20 y=0 w=10 h=6
+
+centre
+30x6
+..............................
+..........BBBBBBBB............
+AAAAAAAA..BBBBBBBB............
+AAAAAAAA..BBBBBBBB............
+..........BBBBBBBB............
+..............................
+A depth=1 x=0 y=2 w=8 h=2
+B depth=1 x=10 y=1 w=8 h=4
+C depth=1 x=0 y=0 w=0 h=0

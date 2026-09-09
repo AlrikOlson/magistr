@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: screen(&m)
+---
+▲ magistr  ▘ streaming                                           ▁▁▁▁▁▁▅█  00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │changes · nothing journaled yet                  │
+│roadmap 0/0 done          │ │                                                 │
+│signals 0                 │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+›
+ ctrl-c  cancel   ctrl-d  quit

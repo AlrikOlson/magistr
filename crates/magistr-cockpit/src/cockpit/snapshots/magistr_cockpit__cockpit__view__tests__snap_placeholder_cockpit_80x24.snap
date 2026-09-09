@@ -1,0 +1,24 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+assertion_line: 763
+expression: placement(&resolved)
+---
+header   depth=1 x=0 y=0 w=80 h=1
+brand    depth=2 x=0 y=0 w=9 h=1
+status   depth=1 x=0 y=1 w=80 h=1
+Research depth=3 x=0 y=1 w=8 h=1
+Plan     depth=3 x=9 y=1 w=4 h=1
+Execute  depth=3 x=14 y=1 w=7 h=1
+Verify   depth=3 x=22 y=1 w=6 h=1
+rail     depth=2 x=0 y=2 w=28 h=19
+rail toggle depth=3 x=1 y=3 w=26 h=1
+rail divider depth=2 x=28 y=2 w=1 h=19
+Home     depth=4 x=30 y=3 w=4 h=1
+Turn     depth=4 x=36 y=3 w=4 h=1
+Changes  depth=4 x=42 y=3 w=7 h=1
+Trace    depth=4 x=51 y=3 w=5 h=1
+Roadmap  depth=4 x=58 y=3 w=7 h=1
+stage    depth=3 x=30 y=4 w=49 h=16
+dock     depth=1 x=0 y=21 w=80 h=1
+prompt   depth=1 x=0 y=22 w=80 h=1
+footer   depth=1 x=0 y=23 w=80 h=1
