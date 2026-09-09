@@ -243,6 +243,35 @@ fn persist_and_recover_roundtrip() {
 }
 
 #[test]
+fn recovery_retains_iteration_state_but_resets_the_no_commit_stop_counter() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
+    for _ in 0..2 {
+        loop_mgr.pre_iteration_check().unwrap();
+        assert!(matches!(
+            loop_mgr.post_iteration_check(),
+            PostCheckResult::NoCommit { .. }
+        ));
+        loop_mgr.advance();
+    }
+    assert!(loop_mgr.should_stop_no_commits());
+    loop_mgr.persist().unwrap();
+
+    // Characterize the current loop-state.json contract. Engine snapshots
+    // preserve this counter separately; this recovery path does not.
+    let mut recovered = IterationLoop::recover(dir.path(), &spec_path).unwrap();
+    assert_eq!(recovered.state(), loop_mgr.state());
+    assert_eq!(recovered.iteration(), 2);
+    assert_eq!(recovered.last_status(), IterationStatus::NoCommit);
+    assert_eq!(recovered.consecutive_no_commits(), 0);
+    assert!(!recovered.should_stop_no_commits());
+    assert_eq!(
+        recovered.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+}
+
+#[test]
 fn recover_from_missing_file_errors() {
     let dir = tempfile::TempDir::new().unwrap();
     let spec_path = dir.path().join("ROADMAP.md");
