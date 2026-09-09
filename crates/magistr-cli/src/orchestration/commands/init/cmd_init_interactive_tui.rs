@@ -28,7 +28,7 @@ pub async fn cmd_init_interactive_tui(
             .permission_mode(crate::agent::PermissionMode::AcceptEdits)
             .backend(backend);
 
-    let profile = commands::run::resolve_permission_profile(None)
+    let profile = commands::run::resolve_permission_profile(&dir, None)
         .unwrap_or(crate::permissions::PermissionProfile::Standard);
     commands::run::cmd_run_cockpit(config, profile).await
 }

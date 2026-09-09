@@ -151,3 +151,31 @@ fn cancel_already_terminal_is_noop() {
     pool.cancel_worker(id); // Should not change status
     assert_eq!(pool.workers[&id].status, WorkerStatus::Completed);
 }
+
+#[test]
+fn specialized_worker_preserves_its_callers_permission_context() {
+    use crate::permissions::{NoninteractivePolicy, PermissionProfile};
+    let project = tempfile::tempdir().unwrap();
+    std::fs::create_dir(project.path().join(".claude")).unwrap();
+    std::fs::write(
+        project.path().join(".claude/permissions.toml"),
+        "profile = \"cautious\"\nnoninteractive = \"legacy-automatic-approval\"\n",
+    )
+    .unwrap();
+    let role = SpecializedRole::researcher();
+    let config = role_config(
+        AgentConfig::new("Investigate", project.path())
+            .permission_profile(PermissionProfile::Trusted)
+            .workflow_permissions(false),
+        &role,
+    );
+    assert_eq!(config.cwd, project.path());
+    assert_eq!(config.permission_profile, Some(PermissionProfile::Trusted));
+    assert!(
+        !config.workflow_permissions,
+        "specialization cannot widen the permission mode"
+    );
+    assert_eq!(config.model.as_deref(), role.effective_model());
+    let (_, handling) = config.session_permission_policy();
+    assert_eq!(handling, NoninteractivePolicy::LegacyAutomaticApproval);
+}

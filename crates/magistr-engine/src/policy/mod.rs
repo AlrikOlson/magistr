@@ -7,3 +7,8 @@ pub use magistr_domain::policy::{
     policy_condition, policy_decision, policy_effect, policy_engine, policy_request, policy_rule,
     risk_tier, scope_tally,
 };
+
+pub use magistr_domain::policy::{
+    PermissionContext, PermissionMode, PermissionOutcome, PermissionPolicyService,
+    PermissionResolution, PermissionSource,
+};

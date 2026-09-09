@@ -28,6 +28,7 @@ pub mod types;
 pub mod engine;
 pub mod models;
 pub mod multi;
+pub mod noninteractive_response;
 pub mod permission_mode;
 pub mod persistence;
 
@@ -116,6 +117,10 @@ pub struct AgentConfig {
     pub max_turns: Option<u32>,
     /// Permission mode
     pub permission_mode: PermissionMode,
+    /// Project permission profile override, normally selected by `--trust`.
+    pub permission_profile: Option<crate::permissions::PermissionProfile>,
+    /// Whether the shared policy should admit normal workflow operations.
+    pub workflow_permissions: bool,
     /// Whether to continue from the previous conversation
     pub continue_conversation: bool,
     /// Session ID to resume from
@@ -149,6 +154,8 @@ impl AgentConfig {
             system_prompt: None,
             max_turns: None,
             permission_mode: PermissionMode::AcceptEdits,
+            permission_profile: None,
+            workflow_permissions: false,
             continue_conversation: false,
             resume: None,
             provider: None,
@@ -188,6 +195,37 @@ impl AgentConfig {
     pub fn permission_mode(mut self, mode: PermissionMode) -> Self {
         self.permission_mode = mode;
         self
+    }
+
+    /// Override the selected project's permission profile.
+    pub fn permission_profile(mut self, profile: crate::permissions::PermissionProfile) -> Self {
+        self.permission_profile = Some(profile);
+        self
+    }
+
+    /// Apply the shared workflow policy to this session.
+    pub fn workflow_permissions(mut self, workflow: bool) -> Self {
+        self.workflow_permissions = workflow;
+        self
+    }
+
+    /// Load the shared project policy and its noninteractive response setting.
+    /// Uses this session's root even when the process is in another project.
+    pub fn session_permission_policy(
+        &self,
+    ) -> (
+        crate::permissions::SessionPermissionPolicy,
+        crate::permissions::NoninteractivePolicy,
+    ) {
+        let config = crate::permissions::load_config(&self.cwd).unwrap_or_default();
+        let profile = self.permission_profile.unwrap_or(config.profile);
+        let policy = crate::orchestration::commands::run::cockpit_policy_for_project(
+            &self.cwd,
+            profile,
+            self.workflow_permissions,
+            self.model.as_deref(),
+        );
+        (policy, config.noninteractive)
     }
 
     /// Continue from the previous conversation.

@@ -22,6 +22,7 @@ pub async fn cmd_next_loop_headless(
     backend: agent::Backend,
     format: HeadlessFormat,
     max_cost: Option<f64>,
+    profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
 
@@ -97,7 +98,8 @@ pub async fn cmd_next_loop_headless(
 
         // Run one iteration
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
-        let config = super::cmd_next_headless::workflow_agent_config(&prompt, &dir, backend);
+        let config = super::cmd_next_headless::workflow_agent_config(&prompt, &dir, backend)
+            .permission_profile(profile);
 
         let mut session = match agent::session::AgentSession::start(config).await.suggest() {
             Ok(session) => session,
@@ -109,8 +111,6 @@ pub async fn cmd_next_loop_headless(
                 return Err(error);
             }
         };
-
-        session.spawn_auto_approve_permissions();
 
         // Fire OnIterationStart lifecycle hooks
         crate::workflow::hook_dispatch::run_hooks_headless(

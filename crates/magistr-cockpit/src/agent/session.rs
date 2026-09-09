@@ -1,7 +1,7 @@
 //! The live session: the transport's events onto the inbox, the core's
 //! commands onto the transport.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -40,8 +40,9 @@ use crate::workbench::WorkbenchPort;
 /// first — an allow or a deny is answered right here — and only an ask
 /// becomes [`AgentEvent::PermissionRequest`] with a session-unique id
 /// while its reply channel waits here for the matching
-/// [`Cmd::Permission`]; a request for a tool the user answered *Always*
-/// is allowed without reaching the cockpit. [`Cmd::Prompt`] goes out as
+/// [`Cmd::Permission`]. Remembered choices belong to the policy, which
+/// decides their scope and whether the next request still needs an ask.
+/// [`Cmd::Prompt`] goes out as
 /// a turn, [`Cmd::Cancel`] as `session/cancel`; [`Cmd::Workbench`] is
 /// applied on `workbench`, [`Cmd::Engine`] on `engine` and
 /// [`Cmd::Checkpoint`] on `checkpoints` when the port was given — the
@@ -77,7 +78,7 @@ pub fn spawn_session(
         checkpoints: checkpoints.map(|port| Arc::new(Mutex::new(port))),
         pending: HashMap::new(),
         next_id: 1,
-        allowed: HashSet::new(),
+        cancelled: false,
         tool_started: HashMap::new(),
         started: Instant::now(),
     };
@@ -107,8 +108,8 @@ struct Session {
     /// Requests shown on the cockpit, by the id it will answer with.
     pending: HashMap<u64, AcpPermissionRequest>,
     next_id: u64,
-    /// Tool titles the user allowed for the rest of the session.
-    allowed: HashSet<String>,
+    /// Reject requests still arriving for a cancelled turn until a new prompt.
+    cancelled: bool,
     /// When each running tool call was announced, by id — the wall
     /// clock the durations on the turn's cards are measured against.
     tool_started: HashMap<String, Instant>,
@@ -133,7 +134,10 @@ impl Session {
                             return;
                         }
                     }
-                    None => events = None,
+                    None => {
+                        self.cancel_pending();
+                        events = None;
+                    },
                 },
                 request = recv(&mut requests) => match request {
                     Some(request) => {
@@ -141,7 +145,10 @@ impl Session {
                             return;
                         }
                     }
-                    None => requests = None,
+                    None => {
+                        self.cancel_pending();
+                        requests = None;
+                    },
                 },
                 cmd = commands.next() => match cmd {
                     Some(cmd) => self.command(cmd),
@@ -154,6 +161,9 @@ impl Session {
     /// Post one event; on `Initialized`, select the model and open.
     /// `false` once the loop is gone.
     async fn event(&mut self, event: magistr_acp::Result<AcpEvent>) -> bool {
+        if event.is_err() {
+            self.cancel_pending();
+        }
         let (opening, selected) = match &event {
             Ok(AcpEvent::Initialized {
                 session_id,
@@ -260,10 +270,13 @@ impl Session {
     }
 
     /// Forward a permission request to the cockpit, or answer it here —
-    /// the policy first (a protected-path deny outranks even the
-    /// session's *Always* set), then the *Always* set. `false` once the
-    /// loop is gone.
+    /// the policy owns every decision, including remembered scopes.
+    /// `false` once the loop is gone.
     fn request(&mut self, request: AcpPermissionRequest) -> bool {
+        if self.cancelled {
+            let _ = request.response_tx.send(AcpPermissionResponse::Cancelled);
+            return true;
+        }
         // Decided once: `decide` takes `&mut self` because a policy
         // keeps records (the audit log above all), so asking twice
         // would write the entry twice.
@@ -283,12 +296,6 @@ impl Session {
             }
             PolicyDecision::Ask(risk) => risk,
         };
-        if self.allowed.contains(&request.tool_title) {
-            let _ = request
-                .response_tx
-                .send(select(&request.options, AcpPermissionOptionKind::AllowOnce));
-            return true;
-        }
         let id = self.next_id;
         self.next_id += 1;
         let event = AgentEvent::PermissionRequest {
@@ -335,8 +342,12 @@ impl Session {
 
     fn command(&mut self, cmd: Cmd) {
         match cmd {
-            Cmd::Prompt(text) => self.prompt(&text),
+            Cmd::Prompt(text) => {
+                self.cancelled = false;
+                self.prompt(&text);
+            }
             Cmd::Cancel => {
+                self.cancel_pending();
                 if let Err(e) = self.transport.cancel() {
                     self.inbox
                         .send(Msg::Agent(AgentEvent::Error(e.to_string())));
@@ -351,13 +362,16 @@ impl Session {
                     .iter()
                     .find(|option| option.option_id == option_id)
                     .map(|option| PermissionKind::from(option.kind));
-                if kind == Some(PermissionKind::AllowAlways) {
-                    self.allowed.insert(request.tool_title.clone());
-                }
+                let Some(kind) = kind else {
+                    let _ = request.response_tx.send(AcpPermissionResponse::Cancelled);
+                    self.inbox
+                        .send(Msg::Agent(AgentEvent::PermissionCancelled { id }));
+                    return;
+                };
                 // The charter's half: what the reader
                 // answered is the policy's to tally under the ask's
                 // scope, and to write as a rule when it stands.
-                if let Some(kind) = kind {
+                if !request.response_tx.is_closed() {
                     self.policy.answered(&request, kind);
                 }
                 let _ = request
@@ -426,15 +440,31 @@ impl Session {
             crate::checkpoint::detach(port, cmd, &self.inbox);
         }
     }
+
+    /// Cancel replies before releasing their channels, and remove each card
+    /// from the shared model. Shutdown and task abortion use the same path.
+    fn cancel_pending(&mut self) {
+        self.cancelled = true;
+        for (id, request) in self.pending.drain() {
+            let _ = request.response_tx.send(AcpPermissionResponse::Cancelled);
+            self.inbox
+                .send(Msg::Agent(AgentEvent::PermissionCancelled { id }));
+        }
+    }
 }
 
-/// The option of `kind`, else the first, else a cancel — the transport's
-/// own fallback order.
+impl Drop for Session {
+    fn drop(&mut self) {
+        self.cancel_pending();
+    }
+}
+
+/// Select only the requested kind. A missing option cancels rather than
+/// substituting a grant, a denial, or a standing choice with different meaning.
 fn select(options: &[AcpPermissionOption], kind: AcpPermissionOptionKind) -> AcpPermissionResponse {
     options
         .iter()
         .find(|option| option.kind == kind)
-        .or_else(|| options.first())
         .map_or(AcpPermissionResponse::Cancelled, |option| {
             AcpPermissionResponse::Selected(option.option_id.clone())
         })

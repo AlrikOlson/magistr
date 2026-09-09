@@ -347,3 +347,45 @@ fn allowed_tools_replaces_list() {
     let config = AgentConfig::new("test", "/tmp/project").allowed_tools(["only_this"]);
     assert_eq!(config.allowed_tools, vec!["only_this".to_string()]);
 }
+
+#[test]
+fn permission_context_uses_selected_project_and_preserves_explicit_profile() {
+    use crate::permissions::{NoninteractivePolicy, PermissionProfile};
+    use magistr_cockpit::agent::{PolicyDecision, SessionPolicy};
+    let project = tempfile::tempdir().unwrap();
+    std::fs::create_dir(project.path().join(".claude")).unwrap();
+    std::fs::write(
+        project.path().join(".claude/permissions.toml"),
+        "profile = \"cautious\"\nnoninteractive = \"legacy-automatic-approval\"\n",
+    )
+    .unwrap();
+    let config = AgentConfig::new("Review", project.path());
+    let (policy, handling) = config.session_permission_policy();
+    let mut policy = policy.audit_to(None);
+    assert_eq!(handling, NoninteractivePolicy::LegacyAutomaticApproval);
+    let (response_tx, _response) = tokio::sync::oneshot::channel();
+    let request = magistr_acp::AcpPermissionRequest {
+        tool_call_id: "selected-read".into(),
+        tool_title: "Read".into(),
+        tool_input: serde_json::json!({"file_path":"src/lib.rs"}),
+        tool_kind: Some(agent_client_protocol::schema::v1::ToolKind::Read),
+        options: vec![],
+        response_tx,
+    };
+    assert!(matches!(policy.decide(&request), PolicyDecision::Ask(_)));
+    let (policy, _) = config
+        .permission_profile(PermissionProfile::Standard)
+        .session_permission_policy();
+    assert!(matches!(
+        policy.audit_to(None).decide(&request),
+        PolicyDecision::Allow
+    ));
+    assert_eq!(
+        crate::commands::run::resolve_permission_profile(project.path(), None).unwrap(),
+        PermissionProfile::Cautious
+    );
+    assert_eq!(
+        crate::commands::run::resolve_permission_profile(project.path(), Some("trusted")).unwrap(),
+        PermissionProfile::Trusted
+    );
+}

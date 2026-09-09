@@ -3367,6 +3367,12 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
                 return vec![Cmd::Announce(line)];
             }
         }
+        AgentEvent::PermissionCancelled { id } => {
+            model.dock.remove_permission(id);
+            if model.stood_down == Some(id) {
+                model.stood_down = None;
+            }
+        }
         AgentEvent::Image(block) => {
             model.turn_state = TurnState::Streaming;
             picture(model, &block);

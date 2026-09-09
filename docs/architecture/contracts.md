@@ -111,7 +111,8 @@ run consolidation below. The cancellation row remains provenance for the old
 entry paths; headless and cockpit loop adapters now record their observed terminal
 outcomes through the shared run state. The plain drain's coarse result remains a
 provider-supervision limitation. This does not imply a shared provider supervisor
-or change the permission and provider-capability observations.
+or change provider-capability observations. The permission differences are resolved
+by the implemented permission consolidation below.
 
 The API loading limitation is source evidence in
 [API provider](../../crates/magistr-acp-agent/src/api/provider.rs) and
@@ -248,6 +249,21 @@ not redesign atomic checkpoint writes or durable operations (`arch-08` and
 `arch-13`), prove live-provider recovery, or integrate the desktop fixture paths.
 The [domain guide](domain.md#recovery-boundaries) records the adapter boundaries.
 
+## Implemented permission consolidation
+
+`arch-05-shared-permissions` replaces the historical blanket headless worker
+with the [shared permission service](permissions.md). Cockpit and AgentSession
+construct the same project policy; next/loop and pool use explicit workflow
+context. Noninteractive Ask defaults to refusal, and the named
+`legacy-automatic-approval` compatibility setting can resolve only an Ask.
+Policy Deny wins. The historical arbitrary first-option fallback is retired.
+
+Remembered answers now belong solely to policy and retain their scope. Workflow
+shortcuts cannot bypass remembered refusals or written constraints. Pending
+cockpit decisions receive Cancelled on turn cancellation or session teardown;
+invalid and stale responses cannot grant permission. The guide identifies policy
+metadata, compatibility selection, executable tests and provider-effect limits.
+
 ## Executable scenarios
 
 The original scenarios intentionally pinned behavior including gaps. The run
@@ -256,14 +272,14 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 
 | Scenario | Executable evidence |
 | --- | --- |
-| Headless AllowOnce preference, rejection-first fallback, empty choices, receiver ownership | `agent::session::tests::headless_permissions_*` and `a_taken_permission_receiver_cannot_be_claimed_by_the_headless_worker` in CLI |
+| Shared core decisions, project context, noninteractive refusal/compatibility, scoped remembered answers | CLI integration `shared_permissions`; CLI `agent::session::tests`, noninteractive response and configuration tests |
 | Shared mode policy, two no-commits stop, repeated settlement remains idempotent | [Domain run-state tests](../../crates/magistr-domain/src/workflow/run_state.tests.rs); engine `workflow::workflow_engine::tests::should_stop_on_repeated_no_commits` and `a_restored_no_commit_count_still_stops_the_loop` |
 | Recovery retains stopping count, Git baseline, budget and terminal reason; unknown legacy state is refused | [Core iteration tests](../../crates/magistr-core/src/workflow/iteration.tests.rs), including `recovery_retains_no_commit_stop_before_another_attempt`, `repeated_post_check_settles_each_attempt_once_even_after_recovery` and `recovery_observes_commit_against_the_persisted_attempt_baseline` |
 | Version 2 requires consistent run/governor evidence; restored budget, pause, abort and cancellation remain enforceable | [Session snapshot tests](../../crates/magistr-engine/src/session/session_snapshot.tests.rs) and [engine-handle recovery tests](../../crates/magistr-engine/src/handle/mod.tests.rs) |
 | Phase/status compatibility and one project-context value across core/engine | [Core phase tests](../../crates/magistr-core/src/workflow_phase.tests.rs), [iteration status compatibility](../../crates/magistr-core/src/workflow/iteration.tests.rs) and `gathered_context_is_accepted_by_the_engine_without_conversion` in [context builder tests](../../crates/magistr-core/src/workflow/context_builder.tests.rs) |
 | Shared objective/active task, independent projects, weak completion/phase/finalize evidence | CLI integration `architecture_contracts` (temporary native store and actual failing child command) |
-| Policy allow/deny/Ask, protected paths, workflow profile | CLI integration `cockpit_permissions` |
-| Permission round trips, remembered answer, first Ctrl-C cancel then quit | TUI integration `session_harness` |
+| Policy Allow/Deny/Ask, protected edit/delete, remembered workflow refusal and precedence | CLI integration `cockpit_permissions`; domain permission-service and CLI session-policy companion tests |
+| Permission round trips, no title-only bypass, invalid/stale options, pending cancellation and first Ctrl-C cancel then quit | Cockpit `agent::session::tests` and TUI integration `session_harness` |
 | Rejected/missing explicit model prevents inference | CLI `agent::backend::tests` |
 | Provider cancellation while waiting/queued, fresh turn after cancellation | ACP-agent integration `agent` |
 | Codex terminal-acknowledged cancellation and restored thread/history/model | ACP-agent integration `codex_provider` |

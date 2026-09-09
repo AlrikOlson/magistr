@@ -33,7 +33,7 @@ impl HeadlessOutcome {
 ///
 /// Streams agent output to stdout (text in plain mode, NDJSON in JSON mode).
 /// Metadata (tool calls, summary) goes to stderr in plain mode.
-/// Auto-approves all permission requests.
+/// Applies the shared project policy; unanswered approvals are refused by default.
 ///
 /// Respects `MAGISTR_BUDGET` env var for cost limits — aborts the session
 /// if cumulative cost exceeds the budget.
@@ -44,20 +44,19 @@ pub async fn cmd_run_headless(
     model: Option<&str>,
     backend: agent::Backend,
     format: HeadlessFormat,
+    profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let cwd = std::env::current_dir()?;
 
     let config = agent::AgentConfig::new(prompt, &cwd)
         .backend(backend)
+        .permission_profile(profile)
         .with_run_args(model, resume, continue_conversation)
         .with_project_context(&cwd);
 
     let mut session = agent::session::AgentSession::start(config)
         .await
         .suggest()?;
-
-    // Auto-approve all permission requests (non-interactive).
-    session.spawn_auto_approve_permissions();
 
     let budget_limit: Option<f64> = std::env::var("MAGISTR_BUDGET")
         .ok()

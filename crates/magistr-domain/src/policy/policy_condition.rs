@@ -121,7 +121,12 @@ impl PolicyCondition {
                 .as_deref()
                 .is_some_and(|command| glob_match(pattern, command)),
             PolicyCondition::Path { pattern } => {
-                request.paths.iter().any(|path| glob_match(pattern, path))
+                request.paths.iter().enumerate().any(|(index, path)| {
+                    glob_match(pattern, path)
+                        || request.path_aliases.get(index).is_some_and(|aliases| {
+                            aliases.iter().any(|alias| glob_match(pattern, alias))
+                        })
+                })
             }
             PolicyCondition::Model { pattern } => request
                 .model

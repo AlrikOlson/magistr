@@ -137,6 +137,10 @@ async fn main() -> eyre::Result<()> {
                 unsafe { std::env::set_var("MAGISTR_MODEL", m) };
             }
             let agent_backend = commands::resolve_backend(backend)?;
+            let profile = commands::run::resolve_permission_profile(
+                &std::env::current_dir()?,
+                cli.trust.as_deref(),
+            )?;
             if headless {
                 commands::run::cmd_run_headless(
                     &prompt,
@@ -145,31 +149,30 @@ async fn main() -> eyre::Result<()> {
                     model.as_deref(),
                     agent_backend,
                     format,
+                    profile,
+                )
+                .await
+            } else if use_tui {
+                commands::run::cmd_run_tui(
+                    &prompt,
+                    resume.as_deref(),
+                    r#continue,
+                    model.as_deref(),
+                    agent_backend,
+                    profile,
+                    &env,
                 )
                 .await
             } else {
-                let profile = commands::run::resolve_permission_profile(cli.trust.as_deref())?;
-                if use_tui {
-                    commands::run::cmd_run_tui(
-                        &prompt,
-                        resume.as_deref(),
-                        r#continue,
-                        model.as_deref(),
-                        agent_backend,
-                        profile,
-                        &env,
-                    )
-                    .await
-                } else {
-                    commands::run::cmd_run(
-                        &prompt,
-                        resume.as_deref(),
-                        r#continue,
-                        model.as_deref(),
-                        agent_backend,
-                    )
-                    .await
-                }
+                commands::run::cmd_run(
+                    &prompt,
+                    resume.as_deref(),
+                    r#continue,
+                    model.as_deref(),
+                    agent_backend,
+                    profile,
+                )
+                .await
             }
         }
         Command::Next {
@@ -184,15 +187,16 @@ async fn main() -> eyre::Result<()> {
                 commands::next::cmd_next_gate_only(&dir, format).await
             } else {
                 let agent_backend = commands::resolve_backend(backend)?;
+                let profile =
+                    commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
                 if headless {
-                    commands::next::cmd_next_headless(&dir, agent_backend, format).await
+                    commands::next::cmd_next_headless(&dir, agent_backend, format, profile).await
                 } else if continue_plan {
-                    commands::next::cmd_next_continue(&dir, agent_backend).await
+                    commands::next::cmd_next_continue(&dir, agent_backend, profile).await
                 } else if use_tui {
-                    let profile = commands::run::resolve_permission_profile(cli.trust.as_deref())?;
                     commands::next::cmd_next_tui(&dir, agent_backend, profile, &env).await
                 } else {
-                    commands::next::cmd_next(&dir, agent_backend).await
+                    commands::next::cmd_next(&dir, agent_backend, profile).await
                 }
             }
         }
@@ -205,6 +209,7 @@ async fn main() -> eyre::Result<()> {
             max_cost,
         } => {
             let agent_backend = commands::resolve_backend(backend)?;
+            let profile = commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
             if headless {
                 commands::next::cmd_next_loop_headless(
                     &dir,
@@ -212,12 +217,20 @@ async fn main() -> eyre::Result<()> {
                     agent_backend,
                     format,
                     max_cost,
+                    profile,
                 )
                 .await
             } else if use_tui {
-                commands::next::cmd_next_loop_tui(&dir, max_iterations, agent_backend, &env).await
+                commands::next::cmd_next_loop_tui(
+                    &dir,
+                    max_iterations,
+                    agent_backend,
+                    profile,
+                    &env,
+                )
+                .await
             } else {
-                commands::next::cmd_next_loop(&dir, max_iterations, agent_backend).await
+                commands::next::cmd_next_loop(&dir, max_iterations, agent_backend, profile).await
             }
         }
         Command::Migrate { dir } => commands::config::cmd_migrate(&dir),

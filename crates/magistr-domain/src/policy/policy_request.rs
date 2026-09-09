@@ -18,6 +18,10 @@ pub struct PolicyRequest {
     pub command: Option<String>,
     /// Every filesystem path the act touches.
     pub paths: Vec<String>,
+    /// Alternate normalized spellings for each corresponding path (for
+    /// example its project-relative spelling). Aliases are the same target,
+    /// never additional targets; hosts must resolve them before evaluation.
+    pub path_aliases: Vec<Vec<String>>,
     /// The model the session runs on.
     pub model: Option<String>,
     /// The caller's own risk classification.
@@ -53,6 +57,7 @@ impl PolicyRequest {
     #[must_use]
     pub fn with_path(mut self, path: impl Into<String>) -> Self {
         self.paths.push(path.into());
+        self.path_aliases.push(Vec::new());
         self
     }
 

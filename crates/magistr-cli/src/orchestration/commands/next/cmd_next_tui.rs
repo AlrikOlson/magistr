@@ -8,8 +8,8 @@ use color_eyre::eyre;
 pub async fn cmd_next_tui(
     dir: &std::path::Path,
     backend: agent::Backend,
-    _profile: PermissionProfile,
+    profile: PermissionProfile,
     _env: &crate::env::MagistrEnv,
 ) -> eyre::Result<()> {
-    super::cmd_next_cockpit(dir, backend).await
+    super::cmd_next_cockpit(dir, backend, profile).await
 }

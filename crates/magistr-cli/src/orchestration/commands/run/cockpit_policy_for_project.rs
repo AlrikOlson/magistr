@@ -35,7 +35,7 @@ pub fn cockpit_policy_for_project(
     CockpitPolicy::new(
         profile,
         config.rules,
-        super::collect_gate_commands(),
+        super::collect_gate_commands(project_dir),
         super::protected_paths_for_project(project_dir),
         workflow,
     )

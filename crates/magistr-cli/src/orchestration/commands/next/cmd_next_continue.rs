@@ -4,7 +4,11 @@ use crate::utils::format as fmt;
 use crate::workflow;
 use color_eyre::eyre;
 
-pub async fn cmd_next_continue(dir: &std::path::Path, backend: agent::Backend) -> eyre::Result<()> {
+pub async fn cmd_next_continue(
+    dir: &std::path::Path,
+    backend: agent::Backend,
+    profile: crate::permissions::PermissionProfile,
+) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
@@ -61,5 +65,5 @@ pub async fn cmd_next_continue(dir: &std::path::Path, backend: agent::Backend) -
         fmt::info("Continuing research-plan-execute-verify cycle...")
     );
 
-    crate::commands::run::cmd_run(&prompt, None, false, None, backend).await
+    crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile).await
 }

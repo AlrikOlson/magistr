@@ -16,6 +16,7 @@ pub async fn cmd_next_loop_cockpit(
     dir: &Path,
     max_iterations: u32,
     backend: Backend,
+    profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
     // The reasoning server prints its load banner to stderr: open the
@@ -29,5 +30,5 @@ pub async fn cmd_next_loop_cockpit(
     let iter_loop =
         IterationLoop::open_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;
     iter_loop.persist().suggest()?;
-    super::run_cockpit_loop(&dir, wf, iter_loop, backend, true).await
+    super::run_cockpit_loop(&dir, wf, iter_loop, backend, true, profile).await
 }

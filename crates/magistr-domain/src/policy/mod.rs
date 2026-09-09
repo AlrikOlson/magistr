@@ -51,3 +51,21 @@ pub use policy_request::PolicyRequest;
 pub use policy_rule::PolicyRule;
 pub use risk_tier::RiskTier;
 pub use scope_tally::ScopeTally;
+
+pub mod permission_mode;
+pub use permission_mode::PermissionMode;
+
+pub mod permission_outcome;
+pub use permission_outcome::PermissionOutcome;
+
+pub mod permission_source;
+pub use permission_source::PermissionSource;
+
+pub mod permission_context;
+pub use permission_context::PermissionContext;
+
+pub mod permission_resolution;
+pub use permission_resolution::PermissionResolution;
+
+pub mod permission_policy_service;
+pub use permission_policy_service::PermissionPolicyService;

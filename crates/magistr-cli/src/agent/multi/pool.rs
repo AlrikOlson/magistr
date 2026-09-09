@@ -119,7 +119,6 @@ impl AgentPool {
         };
 
         let mut session = AgentSession::start(config).await?;
-        session.spawn_auto_approve_permissions();
 
         // Cancel channel: the pool sends () to signal the worker to stop.
         let (cancel_tx, mut cancel_rx) = mpsc::unbounded_channel::<()>();
@@ -186,28 +185,13 @@ impl AgentPool {
     /// to the `AgentConfig` before starting the session.
     pub async fn spawn_worker_with_role(
         &mut self,
-        mut config: AgentConfig,
+        config: AgentConfig,
         task_id: String,
         task_description: String,
         scope: Vec<PathBuf>,
         role: &SpecializedRole,
     ) -> Result<AgentId> {
-        // Apply role's system prompt
-        let rendered_prompt = role.render_prompt(&config.prompt);
-        config.prompt = rendered_prompt;
-
-        // Apply role's model preference
-        if let Some(model) = role.effective_model() {
-            config.model = Some(model.to_string());
-        }
-
-        // Apply role's tool access policy
-        config.allowed_tools = apply_tool_policy(role, &config.allowed_tools);
-
-        // Apply max iterations as max_turns
-        if role.constraints.max_iterations > 0 {
-            config.max_turns = Some(role.constraints.max_iterations);
-        }
+        let config = role_config(config, role);
 
         let id = AgentId::new(self.next_id.fetch_add(1, Ordering::SeqCst));
         let agent_role = AgentRole::Worker {
@@ -215,7 +199,6 @@ impl AgentPool {
         };
 
         let mut session = AgentSession::start(config).await?;
-        session.spawn_auto_approve_permissions();
 
         let (cancel_tx, mut cancel_rx) = mpsc::unbounded_channel::<()>();
         let bridge_tx = self.event_tx.clone();
@@ -399,6 +382,28 @@ pub struct WorkerSnapshot {
     pub cost_usd: f64,
     /// Tokens consumed.
     pub tokens_used: u64,
+}
+
+/// Specialization changes capability preferences, preserving the caller's policy context.
+fn role_config(mut config: AgentConfig, role: &SpecializedRole) -> AgentConfig {
+    // Apply role's system prompt
+    let rendered_prompt = role.render_prompt(&config.prompt);
+    config.prompt = rendered_prompt;
+
+    // Apply role's model preference
+    if let Some(model) = role.effective_model() {
+        config.model = Some(model.to_string());
+    }
+
+    // Apply role's tool access policy
+    config.allowed_tools = apply_tool_policy(role, &config.allowed_tools);
+
+    // Apply max iterations as max_turns
+    if role.constraints.max_iterations > 0 {
+        config.max_turns = Some(role.constraints.max_iterations);
+    }
+
+    config
 }
 
 #[cfg(test)]

@@ -37,6 +37,15 @@ change when global preferences later change.
 `AgentSession::start` applies these defaults. Callers using `connect_transport`
 directly choose model configuration through the transport's `set_config_option`.
 
+## Permission decisions
+
+The [shared permission service](permissions.md) evaluates received ACP requests
+before cockpit presentation or noninteractive response selection. AgentSession
+installs its policy worker at startup, including plain sessions. Profiles, rules,
+gates and governance use the selected project directory. Noninteractive Ask
+refuses by default; `.claude/permissions.toml` can explicitly select
+`noninteractive = "legacy-automatic-approval"` for compatibility.
+
 ## Codex
 
 Select `codex` per session or set `[session] default_provider = "codex"` in user

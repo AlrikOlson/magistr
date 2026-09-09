@@ -3650,6 +3650,29 @@ fn a_lapsed_permission_leaves_the_dock_and_the_stage_says_it_was_denied() {
     assert_eq!(m.permissions_pending(), 1);
 }
 
+#[test]
+fn cancelling_a_permission_removes_its_card_without_claiming_a_timeout_denial() {
+    let mut m = model();
+    agent(&mut m, request(1, "Bash"));
+    agent(&mut m, request(2, "Edit main.rs"));
+    m.stood_down = Some(2);
+    agent(&mut m, AgentEvent::PermissionCancelled { id: 2 });
+    assert_eq!(m.permissions_pending(), 1);
+    assert_eq!(front_title(&m), Some("Bash"));
+    assert_eq!(m.stood_down, None);
+    assert!(!stage(&m).join(" ").contains("denied after"));
+    agent(&mut m, AgentEvent::PermissionCancelled { id: 1 });
+    assert_eq!(m.permissions_pending(), 0);
+    assert_eq!(
+        update(
+            &mut m,
+            Msg::Agent(AgentEvent::PermissionCancelled { id: 99 })
+        ),
+        vec![],
+        "late cancellation of an already-removed card stays quiet"
+    );
+}
+
 // ── The motion layer ─────────────────────────────────────────────────
 
 /// a scroll asks the runtime for a tick and gets it back the

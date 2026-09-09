@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::audit_retention::AuditRetention;
 use super::auto_allow_rule::AutoAllowRule;
+use super::noninteractive_policy::NoninteractivePolicy;
 use super::permission_profile::PermissionProfile;
 use crate::error::{MagistrError, MapMagistrErr, Result};
 
@@ -13,6 +14,10 @@ pub struct PermissionConfig {
     /// The permission profile to use.
     #[serde(default = "default_profile")]
     pub profile: PermissionProfile,
+
+    /// Handling of unanswered approvals when no approval interface is attached.
+    #[serde(default)]
+    pub noninteractive: NoninteractivePolicy,
 
     /// Custom auto-allow rules.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -31,6 +36,7 @@ impl Default for PermissionConfig {
     fn default() -> Self {
         Self {
             profile: PermissionProfile::Standard,
+            noninteractive: NoninteractivePolicy::Refuse,
             rules: Vec::new(),
             retention: AuditRetention::default(),
         }
