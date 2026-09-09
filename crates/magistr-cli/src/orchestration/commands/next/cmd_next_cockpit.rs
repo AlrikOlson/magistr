@@ -27,6 +27,8 @@ pub async fn cmd_next_cockpit(dir: &Path, backend: Backend) -> eyre::Result<()> 
         return Ok(());
     }
     wf.cleanup().suggest()?;
-    let iter_loop = IterationLoop::open(&dir, &wf.spec_path, 1, native).suggest()?;
+    let iter_loop = IterationLoop::open(&dir, &wf.spec_path, 1, native)
+        .suggest()?
+        .with_run_mode(magistr_engine::workflow::RunMode::OneChunk);
     super::run_cockpit_loop(&dir, wf, iter_loop, backend, false).await
 }

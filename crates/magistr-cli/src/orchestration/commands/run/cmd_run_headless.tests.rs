@@ -386,7 +386,7 @@ async fn json_cancelled_emits_event() {
 // ── Empty stream test ───────────────────────────────────────────
 
 #[tokio::test]
-async fn empty_stream_returns_ok() {
+async fn empty_stream_returns_agent_error() {
     let (mut session, tx) = mock_session();
     drop(tx);
 
@@ -403,7 +403,7 @@ async fn empty_stream_returns_ok() {
     .await
     .unwrap();
 
-    assert_eq!(outcome, HeadlessOutcome::Ok);
+    assert_eq!(outcome, HeadlessOutcome::AgentError);
 }
 
 // ── Exit code tests ─────────────────────────────────────────────

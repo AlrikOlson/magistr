@@ -13,6 +13,8 @@ fn restored(severed: Vec<SessionResidency>) -> RestoredSession {
             spec_total: 0,
         },
         consecutive_no_commits: 0,
+        run: RunState::new(crate::workflow::RunMode::ChunkLoop, 10, None),
+        cost_governor: CostGovernor::new(crate::BudgetConfig::none()),
         roadmap: RoadmapProgress::default(),
         roadmap_cursor: None,
         severed,

@@ -5,10 +5,11 @@ use color_eyre::eyre;
 
 use crate::agent;
 use crate::cli::HeadlessFormat;
-use crate::commands::run::{HeadlessOutcome, drain_headless};
+use crate::commands::run::{HeadlessOutcome, drain_headless_observing};
 use crate::error::ResultExt;
 use crate::workflow;
 use crate::workflow::iteration::{IterationLoop, PostCheckResult, PreCheckResult};
+use magistr_engine::workflow::StopReason;
 
 /// Run `magistr next-loop` in headless mode — batch iterations with progress reporting.
 ///
@@ -27,24 +28,39 @@ pub async fn cmd_next_loop_headless(
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
     wf.cleanup()?;
 
-    let mut iter_loop = IterationLoop::open(
+    let mut iter_loop = IterationLoop::open_or_recover(
         &dir,
         &wf.spec_path,
         max_iterations,
         crate::roadmap::open_native_engines(&dir),
     )
     .suggest()?;
+    let max_iterations = iter_loop.max_iterations();
+    iter_loop.set_budget_limit(max_cost).suggest()?;
+    let max_cost = iter_loop.run_state().budget_limit_usd;
     iter_loop.persist().suggest()?;
 
     let loop_start = Instant::now();
-    let mut cumulative_cost = 0.0;
+    let mut cumulative_cost = iter_loop.run_state().budget_total_usd;
     let mut final_outcome = HeadlessOutcome::Ok;
     let mut stdout = std::io::stdout().lock();
     let mut stderr = std::io::stderr().lock();
 
     loop {
-        match iter_loop.pre_iteration_check().suggest()? {
+        let pre = iter_loop.pre_iteration_check().suggest()?;
+        iter_loop.persist().suggest()?;
+        match pre {
             PreCheckResult::Continue => {}
+            PreCheckResult::Stopped(reason) => {
+                final_outcome = match reason {
+                    StopReason::BudgetExceeded => HeadlessOutcome::BudgetExceeded,
+                    StopReason::Failed => HeadlessOutcome::AgentError,
+                    StopReason::Cancelled | StopReason::Aborted => HeadlessOutcome::Cancelled,
+                    _ => HeadlessOutcome::Ok,
+                };
+                emit_loop_stop(&format, reason.as_str(), &mut stdout)?;
+                break;
+            }
             PreCheckResult::SpecComplete => {
                 emit_loop_stop(&format, "spec_complete", &mut stdout)?;
                 break;
@@ -83,9 +99,16 @@ pub async fn cmd_next_loop_headless(
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
         let config = super::cmd_next_headless::workflow_agent_config(&prompt, &dir, backend);
 
-        let mut session = agent::session::AgentSession::start(config)
-            .await
-            .suggest()?;
+        let mut session = match agent::session::AgentSession::start(config).await.suggest() {
+            Ok(session) => session,
+            Err(error) => {
+                iter_loop.post_iteration_check();
+                iter_loop.advance();
+                iter_loop.mark_failed();
+                iter_loop.persist().suggest()?;
+                return Err(error);
+            }
+        };
 
         session.spawn_auto_approve_permissions();
 
@@ -98,16 +121,45 @@ pub async fn cmd_next_loop_headless(
         .await;
 
         let iter_start = Instant::now();
-        let (outcome, spend) = drain_iteration(
+        let drained = drain_iteration(
             &mut session,
             format,
             max_cost,
             &mut cumulative_cost,
             &mut stdout,
             &mut stderr,
+            &mut |total| {
+                iter_loop.observe_budget(total);
+                iter_loop.persist().suggest()?;
+                Ok(())
+            },
         )
-        .await?;
+        .await;
+        let (outcome, spend) = match drained {
+            Ok(result) => result,
+            Err(error) => {
+                iter_loop.post_iteration_check();
+                iter_loop.advance();
+                iter_loop.mark_failed();
+                iter_loop.persist().suggest()?;
+                return Err(error);
+            }
+        };
         final_outcome = outcome.clone();
+        // Checkpoint the settled attempt before hooks and fallible progress output.
+        let post = iter_loop.post_iteration_check();
+        iter_loop.advance();
+        let terminal = match outcome {
+            HeadlessOutcome::AgentError => Some(StopReason::Failed),
+            HeadlessOutcome::BudgetExceeded => Some(StopReason::BudgetExceeded),
+            HeadlessOutcome::Cancelled => Some(StopReason::Cancelled),
+            HeadlessOutcome::Ok => None,
+        };
+        if let Some(reason) = terminal {
+            iter_loop.stop(reason);
+        }
+        iter_loop.persist().suggest()?;
+
         if let Some(spend) = spend {
             crate::cost::record_session(&dir, &spend);
         }
@@ -136,27 +188,18 @@ pub async fn cmd_next_loop_headless(
             &mut stdout,
         )?;
 
-        // Post-iteration check
-        match iter_loop.post_iteration_check() {
-            PostCheckResult::CommitMade { .. } => {}
-            PostCheckResult::NoCommit { .. } => {
-                if iter_loop.should_stop_no_commits() {
-                    emit_loop_stop(&format, "no_commits", &mut stdout)?;
-                    break;
-                }
-            }
-        }
-
         if matches!(
             outcome,
-            HeadlessOutcome::AgentError | HeadlessOutcome::BudgetExceeded
+            HeadlessOutcome::AgentError
+                | HeadlessOutcome::BudgetExceeded
+                | HeadlessOutcome::Cancelled
         ) {
-            iter_loop.mark_failed();
             emit_loop_stop(
                 &format,
                 match outcome {
                     HeadlessOutcome::AgentError => "agent_error",
                     HeadlessOutcome::BudgetExceeded => "budget_exceeded",
+                    HeadlessOutcome::Cancelled => "cancelled",
                     _ => unreachable!(),
                 },
                 &mut stdout,
@@ -164,8 +207,11 @@ pub async fn cmd_next_loop_headless(
             break;
         }
 
-        iter_loop.advance();
-        iter_loop.persist().suggest()?;
+        if matches!(post, PostCheckResult::NoCommit { .. }) && iter_loop.should_stop_no_commits() {
+            iter_loop.stop(StopReason::NoProgress);
+            emit_loop_stop(&format, "no_commits", &mut stdout)?;
+            break;
+        }
         wf.cleanup()?;
     }
 
@@ -179,7 +225,7 @@ pub async fn cmd_next_loop_headless(
         &mut stdout,
     )?;
 
-    iter_loop.cleanup().suggest()?;
+    iter_loop.persist().suggest()?;
     finish_loop(final_outcome)
 }
 
@@ -200,13 +246,24 @@ async fn drain_iteration(
     cumulative_cost: &mut f64,
     out: &mut dyn Write,
     err: &mut dyn Write,
+    checkpoint: &mut dyn FnMut(f64) -> eyre::Result<()>,
 ) -> eyre::Result<(HeadlessOutcome, Option<crate::cost::SessionSpend>)> {
-    let remaining = max_cost.map(|limit| (limit - *cumulative_cost).max(0.0));
+    let base = *cumulative_cost;
+    let remaining = max_cost.map(|limit| (limit - base).max(0.0));
     let mut spend = None;
-    let outcome = drain_headless(session, format, remaining, out, err, &mut spend).await?;
-    if let Some(spend) = &spend {
-        *cumulative_cost += spend.cost_usd;
-    }
+    let outcome = drain_headless_observing(
+        session,
+        format,
+        remaining,
+        out,
+        err,
+        &mut spend,
+        &mut |session_total| {
+            *cumulative_cost = cumulative_cost.max(base + session_total);
+            checkpoint(*cumulative_cost)
+        },
+    )
+    .await?;
     Ok((outcome, spend))
 }
 

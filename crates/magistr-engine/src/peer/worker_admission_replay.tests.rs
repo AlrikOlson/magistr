@@ -317,3 +317,45 @@ fn worker_restore_preserves_accepted_dependencies_and_renewal_fences_old_results
     );
     assert_eq!(restored.unsettled_workers().count(), 1);
 }
+
+#[test]
+fn worker_replay_preserves_settled_reservations_without_a_fresh_usage_count() {
+    let mut fixed = contract();
+    fixed.limits.max_attempts = 2;
+    let mut value = TaskAuthority::new(fixed.clone(), body(), observation()).unwrap();
+    candidate(&mut value, body());
+    vote(&mut value, 0);
+    vote(&mut value, 1);
+    worker(&mut value, "build", 0, "retired");
+    value.apply(observation(), retire("retired")).unwrap();
+    let accepted = worker(&mut value, "build", 0, "accepted");
+    assert_eq!(accepted.attempt(), 2);
+    value.apply(observation(), accept(&accepted)).unwrap();
+
+    // The restarted host has observed no starts. Admission must reconstruct
+    // consumed capacity from journaled reservations, including settled ones.
+    assert_eq!(observation().worker_attempts, 0);
+    for _ in 0..2 {
+        value = TaskAuthority::from_json(&value.to_json().unwrap(), &fixed, observation()).unwrap();
+        assert_eq!(value.reconciliation().state(), ReconciliationState::Agreed);
+        assert_eq!(value.unsettled_workers().count(), 0);
+        assert_eq!(
+            value.worker_receipt("retired"),
+            Some("runtime:termination-confirmed")
+        );
+        assert_eq!(
+            value.worker_receipt("accepted"),
+            Some("check:verified-by-host")
+        );
+
+        // The accepted build unblocks review and its fresh lease is valid.
+        // Only the persisted attempt ceiling must prevent another start.
+        let review = lease(&mut value, "review", 1);
+        assert!(matches!(
+            value.apply(observation(), admit(&review, "extra")),
+            Err(AgreementError::Invalid(message))
+                if message == "worker attempt reservations exhausted"
+        ));
+        assert!(value.apply(observation(), retire("accepted")).is_err());
+    }
+}

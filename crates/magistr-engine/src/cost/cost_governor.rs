@@ -40,6 +40,32 @@ impl CostGovernor {
         }
     }
 
+    /// Supply already observed spend when constructing a value checkpoint.
+    /// Live captures preserve the entire governor, including its warning flag.
+    #[must_use]
+    pub fn with_cost(mut self, cost: SessionCost) -> Self {
+        self.cost = cost;
+        self.warning_emitted = self.check_budget_status().should_warn();
+        self
+    }
+
+    /// Refuse restoration that erases spend or weakens a live owner's budget.
+    #[must_use]
+    pub fn preserves_observations(&self, known: &Self) -> bool {
+        self.cost.total_usd >= known.cost.total_usd
+            && self.cost.input_tokens >= known.cost.input_tokens
+            && self.cost.output_tokens >= known.cost.output_tokens
+            && self.cost.turns >= known.cost.turns
+            && (!known.warning_emitted || self.warning_emitted)
+            && preserves_limit(self.budget.limit, known.budget.limit)
+            && preserves_limit(self.budget.warn_threshold, known.budget.warn_threshold)
+            && preserves_limit(self.budget.max_iterations, known.budget.max_iterations)
+            && preserves_limit(
+                self.budget.max_duration_secs,
+                known.budget.max_duration_secs,
+            )
+    }
+
     /// Charge this session's spend to an attribution (self-consuming
     /// builder).
     #[must_use]
@@ -160,6 +186,14 @@ impl CostGovernor {
     /// Check current spending against budget configuration.
     fn check_budget_status(&self) -> BudgetStatus {
         check_budget(self.cost.total_usd, &self.budget)
+    }
+}
+
+fn preserves_limit<T: PartialOrd>(incoming: Option<T>, known: Option<T>) -> bool {
+    match (incoming, known) {
+        (_, None) => true,
+        (Some(incoming), Some(known)) => incoming <= known,
+        (None, Some(_)) => false,
     }
 }
 

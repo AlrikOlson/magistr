@@ -20,13 +20,14 @@ pub async fn cmd_next_loop(
 
     // Initialize iteration loop (native roadmap engines when the project
     // selects think-and-ship; the spec file otherwise)
-    let mut iter_loop = IterationLoop::open(
+    let mut iter_loop = IterationLoop::open_or_recover(
         &dir,
         &wf.spec_path,
         max_iterations,
         crate::roadmap::open_native_engines(&dir),
     )
     .suggest()?;
+    let max_iterations = iter_loop.max_iterations();
     iter_loop.persist().suggest()?;
 
     eprintln!(
@@ -40,6 +41,10 @@ pub async fn cmd_next_loop(
         // Pre-iteration checks (spec complete? max reached?)
         match iter_loop.pre_iteration_check().suggest()? {
             PreCheckResult::Continue => {}
+            PreCheckResult::Stopped(reason) => {
+                eprintln!("{}", fmt::warning(&format!("Loop stopped: {reason}")));
+                break;
+            }
             PreCheckResult::SpecComplete => {
                 eprintln!("{}", fmt::success("All spec items complete!"));
                 break;
@@ -72,12 +77,23 @@ pub async fn cmd_next_loop(
         );
         eprintln!("{} {}", fmt::cyan("→"), summary.status_line());
 
+        iter_loop.persist().suggest()?;
         // Run one /next cycle
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
-        crate::commands::run::cmd_run(&prompt, None, false, None, backend).await?;
+        if let Err(error) = crate::commands::run::cmd_run(&prompt, None, false, None, backend).await
+        {
+            iter_loop.post_iteration_check();
+            iter_loop.advance();
+            iter_loop.mark_failed();
+            iter_loop.persist().suggest()?;
+            return Err(error);
+        }
 
         // Post-iteration check: did a commit happen?
-        match iter_loop.post_iteration_check() {
+        let post = iter_loop.post_iteration_check();
+        iter_loop.advance();
+        iter_loop.persist().suggest()?;
+        match post {
             PostCheckResult::CommitMade { .. } => {}
             PostCheckResult::NoCommit { guidance } => {
                 eprintln!("{}", fmt::warning(&guidance));
@@ -91,15 +107,12 @@ pub async fn cmd_next_loop(
             }
         }
 
-        iter_loop.advance();
-        iter_loop.persist().suggest()?;
-
         // Clean up plan state for next iteration
         wf.cleanup()?;
     }
 
     // Clean up
-    iter_loop.cleanup().suggest()?;
+    iter_loop.persist().suggest()?;
     eprintln!(
         "\n{}",
         fmt::success(&format!(

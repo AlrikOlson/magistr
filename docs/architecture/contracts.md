@@ -6,16 +6,18 @@ This is the behavior baseline for the architecture refactor, recorded on
 `gui2@f0d6370ac32877160e6d40852b8051736e4ca6ec`.
 The [architecture report](https://moistfridge.com/magistr-architecture-reconsidered)
 motivates consolidating ownership. The observations below come from these source
-snapshots and executable scenarios. **The intended contracts are decisions for
-subsequent implementation; this baseline changes no production behavior.**
+snapshots and executable scenarios. **The pinned observations are historical;
+implemented changes are identified separately below.**
 
-The subsequent [domain extraction](domain.md) moves pure values and rules without
-changing these characterized runtime policies. Its scoped identities are ready
-for application adapters; existing session wire IDs remain compatible.
+The subsequent [domain extraction and run consolidation](domain.md) establish
+shared pure values and implement the run-policy decisions in `arch-03-run-semantics`.
+The [implementation record](#implemented-run-consolidation) identifies the
+changed behavior without replacing the original observations. Scoped identities
+remain available to application adapters; existing session wire IDs stay compatible.
 
 ## Objects and owners
 
-| Object | Current authority or owner | Intended boundary |
+| Object | Authority or owner at the pinned snapshot | Intended boundary |
 | --- | --- | --- |
 | Project | `TasConfig` and native identity select the project/store; `MagistrService` owns cooperating MCP admission. Configuration resolution also lives in CLI/core. | One admitted project application handle supplies mutations to every supported host. Workbench retains its separate service ownership. |
 | Chunk, signal, reasoning, execution objective/task | The four native think-and-ship family engines behind `NativeEngines`; scope strings and cockpit selections do not create isolated execution cycles. | Keep native workflow canonical behind narrow commands and queries. |
@@ -93,7 +95,7 @@ integrated session path.
 [cockpit Session](../../crates/magistr-cockpit/src/agent/session.rs), and
 [direct Codex launcher](../reference/codex.md) define these paths.
 
-| Concern | Current differences pinned by the baseline |
+| Concern | Historical differences pinned by the baseline |
 | --- | --- |
 | Permission | Headless chooses AllowOnce if present, otherwise the first option (even RejectOnce), otherwise Cancelled. It does not evaluate project policy. Cockpit policy denial precedes remembered Always answers; undecided requests reach the strip. |
 | Defaults and explicit model | AgentSession applies user defaults and backend model-selection failures prevent inference. Direct cockpit/connector setup does not copy provider model defaults; cockpit model selection drops an error and can continue with the runtime default. |
@@ -103,6 +105,13 @@ integrated session path.
 | No progress | Core production loop stops at 2 consecutive iterations without a commit; engine workflow stops at 3. Core resets after observing a changed Git HEAD; engine resets when `record_committed()` is called. |
 | Recovery | Core loop persistence omits its separate no-commit counter and recovery resets it to zero. Engine checkpoint restoration retains the count. Cockpit next-loop recovers an existing loop; headless/plain loops start fresh. |
 | Completion | Native roadmap completion permits completion without a check or ship reference. Phase done needs a recorded check count, including failures. Native finalize can return shipped with a failed-required-check warning. The skill's complete gate/acceptance protocol is stronger. |
+
+The no-progress and recovery differences above are resolved by the implemented
+run consolidation below. The cancellation row remains provenance for the old
+entry paths; headless and cockpit loop adapters now record their observed terminal
+outcomes through the shared run state. The plain drain's coarse result remains a
+provider-supervision limitation. This does not imply a shared provider supervisor
+or change the permission and provider-capability observations.
 
 The API loading limitation is source evidence in
 [API provider](../../crates/magistr-acp-agent/src/api/provider.rs) and
@@ -150,8 +159,8 @@ explicit decision update and acceptance tests.
    not a provider restart, recovery or viewer change. Persist the count, budget
    observations and iteration limit with the run. Old checkpoints lacking the
    count require explicit recovery acknowledgment or a new run; do not silently
-   manufacture zero. The engine's three-count rule remains characterized until
-   its callers migrate; it is not a second intended loop mode.
+   manufacture zero. Implemented in `arch-03-run-semantics`; the engine's
+   three-count behavior remains a historical observation, not an active policy.
 3. **Permissions and compatibility:** use one project policy for every surface.
    Policy Deny always wins. Interactive Ask is presented; noninteractive Ask
    cancels/refuses unless an explicitly selected compatibility policy permits it.
@@ -188,16 +197,70 @@ they do not choose Magistr's no-progress threshold or compatibility policy.
 [SQLite isolation](https://sqlite.org/isolation.html) describes serialized
 database writes, not coherence of Magistr's current cached native engines.
 
+## Implemented run consolidation
+
+`arch-03-run-semantics` makes
+[`RunState`](../../crates/magistr-domain/src/workflow/run_state.rs) the shared
+owner of mode, attempt cursor, iteration ceiling, no-progress count, cumulative
+budget and limit, settlement marker and terminal reason. The
+[`mode`](../../crates/magistr-domain/src/workflow/run_mode.rs) and
+[`stop reason`](../../crates/magistr-domain/src/workflow/stop_reason.rs) enums
+provide explicit conversation, one-chunk and chunk-loop semantics. Chunk loops
+stop after two consecutive no-commit attempts; repeating settlement for an
+already observed attempt cannot increment the counter. A later observed Git
+commit clears it. Conversation skips the Git guard, and one-chunk mode admits
+only its selected attempt.
+
+The [core loop](../../crates/magistr-core/src/workflow/iteration.rs) and
+[engine workflow](../../crates/magistr-engine/src/workflow/workflow_engine.rs)
+delegate these decisions to the domain. Core retains the legacy loop-state
+iteration and maximum fields only as checked projections. Its status field uses
+canonical `IterationStatus` while preserving the old `success` wire spelling
+for `Committed`. Core and engine also share
+[`WorkflowPhase`](../../crates/magistr-domain/src/workflow/workflow_phase.rs)
+and [`ProjectContext`](../../crates/magistr-domain/src/project.rs). Phase labels
+are explicit; notification punctuation belongs to the
+[presentation adapter](../../crates/magistr-core/src/workflow_state.rs).
+The core phase index and context/spec counts retain `usize` API compatibility;
+the domain iteration projection retains its existing `u32` fields.
+
+[Headless](../../crates/magistr-cli/src/orchestration/commands/next/cmd_next_loop_headless.rs),
+[plain](../../crates/magistr-cli/src/orchestration/commands/next/cmd_next_loop.rs)
+and [cockpit](../../crates/magistr-cli/src/orchestration/commands/next/cmd_next_loop_cockpit.rs)
+next-loop entry points now share `open_or_recover`. Their loop checkpoints retain
+the run's stopping evidence and terminal state. Recovery validates projections
+and keeps the attempt's original Git baseline. It refuses legacy files missing
+the no-progress count/run evidence instead of inventing zero. Starting a new run
+requires deliberately preserving elsewhere or removing
+`.magistr/loop-state.json`; the adapter leaves an invalid checkpoint intact.
+
+Engine [session snapshot format version 2](../../crates/magistr-engine/src/session/session_snapshot.rs)
+requires `RunState` and the complete `CostGovernor`. Restoration checks iteration,
+no-progress and budget projections for agreement before
+[`EngineHandle`](../../crates/magistr-engine/src/handle/engine_handle.rs) installs
+the recovered state. Budget policy, accumulated spend, warning state and
+attribution survive a process restart. Version 1 and missing required stopping
+evidence are refused. [Peer journals](peers.md) still own reservations, requests,
+unsettled worker attempts and receipts; these are separate from session recovery.
+
+The provider/session lifecycle remains separate work. This consolidation does
+not redesign atomic checkpoint writes or durable operations (`arch-08` and
+`arch-13`), prove live-provider recovery, or integrate the desktop fixture paths.
+The [domain guide](domain.md#recovery-boundaries) records the adapter boundaries.
+
 ## Executable scenarios
 
-New tests intentionally assert current behavior, including gaps. Consolidating
-a gap must deliberately update the corresponding scenario and this document.
+The original scenarios intentionally pinned behavior including gaps. The run
+rows below now assert the implemented policy; other rows retain their scoped
+baseline coverage. A changed contract requires updating its scenario explicitly.
 
 | Scenario | Executable evidence |
 | --- | --- |
 | Headless AllowOnce preference, rejection-first fallback, empty choices, receiver ownership | `agent::session::tests::headless_permissions_*` and `a_taken_permission_receiver_cannot_be_claimed_by_the_headless_worker` in CLI |
-| Two no-commits stop, commit clears, persisted recovery resets count | `workflow::iteration::tests::post_check_increments_consecutive_no_commits`, `post_check_resets_no_commit_counter_on_success`, and `recovery_retains_iteration_state_but_resets_the_no_commit_stop_counter` in core |
-| Three no-commits and restored count remain stopping evidence | `workflow::workflow_engine::tests::should_stop_on_repeated_no_commits` and `a_restored_no_commit_count_still_stops_the_loop` in engine |
+| Shared mode policy, two no-commits stop, repeated settlement remains idempotent | [Domain run-state tests](../../crates/magistr-domain/src/workflow/run_state.tests.rs); engine `workflow::workflow_engine::tests::should_stop_on_repeated_no_commits` and `a_restored_no_commit_count_still_stops_the_loop` |
+| Recovery retains stopping count, Git baseline, budget and terminal reason; unknown legacy state is refused | [Core iteration tests](../../crates/magistr-core/src/workflow/iteration.tests.rs), including `recovery_retains_no_commit_stop_before_another_attempt`, `repeated_post_check_settles_each_attempt_once_even_after_recovery` and `recovery_observes_commit_against_the_persisted_attempt_baseline` |
+| Version 2 requires consistent run/governor evidence; restored budget, pause, abort and cancellation remain enforceable | [Session snapshot tests](../../crates/magistr-engine/src/session/session_snapshot.tests.rs) and [engine-handle recovery tests](../../crates/magistr-engine/src/handle/mod.tests.rs) |
+| Phase/status compatibility and one project-context value across core/engine | [Core phase tests](../../crates/magistr-core/src/workflow_phase.tests.rs), [iteration status compatibility](../../crates/magistr-core/src/workflow/iteration.tests.rs) and `gathered_context_is_accepted_by_the_engine_without_conversion` in [context builder tests](../../crates/magistr-core/src/workflow/context_builder.tests.rs) |
 | Shared objective/active task, independent projects, weak completion/phase/finalize evidence | CLI integration `architecture_contracts` (temporary native store and actual failing child command) |
 | Policy allow/deny/Ask, protected paths, workflow profile | CLI integration `cockpit_permissions` |
 | Permission round trips, remembered answer, first Ctrl-C cancel then quit | TUI integration `session_harness` |
@@ -231,6 +294,13 @@ Repeat the same use cases after a migration slice and explain any changed set.
 | Add a permission outcome | 8 files: CLI `agent/session.rs`, `permissions/cockpit_policy.rs`, `orchestration/commands/run/cockpit_policy_for_project.rs`; cockpit `agent/session.rs`, `cockpit/model.rs`, `cockpit/update.rs`, `cockpit/view.rs`; ACP `permission/response.rs` | Host mode, project policy, request correlation, UI state/action/view, protocol response |
 | Add a provider capability | 7 files: CLI `agent/connect_transport.rs`, `agent/backend.rs`; ACP-agent `provider.rs`, `serve.rs`; ACP `event.rs`; cockpit `agent/translate.rs`, `agent/event.rs` | Provider promise, wire advertisement, launch/model checks, lossy UI projection |
 | Change a run stop rule | 7 files: core `workflow/iteration.rs`; engine `workflow/workflow_engine.rs`; CLI `orchestration/loop_driver/driver.rs`, `orchestration/commands/next/cmd_next_loop.rs`, `cmd_next_loop_headless.rs`, `cmd_next_loop_cockpit.rs` in that same next directory; cockpit `cockpit/update.rs` | Two policies, persistence/recovery, host dispatch, loop outcome presentation |
+
+That table retains the original reading set. After `arch-03-run-semantics`, the
+stop-rule definition and its direct tests live in domain `workflow/run_state.rs`
+and `run_state.tests.rs`. Core and engine adapters delegate to that definition.
+Changes to effect timing, serialization or displayed outcomes still require
+reading their adapters and CLI consumers; one policy owner does not eliminate
+those integration costs.
 
 The gui2 permission reading set adds five files under `magistr-gui2/src`:
 `comp_moment.rs`, `comp_root.rs`, `frame.rs`, `native.rs`, `route.rs`.

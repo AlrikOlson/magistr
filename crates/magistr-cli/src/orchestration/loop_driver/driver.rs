@@ -122,6 +122,8 @@ pub struct LoopDriver {
     metrics: Vec<IterationMetrics>,
     /// The highest context level the agent reported this turn.
     tokens_seen: Option<u64>,
+    /// Spend accumulated before this attempt's fresh provider session.
+    iteration_cost_base: f64,
     /// The session's checkpoint spine, when the loop runs on a native
     /// project: what the boundary checkpoint is taken on, and what
     /// serves every other ledger verb the loop's cockpit asks for.
@@ -248,6 +250,7 @@ impl LoopDriver {
             iterations: 0,
             metrics: Vec::new(),
             tokens_seen: None,
+            iteration_cost_base: 0.0,
             checkpoints: None,
             ledger: None,
         }
@@ -376,11 +379,19 @@ impl LoopDriver {
             };
             match pre {
                 PreCheckResult::Continue => {}
+                PreCheckResult::Stopped(reason) => {
+                    break LoopEnd::from_stop(reason, self.iter_loop.max_iterations());
+                }
                 PreCheckResult::NoReadyChunk => break LoopEnd::NoReadyChunk,
                 PreCheckResult::SpecComplete => break LoopEnd::SpecComplete,
                 PreCheckResult::MaxIterations => {
                     break LoopEnd::MaxIterations(self.iter_loop.max_iterations());
                 }
+            }
+            if self.persist
+                && let Err(error) = self.iter_loop.persist()
+            {
+                break LoopEnd::Failed(format!("could not checkpoint attempt: {error}"));
             }
             match self.boundary().await {
                 Boundary::Go => {}
@@ -400,14 +411,24 @@ impl LoopDriver {
                 Ok(Step::Closed) => break LoopEnd::CockpitClosed,
                 Ok(Step::End(end)) => break end,
                 Err(why) => {
+                    self.iter_loop.post_iteration_check();
+                    self.iter_loop.mark_failed();
                     self.post(LoopEvent::Failed(why.clone()));
                     break LoopEnd::Failed(why);
                 }
             }
             self.advance();
         };
-        if self.persist {
-            let _ = self.iter_loop.cleanup();
+        if self.iter_loop.run_state().last_settled_attempt
+            == Some(self.iter_loop.run_state().completed_attempts)
+        {
+            self.iter_loop.advance();
+        }
+        self.iter_loop.stop(end.stop_reason());
+        if self.persist
+            && let Err(error) = self.iter_loop.persist()
+        {
+            self.note(format!("could not checkpoint terminal state: {error}"));
         }
         if end != LoopEnd::CockpitClosed {
             self.post(LoopEvent::Ended(end.to_string()));
@@ -545,7 +566,7 @@ impl LoopDriver {
             self.post(LoopEvent::Stage(LoopStage::Agent));
             let turn = self.turn(&session_tx, started, &mut ticks).await;
             drop(session_tx);
-            let _ = tokio::time::timeout(SESSION_GRACE, session).await;
+            self.close_session(session).await;
             match turn {
                 Turn::Ended => {}
                 Turn::Closed => return Ok(Step::Closed),
@@ -554,6 +575,10 @@ impl LoopDriver {
                     return Err(why);
                 }
             }
+        }
+        if let Some(reason) = self.iter_loop.run_state().stop_reason() {
+            self.iter_loop.stop(reason);
+            return Err(format!("the run stopped before verification: {reason}"));
         }
         self.iterations += 1;
         let turn = started.elapsed();
@@ -585,15 +610,40 @@ impl LoopDriver {
             .await)
     }
 
-    /// The cockpit session over a connected transport: the events onto
-    /// the inbox (tapped for this driver), the runtime's commands in,
-    /// the workflow permission policy, the workbench and the engines.
+    /// Drain one finished producer before another session can report cumulative cost.
+    async fn close_session(&mut self, mut session: JoinHandle<()>) {
+        if tokio::time::timeout(SESSION_GRACE, &mut session)
+            .await
+            .is_err()
+        {
+            session.abort();
+            let _ = session.await;
+        }
+        while let Ok(msg) = self.tap_rx.try_recv() {
+            self.observe(&msg);
+        }
+    }
+
+    fn accept_turn_end(&mut self, end: TurnEnd) -> Result<(), String> {
+        let reason = match end {
+            TurnEnd::EndTurn => return Ok(()),
+            TurnEnd::Cancelled => magistr_engine::workflow::StopReason::Cancelled,
+            _ => magistr_engine::workflow::StopReason::Failed,
+        };
+        self.iter_loop.stop(reason);
+        Err(format!(
+            "the agent stopped before completing its turn: {end:?}"
+        ))
+    }
+
+    /// Open the next session only after the previous producer was drained.
     fn open_session(
-        &self,
+        &mut self,
         transport: magistr_acp::AcpTransport,
         cwd: &Path,
         opening: Option<&str>,
     ) -> (JoinHandle<()>, UnboundedSender<Cmd>) {
+        self.iteration_cost_base = self.iter_loop.run_state().budget_total_usd;
         let (session_tx, session_commands) = Commands::channel();
         // Workflow mode: reads, edits and the gate commands are
         // auto-approved so an unattended iteration never stalls on the
@@ -790,7 +840,7 @@ impl LoopDriver {
             )
             .await;
         drop(session_tx);
-        let _ = tokio::time::timeout(SESSION_GRACE, session).await;
+        self.close_session(session).await;
         outcome
     }
 
@@ -911,7 +961,10 @@ impl LoopDriver {
                         let _ = session.send(other);
                     }
                     Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
-                    Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(_))) => turn_ended = true,
+                    Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(end))) => {
+                        self.accept_turn_end(end)?;
+                        turn_ended = true;
+                    }
                     Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
                         return Err(format!("the agent failed: {e}"));
                     }
@@ -975,7 +1028,10 @@ impl LoopDriver {
                         }
                     }
                     wake = self.wake(None, Some(ticks)) => match wake {
-                        Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(_))) if !extension => break,
+                        Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(end))) if !extension => {
+                            self.accept_turn_end(end)?;
+                            break;
+                        }
                         Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
                             return Err(format!("the agent failed: {e}"));
                         }
@@ -1237,7 +1293,12 @@ impl LoopDriver {
     ) -> Turn {
         loop {
             match self.wake(None, Some(ticks)).await {
-                Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(_))) => return Turn::Ended,
+                Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn))) => {
+                    return Turn::Ended;
+                }
+                Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(end))) => {
+                    return Turn::Failed(self.accept_turn_end(end).expect_err("non-complete turn"));
+                }
                 Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
                     return Turn::Failed(format!("the agent failed: {e}"));
                 }
@@ -1620,9 +1681,25 @@ impl LoopDriver {
             Msg::Agent(AgentEvent::Text(text)) => self.transcript.push_str(text),
             // ACP's `UsageUpdate.used` is the context's level; the
             // highest level of the turn is what the turn put in context.
-            Msg::Agent(AgentEvent::Usage { used, size, .. }) => {
+            Msg::Agent(AgentEvent::Usage {
+                used,
+                size,
+                cost_cents,
+                ..
+            }) => {
                 tracing::info!(target: "magistr::loop", used, size, "usage");
                 self.tokens_seen = Some(self.tokens_seen.map_or(*used, |seen| seen.max(*used)));
+                if let Some(cents) = cost_cents {
+                    self.iter_loop
+                        .observe_budget(self.iteration_cost_base + *cents as f64 / 100.0);
+                    if self.persist
+                        && let Err(error) = self.iter_loop.persist()
+                    {
+                        self.iter_loop
+                            .stop(magistr_engine::workflow::StopReason::Failed);
+                        self.note(format!("could not checkpoint observed spending: {error}"));
+                    }
+                }
             }
             Msg::Agent(AgentEvent::TurnEnded(end)) => {
                 tracing::info!(target: "magistr::loop", ?end, "turn ended");

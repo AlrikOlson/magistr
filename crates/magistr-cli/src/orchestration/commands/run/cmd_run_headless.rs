@@ -110,9 +110,36 @@ pub(crate) async fn drain_headless(
     err: &mut dyn Write,
     spend: &mut Option<SessionSpend>,
 ) -> eyre::Result<HeadlessOutcome> {
+    drain_headless_observing(session, format, budget_limit, out, err, spend, &mut |_| {
+        Ok(())
+    })
+    .await
+}
+
+/// Observe priced usage before output or termination so a loop can checkpoint
+/// reported spending even if no final ledger result arrives.
+pub(crate) async fn drain_headless_observing(
+    session: &mut agent::session::AgentSession,
+    format: HeadlessFormat,
+    budget_limit: Option<f64>,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+    spend: &mut Option<SessionSpend>,
+    observe_cost: &mut dyn FnMut(f64) -> eyre::Result<()>,
+) -> eyre::Result<HeadlessOutcome> {
     use crate::agent::message::{AgentMessage, ContentBlock};
 
     while let Some(msg_result) = session.next_message().await {
+        if let Ok(msg) = &msg_result {
+            let cost = match msg {
+                AgentMessage::Result { total_cost_usd, .. } => *total_cost_usd,
+                AgentMessage::UsageUpdate { cost_usd, .. } => *cost_usd,
+                _ => None,
+            };
+            if let Some(cost) = cost.filter(|cost| cost.is_finite() && *cost >= 0.0) {
+                observe_cost(cost)?;
+            }
+        }
         match msg_result {
             Ok(msg) => match &msg {
                 AgentMessage::Assistant { message, .. } => {
@@ -217,6 +244,12 @@ pub(crate) async fn drain_headless(
                             )?;
                         }
                     }
+                    if budget_limit
+                        .zip(*total_cost_usd)
+                        .is_some_and(|(limit, cost)| cost >= limit)
+                    {
+                        return Ok(HeadlessOutcome::BudgetExceeded);
+                    }
                     if *is_error {
                         return Ok(HeadlessOutcome::AgentError);
                     }
@@ -290,7 +323,8 @@ pub(crate) async fn drain_headless(
         }
     }
 
-    Ok(HeadlessOutcome::Ok)
+    // EOF without a terminal result is an interrupted attempt, not success.
+    Ok(HeadlessOutcome::AgentError)
 }
 
 /// Write a JSON value as a single NDJSON line.

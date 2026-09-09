@@ -107,6 +107,7 @@ fn no_commit_tracking() {
     let mut engine = WorkflowEngine::new(test_config());
     engine.record_no_commit();
     assert_eq!(engine.consecutive_no_commits(), 1);
+    engine.advance_iteration();
     engine.record_no_commit();
     assert_eq!(engine.consecutive_no_commits(), 2);
     engine.record_committed();
@@ -118,7 +119,7 @@ fn should_stop_after_max_no_commits() {
     let mut engine = WorkflowEngine::new(test_config());
     assert!(!engine.should_stop_no_commits());
     engine.record_no_commit();
-    engine.record_no_commit();
+    engine.advance_iteration();
     engine.record_no_commit();
     assert!(engine.should_stop_no_commits());
 }

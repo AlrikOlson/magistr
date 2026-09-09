@@ -39,7 +39,9 @@ impl WorkflowState {
         self.workflow_phase = Some(phase);
 
         if prev.is_some() && prev != Some(phase) {
-            Some(format!("Phase: {}", phase.label()))
+            // Progress punctuation belongs to the notification, not the domain value.
+            let suffix = if phase.is_terminal() { "" } else { "..." };
+            Some(format!("Phase: {}{suffix}", phase.label()))
         } else {
             None
         }

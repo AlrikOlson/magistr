@@ -1,5 +1,6 @@
+use crate::cost::CostGovernor;
 use crate::roadmap::RoadmapProgress;
-use crate::workflow::IterationState;
+use crate::workflow::{IterationState, RunState};
 
 use super::engine_session::EngineSession;
 use super::session_residency::SessionResidency;
@@ -27,6 +28,10 @@ pub struct RestoredSession {
     pub iteration: IterationState,
     /// How many iterations in a row had ended without a commit.
     pub consecutive_no_commits: u32,
+    /// Canonical run stopping evidence.
+    pub run: RunState,
+    /// Complete cost enforcement state.
+    pub cost_governor: CostGovernor,
     /// Roadmap progress as of the capture.
     pub roadmap: RoadmapProgress,
     /// The chunk the session was working on, when it named one.

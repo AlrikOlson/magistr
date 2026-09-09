@@ -134,7 +134,7 @@ fn the_id_the_card_prints_is_the_id_the_save_mints() {
 // ── restore ─────────────────────────────────────────────────────────
 
 #[test]
-fn a_restore_resumes_the_loop_from_the_chosen_state() {
+fn a_restore_cannot_rewind_attempts_already_consumed_by_the_live_loop() {
     let engine = engine();
     working(&engine);
     let mut cps = Checkpoints::new(engine.clone(), Arc::new(FakeRepo::clean("abc")));
@@ -147,14 +147,16 @@ fn a_restore_resumes_the_loop_from_the_chosen_state() {
     engine.set_phase(WorkflowPhase::Verifying).expect("verify");
     assert_eq!(engine.phase(), WorkflowPhase::Verifying);
 
-    // …and the restore puts the workflow back where cp-1 had it.
-    let restored = cps.restore("cp-1").expect("cp-1 restores");
-    assert_eq!(restored.iteration.iteration, 2);
-    assert_eq!(engine.phase(), WorkflowPhase::Executing);
+    // The old checkpoint remains inspectable, but cannot erase consumed attempts.
+    let error = cps.restore("cp-1").expect_err("rewind is refused");
+    assert!(
+        error.contains("rewind known run stopping evidence"),
+        "{error}"
+    );
+    assert_eq!(engine.capture().iteration.iteration, 4);
+    assert_eq!(engine.phase(), WorkflowPhase::Verifying);
     assert_eq!(engine.session_id(), "sess-spine");
-    // A turn in flight stayed with the process that was running it.
-    assert_eq!(engine.session_status(), SessionStatus::Awaiting);
-    assert_eq!(restored.resumed_from, Some(SessionStatus::InProgress));
+    assert_eq!(engine.session_status(), SessionStatus::InProgress);
 }
 
 #[test]
