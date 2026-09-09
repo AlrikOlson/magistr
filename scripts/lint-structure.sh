@@ -36,7 +36,7 @@ if [[ "${1:-}" == "--generate" ]]; then
     echo "Generating allowlist..."
     : > "$ALLOWLIST"
 
-    find "$PROJECT_ROOT/crates/magistr-cli/src/" "$PROJECT_ROOT/crates/magistr-engine/src/" "$PROJECT_ROOT/crates/magistr-domain/src/" -name '*.rs' -not -name '*.tests.rs' 2>/dev/null | while read -r f; do
+    find "$PROJECT_ROOT/crates/magistr-cli/src/" "$PROJECT_ROOT/crates/magistr-engine/src/" "$PROJECT_ROOT/crates/magistr-domain/src/" "$PROJECT_ROOT/crates/magistr-application/src/" -name '*.rs' -not -name '*.tests.rs' 2>/dev/null | while read -r f; do
         rel="${f#"$PROJECT_ROOT/"}"
         count=$(grep -cE '^pub (struct|enum|fn|trait|type|const|static|async fn)' "$f" 2>/dev/null || true)
         if [ "$count" -gt 1 ]; then
@@ -64,7 +64,7 @@ while IFS= read -r f; do
         echo "ERROR: $rel has $count top-level pub items (max 1)"
         errors=$((errors + 1))
     fi
-done < <(find "$PROJECT_ROOT/crates/magistr-cli/src/" "$PROJECT_ROOT/crates/magistr-engine/src/" "$PROJECT_ROOT/crates/magistr-domain/src/" -name '*.rs' -not -name '*.tests.rs' 2>/dev/null)
+done < <(find "$PROJECT_ROOT/crates/magistr-cli/src/" "$PROJECT_ROOT/crates/magistr-engine/src/" "$PROJECT_ROOT/crates/magistr-domain/src/" "$PROJECT_ROOT/crates/magistr-application/src/" -name '*.rs' -not -name '*.tests.rs' 2>/dev/null)
 
 # Rule 2: No inline test modules
 # A `#[cfg(test)] mod tests { ... }` block is an inline test module (violation).
@@ -80,7 +80,7 @@ while IFS= read -r f; do
             errors=$((errors + 1))
         fi
     fi
-done < <(find "$PROJECT_ROOT/crates/magistr-cli/src/" "$PROJECT_ROOT/crates/magistr-engine/src/" "$PROJECT_ROOT/crates/magistr-domain/src/" -name '*.rs' -not -name '*.tests.rs' 2>/dev/null)
+done < <(find "$PROJECT_ROOT/crates/magistr-cli/src/" "$PROJECT_ROOT/crates/magistr-engine/src/" "$PROJECT_ROOT/crates/magistr-domain/src/" "$PROJECT_ROOT/crates/magistr-application/src/" -name '*.rs' -not -name '*.tests.rs' 2>/dev/null)
 
 # Rule 3: Dependency direction enforcement
 #

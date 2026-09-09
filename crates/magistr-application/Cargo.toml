@@ -1,0 +1,9 @@
+[package]
+name = "magistr-application"
+version = "0.1.0"
+edition = "2024"
+description = "Typed Magistr use cases and adapter-owned effect ports"
+license = "MIT"
+
+[dependencies]
+magistr-domain = { path = "../magistr-domain" }

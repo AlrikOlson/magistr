@@ -9,6 +9,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | --- | --- |
 | `magistr-cli` | Commands, project setup, runtime integration, and MCP service startup |
 | `magistr-domain` | Deterministic identities, run rules, policy, and verification values |
+| `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
 | `magistr-acp` | Agent Client Protocol transport |
@@ -21,6 +22,8 @@ records the refactor's intended policies, and names executable behavior scenario
 
 The [domain boundary](domain.md) enforces effect-free dependencies and preserves
 engine compatibility exports while application and session ownership migrate.
+The [application contracts](application.md) define the next boundary through
+project-scoped use cases and effect ports; production host migration remains separate.
 
 ## Workflow and tools
 
