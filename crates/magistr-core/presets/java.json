@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "mvn compile -q",
+    "test": "mvn test -q",
+    "lint": "mvn checkstyle:check -q"
+  },
+  "format": {
+    "extensions": ["java"],
+    "command": "google-java-format --replace {file}",
+    "exclusions": ["target", "build", ".gradle"]
+  },
+  "testing": {
+    "companion_pattern": "{name}Test.{ext}",
+    "test_dir": "src/test/java/"
+  },
+  "allowed_tools": [
+    "Bash(mvn:*)", "Bash(gradle:*)", "Bash(java:*)", "Bash(javac:*)",
+    "Bash(git:*)", "Bash(rm:*)", "Bash(tail:*)", "Bash(grep:*)",
+    "Bash(mkdir:*)", "Bash(echo:*)", "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

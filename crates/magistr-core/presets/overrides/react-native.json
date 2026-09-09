@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "npx tsc --noEmit",
+    "test": "npx jest --passWithNoTests"
+  },
+  "format": {
+    "exclusions": ["node_modules", "android", "ios", ".expo"]
+  },
+  "extra_allowed_tools": ["Bash(npx:react-native)", "Bash(expo:*)"]
+}

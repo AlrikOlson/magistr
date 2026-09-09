@@ -1,0 +1,8 @@
+{
+  "format": {
+    "exclusions": [".vercel"]
+  },
+  "extra_allowed_tools": [
+    "Bash(vercel:*)", "Bash(npx vercel:*)"
+  ]
+}

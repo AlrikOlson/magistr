@@ -1,0 +1,214 @@
+use magistr_engine::policy::RiskTier;
+
+use super::*;
+use crate::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
+use crate::cockpit::{Msg, Size, StageTab, Surface, update};
+use crate::engine::{EngineEvent, StoreSeed};
+use crate::input::{KeyCode, KeyEvent};
+
+/// A store with three chunks — `here` in progress, `stuck` stuck,
+/// `shipped` done, `blocked` blocked and `next` pending — and the rail
+/// naming `rail` as the chunk this session is on (`None` for a window
+/// with no session on any of them).
+fn seeded(surface: Surface, rail: Option<&str>) -> Model {
+    let mut m = Model::new(Size::new(120, 40)).with_surface(surface);
+    let chunk = |id: &str, status: &str| serde_json::json!({"id": id, "name": id, "title": id, "status": status, "priority": 200});
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Seed(StoreSeed {
+            ship_status: serde_json::Value::Null,
+            chunk: rail.map(str::to_owned),
+            done: 1,
+            total: 5,
+            signals_pending: 0,
+            chunks: vec![
+                chunk("here", "in_progress"),
+                chunk("stuck", "stuck"),
+                chunk("shipped", "done"),
+                chunk("blocked", "blocked"),
+                chunk("next", "pending"),
+            ],
+            signals: Vec::new(),
+            trace: Vec::new(),
+        })),
+    );
+    m
+}
+
+fn window(rail: Option<&str>) -> Model {
+    seeded(Surface::Native, rail)
+}
+
+fn selected(model: &Model) -> Option<&str> {
+    model.roadmap().selected().map(|chunk| chunk.id.as_str())
+}
+
+/// A plan-carrying ask: the Moment's card.
+fn ask(id: u64) -> Msg {
+    Msg::Agent(AgentEvent::PermissionRequest {
+        id,
+        title: format!("ask {id}"),
+        choices: vec![
+            PermissionChoice::new("allow", PermissionKind::AllowOnce),
+            PermissionChoice::new("reject", PermissionKind::RejectOnce),
+        ],
+        edit: false,
+        risk: RiskTier::Medium,
+        plan: Some(AskPlan::new(["one step"])),
+    })
+}
+
+/// A terminal has no Place: opening a chunk there is what it always
+/// was — the chunk selected and the stage turned to the Roadmap tab,
+/// whatever the chunk's status.
+#[test]
+fn a_terminal_selects_the_chunk_and_turns_to_the_roadmap_tab() {
+    for id in ["here", "stuck", "shipped", "blocked", "next"] {
+        let mut t = seeded(Surface::Terminal, Some("here"));
+        assert!(open_chunk(&mut t, id), "{id}");
+        assert_eq!(t.tab(), StageTab::Roadmap, "{id}");
+        assert_eq!(t.place(), None, "{id}: a terminal has no place");
+        assert_eq!(selected(&t), Some(id));
+    }
+}
+
+/// A chunk the roadmap does not have opens nothing: the camera holds
+/// and no card opens.
+#[test]
+fn an_unknown_chunk_moves_nothing() {
+    let mut w = window(Some("here")).with_place(Place::Trace);
+    assert!(!open_chunk(&mut w, "nope"));
+    assert_eq!(w.place(), Some(Place::Trace), "the camera held");
+    assert_eq!(selected(&w), None);
+    assert_eq!(
+        w.tab(),
+        StageTab::Turn,
+        "and the terminal's tab is untouched"
+    );
+}
+
+/// Executing → its Session: the chunk the rail names is the one this
+/// window's session is on, so opening it lands on the turn.
+#[test]
+fn an_executing_chunk_the_rail_names_opens_its_session() {
+    let mut w = window(Some("here")).with_place(Place::Sky);
+    assert!(open_chunk(&mut w, "here"));
+    assert_eq!(w.place(), Some(Place::Session));
+    assert_eq!(
+        selected(&w),
+        Some("here"),
+        "and the star is framed under it"
+    );
+}
+
+/// An executing chunk this window has no session on has no Session to
+/// open: it gets the Sky's selection card, like any other star.
+#[test]
+fn an_executing_chunk_without_a_session_here_opens_the_sky_card() {
+    let mut w = window(None).with_place(Place::Session);
+    assert!(open_chunk(&mut w, "here"));
+    assert_eq!(w.place(), Some(Place::Sky));
+    assert_eq!(selected(&w), Some("here"));
+
+    let mut other = window(Some("next")).with_place(Place::Session);
+    assert!(open_chunk(&mut other, "here"));
+    assert_eq!(
+        other.place(),
+        Some(Place::Sky),
+        "the rail is on another chunk"
+    );
+}
+
+/// Stuck → its decision: the Session, with the Moment that was stood
+/// down to the dock raised again — the card comes back, unanswered.
+#[test]
+fn a_stuck_chunk_opens_its_decision() {
+    let mut w = window(Some("here")).with_place(Place::Sky);
+    update(&mut w, ask(7));
+    assert!(w.moment().is_some(), "the card came");
+    assert_eq!(
+        update(&mut w, Msg::Key(KeyEvent::new(KeyCode::Esc))),
+        vec![]
+    );
+    assert!(w.moment().is_none(), "Esc stood it down");
+    assert_eq!(w.place(), Some(Place::Session));
+    w.place = Place::Trace;
+
+    assert!(open_chunk(&mut w, "stuck"));
+    assert_eq!(
+        w.place(),
+        Some(Place::Session),
+        "the decision lives on the Session"
+    );
+    assert!(w.moment().is_some(), "and the card is raised again");
+    assert_eq!(w.dock().len(), 1, "raised, never answered");
+    assert_eq!(selected(&w), Some("stuck"));
+}
+
+/// A stuck chunk whose decision is not on this window's dock has no
+/// decision here to open: the Sky card, where the star wears its ring.
+#[test]
+fn a_stuck_chunk_with_no_decision_here_opens_the_sky_card() {
+    let mut w = window(Some("here")).with_place(Place::Session);
+    assert!(open_chunk(&mut w, "stuck"));
+    assert_eq!(w.place(), Some(Place::Sky));
+    assert_eq!(selected(&w), Some("stuck"));
+}
+
+/// Blocked → the Sky card, which carries the blocker and its Clear
+/// verb; a blocker is not a dock decision.
+#[test]
+fn a_blocked_chunk_opens_the_sky_card_where_its_blocker_is_cleared() {
+    let mut w = window(Some("here")).with_place(Place::Session);
+    update(&mut w, ask(7));
+    assert!(open_chunk(&mut w, "blocked"));
+    assert_eq!(w.place(), Some(Place::Sky));
+    assert_eq!(selected(&w), Some("blocked"));
+}
+
+/// Done → its Report (view 09): the chapter and the shelf, from
+/// wherever the opener stood — and the chunk selected under it, which
+/// is what the chapter and the shelf are read off.
+#[test]
+fn a_done_chunk_opens_its_report() {
+    for from in [Place::Changes, Place::Galaxy, Place::Trace, Place::Sky] {
+        let mut w = window(Some("here")).with_place(from);
+        assert!(open_chunk(&mut w, "shipped"));
+        assert_eq!(w.place(), Some(Place::Report), "from {from:?}");
+        assert_eq!(selected(&w), Some("shipped"));
+    }
+}
+
+/// Anything else — pending, ready — is a star with nothing to dive
+/// into yet: the Sky's selection card.
+#[test]
+fn a_pending_chunk_opens_the_sky_card() {
+    let mut w = window(Some("here")).with_place(Place::Galaxy);
+    assert!(open_chunk(&mut w, "next"));
+    assert_eq!(w.place(), Some(Place::Sky));
+    assert_eq!(selected(&w), Some("next"));
+}
+
+/// The fold is the only site that derives a destination from a chunk:
+/// every opener in `update` calls it, and none selects on the roadmap
+/// by itself.
+#[test]
+fn every_opener_routes_through_the_fold() {
+    let update_src = include_str!("update.rs");
+    assert_eq!(
+        update_src.matches("roadmap.select(").count(),
+        0,
+        "update.rs must open chunks through open_chunk, never select by itself"
+    );
+    assert_eq!(
+        update_src.matches("open_chunk(model, ").count(),
+        5,
+        "the palette's ↵, a sky star, the Brief's verbs, the trace's chunk jump and a search hit's ↵"
+    );
+    assert_eq!(
+        include_str!("open_chunk.rs")
+            .matches("roadmap.select(")
+            .count(),
+        1
+    );
+}

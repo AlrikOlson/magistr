@@ -1,0 +1,29 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+assertion_line: 775
+expression: screen(&m)
+---
+▲ magistr  ▘ streaming                                           ▁▁▁▁▁▁▅█  00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │▎ Plan                                           │
+│roadmap 0/0 done          │ │▎ First, read the file and record a think step.  │
+│signals 0                 │ │▎ The wrap keeps every row inside the stage      │
+│                          │ │▎ whatever the terminal width happens to be.     │
+│                          │ │▎                                                │
+│                          │ │▎ • one item                                     │
+│                          │ │▎ • a second item long enough to wrap onto a     │
+│                          │ │▎   continuation row at eighty columns           │
+│                          │ │▎ 1. numbered                                    │
+│                          │ │▎                                                │
+│                          │ │▎ ── rust ───────────────────────────────────────│
+│                          │ │▎ fn main() {                                    │
+│                          │ │▎     println!("hi");                            │
+│                          │ │▎ }                                              │
+│                          │ │▎ ───────────────────────────────────────────────│
+│                          │ │▎ Still streaming                                │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+›
+ ctrl-c  cancel   ctrl-d  quit

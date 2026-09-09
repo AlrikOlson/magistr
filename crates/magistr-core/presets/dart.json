@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "dart analyze --fatal-infos",
+    "test": "dart test",
+    "lint": "dart analyze --fatal-infos --fatal-warnings"
+  },
+  "format": {
+    "extensions": ["dart"],
+    "command": "dart format {file}",
+    "exclusions": [".dart_tool", "build"]
+  },
+  "testing": {
+    "companion_pattern": "{name}_test.{ext}",
+    "test_dir": "test"
+  },
+  "allowed_tools": [
+    "Bash(dart:*)", "Bash(flutter:*)", "Bash(pub:*)", "Bash(git:*)", "Bash(rm:*)",
+    "Bash(tail:*)", "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)",
+    "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

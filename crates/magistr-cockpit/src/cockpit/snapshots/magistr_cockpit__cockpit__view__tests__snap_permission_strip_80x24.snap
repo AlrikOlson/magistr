@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: screen(&m)
+---
+▲ magistr  ▘ streaming                                                     00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │▎ Let me run the tests.                          │
+│roadmap 0/0 done          │ │▎ ○ run    cargo nextest run -p magistr-tui      │
+│signals 0                 │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+╭─ needs you ────────────────────────────────────────────────────────────── 1 ─╮
+│⚠ Bash needs permission [A] Allow [⇧A] Always [D] Deny                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+›
+ A  allow   ⇧A  always   D  deny

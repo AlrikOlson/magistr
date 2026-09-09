@@ -1,0 +1,87 @@
+use super::*;
+use crate::cost::append_entry::append_entry;
+use crate::cost::cost_entry::CostEntry;
+use crate::cost::storage_paths::data_dir;
+use crate::cost::types::TokenBreakdown;
+use chrono::Utc;
+use tempfile::TempDir;
+
+fn sample_entry(id: &str, project: &str, cost: f64) -> CostEntry {
+    CostEntry {
+        session_id: id.into(),
+        project: project.into(),
+        timestamp: Utc::now(),
+        cost_usd: cost,
+        tokens: TokenBreakdown::default(),
+        turns: 3,
+        duration_ms: 15000,
+        actor: None,
+        model: None,
+    }
+}
+
+#[test]
+fn load_missing_file_returns_empty() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join("costs.json");
+    let entries = load_entries(&path).unwrap();
+    assert!(entries.is_empty());
+}
+
+#[test]
+fn load_empty_file_returns_empty() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join("costs.json");
+    std::fs::write(&path, "").unwrap();
+    let entries = load_entries(&path).unwrap();
+    assert!(entries.is_empty());
+}
+
+#[test]
+fn append_and_load_round_trip() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join("costs.json");
+
+    let e1 = sample_entry("s1", "project-a", 1.50);
+    let e2 = sample_entry("s2", "project-b", 2.25);
+
+    append_entry(&path, &e1).unwrap();
+    append_entry(&path, &e2).unwrap();
+
+    let loaded = load_entries(&path).unwrap();
+    assert_eq!(loaded.len(), 2);
+    assert_eq!(loaded[0].session_id, "s1");
+    assert_eq!(loaded[1].session_id, "s2");
+    assert_eq!(loaded[0].cost_usd, 1.50);
+    assert_eq!(loaded[1].cost_usd, 2.25);
+}
+
+#[test]
+fn append_creates_parent_dirs() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join("deep/nested/costs.json");
+
+    let entry = sample_entry("s1", "proj", 0.50);
+    append_entry(&path, &entry).unwrap();
+
+    assert!(path.exists());
+    let loaded = load_entries(&path).unwrap();
+    assert_eq!(loaded.len(), 1);
+}
+
+#[test]
+fn data_dir_falls_back_to_home() {
+    // Just verify the function doesn't panic. The actual path depends
+    // on the environment, so we can't assert a specific value.
+    let _ = data_dir();
+}
+
+#[test]
+fn invalid_json_returns_error() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join("costs.json");
+    std::fs::write(&path, "not valid json").unwrap();
+
+    let result = load_entries(&path);
+    assert!(result.is_err());
+}

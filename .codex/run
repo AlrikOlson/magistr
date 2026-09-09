@@ -1,0 +1,2 @@
+#!/bin/sh
+exec magistr codex-launch --project-root "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)" -- "$@"

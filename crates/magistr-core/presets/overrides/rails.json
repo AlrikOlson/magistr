@@ -1,0 +1,13 @@
+{
+  "quality_gate": {
+    "check": "bundle exec rails db:migrate:status",
+    "test": "bundle exec rails test"
+  },
+  "testing": {
+    "test_dir": "test/"
+  },
+  "extra_allowed_tools": [
+    "Bash(rails:*)",
+    "Bash(bundle:*)"
+  ]
+}

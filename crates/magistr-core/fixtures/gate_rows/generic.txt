@@ -1,0 +1,10 @@
+> vitest run
+
+src/lib/stores/chunks.svelte.ts:42:7: error: 'snapshot' is never reassigned. Use 'const' instead. (prefer-const)
+src/lib/components/GateResultsBar.svelte:88:11: warning: Unexpected console statement (no-console)
+src/routes/+page.svelte(12,5): error TS2322: Type 'string' is not assignable to type 'number'.
+tests/test_models.py:57: AssertionError: expected 3 items, got 2
+lib/utils.py:12: error: Incompatible return value type (got "str", expected "int")  [return-value]
+https://example.com/docs:80: not a file
+Ran 12 tests in 0.31s
+FAILED (failures=1)

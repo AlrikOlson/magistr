@@ -1,0 +1,10 @@
+{
+  "sessionUpdate": "session_info_update",
+  "_meta": {
+    "goal": {
+      "objective": "you have replied with the single word PONG",
+      "status": "active",
+      "controlMethod": "_session/goal"
+    }
+  }
+}

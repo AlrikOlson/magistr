@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "mix compile --warnings-as-errors",
+    "test": "mix test",
+    "lint": "mix credo --strict"
+  },
+  "format": {
+    "extensions": ["ex", "exs"],
+    "command": "mix format {file}",
+    "exclusions": ["_build", "deps"]
+  },
+  "testing": {
+    "companion_pattern": "{name}_test.{ext}",
+    "test_dir": "test/"
+  },
+  "allowed_tools": [
+    "Bash(mix:*)", "Bash(elixir:*)", "Bash(iex:*)", "Bash(git:*)",
+    "Bash(rm:*)", "Bash(tail:*)", "Bash(grep:*)", "Bash(mkdir:*)",
+    "Bash(echo:*)", "Bash(cat:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: "screen(&docked(Size::new(80, 24)))"
+---
+▲ magistr  idle                                                            00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │nothing yet — waiting for the agent              │
+│roadmap 0/0 done          │ │                                                 │
+│▲ nothing in progress     │ │                                                 │
+│0 pending                 │ │                                                 │
+│signals 0                 │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+╭─ needs you ────────────────────────────────────────────────────────────── 2 ─╮
+│◆ tui2-3: priority → 300 (later) [y] accept [n] reject                        │
+│⊗ tui2-4 blocked: needs a decision                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+›
+ y  accept   n  reject

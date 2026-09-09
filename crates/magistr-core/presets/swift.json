@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "swift build",
+    "test": "swift test",
+    "lint": "swiftlint --strict"
+  },
+  "format": {
+    "extensions": ["swift"],
+    "command": "swiftformat {file}",
+    "exclusions": [".build", "Pods", "DerivedData", "Carthage"]
+  },
+  "testing": {
+    "companion_pattern": "{name}Tests.{ext}",
+    "test_dir": "Tests/"
+  },
+  "allowed_tools": [
+    "Bash(swift:*)", "Bash(swiftlint:*)", "Bash(swiftformat:*)",
+    "Bash(xcodebuild:*)", "Bash(git:*)", "Bash(rm:*)", "Bash(tail:*)",
+    "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)", "Bash(cat:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

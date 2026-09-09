@@ -1,0 +1,12 @@
+{
+  "quality_gate": {
+    "check": "flutter analyze --no-pub",
+    "test": "flutter test",
+    "lint": "flutter analyze --fatal-infos --fatal-warnings"
+  },
+  "format": {
+    "command": "dart format {file}",
+    "exclusions": [".dart_tool", "build", ".flutter-plugins"]
+  },
+  "extra_allowed_tools": ["Bash(flutter:*)"]
+}

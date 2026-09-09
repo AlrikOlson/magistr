@@ -1,0 +1,67 @@
+---
+import FeatureCard from "./FeatureCard.astro";
+
+const features = [
+  {
+    icon: "/icons/feature-scaffolding.png",
+    title: "Scaffolding",
+    description:
+      "Auto-detects your stack and generates hooks, rules, and skills tailored to your project. One command to go from zero to a fully configured AI dev environment.",
+    accent: "green",
+  },
+  {
+    icon: "/icons/feature-iteration.png",
+    title: "Autonomous Iteration",
+    description:
+      "Plan-execute-verify loops run autonomously. Magistr researches, writes a plan, implements with TDD, runs quality gates, and commits — then starts the next iteration.",
+    accent: "accent",
+  },
+  {
+    icon: "/icons/feature-tui.png",
+    title: "TUI Dashboard",
+    description:
+      "A polished ratatui terminal UI with real-time streaming, sidebar stats, file tree, and 4 built-in themes — Catppuccin Mocha, Latte, Dracula, and Tokyo Night.",
+    accent: "purple",
+  },
+  {
+    icon: "/icons/feature-roadmap.png",
+    title: "Roadmap Tracking",
+    description:
+      "A living spec that tracks every task. Items are checked off as they're implemented, new work is discovered and added, and progress is always visible in the TUI sidebar.",
+    accent: "orange",
+  },
+  {
+    icon: "/icons/feature-tools.png",
+    title: "MCP Tools",
+    description:
+      "MCP tools for quality gates, roadmap management, and project formatting. Workbench provides code navigation and verified edits.",
+    accent: "pink",
+  },
+];
+---
+
+<section id="features" class="relative py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="mb-12 text-center sm:mb-16">
+      <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        Everything you need to
+        <span class="text-accent">ship faster</span>
+      </h2>
+      <p class="mx-auto mt-4 max-w-2xl text-text-muted">
+        Magistr handles the orchestration so you can focus on what matters.
+        From scaffolding to autonomous iteration, every feature is designed to keep you in flow.
+      </p>
+    </div>
+
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {features.map((f) => (
+        <FeatureCard
+          icon={f.icon}
+          title={f.title}
+          description={f.description}
+          accent={f.accent}
+        />
+      ))}
+    </div>
+  </div>
+</section>

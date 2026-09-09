@@ -1,0 +1,25 @@
+{
+  "name": "magistr-www",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "prebuild": "node scripts/generate-favicons.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "npm run build && node tests/build-output.mjs"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.3.14",
+    "@astrojs/sitemap": "^3.2.0",
+    "asciinema-player": "^3.8.0",
+    "astro": "^5.2.0",
+    "astro-expressive-code": "^0.41.7",
+    "astro-pagefind": "^1.8.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
+  }
+}

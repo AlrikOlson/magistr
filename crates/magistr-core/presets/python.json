@@ -1,0 +1,23 @@
+{
+  "quality_gate": {
+    "check": "python -m mypy . --ignore-missing-imports --exclude '(\\.venv|__pycache__|\\.tox|dist|build)/'",
+    "test": "python -m pytest",
+    "lint": "ruff check ."
+  },
+  "format": {
+    "extensions": ["py"],
+    "command": "ruff format {file}",
+    "exclusions": [".venv", "__pycache__", ".tox", "dist", "build", ".mypy_cache"]
+  },
+  "testing": {
+    "companion_pattern": "test_{name}.{ext}",
+    "test_dir": "tests/"
+  },
+  "allowed_tools": [
+    "Bash(python:*)", "Bash(python3:*)", "Bash(pip:*)", "Bash(uv:*)",
+    "Bash(poetry:*)", "Bash(pytest:*)", "Bash(ruff:*)", "Bash(mypy:*)",
+    "Bash(git:*)", "Bash(rm:*)", "Bash(tail:*)", "Bash(grep:*)",
+    "Bash(mkdir:*)", "Bash(echo:*)", "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

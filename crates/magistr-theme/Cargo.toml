@@ -1,0 +1,11 @@
+[package]
+name = "magistr-theme"
+version = "0.1.0"
+edition = "2024"
+description = "Rendering-agnostic theme definitions for Magistr — palettes, semantic mappings, TOML parsing, CSS generation. Shared between TUI and GUI frontends."
+license = "MIT"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]

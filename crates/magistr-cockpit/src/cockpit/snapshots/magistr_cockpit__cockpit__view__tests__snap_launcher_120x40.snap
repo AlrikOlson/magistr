@@ -1,0 +1,44 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: "screen(&launcher(Size::new(120, 40)))"
+---
+▲ magistr  idle                                                                                                    00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
+│no objective yet          │ │╭─ project ────────────────────────────────╮ ╭─ roadmap ────────────────────────────────╮│
+│roadmap 2/4 done          │ ││name     magistr                          │ │▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 2/4││
+│▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ ││stack    Rust / Cargo                     │ │next ▸ nothing ready                      ││
+│▲ Tabs                    │ ││git      master, clean                    │ │2 done · 1 active · 1 pending · 0 backlog ││
+│0 before · 1 after        │ ││backend  ACP (available)                  │ │▸ Tabs                                    ││
+│signals 0                 │ │╰──────────────────────────────────────────╯ │○ Launcher — The launcher page            ││
+│                          │ │╭─ sessions ───────────────────────────────╮ │                                          ││
+│                          │ ││✓ Aug 28 14:02  12m 30s  shipped the…     │ │                                          ││
+│                          │ ││✗ Aug 27 19:41  3m 05s  gates failed on…  │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ │                                          ││
+│                          │ ││                                          │ ╰──────────────────────────────────────────╯│
+│                          │ ││                                          │ ╭─ actions ────────────────────────────────╮│
+│                          │ ││                                          │ │ n  next iteration                        ││
+│                          │ ││                                          │ │ l  loop                                  ││
+│                          │ ││                                          │ │ g  gates                                 ││
+│                          │ ││                                          │ │ m  roadmap                               ││
+│                          │ │╰──────────────────────────────────────────╯ ╰──────────────────────────────────────────╯│
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+›
+ n  next iteration   l  loop   g  gates   m  roadmap   ?  keyboard help   ctrl-d  quit

@@ -1,0 +1,21 @@
+{
+  "quality_gate": {
+    "check": "dotnet build --no-restore",
+    "test": "dotnet test --no-build",
+    "lint": "dotnet format --verify-no-changes"
+  },
+  "format": {
+    "extensions": ["cs"],
+    "command": "dotnet format --include {file}",
+    "exclusions": ["bin", "obj"]
+  },
+  "testing": {
+    "companion_pattern": "{name}Tests.{ext}",
+    "test_dir": "Tests/"
+  },
+  "allowed_tools": [
+    "Bash(dotnet:*)", "Bash(git:*)", "Bash(rm:*)", "Bash(tail:*)",
+    "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)", "Bash(cat:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

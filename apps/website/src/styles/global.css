@@ -1,0 +1,257 @@
+@import "tailwindcss";
+
+/* ---------- Tailwind v4: class-based dark mode ---------- */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Design Tokens ---------- */
+@theme {
+  /* Semantic aliases — resolved via CSS custom properties below */
+  --color-bg: initial;
+  --color-bg-card: initial;
+  --color-bg-nav: initial;
+  --color-surface: initial;
+  --color-text: initial;
+  --color-text-muted: initial;
+  --color-accent: initial;
+  --color-accent-hover: initial;
+  --color-green: initial;
+  --color-pink: initial;
+  --color-orange: initial;
+  --color-purple: initial;
+  --color-success: initial;
+  --color-warning: initial;
+  --color-error: initial;
+  --color-info: initial;
+  --color-border: initial;
+  --color-border-hover: initial;
+
+  /* Typography */
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------- Light palette (default) ---------- */
+:root {
+  --color-bg: #f5f5f7;
+  --color-bg-card: #ffffff;
+  --color-bg-nav: rgba(245, 245, 247, 0.85);
+  --color-surface: #e8e8ec;
+  --color-text: #1a1b26;
+  --color-text-muted: #595f6e;
+  --color-accent: #3b5de7;
+  --color-accent-hover: #2d4fd9;
+  --color-green: #16a34a;
+  --color-pink: #e11d48;
+  --color-orange: #ea580c;
+  --color-purple: #9333ea;
+  --color-success: #16a34a;
+  --color-warning: #ea580c;
+  --color-error: #e11d48;
+  --color-info: #3b5de7;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(0, 0, 0, 0.15);
+}
+
+/* ---------- Dark palette ---------- */
+.dark {
+  --color-bg: #1a1b26;
+  --color-bg-card: #24283b;
+  --color-bg-nav: rgba(26, 27, 38, 0.85);
+  --color-surface: #292e42;
+  --color-text: #c0caf5;
+  --color-text-muted: #565f89;
+  --color-accent: #7aa2f7;
+  --color-accent-hover: #89b4fa;
+  --color-green: #9ece6a;
+  --color-pink: #f7768e;
+  --color-orange: #ff9e64;
+  --color-purple: #bb9af7;
+  --color-success: #9ece6a;
+  --color-warning: #ff9e64;
+  --color-error: #f7768e;
+  --color-info: #7aa2f7;
+  --color-border: rgba(255, 255, 255, 0.05);
+  --color-border-hover: rgba(255, 255, 255, 0.1);
+}
+
+/* ---------- Base styles ---------- */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* ---------- Animations ---------- */
+
+/* Fade-in on scroll */
+.fade-in {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.fade-in.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Terminal cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1.1em;
+  background-color: var(--color-accent);
+  vertical-align: text-bottom;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* Gradient shimmer on CTAs */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-cta {
+  background-size: 200% auto;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  animation: shimmer 3s linear infinite;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .terminal-cursor {
+    animation: none;
+    opacity: 1;
+  }
+
+  .shimmer-cta {
+    animation: none;
+    background-image: none;
+  }
+
+  /* Kill all transitions globally for reduced-motion users */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Docs prose styling ---------- */
+.docs-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--color-text);
+}
+
+.docs-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+}
+
+.docs-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-text);
+}
+
+.docs-content p {
+  margin-bottom: 1rem;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+}
+
+.docs-content a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.docs-content a:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+.docs-content ul,
+.docs-content ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.docs-content li {
+  margin-bottom: 0.25rem;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+}
+
+.docs-content ul li {
+  list-style-type: disc;
+}
+
+.docs-content ol li {
+  list-style-type: decimal;
+}
+
+.docs-content code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background-color: var(--color-surface);
+  padding: 0.15em 0.4em;
+  border-radius: 0.25rem;
+  color: var(--color-accent);
+}
+
+.docs-content table {
+  width: 100%;
+  margin-bottom: 1.5rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.docs-content th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-hover);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.docs-content td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.docs-content strong {
+  color: var(--color-text);
+  font-weight: 600;
+}

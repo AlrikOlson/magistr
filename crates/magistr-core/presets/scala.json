@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "sbt compile",
+    "test": "sbt test",
+    "lint": "sbt scalafmtCheckAll"
+  },
+  "format": {
+    "extensions": ["scala", "sbt"],
+    "command": "scalafmt {file}",
+    "exclusions": ["target", "project/target"]
+  },
+  "testing": {
+    "companion_pattern": "{name}Spec.{ext}",
+    "test_dir": "src/test/scala"
+  },
+  "allowed_tools": [
+    "Bash(sbt:*)", "Bash(scala:*)", "Bash(scalac:*)", "Bash(git:*)", "Bash(rm:*)",
+    "Bash(tail:*)", "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)",
+    "Bash(cat:*)", "Bash(sed:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

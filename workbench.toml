@@ -1,0 +1,24 @@
+# Seeded by `workbench-mcp init` from lockfile/manifest detection (SDD §9.6).
+# Amend by hand: this table is run's allowlist and only a human may change it.
+[commands]
+"check" = "cargo check --workspace --exclude magistr-gui --all-targets" # project.json quality_gate.check
+"test" = "cargo nextest run --workspace --exclude magistr-gui" # project.json quality_gate.test
+"lint" = "cargo clippy --workspace --exclude magistr-gui --all-targets -- -D warnings" # project.json quality_gate.lint
+"structure" = "./scripts/lint-structure.sh" # project.json custom_gates.structure
+"format" = "cargo fmt" # project.json format.command
+"cargo-test" = "cargo test --workspace --no-fail-fast" # Cargo.toml [workspace]
+"cargo-build" = "cargo build --workspace" # Cargo.toml [workspace]
+"cargo-nextest" = "cargo nextest run --workspace --no-fail-fast" # .config/nextest.toml
+"cargo-test-magistr-cli" = "cargo test -p magistr-cli" # ./Cargo.toml [package]
+"cargo-test-magistr-core" = "cargo test -p magistr-core" # crates/magistr-core/Cargo.toml [package]
+"cargo-test-magistr-engine" = "cargo test -p magistr-engine" # engine/Cargo.toml [package]
+"cargo-test-magistr-gui" = "cargo test -p magistr-gui" # crates/magistr-gui/src-tauri/Cargo.toml [package]
+"cargo-test-magistr-protocol" = "cargo test -p magistr-protocol" # protocol/Cargo.toml [package]
+"cargo-test-magistr-server" = "cargo test -p magistr-server" # server/Cargo.toml [package]
+"cargo-test-magistr-theme" = "cargo test -p magistr-theme" # crates/magistr-theme/Cargo.toml [package]
+
+# magistr runs unattended (`magistr next-loop`), so a confirm-gated write
+# takes workbench's token flow — the agent confirms against the diff in the
+# envelope — rather than an elicitation dialog nobody is there to answer.
+[edit]
+confirm_mode = "token"

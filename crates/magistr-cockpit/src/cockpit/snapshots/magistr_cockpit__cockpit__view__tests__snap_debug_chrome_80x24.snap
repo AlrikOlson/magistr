@@ -1,0 +1,28 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: "screen(&markdown(Size::new(80, 24)).with_debug(true))"
+---
+▲ magistr  ▘ streaming                                   80×24 · frame 7 · 00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │▎ Some bold, emphasis, inline code and a link.   │
+│roadmap 0/0 done          │ │▎ ── rust ───────────────────────────────────────│
+│signals 0                 │ │▎ fn main() {                                    │
+│                          │ │▎     println!("hi");                            │
+│                          │ │▎ }                                              │
+│                          │ │▎ ───────────────────────────────────────────────│
+│                          │ │▎ After the block                                │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+›
+ ctrl-c  cancel   ctrl-d  quit  focus yes · theme dark · background unknown ·

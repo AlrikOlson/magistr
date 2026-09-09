@@ -1,0 +1,65 @@
+---
+import Base from "../layouts/Base.astro";
+import Nav from "../components/Nav.astro";
+import Hero from "../components/Hero.astro";
+import FeatureGrid from "../components/FeatureGrid.astro";
+import Quickstart from "../components/Quickstart.astro";
+import Walkthrough from "../components/Walkthrough.astro";
+import AsciinemaPlayer from "../components/AsciinemaPlayer.astro";
+import FadeIn from "../components/FadeIn.astro";
+import GradientDivider from "../components/GradientDivider.astro";
+import Community from "../components/Community.astro";
+import Changelog from "../components/Changelog.astro";
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Magistr",
+    "url": "https://magistr.dev",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Magistr",
+    "description": "AI-powered dev toolkit for the terminal. Auto-detects your stack, scaffolds agent configs, and orchestrates autonomous plan-execute-verify iterations with a polished terminal UI.",
+    "url": "https://magistr.dev",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Linux, Windows",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+    },
+    "downloadUrl": "https://github.com/AlrikOlson/magistr/releases",
+    "softwareRequirements": "Rust 1.95 or later",
+    "license": "https://github.com/AlrikOlson/magistr/blob/main/LICENSE",
+  },
+];
+---
+
+<Base jsonLd={jsonLd}>
+  <Nav />
+  <main>
+    <Hero />
+    <GradientDivider class="my-4" />
+    <FadeIn>
+      <FeatureGrid />
+    </FadeIn>
+    <FadeIn delay={100}>
+      <Quickstart />
+    </FadeIn>
+    <GradientDivider class="my-4" />
+    <FadeIn delay={100}>
+      <Walkthrough />
+    </FadeIn>
+    <GradientDivider class="my-4" />
+    <FadeIn delay={100}>
+      <Community />
+    </FadeIn>
+    <FadeIn delay={200}>
+      <Changelog />
+    </FadeIn>
+  </main>
+  <AsciinemaPlayer />
+</Base>

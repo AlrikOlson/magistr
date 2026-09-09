@@ -1,0 +1,5 @@
+{
+  "extra_allowed_tools": [
+    "Bash(rails db:*)", "Bash(bundle exec rails db:*)", "Bash(psql:*)"
+  ]
+}

@@ -1,0 +1,70 @@
+[package]
+name = "magistr-cockpit"
+version = "0.1.0"
+edition = "2024"
+description = "Magistr's mission-control cockpit, surface-agnostic: the Elm core, the flexbox layout tree, the theme, the cell and pixel painters, and the producers that feed it — painted by magistr-tui on a terminal and by magistr-gui2 in a window."
+license = "MIT"
+rust-version = "1.89"
+
+[dependencies]
+# Transcendental math (sin, cos, cbrt, powf, hypot…) in pure Rust: the
+# painters' pixels come out the same on every platform, where the C
+# runtime's versions differ in the last bit and flip anti-aliased edges
+# (the goldens are compared exactly).
+libm = "0.2"
+# Inline small strings for cell graphemes (24 bytes on the stack; a full
+# ZWJ family emoji is 25 bytes and spills to the heap, everything else fits).
+compact_str = "0.9"
+unicode-segmentation = "1"
+unicode-width = "0.2.2"
+# Flexbox only: no grid (smallvec), no block/float layout, no calc().
+taffy = { version = "0.14", default-features = false, features = ["std", "taffy_tree", "flexbox", "content_size"] }
+# The software rasterizer behind the pixel chrome (branch graph, brand,
+# gauge, tech tree, sparkline, icons, stream images) and the pixmap the
+# golden comparer reads and writes as PNG.
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "simd", "png-format"] }
+# The two image formats tiny-skia's png-format does not read, for the
+# stream's image blocks. The narrow pair, not `image`: the cockpit owns
+# its own sampler, footprint arithmetic and straight-RGBA buffer, so
+# none of `image`'s DynamicImage/ImageBuffer/colour-conversion layer
+# would survive contact with StreamImage — and these two crates are the
+# same decoders `image` itself delegates to.
+zune-jpeg = "0.5"
+image-webp = "0.2"
+# The producers' channels and tasks: the inbox every producer posts on,
+# the jobs off the loop thread, the engine feed's socket, the ACP relay.
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+# The producers behind Msg::Engine and Msg::Agent: the in-process
+# think-and-ship engines and their broadcast-socket feed, and the ACP
+# transport whose session updates the agent relay translates.
+magistr-engine = { path = "../magistr-engine" }
+magistr-acp = { path = "../magistr-acp" }
+# Protocol v1 only, as everywhere in the workspace: the session-update
+# variants the relay matches on.
+agent-client-protocol = "2.0"
+# Native-frame payloads.
+serde_json = "1"
+# A signal's `created` stamp (RFC 3339) read back into an age for the
+# Signals view — the same chrono magistr-engine already pins.
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+# The two palettes (Catppuccin Mocha and Latte) and the WCAG luminance the
+# dark/light decision is made with.
+magistr-theme = { path = "../magistr-theme" }
+# Fenced code blocks on the stage: the incremental line API — ParseState +
+# HighlightState advanced once per closed line (think:155).
+syntect = { version = "5", default-features = false, features = ["default-syntaxes", "default-themes", "regex-onig"] }
+# The edit card's diff body: line-level LCS over the ACP diff's old/new
+# text. Text feature only.
+similar = { version = "2", default-features = false, features = ["text"] }
+
+# The terminal pane's screen: a program's bytes parsed into cells —
+# fg, bg, attributes, the cursor, scrollback — with no effect behind it
+# (`cockpit/term.rs`). The same crate magistr-tui replays its own frames
+# through as a test oracle.
+vt100 = "0.16"
+
+[dev-dependencies]
+insta = "1"
+proptest = "1"
+# A temporary project root and store for the engine client tests.
+tempfile = "3"

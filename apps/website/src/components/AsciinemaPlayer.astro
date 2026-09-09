@@ -1,0 +1,71 @@
+---
+/**
+ * Asciinema player loaded as a client-visible island.
+ * Lazily imports the player JS + CSS only when the element scrolls into view.
+ */
+---
+
+<script>
+  function initPlayer() {
+    const container = document.getElementById("demo-player");
+    if (!container) return;
+
+    const src = container.dataset.src;
+    if (!src) return;
+
+    // Lazy-load asciinema-player when visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            observer.disconnect();
+            loadPlayer(container, src);
+          }
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(container);
+  }
+
+  async function loadPlayer(container: HTMLElement, src: string) {
+    const [AsciinemaPlayer] = await Promise.all([
+      import("asciinema-player"),
+      loadPlayerCSS(),
+    ]);
+
+    AsciinemaPlayer.create(src, container, {
+      autoPlay: true,
+      loop: true,
+      speed: 1.5,
+      theme: "monokai",
+      fit: "width",
+      terminalFontFamily: "'JetBrains Mono', monospace",
+      terminalFontSize: "14px",
+      poster: "npt:0:3",
+    });
+  }
+
+  function loadPlayerCSS(): Promise<void> {
+    return new Promise((resolve) => {
+      if (document.querySelector('link[href*="asciinema-player"]')) {
+        resolve();
+        return;
+      }
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "/asciinema-player.css";
+      link.onload = () => resolve();
+      link.onerror = () => resolve(); // Don't block on CSS failure
+      document.head.appendChild(link);
+    });
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initPlayer);
+  } else {
+    initPlayer();
+  }
+</script>

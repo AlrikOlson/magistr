@@ -1,0 +1,29 @@
+# Cloudflare Pages custom headers
+# https://developers.cloudflare.com/pages/configuration/headers/
+
+# HTML pages: short TTL, always revalidate
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Hashed assets (JS, CSS) — immutable, long cache
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Static assets (images, fonts, icons)
+/*.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.ico
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+# Pagefind index — revalidate often
+/pagefind/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400

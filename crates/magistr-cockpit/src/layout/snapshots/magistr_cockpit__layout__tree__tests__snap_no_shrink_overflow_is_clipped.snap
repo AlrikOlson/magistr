@@ -1,0 +1,10 @@
+---
+source: crates/magistr-tui/src/layout/tree.tests.rs
+expression: "map(&layout(&root, 40, 3), 40, 3)"
+---
+40x3
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBB
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBB
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBB
+A depth=1 x=0 y=0 w=30 h=3
+B depth=1 x=30 y=0 w=10 h=3

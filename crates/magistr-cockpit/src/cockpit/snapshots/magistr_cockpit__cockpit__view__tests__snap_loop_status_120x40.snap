@@ -1,0 +1,44 @@
+---
+source: crates/magistr-tui/src/cockpit/view.tests.rs
+expression: "screen(&looping(Size::new(120, 40)))"
+---
+▲ magistr  ▘ streaming                                                                                             00:01
+a  iteration 2/5  Research▸Plan▸Execute▸Verify  ✓ check ✗ test ▘ lint  1m 23s
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
+│no objective yet          │ │  starting iteration 2 — 3/10 chunks done                                                │
+│▲ a · 0/0 done            │ │  ▸ objective set                                                                        │
+│▲ a                       │ │  ▸ task started · t1                                                                    │
+│0 before · 0 after        │ │▎ implement the next chunk                                                               │
+│signals 0                 │ │▎ Reading the plan.                                                                      │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+│                          │ │                                                                                         │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+›
+ space  pause / resume   ctrl-c  cancel   ctrl-d  quit

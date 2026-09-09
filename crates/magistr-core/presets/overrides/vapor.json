@@ -1,0 +1,10 @@
+{
+  "quality_gate": {
+    "check": "swift build",
+    "test": "swift test"
+  },
+  "format": {
+    "exclusions": [".build", "Public", "Resources"]
+  },
+  "extra_allowed_tools": ["vapor"]
+}

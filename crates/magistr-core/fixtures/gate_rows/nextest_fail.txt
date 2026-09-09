@@ -1,0 +1,33 @@
+   Compiling magistr-cli v0.1.0 (/workspace/magistr)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 41.20s
+    Starting 3 tests across 2 binaries (8498 tests skipped)
+        PASS [   0.011s] (1/3) magistr-cli tui::sidebar::task_list::tests::parse_plan_tag
+        FAIL [   1.023s] (2/3) magistr-cli tui::stream::viewport::tests::viewport_window_performance_100k_lines
+
+--- STDOUT:              magistr-cli tui::stream::viewport::tests::viewport_window_performance_100k_lines ---
+
+running 1 test
+test tui::stream::viewport::tests::viewport_window_performance_100k_lines ... FAILED
+
+--- STDERR:              magistr-cli tui::stream::viewport::tests::viewport_window_performance_100k_lines ---
+
+    thread 'tui::stream::viewport::tests::viewport_window_performance_100k_lines' (5002746) panicked at src/tui/stream/viewport.tests.rs:233:5:
+    viewport_window took 593ms for 100K lines (should be <500ms)
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+         TRY 1 FAIL [   0.004s] (3/3) magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced
+        FAIL [   0.004s] (3/3) magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced
+
+--- STDERR:              magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced ---
+
+    thread 'headless_iteration_is_guarded_on_ship_state_and_cross_referenced' panicked at 'assertion failed: `(left == right)`
+      left: `false`,
+     right: `true`', tests/next_iteration_integration.rs:83:5
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 0 tests still running
+────────────
+     Summary [   1.100s] 3 tests run: 1 passed, 2 failed, 8498 skipped
+        FAIL [   1.023s] magistr-cli tui::stream::viewport::tests::viewport_window_performance_100k_lines
+        FAIL [   0.004s] magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced
+error: test run failed

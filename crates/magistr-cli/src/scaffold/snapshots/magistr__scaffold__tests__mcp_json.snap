@@ -1,0 +1,26 @@
+---
+source: src/scaffold/mod.tests.rs
+expression: content
+---
+{
+  "mcpServers": {
+    "magistr": {
+      "command": "magistr",
+      "args": [
+        "mcp-launch",
+        "magistr",
+        "/tmp/project"
+      ],
+      "type": "stdio"
+    },
+    "workbench-mcp": {
+      "command": "bun",
+      "args": [
+        "run",
+        "/src/workbench-mcp/src/main.ts",
+        "/tmp/project"
+      ],
+      "type": "stdio"
+    }
+  }
+}

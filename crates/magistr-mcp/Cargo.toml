@@ -1,0 +1,20 @@
+[package]
+name = "magistr-mcp"
+version = "0.1.0"
+edition = "2024"
+description = "In-process MCP tool server: tool definitions, JSON-RPC protocol types and schema-validated dispatch for Magistr's magistr_* tools"
+license = "MIT"
+publish = false
+
+[lib]
+name = "magistr_mcp"
+path = "src/lib.rs"
+
+[dependencies]
+jsonschema = { version = "0.28", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

@@ -1,0 +1,51 @@
+---
+const links = [
+  {
+    title: "GitHub",
+    description: "Star the repo, report issues, and browse the source code.",
+    href: "https://github.com/AlrikOlson/magistr",
+    icon: "/icons/community-github.png",
+  },
+  {
+    title: "Issues",
+    description: "Report a bug or request a change.",
+    href: "https://github.com/AlrikOlson/magistr/issues",
+    icon: "/icons/community-discussions.png",
+  },
+  {
+    title: "Contributing",
+    description: "Read the contributing guide and submit your first pull request.",
+    href: "https://github.com/AlrikOlson/magistr/blob/main/docs/development.md",
+    icon: "/icons/community-contributing.png",
+  },
+];
+---
+
+<section id="community" class="relative py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="mb-12 text-center sm:mb-16">
+      <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        Join the <span class="text-accent">community</span>
+      </h2>
+      <p class="mx-auto mt-4 max-w-2xl text-text-muted">
+        Get help, share feedback, and contribute to Magistr.
+      </p>
+    </div>
+
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {links.map((link) => (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="community-link group flex flex-col items-center gap-3 rounded-xl border border-border p-6 text-center transition-all hover:border-accent/30 hover:shadow-lg"
+          style="background-color: var(--color-bg-card);"
+        >
+          <img src={link.icon} alt={link.title} class="h-6 w-6 transition-opacity group-hover:opacity-80" loading="lazy" />
+          <h3 class="text-base font-semibold text-text">{link.title}</h3>
+          <p class="text-sm leading-relaxed text-text-muted">{link.description}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>

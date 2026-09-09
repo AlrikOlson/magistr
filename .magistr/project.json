@@ -1,0 +1,76 @@
+{
+	"custom_gates": [
+		{
+			"command": "./scripts/lint-structure.sh",
+			"name": "structure",
+			"required": true
+		},
+		{
+			"command": "./scripts/lint-duplication.sh",
+			"name": "duplication",
+			"required": true
+		},
+		{
+			"command": "./scripts/machete-gate.sh",
+			"name": "machete",
+			"required": true
+		},
+		{
+			"command": "./scripts/screenshot-gate.sh",
+			"name": "screenshots",
+			"required": true
+		},
+		{
+			"command": "./scripts/release-latency-gate.sh",
+			"name": "release-latency",
+			"required": true
+		},
+		{
+			"command": "./scripts/nextest-config-gate.sh",
+			"name": "nextest-config",
+			"required": true
+		},
+		{
+			"command": "./scripts/legacy-gui-ratchet.sh",
+			"name": "legacy-gui",
+			"required": true
+		}
+	],
+	"format": {
+		"command": "cargo fmt",
+		"extensions": ["rs"]
+	},
+	"hints": [],
+	"project": {
+		"description": "Project setup, coding-agent sessions, and quality checks for the terminal.",
+		"name": "magistr-cli",
+		"type": "cli"
+	},
+	"quality_gate": {
+		"check": "cargo check --workspace --all-targets",
+		"lint": "cargo clippy --workspace --all-targets -- -D warnings",
+		"test": "cargo nextest run --workspace"
+	},
+	"reference_repos": [
+		"https://github.com/ratatui/ratatui",
+		"https://github.com/orhun/binsider",
+		"https://github.com/fujiapple852/trippy",
+		"https://github.com/mre/idiomatic-rust",
+		"https://github.com/modelcontextprotocol/rust-sdk"
+	],
+	"roadmap_backend": "think-and-ship",
+	"roadmap_exports": false,
+	"stack": {
+		"formatter": "rustfmt",
+		"framework": "none",
+		"language": "rust",
+		"linter": "clippy",
+		"package_manager": "cargo",
+		"test_framework": "cargo-nextest"
+	},
+	"state_prefix": "magistr-cli",
+	"testing": {
+		"companion_pattern": "{name}.tests.{ext}",
+		"test_dir": "alongside"
+	}
+}

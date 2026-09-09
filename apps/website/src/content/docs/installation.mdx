@@ -1,0 +1,56 @@
+---
+title: Installation
+description: Build Magistr from source and connect a coding agent.
+order: 1
+category: getting-started
+---
+
+# Installation
+
+Build Magistr from the [source repository](https://github.com/AlrikOlson/magistr).
+You need Git and Rust 1.95 or later. This release includes the CLI, terminal
+interface, and MCP tools.
+
+## Build from source
+
+```sh
+git clone https://github.com/AlrikOlson/magistr.git
+cd magistr
+cargo install --locked --path crates/magistr-cli
+magistr --version
+magistr --help
+```
+
+Cargo installs the executable into its binary directory, usually `~/.cargo/bin`.
+Make sure that directory is on `PATH`.
+
+For development without installation, run `cargo build -p magistr-cli` and use
+`target/debug/magistr` from the workspace root.
+
+## Connect an agent
+
+Magistr includes adapters for Claude Code, Codex, and Copilot. Install the coding
+runtime you want to use and sign in through that runtime's own setup. The runtime
+must be available on `PATH`; Magistr does not log it in during project setup.
+
+Codex sessions use the built-in `acp-agent --provider codex` adapter and require
+ChatGPT authentication. The `openai`, `gemini`, and `ollama` API adapters provide
+chat sessions rather than external coding-runtime sessions.
+
+## Configure a project
+
+In the project you want to work on:
+
+```sh
+magistr init .
+```
+
+For Codex project skills and MCP configuration:
+
+```sh
+magistr init . --agent codex --yes
+./.codex/run
+```
+
+The launcher starts Codex with the project's skills and MCP configuration.
+Continue with [configuration](/docs/configuration) and [skills](/docs/skills).

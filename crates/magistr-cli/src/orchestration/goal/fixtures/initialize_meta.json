@@ -1,0 +1,5 @@
+{
+  "goal": { "version": 1, "controlMethod": "_session/goal", "actions": ["set", "clear"] },
+  "steering": { "supported": true },
+  "jetbrains.air": { "supported": true }
+}

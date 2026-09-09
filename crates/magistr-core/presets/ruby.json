@@ -1,0 +1,22 @@
+{
+  "quality_gate": {
+    "check": "bundle check",
+    "test": "bundle exec rspec",
+    "lint": "bundle exec rubocop"
+  },
+  "format": {
+    "extensions": ["rb"],
+    "command": "bundle exec rubocop -a {file}",
+    "exclusions": ["vendor", "tmp"]
+  },
+  "testing": {
+    "companion_pattern": "{name}_spec.{ext}",
+    "test_dir": "spec/"
+  },
+  "allowed_tools": [
+    "Bash(ruby:*)", "Bash(bundle:*)", "Bash(rake:*)", "Bash(rails:*)",
+    "Bash(rspec:*)", "Bash(git:*)", "Bash(rm:*)", "Bash(tail:*)",
+    "Bash(grep:*)", "Bash(mkdir:*)", "Bash(echo:*)", "Bash(cat:*)",
+    "Read", "Write", "Edit", "Glob", "Grep"
+  ]
+}

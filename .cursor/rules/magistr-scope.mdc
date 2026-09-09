@@ -1,0 +1,31 @@
+---
+description: magistr-scope code intelligence usage
+globs: ["**/*"]
+alwaysApply: true
+---
+# magistr-scope MCP — Mandatory Codebase Navigation
+
+magistr-scope is the **required** tool for all codebase exploration. Glob and Grep are DENIED by project permissions — they will not work.
+
+## Tool Rules
+
+| Tool | Status | Usage |
+|------|--------|-------|
+| `scope_search(query: "...")` | **MANDATORY** | All file discovery and codebase exploration. Replaces Glob. |
+| `scope_read(path: "file")` | **MANDATORY** | All code reading for understanding. Replaces Read for exploration. |
+| `scope_grep(query: "pattern")` | **MANDATORY** | All content search. Replaces Grep (which is denied). |
+| `Read(file)` | **RESTRICTED** | ONLY allowed as the required step immediately before Edit. Never for exploration. |
+| `Glob(pattern)` | **DENIED** | Blocked by permissions. Use `scope_search` instead. |
+| `Grep(pattern)` | **DENIED** | Blocked by permissions. Use `scope_grep` instead. |
+
+## Workflow
+
+1. **`scope_search` first** — semantic + keyword fusion. Works with natural language and identifiers. Always start here.
+2. **`scope_read(mode: "stubs")` before full reads** — see structure (signatures, types) without consuming context on function bodies.
+3. **`scope_read(paths: [...], budget: N)` for multi-file context** — importance-weighted batch read. One call replaces multiple Read calls.
+4. **`scope_imports(transitive: true)` before modifying shared code** — full blast radius via BFS.
+5. **`scope_grep` with `path`/`ext` filters** — for targeted pattern searches in large repos.
+
+## Subagents
+
+When spawning agents, **ALWAYS** use `subagent_type: "scope"` instead of `general-purpose` or `Explore`. The scope agent has magistr-scope tools built in. Built-in agent types will default to Read/Grep/Glob and fail because Glob and Grep are denied.

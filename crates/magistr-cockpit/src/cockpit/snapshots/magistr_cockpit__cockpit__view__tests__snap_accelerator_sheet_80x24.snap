@@ -1,0 +1,28 @@
+---
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
+expression: screen(&m)
+---
+▲ magistr  idle                                                            00:01
+Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│no objective yet          │ │⌨ keys · esc closes · 1–15 of 59                 │
+│roadmap 2/4 done          │ │                                                 │
+│▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │── global ────────────────────────               │
+│▲ Tabs                    │ │ tab / shift-tab   switch stage tab              │
+│0 before · 1 after        │ │ ?                 keyboard help                 │
+│signals 0                 │ │ esc               close help                    │
+│                          │ │ ctrl-d            quit                          │
+│                          │ │ ctrl-c            cancel                        │
+│                          │ │                                                 │
+│                          │ │── launcher ────────────────────────             │
+│                          │ │ n                 next iteration                │
+│                          │ │ l                 loop                          │
+│                          │ │ g                 gates                         │
+│                          │ │ m                 roadmap                       │
+│                          │ │ ↑↓ enter          resume session                │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+›
+ esc  close help   pgup/pgdn  scroll

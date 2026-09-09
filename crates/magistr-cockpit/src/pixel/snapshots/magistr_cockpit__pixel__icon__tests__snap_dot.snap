@@ -1,0 +1,17 @@
+---
+source: crates/magistr-tui/src/pixel/icon.tests.rs
+expression: "ascii(&render(Icon::Dot))"
+---
+                
+                
+                
+      +##+      
+    .######.    
+    ########    
+   +########+   
+   ##########   
+   ##########   
+   +########+   
+    ########    
+    .######.    
+      +##+

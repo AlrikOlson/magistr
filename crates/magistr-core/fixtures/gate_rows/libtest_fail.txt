@@ -1,0 +1,22 @@
+     Running unittests src/lib.rs (target/debug/deps/magistr-3f2a1c9d0b4e5f6a)
+
+running 3 tests
+test gate_rows::tests::parses_rustc ... ok
+test workflow::iteration::tests::native_prompt_names_the_next_chunk ... FAILED
+test workflow::tracker::tests::starts_in_researching ... ok
+
+failures:
+
+---- workflow::iteration::tests::native_prompt_names_the_next_chunk stdout ----
+
+thread 'workflow::iteration::tests::native_prompt_names_the_next_chunk' panicked at crates/magistr-core/src/workflow/iteration.tests.rs:427:5:
+assertion failed: prompt.contains("guards — Chunk guards")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    workflow::iteration::tests::native_prompt_names_the_next_chunk
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p magistr-core --lib`

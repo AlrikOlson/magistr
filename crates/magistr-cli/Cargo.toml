@@ -1,0 +1,67 @@
+[package]
+name = "magistr-cli"
+version = "0.1.0"
+edition = "2024"
+description = "Project setup, coding-agent sessions, and quality checks for the terminal"
+license = "MIT"
+readme = "../../README.md"
+repository = "https://github.com/AlrikOlson/magistr"
+homepage = "https://github.com/AlrikOlson/magistr"
+keywords = ["cli", "agent", "scaffold", "workflow", "ai"]
+categories = ["command-line-utilities", "development-tools"]
+rust-version = "1.89"
+
+[lib]
+name = "magistr"
+path = "src/lib.rs"
+
+[[bin]]
+name = "magistr"
+path = "src/main.rs"
+
+[dependencies]
+magistr-core = { path = "../magistr-core" }
+magistr-engine = { path = "../magistr-engine" }
+magistr-protocol = { path = "../magistr-protocol" }
+rmcp = { version = "3.1", features = ["server", "transport-io"] }
+think-and-ship = "0.6.0"
+agent-client-protocol = "2.0"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+clap_mangen = "0.2"
+magistr-acp = { path = "../magistr-acp" }
+magistr-acp-agent = { path = "../magistr-acp-agent" }
+magistr-mcp = { path = "../magistr-mcp" }
+magistr-cockpit = { path = "../magistr-cockpit" }
+magistr-tui = { path = "../magistr-tui" }
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+rusqlite = { version = "0.33", features = ["bundled"] }
+similar = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+color-eyre = "0.6"
+toml = "1.0.6"
+toml_edit = "0.25"
+which = "6.0"
+ureq = "3"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+base64 = "0.22"
+jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs"] }
+quick-xml = "0.41"
+tar = "0.4"
+flate2 = "1"
+shell-escape = "0.1"
+tempfile = "3"
+
+[dev-dependencies]
+assert_cmd = "2"
+rmcp = { version = "3.1", features = ["client"] }
+insta = "1"
+predicates = "3"
+proptest = "1"
+rand = "0.8"

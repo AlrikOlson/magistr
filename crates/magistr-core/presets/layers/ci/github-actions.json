@@ -1,0 +1,5 @@
+{
+  "extra_allowed_tools": [
+    "Bash(gh:*)", "Bash(act:*)"
+  ]
+}
