@@ -56,7 +56,7 @@ pub async fn cmd_next_headless(
     let mut stderr = std::io::stderr().lock();
 
     let mut spend = None;
-    let outcome = drain_headless(
+    let drained = drain_headless(
         &mut session,
         format,
         budget_limit,
@@ -64,10 +64,13 @@ pub async fn cmd_next_headless(
         &mut stderr,
         &mut spend,
     )
-    .await?;
+    .await;
+    let cleanup = session.terminate_session().await.suggest();
+    let outcome = drained?;
     if let Some(spend) = spend {
         crate::cost::record_session(&dir, &spend);
     }
+    cleanup?;
 
     let duration = start.elapsed();
 

@@ -6,6 +6,9 @@ use agent_client_protocol::schema::v1::{
     PlanEntryStatus, PromptResponse, SessionUpdate, StopReason, TextContent,
     ToolCall as AcpToolCall, ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind,
 };
+use magistr_acp::AcpEvent;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{Arc, Mutex};
 
 /// Uses the production ACP server while tracking whether startup inferred.
 struct StartupProvider {
@@ -692,4 +695,32 @@ fn terminal_bytes_convert_to_a_terminal_output_system_message() {
         }
         _ => panic!("Expected System message"),
     }
+}
+
+#[tokio::test]
+async fn cancellation_request_does_not_fabricate_terminal_confirmation() {
+    let (client, agent) = agent_client_protocol::Channel::duplex();
+    let server = tokio::spawn(magistr_acp_agent::serve(
+        magistr_acp_agent::ScriptedProvider,
+        agent,
+    ));
+    let cwd = tempfile::tempdir().expect("session cwd");
+    let mut transport = magistr_acp::AcpTransport::new_with_args(
+        std::path::PathBuf::from("unused-in-process-agent"),
+        Vec::new(),
+        Some(cwd.path().to_path_buf()),
+    )
+    .expect("transport");
+    transport.connect_over(client).await.expect("handshake");
+    let (mut backend, _messages, _) = AcpBackend::start_connected("wait", transport)
+        .await
+        .expect("start");
+    backend.cancel();
+    assert_eq!(
+        backend.session_state(),
+        Some(AcpSessionState::InProgress),
+        "a cancellation request is not a provider terminal response"
+    );
+    drop(backend);
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(2), server).await;
 }

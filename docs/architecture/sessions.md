@@ -92,11 +92,50 @@ Claude loading requires a readable, valid transcript; missing or malformed
 history is an error. Codex validates restored thread identity. Unknown provider
 capabilities default to unsupported.
 
+## Headless session supervision
+
+The CLI host's [SessionSupervisor](../../crates/magistr-cli/src/agent/session_supervisor/mod.rs)
+owns the headless provider connection.
+`AgentSession` and `AcpBackend` delegate to it; they do not run a second
+permission or lifecycle loop. The supervisor consumes the resolved specification
+and its permission policy, admits the opening prompt after the handshake's
+model/effort selection, queues follow-ups in order, and runs one provider turn
+at a time. Configuration changes are refused while a turn or an earlier
+configuration operation is active.
+
+The supervisor's snapshot separates provider residency, active/queued turns,
+cancellation requests, and the last observed turn outcome. Provider errors or
+event-stream loss fail the session; missing terminal evidence never becomes
+success or confirmed cancellation. Plain drains also reject EOF without a
+terminal response and settle an explicit cancellation without waiting for the
+retained session's stream to close. A recorded stop reason is the adapter's
+observed response; it does not strengthen the provider guarantees in the
+capability table above.
+
+| Operation | Contract |
+| --- | --- |
+| `cancel_turn` | Request cancellation, cancel outstanding permissions and queued input, and keep the provider session resident. A terminal prompt response determines the observed outcome; a request alone does not confirm cancellation. |
+| `terminate_session` | End admission and await transport/task cleanup. Closing an unacknowledged turn does not invent a successful or cancelled provider response. |
+| `detach_client` | Stop message observation while the owning supervisor continues the provider session. Dropping the owner still performs cleanup; this is not a durable/background daemon handoff. |
+
+A later turn may start after the previous turn's terminal response. The legacy
+`cancel` convenience operation ends the usable session after cancellation;
+new callers use the explicit operations above. Headless `run`, `next`, and
+`next-loop` await termination before process exit or the next attempt.
+Transport shutdown retains task handles through timeout/caller cancellation,
+aborts tasks that exceed the deadline, and awaits their release. Explicit
+shutdown errors are returned to callers.
+
+This migration applies to sessions opened through `AgentSession`. The cockpit,
+loop connector, and judge still use their existing direct transport paths;
+`arch-09-cockpit-session` owns the cockpit migration. The supervisor lives in
+the CLI runtime host while the application contracts remain runtime independent.
+
 ## Permission decisions
 
 The [shared permission service](permissions.md) evaluates received ACP requests
-before cockpit presentation or noninteractive response selection. AgentSession
-installs its policy worker at startup, including plain sessions. Profiles, rules,
+before cockpit presentation or noninteractive response selection. Headless
+supervision owns this handling at startup, including plain sessions. Profiles, rules,
 gates and governance use the selected project directory. Noninteractive Ask
 refuses by default; `.claude/permissions.toml` can explicitly select
 `noninteractive = "legacy-automatic-approval"` for compatibility.
@@ -133,6 +172,15 @@ streamable HTTP and is merged by Codex with its own configuration. Legacy SSE
 entries are rejected.
 
 ## Testing and data
+
+The supervisor suite drives controlled ACP providers and a raw protocol fixture
+through real connections. It checks queued-turn ordering, delayed cancellation
+acknowledgment, permission refusal and fresh-turn grants, configuration admission,
+provider failure, detached observation, and cancellation of a cleanup caller.
+Transport tests separately verify real Unix subprocess cleanup, handshake
+ownership, and task timeout cleanup. Synchronous owner drop requests abortion;
+the runtime finishes cancellation and process reaping. These tests do not claim
+live-provider or cross-platform process verification.
 
 Recorded Codex fixtures use CLI version `0.153.4`; see their
 [provenance](../../crates/magistr-acp-agent/tests/fixtures/codex/README.md).

@@ -3,6 +3,7 @@
 pub mod auth_method;
 pub mod backend;
 pub mod connect_transport;
+pub mod convert_acp_event;
 pub mod error_kind;
 pub mod init_prompt;
 pub mod mcp_servers;
@@ -21,6 +22,7 @@ pub mod retry_outcome;
 pub mod runtime;
 pub mod session;
 pub mod session_config_source;
+pub mod session_supervisor;
 pub mod system_prompt;
 pub mod tool_permissions;
 pub mod types;

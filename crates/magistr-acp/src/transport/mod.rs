@@ -60,6 +60,7 @@ pub struct AcpTransport {
     event_rx: Option<mpsc::UnboundedReceiver<Result<AcpEvent>>>,
     perm_rx: Option<mpsc::UnboundedReceiver<AcpPermissionRequest>>,
     connection: Option<JoinHandle<()>>,
+    background_tasks: Vec<JoinHandle<()>>,
     /// Process group of the agent (== its PID after `setpgid(0, 0)`); `0`
     /// before spawn.
     child_pgid: Arc<AtomicI32>,
@@ -103,6 +104,7 @@ impl AcpTransport {
             event_rx: None,
             perm_rx: None,
             connection: None,
+            background_tasks: Vec::new(),
             child_pgid: Arc::new(AtomicI32::new(0)),
             stderr_tail: StderrTail::default(),
             effect_port: None,
@@ -199,12 +201,14 @@ impl AcpTransport {
         if self.is_ready() {
             return Ok(());
         }
+        self.close_previous_connection().await?;
         let command = spawn::build_command(&self.cli_path, &self.cli_args, self.cwd.as_deref());
         let spawned = spawn::spawn_agent(command)?;
         if let Some(pid) = spawned.child.id() {
             self.child_pgid.store(pid as i32, Ordering::SeqCst);
         }
-        drain_stderr(spawned.stderr, self.stderr_tail.clone());
+        self.background_tasks
+            .push(drain_stderr(spawned.stderr, self.stderr_tail.clone()));
         let component = lines::agent_lines(spawned.stdin, spawned.stdout);
         self.start(component, Some(spawned.child)).await
     }
@@ -219,7 +223,15 @@ impl AcpTransport {
         if self.is_ready() {
             return Ok(());
         }
+        self.close_previous_connection().await?;
         self.start(component, None).await
+    }
+
+    async fn close_previous_connection(&mut self) -> Result<()> {
+        if self.connection.is_some() || !self.background_tasks.is_empty() {
+            self.close().await?;
+        }
+        Ok(())
     }
 
     async fn start(
@@ -269,35 +281,34 @@ impl AcpTransport {
             stderr_tail: self.stderr_tail.clone(),
             effects,
         };
-        let connection = tokio::spawn(connection::run_connection(component, inputs));
-
-        match tokio::time::timeout(HANDSHAKE_TIMEOUT, handshake_rx).await {
-            Ok(Ok(Ok(()))) => {}
-            Ok(Ok(Err(e))) => {
-                connection.abort();
-                self.kill_child_process_group();
-                return Err(e);
-            }
-            Ok(Err(_task_gone)) => {
-                self.kill_child_process_group();
-                return Err(AcpError::connection(self.stderr_tail.append_to(
-                    "ACP connection task exited before the agent handshake completed".to_string(),
-                )));
-            }
-            Err(_elapsed) => {
-                connection.abort();
-                self.kill_child_process_group();
-                return Err(AcpError::timeout(self.stderr_tail.append_to(format!(
-                    "ACP agent did not complete its handshake within {} seconds",
-                    HANDSHAKE_TIMEOUT.as_secs()
-                ))));
-            }
-        }
-
+        // Own the task before awaiting: cancelling connect must leave Drop able
+        // to abort a handshake that never completed.
         self.cmd_tx = Some(cmd_tx);
         self.event_rx = Some(event_rx);
         self.perm_rx = Some(perm_rx);
-        self.connection = Some(connection);
+        self.connection = Some(tokio::spawn(connection::run_connection(component, inputs)));
+
+        let error = match tokio::time::timeout(HANDSHAKE_TIMEOUT, handshake_rx).await {
+            Ok(Ok(Ok(()))) => None,
+            Ok(Ok(Err(e))) => Some(e),
+            Ok(Err(_task_gone)) => Some(AcpError::connection(self.stderr_tail.append_to(
+                "ACP connection task exited before the agent handshake completed".to_string(),
+            ))),
+            Err(_elapsed) => Some(AcpError::timeout(self.stderr_tail.append_to(format!(
+                "ACP agent did not complete its handshake within {} seconds",
+                HANDSHAKE_TIMEOUT.as_secs()
+            )))),
+        };
+        if let Some(error) = error {
+            if let Some(connection) = &self.connection {
+                connection.abort();
+            }
+            // The handshake error is the useful cause; close still joins the
+            // aborted task and cleans every owned process and background task.
+            let _ = self.close().await;
+            return Err(error);
+        }
+
         Ok(())
     }
 
@@ -433,7 +444,7 @@ impl AcpTransport {
         let mut source = self.event_rx.take()?;
         let (forward_tx, forward_rx) = mpsc::unbounded_channel();
         let (tap_tx, tap_rx) = mpsc::unbounded_channel();
-        tokio::spawn(async move {
+        self.background_tasks.push(tokio::spawn(async move {
             while let Some(item) = source.recv().await {
                 if let Ok(event) = &item {
                     let _ = tap_tx.send(event.clone());
@@ -442,7 +453,7 @@ impl AcpTransport {
                     break;
                 }
             }
-        });
+        }));
         self.event_rx = Some(forward_rx);
         Some(tap_rx)
     }
@@ -453,29 +464,39 @@ impl AcpTransport {
         self.perm_rx.take()
     }
 
-    /// Process group of the agent, valid after `connect()`; `0` before, or
-    /// when the session runs over an in-process component.
+    /// Process group of the agent, valid after `connect()`; `0` before or after
+    /// shutdown, or when the session runs over an in-process component.
     pub fn child_pgid(&self) -> i32 {
         self.child_pgid.load(Ordering::SeqCst)
     }
 
     /// `SIGKILL` the agent's whole process group. Idempotent; no-op off Unix
     /// or before spawn.
-    fn kill_child_process_group(&self) {
+    fn kill_child_process_group(&self) -> Result<()> {
         #[cfg(unix)]
         {
             let pgid = self.child_pgid.load(Ordering::SeqCst);
             if pgid > 0 {
-                // SAFETY: killpg is a plain syscall; a dead group returns ESRCH, which we ignore.
-                unsafe {
-                    libc::killpg(pgid, libc::SIGKILL);
+                // SAFETY: this is the process group created for our agent.
+                if unsafe { libc::killpg(pgid, libc::SIGKILL) } == -1 {
+                    let error = std::io::Error::last_os_error();
+                    if error.raw_os_error() != Some(libc::ESRCH) {
+                        // Retain the group for a later close or Drop retry.
+                        tracing::warn!(pgid, %error, "Failed to kill ACP agent process group");
+                        return Err(AcpError::transport(format!(
+                            "Failed to kill ACP agent process group {pgid}: {error}"
+                        )));
+                    }
                 }
             }
         }
+        self.child_pgid.store(0, Ordering::SeqCst);
+        Ok(())
     }
 
     /// Cancel any turn in flight, let the connection wind down, and make sure
-    /// the agent is gone.
+    /// the agent is gone. A timeout still aborts and joins the connection;
+    /// timeout and task failure are returned after cleanup.
     pub async fn close(&mut self) -> Result<()> {
         self.ready.store(false, Ordering::SeqCst);
         if let Some(effects) = self.effects.take() {
@@ -484,15 +505,66 @@ impl AcpTransport {
         if let Some(tx) = self.cmd_tx.take() {
             let _ = tx.send(AcpCommand::Close);
         }
-        if let Some(connection) = self.connection.take()
-            && tokio::time::timeout(CLOSE_TIMEOUT, connection)
-                .await
-                .is_err()
-        {
-            tracing::warn!("ACP connection task did not finish in time; killing the agent");
+        let outcome = self.finish_connection().await;
+        let process_outcome = self.kill_child_process_group();
+        let background_outcome = self.stop_background_tasks().await;
+        outcome.and(process_outcome).and(background_outcome)
+    }
+
+    async fn finish_connection(&mut self) -> Result<()> {
+        let Some(connection) = self.connection.as_mut() else {
+            return Ok(());
+        };
+        // Borrow the handle so a timeout or cancellation cannot detach it.
+        let joined = tokio::time::timeout(CLOSE_TIMEOUT, connection).await;
+        let outcome = match joined {
+            Ok(joined) => joined.map_err(|error| {
+                AcpError::transport(format!("ACP connection task failed: {error}"))
+            }),
+            Err(_elapsed) => {
+                let _ = self.kill_child_process_group();
+                let connection = self.connection.as_mut().expect("connection still owned");
+                connection.abort();
+                let joined = connection.await;
+                if let Err(error) = joined
+                    && !error.is_cancelled()
+                {
+                    Err(AcpError::transport(format!(
+                        "ACP connection task failed during shutdown: {error}"
+                    )))
+                } else {
+                    Err(AcpError::timeout(format!(
+                        "ACP connection did not close within {} seconds; aborted and joined",
+                        CLOSE_TIMEOUT.as_secs()
+                    )))
+                }
+            }
+        };
+        self.connection = None;
+        outcome
+    }
+
+    async fn stop_background_tasks(&mut self) -> Result<()> {
+        let mut outcome = Ok(());
+        for task in &self.background_tasks {
+            task.abort();
         }
-        self.kill_child_process_group();
-        Ok(())
+        // Retain each handle across await so cancelled close still leaves Drop
+        // with all unfinished tasks. These tasks have no returned result.
+        while let Some(task) = self.background_tasks.last_mut() {
+            if let Err(error) = task.await
+                && !error.is_cancelled()
+            {
+                tracing::warn!(%error, "ACP background task failed during shutdown");
+                if outcome.is_ok() {
+                    outcome = Err(AcpError::transport(format!(
+                        "ACP background task failed during shutdown: {error}"
+                    )));
+                }
+            }
+            self.background_tasks.pop();
+        }
+        outcome
     }
 }
 
@@ -503,25 +575,28 @@ impl Drop for AcpTransport {
             effects.close();
         }
         // Kill first: works even when the task is wedged or we are unwinding.
-        self.kill_child_process_group();
+        let _ = self.kill_child_process_group();
         if let Some(tx) = self.cmd_tx.take() {
             let _ = tx.send(AcpCommand::Close);
         }
         if let Some(connection) = self.connection.take() {
             connection.abort();
         }
+        for task in &self.background_tasks {
+            task.abort();
+        }
     }
 }
 
 /// Keep the agent's last stderr lines (and drain the pipe so it never blocks).
-fn drain_stderr(stderr: tokio::process::ChildStderr, tail: StderrTail) {
+fn drain_stderr(stderr: tokio::process::ChildStderr, tail: StderrTail) -> JoinHandle<()> {
     tokio::spawn(async move {
         let mut lines = tokio::io::BufReader::new(stderr).lines();
         while let Ok(Some(line)) = lines.next_line().await {
             tracing::debug!(target: "acp_agent_stderr", "{line}");
             tail.push(line);
         }
-    });
+    })
 }
 
 #[cfg(test)]

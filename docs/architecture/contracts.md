@@ -73,8 +73,8 @@ a coherent global revision.
 
 | Entry | Lifecycle and permission route |
 | --- | --- |
-| `run --headless`, headless `next` / `next-loop` | `AgentSession::start` → ACP backend → shared transport; explicitly starts the automatic permission worker. |
-| Plain `run` / workflow drains | `AgentSession::start`; message/stdin drain has no permission receiver consumer. A permission request can remain unanswered until transport timeout. |
+| `run --headless`, headless `next` / `next-loop` | `AgentSession::start` → session supervisor → shared transport; supervisor owns permission handling and callers await termination before exit/next attempt. |
+| Plain `run` / workflow drains | `AgentSession::start` uses the same supervisor and resolved permission policy; drains reject missing terminal evidence. |
 | Cockpit `run`, TUI init, home resume | Direct `connect_transport` → `spawn_session`; builds project policy and returns policy-undecided requests to the UI. Home resume supplies an explicit session ID and empty opening prompt. |
 | Cockpit `next` / `next-loop` | `Connector::live` → shared transport and cockpit Session for each attempt; workflow policy and outer driver own settlement. |
 | Interactive setup / roadmap generation | `cmd_init_interactive` and `cmd_roadmap` start AgentSession for configuration/planning prompts; these are distinct from roadmap implementation. |
@@ -83,8 +83,8 @@ a coherent global revision.
 | Provider protocol host | `acp-agent` serves the provider adapter selected by transport startup; it is the other side of a session, not a second native workflow owner. |
 | Direct Codex launcher | CLI `codex-launch` invokes the external runtime wrapper; it is separate from the ACP Codex provider and its session lifecycle. |
 
-Public `AgentPool` worker methods also start AgentSession and automatic permission
-workers, but callers are confined to the multi supervisor/pattern subsystem;
+Public `AgentPool` worker methods also start AgentSession and its shared session
+supervisor, but callers are confined to the multi supervisor/pattern subsystem;
 no production CLI/app construction of that subsystem was found. The public
 `LocalEngineClient::new` facade has only test callers. Neither is an additional
 integrated session path.
@@ -109,10 +109,12 @@ integrated session path.
 The no-progress and recovery differences above are resolved by the implemented
 run consolidation below. The cancellation row remains provenance for the old
 entry paths; headless and cockpit loop adapters now record their observed terminal
-outcomes through the shared run state. The plain drain's coarse result remains a
-provider-supervision limitation. This does not imply a shared provider supervisor
-or change provider-capability observations. The permission differences are resolved
-by the implemented permission consolidation below.
+outcomes through the shared run state. `arch-08-session-supervisor` then moves
+AgentSession paths to one supervisor and removes plain-drain success on EOF.
+Cancellation request, terminal response, detachment, and residency are separate
+facts; see [session supervision](sessions.md#headless-session-supervision).
+Cockpit supervision remains separate until arch-09. The permission differences
+are resolved by the implemented permission consolidation below.
 
 The API loading limitation is source evidence in
 [API provider](../../crates/magistr-acp-agent/src/api/provider.rs) and
