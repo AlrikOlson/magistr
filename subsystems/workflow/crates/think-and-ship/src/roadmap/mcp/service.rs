@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-pub use super::export::resolve_workspace_root;
+pub use crate::roadmap::application::resolve_workspace_root;
 
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
@@ -18,6 +18,7 @@ use rmcp::{
 };
 
 use crate::mcp::cache::catalog;
+use crate::roadmap::application::{RoadmapError, RoadmapUseCases};
 use crate::roadmap::engine::RoadmapEngine;
 use crate::roadmap::output_schemas;
 
@@ -51,22 +52,19 @@ structuredContent."#;
 
 #[derive(Clone)]
 pub struct RoadmapService {
-    pub(super) engine: Arc<Mutex<RoadmapEngine>>,
-    pub(super) workspace_root: Option<PathBuf>,
-    /// Optional wire-layer handle to the signal engine so
-    /// `roadmap_status` can fold in a pending-signal count. `None` in unit/test
-    /// contexts that don't wire signals — the count is simply omitted then. The
-    /// RoadmapEngine type never references the SignalEngine (acyclic).
-    pub(super) signal: Option<Arc<Mutex<crate::signal::engine::SignalEngine>>>,
+    pub(super) application: RoadmapUseCases,
     pub(super) tool_router: ToolRouter<RoadmapService>,
 }
 
 impl RoadmapService {
     pub fn new(engine: RoadmapEngine) -> Self {
+        Self::from_use_cases(RoadmapUseCases::new(Arc::new(Mutex::new(engine))))
+    }
+
+    /// Expose MCP over the same application used by native workflow clients.
+    pub fn from_use_cases(application: RoadmapUseCases) -> Self {
         Self {
-            engine: Arc::new(Mutex::new(engine)),
-            workspace_root: None,
-            signal: None,
+            application,
             tool_router: Self::make_tool_router(),
         }
     }
@@ -78,7 +76,7 @@ impl RoadmapService {
     /// Returns an error if the path cannot be made absolute, including an
     /// empty path or a failure to resolve the current directory.
     pub fn with_workspace_root(mut self, root: impl Into<PathBuf>) -> std::io::Result<Self> {
-        self.workspace_root = Some(std::path::absolute(root.into())?);
+        self.application = self.application.with_workspace_root(root)?;
         Ok(self)
     }
 
@@ -86,7 +84,7 @@ impl RoadmapService {
     /// count. Called by `cli::build_unified` with the same handle
     /// the `SignalService` holds.
     pub fn with_signal(mut self, signal: Arc<Mutex<crate::signal::engine::SignalEngine>>) -> Self {
-        self.signal = Some(signal);
+        self.application = self.application.with_signal(signal);
         self
     }
 
@@ -95,7 +93,11 @@ impl RoadmapService {
     /// without reaching into the roadmap *engine* type directly. The coupling
     /// lives at the service/wire layer; signal depends on roadmap (acyclic).
     pub fn engine(&self) -> Arc<Mutex<RoadmapEngine>> {
-        Arc::clone(&self.engine)
+        self.application.engine()
+    }
+
+    pub fn use_cases(&self) -> RoadmapUseCases {
+        self.application.clone()
     }
 
     /// Build the `roadmap_*` tools view with output schemas patched on. No
@@ -111,10 +113,6 @@ impl RoadmapService {
         tools
     }
 
-    pub(super) fn poisoned() -> ErrorData {
-        ErrorData::internal_error("roadmap engine mutex poisoned", None)
-    }
-
     pub(super) fn ok_structured(value: serde_json::Value) -> CallToolResult {
         crate::infra::tool_result::ok(value)
     }
@@ -126,6 +124,21 @@ impl RoadmapService {
     /// envelope is unchanged for callers that pattern-match it.
     pub(super) fn err_structured(kind: &str, message: impl Into<String>) -> CallToolResult {
         crate::infra::tool_result::soft_error(kind, message)
+    }
+
+    pub(super) fn present<T: serde::Serialize>(
+        result: Result<T, RoadmapError>,
+    ) -> Result<CallToolResult, ErrorData> {
+        match result {
+            Ok(value) => serde_json::to_value(value)
+                .map(Self::ok_structured)
+                .map_err(|error| ErrorData::internal_error(error.to_string(), None)),
+            Err(RoadmapError::Poisoned) => Err(ErrorData::internal_error(
+                "roadmap engine mutex poisoned",
+                None,
+            )),
+            Err(error) => Ok(Self::err_structured(error.kind(), error.to_string())),
+        }
     }
 }
 

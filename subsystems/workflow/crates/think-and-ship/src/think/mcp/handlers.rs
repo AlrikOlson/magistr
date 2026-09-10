@@ -25,10 +25,9 @@ use super::args::{
     StatusArgs, StepLookupArgs,
 };
 use crate::mcp::client_view::ClientView;
-use crate::think::config::OutputFormat;
 use crate::think::domain::ThinkStep;
 use crate::think::output_schemas::{
-    PinStepOutput, ReviseEstimateOutput, SearchTraceOutput, SetBranchStatusOutput, WipeTraceOutput,
+    PinStepOutput, ReviseEstimateOutput, SetBranchStatusOutput, WipeTraceOutput,
 };
 
 use super::service::ThinkService;
@@ -61,19 +60,13 @@ impl ThinkService {
         &self,
         Parameters(step): Parameters<ThinkStep>,
     ) -> Result<CallToolResult, ErrorData> {
-        let result = {
-            let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-            engine.process_step(step)
-        };
-        match result {
-            Ok(ok) => match serde_json::from_str::<serde_json::Value>(&ok.text) {
-                Ok(v) => Ok(CallToolResult::structured(v)),
-                Err(_) => Ok(CallToolResult::success(vec![ContentBlock::text(ok.text)])),
-            },
-            Err(err) => match serde_json::from_str::<serde_json::Value>(&err.text) {
-                Ok(v) => Ok(CallToolResult::structured_error(v)),
-                Err(_) => Ok(CallToolResult::error(vec![ContentBlock::text(err.text)])),
-            },
+        match self.use_cases().record_step(step) {
+            Ok(recorded) => Ok(CallToolResult::structured(recorded.report)),
+            Err(error) if error.error == "engine mutex poisoned" => Err(Self::poisoned()),
+            Err(error) => Ok(CallToolResult::structured_error(
+                serde_json::to_value(error)
+                    .map_err(|e| ErrorData::internal_error(e.to_string(), None))?,
+            )),
         }
     }
 
@@ -93,17 +86,11 @@ impl ThinkService {
         Parameters(args): Parameters<StatusArgs>,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut v = {
-            let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-            engine.status_snapshot(args.verbose.unwrap_or(false))
-        };
-        // The engine has no client, and must not grow one — so the live view is
-        // merged HERE, from the request that asked, and is never stored. See
-        // `crate::mcp::client_view` for why nothing is cached.
-        //
-        // Degrade, never fail: if the snapshot is somehow not an
-        // object, or the view will not serialize, the call returns exactly the
-        // bytes it would have returned without this block.
+        let mut v = self
+            .use_cases()
+            .status(args.verbose.unwrap_or(false))
+            .map_err(|_| Self::poisoned())?;
+        // Client capability observation is transport state, never native state.
         if let (Some(map), Ok(view)) = (
             v.as_object_mut(),
             serde_json::to_value(ClientView::observe(&context)),
@@ -128,20 +115,14 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<ExportArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let fmt_raw = args.format.as_deref().map(str::trim).unwrap_or("");
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let text = match fmt_raw {
-            "" | "markdown" | "md" => engine.export_history(OutputFormat::Markdown),
-            "json" => engine.export_history(OutputFormat::Json),
-            "console" | "ansi" | "terminal" => engine.export_history(OutputFormat::Console),
-            "tree" | "branches" => engine.branch_tree(),
-            other => {
-                return Ok(CallToolResult::error(vec![ContentBlock::text(format!(
-                    "Unknown format \"{other}\". Use: markdown, json, console, tree."
-                ))]));
-            }
-        };
-        Ok(CallToolResult::success(vec![ContentBlock::text(text)]))
+        match self
+            .use_cases()
+            .export(args.format.as_deref().unwrap_or(""))
+        {
+            Ok(text) => Ok(CallToolResult::success(vec![ContentBlock::text(text)])),
+            Err(error) if error == "engine mutex poisoned" => Err(Self::poisoned()),
+            Err(error) => Ok(CallToolResult::error(vec![ContentBlock::text(error)])),
+        }
     }
 
     #[tool(
@@ -159,20 +140,12 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<StepLookupArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let found = if args.resolve_latest.unwrap_or(false) {
-            engine.latest_revision_of(args.step_number)
-        } else {
-            engine.step_by_number(args.step_number)
-        };
-        match found {
-            Some(s) => match serde_json::to_value(&s) {
-                Ok(v) => Ok(CallToolResult::structured(v)),
-                Err(_) => Ok(Self::structured_err(
-                    "serialization_failed",
-                    "Failed to serialize step",
-                )),
-            },
+        match self
+            .use_cases()
+            .get_step(args.step_number, args.resolve_latest.unwrap_or(false))
+            .map_err(|_| Self::poisoned())?
+        {
+            Some(step) => Self::native_result(Ok(step), "step_not_found"),
             None => Ok(Self::structured_err(
                 "step_not_found",
                 format!("No step #{} found.", args.step_number),
@@ -195,31 +168,15 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<SearchArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let limit = args.limit.unwrap_or(10).max(1) as usize;
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let hits = engine.search_steps(&args.query, limit);
-        // The typed SearchTraceOutput is used only for schema generation
-        // (compile-time). The actual structuredContent assembles the
-        // engine's `Vec<Value>` directly so any drift between the typed
-        // shape and engine output produces a visible mismatch rather
-        // than a silent shape change at the deserialize boundary.
-        let body = serde_json::to_value(SearchTraceOutput {
-            query: args.query.clone(),
-            match_count: hits.len() as u32,
-            matches: Vec::new(),
-        })
-        .unwrap_or(serde_json::Value::Null);
-        let body = if let serde_json::Value::Object(mut map) = body {
-            map.insert("matches".into(), serde_json::Value::Array(hits));
-            serde_json::Value::Object(map)
-        } else {
-            serde_json::json!({
-                "query": args.query,
-                "match_count": 0,
-                "matches": [],
-            })
-        };
-        Ok(CallToolResult::structured(body))
+        let hits = self
+            .use_cases()
+            .search(&args.query, args.limit.unwrap_or(10).max(1) as usize)
+            .map_err(|_| Self::poisoned())?;
+        Ok(CallToolResult::structured(serde_json::json!({
+            "query": args.query,
+            "match_count": hits.len(),
+            "matches": hits,
+        })))
     }
 
     #[tool(
@@ -237,11 +194,7 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<ImpactArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.impact_of(args.step_number) {
-            Ok(v) => Ok(CallToolResult::structured(v)),
-            Err(e) => Ok(Self::structured_err("step_not_found", e)),
-        }
+        Self::native_result(self.use_cases().impact(args.step_number), "step_not_found")
     }
 
     #[tool(
@@ -259,25 +212,16 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<PinArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let want_pinned = args.pinned.unwrap_or(true);
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.pin_step(args.step_number, want_pinned) {
-            Ok(prev) => {
-                let out = PinStepOutput {
-                    step_number: args.step_number,
-                    was_pinned: prev,
-                    now_pinned: want_pinned,
-                };
-                match serde_json::to_value(out) {
-                    Ok(v) => Ok(CallToolResult::structured(v)),
-                    Err(_) => Ok(Self::structured_err(
-                        "serialization_failed",
-                        "Failed to serialize pin result",
-                    )),
-                }
-            }
-            Err(e) => Ok(Self::structured_err("step_not_found", e)),
-        }
+        let pinned = args.pinned.unwrap_or(true);
+        let result = self
+            .use_cases()
+            .pin_step(args.step_number, pinned)
+            .map(|previous| PinStepOutput {
+                step_number: args.step_number,
+                was_pinned: previous,
+                now_pinned: pinned,
+            });
+        Self::native_result(result, "step_not_found")
     }
 
     #[tool(
@@ -295,30 +239,19 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<ReviseEstimateArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.revise_estimate(args.estimated_total) {
-            Ok((previous, new_estimate)) => {
-                let reason = args
+        let result = self.use_cases().revise_estimate(args.estimated_total).map(
+            |(previous, new_estimate)| ReviseEstimateOutput {
+                previous,
+                new_estimate,
+                reason: args
                     .reason
                     .as_deref()
                     .map(str::trim)
                     .filter(|s| !s.is_empty())
-                    .map(str::to_string);
-                let out = ReviseEstimateOutput {
-                    previous,
-                    new_estimate,
-                    reason,
-                };
-                match serde_json::to_value(out) {
-                    Ok(v) => Ok(CallToolResult::structured(v)),
-                    Err(_) => Ok(Self::structured_err(
-                        "serialization_failed",
-                        "Failed to serialize estimate revision",
-                    )),
-                }
-            }
-            Err(e) => Ok(Self::structured_err("no_steps", e)),
-        }
+                    .map(str::to_owned),
+            },
+        );
+        Self::native_result(result, "no_steps")
     }
 
     #[tool(
@@ -336,30 +269,20 @@ impl ThinkService {
         &self,
         Parameters(args): Parameters<BranchStatusArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.set_branch_status(&args.branch_id, &args.status, args.merged_into) {
-            Ok((prev, new)) => {
-                let merged_into = if args.status.trim().eq_ignore_ascii_case("merged") {
+        let result = self
+            .use_cases()
+            .set_branch_status(&args.branch_id, &args.status, args.merged_into)
+            .map(|(previous, new)| SetBranchStatusOutput {
+                branch_id: args.branch_id,
+                previous_status: previous.to_string(),
+                new_status: new.to_string(),
+                merged_into: if args.status.trim().eq_ignore_ascii_case("merged") {
                     args.merged_into
                 } else {
                     None
-                };
-                let out = SetBranchStatusOutput {
-                    branch_id: args.branch_id.clone(),
-                    previous_status: prev.to_string(),
-                    new_status: new.to_string(),
-                    merged_into,
-                };
-                match serde_json::to_value(out) {
-                    Ok(v) => Ok(CallToolResult::structured(v)),
-                    Err(_) => Ok(Self::structured_err(
-                        "serialization_failed",
-                        "Failed to serialize branch status",
-                    )),
-                }
-            }
-            Err(e) => Ok(Self::structured_err("unknown_branch", e)),
-        }
+                },
+            });
+        Self::native_result(result, "unknown_branch")
     }
 
     #[tool(
@@ -377,9 +300,7 @@ impl ThinkService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let v = engine.checkpoint_snapshot();
-        Ok(CallToolResult::structured(v))
+        Self::native_result(self.use_cases().checkpoint(), "engine_unavailable")
     }
 
     #[tool(
@@ -397,13 +318,7 @@ impl ThinkService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        engine.clear_history();
-        match serde_json::to_value(WipeTraceOutput { cleared: true }) {
-            Ok(v) => Ok(CallToolResult::structured(v)),
-            Err(_) => Ok(CallToolResult::success(vec![ContentBlock::text(
-                "Deliberation history cleared.".to_string(),
-            )])),
-        }
+        self.use_cases().wipe().map_err(|_| Self::poisoned())?;
+        Self::native_result(Ok(WipeTraceOutput { cleared: true }), "engine_unavailable")
     }
 }

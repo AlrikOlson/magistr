@@ -169,17 +169,12 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
     let report = engines
         .ship_finalize(vec![], Some("Characterization only".into()))
         .expect("finalize");
-    assert_eq!(report["status"], "shipped");
-    let warnings = report["warnings"]
-        .as_array()
-        .expect("finalization warnings");
+    assert_eq!(report.status, "shipped");
     assert!(
-        warnings.iter().any(|warning| {
-            warning.as_str().is_some_and(|warning| {
-                warning.contains("required checks failed") && warning.contains("fixture-verify")
-            })
+        report.warnings.iter().any(|warning| {
+            warning.contains("required checks failed") && warning.contains("fixture-verify")
         }),
-        "{report}"
+        "{report:?}"
     );
 
     let reopened = NativeReader::open_for_project(&config, "completion".into());

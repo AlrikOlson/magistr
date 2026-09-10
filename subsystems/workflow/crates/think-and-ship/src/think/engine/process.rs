@@ -34,6 +34,7 @@ use crate::think::domain::ThinkStep;
 use crate::think::util::text::truncate_excerpt;
 
 use super::core::{ProcessErr, ProcessOk, ProcessResult, ReasoningServer};
+use crate::think::domain::{RecordedStep, StepError};
 
 impl ReasoningServer {
     fn trim_history(&mut self) {
@@ -82,7 +83,18 @@ impl ReasoningServer {
         );
     }
 
-    pub fn process_step(&mut self, mut step: ThinkStep) -> ProcessResult {
+    /// Compatibility text adapter for older library clients.
+    pub fn process_step(&mut self, step: ThinkStep) -> ProcessResult {
+        self.process_step_native(step)
+            .map(|ok| ProcessOk {
+                text: serde_json::to_string_pretty(&ok.report).unwrap_or_else(|_| "{}".into()),
+            })
+            .map_err(|err| ProcessErr {
+                text: serde_json::to_string_pretty(&err).unwrap_or_else(|_| "{}".into()),
+            })
+    }
+
+    pub fn process_step_native(&mut self, mut step: ThinkStep) -> Result<RecordedStep, StepError> {
         let step_start = Instant::now();
 
         // Try to recover from XML-injection corruption BEFORE validating.
@@ -240,7 +252,6 @@ impl ReasoningServer {
         self.history.updated_at = Some(Utc::now().to_rfc3339());
 
         let step_number = step.step_number;
-        let next_action = step.next_action.clone();
         let confidence = step.confidence;
         let revises_step = step.revises_step;
         let branch_id = step.branch_id.clone();
@@ -266,6 +277,7 @@ impl ReasoningServer {
 
         // Push and index.
         let idx = self.history.steps.len();
+        let recorded_step = step.clone();
         self.history.steps.push(step);
         self.step_index.insert(step_number, idx);
         self.step_numbers.insert(step_number);
@@ -328,8 +340,6 @@ impl ReasoningServer {
         if self.history.completed {
             response.insert("completed".into(), json!(true));
         }
-        let _ = next_action; // intentionally not echoed
-        let _ = confidence; // top-level echo dropped; appears in recent_steps when relevant
         if let Some(r) = revises_step {
             response.insert("revised_step".into(), json!(r));
         }
@@ -448,9 +458,10 @@ impl ReasoningServer {
             response.insert("branches_summary".into(), Value::Array(branches_summary));
         }
 
-        Ok(ProcessOk {
-            text: serde_json::to_string_pretty(&Value::Object(response))
-                .unwrap_or_else(|_| "{}".into()),
+        Ok(RecordedStep {
+            project_id: self.project_id.clone(),
+            step: recorded_step,
+            report: Value::Object(response),
         })
     }
 
@@ -574,19 +585,16 @@ impl ReasoningServer {
         out
     }
 
-    fn make_error(&self, msg: &str) -> ProcessErr {
+    fn make_error(&self, msg: &str) -> StepError {
         let hint = if self.config.validation.strict_mode {
             "Strict mode is enabled. Set THINK_AND_SHIP_STRICT_MODE=false for flexible validation."
         } else {
             "Check that all required fields are provided."
         };
-        let body = json!({
-            "error": msg,
-            "status": "failed",
-            "hint": hint,
-        });
-        ProcessErr {
-            text: serde_json::to_string_pretty(&body).unwrap_or_else(|_| "{}".into()),
+        StepError {
+            error: msg.to_owned(),
+            status: "failed",
+            hint: hint.to_owned(),
         }
     }
 }

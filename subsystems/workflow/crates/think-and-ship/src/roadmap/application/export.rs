@@ -24,7 +24,7 @@ pub fn resolve_workspace_root(start: &Path) -> io::Result<PathBuf> {
     Ok(root)
 }
 
-pub(super) fn write_projection(root: &Path, format: &str, body: &str) -> io::Result<PathBuf> {
+fn write_projection(root: &Path, format: &str, body: &str) -> io::Result<PathBuf> {
     let filename = match format {
         "markdown" => "ROADMAP.md",
         "json" => "ROADMAP.json",
@@ -64,4 +64,38 @@ pub(super) fn write_projection(root: &Path, format: &str, body: &str) -> io::Res
         .persist(&destination)
         .map_err(|error| error.error)?;
     Ok(destination)
+}
+
+impl super::RoadmapUseCases {
+    /// Render and optionally deliver an export under the native owner lock,
+    /// so an older rendering cannot replace a newer exported snapshot.
+    pub fn export(
+        &self,
+        request: super::ExportRequest,
+    ) -> Result<super::ExportOutcome, super::RoadmapError> {
+        use super::{ExportOutcome, ExportTarget, RoadmapError};
+        if request.target == ExportTarget::File && self.workspace_root.is_none() {
+            return Err(RoadmapError::WorkspaceUnavailable);
+        }
+        let engine = self.lock()?;
+        let body = engine.export(request.format.as_str());
+        if request.target == ExportTarget::Inline {
+            return Ok(ExportOutcome::Inline {
+                format: request.format,
+                roadmap: body,
+            });
+        }
+        let root = self
+            .workspace_root
+            .as_ref()
+            .expect("file export workspace checked before rendering");
+        let path = write_projection(root, request.format.as_str(), &body)
+            .map_err(|error| RoadmapError::ExportFailed(error.to_string()))?;
+        Ok(ExportOutcome::File {
+            format: request.format,
+            path,
+            bytes: body.len(),
+            written: true,
+        })
+    }
 }

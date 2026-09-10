@@ -18,11 +18,6 @@ tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
 # First-party workflow source; the admitted Magistr owner uses the existing
 # native store. No ambient checkout, registry fallback, or second writer.
 think-and-ship = { path = "../../subsystems/workflow/crates/think-and-ship" }
-# The library's tool handlers are the one implementation of every native
-# mutation; NativeEngines calls them directly, so it names rmcp's
-# `Parameters` wrapper and `CallToolResult` — the same rmcp think-and-ship
-# resolves to.
-rmcp = { version = "3.1", features = ["server"] }
 tracing = "0.1"
 
 [dev-dependencies]

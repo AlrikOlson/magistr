@@ -117,8 +117,8 @@ impl NativeEngines {
         Ok(match command {
             ThinkCommand::RecordStep { step } => OwnerReply::Step(
                 self.think_record_step(*step)
-                    .map(|ok| ok.text)
-                    .map_err(|err| err.text),
+                    .map(|ok| ok.report.to_string())
+                    .map_err(|err| serde_json::to_string(&err).unwrap_or_else(|_| err.to_string())),
             ),
             ThinkCommand::PinStep {
                 step_number,
@@ -190,9 +190,10 @@ impl NativeEngines {
             ShipCommand::CompleteTask { task_id, artifacts } => {
                 OwnerReply::Task(self.ship_complete_task(&task_id, artifacts)?)
             }
-            ShipCommand::Finalize { artifacts, summary } => {
-                OwnerReply::Report(self.ship_finalize(artifacts, summary)?)
-            }
+            ShipCommand::Finalize { artifacts, summary } => OwnerReply::Report(
+                serde_json::to_value(self.ship_finalize(artifacts, summary)?)
+                    .map_err(|error| error.to_string())?,
+            ),
         })
     }
 

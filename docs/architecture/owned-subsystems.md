@@ -2,8 +2,8 @@
 
 Decision: accepted on 10 September 2026, authorized by the project owner.
 Native reasoning `think:712` supersedes the adapter-based receipt plan in
-`think:710`. Workflow source is now repository-local; typed use-case extraction
-and workspace integration remain pending. This document distinguishes the
+`think:710`. Workflow source and typed use cases are now repository-local;
+workspace integration remains pending. This document distinguishes the
 adopted source from the target behavior and migration constraints. The native
 roadmap remains authoritative for delivery status.
 
@@ -35,9 +35,10 @@ Magistr must decide whether evidence permits completion. In the audited
 think-and-ship source, `ship/engine/mod.rs::ship` completes an objective while
 returning warnings for incomplete tasks or failed required checks. Some
 cross-family validation and execution sequencing live in async MCP handlers.
-Magistr currently reaches those handlers through
-[its synchronous adapter](../../crates/magistr-engine/src/tas/native_engines.rs).
-Adding stronger receipt policy there creates a second semantic owner.
+Before extraction, Magistr reached those handlers through a synchronous
+adapter. That bridge has been deleted: NativeEngines and MCP now call the same
+family application use cases. Stronger receipt policy belongs to that native
+workflow boundary, rather than a second semantic owner in a transport.
 
 The earlier integration preserved dependency behavior while consolidating
 callers. That remains useful history, but treating the dependency as fixed is
@@ -136,13 +137,13 @@ freshness. Late results remain durable without attaching to a newer objective.
 | Chunk | Implementation boundary |
 | --- | --- |
 | `arch-14a-workflow-source-fork` | Repository-local workflow source adopted; native state and behavior preserved |
-| `arch-14b-workflow-use-cases` | Pending: typed use cases and completion policy beneath transports |
+| `arch-14b-workflow-use-cases` | Typed family use cases, ordinary completion policy, and run/task admission beneath transports; receipt enforcement remains deferred |
 | `arch-14c-workbench-source-fork` | Pending: Bun/TypeScript service and Rust core adoption |
 | `arch-14d-workspace-owner` | Pending: admitted owner serving multiple clients |
 | `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |
 
-The native refactor continues with workflow use-case extraction, workspace
-source adoption, owner/client integration, and source certification.
+The native refactor continues with workspace source adoption, owner/client
+integration, and source certification.
 Receipt completion depends on both the typed workflow service and source
 snapshots. Configuration, supervision, projections, host cleanup, diagnostics,
 module gates, and final acceptance inherit the applicable dependencies.
@@ -164,8 +165,14 @@ The unfinished receipt implementation is preserved as a blocked checkpoint,
 including regressions and runner work. Its temporary MCP interceptions and
 duplicate policy must be replaced during migration. It has not passed the
 integrated or full required gates and is not committed or finalized.
-Recover its objective/tasks and diffs explicitly before changing execution
-context. Neither source repository was modified during this decision.
+Its objective/task recovery remains native `think:714`. On the owner's request
+to continue on `main`, the exact draft (16 tracked changes and nine untracked
+source files) moved to the verified recovery bundle
+`/Users/alrik/Backups/magistr-main-integration-20260910T190025Z/receipt-draft`.
+The bundle includes file bytes, modes, a manifest, and the original tracked
+patch (`aef0050960e1faf9e96442abbfe51380ce86b69ade95907393cbebfc68f4e2cb`).
+Main contains the reviewed native extraction; the paused receipt draft was
+neither committed nor silently adopted. Neither source repository was modified.
 
 All implementation chunks require formatting, recorded configured gates,
 applicable imported suites, architecture and interface regressions, and

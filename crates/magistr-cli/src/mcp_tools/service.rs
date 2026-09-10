@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use magistr_engine::tas::{
-    ActionType, Check, NativeEngines, ProjectAuthority, TasConfig, WriterRole,
+    ActionType, Check, CheckSettlement, NativeEngines, ProjectAuthority, TasConfig, WriterRole,
 };
 use magistr_engine::{GateOutput, ShipGuardState};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
@@ -232,7 +232,9 @@ impl MagistrService {
     async fn run_gate(&self, spec: &GateSpec, timeout_secs: u64) -> Value {
         // Named *before* the run, so the record lands where the caller
         // stood when it asked — never on a task started while the gate ran.
-        let task = self.engines.ship_active_task_id();
+        let admission =
+            self.engines
+                .ship_admit_gate(None, &spec.name, spec.command.clone(), spec.required);
         // A gate this server runs is live on the feed socket: every chunk
         // goes out as a `gate_output` frame keyed by the gate, the frame
         // the cockpit's engine feed folds into its terminal store. A frame
@@ -263,11 +265,15 @@ impl MagistrService {
         result["gate"] = json!(spec.name);
         result["required"] = json!(spec.required);
 
-        let Some(task) = task else {
-            result["recorded"] = json!(false);
-            result["note"] = json!(unrecorded_note(NO_ACTIVE_TASK));
-            return result;
+        let admission = match admission {
+            Ok(admission) => admission,
+            Err(why) => {
+                result["recorded"] = json!(false);
+                result["note"] = json!(unrecorded_note(&why));
+                return result;
+            }
         };
+        let task = admission.target.task_id.clone();
         // nextest can emit a junit report; parsed into the record additively
         // (a missing report never fails the check). An absolute path: the
         // engine reads it verbatim.
@@ -276,16 +282,13 @@ impl MagistrService {
         let report = report
             .as_deref()
             .map(|path| path.to_string_lossy().into_owned());
-        match self.engines.ship_record_gate(
-            Some(&task),
-            &spec.name,
-            spec.command.clone(),
+        match self.engines.ship_settle_gate(
+            admission,
             run.exit_code,
             run.details(),
-            spec.required,
             report.as_deref().map(|path| ("junit", path)),
         ) {
-            Ok(check) => {
+            Ok(CheckSettlement::Applied { check }) => {
                 // Rows from the captured output, plus the junit failures the
                 // record parsed (the report names tests the panic scan may
                 // not).
@@ -295,6 +298,14 @@ impl MagistrService {
                 result["recorded"] = json!(true);
                 result["verified"] = json!(check.verified);
                 result["task_id"] = json!(task);
+            }
+            Ok(CheckSettlement::Stale { admission, outcome }) => {
+                result["recorded"] = json!(false);
+                result["note"] = json!(unrecorded_note(
+                    "the admitted workflow run or task was superseded"
+                ));
+                result["stale_admission"] = json!(admission);
+                result["unsettled_outcome"] = json!(outcome);
             }
             Err(why) => {
                 result["recorded"] = json!(false);
@@ -329,12 +340,6 @@ impl MagistrService {
         );
     }
 }
-
-/// Why a gate was not recorded: there is nowhere to record it. Word for word
-/// the engine's own refusal of a record with no task, because it is the same
-/// condition — this server just asks *before* the run rather than after, so
-/// the note a caller reads is the one it always read.
-const NO_ACTIVE_TASK: &str = "no task_id provided and no active task";
 
 /// The junit failures a recorded check parsed, as rows beside the ones the
 /// output scan found — each test once, whichever scan named it first.

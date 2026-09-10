@@ -3,6 +3,7 @@
 //! reasoning. The foundation is the domain + engine + persistence; the rmcp
 //! wire adapter (`mcp::RoadmapService`) puts `roadmap_*` on the live MCP wire.
 
+pub mod application;
 pub mod broadcast;
 pub mod domain;
 pub mod engine;
