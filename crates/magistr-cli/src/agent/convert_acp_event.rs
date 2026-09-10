@@ -14,12 +14,15 @@ pub(super) fn convert_acp_event(event: &AcpEvent) -> (Vec<AgentMessage>, bool, b
     let event_type = match event {
         AcpEvent::SessionUpdate { .. } => "session_update",
         AcpEvent::PromptResponse { .. } => "prompt_response",
+        AcpEvent::ExtensionResponse { .. } => "extension_response",
         AcpEvent::Initialized { .. } => "initialized",
         AcpEvent::Terminal { .. } => "terminal",
         AcpEvent::System { .. } => "system",
     };
     debug!(event_type, "converting ACP event");
     match event {
+        // Only the session owner can associate extension completion with a turn.
+        AcpEvent::ExtensionResponse { .. } => (Vec::new(), false, false),
         AcpEvent::SessionUpdate { update, session_id } => {
             let sid = SessionId::new(session_id);
             let messages = types::messages_from_session_update(update, &sid);

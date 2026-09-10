@@ -32,6 +32,14 @@ fn cancel_before_connect_is_an_error() {
     assert!(t.cancel().is_err());
 }
 
+#[test]
+fn an_observed_extension_before_connect_is_an_error() {
+    let error = unconnected()
+        .extension_observed(1, "_session/goal", serde_json::json!({}))
+        .expect_err("not connected");
+    assert!(matches!(error, AcpError::Transport(message) if message.contains("not connected")));
+}
+
 #[tokio::test]
 async fn close_without_connect_is_ok() {
     let mut t = unconnected();

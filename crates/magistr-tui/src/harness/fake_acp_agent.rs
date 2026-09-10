@@ -254,24 +254,9 @@ impl FakeAcpAgent {
                             observed.saw_goal(req.action.clone(), req.objective.clone());
                             if req.action == "set" && !script.goal_mute {
                                 let objective = req.objective.clone().unwrap_or_default();
-                                // The words first, the echo last, and the
-                                // order is load-bearing. The echo is what
-                                // the driver treats as delivery confirmed,
-                                // so it stops waiting the moment it lands
-                                // and the iteration can run to its end. A
-                                // chunk sent *after* the echo is racing the
-                                // whole rest of the loop to reach the model
-                                // — a race it usually wins and, under
-                                // compilation contention, sometimes loses.
-                                // Sent before it, the inbox's FIFO order
-                                // (the same guarantee the harness's quit key
-                                // rests on) puts it on the stage ahead of
-                                // everything the driver posts afterwards.
-                                //
-                                // Nothing about the wire contract requires
-                                // either order, and production is unaffected
-                                // either way: the cockpit outlives the loop
-                                // and folds a late chunk whenever it comes.
+                                // Exercise both sides of recognition. Every text
+                                // update before the response must reach presentation
+                                // before the supervisor's terminal outcome.
                                 cx.send_notification(SessionNotification::new(
                                     req.session_id.clone(),
                                     SessionUpdate::AgentMessageChunk(ContentChunk::new(
@@ -283,6 +268,12 @@ impl FakeAcpAgent {
                                 cx.send_notification(SessionNotification::new(
                                     req.session_id.clone(),
                                     goal_echo(&objective),
+                                ))?;
+                                cx.send_notification(SessionNotification::new(
+                                    req.session_id.clone(),
+                                    SessionUpdate::AgentMessageChunk(ContentChunk::new(
+                                        ContentBlock::Text(TextContent::new("\ngoal work finished")),
+                                    )),
                                 ))?;
                             }
                             responder.respond(GoalExtensionResponse {})

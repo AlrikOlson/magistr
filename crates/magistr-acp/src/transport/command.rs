@@ -7,6 +7,7 @@ use agent_client_protocol::schema::v1::{
 };
 use tokio::sync::oneshot;
 
+use super::extension_reply::ExtensionReply;
 use crate::Result;
 
 pub(crate) enum AcpCommand {
@@ -34,7 +35,7 @@ pub(crate) enum AcpCommand {
     Extension {
         method: String,
         params: serde_json::Value,
-        response_tx: oneshot::Sender<Result<serde_json::Value>>,
+        reply: ExtensionReply,
     },
     /// Shut the connection down and let the task exit.
     Close,

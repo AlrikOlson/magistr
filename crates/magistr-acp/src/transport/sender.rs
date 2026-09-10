@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{mpsc, oneshot};
 
 use super::command::AcpCommand;
+use super::extension_reply::ExtensionReply;
 use crate::handlers::effects::EffectBridge;
 use crate::{AcpError, Result};
 
@@ -89,10 +90,40 @@ impl AcpSender {
             AcpCommand::Extension {
                 method: method.to_string(),
                 params,
-                response_tx,
+                reply: ExtensionReply::Direct(response_tx),
             },
         )?;
         Ok(response_rx)
+    }
+
+    /// Send a vendor extension and observe its completion on the transport's
+    /// event stream as `AcpEvent::ExtensionResponse` with `request_id`.
+    /// Choose an id distinct from other outstanding observed requests.
+    ///
+    /// Every session update preceding the agent's response is queued before
+    /// completion, including output following an extension's initial echo.
+    /// The SDK's ordered response callback queues completion without waiting
+    /// on the consumer. This does not wait for output sent after the response
+    /// or independently spawned terminal/effect work.
+    ///
+    /// # Errors
+    ///
+    /// When the session is not live. Request failures arrive on the event
+    /// stream with the same id.
+    pub fn extension_observed(
+        &self,
+        request_id: u64,
+        method: &str,
+        params: serde_json::Value,
+    ) -> Result<()> {
+        self.send(
+            "send an observed extension request",
+            AcpCommand::Extension {
+                method: method.to_string(),
+                params,
+                reply: ExtensionReply::Observed(request_id),
+            },
+        )
     }
 }
 

@@ -1108,57 +1108,43 @@ impl LoopDriver {
             delivery.label()
         ));
         let extension = matches!(delivery, Delivery::Extension { .. });
-        if extension && pending.is_none() {
-            // The supervisor emitted the observed outcome before resolving
-            // the extension reply. Do not fabricate another terminal event.
-        } else if !extension && turn_ended {
-            // The command turn's end reached the cockpit's tap while the
-            // echo was still being waited for on the transport's — the
-            // two taps are polled in a random order, and under load the
-            // relay can be a whole turn ahead. That end was consumed
-            // above; waiting for it again here is waiting for a message
-            // that will never come, which is what hung a loaded test
-            // until the cockpit was closed under it.
-        } else {
-            let mut tap = Some(tap);
-            loop {
-                tokio::select! {
-                    event = drained(&mut tap) => {
-                        if event.is_none() {
-                            return Err(
-                                "the agent observation stream ended before the delegated turn settled"
-                                    .to_owned(),
-                            );
-                        }
+        // Both observations are required for extensions: the reply proves
+        // execution succeeded, and the cockpit's terminal event proves all
+        // preceding provider text crossed the presentation relay. Closing on
+        // the reply alone can discard that relay's still-queued transcript.
+        let mut tap = Some(tap);
+        while !turn_ended || (extension && pending.is_some()) {
+            tokio::select! {
+                event = drained(&mut tap) => {
+                    if event.is_none() {
+                        return Err(
+                            "the agent observation stream ended before the delegated turn settled"
+                                .to_owned(),
+                        );
                     }
-                    answer = extension_answer(&mut pending) => {
-                        pending = None;
-                        answer
-                            .map_err(|error| format!("the goal response was lost: {error}"))?
-                            .map_err(|error| format!("the goal loop failed: {error}"))?;
-                        if extension {
-                            // Terminal evidence is emitted by the same owner
-                            // that admitted and supervised the extension.
-                            break;
-                        }
-                    }
-                    wake = self.wake(None, Some(ticks)) => match wake {
-                        Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(end))) if !extension => {
-                            self.accept_turn_end(end)?;
-                            break;
-                        }
-                        Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
-                            return Err(format!("the agent failed: {e}"));
-                        }
-                        Wake::Closed => return Ok(Attempt::Closed),
-                        Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
-                        Wake::Cmd(other) => {
-                            let _ = session.send(other);
-                        }
-                        Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
-                        Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
-                    },
                 }
+                answer = extension_answer(&mut pending) => {
+                    pending = None;
+                    answer
+                        .map_err(|error| format!("the goal response was lost: {error}"))?
+                        .map_err(|error| format!("the goal loop failed: {error}"))?;
+                }
+                wake = self.wake(None, Some(ticks)) => match wake {
+                    Wake::Tap(Msg::Agent(AgentEvent::TurnEnded(end))) => {
+                        self.accept_turn_end(end)?;
+                        turn_ended = true;
+                    }
+                    Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
+                        return Err(format!("the agent failed: {e}"));
+                    }
+                    Wake::Closed => return Ok(Attempt::Closed),
+                    Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
+                    Wake::Cmd(other) => {
+                        let _ = session.send(other);
+                    }
+                    Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                    Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                },
             }
         }
         Ok(Attempt::Confirmed(pick))

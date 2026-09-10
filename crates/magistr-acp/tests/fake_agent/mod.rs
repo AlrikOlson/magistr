@@ -52,6 +52,10 @@ pub struct Script {
     /// serve it: a `set` echoes the objective back as a
     /// `session_info_update` with `_meta.goal`, then answers `{}`.
     pub goal_extension: bool,
+    /// Emit text before and after the goal echo, before sending its response.
+    pub goal_text: bool,
+    /// Leave the goal request unanswered until the agent disconnects.
+    pub hang_goal: bool,
 }
 
 /// The advertisement the fake puts in `initialize._meta` when it serves
@@ -126,6 +130,8 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
         let supports_load = script.supports_load;
         let ignore_config_changes = script.ignore_config_changes;
         let goal_extension = script.goal_extension;
+        let goal_text = script.goal_text;
+        let hang_goal = script.hang_goal;
         Agent
             .builder()
             .name("fake-agent")
@@ -157,6 +163,14 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
                             .expect("lock")
                             .push((req.action.clone(), req.objective.clone()));
                         if req.action == "set" {
+                            if goal_text {
+                                cx.send_notification(SessionNotification::new(
+                                    req.session_id.clone(),
+                                    SessionUpdate::AgentMessageChunk(ContentChunk::new(
+                                        ContentBlock::Text(TextContent::new("before goal echo")),
+                                    )),
+                                ))?;
+                            }
                             let mut meta = Meta::new();
                             meta.insert(
                                 "goal".to_owned(),
@@ -167,12 +181,27 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
                                 }),
                             );
                             cx.send_notification(SessionNotification::new(
-                                req.session_id,
+                                req.session_id.clone(),
                                 SessionUpdate::SessionInfoUpdate(
                                     agent_client_protocol::schema::v1::SessionInfoUpdate::new()
                                         .meta(meta),
                                 ),
                             ))?;
+                            if goal_text {
+                                cx.send_notification(SessionNotification::new(
+                                    req.session_id,
+                                    SessionUpdate::AgentMessageChunk(ContentChunk::new(
+                                        ContentBlock::Text(TextContent::new("after goal echo")),
+                                    )),
+                                ))?;
+                            }
+                        }
+                        if hang_goal {
+                            cx.spawn(async move {
+                                std::future::pending::<()>().await;
+                                responder.respond(GoalResponse {})
+                            })?;
+                            return Ok(());
                         }
                         responder.respond(GoalResponse {})
                     }

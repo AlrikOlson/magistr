@@ -3,6 +3,7 @@
 mod command;
 mod command_loop;
 mod connection;
+mod extension_reply;
 mod handshake;
 mod lines;
 mod sender;
@@ -393,6 +394,23 @@ impl AcpTransport {
         params: serde_json::Value,
     ) -> Result<oneshot::Receiver<Result<serde_json::Value>>> {
         self.sender()?.extension(method, params)
+    }
+
+    /// Send a vendor extension whose completion arrives on the event stream;
+    /// see [`AcpSender::extension_observed`].
+    ///
+    /// # Errors
+    ///
+    /// When the session is not live. Request failures arrive as a correlated
+    /// [`AcpEvent::ExtensionResponse`] instead.
+    pub fn extension_observed(
+        &self,
+        request_id: u64,
+        method: &str,
+        params: serde_json::Value,
+    ) -> Result<()> {
+        self.sender()?
+            .extension_observed(request_id, method, params)
     }
 
     /// `session/list`, optionally filtered by working directory.

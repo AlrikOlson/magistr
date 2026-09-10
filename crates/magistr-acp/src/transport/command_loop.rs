@@ -11,7 +11,7 @@ use agent_client_protocol::schema::v1::{
     CancelNotification, ContentBlock, ListSessionsRequest, PromptRequest, SessionConfigId,
     SessionId, SetSessionConfigOptionRequest, TextContent,
 };
-use agent_client_protocol::{Agent, ConnectionTo, UntypedMessage};
+use agent_client_protocol::{Agent, ConnectionTo};
 use tokio::process::Child;
 use tokio::sync::{mpsc, oneshot};
 
@@ -180,46 +180,12 @@ impl Session {
             AcpCommand::Extension {
                 method,
                 params,
-                response_tx,
+                reply,
             } => {
-                self.extension(method, params, response_tx);
+                reply.request(&self.cx, method, params, self.event_tx.clone());
                 Ok(())
             }
             AcpCommand::Close => Err(Stop::Requested),
-        }
-    }
-
-    /// Send an extension request as its own task on the connection, so
-    /// the loop keeps serving cancel and close while it is out — it may
-    /// not come back for a whole turn. The answer, or the failure,
-    /// lands on `response_tx`.
-    fn extension(
-        &self,
-        method: String,
-        params: serde_json::Value,
-        response_tx: oneshot::Sender<Result<serde_json::Value>>,
-    ) {
-        let request = match UntypedMessage::new(&method, params) {
-            Ok(request) => request,
-            Err(e) => {
-                let _ = response_tx.send(Err(AcpError::transport(format!(
-                    "ACP {method} could not be encoded: {e}"
-                ))));
-                return;
-            }
-        };
-        let cx = self.cx.clone();
-        let spawned = self.cx.spawn(async move {
-            let result = cx
-                .send_request(request)
-                .block_task()
-                .await
-                .map_err(|e| AcpError::transport(format!("ACP {method} failed: {e}")));
-            let _ = response_tx.send(result);
-            Ok(())
-        });
-        if let Err(e) = spawned {
-            tracing::warn!(error = %e, "ACP extension request could not be spawned");
         }
     }
 
@@ -262,8 +228,8 @@ impl Session {
                     }
                     // An extension call mid-turn is exactly what a
                     // steering-style extension is for.
-                    Some(AcpCommand::Extension { method, params, response_tx }) => {
-                        self.extension(method, params, response_tx);
+                    Some(AcpCommand::Extension { method, params, reply }) => {
+                        reply.request(&self.cx, method, params, self.event_tx.clone());
                     }
                 },
                 result = &mut response => break result,

@@ -37,6 +37,11 @@ pub fn translate(event: &magistr_acp::Result<AcpEvent>) -> AgentEvent {
         AcpEvent::PromptResponse { response, .. } => {
             AgentEvent::TurnEnded(turn_end(&response.stop_reason))
         }
+        // Extension outcomes belong to the admitting session owner. A raw
+        // response alone cannot establish a cockpit turn outcome.
+        AcpEvent::ExtensionResponse { .. } => AgentEvent::System {
+            subtype: "extension_response".to_owned(),
+        },
         AcpEvent::Terminal { terminal_id, bytes } => AgentEvent::Terminal {
             terminal_id: terminal_id.clone(),
             bytes: bytes.clone(),

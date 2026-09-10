@@ -610,6 +610,131 @@ async fn an_unknown_extension_method_fails_on_the_receiver_not_the_call() {
     );
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_observed_extension_finishes_after_all_pre_response_text_including_after_its_echo() {
+    let (transport, mut events, _) = connect(Script {
+        goal_extension: true,
+        goal_text: true,
+        ..Script::default()
+    })
+    .await;
+    let _ = next(&mut events).await;
+    // Keep the consumer behind the producer: completion must be another FIFO
+    // entry, never a separate readiness signal that can overtake unread text.
+    transport
+        .extension_observed(
+            41,
+            "_session/goal",
+            serde_json::json!({"sessionId": SESSION_ID, "action": "set", "objective": "finish"}),
+        )
+        .expect("issued");
+    let mut ordered = Vec::new();
+    loop {
+        match next(&mut events).await.expect("event") {
+            AcpEvent::SessionUpdate { update, .. } => match *update {
+                SessionUpdate::AgentMessageChunk(chunk) => {
+                    let agent_client_protocol::schema::v1::ContentBlock::Text(text) = chunk.content
+                    else {
+                        panic!("text expected");
+                    };
+                    ordered.push(text.text);
+                }
+                SessionUpdate::SessionInfoUpdate(_) => ordered.push("echo".to_owned()),
+                other => panic!("unexpected update: {other:?}"),
+            },
+            AcpEvent::ExtensionResponse { request_id, result } => {
+                assert_eq!(request_id, 41);
+                assert_eq!(result.expect("agent answered"), serde_json::json!({}));
+                ordered.push("response".to_owned());
+                break;
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
+    }
+    assert_eq!(
+        ordered,
+        ["before goal echo", "echo", "after goal echo", "response"]
+    );
+}
+
+#[tokio::test]
+async fn an_observed_extension_refusal_carries_its_request_id_and_error() {
+    let (transport, mut events, _) = connect(Script::default()).await;
+    let _ = next(&mut events).await;
+    transport
+        .sender()
+        .expect("sender")
+        .extension_observed(42, "_nobody/home", serde_json::json!({}))
+        .expect("issued");
+    match next(&mut events).await.expect("completion event") {
+        AcpEvent::ExtensionResponse { request_id, result } => {
+            assert_eq!(request_id, 42);
+            assert!(result.expect_err("refused").contains("_nobody/home"));
+        }
+        other => panic!("expected extension refusal, got {other:?}"),
+    }
+    assert!(
+        transport.is_ready(),
+        "a request refusal leaves the session live"
+    );
+}
+
+#[tokio::test]
+async fn an_observed_extension_reports_connection_loss_once_without_inventing_success() {
+    let (client_end, _, agent) = fake_agent::spawn(Script {
+        goal_extension: true,
+        hang_goal: true,
+        ..Script::default()
+    });
+    let mut transport =
+        AcpTransport::new_with_args(PathBuf::from("fake-agent"), vec![], None).expect("construct");
+    transport.connect_over(client_end).await.expect("handshake");
+    let mut events = transport.read_events().expect("events");
+    let _ = next(&mut events).await;
+    transport
+        .extension_observed(
+            43,
+            "_session/goal",
+            serde_json::json!({"sessionId": SESSION_ID, "action": "set", "objective": "pending"}),
+        )
+        .expect("issued");
+    // The echo proves that the request is in flight before the peer disappears.
+    assert!(matches!(
+        next(&mut events).await,
+        Ok(AcpEvent::SessionUpdate { .. })
+    ));
+    agent.abort();
+    assert!(agent.await.expect_err("agent aborted").is_cancelled());
+    let completion = tokio::time::timeout(WAIT, async {
+        loop {
+            let event = events
+                .recv()
+                .await
+                .expect("pending request has a completion");
+            if let Ok(AcpEvent::ExtensionResponse { request_id, result }) = event {
+                break (request_id, result);
+            }
+        }
+    })
+    .await
+    .expect("connection loss completes the pending request");
+    assert_eq!(completion.0, 43);
+    assert!(
+        completion
+            .1
+            .as_ref()
+            .expect_err("no peer response")
+            .contains("_session/goal")
+    );
+    transport.close().await.expect("cleanup");
+    while let Some(event) = events.recv().await {
+        assert!(
+            !matches!(event, Ok(AcpEvent::ExtensionResponse { .. })),
+            "a request completes only once"
+        );
+    }
+}
+
 #[tokio::test]
 async fn a_sender_outlives_the_transport_handle_and_a_tap_sees_every_ok_event() {
     let (client_end, _observed, _agent) = fake_agent::spawn(Script::default());
@@ -650,6 +775,7 @@ async fn a_sender_outlives_the_transport_handle_and_a_tap_sees_every_ok_event() 
                 AcpEvent::Initialized { .. } => "initialized".to_owned(),
                 AcpEvent::SessionUpdate { .. } => "update".to_owned(),
                 AcpEvent::PromptResponse { .. } => "prompt_response".to_owned(),
+                AcpEvent::ExtensionResponse { .. } => "extension_response".to_owned(),
                 AcpEvent::Terminal { .. } => "terminal".to_owned(),
                 AcpEvent::System { subtype, .. } => subtype.clone(),
             })
