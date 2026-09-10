@@ -7,7 +7,7 @@ use std::time::Duration;
 use color_eyre::eyre::{self, Context as _};
 use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::cockpit::{Model, Summary};
-use magistr_cockpit::engine::{EngineClient, NativeEnginePort, StoreSeed};
+use magistr_cockpit::engine::{EngineClient, StoreSeed};
 use magistr_cockpit::theme::Theme;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};
@@ -30,18 +30,22 @@ const SESSION_GRACE: Duration = Duration::from_secs(5);
 ///
 /// Everything that can fail loudly happens on the normal terminal first:
 /// this process is admitted as the project's host and the think-and-ship
-/// engines open, then the agent is spawned and its handshake completed — a
-/// store that cannot be opened, a host lease another cockpit holds, or an
-/// agent that cannot start is printed on stdout and nothing else happens. Only then
-/// is the terminal taken over, the feed and the session attached, and
+/// engines open — or, when a loop or another `run` already holds the host,
+/// it attaches to that host's owner endpoint and acts through its writer —
+/// then the agent is spawned and its handshake completed. A store that
+/// cannot be opened, a held host with no endpoint to attach to, or an agent
+/// that cannot start is printed on stdout and nothing else happens. Only
+/// then is the terminal taken over, the feed and the session attached, and
 /// the loop run; leaving restores the terminal, the session ends the
-/// agent, and the summary lands in the scrollback.
+/// agent, and the summary lands in the scrollback. A host serves its own
+/// owner endpoint for the run, so the next cockpit on the project attaches
+/// the same way.
 pub async fn cmd_run_cockpit(
     config: agent::AgentConfig,
     profile: PermissionProfile,
 ) -> eyre::Result<()> {
     let root = config.cwd.clone();
-    let engines = match EngineClient::open(&root) {
+    let engines = match EngineClient::admit_or_attach(&root) {
         Ok(engines) => engines,
         Err(err) => {
             println!(
@@ -51,10 +55,18 @@ pub async fn cmd_run_cockpit(
             return Err(eyre::eyre!("the cockpit did not start"));
         }
     };
-    let writer = engines
-        .writer()
-        .cloned()
-        .ok_or_else(|| eyre::eyre!("the cockpit run was opened without a host admission"))?;
+    let engine_port = engines
+        .port()
+        .ok_or_else(|| eyre::eyre!("the cockpit run was opened without a host or an owner"))?;
+    // Dropped after the runtime and before the engines: the endpoint stops
+    // taking clients before this host releases the project.
+    let owner_endpoint = match engines.serve_owner().await {
+        Ok(endpoint) => endpoint,
+        Err(err) => {
+            println!("magistr: {err}");
+            return Err(eyre::eyre!("the cockpit did not start"));
+        }
+    };
     let spec = config.permission_profile(profile).resolve()?;
     let root = spec.cwd().to_path_buf();
     let profile = spec.permission_profile();
@@ -89,7 +101,7 @@ pub async fn cmd_run_cockpit(
         runtime.inbox(),
         commands,
         crate::orchestration::commands::workbench_port::workbench_port(&root),
-        Some(Box::new(NativeEnginePort::new(writer))),
+        Some(engine_port),
         Some(Box::new(SpinePort::at(
             session_engine(&root, engines.reader().clone()),
             root.clone(),
@@ -112,6 +124,7 @@ pub async fn cmd_run_cockpit(
         .await;
     feed.abort();
     reseed.abort();
+    drop(owner_endpoint);
     // Dropping a JoinHandle detaches its task. Keep ownership across the
     // deadline and await an aborted relay so its supervisor is released.
     match tokio::time::timeout(SESSION_GRACE, &mut session).await {

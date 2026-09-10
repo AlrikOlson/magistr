@@ -1,14 +1,22 @@
 //! The engines, opened before the terminal is taken over.
 
+use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use magistr_engine::{NativeEngines, NativeReader, ProjectAuthority, TasConfig, WriterRole};
+use magistr_engine::{
+    CallerIdentity, NativeEngines, NativeReader, OwnerClient, OwnerEndpoint, OwnerGeneration,
+    ProjectAuthority, TasConfig, WriterRole,
+};
 use tokio::task::JoinHandle;
 
 use super::attached::FeedAttached;
+use super::attached_port::AttachedEnginePort;
 use super::error::EngineError;
 use super::feed::spawn_feed;
+use super::native_port::NativeEnginePort;
+use super::port::EnginePort;
 use super::reseed::spawn_reseed;
 use crate::channel::Inbox;
 
@@ -22,14 +30,22 @@ use crate::channel::Inbox;
 /// cockpit or loop per project and store, beside the agent's own
 /// `magistr mcp-serve` in the other role — while [`EngineClient::observe`]
 /// holds a reader only, so a viewer never contends with a running host.
+/// [`EngineClient::admit_or_attach`] is the cockpit's own entry: the host
+/// when the role is free, otherwise a client on the running host's owner
+/// endpoint ([`OwnerClient`]) acting through that host's writer — and a
+/// refusal when neither is possible, never a second writer.
 #[derive(Clone, Debug)]
 pub struct EngineClient {
     reader: NativeReader,
     /// The admitted writer, when this client was opened or attached as a
     /// host rather than as an observer.
     writer: Option<NativeEngines>,
+    /// The running host's owner endpoint, when this client attached to it
+    /// instead of holding a writer. Shared with the engine port, which
+    /// speaks on it one verb at a time.
+    attached: Option<Arc<Mutex<OwnerClient>>>,
     socket: PathBuf,
-    attached: FeedAttached,
+    feed_attached: FeedAttached,
 }
 
 impl EngineClient {
@@ -62,6 +78,57 @@ impl EngineClient {
         Ok(Self::attach(engines))
     }
 
+    /// The host of the project at `root` when the role is free; otherwise
+    /// a client attached to the running host's owner endpoint, acting
+    /// through that host's writer. Fails closed when the role is held and
+    /// no endpoint answers: the caller may run the observer cockpit
+    /// ([`Self::observe`]) explicitly, but nothing here opens a second
+    /// writer.
+    ///
+    /// # Errors
+    ///
+    /// As [`Self::open`], except that a held host lease becomes
+    /// [`EngineError::Occupied`] only when attaching failed too — the
+    /// refusal carries both reasons.
+    pub fn admit_or_attach(root: impl Into<PathBuf>) -> Result<Self, EngineError> {
+        Self::admit_or_attach_config(TasConfig::from_env(root))
+    }
+
+    /// [`Self::admit_or_attach`] on an explicit store configuration.
+    ///
+    /// # Errors
+    ///
+    /// As [`Self::admit_or_attach`].
+    pub fn admit_or_attach_config(config: TasConfig) -> Result<Self, EngineError> {
+        let (root, lease) = match Self::with_config(config.clone()) {
+            Ok(host) => return Ok(host),
+            Err(EngineError::Admission { root, source })
+                if source.kind() == io::ErrorKind::WouldBlock =>
+            {
+                (root, source)
+            }
+            Err(other) => return Err(other),
+        };
+        match OwnerClient::attach_project(
+            &config,
+            WriterRole::Host,
+            CallerIdentity::this_process("cockpit"),
+        ) {
+            Ok(client) => Ok(Self {
+                socket: config.feed_socket_path(),
+                reader: NativeReader::open(&config),
+                writer: None,
+                attached: Some(Arc::new(Mutex::new(client))),
+                feed_attached: FeedAttached::new(),
+            }),
+            Err(attach) => Err(EngineError::Occupied {
+                root,
+                lease,
+                attach,
+            }),
+        }
+    }
+
     /// Observe the project at `root` without admission: a reader for the
     /// seed, the feed and the re-seed timer, and no writer. The launcher and
     /// the bare roadmap cockpit open this way, so they run beside a loop or
@@ -86,7 +153,8 @@ impl EngineClient {
             socket: config.feed_socket_path(),
             reader: NativeReader::open(&config),
             writer: None,
-            attached: FeedAttached::new(),
+            attached: None,
+            feed_attached: FeedAttached::new(),
         })
     }
 
@@ -99,7 +167,8 @@ impl EngineClient {
             socket: engines.config().feed_socket_path(),
             reader: engines.reader(),
             writer: Some(engines),
-            attached: FeedAttached::new(),
+            attached: None,
+            feed_attached: FeedAttached::new(),
         }
     }
 
@@ -123,10 +192,57 @@ impl EngineClient {
         &self.reader
     }
 
-    /// The admitted writer, `None` for an observer.
+    /// The admitted writer, `None` for an observer or an attached client.
     #[must_use]
     pub const fn writer(&self) -> Option<&NativeEngines> {
         self.writer.as_ref()
+    }
+
+    /// The generation of the running host this client is attached to,
+    /// `None` when it holds a writer of its own or observes.
+    #[must_use]
+    pub fn attached_generation(&self) -> Option<OwnerGeneration> {
+        self.attached.as_ref().map(|client| {
+            client
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .generation()
+        })
+    }
+
+    /// The engine port the session acts through: the in-process writer
+    /// when this client is the host, the running host's endpoint when it
+    /// attached, and nothing for an observer.
+    #[must_use]
+    pub fn port(&self) -> Option<Box<dyn EnginePort>> {
+        if let Some(writer) = &self.writer {
+            return Some(Box::new(NativeEnginePort::new(writer.clone())));
+        }
+        self.attached.as_ref().map(|client| {
+            Box::new(AttachedEnginePort::new(Arc::clone(client))) as Box<dyn EnginePort>
+        })
+    }
+
+    /// Serve this host's owner endpoint, so a second cockpit on the project
+    /// attaches to this writer instead of being refused. `None` when this
+    /// client holds no writer. The endpoint lives as long as the handle:
+    /// keep it beside the runtime and let it drop before the client does.
+    ///
+    /// # Errors
+    ///
+    /// The endpoint cannot be served — another listener is live at the
+    /// socket, or it cannot be bound.
+    pub async fn serve_owner(&self) -> Result<Option<OwnerEndpoint>, EngineError> {
+        let Some(writer) = &self.writer else {
+            return Ok(None);
+        };
+        OwnerEndpoint::serve(writer.clone())
+            .await
+            .map(Some)
+            .map_err(|source| EngineError::Endpoint {
+                path: writer.authority().owner_socket_path(),
+                source,
+            })
     }
 
     /// The broadcast socket the feed attaches to.
@@ -139,7 +255,7 @@ impl EngineClient {
     /// of attachment reaches `inbox` as `Msg::Engine`, reconnecting for as
     /// long as the loop lives. Abort the handle to stop it early.
     pub fn subscribe(&self, inbox: Inbox) -> JoinHandle<()> {
-        spawn_feed(self.socket.clone(), inbox, self.attached.clone())
+        spawn_feed(self.socket.clone(), inbox, self.feed_attached.clone())
     }
 
     /// How often a cockpit with no feed attached re-reads the store.
@@ -155,7 +271,7 @@ impl EngineClient {
     pub fn reseed(&self, inbox: Inbox) -> JoinHandle<()> {
         spawn_reseed(
             self.reader.clone(),
-            self.attached.clone(),
+            self.feed_attached.clone(),
             inbox,
             Self::RESEED,
         )

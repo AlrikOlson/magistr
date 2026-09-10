@@ -30,6 +30,9 @@ pub async fn cmd_next_loop(
     .suggest()?;
     let max_iterations = iter_loop.max_iterations();
     iter_loop.persist().suggest()?;
+    // The host's owner endpoint, for a cockpit opened beside this loop;
+    // it lives for the loop and drops before the writer.
+    let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
 
     eprintln!(
         "{}\n",

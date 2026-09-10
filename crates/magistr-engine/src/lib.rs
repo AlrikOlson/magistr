@@ -73,8 +73,10 @@ pub use session::{
 };
 pub use spec::SpecSummary;
 pub use tas::{
-    FeedStatus, GateOutput, NativeEngines, NativeFrame, NativeReader, NativeRoadmapSnapshot,
-    ProjectAuthority, RoadmapBackend, TasConfig, WriterRole,
+    AttachError, AttachKind, AttachRefusal, CallerIdentity, FeedStatus, GateOutput, McpAcceptor,
+    NativeEngines, NativeFrame, NativeReader, NativeRoadmapSnapshot, OwnerClient, OwnerCommand,
+    OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, RoadmapBackend, RoadmapCommand,
+    ShipCommand, SignalCommand, TasConfig, ThinkCommand, WriterRole,
 };
 // The library's own wire types behind the NativeEngines verbs, re-exported
 // so engine hosts (the TUI, the GUI) can drive them without depending on

@@ -28,6 +28,7 @@ mod format_runs;
 pub(crate) mod gate;
 pub(crate) mod hooks;
 mod init;
+mod owner_attach;
 pub mod protocol_cap;
 mod roadmap_export;
 mod service;
@@ -467,7 +468,20 @@ pub async fn run_stdio_server(project_root: PathBuf) -> eyre::Result<()> {
         tracing::warn!(target: "magistr::mcp", "could not enter {}: {e}", project_root.display());
     }
 
-    let service = MagistrService::for_project(project_root).await?;
+    // The project's service owner — or, when another `magistr mcp-serve`
+    // already owns it, a proxy on that owner's endpoint: a second agent
+    // session in the same project gets the same tools through the one
+    // admitted writer, and this process holds no lease of its own.
+    let service = match MagistrService::for_project(project_root.clone()).await {
+        Ok(service) => service,
+        Err(refusal) if refusal.kind() == std::io::ErrorKind::WouldBlock => {
+            return owner_attach::proxy_to_owner(&project_root, &refusal).await;
+        }
+        Err(error) => return Err(error.into()),
+    };
+    // Served for the stdio session and dropped with it, so attached
+    // sessions end when the owner does.
+    let owner_endpoint = service.serve_owner_endpoint().await?;
     // Cap the negotiated MCP protocol below 2026-07-28 — the Claude Agent
     // SDK's bundled CLI rejects that era's SEP-2322 result shapes and kills
     // the server after three failed tools/list attempts (see `protocol_cap`).
@@ -478,6 +492,7 @@ pub async fn run_stdio_server(project_root: PathBuf) -> eyre::Result<()> {
     >::into_transport(rmcp::transport::stdio()));
     let running = service.serve(transport).await?;
     running.waiting().await?;
+    drop(owner_endpoint);
     Ok(())
 }
 

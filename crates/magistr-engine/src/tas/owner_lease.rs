@@ -4,8 +4,23 @@ use std::path::{Path, PathBuf};
 
 use think_and_ship::infra::{Broadcaster, Domain, Persistence};
 
+use super::owner_generation::OwnerGeneration;
 use super::tas_config::TasConfig;
 use super::writer_role::WriterRole;
+
+/// The lock file `role` contends on for `project_id` on the store `tas`
+/// names — under the persistent store, or the project's `.magistr/` when
+/// persistence is off. Also what the owner endpoint's socket is derived
+/// from, so the endpoint is keyed by exactly what the lease is.
+pub(crate) fn lock_path(tas: &TasConfig, project_id: &str, role: WriterRole) -> PathBuf {
+    if tas.persist {
+        Persistence::new(&tas.persistence_config(), Domain::Roadmap)
+            .path_for(project_id)
+            .with_extension(role.lock_suffix())
+    } else {
+        tas.project_root.join(".magistr").join(role.lock_suffix())
+    }
+}
 
 /// The advisory locks an admitted writer holds for as long as its authority
 /// lives: the role's project lock, plus the feed publisher's lock when the
@@ -17,6 +32,8 @@ use super::writer_role::WriterRole;
 /// process exits, which is the whole of "orderly release".
 pub(crate) struct OwnerLease {
     files: Vec<File>,
+    /// Minted in the project lock the moment it was taken.
+    generation: OwnerGeneration,
 }
 
 impl OwnerLease {
@@ -27,16 +44,33 @@ impl OwnerLease {
     /// I/O failure creating or opening the lock file. Nothing is opened after
     /// a refusal.
     pub(crate) fn acquire(tas: &TasConfig, project_id: &str, role: WriterRole) -> io::Result<Self> {
-        let path = if tas.persist {
-            Persistence::new(&tas.persistence_config(), Domain::Roadmap)
-                .path_for(project_id)
-                .with_extension(role.lock_suffix())
-        } else {
-            tas.project_root.join(".magistr").join(role.lock_suffix())
+        let path = lock_path(tas, project_id, role);
+        let mut lease = Self {
+            files: Vec::new(),
+            generation: OwnerGeneration::default(),
         };
-        let mut lease = Self { files: Vec::new() };
         lease.lock(&path, role.resource())?;
+        // The counter lives at the head of the project lock, written under
+        // it: the one place every admission of this role passes through.
+        let lock = lease
+            .files
+            .first_mut()
+            .ok_or_else(|| io::Error::other("magistr: lease taken without a lock file"))?;
+        lease.generation = OwnerGeneration::mint(lock).map_err(|error| {
+            io::Error::new(
+                error.kind(),
+                format!(
+                    "magistr: cannot mint the owner generation in {}: {error}",
+                    path.display()
+                ),
+            )
+        })?;
         Ok(lease)
+    }
+
+    /// Which incarnation of this role's owner the lease is.
+    pub(crate) const fn generation(&self) -> OwnerGeneration {
+        self.generation
     }
 
     fn lock(&mut self, path: &Path, resource: &str) -> io::Result<()> {
