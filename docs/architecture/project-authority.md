@@ -21,8 +21,8 @@ third, holding neither.
 | Capability | Type | Admission | Holds |
 | --- | --- | --- | --- |
 | Read | `NativeReader` | None. `NativeReader::open` reads the store's locked merge-on-save files and `reload_*` re-reads them when `store_stamp` moves. | Queries, reloads, the store stamp, the reasoning archive. |
-| Write | `NativeEngines` | Only `ProjectAuthority::open`. Every clone carries the lease; the role's lock is released with the last writer, never with a reader. | Typed commands over the reader (`Deref`), each a short critical section on one engine lock; `apply` carries an `OwnerCommand` out the same way. |
-| Transport | `UnifiedService` | Only `ProjectAuthority::serve`, which composes the four family services inside the engine crate. | The MCP verbs; the service keeps the authority beside them. |
+| Write | `NativeEngines` | Only `ProjectAuthority::open`. Every clone carries the lease; the role's lock is released with the last writer, never with a reader. | Typed verbs over the reader (`Deref`), each carried out by the library's own tool handler (see [One write path](#one-write-path)); `apply` carries an `OwnerCommand` out the same way. |
+| Transport | `UnifiedService` | Only `ProjectAuthority::serve`, which hands the same four family services the writer acts through to the wire, and the writer beside them. | The MCP verbs; the service keeps the writer and the authority beside them. |
 | Attached | `OwnerClient` | A welcomed handshake on the owner's endpoint. No lease, no engine. | One connection, one command in flight, the owner's generation. |
 
 No raw engine, mutable callback or independent constructor is reachable from
@@ -30,6 +30,65 @@ outside `magistr-engine`. The escape hatches `with_roadmap`, `with_think`,
 `with_ship` and `with_signal` are gone; the verbs their callers needed
 (`signal_research`, `roadmap_propose_title`, `roadmap_propose_status`) are typed
 commands.
+
+## One write path
+
+Every supported native mutation runs one implementation: the think-and-ship
+tool handler behind the MCP verb of the same name. `ProjectAuthority::open`
+composes the four family services exactly as the standalone `think-and-ship`
+binary composes them — the reciprocal wire-layer handles included, so
+`signal_promote` creates the backlog chunk and `roadmap_status` folds in the
+pending-signal count — and `NativeEngines` holds them. Each typed verb builds
+the handler's own argument struct, runs the handler method directly and reads
+its structured answer back the way a wire client reads it: the value on
+success, the message of a soft `{ok: false}` refusal or of an MCP error as
+the `Err`. `ProjectAuthority::serve` hands those same service instances to
+the transport as its `UnifiedService` and the writer beside them.
+
+So the agent's `roadmap_start_chunk` over MCP, the cockpit's \[Start\], a
+second cockpit's `OwnerCommand` over the owner endpoint, the loop driver's
+judged completion and `magistr_gate`'s recording are one handler on one set
+of engines: the same validation (an empty signal body or a blank research
+summary is refused everywhere), the same cross-family behavior (promoting a
+signal from the cockpit creates and cross-links `signal-<id>` exactly as the
+verb does), the same short critical section on the same engine lock, the
+same persistence. The MCP transport's own mutations — a gate it ran, a phase
+it recorded — act through that writer and never through its own wire.
+
+The handlers are `async` because rmcp's router requires the signature, not
+because they suspend; each takes an engine lock, acts and returns. The writer
+therefore polls a handler once with the standard no-op waker, which is exact
+for a future that completes on its first poll, and refuses — with a message,
+never by spinning or blocking — a handler that does suspend. Two verbs are
+the exception, each a direct call of exactly the engine method the wire's
+handler calls itself: `ship_record_gate` (`ship_check`'s handler executes
+the command before recording; Magistr's runner already ran the gate on a pty,
+so only the recording half, `record_check_full`, applies) and
+`roadmap_propose_title` / `roadmap_propose_status` (tracker-mirror verbs
+with no MCP tool). The `native-write-path` gate
+(`scripts/native-write-path-gate.sh`) keeps the inventory executable:
+engines and services are composed only in `magistr-engine`'s `tas` module,
+an engine lock is taken only by the writer and the reader, the two exceptions
+appear exactly once each, nothing under `mcp_tools` constructs a tool call to
+its own wire, and only `magistr-engine` and `magistr-cli` depend on
+think-and-ship directly.
+
+### Identities
+
+Every mutation names its target: the chunk, task, step or signal it acts on.
+Records that could fall on "whichever task is active" name the task instead:
+`magistr_gate` and the loop driver resolve the trace's active task before a
+gate runs and record on it by name, and answer or note "no active task" when
+there is none rather than letting a task started during the run collect the
+record. A completion the loop's judge grants carries `task:<id>` of the task
+its gates were recorded on as its proof-of-ship reference; the cockpit's
+\[Complete\] is a human's decision and carries none. Run identity is the
+project's one execution cycle: one objective and one active task per project
+and store (`architecture_contracts`), a second `next`/`next-loop` on a held
+host refused, and no native run isolation claimed — a scope string is not a
+run. The application crate's `CommandContext` (attempt and expected
+revision) has no production adapter yet; durable command admission is later
+work.
 
 ## Roles
 
@@ -172,6 +231,9 @@ reloads when its detached-feed timer observes a changed store stamp, and the
 loop reloads the roadmap at every iteration boundary. An attached mutation is
 carried out on the owner's cached engines, so the owner's own views are
 current; the attached surface sees it through the feed or its next reload.
+Within one process the writer's handlers and the reader's queries share the
+same engines, so a `magistr_gate` record is what the same server's
+`ship_status` answers next.
 
 Reloading is separate from command authority. It neither admits a second writer
 nor authenticates a client.
@@ -200,7 +262,14 @@ owning runtime or process normally before reconnecting.
 
 ## Verification
 
-Engine unit tests (`tas::project_authority::tests`) cover role coexistence,
+Engine unit tests (`tas::native_engines::tests`) cover the one write path:
+promotion from the in-process writer creating the backlog chunk and linking
+both ways, idempotently; the handlers' refusals — an empty body, a blank
+summary, an illegal transition, an unknown task — reaching the caller in the
+handler's words; a fresh objective reporting how many stale tasks it
+cleared; and `tas::handler_call::tests` cover a structured answer, a soft
+refusal, an MCP error, prose, and a suspending handler refused.
+`tas::project_authority::tests` cover role coexistence,
 same-role refusal, the lease living with the last writer clone while readers
 hold nothing, the stateless lock under the project root, lock I/O failure
 before any engine opens, and the publisher probe.
@@ -222,4 +291,7 @@ aliases, independent stores, stale sockets, process exit, a host admitted
 beside a live service, a real `magistr roadmap status` process answering beside
 a running stdio owner without a lease, and a real second `magistr mcp-serve`
 attaching to the owner, writing through it, and ending when the owner is
-killed.
+killed. `mcp_serve_integration` covers a green `magistr_gate(all)` leaving
+one verified check per gate on the named task and opening `done`, and a gate
+running exactly once with or without a task; the loop driver's tests cover a
+judged completion naming the task its gates were recorded on.

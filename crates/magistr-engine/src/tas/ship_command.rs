@@ -32,6 +32,7 @@ pub enum ShipCommand {
         action_type: ActionType,
         description: String,
         files_touched: Vec<String>,
+        tools_used: Vec<String>,
         think_step: Option<u32>,
     },
     /// `ship_record_gate`. The report, when given, is a `(format, path)`

@@ -31,18 +31,22 @@ fn an_empty_store_seeds_an_empty_rail() {
 fn reads_the_objective_the_chunk_and_the_pending_signals() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = engines(&tmp);
-    engines.ship_set_objective(
-        "ship the rail".to_owned(),
-        vec!["it shows".to_owned()],
-        Vec::new(),
-        "chunk:r1".to_owned(),
-    );
-    engines.ship_add_task(
-        "t1".to_owned(),
-        "implement".to_owned(),
-        TaskType::Implement,
-        None,
-    );
+    engines
+        .ship_set_objective(
+            "ship the rail".to_owned(),
+            vec!["it shows".to_owned()],
+            Vec::new(),
+            "chunk:r1".to_owned(),
+        )
+        .expect("objective");
+    engines
+        .ship_add_task(
+            "t1".to_owned(),
+            "implement".to_owned(),
+            TaskType::Implement,
+            None,
+        )
+        .expect("add task");
     engines
         .roadmap_add_chunk(
             "r0".to_owned(),
@@ -72,7 +76,9 @@ fn reads_the_objective_the_chunk_and_the_pending_signals() {
         )
         .expect("chunk r1");
     engines.roadmap_start_chunk("r1").expect("start r1");
-    engines.signal_capture(SignalKind::Idea, "user".to_owned(), "faster".to_owned());
+    engines
+        .signal_capture(SignalKind::Idea, "user".to_owned(), "faster".to_owned())
+        .expect("capture");
 
     let seed = StoreSeed::read(&engines);
     assert_eq!(
@@ -144,18 +150,22 @@ fn the_stored_steps_come_back_as_step_appended_frames() {
 fn the_ship_timeline_comes_back_as_action_and_check_frames() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = persisted(&tmp);
-    engines.ship_set_objective(
-        "seed the trace".to_owned(),
-        Vec::new(),
-        Vec::new(),
-        "chunk:tui2-5a".to_owned(),
-    );
-    engines.ship_add_task(
-        "t1".to_owned(),
-        "implement".to_owned(),
-        TaskType::Implement,
-        None,
-    );
+    engines
+        .ship_set_objective(
+            "seed the trace".to_owned(),
+            Vec::new(),
+            Vec::new(),
+            "chunk:tui2-5a".to_owned(),
+        )
+        .expect("objective");
+    engines
+        .ship_add_task(
+            "t1".to_owned(),
+            "implement".to_owned(),
+            TaskType::Implement,
+            None,
+        )
+        .expect("add task");
     engines.ship_start_task("t1").expect("start t1");
     engines
         .ship_record_action(
@@ -163,6 +173,7 @@ fn the_ship_timeline_comes_back_as_action_and_check_frames() {
             ActionType::Code,
             "wrote the seed".to_owned(),
             vec!["seed.rs".to_owned()],
+            vec![],
             None,
         )
         .expect("action");
@@ -198,18 +209,22 @@ fn a_cockpit_opened_on_the_store_shows_its_trace_before_any_frame() {
     let engines = persisted(&tmp);
     assert!(engines.think_record_step(think_step(1, "open")).is_ok());
     assert!(engines.think_record_step(think_step(2, "close")).is_ok());
-    engines.ship_set_objective(
-        "seed the trace".to_owned(),
-        Vec::new(),
-        Vec::new(),
-        "chunk:tui2-5a".to_owned(),
-    );
-    engines.ship_add_task(
-        "t1".to_owned(),
-        "implement".to_owned(),
-        TaskType::Implement,
-        None,
-    );
+    engines
+        .ship_set_objective(
+            "seed the trace".to_owned(),
+            Vec::new(),
+            Vec::new(),
+            "chunk:tui2-5a".to_owned(),
+        )
+        .expect("objective");
+    engines
+        .ship_add_task(
+            "t1".to_owned(),
+            "implement".to_owned(),
+            TaskType::Implement,
+            None,
+        )
+        .expect("add task");
     engines
         .ship_record_gate(
             Some("t1"),

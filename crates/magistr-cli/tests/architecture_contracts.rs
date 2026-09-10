@@ -23,18 +23,22 @@ fn host(config: &TasConfig, project_id: &str) -> NativeEngines {
 }
 
 fn objective_with_task(engines: &NativeEngines, scope: &str, task: &str) {
-    engines.ship_set_objective(
-        "Characterize native state".into(),
-        vec![],
-        vec![],
-        scope.into(),
-    );
-    engines.ship_add_task(
-        task.into(),
-        "Verify the contract".into(),
-        TaskType::Test,
-        None,
-    );
+    engines
+        .ship_set_objective(
+            "Characterize native state".into(),
+            vec![],
+            vec![],
+            scope.into(),
+        )
+        .expect("objective");
+    engines
+        .ship_add_task(
+            task.into(),
+            "Verify the contract".into(),
+            TaskType::Test,
+            None,
+        )
+        .expect("add task");
     engines.ship_start_task(task).expect("start the task");
 }
 
@@ -46,12 +50,14 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
     let shared = owner.clone();
     objective_with_task(&owner, "chunk:first", "first-verify");
 
-    shared.ship_add_task(
-        "second-verify".into(),
-        "Second task".into(),
-        TaskType::Test,
-        None,
-    );
+    shared
+        .ship_add_task(
+            "second-verify".into(),
+            "Second task".into(),
+            TaskType::Test,
+            None,
+        )
+        .expect("add task");
     let refusal = shared
         .ship_start_task("second-verify")
         .expect_err("another task is already active in this project");
@@ -61,7 +67,9 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
     // A scope describes the one project objective; it does not isolate a
     // second run. Replacing an unfinished objective keeps its existing tasks.
     assert_eq!(
-        shared.ship_set_objective("Replacement".into(), vec![], vec![], "chunk:second".into()),
+        shared
+            .ship_set_objective("Replacement".into(), vec![], vec![], "chunk:second".into())
+            .expect("objective"),
         0
     );
     assert_eq!(owner.ship_status()["objective"]["scope"], "chunk:second");
@@ -158,7 +166,9 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
     engines
         .ship_complete_task("fixture-verify", vec![])
         .expect("complete the task with its failed check retained");
-    let report = engines.ship_finalize(vec![], Some("Characterization only".into()));
+    let report = engines
+        .ship_finalize(vec![], Some("Characterization only".into()))
+        .expect("finalize");
     assert_eq!(report["status"], "shipped");
     let warnings = report["warnings"]
         .as_array()

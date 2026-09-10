@@ -29,7 +29,7 @@ impl EnginePort for NativeEnginePort {
     }
 
     fn checkpoint(&mut self) -> Result<serde_json::Value, String> {
-        Ok(self.engines.think_checkpoint())
+        self.engines.think_checkpoint()
     }
 
     fn start_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {

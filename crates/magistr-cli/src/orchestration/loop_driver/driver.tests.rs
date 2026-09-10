@@ -950,7 +950,9 @@ async fn a_native_iteration_re_seeds_the_signals_another_process_captured() {
     // engines were opened, with no broadcast feed attached — so only the
     // iteration's own re-seed can put it in front of the cockpit.
     let server = agent_side(&config, "loop-signal");
-    let captured = server.signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned());
+    let captured = server
+        .signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned())
+        .expect("capture");
 
     let script = Script::new().startup_replies(MS(0)).text(MS(2_500), "\x04");
     let (model, report, _) = run_with(
@@ -1212,6 +1214,53 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
         Some("done"),
         "the Roadmap tab folded the completion"
     );
+    // No task was active for the gates to be recorded on, so the
+    // completion carries no proof-of-ship reference rather than an
+    // invented one.
+    assert!(
+        engines
+            .roadmap_chunk("work")
+            .expect("the chunk")
+            .cross_refs
+            .is_empty()
+    );
+}
+
+/// With a task active in the trace, the loop's gates are recorded on that
+/// task by name, and the judged completion names the same task as its
+/// proof-of-ship reference — the evidence and the completion point at
+/// each other.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_judged_completion_names_the_task_its_gates_were_recorded_on() {
+    let dir = project("true", "true", "true");
+    let engines = engines_with_active_task(dir.path());
+    let judge = Scripted::new([Verdict::met("both criteria hold")]);
+    let script = Script::new().startup_replies(MS(0)).text(MS(2_500), "\x04");
+    let (_, report, _) = run_with(
+        dir.path(),
+        1,
+        script,
+        FakeAcpAgent::new().reply("did the thing"),
+        false,
+        Some(engines.clone()),
+        Some(judge),
+    )
+    .await;
+    assert_eq!(report.iterations(), 1);
+    engines.reload_ship();
+    let checks = recorded(&engines);
+    assert_eq!(checks.len(), 3, "check, test, lint: {checks:?}");
+    assert!(
+        engines
+            .ship_tasks()
+            .iter()
+            .find(|t| t.id == "impl")
+            .is_some_and(|t| t.checks.len() == 3),
+        "every gate landed on the named task"
+    );
+    let done = engines.roadmap_chunk("work").expect("the chunk");
+    assert_eq!(done.status, ChunkStatus::Done);
+    assert_eq!(done.cross_refs, vec!["task:impl".to_owned()]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -1689,13 +1738,17 @@ fn the_loop_resolves_its_gates_from_the_top_level_quality_gate() {
 /// into.
 fn engines_with_active_task(dir: &Path) -> NativeEngines {
     let engines = engines_with_work(dir);
-    engines.ship_set_objective("do the work".into(), vec![], vec![], "chunk:work".into());
-    engines.ship_add_task(
-        "impl".into(),
-        "implement".into(),
-        think_and_ship::ship::domain::task::TaskType::Implement,
-        None,
-    );
+    engines
+        .ship_set_objective("do the work".into(), vec![], vec![], "chunk:work".into())
+        .expect("objective");
+    engines
+        .ship_add_task(
+            "impl".into(),
+            "implement".into(),
+            think_and_ship::ship::domain::task::TaskType::Implement,
+            None,
+        )
+        .expect("add task");
     engines.ship_start_task("impl").expect("start the task");
     engines
 }

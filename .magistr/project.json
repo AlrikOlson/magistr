@@ -34,6 +34,11 @@
 			"command": "./scripts/legacy-gui-ratchet.sh",
 			"name": "legacy-gui",
 			"required": true
+		},
+		{
+			"command": "./scripts/native-write-path-gate.sh",
+			"name": "native-write-path",
+			"required": true
 		}
 	],
 	"format": {

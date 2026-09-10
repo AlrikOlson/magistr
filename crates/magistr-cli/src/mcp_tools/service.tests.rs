@@ -1,64 +1,5 @@
 use super::*;
 
-// ── check_record: what ship_check answered, read without losing the why ──
-
-#[test]
-fn a_real_check_record_is_the_record() {
-    let result = CallToolResult::structured(json!({
-        "name": "test", "passed": true, "verified": true, "exit_code": 0,
-        "details": "ok"
-    }));
-    let record = check_record(&result).expect("a check record");
-    assert_eq!(record["exit_code"], 0);
-    assert_eq!(record["passed"], true);
-}
-
-#[test]
-fn a_record_carried_as_text_is_still_the_record() {
-    let text = json!({"name": "lint", "passed": false, "exit_code": 3}).to_string();
-    let result = CallToolResult::success(vec![ContentBlock::text(text)]);
-    let record = check_record(&result).expect("a check record");
-    assert_eq!(record["exit_code"], 3);
-}
-
-#[test]
-fn a_soft_refusal_names_its_message() {
-    // think-and-ship's soft error: is_error stays false, the envelope says why.
-    let result = CallToolResult::structured(json!({
-        "ok": false,
-        "error_kind": "invalid_state",
-        "message": "no task_id provided and no active task"
-    }));
-    let reason = check_record(&result).expect_err("refused");
-    assert_eq!(reason, "no task_id provided and no active task");
-}
-
-#[test]
-fn a_soft_refusal_without_a_message_names_its_kind() {
-    let result = CallToolResult::structured(json!({"ok": false, "error_kind": "invalid_args"}));
-    let reason = check_record(&result).expect_err("refused");
-    assert!(reason.contains("invalid_args"), "{reason}");
-}
-
-#[test]
-fn an_mcp_error_result_names_its_text() {
-    let result = CallToolResult::error(vec![ContentBlock::text("engine poisoned")]);
-    let reason = check_record(&result).expect_err("errored");
-    assert!(reason.contains("engine poisoned"), "{reason}");
-}
-
-#[test]
-fn an_answer_that_is_not_a_check_record_says_so() {
-    // No exit_code: whatever this is, it is not a command-run check.
-    let result = CallToolResult::structured(json!({"name": "test", "passed": true}));
-    let reason = check_record(&result).expect_err("not a record");
-    assert!(reason.contains("no check record"), "{reason}");
-
-    let empty = CallToolResult::success(vec![ContentBlock::text("not json")]);
-    let reason = check_record(&empty).expect_err("not a record");
-    assert!(reason.contains("no check record"), "{reason}");
-}
-
 #[test]
 fn the_unrecorded_note_carries_the_reason() {
     let note = unrecorded_note("no task_id provided and no active task");
@@ -66,4 +7,39 @@ fn the_unrecorded_note_carries_the_reason() {
     assert!(note.contains("no active task"), "{note}");
     // The remedy stays on the note — the agent must know what to do next.
     assert!(note.contains("ship_start"), "{note}");
+}
+
+/// The junit failures a record parsed become rows once each: a test the
+/// output scan already named is not repeated, one it missed is added with
+/// its message's first line.
+#[test]
+fn junit_failures_become_rows_once() {
+    let check: Check = serde_json::from_value(json!({
+        "type": "test", "name": "test", "passed": false, "details": "", "required": true,
+        "verified": true, "exit_code": 100, "timestamp": "2026-09-10T00:00:00Z",
+        "results": {"total": 3, "passed": 1, "failed": 2, "skipped": 0, "failures": [
+            {"name": "a::seen", "message": "assertion failed\nleft: 1"},
+            {"name": "b::unseen", "message": "panicked at x\nmore"},
+            {"name": "c::terse"}
+        ]}
+    }))
+    .expect("a check record");
+    let mut rows = vec![magistr_core::GateFailureRow {
+        severity: magistr_core::GateRowSeverity::TestFailure,
+        code: None,
+        message: "test a::seen ... FAILED".to_owned(),
+        file: None,
+        line: None,
+        column: None,
+    }];
+    junit_rows(&check, &mut rows);
+    let messages: Vec<&str> = rows.iter().map(|row| row.message.as_str()).collect();
+    assert_eq!(
+        messages,
+        vec![
+            "test a::seen ... FAILED",
+            "b::unseen: panicked at x",
+            "c::terse"
+        ]
+    );
 }
