@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{mpsc, oneshot};
 
 use super::command::AcpCommand;
+use crate::handlers::effects::EffectBridge;
 use crate::{AcpError, Result};
 
 /// The sending half of an [`AcpTransport`](super::AcpTransport), cloned
@@ -13,15 +14,24 @@ use crate::{AcpError, Result};
 /// a turn, a cancel, or a vendor extension request, on the same command
 /// channel the transport itself uses. A loop driver keeps one while the
 /// cockpit's session owns the transport and its event stream.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AcpSender {
     ready: Arc<AtomicBool>,
     cmd_tx: mpsc::UnboundedSender<AcpCommand>,
+    effects: Option<Arc<EffectBridge>>,
 }
 
 impl AcpSender {
-    pub(crate) fn new(ready: Arc<AtomicBool>, cmd_tx: mpsc::UnboundedSender<AcpCommand>) -> Self {
-        Self { ready, cmd_tx }
+    pub(crate) fn new(
+        ready: Arc<AtomicBool>,
+        cmd_tx: mpsc::UnboundedSender<AcpCommand>,
+        effects: Option<Arc<EffectBridge>>,
+    ) -> Self {
+        Self {
+            ready,
+            cmd_tx,
+            effects,
+        }
     }
 
     /// Whether the session is live.
@@ -35,6 +45,11 @@ impl AcpSender {
             return Err(AcpError::transport(format!(
                 "ACP transport is not ready — cannot {what}"
             )));
+        }
+        if matches!(command, AcpCommand::Cancel | AcpCommand::Close)
+            && let Some(effects) = &self.effects
+        {
+            effects.cancel();
         }
         self.cmd_tx.send(command).map_err(|_| {
             AcpError::transport(format!("ACP connection has shut down — cannot {what}"))
@@ -78,5 +93,13 @@ impl AcpSender {
             },
         )?;
         Ok(response_rx)
+    }
+}
+
+impl std::fmt::Debug for AcpSender {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AcpSender")
+            .field("ready", &self.is_ready())
+            .finish_non_exhaustive()
     }
 }

@@ -56,7 +56,8 @@ pub async fn connect_transport(config: &AgentConfig) -> Result<AcpTransport> {
     let mut transport = AcpTransport::new_with_args(runtime.path, cli_args, Some(cwd))
         .map_err(|e| MagistrError::Acp(format!("Failed to create ACP transport: {e}")))?
         .session_mode(session_mode)
-        .mcp_servers(mcp_servers);
+        .mcp_servers(mcp_servers)
+        .local_effects();
 
     transport
         .connect()

@@ -9,16 +9,17 @@ use std::sync::{Arc, Mutex};
 
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::schema::v1::{
-    AgentCapabilities, CancelNotification, ContentBlock, ContentChunk, CreateTerminalRequest,
-    InitializeRequest, InitializeResponse, ListSessionsRequest, ListSessionsResponse,
-    LoadSessionRequest, LoadSessionResponse, Meta, NewSessionRequest, NewSessionResponse,
-    PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse, ReadTextFileRequest,
-    ReleaseTerminalRequest, RequestPermissionOutcome, RequestPermissionRequest,
-    SessionConfigOption, SessionConfigOptionCategory, SessionConfigOptionValue,
-    SessionConfigSelectOption, SessionId, SessionInfo, SessionNotification, SessionUpdate,
-    SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, StopReason, TerminalExitStatus,
-    TerminalOutputRequest, TextContent, ToolCallUpdate, ToolCallUpdateFields,
-    WaitForTerminalExitRequest,
+    AgentCapabilities, CancelNotification, ClientCapabilities, ContentBlock, ContentChunk,
+    CreateTerminalRequest, InitializeRequest, InitializeResponse, ListSessionsRequest,
+    ListSessionsResponse, LoadSessionRequest, LoadSessionResponse, Meta, NewSessionRequest,
+    NewSessionResponse, PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse,
+    ReadTextFileRequest, ReleaseTerminalRequest, RequestPermissionOutcome,
+    RequestPermissionRequest, SessionConfigOption, SessionConfigOptionCategory,
+    SessionConfigOptionValue, SessionConfigSelectOption, SessionId, SessionInfo,
+    SessionNotification, SessionUpdate, SetSessionConfigOptionRequest,
+    SetSessionConfigOptionResponse, StopReason, TerminalExitStatus, TerminalOutputRequest,
+    TextContent, ToolCallUpdate, ToolCallUpdateFields, WaitForTerminalExitRequest,
+    WriteTextFileRequest,
 };
 use agent_client_protocol::{
     Agent, Channel, Error, JsonRpcRequest, JsonRpcResponse, Responder, on_receive_notification,
@@ -39,6 +40,8 @@ pub struct Script {
     pub ask_permission: bool,
     /// Read this file through the client before finishing the turn.
     pub read_file: Option<PathBuf>,
+    /// Write a file directly through the client.
+    pub write_file: Option<(PathBuf, String)>,
     /// Run this command in a client terminal before finishing the turn.
     pub run_terminal: Option<(String, Vec<String>)>,
     /// Never finish the turn on its own — only a `session/cancel` ends it.
@@ -77,6 +80,8 @@ pub struct GoalResponse {}
 /// What the fake agent saw the client do.
 #[derive(Default)]
 pub struct Observed {
+    pub client_capabilities: Mutex<Option<ClientCapabilities>>,
+    pub effect_errors: Mutex<Vec<Error>>,
     /// The `_meta` the client attached to `session/new` or `session/load`.
     pub session_meta: Mutex<Option<Meta>>,
     pub permission_outcome: Mutex<Option<RequestPermissionOutcome>>,
@@ -122,13 +127,20 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
             .builder()
             .name("fake-agent")
             .on_receive_request(
-                async move |_req: InitializeRequest, responder, _cx| {
-                    let mut response = InitializeResponse::new(ProtocolVersion::V1)
-                        .agent_capabilities(AgentCapabilities::new().load_session(supports_load));
-                    if goal_extension {
-                        response = response.meta(goal_meta());
+                {
+                    let observed = Arc::clone(&observed);
+                    async move |req: InitializeRequest, responder, _cx| {
+                        *observed.client_capabilities.lock().expect("lock") =
+                            Some(req.client_capabilities);
+                        let mut response = InitializeResponse::new(ProtocolVersion::V1)
+                            .agent_capabilities(
+                                AgentCapabilities::new().load_session(supports_load),
+                            );
+                        if goal_extension {
+                            response = response.meta(goal_meta());
+                        }
+                        responder.respond(response)
                     }
-                    responder.respond(response)
                 },
                 on_receive_request!(),
             )
@@ -289,20 +301,43 @@ async fn run_turn(
     }
 
     if let Some(path) = &script.read_file {
-        let response = cx
+        match cx
             .send_request(ReadTextFileRequest::new(session_id.clone(), path.clone()))
             .block_task()
-            .await?;
-        *observed.file_content.lock().expect("lock") = Some(response.content);
+            .await
+        {
+            Ok(response) => *observed.file_content.lock().expect("lock") = Some(response.content),
+            Err(error) => observed.effect_errors.lock().expect("lock").push(error),
+        }
+    }
+
+    if let Some((path, content)) = &script.write_file
+        && let Err(error) = cx
+            .send_request(WriteTextFileRequest::new(
+                session_id.clone(),
+                path.clone(),
+                content.clone(),
+            ))
+            .block_task()
+            .await
+    {
+        observed.effect_errors.lock().expect("lock").push(error);
     }
 
     if let Some((command, args)) = &script.run_terminal {
-        let created = cx
+        let created = match cx
             .send_request(
                 CreateTerminalRequest::new(session_id.clone(), command.clone()).args(args.clone()),
             )
             .block_task()
-            .await?;
+            .await
+        {
+            Ok(created) => created,
+            Err(error) => {
+                observed.effect_errors.lock().expect("lock").push(error);
+                return responder.respond(PromptResponse::new(StopReason::EndTurn));
+            }
+        };
         let tid = created.terminal_id;
         let waited = cx
             .send_request(WaitForTerminalExitRequest::new(

@@ -26,7 +26,7 @@ use super::permission_decision::PermissionDecision;
 use super::permission_profile::PermissionProfile;
 use super::policy_request_for::policy_request_for;
 use super::profile_action::ProfileAction;
-use super::resolve_against::resolve_against;
+use super::resolve_against::{checked_resolve_against, resolve_against};
 
 /// Shared host adapter for the domain's deterministic permission service.
 /// Every surface supplies ACP requests to this owner of normalization, risk
@@ -184,7 +184,7 @@ impl SessionPermissionPolicy {
     /// outcome carries its exact request scope and policy configuration version.
     #[must_use]
     pub fn evaluate_request(&mut self, request: &AcpPermissionRequest) -> PermissionResolution {
-        let act = self.normalized_request(request);
+        let (act, resolution_error) = self.normalized_request(request);
         let evaluated = evaluate(
             &request.tool_title,
             &request.tool_input,
@@ -194,11 +194,12 @@ impl SessionPermissionPolicy {
         );
         let context = PermissionContext {
             mode: self.mode,
-            profile_effect: match evaluated.action {
-                ProfileAction::Allow => PolicyEffect::Allow,
-                ProfileAction::Ask => PolicyEffect::RequireApproval,
+            profile_effect: match (resolution_error.as_ref(), evaluated.action) {
+                (Some(_), _) => PolicyEffect::Deny,
+                (None, ProfileAction::Allow) => PolicyEffect::Allow,
+                (None, ProfileAction::Ask) => PolicyEffect::RequireApproval,
             },
-            profile_reason: evaluated.reason.to_string(),
+            profile_reason: resolution_error.unwrap_or_else(|| evaluated.reason.to_string()),
             local_allowance: should_auto_approve(request, false),
             workflow_allowance: should_auto_approve(request, true),
             protected: is_write_to_protected_file(
@@ -236,16 +237,30 @@ impl SessionPermissionPolicy {
         resolution
     }
 
-    fn normalized_request(&self, request: &AcpPermissionRequest) -> PolicyRequest {
+    fn normalized_request(
+        &self,
+        request: &AcpPermissionRequest,
+    ) -> (PolicyRequest, Option<String>) {
         let mut act = policy_request_for(
             &request.tool_title,
             &request.tool_input,
             self.model.as_deref(),
         );
-        let root = self.root.as_deref().map(|root| resolve_against(None, root));
+        let root = match self
+            .root
+            .as_deref()
+            .map(|root| checked_resolve_against(None, root))
+            .transpose()
+        {
+            Ok(root) => root,
+            Err(error) => return (act, Some(error)),
+        };
         act.path_aliases.clear();
         for path in &mut act.paths {
-            let resolved = resolve_against(root.as_deref(), Path::new(path));
+            let resolved = match checked_resolve_against(root.as_deref(), Path::new(path)) {
+                Ok(resolved) => resolved,
+                Err(error) => return (act, Some(error)),
+            };
             let aliases = root
                 .as_deref()
                 .and_then(|root| resolved.strip_prefix(root).ok())
@@ -254,7 +269,7 @@ impl SessionPermissionPolicy {
             *path = resolved.display().to_string();
             act.path_aliases.push(aliases);
         }
-        act
+        (act, None)
     }
 
     /// Stable within equal configurations and changed whenever a policy input
@@ -310,8 +325,16 @@ impl SessionPermissionPolicy {
         if request.tool_title.contains(['*', '?']) {
             return None;
         }
-        let act = self.normalized_request(request);
+        let (act, resolution_error) = self.normalized_request(request);
+        if resolution_error.is_some() {
+            return None;
+        }
         let root = self.root.as_deref().map(|root| resolve_against(None, root));
+        // A terminal's cwd is a policy target, but remembered process choices
+        // keep the same command scope as an explicit execution permission ask.
+        if request.tool_kind == Some(ToolKind::Execute) && act.command.is_some() {
+            return DelegationScope::of(&request.tool_title, &request.tool_input, root.as_deref());
+        }
         if !act.paths.is_empty() {
             let mut scopes = act.paths.iter().map(|path| {
                 DelegationScope::of(
@@ -460,9 +483,13 @@ fn is_write_to_protected_file(
     // Use the same complete path set as governance. A multi-file patch may
     // touch a protected target after an ordinary file or through a rename.
     paths.iter().any(|file_path| {
-        let target = resolve_against(root, Path::new(file_path));
+        let Ok(target) = checked_resolve_against(root, Path::new(file_path)) else {
+            return true;
+        };
         protected_paths.iter().any(|p| {
-            let protected = resolve_against(root, p);
+            let Ok(protected) = checked_resolve_against(root, p) else {
+                return true;
+            };
             protected == target || target.is_relative() && protected.ends_with(&target)
         })
     })

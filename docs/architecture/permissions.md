@@ -84,13 +84,18 @@ The protocol allows automatic decisions according to user settings and requires
 the cancelled outcome for a cancelled prompt turn.
 See [ACP permission requests](https://agentclientprotocol.com/protocol/v1/tool-calls#requesting-permission).
 
-The guarantee applies to permission requests delivered to Magistr. Provider
-preapprovals, provider-owned tool execution and ACP filesystem/terminal effects
-are separate enforcement boundaries. Governed host capabilities are the scope of
-`arch-06-effect-capabilities`; shared provider/session supervision follows later.
-This implementation does not provide OS sandboxing. Existing lexical-first path
-resolution has limits around symlink ancestors and nonexistent targets; actual
-effect authorization must bind the filesystem target in the following chunk.
+The guarantee applies to permission requests delivered to Magistr and, through
+`arch-06-effect-capabilities`, to [ACP filesystem and terminal effects](effects.md).
+The configured local adapter resolves the actual target before constructing a
+canonical `Read`, `Write` or `Bash` request for the same policy. It rechecks the
+target after authorization before admitting the operation. Path resolution follows
+existing symlink ancestors before handling `..`, including writes to missing files.
+
+Provider preapprovals and provider-owned tool execution remain separate enforcement
+boundaries. Shared provider/session supervision follows later. This implementation
+does not provide OS sandboxing or atomic directory-handle confinement. An authorized
+program can perform its own effects, and other filesystem writers can race path
+checks; the [effect guide](effects.md#limits) states the resulting boundary.
 Configuration is loaded when constructing the policy, with existing load-error
 fallbacks retained; this is not a live governance-reload mechanism. Audit and
 charter persistence retain their existing best-effort behavior; an in-memory

@@ -25,7 +25,10 @@ use tokio::task::JoinHandle;
 use self::command::AcpCommand;
 use self::connection::ConnectionInputs;
 pub use self::sender::AcpSender;
-use crate::handlers::terminal::{self, TerminalManager};
+use magistr_application::effects::EffectPort;
+
+use crate::capabilities::LocalEffectPort;
+use crate::handlers::effects::EffectBridge;
 use crate::stderr_tail::StderrTail;
 use crate::{AcpError, AcpEvent, AcpPermissionRequest, AcpSessionMode, Result};
 
@@ -60,10 +63,9 @@ pub struct AcpTransport {
     /// before spawn.
     child_pgid: Arc<AtomicI32>,
     stderr_tail: StderrTail,
-    /// The agent's terminals — the children `terminal/create` spawned,
-    /// by id — shared with the connection so [`AcpTransport::kill_terminal`]
-    /// reaches what the agent is running.
-    terminals: TerminalManager,
+    effect_port: Option<Arc<dyn EffectPort>>,
+    local_effects: bool,
+    effects: Option<Arc<EffectBridge>>,
 }
 
 impl AcpTransport {
@@ -102,8 +104,28 @@ impl AcpTransport {
             connection: None,
             child_pgid: Arc::new(AtomicI32::new(0)),
             stderr_tail: StderrTail::default(),
-            terminals: terminal::new_terminal_manager(),
+            effect_port: None,
+            local_effects: false,
+            effects: None,
         })
+    }
+
+    /// Configure the application's capability implementation before connecting.
+    /// Bare transports advertise no filesystem or terminal capabilities.
+    #[must_use]
+    pub fn effect_port(mut self, port: Arc<dyn EffectPort>) -> Self {
+        self.effect_port = Some(port);
+        self.local_effects = false;
+        self
+    }
+
+    /// Opt into governed local workspace and terminal effects. Each admission
+    /// is resolved through the application's permission receiver.
+    #[must_use]
+    pub fn local_effects(mut self) -> Self {
+        self.effect_port = None;
+        self.local_effects = true;
+        self
     }
 
     /// New session or resume. Set before `connect()`.
@@ -174,8 +196,26 @@ impl AcpTransport {
 
         let cwd = match &self.cwd {
             Some(cwd) => cwd.clone(),
-            None => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            None => std::env::current_dir().map_err(|error| {
+                AcpError::connection(format!("cannot determine ACP working directory: {error}"))
+            })?,
         };
+        let cwd = tokio::fs::canonicalize(&cwd).await.map_err(|error| {
+            AcpError::connection(format!(
+                "cannot resolve ACP working directory {}: {error}",
+                cwd.display()
+            ))
+        })?;
+        let port = if self.local_effects {
+            Some(
+                Arc::new(LocalEffectPort::new(cwd.clone(), event_tx.clone()))
+                    as Arc<dyn EffectPort>,
+            )
+        } else {
+            self.effect_port.clone()
+        };
+        let effects = Arc::new(EffectBridge::new(port, perm_tx, event_tx.clone()));
+        self.effects = Some(Arc::clone(&effects));
         let inputs = ConnectionInputs {
             child,
             cwd,
@@ -184,11 +224,10 @@ impl AcpTransport {
             session_meta: self.session_meta.clone(),
             cmd_rx,
             event_tx,
-            perm_tx,
             ready: Arc::clone(&self.ready),
             handshake_tx,
             stderr_tail: self.stderr_tail.clone(),
-            terminals: Arc::clone(&self.terminals),
+            effects,
         };
         let connection = tokio::spawn(connection::run_connection(component, inputs));
 
@@ -238,7 +277,11 @@ impl AcpTransport {
         let cmd_tx = self.cmd_tx.as_ref().ok_or_else(|| {
             AcpError::transport("ACP transport not connected — cannot take a sender")
         })?;
-        Ok(AcpSender::new(Arc::clone(&self.ready), cmd_tx.clone()))
+        Ok(AcpSender::new(
+            Arc::clone(&self.ready),
+            cmd_tx.clone(),
+            self.effects.clone(),
+        ))
     }
 
     fn send(&self, what: &str, command: AcpCommand) -> Result<()> {
@@ -277,7 +320,14 @@ impl AcpTransport {
     ///
     /// When no terminal `id` exists, or it was already released.
     pub fn kill_terminal(&self, id: &str) -> Result<()> {
-        terminal::kill(&self.terminals, id)
+        self.effects
+            .as_ref()
+            .ok_or_else(|| {
+                AcpError::transport(format!(
+                    "cannot kill terminal {id}: effect capability is not connected"
+                ))
+            })?
+            .kill_terminal(id)
             .map_err(|e| AcpError::transport(format!("cannot kill terminal {id}: {e}")))
     }
 
@@ -388,6 +438,9 @@ impl AcpTransport {
     /// the agent is gone.
     pub async fn close(&mut self) -> Result<()> {
         self.ready.store(false, Ordering::SeqCst);
+        if let Some(effects) = self.effects.take() {
+            effects.close();
+        }
         if let Some(tx) = self.cmd_tx.take() {
             let _ = tx.send(AcpCommand::Close);
         }
@@ -406,6 +459,9 @@ impl AcpTransport {
 impl Drop for AcpTransport {
     fn drop(&mut self) {
         self.ready.store(false, Ordering::SeqCst);
+        if let Some(effects) = self.effects.take() {
+            effects.close();
+        }
         // Kill first: works even when the task is wedged or we are unwinding.
         self.kill_child_process_group();
         if let Some(tx) = self.cmd_tx.take() {

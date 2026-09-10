@@ -6,11 +6,12 @@ dependency on [the domain](domain.md). No provider, native workflow engine,
 MCP request context, concrete executor, process launcher, filesystem or renderer
 is imported into this boundary.
 
-The crate is introduced by `arch-04-application-contract`. Its public APIs and
-fake-port tests are executable contracts for subsequent adapter migration.
-The current CLI, cockpit and engine paths still use their existing adapters;
-adding this crate does not reroute those production paths or establish a shared
-project owner.
+The crate was introduced by `arch-04-application-contract`. Its scoped use cases
+and fake-port tests are contracts for adapter migration. `arch-06-effect-capabilities`
+adds the first live host effect adapter: ACP delegates filesystem and terminal
+requests through the [effect capability contract](effects.md). Session supervision,
+native workflow admission and the other scoped facades retain their existing
+production adapters; these ports do not establish a shared project owner.
 
 ## Use cases and effect owners
 
@@ -18,13 +19,14 @@ project owner.
 | --- | --- | --- |
 | `sessions` | Start or resume a session, submit a prompt, cancel a turn, close a session | Resolve provider capabilities and models, own live resources, maintain explicit provider bindings, observe terminal events |
 | `permissions` | Resolve a scoped decision by selecting an offered option or cancelling | Correlate the live request, enforce project policy before approval, map the option to the provider response |
+| `effects` | Read or write text files, create terminals, observe and release owned terminals | Resolve actual targets, authorize through the shared session policy, enforce cancellation and resource ownership, perform host I/O |
 | `checks` | Execute a named gate for a scoped verification task | Resolve and run the configured command, record real evidence, distinguish execution from recording |
 | `workflow` | Start and complete a native chunk with a scoped task reference | Admit native mutations and preserve the native engine's canonical records and lifecycle rules |
 | `configuration` | Read resolved settings, initialize project setup, and patch project settings | Resolve configuration layers, preserve file ownership and user changes, refuse setup over existing configuration |
 | `projections` | Read a run's typed state with provenance | Produce a coherent observation with an honest revision, generation, sequence and freshness |
 
-Each facade borrows a `ProjectScope` and its own port. The public methods name
-use cases rather than exposing a universal message dispatcher or repository.
+Each scoped facade borrows a `ProjectScope` and its own port. The public methods
+name use cases rather than exposing a universal message dispatcher or repository.
 Small command enums and request structures describe only the relevant family.
 Native chunks and tasks have scoped references; their full native records and
 transition rules are not replicated here.
@@ -36,6 +38,13 @@ This allows the host to select the executor. Rust's
 allow these traits to be used through `dyn`; returning an opaque async type
 would prevent that. The allocation is explicit and no async-trait macro or
 runtime dependency is introduced.
+
+The `effects` contract uses its own `EffectFuture`, with the same boxed future
+shape and a `Send` bound for host task dispatch. `EffectPort` receives typed
+requests and an `EffectAuthorizer`; neither imports ACP nor performs I/O in the
+application crate. These requests retain provider session strings for the live
+adapter's ownership checks. They do not claim the domain `AttemptId`, revision
+admission or attempt correlation required by the scoped facades.
 
 ## Identity and admission
 
@@ -130,6 +139,7 @@ Formatting and every required gate in `.magistr/project.json` remain mandatory,
 including existing interface and architecture-index checks. This chunk changes
 no rendering, goldens, motion rules or roadmap export policy. Live provider
 supervision, native routing, durable command admission, full setup consolidation
-and host migration remain subsequent chunks. Shared permission decisions are now
-implemented by the [permission service](permissions.md); production adapters use
-that policy while the scoped permission-command facade remains a separate contract.
+and further host migration remain subsequent chunks. Shared permission decisions
+are now implemented by the [permission service](permissions.md); production adapters use
+that policy for both provider permission requests and [host effects](effects.md),
+while the scoped permission-command facade remains a separate contract.
