@@ -58,7 +58,9 @@ for delegation; the coordinating session owns shared ship state and file scope.
    `magistr_gate(gate: "all")`. Add acceptance-specific checks through
    server-executed `ship_check(command: ...)` or the appropriate real gate.
 2. Require all required gates to pass **and be recorded**. Inspect `recorded`,
-   `note`, exit codes, and native errors. Fix failures and rerun affected checks.
+   `note`, exit codes, and native errors. Diagnose gate and test failures,
+   repair their cause within authorized scope, and rerun affected checks.
+   A recoverable failure is part of this iteration, not a reason to stop it.
    Verify the integrated artifact against each acceptance criterion. If task
    context was missing, recover the existing verification task and rerun the
    affected checks once to retry recording. If recording still fails, preserve
@@ -69,8 +71,9 @@ for delegation; the coordinating session owns shared ship state and file scope.
    reference. Record discoveries as `backlog` unless the user authorized another
    status. Update descriptions if the delivered scope changed.
 4. Finalize with `ship_finalize` and record a closing `think_record_step`.
-   Inspect both responses; any refusal leaves the iteration incomplete. Honor
-   the runtime contract's native roadmap/export policy.
+   Inspect both responses; any refusal leaves the iteration incomplete.
+   Recover supported lifecycle context before treating a refusal as a blocker.
+   Honor the runtime contract's native roadmap/export policy.
 5. Append `.magistr/iteration-log.md` with chunk, outcome, verification, and
    limitations. Include it in the commit only if already tracked; never
    force-add ignored local state. Inspect the diff and stage only this
@@ -79,3 +82,11 @@ for delegation; the coordinating session owns shared ship state and file scope.
 6. Confirm the commit and announce `magistr_set_phase(phase: "done")`. Report
    chunk, acceptance/gate results, commit, limitations, and next candidate.
    **Stop.** Only an explicitly invoked `/next-loop` owns further chaining.
+
+If progress truly requires user input or external state, exceeds authorized
+scope or permissions, or remains refused after supported lifecycle recovery,
+preserve the checkpoint. Lead the stop report with the concrete blocker, why
+it cannot be resolved within current authorization, and the exact user action
+or external condition needed. Honor explicit bounds and user pauses or
+cancellations; otherwise continue the current iteration through verification
+and a confirmed commit.

@@ -19,14 +19,25 @@ neither a scheduled task nor an unlimited coding goal.
    another chunk. Preserve unrelated objectives and worktree changes.
 2. Execute one complete `$next` workflow. Its normal stop returns control
    to this explicitly requested loop; it does not recursively invoke itself.
+   A recoverable gate or test failure stays inside this iteration: diagnose
+   the cause, repair it within authorized scope, and rerun and record the
+   affected checks. An unfinished commit means continue the current iteration,
+   not select another chunk or stop solely because it is unfinished.
 3. Confirm the chunk is done, required verification was recorded, its objective
    closed, and its commit exists before counting the iteration.
 4. Re-read live roadmap state and remaining limits before selecting another
    ready chunk. Continue only while authorized work and capacity remain.
 
-Stop at the first of: no ready chunk, iteration/time/usage limit, user
-interruption, unresolved failure or native lifecycle refusal, conflicting
-objective, or an iteration without a completed commit. Report completed work,
-the checkpoint, why the loop stopped, and the next candidate. Never reset state
-or mark a chunk done to hide an incomplete iteration. Follow the host adapter's
-chaining mechanics and recover compaction from native records and Git history.
+Stop when no authorized chunk is ready after the current iteration, an explicit
+iteration/time/usage limit is reached, the user pauses or cancels the work, or
+progress is blocked. A blocker requires user input or an external
+state change, exceeds the authorized scope or permissions, conflicts with
+another objective, or is a native lifecycle refusal that remains after
+supported recovery. A failed check alone is not such a blocker.
+
+When blocked, lead with the concrete blocker, why it cannot be resolved within
+current authorization, and the exact user action or external condition needed.
+Then report completed work, the checkpoint, and the next candidate. Never reset
+state or mark a chunk done to hide an incomplete iteration. Follow the host
+adapter's chaining mechanics and recover compaction from native records and
+Git history.
