@@ -3,6 +3,8 @@
 //! temporary copy; their injected failures are not represented as recordings.
 
 mod fake_client;
+#[path = "../../magistr-cli/tests/support/in_env.rs"]
+mod in_env;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -38,6 +40,9 @@ impl Provider for Shared {
         self.0.models()
     }
 
+    fn capabilities(&self) -> magistr_acp_agent::ProviderCapabilities {
+        self.0.capabilities()
+    }
     fn requires_terminal_cancellation(&self) -> bool {
         self.0.requires_terminal_cancellation()
     }
@@ -154,6 +159,12 @@ async fn discovery_advertises_the_runtime_catalog_and_completes_the_handshake_in
     let meta = init.meta.expect("provider discovery metadata");
     assert_eq!(meta["magistr"]["provider"], "codex");
     assert_eq!(meta["magistr"]["models"][0]["id"], "gpt-6-astra");
+    assert_eq!(meta["magistr"]["capabilities"]["library_steering"], true);
+    assert_eq!(
+        meta["magistr"]["capabilities"]["terminal_cancellation_ack"],
+        true
+    );
+    assert_eq!(meta["magistr"]["session_options"]["effort"], true);
     let inputs = recording.inputs();
     let methods: Vec<_> = inputs
         .iter()
@@ -641,6 +652,9 @@ async fn a_terminal_queued_after_interrupt_refusal_allows_the_next_turn_without_
 
 #[tokio::test]
 async fn resume_replays_history_restores_the_model_and_surfaces_missing_threads() {
+    if !in_env::in_env(&[]) {
+        return;
+    }
     let recording = Recording::new("thread_resume");
     let provider = recording.provider().await;
     let direct = provider.clone();
@@ -666,6 +680,8 @@ async fn resume_replays_history_restores_the_model_and_surfaces_missing_threads(
                     cwd: std::env::temp_dir(),
                     mcp_servers: Vec::new(),
                     resume: true,
+                    model: None,
+                    effort: None,
                 })
                 .await
                 .expect_err("missing persisted thread");
@@ -682,6 +698,66 @@ async fn resume_replays_history_restores_the_model_and_surfaces_missing_threads(
     assert!(
         resume["params"].get("model").is_none(),
         "resume must preserve the persisted model"
+    );
+}
+
+#[tokio::test]
+async fn session_metadata_applies_model_and_effort_before_the_first_turn() {
+    let mut recording = Recording::new("turn_message");
+    let response = recording.response("thread/start");
+    recording.frames[response]["result"]["model"] = json!("gpt-5.6-sol");
+    let provider = recording.provider().await;
+    with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+        initialize(&cx).await?;
+        let meta: agent_client_protocol::schema::v1::Meta = serde_json::from_value(
+            json!({"magistr":{"session":{"model":"gpt-5.6-sol","effort":"high"}}}),
+        )
+        .expect("session metadata");
+        let session = cx
+            .send_request(NewSessionRequest::new(std::env::temp_dir()).meta(meta))
+            .block_task()
+            .await?;
+        let picker = serde_json::to_value(session.config_options).expect("picker");
+        assert_eq!(picker[0]["currentValue"], "gpt-5.6-sol");
+        prompt_and_wait(&cx, &session.session_id, "pong").await
+    })
+    .await;
+    assert_eq!(
+        recording.request("thread/start")["params"]["model"],
+        "gpt-5.6-sol"
+    );
+    assert_eq!(
+        recording.request("thread/start")["params"]["config"]["model_reasoning_effort"],
+        "high"
+    );
+    assert_eq!(
+        recording.request("turn/start")["params"]["model"],
+        "gpt-5.6-sol"
+    );
+    assert_eq!(recording.request("turn/start")["params"]["effort"], "high");
+}
+
+#[tokio::test]
+async fn unsupported_session_effort_is_refused_before_starting_a_runtime_thread() {
+    let recording = Recording::new("turn_message");
+    let provider = recording.provider().await;
+    with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+        initialize(&cx).await?;
+        let meta: agent_client_protocol::schema::v1::Meta =
+            serde_json::from_value(json!({"magistr":{"session":{"effort":"impossible"}}}))
+                .expect("session metadata");
+        cx.send_request(NewSessionRequest::new(std::env::temp_dir()).meta(meta))
+            .block_task()
+            .await
+            .expect_err("effort validation precedes thread start");
+        Ok(())
+    })
+    .await;
+    assert!(
+        !recording
+            .inputs()
+            .iter()
+            .any(|frame| frame["method"] == "thread/start")
     );
 }
 
@@ -981,6 +1057,8 @@ async fn quota_failure_and_unavailable_model_are_actionable_errors() {
             cwd: std::env::temp_dir(),
             mcp_servers: Vec::new(),
             resume: false,
+            model: None,
+            effort: None,
         })
         .await
         .expect_err("unavailable runtime model");

@@ -10,11 +10,10 @@ use agent_client_protocol::schema::v1::{
 };
 use agent_client_protocol::{Agent, ConnectionTo};
 use tokio::process::Child;
-use tokio::sync::mpsc;
 
 use super::wait_child::{exit_code, wait_child};
 use crate::stderr_tail::StderrTail;
-use crate::{AcpError, AcpEvent, AcpSessionMode, Result};
+use crate::{AcpError, AcpSessionMode, Result};
 
 /// Grace period after a failed handshake for the agent to be reaped and its
 /// stderr drained, so the error can quote the exit status and last lines.
@@ -34,7 +33,6 @@ pub(crate) struct HandshakeInputs<'a> {
     pub session_mode: &'a AcpSessionMode,
     pub mcp_servers: &'a [McpServer],
     pub session_meta: &'a Option<Meta>,
-    pub event_tx: &'a mpsc::UnboundedSender<Result<AcpEvent>>,
     pub stderr_tail: &'a StderrTail,
 }
 
@@ -49,7 +47,12 @@ pub(crate) async fn acp_handshake(
 ) -> Result<AcpHandshake> {
     // Which request was in flight when the agent died — the future must stay
     // `Send`, so an atomic index into PHASES rather than a Cell.
-    const PHASES: [&str; 3] = ["initialize", "session/load", "session/new"];
+    const PHASES: [&str; 4] = [
+        "initialize",
+        "session/load",
+        "session/new",
+        "session/configure",
+    ];
     let phase = std::sync::atomic::AtomicUsize::new(0);
     let set_phase = |name: &str| {
         if let Some(i) = PHASES.iter().position(|p| *p == name) {
@@ -85,25 +88,24 @@ pub(crate) async fn acp_handshake(
                 (sid, response.config_options)
             }
             AcpSessionMode::Load { session_id } => {
-                let _ = inputs.event_tx.send(Ok(AcpEvent::System {
-                    subtype: "warning".to_string(),
-                    data: serde_json::json!({
-                        "message": format!(
-                            "Agent does not support session resume. \
-                             Requested session '{session_id}' cannot be loaded — creating new session."
-                        ),
-                    }),
-                }));
-                set_phase("session/new");
-                let response =
-                    new_session(cx, inputs.cwd, inputs.mcp_servers, inputs.session_meta).await?;
-                (response.0, response.1)
+                return Err(AcpError::connection(format!(
+                    "Agent does not support session resume; requested session '{session_id}' cannot be loaded"
+                )));
             }
             AcpSessionMode::New => {
                 set_phase("session/new");
                 new_session(cx, inputs.cwd, inputs.mcp_servers, inputs.session_meta).await?
             }
         };
+        set_phase("session/configure");
+        let config_options = super::session_choices::configure(
+            cx,
+            &session_id,
+            config_options,
+            inputs.session_meta.as_ref(),
+            agent_meta.as_ref(),
+        )
+        .await?;
         Ok(AcpHandshake {
             session_id,
             agent_capabilities,

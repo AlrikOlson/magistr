@@ -26,8 +26,7 @@ use super::gate_outcome::GateOutcome;
 use super::iteration_metrics::IterationMetrics;
 use super::loop_end::LoopEnd;
 use super::loop_report::LoopReport;
-use crate::agent::{AgentConfig, Backend, ToolPermissions};
-use crate::orchestration::commands::run::{cockpit_policy_for_project, resolve_permission_profile};
+use crate::agent::{AgentConfig, Backend, ResolvedSessionSpec, ToolPermissions};
 use crate::orchestration::goal::{
     AgentGoal, Decision, Delegation, Delivery, DeliveryKind, GateEvidence, GoalMode, Judge,
     JudgeInput,
@@ -559,19 +558,16 @@ impl LoopDriver {
             false
         };
         if !delegated {
-            let config = AgentConfig::new(&prompt, &cwd)
-                .backend(self.backend)
-                .allowed_tools(ToolPermissions::for_workflow().into_strings())
-                .with_project_context(&cwd);
+            let config = self.agent_config(&prompt, &cwd);
             self.post(LoopEvent::Stage(LoopStage::Connecting));
-            let transport = match self.connector.connect(config).await {
-                Ok(transport) => transport,
+            let (transport, spec) = match self.connector.connect(config).await {
+                Ok(connected) => connected,
                 Err(e) => {
                     self.iter_loop.mark_failed();
                     return Err(format!("failed to start the agent: {e}"));
                 }
             };
-            let (session, session_tx) = self.open_session(transport, &cwd, Some(&prompt));
+            let (session, session_tx) = self.open_session(transport, spec, true);
             self.post(LoopEvent::Stage(LoopStage::Agent));
             let turn = self.turn(&session_tx, started, &mut ticks).await;
             drop(session_tx);
@@ -645,22 +641,25 @@ impl LoopDriver {
         ))
     }
 
-    /// Open the next session only after the previous producer was drained.
+    fn agent_config(&self, prompt: &str, cwd: &Path) -> AgentConfig {
+        let mut config = AgentConfig::new(prompt, cwd)
+            .backend(self.backend)
+            .allowed_tools(ToolPermissions::for_workflow().into_strings())
+            .workflow_permissions(true)
+            .with_project_context(cwd);
+        config.permission_profile = self.permission_profile;
+        config
+    }
+
+    /// Open the next session using the same setup that connected its transport.
     fn open_session(
         &mut self,
         transport: magistr_acp::AcpTransport,
-        cwd: &Path,
-        opening: Option<&str>,
+        spec: ResolvedSessionSpec,
+        send_opening: bool,
     ) -> (JoinHandle<()>, UnboundedSender<Cmd>) {
         self.iteration_cost_base = self.iter_loop.run_state().budget_total_usd;
         let (session_tx, session_commands) = Commands::channel();
-        // Workflow mode: reads, edits and the gate commands are
-        // auto-approved so an unattended iteration never stalls on the
-        // strip — the same policy the legacy workflow runner applied.
-        let profile = self.permission_profile.unwrap_or_else(|| {
-            resolve_permission_profile(cwd, None).unwrap_or(PermissionProfile::Standard)
-        });
-        let policy = cockpit_policy_for_project(cwd, profile, true, None);
         // The engine port acts on the loop's own in-process engines, so a
         // pin or checkpoint from the cockpit works mid-iteration too.
         let engine = self
@@ -669,11 +668,12 @@ impl LoopDriver {
             .map(|engines| Box::new(NativeEnginePort::new(engines.clone())) as _);
         // The loop's cockpit reaches the same workbench the agent does:
         // the project's configured workbench-mcp, over its stdio.
-        let workbench = crate::orchestration::commands::workbench_port::workbench_port(cwd);
+        let workbench = crate::orchestration::commands::workbench_port::workbench_port(spec.cwd());
         let mut options = SessionOptions::new();
-        if let Some(prompt) = opening {
-            options = options.opening_prompt(prompt);
+        if send_opening {
+            options = options.opening_prompt(spec.prompt());
         }
+        let (policy, _) = spec.into_permission_policy();
         let session = spawn_session(
             transport,
             self.inbox.tap(self.tap_tx.clone()),
@@ -818,13 +818,10 @@ impl LoopDriver {
         started: Instant,
         ticks: &mut Interval,
     ) -> Result<Attempt, String> {
-        let config = AgentConfig::new(objective, cwd)
-            .backend(self.backend)
-            .allowed_tools(ToolPermissions::for_workflow().into_strings())
-            .with_project_context(cwd);
+        let config = self.agent_config(objective, cwd);
         self.post(LoopEvent::Stage(LoopStage::Connecting));
-        let mut transport = match self.connector.connect(config).await {
-            Ok(transport) => transport,
+        let (mut transport, spec) = match self.connector.connect(config).await {
+            Ok(connected) => connected,
             Err(e) => {
                 self.iter_loop.mark_failed();
                 return Err(format!("failed to start the agent: {e}"));
@@ -837,7 +834,7 @@ impl LoopDriver {
         let Some(mut tap) = transport.tap_events() else {
             return Err("the transport's event stream was already taken".to_owned());
         };
-        let (session, session_tx) = self.open_session(transport, cwd, None);
+        let (session, session_tx) = self.open_session(transport, spec, false);
         self.post(LoopEvent::Stage(LoopStage::Agent));
         let outcome = self
             .deliver(
@@ -1123,7 +1120,7 @@ impl LoopDriver {
         // A chunk the agent finished, blocked or retired during its turn
         // is not a question for the judge: the only verdict on a chunk
         // nobody could have worked is "not worked", and it costs a
-        // small-model call to hear it. The next iteration's target is
+        // judge call to hear it. The next iteration's target is
         // roadmap_next's answer, which skips all three. A blocker is
         // read off `blocked_by`, the field roadmap_next skips on — the
         // roadmap's `set_blocked_by` records the reason and leaves the

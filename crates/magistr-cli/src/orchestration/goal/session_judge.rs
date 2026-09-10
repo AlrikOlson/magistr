@@ -5,10 +5,7 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::time::Duration;
 
-use agent_client_protocol::schema::v1::{
-    ContentBlock, SessionConfigKind, SessionConfigOption, SessionConfigOptionCategory,
-    SessionConfigOptionValue, SessionConfigSelectOptions, SessionUpdate,
-};
+use agent_client_protocol::schema::v1::{ContentBlock, SessionUpdate};
 use magistr_acp::{
     AcpEvent, AcpPermissionOptionKind, AcpPermissionRequest, AcpPermissionResponse, AcpTransport,
 };
@@ -22,8 +19,8 @@ use crate::orchestration::loop_driver::Connector;
 
 /// A [`Judge`] that opens a **new** ACP session per verdict — never the
 /// session that did the work — with nothing pre-approved and every
-/// permission request refused, selects the smallest model the agent
-/// offers, sends exactly [`JudgeInput::prompt`], collects the turn's
+/// permission request refused, uses the resolved session model, sends
+/// exactly [`JudgeInput::prompt`], collects the turn's
 /// text and reads the [`Verdict`] off it.
 ///
 /// It cannot fail: a connection that errors, a turn that ends without
@@ -42,10 +39,6 @@ impl SessionJudge {
     /// How long a verdict may take, connection included.
     pub const TIMEOUT: Duration = Duration::from_secs(30);
 
-    /// Ids and names that mark an offered model as a small one, in
-    /// preference order.
-    const SMALL_HINTS: [&'static str; 5] = ["haiku", "fast", "flash", "mini", "small"];
-
     /// A judge connecting through `connector` for the project at `cwd`.
     #[must_use]
     pub fn new(connector: Connector, cwd: impl Into<PathBuf>, backend: Backend) -> Self {
@@ -58,8 +51,8 @@ impl SessionJudge {
         }
     }
 
-    /// Select this model id when the agent offers it, instead of the
-    /// smallest one it advertises.
+    /// Request this model id through the shared startup policy.
+    /// An unavailable or refused model prevents inference.
     #[must_use]
     pub fn model(mut self, model: impl Into<String>) -> Self {
         self.model = Some(model.into());
@@ -73,46 +66,14 @@ impl SessionJudge {
         self
     }
 
-    /// The `(option id, value)` to set among `options`: the configured
-    /// model when offered, else the first offered whose id or name
-    /// carries a small-model hint, else `None` for the agent's default.
-    fn pick_model(&self, options: &[SessionConfigOption]) -> Option<(String, String)> {
-        let option = options
-            .iter()
-            .find(|o| o.category == Some(SessionConfigOptionCategory::Model))?;
-        let SessionConfigKind::Select(select) = &option.kind else {
-            return None;
-        };
-        let offered: Vec<(String, String)> = match &select.options {
-            SessionConfigSelectOptions::Ungrouped(choices) => choices.iter().collect::<Vec<_>>(),
-            SessionConfigSelectOptions::Grouped(groups) => groups
-                .iter()
-                .flat_map(|group| group.options.iter())
-                .collect(),
-            _ => Vec::new(),
-        }
-        .into_iter()
-        .map(|choice| (choice.value.to_string(), choice.name.to_lowercase()))
-        .collect();
-        let choice = if let Some(wanted) = &self.model {
-            offered.iter().find(|(id, _)| id == wanted)
-        } else {
-            Self::SMALL_HINTS.iter().find_map(|hint| {
-                offered
-                    .iter()
-                    .find(|(id, name)| id.to_lowercase().contains(hint) || name.contains(hint))
-            })
-        }?;
-        Some((option.id.to_string(), choice.0.clone()))
-    }
-
-    /// Connect, refuse tools, pick the model, ask, and read the answer;
+    /// Connect with resolved setup, refuse tools, ask, and read the answer;
     /// the session is closed whatever happened.
     async fn ask(&self, prompt: &str) -> Result<Verdict, String> {
-        let config = AgentConfig::new(prompt, &self.cwd)
+        let mut config = AgentConfig::new(prompt, &self.cwd)
             .backend(self.backend)
             .allowed_tools(Vec::<String>::new());
-        let mut transport = self
+        config.model.clone_from(&self.model);
+        let (mut transport, _spec) = self
             .connector
             .connect(config)
             .await
@@ -129,7 +90,7 @@ impl SessionJudge {
     }
 
     /// One turn: the handshake's `Initialized` is already queued and the
-    /// model must be set before the prompt goes out; then the text
+    /// resolved model has been selected before the prompt goes out; then the text
     /// chunks are gathered until the `PromptResponse`.
     async fn turn(
         &self,
@@ -147,13 +108,7 @@ impl SessionJudge {
                         return Err(format!("the judge's session ended before it answered: {text}"));
                     };
                     match event.map_err(|e| format!("the judge's transport failed: {e}"))? {
-                        AcpEvent::Initialized { session_id, config_options, .. } if !prompted => {
-                            if let Some((option, value)) =
-                                self.pick_model(config_options.as_deref().unwrap_or_default())
-                            {
-                                let value = SessionConfigOptionValue::ValueId { value: value.into() };
-                                let _ = transport.set_config_option(session_id, option, value).await;
-                            }
+                        AcpEvent::Initialized { .. } if !prompted => {
                             transport
                                 .prompt(prompt)
                                 .map_err(|e| format!("the judge could not be asked: {e}"))?;

@@ -49,6 +49,8 @@ pub struct AgentSession {
     message_rx: mpsc::UnboundedReceiver<Result<AgentMessage>>,
     /// The session ID returned from the most recent Result message.
     session_id: Option<SessionId>,
+    /// The frozen initial model selection; None retains the runtime's model.
+    resolved_model: Option<String>,
     /// The owned policy worker ends on cancel/drop; its grant lock orders cancellation.
     permission_worker: Option<tokio::task::JoinHandle<()>>,
     permission_stop: Option<tokio::sync::oneshot::Sender<()>>,
@@ -61,15 +63,17 @@ impl AgentSession {
     /// Start a new agent session with the given config.
     #[instrument(skip_all, name = "agent_session_start")]
     pub async fn start(config: super::AgentConfig) -> Result<Self> {
-        let config = config.apply_user_defaults();
-        let (policy, handling) = config.session_permission_policy();
+        let spec = config.resolve()?;
         let (backend, message_rx, acp_permission_rx) =
-            super::backend::AcpBackend::start(config).await?;
+            super::backend::AcpBackend::start_resolved(&spec).await?;
+        let resolved_model = spec.model().map(str::to_owned);
+        let (policy, handling) = spec.into_permission_policy();
 
         let mut session = Self {
             backend: SessionBackend::Acp(backend),
             message_rx,
             session_id: None,
+            resolved_model,
             acp_permission_rx,
             permission_worker: None,
             permission_stop: None,
@@ -94,6 +98,7 @@ impl AgentSession {
             },
             message_rx: msg_rx,
             session_id: None,
+            resolved_model: None,
             acp_permission_rx: None,
             permission_worker: None,
             permission_stop: None,
@@ -122,6 +127,7 @@ impl AgentSession {
             },
             message_rx: msg_rx,
             session_id: None,
+            resolved_model: None,
             acp_permission_rx: None,
             permission_worker: None,
             permission_stop: None,
@@ -306,6 +312,12 @@ impl AgentSession {
     /// to resume this session later via `--resume`.
     pub fn session_id(&self) -> Option<&SessionId> {
         self.session_id.as_ref()
+    }
+
+    /// Initial model after defaults and governance; None preserves runtime state.
+    #[must_use]
+    pub fn resolved_model(&self) -> Option<&str> {
+        self.resolved_model.as_deref()
     }
 
     /// Get the agent capabilities negotiated during `initialize`.

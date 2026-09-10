@@ -20,22 +20,77 @@ Automatic detection chooses Claude Code or Copilot.
 
 ## Configuration and defaults
 
-Set the provider before applying defaults:
+Resolve one specification before connecting:
 
 ```rust
-let config = magistr::agent::AgentConfig::new("Review the change", project_dir)
+let spec = magistr::agent::AgentConfig::new("Review the change", project_dir)
     .provider("codex")
-    .apply_user_defaults();
+    .effort("high")
+    .resolve()?;
+let transport = spec.connect_transport().await?;
 ```
 
-`apply_user_defaults` fills a missing provider, pins successful automatic
-detection, and copies that provider's model default for a new session. Explicit
-models and runtime-owned resume IDs remain unchanged. Resumes retain their
-runtime model unless the caller overrides it. A resolved provider does not
-change when global preferences later change.
+`ResolvedSessionSpec` freezes the selected runtime, project directory, model,
+effort, permission policy, unattended response mode, and project MCP configuration.
+Its fields are private; configuration accessors borrow the snapshot, and the
+session owner consumes it to take the same permission policy. CLI, cockpit,
+loop workers, and judge startup use this path. `connect_transport(&AgentConfig)`
+remains a compatibility entry point that resolves a specification internally.
 
-`AgentSession::start` applies these defaults. Callers using `connect_transport`
-directly choose model configuration through the transport's `set_config_option`.
+An explicit provider takes precedence over user defaults; automatic detection
+pins one runtime. Missing models inherit only that provider's user default for
+new sessions. Resumes retain their runtime model unless explicitly overridden.
+Project model governance applies after defaults. The specification's provenance
+records the source of each choice, without credentials or MCP environment values.
+Changing configuration files afterwards affects the next specification. A project
+with model restrictions requires a verifiable model choice; an unknown runtime
+or resumed model is refused. Malformed permission/MCP files and unsupported MCP
+entries also fail before startup. The shared host currently accepts only stdio
+entries from `.mcp.json`; direct provider callers can use the additional
+transports listed below.
+
+The ACP handshake applies explicit model and effort choices before exposing a
+ready transport. In-binary providers validate namespaced
+`_meta.magistr.session` options during session creation/loading. Other agents
+use their negotiated model/reasoning selectors; absent, invalid, or unacknowledged
+choices fail. Selecting a model later remains an explicit session operation.
+The loop judge uses an explicit override or the common provider default; it no
+longer silently chooses a different model after startup.
+
+A request to continue an unspecified last conversation is rejected with guidance
+to provide a runtime-owned resume ID. An unsupported load is an error; it never
+opens a new empty conversation as a fallback. Legacy `AgentConfig` fields
+`system_prompt`, `max_turns`, and `permission_mode` remain outside this resolved
+execution contract; their inherited inert behavior is tracked separately. Shared
+permission profiles and project policy are the enforced permission controls.
+
+## Capability guarantees
+
+The in-binary agent publishes its implemented guarantees in
+`initialize._meta.magistr.capabilities`, separate from provider model names.
+`session_options` identifies model/effort startup options. Capabilities describe
+this adapter, rather than every feature the vendor may offer.
+
+| Adapter | Durable load/replay | Open-session continuation | Steering | Model changes | Cancellation |
+| --- | --- | --- | --- | --- | --- |
+| Claude Code | Persisted transcript and runtime resume | Yes | Unavailable | Next turn | Interrupt/grace; no terminal acknowledgment guarantee |
+| Codex | Runtime thread restore and replay | Yes | Direct library API | Next turn | Waits for terminal runtime event |
+| OpenAI, Gemini, Ollama APIs | Unavailable | Process-local history | Unavailable | Next turn | HTTP stream dropped; no remote acknowledgment |
+| Copilot | Negotiated from external agent | Agent-owned | Agent-owned | Negotiated selectors | Agent-owned |
+
+All built-in adapters currently consume text prompt blocks. Unsupported images,
+audio, and embedded resources are refused before a turn is enqueued. Coding
+runtime adapters support tools; chat API adapters have no tool harness and reject
+nonempty MCP configuration. Claude accepts stdio/HTTP/SSE MCP configuration;
+Codex accepts stdio/HTTP and rejects SSE. The scripted provider is a deterministic
+test fixture, including its simulated replay, and is not durable user storage.
+
+ACP loading promises persisted context across process restarts and history
+replay before the load response ([session setup](https://agentclientprotocol.com/protocol/v1/session-setup)).
+API adapters reject loading through both the provider and wire entry points.
+Claude loading requires a readable, valid transcript; missing or malformed
+history is an error. Codex validates restored thread identity. Unknown provider
+capabilities default to unsupported.
 
 ## Permission decisions
 
@@ -82,7 +137,11 @@ entries are rejected.
 Recorded Codex fixtures use CLI version `0.153.4`; see their
 [provenance](../../crates/magistr-acp-agent/tests/fixtures/codex/README.md).
 Replay tests cover lifecycle, permissions, steering, cancellation, resume, and
-failure handling. Malformed required fields fail explicitly.
+failure handling. Malformed required fields fail explicitly. Fresh-process tests
+check API load refusal through both the provider and actual CLI transport, replay
+Claude history from a parent-written disk transcript, and restore Codex fixture
+history in an isolated client process. These tests validate the adapter contract
+with controlled runtimes; they do not claim live-provider storage compatibility.
 
 The opt-in live check uses the real transport and a disposable directory:
 

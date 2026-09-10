@@ -6,6 +6,7 @@ mod connection;
 mod handshake;
 mod lines;
 mod sender;
+mod session_choices;
 mod spawn;
 mod wait_child;
 
@@ -152,6 +153,45 @@ impl AcpTransport {
     pub fn session_meta(mut self, meta: Option<Meta>) -> Self {
         self.session_meta = meta;
         self
+    }
+
+    /// Select a model before the session is ready for its first prompt.
+    #[must_use]
+    pub fn session_model(mut self, model: Option<String>) -> Self {
+        self.set_session_choice("model", model);
+        self
+    }
+
+    /// Select reasoning effort, rejecting providers that cannot apply it.
+    #[must_use]
+    pub fn session_effort(mut self, effort: Option<String>) -> Self {
+        self.set_session_choice("effort", effort);
+        self
+    }
+
+    fn set_session_choice(&mut self, key: &str, value: Option<String>) {
+        let meta = self.session_meta.get_or_insert_with(Meta::new);
+        let magistr = meta
+            .entry("magistr".to_owned())
+            .or_insert_with(|| serde_json::json!({}));
+        // This namespace is owned by Magistr; preserve unrelated metadata.
+        if !magistr.is_object() {
+            *magistr = serde_json::json!({});
+        }
+        let session = magistr
+            .as_object_mut()
+            .expect("object ensured")
+            .entry("session")
+            .or_insert_with(|| serde_json::json!({}));
+        if !session.is_object() {
+            *session = serde_json::json!({});
+        }
+        let choices = session.as_object_mut().expect("object ensured");
+        if let Some(value) = value {
+            choices.insert(key.to_owned(), value.into());
+        } else {
+            choices.remove(key);
+        }
     }
 
     /// Spawn the agent and complete the handshake.

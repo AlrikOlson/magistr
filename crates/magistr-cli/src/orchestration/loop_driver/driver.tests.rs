@@ -190,20 +190,31 @@ fn fake_connector(agent: FakeAcpAgent) -> (Connector, Arc<Mutex<Vec<Arc<AcpObser
     let seen: Arc<Mutex<Vec<Arc<AcpObserved>>>> = Arc::new(Mutex::new(Vec::new()));
     let connector = {
         let seen = Arc::clone(&seen);
-        Connector::new(move |_config| {
+        Connector::new(move |config| {
             let (client_end, observed, _agent_task) = agent.clone().spawn();
             seen.lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .push(observed);
             async move {
+                let spec = ResolvedSessionSpec::resolve_with_runtime(
+                    config,
+                    &crate::config::user_config::UserConfig::default(),
+                    crate::agent::AgentRuntime {
+                        path: PathBuf::from("fake-acp-agent"),
+                        args: Vec::new(),
+                        auth: crate::agent::AuthMethod::Implicit,
+                        provider: "scripted".to_owned(),
+                    },
+                )?;
                 let mut transport =
                     AcpTransport::new_with_args(PathBuf::from("fake-acp-agent"), Vec::new(), None)
-                        .map_err(|e| MagistrError::Acp(e.to_string()))?;
+                        .map_err(|e| MagistrError::Acp(e.to_string()))?
+                        .session_model(spec.model().map(str::to_owned));
                 transport
                     .connect_over(client_end)
                     .await
                     .map_err(|e| MagistrError::Acp(e.to_string()))?;
-                Ok(transport)
+                Ok((transport, spec))
             }
         })
     };
@@ -340,6 +351,55 @@ fn notes(model: &Model) -> Vec<String> {
         .collect()
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_policy_change_during_connection_only_applies_to_the_next_session() {
+    use magistr_engine::policy::{Charter, PolicyCondition, PolicyEffect, PolicyRule};
+
+    let dir = project("true", "true", "true");
+    let (inner, seen) = fake_connector(FakeAcpAgent::new().asking_permission("Bash"));
+    let inner = Arc::new(inner);
+    let root = dir.path().to_path_buf();
+    let connector = Connector::new(move |config| {
+        let inner = Arc::clone(&inner);
+        let root = root.clone();
+        async move {
+            let connected = inner.connect(config).await?;
+            let mut charter = Charter::default();
+            charter.delegate(PolicyRule::new(
+                "refuse-bash",
+                PolicyCondition::tool("Bash"),
+                PolicyEffect::Deny,
+            ));
+            crate::permissions::CharterStore::at(&root).save(&charter)?;
+            Ok(connected)
+        }
+    });
+    let (_, report, _) = run_over(
+        dir.path(),
+        2,
+        Script::new().startup_replies(MS(0)),
+        connector,
+        Arc::clone(&seen),
+        false,
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(report.iterations(), 2);
+    let sessions = seen.lock().unwrap();
+    assert_eq!(sessions.len(), 2);
+    assert_eq!(
+        sessions[0].outcomes(),
+        vec![Some("allow".to_owned())],
+        "the first session retains its policy captured before connection"
+    );
+    assert_eq!(
+        sessions[1].outcomes(),
+        vec![Some("reject".to_owned())],
+        "the next session resolves the newly saved charter"
+    );
+}
+
 #[tokio::test]
 async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
     let dir = project("true", "true", "true");
@@ -361,12 +421,12 @@ async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
     );
 
     for (cents, expected_total) in [(25, 1.25), (75, 2.0)] {
-        let transport = driver
+        let (transport, spec) = driver
             .connector
             .connect(AgentConfig::new("", dir.path()).backend(Backend::Acp))
             .await
             .unwrap();
-        let (session, session_tx) = driver.open_session(transport, dir.path(), None);
+        let (session, session_tx) = driver.open_session(transport, spec, false);
         let before = driver.iter_loop.run_state().budget_total_usd;
         // These final updates are queued after the turn consumer has stopped.
         // Repeated cumulative updates from one session must count only once.

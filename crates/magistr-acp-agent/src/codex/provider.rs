@@ -106,6 +106,7 @@ impl CodexProvider {
     }
 
     async fn open(&self, start: SessionStart) -> Result<SessionOpened, AgentError> {
+        start.validate(self)?;
         if start.resume
             && self
                 .threads
@@ -121,6 +122,14 @@ impl CodexProvider {
             .first()
             .ok_or_else(|| AgentError::provider("Codex has no model catalog"))?
             .id;
+        if let Some(model) = start
+            .model
+            .as_deref()
+            .or((!start.resume).then_some(default.as_str()))
+        {
+            self.handshake
+                .effort(model, start.effort.as_deref().or(self.effort.as_deref()))?;
+        }
         let params = ThreadSpec::params(&start, default)?;
         let response = self
             .process
@@ -151,12 +160,20 @@ impl CodexProvider {
             .model
             .clone()
             .ok_or_else(|| AgentError::provider("Codex thread response omitted its model"))?;
-        let effort = response["reasoningEffort"]
-            .as_str()
-            .or_else(|| record.raw["reasoningEffort"].as_str())
+        if start.model.as_ref().is_some_and(|chosen| chosen != &model) {
+            return Err(AgentError::provider(
+                "Codex did not apply the requested session model",
+            ));
+        }
+        let effort = start
+            .effort
+            .as_deref()
+            .or(self.effort.as_deref())
+            .or(response["reasoningEffort"]
+                .as_str()
+                .or_else(|| record.raw["reasoningEffort"].as_str()))
             .map(str::to_owned);
-        self.handshake
-            .effort(&model, self.effort.as_deref().or(effort.as_deref()))?;
+        self.handshake.effort(&model, effort.as_deref())?;
         let mut threads = self.threads.lock().unwrap_or_else(PoisonError::into_inner);
         if threads.contains_key(&record.id) {
             return Err(AgentError::SessionExists(record.id));
@@ -182,6 +199,17 @@ impl CodexProvider {
 }
 
 impl Provider for CodexProvider {
+    fn capabilities(&self) -> crate::ProviderCapabilities {
+        crate::ProviderCapabilities {
+            durable_load: true,
+            history_replay: true,
+            library_steering: true,
+            effort_selection: true,
+            terminal_cancellation_ack: true,
+            tools: true,
+            ..crate::ProviderCapabilities::text_session()
+        }
+    }
     fn requires_terminal_cancellation(&self) -> bool {
         true
     }
@@ -204,7 +232,7 @@ impl Provider for CodexProvider {
                 .flatten();
             let effort = self
                 .handshake
-                .effort(model, self.effort.as_deref().or(inherited))?;
+                .effort(model, inherited.or(self.effort.as_deref()))?;
             thread.run(&self.process, &turn, model, &effort).await
         })
     }

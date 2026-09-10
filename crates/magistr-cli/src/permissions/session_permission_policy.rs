@@ -63,6 +63,39 @@ pub struct SessionPermissionPolicy {
 }
 
 impl SessionPermissionPolicy {
+    /// Construct a host policy from already resolved project configuration.
+    /// The session resolver passes the same governance snapshot that selected
+    /// its model; later file changes cannot replace either decision.
+    ///
+    /// # Errors
+    ///
+    /// A configured charter cannot be read or decoded.
+    pub fn for_project_snapshot(
+        project_dir: &Path,
+        config: super::PermissionConfig,
+        governance: magistr_engine::policy::GovernancePolicy,
+        profile: PermissionProfile,
+        workflow: bool,
+        model: Option<&str>,
+    ) -> crate::error::Result<Self> {
+        let identity = crate::team::Identity::resolve(project_dir);
+        let store = CharterStore::at(project_dir);
+        let charter = store.load()?;
+        Ok(Self::new(
+            profile,
+            config.rules,
+            crate::orchestration::commands::run::collect_gate_commands(project_dir),
+            crate::orchestration::commands::run::protected_paths_for_project(project_dir),
+            workflow,
+        )
+        .rooted_at(Some(project_dir.to_path_buf()))
+        .governed_by(governance.compile())
+        .on_model(model.map(str::to_owned))
+        .acting_as(Some(identity.id().to_string()))
+        .retain(config.retention)
+        .chartered(charter, Some(store)))
+    }
+
     /// A policy over the given profile, rules and protected paths;
     /// `workflow` turns on the tool-kind auto-approval `magistr next`
     /// runs under. Audit entries go to the default audit log.

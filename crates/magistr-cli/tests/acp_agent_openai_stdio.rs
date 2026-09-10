@@ -17,7 +17,7 @@ use std::time::Duration;
 
 use agent_client_protocol::schema::v1::{SessionUpdate, StopReason};
 use fake_http::{FakeHttp, Reply};
-use magistr_acp::{AcpEvent, AcpTransport};
+use magistr_acp::{AcpEvent, AcpSessionMode, AcpTransport};
 use tokio::sync::mpsc;
 
 type Events = mpsc::UnboundedReceiver<magistr_acp::Result<AcpEvent>>;
@@ -88,20 +88,26 @@ async fn the_cockpits_transport_runs_a_turn_on_the_openai_provider() {
         .expect("handshake with magistr acp-agent --provider openai");
     let mut events = transport.read_events().expect("events");
 
-    match next(&mut events).await {
+    let session_id = match next(&mut events).await {
         AcpEvent::Initialized {
             config_options,
             agent_meta,
-            ..
+            agent_capabilities,
+            session_id,
         } => {
+            assert!(
+                !agent_capabilities.load_session,
+                "API history is process-local"
+            );
             let picker = config_options.expect("the model picker");
             assert_eq!(picker[0].id.to_string(), "model");
             let meta = agent_meta.expect("_meta.magistr");
             assert_eq!(meta["magistr"]["provider"], "openai");
             assert_eq!(meta["magistr"]["models"][0]["id"], "gpt-4o");
+            session_id
         }
         other => panic!("expected Initialized, got {other:?}"),
-    }
+    };
 
     transport.prompt("why is the sky blue").expect("prompt");
     let mut text = String::new();
@@ -134,4 +140,24 @@ async fn the_cockpits_transport_runs_a_turn_on_the_openai_provider() {
     assert!((cost - 3.50).abs() < 1e-9, "{cost}");
 
     transport.close().await.expect("close");
+
+    // A different agent process cannot restore this API adapter's in-memory
+    // history. The real CLI/transport must refuse, without issuing another HTTP turn.
+    let mut resumed = AcpTransport::new_with_args(
+        PathBuf::from(env!("CARGO_BIN_EXE_magistr")),
+        runtime.args.clone(),
+        Some(cwd.path().to_path_buf()),
+    )
+    .expect("fresh transport")
+    .session_mode(AcpSessionMode::Load {
+        session_id: session_id.clone(),
+    });
+    let error = resumed
+        .connect()
+        .await
+        .expect_err("API sessions cannot survive a process restart");
+    assert!(error.to_string().contains("does not support"), "{error}");
+    assert!(error.to_string().contains(&session_id), "{error}");
+    assert!(!resumed.is_ready());
+    assert!(resumed.prompt("do not start empty history").is_err());
 }

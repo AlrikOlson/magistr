@@ -58,6 +58,12 @@ impl ThreadSpec {
         } else {
             params["model"] = json!(model);
         }
+        if let Some(model) = &start.model {
+            params["model"] = json!(model);
+        }
+        if let Some(effort) = &start.effort {
+            params["config"]["model_reasoning_effort"] = json!(effort);
+        }
         Ok(params)
     }
 }

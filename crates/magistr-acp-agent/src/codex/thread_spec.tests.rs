@@ -7,6 +7,8 @@ fn session(cwd: &std::path::Path) -> SessionStart {
         cwd: cwd.to_path_buf(),
         mcp_servers: Vec::new(),
         resume: false,
+        model: None,
+        effort: None,
     }
 }
 

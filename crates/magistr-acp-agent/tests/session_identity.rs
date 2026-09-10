@@ -20,6 +20,13 @@ struct RuntimeProvider {
 }
 
 impl Provider for RuntimeProvider {
+    fn capabilities(&self) -> magistr_acp_agent::ProviderCapabilities {
+        magistr_acp_agent::ProviderCapabilities {
+            durable_load: true,
+            history_replay: true,
+            ..magistr_acp_agent::ProviderCapabilities::text_session()
+        }
+    }
     fn name(&self) -> &str {
         "runtime-test"
     }
@@ -228,4 +235,40 @@ async fn a_runtime_identity_collision_keeps_the_existing_session_usable() {
         observed.messages(),
         format!("replay;{RUNTIME_ID}:{DEFAULT_MODEL}")
     );
+}
+
+#[tokio::test]
+async fn a_provider_that_ignores_the_requested_model_is_not_registered() {
+    let (_, observed) = with_provider(
+        RuntimeProvider { model: None },
+        PermissionAnswer::Cancel,
+        async |cx, _| {
+            initialize(&cx).await?;
+            let meta: agent_client_protocol::schema::v1::Meta =
+                serde_json::from_value(serde_json::json!({
+                    "magistr":{"session":{"model":RESTORED_MODEL}}
+                }))
+                .expect("metadata");
+            let error = cx
+                .send_request(
+                    agent_client_protocol::schema::v1::NewSessionRequest::new(std::env::temp_dir())
+                        .meta(meta),
+                )
+                .block_task()
+                .await
+                .expect_err("provider ignored selected model");
+            assert!(
+                error
+                    .data
+                    .as_ref()
+                    .is_some_and(|data| data.to_string().contains("requested session model"))
+            );
+            prompt_and_wait(&cx, &SessionId::new(RUNTIME_ID), "continue")
+                .await
+                .expect_err("failed open is not registered");
+            Ok(())
+        },
+    )
+    .await;
+    assert!(observed.updates.lock().expect("updates").is_empty());
 }

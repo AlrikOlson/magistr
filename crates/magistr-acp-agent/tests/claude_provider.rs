@@ -3,6 +3,8 @@
 //! frames recorded from the real one. Hermetic: no model, no login.
 
 mod fake_client;
+#[path = "../../magistr-cli/tests/support/in_env.rs"]
+mod in_env;
 
 use std::path::PathBuf;
 
@@ -303,6 +305,58 @@ async fn session_load_resumes_and_replays_the_transcript() {
     assert_eq!(stop, StopReason::EndTurn);
     assert!(observed.messages().ends_with("pong"));
     assert!(observed.saw(|u| matches!(u, SessionUpdate::AvailableCommandsUpdate(_))));
+}
+
+#[tokio::test]
+async fn a_fresh_client_process_replays_claude_history_written_by_its_parent() {
+    const CONFIG: &str = "MAGISTR_TEST_CLAUDE_HISTORY";
+    const SESSION: &str = "00000000-0000-4000-8000-0000000001e3";
+    let cwd = std::env::temp_dir();
+    let config = match std::env::var_os(CONFIG) {
+        Some(path) => PathBuf::from(path),
+        None => {
+            let config = tempfile::tempdir().expect("persisted Claude config");
+            let encoded = cwd.to_string_lossy().replace('/', "-");
+            let dir = config.path().join("projects").join(encoded);
+            std::fs::create_dir_all(&dir).expect("projects directory");
+            std::fs::write(
+                dir.join(format!("{SESSION}.jsonl")),
+                include_str!("fixtures/claude/transcript.jsonl"),
+            )
+            .expect("persist transcript before child exists");
+            assert!(!in_env::in_env(&[(
+                CONFIG,
+                Some(config.path().as_os_str())
+            )]));
+            return;
+        }
+    };
+    let provider = provider("session_resume").await.config_dir(config);
+    let (_, observed) = with_provider(
+        provider,
+        PermissionAnswer::Cancel,
+        async move |cx, observed| {
+            let init = initialize(&cx).await?;
+            assert!(init.agent_capabilities.load_session);
+            let loaded = cx
+                .send_request(LoadSessionRequest::new(SessionId::new(SESSION), cwd))
+                .block_task()
+                .await?;
+            assert_eq!(
+                observed.messages(),
+                "pongpingpong",
+                "disk history arrived before load response"
+            );
+            assert!(observed.saw(|update| matches!(update, SessionUpdate::AgentThoughtChunk(_))));
+            assert!(
+                loaded.config_options.is_none(),
+                "unknown restored model must not become the current default"
+            );
+            Ok(())
+        },
+    )
+    .await;
+    assert_eq!(observed.messages(), "pongpingpong");
 }
 
 #[tokio::test]
