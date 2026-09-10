@@ -256,6 +256,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/engine/mod.rs` | The think-and-ship engines, in-process, and their live feed | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cockpit/src/engine/apply.rs` | Carrying an engine command out on a port | `magistr-cockpit/src/engine/apply.tests.rs` |
 | `magistr-cockpit/src/engine/attached.rs` | Whether the live feed currently holds the broadcast socket | `magistr-cockpit/src/engine/attached.tests.rs` |
+| `magistr-cockpit/src/engine/attached_port.rs` | The engine port over an owner this process did not open | `magistr-cockpit/src/engine/client.tests.rs` |
 | `magistr-cockpit/src/engine/client.rs` | The engines, opened before the terminal is taken over | `magistr-cockpit/src/engine/client.tests.rs` |
 | `magistr-cockpit/src/engine/error.rs` | Why the engines could not open | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cockpit/src/engine/event.rs` | What the feed — or the cockpit's own engine port — reports | `magistr-tui/tests/jobs_engines_harness.rs` |

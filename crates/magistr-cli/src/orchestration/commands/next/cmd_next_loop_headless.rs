@@ -40,6 +40,9 @@ pub async fn cmd_next_loop_headless(
     iter_loop.set_budget_limit(max_cost).suggest()?;
     let max_cost = iter_loop.run_state().budget_limit_usd;
     iter_loop.persist().suggest()?;
+    // The host's owner endpoint, for a cockpit opened beside this loop;
+    // it lives for the loop and drops before the writer.
+    let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
 
     let loop_start = Instant::now();
     let mut cumulative_cost = iter_loop.run_state().budget_total_usd;

@@ -1,5 +1,7 @@
 //! Which kind of admitted writer a [`super::ProjectAuthority`] is.
 
+use serde::{Deserialize, Serialize};
+
 /// The writer class an owner lease admits. Each role holds its own lock, so
 /// one writer of each role can be admitted on the same project and store at
 /// the same time — the cockpit or loop host beside the agent's own
@@ -8,7 +10,8 @@
 /// This is cooperative admission among Magistr binaries that take the lease.
 /// It does not exclude older binaries, a standalone think-and-ship server, or
 /// anyone who edits the store or its lock files directly.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum WriterRole {
     /// The MCP transport (`magistr mcp-serve`): the agent's tools, and the
     /// only role that publishes the live feed.
@@ -28,6 +31,15 @@ impl WriterRole {
         match self {
             Self::Service => "mcp-owner.lock",
             Self::Host => "host-owner.lock",
+        }
+    }
+
+    /// The short word an owner endpoint's fallback socket name carries.
+    #[must_use]
+    pub const fn short_name(self) -> &'static str {
+        match self {
+            Self::Service => "mcp",
+            Self::Host => "host",
         }
     }
 

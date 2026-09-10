@@ -69,3 +69,6 @@ insta = "1"
 proptest = "1"
 # A temporary project root and store for the engine client tests.
 tempfile = "3"
+# The attached-client tests block on a synchronous socket client while the
+# owner endpoint's tasks run: they need more than one worker.
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

@@ -60,8 +60,8 @@ pub struct MagistrService {
     /// service-role lease, and the live-feed socket the engines broadcast on
     /// (kept so a gate this server runs itself can stream its bytes there
     /// too). Cloning a service shares it; the lease releases with the last
-    /// clone.
-    authority: Arc<ProjectAuthority>,
+    /// clone. The owner endpoint (`owner_attach`) is keyed by it.
+    pub(super) authority: Arc<ProjectAuthority>,
 }
 
 impl MagistrService {

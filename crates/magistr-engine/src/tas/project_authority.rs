@@ -1,5 +1,5 @@
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use think_and_ship::infra::{Broadcaster, resolve_project_id_with};
@@ -12,13 +12,20 @@ use think_and_ship::think::ThinkService;
 use super::native_engines::NativeEngines;
 use super::native_reader::NativeReader;
 use super::open_engines::open_engines;
+use super::owner_generation::OwnerGeneration;
 use super::owner_lease::OwnerLease;
+use super::owner_socket::owner_socket_path;
 use super::tas_config::TasConfig;
 use super::writer_role::WriterRole;
 
 /// An admitted project writer: the project's native identity, the role's
 /// advisory lease on its store, the live feed when this writer publishes one,
 /// and — once, by consuming the authority — the opening of the native engines.
+///
+/// The admission also mints the owner's [`OwnerGeneration`] and names the
+/// [`owner_socket_path`] its endpoint is served on
+/// ([`OwnerEndpoint`](super::OwnerEndpoint)), so a second surface on the
+/// same project attaches to this writer instead of contending for it.
 ///
 /// Every native writer in Magistr is admitted here before it can mutate:
 /// the MCP transport as [`WriterRole::Service`], the cockpit, the loops and
@@ -29,8 +36,9 @@ use super::writer_role::WriterRole;
 /// Admission is cooperative. One writer of each role is admitted per project
 /// and store; a second of the same role is refused before any engine opens.
 /// Older binaries, a standalone think-and-ship server and deliberate lock or
-/// store edits are not excluded, and no generation fencing, proxy attachment
-/// or distributed ownership is claimed.
+/// store edits are not excluded, and no distributed ownership is claimed:
+/// attachment is local, and the generation fences attached clients of this
+/// owner, not arbitrary writers of the store.
 pub struct ProjectAuthority {
     project_id: String,
     config: TasConfig,
@@ -117,6 +125,22 @@ impl ProjectAuthority {
     #[must_use]
     pub fn feed(&self) -> Option<&Broadcaster> {
         self.feed.as_ref()
+    }
+
+    /// Which incarnation of this role's owner this admission is: minted in
+    /// the lock file as the lease was taken, carried by every attached
+    /// client's command, and refused on any command from another.
+    #[must_use]
+    pub const fn generation(&self) -> OwnerGeneration {
+        self.lease.generation()
+    }
+
+    /// Where this owner's endpoint is served, and where a second surface
+    /// on the same project, store and role attaches. Derived from the
+    /// lease's own key, never announced.
+    #[must_use]
+    pub fn owner_socket_path(&self) -> PathBuf {
+        owner_socket_path(&self.config, &self.project_id, self.role)
     }
 
     /// Open the native engines under this admission and hand out the write

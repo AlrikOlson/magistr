@@ -42,10 +42,11 @@ listed separately so capability is not mistaken for integration.
 
 | Entry | Path and mutations | Admission/limitations |
 | --- | --- | --- |
-| MCP, including tools called by external coding agents | `MagistrService::{for_project,new}` → `ProjectAuthority::admit(Service)` → `publish` → `serve` → embedded `UnifiedService`; native roadmap/ship/think/signal verbs, plus `magistr_*` phase and gate recording. | Service lease acquired before opening engines; clones share it. Native verbs dispatch directly, not through the phase guard. |
-| Interactive cockpit `run` | `cmd_run_cockpit` → `EngineClient::open` (`ProjectAuthority::admit(Host)`) → `NativeEnginePort` → `engine/apply`. Pin/checkpoint reasoning; start/complete chunks; resolve proposals; clear blockers; promote/ignore/snooze signals. | Admitted host writer beside the agent's service; a second cockpit or loop on the project is refused. Completion passes no ship reference. |
-| Cockpit `next` and `next-loop` | `admit_native_host` → `IterationLoop` → `run_cockpit_loop` attaches `EngineClient` to the loop's writer → `LoopDriver`; installs the native port for each session, records gates, starts/completes judged chunks, sets human blockers, reopens self-completed chunks after failed required checks. | One admitted host writer per process; completion also passes no ship reference. Outer gates cover only top-level check/test/lint. |
-| Headless/plain workflow commands | `admit_native_host` and core loop handles supply roadmap reads/prompts; their agent's MCP service performs native workflow writes. | Host lease held for the loop. No outer `LoopDriver` judge/reopen/custom-gate guarantee. Loop JSON and cost/session records are separate persistence. |
+| MCP, including tools called by external coding agents | `MagistrService::{for_project,new}` → `ProjectAuthority::admit(Service)` → `publish` → `serve` → embedded `UnifiedService`; native roadmap/ship/think/signal verbs, plus `magistr_*` phase and gate recording. `run_stdio_server` serves the owner endpoint (`serve_owner_endpoint`) beside the stdio session. | Service lease acquired before opening engines; clones share it. Native verbs dispatch directly, not through the phase guard. |
+| Attached `magistr mcp-serve` | Refused the Service lease (`WouldBlock`) → `OwnerClient::attach_mcp` → `proxy_to_owner` copies stdio to and from the owner's rmcp session on the socket. | No lease, no engine: every tool runs in the owner's process. Ends with an error when the owner hangs up; fails closed, naming both refusals, when no endpoint answers. |
+| Interactive cockpit `run` | `cmd_run_cockpit` → `EngineClient::admit_or_attach` (`ProjectAuthority::admit(Host)`, or `OwnerClient::attach_project` when the host is held) → `EngineClient::port` (`NativeEnginePort` or `AttachedEnginePort`) → `engine/apply`; the host serves its endpoint (`serve_owner`) for the run. Pin/checkpoint reasoning; start/complete chunks; resolve proposals; clear blockers; promote/ignore/snooze signals. | Admitted host writer beside the agent's service, or an attached client acting through the running host's writer; fails closed (`EngineError::Occupied`) when the host is held and no endpoint answers. Completion passes no ship reference. |
+| Cockpit `next` and `next-loop` | `admit_native_host` → `IterationLoop` → `run_cockpit_loop` serves the owner endpoint (`serve_owner_endpoint`) and attaches `EngineClient` to the loop's writer → `LoopDriver`; installs the native port for each session, records gates, starts/completes judged chunks, sets human blockers, reopens self-completed chunks after failed required checks. | One admitted host writer per process; a second loop on a held host is refused (execution cycles are serialized), while a `magistr run` beside it attaches. Completion also passes no ship reference. Outer gates cover only top-level check/test/lint. |
+| Headless/plain workflow commands | `admit_native_host` and core loop handles supply roadmap reads/prompts, and serve the owner endpoint for the loop; their agent's MCP service performs native workflow writes. | Host lease held for the loop. No outer `LoopDriver` judge/reopen/custom-gate guarantee. Loop JSON and cost/session records are separate persistence. |
 | Bare/roadmap cockpit, launcher, `roadmap show|next|status|export`, guard | `EngineClient::observe` / `open_native_reader` subscribe, reseed and read a `NativeReader`. | Observers: no lease, no writer, so they run beside any admitted host. Rendered controls alone do not establish a working writer. |
 | Library escape hatches | None. `NativeEngines` is constructed only by `ProjectAuthority::open`; `with_*` callbacks and public constructors were removed by `arch-10-project-authority`, and `open_engines` is crate-private. | The historical row named public `NativeEngines::{open,open_for_project,with_*}` with no lease; readers are the only unadmitted opening and cannot mutate. |
 
@@ -279,8 +280,25 @@ coexist on one store and each refuses a second writer of its own role. The
 cockpit loop attaches to the loop driver's writer instead of opening a second
 cached one. `NativeEngines` is the write capability, constructible only from an
 admitted authority, derefing to the reader; its `with_*` callbacks and public
-constructors are gone. Admission remains cooperative: no generation fencing,
-proxy attachment or exclusion of older and direct writers is claimed.
+constructors are gone. Admission remains cooperative: no exclusion of older
+and direct writers is claimed.
+
+## Implemented local owner clients
+
+`arch-11-local-owner-client` adds the [attachment path](project-authority.md#attachment):
+an admitted writer serves an `OwnerEndpoint` on a Unix socket derived from the
+lease's key, and a surface whose role is held attaches through the synchronous
+`OwnerClient` instead of opening a second cached writer. The handshake checks
+the peer credential, protocol version, project and role; every command carries
+the `OwnerGeneration` the admission minted in the lock file and a stale one is
+refused. Hosts serve typed `OwnerCommand`s carried out by `NativeEngines::apply`
+(a second `magistr run` acts through them via `AttachedEnginePort`); the MCP
+service serves its rmcp session (a second `magistr mcp-serve` proxies its stdio
+to it). The endpoint lives as long as the owner's invocation, a detach cancels
+nothing, a deadline or hang-up spends the connection until an explicit
+reconnect, and an unavailable endpoint fails closed — read-only is the explicit
+observer path. Local only: no remote endpoint, daemon, upgrade path across
+protocol versions, or shared writer routing.
 
 ## Executable scenarios
 
@@ -305,6 +323,7 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 | Codex terminal-acknowledged cancellation and restored thread/history/model | ACP-agent integration `codex_provider` |
 | Headless cancelled/empty-stream outcomes and exit mapping | CLI `orchestration::commands::run::cmd_run_headless::tests` |
 | Admitted owner lifetime/contention/aliases and occupied sockets; Service and Host roles coexist and each refuses a second of itself; readers and a real `magistr roadmap status` process answer beside a running owner without a lease | Engine `tas::project_authority::tests`; cockpit `engine::client::tests`; CLI integrations `mcp_service_owner`, `mcp_project_owner` |
+| Occupied ownership reached through the owner endpoint with no second lease; stale generation refused until reconnect; detach cancels nothing; command deadline on a silent owner; handshake refuses protocol/project/role/kind; owner shutdown leaves the client without a writer; a second cockpit acts through the running host and fails closed without an endpoint; a real second `magistr mcp-serve` attaches, writes through the owner and ends with it | Engine `tas::owner_endpoint::tests`, `tas::owner_generation::tests`, `tas::owner_socket::tests`; cockpit `engine::client::tests`; CLI integration `mcp_project_owner` |
 | Native iteration with real recorded gates and task/think completion references | CLI integration `next_iteration_integration` |
 | Red outer gates reopen self-completion; green evidence retains it | CLI `orchestration::loop_driver::driver::tests` |
 | Cached-writer merge/reload and detached projection reseed | Engine `tas::native_engines::tests`; cockpit `engine::reseed::tests` |

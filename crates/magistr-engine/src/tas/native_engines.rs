@@ -85,6 +85,11 @@ impl NativeEngines {
         &self.authority
     }
 
+    /// The admission, shared — what an owner endpoint keys itself by.
+    pub(crate) fn authority_arc(&self) -> Arc<ProjectAuthority> {
+        Arc::clone(&self.authority)
+    }
+
     // ── Roadmap ────────────────────────────────────────────────────────
 
     /// Mark a chunk in progress.

@@ -28,8 +28,9 @@ const LOOP_GRACE: Duration = Duration::from_secs(5);
 /// What can fail loudly happened on the normal terminal already: on a
 /// native project the entry point admitted this process as the host and
 /// opened the loop's engines, and the cockpit attaches to that one writer
-/// rather than opening a second cached one. Then the terminal is taken
-/// over, the driver spawned beside
+/// rather than opening a second cached one. The host's owner endpoint is
+/// served here for the run, so a `magistr run` in another terminal acts
+/// through this writer. Then the terminal is taken over, the driver spawned beside
 /// the runtime (the feed tapped so the driver sees the chunks an
 /// iteration completes), and the cockpit run; leaving restores the
 /// terminal, the driver ends with its session, and the summary and the
@@ -44,6 +45,9 @@ pub(crate) async fn run_cockpit_loop(
     persist: bool,
     profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
+    // Served before raw mode so its refusal is readable; dropped after the
+    // runtime, before the loop's writer.
+    let owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
     let engines = iter_loop.native().cloned().map(EngineClient::attach);
     let auto_pause = crate::config::user_config::load()
         .map(|cfg| cfg.general.auto_pause_or_default())
@@ -117,6 +121,7 @@ pub(crate) async fn run_cockpit_loop(
     if let Some(reseed) = reseed {
         reseed.abort();
     }
+    drop(owner_endpoint);
     // The runtime is gone, so the driver's commands have ended: it stops
     // at its next wake and drops its session, which ends the agent. Give
     // it a moment, never wait forever on a stuck child.

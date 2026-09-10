@@ -12,7 +12,7 @@ fn position(needle: &str) -> usize {
 
 #[test]
 fn the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_printed() {
-    let engines = position("EngineClient::open(");
+    let engines = position("EngineClient::admit_or_attach(");
     let agent = position("CockpitSession::start(");
     let terminal = position("RealTerminal::stdio()");
     assert!(
@@ -23,8 +23,8 @@ fn the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_pri
     let between = &SOURCE[engines..terminal];
     assert_eq!(
         between.matches("println!(").count(),
-        2,
-        "both failures are printed on a normal stdout"
+        3,
+        "the store, the owner endpoint and the agent failures are printed on a normal stdout"
     );
 }
 

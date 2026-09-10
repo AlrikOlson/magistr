@@ -9,9 +9,15 @@
 //! and [`EngineClient::subscribe`] attaches to the broadcast socket
 //! `magistr mcp-serve` binds, relaying every frame and every change of
 //! attachment onto the inbox as [`Msg::Engine`](crate::cockpit::Msg::Engine).
+//! [`EngineClient::admit_or_attach`] is the cockpit's own entry: when
+//! another cockpit or loop holds the host role, this one attaches to that
+//! host's owner endpoint and acts through its writer
+//! ([`AttachedEnginePort`]); when it is the host, [`EngineClient::serve_owner`]
+//! publishes the endpoint for the next one.
 
 pub mod apply;
 pub mod attached;
+pub mod attached_port;
 pub mod client;
 pub mod error;
 pub mod event;
@@ -23,6 +29,7 @@ pub mod seed;
 
 pub use apply::apply;
 pub use attached::FeedAttached;
+pub use attached_port::AttachedEnginePort;
 pub use client::EngineClient;
 pub use error::EngineError;
 pub use event::EngineEvent;

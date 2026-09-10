@@ -15,7 +15,7 @@ const PROJECT_SOCKET: &str = "think-and-ship.sock";
 const SUN_PATH_MAX: usize = if cfg!(target_os = "macos") { 103 } else { 107 };
 
 /// Whether `bind(2)` accepts `path` on this platform.
-fn fits_sun_path(path: &Path) -> bool {
+pub(crate) fn fits_sun_path(path: &Path) -> bool {
     path.as_os_str().len() <= SUN_PATH_MAX
 }
 
@@ -111,6 +111,15 @@ impl TasConfig {
     #[must_use]
     pub fn with_broadcast_path(mut self, path: Option<PathBuf>) -> Self {
         self.broadcast_path = path;
+        self
+    }
+
+    /// Point the short socket directory at `dir` — where an owner endpoint
+    /// or feed socket lands when its store is rooted too deep for
+    /// `sun_path`.
+    #[must_use]
+    pub fn with_runtime_dir(mut self, dir: impl Into<PathBuf>) -> Self {
+        self.runtime_dir = dir.into();
         self
     }
 

@@ -24,6 +24,9 @@ impl Server {
             .env("THINK_AND_SHIP_DATA_DIR", data)
             .env("THINK_AND_SHIP_PERSIST", "true")
             .env("THINK_AND_SHIP_BROADCAST_PATH", socket)
+            // The store under a tempdir is too deep for `sun_path`: the owner
+            // endpoint lands in the runtime directory, and `/tmp` always fits.
+            .env("XDG_RUNTIME_DIR", "/tmp")
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
@@ -134,18 +137,24 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     let tmp = tempfile::tempdir().expect("tempdir");
     identity(tmp.path());
     let data = tmp.path().join("data");
-    // Distinct sockets cannot bypass store ownership.
+    // Distinct sockets cannot bypass store ownership: the loser of the race
+    // is refused the lease, and then either attaches to the winner's owner
+    // endpoint (answering the handshake as a proxy) or, when it asked
+    // before the endpoint was up, stands down naming both refusals. It
+    // never becomes a second owner.
     let mut a = Server::spawn(tmp.path(), &data, &tmp.path().join("a.sock")).await;
     let mut b = Server::spawn(tmp.path(), &data, &tmp.path().join("b.sock")).await;
     let (ra, rb) = tokio::join!(a.response(), b.response());
-    assert_ne!(
-        ra.is_some(),
-        rb.is_some(),
-        "exactly one initialized: {ra:?}, {rb:?}"
-    );
-    let (mut owner, mut rejected) = if ra.is_some() { (a, b) } else { (b, a) };
-    let error = rejected.rejection().await;
-    assert!(error.contains("project owner"), "{error}");
+    assert!(ra.is_some() || rb.is_some(), "one owner: {ra:?}, {rb:?}");
+    let (mut owner, mut other) = if ra.is_some() { (a, b) } else { (b, a) };
+    if ra.is_some() && rb.is_some() {
+        other.child.kill().await.expect("stop the attached proxy");
+        other.child.wait().await.expect("reap proxy");
+    } else {
+        let error = other.rejection().await;
+        assert!(error.contains("project owner"), "{error}");
+        assert!(error.contains("owner endpoint did not take"), "{error}");
+    }
 
     owner.initialized().await;
     let added = owner
@@ -159,15 +168,27 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     assert_eq!(added["id"], "acknowledged", "{added}");
     let roadmap = data.join("roadmap/sessions/owner-test.json");
     let acknowledged = std::fs::read(&roadmap).expect("persisted mutation");
+    // A later server attaches to the owner's endpoint and speaks the
+    // owner's own MCP session: the same tools, the one admitted writer.
     let mut late = Server::spawn(tmp.path(), &data, &tmp.path().join("late.sock")).await;
-    assert!(
-        late.response().await.is_none(),
-        "no MCP handshake on rejection"
-    );
-    assert!(late.rejection().await.contains("project owner"));
-    assert_eq!(
-        std::fs::read(&roadmap).expect("unchanged store"),
-        acknowledged
+    let handshake = late.response().await.expect("the attached server answers");
+    assert_eq!(handshake["id"], 1, "{handshake}");
+    assert!(handshake["result"]["serverInfo"].is_object(), "{handshake}");
+    late.initialized().await;
+    let through = late
+        .call(
+            "roadmap_add_chunk",
+            json!({"id":"attached", "title":"Written through the owner", "group":"Tests"}),
+        )
+        .await;
+    assert_eq!(through["id"], "attached", "{through}");
+    // The owner's cached engines carried it out: no reload, no second writer.
+    let seen = owner.call("roadmap_get", json!({"ids":["attached"]})).await;
+    assert_eq!(seen["records"][0]["id"], "attached", "{seen}");
+    assert_ne!(
+        std::fs::read(&roadmap).expect("store"),
+        acknowledged,
+        "the store moved on the owner's write"
     );
 
     use std::os::unix::fs::MetadataExt;
@@ -175,6 +196,9 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     let lock_inode = std::fs::metadata(&lock_path).expect("owner lock").ino();
     owner.child.kill().await.expect("kill owner");
     owner.child.wait().await.expect("owner reaped");
+    // The attached server ends with the owner rather than taking over.
+    let ended = late.rejection().await;
+    assert!(ended.contains("owner ended its session"), "{ended}");
     let mut restarted = Server::spawn(tmp.path(), &data, &tmp.path().join("restart.sock")).await;
     assert!(
         restarted.response().await.is_some(),
