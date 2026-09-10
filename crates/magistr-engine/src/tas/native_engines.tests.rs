@@ -80,10 +80,14 @@ fn round_trip_through_a_temp_store() {
         assert_eq!(engines.think_pin_step(1, true), Ok(false));
 
         assert_eq!(
-            engines.ship_set_objective("obj".into(), vec![], vec![], "chunk:base".into()),
+            engines
+                .ship_set_objective("obj".into(), vec![], vec![], "chunk:base".into())
+                .expect("objective"),
             0
         );
-        engines.ship_add_task("t1".into(), "Task one".into(), TaskType::Implement, None);
+        engines
+            .ship_add_task("t1".into(), "Task one".into(), TaskType::Implement, None)
+            .expect("add task");
         let t = engines.ship_start_task("t1").expect("start task");
         assert_eq!(t.id, "t1");
         let action = engines
@@ -92,6 +96,7 @@ fn round_trip_through_a_temp_store() {
                 ActionType::Code,
                 "wrote code".into(),
                 vec!["a.rs".into()],
+                vec![],
                 Some(1),
             )
             .expect("action");
@@ -114,10 +119,14 @@ fn round_trip_through_a_temp_store() {
             .expect("gate");
         assert!(!failed.passed && failed.verified);
         engines.ship_complete_task("t1", vec![]).expect("complete");
-        let report = engines.ship_finalize(vec![], Some("done".into()));
+        let report = engines
+            .ship_finalize(vec![], Some("done".into()))
+            .expect("finalize");
         assert_eq!(report["status"], "shipped");
 
-        let sig = engines.signal_capture(SignalKind::Idea, "alice".into(), "make it faster".into());
+        let sig = engines
+            .signal_capture(SignalKind::Idea, "alice".into(), "make it faster".into())
+            .expect("capture");
         assert_eq!(sig.body, "make it faster");
         let done = engines
             .roadmap_complete_chunk("base", Some("task:t1"))
@@ -297,8 +306,12 @@ fn reload_picks_up_another_writers_changes() {
     assert_eq!(host.config(), &cfg);
 
     add_chunk(&server, "only-on-disk", 100, &[]);
-    server.ship_set_objective("obj".into(), vec![], vec![], "chunk:only-on-disk".into());
-    server.ship_add_task("t1".into(), "task".into(), TaskType::Implement, None);
+    server
+        .ship_set_objective("obj".into(), vec![], vec![], "chunk:only-on-disk".into())
+        .expect("objective");
+    server
+        .ship_add_task("t1".into(), "task".into(), TaskType::Implement, None)
+        .expect("add task");
 
     // The host's in-memory copies predate those writes.
     assert!(host.roadmap_next().is_none());
@@ -353,9 +366,15 @@ fn signal_triage_wrappers_round_trip() {
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "triage");
 
-    let a = engines.signal_capture(SignalKind::Idea, "alice".into(), "faster".into());
-    let b = engines.signal_capture(SignalKind::Bug, "bob".into(), "broken".into());
-    let c = engines.signal_capture(SignalKind::Question, "cara".into(), "why".into());
+    let a = engines
+        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .expect("capture");
+    let b = engines
+        .signal_capture(SignalKind::Bug, "bob".into(), "broken".into())
+        .expect("capture");
+    let c = engines
+        .signal_capture(SignalKind::Question, "cara".into(), "why".into())
+        .expect("capture");
     let ids: Vec<String> = engines.signal_list().into_iter().map(|s| s.id).collect();
     assert!(ids.contains(&a.id) && ids.contains(&b.id) && ids.contains(&c.id));
 
@@ -372,6 +391,31 @@ fn signal_triage_wrappers_round_trip() {
     );
     let promoted = engines.signal_promote(&a.id).expect("promote");
     assert_eq!(promoted.status, SignalStatus::Promoted);
+    // The reciprocal half the MCP verb has always done: promotion creates
+    // the backlog chunk and links the two both ways.
+    let chunk_id = format!("signal-{}", a.id);
+    assert!(
+        promoted.cross_refs.contains(&format!("chunk:{chunk_id}")),
+        "{:?}",
+        promoted.cross_refs
+    );
+    let chunk = engines
+        .roadmap_chunk(&chunk_id)
+        .expect("promotion created the backlog chunk");
+    assert_eq!(chunk.status, ChunkStatus::Backlog);
+    assert_eq!(chunk.title, "[idea] faster");
+    assert!(chunk.cross_refs.contains(&format!("signal:{}", a.id)));
+    // Promoting again is idempotent: the same chunk, still one of it.
+    let again = engines.signal_promote(&a.id).expect("promote again");
+    assert_eq!(again.status, SignalStatus::Promoted);
+    assert_eq!(
+        engines
+            .roadmap_chunks()
+            .iter()
+            .filter(|c| c.id == chunk_id)
+            .count(),
+        1
+    );
 
     let dismissed = engines.signal_ignore(&b.id).expect("ignore");
     assert_eq!(dismissed.status, SignalStatus::Dismissed);
@@ -499,7 +543,7 @@ fn think_pin_and_checkpoint_act_on_the_live_trace() {
     assert!(pinned, "the flag stuck");
     assert!(engines.think_pin_step(9, true).is_err(), "unknown step");
 
-    let report = engines.think_checkpoint();
+    let report = engines.think_checkpoint().expect("checkpoint");
     assert!(
         report.get("open_hypotheses").is_some(),
         "the checkpoint report has its sections: {report}"
@@ -621,7 +665,9 @@ fn reload_signal_picks_up_another_writers_capture() {
     let server = service(&cfg, "reload-signal");
 
     // The agent's `magistr mcp-serve` captures while the host is open.
-    let captured = server.signal_capture(SignalKind::Idea, "alice".into(), "faster".into());
+    let captured = server
+        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .expect("capture");
 
     // The host's in-memory copy predates it.
     assert!(host.signal_list().is_empty());
@@ -636,8 +682,12 @@ fn reload_signal_picks_up_another_writers_capture() {
 /// A ship trace with one active task, ready to take a gate record.
 fn engines_with_active_task(tmp: &tempfile::TempDir) -> NativeEngines {
     let engines = host(&temp_config(tmp), "gate-rec");
-    engines.ship_set_objective("record the gates".into(), vec![], vec![], String::new());
-    engines.ship_add_task("t1".into(), "run gates".into(), TaskType::Implement, None);
+    engines
+        .ship_set_objective("record the gates".into(), vec![], vec![], String::new())
+        .expect("objective");
+    engines
+        .ship_add_task("t1".into(), "run gates".into(), TaskType::Implement, None)
+        .expect("add task");
     engines.ship_start_task("t1").expect("start");
     engines
 }
@@ -790,4 +840,71 @@ fn a_gate_cannot_be_recorded_with_no_task_to_record_it_against() {
         )
         .expect_err("no active task");
     assert!(!refusal.is_empty(), "the refusal says something");
+}
+
+/// The verb's own refusals reach the caller in the handler's words: what
+/// the wire refuses, the in-process writer refuses identically, because it
+/// is the same handler.
+#[test]
+fn the_handlers_refusals_are_the_writers_refusals() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = temp_config(&tmp).persist(false);
+    let engines = host(&cfg, "refusals");
+
+    let empty = engines
+        .signal_capture(SignalKind::Idea, "alice".into(), "   ".into())
+        .expect_err("an empty body is refused as the verb refuses it");
+    assert_eq!(empty, "signal body is empty");
+
+    let captured = engines
+        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .expect("capture");
+    let blank = engines
+        .signal_research(&captured.id, "  ".into(), 0.5, vec![], None)
+        .expect_err("a blank summary is refused");
+    assert_eq!(blank, "research summary is empty");
+
+    add_chunk(&engines, "c", 100, &[]);
+    let done = engines
+        .roadmap_complete_chunk("c", None)
+        .expect_err("pending -> done is not a legal transition");
+    assert!(
+        done.contains("illegal") || done.contains("transition"),
+        "{done}"
+    );
+
+    let no_task = engines
+        .ship_start_task("nothing")
+        .expect_err("an unknown task is refused");
+    assert!(no_task.contains("nothing"), "{no_task}");
+}
+
+/// A fresh objective after a shipped one clears the stale plan — the
+/// count the handler reports comes back as the typed answer.
+#[test]
+fn a_fresh_cycle_reports_how_many_stale_tasks_it_cleared() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = temp_config(&tmp).persist(false);
+    let engines = host(&cfg, "fresh-cycle");
+    assert_eq!(
+        engines
+            .ship_set_objective("first".into(), vec![], vec![], String::new())
+            .expect("objective"),
+        0
+    );
+    engines
+        .ship_add_task("t1".into(), "one".into(), TaskType::Implement, None)
+        .expect("add task");
+    engines
+        .ship_add_task("t2".into(), "two".into(), TaskType::Test, None)
+        .expect("add task");
+    engines.ship_finalize(vec![], None).expect("finalize");
+    assert_eq!(
+        engines
+            .ship_set_objective("second".into(), vec![], vec![], String::new())
+            .expect("objective"),
+        2,
+        "the finished cycle's two tasks were cleared"
+    );
+    assert!(engines.ship_tasks().is_empty());
 }

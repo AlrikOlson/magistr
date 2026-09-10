@@ -62,7 +62,8 @@ impl Project {
 
     fn set_objective(&self, scope: &str) {
         self.engines()
-            .ship_set_objective("objective".into(), vec![], vec![], scope.into());
+            .ship_set_objective("objective".into(), vec![], vec![], scope.into())
+            .expect("objective");
     }
 
     fn hook_json(&self, rel: &str) -> String {

@@ -4,11 +4,8 @@ use std::sync::Arc;
 
 use think_and_ship::infra::{Broadcaster, resolve_project_id_with};
 use think_and_ship::mcp::UnifiedService;
-use think_and_ship::roadmap::RoadmapService;
-use think_and_ship::ship::ShipService;
-use think_and_ship::signal::SignalService;
-use think_and_ship::think::ThinkService;
 
+use super::family_services::FamilyServices;
 use super::native_engines::NativeEngines;
 use super::native_reader::NativeReader;
 use super::open_engines::open_engines;
@@ -146,11 +143,19 @@ impl ProjectAuthority {
     /// Open the native engines under this admission and hand out the write
     /// capability. The writer and every clone of it carry the lease, so the
     /// lock outlives the authority for as long as any writer does.
+    ///
+    /// The engines open behind the library's four family services,
+    /// composed exactly as the standalone binary composes them; the writer
+    /// carries out every verb through those services' own tool handlers
+    /// (see [`NativeEngines`]), and [`Self::serve`] hands the same services
+    /// to an MCP transport. The raw engines never leave this crate.
     #[must_use]
     pub fn open(self) -> NativeEngines {
         let (think, ship, roadmap, signal) =
             open_engines(&self.config, self.project_id.clone(), self.feed.clone());
-        let reader = NativeReader::from_engines(
+        let services = FamilyServices::compose(think, ship, roadmap, signal);
+        let (think, ship, roadmap, signal) = services.engines();
+        let reader = NativeReader::from_shared(
             self.project_id.clone(),
             self.config.clone(),
             think,
@@ -158,28 +163,18 @@ impl ProjectAuthority {
             roadmap,
             signal,
         );
-        NativeEngines::admitted(reader, Arc::new(self))
+        NativeEngines::admitted(reader, Arc::new(self), services)
     }
 
     /// Open the native engines under this admission for an MCP transport:
-    /// the four think-and-ship family services composed exactly as the
-    /// standalone binary composes them, plus the authority the transport
-    /// keeps alive beside them. The raw engines never leave this crate.
+    /// the [`UnifiedService`] that serves the four families on the wire,
+    /// and the writer over the very same services, so a mutation the
+    /// transport makes for itself (a gate it ran, a phase it recorded) is
+    /// the same handler on the same engines as a tool call from the agent.
     #[must_use]
-    pub fn serve(self) -> (UnifiedService, Arc<Self>) {
-        let (think, ship, roadmap, signal) =
-            open_engines(&self.config, self.project_id.clone(), self.feed.clone());
-        let think = ThinkService::new(think);
-        let ship = ShipService::new(ship);
-        let roadmap = RoadmapService::new(roadmap);
-        // Reciprocal wire-layer handles: signal_promote creates chunks, and
-        // roadmap_status folds in the pending-signal count.
-        let signal = SignalService::new(signal).with_roadmap(roadmap.engine());
-        let roadmap = roadmap.with_signal(signal.engine());
-        (
-            UnifiedService::new(think, ship, roadmap, signal),
-            Arc::new(self),
-        )
+    pub fn serve(self) -> (UnifiedService, NativeEngines) {
+        let engines = self.open();
+        (engines.services().unified(), engines)
     }
 }
 

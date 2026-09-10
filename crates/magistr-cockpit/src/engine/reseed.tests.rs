@@ -145,7 +145,9 @@ async fn a_signal_captured_by_another_process_reaches_the_seed() {
     )
     .expect("service admitted")
     .open();
-    let captured = server.signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned());
+    let captured = server
+        .signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned())
+        .expect("capture");
 
     let seed = next_seed(&mut rx, Duration::from_secs(5))
         .await

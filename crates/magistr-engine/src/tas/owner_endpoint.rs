@@ -69,7 +69,7 @@ impl OwnerEndpoint {
     /// failure creating or binding the socket. A stale socket file with no
     /// listener behind it is reclaimed.
     pub async fn serve_with(engines: NativeEngines, mcp: Option<McpAcceptor>) -> io::Result<Self> {
-        unix::serve(engines.authority_arc(), Some(engines), mcp).await
+        unix::serve(engines.shared_authority(), Some(engines), mcp).await
     }
 
     /// Serve only the host's MCP session on `authority`'s endpoint — what

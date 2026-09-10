@@ -158,8 +158,8 @@ async fn publishing_refuses_a_live_listener_and_reclaims_a_dead_socket() {
         .await
         .expect("a dead socket is reclaimed");
     assert!(publishing.feed().is_some());
-    let (unified, authority) = publishing.serve();
-    assert_eq!(authority.role(), WriterRole::Service);
-    assert!(authority.feed().is_some());
-    drop((unified, authority));
+    let (unified, engines) = publishing.serve();
+    assert_eq!(engines.authority().role(), WriterRole::Service);
+    assert!(engines.authority().feed().is_some());
+    drop((unified, engines));
 }

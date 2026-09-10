@@ -113,6 +113,11 @@ pub struct LoopDriver {
     completed: Vec<String>,
     /// The chunk the iteration's prompt was built for.
     target: Option<String>,
+    /// The execution task this iteration's gates were recorded on — the
+    /// one active in the trace as the set began — so a completion the
+    /// judge grants names the task its evidence sits on. `None` when the
+    /// trace had no task to record on (the gates then went unrecorded).
+    verification_task: Option<String>,
     /// What the last iteration's red gates left for the next prompt: the
     /// failure rows themselves, not a sentence about them. One-shot —
     /// appended to the next prompt and cleared.
@@ -256,6 +261,7 @@ impl LoopDriver {
             pending: None,
             completed: Vec::new(),
             target: None,
+            verification_task: None,
             transcript: String::new(),
             iterations: 0,
             metrics: Vec::new(),
@@ -1264,7 +1270,14 @@ impl LoopDriver {
             )));
             return;
         }
-        match engines.roadmap_complete_chunk(&chunk.id, None) {
+        // The proof-of-ship reference: the task this iteration's gates were
+        // recorded on. A completion with no such task carries none, and
+        // says so in the record rather than inventing one.
+        let ship_ref = self
+            .verification_task
+            .as_ref()
+            .map(|task| format!("task:{task}"));
+        match engines.roadmap_complete_chunk(&chunk.id, ship_ref.as_deref()) {
             Ok(done) => {
                 self.completed.push(done.id.clone());
                 self.post_chunk_frame(&done, "chunk_completed");
@@ -1362,6 +1375,11 @@ impl LoopDriver {
         if let Some(engines) = &engines {
             engines.reload_ship();
         }
+        // Named once for the set, before any gate runs: every record of
+        // this set lands on this task, and the completion names it.
+        self.verification_task = engines
+            .as_ref()
+            .and_then(|engines| engines.ship_active_task_id());
         let mut said_why_not = false;
         // The loop's gates are the project's top-level `quality_gate`,
         // deliberately not `resolve_gates`' per-archetype specs: sharing
@@ -1446,13 +1464,20 @@ impl LoopDriver {
             }
             return;
         };
+        let Some(task) = self.verification_task.clone() else {
+            if !*said {
+                *said = true;
+                self.note("gates not recorded: no active task in the trace to record them on");
+            }
+            return;
+        };
         // An absolute path: `read_report` uses it verbatim, and the loop
         // makes no promise about its own working directory.
         let report =
             nextest_junit_report_path(&gate.command).map(|rel| self.wf.project_dir.join(rel));
         let report = report.as_ref().map(|path| path.to_string_lossy());
         if let Err(why) = engines.ship_record_gate(
-            None,
+            Some(&task),
             &gate.name,
             gate.command.clone(),
             gate.exit_code,

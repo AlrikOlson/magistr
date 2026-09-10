@@ -124,7 +124,7 @@ impl NativeEngines {
                 step_number,
                 pinned,
             } => OwnerReply::Pinned(self.think_pin_step(step_number, pinned)?),
-            ThinkCommand::Checkpoint => OwnerReply::Report(self.think_checkpoint()),
+            ThinkCommand::Checkpoint => OwnerReply::Report(self.think_checkpoint()?),
         })
     }
 
@@ -140,14 +140,14 @@ impl NativeEngines {
                 acceptance_criteria,
                 constraints,
                 scope,
-            )),
+            )?),
             ShipCommand::AddTask {
                 id,
                 title,
                 task_type,
                 estimate,
             } => {
-                self.ship_add_task(id, title, task_type, estimate);
+                self.ship_add_task(id, title, task_type, estimate)?;
                 OwnerReply::Done
             }
             ShipCommand::StartTask { task_id } => OwnerReply::Task(self.ship_start_task(&task_id)?),
@@ -156,12 +156,14 @@ impl NativeEngines {
                 action_type,
                 description,
                 files_touched,
+                tools_used,
                 think_step,
             } => OwnerReply::Action(self.ship_record_action(
                 task_id.as_deref(),
                 action_type,
                 description,
                 files_touched,
+                tools_used,
                 think_step,
             )?),
             ShipCommand::RecordGate {
@@ -189,16 +191,14 @@ impl NativeEngines {
                 OwnerReply::Task(self.ship_complete_task(&task_id, artifacts)?)
             }
             ShipCommand::Finalize { artifacts, summary } => {
-                OwnerReply::Report(self.ship_finalize(artifacts, summary))
+                OwnerReply::Report(self.ship_finalize(artifacts, summary)?)
             }
         })
     }
 
     fn apply_signal(&self, command: SignalCommand) -> Result<OwnerReply, String> {
         let signal = match command {
-            SignalCommand::Capture { kind, from, body } => {
-                return Ok(OwnerReply::Signal(self.signal_capture(kind, from, body)));
-            }
+            SignalCommand::Capture { kind, from, body } => self.signal_capture(kind, from, body),
             SignalCommand::Research {
                 id,
                 summary,

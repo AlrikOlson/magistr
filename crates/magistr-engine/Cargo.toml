@@ -20,6 +20,11 @@ tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
 # Published form; see [patch.crates-io] in the workspace root for the local
 # path override used while iterating on the library.
 think-and-ship = "0.6.0"
+# The library's tool handlers are the one implementation of every native
+# mutation; NativeEngines calls them directly, so it names rmcp's
+# `Parameters` wrapper and `CallToolResult` — the same rmcp think-and-ship
+# resolves to.
+rmcp = { version = "3.1", features = ["server"] }
 tracing = "0.1"
 
 [dev-dependencies]

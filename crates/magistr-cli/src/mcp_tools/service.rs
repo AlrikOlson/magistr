@@ -4,11 +4,11 @@
 //! think-and-ship tool families served by [`UnifiedService`]. Other tools,
 //! resources, and task methods delegate with the original request context.
 //!
-//! `magistr_gate` forwards checks to `ship_check` when a ship task is active,
-//! recording their actual exit codes. Without a task, checks run directly and
-//! report `recorded: false`. Both routes return structured output rows. Direct
-//! runs stream PTY output to the cockpit; checks run inside the workflow
-//! library do not currently stream output.
+//! `magistr_gate` runs every gate on Magistr's own pty runner, streaming its
+//! output to the feed, and records the run through the admitted writer's
+//! `ship_record_gate` — the same recording the loop driver makes for the
+//! gates it runs — on the task named as active at the time. Without a task
+//! the gate still runs and the answer says `recorded: false` and why.
 //!
 //! `magistr_set_phase` validates ship state before transitioning and records
 //! an action afterward. Execute and verify require an objective and task;
@@ -17,13 +17,18 @@
 //! Native engines open only through an admitted [`ProjectAuthority`] in the
 //! service role: identity, the cooperative owner lease and the live feed are
 //! settled before any engine opens, and a competing MCP service fails there.
-//! The cockpit or loop host holds the other role beside this one. External
-//! binaries that bypass the lease still share the underlying persistence.
+//! The transport's own mutations act through the same [`NativeEngines`] its
+//! [`UnifiedService`] serves — one handler per verb, whichever side asks —
+//! and never through its own wire. The cockpit or loop host holds the other
+//! role beside this one. External binaries that bypass the lease still share
+//! the underlying persistence.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use magistr_engine::tas::{ProjectAuthority, TasConfig, WriterRole};
+use magistr_engine::tas::{
+    ActionType, Check, NativeEngines, ProjectAuthority, TasConfig, WriterRole,
+};
 use magistr_engine::{GateOutput, ShipGuardState};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use rmcp::model::{
@@ -38,7 +43,7 @@ use serde_json::{Value, json};
 use think_and_ship::infra::Family;
 use think_and_ship::mcp::UnifiedService;
 
-use super::gate::{GateSpec, resolve_gates, run_gate_command};
+use super::gate::{GateSpec, gate_json, resolve_gates};
 use super::roadmap_export::RoadmapExport;
 use crate::utils::gate::nextest_junit_report_path;
 
@@ -55,12 +60,17 @@ pub struct MagistrService {
     project_root: PathBuf,
     tools: Arc<SdkMcpServer>,
     unified: UnifiedService,
+    /// The admitted writer over the very engines `unified` serves: what this
+    /// server's own mutations — a gate it ran, a phase it recorded — go
+    /// through, so they are the same handler on the same engines as a tool
+    /// call from the agent. Cloning a service shares it; the lease releases
+    /// with the last clone.
+    engines: NativeEngines,
     roadmap_export: RoadmapExport,
     /// The admission this service runs under: the project identity, the
     /// service-role lease, and the live-feed socket the engines broadcast on
     /// (kept so a gate this server runs itself can stream its bytes there
-    /// too). Cloning a service shares it; the lease releases with the last
-    /// clone. The owner endpoint (`owner_attach`) is keyed by it.
+    /// too). The owner endpoint (`owner_attach`) is keyed by it.
     pub(super) authority: Arc<ProjectAuthority>,
 }
 
@@ -89,14 +99,15 @@ impl MagistrService {
         if let Some(path) = tas.broadcast_path.as_ref() {
             authority = authority.publish(path).await?;
         }
-        let (unified, authority) = authority.serve();
+        let (unified, engines) = authority.serve();
 
         Ok(Self {
             roadmap_export: RoadmapExport::new(&project_root),
             tools: Arc::new(super::build_server(project_root.clone())),
             project_root,
             unified,
-            authority,
+            authority: engines.shared_authority(),
+            engines,
         })
     }
 
@@ -138,22 +149,21 @@ impl MagistrService {
     async fn call_magistr(
         &self,
         request: CallToolRequestParams,
-        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
         let name = request.name.to_string();
         let args = Value::Object(request.arguments.clone().unwrap_or_default());
         match name.as_str() {
-            "magistr_gate" => self.gate(&args, context).await,
+            "magistr_gate" => self.gate(&args).await,
             "magistr_set_phase" => {
                 let Some(phase) = args.get("phase").and_then(Value::as_str) else {
                     return self.invoke(&name, args).await;
                 };
-                if let Some(reason) = self.ship_phase_block(phase, context.clone()).await {
+                if let Some(reason) = self.ship_phase_block(phase) {
                     return Ok(to_call_tool_result(ToolResult::error(reason)));
                 }
                 let result = self.invoke(&name, args.clone()).await?;
                 if result.is_error != Some(true) {
-                    self.record_phase(phase, context).await;
+                    self.record_phase(phase);
                 }
                 Ok(result)
             }
@@ -161,13 +171,9 @@ impl MagistrService {
         }
     }
 
-    /// `magistr_gate`: resolve the gate set from project.json and run each
-    /// gate through `ship_check` when a task is active, directly otherwise.
-    async fn gate(
-        &self,
-        args: &Value,
-        context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, ErrorData> {
+    /// `magistr_gate`: resolve the gate set from project.json, run each gate
+    /// on the pty runner and record it on the active task when there is one.
+    async fn gate(&self, args: &Value) -> Result<CallToolResult, ErrorData> {
         let Some(gate) = args.get("gate").and_then(Value::as_str) else {
             return Err(ErrorData::invalid_params("missing 'gate' parameter", None));
         };
@@ -185,7 +191,7 @@ impl MagistrService {
 
         let mut results = Vec::with_capacity(specs.len());
         for spec in &specs {
-            results.push(self.run_gate(spec, timeout_secs, context.clone()).await?);
+            results.push(self.run_gate(spec, timeout_secs).await);
         }
 
         // A polyglot project resolves one standard gate to several specs —
@@ -218,20 +224,19 @@ impl MagistrService {
         )))
     }
 
-    async fn run_gate(
-        &self,
-        spec: &GateSpec,
-        timeout_secs: u64,
-        context: RequestContext<RoleServer>,
-    ) -> Result<Value, ErrorData> {
-        let reason = match self.record_via_ship_check(spec, context).await {
-            Ok(recorded) => return Ok(recorded),
-            Err(reason) => reason,
-        };
-        // A gate this server runs itself is live on the feed socket: every
-        // chunk goes out as a `gate_output` frame keyed by the gate, the
-        // frame the cockpit's engine feed folds into its terminal store. A
-        // frame nobody is attached for is dropped, which is the library's
+    /// One gate: run on the pty runner, then recorded — on the task that is
+    /// active as the run starts, named explicitly — through the same
+    /// `ship_record_gate` the loop driver records its gates with. The
+    /// command runs exactly once whether or not there is a task to record
+    /// it on; without one the answer says so and why.
+    async fn run_gate(&self, spec: &GateSpec, timeout_secs: u64) -> Value {
+        // Named *before* the run, so the record lands where the caller
+        // stood when it asked — never on a task started while the gate ran.
+        let task = self.engines.ship_active_task_id();
+        // A gate this server runs is live on the feed socket: every chunk
+        // goes out as a `gate_output` frame keyed by the gate, the frame
+        // the cockpit's engine feed folds into its terminal store. A frame
+        // nobody is attached for is dropped, which is the library's
         // documented degraded mode, not an error.
         let feed = self.authority.feed().cloned();
         let gate = spec.name.clone();
@@ -244,194 +249,117 @@ impl MagistrService {
                 let _ = feed.emit(Family::Ship, &output.frame().payload);
             }
         };
-        let mut result = run_gate_command(&spec.command, &self.project_root, timeout_secs, stream)
-            .await
-            .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
+        let run = crate::utils::gate::run_gate(
+            &spec.name,
+            &spec.command,
+            spec.required,
+            &self.project_root,
+            timeout_secs,
+            &tokio_util::sync::CancellationToken::new(),
+            stream,
+        )
+        .await;
+        let mut result = gate_json(&run);
         result["gate"] = json!(spec.name);
         result["required"] = json!(spec.required);
-        result["recorded"] = json!(false);
-        result["note"] = json!(unrecorded_note(&reason));
-        Ok(result)
-    }
 
-    /// Forward one gate to `ship_check`. `Err` carries why the check could
-    /// not be recorded — `ship_check`'s own refusal (typically "no active
-    /// task"), an MCP error, or an answer that was not a check record — so
-    /// the caller, which then runs the gate directly, can say so rather than
-    /// guess.
-    async fn record_via_ship_check(
-        &self,
-        spec: &GateSpec,
-        context: RequestContext<RoleServer>,
-    ) -> Result<Value, String> {
-        // Asked *before* the command is handed over, because `ship_check`
-        // runs it and only then discovers it has nowhere to put the result.
-        // Forwarding a gate it is going to refuse therefore costs a whole
-        // run — a `cargo nextest`, a clippy, a release build — that is
-        // thrown away, and `run_gate` then runs the same command a second
-        // time to answer the caller. Two runs of a timing or golden gate is
-        // two independent chances to fail with only the second reported,
-        // which is what made the gates look flaky. `ship_status` reads the
-        // same in-process ship engine `ship_check` would, so the question
-        // and the answer cannot disagree.
-        if !self.has_active_task(context.clone()).await {
-            return Err(NO_ACTIVE_TASK.to_owned());
-        }
-        let mut params = CallToolRequestParams::new("ship_check");
-        let mut args = json!({
-            "type": check_type_for(&spec.name),
-            "name": spec.name,
-            "command": spec.command,
-            "required": spec.required,
-        });
-        // nextest can emit a junit report; ask ship_check to parse it into
-        // the record (additive — a missing report never fails the check).
-        if let Some(path) = nextest_junit_report_path(&spec.command) {
-            args["report"] = json!({"format": "junit", "path": path});
-        }
-        params.arguments = args.as_object().cloned();
-        let result = match self.unified.call_tool(params, context).await {
-            Ok(CallToolResponse::Complete(result)) => result,
-            Ok(_) => return Err("ship_check answered with a task, not a check record".to_owned()),
-            Err(e) => return Err(format!("ship_check failed: {}", e.message)),
+        let Some(task) = task else {
+            result["recorded"] = json!(false);
+            result["note"] = json!(unrecorded_note(NO_ACTIVE_TASK));
+            return result;
         };
-        let record = check_record(&result)?;
-        let output = record
-            .get("details")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        // Rows from the captured output, plus the junit failures ship_check
-        // parsed for us (the report names tests the panic scan may not).
-        let mut rows = magistr_core::parse_gate_rows(&spec.command, output);
-        if let Some(failures) = record["results"]["failures"].as_array() {
-            for f in failures {
-                let name = f["name"].as_str().unwrap_or_default();
-                if name.is_empty() || rows.iter().any(|r| r.message.contains(name)) {
-                    continue;
-                }
-                let message = match f["message"].as_str().filter(|m| !m.is_empty()) {
-                    Some(m) => format!("{name}: {}", m.lines().next().unwrap_or_default()),
-                    None => name.to_owned(),
-                };
-                rows.push(magistr_core::GateFailureRow {
-                    severity: magistr_core::GateRowSeverity::TestFailure,
-                    code: None,
-                    message,
-                    file: None,
-                    line: None,
-                    column: None,
-                });
+        // nextest can emit a junit report; parsed into the record additively
+        // (a missing report never fails the check). An absolute path: the
+        // engine reads it verbatim.
+        let report = nextest_junit_report_path(&spec.command)
+            .map(|relative| self.project_root.join(relative));
+        let report = report
+            .as_deref()
+            .map(|path| path.to_string_lossy().into_owned());
+        match self.engines.ship_record_gate(
+            Some(&task),
+            &spec.name,
+            spec.command.clone(),
+            run.exit_code,
+            run.details(),
+            spec.required,
+            report.as_deref().map(|path| ("junit", path)),
+        ) {
+            Ok(check) => {
+                // Rows from the captured output, plus the junit failures the
+                // record parsed (the report names tests the panic scan may
+                // not).
+                let mut rows = run.rows.clone();
+                junit_rows(&check, &mut rows);
+                result["rows"] = json!(rows);
+                result["recorded"] = json!(true);
+                result["verified"] = json!(check.verified);
+                result["task_id"] = json!(task);
+            }
+            Err(why) => {
+                result["recorded"] = json!(false);
+                result["note"] = json!(unrecorded_note(&why));
             }
         }
-        Ok(json!({
-            "gate": spec.name,
-            "required": spec.required,
-            "command": spec.command,
-            "passed": record.get("passed").cloned().unwrap_or(Value::Bool(false)),
-            "exit_code": record.get("exit_code").cloned().unwrap_or(Value::Null),
-            "output": output,
-            "rows": rows,
-            "recorded": true,
-            "verified": record.get("verified").cloned().unwrap_or(Value::Bool(true)),
-        }))
+        result
     }
 
     /// The plan guard on `magistr_set_phase`: why `phase` may not be entered
-    /// given this server's ship state, or `None` when it may. Reads
-    /// `ship_status` through the unified service — the same document the
-    /// agent sees — so the guard and the agent never disagree on the state.
-    async fn ship_phase_block(
-        &self,
-        phase: &str,
-        context: RequestContext<RoleServer>,
-    ) -> Option<String> {
-        let status = self.ship_status(context).await?;
-        ShipGuardState::from_status(&status).phase_block(phase)
-    }
-
-    /// This server's `ship_status` document, or `None` when the call failed
-    /// or answered something that is not a status.
-    ///
-    /// One read for both consumers — the phase guard and the gate's
-    /// can-this-be-recorded question — so neither can be looking at a
-    /// different ship state than the agent is.
-    async fn ship_status(&self, context: RequestContext<RoleServer>) -> Option<Value> {
-        let params = CallToolRequestParams::new("ship_status");
-        let CallToolResponse::Complete(result) =
-            self.unified.call_tool(params, context).await.ok()?
-        else {
-            return None;
-        };
-        result
-            .structured_content
-            .clone()
-            .or_else(|| first_text(&result).and_then(|t| serde_json::from_str(&t).ok()))
-    }
-
-    /// Whether a task is started in this server's ship engine — the one
-    /// condition that decides whether `ship_check` has anywhere to record a
-    /// gate. A status this server cannot read answers `false`, so an
-    /// unreadable state costs a gate its trace entry and never a second run
-    /// of the command.
-    async fn has_active_task(&self, context: RequestContext<RoleServer>) -> bool {
-        self.ship_status(context)
-            .await
-            .is_some_and(|status| !status["active_task"].is_null())
+    /// given this server's ship state, or `None` when it may. Reads the
+    /// same engines `ship_status` answers from, so the guard and the agent
+    /// never disagree on the state.
+    fn ship_phase_block(&self, phase: &str) -> Option<String> {
+        ShipGuardState::from_status(&self.engines.ship_status()).phase_block(phase)
     }
 
     /// `magistr_set_phase` side effect: a `ship_record` action on the active
-    /// task. Best effort — without an active task there is nothing to record.
-    async fn record_phase(&self, phase: &str, context: RequestContext<RoleServer>) {
-        let mut params = CallToolRequestParams::new("ship_record");
-        params.arguments = json!({
-            "type": "config",
-            "description": format!("workflow phase → {phase}"),
-            "tools_used": ["magistr_set_phase"],
-        })
-        .as_object()
-        .cloned();
-        let _ = self.unified.call_tool(params, context).await;
+    /// task, named. Best effort — without an active task there is nothing
+    /// to record on.
+    fn record_phase(&self, phase: &str) {
+        let Some(task) = self.engines.ship_active_task_id() else {
+            return;
+        };
+        let _ = self.engines.ship_record_action(
+            Some(&task),
+            ActionType::Config,
+            format!("workflow phase → {phase}"),
+            Vec::new(),
+            vec!["magistr_set_phase".to_owned()],
+            None,
+        );
     }
 }
 
-/// Why a gate was not forwarded to `ship_check`: there is nowhere to record
-/// it. Word for word `ship_check`'s own refusal, because it is the same
-/// condition — this server just asks *before* paying for a run of the
-/// command rather than after (see [`MagistrService::record_via_ship_check`]),
-/// so the note a caller reads is the one it always read.
+/// Why a gate was not recorded: there is nowhere to record it. Word for word
+/// the engine's own refusal of a record with no task, because it is the same
+/// condition — this server just asks *before* the run rather than after, so
+/// the note a caller reads is the one it always read.
 const NO_ACTIVE_TASK: &str = "no task_id provided and no active task";
 
-/// What `ship_check` answered, read without losing the why: the check
-/// record when there is one, otherwise the reason there is not.
-///
-/// think-and-ship reports a refused call as a soft error envelope
-/// (`ok: false`, `error_kind`, `message`) with `is_error: false` — "no
-/// active task" arrives this way — so the envelope's message is the reason.
-/// An MCP-level error (`is_error: true`) contributes its text. Anything
-/// else without an `exit_code` is not a command-run check, whatever it is.
-fn check_record(result: &CallToolResult) -> Result<Value, String> {
-    if result.is_error == Some(true) {
-        let text = first_text(result).unwrap_or_else(|| "no message".to_owned());
-        return Err(format!("ship_check errored: {text}"));
-    }
-    let Some(record) = result
-        .structured_content
-        .clone()
-        .or_else(|| first_text(result).and_then(|t| serde_json::from_str(&t).ok()))
-    else {
-        return Err("ship_check answered no check record".to_owned());
+/// The junit failures a recorded check parsed, as rows beside the ones the
+/// output scan found — each test once, whichever scan named it first.
+fn junit_rows(check: &Check, rows: &mut Vec<magistr_core::GateFailureRow>) {
+    let Some(results) = check.results.as_ref() else {
+        return;
     };
-    if record.get("ok") == Some(&Value::Bool(false)) {
-        let kind = record["error_kind"].as_str().unwrap_or("refused");
-        return Err(match record["message"].as_str().filter(|m| !m.is_empty()) {
-            Some(message) => message.to_owned(),
-            None => format!("ship_check refused ({kind})"),
+    for failure in &results.failures {
+        let name = failure.name.as_str();
+        if name.is_empty() || rows.iter().any(|row| row.message.contains(name)) {
+            continue;
+        }
+        let message = match failure.message.as_deref().filter(|m| !m.is_empty()) {
+            Some(m) => format!("{name}: {}", m.lines().next().unwrap_or_default()),
+            None => name.to_owned(),
+        };
+        rows.push(magistr_core::GateFailureRow {
+            severity: magistr_core::GateRowSeverity::TestFailure,
+            code: None,
+            message,
+            file: None,
+            line: None,
+            column: None,
         });
     }
-    if record.get("exit_code").is_none() {
-        return Err("ship_check answered no check record".to_owned());
-    }
-    Ok(record)
 }
 
 /// The note on a gate that ran but was not recorded: the reason in
@@ -470,23 +398,6 @@ fn unrecorded_all_note(unrecorded: &[&Value]) -> Option<String> {
             .collect::<Vec<_>>()
             .join("; "),
     )
-}
-
-/// Map a gate spec name to a `ship_check` type. Polyglot specs are named
-/// `{gate}:{archetype id}`, so the match is on the prefix before the colon.
-fn check_type_for(gate: &str) -> &'static str {
-    match gate.split(':').next().unwrap_or(gate) {
-        "check" => "typecheck",
-        "test" => "test",
-        _ => "lint",
-    }
-}
-
-fn first_text(result: &CallToolResult) -> Option<String> {
-    result
-        .content
-        .iter()
-        .find_map(|c| c.as_text().map(|t| t.text.clone()))
 }
 
 fn to_call_tool_result(result: ToolResult) -> CallToolResult {
@@ -556,7 +467,7 @@ impl ServerHandler for MagistrService {
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
         if request.name.starts_with("magistr_") {
-            return self.call_magistr(request, context).await.map(Into::into);
+            return self.call_magistr(request).await.map(Into::into);
         }
         if request.name == "roadmap_export" {
             return self

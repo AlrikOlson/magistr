@@ -75,13 +75,34 @@ impl NativeReader {
         roadmap: RoadmapEngine,
         signal: SignalEngine,
     ) -> Self {
+        Self::from_shared(
+            project_id,
+            config,
+            Arc::new(Mutex::new(think)),
+            Arc::new(Mutex::new(ship)),
+            Arc::new(Mutex::new(roadmap)),
+            Arc::new(Mutex::new(signal)),
+        )
+    }
+
+    /// A reader over engines something else already holds — the family
+    /// services an admitted writer acts through, so its queries and its
+    /// handlers look at the same engines.
+    pub(crate) fn from_shared(
+        project_id: String,
+        config: TasConfig,
+        think: Arc<Mutex<ReasoningServer>>,
+        ship: Arc<Mutex<ShipEngine>>,
+        roadmap: Arc<Mutex<RoadmapEngine>>,
+        signal: Arc<Mutex<SignalEngine>>,
+    ) -> Self {
         Self {
             project_id,
             config,
-            roadmap: Arc::new(Mutex::new(roadmap)),
-            think: Arc::new(Mutex::new(think)),
-            ship: Arc::new(Mutex::new(ship)),
-            signal: Arc::new(Mutex::new(signal)),
+            roadmap,
+            think,
+            ship,
+            signal,
         }
     }
 
@@ -89,16 +110,8 @@ impl NativeReader {
         &self.roadmap
     }
 
-    pub(crate) fn think_engine(&self) -> &Mutex<ReasoningServer> {
-        &self.think
-    }
-
     pub(crate) fn ship_engine(&self) -> &Mutex<ShipEngine> {
         &self.ship
-    }
-
-    pub(crate) fn signal_engine(&self) -> &Mutex<SignalEngine> {
-        &self.signal
     }
 
     /// The project every engine is keyed by.
@@ -273,6 +286,14 @@ impl NativeReader {
         lock(&self.ship).status()
     }
 
+    /// The task a record with no explicit task would land on — the one
+    /// started and not yet closed — so a caller can name it rather than
+    /// rely on "whichever is active" at write time.
+    #[must_use]
+    pub fn ship_active_task_id(&self) -> Option<String> {
+        lock(&self.ship).active_task_id()
+    }
+
     /// Every task in the execution trace, in plan order, with its actions
     /// and checks whole — what [`Self::ship_status`] cannot give: its
     /// `recent_actions` is capped at five and drops the task each action
@@ -289,6 +310,12 @@ impl NativeReader {
     #[must_use]
     pub fn signal_status(&self) -> serde_json::Value {
         lock(&self.signal).status()
+    }
+
+    /// One signal by id.
+    #[must_use]
+    pub fn signal(&self, id: &str) -> Option<Signal> {
+        lock(&self.signal).get(id).ok().cloned()
     }
 
     /// Every signal in the store, capture order.

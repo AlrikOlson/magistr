@@ -20,7 +20,9 @@ cargo clippy --workspace --all-targets -- -D warnings
 ```
 
 `.magistr/project.json` defines the complete gate set, including structure,
-dependency, rendering, and latency checks.
+dependency, rendering, latency, and native-write-path checks (the last pins
+that every native mutation runs through `magistr-engine`'s admitted writer;
+see the [project authority guide](architecture/project-authority.md#one-write-path)).
 Use `just gate` from the workspace root, or `$validate` in an agent session, to
 run all required checks.
 

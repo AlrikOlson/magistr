@@ -42,13 +42,13 @@ listed separately so capability is not mistaken for integration.
 
 | Entry | Path and mutations | Admission/limitations |
 | --- | --- | --- |
-| MCP, including tools called by external coding agents | `MagistrService::{for_project,new}` → `ProjectAuthority::admit(Service)` → `publish` → `serve` → embedded `UnifiedService`; native roadmap/ship/think/signal verbs, plus `magistr_*` phase and gate recording. `run_stdio_server` serves the owner endpoint (`serve_owner_endpoint`) beside the stdio session. | Service lease acquired before opening engines; clones share it. Native verbs dispatch directly, not through the phase guard. |
+| MCP, including tools called by external coding agents | `MagistrService::{for_project,new}` → `ProjectAuthority::admit(Service)` → `publish` → `serve` → embedded `UnifiedService` **and** the `NativeEngines` over the same family services; native roadmap/ship/think/signal verbs on the wire, `magistr_*` gate recording (`ship_record_gate` on the named active task after a pty run) and phase actions (`ship_record_action`) through the writer. `run_stdio_server` serves the owner endpoint (`serve_owner_endpoint`) beside the stdio session. | Service lease acquired before opening engines; clones share it. Native verbs dispatch directly, not through the phase guard. The transport never calls its own wire. |
 | Attached `magistr mcp-serve` | Refused the Service lease (`WouldBlock`) → `OwnerClient::attach_mcp` → `proxy_to_owner` copies stdio to and from the owner's rmcp session on the socket. | No lease, no engine: every tool runs in the owner's process. Ends with an error when the owner hangs up; fails closed, naming both refusals, when no endpoint answers. |
-| Interactive cockpit `run` | `cmd_run_cockpit` → `EngineClient::admit_or_attach` (`ProjectAuthority::admit(Host)`, or `OwnerClient::attach_project` when the host is held) → `EngineClient::port` (`NativeEnginePort` or `AttachedEnginePort`) → `engine/apply`; the host serves its endpoint (`serve_owner`) for the run. Pin/checkpoint reasoning; start/complete chunks; resolve proposals; clear blockers; promote/ignore/snooze signals. | Admitted host writer beside the agent's service, or an attached client acting through the running host's writer; fails closed (`EngineError::Occupied`) when the host is held and no endpoint answers. Completion passes no ship reference. |
-| Cockpit `next` and `next-loop` | `admit_native_host` → `IterationLoop` → `run_cockpit_loop` serves the owner endpoint (`serve_owner_endpoint`) and attaches `EngineClient` to the loop's writer → `LoopDriver`; installs the native port for each session, records gates, starts/completes judged chunks, sets human blockers, reopens self-completed chunks after failed required checks. | One admitted host writer per process; a second loop on a held host is refused (execution cycles are serialized), while a `magistr run` beside it attaches. Completion also passes no ship reference. Outer gates cover only top-level check/test/lint. |
+| Interactive cockpit `run` | `cmd_run_cockpit` → `EngineClient::admit_or_attach` (`ProjectAuthority::admit(Host)`, or `OwnerClient::attach_project` when the host is held) → `EngineClient::port` (`NativeEnginePort` or `AttachedEnginePort`) → `engine/apply`; the host serves its endpoint (`serve_owner`) for the run. Pin/checkpoint reasoning; start/complete chunks; resolve proposals; clear blockers; promote/ignore/snooze signals — each the library's tool handler, so a promote creates and cross-links the backlog chunk. | Admitted host writer beside the agent's service, or an attached client acting through the running host's writer; fails closed (`EngineError::Occupied`) when the host is held and no endpoint answers. A human's completion passes no ship reference. |
+| Cockpit `next` and `next-loop` | `admit_native_host` → `IterationLoop` → `run_cockpit_loop` serves the owner endpoint (`serve_owner_endpoint`) and attaches `EngineClient` to the loop's writer → `LoopDriver`; installs the native port for each session, records gates, starts/completes judged chunks, sets human blockers, reopens self-completed chunks after failed required checks. | One admitted host writer per process; a second loop on a held host is refused (execution cycles are serialized), while a `magistr run` beside it attaches. Gates are recorded on the task named active before the set runs, and a judged completion carries `task:<that task>`. Outer gates cover only top-level check/test/lint. |
 | Headless/plain workflow commands | `admit_native_host` and core loop handles supply roadmap reads/prompts, and serve the owner endpoint for the loop; their agent's MCP service performs native workflow writes. | Host lease held for the loop. No outer `LoopDriver` judge/reopen/custom-gate guarantee. Loop JSON and cost/session records are separate persistence. |
 | Bare/roadmap cockpit, launcher, `roadmap show|next|status|export`, guard | `EngineClient::observe` / `open_native_reader` subscribe, reseed and read a `NativeReader`. | Observers: no lease, no writer, so they run beside any admitted host. Rendered controls alone do not establish a working writer. |
-| Library escape hatches | None. `NativeEngines` is constructed only by `ProjectAuthority::open`; `with_*` callbacks and public constructors were removed by `arch-10-project-authority`, and `open_engines` is crate-private. | The historical row named public `NativeEngines::{open,open_for_project,with_*}` with no lease; readers are the only unadmitted opening and cannot mutate. |
+| Library escape hatches | None. `NativeEngines` is constructed only by `ProjectAuthority::open`; `with_*` callbacks and public constructors were removed by `arch-10-project-authority`, `open_engines` is crate-private, and the `native-write-path` gate pins that engines and services are composed only in `magistr-engine/src/tas`, that only the writer and the reader take an engine lock, and that the transport never calls its own wire. | The historical row named public `NativeEngines::{open,open_for_project,with_*}` with no lease; readers are the only unadmitted opening and cannot mutate. Desktop: no `gui2` crate exists on main, so there is no desktop writer to route. |
 
 Writer anchors: [native port](../../crates/magistr-cockpit/src/engine/native_port.rs),
 [apply](../../crates/magistr-cockpit/src/engine/apply.rs),
@@ -300,6 +300,28 @@ reconnect, and an unavailable endpoint fails closed — read-only is the explici
 observer path. Local only: no remote endpoint, daemon, upgrade path across
 protocol versions, or shared writer routing.
 
+## Implemented native command path
+
+`arch-12-native-command-path` makes the library's own tool handler the
+[one implementation](project-authority.md#one-write-path) of every supported
+native mutation. `ProjectAuthority::open` composes the four family services
+as the standalone binary does; `NativeEngines` carries each typed verb out by
+calling the handler method directly and reading its structured answer as a
+wire client would; `serve` hands the same service instances to the transport
+as its `UnifiedService`, with the writer beside them. The observed drift is
+closed by construction: promoting a signal from the cockpit now creates and
+cross-links the backlog chunk exactly as the MCP verb does, and the verbs'
+refusals are the same on every surface. `magistr_gate` runs on the pty
+runner and records through `ship_record_gate` on the task named active before
+the run; `magistr_set_phase` records its action through the writer; the
+transport's own MCP self-calls are gone. The loop driver records its gates on
+the named task and a judged completion carries `task:<that task>`. Two direct
+engine calls remain, documented and pinned: `record_check_full` (the
+recording half of `ship_check`) and `propose_title` / `propose_status` (no
+MCP tool). Not claimed: native run isolation (one objective and active task
+per project, loops serialized), a production adapter for the application
+crate's `CommandContext`, or any desktop writer on main.
+
 ## Executable scenarios
 
 The original scenarios intentionally pinned behavior including gaps. The run
@@ -327,6 +349,7 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 | Native iteration with real recorded gates and task/think completion references | CLI integration `next_iteration_integration` |
 | Red outer gates reopen self-completion; green evidence retains it | CLI `orchestration::loop_driver::driver::tests` |
 | Cached-writer merge/reload and detached projection reseed | Engine `tas::native_engines::tests`; cockpit `engine::reseed::tests` |
+| One write path: in-process promotion creates and cross-links the backlog chunk as the verb does; the handlers' refusals are the writer's; a green `magistr_gate(all)` leaves one verified check per gate on the named task and opens `done`, running each command once; a judged loop completion names the task its gates were recorded on; no writer escape hatch outside `magistr-engine/src/tas` and no transport self-call | Engine `tas::native_engines::tests`, `tas::handler_call::tests`; CLI integration `mcp_serve_integration`; CLI `orchestration::loop_driver::driver::tests`; the `native-write-path` gate |
 
 Run the named new and directly related suites without an empty-filter success:
 
