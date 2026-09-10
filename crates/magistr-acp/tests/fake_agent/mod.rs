@@ -36,6 +36,8 @@ pub const FABLE: &str = "claude-fable-5[1m]";
 pub struct Script {
     /// Advertise `loadSession` and accept `session/load`.
     pub supports_load: bool,
+    /// Return the old selection despite acknowledging a config request.
+    pub ignore_config_changes: bool,
     /// Ask for permission for a tool call before finishing the turn.
     pub ask_permission: bool,
     /// Read this file through the client before finishing the turn.
@@ -122,6 +124,7 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
     let task = tokio::spawn({
         let observed = Arc::clone(&observed);
         let supports_load = script.supports_load;
+        let ignore_config_changes = script.ignore_config_changes;
         let goal_extension = script.goal_extension;
         Agent
             .builder()
@@ -224,8 +227,13 @@ pub fn spawn(script: Script) -> (Channel, Arc<Observed>, JoinHandle<Result<(), E
                             .lock()
                             .expect("lock")
                             .push((req.config_id.to_string(), value.clone()));
+                        let current = if ignore_config_changes {
+                            "sonnet"
+                        } else {
+                            &value
+                        };
                         responder
-                            .respond(SetSessionConfigOptionResponse::new(model_options(&value)))
+                            .respond(SetSessionConfigOptionResponse::new(model_options(current)))
                     }
                 },
                 on_receive_request!(),

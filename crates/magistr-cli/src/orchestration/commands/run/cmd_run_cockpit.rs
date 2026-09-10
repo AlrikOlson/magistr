@@ -49,7 +49,11 @@ pub async fn cmd_run_cockpit(
             return Err(eyre::eyre!("the cockpit did not start"));
         }
     };
-    let transport = match agent::connect_transport(&config).await {
+    let spec = config.permission_profile(profile).resolve()?;
+    let root = spec.cwd().to_path_buf();
+    let profile = spec.permission_profile();
+    let workflow = spec.workflow_permissions();
+    let transport = match spec.connect_transport().await {
         Ok(transport) => transport,
         Err(err) => {
             println!("magistr: cannot start the agent: {err}");
@@ -57,16 +61,13 @@ pub async fn cmd_run_cockpit(
         }
     };
     let mut session = SessionOptions::new();
-    if !config.prompt.trim().is_empty() {
-        session = session.opening_prompt(&config.prompt);
-    }
-    if let Some(model) = &config.model {
-        session = session.model(model);
+    if !spec.prompt().trim().is_empty() {
+        session = session.opening_prompt(spec.prompt());
     }
 
     let theme = Theme::from_os();
     let (title, debug) =
-        crate::orchestration::commands::chrome::chrome(&root, Some("acp"), config.model.as_deref());
+        crate::orchestration::commands::chrome::chrome(&root, Some("acp"), spec.model());
     let terminal =
         RealTerminal::stdio().context("the cockpit needs a terminal on stdin and stdout")?;
     let size = terminal.size()?;
@@ -78,7 +79,7 @@ pub async fn cmd_run_cockpit(
     // The safety net under the socket: what the agent's own
     // `magistr mcp-serve` records reaches the tabs even with no feed.
     let reseed = engines.reseed(runtime.inbox());
-    let policy = super::cockpit_policy_for_project(&root, profile, false, config.model.as_deref());
+    let (policy, _) = spec.into_permission_policy();
     // The workbench port is the project's own workbench-mcp, spoken to
     // over its stdio; the server is only spawned once something is asked
     // of it. The engine port is the same in-process engines the rail
@@ -108,7 +109,7 @@ pub async fn cmd_run_cockpit(
                 ),
             &root,
             profile,
-            false,
+            workflow,
         ))
         .await;
     feed.abort();

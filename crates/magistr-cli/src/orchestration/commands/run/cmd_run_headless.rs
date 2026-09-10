@@ -57,6 +57,7 @@ pub async fn cmd_run_headless(
     let mut session = agent::session::AgentSession::start(config)
         .await
         .suggest()?;
+    let model = session.resolved_model().map(str::to_owned);
 
     let budget_limit: Option<f64> = std::env::var("MAGISTR_BUDGET")
         .ok()
@@ -79,7 +80,7 @@ pub async fn cmd_run_headless(
     // The ledger every budget scope is measured over. Written here
     // rather than inside the drain so the drain stays a pure function of
     // its writers and its tests never touch the real ledger.
-    if let Some(spend) = spend.map(|s| model.map_or(s.clone(), |m| s.with_model(m))) {
+    if let Some(spend) = spend.map(|s| model.as_deref().map_or(s.clone(), |m| s.with_model(m))) {
         record_session(&cwd, &spend);
     }
 

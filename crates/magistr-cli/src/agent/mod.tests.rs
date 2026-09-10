@@ -3,6 +3,21 @@ use crate::in_env as env_test;
 use super::*;
 
 #[test]
+fn unsupported_continue_is_refused_before_runtime_startup() {
+    let dir = tempfile::tempdir().expect("project");
+    let result = AgentConfig::new("continue", dir.path())
+        .provider("openai")
+        .continue_conversation(true)
+        .resolve();
+    assert!(
+        result.is_err(),
+        "an unimplemented continuation cannot start a new session"
+    );
+    let error = result.err().expect("refused continuation").to_string();
+    assert!(error.contains("resume"), "{error}");
+}
+
+#[test]
 fn explicit_auto_bypasses_a_global_api_provider() {
     let path = tempfile::tempdir().expect("empty PATH directory");
     if !env_test::in_env(&[("PATH", Some(path.path().as_os_str()))]) {

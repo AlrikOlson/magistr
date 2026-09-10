@@ -3,7 +3,7 @@
 use agent_client_protocol::BoxFuture;
 use agent_client_protocol::schema::v1::StopReason;
 
-use crate::{AgentError, ModelChoice, SessionOpened, SessionStart, Turn};
+use crate::{AgentError, ModelChoice, ProviderCapabilities, SessionOpened, SessionStart, Turn};
 
 /// How a model is driven. The scaffolding around a `Provider` owns everything
 /// ACP-shaped — the session registry, the per-session turn queue, the
@@ -23,6 +23,12 @@ pub trait Provider: Send + Sync + 'static {
     /// session starts on; an empty list means the provider has no picker.
     fn models(&self) -> Vec<ModelChoice>;
 
+    /// The guarantees the adapter implements. Defaults advertise no optional
+    /// operations; providers must opt into durable load and content support.
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities::default()
+    }
+
     /// Open (or, when `session.resume` is set, restore) a session. Answers
     /// the id the session is known by from here on — the proposed one, or the
     /// runtime's own — and the history to replay to the client before the
@@ -38,7 +44,7 @@ pub trait Provider: Send + Sync + 'static {
     /// The default keeps the existing prompt cancellation behavior for
     /// providers whose work can safely be dropped after the worker's grace.
     fn requires_terminal_cancellation(&self) -> bool {
-        false
+        self.capabilities().terminal_cancellation_ack
     }
 
     /// Run one turn. The [`Turn`] is the provider's handle on the wire: it

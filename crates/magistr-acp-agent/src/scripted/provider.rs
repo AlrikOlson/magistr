@@ -39,6 +39,15 @@ impl ScriptedProvider {
 }
 
 impl Provider for ScriptedProvider {
+    fn capabilities(&self) -> crate::ProviderCapabilities {
+        // This fixture synthesizes the same replay in every fresh process.
+        crate::ProviderCapabilities {
+            durable_load: true,
+            history_replay: true,
+            tools: true,
+            ..crate::ProviderCapabilities::text_session()
+        }
+    }
     fn name(&self) -> &str {
         Self::NAME
     }
@@ -52,6 +61,7 @@ impl Provider for ScriptedProvider {
 
     fn start(&self, session: SessionStart) -> BoxFuture<'_, Result<SessionOpened, AgentError>> {
         Box::pin(async move {
+            session.validate(self)?;
             let replay = if session.resume {
                 vec![SessionUpdate::AgentMessageChunk(ContentChunk::new(
                     ContentBlock::Text(TextContent::new(format!("resumed {}", session.session_id))),
@@ -59,7 +69,9 @@ impl Provider for ScriptedProvider {
             } else {
                 Vec::new()
             };
-            Ok(SessionOpened::new(session.session_id).replay(replay))
+            let mut opened = SessionOpened::new(session.session_id).replay(replay);
+            opened.model = session.model.or_else(|| Some(Self::FAST.to_owned()));
+            Ok(opened)
         })
     }
 

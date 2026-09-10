@@ -1,7 +1,7 @@
 //! The Claude provider.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use agent_client_protocol::BoxFuture;
@@ -108,11 +108,24 @@ impl ClaudeProvider {
     }
 
     async fn open(&self, start: SessionStart) -> Result<SessionOpened, AgentError> {
+        start.validate(self)?;
+        let mut replay = vec![self.commands_update()];
+        if start.resume {
+            replay.extend(transcript::replay(
+                &self.config_dir,
+                &start.cwd,
+                &start.session_id.to_string(),
+            )?);
+        }
         let spec = LaunchSpec {
             cwd: start.cwd.clone(),
             session_id: start.session_id.to_string(),
             resume: start.resume,
-            model: self.handshake.models.first().map(|m| m.id.clone()),
+            model: start.model.clone().or_else(|| {
+                (!start.resume)
+                    .then(|| self.handshake.models.first().map(|m| m.id.clone()))
+                    .flatten()
+            }),
             mcp_servers: start.mcp_servers.clone(),
             allowed_tools: self.allowed_tools.clone(),
         };
@@ -121,19 +134,21 @@ impl ClaudeProvider {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .insert(start.session_id.clone(), Arc::new(session));
-        let mut replay = vec![self.commands_update()];
-        if start.resume {
-            replay.extend(transcript::replay(
-                &self.config_dir,
-                Path::new(&start.cwd),
-                &start.session_id.to_string(),
-            ));
-        }
-        Ok(SessionOpened::new(start.session_id).replay(replay))
+        let mut opened = SessionOpened::new(start.session_id).replay(replay);
+        opened.model = spec.model;
+        Ok(opened)
     }
 }
 
 impl Provider for ClaudeProvider {
+    fn capabilities(&self) -> crate::ProviderCapabilities {
+        crate::ProviderCapabilities {
+            durable_load: true,
+            history_replay: true,
+            tools: true,
+            ..crate::ProviderCapabilities::text_session()
+        }
+    }
     fn name(&self) -> &str {
         Self::NAME
     }

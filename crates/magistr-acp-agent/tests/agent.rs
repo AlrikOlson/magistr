@@ -23,7 +23,7 @@ async fn initialize_advertises_load_session_the_agent_and_the_models() {
     })
     .await;
     assert!(init.agent_capabilities.load_session);
-    assert!(init.agent_capabilities.prompt_capabilities.embedded_context);
+    assert!(!init.agent_capabilities.prompt_capabilities.embedded_context);
     assert!(init.auth_methods.is_empty(), "no auth methods to select");
     let info = init.agent_info.expect("agent_info");
     assert_eq!(info.name, "magistr");

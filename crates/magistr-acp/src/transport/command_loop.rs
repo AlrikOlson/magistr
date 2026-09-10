@@ -63,7 +63,6 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
             session_mode: &session_mode,
             mcp_servers: &mcp_servers,
             session_meta: &session_meta,
-            event_tx: &event_tx,
             stderr_tail: &stderr_tail,
         },
     )

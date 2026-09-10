@@ -444,21 +444,23 @@ async fn load_mode_resumes_the_requested_session_when_supported() {
 }
 
 #[tokio::test]
-async fn load_mode_falls_back_to_a_new_session_with_a_warning_when_unsupported() {
-    let (_transport, mut events, observed) = connect_with_mode(
-        Script::default(),
-        AcpSessionMode::Load {
+async fn load_mode_rejects_unsupported_resume_without_creating_an_empty_session() {
+    let (client_end, observed, _agent) = fake_agent::spawn(Script::default());
+    let mut transport = AcpTransport::new_with_args(PathBuf::from("fake-agent"), vec![], None)
+        .expect("construct")
+        .session_mode(AcpSessionMode::Load {
             session_id: "old-1".into(),
-        },
-    )
-    .await;
-    let warning = next(&mut events).await.expect("warning");
-    assert!(matches!(warning, AcpEvent::System { subtype, .. } if subtype == "warning"));
-    match next(&mut events).await.expect("initialized") {
-        AcpEvent::Initialized { session_id, .. } => assert_eq!(session_id, SESSION_ID),
-        other => panic!("expected Initialized, got {other:?}"),
-    }
+        });
+    let error = transport
+        .connect_over(client_end)
+        .await
+        .expect_err("resume must be supported");
+    assert!(error.to_string().contains("old-1"), "{error}");
+    assert!(error.to_string().contains("does not support"), "{error}");
+    assert!(!transport.is_ready());
+    assert!(transport.prompt("must not infer").is_err());
     assert!(observed.loaded_session.lock().expect("lock").is_none());
+    assert!(observed.session_meta.lock().expect("lock").is_none());
 }
 
 #[tokio::test]

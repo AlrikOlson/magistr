@@ -5,13 +5,16 @@ use std::pin::Pin;
 
 use magistr_acp::AcpTransport;
 
-use crate::agent::{AgentConfig, connect_transport};
+use crate::agent::{AgentConfig, ResolvedSessionSpec};
 use crate::error::Result;
 
-type Connect =
-    dyn Fn(AgentConfig) -> Pin<Box<dyn Future<Output = Result<AcpTransport>> + Send>> + Send + Sync;
+type Connect = dyn Fn(
+        AgentConfig,
+    ) -> Pin<Box<dyn Future<Output = Result<(AcpTransport, ResolvedSessionSpec)>> + Send>>
+    + Send
+    + Sync;
 
-/// Turns an [`AgentConfig`] into a connected [`AcpTransport`] — the one
+/// Turns an [`AgentConfig`] into a connected [`AcpTransport`] and its frozen setup — the one
 /// seam between the loop driver and a process. [`Connector::live`]
 /// spawns the real agent; a test hands in a closure that connects the
 /// transport over a channel to an in-process fake.
@@ -24,18 +27,21 @@ impl Connector {
     pub fn new<F, Fut>(connect: F) -> Self
     where
         F: Fn(AgentConfig) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<AcpTransport>> + Send + 'static,
+        Fut: Future<Output = Result<(AcpTransport, ResolvedSessionSpec)>> + Send + 'static,
     {
         Self {
             connect: Box::new(move |config| Box::pin(connect(config))),
         }
     }
 
-    /// The real thing: [`connect_transport`] — detect the runtime, spawn
-    /// the agent, complete the handshake.
+    /// Resolve setup once, spawn the agent and complete the handshake.
     #[must_use]
     pub fn live() -> Self {
-        Self::new(|config| async move { connect_transport(&config).await })
+        Self::new(|config| async move {
+            let spec = config.resolve()?;
+            let transport = spec.connect_transport().await?;
+            Ok((transport, spec))
+        })
     }
 
     /// Connect for `config`.
@@ -43,7 +49,10 @@ impl Connector {
     /// # Errors
     ///
     /// Whatever the connection failed with.
-    pub async fn connect(&self, config: AgentConfig) -> Result<AcpTransport> {
+    pub async fn connect(
+        &self,
+        config: AgentConfig,
+    ) -> Result<(AcpTransport, ResolvedSessionSpec)> {
         (self.connect)(config).await
     }
 }

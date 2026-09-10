@@ -97,11 +97,23 @@ impl AcpBackend {
         mpsc::UnboundedReceiver<Result<AgentMessage>>,
         Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>>,
     )> {
+        Self::start_resolved(&config.resolve()?).await
+    }
+
+    // A session and its permission worker consume the same resolved setup.
+    #[allow(clippy::type_complexity)] // Same backend/message/permission ownership as start.
+    pub(crate) async fn start_resolved(
+        spec: &super::ResolvedSessionSpec,
+    ) -> Result<(
+        Self,
+        mpsc::UnboundedReceiver<Result<AgentMessage>>,
+        Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>>,
+    )> {
         // Spawn + handshake (+ the orphan guard) — shared with the cockpit.
-        let transport = super::connect_transport(&config).await?;
+        let transport = spec.connect_transport().await?;
         #[cfg(unix)]
         let child_pgid = transport.child_pgid();
-        let result = Self::start_connected(config, transport).await;
+        let result = Self::start_connected(spec.prompt(), transport).await;
         #[cfg(unix)]
         if result.is_err() && child_pgid > 0 {
             // Failed startup dropped the transport and killed its group. No
@@ -114,14 +126,13 @@ impl AcpBackend {
     // Continue startup on the connected transport before admitting model input.
     #[allow(clippy::type_complexity)] // Same backend/message/permission ownership as start.
     async fn start_connected(
-        config: AgentConfig,
+        prompt: &str,
         mut transport: magistr_acp::AcpTransport,
     ) -> Result<(
         Self,
         mpsc::UnboundedReceiver<Result<AgentMessage>>,
         Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>>,
     )> {
-        let prompt = config.prompt.clone();
         #[cfg(unix)]
         let child_pgid = transport.child_pgid();
 
@@ -131,8 +142,6 @@ impl AcpBackend {
             .ok_or_else(|| MagistrError::Acp("ACP event channel not available".into()))?;
         let acp_perm_rx = transport.take_permission_rx();
 
-        let event_rx = prepare_initial_events(&config, &transport, event_rx).await?;
-
         let state = Arc::new(Mutex::new(AcpSessionState::Created));
         let turn_count = Arc::new(AtomicU32::new(0));
         let agent_capabilities: Arc<
@@ -141,7 +150,7 @@ impl AcpBackend {
 
         // Send initial prompt (AFTER model selection so the agent uses the right model)
         transport
-            .prompt(&prompt)
+            .prompt(prompt)
             .map_err(|e| MagistrError::Acp(format!("Failed to send initial prompt: {e}")))?;
         debug!("initial prompt sent");
 
@@ -180,98 +189,6 @@ impl AcpBackend {
     pub fn turn_count(&self) -> u32 {
         self.turn_count.load(Ordering::SeqCst)
     }
-}
-
-// Select an explicit model before admitting input, then preserve startup events.
-async fn prepare_initial_events(
-    config: &AgentConfig,
-    transport: &magistr_acp::AcpTransport,
-    mut event_rx: mpsc::UnboundedReceiver<magistr_acp::Result<AcpEvent>>,
-) -> Result<mpsc::UnboundedReceiver<magistr_acp::Result<AcpEvent>>> {
-    // Wait for the Initialized event before sending the first prompt.
-    // The transport thread sends Initialized before marking ready, so it's
-    // already in the channel. We need it to:
-    // 1. Auto-select the user's preferred model (via set_config_option)
-    // 2. Capture agent capabilities and session ID
-    //
-    // IMPORTANT: set_config_option must happen BEFORE the prompt is sent —
-    // the ACP transport rejects config changes while a prompt is in-flight.
-    let mut init_event: Option<AcpEvent> = None;
-    let mut pre_init_events = Vec::new();
-    while let Ok(event_result) = event_rx.try_recv() {
-        match event_result {
-            Ok(ev @ AcpEvent::Initialized { .. }) => {
-                init_event = Some(ev);
-                break;
-            }
-            other => pre_init_events.push(other),
-        }
-    }
-
-    // A requested model must be selected before inference; refusal cannot
-    // silently use another model. "default" keeps the runtime's selection,
-    // matching the user-config sentinel.
-    if let Some(desired_model) = config
-        .model
-        .as_deref()
-        .filter(|model| !model.eq_ignore_ascii_case("default"))
-    {
-        let Some(AcpEvent::Initialized {
-            session_id,
-            config_options,
-            ..
-        }) = &init_event
-        else {
-            return Err(MagistrError::Acp(format!(
-                "Cannot select requested model {desired_model:?}: agent did not initialize"
-            )));
-        };
-        let cfg_id = config_options
-            .as_deref()
-            .unwrap_or_default()
-            .iter()
-            .find(|option| {
-                option.category.as_ref()
-                    == Some(&agent_client_protocol::schema::v1::SessionConfigOptionCategory::Model)
-            })
-            .map(|option| option.id.to_string())
-            .ok_or_else(|| {
-                MagistrError::Acp(format!(
-                    "Cannot select requested model {desired_model:?}: agent has no model picker"
-                ))
-            })?;
-        let value = agent_client_protocol::schema::v1::SessionConfigOptionValue::ValueId {
-            value: desired_model.to_owned().into(),
-        };
-        transport
-            .set_config_option(session_id.clone(), cfg_id, value)
-            .await
-            .map_err(|error| {
-                MagistrError::Acp(format!(
-                    "Failed to select requested model {desired_model:?}: {error}"
-                ))
-            })?;
-    }
-
-    // Re-inject pre-init events and the Initialized event into a new channel
-    // for the reader task. The reader task needs the Initialized event to
-    // capture capabilities and session ID.
-    let (reinject_tx, reinject_rx) = mpsc::unbounded_channel();
-    for ev in pre_init_events {
-        let _ = reinject_tx.send(ev);
-    }
-    if let Some(ev) = init_event {
-        let _ = reinject_tx.send(Ok(ev));
-    }
-    // Bridge remaining events from original channel to the re-injected one
-    tokio::spawn(async move {
-        while let Some(ev) = event_rx.recv().await {
-            if reinject_tx.send(ev).is_err() {
-                break;
-            }
-        }
-    });
-    Ok(reinject_rx)
 }
 
 // Drain turns and service between-turn commands in a single transport owner.

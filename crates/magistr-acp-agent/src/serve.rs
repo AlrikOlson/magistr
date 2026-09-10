@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::schema::v1::{
-    AgentCapabilities, AuthenticateRequest, CancelNotification, Implementation, InitializeRequest,
-    InitializeResponse, LoadSessionRequest, LoadSessionResponse, Meta, NewSessionRequest,
-    NewSessionResponse, PromptCapabilities, PromptRequest, SessionConfigOption,
+    AgentCapabilities, AuthenticateRequest, CancelNotification, ContentBlock, Implementation,
+    InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse, Meta,
+    NewSessionRequest, NewSessionResponse, PromptCapabilities, PromptRequest, SessionConfigOption,
     SessionConfigOptionValue, SessionId, SessionNotification, SessionUpdate,
     SetSessionConfigOptionRequest, SetSessionConfigOptionResponse,
 };
@@ -62,12 +62,18 @@ pub async fn serve(
             {
                 let (provider, registry) = (Arc::clone(&provider), registry.clone());
                 async move |req: NewSessionRequest, responder, cx| {
+                    let (model, effort) = match session_options(req.meta.as_ref()) {
+                        Ok(options) => options,
+                        Err(error) => return responder.respond_with_result(Err(error.into())),
+                    };
                     let (provider, registry) = (Arc::clone(&provider), registry.clone());
                     let start = SessionStart {
                         session_id: registry.mint_id(),
                         cwd: req.cwd,
                         mcp_servers: req.mcp_servers,
                         resume: false,
+                        model,
+                        effort,
                     };
                     let cx2 = cx.clone();
                     cx.spawn(async move {
@@ -89,12 +95,18 @@ pub async fn serve(
             {
                 let (provider, registry) = (Arc::clone(&provider), registry.clone());
                 async move |req: LoadSessionRequest, responder, cx| {
+                    let (model, effort) = match session_options(req.meta.as_ref()) {
+                        Ok(options) => options,
+                        Err(error) => return responder.respond_with_result(Err(error.into())),
+                    };
                     let (provider, registry) = (Arc::clone(&provider), registry.clone());
                     let start = SessionStart {
                         session_id: req.session_id,
                         cwd: req.cwd,
                         mcp_servers: req.mcp_servers,
                         resume: true,
+                        model,
+                        effort,
                     };
                     let cx2 = cx.clone();
                     cx.spawn(async move {
@@ -114,8 +126,11 @@ pub async fn serve(
         )
         .on_receive_request(
             {
-                let registry = registry.clone();
+                let (provider, registry) = (Arc::clone(&provider), registry.clone());
                 async move |req: PromptRequest, responder, _cx| {
+                    if let Err(error) = validate_prompt(&*provider, &req.prompt) {
+                        return responder.respond_with_result(Err(error.into()));
+                    }
                     let (queue, cancel) = match registry.admit(&req.session_id) {
                         Ok(admitted) => admitted,
                         Err(error) => return responder.respond_with_result(Err(error.into())),
@@ -168,10 +183,10 @@ pub async fn serve(
         .await
 }
 
-/// What `initialize` answers: v1, `session/load` and embedded context
-/// supported, the agent named, and the provider and its models in
+/// What `initialize` answers: v1, the provider's actual capabilities, and its models in
 /// `_meta.magistr` for a client that wants them before opening a session.
 fn initialize_response(provider: &dyn Provider) -> InitializeResponse {
+    let capabilities = provider.capabilities();
     let models = provider
         .models()
         .iter()
@@ -180,13 +195,20 @@ fn initialize_response(provider: &dyn Provider) -> InitializeResponse {
     let mut meta = Meta::new();
     meta.insert(
         "magistr".to_owned(),
-        serde_json::json!({"provider": provider.name(), "models": models}),
+        serde_json::json!({"provider": provider.name(), "models": models,
+            "capabilities": capabilities,
+            "session_options": {"model": true, "effort": capabilities.effort_selection}}),
     );
     InitializeResponse::new(ProtocolVersion::V1)
         .agent_capabilities(
             AgentCapabilities::new()
-                .load_session(true)
-                .prompt_capabilities(PromptCapabilities::new().embedded_context(true)),
+                .load_session(capabilities.durable_load && capabilities.history_replay)
+                .prompt_capabilities(
+                    PromptCapabilities::new()
+                        .embedded_context(capabilities.embedded_context)
+                        .image(capabilities.image)
+                        .audio(capabilities.audio),
+                ),
         )
         .agent_info(Implementation::new("magistr", env!("CARGO_PKG_VERSION")))
         .meta(meta)
@@ -203,6 +225,8 @@ async fn open_session(
 ) -> Result<(SessionId, Option<Vec<SessionConfigOption>>), AgentError> {
     let proposed = start.session_id.clone();
     let resume = start.resume;
+    let requested_model = start.model.clone();
+    start.validate(&*provider)?;
     if registry.contains(&proposed) {
         return Err(AgentError::SessionExists(proposed.to_string()));
     }
@@ -221,8 +245,17 @@ async fn open_session(
     let model = match opened.model {
         Some(model) if models.iter().any(|choice| choice.id == model) => Some(model),
         Some(model) => return Err(AgentError::UnknownModel(model)),
+        None if resume => None,
         None => models.first().map(|choice| choice.id.clone()),
     };
+    if requested_model
+        .as_ref()
+        .is_some_and(|requested| model.as_ref() != Some(requested))
+    {
+        return Err(AgentError::provider(
+            "provider did not apply the requested session model",
+        ));
+    }
     let queue = registry.open(session_id.clone(), model.clone())?;
     cx.spawn(run_session_worker(
         Arc::clone(&provider),
@@ -234,7 +267,12 @@ async fn open_session(
     for update in replay {
         emit(&cx, &session_id, update)?;
     }
-    Ok((session_id, model_options(&models, model.as_deref())))
+    let options = if resume && model.is_none() {
+        None
+    } else {
+        model_options(&models, model.as_deref())
+    };
+    Ok((session_id, options))
 }
 
 fn emit(
@@ -253,6 +291,12 @@ fn set_config_option(
     registry: &SessionRegistry,
     req: &SetSessionConfigOptionRequest,
 ) -> Result<SetSessionConfigOptionResponse, AgentError> {
+    if !provider.capabilities().model_change {
+        return Err(AgentError::provider(format!(
+            "{} does not support model changes",
+            provider.name()
+        )));
+    }
     if req.config_id.to_string() != MODEL_CONFIG_ID {
         return Err(AgentError::Protocol(Error::invalid_params().data(
             serde_json::json!(format!("unknown config option: {}", req.config_id)),
@@ -272,4 +316,51 @@ fn set_config_option(
     Ok(SetSessionConfigOptionResponse::new(
         model_options(&models, Some(&chosen)).unwrap_or_default(),
     ))
+}
+
+fn session_options(meta: Option<&Meta>) -> Result<(Option<String>, Option<String>), AgentError> {
+    let Some(options) = meta
+        .and_then(|meta| meta.get("magistr"))
+        .and_then(|value| value.get("session"))
+    else {
+        return Ok((None, None));
+    };
+    if !options.is_object() {
+        return Err(AgentError::provider(
+            "magistr session options must be an object",
+        ));
+    }
+    let option = |name: &str| -> Result<Option<String>, AgentError> {
+        match options.get(name) {
+            None => Ok(None),
+            Some(value) => value
+                .as_str()
+                .filter(|value| !value.is_empty())
+                .map(|value| Some(value.to_owned()))
+                .ok_or_else(|| {
+                    AgentError::provider(format!("session {name} must be a nonempty string"))
+                }),
+        }
+    };
+    Ok((option("model")?, option("effort")?))
+}
+
+fn validate_prompt(provider: &dyn Provider, prompt: &[ContentBlock]) -> Result<(), AgentError> {
+    let capabilities = provider.capabilities();
+    for block in prompt {
+        let supported = match block {
+            ContentBlock::Text(_) => true,
+            ContentBlock::Image(_) => capabilities.image,
+            ContentBlock::Audio(_) => capabilities.audio,
+            ContentBlock::Resource(_) => capabilities.embedded_context,
+            _ => false,
+        };
+        if !supported {
+            return Err(AgentError::provider(format!(
+                "{} does not support this prompt content; no turn was started",
+                provider.name()
+            )));
+        }
+    }
+    Ok(())
 }

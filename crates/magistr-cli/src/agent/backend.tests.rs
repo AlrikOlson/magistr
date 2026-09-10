@@ -64,17 +64,12 @@ async fn assert_model_selection_fails_before_prompt(has_models: bool) {
         Vec::new(),
         Some(cwd.path().to_path_buf()),
     )
-    .expect("transport");
-    transport.connect_over(client).await.expect("ACP handshake");
-    let result = AcpBackend::start_connected(
-        AgentConfig::new("must not infer", cwd.path()).model("unavailable-model"),
-        transport,
-    )
-    .await;
+    .expect("transport")
+    .session_model(Some("unavailable-model".into()));
+    let result = transport.connect_over(client).await;
     let error = match result {
         Err(error) => error,
-        Ok((backend, _, _)) => {
-            drop(backend);
+        Ok(()) => {
             panic!("a requested model that cannot be selected must reject startup");
         }
     };
@@ -123,14 +118,12 @@ async fn model_startup_preserves_default_sentinel_and_honors_a_valid_override() 
             Vec::new(),
             Some(cwd.path().to_path_buf()),
         )
-        .expect("transport");
+        .expect("transport")
+        .session_model((!requested.eq_ignore_ascii_case("default")).then(|| requested.into()));
         transport.connect_over(client).await.expect("ACP handshake");
-        let (backend, mut messages, _) = AcpBackend::start_connected(
-            AgentConfig::new("which model", cwd.path()).model(requested),
-            transport,
-        )
-        .await
-        .expect("selected model starts");
+        let (backend, mut messages, _) = AcpBackend::start_connected("which model", transport)
+            .await
+            .expect("selected model starts");
         let text = tokio::time::timeout(std::time::Duration::from_secs(2), async {
             let mut text = String::new();
             loop {

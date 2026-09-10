@@ -78,7 +78,7 @@ a coherent global revision.
 | Cockpit `run`, TUI init, home resume | Direct `connect_transport` → `spawn_session`; builds project policy and returns policy-undecided requests to the UI. Home resume supplies an explicit session ID and empty opening prompt. |
 | Cockpit `next` / `next-loop` | `Connector::live` → shared transport and cockpit Session for each attempt; workflow policy and outer driver own settlement. |
 | Interactive setup / roadmap generation | `cmd_init_interactive` and `cmd_roadmap` start AgentSession for configuration/planning prompts; these are distinct from roadmap implementation. |
-| Workflow judge | `SessionJudge::ask` uses a fresh `Connector` transport, its own event/permission handling, refuses tools and selects a small model. |
+| Workflow judge | `SessionJudge::ask` uses a fresh `Connector` transport, its own event/permission handling, refuses tools and uses its explicit model override or the shared session/provider default. |
 | Model discovery | `cmd_models` → `probe_all_providers` → `probe_runtime` uses a direct zero-turn ACP New/close probe, outside AgentConfig/shared transport setup. |
 | Provider protocol host | `acp-agent` serves the provider adapter selected by transport startup; it is the other side of a session, not a second native workflow owner. |
 | Direct Codex launcher | CLI `codex-launch` invokes the external runtime wrapper; it is separate from the ACP Codex provider and its session lifecycle. |

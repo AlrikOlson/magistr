@@ -13,22 +13,18 @@ pub async fn cmd_run(
     profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let cwd = std::env::current_dir()?;
-    // Model governance: the roster decides which models are
-    // approved, and routes a refused request to its fallback.
-    let model = crate::permissions::governed_model(&cwd, model)?;
-
     let config = agent::AgentConfig::new(prompt, &cwd)
         .backend(backend)
         .permission_profile(profile)
-        .with_run_args(model.as_deref(), resume, continue_conversation)
+        .with_run_args(model, resume, continue_conversation)
         .with_project_context(&cwd);
 
     let mut session = agent::session::AgentSession::start(config)
         .await
         .suggest()?;
 
-    let model_name = model.clone();
-    if let Some(model_name) = model {
+    let model_name = session.resolved_model().map(str::to_owned);
+    if let Some(model_name) = &model_name {
         eprintln!(
             "{} Running agent with prompt: {prompt}  {}",
             fmt::cyan("→"),

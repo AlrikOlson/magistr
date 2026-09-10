@@ -169,6 +169,9 @@ fn lock(session: &Mutex<ApiSession>) -> std::sync::MutexGuard<'_, ApiSession> {
 }
 
 impl<A: ChatApi> Provider for ApiProvider<A> {
+    fn capabilities(&self) -> crate::ProviderCapabilities {
+        crate::ProviderCapabilities::text_session()
+    }
     fn name(&self) -> &str {
         self.api.name()
     }
@@ -179,13 +182,14 @@ impl<A: ChatApi> Provider for ApiProvider<A> {
 
     fn start(&self, session: SessionStart) -> BoxFuture<'_, Result<SessionOpened, AgentError>> {
         Box::pin(async move {
-            // A resumed session starts from nothing too: no API here holds a
-            // conversation, and the history lived in the previous process.
+            session.validate(self)?;
             self.sessions
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
                 .insert(session.session_id.clone(), Arc::default());
-            Ok(SessionOpened::new(session.session_id))
+            let mut opened = SessionOpened::new(session.session_id);
+            opened.model = session.model;
+            Ok(opened)
         })
     }
 

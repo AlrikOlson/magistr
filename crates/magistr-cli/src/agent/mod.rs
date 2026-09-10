@@ -14,11 +14,13 @@ pub mod mock_followups;
 pub mod probe;
 pub mod probe_model;
 pub mod provider_model_set;
+pub mod resolved_session_spec;
 pub mod retry;
 pub mod retry_backoff;
 pub mod retry_outcome;
 pub mod runtime;
 pub mod session;
+pub mod session_config_source;
 pub mod system_prompt;
 pub mod tool_permissions;
 pub mod types;
@@ -37,7 +39,9 @@ use std::path::{Path, PathBuf};
 pub use auth_method::AuthMethod;
 pub use connect_transport::connect_transport;
 pub use permission_mode::PermissionMode;
+pub use resolved_session_spec::ResolvedSessionSpec;
 pub use runtime::AgentRuntime;
+pub use session_config_source::SessionConfigSource;
 pub use tool_permissions::ToolPermissions;
 
 /// Translate canonical tool names to the format expected by a specific runtime.
@@ -106,6 +110,7 @@ pub fn is_backend_available(backend: Backend) -> bool {
 ///
 /// Magistr-specific config (project dir, system prompt, model, permissions)
 /// that `AcpBackend::start` turns into an agent launch and a session.
+#[derive(Clone)]
 pub struct AgentConfig {
     /// The prompt to send to Claude
     pub prompt: String,
@@ -130,6 +135,8 @@ pub struct AgentConfig {
     pub provider: Option<String>,
     /// Model to use (e.g., "sonnet", "opus", "claude-sonnet-4-20250514")
     pub model: Option<String>,
+    /// Explicit provider reasoning effort; unsupported selections fail before inference.
+    pub effort: Option<String>,
     /// Which agent backend to use
     pub backend: Backend,
     /// Tools pre-approved for automatic use (passed as `--allow-tool` flags).
@@ -160,6 +167,7 @@ impl AgentConfig {
             resume: None,
             provider: None,
             model: None,
+            effort: None,
             backend: Backend::default(),
             allowed_tools: ToolPermissions::base().into_strings(),
         }
@@ -266,6 +274,21 @@ impl AgentConfig {
         self
     }
 
+    /// Select reasoning effort for providers that support it.
+    pub fn effort(mut self, effort: impl Into<String>) -> Self {
+        self.effort = Some(effort.into());
+        self
+    }
+
+    /// Freeze all session choices before connecting a runtime.
+    ///
+    /// # Errors
+    ///
+    /// Unsupported continuation, invalid provider, unavailable runtime, or refused model.
+    pub fn resolve(self) -> crate::error::Result<ResolvedSessionSpec> {
+        ResolvedSessionSpec::resolve(self)
+    }
+
     /// Set the agent backend to use for this session.
     pub fn backend(mut self, backend: Backend) -> Self {
         self.backend = backend;
@@ -316,7 +339,8 @@ impl AgentConfig {
     /// Loads `~/.config/magistr/config.toml`, pins the selected provider and
     /// applies only that provider's model default to new sessions. Resumed
     /// sessions retain the runtime model unless the caller supplied an override.
-    /// Called automatically by [`AgentSession::start`].
+    /// Compatibility builder for callers inspecting unresolved configuration.
+    /// Production startup applies defaults while creating [`ResolvedSessionSpec`].
     ///
     /// Config loading or automatic detection failures are left for launch to
     /// report. Explicit unsupported providers are preserved for launch refusal.
