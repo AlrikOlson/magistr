@@ -84,7 +84,7 @@ async fn run_loop(
 ) {
     let mut session_id = None;
     let mut control: Option<ControlFuture<'_>> = None;
-    let mut goal: Option<ControlFuture<'_>> = None;
+    let mut goal: Option<super::goal::Goal> = None;
     loop {
         if !start_next(transport, permissions, state) {
             break;
@@ -103,7 +103,7 @@ async fn run_loop(
                     }
                 }
                 Some(Command::BeginGoal { method, params, reply, turn_id }) => {
-                    goal = Some(Box::pin(super::goal::run(transport, state, method, params, turn_id, reply)));
+                    goal = super::goal::Goal::begin(transport, state, method, params, turn_id, reply);
                 }
                 Some(Command::ClearGoal { method, params }) => {
                     if control.is_some() {
@@ -168,6 +168,19 @@ async fn run_loop(
                 let mut inner = state.lock().expect("supervisor state lock poisoned");
                 match event {
                     Some(Ok(event)) => {
+                        if let AcpEvent::ExtensionResponse { request_id, result } = event {
+                            permissions.drain();
+                            match goal.take() {
+                                Some(pending) if pending.turn_id == request_id => {
+                                    pending.settle(&mut inner, result.map_err(magistr_acp::AcpError::transport));
+                                }
+                                _ => {
+                                    fail(&mut inner, "Provider extension response did not match the active goal".into());
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
                         if let AcpEvent::Initialized { session_id: id, agent_capabilities, .. } = &event {
                             session_id = Some(id.clone());
                             inner.capabilities = Some((**agent_capabilities).clone());
@@ -226,15 +239,6 @@ async fn run_loop(
                 }
             },
             request = permissions.recv() => permissions.answer(request, state),
-            () = async {
-                match goal.as_mut() {
-                    Some(future) => future.await,
-                    None => std::future::pending().await,
-                }
-            } => {
-                permissions.drain();
-                goal = None;
-            }
             () = async {
                 match control.as_mut() {
                     Some(future) => future.await,

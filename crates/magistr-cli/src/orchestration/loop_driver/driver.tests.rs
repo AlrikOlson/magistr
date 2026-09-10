@@ -1428,13 +1428,9 @@ async fn extension_mode_sets_the_goal_through_the_advertised_method_and_skips_th
         stage.contains("delegated iteration settled — the agent's own evaluator judged it; magistr saw no verdict"),
         "{stage}"
     );
-    // This rests on the inbox's FIFO order and on nothing else: the fake
-    // streams these words BEFORE the echo the driver treats as delivery
-    // confirmed, so they are ahead of every event the driver posts for the
-    // rest of the iteration, and ahead of the quit key the harness sends
-    // behind the report. Sent after the echo — as they were until this was
-    // fixed — they raced the whole rest of the loop, and lost it under
-    // compilation contention.
+    // Completion crosses the owner's event stream, and the driver waits
+    // for the cockpit's terminal event before closing the relay. Text on
+    // either side of the echo therefore arrives before loop cleanup.
     assert!(
         model
             .turn()
@@ -1442,6 +1438,14 @@ async fn extension_mode_sets_the_goal_through_the_advertised_method_and_skips_th
             .iter()
             .any(|r| r.text.starts_with("working toward:")),
         "the agent's goal-loop words stream onto the stage: {stage}"
+    );
+    assert!(
+        model
+            .turn()
+            .rows()
+            .iter()
+            .any(|r| r.text.contains("goal work finished")),
+        "post-echo text preceding completion also reaches the stage: {stage}"
     );
     let status = model.loop_status().expect("the strip saw the loop");
     assert_eq!(status.verdicts(), 0, "no verdict crosses the wire");

@@ -23,6 +23,14 @@ pub enum AcpEvent {
         /// Session the response belongs to.
         session_id: String,
     },
+    /// A vendor extension finished, after its preceding session updates have
+    /// entered this same event stream. The caller supplies the correlation id.
+    ExtensionResponse {
+        /// Identifies the request passed to `extension_observed`.
+        request_id: u64,
+        /// The agent's JSON answer, or the failure that prevented an answer.
+        result: std::result::Result<serde_json::Value, String>,
+    },
     /// The handshake completed: capabilities from `initialize`, the session
     /// id and config options from `session/new` or `session/load`.
     Initialized {
