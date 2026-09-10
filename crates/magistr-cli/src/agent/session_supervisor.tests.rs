@@ -1,0 +1,753 @@
+use super::*;
+use agent_client_protocol::BoxFuture;
+use agent_client_protocol::schema::v1::{SessionConfigOptionValue, StopReason};
+use magistr_acp_agent::{
+    AgentError, ModelChoice, Provider, ScriptedProvider, SessionOpened, SessionStart, Turn,
+};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
+use tokio::sync::{Notify, Semaphore, mpsc};
+
+const DEADLINE: Duration = Duration::from_secs(3);
+
+struct Observed {
+    started: mpsc::UnboundedSender<(String, Option<String>)>,
+    active: AtomicUsize,
+    maximum_active: AtomicUsize,
+    finish: Semaphore,
+    cancellation_seen: Notify,
+    acknowledge_cancel: Semaphore,
+}
+
+struct ActiveTurn(Arc<Observed>);
+
+impl Drop for ActiveTurn {
+    fn drop(&mut self) {
+        self.0.active.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+struct ControlledProvider(Arc<Observed>);
+
+impl Provider for ControlledProvider {
+    fn capabilities(&self) -> magistr_acp_agent::ProviderCapabilities {
+        magistr_acp_agent::ProviderCapabilities {
+            terminal_cancellation_ack: true,
+            ..magistr_acp_agent::ProviderCapabilities::text_session()
+        }
+    }
+
+    fn name(&self) -> &str {
+        "supervisor-test"
+    }
+
+    fn models(&self) -> Vec<ModelChoice> {
+        ScriptedProvider.models()
+    }
+
+    fn start(
+        &self,
+        session: SessionStart,
+    ) -> BoxFuture<'_, std::result::Result<SessionOpened, AgentError>> {
+        ScriptedProvider.start(session)
+    }
+
+    fn prompt(&self, turn: Turn) -> BoxFuture<'_, std::result::Result<StopReason, AgentError>> {
+        let observed = Arc::clone(&self.0);
+        Box::pin(async move {
+            let active = observed.active.fetch_add(1, Ordering::SeqCst) + 1;
+            observed.maximum_active.fetch_max(active, Ordering::SeqCst);
+            let _active = ActiveTurn(Arc::clone(&observed));
+            let text = turn.text();
+            let _ = observed
+                .started
+                .send((text.clone(), turn.model().map(str::to_owned)));
+            turn.message(format!("started: {text}"))?;
+            if text.starts_with("cancel") {
+                turn.cancelled().await;
+                observed.cancellation_seen.notify_one();
+                let permit = observed
+                    .acknowledge_cancel
+                    .acquire()
+                    .await
+                    .expect("ACK gate");
+                permit.forget();
+                turn.message("last update before cancellation acknowledgement")?;
+                return Ok(StopReason::Cancelled);
+            }
+            if text.starts_with("hold") {
+                tokio::select! {
+                    permit = observed.finish.acquire() => permit.expect("finish gate").forget(),
+                    () = turn.cancelled() => return Ok(StopReason::Cancelled),
+                }
+            }
+            if text == "fail" {
+                return Err(AgentError::provider("controlled turn failure"));
+            }
+            if text == "hold max tokens" {
+                return Ok(StopReason::MaxTokens);
+            }
+            turn.message(format!("finished: {text}"))?;
+            Ok(StopReason::EndTurn)
+        })
+    }
+}
+
+struct Fixture {
+    supervisor: SessionSupervisor,
+    messages: mpsc::UnboundedReceiver<crate::error::Result<AgentMessage>>,
+    started: mpsc::UnboundedReceiver<(String, Option<String>)>,
+    observed: Arc<Observed>,
+    server: tokio::task::JoinHandle<()>,
+    _directory: tempfile::TempDir,
+}
+
+impl Fixture {
+    async fn start(prompt: &str) -> Self {
+        let (client, agent) = agent_client_protocol::Channel::duplex();
+        let (started, receiver) = mpsc::unbounded_channel();
+        let observed = Arc::new(Observed {
+            started,
+            active: AtomicUsize::new(0),
+            maximum_active: AtomicUsize::new(0),
+            finish: Semaphore::new(0),
+            cancellation_seen: Notify::new(),
+            acknowledge_cancel: Semaphore::new(0),
+        });
+        let provider = ControlledProvider(Arc::clone(&observed));
+        let server = tokio::spawn(async move {
+            let _ = magistr_acp_agent::serve(provider, agent).await;
+        });
+        let directory = tempfile::tempdir().expect("session directory");
+        let mut transport = magistr_acp::AcpTransport::new_with_args(
+            std::path::PathBuf::from("unused-in-process-agent"),
+            Vec::new(),
+            Some(directory.path().to_path_buf()),
+        )
+        .expect("transport")
+        .session_model(Some(ScriptedProvider::SLOW.into()));
+        transport.connect_over(client).await.expect("ACP handshake");
+        let (supervisor, messages) = SessionSupervisor::start_connected(prompt, transport, None)
+            .await
+            .expect("supervisor startup");
+        Self {
+            supervisor,
+            messages,
+            started: receiver,
+            observed,
+            server,
+            _directory: directory,
+        }
+    }
+
+    async fn next_started(&mut self) -> (String, Option<String>) {
+        tokio::time::timeout(DEADLINE, self.started.recv())
+            .await
+            .expect("provider starts an admitted turn")
+            .expect("provider observation channel")
+    }
+
+    async fn next_terminal(&mut self) -> crate::error::Result<AgentMessage> {
+        tokio::time::timeout(DEADLINE, async {
+            loop {
+                let message = self.messages.recv().await.expect("supervisor event stream");
+                if matches!(
+                    &message,
+                    Err(_) | Ok(AgentMessage::Result { .. } | AgentMessage::Cancelled { .. })
+                ) {
+                    return message;
+                }
+            }
+        })
+        .await
+        .expect("terminal observation")
+    }
+
+    async fn close(&mut self) {
+        tokio::time::timeout(DEADLINE, self.supervisor.terminate_session())
+            .await
+            .expect("supervisor cleanup finishes")
+            .expect("supervisor cleanup succeeds");
+        tokio::time::timeout(DEADLINE, &mut self.server)
+            .await
+            .expect("cleanup closes the real ACP connection")
+            .expect("controlled provider task ends");
+    }
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        self.server.abort();
+    }
+}
+
+#[tokio::test]
+async fn selected_model_precedes_initial_prompt_and_queued_turns_are_serial() {
+    let mut fixture = Fixture::start("hold first").await;
+    assert_eq!(
+        fixture.next_started().await,
+        ("hold first".into(), Some(ScriptedProvider::SLOW.into()))
+    );
+    fixture.supervisor.send_followup("hold second").unwrap();
+    fixture.supervisor.send_followup("third").unwrap();
+    fixture.observed.finish.add_permits(1);
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result {
+            is_error: false,
+            ..
+        })
+    ));
+    assert_eq!(fixture.next_started().await.0, "hold second");
+    fixture.observed.finish.add_permits(1);
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result {
+            is_error: false,
+            ..
+        })
+    ));
+    assert_eq!(fixture.next_started().await.0, "third");
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result {
+            is_error: false,
+            ..
+        })
+    ));
+    assert_eq!(fixture.observed.maximum_active.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.supervisor.turn_count(), 3);
+    assert_eq!(fixture.supervisor.snapshot().active_turn, None);
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn cancel_requires_terminal_acknowledgement_before_the_next_turn() {
+    let mut fixture = Fixture::start("cancel with delayed ACK").await;
+    fixture.next_started().await;
+    let active_turn = fixture.supervisor.snapshot().active_turn;
+    assert!(active_turn.is_some());
+    fixture
+        .supervisor
+        .send_followup("queued before cancellation")
+        .unwrap();
+    fixture.supervisor.cancel_turn().unwrap();
+    tokio::time::timeout(DEADLINE, fixture.observed.cancellation_seen.notified())
+        .await
+        .expect("provider receives cancellation");
+    let pending = fixture.supervisor.snapshot();
+    assert_eq!(pending.active_turn, active_turn);
+    assert_eq!(pending.queued_turns, 0);
+    assert!(pending.cancellation_requested);
+    assert!(pending.last_outcome.is_none());
+    assert!(
+        fixture
+            .supervisor
+            .send_followup("before acknowledgement")
+            .is_err()
+    );
+    assert_eq!(fixture.supervisor.turn_count(), 0);
+    fixture.observed.acknowledge_cancel.add_permits(1);
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Cancelled { .. })
+    ));
+    let ended = fixture.supervisor.snapshot();
+    assert_eq!(ended.active_turn, None);
+    assert_eq!(
+        ended.last_outcome.unwrap().stop_reason,
+        Some(StopReason::Cancelled)
+    );
+    fixture
+        .supervisor
+        .send_followup("after cancellation")
+        .unwrap();
+    assert_eq!(fixture.next_started().await.0, "after cancellation");
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result {
+            is_error: false,
+            ..
+        })
+    ));
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn busy_configuration_is_refused_and_does_not_change_the_next_turn_model() {
+    let mut fixture = Fixture::start("hold configuration").await;
+    fixture.next_started().await;
+    assert!(
+        fixture
+            .supervisor
+            .send_config_change("model".into(), ScriptedProvider::FAST.into())
+            .is_err()
+    );
+    assert!(
+        fixture
+            .supervisor
+            .set_config_option(
+                "model".into(),
+                SessionConfigOptionValue::ValueId {
+                    value: ScriptedProvider::FAST.into(),
+                },
+            )
+            .await
+            .is_err()
+    );
+    fixture.observed.finish.add_permits(1);
+    fixture.next_terminal().await.unwrap();
+    fixture.supervisor.send_followup("model unchanged").unwrap();
+    assert_eq!(
+        fixture.next_started().await,
+        (
+            "model unchanged".into(),
+            Some(ScriptedProvider::SLOW.into())
+        )
+    );
+    fixture.next_terminal().await.unwrap();
+    fixture.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn idle_configuration_errors_are_observable_and_completed_requests_release_admission() {
+    let mut fixture = Fixture::start("complete before configuration").await;
+    fixture.next_started().await;
+    fixture.next_terminal().await.unwrap();
+    fixture
+        .supervisor
+        .send_config_change("missing-config".into(), "missing-value".into())
+        .unwrap();
+    assert!(fixture.next_terminal().await.is_err());
+    assert_eq!(
+        fixture.supervisor.snapshot().residency,
+        SessionResidency::Resident
+    );
+    for model in [ScriptedProvider::FAST, ScriptedProvider::SLOW] {
+        let options = fixture
+            .supervisor
+            .set_config_option(
+                "model".into(),
+                SessionConfigOptionValue::ValueId {
+                    value: model.into(),
+                },
+            )
+            .await
+            .expect("the previous request releases admission before its reply");
+        assert!(
+            serde_json::to_value(options)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|option| { option["id"] == "model" && option["currentValue"] == model }),
+            "the provider acknowledges the requested model"
+        );
+    }
+    fixture
+        .supervisor
+        .send_followup("model after configuration")
+        .unwrap();
+    assert_eq!(
+        fixture.next_started().await,
+        (
+            "model after configuration".into(),
+            Some(ScriptedProvider::SLOW.into())
+        )
+    );
+    fixture.next_terminal().await.unwrap();
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn provider_death_during_a_turn_does_not_fabricate_success_or_cancellation() {
+    let mut fixture = Fixture::start("hold until disconnect").await;
+    fixture.next_started().await;
+    fixture.server.abort();
+    assert!(fixture.next_terminal().await.is_err());
+    let snapshot = fixture.supervisor.snapshot();
+    let outcome = snapshot.last_outcome.expect("interrupted turn observation");
+    assert!(outcome.stop_reason.is_none());
+    assert!(outcome.error.is_some());
+    assert_eq!(snapshot.active_turn, None);
+    assert_eq!(fixture.supervisor.turn_count(), 0);
+    assert!(
+        fixture
+            .supervisor
+            .send_followup("must not restart")
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn provider_death_between_turns_preserves_the_last_confirmed_outcome() {
+    let mut fixture = Fixture::start("complete before disconnect").await;
+    fixture.next_started().await;
+    fixture.next_terminal().await.unwrap();
+    let confirmed = fixture.supervisor.snapshot().last_outcome.unwrap();
+    fixture.server.abort();
+    assert!(fixture.next_terminal().await.is_err());
+    let observed = fixture.supervisor.snapshot().last_outcome.unwrap();
+    assert_eq!(observed.turn_id, confirmed.turn_id);
+    assert_eq!(observed.stop_reason, Some(StopReason::EndTurn));
+    assert!(observed.error.is_none());
+    assert!(
+        fixture
+            .supervisor
+            .send_followup("must not restart")
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn provider_prompt_failure_is_an_observed_error_without_a_stop_reason() {
+    let mut fixture = Fixture::start("fail").await;
+    fixture.next_started().await;
+    assert!(fixture.next_terminal().await.is_err());
+    let outcome = fixture.supervisor.snapshot().last_outcome.unwrap();
+    assert!(outcome.stop_reason.is_none());
+    assert!(outcome.error.unwrap().contains("controlled turn failure"));
+    assert_eq!(fixture.supervisor.turn_count(), 0);
+}
+
+#[tokio::test]
+async fn an_error_terminal_discards_queued_input_and_retains_its_actual_stop_reason() {
+    let mut fixture = Fixture::start("hold max tokens").await;
+    fixture.next_started().await;
+    fixture
+        .supervisor
+        .send_followup("queued before token limit")
+        .unwrap();
+    fixture.observed.finish.add_permits(1);
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result { is_error: true, .. })
+    ));
+    let snapshot = fixture.supervisor.snapshot();
+    assert_eq!(snapshot.active_turn, None);
+    assert_eq!(snapshot.queued_turns, 0);
+    assert_eq!(snapshot.residency, SessionResidency::Resident);
+    let outcome = snapshot.last_outcome.unwrap();
+    assert_eq!(outcome.stop_reason, Some(StopReason::MaxTokens));
+    assert!(
+        outcome.error.is_none(),
+        "the provider sent a confirmed terminal response"
+    );
+    assert_eq!(fixture.supervisor.session_state(), AcpSessionState::Failed);
+    fixture
+        .supervisor
+        .send_followup("explicit fresh turn")
+        .unwrap();
+    assert_eq!(fixture.next_started().await.0, "explicit fresh turn");
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result {
+            is_error: false,
+            ..
+        })
+    ));
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn detaching_the_observer_keeps_the_turn_resident_until_explicit_termination() {
+    let mut fixture = Fixture::start("hold while detached").await;
+    fixture.next_started().await;
+    let before = fixture.supervisor.snapshot();
+    fixture.supervisor.detach_client();
+    fixture.messages.close();
+    let detached = fixture.supervisor.snapshot();
+    assert_eq!(detached.active_turn, before.active_turn);
+    assert!(!detached.cancellation_requested);
+    assert!(detached.last_outcome.is_none());
+    fixture.observed.finish.add_permits(1);
+    tokio::time::timeout(DEADLINE, async {
+        while fixture.supervisor.snapshot().last_outcome.is_none() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("detached supervisor continues observing the provider");
+    let completed = fixture.supervisor.snapshot().last_outcome.unwrap();
+    assert_eq!(completed.stop_reason, Some(StopReason::EndTurn));
+    fixture.close().await;
+    let terminated = fixture.supervisor.snapshot();
+    assert_eq!(terminated.active_turn, None);
+    assert_eq!(
+        terminated.last_outcome.unwrap().stop_reason,
+        Some(StopReason::EndTurn)
+    );
+    assert!(
+        fixture
+            .supervisor
+            .send_followup("already terminated")
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn losing_the_message_receiver_does_not_end_the_owned_turn() {
+    let mut fixture = Fixture::start("hold after observer loss").await;
+    fixture.next_started().await;
+    fixture.messages.close();
+    fixture.observed.finish.add_permits(1);
+    tokio::time::timeout(DEADLINE, async {
+        while fixture.supervisor.snapshot().last_outcome.is_none() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("the owner observes the actual terminal despite receiver loss");
+    let snapshot = fixture.supervisor.snapshot();
+    assert_eq!(snapshot.residency, SessionResidency::Resident);
+    assert!(!snapshot.client_attached);
+    assert_eq!(
+        snapshot.last_outcome.unwrap().stop_reason,
+        Some(StopReason::EndTurn)
+    );
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn confirmed_terminal_facts_survive_owner_abort_and_drop() {
+    let mut fixture = Fixture::start("complete before owner cleanup").await;
+    fixture.next_started().await;
+    fixture.next_terminal().await.unwrap();
+    let confirmed = fixture.supervisor.snapshot().last_outcome;
+    let retained = Arc::clone(&fixture.supervisor.inner);
+    fixture.supervisor.abort();
+    assert_eq!(fixture.supervisor.snapshot().last_outcome, confirmed);
+    tokio::time::timeout(DEADLINE, &mut fixture.server)
+        .await
+        .expect("abort closes the provider connection")
+        .expect("provider exits");
+    drop(fixture);
+    assert_eq!(retained.lock().unwrap().snapshot.last_outcome, confirmed);
+}
+
+#[tokio::test]
+async fn termination_releases_an_active_transport_and_refuses_further_admission() {
+    let mut fixture = Fixture::start("hold until termination").await;
+    fixture.next_started().await;
+    fixture.close().await;
+    assert_eq!(fixture.supervisor.snapshot().active_turn, None);
+    assert!(fixture.supervisor.send_followup("closed session").is_err());
+    fixture.supervisor.terminate_session().await.unwrap();
+}
+
+#[tokio::test]
+async fn dropping_a_pending_termination_future_retains_the_owned_cleanup_task() {
+    let mut fixture = Fixture::start("cancel while termination is interrupted").await;
+    fixture.next_started().await;
+    {
+        let termination = fixture.supervisor.terminate_session();
+        tokio::pin!(termination);
+        tokio::select! {
+            biased;
+            result = &mut termination => panic!("cleanup finished before delayed ACK: {result:?}"),
+            () = fixture.observed.cancellation_seen.notified() => {}
+            () = tokio::time::sleep(DEADLINE) => panic!("provider never saw termination cancellation"),
+        }
+    }
+    assert!(
+        fixture.supervisor.task.is_some(),
+        "dropping the caller's future must not detach the owner task"
+    );
+    fixture.observed.acknowledge_cancel.add_permits(1);
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn dropping_the_owner_closes_the_real_provider_connection() {
+    let (client, agent) = agent_client_protocol::Channel::duplex();
+    let mut server = tokio::spawn(async move {
+        let _ = magistr_acp_agent::serve(ScriptedProvider, agent).await;
+    });
+    let directory = tempfile::tempdir().unwrap();
+    let mut transport = magistr_acp::AcpTransport::new_with_args(
+        std::path::PathBuf::from("unused-in-process-agent"),
+        Vec::new(),
+        Some(directory.path().to_path_buf()),
+    )
+    .unwrap();
+    transport.connect_over(client).await.unwrap();
+    let (supervisor, _messages) = SessionSupervisor::start_connected("hang", transport, None)
+        .await
+        .unwrap();
+    drop(supervisor);
+    tokio::time::timeout(DEADLINE, &mut server)
+        .await
+        .expect("owner drop closes the provider connection")
+        .expect("provider task ends");
+}
+
+struct CountingAllow(Arc<AtomicUsize>);
+
+impl magistr_cockpit::agent::SessionPolicy for CountingAllow {
+    fn decide(
+        &mut self,
+        _request: &magistr_acp::AcpPermissionRequest,
+    ) -> magistr_cockpit::agent::PolicyDecision {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        magistr_cockpit::agent::PolicyDecision::Allow
+    }
+}
+
+#[tokio::test]
+async fn late_permission_gets_cancelled_on_the_wire_and_fresh_turn_can_receive_allow() {
+    use agent_client_protocol::schema::ProtocolVersion;
+    use agent_client_protocol::schema::v1::{
+        CancelNotification, InitializeRequest, InitializeResponse, NewSessionRequest,
+        NewSessionResponse, PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse,
+        RequestPermissionOutcome, RequestPermissionRequest, ToolCallUpdate, ToolCallUpdateFields,
+    };
+    use agent_client_protocol::{Agent, on_receive_notification, on_receive_request};
+
+    let (client, agent) = agent_client_protocol::Channel::duplex();
+    let cancellation = Arc::new(Notify::new());
+    let acknowledge = Arc::new(Semaphore::new(0));
+    let (started, mut starts) = mpsc::unbounded_channel();
+    let (outcome, mut outcomes) = mpsc::unbounded_channel();
+    let mut server = tokio::spawn(
+        Agent
+            .builder()
+            .name("supervisor-permission-test")
+            .on_receive_request(
+                async move |_request: InitializeRequest, responder, _cx| {
+                    responder.respond(InitializeResponse::new(ProtocolVersion::V1))
+                },
+                on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest, responder, _cx| {
+                    responder.respond(NewSessionResponse::new("permission-session"))
+                },
+                on_receive_request!(),
+            )
+            .on_receive_notification(
+                {
+                    let cancellation = Arc::clone(&cancellation);
+                    async move |_request: CancelNotification, _cx| {
+                        cancellation.notify_one();
+                        Ok(())
+                    }
+                },
+                on_receive_notification!(),
+            )
+            .on_receive_request(
+                {
+                    let cancellation = Arc::clone(&cancellation);
+                    let acknowledge = Arc::clone(&acknowledge);
+                    async move |request: PromptRequest, responder, cx| {
+                        let cancellation = Arc::clone(&cancellation);
+                        let acknowledge = Arc::clone(&acknowledge);
+                        let started = started.clone();
+                        let outcome = outcome.clone();
+                        let connection = cx.clone();
+                        cx.spawn(async move {
+                            let first = request.prompt.iter().any(|block| {
+                                matches!(block, agent_client_protocol::schema::v1::ContentBlock::Text(text) if text.text == "first")
+                            });
+                            let _ = started.send(first);
+                            if first {
+                                cancellation.notified().await;
+                            }
+                            // Raw ACP deliberately awaits the actual client reply;
+                            // Turn::request_permission would mask it with a local
+                            // cancellation result before the wire answer arrives.
+                            let response = connection
+                                .send_request(RequestPermissionRequest::new(
+                                    request.session_id,
+                                    ToolCallUpdate::new(
+                                        if first { "late" } else { "fresh" },
+                                        ToolCallUpdateFields::new().title("Read"),
+                                    ),
+                                    vec![
+                                        PermissionOption::new("allow", "Allow", PermissionOptionKind::AllowOnce),
+                                        PermissionOption::new("reject", "Reject", PermissionOptionKind::RejectOnce),
+                                    ],
+                                ))
+                                .block_task()
+                                .await?;
+                            let _ = outcome.send(response.outcome);
+                            if first {
+                                acknowledge.acquire().await.expect("ACK gate").forget();
+                            }
+                            responder.respond(PromptResponse::new(if first {
+                                StopReason::Cancelled
+                            } else {
+                                StopReason::EndTurn
+                            }))
+                        })?;
+                        Ok(())
+                    }
+                },
+                on_receive_request!(),
+            )
+            .connect_to(agent),
+    );
+    let directory = tempfile::tempdir().unwrap();
+    let mut transport = magistr_acp::AcpTransport::new_with_args(
+        std::path::PathBuf::from("unused-in-process-agent"),
+        Vec::new(),
+        Some(directory.path().to_path_buf()),
+    )
+    .unwrap();
+    transport.connect_over(client).await.unwrap();
+    let decisions = Arc::new(AtomicUsize::new(0));
+    let (mut supervisor, mut messages) = SessionSupervisor::start_connected(
+        "first",
+        transport,
+        Some((
+            Box::new(CountingAllow(Arc::clone(&decisions))),
+            Default::default(),
+        )),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        tokio::time::timeout(DEADLINE, starts.recv()).await.unwrap(),
+        Some(true)
+    );
+    supervisor.cancel_turn().unwrap();
+    assert!(matches!(
+        tokio::time::timeout(DEADLINE, outcomes.recv())
+            .await
+            .unwrap(),
+        Some(RequestPermissionOutcome::Cancelled)
+    ));
+    assert_eq!(
+        decisions.load(Ordering::SeqCst),
+        0,
+        "late permission never enters grant policy"
+    );
+    assert!(supervisor.snapshot().last_outcome.is_none());
+    acknowledge.add_permits(1);
+    tokio::time::timeout(DEADLINE, async {
+        while let Some(message) = messages.recv().await {
+            if matches!(message.unwrap(), AgentMessage::Cancelled { .. }) {
+                return;
+            }
+        }
+        panic!("cancelled prompt acknowledgement missing");
+    })
+    .await
+    .unwrap();
+    supervisor.send_followup("second").unwrap();
+    assert_eq!(
+        tokio::time::timeout(DEADLINE, starts.recv()).await.unwrap(),
+        Some(false)
+    );
+    assert!(matches!(
+        tokio::time::timeout(DEADLINE, outcomes.recv()).await.unwrap(),
+        Some(RequestPermissionOutcome::Selected(selected)) if selected.option_id.to_string() == "allow"
+    ));
+    assert_eq!(decisions.load(Ordering::SeqCst), 1);
+    supervisor.terminate_session().await.unwrap();
+    tokio::time::timeout(DEADLINE, &mut server)
+        .await
+        .expect("permission fixture connection closes")
+        .expect("permission fixture task exits")
+        .expect("permission fixture serves successfully");
+}

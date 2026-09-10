@@ -78,17 +78,21 @@ async fn drain_session_interactive(
                         turn_done = true;
                         break;
                     }
+                    crate::agent::message::AgentMessage::Cancelled { reason, .. } => {
+                        return Err(eyre::eyre!("Agent turn cancelled: {reason}"));
+                    }
                     _ => {}
                 },
                 Err(e) => {
-                    eprintln!("{} {e}", fmt::red("error:"));
-                    return Ok(());
+                    return Err(eyre::eyre!("Agent stream error: {e}"));
                 }
             }
         }
 
         if !turn_done {
-            break;
+            return Err(eyre::eyre!(
+                "Agent stream ended without a terminal response"
+            ));
         }
 
         // Prompt for follow-up input

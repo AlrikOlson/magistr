@@ -67,7 +67,7 @@ pub async fn cmd_run_headless(
     let mut stderr = std::io::stderr().lock();
 
     let mut spend = None;
-    let outcome = drain_headless(
+    let drained = drain_headless(
         &mut session,
         format,
         budget_limit,
@@ -75,7 +75,9 @@ pub async fn cmd_run_headless(
         &mut stderr,
         &mut spend,
     )
-    .await?;
+    .await;
+    let cleanup = session.terminate_session().await.suggest();
+    let outcome = drained?;
 
     // The ledger every budget scope is measured over. Written here
     // rather than inside the drain so the drain stays a pure function of
@@ -83,6 +85,7 @@ pub async fn cmd_run_headless(
     if let Some(spend) = spend.map(|s| model.as_deref().map_or(s.clone(), |m| s.with_model(m))) {
         record_session(&cwd, &spend);
     }
+    cleanup?;
 
     let code = outcome.exit_code();
     if code != 0 {
@@ -294,7 +297,7 @@ pub(crate) async fn drain_headless_observing(
                                 )?;
                             }
                         }
-                        session.cancel();
+                        session.cancel_turn()?;
                         return Ok(HeadlessOutcome::BudgetExceeded);
                     }
                 }

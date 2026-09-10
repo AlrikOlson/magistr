@@ -38,5 +38,7 @@ pub async fn cmd_run(
     }
     eprintln!();
 
-    drain_session_interactive(&mut session, &cwd, model_name.as_deref()).await
+    let outcome = drain_session_interactive(&mut session, &cwd, model_name.as_deref()).await;
+    let cleanup = session.terminate_session().await.suggest();
+    outcome.and(cleanup)
 }

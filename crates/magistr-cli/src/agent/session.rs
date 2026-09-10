@@ -1,10 +1,8 @@
-//! Agent session — owns an `AcpBackend` and its message stream.
+//! Agent session — client observation and compatibility access to the supervisor.
 //!
-//! `AgentSession` provides the interface for consuming agent messages.
-//! With ACP as the only backend, there is no trait indirection — the
-//! session owns the concrete `AcpBackend` directly.
+//! Provider residency, turn admission and permission lifecycle belong to the
+//! backend's reusable supervisor; this facade tracks the observed session ID.
 
-use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tracing::instrument;
 
@@ -47,16 +45,13 @@ pub struct AgentSession {
     backend: SessionBackend,
     /// Receiver for messages from the backend.
     message_rx: mpsc::UnboundedReceiver<Result<AgentMessage>>,
-    /// The session ID returned from the most recent Result message.
+    /// The session ID returned from the most recent terminal response.
     session_id: Option<SessionId>,
     /// The frozen initial model selection; None retains the runtime's model.
     resolved_model: Option<String>,
-    /// The owned policy worker ends on cancel/drop; its grant lock orders cancellation.
-    permission_worker: Option<tokio::task::JoinHandle<()>>,
-    permission_stop: Option<tokio::sync::oneshot::Sender<()>>,
-    permission_cancelled: Arc<Mutex<bool>>,
-    /// Optional ACP permission request receiver (present only for ACP backends).
-    acp_permission_rx: Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>>,
+    /// Compatibility test-channel lifecycle; real lifecycle belongs to the supervisor.
+    #[cfg(test)]
+    channel_closed: bool,
 }
 
 impl AgentSession {
@@ -64,23 +59,16 @@ impl AgentSession {
     #[instrument(skip_all, name = "agent_session_start")]
     pub async fn start(config: super::AgentConfig) -> Result<Self> {
         let spec = config.resolve()?;
-        let (backend, message_rx, acp_permission_rx) =
-            super::backend::AcpBackend::start_resolved(&spec).await?;
         let resolved_model = spec.model().map(str::to_owned);
-        let (policy, handling) = spec.into_permission_policy();
-
-        let mut session = Self {
+        let (backend, message_rx, _) = super::backend::AcpBackend::start_resolved(spec).await?;
+        Ok(Self {
             backend: SessionBackend::Acp(backend),
             message_rx,
             session_id: None,
             resolved_model,
-            acp_permission_rx,
-            permission_worker: None,
-            permission_stop: None,
-            permission_cancelled: Arc::new(Mutex::new(false)),
-        };
-        session.spawn_permission_worker(Box::new(policy), handling);
-        Ok(session)
+            #[cfg(test)]
+            channel_closed: false,
+        })
     }
 
     /// Create a test session from a raw message channel.
@@ -99,10 +87,7 @@ impl AgentSession {
             message_rx: msg_rx,
             session_id: None,
             resolved_model: None,
-            acp_permission_rx: None,
-            permission_worker: None,
-            permission_stop: None,
-            permission_cancelled: Arc::new(Mutex::new(false)),
+            channel_closed: false,
         };
         (session, msg_tx)
     }
@@ -128,104 +113,25 @@ impl AgentSession {
             message_rx: msg_rx,
             session_id: None,
             resolved_model: None,
-            acp_permission_rx: None,
-            permission_worker: None,
-            permission_stop: None,
-            permission_cancelled: Arc::new(Mutex::new(false)),
+            channel_closed: false,
         };
         (session, msg_tx, follow_ups)
     }
 
-    /// Take the ACP permission request receiver, if present.
-    ///
-    /// Real startup already transfers this receiver to the shared policy worker,
-    /// so successfully started sessions return `None`. Before attachment, ownership
-    /// can be taken only once; subsequent calls also return `None`.
+    /// Compatibility accessor. The supervisor owns the sole permission receiver.
     pub fn take_acp_permission_rx(
         &mut self,
     ) -> Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>> {
-        self.acp_permission_rx.take()
-    }
-
-    /// Attach the shared policy to the session's sole request receiver.
-    fn spawn_permission_worker(
-        &mut self,
-        mut policy: Box<dyn magistr_cockpit::agent::SessionPolicy>,
-        handling: crate::permissions::NoninteractivePolicy,
-    ) -> bool {
-        let Some(mut rx) = self.take_acp_permission_rx() else {
-            return false;
-        };
-        let cancelled = Arc::clone(&self.permission_cancelled);
-        let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel();
-        self.permission_stop = Some(stop_tx);
-        self.permission_worker = Some(tokio::spawn(async move {
-            loop {
-                let request = tokio::select! {
-                    biased;
-                    _ = &mut stop_rx => {
-                        rx.close();
-                        while let Ok(request) = rx.try_recv() {
-                            let _ = request.response_tx.send(magistr_acp::AcpPermissionResponse::Cancelled);
-                        }
-                        return;
-                    }
-                    request = rx.recv() => request,
-                };
-                let Some(request) = request else {
-                    break;
-                };
-                let response = super::noninteractive_response::noninteractive_response(
-                    policy.as_mut(),
-                    &request,
-                    handling,
-                );
-                // Cancellation and answering serialize through this lock. Once cancel
-                // returns no queued request can receive a new grant.
-                let is_cancelled = cancelled
-                    .lock()
-                    .expect("permission cancellation lock poisoned");
-                let response = if *is_cancelled {
-                    magistr_acp::AcpPermissionResponse::Cancelled
-                } else {
-                    response
-                };
-                let _ = request.response_tx.send(response);
-            }
-        }));
-        true
-    }
-
-    fn stop_permission_worker(&mut self) {
-        *self
-            .permission_cancelled
-            .lock()
-            .expect("permission cancellation lock poisoned") = true;
-        if let Some(stop) = self.permission_stop.take() {
-            let _ = stop.send(());
-        }
-        // The owned worker finishes its short cancellation drain asynchronously.
-        self.permission_worker.take();
-        if let Some(mut requests) = self.acp_permission_rx.take() {
-            requests.close();
-            while let Ok(request) = requests.try_recv() {
-                let _ = request
-                    .response_tx
-                    .send(magistr_acp::AcpPermissionResponse::Cancelled);
-            }
-        }
+        None
     }
 
     /// Send a follow-up message in the current conversation.
     #[instrument(skip_all)]
     pub fn send_followup(&self, content: &str) -> Result<()> {
-        if *self
-            .permission_cancelled
-            .lock()
-            .expect("permission cancellation lock poisoned")
-        {
+        #[cfg(test)]
+        if self.channel_closed {
             return Err(crate::error::MagistrError::Acp(
-                "Cannot continue a cancelled or aborted session; start a new session".into(),
+                "Test session is closed".into(),
             ));
         }
         match &self.backend {
@@ -255,12 +161,17 @@ impl AgentSession {
 
     /// Get the next message from the agent stream.
     ///
-    /// Returns `None` when the stream is exhausted (session complete).
+    /// Returns `None` when observation ends. Only a terminal message or the
+    /// supervisor snapshot establishes the provider's actual turn outcome.
     pub async fn next_message(&mut self) -> Option<Result<AgentMessage>> {
         let result = self.message_rx.recv().await;
 
-        // Capture session_id from Result messages
-        if let Some(Ok(AgentMessage::Result { ref session_id, .. })) = result {
+        // Cancellation is a terminal response on the same resumable session.
+        if let Some(Ok(
+            AgentMessage::Result { ref session_id, .. }
+            | AgentMessage::Cancelled { ref session_id, .. },
+        )) = result
+        {
             self.session_id = Some(session_id.clone());
         }
 
@@ -273,7 +184,10 @@ impl AgentSession {
     /// immediate cleanup.
     #[instrument(skip_all)]
     pub fn abort(&mut self) {
-        self.stop_permission_worker();
+        #[cfg(test)]
+        {
+            self.channel_closed = true;
+        }
         match &mut self.backend {
             SessionBackend::Acp(backend) => backend.abort(),
             #[cfg(test)]
@@ -287,11 +201,58 @@ impl AgentSession {
     /// Follow-up input requires a new session after cancellation.
     #[instrument(skip_all)]
     pub fn cancel(&mut self) {
-        self.stop_permission_worker();
+        #[cfg(test)]
+        {
+            self.channel_closed = true;
+        }
         match &mut self.backend {
             SessionBackend::Acp(backend) => backend.cancel(),
             #[cfg(test)]
             SessionBackend::Channel { .. } => {}
+        }
+    }
+
+    /// Request cancellation while retaining the session for another turn after acknowledgment.
+    pub fn cancel_turn(&self) -> Result<()> {
+        match &self.backend {
+            SessionBackend::Acp(backend) => backend.cancel_turn(),
+            #[cfg(test)]
+            SessionBackend::Channel { .. } => Ok(()),
+        }
+    }
+
+    /// End residency and await the owned transport's cleanup.
+    pub async fn terminate_session(&mut self) -> Result<()> {
+        #[cfg(test)]
+        {
+            self.channel_closed = true;
+        }
+        match &mut self.backend {
+            SessionBackend::Acp(backend) => backend.terminate_session().await,
+            #[cfg(test)]
+            SessionBackend::Channel { .. } => Ok(()),
+        }
+    }
+
+    /// Remove this client's observation without cancelling provider work.
+    pub fn detach_client(&mut self) {
+        match &mut self.backend {
+            SessionBackend::Acp(backend) => backend.detach_client(),
+            #[cfg(test)]
+            SessionBackend::Channel { .. } => {}
+        }
+        self.message_rx.close();
+        while self.message_rx.try_recv().is_ok() {}
+    }
+
+    /// Precise cancellation, outcome and residency facts for real sessions.
+    pub fn supervisor_snapshot(
+        &self,
+    ) -> Option<super::session_supervisor::SessionSupervisorSnapshot> {
+        match &self.backend {
+            SessionBackend::Acp(backend) => Some(backend.supervisor_snapshot()),
+            #[cfg(test)]
+            SessionBackend::Channel { .. } => None,
         }
     }
 
@@ -306,9 +267,9 @@ impl AgentSession {
         }
     }
 
-    /// Get the session ID from the most recent completed turn.
+    /// Get the session ID from the most recent terminal response.
     ///
-    /// Available after a `AgentMessage::Result` has been received. Can be used
+    /// Available after a result or cancellation has been received. Can be used
     /// to resume this session later via `--resume`.
     pub fn session_id(&self) -> Option<&SessionId> {
         self.session_id.as_ref()

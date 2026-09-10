@@ -22,5 +22,8 @@ pub async fn cmd_run_workflow(
         .await
         .suggest()?;
     let model = session.resolved_model().map(str::to_owned);
-    super::drain_session_interactive(&mut session, project_dir, model.as_deref()).await
+    let outcome =
+        super::drain_session_interactive(&mut session, project_dir, model.as_deref()).await;
+    let cleanup = session.terminate_session().await.suggest();
+    outcome.and(cleanup)
 }

@@ -5,7 +5,8 @@ use color_eyre::eyre;
 /// Drain a single turn from an agent session, collecting text output.
 ///
 /// Returns `Ok(output)` with the collected assistant text from this turn.
-/// Returns `Err` if the session produced an error result.
+/// Error results retain their reported fields with `is_error` set. Cancellation,
+/// transport errors, and EOF without a terminal response return `Err`.
 ///
 /// This is the testable core of the run command — it accepts a pre-built
 /// `AgentSession` (which can use a channel-based mock in tests).
@@ -41,6 +42,9 @@ pub async fn drain_session_turn(
                         session_id: session_id.as_str().to_string(),
                     });
                 }
+                crate::agent::message::AgentMessage::Cancelled { reason, .. } => {
+                    return Err(eyre::eyre!("Agent turn cancelled: {reason}"));
+                }
                 _ => {}
             },
             Err(e) => {
@@ -49,13 +53,7 @@ pub async fn drain_session_turn(
         }
     }
 
-    // Stream ended without a Result message
-    Ok(DrainResult {
-        text: collected_text,
-        is_error: false,
-        num_turns: 0,
-        duration_ms: 0,
-        total_cost_usd: None,
-        session_id: String::new(),
-    })
+    Err(eyre::eyre!(
+        "Agent stream ended without a terminal response"
+    ))
 }

@@ -135,7 +135,13 @@ pub async fn cmd_next_loop_headless(
             },
         )
         .await;
-        let (outcome, spend) = match drained {
+        // End provider residency before another attempt or a process exit.
+        let cleanup = session.terminate_session().await.suggest();
+        if let Ok((_, Some(spend))) = &drained {
+            crate::cost::record_session(&dir, spend);
+        }
+        let drained = drained.and_then(|result| cleanup.map(|()| result));
+        let (outcome, _) = match drained {
             Ok(result) => result,
             Err(error) => {
                 iter_loop.post_iteration_check();
@@ -160,9 +166,6 @@ pub async fn cmd_next_loop_headless(
         }
         iter_loop.persist().suggest()?;
 
-        if let Some(spend) = spend {
-            crate::cost::record_session(&dir, &spend);
-        }
         let iter_duration = iter_start.elapsed();
 
         // Fire OnIterationEnd lifecycle hooks

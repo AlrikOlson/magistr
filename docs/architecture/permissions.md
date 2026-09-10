@@ -44,8 +44,11 @@ to the shared policy; the session no longer maintains an independent allow set
 keyed only by tool title. Invalid option IDs are refused. Cancelling a turn clears
 its pending requests and responds with Cancelled, so a stale card cannot later
 grant permission. Late arrivals remain cancelled until a fresh cockpit prompt.
-AgentSession cancellation ends its usable stream; follow-ups require a new
-session, matching that backend's existing terminal cancellation behavior.
+The headless supervisor cancels pending and late permissions when cancellation
+is requested. `cancel_turn` retains the session but admits no new turn until the
+provider's terminal response; permission handling resumes only for an admitted
+fresh turn. Legacy `AgentSession::cancel` ends the usable session. See the
+[separate lifecycle operations](sessions.md#headless-session-supervision).
 
 Sessions without a permission UI refuse Ask by default. This includes plain
 terminal sessions whose text input is for conversation, not a permission picker.
