@@ -39,6 +39,11 @@ service for navigation and edits. The [project authority](project-authority.md)
 controls cooperating MCP owners; a second process must not open an independent
 cached writer for the same project.
 
+The accepted [first-party subsystem decision](owned-subsystems.md) makes
+hard forks of think-and-ship and Workbench part of the refactor. It defines
+workflow and workspace ownership, source certification, and migration
+constraints; source adoption remains pending in native roadmap state.
+
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes
 `.magistr/project.json` and agent-specific files from the CLI crate's templates
