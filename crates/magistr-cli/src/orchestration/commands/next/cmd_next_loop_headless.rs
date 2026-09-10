@@ -8,7 +8,9 @@ use crate::cli::HeadlessFormat;
 use crate::commands::run::{HeadlessOutcome, drain_headless_observing};
 use crate::error::ResultExt;
 use crate::workflow;
-use crate::workflow::iteration::{IterationLoop, PostCheckResult, PreCheckResult};
+use crate::workflow::iteration::{
+    IterationLoop, OperationKind, OperationOutcome, PostCheckResult, PreCheckResult,
+};
 use magistr_engine::workflow::StopReason;
 
 /// Run `magistr next-loop` in headless mode — batch iterations with progress reporting.
@@ -77,6 +79,33 @@ pub async fn cmd_next_loop_headless(
                 emit_loop_stop(&format, "no_ready_chunk", &mut stdout)?;
                 break;
             }
+            PreCheckResult::Unreconciled(open) => {
+                // Not a terminal outcome of the run: nothing is latched, and
+                // the same command retries once the runtime is gone or the
+                // checkpoint is explicitly set aside for a new run.
+                emit_loop_stop(&format, "unreconciled", &mut stdout)?;
+                let open: Vec<String> = open
+                    .iter()
+                    .map(|record| {
+                        format!(
+                            "{} {} attempt {}{}",
+                            record.kind,
+                            record.target,
+                            record.attempt.number(),
+                            record
+                                .external
+                                .as_deref()
+                                .map(|handle| format!(" ({handle})"))
+                                .unwrap_or_default()
+                        )
+                    })
+                    .collect();
+                return Err(eyre::eyre!(
+                    "recovery could not establish what happened to: {} — reconcile before retrying, \
+                     or preserve/remove .magistr/loop-state.json for an explicit new run",
+                    open.join("; ")
+                ));
+            }
         }
 
         // Check cost limit
@@ -104,9 +133,31 @@ pub async fn cmd_next_loop_headless(
         let config = super::cmd_next_headless::workflow_agent_config(&prompt, &dir, backend)
             .permission_profile(profile);
 
+        // The dispatch, durable before the launch. An outcome already
+        // established for this attempt (recovery saw the runtime's commit)
+        // is the attempt's work, done: settle it, launch nothing.
+        let dispatch = iter_loop
+            .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+            .suggest()?;
+        let Some(dispatch) = dispatch else {
+            iter_loop.post_iteration_check();
+            iter_loop.advance();
+            iter_loop.persist().suggest()?;
+            if format == HeadlessFormat::Plain {
+                writeln!(
+                    stderr,
+                    "provider dispatch already established for this attempt — settled without launching again"
+                )?;
+            }
+            continue;
+        };
+        iter_loop.persist().suggest()?;
         let mut session = match agent::session::AgentSession::start(config).await.suggest() {
             Ok(session) => session,
             Err(error) => {
+                iter_loop
+                    .settle_operation(&dispatch, OperationOutcome::Failed)
+                    .suggest()?;
                 iter_loop.post_iteration_check();
                 iter_loop.advance();
                 iter_loop.mark_failed();
@@ -114,6 +165,13 @@ pub async fn cmd_next_loop_headless(
                 return Err(error);
             }
         };
+        iter_loop
+            .start_operation(
+                &dispatch,
+                session.provider_pid().map(|pid| format!("pid:{pid}")),
+            )
+            .suggest()?;
+        iter_loop.persist().suggest()?;
 
         // Fire OnIterationStart lifecycle hooks
         crate::workflow::hook_dispatch::run_hooks_headless(
@@ -147,6 +205,9 @@ pub async fn cmd_next_loop_headless(
         let (outcome, _) = match drained {
             Ok(result) => result,
             Err(error) => {
+                iter_loop
+                    .settle_operation(&dispatch, OperationOutcome::Failed)
+                    .suggest()?;
                 iter_loop.post_iteration_check();
                 iter_loop.advance();
                 iter_loop.mark_failed();
@@ -155,6 +216,18 @@ pub async fn cmd_next_loop_headless(
             }
         };
         final_outcome = outcome.clone();
+        iter_loop
+            .settle_operation(
+                &dispatch,
+                match outcome {
+                    HeadlessOutcome::Ok => OperationOutcome::Completed,
+                    HeadlessOutcome::Cancelled => OperationOutcome::Cancelled,
+                    HeadlessOutcome::AgentError | HeadlessOutcome::BudgetExceeded => {
+                        OperationOutcome::Failed
+                    }
+                },
+            )
+            .suggest()?;
         // Checkpoint the settled attempt before hooks and fallible progress output.
         let post = iter_loop.post_iteration_check();
         iter_loop.advance();

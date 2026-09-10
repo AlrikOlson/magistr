@@ -8,6 +8,19 @@ pub(super) struct Registration {
 }
 
 impl Registration {
+    /// The provider process this owner registered, if the transport
+    /// spawned one — the runtime's own handle, for a dispatch record.
+    pub(super) fn provider_pid(&self) -> Option<u32> {
+        #[cfg(unix)]
+        {
+            u32::try_from(self.pgid).ok().filter(|pid| *pid > 0)
+        }
+        #[cfg(not(unix))]
+        {
+            None
+        }
+    }
+
     pub(super) fn new(pgid: i32) -> Self {
         #[cfg(not(unix))]
         let _ = pgid;

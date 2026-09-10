@@ -1,7 +1,7 @@
 use super::*;
 
 /// Create a temp project with a spec file and git repo.
-fn setup_project(spec_content: &str) -> (tempfile::TempDir, PathBuf) {
+pub(super) fn setup_project(spec_content: &str) -> (tempfile::TempDir, PathBuf) {
     let dir = tempfile::TempDir::new().unwrap();
     let spec_path = dir.path().join("ROADMAP.md");
     std::fs::write(&spec_path, spec_content).unwrap();
@@ -401,17 +401,26 @@ fn recovery_refuses_missing_counters_and_inconsistent_legacy_projections() {
         .as_object_mut()
         .unwrap()
         .remove("attempt_started");
-    let mut missing_git_baseline = original;
+    let mut missing_git_baseline = original.clone();
     missing_git_baseline
         .as_object_mut()
         .unwrap()
         .remove("last_commit_sha");
+    let mut missing_operations = original.clone();
+    missing_operations
+        .as_object_mut()
+        .unwrap()
+        .remove("operations");
+    let mut missing_run_id = original;
+    missing_run_id.as_object_mut().unwrap().remove("run_id");
     for state in [
         missing_count,
         inconsistent_iteration,
         inconsistent_limit,
         missing_attempt,
         missing_git_baseline,
+        missing_operations,
+        missing_run_id,
     ] {
         let json = serde_json::to_string(&state).unwrap();
         std::fs::write(loop_state_path(dir.path()), &json).unwrap();
@@ -517,6 +526,12 @@ fn state_serializes_to_json() {
             completed_attempts: 3,
             ..RunState::new(RunMode::ChunkLoop, 10, None)
         },
+        run_id: magistr_domain::identity::RunId::new(
+            magistr_domain::identity::ProjectId::new("proj").unwrap(),
+            "run-1",
+        )
+        .unwrap(),
+        operations: OperationLedger::new(),
         attempt_started: None,
         last_commit_sha: Some("abc1234".to_string()),
         last_status: IterationStatus::Committed,
@@ -541,6 +556,8 @@ fn state_deserializes_from_json() {
                 "budget_limit_usd": null, "terminal_reason": null,
                 "last_settled_attempt": 1
             },
+            "run_id": {"project": "proj", "local": "run-1"},
+            "operations": {"records": []},
             "attempt_started": null,
             "last_commit_sha": "def5678",
             "last_status": "no_commit",
@@ -601,13 +618,13 @@ fn project_config() -> crate::types::ProjectConfig {
 }
 
 /// The loop's own admitted writer on the fixture store.
-fn native_engines(tmp: &tempfile::TempDir) -> NativeEngines {
+pub(super) fn native_engines(tmp: &tempfile::TempDir) -> NativeEngines {
     admitted(tmp, magistr_engine::WriterRole::Host)
 }
 
 /// The other admitted role on the same store — what the agent's own
 /// `magistr mcp-serve` is to the loop.
-fn agent_engines(tmp: &tempfile::TempDir) -> NativeEngines {
+pub(super) fn agent_engines(tmp: &tempfile::TempDir) -> NativeEngines {
     admitted(tmp, magistr_engine::WriterRole::Service)
 }
 
@@ -620,7 +637,7 @@ fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> Native
         .open()
 }
 
-fn add_native_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
+pub(super) fn add_native_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
     use magistr_engine::tas::ChunkStatus;
     engines
         .roadmap_add_chunk(

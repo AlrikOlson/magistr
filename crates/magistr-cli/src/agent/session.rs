@@ -249,6 +249,18 @@ impl AgentSession {
         }
     }
 
+    /// The provider process this session's supervisor registered — the
+    /// runtime's own handle for a dispatch record; `None` for test channels
+    /// and in-process agents.
+    #[must_use]
+    pub fn provider_pid(&self) -> Option<u32> {
+        match &self.backend {
+            SessionBackend::Acp(backend) => backend.provider_pid(),
+            #[cfg(test)]
+            SessionBackend::Channel { .. } => None,
+        }
+    }
+
     /// Get the ACP session lifecycle state.
     ///
     /// Returns `Some(state)` for real ACP sessions, `None` for test channels.

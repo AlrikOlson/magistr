@@ -118,8 +118,10 @@ evidence validity remain the adapter's responsibility.
 Recovery actions are guidance, not automatic retries. If an effect may already
 have happened, adapters report `UnknownOutcome` with its attempt identity.
 A disconnect or write error must not erase that uncertainty. Dropping a pending
-port future also does not prove cancellation. Durable operation lookup, retries
-and checkpoints are later architecture work.
+port future also does not prove cancellation. The loop's own operation
+records, their retries and the atomic checkpoint are described in
+[durable operations](durability.md); the scoped facades' `CommandContext`
+still has no production adapter.
 
 ## Verification and limits
 

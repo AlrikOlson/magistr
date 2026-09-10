@@ -134,6 +134,9 @@ pub struct SessionSupervisor {
     commands: mpsc::UnboundedSender<Command>,
     inner: Arc<Mutex<Inner>>,
     task: Option<JoinHandle<Result<()>>>,
+    /// The provider process the owner registered, when the transport
+    /// spawned one — the runtime's own handle, for a dispatch record.
+    provider_pid: Option<u32>,
 }
 
 impl SessionSupervisor {
@@ -152,6 +155,7 @@ impl SessionSupervisor {
         policy: Option<Policy>,
     ) -> Result<(Self, Messages)> {
         let guard = registration::Registration::new(transport.child_pgid());
+        let provider_pid = guard.provider_pid();
         let events = transport
             .read_events()
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
@@ -199,6 +203,7 @@ impl SessionSupervisor {
                 commands,
                 inner,
                 task: Some(task),
+                provider_pid,
             },
             receiver,
         ))
@@ -212,6 +217,7 @@ impl SessionSupervisor {
         policy: Box<dyn SessionPolicy>,
     ) -> Result<(Self, mpsc::UnboundedReceiver<AgentEvent>)> {
         let guard = registration::Registration::new(transport.child_pgid());
+        let provider_pid = guard.provider_pid();
         let events = transport
             .read_events()
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
@@ -263,6 +269,7 @@ impl SessionSupervisor {
                 commands,
                 inner,
                 task: Some(task),
+                provider_pid,
             },
             receiver,
         ))
@@ -394,6 +401,14 @@ impl SessionSupervisor {
         if let Some(task) = self.task.as_ref() {
             task.abort();
         }
+    }
+
+    /// The provider process this owner supervises, when the transport
+    /// spawned one. A handle for a dispatch record, not proof the runtime
+    /// is still the same process.
+    #[must_use]
+    pub fn provider_pid(&self) -> Option<u32> {
+        self.provider_pid
     }
 
     /// Read consistent admission, outcome and residency facts.

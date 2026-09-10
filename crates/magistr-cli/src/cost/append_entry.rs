@@ -24,5 +24,8 @@ fn save_entries(path: &Path, entries: &[CostEntry]) -> Result<()> {
 
     let json = serde_json::to_string_pretty(entries)?;
 
-    std::fs::write(path, json).map_err(|e| MagistrError::io(path, e))
+    // Whole-file replacement, atomically: a crash mid-write cannot leave a
+    // torn ledger that every later session would fail to read.
+    crate::workflow::durable_write::durable_write(path, json.as_bytes())
+        .map_err(|e| MagistrError::io(path, e))
 }

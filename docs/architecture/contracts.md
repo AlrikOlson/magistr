@@ -105,7 +105,7 @@ integrated session path.
 | Cancel turn | Headless backend ends its message reader on cancellation; cockpit Session remains available for subsequent commands. With a turn in flight, first Ctrl-C cancels and second quits in the TUI. Codex waits for the matching terminal acknowledgment before reuse. |
 | Cancellation as loop outcome | Headless Cancelled maps to exit 0 and is not among the headless loop's error/budget break cases. Cockpit driver treats any `TurnEnded(_)` as ended, then runs gates/settlement. EOF without a result is headless Ok. These are not proof of successful work. |
 | No progress | Core production loop stops at 2 consecutive iterations without a commit; engine workflow stops at 3. Core resets after observing a changed Git HEAD; engine resets when `record_committed()` is called. |
-| Recovery | Core loop persistence omits its separate no-commit counter and recovery resets it to zero. Engine checkpoint restoration retains the count. Cockpit next-loop recovers an existing loop; headless/plain loops start fresh. |
+| Recovery | Core loop persistence omits its separate no-commit counter and recovery resets it to zero. Engine checkpoint restoration retains the count. Cockpit next-loop recovers an existing loop; headless/plain loops start fresh. The checkpoint is written with `fs::write` and records nothing about a provider launch, a gate receipt or a native mutation in flight. |
 | Completion | Native roadmap completion permits completion without a check or ship reference. Phase done needs a recorded check count, including failures. Native finalize can return shipped with a failed-required-check warning. The skill's complete gate/acceptance protocol is stronger. |
 
 The no-progress and recovery differences above are resolved by the implemented
@@ -322,6 +322,23 @@ MCP tool). Not claimed: native run isolation (one objective and active task
 per project, loops serialized), a production adapter for the application
 crate's `CommandContext`, or any desktop writer on main.
 
+## Implemented durable operations
+
+`arch-13-durable-operations` records the loop's own operations — the attempt's
+reservation, the provider dispatch, each gate receipt, each native mutation,
+each published frame — in the loop checkpoint as `OperationRecord`s with
+stable command/attempt identities and `Accepted`/`Running`/`Completed`/
+`Failed`/`Cancelled`/`Indeterminate` outcomes, written before the effect and
+settled after it. The checkpoint (run state, stop counters, budget, ledger,
+run identity) and the cost ledger are replaced atomically. Recovery marks
+in-flight records `Indeterminate` and reconciles them against the native
+store, the runtime's liveness and the attempt's Git baseline; what stays open
+refuses the next attempt without latching a terminal reason. Deduplication
+returns only an established `Completed` outcome; a retry is the next attempt
+number. See [durable operations](durability.md). Not claimed: exactly-once
+external effects, a production adapter for the application `CommandContext`,
+or any change to native storage.
+
 ## Executable scenarios
 
 The original scenarios intentionally pinned behavior including gaps. The run
@@ -350,6 +367,7 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 | Red outer gates reopen self-completion; green evidence retains it | CLI `orchestration::loop_driver::driver::tests` |
 | Cached-writer merge/reload and detached projection reseed | Engine `tas::native_engines::tests`; cockpit `engine::reseed::tests` |
 | One write path: in-process promotion creates and cross-links the backlog chunk as the verb does; the handlers' refusals are the writer's; a green `magistr_gate(all)` leaves one verified check per gate on the named task and opens `done`, running each command once; a judged loop completion names the task its gates were recorded on; no writer escape hatch outside `magistr-engine/src/tas` and no transport self-call | Engine `tas::native_engines::tests`, `tas::handler_call::tests`; CLI integration `mcp_serve_integration`; CLI `orchestration::loop_driver::driver::tests`; the `native-write-path` gate |
+| Durable operations: outcome transitions and admission rules; atomic checkpoint survives a torn temporary; crash injection around reservation, native mutation, receipt, publication and a real provider child process; an open dispatch ends the loop `Unreconciled` without a launch or a terminal reason; a judged iteration leaves every kind settled under one run | [Domain ledger tests](../../crates/magistr-domain/src/workflow/operation_ledger.tests.rs); [core crash-injection tests](../../crates/magistr-core/src/workflow/iteration_operations.tests.rs), `durable_write` and `process_alive` tests; CLI `orchestration::loop_driver::driver::tests` |
 
 Run the named new and directly related suites without an empty-filter success:
 

@@ -82,6 +82,12 @@ impl AcpBackend {
         self.supervisor.snapshot()
     }
 
+    /// The provider process the supervisor registered, if any.
+    #[must_use]
+    pub fn provider_pid(&self) -> Option<u32> {
+        self.supervisor.provider_pid()
+    }
+
     /// List sessions between turns.
     pub async fn list_sessions(
         &self,

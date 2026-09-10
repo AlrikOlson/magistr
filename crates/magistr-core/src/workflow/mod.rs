@@ -8,6 +8,7 @@
 
 pub mod clean_tree_guard;
 pub mod context_builder;
+pub mod durable_write;
 pub mod format_result;
 pub mod formatter;
 pub mod gate_cache;
@@ -19,8 +20,10 @@ pub mod native_summary;
 pub mod plan;
 pub mod plan_guard;
 pub mod plans;
+pub mod process_alive;
 pub mod project_context;
 pub mod prompt;
+pub mod reconciliation;
 pub mod research_guard;
 pub mod rollback;
 pub mod rollback_result;

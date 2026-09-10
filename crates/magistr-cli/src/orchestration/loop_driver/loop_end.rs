@@ -24,6 +24,10 @@ pub enum LoopEnd {
     /// The judge said the chunk's acceptance cannot be met as written:
     /// the chunk is blocked on a human with this reason.
     NeedsHuman(String),
+    /// Recovery could not establish what happened to these attempts; the
+    /// run is not stopped, only not admitting another attempt until they
+    /// are reconciled or an explicit new run begins.
+    Unreconciled(String),
 }
 
 impl LoopEnd {
@@ -39,8 +43,10 @@ impl LoopEnd {
         }
     }
 
-    pub(super) fn stop_reason(&self) -> StopReason {
-        match self {
+    /// The terminal reason the run latches; `None` when the loop ended
+    /// without the run reaching a terminal outcome.
+    pub(super) fn stop_reason(&self) -> Option<StopReason> {
+        Some(match self {
             Self::NoReadyChunk => StopReason::NoReadyChunk,
             Self::SpecComplete => StopReason::SpecComplete,
             Self::MaxIterations(_) => StopReason::IterationLimit,
@@ -48,7 +54,8 @@ impl LoopEnd {
             Self::Aborted => StopReason::Aborted,
             Self::CockpitClosed => StopReason::Cancelled,
             Self::Failed(_) | Self::NeedsHuman(_) => StopReason::Failed,
-        }
+            Self::Unreconciled(_) => return None,
+        })
     }
 }
 
@@ -65,6 +72,10 @@ impl fmt::Display for LoopEnd {
             Self::Failed(why) => f.write_str(why),
             Self::CockpitClosed => f.write_str("the cockpit closed"),
             Self::NeedsHuman(why) => write!(f, "the judge needs a human: {why}"),
+            Self::Unreconciled(open) => write!(
+                f,
+                "recovery could not establish what happened to: {open} — reconcile before retrying, or start an explicit new run"
+            ),
         }
     }
 }
