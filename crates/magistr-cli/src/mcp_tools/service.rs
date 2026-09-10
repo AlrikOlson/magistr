@@ -14,15 +14,16 @@
 //! an action afterward. Execute and verify require an objective and task;
 //! done requires a recorded check.
 //!
-//! Native engines open after cooperative owner admission for the store and
-//! project identity. A competing MCP service fails before opening engines or
-//! binding the live feed. External binaries that bypass this lease still
-//! share the underlying persistence.
+//! Native engines open only through an admitted [`ProjectAuthority`] in the
+//! service role: identity, the cooperative owner lease and the live feed are
+//! settled before any engine opens, and a competing MCP service fails there.
+//! The cockpit or loop host holds the other role beside this one. External
+//! binaries that bypass the lease still share the underlying persistence.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use magistr_engine::tas::{Broadcaster, TasConfig, open_engines, resolve_project_id_with};
+use magistr_engine::tas::{ProjectAuthority, TasConfig, WriterRole};
 use magistr_engine::{GateOutput, ShipGuardState};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use rmcp::model::{
@@ -36,10 +37,6 @@ use rmcp::{ErrorData, ServerHandler};
 use serde_json::{Value, json};
 use think_and_ship::infra::Family;
 use think_and_ship::mcp::UnifiedService;
-use think_and_ship::roadmap::RoadmapService;
-use think_and_ship::ship::ShipService;
-use think_and_ship::signal::SignalService;
-use think_and_ship::think::ThinkService;
 
 use super::gate::{GateSpec, resolve_gates, run_gate_command};
 use super::roadmap_export::RoadmapExport;
@@ -59,12 +56,12 @@ pub struct MagistrService {
     tools: Arc<SdkMcpServer>,
     unified: UnifiedService,
     roadmap_export: RoadmapExport,
-    /// The live-feed socket the engines broadcast on, kept so a gate this
-    /// server runs itself can stream its bytes there too; `None` only when
-    /// broadcast was not requested.
-    broadcaster: Option<Broadcaster>,
-    /// Drop after engines; cloning a service shares its admission lease.
-    _owner: Arc<super::owner_lease::OwnerLease>,
+    /// The admission this service runs under: the project identity, the
+    /// service-role lease, and the live-feed socket the engines broadcast on
+    /// (kept so a gate this server runs itself can stream its bytes there
+    /// too). Cloning a service shares it; the lease releases with the last
+    /// clone.
+    authority: Arc<ProjectAuthority>,
 }
 
 impl MagistrService {
@@ -86,33 +83,20 @@ impl MagistrService {
     /// and lease. Independent instances must acquire ownership before loading state.
     pub async fn new(project_root: PathBuf, tas: &TasConfig) -> std::io::Result<Self> {
         let project_root = project_root.canonicalize()?;
-        let (project_id, _) = resolve_project_id_with(None, Some(&project_root));
         let mut tas = tas.clone();
         tas.project_root = project_root.clone();
-        let mut owner = super::owner_lease::OwnerLease::acquire(&tas, &project_id)?;
-        let broadcaster = match tas.broadcast_path.as_ref() {
-            Some(path) => Some(owner.broadcaster(path).await?),
-            None => None,
-        };
-        let (think, ship, roadmap, signal) = open_engines(&tas, project_id, broadcaster.clone());
-
-        let think = ThinkService::new(think);
-        let ship = ShipService::new(ship);
-        let roadmap = RoadmapService::new(roadmap);
-        // Reciprocal wire-layer handles, composed here exactly as the
-        // standalone binary does: signal_promote creates chunks, and
-        // roadmap_status folds in the pending-signal count.
-        let signal = SignalService::new(signal).with_roadmap(roadmap.engine());
-        let roadmap = roadmap.with_signal(signal.engine());
-        let unified = UnifiedService::new(think, ship, roadmap, signal);
+        let mut authority = ProjectAuthority::admit(&tas, WriterRole::Service)?;
+        if let Some(path) = tas.broadcast_path.as_ref() {
+            authority = authority.publish(path).await?;
+        }
+        let (unified, authority) = authority.serve();
 
         Ok(Self {
             roadmap_export: RoadmapExport::new(&project_root),
             tools: Arc::new(super::build_server(project_root.clone())),
             project_root,
             unified,
-            broadcaster,
-            _owner: Arc::new(owner),
+            authority,
         })
     }
 
@@ -249,7 +233,7 @@ impl MagistrService {
         // frame the cockpit's engine feed folds into its terminal store. A
         // frame nobody is attached for is dropped, which is the library's
         // documented degraded mode, not an error.
-        let feed = self.broadcaster.clone();
+        let feed = self.authority.feed().cloned();
         let gate = spec.name.clone();
         let stream = move |bytes: &[u8]| {
             if let Some(feed) = &feed {

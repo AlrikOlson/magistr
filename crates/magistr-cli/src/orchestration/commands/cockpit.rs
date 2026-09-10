@@ -35,7 +35,7 @@ pub(crate) async fn cockpit_model_on(
     tab: StageTab,
     before_run: impl FnOnce(&Runtime<RealTerminal>),
 ) -> eyre::Result<Model> {
-    let engines = match EngineClient::open(root) {
+    let engines = match EngineClient::observe(root) {
         Ok(engines) => engines,
         Err(err) => {
             println!(
@@ -63,7 +63,7 @@ pub(crate) async fn cockpit_model_on(
                 .with_title(title)
                 .with_debug(debug)
                 .with_tab(tab)
-                .with_store_seed(&StoreSeed::read(engines.engines()))
+                .with_store_seed(&StoreSeed::read(engines.reader()))
                 .with_workspace_files(super::workspace_files::workspace_files(root)),
         )
         .await;

@@ -9,6 +9,10 @@
 //! library's locked merge-on-save discipline (advisory lock, merge, atomic
 //! rename); nothing here re-implements persistence or identity.
 //!
+//! Writers are admitted by a [`ProjectAuthority`] — one per [`WriterRole`]
+//! per project and store, cooperatively — and receive the write capability
+//! [`NativeEngines`]; anyone may open the read capability [`NativeReader`].
+//!
 //! The module name is short for "think-and-ship"; `think_and_ship` itself is
 //! the extern crate and would shadow it.
 
@@ -17,26 +21,32 @@ pub mod feed_status;
 pub mod gate_output;
 pub mod identity;
 pub mod native_engines;
-pub mod open_engines;
+pub mod native_reader;
+mod open_engines;
+mod owner_lease;
 pub mod progress;
+pub mod project_authority;
 pub mod region_counts;
 pub mod roadmap_backend;
 pub mod snapshot;
 pub mod subscriber;
 pub mod tas_config;
+pub mod writer_role;
 
 pub use broadcast_frame::NativeFrame;
 pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use identity::ensure_project_file;
 pub use native_engines::NativeEngines;
-pub use open_engines::open_engines;
+pub use native_reader::NativeReader;
 pub use progress::progress_from_roadmap;
+pub use project_authority::ProjectAuthority;
 pub use region_counts::RegionCounts;
 pub use roadmap_backend::RoadmapBackend;
 pub use snapshot::NativeRoadmapSnapshot;
 pub use subscriber::spawn_broadcast_subscriber;
 pub use tas_config::TasConfig;
+pub use writer_role::WriterRole;
 
 // The library types the typed commands speak, re-exported so consumers
 // (magistr-core, the GUI, the TUI) never name the `think_and_ship` crate.

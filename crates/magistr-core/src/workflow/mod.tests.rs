@@ -43,7 +43,7 @@ fn yaml_project_still_requires_its_spec_file() {
 #[test]
 fn native_project_loads_without_a_spec_file_and_reads_chunks() {
     use magistr_engine::tas::ChunkStatus;
-    use magistr_engine::{NativeEngines, TasConfig};
+    use magistr_engine::{ProjectAuthority, TasConfig, WriterRole};
 
     let tmp = tempfile::tempdir().unwrap();
     project(tmp.path(), "think-and-ship", ".magistr-roadmap.yml");
@@ -53,7 +53,9 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
     assert!(wf.is_native());
 
     let cfg = TasConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas"));
-    let engines = NativeEngines::open_for_project(&cfg, "wf-native".into());
+    let engines = ProjectAuthority::admit_for_project(&cfg, "wf-native".into(), WriterRole::Host)
+        .expect("host admitted")
+        .open();
     engines
         .roadmap_add_chunk(
             "one".into(),
@@ -68,7 +70,7 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
             None,
         )
         .unwrap();
-    let wf = wf.with_native(Some(engines));
+    let wf = wf.with_native(Some(engines.reader()));
     let summary = wf.spec_summary().unwrap();
     assert_eq!(
         (summary.total, summary.checked, summary.unchecked),

@@ -113,6 +113,22 @@ fn identity(root: &Path) {
     .expect("identity");
 }
 
+/// A `.magistr/project.json` selecting the native roadmap, so one-shot
+/// commands resolve the same store the owner serves.
+fn native_project(root: &Path) {
+    std::fs::create_dir_all(root.join(".magistr")).expect("project directory");
+    std::fs::write(
+        root.join(".magistr/project.json"),
+        json!({
+            "project": {"name": "owner-test", "description": "", "type": "cli"},
+            "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+            "roadmap_backend": "think-and-ship"
+        })
+        .to_string(),
+    )
+    .expect("project config");
+}
+
 #[tokio::test]
 async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -250,4 +266,56 @@ async fn unbindable_feed_refuses_stdio_tools_without_deleting_the_path() {
         std::fs::read_to_string(socket).expect("preserved file"),
         "existing file"
     );
+}
+
+#[tokio::test]
+async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    identity(tmp.path());
+    native_project(tmp.path());
+    let data = tmp.path().join("data");
+    let mut owner = Server::spawn(tmp.path(), &data, &tmp.path().join("feed.sock")).await;
+    assert!(owner.response().await.is_some(), "the owner initialized");
+    owner.initialized().await;
+    let added = owner
+        .call(
+            "roadmap_add_chunk",
+            json!({"id":"visible", "title":"Seen by the reader", "group":"Tests"}),
+        )
+        .await;
+    assert_eq!(added["id"], "visible", "{added}");
+
+    // `magistr roadmap status` is a reader: it takes no lease, so it answers
+    // while the owner holds the project, and it sees the owner's write.
+    let status = Command::from(magistr_command::magistr_command())
+        .args(["--json", "roadmap", "status"])
+        .arg(tmp.path())
+        .env("THINK_AND_SHIP_DATA_DIR", &data)
+        .env("THINK_AND_SHIP_PERSIST", "true")
+        .output()
+        .await
+        .expect("run the reader command");
+    assert!(
+        status.status.success(),
+        "reader refused: {}",
+        String::from_utf8_lossy(&status.stderr)
+    );
+    let report: Value =
+        serde_json::from_slice(&status.stdout).expect("roadmap_status JSON on stdout");
+    assert_eq!(report["status"], "ok", "{report}");
+    assert_eq!(report["data"]["project_id"], "owner-test", "{report}");
+    assert_eq!(report["data"]["counts"]["pending"], 1, "{report}");
+    assert_eq!(report["data"]["next"], "visible", "{report}");
+    assert!(
+        !data
+            .join("roadmap/sessions/owner-test.host-owner.lock")
+            .exists(),
+        "a reader takes no host lease"
+    );
+
+    // The owner is untouched by the read.
+    let after = owner.call("roadmap_status", json!({})).await;
+    assert_eq!(after["project_id"], "owner-test");
+    owner.child.kill().await.expect("stop owner");
+    owner.child.wait().await.expect("reap owner");
 }

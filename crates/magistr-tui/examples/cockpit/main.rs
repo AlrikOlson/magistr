@@ -12,7 +12,8 @@ use magistr_tui::term::{RealTerminal, Terminal as _};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let root = std::env::current_dir()?;
-    let engines = match EngineClient::open(&root) {
+    // A viewer: observe the store without taking the host lease.
+    let engines = match EngineClient::observe(&root) {
         Ok(engines) => engines,
         Err(err) => {
             println!(
@@ -24,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     println!(
         "project {} · feed {}",
-        engines.engines().project_id(),
+        engines.reader().project_id(),
         engines.socket().display()
     );
 

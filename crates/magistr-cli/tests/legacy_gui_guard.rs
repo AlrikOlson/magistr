@@ -10,7 +10,7 @@ mod magistr_command;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-use magistr_engine::{NativeEngines, TasConfig};
+use magistr_engine::{NativeEngines, ProjectAuthority, TasConfig, WriterRole};
 use tempfile::TempDir;
 
 const RATCHET: &str = r#"{"path": "crates/magistr-gui", "files": 1, "loc": 1,
@@ -48,11 +48,16 @@ impl Project {
         }
     }
 
+    /// A host writer on the fixture store; dropped after each mutation so
+    /// the guard subprocess (a reader) and the next mutation see it free.
     fn engines(&self) -> NativeEngines {
         let data_dir = self.data_dir.display().to_string();
-        NativeEngines::open(&TasConfig::from_lookup(&self.root, |key| {
+        let config = TasConfig::from_lookup(&self.root, |key| {
             (key == "THINK_AND_SHIP_DATA_DIR").then(|| data_dir.clone())
-        }))
+        });
+        ProjectAuthority::admit(&config, WriterRole::Host)
+            .expect("host admitted")
+            .open()
     }
 
     fn set_objective(&self, scope: &str) {

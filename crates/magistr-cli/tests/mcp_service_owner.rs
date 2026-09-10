@@ -135,3 +135,55 @@ async fn explicit_unix_feed_is_refused_on_unsupported_platforms() {
         io::ErrorKind::Unsupported
     );
 }
+
+#[tokio::test]
+async fn a_host_writer_is_admitted_beside_the_service_owner_and_readers_see_both() {
+    use magistr_engine::tas::{ChunkStatus, NativeReader, ProjectAuthority, WriterRole};
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("project");
+    let cfg = config(&root, &tmp.path().join("data"), "beside");
+    let owner = MagistrService::new(root.clone(), &cfg)
+        .await
+        .expect("service owner");
+    // The cockpit or loop is the other role: admitted beside the service.
+    let host = ProjectAuthority::admit(&cfg, WriterRole::Host)
+        .expect("host beside the service")
+        .open();
+    assert_eq!(host.project_id(), "beside");
+    host.roadmap_add_chunk(
+        "from-host".into(),
+        "Host mutation".into(),
+        String::new(),
+        ChunkStatus::Pending,
+        100,
+        String::new(),
+        vec![],
+        vec![],
+        None,
+        None,
+    )
+    .expect("host writes under its lease");
+    // Neither role admits a second of itself while the first is alive.
+    assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
+    assert_eq!(
+        ProjectAuthority::admit(&cfg, WriterRole::Host)
+            .expect_err("second host")
+            .kind(),
+        io::ErrorKind::WouldBlock
+    );
+    // A reader needs no lease and sees the host's write on the shared store.
+    let observer = NativeReader::open(&cfg);
+    assert!(observer.roadmap_chunk("from-host").is_some());
+    assert!(
+        cfg.data_dir
+            .join("roadmap/sessions/beside.host-owner.lock")
+            .is_file(),
+        "the host holds its own lock file beside the service's"
+    );
+    drop(host);
+    ProjectAuthority::admit(&cfg, WriterRole::Host).expect("host released independently");
+    drop(owner);
+    MagistrService::new(root, &cfg)
+        .await
+        .expect("service released independently");
+}

@@ -1,9 +1,11 @@
 //! The think-and-ship engines, in-process, and their live feed.
 //!
-//! [`EngineClient::open`] opens the project's store through
-//! magistr-engine's [`NativeEngines`](magistr_engine::NativeEngines) —
-//! before the terminal is taken over, so a store that cannot be opened is
-//! reported on a normal stdout and never inside the alternate screen —
+//! [`EngineClient::open`] admits the process as the project's host through
+//! magistr-engine's [`ProjectAuthority`](magistr_engine::ProjectAuthority)
+//! and holds the writer, [`NativeEngines`](magistr_engine::NativeEngines) —
+//! before the terminal is taken over, so a store that cannot be opened or a
+//! refused lease is reported on a normal stdout and never inside the
+//! alternate screen —
 //! and [`EngineClient::subscribe`] attaches to the broadcast socket
 //! `magistr mcp-serve` binds, relaying every frame and every change of
 //! attachment onto the inbox as [`Msg::Engine`](crate::cockpit::Msg::Engine).

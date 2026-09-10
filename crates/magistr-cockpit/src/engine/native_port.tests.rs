@@ -1,5 +1,5 @@
 use magistr_engine::tas::BlockerKind;
-use magistr_engine::{ChunkStatus, TasConfig};
+use magistr_engine::{ChunkStatus, NativeEngines, ProjectAuthority, TasConfig, WriterRole};
 
 use super::*;
 use crate::cockpit::{Dock, EngineCmd};
@@ -13,7 +13,10 @@ fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
     let config = TasConfig::from_lookup(&root, |_| None)
         .with_data_dir(tmp.path().join("data"))
         .persist(false);
-    let engines = NativeEngines::open_for_project(&config, "dock-decisions".to_owned());
+    let engines =
+        ProjectAuthority::admit_for_project(&config, "dock-decisions".to_owned(), WriterRole::Host)
+            .expect("host admitted")
+            .open();
     engines
         .roadmap_add_chunk(
             "auth".to_owned(),
@@ -102,16 +105,14 @@ fn a_rejected_reprioritize_disposes_the_proposal_and_leaves_the_priority() {
 fn a_cleared_blocker_lifts_blocked_by_and_the_frame_takes_the_card() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = engines(&tmp);
-    engines.with_roadmap(|r| {
-        let blocked = r
-            .validate_blocked_by(
-                BlockerKind::AwaitingHuman,
-                "needs a person to pick the scheme".to_owned(),
-                None,
-            )
-            .expect("validated");
-        r.set_blocked_by("auth", blocked).map(|_| ()).expect("set");
-    });
+    engines
+        .roadmap_set_blocked_by(
+            "auth",
+            BlockerKind::AwaitingHuman,
+            "needs a person to pick the scheme".to_owned(),
+            None,
+        )
+        .expect("set");
 
     let mut dock = Dock::default();
     let chunk = engines.roadmap_chunk("auth").expect("the chunk");

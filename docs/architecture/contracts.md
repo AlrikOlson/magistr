@@ -42,12 +42,12 @@ listed separately so capability is not mistaken for integration.
 
 | Entry | Path and mutations | Admission/limitations |
 | --- | --- | --- |
-| MCP, including tools called by external coding agents | `MagistrService::{for_project,new}` → `open_engines` → embedded `UnifiedService`; native roadmap/ship/think/signal verbs, plus `magistr_*` phase and gate recording. | Owner lease acquired before opening engines; clones share it. Native verbs dispatch directly, not through the phase guard. |
-| Interactive cockpit `run` | `cmd_run_cockpit` → `EngineClient` → `NativeEnginePort` → `engine/apply`. Pin/checkpoint reasoning; start/complete chunks; resolve proposals; clear blockers; promote/ignore/snooze signals. | Direct cached native writer, outside MCP lease admission. Completion passes no ship reference. |
-| Cockpit `next` and `next-loop` | `run_cockpit_loop` → `LoopDriver`; installs the native port for each session, records gates, starts/completes judged chunks, sets human blockers, reopens self-completed chunks after failed required checks. | Direct writer outside MCP lease; completion also passes no ship reference. Outer gates cover only top-level check/test/lint. |
-| Headless/plain workflow commands | `open_native_engines` and core loop handles supply roadmap reads/prompts; their agent's MCP service performs native workflow writes. | No outer `LoopDriver` judge/reopen/custom-gate guarantee. Loop JSON and cost/session records are separate persistence. |
-| Bare/roadmap cockpit | `cockpit_model_on` opens/subscribes/reseeds `EngineClient`. | Does not install a native command port or session command consumer. Rendered controls alone do not establish a working writer. |
-| Library escape hatches | Public `NativeEngines::{open,open_for_project,with_roadmap,with_think,with_ship,with_signal}`. | Constructor does not require a lease. No production callers of mutable `with_*` callbacks were found; future callers must not bypass the application boundary. |
+| MCP, including tools called by external coding agents | `MagistrService::{for_project,new}` → `ProjectAuthority::admit(Service)` → `publish` → `serve` → embedded `UnifiedService`; native roadmap/ship/think/signal verbs, plus `magistr_*` phase and gate recording. | Service lease acquired before opening engines; clones share it. Native verbs dispatch directly, not through the phase guard. |
+| Interactive cockpit `run` | `cmd_run_cockpit` → `EngineClient::open` (`ProjectAuthority::admit(Host)`) → `NativeEnginePort` → `engine/apply`. Pin/checkpoint reasoning; start/complete chunks; resolve proposals; clear blockers; promote/ignore/snooze signals. | Admitted host writer beside the agent's service; a second cockpit or loop on the project is refused. Completion passes no ship reference. |
+| Cockpit `next` and `next-loop` | `admit_native_host` → `IterationLoop` → `run_cockpit_loop` attaches `EngineClient` to the loop's writer → `LoopDriver`; installs the native port for each session, records gates, starts/completes judged chunks, sets human blockers, reopens self-completed chunks after failed required checks. | One admitted host writer per process; completion also passes no ship reference. Outer gates cover only top-level check/test/lint. |
+| Headless/plain workflow commands | `admit_native_host` and core loop handles supply roadmap reads/prompts; their agent's MCP service performs native workflow writes. | Host lease held for the loop. No outer `LoopDriver` judge/reopen/custom-gate guarantee. Loop JSON and cost/session records are separate persistence. |
+| Bare/roadmap cockpit, launcher, `roadmap show|next|status|export`, guard | `EngineClient::observe` / `open_native_reader` subscribe, reseed and read a `NativeReader`. | Observers: no lease, no writer, so they run beside any admitted host. Rendered controls alone do not establish a working writer. |
+| Library escape hatches | None. `NativeEngines` is constructed only by `ProjectAuthority::open`; `with_*` callbacks and public constructors were removed by `arch-10-project-authority`, and `open_engines` is crate-private. | The historical row named public `NativeEngines::{open,open_for_project,with_*}` with no lease; readers are the only unadmitted opening and cannot mutate. |
 
 Writer anchors: [native port](../../crates/magistr-cockpit/src/engine/native_port.rs),
 [apply](../../crates/magistr-cockpit/src/engine/apply.rs),
@@ -60,7 +60,8 @@ roadmap export writes a projection. They are filesystem administration, not an
 additional native workflow authority. They must not run concurrently with an
 admitted writer during consolidation. Roadmap exports remain disabled for this
 repository. Standalone think-and-ship, older binaries and arbitrary filesystem
-writers do not participate in the [cooperative lease](project-authority.md).
+writers do not participate in the [cooperative lease](project-authority.md);
+the Service and Host roles exclude only a second writer of their own role.
 
 Native persistence merges additions on disk but does not refresh another
 handle's cached reads. The existing two-writer and reload scenarios demonstrate
@@ -266,6 +267,21 @@ cockpit decisions receive Cancelled on turn cancellation or session teardown;
 invalid and stale responses cannot grant permission. The guide identifies policy
 metadata, compatibility selection, executable tests and provider-effect limits.
 
+## Implemented project authority
+
+`arch-10-project-authority` moves writer admission out of the MCP transport
+into the engine's [`ProjectAuthority`](project-authority.md). The MCP service
+admits the `Service` role, publishes the feed and serves the family services
+composed inside the engine crate; the cockpit, the loops and the headless
+commands admit the `Host` role; the launcher, the bare cockpit, the guard and
+the one-shot roadmap reads open a lease-free `NativeReader`. The two roles
+coexist on one store and each refuses a second writer of its own role. The
+cockpit loop attaches to the loop driver's writer instead of opening a second
+cached one. `NativeEngines` is the write capability, constructible only from an
+admitted authority, derefing to the reader; its `with_*` callbacks and public
+constructors are gone. Admission remains cooperative: no generation fencing,
+proxy attachment or exclusion of older and direct writers is claimed.
+
 ## Executable scenarios
 
 The original scenarios intentionally pinned behavior including gaps. The run
@@ -288,7 +304,7 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 | Provider cancellation while waiting/queued, fresh turn after cancellation | ACP-agent integration `agent` |
 | Codex terminal-acknowledged cancellation and restored thread/history/model | ACP-agent integration `codex_provider` |
 | Headless cancelled/empty-stream outcomes and exit mapping | CLI `orchestration::commands::run::cmd_run_headless::tests` |
-| Admitted MCP owner lifetime/contention/aliases and occupied sockets | CLI integrations `mcp_service_owner`, `mcp_project_owner` |
+| Admitted owner lifetime/contention/aliases and occupied sockets; Service and Host roles coexist and each refuses a second of itself; readers and a real `magistr roadmap status` process answer beside a running owner without a lease | Engine `tas::project_authority::tests`; cockpit `engine::client::tests`; CLI integrations `mcp_service_owner`, `mcp_project_owner` |
 | Native iteration with real recorded gates and task/think completion references | CLI integration `next_iteration_integration` |
 | Red outer gates reopen self-completion; green evidence retains it | CLI `orchestration::loop_driver::driver::tests` |
 | Cached-writer merge/reload and detached projection reseed | Engine `tas::native_engines::tests`; cockpit `engine::reseed::tests` |

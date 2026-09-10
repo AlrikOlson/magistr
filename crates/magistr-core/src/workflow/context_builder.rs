@@ -21,9 +21,9 @@ pub struct ContextBuilder {
     project_dir: PathBuf,
     spec_path: PathBuf,
     max_commits: usize,
-    /// The think-and-ship engines on a native project: spec progress then
+    /// The think-and-ship reader on a native project: spec progress then
     /// comes from chunks and `spec_path` is never opened.
-    native: Option<magistr_engine::NativeEngines>,
+    native: Option<magistr_engine::NativeReader>,
 }
 
 impl ContextBuilder {
@@ -37,10 +37,10 @@ impl ContextBuilder {
         }
     }
 
-    /// Read spec progress from the think-and-ship engines instead of
-    /// `spec_path` (open them before raw mode).
+    /// Read spec progress from the think-and-ship reader instead of
+    /// `spec_path` (open it before raw mode).
     #[must_use]
-    pub fn with_native(mut self, engines: Option<magistr_engine::NativeEngines>) -> Self {
+    pub fn with_native(mut self, engines: Option<magistr_engine::NativeReader>) -> Self {
         self.native = engines;
         self
     }

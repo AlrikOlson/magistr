@@ -25,10 +25,11 @@ const LOOP_GRACE: Duration = Duration::from_secs(5);
 
 /// Run `iter_loop` on the cockpit until it ends or the user quits.
 ///
-/// What can fail loudly happens on the normal terminal first: on a
-/// native project the think-and-ship engines open (for the live feed) —
-/// a store that cannot be opened is printed on stdout and nothing else
-/// happens. Then the terminal is taken over, the driver spawned beside
+/// What can fail loudly happened on the normal terminal already: on a
+/// native project the entry point admitted this process as the host and
+/// opened the loop's engines, and the cockpit attaches to that one writer
+/// rather than opening a second cached one. Then the terminal is taken
+/// over, the driver spawned beside
 /// the runtime (the feed tapped so the driver sees the chunks an
 /// iteration completes), and the cockpit run; leaving restores the
 /// terminal, the driver ends with its session, and the summary and the
@@ -43,20 +44,7 @@ pub(crate) async fn run_cockpit_loop(
     persist: bool,
     profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
-    let engines = if wf.is_native() {
-        match EngineClient::open(dir) {
-            Ok(engines) => Some(engines),
-            Err(err) => {
-                println!(
-                    "magistr: cannot open the think-and-ship store for {}: {err}",
-                    dir.display()
-                );
-                return Err(eyre::eyre!("the cockpit did not start"));
-            }
-        }
-    } else {
-        None
-    };
+    let engines = iter_loop.native().cloned().map(EngineClient::attach);
     let auto_pause = crate::config::user_config::load()
         .map(|cfg| cfg.general.auto_pause_or_default())
         .unwrap_or(true);
@@ -89,14 +77,14 @@ pub(crate) async fn run_cockpit_loop(
     // served by the driver off its own thread, never by a session.
     let driver = match &engines {
         Some(engines) => driver.checkpoints(Box::new(SpinePort::at(
-            session_engine(dir, engines.engines().clone()),
+            session_engine(dir, engines.reader().clone()),
             dir,
         ))),
         None => driver,
     };
     let seed = engines
         .as_ref()
-        .map(|engines| StoreSeed::read(engines.engines()));
+        .map(|engines| StoreSeed::read(engines.reader()));
     // The socket carries the driver's own iterations; the timer is the
     // safety net for a store written while nothing is attached (the
     // driver re-seeds only at each iteration start).

@@ -127,11 +127,11 @@ impl IterationLoop {
 
     /// The canonical constructor.
     ///
-    /// `native` carries the think-and-ship engines a caller opened BEFORE
-    /// entering raw mode. With `None`, the backend is resolved from
+    /// `native` carries the admitted think-and-ship writer a caller opened
+    /// BEFORE entering raw mode. With `None`, the backend is resolved from
     /// `.magistr/project.json` (`roadmap::backend_for`): a native project
-    /// opens its engines here and takes its progress from the roadmap; a
-    /// yaml project reads `spec_path` as it always did.
+    /// admits this process as its host here and takes its progress from the
+    /// roadmap; a yaml project reads `spec_path` as it always did.
     pub fn open(
         project_dir: impl Into<PathBuf>,
         spec_path: impl Into<PathBuf>,
@@ -140,7 +140,10 @@ impl IterationLoop {
     ) -> Result<Self> {
         let project_dir = project_dir.into();
         let spec_path = spec_path.into();
-        let native = native.or_else(|| auto_native(&project_dir));
+        let native = match native {
+            Some(engines) => Some(engines),
+            None => auto_native(&project_dir)?,
+        };
 
         let summary = match &native {
             Some(engines) => super::native_summary::native_spec_summary(engines),
@@ -209,7 +212,10 @@ impl IterationLoop {
             std::fs::read_to_string(&state_path).map_err(|e| MagistrError::io(&state_path, e))?;
         let state: IterationState = serde_json::from_str(&content).map_err(recovery_error)?;
         validate_state(&state).map_err(recovery_error)?;
-        let native = native.or_else(|| auto_native(&project_dir));
+        let native = match native {
+            Some(engines) => Some(engines),
+            None => auto_native(&project_dir)?,
+        };
 
         Ok(Self {
             state,
@@ -574,14 +580,18 @@ fn git_head_sha(project_dir: &Path) -> Option<String> {
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 
-/// The engines for a project whose `project.json` resolves to think-and-ship
-/// (`None` on a yaml or spec-file project). Opens on the store the
-/// environment names — prints load banners, so call it before raw mode.
-fn auto_native(project_dir: &Path) -> Option<NativeEngines> {
-    use magistr_engine::TasConfig;
-    crate::roadmap::backend_for(project_dir)
-        .is_native()
-        .then(|| NativeEngines::open(&TasConfig::from_env(project_dir)))
+/// The admitted host writer for a project whose `project.json` resolves to
+/// think-and-ship (`None` on a yaml or spec-file project). Admits on the
+/// store the environment names — prints load banners, so call it before
+/// raw mode — and refuses loudly when another host holds the project.
+fn auto_native(project_dir: &Path) -> Result<Option<NativeEngines>> {
+    use magistr_engine::{ProjectAuthority, TasConfig, WriterRole};
+    if !crate::roadmap::backend_for(project_dir).is_native() {
+        return Ok(None);
+    }
+    ProjectAuthority::admit(&TasConfig::from_env(project_dir), WriterRole::Host)
+        .map(|authority| Some(authority.open()))
+        .map_err(|source| MagistrError::io(project_dir, source))
 }
 
 #[cfg(test)]

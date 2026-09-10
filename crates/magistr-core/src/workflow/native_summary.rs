@@ -2,7 +2,7 @@
 //! spec progress (the iteration loop, the workflow config, the prompt
 //! context) reads chunks on a native project and never opens `spec.file`.
 
-use magistr_engine::NativeEngines;
+use magistr_engine::NativeReader;
 
 use super::spec::SpecSummary;
 
@@ -11,7 +11,7 @@ use super::spec::SpecSummary;
 /// so `all_done()` means "no ready chunk". Re-reads the roadmap first: the
 /// agent's `magistr mcp-serve` writes it between turns.
 #[must_use]
-pub fn native_spec_summary(engines: &NativeEngines) -> SpecSummary {
+pub fn native_spec_summary(engines: &NativeReader) -> SpecSummary {
     engines.reload_roadmap();
     let progress = engines.roadmap_progress();
     let unchecked_items: Vec<String> = engines

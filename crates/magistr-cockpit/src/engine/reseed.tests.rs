@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-use magistr_engine::{ChunkStatus, SignalKind, TasConfig};
+use magistr_engine::{
+    ChunkStatus, NativeEngines, ProjectAuthority, SignalKind, TasConfig, WriterRole,
+};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::*;
@@ -15,7 +17,9 @@ fn config(tmp: &tempfile::TempDir) -> TasConfig {
 }
 
 fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
-    NativeEngines::open_for_project(&config(tmp), "reseeded".to_owned())
+    ProjectAuthority::admit_for_project(&config(tmp), "reseeded".to_owned(), WriterRole::Host)
+        .expect("host admitted")
+        .open()
 }
 
 fn add_chunk(engines: &NativeEngines, id: &str) {
@@ -51,7 +55,7 @@ async fn a_write_by_another_process_reaches_the_inbox_as_a_seed() {
     add_chunk(&engines, "base");
 
     let (inbox, mut rx) = Inbox::channel();
-    let task = spawn_reseed(engines.clone(), FeedAttached::new(), inbox, TICK);
+    let task = spawn_reseed(engines.reader(), FeedAttached::new(), inbox, TICK);
 
     // Nothing changed: nothing is posted, and the cockpit stays idle.
     assert!(
@@ -88,7 +92,7 @@ async fn an_attached_feed_stands_the_re_seed_down() {
     let (inbox, mut rx) = Inbox::channel();
     let attached = FeedAttached::new();
     attached.set(true);
-    let task = spawn_reseed(engines.clone(), attached.clone(), inbox, TICK);
+    let task = spawn_reseed(engines.reader(), attached.clone(), inbox, TICK);
     // Let the task take its opening stamp before the store moves under it.
     tokio::time::sleep(TICK).await;
 
@@ -111,7 +115,7 @@ async fn an_attached_feed_stands_the_re_seed_down() {
 async fn it_ends_once_the_loop_is_gone() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (inbox, rx) = Inbox::channel();
-    let task = spawn_reseed(engines(&tmp), FeedAttached::new(), inbox, TICK);
+    let task = spawn_reseed(engines(&tmp).reader(), FeedAttached::new(), inbox, TICK);
     tokio::time::sleep(TICK / 2).await;
     drop(rx);
     tokio::time::timeout(Duration::from_secs(2), task)
@@ -127,14 +131,20 @@ async fn a_signal_captured_by_another_process_reaches_the_seed() {
     add_chunk(&engines, "base");
 
     let (inbox, mut rx) = Inbox::channel();
-    let task = spawn_reseed(engines.clone(), FeedAttached::new(), inbox, TICK);
+    let task = spawn_reseed(engines.reader(), FeedAttached::new(), inbox, TICK);
     // Let the task take its opening stamp before the store moves under it.
     tokio::time::sleep(TICK).await;
 
     // A second host on the same store — what `magistr mcp-serve` is. Its
     // capture is invisible to this cockpit's in-memory signal engine, so
     // only a reload can put it in the seed.
-    let server = NativeEngines::open_for_project(&config(&tmp), "reseeded".to_owned());
+    let server = ProjectAuthority::admit_for_project(
+        &config(&tmp),
+        "reseeded".to_owned(),
+        WriterRole::Service,
+    )
+    .expect("service admitted")
+    .open();
     let captured = server.signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned());
 
     let seed = next_seed(&mut rx, Duration::from_secs(5))

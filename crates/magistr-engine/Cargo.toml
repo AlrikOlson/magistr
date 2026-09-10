@@ -14,7 +14,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 thiserror = "2"
-tokio = { version = "1", features = ["sync", "net", "io-util", "rt"] }
+tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
 # Native think-and-ship subsystem (roadmap / think / ship / signal engines run
 # in-process, sharing the XDG store with any external think-and-ship server).
 # Published form; see [patch.crates-io] in the workspace root for the local

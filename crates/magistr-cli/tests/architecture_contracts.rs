@@ -1,10 +1,12 @@
 //! Executable baseline for the native workflow boundaries documented in
 //! `docs/architecture/contracts.md`. These scenarios characterize the
-//! current engine facade; they do not imply MCP owner admission or peer fencing.
+//! admitted engine facade; they do not imply peer fencing.
 
 use std::process::Command;
 
-use magistr_engine::{NativeEngines, ShipGuardState, TasConfig};
+use magistr_engine::{
+    NativeEngines, NativeReader, ProjectAuthority, ShipGuardState, TasConfig, WriterRole,
+};
 use think_and_ship::roadmap::domain::ChunkStatus;
 use think_and_ship::ship::domain::task::TaskType;
 
@@ -12,6 +14,12 @@ fn config(tmp: &tempfile::TempDir) -> TasConfig {
     let root = tmp.path().join("project");
     std::fs::create_dir_all(&root).expect("project directory");
     TasConfig::from_lookup(root, |_| None).with_data_dir(tmp.path().join("native-store"))
+}
+
+fn host(config: &TasConfig, project_id: &str) -> NativeEngines {
+    ProjectAuthority::admit_for_project(config, project_id.into(), WriterRole::Host)
+        .expect("host admitted")
+        .open()
 }
 
 fn objective_with_task(engines: &NativeEngines, scope: &str, task: &str) {
@@ -34,7 +42,7 @@ fn objective_with_task(engines: &NativeEngines, scope: &str, task: &str) {
 fn a_project_shares_one_objective_and_active_task_while_another_project_is_independent() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let config = config(&tmp);
-    let owner = NativeEngines::open_for_project(&config, "project-a".into());
+    let owner = host(&config, "project-a");
     let shared = owner.clone();
     objective_with_task(&owner, "chunk:first", "first-verify");
 
@@ -60,13 +68,17 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
     assert_eq!(owner.ship_status()["active_task"]["id"], "first-verify");
     assert_eq!(owner.ship_tasks().len(), 2);
 
-    // Reopening the same project reads the persisted shared objective and
-    // task. This sequential observation is not a concurrent-writer guarantee.
-    let reopened = NativeEngines::open_for_project(&config, "project-a".into());
+    // Reopening the same project in the other admitted role reads the
+    // persisted shared objective and task. This sequential observation is
+    // not a concurrent-writer guarantee.
+    let reopened =
+        ProjectAuthority::admit_for_project(&config, "project-a".into(), WriterRole::Service)
+            .expect("service admitted")
+            .open();
     assert_eq!(reopened.ship_status()["objective"]["scope"], "chunk:second");
     assert!(reopened.ship_start_task("second-verify").is_err());
 
-    let independent = NativeEngines::open_for_project(&config, "project-b".into());
+    let independent = host(&config, "project-b");
     assert!(independent.ship_status()["objective"].is_null());
     objective_with_task(&independent, "chunk:independent", "independent-verify");
     assert_eq!(
@@ -80,7 +92,7 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
 fn native_completion_phase_admission_and_finalization_have_distinct_evidence_contracts() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let config = config(&tmp);
-    let engines = NativeEngines::open_for_project(&config, "completion".into());
+    let engines = host(&config, "completion");
     engines
         .roadmap_add_chunk(
             "fixture".into(),
@@ -160,7 +172,7 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
         "{report}"
     );
 
-    let reopened = NativeEngines::open_for_project(&config, "completion".into());
+    let reopened = NativeReader::open_for_project(&config, "completion".into());
     assert_eq!(reopened.ship_status()["objective"]["status"], "completed");
     assert_eq!(reopened.ship_status()["checks"][0]["passed"], false);
     let chunk = reopened.roadmap_chunk("fixture").expect("persisted chunk");
