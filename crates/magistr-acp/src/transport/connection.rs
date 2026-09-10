@@ -16,10 +16,9 @@ use tokio::sync::mpsc;
 
 use super::command::AcpCommand;
 use super::command_loop::{self, HandshakeSender};
-use crate::handlers::terminal::{self, TerminalManager};
-use crate::handlers::{fs, permission};
+use crate::handlers::effects::EffectBridge;
 use crate::stderr_tail::StderrTail;
-use crate::{AcpError, AcpEvent, AcpPermissionRequest, AcpSessionMode, Result};
+use crate::{AcpError, AcpEvent, AcpSessionMode, Result};
 
 /// Everything the connection task owns.
 pub(crate) struct ConnectionInputs {
@@ -30,13 +29,10 @@ pub(crate) struct ConnectionInputs {
     pub session_meta: Option<Meta>,
     pub cmd_rx: mpsc::UnboundedReceiver<AcpCommand>,
     pub event_tx: mpsc::UnboundedSender<Result<AcpEvent>>,
-    pub perm_tx: mpsc::UnboundedSender<AcpPermissionRequest>,
     pub ready: Arc<AtomicBool>,
     pub handshake_tx: HandshakeSender,
     pub stderr_tail: StderrTail,
-    /// The agent's terminals, shared with the transport handle so the
-    /// cockpit's held kill reaches the child `terminal/create` spawned.
-    pub terminals: TerminalManager,
+    pub effects: Arc<EffectBridge>,
 }
 
 /// Build the `Client` connection over `component` and run it to completion.
@@ -50,10 +46,29 @@ pub(crate) async fn run_connection(
     inputs: ConnectionInputs,
 ) {
     let event_tx = inputs.event_tx.clone();
-    let perm_tx = inputs.perm_tx.clone();
-    let terminals: TerminalManager = Arc::clone(&inputs.terminals);
+    let effects = Arc::clone(&inputs.effects);
 
-    let outcome = Client
+    // Every host effect is asynchronous, including admission before a spawn.
+    // Keeping all of them off the dispatch loop lets cancel and updates arrive
+    // while the application is deciding a permission request.
+    macro_rules! effect_handler {
+        ($builder:expr, $request:ty, $method:ident) => {
+            $builder.on_receive_request(
+                {
+                    let effects = Arc::clone(&effects);
+                    async move |req: $request, responder, cx| {
+                        let effects = effects.for_request();
+                        cx.spawn(async move {
+                            responder.respond_with_result(effects.$method(req).await)
+                        })?;
+                        Ok(())
+                    }
+                },
+                on_receive_request!(),
+            )
+        };
+    }
+    let client = Client
         .builder()
         .name("magistr")
         .on_receive_notification(
@@ -71,104 +86,32 @@ pub(crate) async fn run_connection(
         )
         .on_receive_request(
             {
-                let (perm_tx, event_tx) = (perm_tx.clone(), event_tx.clone());
+                let effects = Arc::clone(&effects);
                 async move |req: RequestPermissionRequest, responder, cx| {
-                    let (perm_tx, event_tx) = (perm_tx.clone(), event_tx.clone());
-                    cx.spawn(async move {
-                        responder
-                            .respond(permission::request_permission(req, &perm_tx, &event_tx).await)
-                    })?;
+                    let effects = effects.for_request();
+                    cx.spawn(
+                        async move { responder.respond(effects.request_permission(req).await) },
+                    )?;
                     Ok(())
                 }
             },
             on_receive_request!(),
-        )
-        .on_receive_request(
-            {
-                let event_tx = event_tx.clone();
-                async move |req: ReadTextFileRequest, responder, cx| {
-                    let event_tx = event_tx.clone();
-                    cx.spawn(async move {
-                        responder.respond_with_result(fs::read_text_file(req, &event_tx).await)
-                    })?;
-                    Ok(())
-                }
-            },
-            on_receive_request!(),
-        )
-        .on_receive_request(
-            {
-                let event_tx = event_tx.clone();
-                async move |req: WriteTextFileRequest, responder, cx| {
-                    let event_tx = event_tx.clone();
-                    cx.spawn(async move {
-                        responder.respond_with_result(fs::write_text_file(req, &event_tx).await)
-                    })?;
-                    Ok(())
-                }
-            },
-            on_receive_request!(),
-        )
-        .on_receive_request(
-            {
-                let (terminals, event_tx) = (Arc::clone(&terminals), event_tx.clone());
-                async move |req: CreateTerminalRequest, responder, _cx| {
-                    responder
-                        .respond_with_result(terminal::create_terminal(req, &terminals, &event_tx))
-                }
-            },
-            on_receive_request!(),
-        )
-        .on_receive_request(
-            {
-                let terminals = Arc::clone(&terminals);
-                async move |req: TerminalOutputRequest, responder, _cx| {
-                    responder.respond_with_result(terminal::terminal_output(&req, &terminals))
-                }
-            },
-            on_receive_request!(),
-        )
-        .on_receive_request(
-            {
-                let terminals = Arc::clone(&terminals);
-                async move |req: WaitForTerminalExitRequest, responder, cx| {
-                    let terminals = Arc::clone(&terminals);
-                    cx.spawn(async move {
-                        responder.respond_with_result(
-                            terminal::wait_for_terminal_exit(&req, &terminals).await,
-                        )
-                    })?;
-                    Ok(())
-                }
-            },
-            on_receive_request!(),
-        )
-        .on_receive_request(
-            {
-                let terminals = Arc::clone(&terminals);
-                async move |req: KillTerminalRequest, responder, _cx| {
-                    responder.respond_with_result(terminal::kill_terminal(&req, &terminals))
-                }
-            },
-            on_receive_request!(),
-        )
-        .on_receive_request(
-            {
-                let (terminals, event_tx) = (Arc::clone(&terminals), event_tx.clone());
-                async move |req: ReleaseTerminalRequest, responder, _cx| {
-                    responder.respond_with_result(terminal::release_terminal(
-                        &req, &terminals, &event_tx,
-                    ))
-                }
-            },
-            on_receive_request!(),
-        )
+        );
+    let client = effect_handler!(client, ReadTextFileRequest, read_text_file);
+    let client = effect_handler!(client, WriteTextFileRequest, write_text_file);
+    let client = effect_handler!(client, CreateTerminalRequest, create_terminal);
+    let client = effect_handler!(client, TerminalOutputRequest, terminal_output);
+    let client = effect_handler!(client, WaitForTerminalExitRequest, wait_for_terminal_exit);
+    let client = effect_handler!(client, KillTerminalRequest, kill_terminal_request);
+    let client = effect_handler!(client, ReleaseTerminalRequest, release_terminal);
+    let outcome = client
         .connect_with(component, async move |cx| {
             command_loop::run(cx, inputs).await;
             Ok(())
         })
         .await;
 
+    effects.close();
     if let Err(e) = outcome {
         tracing::warn!(error = %e, "ACP connection ended with an error");
         let _ = event_tx.send(Err(AcpError::transport(format!(

@@ -5,9 +5,8 @@ use std::time::Duration;
 
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::schema::v1::{
-    AgentCapabilities, ClientCapabilities, FileSystemCapabilities, Implementation,
-    InitializeRequest, LoadSessionRequest, McpServer, Meta, NewSessionRequest, SessionConfigOption,
-    SessionId,
+    AgentCapabilities, ClientCapabilities, Implementation, InitializeRequest, LoadSessionRequest,
+    McpServer, Meta, NewSessionRequest, SessionConfigOption, SessionId,
 };
 use agent_client_protocol::{Agent, ConnectionTo};
 use tokio::process::Child;
@@ -30,20 +29,13 @@ pub(crate) struct AcpHandshake {
 }
 
 pub(crate) struct HandshakeInputs<'a> {
+    pub client_capabilities: ClientCapabilities,
     pub cwd: &'a Path,
     pub session_mode: &'a AcpSessionMode,
     pub mcp_servers: &'a [McpServer],
     pub session_meta: &'a Option<Meta>,
     pub event_tx: &'a mpsc::UnboundedSender<Result<AcpEvent>>,
     pub stderr_tail: &'a StderrTail,
-}
-
-fn client_capabilities() -> ClientCapabilities {
-    ClientCapabilities::new()
-        .fs(FileSystemCapabilities::new()
-            .read_text_file(true)
-            .write_text_file(true))
-        .terminal(true)
 }
 
 /// Run the handshake while watching the child. An agent that exits with a
@@ -66,7 +58,7 @@ pub(crate) async fn acp_handshake(
     };
     let requests = async {
         let init = InitializeRequest::new(ProtocolVersion::V1)
-            .client_capabilities(client_capabilities())
+            .client_capabilities(inputs.client_capabilities.clone())
             .client_info(Implementation::new("magistr", env!("CARGO_PKG_VERSION")));
         let init_response = cx
             .send_request(init)

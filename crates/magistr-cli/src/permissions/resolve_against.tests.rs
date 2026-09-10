@@ -67,3 +67,31 @@ fn a_path_that_does_not_exist_yet_is_still_resolved() {
     assert!(out.ends_with("new/file.rs"), "{out:?}");
     assert!(out.is_absolute());
 }
+
+#[cfg(unix)]
+#[test]
+fn a_missing_child_under_a_symlink_resolves_to_the_real_parent() {
+    let dir = tempfile::tempdir().unwrap();
+    let actual = dir.path().join("actual");
+    std::fs::create_dir(&actual).unwrap();
+    std::os::unix::fs::symlink(&actual, dir.path().join("alias")).unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    assert_eq!(
+        resolve_against(Some(&root), Path::new("alias/new/secret.txt")),
+        root.join("actual/new/secret.txt")
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_parent_component_follows_the_symlink_before_climbing() {
+    let dir = tempfile::tempdir().unwrap();
+    let actual = dir.path().join("actual/nested");
+    std::fs::create_dir_all(&actual).unwrap();
+    std::os::unix::fs::symlink(&actual, dir.path().join("alias")).unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    assert_eq!(
+        resolve_against(Some(&root), Path::new("alias/../secret.txt")),
+        root.join("actual/secret.txt")
+    );
+}

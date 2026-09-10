@@ -6,6 +6,7 @@
 //! (a permission prompt, a terminal's exit) is spawned off the dispatch loop
 //! by the registration code in `transport::connection`.
 
+pub(crate) mod effects;
 pub(crate) mod fs;
 pub(crate) mod permission;
 #[cfg(unix)]

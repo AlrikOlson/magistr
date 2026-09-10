@@ -73,39 +73,50 @@ async fn an_agent_that_exits_without_speaking_is_reported_with_its_exit_code() {
     assert!(!t.is_ready());
 }
 
-/// The cockpit's held kill reaches the child `terminal/create` spawned
-/// through the handle — the manager is one, shared with the connection
-/// — and does exactly what the agent's own `terminal/kill` does: the
-/// child ends, the terminal stays valid for its exit status.
-#[tokio::test]
-async fn kill_terminal_ends_a_created_terminals_child_and_names_an_unknown_one() {
-    use agent_client_protocol::schema::v1::{CreateTerminalRequest, WaitForTerminalExitRequest};
-    let t = unconnected();
-    let err = t.kill_terminal("nobody").expect_err("no such terminal");
+/// The cockpit's held kill reaches only the configured application port.
+#[test]
+fn kill_terminal_delegates_to_the_connected_capability() {
+    use magistr_application::effects::{
+        EffectAuthorizer, EffectCapabilities, EffectError, EffectFuture, EffectRequest,
+        EffectResponse,
+    };
+    use std::sync::Mutex;
+
+    #[derive(Default)]
+    struct Port {
+        killed: Mutex<Vec<String>>,
+    }
+    impl EffectPort for Port {
+        fn capabilities(&self) -> EffectCapabilities {
+            EffectCapabilities::default()
+        }
+        fn execute(
+            &self,
+            _: EffectRequest,
+            _: Arc<dyn EffectAuthorizer>,
+        ) -> EffectFuture<'_, EffectResponse> {
+            Box::pin(async { Err(EffectError::Unavailable("not part of this test".into())) })
+        }
+        fn kill_terminal(&self, id: &str) -> std::result::Result<(), EffectError> {
+            self.killed.lock().expect("lock").push(id.to_owned());
+            Ok(())
+        }
+        fn close(&self) {}
+    }
+    let mut t = unconnected();
+    let err = t.kill_terminal("nobody").expect_err("no capability");
     assert!(
         matches!(&err, AcpError::Transport(m) if m.contains("cannot kill terminal nobody")),
         "{err:?}"
     );
-    let (tx, _rx) = mpsc::unbounded_channel();
-    let req = CreateTerminalRequest::new("sess", "sleep").args(vec!["30".to_owned()]);
-    let tid = crate::handlers::terminal::create_terminal(req, &t.terminals, &tx)
-        .expect("spawn")
-        .terminal_id
-        .0
-        .to_string();
-    t.kill_terminal(&tid).expect("killed");
-    let exit = tokio::time::timeout(
-        Duration::from_secs(5),
-        crate::handlers::terminal::wait_for_terminal_exit(
-            &WaitForTerminalExitRequest::new("sess", tid.clone()),
-            &t.terminals,
-        ),
-    )
-    .await
-    .expect("the child ended promptly")
-    .expect("still a valid terminal");
-    assert_eq!(
-        exit.exit_status.exit_code, None,
-        "a killed command has no exit code — the handler's own reading of a kill"
-    );
+    let port = Arc::new(Port::default());
+    let (events, _event_rx) = mpsc::unbounded_channel();
+    let (permissions, _permission_rx) = mpsc::unbounded_channel();
+    t.effects = Some(Arc::new(EffectBridge::new(
+        Some(port.clone()),
+        permissions,
+        events,
+    )));
+    t.kill_terminal("owned").expect("delegated");
+    assert_eq!(*port.killed.lock().expect("lock"), ["owned"]);
 }

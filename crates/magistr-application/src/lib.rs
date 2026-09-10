@@ -8,6 +8,7 @@ extern crate alloc;
 
 pub mod checks;
 pub mod configuration;
+pub mod effects;
 pub mod permissions;
 pub mod projections;
 pub mod sessions;

@@ -75,6 +75,90 @@ fn a_protected_path_write_is_denied() {
     assert_eq!(decision, PolicyDecision::Deny, "even yolo never writes it");
 }
 
+#[cfg(unix)]
+#[test]
+fn a_protected_missing_target_is_denied_through_a_symlinked_parent() {
+    let dir = tempfile::tempdir().unwrap();
+    let actual = dir.path().join("actual/nested");
+    std::fs::create_dir_all(&actual).unwrap();
+    std::os::unix::fs::symlink(&actual, dir.path().join("alias")).unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let mut policy = CockpitPolicy::new(
+        PermissionProfile::Yolo,
+        Vec::new(),
+        Vec::new(),
+        vec![root.join("actual/secret.txt")],
+        true,
+    )
+    .rooted_at(Some(root))
+    .audit_to(None);
+    assert_eq!(
+        policy.decide(&write_request("alias/../secret.txt")),
+        PolicyDecision::Deny
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_protected_alias_and_a_direct_resolved_target_have_the_same_floor() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir(dir.path().join("actual")).unwrap();
+    std::os::unix::fs::symlink("actual", dir.path().join("alias")).unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let mut policy = CockpitPolicy::new(
+        PermissionProfile::Yolo,
+        Vec::new(),
+        Vec::new(),
+        vec![root.join("alias/not-created.txt")],
+        true,
+    )
+    .rooted_at(Some(root))
+    .audit_to(None);
+    assert_eq!(
+        policy.decide(&write_request("actual/not-created.txt")),
+        PolicyDecision::Deny
+    );
+}
+
+#[test]
+fn process_scope_uses_command_even_when_resolved_cwd_is_a_policy_path() {
+    let policy =
+        policy(PermissionProfile::Standard, false).rooted_at(Some(PathBuf::from("/project")));
+    let request = request(
+        "Bash",
+        serde_json::json!({
+            "command": "sh -c 'printf example'", "executable": "/bin/sh",
+            "cwd": "/project/src", "path": "/project/src",
+        }),
+        Some(ToolKind::Execute),
+    );
+    assert_eq!(policy.scope_of(&request).unwrap().key, "bash:sh");
+}
+
+#[cfg(unix)]
+#[test]
+fn unresolvable_symlink_targets_are_denied_even_with_workflow_allowance() {
+    let dir = tempfile::tempdir().unwrap();
+    std::os::unix::fs::symlink("loop", dir.path().join("loop")).unwrap();
+    let mut charter = Charter::default();
+    charter.delegate(PolicyRule::new(
+        "allow:write",
+        magistr_engine::policy::PolicyCondition::tool("Write"),
+        PolicyEffect::Allow,
+    ));
+    let mut policy = policy(PermissionProfile::Yolo, true)
+        .rooted_at(Some(dir.path().to_path_buf()))
+        .chartered(charter, None);
+    let request = write_request("loop/secret.txt");
+    let resolution = policy.evaluate_request(&request);
+    assert_eq!(resolution.outcome, PermissionOutcome::Deny);
+    assert_eq!(resolution.source, PermissionSource::Profile);
+    assert!(
+        policy.scope_of(&request).is_none(),
+        "an unresolved target cannot receive standing authority"
+    );
+}
+
 #[test]
 fn a_relative_spelling_of_a_protected_path_is_denied_once_the_policy_is_rooted() {
     for spelling in [

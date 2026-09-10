@@ -3,6 +3,7 @@
 //! Runs inside `connect_with`'s closure — outside the dispatch loop — so it
 //! may `block_task()` on responses while handlers keep being served.
 
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
@@ -18,6 +19,7 @@ use super::command::AcpCommand;
 use super::connection::ConnectionInputs;
 use super::handshake::{AcpHandshake, HandshakeInputs, acp_handshake};
 use super::wait_child::wait_child;
+use crate::handlers::effects::EffectBridge;
 use crate::stderr_tail::StderrTail;
 use crate::{AcpError, AcpEvent, Result};
 
@@ -48,6 +50,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         ready,
         handshake_tx,
         stderr_tail,
+        effects,
         ..
     } = inputs;
 
@@ -55,6 +58,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         &cx,
         &mut child,
         HandshakeInputs {
+            client_capabilities: effects.client_capabilities(),
             cwd: &cwd,
             session_mode: &session_mode,
             mcp_servers: &mcp_servers,
@@ -78,6 +82,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         }
     };
 
+    effects.bind_session(session_id.to_string());
     let _ = event_tx.send(Ok(AcpEvent::Initialized {
         agent_capabilities: Box::new(agent_capabilities),
         session_id: session_id.to_string(),
@@ -93,6 +98,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         child,
         event_tx,
         stderr_tail,
+        effects,
     };
     loop {
         let command = tokio::select! {
@@ -116,6 +122,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         }
     }
     ready.store(false, Ordering::SeqCst);
+    session.effects.close();
     kill(&mut session.child).await;
 }
 
@@ -126,6 +133,7 @@ struct Session {
     child: Option<Child>,
     event_tx: mpsc::UnboundedSender<Result<AcpEvent>>,
     stderr_tail: StderrTail,
+    effects: Arc<EffectBridge>,
 }
 
 impl Session {
@@ -223,6 +231,7 @@ impl Session {
         text: String,
         cmd_rx: &mut mpsc::UnboundedReceiver<AcpCommand>,
     ) -> std::result::Result<(), Stop> {
+        self.effects.begin_turn();
         let request = PromptRequest::new(
             self.session_id.clone(),
             vec![ContentBlock::Text(TextContent::new(text))],
@@ -287,6 +296,7 @@ impl Session {
     }
 
     fn send_cancel(&self) {
+        self.effects.cancel();
         let _ = self
             .cx
             .send_notification(CancelNotification::new(self.session_id.clone()));

@@ -38,6 +38,8 @@
 
 #![warn(missing_docs)]
 
+pub mod capabilities;
+
 mod error;
 mod event;
 mod handlers;

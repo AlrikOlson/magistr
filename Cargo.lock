@@ -2207,6 +2207,7 @@ dependencies = [
  "agent-client-protocol",
  "futures",
  "libc",
+ "magistr-application",
  "rustix 1.1.4",
  "serde",
  "serde_json",

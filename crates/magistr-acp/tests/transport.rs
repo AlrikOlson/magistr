@@ -37,6 +37,35 @@ async fn connect_with_mode(
     (transport, events, observed)
 }
 
+async fn connect_local(
+    script: Script,
+    cwd: PathBuf,
+) -> (AcpTransport, Events, std::sync::Arc<fake_agent::Observed>) {
+    let (client_end, observed, _agent) = fake_agent::spawn(script);
+    let mut transport = AcpTransport::new_with_args(PathBuf::from("fake-agent"), vec![], Some(cwd))
+        .expect("construct")
+        .local_effects();
+    transport.connect_over(client_end).await.expect("handshake");
+    let events = transport.read_events().expect("events");
+    (transport, events, observed)
+}
+
+async fn connect_allowed_local(
+    script: Script,
+    cwd: PathBuf,
+) -> (AcpTransport, Events, std::sync::Arc<fake_agent::Observed>) {
+    let (mut transport, events, observed) = connect_local(script, cwd).await;
+    let mut permissions = transport.take_permission_rx().expect("permissions");
+    tokio::spawn(async move {
+        while let Some(request) = permissions.recv().await {
+            let _ = request
+                .response_tx
+                .send(AcpPermissionResponse::Selected("allow".into()));
+        }
+    });
+    (transport, events, observed)
+}
+
 async fn next(events: &mut Events) -> magistr_acp::Result<AcpEvent> {
     tokio::time::timeout(WAIT, events.recv())
         .await
@@ -219,10 +248,13 @@ async fn the_agent_can_read_files_through_the_client() {
     let dir = tempfile::tempdir().expect("tempdir");
     let path = dir.path().join("read-me.txt");
     std::fs::write(&path, "line one\nline two").expect("write fixture");
-    let (transport, mut events, observed) = connect(Script {
-        read_file: Some(path),
-        ..Script::default()
-    })
+    let (transport, mut events, observed) = connect_allowed_local(
+        Script {
+            read_file: Some(path),
+            ..Script::default()
+        },
+        dir.path().to_path_buf(),
+    )
     .await;
     let _ = next(&mut events).await;
     transport.prompt("read").expect("prompt");
@@ -238,10 +270,13 @@ async fn the_agent_can_read_files_through_the_client() {
 
 #[tokio::test]
 async fn the_agent_can_run_a_terminal_through_the_client() {
-    let (transport, mut events, observed) = connect(Script {
-        run_terminal: Some(("sh".into(), vec!["-c".into(), "echo from-terminal".into()])),
-        ..Script::default()
-    })
+    let (transport, mut events, observed) = connect_allowed_local(
+        Script {
+            run_terminal: Some(("sh".into(), vec!["-c".into(), "echo from-terminal".into()])),
+            ..Script::default()
+        },
+        std::env::current_dir().expect("cwd"),
+    )
     .await;
     let _ = next(&mut events).await;
     transport.prompt("run").expect("prompt");
@@ -254,7 +289,10 @@ async fn the_agent_can_run_a_terminal_through_the_client() {
             _ => {}
         }
     }
-    assert_eq!(subtypes, vec!["terminal_create", "terminal_release"]);
+    assert_eq!(
+        subtypes,
+        vec!["permission_request", "terminal_create", "terminal_release"]
+    );
     let exit = observed
         .terminal_exit
         .lock()
@@ -272,16 +310,19 @@ async fn the_agent_can_run_a_terminal_through_the_client() {
 #[cfg(unix)]
 #[tokio::test]
 async fn a_terminals_bytes_stream_raw_and_the_agent_reads_stripped_text() {
-    let (transport, mut events, observed) = connect(Script {
-        run_terminal: Some((
-            "sh".into(),
-            vec![
-                "-c".into(),
-                "test -t 1 && printf '\\033[31mred\\033[0m\\n'; printf 'done\\n'".into(),
-            ],
-        )),
-        ..Script::default()
-    })
+    let (transport, mut events, observed) = connect_allowed_local(
+        Script {
+            run_terminal: Some((
+                "sh".into(),
+                vec![
+                    "-c".into(),
+                    "test -t 1 && printf '\\033[31mred\\033[0m\\n'; printf 'done\\n'".into(),
+                ],
+            )),
+            ..Script::default()
+        },
+        std::env::current_dir().expect("cwd"),
+    )
     .await;
     let _ = next(&mut events).await;
     transport.prompt("run").expect("prompt");
@@ -617,5 +658,240 @@ async fn a_sender_outlives_the_transport_handle_and_a_tap_sees_every_ok_event() 
         kinds(&seen),
         ["initialized", "update", "prompt_response"],
         "the owner's stream is the whole stream"
+    );
+}
+
+#[tokio::test]
+async fn bare_transport_advertises_no_host_effects_and_refuses_a_direct_file_read() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("private.txt");
+    std::fs::write(&path, "not available").expect("fixture");
+    let (transport, mut events, observed) = connect(Script {
+        read_file: Some(path.clone()),
+        write_file: Some((dir.path().join("should-not-exist.txt"), "forbidden".into())),
+        run_terminal: Some(("sh".into(), vec!["-c".into(), "exit 0".into()])),
+        ..Script::default()
+    })
+    .await;
+    let caps = observed
+        .client_capabilities
+        .lock()
+        .expect("lock")
+        .clone()
+        .expect("caps");
+    assert!(!caps.fs.read_text_file);
+    assert!(!caps.fs.write_text_file);
+    assert!(!caps.terminal);
+    transport.prompt("read").expect("prompt");
+    let _ = next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    assert!(observed.file_content.lock().expect("lock").is_none());
+    let errors = observed.effect_errors.lock().expect("lock");
+    assert_eq!(errors.len(), 3);
+    assert!(errors.iter().all(|error| i32::from(error.code) == -32601));
+    assert!(!dir.path().join("should-not-exist.txt").exists());
+    assert!(observed.terminal_exit.lock().expect("lock").is_none());
+}
+
+#[tokio::test]
+async fn local_effects_are_advertised_but_each_read_still_needs_host_authorization() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("private.txt");
+    std::fs::write(&path, "private content").expect("fixture");
+    let (mut transport, mut events, observed) = connect_local(
+        Script {
+            read_file: Some(path.clone()),
+            ..Script::default()
+        },
+        dir.path().to_path_buf(),
+    )
+    .await;
+    let caps = observed
+        .client_capabilities
+        .lock()
+        .expect("lock")
+        .clone()
+        .expect("caps");
+    assert!(caps.fs.read_text_file && caps.fs.write_text_file && caps.terminal);
+    let mut permissions = transport.take_permission_rx().expect("permissions");
+    transport.prompt("read").expect("prompt");
+    let request = tokio::time::timeout(WAIT, permissions.recv())
+        .await
+        .expect("request")
+        .expect("open");
+    assert_eq!(request.tool_title, "Read");
+    assert_eq!(
+        request.tool_input["file_path"],
+        std::fs::canonicalize(path)
+            .expect("canonical")
+            .to_str()
+            .expect("UTF-8")
+    );
+    request
+        .response_tx
+        .send(AcpPermissionResponse::Selected("reject".into()))
+        .expect("deny");
+    let _ = next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    assert!(observed.file_content.lock().expect("lock").is_none());
+    let errors = observed.effect_errors.lock().expect("lock");
+    assert_eq!(i32::from(errors[0].code), -32003);
+    assert_eq!(
+        errors[0].data.as_ref().expect("category")["effect"],
+        "denied"
+    );
+}
+
+#[tokio::test]
+async fn a_pending_effect_permission_keeps_dispatch_live_and_cancel_refuses_a_late_allow() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("pending.txt");
+    std::fs::write(&path, "must not read").expect("fixture");
+    let (mut transport, mut events, observed) = connect_local(
+        Script {
+            read_file: Some(path),
+            goal_extension: true,
+            ..Script::default()
+        },
+        dir.path().to_path_buf(),
+    )
+    .await;
+    let mut permissions = transport.take_permission_rx().expect("permissions");
+    transport.prompt("read").expect("prompt");
+    let request = tokio::time::timeout(WAIT, permissions.recv())
+        .await
+        .expect("request")
+        .expect("open");
+    let response = transport.extension("_session/goal", serde_json::json!({"sessionId": SESSION_ID, "action": "set", "objective": "still responsive"})).expect("extension");
+    tokio::time::timeout(WAIT, response)
+        .await
+        .expect("dispatch stays live")
+        .expect("reply")
+        .expect("response");
+    let _ = next_matching(&mut events, |event| matches!(event, AcpEvent::SessionUpdate { update, .. } if matches!(**update, SessionUpdate::SessionInfoUpdate(_)))).await;
+    transport.cancel().expect("cancel");
+    let _ = next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    assert!(
+        request
+            .response_tx
+            .send(AcpPermissionResponse::Selected("allow".into()))
+            .is_err(),
+        "cancel drops the stale reply"
+    );
+    assert!(observed.file_content.lock().expect("lock").is_none());
+    let errors = observed.effect_errors.lock().expect("lock");
+    assert_eq!(i32::from(errors[0].code), -32800);
+    assert_eq!(
+        observed.cancels.load(std::sync::atomic::Ordering::SeqCst),
+        1
+    );
+}
+
+#[tokio::test]
+async fn a_missing_host_permission_consumer_denies_a_direct_effect() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("private.txt");
+    std::fs::write(&path, "private").expect("fixture");
+    let (mut transport, mut events, observed) = connect_local(
+        Script {
+            read_file: Some(path),
+            ..Script::default()
+        },
+        dir.path().to_path_buf(),
+    )
+    .await;
+    drop(transport.take_permission_rx());
+    transport.prompt("read").expect("prompt");
+    let _ = next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    assert!(observed.file_content.lock().expect("lock").is_none());
+    assert_eq!(
+        i32::from(observed.effect_errors.lock().expect("lock")[0].code),
+        -32003
+    );
+}
+
+#[tokio::test]
+async fn a_denied_direct_write_cannot_change_the_filesystem() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("existing.txt");
+    std::fs::write(&path, "original").expect("fixture");
+    let (mut transport, mut events, observed) = connect_local(
+        Script {
+            write_file: Some((path.clone(), "replacement".into())),
+            ..Script::default()
+        },
+        dir.path().to_path_buf(),
+    )
+    .await;
+    let mut permissions = transport.take_permission_rx().expect("permissions");
+    transport.prompt("write").expect("prompt");
+    let request = tokio::time::timeout(WAIT, permissions.recv())
+        .await
+        .expect("request")
+        .expect("open");
+    assert_eq!(request.tool_title, "Write");
+    request
+        .response_tx
+        .send(AcpPermissionResponse::Selected("reject".into()))
+        .expect("deny");
+    let _ = next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    assert_eq!(
+        std::fs::read_to_string(path).expect("unchanged"),
+        "original"
+    );
+    assert_eq!(
+        i32::from(observed.effect_errors.lock().expect("lock")[0].code),
+        -32003
+    );
+}
+
+#[tokio::test]
+async fn a_denied_direct_terminal_does_not_start_a_child() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let marker = dir.path().join("not-started");
+    let (mut transport, mut events, observed) = connect_local(
+        Script {
+            run_terminal: Some((
+                "sh".into(),
+                vec!["-c".into(), format!("touch '{}'", marker.display())],
+            )),
+            ..Script::default()
+        },
+        dir.path().to_path_buf(),
+    )
+    .await;
+    let mut permissions = transport.take_permission_rx().expect("permissions");
+    transport.prompt("run").expect("prompt");
+    let request = tokio::time::timeout(WAIT, permissions.recv())
+        .await
+        .expect("request")
+        .expect("open");
+    assert_eq!(request.tool_title, "Bash");
+    assert_eq!(request.tool_input["args"][0], "-c");
+    request
+        .response_tx
+        .send(AcpPermissionResponse::Selected("reject".into()))
+        .expect("deny");
+    let _ = next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    assert!(!marker.exists());
+    assert_eq!(
+        i32::from(observed.effect_errors.lock().expect("lock")[0].code),
+        -32003
     );
 }
