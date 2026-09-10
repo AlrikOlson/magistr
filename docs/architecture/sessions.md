@@ -127,6 +127,11 @@ Transport shutdown retains task handles through timeout/caller cancellation,
 aborts tasks that exceed the deadline, and awaits their release. Explicit
 shutdown errors are returned to callers.
 
+The workflow MCP owner proxy also uses cancellable stdio. Once either copy
+direction ends, cancelling the other leaves no blocking stdin or stdout worker
+keeping the client process alive. Client EOF ends its attachment cleanly; an
+observed owner disconnect reports failure without taking over ownership.
+
 The runtime-independent application `SessionHandle` gives the cockpit explicit
 operations for turns, permissions, terminal cancellation, detach, and termination.
 Its relay stamps presentation timing and serves workbench, engine, and checkpoint
@@ -142,8 +147,14 @@ admitted only after terminal evidence for the previous turn.
 
 Cockpit `next` and `next-loop` use the same handle. Negotiated goal extensions
 enter through explicit host `begin_goal` and `clear_goal` operations; their actual
-response settles the supervised turn. Command-based goals use ordinary turn
-admission. The driver's read-only transport tap observes capabilities and echoes;
+response settles the supervised turn. Observed extension responses carry the
+admitted turn ID through the same ACP event queue as provider updates. The
+supervisor forwards earlier text before emitting the matching terminal outcome;
+an unrelated response cannot settle the active goal. The loop waits for both a
+successful extension reply and the cockpit's terminal observation before closing
+the relay, so completion cannot discard preceding transcript text. Command-based
+goals use ordinary turn admission.
+The driver's read-only transport tap observes capabilities and echoes;
 it cannot send work. The separate workflow judge retains its constrained direct
 transport path. The supervisor remains in the CLI runtime host; application
 contracts have no ACP or Tokio dependency.

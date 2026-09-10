@@ -15,11 +15,9 @@ serde_json = "1"
 sha2 = "0.10"
 thiserror = "2"
 tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
-# Native think-and-ship subsystem (roadmap / think / ship / signal engines run
-# in-process, sharing the XDG store with any external think-and-ship server).
-# Published form; see [patch.crates-io] in the workspace root for the local
-# path override used while iterating on the library.
-think-and-ship = "0.6.0"
+# First-party workflow source; the admitted Magistr owner uses the existing
+# native store. No ambient checkout, registry fallback, or second writer.
+think-and-ship = { path = "../../subsystems/workflow/crates/think-and-ship" }
 # The library's tool handlers are the one implementation of every native
 # mutation; NativeEngines calls them directly, so it names rmcp's
 # `Parameters` wrapper and `CallToolResult` — the same rmcp think-and-ship

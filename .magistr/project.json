@@ -1,6 +1,11 @@
 {
 	"custom_gates": [
 		{
+			"command": "./scripts/workflow-source-gate.sh",
+			"name": "workflow-source",
+			"required": true
+		},
+		{
 			"command": "./scripts/lint-structure.sh",
 			"name": "structure",
 			"required": true

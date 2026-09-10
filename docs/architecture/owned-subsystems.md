@@ -2,8 +2,9 @@
 
 Decision: accepted on 10 September 2026, authorized by the project owner.
 Native reasoning `think:712` supersedes the adapter-based receipt plan in
-`think:710`. This document describes the target and migration constraints;
-source adoption and the revised behavior are not implemented yet. The native
+`think:710`. Workflow source is now repository-local; typed use-case extraction
+and workspace integration remain pending. This document distinguishes the
+adopted source from the target behavior and migration constraints. The native
 roadmap remains authoritative for delivery status.
 
 ## Source baselines
@@ -17,9 +18,16 @@ recheck the source and record any change from these audited revisions.
 | Workbench | `/Users/alrik/Serious_Code/workbench-mcp` | `2a2430bbcd5dcbed00920f92c6f3e6928f387d95` | Apache-2.0 |
 
 These paths identify research inputs, not runtime or build dependencies.
-Magistr will own repository-local forks, their tests, compatibility, and release
-cadence. Preserve attribution, upstream revision, included/excluded components,
-and modification provenance. Future upstream changes are reviewed imports.
+Magistr owns the workflow fork at
+[`subsystems/workflow`](../../subsystems/workflow/PROVENANCE.md), imported after
+rechecking the clean think-and-ship checkout at the audited revision. The Rust
+service, bundled skills, tests, and their supporting documentation and fixtures
+retain their inherited layout. The root Cargo workspace and lockfile resolve
+the adopted crate for both Magistr consumers through relative path dependencies.
+The [provenance record](../../subsystems/workflow/PROVENANCE.md) identifies the
+license, included and excluded components, and verification boundary. Workbench
+source adoption remains pending. Magistr owns these forks' tests, compatibility,
+and release cadence; future upstream changes are reviewed imports.
 
 ## Why change ownership now?
 
@@ -125,20 +133,32 @@ freshness. Late results remain durable without attaching to a newer objective.
 
 ## Delivery and preserved work
 
-The native refactor now requires two source adoptions, workflow use-case
-extraction, workspace owner/client integration, and source certification.
+| Chunk | Implementation boundary |
+| --- | --- |
+| `arch-14a-workflow-source-fork` | Repository-local workflow source adopted; native state and behavior preserved |
+| `arch-14b-workflow-use-cases` | Pending: typed use cases and completion policy beneath transports |
+| `arch-14c-workbench-source-fork` | Pending: Bun/TypeScript service and Rust core adoption |
+| `arch-14d-workspace-owner` | Pending: admitted owner serving multiple clients |
+| `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |
+
+The native refactor continues with workflow use-case extraction, workspace
+source adoption, owner/client integration, and source certification.
 Receipt completion depends on both the typed workflow service and source
 snapshots. Configuration, supervision, projections, host cleanup, diagnostics,
 module gates, and final acceptance inherit the applicable dependencies.
 The former request for an upstream synchronous handler API is absorbed by
 the owned workflow extraction.
 
-Import source with behavior and persistence parity before changing semantics.
-Use repository-local dependencies and reproducible lockfiles; a temporary
+Workflow adoption preserves behavior and persistence before changing semantics.
+Continue to use repository-local dependencies and reproducible lockfiles; a
+temporary
 [Cargo override](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html)
 must have a removal point. Do not retain duplicate release-coupled versions
 or migrate a live owner's store. Imported source participates in the real
-quality gates rather than receiving a blanket vendor exemption.
+quality gates rather than receiving a blanket vendor exemption. The workflow
+crate participates in root workspace formatting, check, Clippy, and nextest;
+the structure gate tracks inherited style with a per-file baseline that may
+only decrease.
 
 The unfinished receipt implementation is preserved as a blocked checkpoint,
 including regressions and runner work. Its temporary MCP interceptions and
