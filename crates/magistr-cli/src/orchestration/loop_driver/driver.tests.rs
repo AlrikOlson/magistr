@@ -426,7 +426,7 @@ async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
             .connect(AgentConfig::new("", dir.path()).backend(Backend::Acp))
             .await
             .unwrap();
-        let (session, session_tx) = driver.open_session(transport, spec, false);
+        let (session, session_tx, _) = driver.open_session(transport, spec, false).unwrap();
         let before = driver.iter_loop.run_state().budget_total_usd;
         // These final updates are queued after the turn consumer has stopped.
         // Repeated cumulative updates from one session must count only once.
@@ -443,7 +443,7 @@ async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
         }
         assert_eq!(driver.iter_loop.run_state().budget_total_usd, before);
         drop(session_tx);
-        driver.close_session(session).await;
+        driver.close_session(session).await.unwrap();
         assert_eq!(
             driver.iter_loop.run_state().budget_total_usd,
             expected_total

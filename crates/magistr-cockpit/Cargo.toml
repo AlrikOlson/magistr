@@ -32,15 +32,16 @@ tiny-skia = { version = "0.12", default-features = false, features = ["std", "si
 zune-jpeg = "0.5"
 image-webp = "0.2"
 # The producers' channels and tasks: the inbox every producer posts on,
-# the jobs off the loop thread, the engine feed's socket, the ACP relay.
+# the jobs off the loop thread, the engine feed's socket, the session relay.
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
 # The producers behind Msg::Engine and Msg::Agent: the in-process
-# think-and-ship engines and their broadcast-socket feed, and the ACP
-# transport whose session updates the agent relay translates.
+# think-and-ship engines and their broadcast-socket feed, the application
+# session handle, and the ACP vocabulary translated at the host boundary.
 magistr-engine = { path = "../magistr-engine" }
+magistr-application = { path = "../magistr-application" }
 magistr-acp = { path = "../magistr-acp" }
 # Protocol v1 only, as everywhere in the workspace: the session-update
-# variants the relay matches on.
+# variants the host's event translation matches on.
 agent-client-protocol = "2.0"
 # Native-frame payloads.
 serde_json = "1"

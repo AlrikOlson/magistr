@@ -18,8 +18,10 @@ fn state() -> Mutex<Inner> {
         closing: false,
         legacy_cancel: false,
         control_busy: false,
+        goal_turn: None,
         capabilities: None,
         messages: None,
+        cockpit_events: None,
     })
 }
 
@@ -171,4 +173,212 @@ async fn stale_reply_does_not_disable_fresh_permission_handling() {
     let (fresh, response) = request(&options);
     permissions.answer(Some(fresh), &state());
     assert!(matches!(response.await, Ok(AcpPermissionResponse::Selected(id)) if id == "once"));
+}
+
+struct RecordingPolicy {
+    decision: magistr_cockpit::agent::PolicyDecision,
+    answers: std::sync::Arc<Mutex<Vec<magistr_cockpit::agent::PermissionKind>>>,
+}
+
+impl magistr_cockpit::agent::SessionPolicy for RecordingPolicy {
+    fn decide(
+        &mut self,
+        _request: &AcpPermissionRequest,
+    ) -> magistr_cockpit::agent::PolicyDecision {
+        self.decision
+    }
+
+    fn answered(
+        &mut self,
+        _request: &AcpPermissionRequest,
+        kind: magistr_cockpit::agent::PermissionKind,
+    ) {
+        self.answers.lock().unwrap().push(kind);
+    }
+}
+
+fn interactive() -> (
+    Permissions,
+    mpsc::UnboundedReceiver<magistr_cockpit::agent::AgentEvent>,
+    std::sync::Arc<Mutex<Vec<magistr_cockpit::agent::PermissionKind>>>,
+) {
+    let (events, receiver) = mpsc::unbounded_channel();
+    let answers = std::sync::Arc::new(Mutex::new(Vec::new()));
+    let policy = RecordingPolicy {
+        decision: magistr_cockpit::agent::PolicyDecision::Ask(
+            magistr_engine::policy::RiskTier::Medium,
+        ),
+        answers: std::sync::Arc::clone(&answers),
+    };
+    (
+        Permissions::interactive(None, Box::new(policy), events),
+        receiver,
+        answers,
+    )
+}
+
+#[tokio::test]
+async fn interactive_fabricated_and_expired_options_never_become_remembered_grants() {
+    use magistr_acp::AcpPermissionOptionKind as Kind;
+    use magistr_cockpit::agent::AgentEvent;
+    let state = state();
+    let (mut permissions, mut events, answers) = interactive();
+    let (request, reply) = request(&[("always", Kind::AllowAlways)]);
+    permissions.answer(Some(request), &state);
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionRequest { id: 1, .. })
+    ));
+    permissions.reply(1, "fabricated".into(), &state);
+    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionCancelled { id: 1 })
+    ));
+    let (request, reply) = self::request(&[("always", Kind::AllowAlways)]);
+    permissions.answer(Some(request), &state);
+    events.try_recv().unwrap();
+    drop(reply);
+    permissions.reply(2, "always".into(), &state);
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionCancelled { id: 2 })
+    ));
+    assert!(answers.lock().unwrap().is_empty());
+    assert!(permissions.pending.is_empty());
+}
+
+#[tokio::test]
+async fn interactive_always_answer_does_not_bypass_the_next_policy_ask() {
+    use magistr_acp::AcpPermissionOptionKind as Kind;
+    use magistr_cockpit::agent::{AgentEvent, PermissionKind};
+    let state = state();
+    let (mut permissions, mut events, answers) = interactive();
+    let (first, reply) = request(&[("always", Kind::AllowAlways)]);
+    permissions.answer(Some(first), &state);
+    events.try_recv().unwrap();
+    permissions.reply(1, "always".into(), &state);
+    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Selected(id)) if id == "always"));
+    assert_eq!(*answers.lock().unwrap(), vec![PermissionKind::AllowAlways]);
+    let (second, mut reply) = request(&[("once", Kind::AllowOnce)]);
+    permissions.answer(Some(second), &state);
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionRequest { id: 2, .. })
+    ));
+    assert!(matches!(
+        reply.try_recv(),
+        Err(tokio::sync::oneshot::error::TryRecvError::Empty)
+    ));
+}
+
+#[tokio::test]
+async fn interactive_lapse_removes_the_matching_card_and_late_answer_is_quiet() {
+    use magistr_cockpit::agent::AgentEvent;
+    let state = state();
+    let (mut permissions, mut events, answers) = interactive();
+    let (request, reply) = request(&[("allow", magistr_acp::AcpPermissionOptionKind::AllowOnce)]);
+    permissions.answer(Some(request), &state);
+    events.try_recv().unwrap();
+    permissions.lapse(&serde_json::json!({"tool_call_id": "unknown", "timeout_secs": 120}));
+    assert!(events.try_recv().is_err());
+    permissions.lapse(&serde_json::json!({"tool_call_id": "headless-call", "timeout_secs": 120}));
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionLapsed {
+            id: 1,
+            after_secs: 120,
+            ..
+        })
+    ));
+    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
+    permissions.reply(1, "allow".into(), &state);
+    assert!(events.try_recv().is_err());
+    assert!(answers.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn interactive_cancel_refuses_pending_late_and_stale_answers_before_fresh_turn() {
+    use magistr_cockpit::agent::AgentEvent;
+    let state = state();
+    let (mut permissions, mut events, answers) = interactive();
+    let options = [("allow", magistr_acp::AcpPermissionOptionKind::AllowOnce)];
+    let (first, reply) = request(&options);
+    permissions.answer(Some(first), &state);
+    events.try_recv().unwrap();
+    state.lock().unwrap().snapshot.cancellation_requested = true;
+    // Even a previously enqueued answer cannot acquire a grant after the
+    // synchronous cancellation reservation has returned to the client.
+    permissions.reply(1, "allow".into(), &state);
+    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionCancelled { id: 1 })
+    ));
+    let (late, reply) = request(&options);
+    permissions.answer(Some(late), &state);
+    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
+    assert!(events.try_recv().is_err());
+    assert!(answers.lock().unwrap().is_empty());
+    {
+        let mut inner = state.lock().unwrap();
+        inner.snapshot.active_turn = Some(2);
+        inner.snapshot.cancellation_requested = false;
+    }
+    let (fresh, reply) = request(&options);
+    permissions.answer(Some(fresh), &state);
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionRequest { id: 2, .. })
+    ));
+    drop(permissions);
+    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
+    assert!(matches!(
+        events.try_recv(),
+        Ok(AgentEvent::PermissionCancelled { id: 2 })
+    ));
+}
+
+#[tokio::test]
+async fn headless_and_interactive_policy_answers_select_only_the_exact_once_kind() {
+    use magistr_acp::AcpPermissionOptionKind as Kind;
+    use magistr_cockpit::agent::PolicyDecision;
+    for decision in [PolicyDecision::Allow, PolicyDecision::Deny] {
+        for options in [
+            vec![("allow", Kind::AllowOnce), ("reject", Kind::RejectOnce)],
+            vec![("always", Kind::AllowAlways)],
+            vec![("never", Kind::RejectAlways)],
+            vec![],
+        ] {
+            let state = state();
+            let mut responses = Vec::new();
+            for is_interactive in [false, true] {
+                let policy = Box::new(RecordingPolicy {
+                    decision,
+                    answers: Default::default(),
+                });
+                let (events, _receiver) = mpsc::unbounded_channel();
+                let mut permissions = if is_interactive {
+                    Permissions::interactive(None, policy, events)
+                } else {
+                    Permissions::new(None, Some((policy, NoninteractivePolicy::Refuse)))
+                };
+                let (request, reply) = request(&options);
+                permissions.answer(Some(request), &state);
+                responses.push(format!("{:?}", reply.await.unwrap()));
+            }
+            assert_eq!(
+                responses[0], responses[1],
+                "policy and exact option mapping agree across clients"
+            );
+            let expected = match decision {
+                PolicyDecision::Allow => Kind::AllowOnce,
+                PolicyDecision::Deny => Kind::RejectOnce,
+                PolicyDecision::Ask(_) => unreachable!(),
+            };
+            if !options.iter().any(|(_, kind)| *kind == expected) {
+                assert_eq!(responses[0], "Cancelled");
+            }
+        }
+    }
 }

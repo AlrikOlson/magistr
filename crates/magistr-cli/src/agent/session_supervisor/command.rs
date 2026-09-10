@@ -13,6 +13,27 @@ pub(super) enum Command {
         turn_id: Option<u64>,
     },
     Terminate,
+    Detach,
+    BeginGoal {
+        method: String,
+        params: serde_json::Value,
+        reply: oneshot::Sender<magistr_acp::Result<serde_json::Value>>,
+        turn_id: u64,
+    },
+    ClearGoal {
+        method: String,
+        params: serde_json::Value,
+    },
+    Permission {
+        id: u64,
+        option_id: String,
+    },
+    Constraint {
+        id: u64,
+        condition: String,
+    },
+    Delegate(String),
+    KillTerminal(String),
     List {
         reply: oneshot::Sender<Result<Vec<SessionInfo>>>,
     },

@@ -75,8 +75,8 @@ a coherent global revision.
 | --- | --- |
 | `run --headless`, headless `next` / `next-loop` | `AgentSession::start` → session supervisor → shared transport; supervisor owns permission handling and callers await termination before exit/next attempt. |
 | Plain `run` / workflow drains | `AgentSession::start` uses the same supervisor and resolved permission policy; drains reject missing terminal evidence. |
-| Cockpit `run`, TUI init, home resume | Direct `connect_transport` → `spawn_session`; builds project policy and returns policy-undecided requests to the UI. Home resume supplies an explicit session ID and empty opening prompt. |
-| Cockpit `next` / `next-loop` | `Connector::live` → shared transport and cockpit Session for each attempt; workflow policy and outer driver own settlement. |
+| Cockpit `run`, TUI init, home resume | `CockpitSession::start` → shared supervisor → application `SessionHandle` → cockpit relay; the supervisor owns pending Ask replies. Home resume supplies an explicit session ID and no opening prompt. |
+| Cockpit `next` / `next-loop` | `Connector::live` → shared supervisor and application handle for each attempt; ordinary turns and delegated goals enter explicit owner operations. The outer driver owns workflow settlement. |
 | Interactive setup / roadmap generation | `cmd_init_interactive` and `cmd_roadmap` start AgentSession for configuration/planning prompts; these are distinct from roadmap implementation. |
 | Workflow judge | `SessionJudge::ask` uses a fresh `Connector` transport, its own event/permission handling, refuses tools and uses its explicit model override or the shared session/provider default. |
 | Model discovery | `cmd_models` → `probe_all_providers` → `probe_runtime` uses a direct zero-turn ACP New/close probe, outside AgentConfig/shared transport setup. |
@@ -281,7 +281,9 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 | Phase/status compatibility and one project-context value across core/engine | [Core phase tests](../../crates/magistr-core/src/workflow_phase.tests.rs), [iteration status compatibility](../../crates/magistr-core/src/workflow/iteration.tests.rs) and `gathered_context_is_accepted_by_the_engine_without_conversion` in [context builder tests](../../crates/magistr-core/src/workflow/context_builder.tests.rs) |
 | Shared objective/active task, independent projects, weak completion/phase/finalize evidence | CLI integration `architecture_contracts` (temporary native store and actual failing child command) |
 | Policy Allow/Deny/Ask, protected edit/delete, remembered workflow refusal and precedence | CLI integration `cockpit_permissions`; domain permission-service and CLI session-policy companion tests |
-| Permission round trips, no title-only bypass, invalid/stale options, pending cancellation and first Ctrl-C cancel then quit | Cockpit `agent::session::tests` and TUI integration `session_harness` |
+| Permission round trips, no title-only bypass, invalid/stale options, pending cancellation and first Ctrl-C cancel then quit | CLI supervisor permission tests and CLI integration `session_harness` through the real TUI renderer |
+| Cockpit FIFO admission with ordered transcript, cancellation kept active until the provider acknowledges, stream loss without a fabricated terminal, detach retaining the resident turn | CLI integration `cockpit_session_contract` over a real in-process ACP agent |
+| Headless and cockpit attachments share policy decisions and normalized terminal outcomes; only Ask reaches the cockpit and a reply naming no offered option revokes it | `headless_and_cockpit_attachments_share_policy_decisions_and_terminal_outcomes` in [supervisor tests](../../crates/magistr-cli/src/agent/session_supervisor.tests.rs) |
 | Rejected/missing explicit model prevents inference | CLI `agent::backend::tests` |
 | Provider cancellation while waiting/queued, fresh turn after cancellation | ACP-agent integration `agent` |
 | Codex terminal-acknowledged cancellation and restored thread/history/model | ACP-agent integration `codex_provider` |

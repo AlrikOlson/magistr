@@ -22,13 +22,12 @@ flate2 = "1"
 # renders the same pixels (tui2-d0).
 fontdue = "0.9"
 # The runtime's event loop: the input thread's channel, the frame interval
-# and select! over them. Already a workspace dependency (magistr-acp).
+# and select! over them.
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
-# The producers behind Msg::Engine and Msg::Agent: the in-process
-# think-and-ship engines and their broadcast-socket feed, and the ACP
-# transport whose session updates the agent relay translates.
+# The producer behind Msg::Engine: the in-process think-and-ship engines
+# and their broadcast-socket feed. The live ACP session belongs to the CLI
+# host, which owns the supervisor and the real session harness.
 magistr-engine = { path = "../magistr-engine" }
-magistr-acp = { path = "../magistr-acp" }
 # Protocol v1 only, as everywhere in the workspace: the session-update
 # variants the relay matches on.
 agent-client-protocol = "2.0"

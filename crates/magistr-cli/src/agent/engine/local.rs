@@ -42,30 +42,6 @@ impl LocalEngineClient {
         self.side = Some(rx);
         self
     }
-
-    /// Get a reference to the underlying `AgentSession`.
-    ///
-    /// Escape hatch for features not yet abstracted by `EngineClient`
-    /// (e.g., `list_sessions`, `set_config_option`, permission handling).
-    /// Will be removed as the trait surface grows.
-    #[must_use]
-    pub fn session(&self) -> &AgentSession {
-        &self.session
-    }
-
-    /// Get a mutable reference to the underlying `AgentSession`.
-    ///
-    /// Escape hatch for features requiring mutable access (e.g.,
-    /// `take_acp_permission_rx`). Will be removed as the trait grows.
-    pub fn session_mut(&mut self) -> &mut AgentSession {
-        &mut self.session
-    }
-
-    /// Consume the client, returning the inner `AgentSession`.
-    #[must_use]
-    pub fn into_session(self) -> AgentSession {
-        self.session
-    }
 }
 
 impl EngineClient for LocalEngineClient {

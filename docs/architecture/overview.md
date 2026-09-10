@@ -48,9 +48,10 @@ ownership rules so refresh and removal can preserve user changes.
 
 [Session configuration](sessions.md) chooses an agent provider. ACP carries
 session updates and permission requests between the runtime adapter and Magistr.
-The CLI host's session supervisor owns headless turn admission, permission
-handling, terminal observations, and provider residency; the cockpit session
-migration remains separate. Providers differ in model discovery, resumption,
+The CLI host's session supervisor owns turn admission, permission handling,
+terminal observations, and provider residency for both headless and cockpit
+sessions. The cockpit uses an application session handle. Providers differ in
+model discovery, resumption,
 tool use, and cancellation; chat APIs do not supply the same coding-session
 behavior as external runtimes.
 

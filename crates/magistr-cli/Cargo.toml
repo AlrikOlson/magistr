@@ -20,6 +20,7 @@ name = "magistr"
 path = "src/main.rs"
 
 [dependencies]
+magistr-application = { path = "../magistr-application" }
 magistr-core = { path = "../magistr-core" }
 magistr-engine = { path = "../magistr-engine" }
 magistr-protocol = { path = "../magistr-protocol" }
@@ -59,6 +60,8 @@ shell-escape = "0.1"
 tempfile = "3"
 
 [dev-dependencies]
+# Replay the supervised cockpit integration harness through a real VT emulator.
+vt100 = "0.16"
 assert_cmd = "2"
 rmcp = { version = "3.1", features = ["client"] }
 insta = "1"

@@ -4,7 +4,9 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use magistr_acp::{AcpEvent, AcpSender};
+use crate::agent::cockpit_session::CockpitSession;
+use crate::agent::session_supervisor::SessionControl;
+use magistr_acp::AcpEvent;
 use magistr_cockpit::agent::{AgentEvent, SessionOptions, TurnEnd, spawn_session};
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::checkpoint::{CheckpointPort, detach};
@@ -208,6 +210,13 @@ enum Attempt {
     /// The cockpit is gone.
     Closed,
 }
+
+/// The relay task, the cockpit command sender and the owner's goal control.
+type OpenedSession = (
+    JoinHandle<Result<(), String>>,
+    UnboundedSender<Cmd>,
+    SessionControl,
+);
 
 impl LoopDriver {
     /// A driver over `iter_loop` for the project `wf` describes, running
@@ -567,11 +576,11 @@ impl LoopDriver {
                     return Err(format!("failed to start the agent: {e}"));
                 }
             };
-            let (session, session_tx) = self.open_session(transport, spec, true);
+            let (session, session_tx, _) = self.open_session(transport, spec, true)?;
             self.post(LoopEvent::Stage(LoopStage::Agent));
             let turn = self.turn(&session_tx, started, &mut ticks).await;
             drop(session_tx);
-            self.close_session(session).await;
+            self.close_session(session).await?;
             match turn {
                 Turn::Ended => {}
                 Turn::Closed => return Ok(Step::Closed),
@@ -616,17 +625,22 @@ impl LoopDriver {
     }
 
     /// Drain one finished producer before another session can report cumulative cost.
-    async fn close_session(&mut self, mut session: JoinHandle<()>) {
-        if tokio::time::timeout(SESSION_GRACE, &mut session)
-            .await
-            .is_err()
-        {
-            session.abort();
-            let _ = session.await;
-        }
+    async fn close_session(
+        &mut self,
+        mut session: JoinHandle<Result<(), String>>,
+    ) -> Result<(), String> {
+        let cleanup = match tokio::time::timeout(SESSION_GRACE, &mut session).await {
+            Ok(result) => result.map_err(|error| format!("session relay failed: {error}"))?,
+            Err(_) => {
+                session.abort();
+                let _ = session.await;
+                Err("session cleanup exceeded its deadline; the owner was aborted".to_owned())
+            }
+        };
         while let Ok(msg) = self.tap_rx.try_recv() {
             self.observe(&msg);
         }
+        cleanup
     }
 
     fn accept_turn_end(&mut self, end: TurnEnd) -> Result<(), String> {
@@ -657,7 +671,7 @@ impl LoopDriver {
         transport: magistr_acp::AcpTransport,
         spec: ResolvedSessionSpec,
         send_opening: bool,
-    ) -> (JoinHandle<()>, UnboundedSender<Cmd>) {
+    ) -> Result<OpenedSession, String> {
         self.iteration_cost_base = self.iter_loop.run_state().budget_total_usd;
         let (session_tx, session_commands) = Commands::channel();
         // The engine port acts on the loop's own in-process engines, so a
@@ -674,12 +688,13 @@ impl LoopDriver {
             options = options.opening_prompt(spec.prompt());
         }
         let (policy, _) = spec.into_permission_policy();
+        let handle = CockpitSession::start_connected(transport, options, Box::new(policy))
+            .map_err(|error| error.to_string())?;
+        let control = handle.control();
         let session = spawn_session(
-            transport,
+            Box::new(handle),
             self.inbox.tap(self.tap_tx.clone()),
             session_commands,
-            options,
-            Box::new(policy),
             workbench,
             engine,
             // The session holds no ledger of its own on the loop: every
@@ -689,7 +704,7 @@ impl LoopDriver {
             // and the boundary's is taken only once the session is gone.
             None,
         );
-        (session, session_tx)
+        Ok((session, session_tx, control))
     }
 
     /// The boundary checkpoint: the iteration's state, taken once its
@@ -827,18 +842,14 @@ impl LoopDriver {
                 return Err(format!("failed to start the agent: {e}"));
             }
         };
-        let sender = match transport.sender() {
-            Ok(sender) => sender,
-            Err(e) => return Err(e.to_string()),
-        };
         let Some(mut tap) = transport.tap_events() else {
             return Err("the transport's event stream was already taken".to_owned());
         };
-        let (session, session_tx) = self.open_session(transport, spec, false);
+        let (session, session_tx, control) = self.open_session(transport, spec, false)?;
         self.post(LoopEvent::Stage(LoopStage::Agent));
         let outcome = self
             .deliver(
-                &sender,
+                &control,
                 &mut tap,
                 &session_tx,
                 objective,
@@ -848,7 +859,7 @@ impl LoopDriver {
             )
             .await;
         drop(session_tx);
-        self.close_session(session).await;
+        self.close_session(session).await?;
         outcome
     }
 
@@ -859,7 +870,7 @@ impl LoopDriver {
     #[allow(clippy::too_many_arguments)]
     async fn deliver(
         &mut self,
-        sender: &AcpSender,
+        control: &SessionControl,
         tap: &mut UnboundedReceiver<AcpEvent>,
         session: &UnboundedSender<Cmd>,
         objective: &str,
@@ -871,10 +882,12 @@ impl LoopDriver {
         // list (it may land before or after `Initialized`; after gets
         // [`COMMANDS_GRACE`]).
         let mut delegation = Delegation::new();
+        let mut application_ready = false;
         let negotiate = tokio::time::Instant::now() + NEGOTIATE_TIMEOUT;
         let mut grace: Option<tokio::time::Instant> = None;
         loop {
             if delegation.initialized()
+                && application_ready
                 && (pick == DeliveryKind::Extension || delegation.commands_listed())
             {
                 break;
@@ -904,6 +917,9 @@ impl LoopDriver {
                         let _ = session.send(other);
                     }
                     Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
+                    Wake::Tap(Msg::Agent(AgentEvent::Initialized { .. })) => {
+                        application_ready = true;
+                    }
                     Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
                         return Err(format!("the agent failed: {e}"));
                     }
@@ -911,6 +927,9 @@ impl LoopDriver {
                 },
                 () = tokio::time::sleep_until(deadline) => break,
             }
+        }
+        if !application_ready {
+            return Err("the supervised session did not finish initialization".to_owned());
         }
         let Some(delivery) = delegation.candidate_of_kind(pick) else {
             return Ok(Attempt::Unavailable(
@@ -928,15 +947,15 @@ impl LoopDriver {
             Delivery::Extension { method, session_id } => {
                 self.note(format!("goal ({method}) → {objective}"));
                 pending = Some(
-                    sender
-                        .extension(method, AgentGoal::set_params(session_id, objective))
+                    control
+                        .begin_goal(method.clone(), AgentGoal::set_params(session_id, objective))
                         .map_err(|e| e.to_string())?,
                 );
             }
             Delivery::Command { name } => {
                 let turn = AgentGoal::command_turn(name, objective);
                 self.note(format!("goal → {turn}"));
-                sender.prompt(&turn).map_err(|e| e.to_string())?;
+                session.send(Cmd::Prompt(turn)).map_err(|e| e.to_string())?;
             }
         }
         let echo_deadline = tokio::time::Instant::now() + self.echo_timeout;
@@ -982,7 +1001,7 @@ impl LoopDriver {
             }
         };
         if !confirmed {
-            self.clear_delivery(sender, &delivery, turn_ended, ticks)
+            self.clear_delivery(control, session, &delivery, turn_ended, ticks)
                 .await;
             return Ok(Attempt::Unconfirmed(format!(
                 "no echo within {:.1} s",
@@ -999,9 +1018,8 @@ impl LoopDriver {
         ));
         let extension = matches!(delivery, Delivery::Extension { .. });
         if extension && pending.is_none() {
-            // Resolved during the echo wait: the loop is already over.
-            self.inbox
-                .send(Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)));
+            // The supervisor emitted the observed outcome before resolving
+            // the extension reply. Do not fabricate another terminal event.
         } else if !extension && turn_ended {
             // The command turn's end reached the cockpit's tap while the
             // echo was still being waited for on the transport's — the
@@ -1016,22 +1034,20 @@ impl LoopDriver {
                 tokio::select! {
                     event = drained(&mut tap) => {
                         if event.is_none() {
-                            tap = None;
-                            if pending.is_none() {
-                                break;
-                            }
+                            return Err(
+                                "the agent observation stream ended before the delegated turn settled"
+                                    .to_owned(),
+                            );
                         }
                     }
                     answer = extension_answer(&mut pending) => {
                         pending = None;
-                        if let Ok(Err(e)) = answer {
-                            self.note(format!("the goal loop ended with an error: {e}"));
-                        }
+                        answer
+                            .map_err(|error| format!("the goal response was lost: {error}"))?
+                            .map_err(|error| format!("the goal loop failed: {error}"))?;
                         if extension {
-                            // The goal turn was the agent's own, so no
-                            // `PromptResponse` reaches the cockpit: the
-                            // request resolving is the turn's end.
-                            self.inbox.send(Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)));
+                            // Terminal evidence is emitted by the same owner
+                            // that admitted and supervised the extension.
                             break;
                         }
                     }
@@ -1062,18 +1078,19 @@ impl LoopDriver {
     /// vehicle, so falling back cannot leave two goals set.
     async fn clear_delivery(
         &mut self,
-        sender: &AcpSender,
+        control: &SessionControl,
+        session: &UnboundedSender<Cmd>,
         delivery: &Delivery,
         turn_ended: bool,
         ticks: &mut Interval,
     ) {
         match delivery {
             Delivery::Extension { method, session_id } => {
-                let _ = sender.extension(method, AgentGoal::clear_params(session_id));
+                let _ = control.clear_goal(method.clone(), AgentGoal::clear_params(session_id));
             }
             Delivery::Command { name } => {
                 if !turn_ended {
-                    let _ = sender.cancel();
+                    let _ = session.send(Cmd::Cancel);
                     // The transport drops a prompt while one is in
                     // flight, so wait for the turn's end first.
                     let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
@@ -1088,7 +1105,7 @@ impl LoopDriver {
                         }
                     }
                 }
-                let _ = sender.prompt(&AgentGoal::command_clear_turn(name));
+                let _ = session.send(Cmd::Prompt(AgentGoal::command_clear_turn(name)));
             }
         }
         tokio::time::sleep(CLEAR_GRACE).await;

@@ -92,14 +92,15 @@ Claude loading requires a readable, valid transcript; missing or malformed
 history is an error. Codex validates restored thread identity. Unknown provider
 capabilities default to unsupported.
 
-## Headless session supervision
+## Shared session supervision
 
 The CLI host's [SessionSupervisor](../../crates/magistr-cli/src/agent/session_supervisor/mod.rs)
-owns the headless provider connection.
-`AgentSession` and `AcpBackend` delegate to it; they do not run a second
-permission or lifecycle loop. The supervisor consumes the resolved specification
-and its permission policy, admits the opening prompt after the handshake's
-model/effort selection, queues follow-ups in order, and runs one provider turn
+owns both headless and cockpit provider connections.
+`AgentSession`, `AcpBackend`, and the cockpit's `CockpitSession` handle delegate
+to it; they do not run separate permission or lifecycle loops. The supervisor
+consumes the resolved specification and its permission policy, admits the opening
+prompt after the handshake's model/effort selection, queues follow-ups in order,
+and runs one provider turn
 at a time. Configuration changes are refused while a turn or an earlier
 configuration operation is active.
 
@@ -126,10 +127,26 @@ Transport shutdown retains task handles through timeout/caller cancellation,
 aborts tasks that exceed the deadline, and awaits their release. Explicit
 shutdown errors are returned to callers.
 
-This migration applies to sessions opened through `AgentSession`. The cockpit,
-loop connector, and judge still use their existing direct transport paths;
-`arch-09-cockpit-session` owns the cockpit migration. The supervisor lives in
-the CLI runtime host while the application contracts remain runtime independent.
+The runtime-independent application `SessionHandle` gives the cockpit explicit
+operations for turns, permissions, terminal cancellation, detach, and termination.
+Its relay stamps presentation timing and serves workbench, engine, and checkpoint
+commands; it does not own ACP connections or permission reply channels. The
+supervisor emits initialization and the opening user text before provider output.
+An absent opening prompt leaves the session idle, including home resume.
+
+Interactive Ask stays pending inside the same owner that handles unattended
+permissions. Replies must name an offered option and still belong to a live
+request before remembered policy can change. Cancellation, expiry, stream loss,
+and shutdown remove pending cards and revoke their replies. A new turn is
+admitted only after terminal evidence for the previous turn.
+
+Cockpit `next` and `next-loop` use the same handle. Negotiated goal extensions
+enter through explicit host `begin_goal` and `clear_goal` operations; their actual
+response settles the supervised turn. Command-based goals use ordinary turn
+admission. The driver's read-only transport tap observes capabilities and echoes;
+it cannot send work. The separate workflow judge retains its constrained direct
+transport path. The supervisor remains in the CLI runtime host; application
+contracts have no ACP or Tokio dependency.
 
 ## Permission decisions
 

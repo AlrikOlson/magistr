@@ -5,7 +5,7 @@
 use std::time::Duration;
 
 use color_eyre::eyre::{self, Context as _};
-use magistr_cockpit::agent::{SessionOptions, spawn_session};
+use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::cockpit::{Model, Summary};
 use magistr_cockpit::engine::{EngineClient, NativeEnginePort, StoreSeed};
 use magistr_cockpit::theme::Theme;
@@ -13,6 +13,7 @@ use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};
 
 use crate::agent;
+use crate::agent::cockpit_session::CockpitSession;
 use crate::orchestration::ledger::{SpinePort, session_engine};
 use crate::permissions::PermissionProfile;
 
@@ -53,21 +54,16 @@ pub async fn cmd_run_cockpit(
     let root = spec.cwd().to_path_buf();
     let profile = spec.permission_profile();
     let workflow = spec.workflow_permissions();
-    let transport = match spec.connect_transport().await {
-        Ok(transport) => transport,
+    let (title, debug) =
+        crate::orchestration::commands::chrome::chrome(&root, Some("acp"), spec.model());
+    let session_handle = match CockpitSession::start(spec).await {
+        Ok(session) => session,
         Err(err) => {
             println!("magistr: cannot start the agent: {err}");
             return Err(eyre::eyre!("the cockpit did not start"));
         }
     };
-    let mut session = SessionOptions::new();
-    if !spec.prompt().trim().is_empty() {
-        session = session.opening_prompt(spec.prompt());
-    }
-
     let theme = Theme::from_os();
-    let (title, debug) =
-        crate::orchestration::commands::chrome::chrome(&root, Some("acp"), spec.model());
     let terminal =
         RealTerminal::stdio().context("the cockpit needs a terminal on stdin and stdout")?;
     let size = terminal.size()?;
@@ -79,17 +75,14 @@ pub async fn cmd_run_cockpit(
     // The safety net under the socket: what the agent's own
     // `magistr mcp-serve` records reaches the tabs even with no feed.
     let reseed = engines.reseed(runtime.inbox());
-    let (policy, _) = spec.into_permission_policy();
     // The workbench port is the project's own workbench-mcp, spoken to
     // over its stdio; the server is only spawned once something is asked
     // of it. The engine port is the same in-process engines the rail
     // seed reads.
-    let session = spawn_session(
-        transport,
+    let mut session = spawn_session(
+        Box::new(session_handle),
         runtime.inbox(),
         commands,
-        session,
-        Box::new(policy),
         crate::orchestration::commands::workbench_port::workbench_port(&root),
         Some(Box::new(NativeEnginePort::new(engines.engines().clone()))),
         Some(Box::new(SpinePort::at(
@@ -114,10 +107,20 @@ pub async fn cmd_run_cockpit(
         .await;
     feed.abort();
     reseed.abort();
-    // The runtime is gone, so the session's commands have ended: it drops
-    // the transport, which ends the agent. Give it a moment, never wait
-    // forever on a stuck child.
-    let _ = tokio::time::timeout(SESSION_GRACE, session).await;
+    // Dropping a JoinHandle detaches its task. Keep ownership across the
+    // deadline and await an aborted relay so its supervisor is released.
+    match tokio::time::timeout(SESSION_GRACE, &mut session).await {
+        Ok(result) => result
+            .context("the session relay failed")?
+            .map_err(|error| eyre::eyre!("session cleanup failed: {error}"))?,
+        Err(_) => {
+            session.abort();
+            let _ = session.await;
+            return Err(eyre::eyre!(
+                "session cleanup exceeded its deadline; the owner was aborted"
+            ));
+        }
+    }
     let model = model.context("the cockpit failed")?;
     println!("{}", Summary::of(&model));
     Ok(())

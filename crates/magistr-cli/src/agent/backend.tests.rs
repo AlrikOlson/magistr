@@ -124,7 +124,7 @@ async fn model_startup_preserves_default_sentinel_and_honors_a_valid_override() 
         .expect("transport")
         .session_model((!requested.eq_ignore_ascii_case("default")).then(|| requested.into()));
         transport.connect_over(client).await.expect("ACP handshake");
-        let (backend, mut messages, _) = AcpBackend::start_connected("which model", transport)
+        let (backend, mut messages) = AcpBackend::start_connected("which model", transport)
             .await
             .expect("selected model starts");
         let text = tokio::time::timeout(std::time::Duration::from_secs(2), async {
@@ -712,7 +712,7 @@ async fn cancellation_request_does_not_fabricate_terminal_confirmation() {
     )
     .expect("transport");
     transport.connect_over(client).await.expect("handshake");
-    let (mut backend, _messages, _) = AcpBackend::start_connected("wait", transport)
+    let (mut backend, _messages) = AcpBackend::start_connected("wait", transport)
         .await
         .expect("start");
     backend.cancel();

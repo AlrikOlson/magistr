@@ -1,327 +1,326 @@
-use std::path::PathBuf;
+use std::future::Future;
+use std::pin::Pin;
+use std::time::Duration;
 
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc, oneshot};
 
 use super::*;
-use crate::agent::AskEverything;
+use crate::agent::{ToolRecord, TurnEnd};
+use crate::cockpit::{WorkbenchCmd, WorkbenchEvent};
+use crate::harness::FakeWorkbench;
 
-struct RecordingPolicy(Arc<Mutex<Vec<PermissionKind>>>);
-
-struct FixedPolicy(PolicyDecision);
-
-impl SessionPolicy for FixedPolicy {
-    fn decide(&mut self, _request: &AcpPermissionRequest) -> PolicyDecision {
-        self.0
-    }
+struct FakeSession {
+    events: mpsc::UnboundedReceiver<AgentEvent>,
+    calls: mpsc::UnboundedSender<String>,
+    cleanup: Option<oneshot::Receiver<()>>,
+    cleanup_error: Option<String>,
 }
 
-impl SessionPolicy for RecordingPolicy {
-    fn decide(&mut self, _request: &AcpPermissionRequest) -> PolicyDecision {
-        PolicyDecision::Ask(magistr_engine::policy::RiskTier::Medium)
-    }
+impl SessionHandle for FakeSession {
+    type Event = AgentEvent;
 
-    fn answered(&mut self, _request: &AcpPermissionRequest, kind: PermissionKind) {
-        self.0.lock().expect("recorded answers").push(kind);
-    }
-}
-
-/// A session over an unconnected transport: enough to drive `request`
-/// and `event` — the relay's own folds — without an agent.
-fn session(inbox: Inbox) -> Session {
-    Session {
-        transport: AcpTransport::new_with_args(PathBuf::from("fake-acp-agent"), Vec::new(), None)
-            .expect("a transport"),
-        inbox,
-        options: SessionOptions::new(),
-        policy: Box::new(AskEverything),
-        workbench: None,
-        engine: None,
-        checkpoints: None,
-        pending: HashMap::new(),
-        next_id: 1,
-        cancelled: false,
-        tool_started: HashMap::new(),
-        started: Instant::now(),
-    }
-}
-
-/// A request the policy cannot decide, with its reply channel held.
-fn ask(
-    call: &str,
-) -> (
-    AcpPermissionRequest,
-    oneshot::Receiver<AcpPermissionResponse>,
-) {
-    let (response_tx, response_rx) = oneshot::channel();
-    let request = AcpPermissionRequest {
-        tool_call_id: call.to_owned(),
-        tool_title: "Bash".to_owned(),
-        tool_input: serde_json::Value::Null,
-        tool_kind: None,
-        options: vec![
-            AcpPermissionOption {
-                option_id: "allow".to_owned(),
-                kind: AcpPermissionOptionKind::AllowOnce,
-            },
-            AcpPermissionOption {
-                option_id: "reject".to_owned(),
-                kind: AcpPermissionOptionKind::RejectOnce,
-            },
-        ],
-        response_tx,
-    };
-    (request, response_rx)
-}
-
-/// The transport's own word that `call` timed out and was denied.
-fn lapsed(call: &str) -> magistr_acp::Result<AcpEvent> {
-    Ok(AcpEvent::System {
-        subtype: "permission_lapsed".to_owned(),
-        data: serde_json::json!({
-            "tool_call_id": call,
-            "tool_title": "Bash",
-            "timeout_secs": 120,
-        }),
-    })
-}
-
-/// The transport denied a request nobody answered: the session finds
-/// the card by the call's id, forgets its reply channel, and posts the
-/// lapse under the id the cockpit knows the card by.
-#[tokio::test]
-async fn a_lapsed_request_leaves_the_cockpit_by_its_own_id() {
-    let (inbox, mut rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let (request, _reply) = ask("tc-7");
-    assert!(session.request(request));
-    let id = match rx.try_recv() {
-        Ok(Msg::Agent(AgentEvent::PermissionRequest { id, .. })) => id,
-        other => panic!("the ask reached the inbox: {other:?}"),
-    };
-    assert!(session.event(lapsed("tc-7")).await);
-    assert!(matches!(
-        rx.try_recv(),
-        Ok(Msg::Agent(AgentEvent::PermissionLapsed { id: lapsed_id, title, after_secs: 120 }))
-            if lapsed_id == id && title == "Bash"
-    ));
-    assert!(session.pending.is_empty(), "the reply channel is forgotten");
-    // A late answer for the lapsed id is nobody's.
-    session.command(Cmd::Permission {
-        id,
-        option_id: "allow".to_owned(),
-    });
-    assert!(rx.try_recv().is_err(), "nothing else is posted");
-}
-
-/// A lapse for a call the cockpit never saw — the policy answered it,
-/// or it was answered already — posts nothing, not even a System line.
-#[tokio::test]
-async fn a_lapse_for_an_unknown_call_is_quiet() {
-    let (inbox, mut rx) = Inbox::channel();
-    let mut session = session(inbox);
-    assert!(session.event(lapsed("tc-9")).await);
-    assert!(rx.try_recv().is_err(), "nothing posted");
-}
-
-/// Even an Always answer is the policy's decision to remember: a later
-/// governance Ask must reach the cockpit again.
-#[tokio::test]
-async fn a_policy_ask_is_not_bypassed_by_an_earlier_always_answer() {
-    let (inbox, mut rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let (mut request, reply) = ask("first");
-    request.options.push(AcpPermissionOption {
-        option_id: "always".to_owned(),
-        kind: AcpPermissionOptionKind::AllowAlways,
-    });
-    assert!(session.request(request));
-    session.command(Cmd::Permission {
-        id: 1,
-        option_id: "always".to_owned(),
-    });
-    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Selected(id)) if id == "always"));
-    rx.try_recv().expect("the first permission card");
-
-    let (request, mut reply) = ask("second");
-    assert!(session.request(request));
-    assert!(matches!(
-        reply.try_recv(),
-        Err(oneshot::error::TryRecvError::Empty)
-    ));
-    assert!(matches!(
-        rx.try_recv(),
-        Ok(Msg::Agent(AgentEvent::PermissionRequest { id: 2, .. }))
-    ));
-}
-
-#[tokio::test]
-async fn a_fabricated_permission_option_is_cancelled() {
-    let (inbox, _rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let answers = Arc::new(Mutex::new(Vec::new()));
-    session.policy = Box::new(RecordingPolicy(Arc::clone(&answers)));
-    let (request, reply) = ask("fabricated");
-    assert!(session.request(request));
-    session.command(Cmd::Permission {
-        id: 1,
-        option_id: "allow_everything".to_owned(),
-    });
-    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
-    assert!(session.pending.is_empty());
-    assert!(answers.lock().expect("recorded answers").is_empty());
-}
-
-#[tokio::test]
-async fn an_answer_after_the_transport_dropped_its_wait_is_not_remembered() {
-    let (inbox, _rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let answers = Arc::new(Mutex::new(Vec::new()));
-    session.policy = Box::new(RecordingPolicy(Arc::clone(&answers)));
-    let (mut request, reply) = ask("expired");
-    request.options.push(AcpPermissionOption {
-        option_id: "always".to_owned(),
-        kind: AcpPermissionOptionKind::AllowAlways,
-    });
-    assert!(session.request(request));
-    drop(reply);
-    session.command(Cmd::Permission {
-        id: 1,
-        option_id: "always".to_owned(),
-    });
-    assert!(answers.lock().expect("recorded answers").is_empty());
-}
-
-#[tokio::test]
-async fn cancelling_answers_every_pending_request_and_forgets_late_choices() {
-    let (inbox, _rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let (first, first_reply) = ask("first");
-    let (second, second_reply) = ask("second");
-    assert!(session.request(first));
-    assert!(session.request(second));
-    session.command(Cmd::Cancel);
-    assert!(
-        session.pending.is_empty(),
-        "cancelling clears pending cards"
-    );
-    assert!(matches!(
-        first_reply.await,
-        Ok(AcpPermissionResponse::Cancelled)
-    ));
-    assert!(matches!(
-        second_reply.await,
-        Ok(AcpPermissionResponse::Cancelled)
-    ));
-    session.command(Cmd::Permission {
-        id: 1,
-        option_id: "allow".to_owned(),
-    });
-    assert!(session.pending.is_empty());
-}
-
-#[tokio::test]
-async fn requests_arriving_after_cancellation_wait_for_a_fresh_prompt() {
-    for decision in [
-        PolicyDecision::Allow,
-        PolicyDecision::Ask(magistr_engine::policy::RiskTier::Medium),
-    ] {
-        let (inbox, mut rx) = Inbox::channel();
-        let mut session = session(inbox);
-        session.policy = Box::new(FixedPolicy(decision));
-        session.command(Cmd::Cancel);
-        rx.try_recv()
-            .expect("unconnected transport reports cancellation error");
-        let (request, mut reply) = ask("queued-before-cancel");
-        assert!(session.request(request));
-        assert!(matches!(
-            reply.try_recv(),
-            Ok(AcpPermissionResponse::Cancelled)
-        ));
-        assert!(session.pending.is_empty());
-        assert!(
-            rx.try_recv().is_err(),
-            "a stale request never becomes a card"
-        );
-
-        session.command(Cmd::Prompt("new turn".to_owned()));
-        rx.try_recv()
-            .expect("unconnected transport reports prompt error");
-        let (request, mut reply) = ask("fresh-turn");
-        assert!(session.request(request));
-        match decision {
-            PolicyDecision::Allow => assert!(
-                matches!(reply.try_recv(), Ok(AcpPermissionResponse::Selected(id)) if id == "allow")
-            ),
-            PolicyDecision::Ask(_) => assert!(matches!(
-                rx.try_recv(),
-                Ok(Msg::Agent(AgentEvent::PermissionRequest { .. }))
-            )),
-            PolicyDecision::Deny => unreachable!("allow and ask cases"),
+    fn submit_turn(&mut self, text: &str) -> Result<(), String> {
+        self.calls
+            .send(format!("prompt {text}"))
+            .expect("call observer");
+        if text == "refused" {
+            Err("turn admission refused".to_owned())
+        } else {
+            Ok(())
         }
     }
+
+    fn cancel_turn(&mut self) -> Result<(), String> {
+        self.calls.send("cancel".to_owned()).expect("call observer");
+        Ok(())
+    }
+
+    fn answer_permission(&mut self, id: u64, option_id: &str) -> Result<(), String> {
+        self.calls
+            .send(format!("answer {id} {option_id}"))
+            .expect("call observer");
+        Ok(())
+    }
+
+    fn constrain_permission(&mut self, id: u64, condition: &str) -> Result<(), String> {
+        self.calls
+            .send(format!("constrain {id} {condition}"))
+            .expect("call observer");
+        Ok(())
+    }
+
+    fn delegate_permission(&mut self, key: &str) -> Result<(), String> {
+        self.calls
+            .send(format!("delegate {key}"))
+            .expect("call observer");
+        Ok(())
+    }
+
+    fn kill_terminal(&mut self, id: &str) -> Result<(), String> {
+        self.calls
+            .send(format!("kill {id}"))
+            .expect("call observer");
+        Ok(())
+    }
+
+    fn detach_client(&mut self) {
+        self.calls.send("detach".to_owned()).expect("call observer");
+    }
+
+    fn next_event(&mut self) -> Pin<Box<dyn Future<Output = Option<AgentEvent>> + Send + '_>> {
+        Box::pin(self.events.recv())
+    }
+
+    fn terminate_session(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + '_>> {
+        Box::pin(async move {
+            self.calls
+                .send("terminating".to_owned())
+                .expect("call observer");
+            if let Some(cleanup) = self.cleanup.take() {
+                cleanup.await.expect("cleanup released");
+            }
+            self.calls
+                .send("terminated".to_owned())
+                .expect("call observer");
+            self.cleanup_error.take().map_or(Ok(()), Err)
+        })
+    }
+}
+
+fn fake() -> (
+    FakeSession,
+    mpsc::UnboundedSender<AgentEvent>,
+    mpsc::UnboundedReceiver<String>,
+) {
+    let (events_tx, events) = mpsc::unbounded_channel();
+    let (calls, calls_rx) = mpsc::unbounded_channel();
+    (
+        FakeSession {
+            events,
+            calls,
+            cleanup: None,
+            cleanup_error: None,
+        },
+        events_tx,
+        calls_rx,
+    )
+}
+
+async fn next<T>(receiver: &mut mpsc::UnboundedReceiver<T>) -> T {
+    tokio::time::timeout(Duration::from_secs(2), receiver.recv())
+        .await
+        .expect("relay made progress")
+        .expect("event receiver remains open")
 }
 
 #[tokio::test]
-async fn dropping_the_session_answers_pending_requests_with_cancellation() {
-    let (inbox, _rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let (request, reply) = ask("shutdown");
-    assert!(session.request(request));
-    drop(session);
-    assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
-}
-
-#[tokio::test]
-async fn transport_closure_cancels_pending_requests_before_runtime_shutdown() {
-    let (inbox, _rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let (request, reply) = ask("disconnect");
-    assert!(session.request(request));
-    let (event_tx, events) = tokio::sync::mpsc::unbounded_channel();
-    let (_command_tx, commands) = Commands::channel();
-    drop(event_tx);
-    let task = tokio::spawn(session.run(Some(events), None, commands));
-    let answer = tokio::time::timeout(std::time::Duration::from_secs(2), reply).await;
-    task.abort();
-    assert!(matches!(answer, Ok(Ok(AcpPermissionResponse::Cancelled))));
-}
-
-#[tokio::test]
-async fn a_transport_error_cancels_pending_requests_before_channels_close() {
-    let (inbox, _rx) = Inbox::channel();
-    let mut session = session(inbox);
-    let (request, mut reply) = ask("disconnect");
-    assert!(session.request(request));
+async fn forwards_session_events_without_echoing_prompts_or_owning_permission_ids() {
+    let (handle, events, mut calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    let reported = [
+        AgentEvent::Initialized {
+            session_id: "retained".to_owned(),
+            model: Some("fast".to_owned()),
+        },
+        AgentEvent::UserText("opening\n".to_owned()),
+        AgentEvent::PermissionCancelled { id: 71 },
+        AgentEvent::Text("answer".to_owned()),
+        AgentEvent::TurnEnded(TurnEnd::Cancelled),
+    ];
+    for event in &reported {
+        events.send(event.clone()).expect("session event sent");
+    }
+    for event in reported {
+        assert!(matches!(next(&mut messages).await, Msg::Agent(actual) if actual == event));
+    }
+    commands_tx
+        .send(Cmd::Prompt("follow-up".to_owned()))
+        .expect("command sent");
+    assert_eq!(next(&mut calls).await, "prompt follow-up");
     assert!(
-        session
-            .event(Err(magistr_acp::AcpError::Transport(
-                "connection closed".to_owned()
-            )))
-            .await
+        messages.try_recv().is_err(),
+        "the model already echoed this prompt"
     );
-    assert!(matches!(
-        reply.try_recv(),
-        Ok(AcpPermissionResponse::Cancelled)
-    ));
-    assert!(session.pending.is_empty());
+    drop(commands_tx);
+    task.await
+        .expect("relay task joins")
+        .expect("session cleanup succeeds");
+}
+
+#[tokio::test]
+async fn routes_commands_to_the_owner_and_reports_admission_errors() {
+    let (handle, _events, mut calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    for cmd in [
+        Cmd::Constraint {
+            id: 8,
+            condition: "only this file".to_owned(),
+        },
+        Cmd::Permission {
+            id: 8,
+            option_id: "allow".to_owned(),
+        },
+        Cmd::Delegate("read".to_owned()),
+        Cmd::Kill(KillCmd::Terminal("terminal-2".to_owned())),
+        Cmd::Cancel,
+        Cmd::Prompt("refused".to_owned()),
+    ] {
+        commands_tx.send(cmd).expect("command sent");
+    }
+    for expected in [
+        "constrain 8 only this file",
+        "answer 8 allow",
+        "delegate read",
+        "kill terminal-2",
+        "cancel",
+        "prompt refused",
+    ] {
+        assert_eq!(next(&mut calls).await, expected);
+    }
+    assert!(
+        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::Error(error)) if error == "turn admission refused")
+    );
+    drop(commands_tx);
+    task.await
+        .expect("relay task joins")
+        .expect("session cleanup succeeds");
+}
+
+#[tokio::test]
+async fn ending_the_runtime_waits_for_owned_session_cleanup() {
+    let (mut handle, _events, mut calls) = fake();
+    let (release, cleanup) = oneshot::channel();
+    handle.cleanup = Some(cleanup);
+    let (inbox, _messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    drop(commands_tx);
+    assert_eq!(next(&mut calls).await, "terminating");
+    assert!(
+        !task.is_finished(),
+        "session cleanup must finish before relay shutdown"
+    );
+    release.send(()).expect("cleanup released");
+    task.await
+        .expect("relay task joins")
+        .expect("session cleanup succeeds");
+    assert_eq!(next(&mut calls).await, "terminated");
+}
+
+#[tokio::test]
+async fn a_closed_observer_terminates_the_owned_session() {
+    let (handle, events, mut calls) = fake();
+    let (inbox, messages) = Inbox::channel();
+    let (_commands_tx, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    drop(messages);
+    events
+        .send(AgentEvent::Text("late event".to_owned()))
+        .expect("event sent");
+    assert_eq!(next(&mut calls).await, "terminating");
+    task.await
+        .expect("relay task joins")
+        .expect("session cleanup succeeds");
+    assert_eq!(next(&mut calls).await, "terminated");
+}
+
+#[tokio::test]
+async fn cleanup_errors_are_reported_to_the_inbox() {
+    let (mut handle, _events, _calls) = fake();
+    handle.cleanup_error = Some("child cleanup failed".to_owned());
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    drop(commands_tx);
+    assert_eq!(
+        task.await.expect("relay task joins"),
+        Err("child cleanup failed".to_owned())
+    );
+    assert!(
+        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::Error(error)) if error == "child cleanup failed")
+    );
+}
+
+#[tokio::test]
+async fn provider_observation_ending_preserves_local_effects() {
+    let (handle, events, mut calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let workbench = FakeWorkbench::new().with_file("src/main.rs", "fn main() {}");
+    let task = spawn_session(
+        Box::new(handle),
+        inbox,
+        commands,
+        Some(Box::new(workbench)),
+        None,
+        None,
+    );
+    drop(events);
+    commands_tx
+        .send(Cmd::Workbench(WorkbenchCmd::Open {
+            path: "src/main.rs".to_owned(),
+        }))
+        .expect("command sent");
+    assert!(
+        matches!(next(&mut messages).await, Msg::Workbench(WorkbenchEvent::Opened { path, content }) if path == "src/main.rs" && content == "fn main() {}")
+    );
+    assert!(
+        calls.try_recv().is_err(),
+        "the local read never reaches the session owner"
+    );
+    drop(commands_tx);
+    task.await
+        .expect("relay task joins")
+        .expect("session cleanup succeeds");
 }
 
 #[test]
-fn a_policy_answer_never_selects_an_incompatible_permission_kind() {
-    let allow = [AcpPermissionOption {
-        option_id: "allow".to_owned(),
-        kind: AcpPermissionOptionKind::AllowOnce,
-    }];
-    assert!(matches!(
-        select(&allow, AcpPermissionOptionKind::RejectOnce),
-        AcpPermissionResponse::Cancelled
-    ));
-    let reject = [AcpPermissionOption {
-        option_id: "reject".to_owned(),
-        kind: AcpPermissionOptionKind::RejectOnce,
-    }];
-    assert!(matches!(
-        select(&reject, AcpPermissionOptionKind::AllowOnce),
-        AcpPermissionResponse::Cancelled
-    ));
+fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
+    let (handle, _events, _calls) = fake();
+    let (inbox, _messages) = Inbox::channel();
+    let mut session = Session {
+        handle: Box::new(handle),
+        inbox,
+        workbench: None,
+        engine: None,
+        checkpoints: None,
+        tool_started: HashMap::from([(
+            "tool-1".to_owned(),
+            Instant::now() - Duration::from_secs(3),
+        )]),
+        started: Instant::now() - Duration::from_secs(9),
+    };
+    let mut event = AgentEvent::ToolCallUpdate {
+        id: "tool-1".to_owned(),
+        title: Some("done".to_owned()),
+        status: Some(ToolStatus::Completed),
+        diff: None,
+        duration_ms: None,
+        images: Vec::new(),
+        record: Box::new(ToolRecord::default()),
+    };
+    session.stamp(&mut event);
+    assert!(
+        matches!(event, AgentEvent::ToolCallUpdate { duration_ms: Some(ms), title: Some(title), .. } if ms >= 3000 && title == "done")
+    );
+    assert!(
+        session.tool_started.is_empty(),
+        "a terminal tool update releases its clock"
+    );
+    let mut usage = AgentEvent::Usage {
+        used: 12,
+        size: 100,
+        cost_cents: Some(4),
+        elapsed_secs: None,
+    };
+    session.stamp(&mut usage);
+    assert!(
+        matches!(usage, AgentEvent::Usage { elapsed_secs: Some(secs), used: 12, size: 100, cost_cents: Some(4) } if secs >= 9)
+    );
 }

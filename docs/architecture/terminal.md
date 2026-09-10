@@ -109,6 +109,9 @@ the results.
 
 The interface suites cover purity, crate boundaries, layout, input fuzzing,
 runtime behavior, session transport, terminal output, and rendering goldens.
+The real session harness lives in `magistr-cli/tests/session_harness.rs`, where
+it can construct the shared supervisor and drive the actual terminal renderer
+without making the terminal crate depend on its application host.
 Release-only latency tests measure full-frame and pixel-output budgets.
 
 The [module reference](../reference/cockpit-modules.md) contains the complete
