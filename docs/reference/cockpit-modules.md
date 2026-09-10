@@ -43,7 +43,7 @@ See [terminal architecture](../architecture/terminal.md) for the data flow and
 | no input can panic the renderer | `magistr-tui/tests/fuzz.rs` |
 | the loop coalesces bursts, and a frame folds what already arrived | `magistr-tui/tests/runtime_harness.rs` |
 | the turn stage streams, scrolls and repaints within its latency bound | `magistr-tui/tests/turn_harness.rs` |
-| a real ACP session drives the cockpit end to end | `magistr-tui/tests/session_harness.rs` |
+| a real ACP session drives the cockpit end to end | `magistr-cli/tests/session_harness.rs` |
 | jobs and engines never stall the loop | `magistr-tui/tests/jobs_engines_harness.rs` |
 | the compositor's economy: one transmit per change, none while idle | `magistr-tui/tests/graphics_harness.rs` |
 | nothing else in the process can write to the screen mid-session | `magistr-tui/tests/terminal_integrity.rs` |
@@ -71,23 +71,23 @@ test. The section headings separate the crates and their module families.
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit/src/agent/mod.rs` | ACP session events, commands, and permission handling | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/ask_everything.rs` | Permission policy that asks the user for every request | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/mod.rs` | ACP session events, commands, and permission handling | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/ask_everything.rs` | Permission policy that asks the user for every request | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/ask_plan.rs` | Plan details attached to a permission request: steps, images, and scope | `magistr-cockpit/src/cockpit/update.tests.rs` |
-| `magistr-cockpit/src/agent/edit_diff.rs` | The diff a tool call carried | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/event.rs` | Agent session events | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/image_block.rs` | An image block the protocol carried | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/permission_choice.rs` | One option the agent offers in a permission request | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/edit_diff.rs` | The diff a tool call carried | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/event.rs` | Agent session events | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/image_block.rs` | An image block the protocol carried | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/permission_choice.rs` | One option the agent offers in a permission request | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/permission_kind.rs` | What choosing a permission option means | `magistr-cockpit/src/agent/permission_kind.tests.rs` |
-| `magistr-cockpit/src/agent/policy_decision.rs` | What a policy says about one permission request | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/session.rs` | Relays transport events to the inbox and cockpit commands to the transport; maps permission timeouts to `AgentEvent::PermissionLapsed` | `magistr-tui/tests/session_harness.rs`, `magistr-cockpit/src/agent/session.tests.rs` |
-| `magistr-cockpit/src/agent/session_options.rs` | What a session does once the handshake completes | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/session_policy.rs` | The decision a session asks for before a permission request reaches the cockpit | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/policy_decision.rs` | What a policy says about one permission request | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/session.rs` | Relays application session events to the inbox and explicit commands to the shared owner; stamps presentation timing and serves local effect ports | `magistr-cli/tests/session_harness.rs`, `magistr-cockpit/src/agent/session.tests.rs` |
+| `magistr-cockpit/src/agent/session_options.rs` | What a session does once the handshake completes | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/session_policy.rs` | The decision a session asks for before a permission request reaches the cockpit | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/tool_record.rs` | Tool-call metadata and output, bounded by `ToolRecord::CAP` and stored with the source line | `magistr-cockpit/src/agent/tool_record.tests.rs`, `magistr-cockpit/src/turn/stream.tests.rs` |
-| `magistr-cockpit/src/agent/tool_status.rs` | Where a tool call stands | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/tool_verb.rs` | What kind of thing a tool call does, as a one-word verb column | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/tool_status.rs` | Where a tool call stands | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/tool_verb.rs` | What kind of thing a tool call does, as a one-word verb column | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/translate.rs` | From the protocol's events to the cockpit's | `magistr-cockpit/src/agent/translate.tests.rs` |
-| `magistr-cockpit/src/agent/turn_end.rs` | Why a turn ended | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/turn_end.rs` | Why a turn ended | `magistr-cli/tests/session_harness.rs` |
 
 ### `capability` — what the surface can show
 
@@ -110,10 +110,10 @@ test. The section headings separate the crates and their module families.
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit/src/checkpoint/mod.rs` | Checkpoint operations for the session ledger | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/checkpoint/apply.rs` | One checkpoint command, carried out on a port | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/checkpoint/detach.rs` | Runs checkpoint operations on a blocking thread and returns results through the inbox | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/checkpoint/port.rs` | Where a checkpoint is actually taken, resumed and forked | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/checkpoint/mod.rs` | Checkpoint operations for the session ledger | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/checkpoint/apply.rs` | One checkpoint command, carried out on a port | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/checkpoint/detach.rs` | Runs checkpoint operations on a blocking thread and returns results through the inbox | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/checkpoint/port.rs` | Where a checkpoint is actually taken, resumed and forked | `magistr-cli/tests/session_harness.rs` |
 
 ### `cockpit` — the Elm core
 
@@ -431,13 +431,13 @@ test. The section headings separate the crates and their module families.
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit/src/workbench/mod.rs` | The workbench behind the cockpit's Changes tab, as a port | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/workbench/mod.rs` | The workbench behind the cockpit's Changes tab, as a port | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/apply.rs` | One workbench command, carried out on a port | `magistr-cockpit/src/workbench/apply.tests.rs` |
-| `magistr-cockpit/src/workbench/journal_entry.rs` | One journaled edit, as the workbench recorded it | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/workbench/journal_entry.rs` | One journaled edit, as the workbench recorded it | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/mcp_client.rs` | One MCP server on the other end of a pipe | `magistr-cockpit/src/workbench/mcp_client.tests.rs` |
 | `magistr-cockpit/src/workbench/mcp_workbench.rs` | The workbench port over a real workbench-mcp server | `magistr-cockpit/src/workbench/mcp_workbench.tests.rs` |
-| `magistr-cockpit/src/workbench/port.rs` | What the cockpit asks of a workbench | `magistr-tui/tests/session_harness.rs` |
-| `magistr-cockpit/src/workbench/run_row.rs` | One structured row of a workbench run's result | `magistr-tui/tests/session_harness.rs` |
+| `magistr-cockpit/src/workbench/port.rs` | What the cockpit asks of a workbench | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/workbench/run_row.rs` | One structured row of a workbench run's result | `magistr-cli/tests/session_harness.rs` |
 
 ## Module index — `crates/magistr-tui`
 
@@ -451,7 +451,7 @@ test. The section headings separate the crates and their module families.
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-tui/src/flat/mod.rs` | The flat cockpit: the session as linear, append-only plain text | `magistr-tui/tests/session_harness.rs` |
+| `magistr-tui/src/flat/mod.rs` | The flat cockpit: the session as linear, append-only plain text | `magistr-cli/tests/session_harness.rs` |
 | `magistr-tui/src/flat/echo.rs` | Incremental echo of the live prompt, confined to one terminal row | `magistr-tui/src/flat/echo.tests.rs` |
 | `magistr-tui/src/flat/flat_line.rs` | One line of the flat cockpit | `magistr-tui/src/flat/flat_line.tests.rs` |
 | `magistr-tui/src/flat/lines.rs` | The session as flat lines | `magistr-tui/src/flat/lines.tests.rs` |
@@ -487,7 +487,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-tui/src/harness/deliveries.rs` | When a fake terminal handed bytes to the reader | the harnesses that drive it |
 | `magistr-tui/src/harness/fake_acp_agent.rs` | An in-process ACP agent for the session: the transport's other end without a subprocess | the harnesses that drive it |
 | `magistr-tui/src/harness/fake_agent.rs` | An agent made of a script | `magistr-tui/src/harness/fake_agent.tests.rs` |
-| `magistr-tui/src/harness/fake_checkpoints.rs` | A scripted checkpoint port for the harness | `magistr-tui/tests/session_harness.rs` |
+| `magistr-tui/src/harness/fake_checkpoints.rs` | A scripted checkpoint port for the harness | `magistr-cli/tests/session_harness.rs` |
 | `magistr-tui/src/harness/fake_engine_port.rs` | A scripted engine port for the harness | `magistr-tui/src/harness/fake_engine_port.tests.rs` |
 | `magistr-tui/src/harness/fake_engines.rs` | A think-and-ship feed made of a script | `magistr-tui/src/harness/fake_engines.tests.rs` |
 | `magistr-tui/src/harness/fake_input.rs` | The input side of a fake terminal: the script, played on the clock | `magistr-tui/src/harness/fake_input.tests.rs` |

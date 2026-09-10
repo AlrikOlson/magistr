@@ -751,3 +751,304 @@ async fn late_permission_gets_cancelled_on_the_wire_and_fresh_turn_can_receive_a
         .expect("permission fixture task exits")
         .expect("permission fixture serves successfully");
 }
+
+#[tokio::test]
+async fn empty_opening_keeps_the_resident_session_idle_until_input_arrives() {
+    let mut fixture = Fixture::start("").await;
+    assert_eq!(fixture.supervisor.snapshot().active_turn, None);
+    assert_eq!(fixture.supervisor.turn_count(), 0);
+    fixture
+        .supervisor
+        .send_followup("first explicit turn")
+        .unwrap();
+    assert_eq!(fixture.next_started().await.0, "first explicit turn");
+    fixture.next_terminal().await.unwrap();
+    assert_eq!(fixture.supervisor.turn_count(), 1);
+    fixture.close().await;
+}
+
+/// Decides by the tool title the raw agent copies from the prompt text.
+struct TitledPolicy(mpsc::UnboundedSender<String>);
+
+impl magistr_cockpit::agent::SessionPolicy for TitledPolicy {
+    fn decide(
+        &mut self,
+        request: &magistr_acp::AcpPermissionRequest,
+    ) -> magistr_cockpit::agent::PolicyDecision {
+        let _ = self.0.send(format!("decide {}", request.tool_title));
+        match request.tool_title.as_str() {
+            "allow" => magistr_cockpit::agent::PolicyDecision::Allow,
+            "deny" => magistr_cockpit::agent::PolicyDecision::Deny,
+            _ => magistr_cockpit::agent::PolicyDecision::Ask(
+                magistr_engine::policy::RiskTier::Medium,
+            ),
+        }
+    }
+
+    fn answered(
+        &mut self,
+        request: &magistr_acp::AcpPermissionRequest,
+        kind: magistr_cockpit::agent::PermissionKind,
+    ) {
+        let _ = self
+            .0
+            .send(format!("answered {} {kind:?}", request.tool_title));
+    }
+}
+
+type WireOutcomes =
+    mpsc::UnboundedReceiver<agent_client_protocol::schema::v1::RequestPermissionOutcome>;
+
+/// A raw ACP agent that requests one permission per turn, titled by the
+/// prompt text, reports the wire outcome and ends the turn.
+async fn permission_agent() -> (
+    magistr_acp::AcpTransport,
+    tokio::task::JoinHandle<()>,
+    WireOutcomes,
+    tempfile::TempDir,
+) {
+    use agent_client_protocol::schema::ProtocolVersion;
+    use agent_client_protocol::schema::v1::{
+        ContentBlock, InitializeRequest, InitializeResponse, NewSessionRequest, NewSessionResponse,
+        PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse,
+        RequestPermissionRequest, ToolCallUpdate, ToolCallUpdateFields,
+    };
+    use agent_client_protocol::{Agent, on_receive_request};
+
+    let (client, agent) = agent_client_protocol::Channel::duplex();
+    let (outcome, outcomes) = mpsc::unbounded_channel();
+    let server = tokio::spawn(async move {
+        let _ = Agent
+            .builder()
+            .name("supervisor-parity-test")
+            .on_receive_request(
+                async move |_request: InitializeRequest, responder, _cx| {
+                    responder.respond(InitializeResponse::new(ProtocolVersion::V1))
+                },
+                on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest, responder, _cx| {
+                    responder.respond(NewSessionResponse::new("parity-session"))
+                },
+                on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: PromptRequest, responder, cx| {
+                    let outcome = outcome.clone();
+                    let connection = cx.clone();
+                    cx.spawn(async move {
+                        let title = request
+                            .prompt
+                            .iter()
+                            .find_map(|block| match block {
+                                ContentBlock::Text(text) => Some(text.text.clone()),
+                                _ => None,
+                            })
+                            .unwrap_or_default();
+                        let response = connection
+                            .send_request(RequestPermissionRequest::new(
+                                request.session_id,
+                                ToolCallUpdate::new(
+                                    format!("call-{title}"),
+                                    ToolCallUpdateFields::new().title(title),
+                                ),
+                                vec![
+                                    PermissionOption::new(
+                                        "allow",
+                                        "Allow",
+                                        PermissionOptionKind::AllowOnce,
+                                    ),
+                                    PermissionOption::new(
+                                        "reject",
+                                        "Reject",
+                                        PermissionOptionKind::RejectOnce,
+                                    ),
+                                ],
+                            ))
+                            .block_task()
+                            .await?;
+                        let _ = outcome.send(response.outcome);
+                        responder.respond(PromptResponse::new(StopReason::EndTurn))
+                    })?;
+                    Ok(())
+                },
+                on_receive_request!(),
+            )
+            .connect_to(agent)
+            .await;
+    });
+    let directory = tempfile::tempdir().unwrap();
+    let mut transport = magistr_acp::AcpTransport::new_with_args(
+        std::path::PathBuf::from("unused-in-process-agent"),
+        Vec::new(),
+        Some(directory.path().to_path_buf()),
+    )
+    .unwrap();
+    transport.connect_over(client).await.unwrap();
+    (transport, server, outcomes, directory)
+}
+
+fn wire(outcome: agent_client_protocol::schema::v1::RequestPermissionOutcome) -> String {
+    match outcome {
+        agent_client_protocol::schema::v1::RequestPermissionOutcome::Selected(selected) => {
+            format!("selected {}", selected.option_id)
+        }
+        _ => "cancelled".to_owned(),
+    }
+}
+
+#[tokio::test]
+async fn headless_and_cockpit_attachments_share_policy_decisions_and_terminal_outcomes() {
+    // Headless: the resolved policy answers on the owner, Ask is refused.
+    let (transport, mut server, mut outcomes, _directory) = permission_agent().await;
+    let (policy_log, mut headless_log) = mpsc::unbounded_channel();
+    let (mut supervisor, mut messages) = SessionSupervisor::start_connected(
+        "allow",
+        transport,
+        Some((Box::new(TitledPolicy(policy_log)), Default::default())),
+    )
+    .await
+    .unwrap();
+    let mut headless = Vec::new();
+    for prompt in ["deny", "ask"] {
+        let outcome = tokio::time::timeout(DEADLINE, outcomes.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        tokio::time::timeout(DEADLINE, async {
+            while let Some(message) = messages.recv().await {
+                if matches!(message.unwrap(), AgentMessage::Result { .. }) {
+                    return;
+                }
+            }
+            panic!("headless terminal missing");
+        })
+        .await
+        .unwrap();
+        let snapshot = supervisor.snapshot();
+        headless.push((wire(outcome), snapshot.last_outcome.unwrap().stop_reason));
+        supervisor.send_followup(prompt).unwrap();
+    }
+    let outcome = tokio::time::timeout(DEADLINE, outcomes.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        wire(outcome),
+        "cancelled",
+        "headless Ask is refused, never allowed"
+    );
+    supervisor.terminate_session().await.unwrap();
+    tokio::time::timeout(DEADLINE, &mut server)
+        .await
+        .unwrap()
+        .unwrap();
+    let mut headless_decisions = Vec::new();
+    while let Ok(entry) = headless_log.try_recv() {
+        headless_decisions.push(entry);
+    }
+
+    // Cockpit: the same owner evaluates the same policy; Ask reaches the client.
+    let (transport, mut server, mut outcomes, _directory) = permission_agent().await;
+    let (policy_log, mut cockpit_log) = mpsc::unbounded_channel();
+    let (mut supervisor, mut events) = SessionSupervisor::start_interactive(
+        transport,
+        magistr_cockpit::agent::SessionOptions::new().opening_prompt("allow"),
+        Box::new(TitledPolicy(policy_log)),
+    )
+    .unwrap();
+    let mut cockpit = Vec::new();
+    for prompt in ["deny", "ask"] {
+        let outcome = tokio::time::timeout(DEADLINE, outcomes.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        tokio::time::timeout(DEADLINE, async {
+            while let Some(event) = events.recv().await {
+                assert!(
+                    !matches!(
+                        event,
+                        magistr_cockpit::agent::AgentEvent::PermissionRequest { .. }
+                    ),
+                    "policy-decided requests never reach the cockpit"
+                );
+                if matches!(event, magistr_cockpit::agent::AgentEvent::TurnEnded(_)) {
+                    return;
+                }
+            }
+            panic!("cockpit terminal missing");
+        })
+        .await
+        .unwrap();
+        let snapshot = supervisor.snapshot();
+        cockpit.push((wire(outcome), snapshot.last_outcome.unwrap().stop_reason));
+        supervisor.send_followup(prompt).unwrap();
+    }
+    let id = tokio::time::timeout(DEADLINE, async {
+        loop {
+            if let magistr_cockpit::agent::AgentEvent::PermissionRequest { id, title, .. } =
+                events.recv().await.expect("cockpit event stream")
+            {
+                assert_eq!(title, "ask");
+                return id;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(
+        outcomes.try_recv().is_err(),
+        "an Ask stays pending on the wire until the client answers"
+    );
+    supervisor.answer_permission(id, "not offered").unwrap();
+    supervisor.answer_permission(id, "allow").unwrap();
+    let outcome = tokio::time::timeout(DEADLINE, outcomes.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        wire(outcome),
+        "cancelled",
+        "an answer that names no offered option revokes the request"
+    );
+    tokio::time::timeout(DEADLINE, async {
+        while let Some(event) = events.recv().await {
+            if matches!(event, magistr_cockpit::agent::AgentEvent::TurnEnded(_)) {
+                return;
+            }
+        }
+        panic!("cockpit terminal missing");
+    })
+    .await
+    .unwrap();
+    supervisor.terminate_session().await.unwrap();
+    tokio::time::timeout(DEADLINE, &mut server)
+        .await
+        .unwrap()
+        .unwrap();
+    let mut cockpit_decisions = Vec::new();
+    while let Ok(entry) = cockpit_log.try_recv() {
+        cockpit_decisions.push(entry);
+    }
+
+    assert_eq!(
+        headless,
+        [
+            ("selected allow".to_owned(), Some(StopReason::EndTurn)),
+            ("selected reject".to_owned(), Some(StopReason::EndTurn)),
+        ]
+    );
+    assert_eq!(
+        cockpit, headless,
+        "both attachments normalize the same outcomes"
+    );
+    assert_eq!(
+        headless_decisions,
+        ["decide allow", "decide deny", "decide ask"]
+    );
+    assert_eq!(
+        cockpit_decisions, headless_decisions,
+        "the policy sees identical requests on both attachments"
+    );
+}

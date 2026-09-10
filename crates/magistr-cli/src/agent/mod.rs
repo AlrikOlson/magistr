@@ -2,6 +2,7 @@
 
 pub mod auth_method;
 pub mod backend;
+pub mod cockpit_session;
 pub mod connect_transport;
 pub mod convert_acp_event;
 pub mod error_kind;

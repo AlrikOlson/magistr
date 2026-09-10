@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use agent_client_protocol::schema::v1::ToolKind;
+use magistr::agent::cockpit_session::CockpitSession;
 use magistr::permissions::{AuditEntry, CockpitPolicy, PermissionProfile};
 use magistr_acp::AcpTransport;
 use magistr_cockpit::agent::{SessionOptions, SessionPolicy, spawn_session};
@@ -42,12 +43,16 @@ async fn run(
         Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500)),
     );
     let commands = runtime.commands().expect("the commands, once");
-    let session = spawn_session(
+    let session = CockpitSession::start_connected(
         transport,
-        runtime.inbox(),
-        commands,
         SessionOptions::new().opening_prompt("do the thing"),
         Box::new(policy) as Box<dyn SessionPolicy>,
+    )
+    .expect("the supervised session");
+    let session = spawn_session(
+        Box::new(session),
+        runtime.inbox(),
+        commands,
         None,
         None,
         None,
@@ -56,7 +61,10 @@ async fn run(
         .run(Model::new(SIZE))
         .await
         .expect("the run succeeds");
-    session.await.expect("the session ends with the runtime");
+    session
+        .await
+        .expect("the session relay joins")
+        .expect("the supervised session cleanup succeeds");
     agent_task.abort();
     (model, observed)
 }

@@ -193,6 +193,14 @@ fn every_integration_test_of_both_crates_is_named_as_a_guard() {
                 .cloned(),
         );
     }
+    // Live session renderer tests belong to the CLI host, which can construct
+    // its supervisor without a TUI -> CLI dependency cycle. Preserve existence
+    // checks for those named guards without indexing every unrelated CLI test.
+    stale.extend(
+        named(&doc, "magistr-cli/tests/")
+            .into_iter()
+            .filter(|path| !crates_dir.join(path).is_file()),
+    );
     assert!(
         missing.is_empty(),
         "integration tests the doc never names:\n{}",

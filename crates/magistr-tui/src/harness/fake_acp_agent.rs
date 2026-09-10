@@ -191,8 +191,8 @@ impl FakeAcpAgent {
         self
     }
 
-    /// Start the agent; the client's end of the channel goes to
-    /// [`AcpTransport::connect_over`](magistr_acp::AcpTransport::connect_over).
+    /// Start the agent; the client's end of the channel goes to the CLI
+    /// host's `AcpTransport::connect_over`.
     #[must_use]
     pub fn spawn(self) -> (Channel, Arc<AcpObserved>, JoinHandle<Result<(), Error>>) {
         let (client_end, agent_end) = Channel::duplex();

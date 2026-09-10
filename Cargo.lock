@@ -2260,6 +2260,7 @@ dependencies = [
  "libc",
  "magistr-acp",
  "magistr-acp-agent",
+ "magistr-application",
  "magistr-cockpit",
  "magistr-core",
  "magistr-engine",
@@ -2287,6 +2288,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ureq",
+ "vt100",
  "which",
 ]
 
@@ -2301,6 +2303,7 @@ dependencies = [
  "insta",
  "libm",
  "magistr-acp",
+ "magistr-application",
  "magistr-engine",
  "magistr-theme",
  "proptest",
@@ -2403,7 +2406,6 @@ dependencies = [
  "flate2",
  "fontdue",
  "insta",
- "magistr-acp",
  "magistr-cockpit",
  "magistr-engine",
  "magistr-theme",

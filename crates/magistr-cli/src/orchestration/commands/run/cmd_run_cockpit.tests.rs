@@ -13,7 +13,7 @@ fn position(needle: &str) -> usize {
 #[test]
 fn the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_printed() {
     let engines = position("EngineClient::open(");
-    let agent = position("connect_transport(");
+    let agent = position("CockpitSession::start(");
     let terminal = position("RealTerminal::stdio()");
     assert!(
         engines < agent,
@@ -33,7 +33,7 @@ fn the_session_is_attached_before_the_run_and_ended_after_it() {
     let commands = position(".commands()");
     let session = position("spawn_session(");
     let run = position(".run(");
-    let ended = position("timeout(SESSION_GRACE, session)");
+    let ended = position("timeout(SESSION_GRACE, &mut session)");
     let summary = position("Summary::of(");
     assert!(commands < session, "the commands are taken for the session");
     assert!(session < run);

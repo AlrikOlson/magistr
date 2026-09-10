@@ -5,6 +5,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 
 use magistr_acp::{AcpEvent, AcpTransport};
+use magistr_cockpit::agent::SessionOptions;
 use tokio::sync::mpsc;
 
 use super::permissions::Permissions;
@@ -26,6 +27,7 @@ impl Drop for OwnerState {
             );
         }
         state.messages = None;
+        state.cockpit_events = None;
         state.snapshot.client_attached = false;
     }
 }
@@ -37,6 +39,7 @@ pub(super) async fn run(
     mut commands: mpsc::UnboundedReceiver<Command>,
     state: Arc<Mutex<Inner>>,
     _registration: Registration,
+    options: Option<SessionOptions>,
 ) -> Result<()> {
     let _owner = OwnerState(Arc::clone(&state));
     run_loop(
@@ -45,6 +48,7 @@ pub(super) async fn run(
         &mut permissions,
         &mut commands,
         &state,
+        options,
     )
     .await;
     permissions.close();
@@ -63,6 +67,7 @@ pub(super) async fn run(
         );
     }
     inner.messages = None;
+    inner.cockpit_events = None;
     inner.snapshot.client_attached = false;
     result
 }
@@ -75,9 +80,11 @@ async fn run_loop(
     permissions: &mut Permissions,
     commands: &mut mpsc::UnboundedReceiver<Command>,
     state: &Arc<Mutex<Inner>>,
+    mut options: Option<SessionOptions>,
 ) {
     let mut session_id = None;
     let mut control: Option<ControlFuture<'_>> = None;
+    let mut goal: Option<ControlFuture<'_>> = None;
     loop {
         if !start_next(transport, permissions, state) {
             break;
@@ -86,6 +93,36 @@ async fn run_loop(
             command = commands.recv() => match command {
                 None | Some(Command::Terminate) => break,
                 Some(Command::Wake) => {},
+                Some(Command::Detach) => permissions.drain(),
+                Some(Command::Permission { id, option_id }) => permissions.reply(id, option_id, state),
+                Some(Command::Constraint { id, condition }) => permissions.constrain(id, &condition, state),
+                Some(Command::Delegate(key)) => permissions.delegate(&key, state),
+                Some(Command::KillTerminal(id)) => {
+                    if let Err(error) = transport.kill_terminal(&id) {
+                        state.lock().expect("supervisor state lock poisoned").emit(Err(acp_error(error.to_string())));
+                    }
+                }
+                Some(Command::BeginGoal { method, params, reply, turn_id }) => {
+                    goal = Some(Box::pin(super::goal::run(transport, state, method, params, turn_id, reply)));
+                }
+                Some(Command::ClearGoal { method, params }) => {
+                    if control.is_some() {
+                        state.lock().expect("supervisor state lock poisoned").emit(Err(acp_error("A session control request is already active")));
+                    } else {
+                        state.lock().expect("supervisor state lock poisoned").control_busy = true;
+                        control = Some(Box::pin(async move {
+                            let result = match transport.extension(&method, params) {
+                                Ok(response) => response.await.unwrap_or_else(|_| Err(magistr_acp::AcpError::Transport("Goal clear response channel closed".into()))),
+                                Err(error) => Err(error),
+                            };
+                            let mut inner = state.lock().expect("supervisor state lock poisoned");
+                            inner.control_busy = false;
+                            if let Err(error) = result {
+                                fail(&mut inner, format!("Failed to clear the delegated goal: {error}"));
+                            }
+                        }));
+                    }
+                }
                 Some(Command::Cancel { turn_id }) => {
                     let mut inner = state.lock().expect("supervisor state lock poisoned");
                     if turn_id.is_some() && turn_id == inner.snapshot.active_turn {
@@ -134,8 +171,23 @@ async fn run_loop(
                         if let AcpEvent::Initialized { session_id: id, agent_capabilities, .. } = &event {
                             session_id = Some(id.clone());
                             inner.capabilities = Some((**agent_capabilities).clone());
+                            if let Some(options) = options.take() {
+                                control = Some(Box::pin(super::opening::initialize(transport, event, options, state)));
+                                continue;
+                            }
+                        }
+                        if let AcpEvent::System { subtype, data } = &event
+                            && subtype == "permission_lapsed"
+                        {
+                            permissions.lapse(data);
+                            continue;
                         }
                         if let AcpEvent::PromptResponse { response, .. } = &event {
+                            permissions.drain();
+                            if inner.goal_turn.is_some() {
+                                fail(&mut inner, "Provider sent a prompt response for a goal extension".into());
+                                break;
+                            }
                             if let Some(turn_id) = inner.snapshot.active_turn.take() {
                                 inner.completed_turns += 1;
                                 inner.snapshot.last_outcome = Some(TurnOutcome {
@@ -153,6 +205,7 @@ async fn run_loop(
                             }
                         }
                         let (messages, _, _) = crate::agent::convert_acp_event::convert_acp_event(&event);
+                        inner.emit_cockpit(magistr_cockpit::agent::translate(&Ok(event)));
                         for message in messages {
                             inner.emit(Ok(message));
                         }
@@ -161,16 +214,27 @@ async fn run_loop(
                         }
                     }
                     Some(Err(error)) => {
+                        permissions.drain();
                         fail(&mut inner, error.to_string());
                         break;
                     }
                     None => {
+                        permissions.drain();
                         fail(&mut inner, "ACP event stream ended without session termination".into());
                         break;
                     }
                 }
             },
             request = permissions.recv() => permissions.answer(request, state),
+            () = async {
+                match goal.as_mut() {
+                    Some(future) => future.await,
+                    None => std::future::pending().await,
+                }
+            } => {
+                permissions.drain();
+                goal = None;
+            }
             () = async {
                 match control.as_mut() {
                     Some(future) => future.await,

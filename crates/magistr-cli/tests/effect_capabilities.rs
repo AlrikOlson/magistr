@@ -11,6 +11,7 @@ use agent_client_protocol::schema::v1::{
     ToolCallUpdate, ToolCallUpdateFields, ToolKind, WriteTextFileRequest,
 };
 use agent_client_protocol::{Agent, Channel, on_receive_request};
+use magistr::agent::cockpit_session::CockpitSession;
 use magistr::permissions::{PermissionProfile, SessionPermissionPolicy};
 use magistr_acp::AcpTransport;
 use magistr_cockpit::agent::{AgentEvent, PermissionKind, SessionOptions, spawn_session};
@@ -126,9 +127,11 @@ async fn run(
         transport.connect_over(client_end).await.unwrap();
         let (inbox, mut events) = Inbox::channel();
         let (command_tx, commands) = Commands::channel();
+        let session = CockpitSession::start_connected(
+            transport, SessionOptions::new().opening_prompt("exercise effects"), Box::new(policy),
+        ).expect("the supervised effect session");
         let session = spawn_session(
-            transport, inbox, commands, SessionOptions::new().opening_prompt("exercise effects"),
-            Box::new(policy), None, None, None,
+            Box::new(session), inbox, commands, None, None, None,
         );
         let mut outcomes = Vec::new();
         let mut asks = Vec::new();
@@ -157,7 +160,8 @@ async fn run(
             }
         }
         drop(command_tx);
-        session.await.unwrap();
+        session.await.expect("the session relay joins")
+            .expect("the supervised effect session cleanup succeeds");
         agent.abort();
         (outcomes, asks)
     }).await.expect("the effect session settles")

@@ -11,11 +11,7 @@ use super::session_supervisor::{SessionSupervisor, SessionSupervisorSnapshot};
 use crate::agent::message::AgentMessage;
 use crate::error::Result;
 
-type BackendStart = (
-    AcpBackend,
-    mpsc::UnboundedReceiver<Result<AgentMessage>>,
-    Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>>,
-);
+type BackendStart = (AcpBackend, mpsc::UnboundedReceiver<Result<AgentMessage>>);
 
 /// ACP facade; the supervisor owns transport, policy, admission and residency.
 pub struct AcpBackend {
@@ -23,8 +19,8 @@ pub struct AcpBackend {
 }
 
 impl AcpBackend {
-    /// Resolve and start a session. The compatibility permission slot is `None`:
-    /// its sole receiver belongs to the supervisor before any prompt is admitted.
+    /// Resolve and start a session. The supervisor owns permission handling
+    /// before any prompt is admitted.
     #[instrument(skip_all, name = "acp_backend_start")]
     pub async fn start(config: AgentConfig) -> Result<BackendStart> {
         Self::start_resolved(config.resolve()?).await
@@ -32,7 +28,7 @@ impl AcpBackend {
 
     pub(crate) async fn start_resolved(spec: super::ResolvedSessionSpec) -> Result<BackendStart> {
         let (supervisor, messages) = SessionSupervisor::start(spec).await?;
-        Ok((Self { supervisor }, messages, None))
+        Ok((Self { supervisor }, messages))
     }
 
     #[cfg(test)]
@@ -42,7 +38,7 @@ impl AcpBackend {
     ) -> Result<BackendStart> {
         let (supervisor, messages) =
             SessionSupervisor::start_connected(prompt, transport, None).await?;
-        Ok((Self { supervisor }, messages, None))
+        Ok((Self { supervisor }, messages))
     }
 
     /// Send a follow-up; busy sessions retain it in FIFO order.

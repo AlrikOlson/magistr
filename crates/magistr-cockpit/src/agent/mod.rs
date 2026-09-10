@@ -5,8 +5,8 @@
 //! deltas, tool calls and their updates, the plan, usage, the end of a
 //! turn, a permission request — translated from magistr-acp's events at
 //! the boundary so no protocol type reaches the core. [`spawn_session`]
-//! does the translating for a live transport and carries the core's
-//! commands (prompts, cancels, permission answers) back to it; the
+//! relays an application session handle's observations and carries the core's
+//! commands (prompts, cancels, permission answers) back to its owner; the
 //! harness's fake agent scripts the same events directly.
 
 pub mod ask_everything;

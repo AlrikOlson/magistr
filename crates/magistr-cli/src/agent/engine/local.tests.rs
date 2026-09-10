@@ -52,22 +52,3 @@ async fn query_state_returns_none_for_test_channel() {
     let state = client.query_state().await.expect("query_state failed");
     assert!(state.is_none()); // test channels don't track state
 }
-
-#[test]
-fn session_accessors() {
-    let (session, _tx) = AgentSession::from_channel();
-    let mut client = LocalEngineClient::new(session);
-
-    // Verify we can access the session through both accessors
-    let _ = client.session();
-    let _ = client.session_mut();
-}
-
-#[test]
-fn into_session_returns_inner() {
-    let (session, _tx) = AgentSession::from_channel();
-    let client = LocalEngineClient::new(session);
-
-    let _session = client.into_session();
-    // If this compiles, the session was returned successfully
-}

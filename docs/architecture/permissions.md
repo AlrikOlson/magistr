@@ -43,12 +43,12 @@ Cockpit presents Ask and forwards an offered answer. Remembered answers belong
 to the shared policy; the session no longer maintains an independent allow set
 keyed only by tool title. Invalid option IDs are refused. Cancelling a turn clears
 its pending requests and responds with Cancelled, so a stale card cannot later
-grant permission. Late arrivals remain cancelled until a fresh cockpit prompt.
-The headless supervisor cancels pending and late permissions when cancellation
-is requested. `cancel_turn` retains the session but admits no new turn until the
-provider's terminal response; permission handling resumes only for an admitted
+grant permission. Late arrivals remain cancelled until a fresh turn is admitted.
+The shared supervisor cancels pending and late permissions for both surfaces
+when cancellation is requested. `cancel_turn` retains the session but admits no
+new turn until the provider's terminal response; permission handling resumes only for an admitted
 fresh turn. Legacy `AgentSession::cancel` ends the usable session. See the
-[separate lifecycle operations](sessions.md#headless-session-supervision).
+[separate lifecycle operations](sessions.md#shared-session-supervision).
 
 Sessions without a permission UI refuse Ask by default. This includes plain
 terminal sessions whose text input is for conversation, not a permission picker.
@@ -95,8 +95,9 @@ target after authorization before admitting the operation. Path resolution follo
 existing symlink ancestors before handling `..`, including writes to missing files.
 
 Provider preapprovals and provider-owned tool execution remain separate enforcement
-boundaries. Shared provider/session supervision follows later. This implementation
-does not provide OS sandboxing or atomic directory-handle confinement. An authorized
+boundaries. The same supervisor enforces session lifecycle across cockpit and
+headless paths. This implementation does not provide OS sandboxing or atomic
+directory-handle confinement. An authorized
 program can perform its own effects, and other filesystem writers can race path
 checks; the [effect guide](effects.md#limits) states the resulting boundary.
 Configuration is loaded when constructing the policy, with existing load-error

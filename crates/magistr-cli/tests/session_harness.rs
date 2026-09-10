@@ -5,6 +5,7 @@
 //! saw, the permission outcomes it recorded, the model and the painted
 //! screen checked against what went in.
 
+use magistr::agent::cockpit_session::CockpitSession;
 use magistr_cockpit::checkpoint::CheckpointPort;
 use magistr_engine::policy::RiskTier;
 use std::path::PathBuf;
@@ -183,18 +184,21 @@ async fn run_seeded(
     let arrivals = Arrivals::new();
     let mut runtime = Runtime::new(terminal, options);
     let commands = runtime.commands().expect("the commands, once");
+    let session = CockpitSession::start_connected(transport, session, policy)
+        .expect("the supervised session");
     let session = spawn_session(
-        transport,
+        Box::new(session),
         runtime.inbox().stamped(arrivals.clone()),
         commands,
-        session,
-        policy,
         workbench,
         engine,
         checkpoints,
     );
     let model = runtime.run(model).await.expect("the run succeeds");
-    session.await.expect("the session ends with the runtime");
+    session
+        .await
+        .expect("the session relay joins")
+        .expect("the supervised session cleanup succeeds");
     agent_task.abort();
     (model, observed, capture, deliveries, arrivals)
 }

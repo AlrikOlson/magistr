@@ -5,6 +5,9 @@
 //! provider execution. Both legacy headless facades delegate lifecycle here.
 
 mod command;
+mod control;
+mod goal;
+mod opening;
 mod owner;
 mod permissions;
 mod registration;
@@ -19,6 +22,7 @@ use agent_client_protocol::schema::v1::{
     AgentCapabilities, SessionConfigOption, SessionConfigOptionValue, SessionInfo, StopReason,
 };
 use magistr_acp::AcpTransport;
+use magistr_cockpit::agent::{AgentEvent, SessionOptions, SessionPolicy};
 use magistr_core::AcpSessionState;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
@@ -27,6 +31,7 @@ use super::ResolvedSessionSpec;
 use super::message::AgentMessage;
 use crate::error::{MagistrError, Result};
 use command::Command;
+pub use control::SessionControl;
 use permissions::Permissions;
 pub use residency::SessionResidency;
 pub use snapshot::SessionSupervisorSnapshot;
@@ -46,18 +51,34 @@ struct Inner {
     closing: bool,
     legacy_cancel: bool,
     control_busy: bool,
+    goal_turn: Option<u64>,
     capabilities: Option<AgentCapabilities>,
     messages: Option<mpsc::UnboundedSender<Result<AgentMessage>>>,
+    cockpit_events: Option<mpsc::UnboundedSender<AgentEvent>>,
 }
 
 impl Inner {
     fn emit(&mut self, message: Result<AgentMessage>) {
+        if let Err(error) = &message {
+            self.emit_cockpit(AgentEvent::Error(error.to_string()));
+        }
         if self
             .messages
             .as_ref()
             .is_some_and(|tx| tx.send(message).is_err())
         {
             self.messages = None;
+            self.snapshot.client_attached = false;
+        }
+    }
+
+    fn emit_cockpit(&mut self, event: AgentEvent) {
+        if self
+            .cockpit_events
+            .as_ref()
+            .is_some_and(|tx| tx.send(event).is_err())
+        {
+            self.cockpit_events = None;
             self.snapshot.client_attached = false;
         }
     }
@@ -88,6 +109,7 @@ impl Inner {
         self.snapshot.residency = residency;
         self.closing = true;
         self.control_busy = false;
+        self.goal_turn = None;
     }
 
     fn check_admission(&self) -> Result<()> {
@@ -134,14 +156,17 @@ impl SessionSupervisor {
             .read_events()
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
         let permissions = Permissions::new(transport.take_permission_rx(), policy);
-        transport
-            .prompt(prompt)
-            .map_err(|error| acp_error(format!("Failed to send initial prompt: {error}")))?;
+        let opening = !prompt.trim().is_empty();
+        if opening {
+            transport
+                .prompt(prompt)
+                .map_err(|error| acp_error(format!("Failed to send initial prompt: {error}")))?;
+        }
         let (messages, receiver) = mpsc::unbounded_channel();
         let (commands, command_rx) = mpsc::unbounded_channel();
         let inner = Arc::new(Mutex::new(Inner {
             snapshot: SessionSupervisorSnapshot {
-                active_turn: Some(1),
+                active_turn: opening.then_some(1),
                 queued_turns: 0,
                 cancellation_requested: false,
                 residency: SessionResidency::Resident,
@@ -149,13 +174,15 @@ impl SessionSupervisor {
                 client_attached: true,
             },
             queue: VecDeque::new(),
-            next_turn: 2,
+            next_turn: if opening { 2 } else { 1 },
             completed_turns: 0,
             closing: false,
             legacy_cancel: false,
             control_busy: false,
+            goal_turn: None,
             capabilities: None,
             messages: Some(messages),
+            cockpit_events: None,
         }));
         let state = Arc::clone(&inner);
         let task = tokio::spawn(owner::run(
@@ -165,6 +192,7 @@ impl SessionSupervisor {
             command_rx,
             state,
             guard,
+            None,
         ));
         Ok((
             Self {
@@ -174,6 +202,102 @@ impl SessionSupervisor {
             },
             receiver,
         ))
+    }
+
+    /// Adopt a connected transport for an interactive attachment; the same owner
+    /// serializes all provider traffic for interactive and headless clients.
+    pub(crate) fn start_interactive(
+        mut transport: AcpTransport,
+        options: SessionOptions,
+        policy: Box<dyn SessionPolicy>,
+    ) -> Result<(Self, mpsc::UnboundedReceiver<AgentEvent>)> {
+        let guard = registration::Registration::new(transport.child_pgid());
+        let events = transport
+            .read_events()
+            .ok_or_else(|| acp_error("ACP event channel not available"))?;
+        let (cockpit_events, receiver) = mpsc::unbounded_channel();
+        let permissions = Permissions::interactive(
+            transport.take_permission_rx(),
+            policy,
+            cockpit_events.clone(),
+        );
+        let (commands, command_rx) = mpsc::unbounded_channel();
+        let opening = options
+            .opening_prompt
+            .as_ref()
+            .filter(|prompt| !prompt.trim().is_empty());
+        let inner = Arc::new(Mutex::new(Inner {
+            snapshot: SessionSupervisorSnapshot {
+                active_turn: None,
+                queued_turns: usize::from(opening.is_some()),
+                cancellation_requested: false,
+                residency: SessionResidency::Resident,
+                last_outcome: None,
+                client_attached: true,
+            },
+            queue: opening
+                .map(|prompt| (1, prompt.clone()))
+                .into_iter()
+                .collect(),
+            next_turn: if opening.is_some() { 2 } else { 1 },
+            completed_turns: 0,
+            closing: false,
+            legacy_cancel: false,
+            control_busy: true,
+            goal_turn: None,
+            capabilities: None,
+            messages: None,
+            cockpit_events: Some(cockpit_events),
+        }));
+        let task = tokio::spawn(owner::run(
+            transport,
+            events,
+            permissions,
+            command_rx,
+            Arc::clone(&inner),
+            guard,
+            Some(options),
+        ));
+        Ok((
+            Self {
+                commands,
+                inner,
+                task: Some(task),
+            },
+            receiver,
+        ))
+    }
+
+    /// Narrow host-only goal operations routed through the resident owner.
+    #[must_use]
+    pub fn control(&self) -> SessionControl {
+        SessionControl::new(self.commands.clone(), Arc::clone(&self.inner))
+    }
+
+    /// Route an interactive permission answer through the session owner.
+    pub fn answer_permission(&self, id: u64, option_id: &str) -> Result<()> {
+        self.send_command(Command::Permission {
+            id,
+            option_id: option_id.to_owned(),
+        })
+    }
+
+    /// Attach a condition to a live permission request.
+    pub fn constrain_permission(&self, id: u64, condition: &str) -> Result<()> {
+        self.send_command(Command::Constraint {
+            id,
+            condition: condition.to_owned(),
+        })
+    }
+
+    /// Apply the policy's delegation operation in lifecycle order.
+    pub fn delegate_permission(&self, key: &str) -> Result<()> {
+        self.send_command(Command::Delegate(key.to_owned()))
+    }
+
+    /// Kill one terminal through the resident transport owner.
+    pub fn kill_terminal(&self, id: &str) -> Result<()> {
+        self.send_command(Command::KillTerminal(id.to_owned()))
     }
 
     /// Admit a follow-up in FIFO order. At most one prompt reaches the provider.
@@ -248,8 +372,10 @@ impl SessionSupervisor {
 
     /// Detach only message observation. The provider and permission owner remain resident.
     pub fn detach_client(&mut self) {
+        let _ = self.commands.send(Command::Detach);
         let mut inner = self.inner.lock().expect("supervisor state lock poisoned");
         inner.messages = None;
+        inner.cockpit_events = None;
         inner.snapshot.client_attached = false;
     }
 
@@ -263,6 +389,7 @@ impl SessionSupervisor {
             );
         }
         inner.messages = None;
+        inner.cockpit_events = None;
         inner.snapshot.client_attached = false;
         if let Some(task) = self.task.as_ref() {
             task.abort();

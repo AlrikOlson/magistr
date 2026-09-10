@@ -9,9 +9,10 @@ is imported into this boundary.
 The crate was introduced by `arch-04-application-contract`. Its scoped use cases
 and fake-port tests are contracts for adapter migration. `arch-06-effect-capabilities`
 adds the first live host effect adapter: ACP delegates filesystem and terminal
-requests through the [effect capability contract](effects.md). Session supervision,
-native workflow admission and the other scoped facades retain their existing
-production adapters; these ports do not establish a shared project owner.
+requests through the [effect capability contract](effects.md). The live cockpit
+uses `sessions::SessionHandle`, implemented by the same CLI supervisor as headless
+execution. Native workflow admission and the other scoped facades retain their
+existing adapters; these ports do not establish a shared project owner.
 
 ## Use cases and effect owners
 
@@ -45,6 +46,13 @@ requests and an `EffectAuthorizer`; neither imports ACP nor performs I/O in the
 application crate. These requests retain provider session strings for the live
 adapter's ownership checks. They do not claim the domain `AttemptId`, revision
 admission or attempt correlation required by the scoped facades.
+
+`SessionHandle` supplies explicit turn, permission, terminal, detach and shutdown
+operations for an attached client. Its associated event type is the client's
+portable vocabulary; the trait imports neither ACP nor a renderer. Host admission
+errors remain strings on this live adapter contract, and its session-local
+permission IDs do not claim durable domain attempt/revision correlation. The
+scoped `Sessions` facade remains a separate contract for that later migration.
 
 ## Identity and admission
 
@@ -137,9 +145,10 @@ cargo test -p magistr-application --doc
 
 Formatting and every required gate in `.magistr/project.json` remain mandatory,
 including existing interface and architecture-index checks. This chunk changes
-no rendering, goldens, motion rules or roadmap export policy. Live provider
-supervision, native routing, durable command admission, full setup consolidation
-and further host migration remain subsequent chunks. Shared permission decisions
+no rendering, goldens, motion rules or roadmap export policy. The host supervisor
+now owns live headless and cockpit sessions. Native routing, durable command
+admission, full setup consolidation and further host migration remain subsequent
+chunks. Shared permission decisions
 are now implemented by the [permission service](permissions.md); production adapters use
 that policy for both provider permission requests and [host effects](effects.md),
 while the scoped permission-command facade remains a separate contract.

@@ -60,7 +60,7 @@ impl AgentSession {
     pub async fn start(config: super::AgentConfig) -> Result<Self> {
         let spec = config.resolve()?;
         let resolved_model = spec.model().map(str::to_owned);
-        let (backend, message_rx, _) = super::backend::AcpBackend::start_resolved(spec).await?;
+        let (backend, message_rx) = super::backend::AcpBackend::start_resolved(spec).await?;
         Ok(Self {
             backend: SessionBackend::Acp(backend),
             message_rx,
@@ -116,13 +116,6 @@ impl AgentSession {
             channel_closed: false,
         };
         (session, msg_tx, follow_ups)
-    }
-
-    /// Compatibility accessor. The supervisor owns the sole permission receiver.
-    pub fn take_acp_permission_rx(
-        &mut self,
-    ) -> Option<mpsc::UnboundedReceiver<magistr_acp::AcpPermissionRequest>> {
-        None
     }
 
     /// Send a follow-up message in the current conversation.

@@ -1,7 +1,8 @@
-//! What a session does once the handshake completes.
+//! Startup choices consumed by the host's session owner.
 
-/// The session's opening moves: the model to select before anything is
-/// sent, and the first prompt to send once the agent is ready.
+/// The session owner's opening moves: the model to select before anything is
+/// sent, and the first prompt to send once the agent is ready. The cockpit relay
+/// receives the resulting events and never performs these operations itself.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SessionOptions {
     /// The prompt to send as soon as the session is initialized — what
