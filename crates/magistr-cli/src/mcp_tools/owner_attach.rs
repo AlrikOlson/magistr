@@ -22,6 +22,7 @@ use magistr_engine::tas::{
 use rmcp::ServiceExt as _;
 use think_and_ship::infra::resolve_project_id_with;
 
+use super::owner_stdio::ProxyStdio;
 use super::protocol_cap::ProtocolCap;
 use super::service::MagistrService;
 
@@ -94,8 +95,8 @@ pub async fn proxy_to_owner(project_root: &Path, refusal: &io::Error) -> eyre::R
     stream.set_nonblocking(true)?;
     let mut owner = tokio::net::UnixStream::from_std(stream)?;
     let (mut from_owner, mut to_owner) = owner.split();
-    let mut stdin = tokio::io::stdin();
-    let mut stdout = tokio::io::stdout();
+    let mut stdin = ProxyStdio::stdin()?;
+    let mut stdout = ProxyStdio::stdout()?;
     tokio::select! {
         client = tokio::io::copy(&mut stdin, &mut to_owner) => {
             client?;

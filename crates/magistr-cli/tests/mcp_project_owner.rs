@@ -8,11 +8,15 @@ use std::path::Path;
 
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Lines};
-use tokio::process::{Child, ChildStdout, Command};
+use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::time::{Duration, timeout};
 
 struct Server {
     child: Child,
+    // Child::wait closes stdin when Child still owns it. Keep the client
+    // connection open while observing rejection or owner death, so waiting
+    // cannot manufacture a competing, successful client-disconnect exit.
+    stdin: ChildStdin,
     lines: Lines<BufReader<ChildStdout>>,
 }
 
@@ -34,7 +38,12 @@ impl Server {
             .spawn()
             .expect("spawn MCP server");
         let lines = BufReader::new(child.stdout.take().expect("stdout")).lines();
-        let mut server = Self { child, lines };
+        let stdin = child.stdin.take().expect("stdin");
+        let mut server = Self {
+            child,
+            stdin,
+            lines,
+        };
         server
             .send(json!({
                 "jsonrpc":"2.0", "id":1, "method":"initialize",
@@ -47,10 +56,7 @@ impl Server {
 
     async fn send(&mut self, value: Value) {
         let bytes = format!("{value}\n");
-        self.child
-            .stdin
-            .as_mut()
-            .expect("stdin")
+        self.stdin
             .write_all(bytes.as_bytes())
             .await
             .expect("request");
@@ -91,10 +97,6 @@ impl Server {
             .await
             .expect("bounded rejection")
             .expect("exit status");
-        assert!(
-            !status.success(),
-            "rejected server must exit unsuccessfully"
-        );
         let mut stderr = String::new();
         self.child
             .stderr
@@ -103,7 +105,20 @@ impl Server {
             .read_to_string(&mut stderr)
             .await
             .expect("stderr text");
+        assert!(
+            !status.success(),
+            "rejected server must exit unsuccessfully: {status}; stderr: {stderr}"
+        );
         stderr
+    }
+
+    async fn disconnect(mut self) {
+        drop(self.stdin);
+        let status = timeout(Duration::from_secs(15), self.child.wait())
+            .await
+            .expect("bounded client disconnect")
+            .expect("exit status");
+        assert!(status.success(), "client EOF exits cleanly: {status}");
     }
 }
 
@@ -142,11 +157,23 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     // endpoint (answering the handshake as a proxy) or, when it asked
     // before the endpoint was up, stands down naming both refusals. It
     // never becomes a second owner.
-    let mut a = Server::spawn(tmp.path(), &data, &tmp.path().join("a.sock")).await;
-    let mut b = Server::spawn(tmp.path(), &data, &tmp.path().join("b.sock")).await;
+    let a_socket = tmp.path().join("a.sock");
+    let b_socket = tmp.path().join("b.sock");
+    let mut a = Server::spawn(tmp.path(), &data, &a_socket).await;
+    let mut b = Server::spawn(tmp.path(), &data, &b_socket).await;
     let (ra, rb) = tokio::join!(a.response(), b.response());
     assert!(ra.is_some() || rb.is_some(), "one owner: {ra:?}, {rb:?}");
-    let (mut owner, mut other) = if ra.is_some() { (a, b) } else { (b, a) };
+    // A proxy also answers initialize. Only the admitted owner binds its
+    // requested feed, so observe that evidence instead of assuming a won.
+    let a_owns = a_socket.exists();
+    assert_ne!(a_owns, b_socket.exists(), "exactly one feed owner");
+    let (mut owner, mut other) = if a_owns {
+        assert!(ra.is_some(), "the owner answered initialize");
+        (a, b)
+    } else {
+        assert!(rb.is_some(), "the owner answered initialize");
+        (b, a)
+    };
     if ra.is_some() && rb.is_some() {
         other.child.kill().await.expect("stop the attached proxy");
         other.child.wait().await.expect("reap proxy");
@@ -190,6 +217,14 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
         acknowledged,
         "the store moved on the owner's write"
     );
+
+    let mut disconnected =
+        Server::spawn(tmp.path(), &data, &tmp.path().join("disconnected.sock")).await;
+    assert!(disconnected.response().await.is_some(), "client attached");
+    disconnected.initialized().await;
+    disconnected.disconnect().await;
+    let still_live = owner.call("roadmap_get", json!({"ids":["attached"]})).await;
+    assert_eq!(still_live["records"][0]["id"], "attached");
 
     use std::os::unix::fs::MetadataExt;
     let lock_path = data.join("roadmap/sessions/owner-test.mcp-owner.lock");
