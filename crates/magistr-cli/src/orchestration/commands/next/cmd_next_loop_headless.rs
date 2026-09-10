@@ -33,7 +33,7 @@ pub async fn cmd_next_loop_headless(
         &dir,
         &wf.spec_path,
         max_iterations,
-        crate::roadmap::open_native_engines(&dir),
+        crate::roadmap::admit_native_host(&dir)?,
     )
     .suggest()?;
     let max_iterations = iter_loop.max_iterations();

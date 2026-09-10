@@ -29,9 +29,10 @@ const SESSION_GRACE: Duration = Duration::from_secs(5);
 /// [`CockpitPolicy`]: crate::permissions::CockpitPolicy
 ///
 /// Everything that can fail loudly happens on the normal terminal first:
-/// the think-and-ship engines open, then the agent is spawned and its
-/// handshake completed — a store that cannot be opened or an agent that
-/// cannot start is printed on stdout and nothing else happens. Only then
+/// this process is admitted as the project's host and the think-and-ship
+/// engines open, then the agent is spawned and its handshake completed — a
+/// store that cannot be opened, a host lease another cockpit holds, or an
+/// agent that cannot start is printed on stdout and nothing else happens. Only then
 /// is the terminal taken over, the feed and the session attached, and
 /// the loop run; leaving restores the terminal, the session ends the
 /// agent, and the summary lands in the scrollback.
@@ -50,6 +51,10 @@ pub async fn cmd_run_cockpit(
             return Err(eyre::eyre!("the cockpit did not start"));
         }
     };
+    let writer = engines
+        .writer()
+        .cloned()
+        .ok_or_else(|| eyre::eyre!("the cockpit run was opened without a host admission"))?;
     let spec = config.permission_profile(profile).resolve()?;
     let root = spec.cwd().to_path_buf();
     let profile = spec.permission_profile();
@@ -84,9 +89,9 @@ pub async fn cmd_run_cockpit(
         runtime.inbox(),
         commands,
         crate::orchestration::commands::workbench_port::workbench_port(&root),
-        Some(Box::new(NativeEnginePort::new(engines.engines().clone()))),
+        Some(Box::new(NativeEnginePort::new(writer))),
         Some(Box::new(SpinePort::at(
-            session_engine(&root, engines.engines().clone()),
+            session_engine(&root, engines.reader().clone()),
             root.clone(),
         ))),
     );
@@ -96,7 +101,7 @@ pub async fn cmd_run_cockpit(
                 .with_theme(theme)
                 .with_title(title)
                 .with_debug(debug)
-                .with_store_seed(&StoreSeed::read(engines.engines()))
+                .with_store_seed(&StoreSeed::read(engines.reader()))
                 .with_workspace_files(
                     crate::orchestration::commands::workspace_files::workspace_files(&root),
                 ),

@@ -38,7 +38,7 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
     input.frozen = read_frozen(&dir);
     input.git_dirty = git_dirty(&dir);
 
-    match crate::roadmap::open_native_engines(&dir) {
+    match crate::roadmap::open_native_reader(&dir) {
         Some(engines) => {
             apply_engine_state(
                 &mut input,

@@ -11,8 +11,11 @@ and fake-port tests are contracts for adapter migration. `arch-06-effect-capabil
 adds the first live host effect adapter: ACP delegates filesystem and terminal
 requests through the [effect capability contract](effects.md). The live cockpit
 uses `sessions::SessionHandle`, implemented by the same CLI supervisor as headless
-execution. Native workflow admission and the other scoped facades retain their
-existing adapters; these ports do not establish a shared project owner.
+execution. Project-wide writer admission is the engine's
+[`ProjectAuthority`](project-authority.md): every native writer is admitted
+there before its engines open, and reading needs no admission. The scoped
+workflow facade retains its existing adapters; these ports do not themselves
+establish the owner.
 
 ## Use cases and effect owners
 
@@ -57,8 +60,8 @@ scoped `Sessions` facade remains a separate contract for that later migration.
 ## Identity and admission
 
 A `ProjectScope` is an identity validator, not a lease, authorization grant or
-second workflow authority. The host must acquire authority before constructing
-its concrete ports. Commands carry a `CommandContext`: an externally allocated
+second workflow authority. The host must acquire authority — a
+`ProjectAuthority` in its writer role — before constructing its concrete ports. Commands carry a `CommandContext`: an externally allocated
 domain `AttemptId` and the expected project `Revision`. An attempt contains its
 command, run and project identities.
 

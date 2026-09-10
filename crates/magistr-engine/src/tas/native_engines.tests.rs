@@ -1,25 +1,51 @@
 use super::*;
+use crate::tas::{NativeReader, ProjectAuthority, TasConfig, WriterRole};
 use think_and_ship::roadmap::domain::{BlockerKind, ChunkStatus};
+use think_and_ship::ship::domain::action::ActionType;
+use think_and_ship::ship::domain::check::Check;
+use think_and_ship::ship::domain::task::TaskType;
+use think_and_ship::signal::domain::SignalKind;
+use think_and_ship::think::domain::ThinkStep;
 
 fn temp_config(tmp: &tempfile::TempDir) -> TasConfig {
     TasConfig::from_lookup(tmp.path().join("proj"), |_| None).with_data_dir(tmp.path().join("data"))
 }
 
+/// The host's admitted writer on `cfg`.
+fn host(cfg: &TasConfig, project_id: &str) -> NativeEngines {
+    ProjectAuthority::admit_for_project(cfg, project_id.into(), WriterRole::Host)
+        .expect("host admitted")
+        .open()
+}
+
+/// The agent's `magistr mcp-serve` on the same store: the other admitted
+/// writer role, holding its own cached engines.
+fn service(cfg: &TasConfig, project_id: &str) -> NativeEngines {
+    ProjectAuthority::admit_for_project(cfg, project_id.into(), WriterRole::Service)
+        .expect("service admitted")
+        .open()
+}
+
+/// An observer on the store, admitted by nobody.
+fn reader(cfg: &TasConfig, project_id: &str) -> NativeReader {
+    NativeReader::open_for_project(cfg, project_id.into())
+}
+
 fn add_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
-    engines.with_roadmap(|r| {
-        r.add_chunk(
+    engines
+        .roadmap_add_chunk(
             id.into(),
             format!("Chunk {id}"),
+            String::new(),
             ChunkStatus::Pending,
             priority,
             String::new(),
             vec![],
             deps.iter().map(|d| (*d).to_string()).collect(),
-            false,
+            None,
+            None,
         )
-        .map(|_| ())
-        .expect("add chunk")
-    });
+        .expect("add chunk");
 }
 
 fn step(n: u32, purpose: &str) -> ThinkStep {
@@ -42,7 +68,7 @@ fn round_trip_through_a_temp_store() {
     let cfg = temp_config(&tmp);
 
     {
-        let engines = NativeEngines::open_for_project(&cfg, "round-trip".into());
+        let engines = host(&cfg, "round-trip");
         assert_eq!(engines.project_id(), "round-trip");
         add_chunk(&engines, "base", 100, &[]);
         add_chunk(&engines, "next", 200, &["base"]);
@@ -100,7 +126,7 @@ fn round_trip_through_a_temp_store() {
     }
 
     // A second process on the same store sees everything.
-    let reopened = NativeEngines::open_for_project(&cfg, "round-trip".into());
+    let reopened = reader(&cfg, "round-trip");
     let snap = reopened.roadmap_snapshot();
     assert_eq!(snap.count("done"), 1);
     assert_eq!(snap.next_ready.as_deref(), Some("next"));
@@ -109,7 +135,7 @@ fn round_trip_through_a_temp_store() {
         reopened.roadmap_chunk("base").map(|c| c.cross_refs),
         Some(vec!["task:t1".to_string()])
     );
-    let pinned = reopened.with_think(|t| t.pinned_steps().len());
+    let pinned = reopened.think_pinned_steps().len();
     assert_eq!(pinned, 1, "think trace persisted with its pin");
     assert_eq!(reopened.ship_status()["objective"]["status"], "completed");
     assert_eq!(reopened.signal_status()["counts"]["new"], 1);
@@ -131,14 +157,14 @@ fn two_writers_merge_without_data_loss() {
 
     // A = Magistr in-process, B = an external think-and-ship server, both
     // holding the same (empty) store in memory.
-    let a = NativeEngines::open_for_project(&cfg, "shared".into());
-    let b = NativeEngines::open_for_project(&cfg, "shared".into());
+    let a = host(&cfg, "shared");
+    let b = service(&cfg, "shared");
 
     add_chunk(&a, "from-a", 100, &[]);
     add_chunk(&b, "from-b", 200, &[]);
     // B wrote last from stale memory (it never saw from-a). A plain
     // overwrite would have erased from-a; the locked merge keeps both.
-    let c = NativeEngines::open_for_project(&cfg, "shared".into());
+    let c = reader(&cfg, "shared");
     let ids: Vec<String> = c.roadmap_chunks().into_iter().map(|c| c.id).collect();
     assert!(
         ids.contains(&"from-a".to_string()),
@@ -156,7 +182,7 @@ fn two_writers_merge_without_data_loss() {
     assert!(b.roadmap_chunk("from-a").is_none());
     b.reload_roadmap();
     assert!(b.roadmap_chunk("from-a").is_some());
-    let d = NativeEngines::open_for_project(&cfg, "shared".into());
+    let d = reader(&cfg, "shared");
     assert_eq!(d.roadmap_snapshot().count("in_progress"), 1);
     assert_eq!(d.roadmap_snapshot().count("pending"), 1);
 }
@@ -168,18 +194,22 @@ fn open_resolves_identity_from_the_project_root() {
     std::fs::create_dir_all(&root).expect("mkdir");
     let cfg = TasConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
     let declared = super::super::identity::ensure_project_file(&root).expect("identity");
-    let engines = NativeEngines::open(&cfg);
+    let engines = ProjectAuthority::admit(&cfg, WriterRole::Host)
+        .expect("admitted")
+        .open();
     assert_eq!(engines.project_id(), declared);
+    assert_eq!(engines.authority().project_id(), declared);
+    assert_eq!(NativeReader::open(&cfg).project_id(), declared);
 }
 
 #[test]
 fn persistence_off_writes_nothing() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
-    let engines = NativeEngines::open_for_project(&cfg, "ephemeral".into());
+    let engines = host(&cfg, "ephemeral");
     add_chunk(&engines, "a", 1, &[]);
     assert!(!tmp.path().join("data").join("roadmap").exists());
-    let again = NativeEngines::open_for_project(&cfg, "ephemeral".into());
+    let again = reader(&cfg, "ephemeral");
     assert!(again.roadmap_chunks().is_empty());
 }
 
@@ -187,7 +217,7 @@ fn persistence_off_writes_nothing() {
 fn roadmap_mutation_wrappers_round_trip() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let engines = NativeEngines::open_for_project(&cfg, "mutations".into());
+    let engines = host(&cfg, "mutations");
 
     let added = engines
         .roadmap_add_chunk(
@@ -262,8 +292,8 @@ fn roadmap_mutation_wrappers_round_trip() {
 fn reload_picks_up_another_writers_changes() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let host = NativeEngines::open_for_project(&cfg, "reload".into());
-    let server = NativeEngines::open_for_project(&cfg, "reload".into());
+    let host = reader(&cfg, "reload");
+    let server = service(&cfg, "reload");
     assert_eq!(host.config(), &cfg);
 
     add_chunk(&server, "only-on-disk", 100, &[]);
@@ -291,11 +321,11 @@ fn reload_picks_up_another_writers_changes() {
 fn think_steps_from_store_sees_another_writers_steps_without_reopening() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let host = NativeEngines::open_for_project(&cfg, "think-store".into());
+    let host = reader(&cfg, "think-store");
     assert!(host.think_steps_from_store().is_empty());
 
     // The agent's server records after the host opened.
-    let server = NativeEngines::open_for_project(&cfg, "think-store".into());
+    let server = service(&cfg, "think-store");
     assert!(server.think_record_step(step(1, "open")).is_ok());
     assert!(server.think_record_step(step(2, "ground")).is_ok());
 
@@ -311,7 +341,7 @@ fn think_steps_from_store_sees_another_writers_steps_without_reopening() {
 fn think_steps_from_store_is_empty_without_persistence() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
-    let engines = NativeEngines::open_for_project(&cfg, "ephemeral-think".into());
+    let engines = host(&cfg, "ephemeral-think");
     assert!(engines.think_record_step(step(1, "open")).is_ok());
     assert!(engines.think_steps_from_store().is_empty());
 }
@@ -321,7 +351,7 @@ fn signal_triage_wrappers_round_trip() {
     use think_and_ship::signal::domain::SignalStatus;
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let engines = NativeEngines::open_for_project(&cfg, "triage".into());
+    let engines = host(&cfg, "triage");
 
     let a = engines.signal_capture(SignalKind::Idea, "alice".into(), "faster".into());
     let b = engines.signal_capture(SignalKind::Bug, "bob".into(), "broken".into());
@@ -331,12 +361,15 @@ fn signal_triage_wrappers_round_trip() {
 
     // Promote needs a researched signal; a fresh one is refused with a reason.
     assert!(engines.signal_promote(&a.id).is_err());
-    engines
-        .with_signal(|s| {
-            s.research(&a.id, "validated".into(), 0.9, vec![], None)
-                .map(|_| ())
-        })
+    let researched = engines
+        .signal_research(&a.id, "validated".into(), 0.9, vec![], None)
         .expect("research");
+    assert_eq!(researched.status, SignalStatus::Researched);
+    assert!(
+        engines
+            .signal_research("missing", "x".into(), 0.5, vec![], None)
+            .is_err()
+    );
     let promoted = engines.signal_promote(&a.id).expect("promote");
     assert_eq!(promoted.status, SignalStatus::Promoted);
 
@@ -354,26 +387,22 @@ fn signal_triage_wrappers_round_trip() {
 fn proposal_resolution_wrappers_round_trip() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let engines = NativeEngines::open_for_project(&cfg, "proposals".into());
+    let engines = host(&cfg, "proposals");
     add_chunk(&engines, "a", 100, &[]);
 
     // Title: accept adopts the suggestion, reject keeps the plan's title.
-    engines
-        .with_roadmap(|r| {
-            r.propose_title("a", "Better title".into(), "why".into(), "tracker".into())
-                .map(|_| ())
-        })
+    let proposed = engines
+        .roadmap_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
         .expect("propose title");
+    assert_eq!(proposed.title, "Chunk a", "a proposal never renames");
+    assert!(proposed.title_proposal.is_some());
     let rejected = engines
         .roadmap_resolve_title_proposal("a", false)
         .expect("reject title");
     assert_eq!(rejected.title, "Chunk a");
     assert!(rejected.title_proposal.is_none());
     engines
-        .with_roadmap(|r| {
-            r.propose_title("a", "Better title".into(), "why".into(), "tracker".into())
-                .map(|_| ())
-        })
+        .roadmap_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
         .expect("propose title again");
     let accepted = engines
         .roadmap_resolve_title_proposal("a", true)
@@ -383,32 +412,31 @@ fn proposal_resolution_wrappers_round_trip() {
 
     // Status: accept takes the suggested transition, reject keeps the
     // current status — either act disposes the proposal.
-    engines
-        .with_roadmap(|r| {
-            r.propose_status(
-                "a",
-                ChunkStatus::InProgress,
-                "started remotely".into(),
-                "tracker".into(),
-            )
-            .map(|_| ())
-        })
+    let proposed = engines
+        .roadmap_propose_status(
+            "a",
+            ChunkStatus::InProgress,
+            "started remotely".into(),
+            "tracker".into(),
+        )
         .expect("propose status");
+    assert_eq!(
+        proposed.status,
+        ChunkStatus::Pending,
+        "a proposal never moves"
+    );
     let kept = engines
         .roadmap_resolve_status_proposal("a", false)
         .expect("reject status");
     assert_eq!(kept.status, ChunkStatus::Pending);
     assert!(kept.status_proposal.is_none());
     engines
-        .with_roadmap(|r| {
-            r.propose_status(
-                "a",
-                ChunkStatus::InProgress,
-                "started remotely".into(),
-                "tracker".into(),
-            )
-            .map(|_| ())
-        })
+        .roadmap_propose_status(
+            "a",
+            ChunkStatus::InProgress,
+            "started remotely".into(),
+            "tracker".into(),
+        )
         .expect("propose status again");
     let moved = engines
         .roadmap_resolve_status_proposal("a", true)
@@ -456,7 +484,7 @@ fn proposal_resolution_wrappers_round_trip() {
 fn think_pin_and_checkpoint_act_on_the_live_trace() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
-    let engines = NativeEngines::open_for_project(&cfg, "pin-checkpoint".into());
+    let engines = host(&cfg, "pin-checkpoint");
     assert!(engines.think_record_step(step(1, "hypothesis")).is_ok());
 
     assert_eq!(
@@ -464,12 +492,10 @@ fn think_pin_and_checkpoint_act_on_the_live_trace() {
         Ok(false),
         "the previous flag comes back"
     );
-    let pinned = engines.with_think(|think| {
-        think
-            .step_by_number(1)
-            .and_then(|step| step.pinned)
-            .unwrap_or(false)
-    });
+    let pinned = engines
+        .think_step(1)
+        .and_then(|step| step.pinned)
+        .unwrap_or(false);
     assert!(pinned, "the flag stuck");
     assert!(engines.think_pin_step(9, true).is_err(), "unknown step");
 
@@ -485,7 +511,7 @@ fn the_store_stamp_is_none_without_persistence_and_moves_when_a_writer_lands() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
 
-    let engines = NativeEngines::open_for_project(&cfg, "stamped".into());
+    let engines = host(&cfg, "stamped");
     // Nothing written yet: no file, no stamp.
     assert_eq!(engines.store_stamp(), None);
 
@@ -493,16 +519,16 @@ fn the_store_stamp_is_none_without_persistence_and_moves_when_a_writer_lands() {
     let first = engines.store_stamp().expect("the roadmap file exists now");
 
     // A second process writing the same store moves the stamp.
-    let other = NativeEngines::open_for_project(&cfg, "stamped".into());
+    let other = service(&cfg, "stamped");
     add_chunk(&other, "next", 200, &["base"]);
     assert_ne!(engines.store_stamp(), Some(first), "the stamp moved");
 
     // And a store with persistence off never stamps at all.
-    let off = NativeEngines::open_for_project(
+    let off = reader(
         &TasConfig::from_lookup(tmp.path().join("proj"), |_| None)
             .with_data_dir(tmp.path().join("data"))
             .persist(false),
-        "quiet".into(),
+        "quiet",
     );
     assert_eq!(off.store_stamp(), None);
 }
@@ -511,7 +537,7 @@ fn the_store_stamp_is_none_without_persistence_and_moves_when_a_writer_lands() {
 fn a_blocker_is_cleared_through_the_wrapper_and_erring_is_loud() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let engines = NativeEngines::open_for_project(&cfg, "blockers".into());
+    let engines = host(&cfg, "blockers");
     add_chunk(&engines, "stuck", 100, &[]);
 
     // Nothing to clear yet: the library errs rather than answer a no-op,
@@ -521,16 +547,14 @@ fn a_blocker_is_cleared_through_the_wrapper_and_erring_is_loud() {
 
     // A blocker the dock would raise a card for, set the way the MCP
     // verb sets it (validate, then store).
-    engines.with_roadmap(|r| {
-        let blocked = r
-            .validate_blocked_by(
-                BlockerKind::AwaitingHuman,
-                "needs a person to pick the palette".into(),
-                None,
-            )
-            .expect("validated");
-        r.set_blocked_by("stuck", blocked).map(|_| ()).expect("set");
-    });
+    engines
+        .roadmap_set_blocked_by(
+            "stuck",
+            BlockerKind::AwaitingHuman,
+            "needs a person to pick the palette".into(),
+            None,
+        )
+        .expect("set");
     assert!(
         engines
             .roadmap_chunk("stuck")
@@ -549,7 +573,7 @@ fn a_blocker_is_cleared_through_the_wrapper_and_erring_is_loud() {
 fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let engines = NativeEngines::open_for_project(&cfg, "blockers-set".into());
+    let engines = host(&cfg, "blockers-set");
     add_chunk(&engines, "stuck", 100, &[]);
 
     let blocked = engines
@@ -593,8 +617,8 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
 fn reload_signal_picks_up_another_writers_capture() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let host = NativeEngines::open_for_project(&cfg, "reload-signal".into());
-    let server = NativeEngines::open_for_project(&cfg, "reload-signal".into());
+    let host = reader(&cfg, "reload-signal");
+    let server = service(&cfg, "reload-signal");
 
     // The agent's `magistr mcp-serve` captures while the host is open.
     let captured = server.signal_capture(SignalKind::Idea, "alice".into(), "faster".into());
@@ -611,7 +635,7 @@ fn reload_signal_picks_up_another_writers_capture() {
 
 /// A ship trace with one active task, ready to take a gate record.
 fn engines_with_active_task(tmp: &tempfile::TempDir) -> NativeEngines {
-    let engines = NativeEngines::open_for_project(&temp_config(tmp), "gate-rec".to_owned());
+    let engines = host(&temp_config(tmp), "gate-rec");
     engines.ship_set_objective("record the gates".into(), vec![], vec![], String::new());
     engines.ship_add_task("t1".into(), "run gates".into(), TaskType::Implement, None);
     engines.ship_start_task("t1").expect("start");
@@ -753,7 +777,7 @@ fn a_gate_cannot_be_recorded_with_no_task_to_record_it_against() {
     // The loop needs the refusal to be legible: it prints it on the stage
     // rather than silently recording nothing.
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = NativeEngines::open_for_project(&temp_config(&tmp), "no-task".to_owned());
+    let engines = host(&temp_config(&tmp), "no-task");
     let refusal = engines
         .ship_record_gate(
             None,

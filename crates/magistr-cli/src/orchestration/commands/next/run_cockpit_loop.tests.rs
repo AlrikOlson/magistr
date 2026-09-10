@@ -13,19 +13,20 @@ fn position(needle: &str) -> usize {
 }
 
 #[test]
-fn the_engines_open_before_the_terminal_and_their_failure_is_printed() {
-    let native = position("wf.is_native()");
-    let engines = position("EngineClient::open(");
+fn the_loops_admitted_writer_is_attached_before_the_terminal_and_never_re_admitted() {
+    let attach = position("EngineClient::attach");
     let terminal = position("RealTerminal::stdio()");
     assert!(
-        native < engines,
-        "the store is opened on a native project only"
+        attach < terminal,
+        "the cockpit attaches to the loop's writer before raw mode"
     );
-    assert!(engines < terminal, "the store is checked before raw mode");
-    assert_eq!(
-        SOURCE[engines..terminal].matches("println!(").count(),
-        1,
-        "the failure is printed on a normal stdout"
+    assert!(
+        !SOURCE.contains("EngineClient::open("),
+        "a second host admission on the loop's project would refuse itself"
+    );
+    assert!(
+        SOURCE.contains("iter_loop.native().cloned().map(EngineClient::attach)"),
+        "the one writer is the loop's own admitted engines"
     );
 }
 

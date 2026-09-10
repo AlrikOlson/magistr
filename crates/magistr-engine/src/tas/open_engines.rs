@@ -12,14 +12,14 @@ use super::tas_config::TasConfig;
 
 /// Open the four think-and-ship engines on one shared store.
 ///
-/// The one composition root for engines in Magistr: [`super::NativeEngines`]
-/// wraps these for in-process use, and `magistr mcp-serve` hands them to the
-/// family services. Persistence follows `config`; every engine is keyed by
-/// `project_id`. When `broadcaster` is given (the process that binds the
-/// NDJSON socket — the MCP server), every engine emits through it; an
-/// in-process host passes `None` and subscribes to that socket instead.
+/// The one composition root for engines in Magistr, reached only through
+/// [`super::ProjectAuthority`] (a writer, or the transport's family
+/// services) and [`super::NativeReader`] (an observer). Persistence follows
+/// `config`; every engine is keyed by `project_id`. When `broadcaster` is
+/// given (the service that binds the NDJSON socket), every engine emits
+/// through it; a reader passes `None` and subscribes to that socket instead.
 #[must_use]
-pub fn open_engines(
+pub(crate) fn open_engines(
     config: &TasConfig,
     project_id: String,
     broadcaster: Option<Broadcaster>,

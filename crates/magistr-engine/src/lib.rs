@@ -20,7 +20,8 @@
 //! - **Spec parsing** — `SpecSummary`
 //! - **Prompt building** — `PromptConfig`
 //! - **Error handling** — `EngineError`
-//! - **Native think-and-ship** — `tas::NativeEngines`, `tas::TasConfig`, `tas::RoadmapBackend`
+//! - **Native think-and-ship** — `tas::ProjectAuthority` (admitted writer), `tas::NativeEngines`,
+//!   `tas::NativeReader`, `tas::TasConfig`, `tas::RoadmapBackend`
 //!
 //! Zero TUI dependencies. No ratatui, crossterm, or tachyonfx.
 //! Infrastructure adapters in `magistr-cli` bridge these domain types
@@ -72,8 +73,8 @@ pub use session::{
 };
 pub use spec::SpecSummary;
 pub use tas::{
-    FeedStatus, GateOutput, NativeEngines, NativeFrame, NativeRoadmapSnapshot, RoadmapBackend,
-    TasConfig,
+    FeedStatus, GateOutput, NativeEngines, NativeFrame, NativeReader, NativeRoadmapSnapshot,
+    ProjectAuthority, RoadmapBackend, TasConfig, WriterRole,
 };
 // The library's own wire types behind the NativeEngines verbs, re-exported
 // so engine hosts (the TUI, the GUI) can drive them without depending on

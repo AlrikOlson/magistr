@@ -12,7 +12,7 @@ use crate::roadmap::{RoadmapManager, RoadmapProgress};
 use crate::session::{
     EngineSession, RestoredSession, SessionCommand, SessionEvent, SessionSnapshot, SessionStatus,
 };
-use crate::tas::{NativeEngines, NativeFrame, NativeRoadmapSnapshot};
+use crate::tas::{NativeFrame, NativeReader, NativeRoadmapSnapshot};
 use crate::workflow::lifecycle_event::LifecycleEvent;
 use crate::workflow::{
     HookResolver, RunMode, StopReason, WorkflowCommand, WorkflowConfig, WorkflowEngine,
@@ -51,10 +51,10 @@ const EVENT_CHANNEL_CAPACITY: usize = 256;
 pub struct EngineHandle {
     state: Arc<Mutex<EngineState>>,
     event_tx: broadcast::Sender<EngineEvent>,
-    /// The in-process think-and-ship engines, when the project's
+    /// The in-process think-and-ship reader, when the project's
     /// `roadmap_backend` is `think-and-ship`. Outside the state mutex: the
     /// engines carry their own locks and must never be held under ours.
-    native: Option<NativeEngines>,
+    native: Option<NativeReader>,
 }
 
 impl EngineHandle {
@@ -103,18 +103,19 @@ impl EngineHandle {
         }
     }
 
-    /// Attach the native think-and-ship engines and seed roadmap progress
-    /// from their chunks.
+    /// Attach the native think-and-ship reader and seed roadmap progress
+    /// from its chunks. A reader, not a writer: the handle only derives its
+    /// cursor and progress from the roadmap.
     #[must_use]
-    pub fn with_native(mut self, native: NativeEngines) -> Self {
+    pub fn with_native(mut self, native: NativeReader) -> Self {
         self.native = Some(native);
         self.refresh_native_roadmap();
         self
     }
 
-    /// The native engines, if this handle runs on the think-and-ship backend.
+    /// The native reader, if this handle runs on the think-and-ship backend.
     #[must_use]
-    pub fn native(&self) -> Option<&NativeEngines> {
+    pub fn native(&self) -> Option<&NativeReader> {
         self.native.as_ref()
     }
 

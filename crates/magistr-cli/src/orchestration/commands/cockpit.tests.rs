@@ -10,8 +10,10 @@ fn position(needle: &str) -> usize {
 }
 
 #[test]
-fn the_engines_open_before_the_terminal_and_a_failure_is_printed_between() {
-    let engines = position("EngineClient::open(");
+fn the_engines_are_observed_before_the_terminal_and_a_failure_is_printed_between() {
+    // A viewer observes the store: it never admits itself as the host.
+    assert!(!SOURCE.contains("EngineClient::open("));
+    let engines = position("EngineClient::observe(");
     let report = position("println!(");
     let terminal = position("RealTerminal::stdio()");
     assert!(

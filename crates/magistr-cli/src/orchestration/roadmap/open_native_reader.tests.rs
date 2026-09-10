@@ -1,3 +1,4 @@
+use super::super::admit_native_host::admit_native_host_with;
 use super::*;
 use magistr_engine::tas::ChunkStatus;
 
@@ -36,11 +37,16 @@ fn backend_resolution_follows_backend_for() {
 fn yaml_project_opens_nothing() {
     let tmp = tempfile::tempdir().expect("tempdir");
     write_project_json(tmp.path(), Some("yaml"));
-    assert!(open_native_engines_with(tmp.path(), |_| None).is_none());
+    assert!(open_native_reader_with(tmp.path(), |_| None).is_none());
+    assert!(
+        admit_native_host_with(tmp.path(), |_| None)
+            .expect("nothing to admit")
+            .is_none()
+    );
 }
 
 #[test]
-fn native_project_opens_engines_on_the_configured_store() {
+fn native_project_admits_one_host_and_readers_on_the_configured_store() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let project = tmp.path().join("proj");
     std::fs::create_dir_all(&project).expect("mkdir");
@@ -50,7 +56,9 @@ fn native_project_opens_engines_on_the_configured_store() {
     let data_dir = tmp.path().join("data").display().to_string();
     let lookup = move |key: &str| (key == "THINK_AND_SHIP_DATA_DIR").then(|| data_dir.clone());
 
-    let engines = open_native_engines_with(&project, &lookup).expect("native engines");
+    let engines = admit_native_host_with(&project, &lookup)
+        .expect("admitted")
+        .expect("native engines");
     engines
         .roadmap_add_chunk(
             "one".into(),
@@ -66,13 +74,25 @@ fn native_project_opens_engines_on_the_configured_store() {
         )
         .expect("add");
 
-    // A second open on the same project + store sees the chunk: the helper
-    // resolves the same identity and the same data dir.
-    let again = open_native_engines_with(&project, &lookup).expect("native engines again");
+    // A reader on the same project + store sees the chunk without a lease:
+    // the helper resolves the same identity and the same data dir.
+    let again = open_native_reader_with(&project, &lookup).expect("native reader");
     assert_eq!(again.project_id(), engines.project_id());
     assert!(again.roadmap_chunk("one").is_some());
     assert!(
         tmp.path().join("data").exists(),
         "store lives under the injected data dir"
+    );
+    // A second host on the same project is refused with the lease's reason.
+    let refused = admit_native_host_with(&project, &lookup).expect_err("second host");
+    assert!(
+        refused.to_string().contains("project host owner"),
+        "{refused}"
+    );
+    drop(engines);
+    assert!(
+        admit_native_host_with(&project, &lookup)
+            .expect("released")
+            .is_some()
     );
 }

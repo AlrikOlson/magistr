@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use magistr_engine::NativeEngines;
+use magistr_engine::NativeReader;
 use tokio::task::JoinHandle;
 
 use super::attached::FeedAttached;
@@ -22,7 +22,7 @@ use crate::cockpit::Msg;
 /// * It stands down entirely while `attached` reports the broadcast feed
 ///   holds the socket — those mutations arrive as frames already, and a
 ///   full seed on top of them is a re-read nobody asked for.
-/// * It re-reads only when [`NativeEngines::store_stamp`] moved. A seed
+/// * It re-reads only when [`NativeReader::store_stamp`] moved. A seed
 ///   posted every period would mark the runtime's scheduler dirty every
 ///   period, and an idle cockpit that paints nothing is a property the
 ///   runtime is built around; the reload is also not silent (it prints a
@@ -32,7 +32,7 @@ use crate::cockpit::Msg;
 /// The read itself is blocking file I/O, so it runs on the blocking pool
 /// rather than on the runtime's threads.
 pub fn spawn_reseed(
-    engines: NativeEngines,
+    engines: NativeReader,
     attached: FeedAttached,
     inbox: Inbox,
     period: Duration,
@@ -40,7 +40,7 @@ pub fn spawn_reseed(
     tokio::spawn(reseed(engines, attached, inbox, period))
 }
 
-async fn reseed(engines: NativeEngines, attached: FeedAttached, inbox: Inbox, period: Duration) {
+async fn reseed(engines: NativeReader, attached: FeedAttached, inbox: Inbox, period: Duration) {
     // What the entry point's own seed already covered.
     let mut seen = engines.store_stamp();
     loop {

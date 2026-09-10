@@ -16,6 +16,14 @@ pub enum EngineError {
         /// What the file system said.
         source: io::Error,
     },
+    /// The project host lease was refused: another cockpit or loop already
+    /// holds this project on this store, or its lock could not be taken.
+    Admission {
+        /// The project root.
+        root: PathBuf,
+        /// The lease's own refusal.
+        source: io::Error,
+    },
 }
 
 impl fmt::Display for EngineError {
@@ -25,6 +33,9 @@ impl fmt::Display for EngineError {
             Self::Store { path, source } => {
                 write!(f, "cannot create the store at {}: {source}", path.display())
             }
+            Self::Admission { root, source } => {
+                write!(f, "{} is not admitted as a host: {source}", root.display())
+            }
         }
     }
 }
@@ -33,7 +44,7 @@ impl std::error::Error for EngineError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::NoProject(_) => None,
-            Self::Store { source, .. } => Some(source),
+            Self::Store { source, .. } | Self::Admission { source, .. } => Some(source),
         }
     }
 }

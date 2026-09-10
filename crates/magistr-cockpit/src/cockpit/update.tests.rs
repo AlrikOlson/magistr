@@ -2277,8 +2277,13 @@ fn refused_answer(m: &mut Model, cmd: &Cmd) -> String {
     let config = magistr_engine::TasConfig::from_lookup(tmp.path(), |_| None)
         .with_data_dir(tmp.path().join("data"))
         .persist(false);
-    let engines =
-        magistr_engine::NativeEngines::open_for_project(&config, "refused-dock".to_owned());
+    let engines = magistr_engine::ProjectAuthority::admit_for_project(
+        &config,
+        "refused-dock".to_owned(),
+        magistr_engine::WriterRole::Host,
+    )
+    .expect("host admitted")
+    .open();
     let mut port = crate::engine::NativeEnginePort::new(engines);
     let event = crate::engine::apply(&mut port, cmd);
     let EngineEvent::PortFailed { what, error, .. } = &event else {

@@ -1,6 +1,6 @@
 //! The cockpit's starting state, read off the engines before the feed speaks.
 
-use magistr_engine::{NativeEngines, NativeFrame};
+use magistr_engine::{NativeFrame, NativeReader};
 
 /// What the cockpit shows before the first broadcast frame arrives: the
 /// `ship_status` document, the roadmap's position and the pending
@@ -41,7 +41,7 @@ pub struct StoreSeed {
 impl StoreSeed {
     /// Read the cockpit's state off `engines` as the store holds it now.
     #[must_use]
-    pub fn read(engines: &NativeEngines) -> Self {
+    pub fn read(engines: &NativeReader) -> Self {
         let snapshot = engines.roadmap_snapshot();
         let counts = &engines.signal_status()["counts"];
         let count = |key: &str| u32::try_from(counts[key].as_u64().unwrap_or(0)).unwrap_or(0);
@@ -72,7 +72,7 @@ impl StoreSeed {
 /// every action and check the execution trace holds, ordered by the
 /// timestamp the engines stamped them with (one offset, so the strings
 /// sort chronologically).
-fn trace_frames(engines: &NativeEngines) -> Vec<NativeFrame> {
+fn trace_frames(engines: &NativeReader) -> Vec<NativeFrame> {
     let mut frames: Vec<NativeFrame> = engines
         .think_steps_from_store()
         .iter()

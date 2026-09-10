@@ -51,7 +51,7 @@ fn canonical_dir(dir: &std::path::Path) -> eyre::Result<std::path::PathBuf> {
 
 /// `show` on a think-and-ship project: the snapshot plus the pending chunks.
 fn show_native(
-    engines: &magistr_engine::NativeEngines,
+    engines: &magistr_engine::NativeReader,
     renderer: &dyn OutputRenderer,
 ) -> eyre::Result<()> {
     let snapshot = engines.roadmap_snapshot();
@@ -69,7 +69,7 @@ fn show_native(
 /// `next`: the chunk `roadmap_next` would hand an agent.
 fn cmd_roadmap_next(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
-    let Some(engines) = crate::roadmap::open_native_engines(&dir) else {
+    let Some(engines) = crate::roadmap::open_native_reader(&dir) else {
         eyre::bail!("{NATIVE_REQUIRED}");
     };
     let next = engines.roadmap_next();
@@ -91,7 +91,7 @@ fn cmd_roadmap_next(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyr
 /// human snapshot.
 fn cmd_roadmap_status(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
-    let Some(engines) = crate::roadmap::open_native_engines(&dir) else {
+    let Some(engines) = crate::roadmap::open_native_reader(&dir) else {
         eyre::bail!("{NATIVE_REQUIRED}");
     };
     if renderer.is_machine_readable() {
@@ -105,7 +105,7 @@ fn cmd_roadmap_status(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> e
 
 fn cmd_roadmap_show(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
-    if let Some(engines) = crate::roadmap::open_native_engines(&dir) {
+    if let Some(engines) = crate::roadmap::open_native_reader(&dir) {
         return show_native(&engines, renderer);
     }
 
@@ -188,7 +188,7 @@ fn cmd_roadmap_show(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyr
 fn cmd_roadmap_export(dir: &std::path::Path) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
     magistr_core::roadmap::ensure_file_export_allowed(&dir)?;
-    if let Some(engines) = crate::roadmap::open_native_engines(&dir) {
+    if let Some(engines) = crate::roadmap::open_native_reader(&dir) {
         let md_path = dir.join("ROADMAP.md");
         let markdown = engines.roadmap_export("markdown");
         magistr_core::roadmap::ensure_file_export_allowed(&dir)?;

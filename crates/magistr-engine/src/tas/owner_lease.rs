@@ -2,26 +2,40 @@ use std::fs::{File, TryLockError};
 use std::io;
 use std::path::{Path, PathBuf};
 
-use magistr_engine::tas::{Broadcaster, TasConfig};
-use think_and_ship::infra::{Domain, Persistence};
+use think_and_ship::infra::{Broadcaster, Domain, Persistence};
 
-/// Cooperative MCP admission, held until the last service clone is dropped.
-/// Stable lock files are never removed: unlinking one would admit another inode.
+use super::tas_config::TasConfig;
+use super::writer_role::WriterRole;
+
+/// The advisory locks an admitted writer holds for as long as its authority
+/// lives: the role's project lock, plus the feed publisher's lock when the
+/// service binds the live socket.
+///
+/// Lock files are stable and never truncated, removed or replaced. Unlinking
+/// one would let another process open a second inode and defeat exclusion;
+/// the operating system releases the lock when the last handle closes or the
+/// process exits, which is the whole of "orderly release".
 pub(crate) struct OwnerLease {
     files: Vec<File>,
 }
 
 impl OwnerLease {
-    pub(crate) fn acquire(tas: &TasConfig, project_id: &str) -> io::Result<Self> {
+    /// Take `role`'s lock for `project_id` on the store `tas` names.
+    ///
+    /// # Errors
+    /// `WouldBlock` when another writer of the same role holds it; any other
+    /// I/O failure creating or opening the lock file. Nothing is opened after
+    /// a refusal.
+    pub(crate) fn acquire(tas: &TasConfig, project_id: &str, role: WriterRole) -> io::Result<Self> {
         let path = if tas.persist {
             Persistence::new(&tas.persistence_config(), Domain::Roadmap)
                 .path_for(project_id)
-                .with_extension("mcp-owner.lock")
+                .with_extension(role.lock_suffix())
         } else {
-            tas.project_root.join(".magistr/mcp-owner.lock")
+            tas.project_root.join(".magistr").join(role.lock_suffix())
         };
         let mut lease = Self { files: Vec::new() };
-        lease.lock(&path, "project owner")?;
+        lease.lock(&path, role.resource())?;
         Ok(lease)
     }
 
@@ -30,8 +44,8 @@ impl OwnerLease {
             io::Error::new(
                 error.kind(),
                 format!(
-                    "magistr mcp-serve: cannot acquire {resource} at {}: {error}; \
-                 startup refused before opening project engines. Close the existing server \
+                    "magistr: cannot acquire {resource} at {}: {error}; \
+                 startup refused before opening project engines. Close the existing writer \
                  before retrying; do not delete its lock file.",
                     path.display()
                 ),
@@ -51,7 +65,7 @@ impl OwnerLease {
             failure(match error {
                 TryLockError::WouldBlock => io::Error::new(
                     io::ErrorKind::WouldBlock,
-                    "another Magistr service holds this resource",
+                    "another Magistr writer holds this resource",
                 ),
                 TryLockError::Error(error) => error,
             })
@@ -60,6 +74,10 @@ impl OwnerLease {
         Ok(())
     }
 
+    /// Lock the publisher for `path`, confirm nothing live is listening, and
+    /// bind the broadcast socket. The publisher lock is held beside the
+    /// project lock so cooperating services on different stores cannot race
+    /// for one socket path.
     pub(crate) async fn broadcaster(&mut self, path: &Path) -> io::Result<Broadcaster> {
         let mut lock_path = path.as_os_str().to_os_string();
         lock_path.push(".mcp-owner.lock");
@@ -67,7 +85,7 @@ impl OwnerLease {
         ensure_feed_available(path).await?;
         Broadcaster::spawn(path.to_path_buf()).ok_or_else(|| {
             io::Error::other(format!(
-                "magistr mcp-serve: cannot bind live-feed socket {}; startup refused \
+                "magistr: cannot bind live-feed socket {}; startup refused \
              before opening project engines (check the path and runtime support)",
                 path.display()
             ))
@@ -105,7 +123,7 @@ async fn ensure_feed_available(path: &Path) -> io::Result<()> {
             Err(io::Error::new(
                 io::ErrorKind::AddrInUse,
                 format!(
-                    "magistr mcp-serve: live-feed socket {} is unavailable: {detail}; \
+                    "magistr: live-feed socket {} is unavailable: {detail}; \
                  startup refused and existing socket preserved",
                     path.display()
                 ),
@@ -119,7 +137,7 @@ async fn ensure_feed_available(path: &Path) -> io::Result<()> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
         format!(
-            "magistr mcp-serve: live-feed socket {} is unsupported on this platform",
+            "magistr: live-feed socket {} is unsupported on this platform",
             path.display()
         ),
     ))

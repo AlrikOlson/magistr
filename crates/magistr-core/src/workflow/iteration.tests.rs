@@ -600,11 +600,24 @@ fn project_config() -> crate::types::ProjectConfig {
     .expect("project config")
 }
 
+/// The loop's own admitted writer on the fixture store.
 fn native_engines(tmp: &tempfile::TempDir) -> NativeEngines {
-    use magistr_engine::TasConfig;
+    admitted(tmp, magistr_engine::WriterRole::Host)
+}
+
+/// The other admitted role on the same store — what the agent's own
+/// `magistr mcp-serve` is to the loop.
+fn agent_engines(tmp: &tempfile::TempDir) -> NativeEngines {
+    admitted(tmp, magistr_engine::WriterRole::Service)
+}
+
+fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> NativeEngines {
+    use magistr_engine::{ProjectAuthority, TasConfig};
     let cfg =
         TasConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas-data"));
-    NativeEngines::open_for_project(&cfg, "iteration-native".into())
+    ProjectAuthority::admit_for_project(&cfg, "iteration-native".into(), role)
+        .expect("admitted")
+        .open()
 }
 
 fn add_native_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
@@ -649,7 +662,7 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
     assert_eq!(il.state().spec_total, 2);
 
     // Another process (the agent's mcp-serve) completes the chunk.
-    let writer = native_engines(&dir);
+    let writer = agent_engines(&dir);
     writer.roadmap_start_chunk("first").unwrap();
     writer.roadmap_complete_chunk("first", None).unwrap();
 
@@ -661,7 +674,6 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
         vec!["second — Chunk second".to_string()]
     );
 
-    let writer = native_engines(&dir);
     writer.roadmap_start_chunk("second").unwrap();
     // In progress but not done: nothing is ready, so the loop stops with the
     // native reason — the roadmap is not "complete", one chunk is mid-flight.

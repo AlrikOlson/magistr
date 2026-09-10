@@ -28,7 +28,6 @@ mod format_runs;
 pub(crate) mod gate;
 pub(crate) mod hooks;
 mod init;
-mod owner_lease;
 pub mod protocol_cap;
 mod roadmap_export;
 mod service;

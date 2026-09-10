@@ -2,10 +2,10 @@
 
 use std::path::Path;
 
-use magistr_engine::{BudgetConfig, EngineHandle, NativeEngines, WorkflowConfig};
+use magistr_engine::{BudgetConfig, EngineHandle, NativeReader, WorkflowConfig};
 
-/// An [`EngineHandle`] for the cockpit session in `root`, attached to the
-/// project's native workflow engines.
+/// An [`EngineHandle`] for the cockpit session in `root`, attached to a
+/// reader over the project's native workflow engines.
 ///
 /// Capture reads the roadmap cursor from the native store: the chunk in
 /// progress, or the next ready chunk. The cockpit's phase and iteration are
@@ -13,7 +13,7 @@ use magistr_engine::{BudgetConfig, EngineHandle, NativeEngines, WorkflowConfig};
 /// Snapshots therefore contain the repository and roadmap cursor, with
 /// workflow fields at their engine defaults.
 #[must_use]
-pub fn session_engine(root: &Path, native: NativeEngines) -> EngineHandle {
+pub fn session_engine(root: &Path, native: NativeReader) -> EngineHandle {
     let id = root.file_name().map_or_else(
         || "session".to_owned(),
         |n| n.to_string_lossy().into_owned(),

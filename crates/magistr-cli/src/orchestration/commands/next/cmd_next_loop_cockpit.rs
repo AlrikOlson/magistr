@@ -4,6 +4,8 @@ use std::path::Path;
 
 use color_eyre::eyre;
 
+use magistr_engine::NativeEngines;
+
 use crate::agent::Backend;
 use crate::error::ResultExt;
 use crate::workflow::WorkflowConfig;
@@ -19,13 +21,13 @@ pub async fn cmd_next_loop_cockpit(
     profile: crate::permissions::PermissionProfile,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
-    // The reasoning server prints its load banner to stderr: open the
-    // engines before the terminal is taken over. `None` on a yaml
-    // roadmap, which reads its spec file as before.
-    let native = crate::roadmap::open_native_engines(&dir);
+    // The reasoning server prints its load banner to stderr: admit the
+    // host and open the engines before the terminal is taken over. `None`
+    // on a yaml roadmap, which reads its spec file as before.
+    let native = crate::roadmap::admit_native_host(&dir)?;
     let wf = WorkflowConfig::load(&dir)
         .suggest()?
-        .with_native(native.clone());
+        .with_native(native.as_ref().map(NativeEngines::reader));
     wf.cleanup()?;
     let iter_loop =
         IterationLoop::open_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;

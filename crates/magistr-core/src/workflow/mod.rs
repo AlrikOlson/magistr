@@ -32,7 +32,7 @@ pub mod tracker;
 
 use std::path::Path;
 
-use magistr_engine::{NativeEngines, TasConfig};
+use magistr_engine::{NativeReader, TasConfig};
 
 use crate::error::{MagistrError, Result};
 use crate::types::ProjectConfig;
@@ -53,7 +53,7 @@ pub struct WorkflowConfig {
     pub spec_path: std::path::PathBuf,
     /// The native engines when the project runs think-and-ship and a caller
     /// opened them (before raw mode); `None` opens them lazily on demand.
-    native: Option<NativeEngines>,
+    native: Option<NativeReader>,
 }
 
 impl WorkflowConfig {
@@ -100,25 +100,25 @@ impl WorkflowConfig {
         self.project_config.roadmap_backend.is_native()
     }
 
-    /// Use engines a caller already opened (before entering raw mode) for
+    /// Use a reader a caller already opened (before entering raw mode) for
     /// the native progress reads. Ignored on a yaml project.
     #[must_use]
-    pub fn with_native(mut self, engines: Option<NativeEngines>) -> Self {
+    pub fn with_native(mut self, engines: Option<NativeReader>) -> Self {
         self.native = engines;
         self
     }
 
-    /// The engines for a native project: the attached ones, or a fresh open
+    /// The reader for a native project: the attached one, or a fresh open
     /// on the store the environment names (prints load banners on stderr —
-    /// call this before raw mode).
-    fn engines(&self) -> Option<NativeEngines> {
+    /// call this before raw mode). Progress is a read; no lease is taken.
+    fn engines(&self) -> Option<NativeReader> {
         if !self.is_native() {
             return None;
         }
         Some(
             self.native
                 .clone()
-                .unwrap_or_else(|| NativeEngines::open(&TasConfig::from_env(&self.project_dir))),
+                .unwrap_or_else(|| NativeReader::open(&TasConfig::from_env(&self.project_dir))),
         )
     }
 

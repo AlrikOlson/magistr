@@ -1,4 +1,7 @@
-use magistr_engine::{ActionType, ChunkStatus, SignalKind, TasConfig, TaskType};
+use magistr_engine::{
+    ActionType, ChunkStatus, NativeEngines, ProjectAuthority, SignalKind, TasConfig, TaskType,
+    WriterRole,
+};
 
 use super::*;
 
@@ -9,7 +12,9 @@ fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
     let config = TasConfig::from_lookup(&root, |_| None)
         .with_data_dir(tmp.path().join("data"))
         .persist(false);
-    NativeEngines::open(&config)
+    ProjectAuthority::admit(&config, WriterRole::Host)
+        .expect("host admitted")
+        .open()
 }
 
 #[test]
@@ -85,7 +90,9 @@ fn persisted(tmp: &tempfile::TempDir) -> NativeEngines {
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
     let config = TasConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
-    NativeEngines::open_for_project(&config, "trace-seed".to_owned())
+    ProjectAuthority::admit_for_project(&config, "trace-seed".to_owned(), WriterRole::Host)
+        .expect("host admitted")
+        .open()
 }
 
 fn think_step(number: u32, purpose: &str) -> magistr_engine::ThinkStep {

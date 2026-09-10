@@ -5,11 +5,11 @@ use magistr_engine::NativeEngines;
 use super::port::EnginePort;
 use crate::cockpit::ProposalKind;
 
-/// The production [`EnginePort`]: the same in-process
+/// The production [`EnginePort`]: the same admitted in-process
 /// [`NativeEngines`] the entry point opened for the store seed, acting
 /// on the shared store the way the MCP server's verbs do — a pin is
 /// `think_pin_step`, a checkpoint is `think_checkpoint`. The store
-/// merges on write, so an external `magistr mcp-serve` on the same
+/// merges on write, so the agent's `magistr mcp-serve` on the same
 /// project sees the mutation too.
 pub struct NativeEnginePort {
     engines: NativeEngines,
