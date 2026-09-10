@@ -1,0 +1,1659 @@
+{
+  "description": "Reviewed structural inheritance from the first-party source import; per-file maxima may only decrease. Counts include tests. This is a lexical growth guard, not a parser; Cargo and Clippy remain required.",
+  "files": {
+    "subsystems/workflow/crates/think-and-ship/build.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 24,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/examples/cloud_census.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 70,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cli/args.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 74,
+      "public_items": 12
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cli/connect.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 130,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cli/mod.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 145,
+      "long_functions": 3,
+      "longest_function": 278,
+      "public_items": 57
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cli/otel_stack.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 112,
+      "public_items": 14
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cli/setup.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 136,
+      "public_items": 18
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cli/skills.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 102,
+      "public_items": 15
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cli/store_health.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 41,
+      "public_items": 16
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/backfill.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 64,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/build.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 147,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/client.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 41,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/config.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 32,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/connection.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 31,
+      "public_items": 13
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/credential.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 36,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/device_flow.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 26,
+      "public_items": 11
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/envelope.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 38,
+      "public_items": 8
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/events.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 51,
+      "public_items": 31
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 39,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/outbox.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 24,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/cloud/pull.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 46,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/content.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 57,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/corpus/eval.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 33,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/corpus/learn.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 68,
+      "public_items": 9
+    },
+    "subsystems/workflow/crates/think-and-ship/src/corpus/mod.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 40,
+      "public_items": 8
+    },
+    "subsystems/workflow/crates/think-and-ship/src/hygiene.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 65,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/broadcast.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 58,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/coerce.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 21,
+      "public_items": 9
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/cross_ref.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 42,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/persistence.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 25,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/project_id.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 31,
+      "public_items": 13
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/repo_sync.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 81,
+      "public_items": 11
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/session.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 13,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/source_gate.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 22,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/infra/tool_result.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 14,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/lib.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/main.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 71,
+      "long_functions": 1,
+      "longest_function": 221,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/cache.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 9,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/client_view.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 27,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/elicit.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 44,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/progress.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 19,
+      "public_items": 6
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/resources.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 39,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/schema_sanitize.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 22,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/tasks.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 39,
+      "public_items": 8
+    },
+    "subsystems/workflow/crates/think-and-ship/src/mcp/unified.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 107,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/otel.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 58,
+      "long_functions": 1,
+      "longest_function": 208,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/otel_live.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 67,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/otel_logs.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 68,
+      "public_items": 11
+    },
+    "subsystems/workflow/crates/think-and-ship/src/otel_receipt.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 31,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/otlp_config.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 31,
+      "public_items": 15
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/broadcast.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 26,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/domain/mod.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 109,
+      "public_items": 21
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/engine/mod.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 13,
+      "long_functions": 1,
+      "longest_function": 163,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/import/markdown.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 43,
+      "long_functions": 1,
+      "longest_function": 193,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/import/mod.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 71,
+      "public_items": 8
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/import/yaml.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 76,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/mcp/export.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 41,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/mcp/handlers.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 113,
+      "public_items": 18
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/mcp/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/mcp/service.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 25,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/name.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 63,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/output_schemas/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 35,
+      "public_items": 15
+    },
+    "subsystems/workflow/crates/think-and-ship/src/roadmap/region.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 52,
+      "public_items": 11
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/broadcast.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 8,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/domain/action.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/domain/artifact.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/domain/check.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/domain/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/domain/objective.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/domain/task.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/engine/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 101,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/gate.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 45,
+      "public_items": 9
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/mcp/handlers.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 84,
+      "public_items": 16
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/mcp/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/mcp/service.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 10,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/output_schemas/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 22,
+      "public_items": 19
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/persistence.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 49,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/report/junit.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 128,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/ship/report/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 61,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/broadcast.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 16,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/domain.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 30,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/engine.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 48,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/mcp/handlers.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 97,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/mcp/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/mcp/service.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 10,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/signal/output_schemas.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 15,
+      "public_items": 6
+    },
+    "subsystems/workflow/crates/think-and-ship/src/telemetry/consent.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 15,
+      "public_items": 6
+    },
+    "subsystems/workflow/crates/think-and-ship/src/telemetry/egress.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 20,
+      "public_items": 6
+    },
+    "subsystems/workflow/crates/think-and-ship/src/telemetry/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/telemetry/scrub.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 37,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/telemetry/shape.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 85,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/broadcast.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 8,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/config.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 103,
+      "public_items": 13
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/constants.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 4,
+      "public_items": 9
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/domain/branch.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/domain/dep_edge.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 9,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/domain/history.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/domain/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/domain/session.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/domain/step.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 12,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/branching.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 70,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/core.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 141,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/export.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 20,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/impact.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 104,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/lookup.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 55,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/maintenance.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 67,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/mutations.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 63,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/numbering.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 24,
+      "long_functions": 1,
+      "longest_function": 174,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/process.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 221,
+      "long_functions": 1,
+      "longest_function": 371,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/recovery.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 57,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/revisions.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 42,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/sessions.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 75,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/snapshots.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 11,
+      "long_functions": 1,
+      "longest_function": 161,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/engine/validation.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 146,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/formatter.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 99,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/mcp/args.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 7,
+      "public_items": 9
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/mcp/handlers.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 30,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/mcp/instructions.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/mcp/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/mcp/service.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 10,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/engine_status.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/error_envelope.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 19,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/mutations.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/record_step.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/search_trace.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/step_impact.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/output_schemas/trace_checkpoint.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/persistence.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 57,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/util/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/think/util/text.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 32,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/trace_context.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 35,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/adf.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 48,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/budget.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 19,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/concern.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 60,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/config.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 36,
+      "public_items": 12
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/atlassian.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 49,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/authcode.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 85,
+      "public_items": 12
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/domain.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 26,
+      "public_items": 6
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/github_app.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 64,
+      "public_items": 10
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/oauth.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 78,
+      "public_items": 6
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/store.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 57,
+      "public_items": 12
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/credential/transport.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 28,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/domain.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 23,
+      "public_items": 6
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/echo.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 33,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/fake.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 52,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/github.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 69,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/linear.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 27,
+      "long_functions": 1,
+      "longest_function": 177,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/outbox.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 61,
+      "public_items": 1
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/ownership.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 21,
+      "long_functions": 1,
+      "longest_function": 171,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/port.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 27,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/project.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 242,
+      "long_functions": 1,
+      "longest_function": 392,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/projects_v2.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 83,
+      "public_items": 21
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/propose_consent.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 19,
+      "public_items": 7
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/receipt.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 37,
+      "public_items": 4
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/registry.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 35,
+      "public_items": 8
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/seed.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 47,
+      "public_items": 3
+    },
+    "subsystems/workflow/crates/think-and-ship/src/tracker/sweep.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 48,
+      "public_items": 5
+    },
+    "subsystems/workflow/crates/think-and-ship/src/usage.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 31,
+      "public_items": 11
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/call_counts.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 48,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/client_capability_view.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 29,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_outbox.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 28,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_roadmap_pull.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 50,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_roadmap_sync.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 44,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_ship_sync.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 33,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_signal_pull.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 35,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_signal_sync.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 19,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_think_pull.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 42,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/cloud_think_sync.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 30,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/docs_command_reachability.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 43,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/elicitation_consent.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 34,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/elicitation_tool_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 66,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/family_stores_durability.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 33,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/http_transport.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 31,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/log_lane_boundary.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 32,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/no_process_narration.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 33,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/otel_outbound_propagation.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 29,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/persistence_no_collision.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 43,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/progress_notifications.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 70,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/project_identity_only.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 38,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/protocol_2026_wire.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 42,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/repo_sync_roadmap_e2e.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 56,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/repo_sync_ship_e2e.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 93,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/repo_sync_think_e2e.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 50,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/roadmap_blocker_command_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 63,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/roadmap_export_tool_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 53,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/roadmap_get_tool_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 68,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/roadmap_next_command_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 61,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/roadmap_status_command_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 72,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/schema_formats.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 25,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/ship_check_report.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 32,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/ship_engine.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 32,
+      "long_functions": 1,
+      "longest_function": 182,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/ship_mcp.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 27,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/ship_persistence.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 50,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/skill_evaluations.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 47,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/support/mod.rs": {
+      "inline_test_modules": 1,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 28,
+      "public_items": 2
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/task_long_gates.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 61,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/telemetry_shape.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 54,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/think_and_ship_e2e.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 88,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/think_broadcast.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 74,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/think_config.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 29,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/think_engine.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 109,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/think_formatter.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 30,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/think_mcp.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 31,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/think_trace_durability.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 45,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_command_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 36,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_companion_seeding.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 47,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_container_ownership.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 38,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_credential.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 77,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_credential_github_app.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 32,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_credential_github_app_logs.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 79,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_echo.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 36,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_grouping.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 33,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_initiative.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 44,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_linear.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 76,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_live_linear.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 114,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_live_projects_v2.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 74,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_optin_inheritance.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 19,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_ownership.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 45,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_preview_agreement.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 53,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_projection.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 107,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_projects_v2.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 55,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_provider_registry.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 44,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_seam.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 42,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_status_proposal.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 137,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/tracker_sweep.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 28,
+      "public_items": 0
+    },
+    "subsystems/workflow/crates/think-and-ship/tests/unified_service.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 72,
+      "public_items": 0
+    }
+  },
+  "upstream_revision": "8c10c1fcfb479e90b33c59502eabd92586cf0761",
+  "version": 1
+}

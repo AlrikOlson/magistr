@@ -12,9 +12,14 @@ members = [
     "crates/magistr-theme",
     "crates/magistr-cockpit",
     "crates/magistr-tui",
+    "subsystems/workflow/crates/think-and-ship",
 ]
 default-members = ["crates/magistr-cli"]
 resolver = "3"
+
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
 
 [profile.dev]
 debug = "line-tables-only"
