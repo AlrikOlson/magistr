@@ -2184,3 +2184,153 @@ async fn a_self_completed_chunk_over_a_red_gate_reaches_the_authority_rule() {
         "and the chunk stays in progress"
     );
 }
+
+// ── Durable operations ──────────────────────────────────────────────
+
+/// The checkpoint the loop left on disk, read back the way recovery reads it.
+fn checkpoint(dir: &Path) -> crate::workflow::iteration::IterationState {
+    let json = std::fs::read_to_string(dir.join(".magistr").join("loop-state.json"))
+        .expect("the loop persisted its checkpoint");
+    serde_json::from_str(&json).expect("a checkpoint recovery would accept")
+}
+
+/// Every operation the iteration dispatched — the attempt's reservation,
+/// the provider dispatch, one receipt per gate, the two native mutations
+/// the judged completion needs and the frame that announced it — is in
+/// the checkpoint with a settled outcome, scoped to one run, so a crash
+/// at any point between them would have left recovery a record to ask
+/// about rather than a guess.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
+    use crate::workflow::iteration::{OperationKind, OperationOutcome};
+    let dir = project("true", "true", "true");
+    let engines = engines_with_active_task(dir.path());
+    let judge = Scripted::new([Verdict::met("both criteria hold")]);
+    let script = Script::new().startup_replies(MS(0)).text(MS(2_500), "\x04");
+    let (_, report, _) = run_with(
+        dir.path(),
+        1,
+        script,
+        FakeAcpAgent::new().reply("did the thing"),
+        false,
+        Some(engines.clone()),
+        Some(judge),
+    )
+    .await;
+    assert_eq!(report.iterations(), 1);
+    let state = checkpoint(dir.path());
+    assert_eq!(state.run_id.project().as_str(), "loop-goal");
+    let mut seen: Vec<(OperationKind, String, OperationOutcome, Option<String>)> = state
+        .operations
+        .records()
+        .iter()
+        .map(|r| (r.kind, r.target.clone(), r.outcome, r.external.clone()))
+        .collect();
+    seen.sort_by(|a, b| (a.0.as_str(), &a.1).cmp(&(b.0.as_str(), &b.1)));
+    let expected = [
+        (OperationKind::NativeMutation, "complete_chunk:work"),
+        (OperationKind::NativeMutation, "start_chunk:work"),
+        (OperationKind::ProviderDispatch, "dispatch"),
+        (OperationKind::Publication, "frame:chunk_completed:work"),
+        (OperationKind::Receipt, "gate:check@task:impl"),
+        (OperationKind::Receipt, "gate:lint@task:impl"),
+        (OperationKind::Receipt, "gate:test@task:impl"),
+        (OperationKind::Reservation, "attempt:0"),
+    ];
+    assert_eq!(
+        seen.iter()
+            .map(|(kind, target, ..)| (*kind, target.as_str()))
+            .collect::<Vec<_>>(),
+        expected
+    );
+    for (kind, target, outcome, external) in &seen {
+        assert_eq!(*outcome, OperationOutcome::Completed, "{kind} {target}");
+        assert_eq!(
+            external.as_deref(),
+            None,
+            "an in-process fake spawns no runtime, so no handle is claimed for {kind} {target}"
+        );
+    }
+    for record in state.operations.records() {
+        assert_eq!(record.attempt.command().run(), &state.run_id);
+        assert_eq!(record.attempt.number().get(), 1);
+    }
+    assert_eq!(state.operations.unsettled().count(), 0);
+}
+
+/// A checkpoint whose provider dispatch is still owned by a live runtime:
+/// the loop over it ends with `Unreconciled`, launches nothing, and
+/// latches no terminal reason on the run — the same loop retries once the
+/// runtime is gone.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_reason() {
+    use crate::workflow::iteration::{OperationKind, OperationOutcome};
+    let dir = project("true", "true", "true");
+    let mut runtime = std::process::Command::new("sleep")
+        .arg("30")
+        .spawn()
+        .expect("a stand-in provider runtime");
+    {
+        let mut il = IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 3, None)
+            .expect("the loop opens");
+        assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+        let dispatch = il
+            .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+            .unwrap()
+            .unwrap();
+        il.start_operation(&dispatch, Some(format!("pid:{}", runtime.id())))
+            .unwrap();
+        il.persist().unwrap();
+    }
+    let recovered =
+        IterationLoop::open_or_recover(dir.path(), dir.path().join("ROADMAP.md"), 3, None)
+            .expect("recovery");
+    assert_eq!(recovered.reconciliation().open.len(), 1);
+    let wf = WorkflowConfig::load(dir.path()).expect("the fixture loads");
+    let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("never asked"));
+    let script = Script::new().startup_replies(MS(0)).text(MS(2_500), "\x04");
+    let terminal = FakeTerminal::new(SIZE, script);
+    let options = Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500));
+    let mut runtime_ui = Runtime::new(terminal, options);
+    let commands = runtime_ui.commands().expect("the commands, once");
+    let driver = LoopDriver::new(
+        recovered,
+        wf,
+        Backend::Acp,
+        runtime_ui.inbox(),
+        commands,
+        connector,
+    )
+    .auto_pause(false);
+    let (_, report) = run_cockpit(runtime_ui, driver).await;
+    assert!(
+        matches!(report.end(), LoopEnd::Unreconciled(open) if open.contains("provider_dispatch dispatch")),
+        "{:?}",
+        report.end()
+    );
+    assert_eq!(report.iterations(), 0);
+    assert!(
+        seen.lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .is_empty(),
+        "no agent was connected while the dispatch was unreconciled"
+    );
+    let state = checkpoint(dir.path());
+    assert_eq!(
+        state.run.terminal_reason, None,
+        "the run is waiting, not stopped"
+    );
+    assert_eq!(
+        state.operations.records().last().map(|r| r.outcome),
+        Some(OperationOutcome::Indeterminate)
+    );
+    runtime.kill().unwrap();
+    runtime.wait().unwrap();
+    // The runtime gone and no commit past the baseline: failed, retryable.
+    let again = IterationLoop::open_or_recover(dir.path(), dir.path().join("ROADMAP.md"), 3, None)
+        .expect("recovery");
+    assert_eq!(
+        again.reconciliation().settled[0].outcome,
+        OperationOutcome::Failed
+    );
+}

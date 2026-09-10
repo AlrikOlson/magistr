@@ -134,9 +134,10 @@ shared provider supervision is needed to unify their terminal-event contract.
 Peer reservations and worker request/receipt state remain separately owned by
 the [peer journal](peers.md); they are not session-snapshot fields.
 
-These changes do not provide a shared provider supervisor or redesign atomic
-checkpoint writes and durable operations. Those remain subsequent `arch-08`
-and `arch-13` work. No live-provider recovery or desktop integration is claimed.
+These changes do not provide a shared provider supervisor. `arch-08` supplies
+one; `arch-13` makes the loop checkpoint atomic and records the run's
+operations for recovery — see [durable operations](durability.md). No
+live-provider recovery or desktop integration is claimed.
 
 ## Enforcement and verification
 

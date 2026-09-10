@@ -28,6 +28,8 @@ terminal requests through configured capabilities; further host migration remain
 separate.
 The [permission service](permissions.md) supplies one decision implementation for
 received agent requests and host effects across cockpit and noninteractive sessions.
+[Durable operations](durability.md) record what a run dispatches before each
+effect and reconcile interrupted attempts against their authorities on recovery.
 
 ## Workflow and tools
 

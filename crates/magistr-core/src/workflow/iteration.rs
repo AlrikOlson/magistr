@@ -9,14 +9,23 @@
 
 use std::path::{Path, PathBuf};
 
-pub use magistr_domain::workflow::IterationStatus;
+pub use magistr_domain::identity::AttemptId;
+use magistr_domain::identity::{ProjectId, RunId};
+pub use magistr_domain::workflow::{
+    IterationStatus, OperationKind, OperationLedger, OperationOutcome, OperationRecord,
+};
 use magistr_domain::workflow::{RunMode, RunState, StopReason};
 use magistr_engine::NativeEngines;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{MagistrError, Result};
 use crate::types::ProjectConfig;
+use crate::workflow::durable_write::durable_write;
+use crate::workflow::reconciliation::Reconciliation;
 use crate::workflow::spec::{self, SpecSummary};
+
+#[path = "iteration_operations.rs"]
+mod operations;
 
 // ── Persisted state ─────────────────────────────────────────────────────────
 
@@ -29,6 +38,14 @@ pub struct IterationState {
     pub max_iterations: u32,
     /// Canonical run policy and stopping evidence. Required for safe recovery.
     pub run: RunState,
+    /// The run every operation record is scoped to; minted when the run
+    /// opened and retained across recovery.
+    pub run_id: RunId,
+    /// The operations this run dispatched — reservations, provider launches,
+    /// receipts, native mutations, publications — each written before its
+    /// effect and settled after. Required: a checkpoint without it cannot
+    /// say what was in flight.
+    pub operations: OperationLedger,
     /// Attempt whose Git baseline was captured, retained across recovery.
     #[serde(deserialize_with = "required_option")]
     pub attempt_started: Option<u32>,
@@ -61,6 +78,10 @@ pub enum PreCheckResult {
     NoReadyChunk,
     /// Stop for another canonical run reason, including recovery guards.
     Stopped(StopReason),
+    /// Stop: recovery could not establish what happened to these attempts
+    /// (a provider runtime still alive, a store it could not ask). Reconcile
+    /// them — or start an explicit new run — before another attempt.
+    Unreconciled(Vec<OperationRecord>),
 }
 
 /// Result of a post-iteration check.
@@ -96,6 +117,8 @@ pub struct IterationLoop {
     spec_path: PathBuf,
     /// Prevent constructor options from replacing recovered run semantics.
     recovered: bool,
+    /// What recovery established about attempts left in flight.
+    reconciliation: Reconciliation,
     /// The in-process think-and-ship engines when the project runs the
     /// native roadmap: the next chunk comes from `roadmap_next` and progress
     /// from the roadmap, not from the spec file.
@@ -154,6 +177,8 @@ impl IterationLoop {
             iteration: 0,
             max_iterations,
             run: RunState::new(RunMode::ChunkLoop, max_iterations, None),
+            run_id: mint_run_id(&project_dir, native.as_ref())?,
+            operations: OperationLedger::new(),
             attempt_started: None,
             last_commit_sha: git_head_sha(&project_dir),
             last_status: IterationStatus::None,
@@ -166,6 +191,7 @@ impl IterationLoop {
             project_dir,
             spec_path,
             recovered: false,
+            reconciliation: Reconciliation::default(),
             native,
         })
     }
@@ -192,7 +218,10 @@ impl IterationLoop {
 
     /// Recover from a previously persisted state (crash recovery).
     ///
-    /// Reads `.magistr/loop-state.json` and reconstructs the loop.
+    /// Reads `.magistr/loop-state.json` and reconstructs the loop. Every
+    /// attempt the lost owner had in flight is marked `Indeterminate` and
+    /// reconciled against its authority (see [`Self::reconciliation`]);
+    /// what stays open refuses the next attempt.
     pub fn recover(project_dir: impl Into<PathBuf>, spec_path: impl Into<PathBuf>) -> Result<Self> {
         Self::recover_with(project_dir, spec_path, None)
     }
@@ -210,20 +239,24 @@ impl IterationLoop {
 
         let content =
             std::fs::read_to_string(&state_path).map_err(|e| MagistrError::io(&state_path, e))?;
-        let state: IterationState = serde_json::from_str(&content).map_err(recovery_error)?;
+        let mut state: IterationState = serde_json::from_str(&content).map_err(recovery_error)?;
         validate_state(&state).map_err(recovery_error)?;
+        state.operations.mark_interrupted();
         let native = match native {
             Some(engines) => Some(engines),
             None => auto_native(&project_dir)?,
         };
 
-        Ok(Self {
+        let mut recovered = Self {
             state,
             project_dir,
             spec_path,
             recovered: true,
+            reconciliation: Reconciliation::default(),
             native,
-        })
+        };
+        recovered.reconciliation = recovered.reconcile();
+        Ok(recovered)
     }
 
     /// Select a mode for a pristine new run. Recovery retains the saved mode.
@@ -285,6 +318,14 @@ impl IterationLoop {
     /// spec-file behaviour). Open the engines BEFORE entering raw mode.
     #[must_use]
     pub fn with_native(mut self, native: Option<NativeEngines>) -> Self {
+        // A pristine run takes the native project's name; a recovered or
+        // started one keeps the identity its records are scoped to.
+        if !self.recovered
+            && self.state.operations.records().is_empty()
+            && let Ok(run_id) = mint_run_id(&self.project_dir, native.as_ref())
+        {
+            self.state.run_id = run_id;
+        }
         self.native = native;
         self
     }
@@ -319,6 +360,10 @@ impl IterationLoop {
             self.stop(reason);
             return Ok(pre_check_stop(reason));
         }
+        let open: Vec<OperationRecord> = self.state.operations.indeterminate().cloned().collect();
+        if !open.is_empty() {
+            return Ok(PreCheckResult::Unreconciled(open));
+        }
 
         // Check if all spec items are done
         let summary = self.spec_summary()?;
@@ -340,6 +385,15 @@ impl IterationLoop {
         if self.state.attempt_started != Some(self.state.run.completed_attempts) {
             self.state.last_commit_sha = git_head_sha(&self.project_dir);
             self.state.attempt_started = Some(self.state.run.completed_attempts);
+        }
+        // The attempt's slot, reserved by the checkpoint that carries this
+        // record: settled the moment it is written, never refunded, and
+        // absent altogether if the write never lands.
+        let target = format!("attempt:{}", self.state.run.completed_attempts);
+        if let Some(reservation) =
+            self.begin_operation(OperationKind::Reservation, "attempt", &target)?
+        {
+            self.settle_operation(&reservation, OperationOutcome::Completed)?;
         }
 
         Ok(PreCheckResult::Continue)
@@ -394,19 +448,15 @@ impl IterationLoop {
         self.stop(StopReason::Failed);
     }
 
-    /// Persist state to `.magistr/loop-state.json`.
+    /// Persist state to `.magistr/loop-state.json`, atomically: a crash at
+    /// any instant leaves the previous checkpoint or this one, never a torn
+    /// file. Call it after writing an operation record and before its effect.
     pub fn persist(&self) -> Result<()> {
         validate_state(&self.state).map_err(recovery_error)?;
         let state_path = loop_state_path(&self.project_dir);
-
-        // Ensure .magistr/ directory exists
-        if let Some(parent) = state_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| MagistrError::io(parent, e))?;
-        }
-
         let json = serde_json::to_string_pretty(&self.state)
             .map_err(|e| MagistrError::parse("JSON", "loop-state.json", e))?;
-        std::fs::write(&state_path, json).map_err(|e| MagistrError::io(&state_path, e))
+        durable_write(&state_path, json.as_bytes()).map_err(|e| MagistrError::io(&state_path, e))
     }
 
     /// Remove the persisted state file (cleanup after loop completes).
@@ -508,6 +558,7 @@ where
 
 fn validate_state(state: &IterationState) -> std::result::Result<(), &'static str> {
     state.run.validate()?;
+    state.operations.validate()?;
     if state.iteration != state.run.completed_attempts
         || state.max_iterations != state.run.max_iterations
     {
@@ -556,6 +607,29 @@ mod legacy_iteration_status {
             IterationStatus::deserialize(serde::de::value::StringDeserializer::new(value))
         }
     }
+}
+
+/// The run identity every operation record is scoped to: the native
+/// project's own id when there is one, else the directory's name, with a
+/// run key minted here from the clock and this process — the domain
+/// allocates no identities.
+fn mint_run_id(project_dir: &Path, native: Option<&NativeEngines>) -> Result<RunId> {
+    let project = native
+        .map(|engines| engines.project_id().to_owned())
+        .or_else(|| {
+            project_dir
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+        })
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "project".to_owned());
+    let millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|since| since.as_millis())
+        .unwrap_or(0);
+    ProjectId::new(project)
+        .and_then(|project| RunId::new(project, format!("run-{millis}-{}", std::process::id())))
+        .map_err(|error| MagistrError::Workflow(format!("cannot name the run: {error}")))
 }
 
 /// Path to the loop state file within the project's `.magistr/` directory.

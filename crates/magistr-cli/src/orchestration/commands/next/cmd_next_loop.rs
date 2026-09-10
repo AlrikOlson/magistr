@@ -2,6 +2,7 @@ use crate::agent;
 use crate::error::ResultExt;
 use crate::utils::format as fmt;
 use crate::workflow;
+use crate::workflow::iteration::{OperationKind, OperationOutcome};
 use color_eyre::eyre;
 
 pub async fn cmd_next_loop(
@@ -69,6 +70,17 @@ pub async fn cmd_next_loop(
                 );
                 break;
             }
+            PreCheckResult::Unreconciled(open) => {
+                let open: Vec<String> = open
+                    .iter()
+                    .map(|record| format!("{} {}", record.kind, record.target))
+                    .collect();
+                return Err(eyre::eyre!(
+                    "recovery could not establish what happened to: {} — reconcile before retrying, \
+                     or preserve/remove .magistr/loop-state.json for an explicit new run",
+                    open.join("; ")
+                ));
+            }
         }
 
         let summary = iter_loop.spec_summary().suggest()?;
@@ -82,11 +94,39 @@ pub async fn cmd_next_loop(
         eprintln!("{} {}", fmt::cyan("→"), summary.status_line());
 
         iter_loop.persist().suggest()?;
-        // Run one /next cycle
+        // Run one /next cycle. The dispatch is written before the run; the
+        // plain drain owns its session, so the record carries no runtime
+        // handle and recovery judges it by the attempt's Git baseline.
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
-        if let Err(error) =
-            crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile).await
-        {
+        let dispatch = iter_loop
+            .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+            .suggest()?;
+        let Some(dispatch) = dispatch else {
+            eprintln!(
+                "{}",
+                fmt::warning(
+                    "provider dispatch already established for this attempt — settled without launching again"
+                )
+            );
+            iter_loop.post_iteration_check();
+            iter_loop.advance();
+            iter_loop.persist().suggest()?;
+            continue;
+        };
+        iter_loop.start_operation(&dispatch, None).suggest()?;
+        iter_loop.persist().suggest()?;
+        let ran = crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile).await;
+        iter_loop
+            .settle_operation(
+                &dispatch,
+                if ran.is_ok() {
+                    OperationOutcome::Completed
+                } else {
+                    OperationOutcome::Failed
+                },
+            )
+            .suggest()?;
+        if let Err(error) = ran {
             iter_loop.post_iteration_check();
             iter_loop.advance();
             iter_loop.mark_failed();

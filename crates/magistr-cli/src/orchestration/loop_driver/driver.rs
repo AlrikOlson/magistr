@@ -37,7 +37,9 @@ use crate::permissions::PermissionProfile;
 use crate::utils::gate::{GateVerdict, nextest_junit_report_path};
 use crate::validate::{Gate, gate_command};
 use crate::workflow::WorkflowConfig;
-use crate::workflow::iteration::{IterationLoop, PostCheckResult, PreCheckResult};
+use crate::workflow::iteration::{
+    AttemptId, IterationLoop, OperationKind, OperationOutcome, PostCheckResult, PreCheckResult,
+};
 
 /// How long a session gets to end its agent once its turn is over.
 const SESSION_GRACE: Duration = Duration::from_secs(5);
@@ -139,6 +141,17 @@ pub struct LoopDriver {
     checkpoints: Option<Arc<Mutex<Box<dyn CheckpointPort>>>>,
     /// The ledger verb in flight, if one is — what a boundary waits for.
     ledger: Option<JoinHandle<()>>,
+}
+
+/// What writing an operation's intent came to.
+enum Intent {
+    /// A new attempt, durable before its effect.
+    Attempt(AttemptId),
+    /// The command's outcome is already established this attempt: the
+    /// effect is not redone.
+    Established,
+    /// The intent could not be written; the note says why.
+    Unrecorded(String),
 }
 
 /// What the driver woke up for.
@@ -410,6 +423,25 @@ impl LoopDriver {
                 PreCheckResult::MaxIterations => {
                     break LoopEnd::MaxIterations(self.iter_loop.max_iterations());
                 }
+                PreCheckResult::Unreconciled(open) => {
+                    let open: Vec<String> = open
+                        .iter()
+                        .map(|record| {
+                            format!(
+                                "{} {} (attempt {}{})",
+                                record.kind,
+                                record.target,
+                                record.attempt.number(),
+                                record
+                                    .external
+                                    .as_deref()
+                                    .map(|handle| format!(", {handle}"))
+                                    .unwrap_or_default()
+                            )
+                        })
+                        .collect();
+                    break LoopEnd::Unreconciled(open.join("; "));
+                }
             }
             if self.persist
                 && let Err(error) = self.iter_loop.persist()
@@ -447,7 +479,9 @@ impl LoopDriver {
         {
             self.iter_loop.advance();
         }
-        self.iter_loop.stop(end.stop_reason());
+        if let Some(reason) = end.stop_reason() {
+            self.iter_loop.stop(reason);
+        }
         if self.persist
             && let Err(error) = self.iter_loop.persist()
         {
@@ -573,26 +607,52 @@ impl LoopDriver {
             false
         };
         if !delegated {
-            let config = self.agent_config(&prompt, &cwd);
-            self.post(LoopEvent::Stage(LoopStage::Connecting));
-            let (transport, spec) = match self.connector.connect(config).await {
-                Ok(connected) => connected,
-                Err(e) => {
+            // The dispatch, written before the launch. An outcome already
+            // established for this attempt (recovery saw the runtime's
+            // commit) means the provider's work is done: the gates and the
+            // judge still run over it, no second runtime is launched.
+            let dispatch = match self.intend(OperationKind::ProviderDispatch, "dispatch") {
+                Intent::Attempt(attempt) => Some(attempt),
+                Intent::Established => {
+                    self.note(
+                        "provider dispatch already established for this attempt — verifying its work instead of launching again",
+                    );
+                    None
+                }
+                Intent::Unrecorded(why) => {
                     self.iter_loop.mark_failed();
-                    return Err(format!("failed to start the agent: {e}"));
+                    return Err(format!("not dispatching the agent: {why}"));
                 }
             };
-            let (session, session_tx, _) = self.open_session(transport, spec, true)?;
-            self.post(LoopEvent::Stage(LoopStage::Agent));
-            let turn = self.turn(&session_tx, started, &mut ticks).await;
-            drop(session_tx);
-            self.close_session(session).await?;
-            match turn {
-                Turn::Ended => {}
-                Turn::Closed => return Ok(Step::Closed),
-                Turn::Failed(why) => {
-                    self.iter_loop.mark_failed();
-                    return Err(why);
+            if let Some(dispatch) = dispatch {
+                let config = self.agent_config(&prompt, &cwd);
+                self.post(LoopEvent::Stage(LoopStage::Connecting));
+                let (transport, spec) = match self.connector.connect(config).await {
+                    Ok(connected) => connected,
+                    Err(e) => {
+                        self.settled(&dispatch, OperationOutcome::Failed);
+                        self.iter_loop.mark_failed();
+                        return Err(format!("failed to start the agent: {e}"));
+                    }
+                };
+                let runtime = runtime_handle(&transport);
+                let (session, session_tx, _) = self.open_session(transport, spec, true)?;
+                self.launched(&dispatch, runtime);
+                self.post(LoopEvent::Stage(LoopStage::Agent));
+                let turn = self.turn(&session_tx, started, &mut ticks).await;
+                drop(session_tx);
+                self.close_session(session).await?;
+                match turn {
+                    Turn::Ended => self.settled(&dispatch, OperationOutcome::Completed),
+                    Turn::Closed => {
+                        self.settled(&dispatch, OperationOutcome::Cancelled);
+                        return Ok(Step::Closed);
+                    }
+                    Turn::Failed(why) => {
+                        self.settled(&dispatch, OperationOutcome::Failed);
+                        self.iter_loop.mark_failed();
+                        return Err(why);
+                    }
                 }
             }
         }
@@ -839,19 +899,38 @@ impl LoopDriver {
         started: Instant,
         ticks: &mut Interval,
     ) -> Result<Attempt, String> {
+        let dispatch = match self.intend(
+            OperationKind::ProviderDispatch,
+            &format!("dispatch:{}", pick.label()),
+        ) {
+            Intent::Attempt(attempt) => attempt,
+            Intent::Established => {
+                return Ok(Attempt::Unavailable(
+                    "this delivery is already established for the attempt".to_owned(),
+                ));
+            }
+            Intent::Unrecorded(why) => {
+                self.iter_loop.mark_failed();
+                return Err(format!("not dispatching the agent: {why}"));
+            }
+        };
         let config = self.agent_config(objective, cwd);
         self.post(LoopEvent::Stage(LoopStage::Connecting));
         let (mut transport, spec) = match self.connector.connect(config).await {
             Ok(connected) => connected,
             Err(e) => {
+                self.settled(&dispatch, OperationOutcome::Failed);
                 self.iter_loop.mark_failed();
                 return Err(format!("failed to start the agent: {e}"));
             }
         };
         let Some(mut tap) = transport.tap_events() else {
+            self.settled(&dispatch, OperationOutcome::Failed);
             return Err("the transport's event stream was already taken".to_owned());
         };
+        let runtime = runtime_handle(&transport);
         let (session, session_tx, control) = self.open_session(transport, spec, false)?;
+        self.launched(&dispatch, runtime);
         self.post(LoopEvent::Stage(LoopStage::Agent));
         let outcome = self
             .deliver(
@@ -866,6 +945,12 @@ impl LoopDriver {
             .await;
         drop(session_tx);
         self.close_session(session).await?;
+        let settled = match &outcome {
+            Ok(Attempt::Confirmed(_)) => OperationOutcome::Completed,
+            Ok(Attempt::Unavailable(_) | Attempt::Closed) => OperationOutcome::Cancelled,
+            Ok(Attempt::Unconfirmed(_)) | Err(_) => OperationOutcome::Failed,
+        };
+        self.settled(&dispatch, settled);
         outcome
     }
 
@@ -1261,14 +1346,17 @@ impl LoopDriver {
     /// never started, since the lifecycle refuses pending → done) and
     /// put the completion frame in front of the cockpit.
     fn complete(&mut self, engines: &NativeEngines, chunk: &Chunk, reason: &str) {
-        if chunk.status == ChunkStatus::Pending
-            && let Err(e) = engines.roadmap_start_chunk(&chunk.id)
-        {
-            self.post(LoopEvent::Failed(format!(
-                "the judge says {} is met but the engines refused to start it: {e}",
-                chunk.id
-            )));
-            return;
+        if chunk.status == ChunkStatus::Pending {
+            let started = self.mutate(&format!("start_chunk:{}", chunk.id), || {
+                engines.roadmap_start_chunk(&chunk.id).map(|_| ())
+            });
+            if let Err(e) = started {
+                self.post(LoopEvent::Failed(format!(
+                    "the judge says {} is met but the engines refused to start it: {e}",
+                    chunk.id
+                )));
+                return;
+            }
         }
         // The proof-of-ship reference: the task this iteration's gates were
         // recorded on. A completion with no such task carries none, and
@@ -1277,12 +1365,19 @@ impl LoopDriver {
             .verification_task
             .as_ref()
             .map(|task| format!("task:{task}"));
-        match engines.roadmap_complete_chunk(&chunk.id, ship_ref.as_deref()) {
-            Ok(done) => {
+        let completed = self.mutate(&format!("complete_chunk:{}", chunk.id), || {
+            engines.roadmap_complete_chunk(&chunk.id, ship_ref.as_deref())
+        });
+        match completed {
+            Ok(Some(done)) => {
                 self.completed.push(done.id.clone());
                 self.post_chunk_frame(&done, "chunk_completed");
                 self.note(format!("judge: met — {reason}; {} completed", chunk.id));
             }
+            Ok(None) => self.note(format!(
+                "judge: met — {reason}; {} was already completed for this attempt",
+                chunk.id
+            )),
             Err(e) => self.post(LoopEvent::Failed(format!(
                 "the judge says {} is met but the engines refused to complete it: {e}",
                 chunk.id
@@ -1290,16 +1385,88 @@ impl LoopDriver {
         }
     }
 
+    /// One native mutation, its intent written before the engines are
+    /// asked and its outcome settled by their answer. `Ok(None)` when the
+    /// mutation is already established for this attempt and not redone;
+    /// an intent that cannot be written is not dispatched.
+    fn mutate<T>(
+        &mut self,
+        target: &str,
+        apply: impl FnOnce() -> Result<T, String>,
+    ) -> Result<Option<T>, String> {
+        let attempt = match self.intend(OperationKind::NativeMutation, target) {
+            Intent::Attempt(attempt) => attempt,
+            Intent::Established => return Ok(None),
+            Intent::Unrecorded(why) => return Err(format!("not applied: {why}")),
+        };
+        let applied = apply();
+        self.settled(
+            &attempt,
+            if applied.is_ok() {
+                OperationOutcome::Completed
+            } else {
+                OperationOutcome::Failed
+            },
+        );
+        applied.map(Some)
+    }
+
+    /// Write an operation's intent for this attempt, durably when the
+    /// loop persists. The key doubles as the target: what recovery reads
+    /// back is spelled the same way the record names it.
+    fn intend(&mut self, kind: OperationKind, target: &str) -> Intent {
+        match self.iter_loop.begin_operation(kind, target, target) {
+            Ok(Some(attempt)) => {
+                self.checkpoint_operations();
+                Intent::Attempt(attempt)
+            }
+            Ok(None) => Intent::Established,
+            Err(error) => Intent::Unrecorded(error.to_string()),
+        }
+    }
+
+    /// The effect is dispatched; `runtime` is its own handle.
+    fn launched(&mut self, attempt: &AttemptId, runtime: Option<String>) {
+        if let Err(error) = self.iter_loop.start_operation(attempt, runtime) {
+            self.note(format!("operation not marked running: {error}"));
+        }
+        self.checkpoint_operations();
+    }
+
+    /// The effect's outcome, as this owner saw it.
+    fn settled(&mut self, attempt: &AttemptId, outcome: OperationOutcome) {
+        if let Err(error) = self.iter_loop.settle_operation(attempt, outcome) {
+            self.note(format!("operation not settled: {error}"));
+        }
+        self.checkpoint_operations();
+    }
+
+    /// The checkpoint that makes a record durable — before the effect it
+    /// names, and after its outcome.
+    fn checkpoint_operations(&mut self) {
+        if self.persist
+            && let Err(error) = self.iter_loop.persist()
+        {
+            self.note(format!(
+                "could not checkpoint the operation record: {error}"
+            ));
+        }
+    }
+
     /// Block `chunk` on a human with the judge's reason — the dock's
     /// blocker card — and end the loop.
     fn stop(&mut self, engines: &NativeEngines, chunk: &Chunk, reason: &str) -> Step {
-        match engines.roadmap_set_blocked_by(
-            &chunk.id,
-            BlockerKind::AwaitingHuman,
-            format!("the judge stopped the loop: {reason}"),
-            None,
-        ) {
-            Ok(blocked) => self.post_chunk_frame(&blocked, "chunk_changed"),
+        let blocked = self.mutate(&format!("set_blocked_by:{}", chunk.id), || {
+            engines.roadmap_set_blocked_by(
+                &chunk.id,
+                BlockerKind::AwaitingHuman,
+                format!("the judge stopped the loop: {reason}"),
+                None,
+            )
+        });
+        match blocked {
+            Ok(Some(blocked)) => self.post_chunk_frame(&blocked, "chunk_changed"),
+            Ok(None) => {}
             Err(e) => self.post(LoopEvent::Failed(format!(
                 "could not block {} on a human: {e}",
                 chunk.id
@@ -1312,13 +1479,28 @@ impl LoopDriver {
     /// server would have written — the rail, the dock and the Roadmap tab
     /// fold it through the one path they already have; the in-process
     /// engines write no socket.
-    fn post_chunk_frame(&self, chunk: &Chunk, kind: &str) {
+    ///
+    /// A publication is recorded like any other operation, and is the one
+    /// kind recovery never redoes: a surface that missed the frame reseeds
+    /// from the store, which is where the mutation it announces already is.
+    fn post_chunk_frame(&mut self, chunk: &Chunk, kind: &str) {
+        let publication = match self.intend(
+            OperationKind::Publication,
+            &format!("frame:{kind}:{}", chunk.id),
+        ) {
+            Intent::Attempt(attempt) => Some(attempt),
+            Intent::Established => return,
+            Intent::Unrecorded(_) => None,
+        };
         let payload = serde_json::to_value(chunk).unwrap_or(serde_json::Value::Null);
         self.inbox.send(Msg::Engine(EngineEvent::Frame(NativeFrame {
             family: "roadmap".to_owned(),
             kind: kind.to_owned(),
             payload: serde_json::json!({ "family": "roadmap", "type": kind, "chunk": payload }),
         })));
+        if let Some(publication) = publication {
+            self.settled(&publication, OperationOutcome::Completed);
+        }
     }
 
     /// The agent's turn: the cockpit's commands forwarded to the session,
@@ -1471,12 +1653,28 @@ impl LoopDriver {
             }
             return;
         };
+        let receipt = match self.intend(
+            OperationKind::Receipt,
+            &format!("gate:{}@task:{task}", gate.name),
+        ) {
+            Intent::Attempt(attempt) => Some(attempt),
+            Intent::Established => {
+                self.note(format!(
+                    "{} already recorded on {task} for this attempt — not recorded twice",
+                    gate.name
+                ));
+                return;
+            }
+            // The gate ran; its evidence is worth more than the record of
+            // recording it. Recovery reads the trace either way.
+            Intent::Unrecorded(_) => None,
+        };
         // An absolute path: `read_report` uses it verbatim, and the loop
         // makes no promise about its own working directory.
         let report =
             nextest_junit_report_path(&gate.command).map(|rel| self.wf.project_dir.join(rel));
         let report = report.as_ref().map(|path| path.to_string_lossy());
-        if let Err(why) = engines.ship_record_gate(
+        let recorded = engines.ship_record_gate(
             Some(&task),
             &gate.name,
             gate.command.clone(),
@@ -1484,7 +1682,19 @@ impl LoopDriver {
             gate.details(),
             gate.required,
             report.as_ref().map(|path| ("junit", path.as_ref())),
-        ) && !*said
+        );
+        if let Some(receipt) = receipt {
+            self.settled(
+                &receipt,
+                if recorded.is_ok() {
+                    OperationOutcome::Completed
+                } else {
+                    OperationOutcome::Failed
+                },
+            );
+        }
+        if let Err(why) = recorded
+            && !*said
         {
             *said = true;
             self.note(format!("gates not recorded: {why}"));
@@ -1642,11 +1852,15 @@ impl LoopDriver {
             if engines.roadmap_chunk(&id).map(|chunk| chunk.status) != Some(ChunkStatus::Done) {
                 continue;
             }
-            match engines.roadmap_set_status(&id, ChunkStatus::InProgress) {
-                Ok(chunk) => {
+            let reopened = self.mutate(&format!("set_status:{id}:in_progress"), || {
+                engines.roadmap_set_status(&id, ChunkStatus::InProgress)
+            });
+            match reopened {
+                Ok(Some(chunk)) => {
                     self.note(format!("{id} reopened: {names} is red"));
                     self.post_chunk_frame(&chunk, "chunk_changed");
                 }
+                Ok(None) => {}
                 Err(e) => self.note(format!("could not reopen {id}: {e}")),
             }
         }
@@ -1778,6 +1992,13 @@ impl LoopDriver {
     fn note(&self, text: impl Into<String>) {
         self.post(LoopEvent::Note(text.into()));
     }
+}
+
+/// The provider runtime's own handle for the dispatch record: its process
+/// id when the transport spawned one, nothing for an in-process fake.
+fn runtime_handle(transport: &magistr_acp::AcpTransport) -> Option<String> {
+    let pgid = transport.child_pgid();
+    (pgid > 0).then(|| format!("pid:{pgid}"))
 }
 
 fn ticker() -> Interval {
