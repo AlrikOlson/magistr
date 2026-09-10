@@ -1,10 +1,12 @@
 use chrono::Utc;
+mod admission;
 
 use crate::cloud::client::CloudClient;
 use crate::ship::broadcast::{BroadcastFrame, Broadcaster};
 use crate::ship::domain::action::{Action, ActionType};
 use crate::ship::domain::artifact::Artifact;
 use crate::ship::domain::check::{Check, CheckType};
+use crate::ship::domain::execution_identity::ExecutionIdentity;
 use crate::ship::domain::objective::{Objective, ObjectiveStatus};
 use crate::ship::domain::task::{Task, TaskStatus, TaskType};
 use crate::ship::persistence::Persistence;
@@ -13,6 +15,7 @@ pub struct ShipEngine {
     pub objective: Option<Objective>,
     pub tasks: Vec<Task>,
     pub project_id: String,
+    pub(crate) execution: ExecutionIdentity,
     next_action_id: u32,
     persistence: Option<Persistence>,
     broadcaster: Option<Broadcaster>,
@@ -37,6 +40,7 @@ impl ShipEngine {
             objective: None,
             tasks: Vec::new(),
             project_id,
+            execution: ExecutionIdentity::fresh(),
             next_action_id: 1,
             persistence: None,
             broadcaster: None,
@@ -261,10 +265,13 @@ impl ShipEngine {
     }
 
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
-        if let Some((obj, tasks, next_id)) = persistence.load(&self.project_id) {
+        if let Some((obj, tasks, next_id, execution)) =
+            persistence.load_with_identity(&self.project_id)
+        {
             self.objective = obj;
             self.tasks = tasks;
             self.next_action_id = next_id;
+            self.execution = execution;
             eprintln!("ship: loaded {} task(s) from disk", self.tasks.len());
         }
         self.persistence = Some(persistence);
@@ -273,11 +280,12 @@ impl ShipEngine {
 
     fn persist(&self) {
         if let Some(p) = &self.persistence {
-            p.save(
+            p.save_with_identity(
                 &self.project_id,
                 &self.objective,
                 &self.tasks,
                 self.next_action_id,
+                &self.execution,
             );
         }
     }
@@ -308,6 +316,7 @@ impl ShipEngine {
             cleared = self.tasks.len();
             self.tasks.clear();
             self.next_action_id = 1;
+            self.execution = ExecutionIdentity::fresh();
         }
         let now = Utc::now().to_rfc3339();
         self.objective = Some(Objective {
@@ -342,6 +351,7 @@ impl ShipEngine {
         {
             obj.status = ObjectiveStatus::Active;
         }
+        self.execution.add_task(&id);
         self.tasks.push(Task {
             id,
             title,
@@ -373,6 +383,7 @@ impl ShipEngine {
             ));
         }
         self.tasks.remove(idx);
+        self.execution.remove_task(task_id);
         self.persist();
         Ok(())
     }
@@ -558,6 +569,14 @@ impl ShipEngine {
     }
 
     pub fn ship(&mut self, artifacts: Vec<Artifact>, summary: Option<String>) -> serde_json::Value {
+        serde_json::to_value(self.finalize(artifacts, summary)).expect("serializable ship report")
+    }
+
+    pub fn finalize(
+        &mut self,
+        artifacts: Vec<Artifact>,
+        summary: Option<String>,
+    ) -> crate::ship::application::ShipReport {
         let mut warnings: Vec<String> = Vec::new();
 
         let total_tasks = self.tasks.len();
@@ -624,116 +643,23 @@ impl ShipEngine {
             .chain(artifacts.iter())
             .collect();
 
-        serde_json::json!({
-            "status": "shipped",
-            "summary": summary,
-            "tasks": { "total": total_tasks, "completed": completed },
-            "artifacts_count": all_artifacts.len(),
-            "ship_artifacts": artifacts,
-            "warnings": warnings,
-        })
+        crate::ship::application::ShipReport::new(
+            total_tasks,
+            completed,
+            all_artifacts.len(),
+            artifacts,
+            summary,
+            warnings,
+        )
     }
 
+    /// Compatibility JSON view; application callers use the typed snapshot.
     pub fn status(&self) -> serde_json::Value {
-        let active_task = self.tasks.iter().find(|t| t.status == TaskStatus::Active);
+        serde_json::to_value(self.snapshot().status()).expect("serializable ship status")
+    }
 
-        let status_counts = serde_json::json!({
-            "planned": self.tasks.iter().filter(|t| t.status == TaskStatus::Planned).count(),
-            "active": self.tasks.iter().filter(|t| t.status == TaskStatus::Active).count(),
-            "blocked": self.tasks.iter().filter(|t| t.status == TaskStatus::Blocked).count(),
-            "completed": self.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count(),
-            "skipped": self.tasks.iter().filter(|t| t.status == TaskStatus::Skipped).count(),
-            "total": self.tasks.len(),
-        });
-
-        let recent_actions: Vec<&Action> = self
-            .tasks
-            .iter()
-            .flat_map(|t| &t.actions)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .take(5)
-            .collect();
-
-        let all_checks: Vec<serde_json::Value> = self
-            .tasks
-            .iter()
-            .flat_map(|t| {
-                t.checks.iter().map(move |c| {
-                    serde_json::json!({
-                        "task_id": t.id,
-                        "name": c.name,
-                        "type": c.check_type,
-                        "passed": c.passed,
-                        "required": c.required,
-                        "verified": c.verified,
-                    })
-                })
-            })
-            .collect();
-
-        let all_artifacts: Vec<serde_json::Value> = self
-            .tasks
-            .iter()
-            .flat_map(|t| {
-                t.artifacts.iter().map(move |a| {
-                    serde_json::json!({
-                        "task_id": t.id,
-                        "type": a.artifact_type,
-                        "ref": a.reference,
-                        "description": a.description,
-                    })
-                })
-            })
-            .collect();
-
-        let think_refs: Vec<serde_json::Value> = self
-            .tasks
-            .iter()
-            .flat_map(|t| {
-                let mut refs = Vec::new();
-                if let Some(branch) = &t.think_branch {
-                    refs.push(serde_json::json!({
-                        "task_id": &t.id,
-                        "ref_type": "branch",
-                        "value": branch,
-                    }));
-                }
-                for action in &t.actions {
-                    if let Some(step) = action.think_step {
-                        refs.push(serde_json::json!({
-                            "task_id": &t.id,
-                            "action_id": action.id,
-                            "ref_type": "step",
-                            "value": step,
-                        }));
-                    }
-                }
-                refs
-            })
-            .collect();
-
-        serde_json::json!({
-            "project_id": self.project_id,
-            "objective": self.objective,
-            "tasks": status_counts,
-            "task_list": self.tasks.iter().map(|t| serde_json::json!({
-                "id": t.id,
-                "title": t.title,
-                "type": t.task_type,
-                "status": t.status,
-                "estimate": t.estimate,
-                "actions_count": t.actions.len(),
-                "checks_count": t.checks.len(),
-                "artifacts_count": t.artifacts.len(),
-            })).collect::<Vec<_>>(),
-            "active_task": active_task,
-            "recent_actions": recent_actions,
-            "checks": all_checks,
-            "artifacts": all_artifacts,
-            "think_refs": think_refs,
-        })
+    pub fn snapshot(&self) -> crate::ship::application::ShipSnapshot {
+        crate::ship::application::ShipSnapshot::from_engine(self)
     }
 
     pub fn export(&self, format: &str) -> String {
@@ -750,6 +676,7 @@ impl ShipEngine {
         self.objective = None;
         self.tasks.clear();
         self.next_action_id = 1;
+        self.execution = ExecutionIdentity::fresh();
         self.broadcast(BroadcastFrame::Cleared);
     }
 

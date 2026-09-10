@@ -4,6 +4,11 @@
 //! and the Tauri viewer. They're deliberately small and trait-free so the
 //! viewer can deserialize the same bytes that the engine produced.
 
+pub mod recorded_step;
+pub mod step_error;
+pub use recorded_step::RecordedStep;
+pub use step_error::StepError;
+
 pub mod branch;
 pub mod dep_edge;
 pub mod history;

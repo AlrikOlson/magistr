@@ -84,7 +84,7 @@ pub fn id_prefix(id: &str) -> &str {
 ///
 /// Deliberately carries no region name. See [`cluster_by_prefix`] for why the
 /// one thing a caller wants from it is the one thing it cannot supply.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Cluster {
     /// The shared leading token. A slug, and named as one — it is evidence that
     /// these chunks belong together, not a proposed name for the container.

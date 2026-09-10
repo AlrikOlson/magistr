@@ -93,6 +93,104 @@ fn text_json(result: &CallToolResult) -> Value {
     serde_json::from_str(&text).expect("json text")
 }
 
+#[cfg(unix)]
+async fn check_keeps_its_admitted_run(tool: &str) {
+    use std::time::Duration;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("project");
+    std::fs::create_dir_all(&root).expect("root");
+    write_fixture(&root);
+    let started = root.join("started");
+    let release = root.join("release");
+    let script = root.join("waiting.sh");
+    std::fs::write(
+        &script,
+        format!(
+            "touch '{}'; while [ ! -f '{}' ]; do sleep 0.01; done; printf 'finished\\n'\n",
+            started.display(),
+            release.display(),
+        ),
+    )
+    .expect("barrier command");
+    let command = format!("sh '{}'", script.display());
+    let config_path = root.join(".magistr/project.json");
+    let mut config: Value =
+        serde_json::from_slice(&std::fs::read(&config_path).expect("config")).expect("json");
+    config["quality_gate"]["check"] = json!(command);
+    std::fs::write(config_path, serde_json::to_vec(&config).expect("json")).expect("config");
+    let (client, server) = pair(&root, &tmp.path().join("data")).await;
+    begin_reused_task(&client, "first").await;
+    let args = if tool == "magistr_gate" {
+        json!({"gate": "check"})
+    } else {
+        json!({"type": "test", "name": "slow", "command": command})
+    };
+    let running = call(&client, tool, args);
+    let rollover = async {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while !started.exists() {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+            call(&client, "ship_complete", json!({"task_id": "reused"})).await;
+            call(&client, "ship_finalize", json!({})).await;
+            begin_reused_task(&client, "second").await;
+        })
+        .await
+        .expect("workflow stays responsive while gate waits");
+        std::fs::write(&release, "").expect("release command");
+    };
+    let (result, ()) = tokio::join!(running, rollover);
+    let result = text_json(&result);
+    if tool == "magistr_gate" {
+        assert_eq!(result["passed"], true, "{result}");
+        assert_eq!(result["recorded"], false, "{result}");
+        assert_eq!(result["stale_admission"]["target"]["task_id"], "reused");
+        assert_eq!(result["unsettled_outcome"]["exit_code"], 0);
+    } else {
+        assert_eq!(result["error_kind"], "stale_result", "{result}");
+        assert_eq!(result["admission"]["target"]["task_id"], "reused");
+        assert_eq!(result["outcome"]["exit_code"], 0);
+    }
+    let status = text_json(&call(&client, "ship_status", json!({})).await);
+    assert_eq!(status["objective"]["description"], "second", "{status}");
+    assert!(
+        status["checks"].as_array().expect("checks").is_empty(),
+        "{status}"
+    );
+    client.cancel().await.expect("cancel client");
+    server.await.expect("server stopped");
+}
+
+#[cfg(unix)]
+async fn begin_reused_task(client: &Client, objective: &str) {
+    call(
+        client,
+        "ship_set_objective",
+        json!({"description": objective}),
+    )
+    .await;
+    call(
+        client,
+        "ship_plan",
+        json!({"action": "add", "task_id": "reused", "title": "Verify"}),
+    )
+    .await;
+    let started = call(client, "ship_start", json!({"task_id": "reused"})).await;
+    assert_eq!(text_json(&started)["status"], "active", "{started:?}");
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn magistr_gate_cannot_land_on_a_reused_task_in_a_later_run() {
+    check_keeps_its_admitted_run("magistr_gate").await;
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn native_ship_check_cannot_land_on_a_reused_task_in_a_later_run() {
+    check_keeps_its_admitted_run("ship_check").await;
+}
+
 #[tokio::test]
 async fn roadmap_export_writes_live_state_in_the_project_and_returns_only_a_receipt() {
     let tmp = tempfile::tempdir().expect("tempdir");

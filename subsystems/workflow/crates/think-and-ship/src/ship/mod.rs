@@ -5,6 +5,7 @@
 //! lives in the `mcp` submodule; broadcast routes through the shared
 //! `crate::infra::Broadcaster` with `Family::Ship`.
 
+pub mod application;
 pub mod broadcast;
 pub mod domain;
 pub mod engine;
@@ -14,4 +15,5 @@ pub mod output_schemas;
 pub mod persistence;
 pub mod report;
 
+pub use application::ShipUseCases;
 pub use mcp::service::ShipService;

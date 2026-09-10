@@ -63,6 +63,57 @@ fn structured(result: &CallToolResult) -> &serde_json::Value {
         .expect("expected structured_content on the CallToolResult")
 }
 
+#[tokio::test]
+async fn typed_reasoning_and_mcp_share_identity_and_validation() {
+    let engine = std::sync::Arc::new(std::sync::Mutex::new(ReasoningServer::new_for_project(
+        ThinkConfig::default(),
+        "typed-project".into(),
+    )));
+    let application = think_and_ship::think::application::ThinkUseCases::new(engine);
+    let wire = ThinkService::from_use_cases(application.clone());
+    let recorded = application.record_step(base_step(0)).expect("native step");
+    assert_eq!(recorded.project_id, "typed-project");
+    assert_eq!(recorded.step.step_number, 1);
+    assert!(recorded.step.record_id.is_some());
+    let found = wire
+        .think_get_step(Parameters(StepLookupArgs {
+            step_number: recorded.step.step_number,
+            resolve_latest: None,
+        }))
+        .await
+        .expect("wire read");
+    assert_eq!(
+        structured(&found)["record_id"],
+        recorded.step.record_id.expect("identity")
+    );
+    wire.think_pin_step(Parameters(PinArgs {
+        step_number: 1,
+        pinned: Some(true),
+    }))
+    .await
+    .expect("wire pin");
+    assert_eq!(
+        application
+            .get_step(1, false)
+            .expect("native read")
+            .expect("step")
+            .pinned,
+        Some(true)
+    );
+
+    let mut invalid = base_step(0);
+    invalid.rationale.clear();
+    let native_error = application
+        .record_step(invalid.clone())
+        .expect_err("native refusal");
+    let wire_error = wire
+        .think_record_step(Parameters(invalid))
+        .await
+        .expect("wire refusal");
+    assert_eq!(structured(&wire_error)["error"], native_error.error);
+    assert!(application.get_step(2, false).expect("read").is_none());
+}
+
 // ─── Tool list shape ────────────────────────────────────────────────────
 
 const EXPECTED_TOOL_NAMES: &[&str] = &[

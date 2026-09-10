@@ -106,14 +106,6 @@ impl NativeReader {
         }
     }
 
-    pub(crate) fn roadmap_engine(&self) -> &Mutex<RoadmapEngine> {
-        &self.roadmap
-    }
-
-    pub(crate) fn ship_engine(&self) -> &Mutex<ShipEngine> {
-        &self.ship
-    }
-
     /// The project every engine is keyed by.
     #[must_use]
     pub fn project_id(&self) -> &str {

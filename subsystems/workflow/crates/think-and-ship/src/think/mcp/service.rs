@@ -36,25 +36,53 @@ use crate::think::output_schemas;
 
 use super::instructions::SERVER_INSTRUCTIONS;
 
+#[cfg(test)]
+#[path = "service.tests.rs"]
+mod tests;
+
 /// The MCP-facing handler. Wraps the engine in a Mutex so the rmcp routing
 /// layer (which calls handlers via &self) can mutate the shared state.
 #[derive(Clone)]
 pub struct ThinkService {
-    pub(super) engine: Arc<Mutex<ReasoningServer>>,
+    pub(super) application: crate::think::application::ThinkUseCases,
     pub(super) tool_router: ToolRouter<ThinkService>,
 }
 
 impl ThinkService {
     pub fn new(engine: ReasoningServer) -> Self {
+        Self::from_use_cases(crate::think::application::ThinkUseCases::new(Arc::new(
+            Mutex::new(engine),
+        )))
+    }
+
+    pub fn from_use_cases(application: crate::think::application::ThinkUseCases) -> Self {
         Self {
-            engine: Arc::new(Mutex::new(engine)),
+            application,
             tool_router: Self::make_tool_router(),
         }
     }
 
+    /// Native application capability over exactly the engine served by MCP.
+    pub fn use_cases(&self) -> crate::think::application::ThinkUseCases {
+        self.application.clone()
+    }
+
     /// Test helper — hands out the inner engine handle.
     pub fn engine(&self) -> Arc<Mutex<ReasoningServer>> {
-        self.engine.clone()
+        self.application.engine()
+    }
+
+    pub(super) fn native_result<T: serde::Serialize>(
+        result: Result<T, String>,
+        kind: &str,
+    ) -> Result<CallToolResult, ErrorData> {
+        match result {
+            Ok(value) => serde_json::to_value(value)
+                .map(CallToolResult::structured)
+                .map_err(|error| ErrorData::internal_error(error.to_string(), None)),
+            Err(error) if error == "engine mutex poisoned" => Err(Self::poisoned()),
+            Err(error) => Ok(Self::structured_err(kind, error)),
+        }
     }
 
     pub(super) fn poisoned() -> ErrorData {

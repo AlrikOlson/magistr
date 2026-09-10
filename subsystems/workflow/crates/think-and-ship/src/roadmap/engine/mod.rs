@@ -6,6 +6,8 @@
 //! Dependency direction: this module depends on `crate::roadmap::domain` (pure)
 //! and `crate::infra` (persistence) — never the reverse (DIP).
 
+mod proposal_resolution;
+
 use chrono::Utc;
 
 use crate::cloud::client::CloudClient;
@@ -1141,17 +1143,11 @@ impl RoadmapEngine {
     // | status        | propose_status            | set_status / obsolete_chunk (any transition)  |
     // | title         | propose_title             | resolve_title_proposal, or a differing title  |
     // |               |                           | edit in update_chunk                          |
-    // | reprioritize  | propose_reprioritize      | a differing priority edit in update_chunk     |
+    // | reprioritize  | propose_reprioritize      | resolve_reprioritize or a differing edit      |
     //
-    // The one asymmetry is ARGUED, not accidental: only the TITLE gets an
-    // explicit accept/reject verb, because only the title proposal has the two
-    // properties that make a verb earn its surface — it is CONSULTED while
-    // open (the projector keeps sending the conceded title, so "reject" must
-    // exist to make the plan's title flow again), and "accept" has a
-    // WRITE-BACK effect (the tracker's title is adopted into the plan). A
-    // status or reprioritize proposal has neither: nothing consults it, and
-    // accepting it is exactly the transition/priority edit the human can
-    // already make — a verb would just be that same act with a second name.
+    // Explicit native resolution settles each proposal under one mutation
+    // lock. Rejection and an accepted same-priority suggestion must clear the
+    // priority proposal without publishing a temporary priority detour.
     //
     // Eager disposal is safe because proposals REGENERATE: the sweep re-mints
     // on its next cycle while a divergence persists, so a disposal costs at

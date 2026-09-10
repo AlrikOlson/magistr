@@ -451,66 +451,8 @@ impl SignalEngine {
     /// of signal summaries. Mirrors `RoadmapEngine::status`'s "never blow the
     /// MCP output limit" discipline.
     pub fn status(&self) -> serde_json::Value {
-        use SignalStatus::*;
-        let count = |s: SignalStatus| {
-            self.signals
-                .signals
-                .iter()
-                .filter(|x| x.status == s)
-                .count()
-        };
-
-        let mut recent: Vec<&Signal> = self.signals.signals.iter().collect();
-        // Newest first by `created` (RFC-3339 sorts lexically).
-        recent.sort_by(|a, b| b.created.cmp(&a.created));
-        let listed: Vec<_> = recent
-            .iter()
-            .take(Self::STATUS_LIST_CAP)
-            .map(|s| {
-                serde_json::json!({
-                    "id": s.id,
-                    "kind": s.kind,
-                    "status": s.status,
-                    "from": s.from,
-                    "body": Self::truncate(&s.body),
-                    "created": s.created,
-                })
-            })
-            .collect();
-        let omitted = self
-            .signals
-            .signals
-            .len()
-            .saturating_sub(Self::STATUS_LIST_CAP);
-
-        serde_json::json!({
-            "project_id": self.project_id,
-            "counts": {
-                "new": count(New),
-                "triaged": count(Triaged),
-                "researched": count(Researched),
-                "surfaced": count(Surfaced),
-                "promoted": count(Promoted),
-                "dismissed": count(Dismissed),
-                "total": self.signals.signals.len(),
-            },
-            "signals": listed,
-            "omitted": omitted,
-        })
-    }
-
-    /// Max signals listed by `status()` before the rest are summarized as a
-    /// count.
-    const STATUS_LIST_CAP: usize = 60;
-    /// Max body length echoed in a `status()` row.
-    const STATUS_BODY_LEN: usize = 140;
-
-    fn truncate(body: &str) -> String {
-        if body.chars().count() <= Self::STATUS_BODY_LEN {
-            return body.to_string();
-        }
-        let cut: String = body.chars().take(Self::STATUS_BODY_LEN).collect();
-        format!("{}…", cut.trim_end())
+        serde_json::to_value(crate::signal::application::SignalInbox::from(self))
+            .expect("signal inbox contains serializable domain fields")
     }
 }
 

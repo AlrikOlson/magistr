@@ -11,6 +11,7 @@ use rmcp::{
 };
 
 use crate::mcp::cache::catalog;
+use crate::ship::application::{ShipError, ShipUseCases};
 use crate::ship::engine::ShipEngine;
 use crate::ship::output_schemas;
 
@@ -45,14 +46,43 @@ and emits structuredContent — prefer parsing that over the text content."#;
 #[derive(Clone)]
 pub struct ShipService {
     pub(super) engine: Arc<Mutex<ShipEngine>>,
+    pub(super) use_cases: ShipUseCases,
     pub(super) tool_router: ToolRouter<ShipService>,
 }
 
 impl ShipService {
     pub fn new(engine: ShipEngine) -> Self {
+        Self::from_use_cases(ShipUseCases::new(Arc::new(Mutex::new(engine))))
+    }
+
+    pub fn from_use_cases(use_cases: ShipUseCases) -> Self {
         Self {
-            engine: Arc::new(Mutex::new(engine)),
+            engine: use_cases.engine(),
+            use_cases,
             tool_router: Self::make_tool_router(),
+        }
+    }
+
+    pub fn use_cases(&self) -> ShipUseCases {
+        self.use_cases.clone()
+    }
+
+    pub(super) fn application_result<T: serde::Serialize>(
+        result: Result<T, String>,
+    ) -> Result<CallToolResult, ErrorData> {
+        Self::typed_result(result.map_err(ShipError::from))
+    }
+
+    pub(super) fn typed_result<T: serde::Serialize>(
+        result: Result<T, ShipError>,
+    ) -> Result<CallToolResult, ErrorData> {
+        match result {
+            Ok(value) => Ok(Self::ok_structured(
+                serde_json::to_value(value)
+                    .map_err(|error| ErrorData::internal_error(error.to_string(), None))?,
+            )),
+            Err(error) if error.message == "engine mutex poisoned" => Err(Self::poisoned()),
+            Err(error) => Ok(Self::err_structured(error.kind, error.message)),
         }
     }
 

@@ -122,7 +122,7 @@ fn round_trip_through_a_temp_store() {
         let report = engines
             .ship_finalize(vec![], Some("done".into()))
             .expect("finalize");
-        assert_eq!(report["status"], "shipped");
+        assert_eq!(report.status, "shipped");
 
         let sig = engines
             .signal_capture(SignalKind::Idea, "alice".into(), "make it faster".into())

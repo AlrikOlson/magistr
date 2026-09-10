@@ -13,7 +13,7 @@ use magistr_cockpit::checkpoint::{CheckpointPort, detach};
 use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
 use magistr_cockpit::engine::{EngineEvent, NativeEnginePort, StoreSeed};
 use magistr_cockpit::job::Jobs;
-use magistr_engine::tas::{BlockerKind, Chunk};
+use magistr_engine::tas::{BlockerKind, CheckAdmission, CheckSettlement, Chunk};
 use magistr_engine::{ChunkStatus, NativeEngines, NativeFrame};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot;
@@ -1545,9 +1545,14 @@ impl LoopDriver {
         }
         // Named once for the set, before any gate runs: every record of
         // this set lands on this task, and the completion names it.
-        self.verification_task = engines
+        let verification = engines
             .as_ref()
-            .and_then(|engines| engines.ship_active_task_id());
+            .ok_or_else(|| "no think-and-ship engines".to_owned())
+            .and_then(|engines| engines.ship_admit_task(None));
+        self.verification_task = verification
+            .as_ref()
+            .ok()
+            .map(|target| target.task_id.clone());
         let mut said_why_not = false;
         // The loop's gates are the project's top-level `quality_gate`,
         // deliberately not `resolve_gates`' per-archetype specs: sharing
@@ -1560,6 +1565,22 @@ impl LoopDriver {
             if command.trim().is_empty() {
                 continue;
             }
+            let admission = verification
+                .as_ref()
+                .map_err(Clone::clone)
+                .and_then(|target| {
+                    let engines = engines.as_ref().expect("verification has an owner");
+                    let admission = engines.ship_admit_gate(
+                        Some(&target.task_id),
+                        gate.label(),
+                        command.to_owned(),
+                        true,
+                    )?;
+                    if &admission.target != target {
+                        return Err("the verification run or task was superseded".to_owned());
+                    }
+                    Ok(admission)
+                });
             let first = match self
                 .one_gate(gate.label(), command, &cancel, started, ticks)
                 .await
@@ -1572,7 +1593,7 @@ impl LoopDriver {
                 }
             };
             if !first.is_retryable() {
-                self.record_gate(engines.as_ref(), &first, &mut said_why_not);
+                self.record_gate(engines.as_ref(), &admission, &first, &mut said_why_not);
                 outcomes.push(first);
                 continue;
             }
@@ -1586,17 +1607,17 @@ impl LoopDriver {
             {
                 GateStep::Ran(again) if again.passed() => {
                     let flake = again.as_flake_of(&first);
-                    self.record_gate(engines.as_ref(), &flake, &mut said_why_not);
+                    self.record_gate(engines.as_ref(), &admission, &flake, &mut said_why_not);
                     outcomes.push(flake);
                 }
                 // Red twice is real, and the second run's own evidence is
                 // the fresher of the two.
                 GateStep::Ran(again) => {
-                    self.record_gate(engines.as_ref(), &again, &mut said_why_not);
+                    self.record_gate(engines.as_ref(), &admission, &again, &mut said_why_not);
                     outcomes.push(again);
                 }
                 GateStep::Gone => {
-                    self.record_gate(engines.as_ref(), &first, &mut said_why_not);
+                    self.record_gate(engines.as_ref(), &admission, &first, &mut said_why_not);
                     outcomes.push(first);
                 }
                 GateStep::Closed => {
@@ -1622,6 +1643,7 @@ impl LoopDriver {
     fn record_gate(
         &mut self,
         engines: Option<&NativeEngines>,
+        admission: &Result<CheckAdmission, String>,
         gate: &GateOutcome,
         said: &mut bool,
     ) {
@@ -1632,13 +1654,17 @@ impl LoopDriver {
             }
             return;
         };
-        let Some(task) = self.verification_task.clone() else {
-            if !*said {
-                *said = true;
-                self.note("gates not recorded: no active task in the trace to record them on");
+        let admission = match admission {
+            Ok(admission) => admission.clone(),
+            Err(why) => {
+                if !*said {
+                    *said = true;
+                    self.note(format!("gates not recorded: {why}"));
+                }
+                return;
             }
-            return;
         };
+        let task = admission.target.task_id.clone();
         let receipt = match self.intend(
             OperationKind::Receipt,
             &format!("gate:{}@task:{task}", gate.name),
@@ -1660,15 +1686,16 @@ impl LoopDriver {
         let report =
             nextest_junit_report_path(&gate.command).map(|rel| self.wf.project_dir.join(rel));
         let report = report.as_ref().map(|path| path.to_string_lossy());
-        let recorded = engines.ship_record_gate(
-            Some(&task),
-            &gate.name,
-            gate.command.clone(),
-            gate.exit_code,
-            gate.details(),
-            gate.required,
+        let recorded = engines.ship_settle_gate(
+            admission, gate.exit_code, gate.details(),
             report.as_ref().map(|path| ("junit", path.as_ref())),
-        );
+        ).and_then(|settlement| match settlement {
+            CheckSettlement::Applied { check } => Ok(check),
+            CheckSettlement::Stale { admission, .. } => Err(format!(
+                "check belongs to superseded run {} task {}; result remains in the loop gate outcome",
+                admission.target.run_id, admission.target.task_id,
+            )),
+        });
         if let Some(receipt) = receipt {
             self.settled(
                 &receipt,

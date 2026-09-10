@@ -15,6 +15,7 @@ use rmcp::{
 
 use crate::mcp::cache::catalog;
 use crate::roadmap::engine::RoadmapEngine;
+use crate::signal::application::{SignalError, SignalUseCases};
 use crate::signal::engine::SignalEngine;
 
 const SERVER_INSTRUCTIONS: &str = r#"signal-* captures and tracks stakeholder signals: questions, ideas, concerns, bugs, and feedback raised about the project. A signal is the local subset of the cloud wire envelope (docs/SIGNAL_CONTRACT.md); the local store is a CACHE of the cloud system-of-record.
@@ -38,19 +39,19 @@ promoting twice is idempotent."#;
 
 #[derive(Clone)]
 pub struct SignalService {
-    pub(super) engine: Arc<Mutex<SignalEngine>>,
-    /// Optional handle to the roadmap engine, shared at the wire layer so
-    /// `signal_promote` can create a backlog chunk. `None` in
-    /// unit/test contexts that don't wire a roadmap — promotion soft-errors then.
-    pub(super) roadmap: Option<Arc<Mutex<RoadmapEngine>>>,
+    pub(super) application: SignalUseCases,
     pub(super) tool_router: ToolRouter<SignalService>,
 }
 
 impl SignalService {
     pub fn new(engine: SignalEngine) -> Self {
+        Self::from_use_cases(SignalUseCases::new(Arc::new(Mutex::new(engine))))
+    }
+
+    /// Expose MCP over an existing admitted signal application.
+    pub fn from_use_cases(application: SignalUseCases) -> Self {
         Self {
-            engine: Arc::new(Mutex::new(engine)),
-            roadmap: None,
+            application,
             tool_router: Self::make_tool_router(),
         }
     }
@@ -58,7 +59,7 @@ impl SignalService {
     /// Wire the roadmap engine so `signal_promote` can create chunks. Called by
     /// `cli::build_unified` with the same handle the `RoadmapService` holds.
     pub fn with_roadmap(mut self, roadmap: Arc<Mutex<RoadmapEngine>>) -> Self {
-        self.roadmap = Some(roadmap);
+        self.application = self.application.with_roadmap(roadmap);
         self
     }
 
@@ -67,7 +68,12 @@ impl SignalService {
     /// at the wire layer — without coupling the `RoadmapEngine` to
     /// the `SignalEngine`.
     pub fn engine(&self) -> Arc<Mutex<SignalEngine>> {
-        Arc::clone(&self.engine)
+        self.application.engine()
+    }
+
+    /// The same typed policy used by MCP, for native workflow callers.
+    pub fn use_cases(&self) -> SignalUseCases {
+        self.application.clone()
     }
 
     /// The `signal_*` tools view. No alias appending — a new family.
@@ -82,10 +88,6 @@ impl SignalService {
         tools
     }
 
-    pub(super) fn poisoned() -> ErrorData {
-        ErrorData::internal_error("signal engine mutex poisoned", None)
-    }
-
     pub(super) fn ok_structured(value: serde_json::Value) -> CallToolResult {
         crate::infra::tool_result::ok(value)
     }
@@ -96,6 +98,21 @@ impl SignalService {
     /// without tripping Claude Code's parallel-batch cascade-cancel.
     pub(super) fn err_structured(kind: &str, message: impl Into<String>) -> CallToolResult {
         crate::infra::tool_result::soft_error(kind, message)
+    }
+
+    pub(super) fn present<T: serde::Serialize>(
+        result: Result<T, SignalError>,
+    ) -> Result<CallToolResult, ErrorData> {
+        match result {
+            Ok(value) => serde_json::to_value(value)
+                .map(Self::ok_structured)
+                .map_err(|error| ErrorData::internal_error(error.to_string(), None)),
+            Err(SignalError::Poisoned) => Err(ErrorData::internal_error(
+                SignalError::Poisoned.to_string(),
+                None,
+            )),
+            Err(error) => Ok(Self::err_structured(error.kind(), error.to_string())),
+        }
     }
 }
 

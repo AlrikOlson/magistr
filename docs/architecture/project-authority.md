@@ -21,7 +21,7 @@ third, holding neither.
 | Capability | Type | Admission | Holds |
 | --- | --- | --- | --- |
 | Read | `NativeReader` | None. `NativeReader::open` reads the store's locked merge-on-save files and `reload_*` re-reads them when `store_stamp` moves. | Queries, reloads, the store stamp, the reasoning archive. |
-| Write | `NativeEngines` | Only `ProjectAuthority::open`. Every clone carries the lease; the role's lock is released with the last writer, never with a reader. | Typed verbs over the reader (`Deref`), each carried out by the library's own tool handler (see [One write path](#one-write-path)); `apply` carries an `OwnerCommand` out the same way. |
+| Write | `NativeEngines` | Only `ProjectAuthority::open`. Every clone carries the lease; the role's lock is released with the last writer, never with a reader. | Typed verbs over the reader (`Deref`), carried out by native workflow use cases (see [One write path](#one-write-path)); `apply` dispatches the versioned `OwnerCommand` to the same implementation. |
 | Transport | `UnifiedService` | Only `ProjectAuthority::serve`, which hands the same four family services the writer acts through to the wire, and the writer beside them. | The MCP verbs; the service keeps the writer and the authority beside them. |
 | Attached | `OwnerClient` | A welcomed handshake on the owner's endpoint. No lease, no engine. | One connection, one command in flight, the owner's generation. |
 
@@ -33,62 +33,62 @@ commands.
 
 ## One write path
 
-Every supported native mutation runs one implementation: the think-and-ship
-tool handler behind the MCP verb of the same name. `ProjectAuthority::open`
-composes the four family services exactly as the standalone `think-and-ship`
-binary composes them — the reciprocal wire-layer handles included, so
-`signal_promote` creates the backlog chunk and `roadmap_status` folds in the
-pending-signal count — and `NativeEngines` holds them. Each typed verb builds
-the handler's own argument struct, runs the handler method directly and reads
-its structured answer back the way a wire client reads it: the value on
-success, the message of a soft `{ok: false}` refusal or of an MCP error as
-the `Err`. `ProjectAuthority::serve` hands those same service instances to
-the transport as its `UnifiedService` and the writer beside them.
+Every supported native mutation runs the first-party workflow application use
+case for its family. `ProjectAuthority::open` composes `ThinkUseCases`,
+`ShipUseCases`, `RoadmapUseCases`, and `SignalUseCases` once, including the
+reciprocal roadmap/signal capabilities. NativeEngines calls their synchronous,
+typed methods directly. `ProjectAuthority::serve` wraps those same capabilities
+in thin MCP adapters; an attached local client reaches them through the
+versioned owner command adapter.
 
-So the agent's `roadmap_start_chunk` over MCP, the cockpit's \[Start\], a
-second cockpit's `OwnerCommand` over the owner endpoint, the loop driver's
-judged completion and `magistr_gate`'s recording are one handler on one set
-of engines: the same validation (an empty signal body or a blank research
-summary is refused everywhere), the same cross-family behavior (promoting a
-signal from the cockpit creates and cross-links `signal-<id>` exactly as the
-verb does), the same short critical section on the same engine lock, the
-same persistence. The MCP transport's own mutations — a gate it ran, a phase
-it recorded — act through that writer and never through its own wire.
+Validation and cross-family sequencing live below transports. Promoting a
+signal creates and cross-links its roadmap chunk; empty bodies, blank research
+summaries, illegal transitions, and unknown identities receive the same native
+refusals. JSON serialization belongs only to transport presentation. The old
+`handler_call` bridge, internal MCP argument/result decoding, and one-poll
+noop-waker invocation are deleted.
 
-The handlers are `async` because rmcp's router requires the signature, not
-because they suspend; each takes an engine lock, acts and returns. The writer
-therefore polls a handler once with the standard no-op waker, which is exact
-for a future that completes on its first poll, and refuses — with a message,
-never by spinning or blocking — a handler that does suspend. Two verbs are
-the exception, each a direct call of exactly the engine method the wire's
-handler calls itself: `ship_record_gate` (`ship_check`'s handler executes
-the command before recording; Magistr's runner already ran the gate on a pty,
-so only the recording half, `record_check_full`, applies) and
-`roadmap_propose_title` / `roadmap_propose_status` (tracker-mirror verbs
-with no MCP tool). The `native-write-path` gate
-(`scripts/native-write-path-gate.sh`) keeps the inventory executable:
-engines and services are composed only in `magistr-engine`'s `tas` module,
-an engine lock is taken only by the writer and the reader, the two exceptions
-appear exactly once each, nothing under `mcp_tools` constructs a tool call to
-its own wire, and only `magistr-engine` and `magistr-cli` depend on
-think-and-ship directly.
+Actual effects are explicit async operations. Ship checks admit a target before
+running a command, execute outside the workflow lock, then settle against that
+admission. Tracker setup probes its provider without holding the roadmap lock,
+then applies the shared native setup policy. Approval waits similarly use the
+application capability. CLI and MCP presentation retain their external names
+and ordinary success/error envelopes.
 
-### Identities
+The `native-write-path` gate keeps these boundaries executable: Magistr engine
+composition is confined to `tas`; raw engine reads belong to `NativeReader`;
+native writes and workflow application modules cannot depend on MCP handlers,
+wire argument/result types, JSON result decoding, or noop-waker polling.
+Magistr MCP code cannot call its own tools. Direct host dependencies remain
+limited to `magistr-engine` and `magistr-cli`.
 
-Every mutation names its target: the chunk, task, step or signal it acts on.
-Records that could fall on "whichever task is active" name the task instead:
-`magistr_gate` and the loop driver resolve the trace's active task before a
-gate runs and record on it by name, and answer or note "no active task" when
-there is none rather than letting a task started during the run collect the
-record. A completion the loop's judge grants carries `task:<id>` of the task
-its gates were recorded on as its proof-of-ship reference; the cockpit's
-\[Complete\] is a human's decision and carries none. Run identity is the
-project's one execution cycle: one objective and one active task per project
-and store (`architecture_contracts`), a second `next`/`next-loop` on a held
-host refused, and no native run isolation claimed — a scope string is not a
-run. The application crate's `CommandContext` (attempt and expected
-revision) has no production adapter yet; durable command admission is later
-work.
+### Identities and check settlement
+
+Native workflow state now carries additive execution identity: an objective run
+and a task instance within that run. Existing stores without this metadata
+remain readable through deterministic legacy identities; new objectives and
+task instances receive fresh identities. Duplicate plan task IDs are refused.
+Removed instances are fenced so a stale merge cannot resurrect them.
+
+`TaskAdmission` names the project, run, task ID, and task instance.
+`CheckAdmission` binds that target to the check request before an effect begins.
+Both `magistr_gate` and native `ship_check` retain this admission across command
+execution. The loop additionally fixes one task admission for the complete gate
+set, including retries. Reusing a task name in a later objective cannot collect
+an earlier command's result.
+
+Settlement re-reads the current native ship state and compares identity under
+the existing persistence lock before appending an ordinary check. A stale
+settlement returns its admission and execution outcome intact; the MCP adapter
+reports `stale_result`, and host runners report an unrecorded result. This
+boundary supplies correlation for the later receipt implementation. It does
+not yet durably archive stale results or provide exactly-once settlement.
+
+Ordinary completion policy remains native and compatible: incomplete tasks or
+failed required checks produce the inherited finalization warnings. Durable
+CheckReceipts, configured evidence freshness, and enforcement at completion
+belong to the blocked `arch-14-verification-receipts` chunk. There is no second
+receipt database or workflow-owned source scanner in this extraction.
 
 ## Roles
 
@@ -231,9 +231,12 @@ reloads when its detached-feed timer observes a changed store stamp, and the
 loop reloads the roadmap at every iteration boundary. An attached mutation is
 carried out on the owner's cached engines, so the owner's own views are
 current; the attached surface sees it through the feed or its next reload.
-Within one process the writer's handlers and the reader's queries share the
-same engines, so a `magistr_gate` record is what the same server's
-`ship_status` answers next.
+Within one process the use cases and reader share the same engines. Ship use
+cases refresh the current persisted state before operating; admitted settlement
+also compares and appends under the file lock. General inherited mutations still
+use whole-task merge behavior; this extraction does not claim a transactional
+multi-writer store. A settled `magistr_gate` record is visible to the same
+server's `ship_status`.
 
 Reloading is separate from command authority. It neither admits a second writer
 nor authenticates a client.
@@ -266,9 +269,12 @@ Engine unit tests (`tas::native_engines::tests`) cover the one write path:
 promotion from the in-process writer creating the backlog chunk and linking
 both ways, idempotently; the handlers' refusals — an empty body, a blank
 summary, an illegal transition, an unknown task — reaching the caller in the
-handler's words; a fresh objective reporting how many stale tasks it
-cleared; and `tas::handler_call::tests` cover a structured answer, a soft
-refusal, an MCP error, prose, and a suspending handler refused.
+native error messages; and a fresh objective reporting how many stale tasks
+it cleared. Imported family use-case tests cover native/MCP valid and invalid
+behavior, reciprocal changes, tracker probe concurrency, legacy execution
+identity, peer rollover, reused task IDs, and stale settlement. CLI process
+tests hold commands across objective rollover and prove that both gate adapters
+leave the newer task untouched.
 `tas::project_authority::tests` cover role coexistence,
 same-role refusal, the lease living with the last writer clone while readers
 hold nothing, the stateless lock under the project root, lock I/O failure

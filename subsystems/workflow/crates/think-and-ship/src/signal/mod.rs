@@ -6,6 +6,7 @@
 //! it). Additive: a fourth family beside `think_*`, `ship_*`, and
 //! `roadmap_*`, mirroring the roadmap module's domain → engine → mcp shape.
 
+pub mod application;
 pub mod broadcast;
 pub mod domain;
 pub mod engine;

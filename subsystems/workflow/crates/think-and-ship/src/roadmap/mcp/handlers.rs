@@ -6,6 +6,9 @@ use serde::Deserialize;
 
 use super::service::RoadmapService;
 use crate::infra::CrossRef;
+use crate::roadmap::application::{
+    BlockerDraft, ChunkDraft, ChunkPatch, ExportRequest, RoadmapError,
+};
 use crate::roadmap::domain::ChunkStatus;
 
 impl RoadmapService {
@@ -17,11 +20,17 @@ impl RoadmapService {
 /// Parse a wire status string into the domain enum (snake_case), surfacing a
 /// readable error for the structured-error envelope.
 fn parse_status(s: &str) -> Result<ChunkStatus, String> {
-    serde_json::from_value(serde_json::Value::String(s.to_string())).map_err(|_| {
-        format!(
+    match s {
+        "backlog" => Ok(ChunkStatus::Backlog),
+        "pending" => Ok(ChunkStatus::Pending),
+        "in_progress" => Ok(ChunkStatus::InProgress),
+        "blocked" => Ok(ChunkStatus::Blocked),
+        "done" => Ok(ChunkStatus::Done),
+        "obsoleted" => Ok(ChunkStatus::Obsoleted),
+        _ => Err(format!(
             "invalid status '{s}' (expected backlog|pending|in_progress|blocked|done|obsoleted)"
-        )
-    })
+        )),
+    }
 }
 
 // Priority parsing lives in `infra::coerce` (the single, infallible home):
@@ -341,6 +350,49 @@ pub struct FocusSetArgs {
     pub clear: bool,
 }
 
+fn native_patch(args: UpdateChunkArgs) -> Result<(String, ChunkPatch), RoadmapError> {
+    let content =
+        crate::content::parse_optional(args.content).map_err(RoadmapError::InvalidArgs)?;
+    let resolve_title_proposal = args
+        .resolve_title_proposal
+        .as_deref()
+        .map(|verb| match verb.trim().to_ascii_lowercase().as_str() {
+            "accept" => Ok(true),
+            "reject" => Ok(false),
+            other => Err(RoadmapError::InvalidState(format!(
+                "resolve_title_proposal must be 'accept' or 'reject', got '{other}'"
+            ))),
+        })
+        .transpose()?;
+    let blocked_by = args
+        .blocked_by
+        .map(|blocker| {
+            crate::roadmap::domain::BlockerKind::from_wire(&blocker.kind)
+                .map(|kind| BlockerDraft {
+                    kind,
+                    reason: blocker.reason,
+                    evidence: blocker.evidence,
+                })
+                .map_err(RoadmapError::InvalidArgs)
+        })
+        .transpose()?;
+    Ok((
+        args.id,
+        ChunkPatch {
+            title: args.title,
+            name: args.name,
+            priority: args.priority,
+            description: args.description,
+            acceptance: args.acceptance,
+            deps: args.deps,
+            content,
+            resolve_title_proposal,
+            blocked_by,
+            clear_blocked_by: args.clear_blocked_by,
+        },
+    ))
+}
+
 // ── Tool handlers ──────────────────────────────────────────────────
 
 #[tool_router]
@@ -360,34 +412,27 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<AddChunkArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let status = match args.status {
-            Some(s) => match parse_status(&s) {
-                Ok(st) => st,
-                Err(e) => return Ok(Self::err_structured("invalid_args", e)),
-            },
-            None => ChunkStatus::Pending,
+        let status = match args.status.as_deref().map(parse_status).transpose() {
+            Ok(status) => status.unwrap_or(ChunkStatus::Pending),
+            Err(error) => return Ok(Self::err_structured("invalid_args", error)),
         };
         let content = match crate::content::parse_optional(args.content) {
-            Ok(c) => c,
-            Err(e) => return Ok(Self::err_structured("invalid_args", e)),
+            Ok(content) => content,
+            Err(error) => return Ok(Self::err_structured("invalid_args", error)),
         };
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.add_chunk_with_content(
-            args.id,
-            args.title,
-            args.name,
+        Self::present(self.application.add_chunk(ChunkDraft {
+            id: args.id,
+            title: args.title,
+            name: args.name,
             status,
-            args.priority,
-            args.description,
-            args.acceptance,
-            args.deps,
-            args.shared,
+            priority: args.priority,
+            description: args.description,
+            acceptance: args.acceptance,
+            deps: args.deps,
+            shared: args.shared,
+            group: args.group,
             content,
-            args.group,
-        ) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        }))
     }
 
     #[tool(
@@ -405,14 +450,9 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<SetStatusArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let status = match parse_status(&args.status) {
-            Ok(st) => st,
-            Err(e) => return Ok(Self::err_structured("invalid_args", e)),
-        };
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.set_status(&args.id, status) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
+        match parse_status(&args.status) {
+            Ok(status) => Self::present(self.application.set_status(&args.id, status)),
+            Err(error) => Ok(Self::err_structured("invalid_args", error)),
         }
     }
 
@@ -431,85 +471,9 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<UpdateChunkArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        // Malformed content refuses the whole call up front — before the
-        // proposal resolution below can take effect on its own.
-        let content = match crate::content::parse_optional(args.content) {
-            Ok(c) => c,
-            Err(e) => return Ok(Self::err_structured("invalid_args", e)),
-        };
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        // Resolution first: an explicit accept/reject is the human speaking
-        // about the proposal, and a title patch in the same call then speaks
-        // on top of the resolved plan rather than being silently disposed by
-        // the update path's proposal-clearing.
-        if let Some(verb) = args.resolve_title_proposal.as_deref() {
-            let accept = match verb.trim().to_ascii_lowercase().as_str() {
-                "accept" => true,
-                "reject" => false,
-                other => {
-                    return Ok(Self::err_structured(
-                        "invalid_state",
-                        format!(
-                            "resolve_title_proposal must be 'accept' or 'reject', got '{other}'"
-                        ),
-                    ));
-                }
-            };
-            if let Err(e) = engine.resolve_title_proposal(&args.id, accept) {
-                return Ok(Self::err_structured("invalid_state", e));
-            }
-        }
-        // The name is its own verb on the engine, so it is applied before the
-        // patch rather than threaded through it. Rejected outright when over
-        // budget: a partially-applied update is better than installing a label
-        // no node can wear.
-        if let Some(n) = args.name.as_deref()
-            && let Err(e) = engine.set_name(&args.id, n)
-        {
-            return Ok(Self::err_structured("invalid_args", e));
-        }
-        // Recording a blocker and retracting one are opposite gestures, so
-        // asking for both in a single call is a contradiction rather than an
-        // ordering question — refused before anything is written, because
-        // picking a winner would make the loser silently ineffective.
-        if args.blocked_by.is_some() && args.clear_blocked_by {
-            return Ok(Self::err_structured(
-                "invalid_args",
-                "blocked_by and clear_blocked_by contradict each other — send one",
-            ));
-        }
-        if let Some(b) = args.blocked_by {
-            let kind = match crate::roadmap::domain::BlockerKind::from_wire(&b.kind) {
-                Ok(k) => k,
-                Err(e) => return Ok(Self::err_structured("invalid_args", e)),
-            };
-            // The engine owns the rules. This seam parses the wire kind and
-            // then hands off — it does not re-check the reason or the evidence,
-            // so there is exactly one place either rule can change.
-            let blocked_by = match engine.validate_blocked_by(kind, b.reason, b.evidence) {
-                Ok(v) => v,
-                Err(e) => return Ok(Self::err_structured("invalid_args", e)),
-            };
-            if let Err(e) = engine.set_blocked_by(&args.id, blocked_by) {
-                return Ok(Self::err_structured("invalid_state", e));
-            }
-        }
-        if args.clear_blocked_by
-            && let Err(e) = engine.clear_blocked_by(&args.id)
-        {
-            return Ok(Self::err_structured("invalid_state", e));
-        }
-        match engine.update_chunk(
-            &args.id,
-            args.title,
-            args.priority,
-            args.description,
-            args.acceptance,
-            args.deps,
-            content,
-        ) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
+        match native_patch(args) {
+            Ok((id, patch)) => Self::present(self.application.update_chunk(&id, patch)),
+            Err(error) => Self::present::<()>(Err(error)),
         }
     }
 
@@ -528,11 +492,7 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<ObsoleteArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.obsolete_chunk(&args.id, args.reason) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        Self::present(self.application.obsolete_chunk(&args.id, args.reason))
     }
 
     #[tool(
@@ -550,11 +510,11 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<ReprioritizeArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.propose_reprioritize(&args.id, args.suggested_priority, args.reason) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        Self::present(self.application.propose_reprioritize(
+            &args.id,
+            args.suggested_priority,
+            args.reason,
+        ))
     }
 
     #[tool(
@@ -572,12 +532,7 @@ impl RoadmapService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let value = match engine.next() {
-            Some(chunk) => serde_json::to_value(chunk).unwrap(),
-            None => serde_json::Value::Null,
-        };
-        Ok(Self::ok_structured(value))
+        Self::present(self.application.next())
     }
 
     #[tool(
@@ -595,25 +550,7 @@ impl RoadmapService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        // Scope the roadmap lock so it's released BEFORE the signal lock below —
-        // signal_promote takes signal→roadmap, so holding both here in the
-        // opposite order could deadlock. We never hold both at once.
-        let mut status = {
-            let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-            engine.status()
-        };
-        // Fold in a pending-signal count when the signal engine is
-        // wired (composed at the wire layer — no RoadmapEngine→SignalEngine dep).
-        if let Some(signal) = &self.signal
-            && let Ok(sig) = signal.lock()
-            && let Some(obj) = status.as_object_mut()
-        {
-            obj.insert(
-                "pending_signals".into(),
-                serde_json::json!(sig.pending_count(0.6)),
-            );
-        }
-        Ok(Self::ok_structured(status))
+        Self::present(self.application.status())
     }
 
     #[tool(
@@ -637,42 +574,14 @@ impl RoadmapService {
                 "only format and output are supported",
             ));
         }
-        if !matches!(args.format.as_str(), "markdown" | "json") {
-            return Ok(Self::err_structured(
-                "invalid_args",
-                "format must be markdown or json",
-            ));
-        }
-        if !matches!(args.output.as_str(), "file" | "inline") {
-            return Ok(Self::err_structured(
-                "invalid_args",
-                "output must be file or inline",
-            ));
-        }
-        if args.output == "file" && self.workspace_root.is_none() {
-            return Ok(Self::err_structured(
-                "workspace_unavailable",
-                "file export requires a configured workspace; use output: inline to read without writing",
-            ));
-        }
-        // Keep the lock through replacement so a later export from this service
-        // cannot be overwritten by an older snapshot that finished writing late.
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let output = engine.export(&args.format);
-        if args.output == "inline" {
-            return Ok(Self::ok_structured(
-                serde_json::json!({ "format": args.format, "roadmap": output }),
-            ));
-        }
-        let root = self
-            .workspace_root
-            .as_ref()
-            .expect("workspace checked above");
-        match super::export::write_projection(root, &args.format, &output) {
-            Ok(path) => Ok(Self::ok_structured(serde_json::json!({
-                "format": args.format, "path": path, "bytes": output.len(), "written": true,
-            }))),
-            Err(error) => Ok(Self::err_structured("export_failed", error.to_string())),
+        let request = args.format.parse().and_then(|format| {
+            args.output
+                .parse()
+                .map(|target| ExportRequest { format, target })
+        });
+        match request {
+            Ok(request) => Self::present(self.application.export(request)),
+            Err(error) => Self::present::<()>(Err(error)),
         }
     }
 
@@ -691,11 +600,7 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<GetArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.get(&args.ids, &args.fields) {
-            Ok(value) => Ok(Self::ok_structured(value)),
-            Err(e) => Ok(Self::err_structured("invalid_args", e)),
-        }
+        Self::present(self.application.get(&args.ids, &args.fields))
     }
 
     #[tool(
@@ -713,15 +618,13 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<StartChunkArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let backref = CrossRef::RoadmapChunk(args.id.clone()).to_wire();
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.start_chunk(&args.id) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::json!({
-                "chunk": serde_json::to_value(chunk).unwrap(),
-                "backref": backref,
+        match self.application.start_chunk(&args.id) {
+            Ok(chunk) => Self::present(Ok(serde_json::json!({
+                "chunk": chunk,
+                "backref": CrossRef::RoadmapChunk(args.id).to_wire(),
                 "hint": "pass `backref` to ship_set_objective and a think execution_ref, then roadmap_link the resulting task:/think: refs back",
             }))),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
+            Err(error) => Self::present::<()>(Err(error)),
         }
     }
 
@@ -740,11 +643,10 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<CompleteChunkArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.complete_chunk(&args.id, args.ship_ref.as_deref()) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        Self::present(
+            self.application
+                .complete_chunk(&args.id, args.ship_ref.as_deref()),
+        )
     }
 
     #[tool(
@@ -762,11 +664,7 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<LinkArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.link_chunk(&args.id, &args.cross_ref) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_args", e)),
-        }
+        Self::present(self.application.link_chunk(&args.id, &args.cross_ref))
     }
 
     #[tool(
@@ -784,14 +682,16 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<RecordRefreshArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let total = engine.record_refresh(args.summary.clone(), args.think_steps.clone());
-        Ok(Self::ok_structured(serde_json::json!({
-            "recorded": true,
-            "summary": args.summary,
-            "think_steps": args.think_steps,
-            "total_refreshes": total,
-        })))
+        match self
+            .application
+            .record_refresh(args.summary.clone(), args.think_steps.clone())
+        {
+            Ok(total) => Self::present(Ok(serde_json::json!({
+                "recorded": true, "summary": args.summary, "think_steps": args.think_steps,
+                "total_refreshes": total,
+            }))),
+            Err(error) => Self::present::<()>(Err(error)),
+        }
     }
 
     #[tool(
@@ -809,11 +709,7 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<SetGroupArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.set_group(&args.id, args.group) {
-            Ok(chunk) => Ok(Self::ok_structured(serde_json::to_value(chunk).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        Self::present(self.application.set_group(&args.id, args.group))
     }
 
     #[tool(
@@ -831,35 +727,10 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<FocusGetArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let focus = engine.focus_get(&args.lane);
-        // Which workstream the frontier describes: an explicit `group` wins,
-        // otherwise the lane's own focus, otherwise nothing to report.
-        let subject = args
-            .group
-            .as_deref()
-            .map(str::trim)
-            .filter(|g| !g.is_empty())
-            .map(str::to_string)
-            .or_else(|| focus.map(|f| f.group.clone()));
-        let frontier = match subject {
-            // An explicit group that resolves is reported under its STORED
-            // name; one that does not is refused in place rather than
-            // silently reported as an empty workstream, which reads
-            // identically to a real workstream nobody has filled.
-            Some(g) => match engine.resolve_group(&g) {
-                crate::roadmap::engine::GroupResolution::Exact(name) => engine.group_status(&name),
-                other => serde_json::json!({ "error": other.explain(&g) }),
-            },
-            None => serde_json::Value::Null,
-        };
-        Ok(Self::ok_structured(serde_json::json!({
-            "lane": args.lane,
-            "focus": focus,
-            "frontier": frontier,
-            "groups": engine.groups(),
-            "persistent": engine.persistence_enabled(),
-        })))
+        Self::present(
+            self.application
+                .focus_get(&args.lane, args.group.as_deref()),
+        )
     }
 
     #[tool(
@@ -877,36 +748,12 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<FocusSetArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
         if args.clear {
-            // Validated even on the clear path: a blank lane cannot be allowed
-            // to mean "clear whichever focus you like".
-            if let Err(e) = crate::roadmap::domain::validate_lane(&args.lane) {
-                return Ok(Self::err_structured("invalid_args", e));
-            }
-            let released = engine.focus_clear(&args.lane);
-            return Ok(Self::ok_structured(serde_json::json!({
-                "lane": args.lane,
-                "focus": serde_json::Value::Null,
-                "released": released,
-                "persistent": engine.persistence_enabled(),
-            })));
+            return Self::present(self.application.focus_clear(&args.lane));
         }
-        let mode = match crate::roadmap::domain::FocusMode::from_wire(&args.mode) {
-            Ok(m) => m,
-            Err(e) => return Ok(Self::err_structured("invalid_args", e)),
-        };
-        match engine.focus_set(&args.lane, &args.group, mode) {
-            Ok(focus) => {
-                let frontier = engine.group_status(&focus.group);
-                Ok(Self::ok_structured(serde_json::json!({
-                    "lane": focus.lane,
-                    "focus": focus,
-                    "frontier": frontier,
-                    "persistent": engine.persistence_enabled(),
-                })))
-            }
-            Err(e) => Ok(Self::err_structured("invalid_args", e)),
+        match crate::roadmap::domain::FocusMode::from_wire(&args.mode) {
+            Ok(mode) => Self::present(self.application.focus_set(&args.lane, &args.group, mode)),
+            Err(error) => Ok(Self::err_structured("invalid_args", error)),
         }
     }
 
@@ -925,25 +772,7 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<ProposeGroupsArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let clusters: Vec<_> = engine
-            .propose_groups_from_ids(args.min_shared)
-            .into_iter()
-            .map(|c| {
-                serde_json::json!({
-                    "prefix": c.prefix,
-                    "chunk_ids": c.chunk_ids,
-                    "why_prefix_is_unfit": c.why_prefix_is_unfit,
-                })
-            })
-            .collect();
-        let groups = engine.groups();
-        Ok(Self::ok_structured(serde_json::json!({
-            "clusters": clusters,
-            "min_shared": args.min_shared,
-            "groups": groups,
-            "placed": 0,
-        })))
+        Self::present(self.application.propose_groups(args.min_shared))
     }
 
     #[tool(
@@ -961,26 +790,8 @@ impl RoadmapService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let (_, project_id, config) = crate::cli::tracker_config();
-        let provider = config.provider.clone().unwrap_or_default();
-        let (included, not_included) = if provider.is_empty() {
-            (0, 0)
-        } else {
-            let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-            (
-                engine.chunks_opted_in(&provider).len(),
-                engine.chunks_not_opted_in(&provider).len(),
-            )
-        };
-        Ok(Self::ok_structured(serde_json::json!({
-            "project_id": project_id,
-            "enabled": crate::tracker::should_project(&config),
-            "provider": config.provider,
-            "target": config.target,
-            "included": included,
-            "not_included": not_included,
-            "inherits_new_chunks": crate::tracker::inherited_opt_in(&config).is_some(),
-        })))
+        let (_, _, config) = crate::cli::tracker_config();
+        Self::present(self.application.tracker_status(&config))
     }
 
     #[tool(
@@ -1000,8 +811,8 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<TrackerSetupArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let (data_dir, project_id, _) = crate::cli::tracker_config();
-        let req = crate::cli::SetupRequest {
+        let (data_dir, _, _) = crate::cli::tracker_config();
+        let req = crate::roadmap::application::tracker::SetupRequest {
             provider: args.provider.clone(),
             into: args.into.clone(),
             name: args.name.clone(),
@@ -1029,43 +840,18 @@ impl RoadmapService {
             Err(e) => return Ok(Self::err_structured("invalid_target", e.to_string())),
         };
 
-        // ── The network half. NO ENGINE LOCK IS HELD HERE. ────────────────
-        // This await is why the split exists: holding `self.engine` across it
-        // would be the lock-across-await defect this codebase forbids.
-        let display = req.name.clone().unwrap_or_else(|| req.into.trim().into());
-        let may_create = args.create_missing && !req.dry_run;
-        let phase = match crate::cli::setup_probe(port.as_ref(), &display, may_create).await {
-            Ok(p) => p,
-            Err(e) => return Ok(Self::err_structured("tracker_error", e.to_string())),
+        let cwd = std::env::current_dir()
+            .map_err(|error| ErrorData::internal_error(error.to_string(), None))?;
+        let report = match self
+            .application
+            .setup_tracker(port.as_ref(), &req, args.create_missing, &data_dir, &cwd)
+            .await
+        {
+            Ok(report) => report,
+            Err(error) => return Ok(Self::err_structured(error.kind, error.message)),
         };
-
-        use crate::cli::TargetPhase;
-        if phase == TargetPhase::MissingAndNotCreated && !req.dry_run {
-            // Refusing to write is the whole point: config naming a destination
-            // that does not exist is the defect `tracker setup` was built to fix.
-            return Ok(Self::err_structured(
-                "target_missing",
-                format!(
-                    "'{}' does not exist on {}. Nothing was written. Ask the human \
-                     whether to create it, then call again with create_missing: true \
-                     — that writes to their tracker and cannot be undone from here.",
-                    req.into.trim(),
-                    req.provider.trim()
-                ),
-            ));
-        }
-
-        // ── The local half. Lock taken now, released before returning. ────
-        // `setup_local` awaits nothing and prints nothing, so this is safe on
-        // both counts — stdout here is the JSON-RPC transport.
-        let cwd = std::env::current_dir().unwrap_or_default();
-        let outcome = {
-            let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-            match crate::cli::setup_local(&mut engine, &req, &data_dir, &project_id, &cwd) {
-                Ok(o) => o,
-                Err(e) => return Ok(Self::err_structured("setup_failed", e.to_string())),
-            }
-        };
+        let (project_id, phase, outcome) = (report.project_id, report.phase, report.outcome);
+        use crate::roadmap::application::tracker::TargetPhase;
 
         let mut next_steps: Vec<String> = Vec::new();
         if outcome.auto_push.is_some() && !outcome.auto_push_unchanged {
@@ -1806,9 +1592,8 @@ mod tests {
 
     // ── tracker_setup (tracker-mcp-setup) ─────────────────────────────────
     //
-    // Three properties, and two of them are about what the handler must NEVER
-    // do. Both would corrupt the JSON-RPC session rather than fail a call, so
-    // neither can be caught by exercising the happy path.
+    // These adapter properties protect the JSON-RPC session. Concurrent native
+    // access during the remote probe is exercised at the application boundary.
 
     /// The production half of this file, so an assertion string naming a call
     /// cannot satisfy the assertion that looks for it.
@@ -1821,7 +1606,7 @@ mod tests {
     /// JSON-RPC frames — a prompt reached from a handler eats protocol traffic
     /// and desynchronizes the session. It must be unreachable from here.
     ///
-    /// HONEST SCOPE, as with the lock test below. Today `cli::confirm` is
+    /// HONEST SCOPE. Today `cli::confirm` is
     /// PRIVATE to the `cli` module, so this module cannot call it at all — the
     /// deliberately-broken build that proves this test bites had to make it
     /// `pub` first. Rust's privacy is the real guard; this test is what
@@ -1866,49 +1651,6 @@ mod tests {
                  structuredContent, or use `eprintln!` as the engine does"
             );
         }
-    }
-
-    /// TRAP 3, the one this codebase states as a standing rule: the engine mutex
-    /// may not be held across an await.
-    ///
-    /// HONEST SCOPE, because this test is weaker than it looks and pretending
-    /// otherwise would be the failure it is guarding against. Today rustc
-    /// enforces this outright: `std::sync::MutexGuard` is not `Send`, the rmcp
-    /// `#[tool]` macro requires a `Send` future, so locking before the probe is
-    /// a COMPILE error ("future created by async block is not `Send`"). Verified
-    /// by deliberately introducing the defect — the broken version would not
-    /// build.
-    ///
-    /// So what is this test for? The moment somebody meets that compile error
-    /// and "fixes" it by reaching for `tokio::sync::Mutex`, whose guard IS
-    /// `Send`, the compiler goes quiet and the defect becomes real and silent.
-    /// This asserts the ORDER survives that change. It is a guard on the future,
-    /// not on the present.
-    #[test]
-    fn the_engine_lock_is_not_held_across_the_network_await() {
-        let src = handler_source();
-        let body = src
-            .split_once("pub async fn tracker_setup(")
-            .expect("tracker_setup must exist")
-            .1;
-        let body = body.split_once("\n    #[tool(").map_or(body, |(b, _)| b);
-
-        let probe_at = body
-            .find("setup_probe(")
-            .expect("tracker_setup must probe the destination");
-        let lock_at = body
-            .find("self.engine.lock()")
-            .expect("tracker_setup must lock the engine to write opt-ins");
-        assert!(
-            lock_at > probe_at,
-            "the engine is locked BEFORE the network probe, so the lock is held \
-             across an await — the defect this codebase forbids on every \
-             objective. Probe first, then lock"
-        );
-        assert!(
-            body[..probe_at].find("self.engine.lock()").is_none(),
-            "an engine lock precedes the probe"
-        );
     }
 
     /// The default that matters: an agent that omits `create_missing` cannot

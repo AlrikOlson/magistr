@@ -2571,7 +2571,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "magistr-domain",
- "rmcp",
  "serde",
  "serde_json",
  "sha2",

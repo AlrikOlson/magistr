@@ -90,8 +90,10 @@ The source-adoption chunk changes Rust tests in two files:
   unified `serde_json` features enable `preserve_order`. The test still proves
   that the external configuration is found and never rewritten.
 
-The imported production Rust is unchanged. The final imported suite recorded
-1,737 passed and 14 skipped with both test adjustments applied. Host verification
+At the source-adoption commit `25b7227`, imported production Rust was unchanged.
+That baseline suite recorded 1,737 passed and 14 skipped with both test
+adjustments applied. The subsequent use-case extraction changes production
+source as described below. Host verification
 also exposed a goal-extension transcript ordering bug, repaired at the transport,
 session-supervisor, and loop-driver boundaries, and a blocking stdio read that
 prevented an attached MCP client from exiting after owner loss. The proxy now
@@ -115,14 +117,33 @@ import.
 
 ## Migration boundary
 
-This adoption preserves existing behavior before extracting the workflow's
-typed use cases beneath transports. Internal MCP serialization, synchronous
-polling of async handlers, cross-family orchestration, and completion policy
-are addressed by `arch-14b-workflow-use-cases`. Workspace source adoption,
-ownership, and `SourceSnapshot` production remain later chunks.
+`arch-14b-workflow-use-cases` adds native application modules for reasoning,
+ship, roadmap, and signals. Validation, reciprocal-family operations, tracker
+setup, and ordinary completion policy now sit beneath CLI/MCP adapters.
+Synchronous commands return typed values; command execution, provider probes,
+and approval waits use explicit async capabilities. Native callers no longer
+serialize MCP arguments, decode tool results, or poll handlers with a noop waker.
+Existing tool names and versioned owner replies remain transport contracts.
 
-The uncommitted receipt implementation in the original Magistr checkout is
-preserved outside this source-adoption worktree. Its exact recovery record is
-native `think:714`, with architecture closeout in `think:715`. It is neither
-part of this imported source nor verified by this adoption. Receipt consumption
-remains deferred to the blocked `arch-14-verification-receipts` chunk.
+Ship state gains optional execution identity metadata in its existing native
+store. Legacy stores remain readable; new objective runs and task instances
+receive fresh identities. Check admission captures project/run/task instance
+before execution, and settlement compares the persisted identity under the
+existing file lock before appending. A stale outcome is returned intact rather
+than attached to a reused task name. This is a correlation interface, not durable
+CheckReceipt storage or exactly-once settlement; inherited general mutations
+retain their merge semantics and ordinary finalization warnings.
+
+New regressions cover native/MCP success and refusal parity, reciprocal-family
+behavior, tracker probe concurrency and consent, legacy identity, task reuse,
+peer rollover, and stale check settlement. Full configured gates are rerun on
+the actual integrated main checkout. Workspace source adoption, ownership, and
+`SourceSnapshot` production remain later chunks.
+
+The uncommitted receipt draft remains an unverified recovery checkpoint:
+native `think:714`, architecture closeout `think:715`, and the exact recovery
+bundle identified in [owned subsystems](../../docs/architecture/owned-subsystems.md#delivery-and-preserved-work).
+The owner requested main-only development; completed commits and the active
+extraction moved to `main`, and this run's isolated worktree was retired.
+The archived draft is neither imported nor certified by these checks. Receipt
+consumption remains deferred to blocked `arch-14-verification-receipts`.

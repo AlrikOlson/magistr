@@ -44,9 +44,11 @@ cached writer for the same project.
 The accepted [first-party subsystem decision](owned-subsystems.md) makes
 hard forks of think-and-ship and Workbench part of the refactor. It defines
 workflow and workspace ownership, source certification, and migration
-constraints. Workflow source is adopted into the root Cargo workspace; typed
-use-case extraction, Workbench adoption, workspace ownership, and source
-snapshots remain pending in native roadmap state.
+constraints. Workflow source belongs to the root Cargo workspace. Typed
+reasoning, ship, roadmap, and signal use cases now own native behavior beneath
+MCP and local owner adapters; command execution and tracker probes are explicit
+async effects. Workbench adoption, workspace ownership, and source snapshots
+remain separate native roadmap chunks.
 
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes

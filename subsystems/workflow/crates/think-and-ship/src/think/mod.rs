@@ -6,6 +6,7 @@
 
 #![allow(clippy::collapsible_if)]
 
+pub mod application;
 pub mod broadcast;
 pub mod config;
 pub mod constants;

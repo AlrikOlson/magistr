@@ -10,8 +10,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 
 use super::service::SignalService;
-use crate::roadmap::domain::ChunkStatus;
-use crate::signal::domain::{SignalKind, SignalStatus};
+use crate::signal::domain::SignalKind;
 
 impl SignalService {
     pub(crate) fn make_tool_router() -> rmcp::handler::server::router::tool::ToolRouter<Self> {
@@ -21,8 +20,16 @@ impl SignalService {
 
 /// Parse a wire kind string into the domain enum (snake_case).
 fn parse_kind(s: &str) -> Result<SignalKind, String> {
-    serde_json::from_value(serde_json::Value::String(s.to_string()))
-        .map_err(|_| format!("invalid kind '{s}' (expected question|idea|concern|bug|feedback)"))
+    match s {
+        "question" => Ok(SignalKind::Question),
+        "idea" => Ok(SignalKind::Idea),
+        "concern" => Ok(SignalKind::Concern),
+        "bug" => Ok(SignalKind::Bug),
+        "feedback" => Ok(SignalKind::Feedback),
+        _ => Err(format!(
+            "invalid kind '{s}' (expected question|idea|concern|bug|feedback)"
+        )),
+    }
 }
 
 // ── Arg types ──────────────────────────────────────────────────────
@@ -118,31 +125,6 @@ pub struct IgnoreArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct NoArgs {}
 
-/// Derive a stable roadmap chunk id from a signal id. The full signal UUID
-/// keeps chunk ids collision-free across signals.
-fn chunk_id_for(signal_id: &str) -> String {
-    format!("signal-{signal_id}")
-}
-
-/// A short, single-line title for a promoted chunk: the kind tag + a truncated
-/// body.
-fn promoted_title(kind: SignalKind, body: &str) -> String {
-    let kind_str = match kind {
-        SignalKind::Question => "question",
-        SignalKind::Idea => "idea",
-        SignalKind::Concern => "concern",
-        SignalKind::Bug => "bug",
-        SignalKind::Feedback => "feedback",
-    };
-    let first_line = body.lines().next().unwrap_or("").trim();
-    let snippet: String = first_line.chars().take(80).collect();
-    if snippet.is_empty() {
-        format!("[{kind_str}] (signal)")
-    } else {
-        format!("[{kind_str}] {snippet}")
-    }
-}
-
 // ── Tool handlers ──────────────────────────────────────────────────
 
 #[tool_router]
@@ -163,19 +145,17 @@ impl SignalService {
         Parameters(args): Parameters<CaptureArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let kind = match parse_kind(&args.kind) {
-            Ok(k) => k,
-            Err(e) => return Ok(Self::err_structured("invalid_args", e)),
+            Ok(kind) => kind,
+            Err(error) => return Ok(Self::err_structured("invalid_args", error)),
         };
-        if args.body.trim().is_empty() {
-            return Ok(Self::err_structured("invalid_args", "signal body is empty"));
-        }
         let content = match crate::content::parse_optional(args.content) {
-            Ok(c) => c,
-            Err(e) => return Ok(Self::err_structured("invalid_args", e)),
+            Ok(content) => content,
+            Err(error) => return Ok(Self::err_structured("invalid_args", error)),
         };
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let signal = engine.capture_with_content(kind, args.from, args.body, content);
-        Ok(Self::ok_structured(serde_json::to_value(signal).unwrap()))
+        Self::present(
+            self.application
+                .capture(kind, args.from, args.body, content),
+        )
     }
 
     #[tool(
@@ -193,8 +173,7 @@ impl SignalService {
         &self,
         Parameters(_): Parameters<NoArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        Ok(Self::ok_structured(engine.status()))
+        Self::present(self.application.status())
     }
 
     #[tool(
@@ -212,11 +191,7 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<GetArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.get(&args.id) {
-            Ok(signal) => Ok(Self::ok_structured(serde_json::to_value(signal).unwrap())),
-            Err(e) => Ok(Self::err_structured("not_found", e)),
-        }
+        Self::present(self.application.get(&args.id))
     }
 
     #[tool(
@@ -234,11 +209,7 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<LinkArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.link(&args.id, &args.cross_ref) {
-            Ok(signal) => Ok(Self::ok_structured(serde_json::to_value(signal).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_args", e)),
-        }
+        Self::present(self.application.link(&args.id, &args.cross_ref))
     }
 
     #[tool(
@@ -256,98 +227,21 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<PromoteArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let Some(roadmap) = self.roadmap.clone() else {
-            return Ok(Self::err_structured(
-                "not_wired",
-                "signal_promote requires the roadmap engine (not wired in this context)",
-            ));
-        };
-
-        // Step 1 — read what we need from the signal under a SCOPED lock, then
-        // drop it (we never hold the signal + roadmap locks at once).
-        let (already_chunk, promotable, kind, body) = {
-            let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-            let signal = match engine.get(&args.id) {
-                Ok(s) => s,
-                Err(e) => return Ok(Self::err_structured("not_found", e)),
-            };
-            let already = signal
-                .cross_refs
-                .iter()
-                .find_map(|r| r.strip_prefix("chunk:").map(str::to_string));
-            let promotable = matches!(
-                signal.status,
-                SignalStatus::Researched | SignalStatus::Surfaced
-            );
-            (already, promotable, signal.kind, signal.body.clone())
-        };
-
-        // Idempotent: already promoted → return the existing chunk, no new one.
-        if let Some(chunk_id) = already_chunk {
-            let chunk = {
-                let r = roadmap.lock().map_err(|_| Self::poisoned())?;
-                r.roadmap()
-                    .chunks
-                    .iter()
-                    .find(|c| c.id == chunk_id)
-                    .map(|c| serde_json::to_value(c).unwrap())
-            };
-            return Ok(Self::ok_structured(serde_json::json!({
-                "signal_id": args.id,
-                "chunk_id": chunk_id,
+        match self.application.promote(&args.id) {
+            Ok(result) if result.created => Self::present(Ok(serde_json::json!({
+                "signal_id": result.signal_id,
+                "chunk_id": result.chunk_id,
+                "created": true,
+                "signal": result.signal,
+            }))),
+            Ok(result) => Self::present(Ok(serde_json::json!({
+                "signal_id": result.signal_id,
+                "chunk_id": result.chunk_id,
                 "created": false,
-                "chunk": chunk,
-            })));
+                "chunk": result.chunk,
+            }))),
+            Err(error) => Self::present::<()>(Err(error)),
         }
-
-        if !promotable {
-            return Ok(Self::err_structured(
-                "invalid_state",
-                "signal must be researched or surfaced before it can be promoted",
-            ));
-        }
-
-        // Step 2 — create the backlog chunk + the signal:<id> back-ref under a
-        // SCOPED roadmap lock.
-        let chunk_id = chunk_id_for(&args.id);
-        let title = promoted_title(kind, &body);
-        let description = format!("Promoted from signal {}. Original: {body}", args.id);
-        {
-            let mut r = roadmap.lock().map_err(|_| Self::poisoned())?;
-            // If the chunk already exists (a prior partial promote), keep going
-            // and just (re)assert the link — promotion stays idempotent.
-            let _ = r.add_chunk(
-                chunk_id.clone(),
-                title,
-                ChunkStatus::Backlog,
-                0,
-                description,
-                Vec::new(),
-                Vec::new(),
-                false,
-            );
-            if let Err(e) = r.link_chunk(&chunk_id, &format!("signal:{}", args.id)) {
-                return Ok(Self::err_structured("invalid_state", e));
-            }
-        }
-
-        // Step 3 — mark the signal Promoted + write the chunk:<id> ref under a
-        // SCOPED signal lock.
-        let signal_value = {
-            let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-            if let Err(e) = engine.promote(&args.id) {
-                return Ok(Self::err_structured("invalid_state", e));
-            }
-            let _ = engine.link(&args.id, &format!("chunk:{chunk_id}"));
-            serde_json::to_value(engine.get(&args.id).unwrap()).unwrap()
-        };
-
-        Ok(Self::ok_structured(serde_json::json!({
-            "signal_id": args.id,
-            "chunk_id": chunk_id,
-            "created": true,
-            "signal": signal_value,
-        })))
     }
 
     #[tool(
@@ -365,23 +259,13 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<ResearchArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        if args.summary.trim().is_empty() {
-            return Ok(Self::err_structured(
-                "invalid_args",
-                "research summary is empty",
-            ));
-        }
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.research(
+        Self::present(self.application.research(
             &args.id,
             args.summary,
             args.confidence,
             args.sources,
             args.think_step,
-        ) {
-            Ok(signal) => Ok(Self::ok_structured(serde_json::to_value(signal).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        ))
     }
 
     #[tool(
@@ -399,14 +283,16 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<PendingArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let min_confidence = args.min_confidence.unwrap_or(0.6);
-        let limit = args.limit.unwrap_or(20) as usize;
-        let engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        let pending = engine.pending(min_confidence, &args.hints, limit);
-        Ok(Self::ok_structured(serde_json::json!({
-            "count": pending.len(),
-            "signals": pending,
-        })))
+        match self
+            .application
+            .pending(args.min_confidence, &args.hints, args.limit)
+        {
+            Ok(signals) => Self::present(Ok(serde_json::json!({
+                "count": signals.len(),
+                "signals": signals,
+            }))),
+            Err(error) => Self::present::<()>(Err(error)),
+        }
     }
 
     #[tool(
@@ -424,11 +310,7 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<SurfaceArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.surface(&args.id) {
-            Ok(signal) => Ok(Self::ok_structured(serde_json::to_value(signal).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        Self::present(self.application.surface(&args.id))
     }
 
     #[tool(
@@ -446,12 +328,7 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<SnoozeArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let minutes = args.minutes.unwrap_or(60);
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.snooze(&args.id, minutes) {
-            Ok(signal) => Ok(Self::ok_structured(serde_json::to_value(signal).unwrap())),
-            Err(e) => Ok(Self::err_structured("not_found", e)),
-        }
+        Self::present(self.application.snooze(&args.id, args.minutes))
     }
 
     #[tool(
@@ -469,156 +346,10 @@ impl SignalService {
         &self,
         Parameters(args): Parameters<IgnoreArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut engine = self.engine.lock().map_err(|_| Self::poisoned())?;
-        match engine.ignore(&args.id) {
-            Ok(signal) => Ok(Self::ok_structured(serde_json::to_value(signal).unwrap())),
-            Err(e) => Ok(Self::err_structured("invalid_state", e)),
-        }
+        Self::present(self.application.ignore(&args.id))
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn capture_args_default_when_absent() {
-        // Missing fields deserialize to "" (never a -32602); the handler
-        // soft-errors on an empty/invalid kind.
-        let bare: CaptureArgs = serde_json::from_str(r#"{}"#).unwrap();
-        assert_eq!(bare.kind, "");
-        assert_eq!(bare.from, "");
-        assert_eq!(bare.body, "");
-    }
-
-    #[test]
-    fn parse_kind_accepts_vocabulary_and_rejects_others() {
-        assert_eq!(parse_kind("feedback").unwrap(), SignalKind::Feedback);
-        assert_eq!(parse_kind("bug").unwrap(), SignalKind::Bug);
-        assert!(parse_kind("rant").is_err());
-    }
-
-    #[test]
-    fn chunk_id_uses_full_signal_id() {
-        assert_eq!(chunk_id_for("f1c9a4e2-1234"), "signal-f1c9a4e2-1234");
-    }
-
-    // ── signal_promote / signal_link (drive the async handlers, assert on the
-    //    real engine state — the test that matters) ──────────────────────────
-
-    use crate::roadmap::engine::RoadmapEngine;
-    use crate::signal::engine::SignalEngine;
-    use std::sync::{Arc, Mutex};
-
-    /// A SignalService over a fresh signal engine + a shared roadmap engine,
-    /// with one signal already advanced to `Researched`. Returns (svc, roadmap, id).
-    fn promotable() -> (SignalService, Arc<Mutex<RoadmapEngine>>, String) {
-        let roadmap = Arc::new(Mutex::new(RoadmapEngine::new("proj".into())));
-        let mut engine = SignalEngine::new("proj".into());
-        let id = engine
-            .capture(SignalKind::Idea, "dana".into(), "add a dark theme".into())
-            .id
-            .clone();
-        engine.set_status(&id, SignalStatus::Triaged).unwrap();
-        engine.set_status(&id, SignalStatus::Researched).unwrap();
-        let svc = SignalService::new(engine).with_roadmap(Arc::clone(&roadmap));
-        (svc, roadmap, id)
-    }
-
-    #[tokio::test]
-    async fn promote_creates_chunk_with_bidirectional_refs() {
-        let (svc, roadmap, id) = promotable();
-        svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
-            .await
-            .unwrap();
-
-        let chunk_id = format!("signal-{id}");
-        // The chunk exists, is backlog, and carries signal:<id>.
-        {
-            let r = roadmap.lock().unwrap();
-            let chunk = r
-                .roadmap()
-                .chunks
-                .iter()
-                .find(|c| c.id == chunk_id)
-                .expect("chunk created");
-            assert_eq!(chunk.status, ChunkStatus::Backlog);
-            assert!(chunk.cross_refs.contains(&format!("signal:{id}")));
-        }
-        // The signal is Promoted and carries chunk:<chunk_id>.
-        {
-            let e = svc.engine.lock().unwrap();
-            let s = e.get(&id).unwrap();
-            assert_eq!(s.status, SignalStatus::Promoted);
-            assert!(s.cross_refs.contains(&format!("chunk:{chunk_id}")));
-        }
-    }
-
-    #[tokio::test]
-    async fn promote_is_idempotent_no_duplicate_chunk() {
-        let (svc, roadmap, id) = promotable();
-        svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
-            .await
-            .unwrap();
-        // Second promote must not create a second chunk.
-        svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
-            .await
-            .unwrap();
-        let count = roadmap
-            .lock()
-            .unwrap()
-            .roadmap()
-            .chunks
-            .iter()
-            .filter(|c| c.id.starts_with("signal-"))
-            .count();
-        assert_eq!(count, 1, "re-promote must be a no-op");
-    }
-
-    #[tokio::test]
-    async fn promote_rejects_unresearched_signal() {
-        let roadmap = Arc::new(Mutex::new(RoadmapEngine::new("proj".into())));
-        let mut engine = SignalEngine::new("proj".into());
-        let id = engine
-            .capture(SignalKind::Bug, "x".into(), "boom".into())
-            .id
-            .clone(); // status New
-        let svc = SignalService::new(engine).with_roadmap(Arc::clone(&roadmap));
-
-        svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
-            .await
-            .unwrap();
-        // No chunk, signal untouched.
-        assert!(roadmap.lock().unwrap().roadmap().chunks.is_empty());
-        assert_eq!(
-            svc.engine.lock().unwrap().get(&id).unwrap().status,
-            SignalStatus::New
-        );
-    }
-
-    #[tokio::test]
-    async fn link_attaches_validated_crossref() {
-        let mut engine = SignalEngine::new("proj".into());
-        let id = engine
-            .capture(SignalKind::Question, "x".into(), "why?".into())
-            .id
-            .clone();
-        let svc = SignalService::new(engine); // no roadmap needed for link
-
-        svc.signal_link(Parameters(LinkArgs {
-            id: id.clone(),
-            cross_ref: "think:42".into(),
-        }))
-        .await
-        .unwrap();
-        assert!(
-            svc.engine
-                .lock()
-                .unwrap()
-                .get(&id)
-                .unwrap()
-                .cross_refs
-                .contains(&"think:42".to_string())
-        );
-    }
-}
+#[path = "handlers.tests.rs"]
+mod tests;

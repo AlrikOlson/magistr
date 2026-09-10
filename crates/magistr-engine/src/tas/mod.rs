@@ -24,7 +24,6 @@ pub mod caller_identity;
 mod family_services;
 pub mod feed_status;
 pub mod gate_output;
-mod handler_call;
 pub mod identity;
 pub mod mcp_acceptor;
 pub mod native_engines;
@@ -95,6 +94,9 @@ pub use think_and_ship::roadmap::domain::{
     BlockedBy, BlockerKind, Chunk, ChunkStatus, ReprioritizeProposal, Roadmap, StatusProposal,
     TitleProposal,
 };
+pub use think_and_ship::ship::application::{
+    CheckAdmission, CheckSettlement, ShipReport, TaskAdmission,
+};
 pub use think_and_ship::ship::domain::action::{Action, ActionType};
 pub use think_and_ship::ship::domain::artifact::{Artifact, ArtifactType};
 pub use think_and_ship::ship::domain::check::{Check, CheckType};
@@ -102,4 +104,4 @@ pub use think_and_ship::ship::domain::objective::Objective;
 pub use think_and_ship::ship::domain::task::{Task, TaskType};
 pub use think_and_ship::signal::domain::{Signal, SignalKind};
 pub use think_and_ship::think::domain::ThinkStep;
-pub use think_and_ship::think::engine::{ProcessErr, ProcessOk, ProcessResult};
+pub use think_and_ship::think::domain::{RecordedStep, StepError};
