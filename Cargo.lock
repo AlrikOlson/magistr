@@ -3316,13 +3316,18 @@ name = "magistr-workspace"
 version = "0.1.0"
 dependencies = [
  "ast-grep-core",
+ "getrandom 0.4.2",
  "grep",
  "ignore",
  "libc",
+ "regex",
  "serde",
  "serde_json",
+ "sha2",
  "streaming-iterator",
+ "tempfile",
  "thiserror 2.0.18",
+ "toml 1.0.6+spec-1.1.0",
  "tree-sitter",
  "tree-sitter-bash",
  "tree-sitter-c",

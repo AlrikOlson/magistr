@@ -1,0 +1,95 @@
+{
+  "cases": [
+    {
+      "name": "defaults",
+      "effective": {"security.redaction": true, "security.allow_sideload": true, "security.protected_paths": [], "telemetry.consent": "off", "edit.force_confirm": false, "edit.confirm_mode": "elicit", "budgets.default": 4000, "format.enabled": true, "tracing.enabled": true, "watcher.mode": "auto"},
+      "commands": {}, "violations": [], "warnings": [],
+      "trace": {"security.redaction": ["defaults", null], "tracing.enabled": ["defaults", null]}
+    },
+    {
+      "name": "security ceilings and additive protection",
+      "org": "[security]\nredaction=true\nallow_sideload=false\nprotected_paths=['secrets/**']\n[telemetry]\nconsent='crash'\n",
+      "user": "[security]\nallow_sideload=true\n[telemetry]\nconsent='full'\n[edit]\nforce_confirm=true\n",
+      "workspace": "[security]\nredaction=false\nprotected_paths=['deploy/**','secrets/**']\n[telemetry]\nconsent='off'\n[edit]\nconfirm_mode='token'\n",
+      "session": {"edit.force_confirm": false, "watcher.mode": "poll"},
+      "effective": {"security.redaction": true, "security.allow_sideload": false, "security.protected_paths": ["secrets/**", "deploy/**"], "telemetry.consent": "off", "edit.force_confirm": true, "edit.confirm_mode": "token", "watcher.mode": "poll"},
+      "commands": {},
+      "violations": [["security.allow_sideload", "user", "org-policy"], ["telemetry.consent", "user", "org-policy"], ["security.redaction", "workspace", "org-policy"], ["edit.force_confirm", "session", "user"]],
+      "warnings": [],
+      "trace": {"telemetry.consent": ["workspace", "workspace"], "edit.force_confirm": ["user", "user"], "watcher.mode": ["session", null]}
+    },
+    {
+      "name": "nearest wins without default pins",
+      "user": "[commands]\nz='cargo build'\na='cargo test'\n[budgets]\ndefault=6000\n",
+      "workspace": "[security]\nredaction=false\n[commands]\nz='cargo check'\n[budgets]\ndefault=2500\n[tracing]\nenabled=false\n",
+      "session": {"commands.a": "cargo test --workspace", "edit.confirm_mode": "token"},
+      "effective": {"security.redaction": false, "budgets.default": 2500, "tracing.enabled": false, "edit.confirm_mode": "token"},
+      "commands": {"a": "cargo test --workspace", "z": "cargo check"},
+      "violations": [], "warnings": [],
+      "trace": {"commands.a": ["session", null], "commands.z": ["workspace", null], "security.redaction": ["workspace", "workspace"]}
+    },
+    {
+      "name": "org command allowlist pins additions and replacements",
+      "org": "[commands]\ntest='cargo test'\n",
+      "workspace": "[commands]\ntest='cargo test'\ndeploy='deploy prod'\n",
+      "session": {"commands.test": "cargo build"},
+      "effective": {}, "commands": {"test": "cargo test"},
+      "violations": [["commands.deploy", "workspace", "org-policy"], ["commands.test", "session", "org-policy"]],
+      "warnings": [], "trace": {"commands.test": ["org-policy", "org-policy"]}
+    },
+    {
+      "name": "empty org table pins denial",
+      "org": "[commands]\n", "workspace": "[commands]\ntest='cargo test'\n",
+      "effective": {}, "commands": {},
+      "violations": [["commands.test", "workspace", "org-policy"]],
+      "warnings": [], "trace": {}
+    },
+    {
+      "name": "malformed layer and wrong values degrade",
+      "org": "not [ valid toml ===\n",
+      "workspace": "config_version='future'\nmystery=1\n[security]\nredaction='yes'\n[commands]\ninvalid=42\n",
+      "effective": {"security.redaction": true}, "commands": {}, "violations": [],
+      "warnings": ["org-policy config", "config_version in workspace", "unknown config key 'mystery'", "config key 'security.redaction'", "command 'invalid'"],
+      "trace": {}
+    },
+    {"name": "future version", "workspace": "config_version=99\n", "unsupported": true},
+    {"name": "future integral float version", "workspace": "config_version=2.0\n", "unsupported": true}
+  ],
+  "guards": [
+    {"line": "cargo test", "args": ["--filter", "has spaces"], "allowed": true},
+    {"line": "cargo test", "args": ["cat"], "allowed": true},
+    {"line": "cargo test && cargo build", "args": [], "allowed": false},
+    {"line": "env FOO=1 /bin/bash", "args": [], "allowed": false},
+    {"line": "npx -y C:\\bin\\sed.exe", "args": [], "allowed": false},
+    {"line": "env", "args": ["-i", "rg", "TODO"], "allowed": false},
+    {"line": "cargo test", "args": ["|", "cat"], "allowed": false},
+    {"line": "cargo\u0085test", "args": [], "allowed": true, "argv": ["cargo\u0085test"]},
+    {"line": "env\ufeffbash", "args": [], "allowed": false},
+    {"line": "env", "args": ["-S", "bash -c true"], "allowed": false, "reference_allowed": true},
+    {"line": "env", "args": ["-Sbash -c true"], "allowed": false, "reference_allowed": true},
+    {"line": "env", "args": ["--split-string=bash -c true"], "allowed": false, "reference_allowed": true},
+    {"line": "env", "args": ["--split-string", "bash -c true"], "allowed": false, "reference_allowed": true},
+    {"line": "env", "args": ["-iS", "bash -c true"], "allowed": false, "reference_allowed": true}
+  ],
+  "detection": [
+    {
+      "name": "Node lockfile precedence",
+      "files": {"package.json": "{\"scripts\":{\"test\":\"vitest\",\"lint\":\"eslint\",\"custom\":\"x\"}}", "bun.lockb": "", "pnpm-lock.yaml": ""},
+      "commands": [
+        {"name": "test", "line": "bun run test", "provenance": "package.json scripts.test + bun.lock"},
+        {"name": "lint", "line": "bun run lint", "provenance": "package.json scripts.lint + bun.lock"}
+      ]
+    },
+    {
+      "name": "Rust workspace members and declared runners",
+      "files": {"Cargo.toml": "[workspace]\nmembers=['crates/*','extra/**']\nexclude=['crates/skip']\n", "crates/a/Cargo.toml": "[package]\nname='alpha'\n", "crates/skip/Cargo.toml": "[package]\nname='skip'\n", ".config/nextest.toml": "", "rust-toolchain.toml": "[toolchain]\ncomponents=['clippy']\n"},
+      "commands": [
+        {"name": "cargo-test", "line": "cargo test --workspace --no-fail-fast", "provenance": "Cargo.toml [workspace]; members `extra/**` not expanded (only <dir>/* globs are)"},
+        {"name": "cargo-build", "line": "cargo build --workspace", "provenance": "Cargo.toml [workspace]"},
+        {"name": "cargo-nextest", "line": "cargo nextest run --workspace --no-fail-fast", "provenance": ".config/nextest.toml"},
+        {"name": "cargo-clippy", "line": "cargo clippy --workspace --all-targets", "provenance": "rust-toolchain.toml components"},
+        {"name": "cargo-test-alpha", "line": "cargo test -p alpha", "provenance": "crates/a/Cargo.toml [package]"}
+      ]
+    }
+  ]
+}

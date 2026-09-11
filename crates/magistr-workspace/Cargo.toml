@@ -44,13 +44,18 @@ grep = "0.4.1"
 ignore = "0.4.23"
 ast-grep-core = "0.45.1"
 thiserror = "2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+regex = "1"
+toml = { version = "1.0.6", features = ["preserve_order"] }
+sha2 = "0.10"
+getrandom = "0.4"
+tempfile = "3"
 
 wasmtime = { version = "48.0.0", optional = true }
 wasmtime-wasi = { version = "48.0.0", optional = true }
 
 [dev-dependencies]
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
 wit-parser = "0.257.1"
 
 # specs/007-resolver-server-pool research R5: OS-level kill-on-parent-death for

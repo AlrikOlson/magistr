@@ -190,3 +190,67 @@ configuration. The reference and native checks establish the source-adoption
 boundary described here; they do not establish the deferred workspace service.
 No Windows or Linux execution, complete TypeScript-to-Rust behavior parity,
 or production protocol integration is claimed by the source import alone.
+
+## Native policy port (arch-14c1)
+
+The native `config`, `jail`, `contracts`, `response`, `file_content`, and
+`workspace_policy` modules port the pinned TypeScript configuration, path/key,
+envelope and byte contracts. The reference files and their import hashes remain
+unchanged. These modules use the root lockfile; the added direct dependencies
+were already locked (Serde/JSON, TOML, regex, SHA-256, getrandom and tempfile).
+No new package or version is introduced by this port.
+
+`WorkspacePolicy` composes read-only configuration resolution with path and
+command admission. Existing Magistr project/user settings and
+`PermissionPolicyService` retain their separate authority. Configuration stays
+at `workbench.toml`, the existing user and organization paths, and explicit
+environment overrides. Keys remain at `.workbench/keys/workspace.key`.
+Command detection only returns suggestions; it cannot update the human-owned
+allowlist. Resolved configuration is a snapshot, not a live reload service.
+
+The port deliberately corrects these reference gaps:
+
+- Path traversal follows each symlink before processing a following `..`,
+  adapting Magistr's existing ACP target resolver. Dangling symlinks whose
+  destination escapes the root are refused even when that destination is absent.
+- All loaded configuration paths and additive protected subtrees are registered
+  by the composed policy. Literal paths and the reference examples' trailing
+  `/**` subtree notation are supported. Other glob forms produce an explicit
+  `CONFIG_POLICY_DENIED` instead of silently protecting nothing. Built-in
+  metadata/configuration protection cannot be disabled by approval.
+- Key installation uses collision-safe private temporary files and atomic
+  no-clobber installation; rotation atomically replaces the key. Invalid
+  existing keys are errors and are never silently regenerated. Reads are bounded
+  to key size; creation uses POSIX 0700 directories and 0600 files. Existing
+  directory/key modes are preserved; Windows relies on directory ACLs.
+- Empty declared commands are refused rather than producing an empty argv.
+  `env` split-string options are also refused because they can reinterpret one
+  allowed argument as a shell command. The retained command guard is not a full
+  wrapper CLI parser: option operands such as `env -u NAME` and `nice -n 5`
+  require further admission hardening before the native execution port. No
+  command is executed by this policy unit.
+
+The error taxonomy fixes all 24 code/recovery pairs and carries their required
+payloads as typed variants. Native response outcomes contain no transport JSON;
+`response` alone serializes and redacts outgoing envelopes. Truncation requires
+a manifest whenever rows are cut. Token accounting is metadata at this boundary;
+query-specific selection and byte/token ceilings remain part of the later query
+and execution ports. Pinned redaction preserves truncation hints/cursors, while
+redacting result values, notes and error payloads.
+
+Shared [policy fixtures](conformance/README.md) exercise both the unchanged
+reference and ordinary Rust consumers. Companion tests also cover deliberate
+native corrections. Current API research used the Rust
+[path semantics](https://doc.rust-lang.org/std/path/),
+[atomic file creation](https://doc.rust-lang.org/std/fs/struct.OpenOptions.html),
+[tempfile persistence](https://docs.rs/tempfile/latest/tempfile/struct.NamedTempFile.html#method.persist),
+[regex Unicode semantics](https://docs.rs/regex/1.12.3/regex/#unicode), and
+[Serde custom serialization](https://serde.rs/impl-serialize.html) documentation.
+
+Path admission does not provide atomic directory-handle confinement; transactions
+must revalidate immediately before effects. This unit does not supply key-bound
+confirmation grants, database migrations, parser-worker supervision, a workspace
+owner, production tool dispatch or launcher cutover. Those remain separate
+native roadmap chunks. The earlier source-adoption result counts above describe
+that earlier iteration, not the policy port.
+

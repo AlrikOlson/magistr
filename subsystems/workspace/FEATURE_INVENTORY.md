@@ -12,9 +12,10 @@ not a second production product or evidence of native service completion.
 [`magistr-workspace`](../../crates/magistr-workspace/src/lib.rs), an ordinary Rust
 library with no NAPI dependencies, addon loader, `build.rs`, or `no-bindings`
 test escape hatch. Parsing, lexical/structural search, rewriting, extraction,
-language registration, and the Wasmtime host are native source now. Filesystem
-authority, service orchestration, tools, and CLI cutover still require the
-chunks below. Listed tests are retained evidence targets; listing a test does
+language registration, and the Wasmtime host are native source now. Configuration,
+path/command admission, keys and response/byte contracts are native through c1.
+Filesystem mutation authority, service orchestration, tools and CLI cutover still
+require the chunks below. Listed tests are retained evidence targets; listing a test does
 not claim that a particular platform or execution lane passed.
 
 ## Public tools
@@ -43,10 +44,10 @@ Paths in the tables are relative to [`reference/`](reference).
 
 | Capability | Source and executable evidence | What is native now; remaining boundary |
 | --- | --- | --- |
-| Envelope version negotiation, deterministic row ordering, token accounting and truncation, additive compatibility, content hashes, diff and secret redaction | `src/envelope/*`, `schemas/envelope.schema.json`, `schemas/baselines/envelope.v1.schema.json`, `src/generated/schemas.ts`; `test/envelope-*.test.ts`, `diff.test.ts`, `redaction.test.ts`, `generated-schemas.test.ts`, `statelessness.test.ts` | Reference retained; c1 owns typed policy/envelope vocabulary, c4/c10 integrate returned rows and budgets |
-| Error code → recovery and required payload; eight tool input schemas and schema generation | `schemas/error-taxonomy.json`, `schemas/tools/*`, `src/envelope/errors.ts`, `scripts/generate-schemas.ts`; `test/error-taxonomy.test.ts`, `generated-schemas.test.ts`, `skill-drift.test.ts` | c1 owns native contracts; c10 verifies served surface/schema parity |
-| Five-layer config merge, key provenance, command allowlist, policy ceilings and detection | `src/config/*`, `workbench.toml`; `test/redteam-policy.test.ts`, `redteam-served.test.ts`, `doctor.test.ts` | c1; configuration must not become agent-writable through a tool |
-| Canonical jail, nonexistent in-root path handling, symlink/TOCTOU checks, protected configuration and metadata, secret-key creation | `src/jail/*`, `src/protocol/write-access.ts`; `test/redteam-jail.test.ts`, `jail-keys.test.ts`, `write-engine.test.ts` | c1 admission plus c6 application-time revalidation |
+| Envelope version negotiation, deterministic row ordering, token accounting and truncation, additive compatibility, content hashes, diff and secret redaction | `src/envelope/*`, `schemas/envelope.schema.json`, `schemas/baselines/envelope.v1.schema.json`, `src/generated/schemas.ts`; `test/envelope-*.test.ts`, `diff.test.ts`, `redaction.test.ts`, `generated-schemas.test.ts`, `statelessness.test.ts` | Native typed response contracts and wire adapter in c1; shared responses/content fixtures; c4/c10 integrate returned rows and query budgets |
+| Error code → recovery and required payload; eight tool input schemas and schema generation | `schemas/error-taxonomy.json`, `schemas/tools/*`, `src/envelope/errors.ts`, `scripts/generate-schemas.ts`; `test/error-taxonomy.test.ts`, `generated-schemas.test.ts`, `skill-drift.test.ts` | Native 24-code typed taxonomy and required payloads in c1; c10 verifies served surface/schema parity |
+| Five-layer config merge, key provenance, command allowlist, policy ceilings and detection | `src/config/*`, `workbench.toml`; `test/redteam-policy.test.ts`, `redteam-served.test.ts`, `doctor.test.ts` | Native five-layer config, provenance, command admission and suggestion-only detection in c1; composed policy protects all loaded layers |
+| Canonical jail, nonexistent in-root path handling, symlink/TOCTOU checks, protected configuration and metadata, secret-key creation | `src/jail/*`, `src/protocol/write-access.ts`; `test/redteam-jail.test.ts`, `jail-keys.test.ts`, `write-engine.test.ts` | Native c1 admission/private key lifecycle with malicious-path regressions; c6 adds application-time revalidation and key-bound confirmation grants |
 | Versioned port interfaces: engine 2, index 9, journal 4, watcher 1, sandbox 1, formatter 1, resolver 2 | `src/ports/*`, especially `versions.ts`; `test/import-graph.test.ts`, `inprocess-adapter.test.ts`, `wit-contracts.test.ts` | Rust primitives adopted; application-facing contracts and effect ownership c1–c10 must preserve these behaviors without internal JSON/tool dispatch |
 | Tree-sitter parse/verify, grep regex search, ast-grep structural match/rewrite, ignored/vendor classification, bundled language registry | `crates/workbench-core/src/engine.rs`, `langs.rs`; inline source tests, `test/rust-structural.test.ts`, `inprocess-adapter.test.ts` | Adopted in `crates/magistr-workspace/src/{engine,langs}.rs`; service worker boundary c2 |
 | Symbols, imports, references, Rust trait/impl ambiguity, docs, test ranges and confidence provenance | `crates/workbench-core/src/indexer.rs`; inline tests, `test/indexer.test.ts`, `resolver-plugin.test.ts` | Extraction adopted in native `indexer.rs`; query/storage/freshness c3/c4 |
@@ -93,7 +94,7 @@ code's recovery and payload rather than flatten failures into strings:
 
 | Native chunk | Completion responsibility |
 | --- | --- |
-| `arch-14c1-workspace-policy` | Configuration, path admission, protected policy, envelopes and typed error contracts |
+| `arch-14c1-workspace-policy` | Native configuration, composed path/command admission, protected policy, key lifecycle, envelopes and typed error/byte contracts; shared fixture parity |
 | `arch-14c2-workspace-workers` | Parser/extension process supervision, bounded IPC, crash and quarantine behavior |
 | `arch-14c3-workspace-index` | Persistent derived index, refresh, watcher, queries and build health |
 | `arch-14c4-workspace-queries` | Search, map and read behavior over admitted live source |

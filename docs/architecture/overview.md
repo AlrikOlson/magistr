@@ -12,7 +12,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
-| `magistr-workspace` | Adopted native parsing, search/rewrite, index extraction, language registry and sandbox primitives; workspace use cases remain pending |
+| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives; complete tools and ownership remain pending |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
