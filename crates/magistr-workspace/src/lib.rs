@@ -13,6 +13,7 @@ pub mod config;
 pub mod contracts;
 pub mod engine;
 pub mod file_content;
+pub mod index;
 pub mod indexer;
 pub mod jail;
 #[cfg(feature = "lang-pack")]
