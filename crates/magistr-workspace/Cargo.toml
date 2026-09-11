@@ -51,6 +51,8 @@ toml = { version = "1.0.6", features = ["preserve_order"] }
 sha2 = "0.10"
 getrandom = "0.4"
 tempfile = "3"
+tokio = { version = "1", features = ["io-util", "io-std", "macros", "process", "rt-multi-thread", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["rt"] }
 
 wasmtime = { version = "48.0.0", optional = true }
 wasmtime-wasi = { version = "48.0.0", optional = true }
@@ -64,5 +66,5 @@ wit-parser = "0.257.1"
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(unix)'.dependencies]
 libc = "0.2"

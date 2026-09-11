@@ -134,6 +134,21 @@
 				"crates/magistr-workspace/src/workspace_policy.rs"
 			],
 			"adaptation": "Typed native policies and response-only serialization; shared reference fixtures. Symlink-before-parent traversal adapts Magistr ACP resolver; dangling escape refused. Configuration paths and additive literal subtrees protected. Atomic no-clobber private key installation and rotation; confirmation grants deferred to c6. Empty declared argv refused. No reference edits, live owner or production cutover."
+		},
+		{
+			"chunk": "arch-14c2-workspace-workers",
+			"upstream_inputs": [
+				"src/adapters/engine-ipc/frames.ts",
+				"src/adapters/engine-ipc/supervisor.ts",
+				"src/adapters/engine-ipc/engine-child.ts",
+				"crates/workbench-core/src/sandbox.rs"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/worker/",
+				"crates/magistr-workspace/src/sandbox.rs",
+				"crates/magistr-cli/src/main.rs"
+			],
+			"adaptation": "Typed native worker requests, bounded private process frames and supervised Magistr executable role. Absolute deadlines/cancellation, owned group kill/wait, bounded input fingerprints, and LSP reader/session ceilings. Reference unchanged; no workspace owner/production cutover."
 		}
 	]
 }

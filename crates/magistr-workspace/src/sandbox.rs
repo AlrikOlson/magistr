@@ -29,7 +29,7 @@
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -41,6 +41,10 @@ use wasmtime::{
 use wasmtime_wasi::p1::WasiP1Ctx;
 use wasmtime_wasi::p2::pipe::MemoryOutputPipe;
 use wasmtime_wasi::{I32Exit, WasiCtxBuilder};
+
+#[cfg(test)]
+#[path = "sandbox_process.tests.rs"]
+mod process_tests;
 
 /// Cap on captured guest stdout/stderr, per stream.
 const OUTPUT_PIPE_CAPACITY: usize = 64 * 1024;
@@ -198,8 +202,14 @@ pub struct SubprocessSpec {
 
 /// Ceiling on one transport frame in either direction.
 const SUBPROCESS_FRAME_CAP: usize = 4 * 1024 * 1024;
+/// Headers cannot grow indefinitely while waiting for their delimiter.
+const SUBPROCESS_HEADER_CAP: usize = 8 * 1024;
+/// Bound unread notifications without blocking the owned reader's teardown.
+const SUBPROCESS_FRAME_QUEUE_CAP: usize = 16;
 /// Ceiling on live sessions per guest invoke (one per spec is the intent).
 const SUBPROCESS_SESSION_CAP: usize = 4;
+/// Aggregate ceiling includes private leases and warm pooled sessions.
+const SERVER_SESSION_CAP: usize = 16;
 /// A warm, unleased session idle longer than this is killed (FR-007).
 pub const SERVER_IDLE_TTL: Duration = Duration::from_secs(300);
 /// Cadence of the background idle sweep (the sweep also runs on every lease).
@@ -243,7 +253,7 @@ struct PoolKey {
 }
 
 /// One live language-server session: the child, its stdin, and a channel fed
-/// by a detached reader thread that de-frames Content-Length payloads. The
+/// by an owned reader thread that de-frames Content-Length payloads. The
 /// `leased` flag tells the reader whether to queue frames (a guest holds the
 /// session) or drop them (the session sits warm in the pool) — so the
 /// server's stdout always drains and a reused lease starts with an empty
@@ -258,17 +268,32 @@ struct SubprocessSession {
     key: Option<PoolKey>,
     /// True when this handle is a warm session from an earlier invoke.
     reused: bool,
+    reader: Option<std::thread::JoinHandle<()>>,
+    live_sessions: Arc<AtomicUsize>,
 }
 
 impl SubprocessSession {
-    fn kill(mut self) {
-        drop(self.stdin.take());
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+    fn kill(self) {
+        drop(self);
     }
 
     fn is_dead(&mut self) -> bool {
-        !matches!(self.child.try_wait(), Ok(None))
+        self.reader
+            .as_ref()
+            .is_none_or(std::thread::JoinHandle::is_finished)
+            || !matches!(self.child.try_wait(), Ok(None))
+    }
+}
+
+impl Drop for SubprocessSession {
+    fn drop(&mut self) {
+        drop(self.stdin.take());
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        if let Some(reader) = self.reader.take() {
+            let _ = reader.join();
+        }
+        self.live_sessions.fetch_sub(1, Ordering::SeqCst);
     }
 }
 
@@ -295,6 +320,7 @@ struct ServerPool {
     #[cfg(windows)]
     kill_group: Option<kill_group::KillGroup>,
     reaper_started: bool,
+    live_sessions: Arc<AtomicUsize>,
 }
 
 fn server_pool() -> &'static Mutex<ServerPool> {
@@ -316,6 +342,11 @@ impl ServerPool {
         spec: &SubprocessSpec,
         key: Option<PoolKey>,
     ) -> Result<SubprocessSession, SubprocessOpenError> {
+        if self.live_sessions.load(Ordering::SeqCst) >= SERVER_SESSION_CAP {
+            return Err(SubprocessOpenError::SpawnRefused(format!(
+                "server pool session ceiling ({SERVER_SESSION_CAP}) reached"
+            )));
+        }
         let mut child = spawn_server_process(spec)
             .map_err(|e| SubprocessOpenError::SpawnRefused(format!("{}: {e}", spec.bin)))?;
         #[cfg(windows)]
@@ -327,24 +358,41 @@ impl ServerPool {
                 group.assign(&child);
             }
         }
-        let stdin = child.stdin.take();
-        let stdout = child.stdout.take().ok_or_else(|| {
-            SubprocessOpenError::SpawnRefused("child stdout unavailable".to_string())
-        })?;
+        let (Some(stdin), Some(stdout)) = (child.stdin.take(), child.stdout.take()) else {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(SubprocessOpenError::SpawnRefused(
+                "child pipes unavailable".to_string(),
+            ));
+        };
         let leased = Arc::new(AtomicBool::new(true));
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = mpsc::sync_channel(SUBPROCESS_FRAME_QUEUE_CAP);
         let reader_flag = Arc::clone(&leased);
-        std::thread::spawn(move || read_frames(stdout, &tx, &reader_flag));
+        let reader = match std::thread::Builder::new()
+            .name("magistr-lsp-frames".to_owned())
+            .spawn(move || read_frames(stdout, &tx, &reader_flag))
+        {
+            Ok(reader) => reader,
+            Err(error) => {
+                drop(stdin);
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(SubprocessOpenError::SpawnRefused(format!(
+                    "LSP reader thread unavailable: {error}"
+                )));
+            }
+        };
+        self.live_sessions.fetch_add(1, Ordering::SeqCst);
         Ok(SubprocessSession {
             language_id: spec.language_id.clone(),
             child,
-            stdin: Some(stdin.ok_or_else(|| {
-                SubprocessOpenError::SpawnRefused("child stdin unavailable".to_string())
-            })?),
+            stdin: Some(stdin),
             frames: rx,
             leased,
             key,
             reused: false,
+            reader: Some(reader),
+            live_sessions: Arc::clone(&self.live_sessions),
         })
     }
 
@@ -380,12 +428,16 @@ impl ServerPool {
     }
 
     /// Hand a leased session back warm (the explicit success path).
-    fn return_warm(&mut self, session: SubprocessSession) {
+    fn return_warm(&mut self, mut session: SubprocessSession) {
         let Some(key) = session.key.clone() else {
             session.kill();
             return;
         };
         self.leased.remove(&key);
+        if session.is_dead() {
+            session.kill();
+            return;
+        }
         session.leased.store(false, Ordering::SeqCst);
         if let Some((old, _)) = self.warm.insert(key, (session, Instant::now())) {
             old.kill();
@@ -804,10 +856,11 @@ impl Drop for SubprocessPool {
 /// from the child's stdout into the session channel while the session is
 /// leased; DROP them while it sits warm in the pool (so the pipe always
 /// drains and a reused lease starts empty). Ends on EOF, on a malformed
-/// header, or on an oversized frame — each reported once.
+/// header, or on an oversized frame — each reported once. A saturated frame
+/// queue terminates the reader instead of allocating or blocking indefinitely.
 fn read_frames(
     mut stdout: std::process::ChildStdout,
-    tx: &mpsc::Sender<Result<Vec<u8>, String>>,
+    tx: &mpsc::SyncSender<Result<Vec<u8>, String>>,
     leased: &AtomicBool,
 ) {
     let mut buf: Vec<u8> = Vec::new();
@@ -815,17 +868,21 @@ fn read_frames(
     loop {
         // Parse as many complete frames as the buffer holds.
         while let Some(header_end) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+            if header_end > SUBPROCESS_HEADER_CAP {
+                let _ = tx.try_send(Err("frame header exceeds the cap".to_owned()));
+                return;
+            }
             let header = String::from_utf8_lossy(&buf[..header_end]).into_owned();
             let Some(len) = header.lines().find_map(|line| {
                 let (name, value) = line.split_once(':')?;
                 name.eq_ignore_ascii_case("content-length")
                     .then(|| value.trim().parse::<usize>().ok())?
             }) else {
-                let _ = tx.send(Err(format!("malformed frame header: {header:?}")));
+                let _ = tx.try_send(Err(format!("malformed frame header: {header:?}")));
                 return;
             };
             if len > SUBPROCESS_FRAME_CAP {
-                let _ = tx.send(Err(format!("frame of {len} bytes exceeds the cap")));
+                let _ = tx.try_send(Err(format!("frame of {len} bytes exceeds the cap")));
                 return;
             }
             let body_start = header_end + 4;
@@ -834,9 +891,14 @@ fn read_frames(
             }
             let body = buf[body_start..body_start + len].to_vec();
             buf.drain(..body_start + len);
-            if leased.load(Ordering::SeqCst) && tx.send(Ok(body)).is_err() {
+            if leased.load(Ordering::SeqCst) && tx.try_send(Ok(body)).is_err() {
                 return;
             }
+        }
+        if buf.len() > SUBPROCESS_HEADER_CAP && !buf.windows(4).any(|window| window == b"\r\n\r\n")
+        {
+            let _ = tx.try_send(Err("frame header exceeds the cap".to_owned()));
+            return;
         }
         match stdout.read(&mut chunk) {
             Ok(0) | Err(_) => return,

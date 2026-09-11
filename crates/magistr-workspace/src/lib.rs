@@ -21,6 +21,7 @@ pub mod langs;
 pub mod response;
 #[cfg(feature = "sandbox")]
 pub mod sandbox;
+pub mod worker;
 pub mod workspace_policy;
 
 /// Version of the native Magistr workspace library.

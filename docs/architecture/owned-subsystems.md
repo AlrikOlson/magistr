@@ -136,6 +136,40 @@ capability/resource limits, and optional LSP isolation. Preserve the
 changing composition. Ownership consolidation is not a reason to inline
 untrusted or crash-prone execution.
 
+## Native worker boundary
+
+`magistr-workspace::worker::WorkerSupervisor` accepts typed requests and owns
+a private `magistr --workspace-worker` child. The executable selects that role
+before normal CLI configuration, terminal hooks, MCP startup or workspace
+admission. Production workspace consumers still await native port parity and
+owner integration. No Bun process, addon loader or second daemon is involved
+in this native path.
+
+Admission bounds queued and active calls together. One request executes at a
+time in each worker, so a crash is attributed to the dispatched input only.
+Versioned length-prefixed frames cap each payload at 32 MiB on both write and
+read; startup requires the native parser/search/rewrite self-test. Absolute
+deadlines cover queuing, restart backoff, readiness and request I/O. A cancelled
+or dropped call kills and reaps a worker already executing synchronous code;
+queued cancellation does not disturb another call. Unexpected child failure
+adds a strike to a bounded input-fingerprint ledger. Changed input can retry,
+and unrelated lexical reads remain available through the native search engine.
+
+Shutdown stops admission, settles admitted requests, asks an idle worker to
+close its sandbox pool, and reaps owned processes. Unix workers receive a
+dedicated process group so abrupt failure also terminates LSP descendants;
+no workspace lock PID is read or killed. LSP host sessions retain curated
+specification/capability admission and OS parent-death guards. Their frame
+readers now have bounded headers/queues and joined teardown; a shared pool
+ceiling also counts private invocation sessions. Wasmtime fuel, memory and
+default-deny capabilities remain in the existing sandbox implementation.
+
+Dynamic grammar registrations and warmed LSP sessions are worker-local and
+are lost on restart. Later index/extension owners must restore their admitted
+configuration after observing a new worker generation. The worker API does
+not claim index persistence, plugin manifest trust policy or complete public
+tool parity.
+
 ## Evidence requires source identity
 
 The workspace service publishes a versioned `SourceSnapshot` capability,
