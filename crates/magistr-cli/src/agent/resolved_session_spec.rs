@@ -232,7 +232,8 @@ impl ResolvedSessionSpec {
         .map_err(|error| MagistrError::Acp(format!("Failed to create ACP transport: {error}")))?
         .session_mode(self.session_mode())
         .mcp_servers(self.mcp_servers.clone())
-        .session_model(self.config.model.clone())
+        .session_model(self.session_model_choice(false))
+        .session_model_preferred(self.session_model_choice(true))
         .session_effort(self.config.effort.clone())
         .local_effects();
         transport.connect().await.map_err(|error| {
@@ -241,6 +242,17 @@ impl ResolvedSessionSpec {
         #[cfg(unix)]
         crate::utils::child_guard::register_child_pgid(transport.child_pgid());
         Ok(transport)
+    }
+
+    /// A user-configured default model is a preference the agent may answer
+    /// with its nearest offered model; an explicit or governance-routed model
+    /// is a requirement the agent must apply exactly.
+    fn session_model_choice(&self, preferred: bool) -> Option<String> {
+        let from_user_default =
+            self.provenance.get("model") == Some(&SessionConfigSource::UserDefault);
+        (from_user_default == preferred)
+            .then(|| self.config.model.clone())
+            .flatten()
     }
 
     /// Transfer the already resolved policy and unattended response mode to its owner.

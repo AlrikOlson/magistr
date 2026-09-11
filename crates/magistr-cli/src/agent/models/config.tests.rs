@@ -83,7 +83,7 @@ fn builtin_models_are_the_current_lineup() {
     assert_eq!(
         ids,
         vec![
-            "claude-fable-5",
+            "claude-fable-5-1",
             "claude-opus-5",
             "claude-sonnet-5",
             "claude-haiku-4-5",

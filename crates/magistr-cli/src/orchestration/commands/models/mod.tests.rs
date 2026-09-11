@@ -11,7 +11,7 @@ fn probed_claude() -> crate::agent::probe::ProviderModelSet {
             ("default", "Default (recommended)"),
             ("sonnet", "Sonnet"),
             ("opus[1m]", "Opus (1M context)"),
-            ("claude-fable-5[1m]", "Fable"),
+            ("claude-fable-5-1[1m]", "Fable"),
         ]
         .iter()
         .map(|(id, name)| ProbeModel {
@@ -41,7 +41,7 @@ fn json_lists_what_the_agent_advertises_not_the_registry() {
         .collect();
     assert_eq!(
         ids,
-        vec!["default", "sonnet", "opus[1m]", "claude-fable-5[1m]"]
+        vec!["default", "sonnet", "opus[1m]", "claude-fable-5-1[1m]"]
     );
 }
 
@@ -49,7 +49,7 @@ fn json_lists_what_the_agent_advertises_not_the_registry() {
 fn a_concrete_advertised_id_carries_its_price() {
     let payload = models_payload();
     let fable = payload["providers"][0]["models"][3].clone();
-    assert_eq!(fable["id"], "claude-fable-5[1m]");
+    assert_eq!(fable["id"], "claude-fable-5-1[1m]");
     assert_eq!(fable["cost_per_million_input"], 10.0);
     assert_eq!(fable["cost_per_million_output"], 50.0);
 }

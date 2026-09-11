@@ -5,9 +5,9 @@ use super::model_registry::ModelRegistry;
 
 /// Look up the built-in pricing entry for a model id an agent advertised.
 ///
-/// Agents advertise a mix of concrete ids (`claude-fable-5`) and bare aliases
+/// Agents advertise a mix of concrete ids (`claude-fable-5-1`) and bare aliases
 /// (`sonnet`, `opus`, `default`), optionally carrying a context-window suffix
-/// (`claude-fable-5[1m]`). Only the concrete ids can be priced: an alias is
+/// (`claude-fable-5-1[1m]`). Only the concrete ids can be priced: an alias is
 /// resolved by the agent's own SDK to a model magistr cannot see, so guessing
 /// which one would reintroduce exactly the fabrication that made the picker
 /// disagree with `magistr models`.
@@ -22,7 +22,7 @@ pub fn advertised_pricing<'a>(
     registry.get(strip_context_suffix(advertised_id))
 }
 
-/// Strip a trailing context-window marker, e.g. `claude-fable-5[1m]`.
+/// Strip a trailing context-window marker, e.g. `claude-fable-5-1[1m]`.
 fn strip_context_suffix(id: &str) -> &str {
     match id.split_once('[') {
         Some((base, rest)) if rest.ends_with(']') => base,

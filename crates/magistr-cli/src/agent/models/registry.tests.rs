@@ -56,9 +56,9 @@ fn defaults_can_find_opus() {
 fn defaults_can_find_fable() {
     // Fable 5 is registry-only — never auto-routed, but reachable by id.
     let reg = ModelRegistry::defaults();
-    let fable = reg.get("claude-fable-5");
+    let fable = reg.get("claude-fable-5-1");
     assert!(fable.is_some());
-    assert_eq!(fable.unwrap().config.display_name, "Claude Fable 5");
+    assert_eq!(fable.unwrap().config.display_name, "Claude Fable 5.1");
 }
 
 // ── from_config ────────────────────────────────────────────

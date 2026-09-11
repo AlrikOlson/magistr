@@ -165,6 +165,16 @@ impl AcpTransport {
         self
     }
 
+    /// Prefer a model without requiring it: the nearest offered model (the
+    /// same family under a newer release id) is selected, and an id the agent
+    /// no longer offers keeps the agent's default with a warning. An explicit
+    /// [`Self::session_model`] choice always wins. Set before `connect()`.
+    #[must_use]
+    pub fn session_model_preferred(mut self, model: Option<String>) -> Self {
+        self.set_session_choice("preferred_model", model);
+        self
+    }
+
     /// Select reasoning effort, rejecting providers that cannot apply it.
     #[must_use]
     pub fn session_effort(mut self, effort: Option<String>) -> Self {

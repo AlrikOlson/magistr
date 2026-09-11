@@ -11,8 +11,8 @@ fn registry() -> ModelRegistry {
 #[test]
 fn concrete_id_resolves_to_its_pricing() {
     let reg = registry();
-    let entry = advertised_pricing("claude-fable-5", &reg).expect("fable priced");
-    assert_eq!(entry.config.id, "claude-fable-5");
+    let entry = advertised_pricing("claude-fable-5-1", &reg).expect("fable priced");
+    assert_eq!(entry.config.id, "claude-fable-5-1");
     assert!((entry.config.cost_per_million_input - 10.0).abs() < f64::EPSILON);
 }
 
@@ -20,8 +20,8 @@ fn concrete_id_resolves_to_its_pricing() {
 fn context_suffix_is_stripped_before_lookup() {
     // What Claude Code 2.1.258 actually advertises for Fable.
     let reg = registry();
-    let entry = advertised_pricing("claude-fable-5[1m]", &reg).expect("fable priced");
-    assert_eq!(entry.config.id, "claude-fable-5");
+    let entry = advertised_pricing("claude-fable-5-1[1m]", &reg).expect("fable priced");
+    assert_eq!(entry.config.id, "claude-fable-5-1");
 }
 
 // ── aliases stay unpriced ───────────────────────────────────────────────────
