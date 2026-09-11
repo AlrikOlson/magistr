@@ -11,16 +11,16 @@ use super::provider::Provider;
 /// Ordered most to least capable — [`crate::models::ModelRegistry::defaults`]
 /// preserves this order, and prices are per million tokens.
 ///
-/// Claude Fable 5 is listed here so `magistr models`, `magistr compare` and
+/// Claude Fable 5.1 is listed here so `magistr models`, `magistr compare` and
 /// `--model` can reach it, but it is deliberately absent from the automatic
 /// routing chains in [`crate::models::route`]: at $10/$50 it is the priciest
 /// model in the lineup, so escalating onto it stays an explicit choice.
 pub fn builtin_models() -> Vec<ModelConfig> {
     vec![
         ModelConfig {
-            id: "claude-fable-5".into(),
+            id: "claude-fable-5-1".into(),
             provider: Provider::Claude,
-            display_name: "Claude Fable 5".into(),
+            display_name: "Claude Fable 5.1".into(),
             cost_per_million_input: 10.0,
             cost_per_million_output: 50.0,
             api_key_env: Some("ANTHROPIC_API_KEY".into()),

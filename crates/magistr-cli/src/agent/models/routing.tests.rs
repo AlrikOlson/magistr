@@ -68,7 +68,7 @@ fn fable_is_never_chosen_by_automatic_routing() {
     ] {
         let decision = route(prompt, Some(15), None, &reg);
         assert_ne!(
-            decision.model_id, "claude-fable-5",
+            decision.model_id, "claude-fable-5-1",
             "routing escalated to Fable 5 for: {prompt}"
         );
     }
@@ -164,9 +164,9 @@ fn mixed_signals_tend_toward_moderate() {
 #[test]
 fn user_override_takes_priority() {
     let reg = ModelRegistry::defaults();
-    let decision = route("explain this", None, Some("claude-fable-5"), &reg);
+    let decision = route("explain this", None, Some("claude-fable-5-1"), &reg);
     assert!(decision.is_override);
-    assert_eq!(decision.model_id, "claude-fable-5");
+    assert_eq!(decision.model_id, "claude-fable-5-1");
     assert!(decision.complexity.is_none());
 }
 
