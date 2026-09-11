@@ -9,8 +9,8 @@
 //! negotiation and session identity from `_meta`, the MRTR confirm flow
 //! with its token fallback, the request's own cancellation into the worker,
 //! the `index/build` task and one root span per call. Statelessness is
-//! structural: a request's answer is a function of the workspace and its
-//! own `_meta`; nothing here holds per-session state.
+//! preserved for queries and envelopes. Each connection now holds a fallback
+//! session identity; explicit `_meta` identities receive fresh owner admission.
 //!
 //! This module negotiates the wire. It never reaches past the service into
 //! the stores, and `magistr mcp-serve` — the project workflow server — is

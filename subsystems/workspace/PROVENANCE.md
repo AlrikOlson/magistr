@@ -1023,3 +1023,70 @@ parser self-test, so the worker number bounds the frame round-trip from
 above; no multi-client or SourceSnapshot completion is claimed and production
 consumers still reach the workspace through the legacy server until
 `arch-14d-workspace-owner`. Dependencies: none added or changed.
+
+## Native admission and session fencing (arch-14d1)
+
+This prerequisite to `arch-14d-workspace-owner` replaces c10's empty lock and
+anonymous-session adaptations. It does not implement cross-process attachment,
+reconnect, the complete ADR-018 process matrix, SourceSnapshot, or production
+launcher cutover. The retained reference tree and pinned source are unchanged.
+
+The reference exclusive-create lock (`src/protocol/workspace.ts`) treats an
+empty or unreadable record as stale. Native admission now publishes the complete
+immutable JSON marker `{"pid":0,"host":"magistr-native-os-lock/v1"}` atomically,
+then holds the OS lock on that same inode. The deliberately foreign host makes
+the retained legacy server refuse the marker; the pid is never ownership
+evidence. Native admission refuses legacy, empty and malformed records without
+rewriting them or opening keys, journal or index. No holder is signalled.
+See Rust's [File locking contract](https://doc.rust-lang.org/std/fs/struct.File.html#method.try_lock)
+for the advisory nature of OS locks; the marker supplies the retained server's
+separate exclusion protocol.
+
+A strict, fixed-width durable `.workbench/server.generation` counter advances
+under the OS lock before stores open. First creation publishes zero before the
+marker, allowing interrupted bootstrap to recover. Successful admission
+increments it; refused contenders do not. Missing state after admission,
+malformed counters and exhaustion fail closed. The marker inode is never
+replaced on release or restart; only the counter is atomically replaced and
+synced (including its directory on Unix).
+
+`WorkspaceSession` binds a canonical root, owner generation and nonempty stable
+identity. Native edit, files, undo, script, run, plugin execution and session
+journal listing validate it before acting. Re-admitting an explicit identity
+after restart retains its durable undo history. Confirmation HMACs now bind the
+generation as well as identity, operation, exact intent and final byte plan.
+The `mgw2` format intentionally invalidates both legacy `wb1` and native
+`mgw1` previews; it is neither a one-use grant nor source certification.
+Each MCP connection receives a random nonempty fallback identity. Valid
+explicit session metadata preserves continuity. This is logical identity
+isolation for admitted local clients, not peer authentication.
+
+### Offline migration
+
+A fresh workspace needs no migration. For an existing legacy JSON lock or
+c10 empty lock, stop **all** native and legacy workspace processes for that root
+and verify no owner remains. Back up `.workbench`, then remove only that
+obsolete `server.lock` while offline before starting the native service.
+Keep the journal, key, index and other durable state. Refusal is intentional:
+the native service cannot safely infer legacy liveness from an OS lock the
+legacy server never acquired.
+
+Once a native marker exists, never unlink or replace it to bypass contention,
+and never delete or reset `server.generation`. Damaged generation state needs
+offline restoration of the latest durable generation; an older backup must
+not lower the counter and revive old grants. It is not automatically reset.
+The retained legacy server will continue to refuse a native marker even after
+the native owner exits. Production launchers still use their existing routing;
+this prerequisite performs no migration in the real checkout.
+
+Evidence: `service/server_lock.tests.rs` and `owner_generation.tests.rs`
+cover concurrent first admission, canonical aliases, independent roots,
+strict counter recovery and immutable markers; `workspace_sessions.rs`
+covers stale/foreign handles, same-identity undo continuity and old previews;
+`workspace_served.rs` covers independent connection histories;
+`workspace_served_stdio.rs` covers real native processes; and the ignored
+`workspace_served_reference.rs` lane runs actual native/Bun mutual refusal
+through the required `workspace-reference` gate. The recorded execution is
+on the macOS host in the support matrix; other operating systems and the
+full multi-client owner acceptance remain unclaimed. No dependencies added.
+

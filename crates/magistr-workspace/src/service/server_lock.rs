@@ -1,63 +1,124 @@
 use std::{
     fs::{File, OpenOptions, TryLockError},
-    io,
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
-/// One admitted workspace process: an OS-held exclusive lock on
-/// `<state>/server.lock`. The kernel owns the decision — no pid is read, no
-/// age is judged, nothing is stolen and no holder is ever signalled — so a
-/// crashed owner releases on exit and a live one is refused whatever its
-/// lock file says. This is single-owner admission for one process; the
-/// multi-client owner protocol layers on top of it later.
+use super::WorkspaceGeneration;
+
+/// Immutable compatibility marker. The retained exclusive-create owner sees
+/// a foreign host and refuses it, even after this native owner has exited.
+/// Native ownership is decided only by the OS lock, never this dummy pid.
+const NATIVE_MARKER: &[u8] = b"{\"pid\":0,\"host\":\"magistr-native-os-lock/v1\"}\n";
+
+/// One admitted workspace process, its stable OS-held lock and its fencing
+/// generation. The immutable marker keeps legacy owners from deleting the
+/// lock inode; native admission never reads a pid or signals another process.
 #[derive(Debug)]
 pub struct ServerLock {
     file: File,
     path: PathBuf,
+    generation: WorkspaceGeneration,
 }
 
 impl ServerLock {
     pub const FILE_NAME: &'static str = "server.lock";
 
-    /// Take the lock, or answer the live holder's refusal as `WouldBlock`.
-    /// A symlink or a non-regular file at the path is refused outright:
-    /// the lock is never taken through an alias.
+    /// Take the lock and advance its generation before any workspace store
+    /// opens. Legacy, empty and unknown lock formats refuse with `WouldBlock`:
+    /// migration requires all workspace owners to be stopped first. A native
+    /// lock file is never replaced or removed, including after process exit.
     pub fn acquire(path: impl Into<PathBuf>) -> io::Result<Self> {
         let path = path.into();
-        match std::fs::symlink_metadata(&path) {
-            Ok(metadata) if metadata.is_symlink() || !metadata.is_file() => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!("{} is not a regular lock file", path.display()),
-                ));
-            }
-            Ok(_) => {}
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-            Err(error) => return Err(error),
+        ensure_marker(&path)?;
+        let mut options = OpenOptions::new();
+        options.read(true).write(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_NOFOLLOW);
         }
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(&path)?;
-        match file.try_lock() {
-            Ok(()) => Ok(Self { file, path }),
-            Err(TryLockError::WouldBlock) => Err(io::Error::new(
+        let mut file = options.open(&path)?;
+        if !file.metadata()?.is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{} is not a regular lock file", path.display()),
+            ));
+        }
+        file.try_lock().map_err(|error| match error {
+            TryLockError::WouldBlock => io::Error::new(
                 io::ErrorKind::WouldBlock,
                 format!(
                     "another workspace server already owns this workspace (lock: {})",
                     path.display()
                 ),
-            )),
-            Err(TryLockError::Error(error)) => Err(error),
+            ),
+            TryLockError::Error(error) => error,
+        })?;
+        let mut marker = Vec::new();
+        (&mut file)
+            .take(NATIVE_MARKER.len() as u64 + 1)
+            .read_to_end(&mut marker)?;
+        if marker != NATIVE_MARKER {
+            return Err(migration_refusal(&path));
         }
+        let generation = WorkspaceGeneration::advance(&path)?;
+        Ok(Self {
+            file,
+            path,
+            generation,
+        })
     }
 
     #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
     }
+
+    /// This admission's incarnation, independent of workflow writer roles.
+    #[must_use]
+    pub const fn generation(&self) -> WorkspaceGeneration {
+        self.generation
+    }
+}
+
+/// Publish a complete marker without an empty-file window for a legacy
+/// exclusive-create contender. The generation zero exists durably first, so
+/// a missing counter beside an existing marker can never silently reset it.
+fn ensure_marker(path: &Path) -> io::Result<()> {
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.is_symlink() || !metadata.is_file() => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{} is not a regular lock file", path.display()),
+            ));
+        }
+        Ok(_) => return Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error),
+    }
+    WorkspaceGeneration::bootstrap(path)?;
+    let parent = WorkspaceGeneration::parent(path);
+    let mut staged = tempfile::NamedTempFile::new_in(parent)?;
+    staged.write_all(NATIVE_MARKER)?;
+    staged.as_file().sync_all()?;
+    match staged.persist_noclobber(path) {
+        Ok(_) => WorkspaceGeneration::sync_parent(path),
+        Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => Ok(()),
+        Err(error) => Err(error.error),
+    }
+}
+
+fn migration_refusal(path: &Path) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::WouldBlock,
+        format!(
+            "workspace owner lock {} uses a legacy or unrecognized format; startup refused \
+             before opening workspace stores. Stop every workspace owner for offline migration of the \
+             obsolete lock before restarting; never remove a live owner's lock",
+            path.display()
+        ),
+    )
 }
 
 impl Drop for ServerLock {

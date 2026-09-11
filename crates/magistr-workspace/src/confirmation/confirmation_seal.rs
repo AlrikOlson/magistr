@@ -11,19 +11,22 @@ use sha2::Sha256;
 /// verification, formatting policy and undo relationships. The mutation
 /// pipeline supplies this representation from its private prepared plan.
 ///
-/// Tokens survive owner restart with the same key, but `wb1` tokens from the
-/// retained runtime are deliberately invalidated. This is an authenticator,
-/// not session admission, replay prevention or a source revision certificate.
+/// Tokens bind the admitted owner generation: restarting requires a fresh
+/// preview even with the same key, session and bytes. Earlier `wb1` and `mgw1`
+/// tokens are invalidated. This is an authenticator, not session admission,
+/// replay prevention within a generation or a source revision certificate.
 pub struct ConfirmationSeal {
     mac: Hmac<Sha256>,
+    generation: u64,
 }
 
 impl ConfirmationSeal {
     #[must_use]
-    pub fn new(key: &WorkspaceKey) -> Self {
+    pub fn new(key: &WorkspaceKey, generation: u64) -> Self {
         Self {
             mac: Hmac::<Sha256>::new_from_slice(key.as_bytes())
                 .expect("HMAC accepts any key length"),
+            generation,
         }
     }
 
@@ -40,7 +43,7 @@ impl ConfirmationSeal {
             .finalize()
             .into_bytes();
         let mut token = String::with_capacity(69);
-        token.push_str("mgw1.");
+        token.push_str("mgw2.");
         const HEX: &[u8; 16] = b"0123456789abcdef";
         for byte in tag {
             token.push(HEX[(byte >> 4) as usize] as char);
@@ -58,7 +61,7 @@ impl ConfirmationSeal {
         finalized_plan: &[u8],
     ) -> Result<(), ConfirmationError> {
         let encoded = token
-            .strip_prefix("mgw1.")
+            .strip_prefix("mgw2.")
             .ok_or(ConfirmationError::UnsupportedVersion)?;
         if encoded.len() != 64 {
             return Err(ConfirmationError::Mismatch);
@@ -80,7 +83,8 @@ impl ConfirmationSeal {
         finalized_plan: &[u8],
     ) -> Hmac<Sha256> {
         let mut mac = self.mac.clone();
-        mac.update(b"magistr.workspace.confirmation.v1\0");
+        mac.update(b"magistr.workspace.confirmation.v2\0");
+        mac.update(&self.generation.to_be_bytes());
         for field in [
             session_id.as_bytes(),
             operation.as_bytes(),

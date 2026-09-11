@@ -8,8 +8,8 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use super::{
-    IndexBuildTask, JournalListInput, ServerLock, StatusRow, WorkspaceOpenError,
-    WorkspaceOpenOptions, journal_list,
+    IndexBuildTask, JournalListInput, ServerLock, StatusRow, WorkspaceGeneration,
+    WorkspaceOpenError, WorkspaceOpenOptions, WorkspaceSession, journal_list,
 };
 use crate::{
     commands::{EditInput, FilesInput, UndoInput, UndoRow, WorkspaceCommands, WriteReport},
@@ -61,7 +61,7 @@ pub struct WorkspaceService {
     resolver_specs: Vec<crate::extensions::LanguageServerSpec>,
     #[cfg(feature = "sandbox")]
     interpreter: Option<crate::commands::ScriptInterpreter>,
-    _lock: ServerLock,
+    lock: ServerLock,
 }
 
 impl WorkspaceService {
@@ -128,7 +128,7 @@ impl WorkspaceService {
             worker,
             index,
             journal: Mutex::new(journal),
-            seal: ConfirmationSeal::new(&key),
+            seal: ConfirmationSeal::new(&key, lock.generation().get()),
             trace,
             formatter: options.formatter.clone(),
             detection,
@@ -143,8 +143,32 @@ impl WorkspaceService {
             resolver_specs: extensions.2,
             #[cfg(feature = "sandbox")]
             interpreter: options.interpreter,
-            _lock: lock,
+            lock,
         })
+    }
+
+    /// Admit an explicit journal identity to this workspace incarnation.
+    pub fn admit_session(&self, id: impl Into<String>) -> Result<WorkspaceSession, WorkspaceError> {
+        WorkspaceSession::new(self.root.clone(), self.generation(), id.into())
+    }
+
+    /// Mint a distinct identity for a client that did not supply one.
+    pub fn new_session(&self) -> Result<WorkspaceSession, WorkspaceError> {
+        let mut bytes = [0; 16];
+        getrandom::fill(&mut bytes).map_err(|error| {
+            WorkspaceError::new(
+                crate::contracts::ErrorKind::EngineUnavailable,
+                format!("cannot mint workspace session identity: {error}"),
+            )
+        })?;
+        let id: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
+        self.admit_session(format!("native-{id}"))
+    }
+
+    /// Ownership incarnation, independent of index progress and source revisions.
+    #[must_use]
+    pub const fn generation(&self) -> WorkspaceGeneration {
+        self.lock.generation()
     }
 
     #[must_use]
@@ -269,10 +293,10 @@ impl WorkspaceService {
     pub async fn edit(
         &self,
         input: &EditInput,
-        session_id: &str,
+        session: &WorkspaceSession,
     ) -> WorkspaceResponse<WriteReport> {
         let mut journal = self.journal.lock().await;
-        let response = match self.commands(&mut journal, session_id) {
+        let response = match self.commands(&mut journal, session) {
             Ok(mut commands) => commands.edit(input).await,
             Err(error) => crate::query::budget::failure(error),
         };
@@ -282,10 +306,10 @@ impl WorkspaceService {
     pub async fn files(
         &self,
         input: &FilesInput,
-        session_id: &str,
+        session: &WorkspaceSession,
     ) -> WorkspaceResponse<WriteReport> {
         let mut journal = self.journal.lock().await;
-        let response = match self.commands(&mut journal, session_id) {
+        let response = match self.commands(&mut journal, session) {
             Ok(mut commands) => commands.files(input).await,
             Err(error) => crate::query::budget::failure(error),
         };
@@ -293,9 +317,13 @@ impl WorkspaceService {
     }
 
     /// The rewind half of the undo tool.
-    pub async fn undo(&self, input: &UndoInput, session_id: &str) -> WorkspaceResponse<UndoRow> {
+    pub async fn undo(
+        &self,
+        input: &UndoInput,
+        session: &WorkspaceSession,
+    ) -> WorkspaceResponse<UndoRow> {
         let mut journal = self.journal.lock().await;
-        let response = match self.commands(&mut journal, session_id) {
+        let response = match self.commands(&mut journal, session) {
             Ok(mut commands) => commands.undo(input).await,
             Err(error) => crate::query::budget::failure(error),
         };
@@ -306,10 +334,13 @@ impl WorkspaceService {
     pub async fn journal_list(
         &self,
         input: &JournalListInput,
-        session_id: &str,
+        session: &WorkspaceSession,
     ) -> WorkspaceResponse<JournalRow> {
+        if let Err(error) = session.validate(&self.root, self.generation()) {
+            return self.refusal(error);
+        }
         let journal = self.journal.lock().await;
-        self.with_notes(journal_list::list(&journal, input, session_id))
+        self.with_notes(journal_list::list(&journal, input, session.id()))
     }
 
     /// `None` when no interpreter is composed: the verb is not offered at all.
@@ -317,11 +348,14 @@ impl WorkspaceService {
     pub async fn script(
         &self,
         input: &crate::commands::ScriptInput,
-        session_id: &str,
+        session: &WorkspaceSession,
     ) -> Option<WorkspaceResponse<crate::commands::ScriptRow>> {
+        if let Err(error) = session.validate(&self.root, self.generation()) {
+            return Some(self.refusal(error));
+        }
         let interpreter = self.interpreter.as_ref()?;
         let mut journal = self.journal.lock().await;
-        let response = match self.commands(&mut journal, session_id) {
+        let response = match self.commands(&mut journal, session) {
             Ok(mut commands) => commands.script(input, interpreter, &*self.lane).await,
             Err(error) => crate::query::budget::failure(error),
         };
@@ -333,8 +367,12 @@ impl WorkspaceService {
     pub async fn run(
         &self,
         input: &RunInput,
+        session: &WorkspaceSession,
         cancel: CancellationToken,
     ) -> WorkspaceResponse<RunRow> {
+        if let Err(error) = session.validate(&self.root, self.generation()) {
+            return self.refusal(error);
+        }
         #[cfg(feature = "sandbox")]
         {
             use crate::{execution::PluginRunnerLane, extensions::RunnerAdapter};
@@ -379,7 +417,11 @@ impl WorkspaceService {
         wire_name: &str,
         args: &Value,
         budget: u64,
+        session: &WorkspaceSession,
     ) -> Option<WorkspaceResponse<Value>> {
+        if let Err(error) = session.validate(&self.root, self.generation()) {
+            return Some(self.refusal(error));
+        }
         let host = self.plugin_host();
         let response = host.run_tool(wire_name, args, budget).await?;
         Some(self.with_notes(response))
@@ -428,8 +470,9 @@ impl WorkspaceService {
     fn commands<'a>(
         &'a self,
         journal: &'a mut JournalDb,
-        session_id: &str,
+        session: &WorkspaceSession,
     ) -> Result<WorkspaceCommands<'a>, WorkspaceError> {
+        session.validate(&self.root, self.generation())?;
         WorkspaceCommands::new(
             &self.policy,
             &self.worker,
@@ -437,7 +480,7 @@ impl WorkspaceService {
             &self.seal,
             Some(&self.index),
             self.formatter.clone(),
-            session_id,
+            session.id(),
         )
     }
 

@@ -45,7 +45,7 @@ impl Harness {
             policy,
             worker,
             journal,
-            seal: ConfirmationSeal::new(&key),
+            seal: ConfirmationSeal::new(&key, 1),
         };
         harness.write("notes/a.txt", "one TODO\ntwo TODO\n");
         harness.write("notes/b.txt", "no marker\n");

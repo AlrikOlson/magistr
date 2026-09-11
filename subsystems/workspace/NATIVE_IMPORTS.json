@@ -355,6 +355,28 @@
 				"subsystems/workspace/bench/"
 			],
 			"adaptation": "The operational CLI verbs as a CLI host beside the MCP host: `magistr workspace doctor [bundle|config]`, `journal`, `key rotate` and `init` over the native DoctorRun/DoctorBundle/ResolvedConfig::doctor/JournalInspection/WorkspaceKeyStore/DetectedCommand with the retained renderings (the journal text rendering ported onto JournalRow) and exit codes; clap parses the verbs and a clap usage error under `magistr workspace` exits the retained 64 instead of clap's 2. The journal verb shapes the reference envelope itself (requested 0, used estimated) over JournalInspection::rows, split out of the budgeted list. The release smoke drives the release binary over stdio with only `echo` on PATH. The bench ports the three reference scripts into one harness (workbench-bench/1 JSON, percentiles by index, tier 1 normalized per 500k LOC) over WorkspaceService; its first references run found the native lane scanning every scoped file per query, fixed to the retained indexer design: index-driven candidates (defining files + content-index mentions) within the retained bounds, capped with a note rather than refused (the c4 port refused at 200 hits per file / 20,000 total and scanned unbounded files), one ignore matcher per index answer instead of one per row, an unvalidated early-terminating FTS path probe, and the live walk on the ignore walker's thread pool. Deviations: `budget.requested` in the journal envelope is 0 as retained while `undo action:list` budgets; `doctor` stamps the magistr-workspace crate version; the native worker Ping runs the parser self-test, so the round-trip measurement bounds the frame cost from above."
+		},
+		{
+			"chunk": "arch-14d1-workspace-fencing",
+			"upstream_inputs": [
+				"src/protocol/workspace.ts",
+				"src/protocol/server.ts",
+				"src/tools/edit.ts",
+				"src/jail/keys.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/service/server_lock.rs",
+				"crates/magistr-workspace/src/service/owner_generation.rs",
+				"crates/magistr-workspace/src/service/workspace_session.rs",
+				"crates/magistr-workspace/src/service/workspace_service.rs",
+				"crates/magistr-workspace/src/confirmation/confirmation_seal.rs",
+				"crates/magistr-cli/src/workspace_mcp/",
+				"crates/magistr-cli/tests/workspace_sessions.rs",
+				"crates/magistr-cli/tests/workspace_served.rs",
+				"crates/magistr-cli/tests/workspace_served_stdio.rs",
+				"crates/magistr-cli/tests/workspace_served_reference.rs"
+			],
+			"adaptation": "Prerequisite for arch-14d, superseding c10's empty-lock and anonymous-session adaptations. Immutable atomically published legacy-readable native marker plus OS-held lock prevents retained legacy/native overlap without pid probing or stealing; strict durable generation advances before stores open. Explicit canonical-root/generation/session admission fences effects and session journal access; re-admission preserves durable identity. mgw2 HMAC binds generation, identity, exact intent and byte plan, deliberately invalidating wb1/mgw1. MCP connections mint nonempty random fallback identities and accept valid explicit metadata. Legacy/empty locks require documented offline migration; native marker/counter are never reset to bypass ownership. Real native process tests and the native/Bun mutual-refusal oracle complement native handle and confirmation tests. No cross-process attachment, peer authentication, reconnect, complete ADR-018 matrix or production launcher cutover claim."
 		}
 	]
 }

@@ -42,6 +42,13 @@ the Bun-free release-artifact smoke as the required `workspace-release-smoke`
 gate, the supported matrix in [`SUPPORT_MATRIX.md`](SUPPORT_MATRIX.md) and the
 measured budgets under [`bench/`](bench/README.md); production owner routing
 and launcher cutover remain `arch-14d-workspace-owner`.
+The d1 prerequisite adds immutable legacy-readable admission markers, durable
+owner generations, explicit native session handles and generation-bound
+`mgw2` confirmations. Each MCP connection has a nonempty default identity;
+explicit identities can be re-admitted for durable undo continuity. Existing
+legacy or c10 empty locks require the documented
+[offline migration](PROVENANCE.md#offline-migration). Multi-process attachment,
+reconnect and production cutover remain in `arch-14d-workspace-owner`.
 Listed tests are retained evidence targets; listing a test does
 not claim that a particular platform or execution lane passed.
 

@@ -109,8 +109,12 @@ async fn admission_creates_the_state_dir_key_and_journal_and_the_listing_starts_
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     };
     assert!(task.created_at_ms > 0);
-    let WorkspaceResponse::Success { results, notes, .. } =
-        service.journal_list(&JournalListInput::default(), "").await
+    let WorkspaceResponse::Success { results, notes, .. } = service
+        .journal_list(
+            &JournalListInput::default(),
+            &service.admit_session("test").expect("session"),
+        )
+        .await
     else {
         panic!("listing expected");
     };
@@ -155,8 +159,12 @@ async fn a_network_workspace_degrades_to_truncate_and_says_so_on_every_envelope(
     assert_eq!(results.rows()[0].applied_journal_mode, "truncate");
     let notes = notes.expect("degradation note");
     assert!(notes[0].contains("degraded WAL→TRUNCATE"));
-    let WorkspaceResponse::Success { notes, .. } =
-        service.journal_list(&JournalListInput::default(), "").await
+    let WorkspaceResponse::Success { notes, .. } = service
+        .journal_list(
+            &JournalListInput::default(),
+            &service.admit_session("test").expect("session"),
+        )
+        .await
     else {
         panic!("listing");
     };

@@ -1,6 +1,9 @@
 use std::{borrow::Cow, sync::Arc};
 
-use magistr_workspace::service::{IndexBuildTask, WorkspaceService};
+use magistr_workspace::{
+    contracts::WorkspaceError,
+    service::{IndexBuildTask, WorkspaceService, WorkspaceSession},
+};
 use rmcp::{
     ErrorData, ServerHandler,
     model::{
@@ -24,17 +27,19 @@ const SERVED_PROTOCOL_VERSIONS: &[ProtocolVersion] = &[
 ];
 
 /// The rmcp server over one admitted workspace. Cheap by design and
-/// stateless by construction: every answer is a function of the workspace
-/// and the request's own `_meta`.
+/// carries one fallback identity per connection. Explicit request `_meta`
+/// identities are admitted against the same workspace owner. Construct a new
+/// handler for each connection; clones belong to the same connection identity.
 #[derive(Clone)]
 pub struct WorkspaceMcpService {
     service: Arc<WorkspaceService>,
+    session: WorkspaceSession,
 }
 
 impl WorkspaceMcpService {
-    #[must_use]
-    pub fn new(service: Arc<WorkspaceService>) -> Self {
-        Self { service }
+    pub fn new(service: Arc<WorkspaceService>) -> Result<Self, WorkspaceError> {
+        let session = service.new_session()?;
+        Ok(Self { service, session })
     }
 
     /// The composed workspace this server serves.
@@ -84,7 +89,7 @@ impl ServerHandler for WorkspaceMcpService {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
-        dispatch::call(&self.service, request, &context)
+        dispatch::call(&self.service, &self.session, request, &context)
             .await
             .map(Into::into)
     }

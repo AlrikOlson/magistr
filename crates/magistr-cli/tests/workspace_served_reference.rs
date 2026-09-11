@@ -204,3 +204,71 @@ async fn the_native_server_matches_the_reference_over_the_wire() {
     let _ = native_child.wait().await;
     let _ = reference_child.wait().await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires the reference's Bun toolchain; the workspace-reference gate runs this explicitly"]
+async fn native_and_legacy_owners_refuse_each_other_without_touching_the_live_lock() {
+    use std::time::Duration;
+    let dir = tempfile::tempdir().expect("workspace");
+    seed(dir.path());
+    let (mut native_child, native) = native_client(dir.path()).await;
+    let lock = dir.path().join(".workbench/server.lock");
+    let native_marker = std::fs::read(&lock).expect("native marker");
+    let legacy = tokio::time::timeout(
+        Duration::from_secs(15),
+        tokio::process::Command::new("bun")
+            .arg(reference_dir().join("src/main.ts"))
+            .arg(dir.path())
+            .current_dir(reference_dir())
+            .stdin(Stdio::null())
+            .output(),
+    )
+    .await
+    .expect("bounded legacy refusal")
+    .expect("legacy contender");
+    assert_eq!(legacy.status.code(), Some(75));
+    assert_eq!(std::fs::read(&lock).expect("marker"), native_marker);
+    assert_eq!(
+        call(&native, "workbench_status", json!({})).await["ok"],
+        true
+    );
+    native.cancel().await.expect("native detach");
+    assert!(
+        tokio::time::timeout(Duration::from_secs(30), native_child.wait())
+            .await
+            .expect("native exits")
+            .expect("native wait")
+            .success()
+    );
+
+    let legacy_dir = tempfile::tempdir().expect("legacy workspace");
+    seed(legacy_dir.path());
+    let (mut legacy_child, legacy_client) = reference_client(legacy_dir.path()).await;
+    let lock = legacy_dir.path().join(".workbench/server.lock");
+    let legacy_marker = std::fs::read(&lock).expect("legacy marker");
+    let native = tokio::time::timeout(
+        Duration::from_secs(15),
+        tokio::process::Command::new(env!("CARGO_BIN_EXE_magistr"))
+            .args(["workspace", "serve"])
+            .arg(legacy_dir.path())
+            .stdin(Stdio::null())
+            .output(),
+    )
+    .await
+    .expect("bounded native refusal")
+    .expect("native contender");
+    assert_eq!(native.status.code(), Some(75));
+    assert_eq!(std::fs::read(&lock).expect("marker"), legacy_marker);
+    assert_eq!(
+        call(&legacy_client, "workbench_status", json!({})).await["ok"],
+        true
+    );
+    legacy_client.cancel().await.expect("legacy detach");
+    assert!(
+        tokio::time::timeout(Duration::from_secs(30), legacy_child.wait())
+            .await
+            .expect("legacy exits")
+            .expect("legacy wait")
+            .success()
+    );
+}

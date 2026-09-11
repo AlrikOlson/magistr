@@ -41,7 +41,7 @@ impl Harness {
             policy,
             worker,
             journal,
-            seal: ConfirmationSeal::new(&key),
+            seal: ConfirmationSeal::new(&key, 1),
         }
     }
 
@@ -199,7 +199,7 @@ async fn large_edits_are_confirm_gated_with_the_prepared_token_and_dry_runs_touc
     let ErrorKind::ConfirmRequired { confirm_token } = kind else {
         panic!("gated");
     };
-    assert!(confirm_token.starts_with("mgw1."));
+    assert!(confirm_token.starts_with("mgw2."));
     assert!(notes.iter().any(|n| n.contains("+row 0")), "{notes:?}");
     assert_eq!(h.read("notes/big.txt").unwrap(), big.as_bytes());
 

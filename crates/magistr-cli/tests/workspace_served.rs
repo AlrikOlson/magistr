@@ -153,7 +153,7 @@ async fn serve(
     service: &Arc<WorkspaceService>,
     handler: TestClient,
 ) -> (Client, tokio::task::JoinHandle<()>) {
-    let server_service = WorkspaceMcpService::new(Arc::clone(service));
+    let server_service = WorkspaceMcpService::new(Arc::clone(service)).expect("connection session");
     let (server_tx, client_tx) = tokio::io::duplex(1 << 16);
     let server = tokio::spawn(async move {
         let running = server_service.serve(server_tx).await.expect("server.serve");
@@ -161,6 +161,39 @@ async fn serve(
     });
     let client = handler.serve(client_tx).await.expect("client.serve");
     (client, server)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn separate_mcp_connections_have_independent_default_undo_sessions() {
+    let dir = workspace(&[("src/app.ts", APP_TS)]);
+    let service = open(dir.path(), &[]).await;
+    let (alice, alice_server) = serve(&service, TestClient::plain()).await;
+    let (bob, bob_server) = serve(&service, TestClient::plain()).await;
+    let applied = call(
+        &alice,
+        "edit",
+        json!({
+            "op":"replace_text", "file":"src/app.ts", "old":"return 1;", "new":"return 2;"
+        }),
+    )
+    .await;
+    assert_eq!(applied["ok"], true, "{applied}");
+    let alice_history = call(&alice, "undo", json!({"action":"list","scope":"session"})).await;
+    let id = alice_history["results"][0]["sessionId"]
+        .as_str()
+        .expect("nonempty session");
+    assert!(!id.is_empty());
+    let bob_history = call(&bob, "undo", json!({"action":"list","scope":"session"})).await;
+    assert_eq!(bob_history["results"], json!([]));
+    let ignored = call(&bob, "undo", json!({})).await;
+    assert_eq!(ignored["ok"], true, "{ignored}");
+    assert!(read(dir.path(), "src/app.ts").contains("return 2;"));
+    bob.cancel().await.expect("detach second connection");
+    bob_server.await.expect("second session closed");
+    let restored = call(&alice, "undo", json!({})).await;
+    assert_eq!(restored["ok"], true, "{restored}");
+    assert_eq!(read(dir.path(), "src/app.ts"), APP_TS);
+    close(alice, alice_server, service).await;
 }
 
 async fn close(
@@ -586,7 +619,7 @@ async fn the_token_flow_gates_a_multi_file_rewrite_and_the_identical_call_with_c
         .as_str()
         .expect("token")
         .to_owned();
-    assert!(token.starts_with("mgw1."), "{token}");
+    assert!(token.starts_with("mgw2."), "{token}");
     assert!(
         notes(&gated).contains("return 7;"),
         "the aggregated diff rides the notes"
@@ -599,7 +632,7 @@ async fn the_token_flow_gates_a_multi_file_rewrite_and_the_identical_call_with_c
     assert_eq!(seven_files(dir.path()), (true, true));
     let forged = {
         let mut args = REWRITE();
-        args["confirm"] = json!("mgw1.deadbeef");
+        args["confirm"] = json!("mgw2.deadbeef");
         call(&client, "edit", args).await
     };
     assert_eq!(error_code(&forged), "CONFIRM_MISMATCH");
