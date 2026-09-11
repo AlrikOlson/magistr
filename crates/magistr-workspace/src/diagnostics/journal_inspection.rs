@@ -14,25 +14,40 @@ use crate::{
 pub struct JournalInspection;
 
 impl JournalInspection {
+    /// The rows themselves, or the typed refusal; `None` when this
+    /// workspace has no journal yet. Hosts that shape their own envelope
+    /// (the `journal` CLI verb) read here; `list` wraps the same rows in
+    /// the budgeted envelope.
+    pub fn rows(
+        state_dir: &Path,
+        query: &JournalLogQuery,
+        options: &JournalViewOptions,
+    ) -> Result<Option<Vec<JournalRow>>, WorkspaceError> {
+        let path = state_dir.join("journal.db");
+        if !path.exists() {
+            return Ok(None);
+        }
+        JournalReader::open(&path)
+            .and_then(|reader| reader.recent(query))
+            .map(|entries| Some(JournalRow::render(&entries, options)))
+            .map_err(Self::map)
+    }
+
     pub fn list(
         state_dir: &Path,
         query: &JournalLogQuery,
         options: &JournalViewOptions,
         requested: u64,
     ) -> WorkspaceResponse<JournalRow> {
-        let path = state_dir.join("journal.db");
-        if !path.exists() {
-            return Self::respond(
+        match Self::rows(state_dir, query, options) {
+            Ok(Some(rows)) => Self::respond(rows, requested, Vec::new()),
+            Ok(None) => Self::respond(
                 Vec::new(),
                 requested,
                 vec!["no journal: this workspace has not been written through the pipeline".into()],
-            );
+            ),
+            Err(error) => budget::failure(error),
         }
-        let entries = match JournalReader::open(&path).and_then(|reader| reader.recent(query)) {
-            Ok(entries) => entries,
-            Err(error) => return budget::failure(Self::map(error)),
-        };
-        Self::respond(JournalRow::render(&entries, options), requested, Vec::new())
     }
 
     fn respond(

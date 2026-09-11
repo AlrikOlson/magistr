@@ -1,0 +1,118 @@
+{
+  "schema": "workbench-bench/1",
+  "script": "bench-index",
+  "profile": "synthetic-500k",
+  "recordedAt": "2026-09-11T19:21:40.335Z",
+  "machine": {
+    "platform": "macos",
+    "arch": "aarch64",
+    "cpu": "Apple M5 Max",
+    "cores": 18,
+    "memoryGb": 48.0,
+    "rust": "rustc 1.95.0 (59807616e 2026-04-14)",
+    "coreFlavor": "native",
+    "worker": "magistr --workspace-worker",
+    "magistrCommit": "7458ee0798f95ce7d85e79011728b4cd5e3fb1b0"
+  },
+  "measurements": {
+    "tier0S": 0.051,
+    "tier1S": 2.867,
+    "tier1Reached": true,
+    "filesIndexed": 2013,
+    "filesTotal": 2015,
+    "languagesIndexed": 13,
+    "languagesWithSymbols": 12
+  },
+  "gates": [
+    {
+      "name": "tier0",
+      "value": 0.051,
+      "limit": 5.0,
+      "unit": "s",
+      "pass": true
+    },
+    {
+      "name": "tier1",
+      "value": 2.844,
+      "limit": 60.0,
+      "unit": "s",
+      "pass": true,
+      "note": "normalized per 500000 LOC; measured 2.87s over 504019 LOC"
+    }
+  ],
+  "failures": [],
+  "corpus": {
+    "kind": "synthetic",
+    "loc": 504019,
+    "files": 2013,
+    "sourceFiles": 2013,
+    "junkFiles": 0,
+    "languages": [
+      {
+        "language": "typescript",
+        "files": 2001,
+        "loc": 504001
+      },
+      {
+        "language": "bash",
+        "files": 1,
+        "loc": 3
+      },
+      {
+        "language": "go",
+        "files": 1,
+        "loc": 3
+      },
+      {
+        "language": "python",
+        "files": 1,
+        "loc": 2
+      },
+      {
+        "language": "ruby",
+        "files": 1,
+        "loc": 2
+      },
+      {
+        "language": "c",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "cpp",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "csharp",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "java",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "javascript",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "json",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "rust",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "tsx",
+        "files": 1,
+        "loc": 1
+      }
+    ]
+  }
+}

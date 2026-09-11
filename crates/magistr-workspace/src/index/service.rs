@@ -146,6 +146,50 @@ impl WorkspaceIndex {
     pub fn fts(&self, literal: &str, limit: usize) -> Result<IndexQuery<IndexedFile>, IndexError> {
         self.query(limit, |db, bound| db.fts(literal, bound), |row| row)
     }
+    /// Live paths the index does not know at all: a membership probe with
+    /// no row validation, so a references answer can name what it could
+    /// not see without paying for every file in scope.
+    pub fn unknown_paths(&self, paths: &[&str]) -> Result<Vec<String>, IndexError> {
+        let guard = self.cache_for_probe()?;
+        let cache = guard
+            .as_ref()
+            .ok_or_else(|| IndexError::Unavailable("Index is opening".into()))?;
+        Ok(cache.unknown_paths(paths)?)
+    }
+    /// The first `limit` content-index (FTS) files mentioning `literal`, as
+    /// paths — a bounded candidate probe with no row validation, because a
+    /// candidate is verified against its live bytes when it is scanned, not
+    /// when it is named. `true` when more candidates exist beyond the bound.
+    pub fn fts_paths(
+        &self,
+        literal: &str,
+        limit: usize,
+    ) -> Result<(Vec<String>, bool), IndexError> {
+        let guard = self.cache_for_probe()?;
+        let cache = guard
+            .as_ref()
+            .ok_or_else(|| IndexError::Unavailable("Index is opening".into()))?;
+        let bound = limit.min(1000);
+        let mut paths: Vec<String> = cache
+            .fts(literal, (bound + 1).min(1000))?
+            .into_iter()
+            .map(|file| file.path)
+            .collect();
+        let truncated = paths.len() > bound;
+        paths.truncate(bound);
+        Ok((paths, truncated))
+    }
+    /// The cache for a probe that hydrates nothing; never queued behind a
+    /// build or a cache write.
+    fn cache_for_probe(&self) -> Result<std::sync::MutexGuard<'_, Option<IndexCache>>, IndexError> {
+        if self.shared.stopped.is_cancelled() {
+            return Err(IndexError::Unavailable("Index is stopped".into()));
+        }
+        self.shared
+            .cache
+            .try_lock()
+            .map_err(|_| IndexError::Unavailable("Index is updating".into()))
+    }
     pub fn files(
         &self,
         after: Option<&str>,
@@ -205,13 +249,13 @@ impl WorkspaceIndex {
             8 * 1024 * 1024,
             self.shared.options.max_file_bytes,
         );
+        let mut admitted = super::selection::Selection::admission(&self.shared.root);
         for row in rows {
             let indexed = file(&row);
             let valid = if let Some(valid) = observed.get(&indexed.path) {
                 *valid
             } else {
-                let valid = budget.validate(&self.shared.root, indexed)
-                    && super::selection::Selection::allows(&self.shared.root, &indexed.path);
+                let valid = budget.validate(&self.shared.root, indexed) && admitted(&indexed.path);
                 observed.insert(indexed.path.clone(), valid);
                 valid
             };

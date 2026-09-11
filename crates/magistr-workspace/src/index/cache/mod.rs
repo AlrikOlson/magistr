@@ -179,6 +179,21 @@ impl IndexCache {
         Ok(Some(file))
     }
 
+    /// Which of `paths` the files table does not know at all — a membership
+    /// probe in one statement (no rows hydrated, nothing validated) so a
+    /// bounded query can still say what it could not see.
+    pub fn unknown_paths(&self, paths: &[&str]) -> Result<Vec<String>, CacheError> {
+        let listed = serde_json::to_string(paths)
+            .map_err(|error| CacheError::InvalidInput(error.to_string()))?;
+        Ok(self
+            .db
+            .prepare_cached(
+                "SELECT value FROM json_each(?1) WHERE value NOT IN (SELECT path FROM files)",
+            )?
+            .query_map([listed], |row| row.get(0))?
+            .collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
     /// Keyset pagination, capped at 1000 metadata rows per call.
     pub fn files_page(
         &self,
@@ -201,14 +216,18 @@ impl IndexCache {
         Ok(self.db.prepare_cached(&format!("SELECT {METADATA_COLUMNS},s.name,s.kind,s.start_line,s.start_col,s.end_line,s.detail,s.doc FROM symbols s JOIN files f ON f.path=s.path WHERE s.name LIKE ?1 ESCAPE '\\' COLLATE NOCASE ORDER BY s.name COLLATE NOCASE,s.path,s.start_line,s.start_col LIMIT ?2"))?.query_map(params![prefix,bounded(limit)], |row| Ok(CachedSymbol { file: metadata_row(row)?, symbol: symbol_row(row, 7)? }))?.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
-    /// Literal FTS phrase candidates; callers verify live content before presenting hits.
+    /// Literal FTS phrase candidates — the first `limit` matches in index
+    /// order, a bounded probe that stops as soon as the bound is met (the
+    /// retained candidate query orders nothing, and ordering by path would
+    /// force every match of a hot name to be evaluated before the cap could
+    /// apply). Callers verify live content before presenting hits.
     pub fn fts(&self, query: &str, limit: usize) -> Result<Vec<IndexedFile>, CacheError> {
         validate_query(query)?;
         if query.trim().is_empty() {
             return Ok(Vec::new());
         }
         let phrase = format!("content:\"{}\"", query.replace('"', "\"\""));
-        Ok(self.db.prepare_cached(&format!("SELECT {METADATA_COLUMNS} FROM content_fts JOIN files f ON f.rowid=content_fts.rowid WHERE content_fts MATCH ?1 ORDER BY f.path LIMIT ?2"))?.query_map(params![phrase,bounded(limit)], metadata_row)?.collect::<rusqlite::Result<Vec<_>>>()?)
+        Ok(self.db.prepare_cached(&format!("SELECT {METADATA_COLUMNS} FROM content_fts JOIN files f ON f.rowid=content_fts.rowid WHERE content_fts MATCH ?1 LIMIT ?2"))?.query_map(params![phrase,bounded(limit)], metadata_row)?.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
     /// Replace every row of a file atomically, including its aligned FTS row.

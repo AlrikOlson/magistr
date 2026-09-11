@@ -614,6 +614,111 @@ pub enum WorkspaceAction {
         #[arg(long = "config", value_name = "KEY=VALUE")]
         config: Vec<String>,
     },
+
+    /// Read-only health report over the .workbench artifacts (environment,
+    /// index, config provenance, plugins, quarantine, crashes). No lock is
+    /// taken, so it runs beside a live server. Exit 0 healthy, 1 findings.
+    Doctor {
+        #[command(subcommand)]
+        mode: Option<WorkspaceDoctorMode>,
+
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+
+        /// Session-layer configuration for the report (repeatable key=value)
+        #[arg(long = "config", value_name = "KEY=VALUE")]
+        config: Vec<String>,
+    },
+
+    /// The write journal — the rows `undo action:"list"` returns — read
+    /// beside a live server without taking the workspace lock.
+    Journal {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+
+        /// Ops to list, newest first (1..=200)
+        #[arg(long, default_value_t = 20, value_name = "N")]
+        limit: usize,
+
+        /// Only ops with seq >= SEQ
+        #[arg(long, value_name = "SEQ")]
+        since: Option<u64>,
+
+        /// Only ops with seq < SEQ (the pagination cursor)
+        #[arg(long, value_name = "SEQ")]
+        before: Option<u64>,
+
+        /// Only ops journaled by this session
+        #[arg(long, value_name = "ID")]
+        session: Option<String>,
+
+        /// Keep the counts, drop the diff bodies
+        #[arg(long)]
+        no_diff: bool,
+
+        /// Print the envelope `undo action:"list"` returns instead of text
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Per-workspace MRTR confirm-token key management.
+    Key {
+        #[command(subcommand)]
+        action: WorkspaceKeyAction,
+    },
+
+    /// Seed run's `[commands]` allowlist into workbench.toml from
+    /// lockfile/manifest detection; an existing table is never touched.
+    Init {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+    },
+}
+
+/// The two non-report forms of `magistr workspace doctor`.
+#[derive(Debug, Subcommand)]
+pub enum WorkspaceDoctorMode {
+    /// Pack the same probes into a redacted tar.gz — structure and
+    /// symptoms, never repo file contents. Exit 0 healthy, 1 findings.
+    Bundle {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+
+        /// Archive path (default: workbench-doctor-bundle-<timestamp>.tar.gz
+        /// in the current directory); an existing file is never overwritten
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
+
+        /// Session-layer configuration for the report (repeatable key=value)
+        #[arg(long = "config", value_name = "KEY=VALUE")]
+        config: Vec<String>,
+    },
+
+    /// Print the five-layer resolved configuration with per-key provenance.
+    Config {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+
+        /// Session-layer configuration to resolve (repeatable key=value)
+        #[arg(long = "config", value_name = "KEY=VALUE")]
+        config: Vec<String>,
+    },
+}
+
+/// Actions for `magistr workspace key`.
+#[derive(Debug, Subcommand)]
+pub enum WorkspaceKeyAction {
+    /// Replace the workspace key; every outstanding confirm token is voided.
+    Rotate {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+    },
 }
 
 /// Actions for the `magistr memory` subcommand.

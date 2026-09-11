@@ -104,6 +104,20 @@ fn query_results_are_bounded_literal_and_metadata_only() {
 }
 
 #[test]
+fn unknown_paths_is_a_membership_probe_over_the_files_table() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = IndexCache::open(dir.path(), "WAL").unwrap();
+    cache.update(&sample("known.rs", "hello")).unwrap();
+    assert_eq!(
+        cache
+            .unknown_paths(&["known.rs", "absent.rs", "also/absent.rs"])
+            .unwrap(),
+        vec!["absent.rs".to_owned(), "also/absent.rs".to_owned()]
+    );
+    assert!(cache.unknown_paths(&[]).unwrap().is_empty());
+}
+
+#[test]
 fn corrupt_and_incompatible_caches_rebuild_without_touching_retained_state() {
     let dir = tempfile::tempdir().unwrap();
     let native = dir.path().join("native-index.db");

@@ -316,6 +316,45 @@
 				"crates/magistr-cli/tests/workspace_served_reference.rs"
 			],
 			"adaptation": "Typed WorkspaceService composition root (OS-held single-owner server lock with no pid reading or age stealing, key, sole journal writer with the applied mode read back, supervised worker, derived index, extension lanes, owned-process executor, flight recorder) beneath a thin rmcp adapter served as `magistr workspace serve`: the retained tool surface with the eight input schemas and the envelope output schema byte-identical to the reference tree, sealed JSON as both text and structuredContent, _meta envelope negotiation and session identity, MRTR form elicitation with the token fallback honoring edit.confirm_mode, the request's cancellation token into search and run, the index/build task over SEP-2663 tasks/get and the retained tasks/list, one trace span per call, plugin tools after the core names. Map serves the fail-closed plugin inventory; undo action:list is the retained journal listing. Deviations: the empty session is admitted as the retained anonymous identity (the c6 pipeline had required one); the status row is the retained deterministic six fields (no pids or generations) so fresh owners answer byte-identically; the index task exists from open; the journal writer guards its SQLite connection behind a mutex so it is Sync and every verb is a Send future a transport handler awaits directly; the inventory record types live in crate::plugins (every feature lane) so map and the extension host share one parser of plugins.json; the Bun-free release smoke, CLI verbs, matrix and measured budgets are arch-14c10b; production consumers still use the legacy server until arch-14d."
+		},
+		{
+			"chunk": "arch-14c10b-workspace-port-acceptance",
+			"upstream_inputs": [
+				"src/main.ts",
+				"src/doctor/report.ts",
+				"src/doctor/bundle.ts",
+				"src/tools/journal-view.ts",
+				"src/config/detect.ts",
+				"test/doctor.test.ts",
+				"test/journal-cli.test.ts",
+				"test/jail-keys.test.ts",
+				"scripts/bench-common.ts",
+				"scripts/bench-index.ts",
+				"scripts/bench-refs.ts",
+				"scripts/bench-ipc.ts",
+				"bench/README.md",
+				"src/adapters/engine-ipc/indexer.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-cli/src/workspace_cli/",
+				"crates/magistr-cli/src/cli.rs",
+				"crates/magistr-cli/src/main.rs",
+				"crates/magistr-workspace/src/diagnostics/journal_row.rs",
+				"crates/magistr-workspace/src/diagnostics/journal_inspection.rs",
+				"crates/magistr-workspace/src/query/search_references.rs",
+				"crates/magistr-workspace/src/query/source_access.rs",
+				"crates/magistr-workspace/src/index/selection.rs",
+				"crates/magistr-workspace/src/index/service.rs",
+				"crates/magistr-workspace/src/index/cache/mod.rs",
+				"crates/magistr-cli/tests/workspace_cli_verbs.rs",
+				"crates/magistr-cli/tests/workspace_release_smoke.rs",
+				"crates/magistr-cli/benches/workspace_bench.rs",
+				"scripts/workspace-release-smoke.sh",
+				"scripts/workspace-bench.sh",
+				"subsystems/workspace/SUPPORT_MATRIX.md",
+				"subsystems/workspace/bench/"
+			],
+			"adaptation": "The operational CLI verbs as a CLI host beside the MCP host: `magistr workspace doctor [bundle|config]`, `journal`, `key rotate` and `init` over the native DoctorRun/DoctorBundle/ResolvedConfig::doctor/JournalInspection/WorkspaceKeyStore/DetectedCommand with the retained renderings (the journal text rendering ported onto JournalRow) and exit codes; clap parses the verbs and a clap usage error under `magistr workspace` exits the retained 64 instead of clap's 2. The journal verb shapes the reference envelope itself (requested 0, used estimated) over JournalInspection::rows, split out of the budgeted list. The release smoke drives the release binary over stdio with only `echo` on PATH. The bench ports the three reference scripts into one harness (workbench-bench/1 JSON, percentiles by index, tier 1 normalized per 500k LOC) over WorkspaceService; its first references run found the native lane scanning every scoped file per query, fixed to the retained indexer design: index-driven candidates (defining files + content-index mentions) within the retained bounds, capped with a note rather than refused (the c4 port refused at 200 hits per file / 20,000 total and scanned unbounded files), one ignore matcher per index answer instead of one per row, an unvalidated early-terminating FTS path probe, and the live walk on the ignore walker's thread pool. Deviations: `budget.requested` in the journal envelope is 0 as retained while `undo action:list` budgets; `doctor` stamps the magistr-workspace crate version; the native worker Ping runs the parser self-test, so the round-trip measurement bounds the frame cost from above."
 		}
 	]
 }
