@@ -49,10 +49,12 @@ impl<'a> JournalQueries<'a> {
             ));
         }
         let undo_of = if is_undo == 1 {
-            Some(self.seqs(
-                "SELECT op_seq FROM undone WHERE by_seq=? ORDER BY op_seq LIMIT 1001",
-                vec![Value::Integer(seq)],
-            )?)
+            let sql = if super::intent_store::IntentStore::read(self.db, seq)?.is_some() {
+                "SELECT op_seq FROM native_intent_undo WHERE intent_seq=? ORDER BY op_seq LIMIT 1001"
+            } else {
+                "SELECT op_seq FROM undone WHERE by_seq=? ORDER BY op_seq LIMIT 1001"
+            };
+            Some(self.seqs(sql, vec![Value::Integer(seq)])?)
         } else {
             None
         };
@@ -152,8 +154,13 @@ impl<'a> JournalQueries<'a> {
                         |row| row.get(0),
                     )
                     .optional()?;
+                let write_outcome = super::intent_store::IntentStore::read(self.db, op.seq)?;
                 Ok(JournalLogEntry {
-                    undoable: op.undo_of.is_none() && undone_by.is_none(),
+                    undoable: op.undo_of.is_none()
+                        && undone_by.is_none()
+                        && write_outcome
+                            .is_none_or(|status| status == super::JournalWriteOutcome::Applied),
+                    write_outcome,
                     op,
                     undone_by,
                 })
@@ -171,6 +178,15 @@ impl<'a> JournalQueries<'a> {
             "is_undo=0".to_owned(),
             "seq NOT IN (SELECT op_seq FROM undone)".to_owned(),
         ];
+        let version: i64 = self
+            .db
+            .query_row("PRAGMA user_version", [], |row| row.get(0))?;
+        if version == 3 {
+            clauses.push(
+                "seq NOT IN (SELECT op_seq FROM native_write_intents WHERE outcome!='applied')"
+                    .to_owned(),
+            );
+        }
         let mut values = Vec::new();
         if let Some(session) = &query.session_id {
             clauses.push("session_id=?".to_owned());

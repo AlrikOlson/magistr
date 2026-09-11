@@ -18,6 +18,15 @@ impl JournalReader {
         })
     }
 
+    /// Read the durable native observation; None denotes legacy history.
+    pub fn write_outcome(
+        &self,
+        seq: i64,
+    ) -> Result<Option<super::JournalWriteOutcome>, JournalError> {
+        let snapshot = self.db.unchecked_transaction()?;
+        super::intent_store::IntentStore::read(&snapshot, seq)
+    }
+
     pub fn get(&self, seq: i64) -> Result<Option<JournalOp>, JournalError> {
         let snapshot = self.db.unchecked_transaction()?;
         JournalQueries::new(&snapshot).get(seq)

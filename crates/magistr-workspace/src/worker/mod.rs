@@ -1,4 +1,6 @@
 //! Private native worker isolation; no workspace lock, daemon, or MCP transport.
+mod data_format;
+mod data_validation;
 mod dispatch;
 #[cfg(feature = "sandbox")]
 mod guest_end;
@@ -18,6 +20,7 @@ mod structural_hit;
 mod subprocess_spec;
 mod symbol;
 mod test_range;
+pub use data_format::WorkerDataFormat;
 #[cfg(feature = "sandbox")]
 pub use guest_end::WorkerGuestEnd;
 #[cfg(feature = "lang-pack")]

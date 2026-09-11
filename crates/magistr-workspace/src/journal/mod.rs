@@ -1,6 +1,7 @@
 //! Durable retained-format workspace journal. Opening a writer requires the
 //! composing workspace owner; the reader never migrates or changes journal mode.
 
+mod intent_store;
 mod journal_append_result;
 mod journal_db;
 mod journal_db_options;
@@ -16,6 +17,8 @@ mod journal_op;
 mod journal_op_init;
 mod journal_queries;
 mod journal_reader;
+mod journal_write_outcome;
+pub use journal_write_outcome::JournalWriteOutcome;
 mod undo_candidate_query;
 
 pub use journal_append_result::JournalAppendResult;

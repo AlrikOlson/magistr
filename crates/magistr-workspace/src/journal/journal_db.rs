@@ -40,6 +40,14 @@ impl JournalDb {
     /// Commit an operation, undo links, ordered files, CAS recency and eviction
     /// together. Failed compression, hydration, or SQL rolls back the whole batch.
     pub fn append(&mut self, op: &JournalOpInit) -> Result<JournalAppendResult, JournalError> {
+        self.append_inner(op, false)
+    }
+
+    fn append_inner(
+        &mut self,
+        op: &JournalOpInit,
+        intent: bool,
+    ) -> Result<JournalAppendResult, JournalError> {
         validate_append(op)?;
         let at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -57,7 +65,11 @@ impl JournalDb {
             params![at, op.tool, op.args_hash, op.session_id, is_undo],
         )?;
         let seq = transaction.last_insert_rowid();
-        for undone in op.undo_of.iter().flatten() {
+        if intent {
+            super::intent_store::IntentStore::create(&transaction)?;
+            super::intent_store::IntentStore::record(&transaction, seq, op.undo_of.as_deref())?;
+        }
+        for undone in op.undo_of.iter().flatten().filter(|_| !intent) {
             transaction.execute(
                 "INSERT OR IGNORE INTO undone(op_seq,by_seq) VALUES (?,?)",
                 params![undone, seq],
@@ -77,6 +89,33 @@ impl JournalDb {
         })?;
         transaction.commit()?;
         Ok(JournalAppendResult { op, notes })
+    }
+
+    /// Commit pending intent before publishing any filesystem change.
+    pub fn append_intent(
+        &mut self,
+        op: &JournalOpInit,
+    ) -> Result<JournalAppendResult, JournalError> {
+        self.append_inner(op, true)
+    }
+
+    pub fn resolve_intent(
+        &mut self,
+        seq: i64,
+        outcome: super::JournalWriteOutcome,
+    ) -> Result<(), JournalError> {
+        let transaction = self.db.transaction()?;
+        super::intent_store::IntentStore::resolve(&transaction, seq, outcome)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn write_outcome(
+        &self,
+        seq: i64,
+    ) -> Result<Option<super::JournalWriteOutcome>, JournalError> {
+        let snapshot = self.db.unchecked_transaction()?;
+        super::intent_store::IntentStore::read(&snapshot, seq)
     }
 
     pub fn get(&self, seq: i64) -> Result<Option<JournalOp>, JournalError> {
@@ -189,6 +228,7 @@ fn evict(
             "negative retained compressed-byte total".to_owned(),
         ));
     }
+    let native_version: i64 = db.query_row("PRAGMA user_version", [], |row| row.get(0))?;
     let mut remaining = total as u64;
     let mut evicted = 0;
     let mut cursor: Option<(i64, String)> = None;
@@ -202,7 +242,12 @@ fn evict(
                 "negative compressed blob size".to_owned(),
             ));
         }
-        if !protect.contains(&hash) {
+        let unresolved = if native_version == 3 {
+            db.query_row("SELECT EXISTS(SELECT 1 FROM op_files JOIN native_write_intents ON native_write_intents.op_seq=op_files.op_seq WHERE outcome IN ('pending','indeterminate') AND (before_hash=?1 OR after_hash=?1))", [&hash], |row|row.get::<_,bool>(0))?
+        } else {
+            false
+        };
+        if !protect.contains(&hash) && !unresolved {
             db.execute("DELETE FROM blobs WHERE hash=?", [&hash])?;
             remaining = remaining.checked_sub(bytes as u64).ok_or_else(|| {
                 JournalError::CorruptRecord("invalid compressed-byte accounting".to_owned())
@@ -216,7 +261,7 @@ fn evict(
         notes.push(format!("journal: evicted {evicted} oldest blob(s) ({} compressed bytes) to stay under the {cap}-byte cap; the ops that referenced them are no longer undoable", total as u64 - remaining));
     }
     if remaining > cap {
-        notes.push(format!("journal: protected newest operation retains {remaining} compressed bytes, exceeding the {cap}-byte cap; its own blobs were preserved"));
+        notes.push(format!("journal: protected newest operation and unresolved native intents retain {remaining} compressed bytes, exceeding the {cap}-byte cap; their blobs were preserved"));
     }
     Ok(notes)
 }
@@ -224,3 +269,7 @@ fn evict(
 #[cfg(test)]
 #[path = "journal_db.tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "journal_intents.tests.rs"]
+mod intent_tests;

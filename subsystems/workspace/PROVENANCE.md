@@ -501,4 +501,96 @@ writable connections. Native backlog `workspace-sqlite-wal-upgrade` records the
 dependency update before broader owner/checkpoint integration. Production owner
 admission and launcher/protocol cutover remain later chunks.
 
+## Native verified mutations (arch-14c6)
+
+`WorkspaceTransactions` is the shared native byte-mutation pipeline beneath
+the forthcoming edit/files/script/plugin/undo use cases. The composing caller
+must hold exclusive local workspace admission for preparation and application,
+and pass the admitted `WorkspacePolicy`, supervised parser, sole journal writer,
+workspace key and explicit session identity. This chunk adds no second lock owner,
+daemon, production handler cutover or source certification.
+
+Preparation admits every target, distinguishes missing files from existing empty
+files, checks expected SHA-256 hashes and builds a complete, immutable preview.
+The preview carries before/after bytes, parser diagnostics and formatter results;
+binary bytes are never decoded lossily. Alternate baselines are live, hash-anchored
+source paths, not caller-supplied assertions of already-broken syntax. Native
+worker parsing and JSON/TOML/YAML well-formedness reject newly broken input.
+Already-broken baselines may retain diagnostics without being labeled valid.
+Binary changes and deletion skip parsers/formatters; undo requires formatting
+disabled and restores exact recorded bytes when parse admission succeeds. As in
+the reference, undo refuses a restoration that introduces broken syntax into a
+currently valid file, leaving the original operations eligible. Unsupported text is explicitly
+distinguished from verified source.
+
+Rustfmt uses the workspace toolchain, Cargo edition and directory configuration.
+Biome receives stdin and the target-relative filename. Bounded subprocess I/O and
+deadlines turn missing tools, nonzero exits and invalid formatter output into
+visible degradation, preserving the admitted unformatted candidate. Formatted
+bytes pass verification again. No formatted result is applied before it appears
+in the preview.
+
+Native confirmation tokens use a new `mgw1` domain and HMAC-SHA256 with the
+owner-managed private key. Length-prefixed fields bind session, operation,
+**exact serialized request bytes**, and the ordered finalized plan, including
+file existence, contents, permissions, formatting and baseline observations.
+Semantically equal but differently serialized requests are not interchangeable.
+Verification uses the cryptographic library's constant-time tag verification.
+Retained `wb1` tokens are deliberately invalidated; users must preview again
+after migration. Tokens survive restart with the same key and fail after key
+rotation. They neither admit a session nor provide one-time replay prevention.
+
+Application rechecks paths, byte and permission anchors, then records durable
+intent before any per-file atomic publication. Existing permissions are preserved.
+Failure triggers reverse compensation and live rereads, including the failed
+target. The result distinguishes applied, rolled-back, unchanged, not-applied and
+indeterminate files, and includes errors when compensation or durable outcome
+recording fails. Multi-file atomicity is not claimed. Parent directories must
+already exist; c7 owns directory/trash/move semantics above these file changes.
+
+The first native intent atomically migrates journal v2 to **native v3**, adding
+`native_write_intents` and `native_intent_undo` without rewriting retained rows
+or compressed blobs. Pending, rolled-back and indeterminate intents stay visible
+in native history but are excluded from undo candidates. Undo links are consumed
+only when an applied outcome is durably recorded. A process interruption leaves
+pending intent for later owner reconciliation. Pending and indeterminate intent
+blobs are protected from later retention eviction, with explicit cap-overage notes;
+history also retains their deferred undo targets without marking those targets
+consumed. Legacy append/read remains v1/v2
+compatible until the first native intent. Older reference runtimes intentionally
+refuse v3; changing its header back to v2 also fails closed. This avoids exposing
+unapplied intent as undoable history through an older reader.
+
+A journal sequence is always an intent/history reference. Even an applied outcome
+records a past observation, not an immutable source revision or `SourceSnapshot`.
+The later owner and source-certification chunks retain those responsibilities.
+
+Acceptance is exercised by alongside confirmation, journal, formatter and
+transaction regressions plus `magistr-cli/tests/workspace_transactions.rs`,
+which uses the actual Magistr worker executable and rustfmt. Failure injection
+covers forged/stale confirmation, parser unavailability, formatter errors,
+journal failure, partial swaps, failed compensation and outcome-recording failure.
+The native v3 tests cover atomic migration, recovery/read-only views, deferred
+undo links and downgrade refusal. The retained comparator remains a separate
+required gate; it is not evidence of native tool parity.
+
+Dependency review adds `hmac 0.12.1` (compatible with existing SHA-256/digest),
+`saphyr-parser 0.0.12` and its `arraydeque 0.5.1` dependency. Saphyr requires
+`thiserror 2.0.20`, so both `thiserror` and `thiserror-impl` advance from 2.0.18
+to 2.0.20; the latter now uses the already-present `syn 3.0.4`. The
+[thiserror patch release](https://github.com/dtolnay/thiserror/releases/tag/2.0.20)
+addresses a generated-code Clippy warning. These exact versions were reviewed
+and tested in the native dependency graph. The HMAC crate forbids unsafe code;
+the parser and thiserror sources contain no unsafe code. Arraydeque contains
+unsafe storage internals, although
+this integration selects Saphyr's string-input path rather than its buffered-input
+adapter. This is a focused dependency review, not a complete security audit.
+The YAML parser streams events rather than constructing
+or expanding an alias graph, and runs inside the supervised worker. Research
+checked [HMAC verification](https://docs.rs/hmac/0.12.1/hmac/),
+[Saphyr's parser API](https://docs.rs/saphyr-parser/0.0.12/saphyr_parser/struct.Parser.html),
+[the parser maintainer's migration guidance](https://github.com/Ethiraric/yaml-rust2/issues/26),
+[temporary-file publication](https://docs.rs/tempfile/3.27.0/tempfile/struct.NamedTempFile.html#method.persist)
+and [Rust filesystem race guidance](https://doc.rust-lang.org/std/fs/).
+
 

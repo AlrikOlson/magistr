@@ -6,7 +6,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension};
 
 use super::{JournalDbOptions, JournalError};
 
-const VERSION: i64 = 2;
+const VERSION: i64 = 3;
 const SUFFIXES: [&str; 4] = ["", "-wal", "-shm", "-journal"];
 const SCHEMA: [(&str, &str); 5] = [
     (
@@ -184,7 +184,7 @@ fn validate(db: &Connection, reader: bool) -> Result<(i64, bool), JournalError> 
         )));
     }
     let count: i64 = db.query_row("SELECT count(*) FROM sqlite_master", [], |row| row.get(0))?;
-    if count == 0 && !reader {
+    if count == 0 && !reader && version < 3 {
         return Ok((version, true));
     }
     if !(1..=VERSION).contains(&version) {
@@ -192,7 +192,11 @@ fn validate(db: &Connection, reader: bool) -> Result<(i64, bool), JournalError> 
             "schema version {version} has no registered forward migration"
         )));
     }
-    for (name, expected) in SCHEMA {
+    for (name, expected) in SCHEMA.into_iter().chain(
+        super::intent_store::IntentStore::SCHEMA
+            .into_iter()
+            .filter(|_| version == 3),
+    ) {
         let sql: Option<String> = db
             .query_row(
                 "SELECT sql FROM sqlite_master WHERE name=?",
@@ -206,7 +210,7 @@ fn validate(db: &Connection, reader: bool) -> Result<(i64, bool), JournalError> 
             )));
         }
     }
-    let unexpected: i64 = db.query_row("SELECT count(*) FROM sqlite_master WHERE name NOT IN ('ops','ops_session','op_files','blobs','undone','sqlite_sequence','sqlite_autoindex_op_files_1','sqlite_autoindex_blobs_1')", [], |row| row.get(0))?;
+    let unexpected: i64 = db.query_row("SELECT count(*) FROM sqlite_master WHERE name NOT IN ('ops','ops_session','op_files','blobs','undone','sqlite_sequence','sqlite_autoindex_op_files_1','sqlite_autoindex_blobs_1') AND (?!=3 OR name NOT IN ('native_write_intents','native_intent_undo','sqlite_autoindex_native_intent_undo_1'))", [version], |row| row.get(0))?;
     if unexpected != 0 {
         return Err(JournalError::UnsupportedVersion(
             "journal contains unrecognized schema objects".to_owned(),
