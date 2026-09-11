@@ -164,7 +164,8 @@ freshness. Late results remain durable without attaching to a newer objective.
 | `arch-14a-workflow-source-fork` | Repository-local workflow source adopted; native state and behavior preserved |
 | `arch-14b-workflow-use-cases` | Typed family use cases, ordinary completion policy, and run/task admission beneath transports; receipt enforcement remains deferred |
 | `arch-14c-workbench-source-fork` | Reference source retained with complete provenance; native Rust engine adopted and checked as a first-party library; service cutover deferred |
-| `arch-14c1-workspace-policy`–`arch-14c4-workspace-queries` | Pending: native policy, supervised workers, persistent derived index and navigation use cases |
+| `arch-14c1-workspace-policy` | Native configuration and immutable path/command admission, private key lifecycle, typed response/byte contracts and reference fixtures; no production cutover |
+| `arch-14c2-workspace-workers`–`arch-14c4-workspace-queries` | Pending: supervised workers, persistent derived index and navigation use cases |
 | `arch-14c5-workspace-journal`–`arch-14c7-workspace-editing` | Pending: durable binary journal, verified transactions, edit/files and applied undo |
 | `arch-14c8-workspace-extensions`–`arch-14c10-workspace-port-parity` | Pending: plugin/script orchestration, declared execution and complete typed port/tool parity |
 | `arch-14d-workspace-owner` | Pending: admitted owner serving multiple clients |

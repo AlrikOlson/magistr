@@ -11,6 +11,10 @@ bunx napi build --manifest-path crates/workbench-core/Cargo.toml \
     --platform --release --esm --output-dir crates/workbench-core/artifacts -- --locked
 bun run scripts/smoke-core.ts native
 bun ../conformance/reference.ts
+bun ../conformance/config-reference.ts
+bun ../conformance/jail-reference.ts
+bun ../conformance/responses-reference.ts
+bun ../conformance/content-reference.ts
 cargo fmt --all -- --check
 cargo clippy --locked --workspace --all-targets --features workbench-core/no-bindings -- -D warnings
 # no-bindings is used only for reference Rust test linking, never native proof.
