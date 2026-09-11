@@ -3210,6 +3210,7 @@ dependencies = [
  "ed25519-dalek",
  "flate2",
  "insta",
+ "jsonschema 0.49.9",
  "jsonwebtoken",
  "libc",
  "magistr-acp",

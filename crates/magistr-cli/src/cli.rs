@@ -590,6 +590,30 @@ pub enum Command {
         #[command(subcommand)]
         action: Option<MemoryAction>,
     },
+
+    /// The native workspace tools — search, map, read, edit, files, undo,
+    /// script, run and workbench_status — served over MCP for one workspace
+    Workspace {
+        #[command(subcommand)]
+        action: WorkspaceAction,
+    },
+}
+
+/// Actions for the `magistr workspace` subcommand.
+#[derive(Debug, Subcommand)]
+pub enum WorkspaceAction {
+    /// Serve MCP over stdio for the workspace at DIR. One live server per
+    /// workspace: a second is refused with exit 75 while the first runs.
+    Serve {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+
+        /// Highest-precedence configuration for this server process
+        /// (repeatable key=value, e.g. --config edit.confirm_mode=token)
+        #[arg(long = "config", value_name = "KEY=VALUE")]
+        config: Vec<String>,
+    },
 }
 
 /// Actions for the `magistr memory` subcommand.

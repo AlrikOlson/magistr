@@ -36,3 +36,5 @@ bun test
 cargo test --manifest-path "$PROJECT_ROOT/Cargo.toml" -p magistr-cli --test workspace_queries_conformance -- --ignored
 # Cross-runtime journal append/read uses only disposable SQLite databases.
 cargo test --manifest-path "$PROJECT_ROOT/Cargo.toml" -p magistr-workspace --test journal_conformance -- --ignored
+# The served surface against the reference server, both in twin disposable roots.
+cargo test --manifest-path "$PROJECT_ROOT/Cargo.toml" -p magistr-cli --test workspace_served_reference -- --ignored

@@ -864,3 +864,94 @@ verification on this macOS host; on Windows the group kill degrades to
 `kill_on_drop`; the plugin runner lane over a real worker guest is covered by
 the c8 suites, not re-run here; the live cargo test skips honestly without
 cargo on PATH.
+
+## Native served surface and composition (arch-14c10)
+
+`crates/magistr-workspace/src/service/` composes the port: `WorkspaceService`
+admits one workspace per process and holds the resolved `WorkspacePolicy`,
+the private key and `ConfirmationSeal`, the sole `JournalDb` writer (SQLite's
+applied journal mode read back verbatim), the supervised worker, the derived
+`WorkspaceIndex`, the extension lanes (ranking signals booted at open,
+installed lang packs registered at open, language-server detection for the
+resolver lane, `runner-` plugins for the run tool), the owned-process executor
+and the flight recorder, behind typed methods — status, map, read, search,
+edit, files, undo, journal list, script, run, plugin tools, the index task —
+that append the workspace's deterministic notes to every answer. Admission is
+`ServerLock`, an OS-held exclusive lock on `.workbench/server.lock` taken
+through `std::fs::File::try_lock` (Rust ≥ 1.89): no pid is read, no age is
+judged, nothing is stolen and no holder is signalled, so a crashed owner
+releases on exit and a live one is refused. This replaces the reference's
+pid-and-age advisory lock as the migration constraints require; it is
+single-owner admission for one process and claims nothing of ADR-018's
+multi-client owner. The native tool schemas live under
+`crates/magistr-workspace/schemas/` and `tests/schema_parity.rs` proves them
+byte-identical to the reference tree's `schemas/`.
+
+`crates/magistr-cli/src/workspace_mcp/` is the thin rmcp adapter, served as
+`magistr workspace serve <root> [--config key=value]`: the retained tool
+surface in the retained order (`workbench_status`, `map`, `read`, `search`,
+`edit`, `files`, `undo`, `script` when the embedded QuickJS-ng interpreter is
+composed, `run`, then namespaced plugin tools), the input schemas verbatim and
+the envelope as every tool's `outputSchema` with the sealed JSON carried as
+both text and `structuredContent`, per-request envelope negotiation and
+session identity from `_meta` (rmcp moves `_meta` into the request context
+before dispatch), the reference's per-tool `InvalidParams` admission messages,
+the MRTR form elicitation `{apply}` built on `Peer::send_request` with the
+CONFIRM_REQUIRED token fallback for declined, cancelled, failed or
+incapable clients and for `edit.confirm_mode = "token"`, the request's
+`CancellationToken` into search and run, the `index/build` task over SEP-2663
+`tasks/get` and the retained `tasks/list` through `on_custom_request`, one
+trace span per call, and the protocol era capped below 2026-07-28 exactly as
+`magistr mcp-serve` caps it. Exit codes: 64 malformed `--config`, 65 durable
+data this binary cannot read, 66 missing root, 75 a live owner; stdin EOF
+before or after `initialize` is a clean departure that releases the lock.
+
+Deviations, all deliberate: the empty session is admitted as the retained
+anonymous identity (the c6 pipeline had required a non-empty one; the seal
+binds `""` like any other identity and a token is still session-bound, which
+the reference's never was); the status row is the retained deterministic six
+fields (no pids, generations or timestamps) so fresh owners answer
+byte-identically, with worker and index health served through `map` and the
+task instead; the index task exists from open (`IndexBuildTask::since_open`),
+because the first build is kicked at open and a client polling right after
+`initialize` must not be told the task does not exist; the journal writer
+now guards its SQLite connection behind a mutex so `JournalDb` is `Sync` and
+every native verb is a `Send` future a transport handler can await directly
+(the first served build exposed that the borrowed command futures were not);
+the inventory record types moved out of the sandbox feature into
+`crate::plugins` so the map row and the extension host share one parser of
+`plugins.json`; the undo tool's `action` is
+split at the wire into the c7 rewind (`UndoInput`) and the new
+`JournalListInput` so each keeps its retained defaults (session/4000 versus
+workspace/8000); `map` reads the plugin inventory itself
+(`MapPlugin::inventory`) with the retained fail-closed trust rule; the run
+tool's plugin lanes come from installed `runner-` plugins rather than the
+reference's bundled component, whose behavior the native Go parser floors.
+
+Evidence: 32 native unit and integration tests (server lock, status row,
+index task derivation, journal listing with the retained probe/cut/cursor,
+service admission and byte-identical status, map inventory trust, schema
+parity) and 22 served tests — `workspace_served.rs` over an rmcp client on an
+in-memory duplex (identity, tool order with schemas and output schema
+verbatim, the negotiation trio, jsonschema validity of every envelope, the
+task polled to `completed` plus `tasks/list` and unknown-id refusal,
+byte-identical status across fresh owners with a second owner refused,
+the red-team served attacks with a byte-identical allowlist, the token flow
+with a forged-token mismatch, MRTR accept/decline/token-mode, session
+identity through undo and the listing, read/map/plugin/script/misuse, a
+cancelled token stopping a search), `workspace_served_stdio.rs` driving the
+real binary over its own stdio with the exit codes, the adapter's admission
+and task unit tests, and `workspace_served_reference.rs` (ignored; the
+`workspace-reference` gate runs it) comparing tools/list, status, the empty
+journal listing, the map plugin inventory and the run refusals against
+`bun src/main.ts` in twin disposable roots — identical. Limits: verification
+on this macOS host; `.mcp.json` and `magistr mcp-serve` are untouched and
+production consumers still reach the workspace through the legacy server
+until `arch-14d-workspace-owner`; the operational CLI verbs, the Bun-free
+release-artifact smoke, the supported matrix and the measured budgets are
+`arch-14c10b-workspace-port-acceptance`; no multi-client or SourceSnapshot
+completion is claimed. Dependencies, as a record rather than a rule: the port
+adds no runtime crate; magistr-cli gains one dev-only edge to jsonschema 0.49
+(already in the lock) because a real validator is the right tool for envelope
+validation, and the served suites drive child processes over their own pipes
+with tokio because a reader/writer pair already is an rmcp transport.

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/files.input.schema.json",
+  "title": "files",
+  "description": "Typed file operations — replaces mv, cp, mkdir, touch and rm (SDD 9.5). move is import-aware: importer files whose import specifiers resolve to the moved file are rewritten to the new location, the moved file's own relative imports are recomputed, and every rewrite rides the same dry-run diff — inherently multi-file, so always confirm-gated. delete is a journal-backed move to .workbench/trash/, recoverable with undo. create is touch: it never overwrites. mkdir materializes the directory as a journaled <to>/.gitkeep. Every verb resolves to a write batch through the 7.5 write engine: dry-run diff, parse-verify, format, journal, atomic swap. Confirm gating follows edit's rule (multi-file or >200 changed lines) plus: move always gates, and a copy over an existing differing target gates.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m3-files-tool",
+  "type": "object",
+  "required": ["op"],
+  "properties": {
+    "op": {
+      "enum": ["move", "copy", "create", "delete", "mkdir"],
+      "description": "move: relocate `from` to `to`, rewriting referencing import specifiers across the workspace (typescript, javascript, python, java, c, c++; specifier-based and name-resolution-free — the notes say exactly what was rewritten). For a Rust file the move is module-aware: the declaring `mod` item, the crate's crate::/super::/self::/uniform paths that resolve to the moved module, and Cargo.toml target `path` entries are rewritten in the same diff, and the notes name what was deliberately left alone (brace-grouped use members, non-leaf modules, #[path] declarations, cross-crate paths). copy: duplicate `from` at `to`. create: touch — create an empty file at `to`; an existing file is left untouched. delete: journal-backed move of `from` to .workbench/trash/, undoable. mkdir: materialize directory `to` by creating a journaled `to`/.gitkeep."
+    },
+    "from": {
+      "type": "string",
+      "description": "Workspace-relative source file. Required for move, copy and delete."
+    },
+    "to": {
+      "type": "string",
+      "description": "Workspace-relative destination. Required for move, copy, create and mkdir."
+    },
+    "expectedHash": {
+      "type": "string",
+      "description": "read's contentHash for `from`. A mismatch with the file's current content answers STALE_ANCHOR carrying the fresh hash (SDD 9.3/7.7)."
+    },
+    "dryRun": {
+      "type": "boolean",
+      "default": false,
+      "description": "Run the full pipeline through re-verify and return the diffs, touching nothing."
+    },
+    "confirm": {
+      "type": "string",
+      "description": "The confirmToken from a prior CONFIRM_REQUIRED answer for this exact call (SDD 9.4). Verified statelessly against the per-workspace key: valid and current applies; files moved under the confirmed diff answers STALE_ANCHOR; a forged token or changed arguments answers CONFIRM_MISMATCH."
+    },
+    "autoApply": {
+      "type": "boolean",
+      "default": false,
+      "description": "Trusted-harness bypass of the confirm gate for multi-file / large ops (SDD 9.4). Prefer the confirm-token flow; autoApply skips the human-approvable diff entirely."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 4000 }
+  }
+}

@@ -120,7 +120,7 @@ fn resolution_failure_rolls_back_outcome_and_undo_links() {
     let mut undo = op();
     undo.undo_of = Some(vec![original]);
     let seq = db.append_intent(&undo).expect("intent").op.seq;
-    db.db.execute_batch("CREATE TRIGGER fail_resolution BEFORE UPDATE ON native_write_intents BEGIN SELECT RAISE(ABORT,'fault'); END").expect("inject");
+    db.connection().execute_batch("CREATE TRIGGER fail_resolution BEFORE UPDATE ON native_write_intents BEGIN SELECT RAISE(ABORT,'fault'); END").expect("inject");
     assert!(
         db.resolve_intent(seq, JournalWriteOutcome::Applied)
             .is_err()
@@ -183,13 +183,13 @@ fn failed_first_intent_rolls_back_migration_and_preserves_history() {
     assert!(db.append_intent(&invalid).is_err());
     assert_eq!(db.list(0).expect("unchanged"), vec![original]);
     assert_eq!(
-        db.db
+        db.connection()
             .query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
             .expect("version"),
         2
     );
     assert_eq!(
-        db.db
+        db.connection()
             .query_row(
                 "SELECT count(*) FROM sqlite_master WHERE name LIKE 'native_%'",
                 [],
@@ -206,7 +206,7 @@ fn native_schema_cannot_be_reinterpreted_by_downgrading_its_header() {
     let path = dir.path().join("journal.db");
     let mut db = JournalDb::open(JournalDbOptions::new(&path)).expect("writer");
     db.append_intent(&op()).expect("intent");
-    db.db
+    db.connection()
         .pragma_update(None, "user_version", 2)
         .expect("simulate downgrade");
     drop(db);
@@ -229,7 +229,7 @@ fn first_intent_migrates_atomically_without_rewriting_retained_blobs() {
         JournalDb::open(JournalDbOptions::new(dir.path().join("journal.db"))).expect("writer");
     let prior = db.append(&op()).expect("prior").op;
     let compressed: Vec<u8> = db
-        .db
+        .connection()
         .query_row(
             "SELECT zstd FROM blobs WHERE hash=?",
             [&prior.files[0].before_hash],
@@ -238,13 +238,13 @@ fn first_intent_migrates_atomically_without_rewriting_retained_blobs() {
         .expect("blob");
     let seq = db.append_intent(&op()).expect("intent").op.seq;
     assert_eq!(
-        db.db
+        db.connection()
             .query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
             .expect("version"),
         3
     );
     assert_eq!(
-        db.db
+        db.connection()
             .query_row(
                 "SELECT zstd FROM blobs WHERE hash=?",
                 [&prior.files[0].before_hash],

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/read.input.schema.json",
+  "title": "read",
+  "description": "Budgeted, enveloped file reading — replaces cat, head, tail and sed -n (SDD 9.3). Returns a unit of meaning with precise line anchors and a content hash (the edit staleness anchor); line numbers are verified fresh against mtime+size before return.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m1-read",
+  "type": "object",
+  "required": ["file"],
+  "not": { "required": ["symbol", "lines"] },
+  "properties": {
+    "file": { "type": "string", "description": "Workspace-relative path." },
+    "symbol": {
+      "type": "string",
+      "description": "Symbol address, e.g. UserService.authenticate or Rust's Config::load, resolved via the index within `file`. Both separators work, and a bare member name resolves when it is unambiguous. Mutually exclusive with lines; needs the Tier-1 index (INDEX_UNAVAILABLE until warm)."
+    },
+    "lines": {
+      "type": "object",
+      "required": ["start", "end"],
+      "description": "Explicit 1-based inclusive line range. Mutually exclusive with symbol. Omit both to read the whole file.",
+      "properties": {
+        "start": { "type": "integer", "minimum": 1 },
+        "end": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "surround": {
+      "enum": ["none", "enclosing", "imports"],
+      "default": "enclosing",
+      "description": "none: just the unit. enclosing: expand a symbol read to its enclosing parent symbol. imports: additionally return the file's leading import block."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 4000 }
+  }
+}

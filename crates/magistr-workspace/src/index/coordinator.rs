@@ -15,6 +15,8 @@ use std::{
     time::Duration,
 };
 
+use crate::diagnostics::now_unix_ms;
+
 pub(super) struct Coordinator;
 impl Coordinator {
     pub async fn run(shared: Arc<Shared>) {
@@ -82,6 +84,8 @@ impl Coordinator {
                     status.last_error = None;
                     status.parsed = 0;
                     status.reused = 0;
+                    status.build_started_at_ms = Some(now_unix_ms());
+                    status.build_updated_at_ms = status.build_started_at_ms;
                 }
                 let result = Self::build(shared.clone()).await;
                 last_scan = tokio::time::Instant::now();
@@ -101,6 +105,7 @@ impl Coordinator {
                 let current = shared.requested.load(Ordering::Acquire) == requested;
                 let mut status = shared.status.lock().unwrap_or_else(|e| e.into_inner());
                 status.building = false;
+                status.build_updated_at_ms = Some(now_unix_ms());
                 status.freshness = if result.is_ok() && watcher_ok && current {
                     Freshness::Warm
                 } else {

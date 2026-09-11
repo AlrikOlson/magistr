@@ -283,6 +283,39 @@
 				"crates/magistr-workspace/tests/live_cargo_run.rs"
 			],
 			"adaptation": "Typed WorkspaceRun over the c1 CommandAdmission (never widened) and a RunExecutor seam whose production ProcessExecutor spawns one literal argv in the workspace root inside its own process group, captures both streams under a head+tail ceiling with a visible gap marker, and kills the owned group on timeout, cancellation or a drain deadline (a grandchild holding the pipes cannot hang the answer); ENOENT is FILE_NOT_FOUND, other spawn failures ENGINE_UNAVAILABLE, signals are data. Seven bundled runner parsers and the rustc/clippy diagnostics extractor ported as pure functions behind open RunnerParser/DiagnosticExtractor/PluginRunnerLane registries (bundled defaults, plugin guests first, honest head+tail floor); every retained cargo golden equal by JSON. Diagnostics: WorkspaceStatus, JournalInspection over the read-only reader, TraceRecorder with typed spans, credential redaction and a dedicated writer thread (no async-local active span; the composition passes spans), doctor probes reading the native cache path read-only with the lock untouched, retained quarantine.jsonl beside the in-memory worker ledger, ustar+gzip bundle through the redaction choke point. CLI verbs, exit codes, served tool rows and composition remain c10."
+		},
+		{
+			"chunk": "arch-14c10-workspace-port-parity",
+			"upstream_inputs": [
+				"src/protocol/server.ts",
+				"src/protocol/serve.ts",
+				"src/protocol/tasks.ts",
+				"src/protocol/workspace.ts",
+				"src/main.ts",
+				"src/tools/undo.ts",
+				"src/tools/map.ts",
+				"src/tools/plugins.ts",
+				"src/envelope/negotiate.ts",
+				"schemas/tools/",
+				"schemas/envelope.schema.json",
+				"test/mcp-conformance.test.ts",
+				"test/statelessness.test.ts",
+				"test/redteam-served.test.ts",
+				"test/mrtr-confirm.test.ts",
+				"test/tasks.test.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/service/",
+				"crates/magistr-workspace/schemas/",
+				"crates/magistr-workspace/tests/schema_parity.rs",
+				"crates/magistr-workspace/src/query/map_plugin.rs",
+				"crates/magistr-cli/src/workspace_mcp/",
+				"crates/magistr-cli/src/orchestration/commands/misc/cmd_workspace.rs",
+				"crates/magistr-cli/tests/workspace_served.rs",
+				"crates/magistr-cli/tests/workspace_served_stdio.rs",
+				"crates/magistr-cli/tests/workspace_served_reference.rs"
+			],
+			"adaptation": "Typed WorkspaceService composition root (OS-held single-owner server lock with no pid reading or age stealing, key, sole journal writer with the applied mode read back, supervised worker, derived index, extension lanes, owned-process executor, flight recorder) beneath a thin rmcp adapter served as `magistr workspace serve`: the retained tool surface with the eight input schemas and the envelope output schema byte-identical to the reference tree, sealed JSON as both text and structuredContent, _meta envelope negotiation and session identity, MRTR form elicitation with the token fallback honoring edit.confirm_mode, the request's cancellation token into search and run, the index/build task over SEP-2663 tasks/get and the retained tasks/list, one trace span per call, plugin tools after the core names. Map serves the fail-closed plugin inventory; undo action:list is the retained journal listing. Deviations: the empty session is admitted as the retained anonymous identity (the c6 pipeline had required one); the status row is the retained deterministic six fields (no pids or generations) so fresh owners answer byte-identically; the index task exists from open; the journal writer guards its SQLite connection behind a mutex so it is Sync and every verb is a Send future a transport handler awaits directly; the inventory record types live in crate::plugins (every feature lane) so map and the extension host share one parser of plugins.json; the Bun-free release smoke, CLI verbs, matrix and measured budgets are arch-14c10b; production consumers still use the legacy server until arch-14d."
 		}
 	]
 }

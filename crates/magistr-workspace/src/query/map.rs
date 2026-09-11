@@ -1,5 +1,5 @@
 use super::{
-    MapIndex, MapInput, MapRow, WorkspaceQueries, budget, map_cargo::CargoMap,
+    MapIndex, MapInput, MapPlugin, MapRow, WorkspaceQueries, budget, map_cargo::CargoMap,
     map_enrichment::MapEnrichment, map_entry_points::entry_points, map_tree::MapTree,
 };
 use crate::{
@@ -88,9 +88,20 @@ pub(super) fn run(q: &WorkspaceQueries<'_>, input: &MapInput) -> WorkspaceRespon
     if tree.languages.get("rust").is_some_and(|count| *count > 0) && status.is_some() {
         notes.push("macro-generated items (derives, macro_rules!) are not in the symbol index: tree-sitter sees source, not expansion — use search mode:lexical or mode:references for them".into());
     }
-    notes.push(
-        "plugin inventory is unavailable in the native query library; no plugins are shown".into(),
-    );
+    let plugins = match &q.state_dir {
+        Some(state_dir) => {
+            let (plugins, inventory_notes) = MapPlugin::inventory(state_dir);
+            notes.extend(inventory_notes);
+            plugins
+        }
+        None => {
+            notes.push(
+                "plugin inventory is unavailable in the native query library; no plugins are shown"
+                    .into(),
+            );
+            Vec::new()
+        }
+    };
     // Repeated file validation notes describe one answer, not a log per file.
     let mut seen = std::collections::BTreeSet::new();
     notes.retain(|note| seen.insert(note.clone()));
@@ -105,7 +116,7 @@ pub(super) fn run(q: &WorkspaceQueries<'_>, input: &MapInput) -> WorkspaceRespon
         files: tree.files,
         dirs: tree.dirs,
         languages: tree.languages,
-        plugins: Vec::new(),
+        plugins,
         import_graph: enrichment.graph(),
         entry_points: detected,
         cargo,

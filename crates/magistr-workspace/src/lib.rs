@@ -26,10 +26,12 @@ pub mod journal;
 #[cfg(feature = "lang-pack")]
 pub mod lang_registry;
 pub mod langs;
+pub mod plugins;
 pub mod query;
 pub mod response;
 #[cfg(feature = "sandbox")]
 pub mod sandbox;
+pub mod service;
 mod source_language;
 mod source_open;
 pub mod transaction;

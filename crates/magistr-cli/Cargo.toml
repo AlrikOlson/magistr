@@ -64,7 +64,11 @@ tempfile = "3"
 # Replay the supervised cockpit integration harness through a real VT emulator.
 vt100 = "0.16"
 assert_cmd = "2"
+# The served workspace suites drive the binary as a real MCP client over its
+# own stdio (a tokio child's pipes are already a transport) and validate every
+# envelope against the retained schema.
 rmcp = { version = "3.1", features = ["client"] }
+jsonschema = { version = "0.49", default-features = false }
 insta = "1"
 predicates = "3"
 proptest = "1"

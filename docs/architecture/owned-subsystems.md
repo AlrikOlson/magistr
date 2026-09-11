@@ -170,6 +170,32 @@ configuration after observing a new worker generation. The worker API does
 not claim index persistence, plugin manifest trust policy or complete public
 tool parity.
 
+## Native served surface
+
+`magistr_workspace::service::WorkspaceService` is the composition root: one
+admitted workspace per process, composed once — the resolved policy, the
+private key, the sole journal writer with SQLite's applied mode read back,
+the supervised worker, the derived index, the extension lanes, the
+owned-process executor and the flight recorder — behind typed methods that
+append the workspace's deterministic notes to every answer. Admission is an
+OS-held exclusive lock on `.workbench/server.lock`: no pid is read, no age is
+judged, nothing is stolen and no holder is signalled, so a crashed owner
+releases on exit and a live one is refused (exit 75). This is single-owner
+admission for one process; the multi-client owner protocol of
+`arch-14d-workspace-owner` layers on top of it and is not claimed here.
+
+`magistr workspace serve <root>` is the thin rmcp adapter over that service:
+the complete retained tool surface with the eight input schemas and the
+envelope output schema byte-identical to the reference tree, the sealed
+envelope as both text and `structuredContent`, per-request envelope
+negotiation and session identity from `_meta`, MRTR form elicitation with
+the token fallback honoring `edit.confirm_mode`, the request's cancellation
+token into search and run, the `index/build` task over SEP-2663 `tasks/get`
+and the retained `tasks/list`, one trace span per call and namespaced plugin
+tools after the core names. The empty session is the retained anonymous
+identity. Production consumers still reach the workspace through the legacy
+server until owner cutover; `magistr mcp-serve` is unchanged.
+
 ## Evidence requires source identity
 
 The workspace service publishes a versioned `SourceSnapshot` capability,
@@ -204,7 +230,10 @@ freshness. Late results remain durable without attaching to a newer objective.
 | `arch-14c4-workspace-queries` | Typed admitted read/search/map queries, native worker/index composition, retained ranking/Cargo goldens and independent-root envelope comparison; transport and plugin inventory integration deferred |
 | `arch-14c5-workspace-journal` | Native v1/v2 durable SQLite journal, exact-byte CAS history, read-only views and undo restoration plans; no filesystem application |
 | `arch-14c6-workspace-transactions`–`arch-14c7-workspace-editing` | Pending: verified transactions, edit/files and applied undo |
-| `arch-14c8-workspace-extensions`–`arch-14c10-workspace-port-parity` | Pending: plugin/script orchestration, declared execution and complete typed port/tool parity |
+| `arch-14c8-workspace-extensions` | Plugin manifests, grants, breaker, host and TCK, the QuickJS script verb and the lang-pack/ranking/resolver/runner lanes over the worker |
+| `arch-14c9-workspace-execution` | Owned-group declared-command execution with the retained parsers, plus read-only status/journal/trace/doctor diagnostics |
+| `arch-14c10-workspace-port-parity` | Typed `WorkspaceService` composition root with OS-held single-owner admission and the thin rmcp adapter `magistr workspace serve`; served conformance in disposable workspaces and against the reference server |
+| `arch-14c10b-workspace-port-acceptance` | Pending: CLI diagnostic verbs with the retained exit codes, the Bun-free release smoke, the supported matrix and the measured budgets |
 | `arch-14d-workspace-owner` | Pending: admitted owner serving multiple clients |
 | `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |
 

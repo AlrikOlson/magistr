@@ -339,6 +339,7 @@ async fn main() -> eyre::Result<()> {
         }
         Command::McpProxy { cmd } => commands::misc::cmd_mcp_proxy(cmd),
         Command::McpServe { dir } => commands::misc::cmd_mcp_serve(&dir).await,
+        Command::Workspace { action } => commands::misc::cmd_workspace(action).await,
         Command::McpLaunch { target, dir } => commands::misc::cmd_mcp_launch(target, &dir).await,
         Command::CodexLaunch { .. } => unreachable!("Codex launch dispatches before session setup"),
         Command::CodexRemove { dir } => {

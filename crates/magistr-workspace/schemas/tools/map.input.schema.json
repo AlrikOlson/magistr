@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/map.input.schema.json",
+  "title": "map",
+  "description": "Workspace orientation — replaces ls -R and orientation greps (SDD 9.2). A pruned directory skeleton at Tier 0, per-file symbol outlines when the index is warm, an import-graph summary (top fan-in/fan-out modules) on the overview, detected entry points (package.json main/bin, src/main.*, Cargo [[bin]]), index health, and the installed-plugin inventory with trust labels. In a Cargo workspace, ranked crate rows (one per member: roles, edition, entry points, features, member dependencies with importing-file counts when the index is warm, dependents) sit between the overview and the tree, and the overview carries a cargo summary. Results carry a short ttlMs keyed to index generation.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m1-map",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "default": ".",
+      "description": "Workspace-relative directory to map; \".\" is the workspace root."
+    },
+    "depth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 3,
+      "description": "Tree depth below `path`. Entries deeper than this are folded into their ancestor directory's counts."
+    },
+    "detail": {
+      "enum": ["skeleton", "outline", "full"],
+      "default": "outline",
+      "description": "skeleton: tree only. outline: adds compressed per-file symbol outlines when the index is warm. full: outlines without the per-file symbol cap (the budget still trims)."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 6000 }
+  }
+}

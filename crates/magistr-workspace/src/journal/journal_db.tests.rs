@@ -82,17 +82,17 @@ fn failed_append_rolls_back_sequence_files_blobs_links_and_eviction() {
     let dir = tempfile::tempdir().expect("directory");
     let mut db = writer(&dir);
     let original = db.append(&change(b"before", b"after")).expect("first").op;
-    let before = table_counts(&db.db);
-    db.db.execute_batch("CREATE TRIGGER reject_file BEFORE INSERT ON op_files WHEN NEW.path='reject' BEGIN SELECT RAISE(ABORT,'injected batch failure'); END").expect("fault injection");
+    let before = table_counts(&db.connection());
+    db.connection().execute_batch("CREATE TRIGGER reject_file BEFORE INSERT ON op_files WHEN NEW.path='reject' BEGIN SELECT RAISE(ABORT,'injected batch failure'); END").expect("fault injection");
     let mut failing = change(b"fresh before", b"fresh after");
     failing.undo_of = Some(vec![original.seq]);
     let mut rejected = failing.files[0].clone();
     rejected.path = "reject".to_owned();
     failing.files.push(rejected);
     assert!(matches!(db.append(&failing), Err(JournalError::Sqlite(_))));
-    assert_eq!(table_counts(&db.db), before);
+    assert_eq!(table_counts(&db.connection()), before);
     assert_eq!(db.get(original.seq).expect("original"), Some(original));
-    db.db
+    db.connection()
         .execute_batch("DROP TRIGGER reject_file")
         .expect("remove injection");
     assert_eq!(
@@ -174,7 +174,7 @@ fn reuse_preserves_compressed_bytes_and_refreshes_recency() {
     let op = db.append(&change(b"reused", b"reused")).expect("first").op;
     let hash = &op.files[0].before_hash;
     let custom = zstd::stream::encode_all(&b"reused"[..], 19).expect("custom compression");
-    db.db
+    db.connection()
         .execute(
             "UPDATE blobs SET zstd=?,bytes=? WHERE hash=?",
             params![custom, custom.len() as i64, hash],
@@ -182,7 +182,7 @@ fn reuse_preserves_compressed_bytes_and_refreshes_recency() {
         .expect("retained codec variant");
     let second = db.append(&change(b"reused", b"different")).expect("second");
     let (bytes, reference): (Vec<u8>, i64) = db
-        .db
+        .connection()
         .query_row(
             "SELECT zstd,last_ref_seq FROM blobs WHERE hash=?",
             [hash],
@@ -267,13 +267,13 @@ fn corrupt_blob_is_an_explicit_read_error_and_append_rollback() {
     let dir = tempfile::tempdir().expect("directory");
     let mut db = writer(&dir);
     let first = db.append(&change(b"before", b"after")).expect("first").op;
-    db.db
+    db.connection()
         .execute(
             "UPDATE blobs SET zstd=x'0001',bytes=2 WHERE hash=?",
             [&first.files[0].before_hash],
         )
         .expect("corrupt codec");
-    let before = table_counts(&db.db);
+    let before = table_counts(&db.connection());
     assert!(matches!(
         db.get(first.seq),
         Err(JournalError::CorruptBlob { .. })
@@ -282,9 +282,9 @@ fn corrupt_blob_is_an_explicit_read_error_and_append_rollback() {
         db.append(&change(b"before", b"next")),
         Err(JournalError::CorruptBlob { .. })
     ));
-    assert_eq!(table_counts(&db.db), before);
+    assert_eq!(table_counts(&db.connection()), before);
     let wrong = zstd::stream::encode_all(&b"wrong"[..], 0).expect("compress");
-    db.db
+    db.connection()
         .execute(
             "UPDATE blobs SET zstd=?,bytes=? WHERE hash=?",
             params![wrong, wrong.len() as i64, first.files[0].before_hash],
@@ -309,7 +309,7 @@ fn decompression_bomb_and_oversized_query_are_bounded() {
     let bomb = vec![b'x'; 64 * 1024 * 1024 + 1];
     let compressed = zstd::stream::encode_all(bomb.as_slice(), 0).expect("compress");
     drop(bomb);
-    db.db
+    db.connection()
         .execute(
             "UPDATE blobs SET zstd=?,bytes=? WHERE hash=?",
             params![
@@ -336,7 +336,7 @@ fn decompression_bomb_and_oversized_query_are_bounded() {
 fn raw_list_refuses_truncation_and_recent_paginates_large_history() {
     let dir = tempfile::tempdir().expect("directory");
     let db = writer(&dir);
-    db.db.execute_batch("WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<1001) INSERT INTO ops(at,tool,args_hash,session_id) SELECT x,'edit','args','s' FROM n").expect("large history");
+    db.connection().execute_batch("WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<1001) INSERT INTO ops(at,tool,args_hash,session_id) SELECT x,'edit','args','s' FROM n").expect("large history");
     assert!(matches!(
         db.list(0),
         Err(JournalError::ReadLimitExceeded(_))
@@ -473,10 +473,10 @@ fn late_hydration_failure_rolls_back_eviction_of_older_blobs() {
         .expect("reused")
         .op;
     let hash = &reused.files[0].before_hash;
-    db.db
+    db.connection()
         .execute("UPDATE blobs SET zstd=x'0001',bytes=2 WHERE hash=?", [hash])
         .expect("corrupt protected blob");
-    let before = table_counts(&db.db);
+    let before = table_counts(&db.connection());
     let hashes = |db: &Connection| {
         db.prepare("SELECT hash FROM blobs ORDER BY hash")
             .expect("prepare")
@@ -485,7 +485,7 @@ fn late_hydration_failure_rolls_back_eviction_of_older_blobs() {
             .collect::<rusqlite::Result<Vec<_>>>()
             .expect("hashes")
     };
-    let blobs_before = hashes(&db.db);
+    let blobs_before = hashes(&db.connection());
     db.cap_bytes = 0;
     let mut input = change(b"reused before", b"new after");
     input.undo_of = Some(vec![older.seq]);
@@ -493,8 +493,8 @@ fn late_hydration_failure_rolls_back_eviction_of_older_blobs() {
         db.append(&input),
         Err(JournalError::CorruptBlob { .. })
     ));
-    assert_eq!(table_counts(&db.db), before);
-    assert_eq!(hashes(&db.db), blobs_before);
+    assert_eq!(table_counts(&db.connection()), before);
+    assert_eq!(hashes(&db.connection()), blobs_before);
     assert_eq!(db.get(older.seq).expect("older restored"), Some(older));
 }
 
@@ -504,16 +504,16 @@ fn corrupt_eviction_accounting_preserves_every_durable_row() {
     let mut db = writer(&dir);
     db.append(&change(b"old before", b"old after"))
         .expect("older");
-    db.db
+    db.connection()
         .execute("UPDATE blobs SET bytes=bytes+1", [])
         .expect("corrupt size counters");
-    let before = table_counts(&db.db);
+    let before = table_counts(&db.connection());
     db.cap_bytes = 0;
     assert!(matches!(
         db.append(&change(b"fresh before", b"fresh after")),
         Err(JournalError::CorruptRecord(_))
     ));
-    assert_eq!(table_counts(&db.db), before);
+    assert_eq!(table_counts(&db.connection()), before);
 }
 
 #[test]
@@ -524,7 +524,7 @@ fn advertised_zstd_window_is_bounded_independently_of_output_size() {
     // Valid Zstandard frame structure: no content size, a 2-GiB advertised
     // window, and an empty final raw block. Output-only limits miss this case.
     let frame = [0x28_u8, 0xb5, 0x2f, 0xfd, 0x00, 0xa8, 0x01, 0x00, 0x00];
-    db.db
+    db.connection()
         .execute(
             "UPDATE blobs SET zstd=?,bytes=? WHERE hash=?",
             params![
@@ -545,16 +545,16 @@ fn sqlite_row_allocation_is_bounded_before_metadata_hydration() {
     let mut db = writer(&dir);
     let op = db.append(&change(b"before", b"after")).expect("op").op;
     let limit = rusqlite::limits::Limit::SQLITE_LIMIT_LENGTH;
-    db.db
+    db.connection()
         .set_limit(limit, 80 * 1024 * 1024)
         .expect("fixture limit");
-    db.db
+    db.connection()
         .execute(
             "UPDATE ops SET tool=CAST(zeroblob(70*1024*1024) AS TEXT)",
             [],
         )
         .expect("oversized metadata fixture");
-    db.db
+    db.connection()
         .set_limit(limit, 65 * 1024 * 1024)
         .expect("restore production limit");
     assert!(
@@ -569,14 +569,14 @@ fn busy_and_invalid_path_errors_never_quarantine() {
     let mut options = JournalDbOptions::new(&path);
     options.journal_mode = JournalMode::Truncate;
     let db = JournalDb::open(options.clone()).expect("journal");
-    db.db
+    db.connection()
         .execute_batch("BEGIN EXCLUSIVE")
         .expect("exclusive lock");
     assert!(
         matches!(JournalDb::open(options), Err(JournalError::Sqlite(rusqlite::Error::SqliteFailure(code, _))) if code.code == rusqlite::ErrorCode::DatabaseBusy)
     );
     assert!(!dir.path().join("journal.db.quarantined").exists());
-    db.db.execute_batch("ROLLBACK").expect("unlock");
+    db.connection().execute_batch("ROLLBACK").expect("unlock");
     let directory_path = dir.path().join("directory.db");
     std::fs::create_dir(&directory_path).expect("directory at DB path");
     assert!(matches!(
