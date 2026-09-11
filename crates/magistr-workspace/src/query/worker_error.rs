@@ -3,7 +3,7 @@ use crate::{
     worker::WorkerError,
 };
 
-pub(super) fn worker_error(error: WorkerError) -> WorkspaceError {
+pub(crate) fn worker_error(error: WorkerError) -> WorkspaceError {
     let kind = match &error {
         WorkerError::Busy => ErrorKind::EngineBusy { backoff_ms: 50 },
         WorkerError::Quarantined(_) => ErrorKind::InputQuarantined,

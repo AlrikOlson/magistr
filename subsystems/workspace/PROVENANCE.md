@@ -594,3 +594,83 @@ checked [HMAC verification](https://docs.rs/hmac/0.12.1/hmac/),
 and [Rust filesystem race guidance](https://doc.rust-lang.org/std/fs/).
 
 
+
+## Native editing, file operations and applied undo (arch-14c7)
+
+`commands::WorkspaceCommands` is the native use case above the c6 pipeline:
+`edit` (replace_body, insert_after, insert_before, rename, rewrite,
+replace_text), `files` (move, copy, create, delete, mkdir) and `undo`. Every
+verb resolves its intent into exact `TransactionChange` anchors (missing or
+SHA-256, plus the source baseline for move/copy) and calls `prepare`; nothing
+in `commands` writes, renames or unlinks a workspace file. The composing host
+supplies the admitted policy, supervised worker, sole journal writer, workspace
+key, optional derived index and an explicit session identity per service. No
+tool handler, workspace owner, owner-bound session fencing or production cutover
+is added here.
+
+The prepared plan's `mgw1` token is the confirmation token. Rewrite, rename,
+move and copy-over-a-differing-target always gate; any op touching more than
+one changed file or more than 200 changed lines gates; `dryRun` returns every
+row unapplied after the full verification/formatting pipeline and `autoApply`
+is the trusted-harness bypass, exactly as retained. The intent bytes the token
+binds are the serialized call without `confirm`, `dryRun`, `autoApply` and
+`budget`, so the identical intent re-invoked with a token reproduces the same
+sealed request. Because the native seal binds session, exact intent and the
+finalized plan together, a presented token that does not reproduce the fresh
+plan answers `CONFIRM_MISMATCH` whether the files moved, the arguments changed
+or the key differs; the retained implementation split the first case out as
+`STALE_ANCHOR` from its separate content hash. `STALE_ANCHOR` with the fresh
+hash is still answered for an `expectedHash` mismatch, an absent `replace_text`
+anchor or an out-of-range occurrence, and the pipeline re-checks every anchor
+before publication. Retained `wb1` tokens are refused. A verb that resolves to
+no change answers the nothing-to-change envelope before any plan is prepared,
+and a presented token for such a plan is a mismatch.
+
+Symbol verbs require the validated derived outline whose content hash equals
+the bytes being edited; anything less is `INDEX_UNAVAILABLE` with progress
+notes. `rename` finds its files through the native references search (a warm
+index, definition rows plus import-linked and bare occurrences) rather than
+raw index edges; the note carries the confidence counts and a truncated scan is
+reported instead of claiming completeness. `rewrite` runs the worker's
+ast-grep rewrite over the admitted live walk within the glob/lang scope, skips
+files with no bundled grammar and says so, and is bounded to 10,000 candidate
+files and 64 MiB of source. Files opened by a verb are read through the same
+no-follow opener as queries and are bounded to the pipeline's 4 MiB.
+
+Deletion is journal-backed and physical: the swap renames the admitted file
+into `.workbench/trash/<random>-<name>` with pinned directory descriptors and
+never unlinks; the journal remains the restoration source. Missing parents of
+a written file are created on the admitted path before the pinned swap, so
+`create`, `mkdir` (a journaled `.gitkeep`) and moves into new directories work;
+a rolled-back creation leaves the empty directory behind, which the receipt
+does not hide. Import rewriting ports the four specifier families verbatim
+without look-around regexes (boundary checks are explicit), and Rust moves port
+the module-tree derivation, declaration confirmation, contiguous path rewrite,
+brace-group reporting and manifest target updates as a pure planner. Because
+the pipeline formats Rust with the workspace's rustfmt, a declaration inserted
+into an existing parent may be reordered by `reorder_modules`; the retained
+rig used a passthrough formatter and never showed this.
+
+`undo` is never confirm-gated. Candidates come from the journal's session or
+named-sequence eligibility; live bytes are read for every touched path (absent
+is distinct from empty); the c5 plan surfaces conflicts as three-way hash rows
+with no writes and no consumed operations, `keepCurrent` keeps the conflicted
+file while rewinding the clean ones, and `force` restores the journaled bytes.
+When nothing differs from disk the choice is still consumed by a bookkeeping
+intent with no files. Restorations run with formatting disabled and exact
+anchors; a refused restoration (a stale race, or journaled bytes that would
+break a now-valid file) leaves the operations undoable, and a failed
+application reports each file's observed effect. `action: "list"` is not
+ported: the journal's native `recent` query already serves that read.
+
+Acceptance is exercised by the alongside unit suites (worker-free text and
+binary lanes, planner and import fixtures) and
+`magistr-cli/tests/workspace_editing.rs`, which uses the actual Magistr
+parser worker, derived index, rustfmt and `cargo check` over the retained
+six-language verb and move fixtures and the Rust fixture crate, plus stale
+previews, rename ambiguity, mixed create/delete/write batches, a read-only
+directory partial failure with compensation and rolled-back intent, and undo
+after external edits. Verification is on this macOS host. The `similar` crate
+(already locked at 2.7.0) renders unified diffs; research checked
+[its unified-diff API](https://docs.rs/similar/latest/similar/udiff/index.html)
+and the [regex crate's deliberate lack of look-around](https://github.com/rust-lang/regex/discussions/910).

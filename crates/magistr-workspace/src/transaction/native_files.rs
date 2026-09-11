@@ -119,6 +119,7 @@ impl NativeFiles {
                 .parent()
                 .ok_or_else(|| TransactionError::Io("missing target parent".into()))?;
             if let Some(content) = content {
+                fs::create_dir_all(parent).map_err(io)?;
                 let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(io)?;
                 temporary.write_all(content.as_bytes()).map_err(io)?;
                 if let Some(permissions) = permissions {
@@ -133,7 +134,9 @@ impl NativeFiles {
                 }
                 temporary.persist(admitted).map_err(|e| io(e.error))?;
             } else {
-                fs::remove_file(admitted).map_err(io)?;
+                let trash = super::trash::directory(&self.root).map_err(io)?;
+                let trashed = trash.join(super::trash::entry_name(admitted).map_err(io)?);
+                fs::rename(admitted, trashed).map_err(io)?;
             }
             Ok(())
         }

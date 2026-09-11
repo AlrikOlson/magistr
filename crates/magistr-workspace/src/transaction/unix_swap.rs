@@ -11,7 +11,9 @@ use std::{
 };
 
 // Pin every directory component without following symlinks, then create and
-// rename the sibling temporary by descriptor. Never create missing parents.
+// rename the sibling temporary by descriptor. Missing parents of a written
+// file are created on the admitted path first; deletion never unlinks, it
+// renames into the workspace trash so the bytes remain a physical artifact.
 pub(super) fn replace(
     root: &Path,
     path: &Path,
@@ -22,6 +24,9 @@ pub(super) fn replace(
     parent
         .strip_prefix(root)
         .map_err(|_| io::Error::other("outside root"))?;
+    if content.is_some() && !parent.exists() {
+        std::fs::create_dir_all(parent)?;
+    }
     let directory = open_parent(parent)?;
     let target = name(
         path.file_name()
@@ -76,12 +81,24 @@ pub(super) fn replace(
         unsafe { libc::unlinkat(directory.as_raw_fd(), temporary.as_ptr(), 0) };
         result
     } else {
-        // SAFETY: live pinned directory and one NUL-terminated leaf name.
-        let result = unsafe { libc::unlinkat(directory.as_raw_fd(), target.as_ptr(), 0) };
+        let trash_path = super::trash::directory(root)?;
+        let trash = open_parent(&trash_path)?;
+        let trashed = name(&super::trash::entry_name(path)?)?;
+        // SAFETY: both directories are live pinned descriptors and both names
+        // are single NUL-terminated components; rename never follows the leaf.
+        let result = unsafe {
+            libc::renameat(
+                directory.as_raw_fd(),
+                target.as_ptr(),
+                trash.as_raw_fd(),
+                trashed.as_ptr(),
+            )
+        };
         if result < 0 {
             return Err(io::Error::last_os_error());
         }
-        directory.sync_all()
+        directory.sync_all()?;
+        trash.sync_all()
     }
 }
 fn open_parent(path: &Path) -> io::Result<File> {

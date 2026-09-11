@@ -413,10 +413,21 @@ async fn a_stopped_parser_refuses_without_journaling_or_touching_files() {
 }
 
 #[tokio::test]
+#[cfg(unix)]
 async fn a_real_swap_failure_restores_earlier_files_and_retains_a_rolled_back_intent() {
+    use std::os::unix::fs::PermissionsExt;
+
     let mut fixture = Fixture::new();
     let before = b"pub fn before() {}\n";
     fixture.write("first.rs", before);
+    // Missing parents are created by the pipeline since c7; a read-only
+    // parent is the real filesystem refusal that fails the second swap.
+    fs::create_dir_all(fixture.root.join("locked")).expect("locked directory");
+    fs::set_permissions(
+        fixture.root.join("locked"),
+        fs::Permissions::from_mode(0o500),
+    )
+    .expect("read-only parent");
     let outcome = {
         let mut transactions = WorkspaceTransactions::new(
             &fixture.policy,
@@ -430,20 +441,21 @@ async fn a_real_swap_failure_restores_earlier_files_and_retains_a_rolled_back_in
             .prepare(request(
                 vec![
                     change("first.rs", Some(before), Some(b"pub fn after() {}\n")),
-                    change(
-                        "missing-parent/second.rs",
-                        None,
-                        Some(b"pub fn second() {}\n"),
-                    ),
+                    change("locked/second.rs", None, Some(b"pub fn second() {}\n")),
                 ],
                 FormatMode::Disabled,
             ))
             .await
-            .expect("the shadow batch parses without creating directories");
-        assert!(!fixture.root.join("missing-parent").exists());
+            .expect("the shadow batch parses without writing anything");
+        assert!(!fixture.root.join("locked/second.rs").exists());
         let token = prepared.confirmation_token().to_owned();
         transactions.apply(prepared, &token).await
     };
+    fs::set_permissions(
+        fixture.root.join("locked"),
+        fs::Permissions::from_mode(0o700),
+    )
+    .expect("restore parent mode");
     assert_eq!(outcome.status, TransactionStatus::Failed, "{outcome:?}");
     assert!(matches!(outcome.error, Some(TransactionError::Io(_))));
     assert_eq!(outcome.files[0].disposition, FileDisposition::RolledBack);
@@ -452,7 +464,7 @@ async fn a_real_swap_failure_restores_earlier_files_and_retains_a_rolled_back_in
         fs::read(fixture.root.join("first.rs")).expect("restored first file"),
         before
     );
-    assert!(!fixture.root.join("missing-parent").exists());
+    assert!(!fixture.root.join("locked/second.rs").exists());
     let seq = outcome.journal_intent_seq.expect("retained intent");
     assert_eq!(
         fixture

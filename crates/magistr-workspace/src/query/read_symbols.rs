@@ -5,10 +5,10 @@ use crate::{
 };
 
 /// Symbol addressing shared by read and future native editing.
-pub(super) struct SymbolAddress;
+pub(crate) struct SymbolAddress;
 
 impl SymbolAddress {
-    pub(super) fn resolve<'a>(
+    pub(crate) fn resolve<'a>(
         rows: &'a [WorkerSymbol],
         address: &str,
         file: &str,
@@ -118,7 +118,7 @@ impl SymbolAddress {
         candidates
     }
 
-    pub(super) fn extent(symbol: &WorkerSymbol, rows: &[WorkerSymbol], total: usize) -> ReadRange {
+    pub(crate) fn extent(symbol: &WorkerSymbol, rows: &[WorkerSymbol], total: usize) -> ReadRange {
         let start = symbol.start_line as usize;
         let end = if symbol.end_line >= symbol.start_line {
             symbol.end_line as usize

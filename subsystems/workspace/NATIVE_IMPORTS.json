@@ -188,6 +188,29 @@
 				"crates/magistr-cli/tests/workspace_queries_conformance.rs"
 			],
 			"adaptation": "Typed borrowed WorkspaceQueries over admitted policy/live snapshots, optional validated hydrated index and isolated native worker. Preserves addressing/surrounds, ranking, lexical/structural/reference/files search, tree/Cargo/import summaries and budget manifests. Strict binary read refusal, explicit stale snapshot rejection and bounded work; no owner or production consumer cutover. Independent native/retained-addon temporary-root comparisons; retained goldens unchanged."
+		},
+		{
+			"chunk": "arch-14c7-workspace-editing",
+			"upstream_inputs": [
+				"src/tools/edit.ts",
+				"src/tools/files.ts",
+				"src/tools/rust-move.ts",
+				"src/tools/undo.ts",
+				"src/protocol/write-access.ts",
+				"src/envelope/diff.ts",
+				"test/edit-verbs.test.ts",
+				"test/files-tool.test.ts",
+				"test/rust-move.test.ts",
+				"test/undo.test.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/commands/",
+				"crates/magistr-workspace/src/transaction/trash.rs",
+				"crates/magistr-workspace/src/transaction/unix_swap.rs",
+				"crates/magistr-workspace/src/transaction/native_files.rs",
+				"crates/magistr-cli/tests/workspace_editing.rs"
+			],
+			"adaptation": "Typed WorkspaceCommands resolving edit/files/undo intent into exact TransactionChange anchors over the c6 pipeline; the prepared mgw1 token is the confirmation token and any non-reproducing token is a mismatch. Trash-backed deletion and parent creation inside the pinned swap. Import families and the Rust module planner ported without look-around regexes; unified diffs via the locked similar crate. Undo applies c5 plans unformatted with surfaced conflicts. No tool handler, owner or cutover; action:list not ported."
 		}
 	]
 }

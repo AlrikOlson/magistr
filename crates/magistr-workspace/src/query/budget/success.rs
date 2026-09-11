@@ -4,7 +4,7 @@ use crate::contracts::{
 };
 use serde::Serialize;
 
-pub(in crate::query) fn success<R: Serialize>(
+pub(crate) fn success<R: Serialize>(
     rows: Vec<R>,
     requested: u64,
     freshness: Freshness,

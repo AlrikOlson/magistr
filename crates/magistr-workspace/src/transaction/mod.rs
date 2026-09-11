@@ -37,6 +37,7 @@ mod faults;
 mod native_files;
 mod prepare;
 mod snapshot;
+mod trash;
 #[cfg(unix)]
 mod unix_swap;
 mod verification;
