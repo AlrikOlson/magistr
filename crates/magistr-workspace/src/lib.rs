@@ -14,6 +14,8 @@ pub mod config;
 pub mod confirmation;
 pub mod contracts;
 pub mod engine;
+#[cfg(feature = "sandbox")]
+pub mod extensions;
 pub mod file_content;
 pub mod index;
 pub mod indexer;

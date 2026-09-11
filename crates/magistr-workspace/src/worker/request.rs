@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use super::WorkerDataFormat;
 
 #[cfg(feature = "sandbox")]
-use super::{WorkerPolicy, WorkerSubprocessSpec};
+use super::{WorkerPolicy, WorkerRankingHit, WorkerSubprocessSpec};
 
 /// Work admitted by the host and executed entirely inside its native worker.
 /// Paths identify parser inputs; guest artifacts travel as bytes and are never
@@ -103,6 +103,23 @@ pub enum WorkerRequest {
         capabilities: Vec<String>,
         policy: WorkerPolicy,
     },
+    #[cfg(feature = "sandbox")]
+    RankingContribute {
+        guest: Vec<u8>,
+        hits: Vec<WorkerRankingHit>,
+        capabilities: Vec<String>,
+        policy: WorkerPolicy,
+    },
+    #[cfg(feature = "sandbox")]
+    RunnerParse {
+        guest: Vec<u8>,
+        command: String,
+        exit_code: i32,
+        stdout: String,
+        stderr: String,
+        capabilities: Vec<String>,
+        policy: WorkerPolicy,
+    },
 }
 
 impl WorkerRequest {
@@ -132,6 +149,10 @@ impl WorkerRequest {
             Self::LoadLanguagePack { .. } => "language-pack",
             #[cfg(feature = "sandbox")]
             Self::ClassifyLanguagePack { .. } => "language-pack-classify",
+            #[cfg(feature = "sandbox")]
+            Self::RankingContribute { .. } => "ranking-contribute",
+            #[cfg(feature = "sandbox")]
+            Self::RunnerParse { .. } => "runner-parse",
         };
         let mut hash = HashWriter(Sha256::new());
         serde_json::to_writer(&mut hash, self).ok()?;

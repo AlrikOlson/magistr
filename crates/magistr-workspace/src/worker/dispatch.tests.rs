@@ -255,3 +255,95 @@ fn worker_registration_preserves_bundled_grammar_shadow_refusal() {
         matches!(result, WorkerError::Remote { code, message } if code == "LANGUAGE_UNAVAILABLE" && message.contains("shadows a bundled"))
     );
 }
+
+#[cfg(feature = "sandbox")]
+#[test]
+fn ranking_and_runner_lanes_dispatch_the_retained_typed_guests() {
+    use crate::worker::{WorkerGuestEnd, WorkerPolicy, WorkerRankingHit};
+    let policy = WorkerPolicy {
+        fuel: 200_000_000,
+        memory_cap_bytes: 32 * 1024 * 1024,
+    };
+    let ranking = include_bytes!(
+        "../../../../subsystems/workspace/reference/plugins/ranking-visibility/guest.wasm"
+    );
+    let contributed = WorkerRequest::RankingContribute {
+        guest: ranking.to_vec(),
+        hits: vec![
+            WorkerRankingHit {
+                file: "src/lib.rs".to_owned(),
+                line: 1,
+                column: 1,
+                excerpt: "pub fn x() {}".to_owned(),
+                kind_class: "declaration".to_owned(),
+                file_class: "source".to_owned(),
+            },
+            WorkerRankingHit {
+                file: "src/lib.rs".to_owned(),
+                line: 2,
+                column: 1,
+                excerpt: "x();".to_owned(),
+                kind_class: "call".to_owned(),
+                file_class: "source".to_owned(),
+            },
+        ],
+        capabilities: Vec::new(),
+        policy,
+    }
+    .execute()
+    .expect("ranking guest outcome is typed data");
+    let WorkerResponse::RankingContributed {
+        end, contributions, ..
+    } = contributed
+    else {
+        panic!("ranking dispatch returns the ranking variant");
+    };
+    assert_eq!(end, WorkerGuestEnd::Ok);
+    assert_eq!(contributions.len(), 2);
+    assert_eq!(contributions[0][0].name, "exported");
+    assert_eq!(contributions[0][0].value, 1.0);
+    assert!(contributions[1].is_empty());
+
+    let runner =
+        include_bytes!("../../../../subsystems/workspace/reference/plugins/runner-go/guest.wasm");
+    let parsed = WorkerRequest::RunnerParse {
+        guest: runner.to_vec(),
+        command: "go test ./...".to_owned(),
+        exit_code: 1,
+        stdout: "--- FAIL: TestAdd (0.00s)\n    math_test.go:12: expected 4, got 5\nFAIL\nFAIL\texample.com/m\t0.004s\n".to_owned(),
+        stderr: String::new(),
+        capabilities: Vec::new(),
+        policy,
+    }
+    .execute()
+    .expect("runner guest outcome is typed data");
+    let WorkerResponse::RunnerParsed {
+        end,
+        claimed,
+        report,
+        ..
+    } = parsed
+    else {
+        panic!("runner dispatch returns the runner variant");
+    };
+    assert_eq!(end, WorkerGuestEnd::Ok);
+    assert!(claimed);
+    let report = report.expect("structured report");
+    assert_eq!(report.failures[0].test_name, "TestAdd");
+    assert_eq!(report.failures[0].file.as_deref(), Some("math_test.go"));
+    assert_eq!(report.failures[0].assertion, "expected 4, got 5");
+    assert_eq!(
+        report.summary.as_deref(),
+        Some("FAIL\texample.com/m\t0.004s")
+    );
+    let wire = serde_json::to_vec(&WorkerResponse::RunnerParsed {
+        end: WorkerGuestEnd::Ok,
+        fuel_used: 1,
+        claimed,
+        report: Some(report.clone()),
+    })
+    .expect("serializes");
+    assert!(
+        matches!(serde_json::from_slice::<WorkerResponse>(&wire), Ok(WorkerResponse::RunnerParsed { report: Some(back), .. }) if back == report)
+    );
+}

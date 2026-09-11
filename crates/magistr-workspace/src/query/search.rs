@@ -81,7 +81,7 @@ async fn execute(
                 references(queries, input, &scoped)?;
             freshness = observed(freshness, reference_freshness);
             notes.extend(reference_notes);
-            (candidates, hashes)
+            upgraded(queries, input, &scoped, candidates, hashes, &mut notes).await?
         }
         _ => {
             if input.mode == SearchMode::Auto {
@@ -93,7 +93,13 @@ async fn execute(
             (candidates, hashes)
         }
     };
-    let mut groups = Ranking::rank(candidates, &input.query);
+    #[cfg(feature = "sandbox")]
+    let promoted = queries
+        .ranking
+        .and_then(crate::extensions::RankingSignals::promoted_features);
+    #[cfg(not(feature = "sandbox"))]
+    let promoted: Option<super::PluginFeatureLookup> = None;
+    let mut groups = Ranking::rank_with(candidates, &input.query, promoted.as_ref());
     let mut used = 0;
     let mut keep = 0;
     for group in &groups {
@@ -134,6 +140,18 @@ async fn execute(
             }
         }
     }
+    // The shadow lane is fire-and-forget after ranking: the sandbox is never
+    // on the search response path, and promoted features only ever apply
+    // through the synchronous cache lookup above.
+    #[cfg(feature = "sandbox")]
+    if let Some(ranking) = queries.ranking {
+        let served: Vec<String> = groups.iter().take(keep).map(|g| g.file.clone()).collect();
+        ranking.after_search(
+            &input.query,
+            Ranking::hit_contexts(&input.query, &groups, 200),
+            served,
+        );
+    }
     let cursor = groups
         .get(keep)
         .map(|group| format!("file:{}", group.file))
@@ -159,6 +177,36 @@ async fn execute(
         results,
         notes: (!notes.is_empty()).then_some(notes),
     })
+}
+
+type ReferenceHits = (Vec<RankingCandidate>, BTreeMap<String, String>);
+
+/// The resolver upgrade lane merges its confirmed edges per edge; without
+/// the sandbox host the symbolic answer is the whole answer.
+#[cfg(feature = "sandbox")]
+async fn upgraded(
+    queries: &WorkspaceQueries<'_>,
+    input: &SearchInput,
+    scoped: &[SourceEntry],
+    mut candidates: Vec<RankingCandidate>,
+    mut hashes: BTreeMap<String, String>,
+    notes: &mut Vec<String>,
+) -> Result<ReferenceHits, WorkspaceError> {
+    super::search_resolver::merge(queries, input, scoped, &mut candidates, &mut hashes, notes)
+        .await?;
+    Ok((candidates, hashes))
+}
+
+#[cfg(not(feature = "sandbox"))]
+async fn upgraded(
+    _queries: &WorkspaceQueries<'_>,
+    _input: &SearchInput,
+    _scoped: &[SourceEntry],
+    candidates: Vec<RankingCandidate>,
+    hashes: BTreeMap<String, String>,
+    _notes: &mut [String],
+) -> Result<ReferenceHits, WorkspaceError> {
+    Ok((candidates, hashes))
 }
 
 fn validate(input: &SearchInput) -> Result<(), WorkspaceError> {

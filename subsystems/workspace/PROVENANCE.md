@@ -674,3 +674,113 @@ after external edits. Verification is on this macOS host. The `similar` crate
 (already locked at 2.7.0) renders unified diffs; research checked
 [its unified-diff API](https://docs.rs/similar/latest/similar/udiff/index.html)
 and the [regex crate's deliberate lack of look-around](https://github.com/rust-lang/regex/discussions/910).
+
+## Native extensions and script host (arch-14c8)
+
+`extensions` is the native plugin coordination layer above the retained
+Wasmtime lanes. A `plugin.toml` is validated by `PluginManifest::parse` over the
+locked `toml` crate with the retained rules: fail-closed identity, tools and
+component path, reserved core names refused, unknown tables warned, derived
+`publisher.pkg/tool` wire names that always contain a slash. The
+`.workbench/plugins.json` inventory and every manifest are read per call
+through the workspace jail; a source other than exactly `registry` is a
+sideload and a tier is honored only on registry entries, so a sideloaded record
+cannot label itself trusted. Effective capabilities are declared ∩ granted with
+the same-major grant rule, and every `workbench:subprocess` stamp is reserved to
+tier `blessed` — a grant a human was talked into giving anything lower is
+ignored with a note, so the guest is refused before instantiation. The breaker
+is `.workbench/plugin-health.json`, keyed by plugin label and component SHA-256;
+a breach short-circuits later invokes without touching the worker until the
+bytes change. `PluginHost` answers `PLUGIN_CAP_DENIED` (no breach),
+`PLUGIN_CRASHED` (breach, `plugin` payload) and `ENGINE_UNAVAILABLE` (dead lane,
+no breach) and host-wraps JSON results; core queries never consult any of it.
+
+Every guest executes through `ExtensionLane`. The production lane is
+`WorkerExtensionLane` over the c2 supervised worker, so untrusted bytes never
+load into the application owner's process; component bytes travel with each
+request under the existing 32 MiB frame ceiling and quarantine keys. The worker
+gains `RankingContribute` and `RunnerParse` requests over the retained ranking
+and runner lanes. Fixed while landing the script host: the worker executed
+requests inline on its Tokio runtime thread, and `wasmtime-wasi` blocks on an
+inner runtime there, which Tokio refuses — every WASI request killed the child.
+Requests now run on a blocking thread; a panic while executing still ends the
+worker, so crash and quarantine handling is unchanged. The WASI lane keeps the
+last four compiled modules by guest digest, because the script interpreter is
+the same 1.5 MiB module on every round and JIT compilation dominated a round.
+
+`tck::run_plugin_tck` ports the four chapters: interface (manifest, component,
+every tool answers the canonical payload with JSON), capabilities
+(declared-sufficiency and least-privilege under zero grants), resources
+(starvation fuel and a tiny cap per tool, plus the kit-owned spin and grow
+fixtures that must die typed through the same lane) and the lang-pack fuzz
+corpus for a `classify-file` tool. The corpus is the retained seeds plus
+xorshift32 mutations, deterministic run to run; it mutates chars rather than
+UTF-16 units because Rust strings cannot hold the lone surrogates the reference
+corpus produces, so the native corpus is stable but not byte-identical to the
+reference's. The kit reads the plugin directory with plain filesystem calls,
+outside any jail, by design.
+
+The `script` verb on `WorkspaceCommands` retains the bootstrap program and
+nonce-framed sentinel protocol verbatim: deterministic re-entry serves host call
+k from the injected journal, the shim reports divergence as a typed guest
+failure, and only exit-0 rounds are parsed. Host calls resolve to the typed c4
+queries (`search`, `read` behind the read jail, `glob` over the admitted walk
+with the same globset dialect) and the guest sees the unredacted envelope
+shape; the script's return value is redacted when the script envelope is
+sealed. The 32-call ceiling, `SANDBOX_FUEL_EXCEEDED`, `SANDBOX_MEMORY_EXCEEDED`
+and `SANDBOX_CAP_DENIED` mappings, and the "interpreter failed is
+`ENGINE_UNAVAILABLE`" rule are retained. The final queue resolves to
+`TransactionChange` anchors — replace-all or one occurrence with `STALE_ANCHOR`
+and the fresh hash, `create`, a journaled `.gitkeep` for `mkdir`, `delete` —
+and runs through the c7 gate as always-gated with the intent bytes `{source,
+dryRun}`. Two deliberate deviations: the write jail decides before any read of
+a queued path, so a queued write to a protected or out-of-jail file answers
+`SANDBOX_CAP_DENIED` before a token is minted (the reference minted the token
+and refused at apply); and as in c7 a presented token whose plan no longer
+reproduces answers `CONFIRM_MISMATCH` even when the anchor text still matches.
+The interpreter is the retained `vendor/qjs/qjs-wasi.wasm` loaded by the host
+(`ScriptInterpreter` reports its SHA-256); guest bytes travel per round as a
+JSON byte array, which the module cache offsets but the frame encoding does not
+compress. QuickJS number formatting can differ from serde's for a few edge
+values (`1e21`, negative zero), which the shim would report as nondeterministic
+replay rather than serve.
+
+Lanes: `LangPackBoot` discovers `lang-pack-` packs, reads the carrier through
+the worker and registers the language there; the tier selects the lane
+(blessed promotes to native, everything else runs the grammar in the WASM
+store), a failing pack breaches and stays lexical-only, and boot is idempotent
+per language. Registration lives in the worker, so a worker restart forgets it
+and boot must re-run; host-side language selection for the index and live
+queries still uses the bundled table (backlog). `RankingSignals` keeps the
+persisted promotion store `.workbench/ranking-promotions.json` bound to the
+component hash, the 5 MiB `.workbench/ranking-shadow.jsonl` with oldest-half
+eviction, a 50,000-entry feature cache per signal and the post-response scorer;
+`after_search` spawns on the current runtime and never blocks the search
+response, promoted features apply only through the synchronous
+`PluginFeatureLookup` seam folded into the first-party combiner (weight table
+`ranking-visibility/exported` = 0.5, unlisted names weigh zero), and guest
+feature names are namespaced and sanitized at the boundary. `PluginResolver`
+consults the blessed, subprocess-granted resolver only with detected specs and
+a warm index, breaches on a crash, budget expiry or a malformed/out-of-jail
+location with a 60 s retry window, treats cap-denied as configuration and a
+dead lane as degradation, and its edges merge per edge into references search
+(`resolver-lsp`/high; nothing unconfirmed is relabeled). `LanguageServerSpec`
+detection ports the TypeScript and Cargo probes with injectable lookups.
+`RunnerAdapter` runs `can-parse` then `parse-output`; `None` is the guest's
+honest "no structure", a dead lane, trap or unclaimed command is a typed error
+the run tool degrades from. The run tool's bundled fallback floor and declared
+command execution remain c9; served tool rows, map plugin inventory and
+production composition remain c10.
+
+Acceptance is exercised by the alongside suites over scripted lanes and
+worker-free `.txt` harnesses, and by `magistr-cli/tests/workspace_extensions.rs`
+and `workspace_script.rs` through the actual Magistr worker: the TCK over the
+SDK example plugins and every bundled plugin unmodified, real WAT components for
+capability denial, the durable breaker and core continuity, the blessed-only
+subprocess grant over the real resolver guest, the gleam pack registering on the
+wasm and native lanes with identical extraction, the ranking signal scoring
+through search with promotion and demotion, the resolver lane over the compiled
+LSP fixture merged into references, the runner goldens, and the script tool
+over the pinned QuickJS-ng guest (the ten one-liners, fuel/memory/capability
+kills, redaction at the seal, guest failure as data and the confirm flow).
+Verification is on this macOS host; no dependency or version changed.
