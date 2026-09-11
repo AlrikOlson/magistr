@@ -16,6 +16,7 @@ pub mod file_content;
 pub mod index;
 pub mod indexer;
 pub mod jail;
+pub mod journal;
 #[cfg(feature = "lang-pack")]
 pub mod lang_registry;
 pub mod langs;
@@ -25,6 +26,7 @@ pub mod response;
 pub mod sandbox;
 mod source_language;
 mod source_open;
+pub mod undo;
 pub mod worker;
 pub mod workspace_policy;
 

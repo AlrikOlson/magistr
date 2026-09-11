@@ -1,0 +1,1020 @@
+{
+  "format": 1,
+  "fixtures": [
+    {
+      "name": "reference-v1",
+      "schema_version": 1,
+      "database_zstd_base64": "KLUv/WAAj4UpAFpF7A5H8HSrA2gNJ1zSDBtbJ8srlocLaz1wjVQOADEAD2gtnrfnkSnlzVyl3yR/SLBbjEd+l6SypLiBbX8UHnbwVdeFMH2/fUojMgXnAOIA0wApnz1y+VAQmRNEauoUQl2xIJnefloVuzOYopFJMiOYpI21HXVaTSq2gQqMgsJtMkfB8Uwm1p05Td09oWRaEl1NnR5zDjjNBgRa+8rktieq7W6LBZiWrbqtiRIHs7Rj2jNm06IsCuVQYI7jNhoDLwgGRsNolyyMSqChDiaF3YHEUsGFdGGTTAlmaeSyZXprUrF77935bBOmhaW0zRKLSRJlKVZNzXQUerorLz454TYcEJ8DQA9Pi0e0ebQTG42tgP4cADjvbpqRFQzegz//P/bZ/3v+f+8Hj/EHeHC7p4gVu+7unmAwZAhFNP5/rXscOt2OeniApfJZ3BU6Y1SoE2TV1MyVceMA7DdZhXfh6C3oqxmXxGnNOrbbAnO0kcN+g6Uk0C96hH6hb+hPoLH/10DdLsFoYIlgQtismpoxtaf2wwrFsq5bGpkVTJJo5GKhpIFlq1irVbGtil2QApuYcBucviCZ3oa6iDP1udJUn5HpbQesosJprAsgmd7ukHoyjSzszcGEMHLJrYpNsae27a2pVbEisIkCTnO9/P9z/l/jmVBEnAZbAYHUFbtDn1V319PUV+za0Rj3VIFSuttRXT2tRqSEUrp79lUaH9m9Hq5kKoIlea4pKvJPRMu060bPQ7sOLT1ekqJ4crebsLRXe1E4Ds4u7r3yySuu5DeSKsnJ/p1pqqZfun6gqqIfB8ORPL21k+J4jn0E069DvdQTw/X8vm/kXxiiYRiS6BeSI+qVZVjyM+VgiZZc5N3j/Rw//pXoKpYlmfIVXc+Se6mXrmT5cZ52KNhdEi6DrL3ai+CEgzPs5D3iYaF5W41t1X/Eg2UZlzPLOt2OYjwgd64rZ4y5DADDMNayBojGoXdoItqGfhsdrFWx2OTCmyL6Axn/deX/R6IfSaa9GYJ1Ze3Npgy9omf0j+1/bPn/O6T/zwI6qx7jsjNkCPl3yTDutFdzefj/nP3jx/iA9mowBmvrqB2EYfzRXo21wQrQUVNs2tv/crOXrMT4YBzSXk3m8LKRtItNyXa9bPlhaC3jZDlbOMsydln5wjLm4KzhoX3oIHqITqKfB8oJJ8swl2WZReDlJ9g9L1RVtPOxj+Q4fmHahWAoorwjw/DrSs55SX6ot6LkGqqnt3YeR0UQ/NKO5JwUTy/11K93YDeGfTxBVOUBgIqocaUyhgyNiMxIm0KaA3ACmRmjkjQHEmDweRLFMMgwRAghAkUEhjCRxD9M0mjhAeoHNwCmWX+BnEYDO8mp3W+TiJA/ASiHCVNcoO038s1M2F3WoNkupIdPH3t3tNp3J9EqP/2Id9qO+6kKWNFuP/0AUBUvViUTcCJ7IIDTDWq9YKg1ZxQGgYx+7fs9uvP3F4YcPuwUbYNUX8OTE+xjAMj48XUHyB3Fswx3mwNA0QxBO9AexZW/Wfe88WRTNzKPz81MFrkIkfUrqHuF0KE90VvVLt/Dp4XML1IYLpiTUUIBnvuDBG3vleHv8y8FvNrfR9cyAxRcjiHKa3Uo9mI4MmmKHv6Ov6Eyp8SiWNFRlOnJi99eNQaho+goF3IQDddbA8zA812EWEaS2BDNmJQNUT0KsAoI1XTFtBoNfZocKCxTJs0nQwqFDPP+8SkLQCeM5nQUs70zNW46A4rwx+86o6n2x5mUr9U8zOs7+mWTAlAD",
+      "recent": [
+        {
+          "op": {
+            "seq": 5,
+            "at": 1750000000004,
+            "tool": "files",
+            "args_hash": "fixture-1750000000004",
+            "session_id": "",
+            "undo_of": null,
+            "files": []
+          },
+          "undoable": true,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 4,
+            "at": 1750000000003,
+            "tool": "undo",
+            "args_hash": "fixture-1750000000003",
+            "session_id": "alpha",
+            "undo_of": [
+              3
+            ],
+            "files": [
+              {
+                "kind": "create",
+                "path": "alpha.txt",
+                "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+                "before": [],
+                "after": [
+                  239,
+                  187,
+                  191,
+                  111,
+                  116,
+                  104,
+                  101,
+                  114,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": false,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 3,
+            "at": 1750000000002,
+            "tool": "files",
+            "args_hash": "fixture-1750000000002",
+            "session_id": "alpha",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "delete",
+                "path": "alpha.txt",
+                "before_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+                "after_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "before": [
+                  239,
+                  187,
+                  191,
+                  111,
+                  116,
+                  104,
+                  101,
+                  114,
+                  10
+                ],
+                "after": []
+              }
+            ]
+          },
+          "undoable": false,
+          "undone_by": 4
+        },
+        {
+          "op": {
+            "seq": 2,
+            "at": 1750000000001,
+            "tool": "files",
+            "args_hash": "fixture-1750000000001",
+            "session_id": "beta",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "write",
+                "path": "zeta.txt",
+                "before_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+                "after_hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+                "before": [
+                  115,
+                  101,
+                  101,
+                  100,
+                  10
+                ],
+                "after": [
+                  115,
+                  101,
+                  99,
+                  111,
+                  110,
+                  100,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": true,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 1,
+            "at": 1750000000000,
+            "tool": "files",
+            "args_hash": "fixture-1750000000000",
+            "session_id": "alpha",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "create",
+                "path": "zeta.txt",
+                "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "after_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+                "before": [],
+                "after": [
+                  115,
+                  101,
+                  101,
+                  100,
+                  10
+                ]
+              },
+              {
+                "kind": "create",
+                "path": "alpha.txt",
+                "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+                "before": [],
+                "after": [
+                  239,
+                  187,
+                  191,
+                  111,
+                  116,
+                  104,
+                  101,
+                  114,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": true,
+          "undone_by": null
+        }
+      ],
+      "tables": {
+        "ops": [
+          {
+            "seq": 1,
+            "at": 1750000000000,
+            "tool": "files",
+            "args_hash": "fixture-1750000000000",
+            "session_id": "alpha",
+            "is_undo": 0
+          },
+          {
+            "seq": 2,
+            "at": 1750000000001,
+            "tool": "files",
+            "args_hash": "fixture-1750000000001",
+            "session_id": "beta",
+            "is_undo": 0
+          },
+          {
+            "seq": 3,
+            "at": 1750000000002,
+            "tool": "files",
+            "args_hash": "fixture-1750000000002",
+            "session_id": "alpha",
+            "is_undo": 0
+          },
+          {
+            "seq": 4,
+            "at": 1750000000003,
+            "tool": "undo",
+            "args_hash": "fixture-1750000000003",
+            "session_id": "alpha",
+            "is_undo": 1
+          },
+          {
+            "seq": 5,
+            "at": 1750000000004,
+            "tool": "files",
+            "args_hash": "fixture-1750000000004",
+            "session_id": "",
+            "is_undo": 0
+          }
+        ],
+        "op_files": [
+          {
+            "op_seq": 1,
+            "ord": 0,
+            "kind": "create",
+            "path": "zeta.txt",
+            "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "after_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684"
+          },
+          {
+            "op_seq": 1,
+            "ord": 1,
+            "kind": "create",
+            "path": "alpha.txt",
+            "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6"
+          },
+          {
+            "op_seq": 2,
+            "ord": 0,
+            "kind": "write",
+            "path": "zeta.txt",
+            "before_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+            "after_hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4"
+          },
+          {
+            "op_seq": 3,
+            "ord": 0,
+            "kind": "delete",
+            "path": "alpha.txt",
+            "before_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+            "after_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "op_seq": 4,
+            "ord": 0,
+            "kind": "create",
+            "path": "alpha.txt",
+            "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6"
+          }
+        ],
+        "undone": [
+          {
+            "op_seq": 3,
+            "by_seq": 4
+          }
+        ],
+        "blobs": [
+          {
+            "hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+            "zstd": "KLUv/SAHOQAAc2Vjb25kCg==",
+            "bytes": 16,
+            "last_ref_seq": 2
+          },
+          {
+            "hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+            "zstd": "KLUv/SAFKQAAc2VlZAo=",
+            "bytes": 14,
+            "last_ref_seq": 2
+          },
+          {
+            "hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+            "zstd": "KLUv/SAJSQAA77u/b3RoZXIK",
+            "bytes": 18,
+            "last_ref_seq": 4
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "zstd": "KLUv/SAAAQAA",
+            "bytes": 9,
+            "last_ref_seq": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "reference-v2",
+      "schema_version": 2,
+      "database_zstd_base64": "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",
+      "recent": [
+        {
+          "op": {
+            "seq": 9,
+            "at": 1750000000008,
+            "tool": "undo",
+            "args_hash": "fixture-1750000000008",
+            "session_id": "beta",
+            "undo_of": [
+              2
+            ],
+            "files": []
+          },
+          "undoable": false,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 8,
+            "at": 1750000000007,
+            "tool": "files",
+            "args_hash": "fixture-1750000000007",
+            "session_id": "alpha",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "write",
+                "path": "zeta.txt",
+                "before_hash": "0e4142d07f1c212c3065e8b97633c84c4a177a10e1ddd7573703f174cb1e6e3d",
+                "after_hash": "9149a1639fd729ca74b4353844d37528182883bc3b68bda8c864cd7064dd1043",
+                "before": [
+                  255,
+                  128,
+                  10
+                ],
+                "after": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": true,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 7,
+            "at": 1750000000006,
+            "tool": "files",
+            "args_hash": "fixture-1750000000006",
+            "session_id": "alpha",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "write",
+                "path": "zeta.txt",
+                "before_hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+                "after_hash": "0e4142d07f1c212c3065e8b97633c84c4a177a10e1ddd7573703f174cb1e6e3d",
+                "before": [
+                  115,
+                  101,
+                  99,
+                  111,
+                  110,
+                  100,
+                  10
+                ],
+                "after": [
+                  255,
+                  128,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": true,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 6,
+            "at": 1750000000005,
+            "tool": "files",
+            "args_hash": "fixture-1750000000005",
+            "session_id": "alpha",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "create",
+                "path": "opaque.bin",
+                "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "after_hash": "279bcf0bad4b28a22086ed2419e6b1313977db72c418299e6de2ef6f7c3043c9",
+                "before": [],
+                "after": [
+                  0,
+                  255,
+                  128,
+                  10,
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  21,
+                  22,
+                  23,
+                  24,
+                  25,
+                  26,
+                  27,
+                  28,
+                  29,
+                  30,
+                  31,
+                  32,
+                  33,
+                  34,
+                  35,
+                  36,
+                  37,
+                  38,
+                  39,
+                  40,
+                  41,
+                  42,
+                  43,
+                  44,
+                  45,
+                  46,
+                  47,
+                  48,
+                  49,
+                  50,
+                  51,
+                  52,
+                  53,
+                  54,
+                  55,
+                  56,
+                  57,
+                  58,
+                  59,
+                  60,
+                  61,
+                  62,
+                  63,
+                  64,
+                  65,
+                  66,
+                  67,
+                  68,
+                  69,
+                  70,
+                  71,
+                  72,
+                  73,
+                  74,
+                  75,
+                  76,
+                  77,
+                  78,
+                  79,
+                  80,
+                  81,
+                  82,
+                  83,
+                  84,
+                  85,
+                  86,
+                  87,
+                  88,
+                  89,
+                  90,
+                  91,
+                  92,
+                  93,
+                  94,
+                  95,
+                  96,
+                  97,
+                  98,
+                  99,
+                  100,
+                  101,
+                  102,
+                  103,
+                  104,
+                  105,
+                  106,
+                  107,
+                  108,
+                  109,
+                  110,
+                  111,
+                  112,
+                  113,
+                  114,
+                  115,
+                  116,
+                  117,
+                  118,
+                  119,
+                  120,
+                  121,
+                  122,
+                  123,
+                  124,
+                  125,
+                  126,
+                  127,
+                  128,
+                  129,
+                  130,
+                  131,
+                  132,
+                  133,
+                  134,
+                  135,
+                  136,
+                  137,
+                  138,
+                  139,
+                  140,
+                  141,
+                  142,
+                  143,
+                  144,
+                  145,
+                  146,
+                  147,
+                  148,
+                  149,
+                  150,
+                  151,
+                  152,
+                  153,
+                  154,
+                  155,
+                  156,
+                  157,
+                  158,
+                  159,
+                  160,
+                  161,
+                  162,
+                  163,
+                  164,
+                  165,
+                  166,
+                  167,
+                  168,
+                  169,
+                  170,
+                  171,
+                  172,
+                  173,
+                  174,
+                  175,
+                  176,
+                  177,
+                  178,
+                  179,
+                  180,
+                  181,
+                  182,
+                  183,
+                  184,
+                  185,
+                  186,
+                  187,
+                  188,
+                  189,
+                  190,
+                  191,
+                  192,
+                  193,
+                  194,
+                  195,
+                  196,
+                  197,
+                  198,
+                  199,
+                  200,
+                  201,
+                  202,
+                  203,
+                  204,
+                  205,
+                  206,
+                  207,
+                  208,
+                  209,
+                  210,
+                  211,
+                  212,
+                  213,
+                  214,
+                  215,
+                  216,
+                  217,
+                  218,
+                  219,
+                  220,
+                  221,
+                  222,
+                  223,
+                  224,
+                  225,
+                  226,
+                  227,
+                  228,
+                  229,
+                  230,
+                  231,
+                  232,
+                  233,
+                  234,
+                  235,
+                  236,
+                  237,
+                  238,
+                  239,
+                  240,
+                  241,
+                  242,
+                  243,
+                  244,
+                  245,
+                  246,
+                  247,
+                  248,
+                  249,
+                  250,
+                  251,
+                  252,
+                  253,
+                  254,
+                  255
+                ]
+              }
+            ]
+          },
+          "undoable": true,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 5,
+            "at": 1750000000004,
+            "tool": "files",
+            "args_hash": "fixture-1750000000004",
+            "session_id": "",
+            "undo_of": null,
+            "files": []
+          },
+          "undoable": true,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 4,
+            "at": 1750000000003,
+            "tool": "undo",
+            "args_hash": "fixture-1750000000003",
+            "session_id": "alpha",
+            "undo_of": [
+              3
+            ],
+            "files": [
+              {
+                "kind": "create",
+                "path": "alpha.txt",
+                "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+                "before": [],
+                "after": [
+                  239,
+                  187,
+                  191,
+                  111,
+                  116,
+                  104,
+                  101,
+                  114,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": false,
+          "undone_by": null
+        },
+        {
+          "op": {
+            "seq": 3,
+            "at": 1750000000002,
+            "tool": "files",
+            "args_hash": "fixture-1750000000002",
+            "session_id": "alpha",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "delete",
+                "path": "alpha.txt",
+                "before_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+                "after_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "before": [
+                  239,
+                  187,
+                  191,
+                  111,
+                  116,
+                  104,
+                  101,
+                  114,
+                  10
+                ],
+                "after": []
+              }
+            ]
+          },
+          "undoable": false,
+          "undone_by": 4
+        },
+        {
+          "op": {
+            "seq": 2,
+            "at": 1750000000001,
+            "tool": "files",
+            "args_hash": "fixture-1750000000001",
+            "session_id": "beta",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "write",
+                "path": "zeta.txt",
+                "before_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+                "after_hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+                "before": [
+                  115,
+                  101,
+                  101,
+                  100,
+                  10
+                ],
+                "after": [
+                  115,
+                  101,
+                  99,
+                  111,
+                  110,
+                  100,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": false,
+          "undone_by": 9
+        },
+        {
+          "op": {
+            "seq": 1,
+            "at": 1750000000000,
+            "tool": "files",
+            "args_hash": "fixture-1750000000000",
+            "session_id": "alpha",
+            "undo_of": null,
+            "files": [
+              {
+                "kind": "create",
+                "path": "zeta.txt",
+                "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "after_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+                "before": [],
+                "after": [
+                  115,
+                  101,
+                  101,
+                  100,
+                  10
+                ]
+              },
+              {
+                "kind": "create",
+                "path": "alpha.txt",
+                "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+                "before": [],
+                "after": [
+                  239,
+                  187,
+                  191,
+                  111,
+                  116,
+                  104,
+                  101,
+                  114,
+                  10
+                ]
+              }
+            ]
+          },
+          "undoable": true,
+          "undone_by": null
+        }
+      ],
+      "tables": {
+        "ops": [
+          {
+            "seq": 1,
+            "at": 1750000000000,
+            "tool": "files",
+            "args_hash": "fixture-1750000000000",
+            "session_id": "alpha",
+            "is_undo": 0
+          },
+          {
+            "seq": 2,
+            "at": 1750000000001,
+            "tool": "files",
+            "args_hash": "fixture-1750000000001",
+            "session_id": "beta",
+            "is_undo": 0
+          },
+          {
+            "seq": 3,
+            "at": 1750000000002,
+            "tool": "files",
+            "args_hash": "fixture-1750000000002",
+            "session_id": "alpha",
+            "is_undo": 0
+          },
+          {
+            "seq": 4,
+            "at": 1750000000003,
+            "tool": "undo",
+            "args_hash": "fixture-1750000000003",
+            "session_id": "alpha",
+            "is_undo": 1
+          },
+          {
+            "seq": 5,
+            "at": 1750000000004,
+            "tool": "files",
+            "args_hash": "fixture-1750000000004",
+            "session_id": "",
+            "is_undo": 0
+          },
+          {
+            "seq": 6,
+            "at": 1750000000005,
+            "tool": "files",
+            "args_hash": "fixture-1750000000005",
+            "session_id": "alpha",
+            "is_undo": 0
+          },
+          {
+            "seq": 7,
+            "at": 1750000000006,
+            "tool": "files",
+            "args_hash": "fixture-1750000000006",
+            "session_id": "alpha",
+            "is_undo": 0
+          },
+          {
+            "seq": 8,
+            "at": 1750000000007,
+            "tool": "files",
+            "args_hash": "fixture-1750000000007",
+            "session_id": "alpha",
+            "is_undo": 0
+          },
+          {
+            "seq": 9,
+            "at": 1750000000008,
+            "tool": "undo",
+            "args_hash": "fixture-1750000000008",
+            "session_id": "beta",
+            "is_undo": 1
+          }
+        ],
+        "op_files": [
+          {
+            "op_seq": 1,
+            "ord": 0,
+            "kind": "create",
+            "path": "zeta.txt",
+            "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "after_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684"
+          },
+          {
+            "op_seq": 1,
+            "ord": 1,
+            "kind": "create",
+            "path": "alpha.txt",
+            "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6"
+          },
+          {
+            "op_seq": 2,
+            "ord": 0,
+            "kind": "write",
+            "path": "zeta.txt",
+            "before_hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+            "after_hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4"
+          },
+          {
+            "op_seq": 3,
+            "ord": 0,
+            "kind": "delete",
+            "path": "alpha.txt",
+            "before_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+            "after_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "op_seq": 4,
+            "ord": 0,
+            "kind": "create",
+            "path": "alpha.txt",
+            "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "after_hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6"
+          },
+          {
+            "op_seq": 6,
+            "ord": 0,
+            "kind": "create",
+            "path": "opaque.bin",
+            "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "after_hash": "279bcf0bad4b28a22086ed2419e6b1313977db72c418299e6de2ef6f7c3043c9"
+          },
+          {
+            "op_seq": 7,
+            "ord": 0,
+            "kind": "write",
+            "path": "zeta.txt",
+            "before_hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+            "after_hash": "0e4142d07f1c212c3065e8b97633c84c4a177a10e1ddd7573703f174cb1e6e3d"
+          },
+          {
+            "op_seq": 8,
+            "ord": 0,
+            "kind": "write",
+            "path": "zeta.txt",
+            "before_hash": "0e4142d07f1c212c3065e8b97633c84c4a177a10e1ddd7573703f174cb1e6e3d",
+            "after_hash": "9149a1639fd729ca74b4353844d37528182883bc3b68bda8c864cd7064dd1043"
+          }
+        ],
+        "undone": [
+          {
+            "op_seq": 2,
+            "by_seq": 9
+          },
+          {
+            "op_seq": 3,
+            "by_seq": 4
+          }
+        ],
+        "blobs": [
+          {
+            "hash": "0e4142d07f1c212c3065e8b97633c84c4a177a10e1ddd7573703f174cb1e6e3d",
+            "zstd": "KLUv/SADGQAA/4AK",
+            "bytes": 12,
+            "last_ref_seq": 8
+          },
+          {
+            "hash": "279bcf0bad4b28a22086ed2419e6b1313977db72c418299e6de2ef6f7c3043c9",
+            "zstd": "KLUv/WAEACEIAAD/gAoAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/",
+            "bytes": 270,
+            "last_ref_seq": 6
+          },
+          {
+            "hash": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+            "zstd": "KLUv/SAHOQAAc2Vjb25kCg==",
+            "bytes": 16,
+            "last_ref_seq": 7
+          },
+          {
+            "hash": "4a6689419b00b11700c9b6246bcfa8936c8f5e1e824db3a7e57030e2d1c1a684",
+            "zstd": "KLUv/SAFKQAAc2VlZAo=",
+            "bytes": 14,
+            "last_ref_seq": 2
+          },
+          {
+            "hash": "5b55247222af561c1b02c37e7a768ef1a875342bdd32fc2cdcca2e848d8728f6",
+            "zstd": "KLUv/SAJSQAA77u/b3RoZXIK",
+            "bytes": 18,
+            "last_ref_seq": 4
+          },
+          {
+            "hash": "9149a1639fd729ca74b4353844d37528182883bc3b68bda8c864cd7064dd1043",
+            "zstd": "KLUv/SAGMQAAZmluYWwK",
+            "bytes": 15,
+            "last_ref_seq": 8
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "zstd": "KLUv/SAAAQAA",
+            "bytes": 9,
+            "last_ref_seq": 6
+          }
+        ]
+      }
+    }
+  ]
+}

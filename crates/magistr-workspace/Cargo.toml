@@ -50,7 +50,8 @@ serde_json = { version = "1.0.151", features = ["preserve_order"] }
 regex = "1"
 toml = { version = "1.0.6", features = ["preserve_order"] }
 sha2 = "0.10"
-rusqlite = { version = "0.33", features = ["bundled"] }
+rusqlite = { version = "0.33", features = ["bundled", "limits"] }
+zstd = "0.13"
 notify = "8"
 getrandom = "0.4"
 tempfile = "3"
