@@ -1,4 +1,5 @@
 use super::{WorkspaceQueries, source_entry::SourceEntry, source_snapshot::SourceSnapshot};
+use crate::workspace_policy::WorkspacePolicy;
 use crate::{
     contracts::{ErrorKind, Freshness, WorkspaceError},
     file_content::FileContent,
@@ -7,6 +8,8 @@ use crate::{
 use std::{
     fs::{self, Metadata},
     io::Read,
+    path::Path,
+    sync::{Mutex, PoisonError},
 };
 
 const MAX_FILE_BYTES: usize = 1024 * 1024;
@@ -81,6 +84,11 @@ impl WorkspaceQueries<'_> {
         ))
     }
 
+    /// The admitted live source walk, sorted by path. The walk runs on the
+    /// walker's thread pool: the per-entry jail admission (a
+    /// canonicalization) is what the walk costs, and it is independent per
+    /// entry, so the listing is the same deterministic answer for a fraction
+    /// of the wall time of a serial walk.
     pub(crate) fn files(&self) -> Result<Vec<SourceEntry>, WorkspaceError> {
         let mut builder = ignore::WalkBuilder::new(&self.root);
         builder
@@ -91,47 +99,77 @@ impl WorkspaceQueries<'_> {
                 !(entry.file_type().is_some_and(|kind| kind.is_dir())
                     && matches!(entry.file_name().to_str(), Some(".git" | ".workbench")))
             });
-        let mut rows = Vec::new();
-        for entry in builder.build() {
-            let entry = entry
-                .map_err(|error| WorkspaceError::new(ErrorKind::FileNotFound, error.to_string()))?;
-            let Some(kind) = entry.file_type() else {
-                continue;
-            };
-            if !(kind.is_file() || kind.is_dir()) || entry.path() == self.root {
-                continue;
-            }
-            if rows.len() >= MAX_ENTRIES {
-                return Err(WorkspaceError::new(
-                    ErrorKind::BudgetTooSmall,
-                    "source walk exceeds the 100000-entry ceiling",
-                ));
-            }
-            self.policy.check_read(entry.path())?;
-            let path = entry
-                .path()
-                .strip_prefix(&self.root)
-                .map_err(|_| {
-                    WorkspaceError::new(
-                        ErrorKind::PathOutsideWorkspace,
-                        "walk entry escaped workspace",
-                    )
-                })?
-                .to_str()
-                .ok_or_else(|| {
-                    WorkspaceError::new(ErrorKind::PatternInvalid, "source path is not UTF-8")
-                })?
-                .replace('\\', "/");
-            rows.push(SourceEntry {
-                language: crate::source_language::language(&path).map(str::to_owned),
-                junk: crate::indexer::is_junk(&path),
-                path,
-                is_dir: kind.is_dir(),
-            });
-        }
+        let collected: Mutex<Result<Vec<SourceEntry>, WorkspaceError>> = Mutex::new(Ok(Vec::new()));
+        let (root, policy) = (&self.root, self.policy);
+        builder.build_parallel().run(|| {
+            Box::new(|entry| {
+                let outcome = walk_entry(root, policy, entry);
+                let mut guard = collected.lock().unwrap_or_else(PoisonError::into_inner);
+                let Ok(rows) = &mut *guard else {
+                    return ignore::WalkState::Quit;
+                };
+                match outcome {
+                    Ok(None) => ignore::WalkState::Continue,
+                    Ok(Some(row)) if rows.len() < MAX_ENTRIES => {
+                        rows.push(row);
+                        ignore::WalkState::Continue
+                    }
+                    Ok(Some(_)) => {
+                        *guard = Err(WorkspaceError::new(
+                            ErrorKind::BudgetTooSmall,
+                            "source walk exceeds the 100000-entry ceiling",
+                        ));
+                        ignore::WalkState::Quit
+                    }
+                    Err(error) => {
+                        *guard = Err(error);
+                        ignore::WalkState::Quit
+                    }
+                }
+            })
+        });
+        let mut rows = collected
+            .into_inner()
+            .unwrap_or_else(PoisonError::into_inner)?;
         rows.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(rows)
     }
+}
+
+/// One walked entry as an admitted row; `None` for the root itself and for
+/// anything that is neither a file nor a directory.
+fn walk_entry(
+    root: &Path,
+    policy: &WorkspacePolicy,
+    entry: Result<ignore::DirEntry, ignore::Error>,
+) -> Result<Option<SourceEntry>, WorkspaceError> {
+    let entry =
+        entry.map_err(|error| WorkspaceError::new(ErrorKind::FileNotFound, error.to_string()))?;
+    let Some(kind) = entry.file_type() else {
+        return Ok(None);
+    };
+    if !(kind.is_file() || kind.is_dir()) || entry.path() == root {
+        return Ok(None);
+    }
+    policy.check_read(entry.path())?;
+    let path = entry
+        .path()
+        .strip_prefix(root)
+        .map_err(|_| {
+            WorkspaceError::new(
+                ErrorKind::PathOutsideWorkspace,
+                "walk entry escaped workspace",
+            )
+        })?
+        .to_str()
+        .ok_or_else(|| WorkspaceError::new(ErrorKind::PatternInvalid, "source path is not UTF-8"))?
+        .replace('\\', "/");
+    Ok(Some(SourceEntry {
+        language: crate::source_language::language(&path).map(str::to_owned),
+        junk: crate::indexer::is_junk(&path),
+        path,
+        is_dir: kind.is_dir(),
+    }))
 }
 
 fn same(left: &Metadata, right: &Metadata) -> bool {

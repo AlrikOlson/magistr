@@ -30,29 +30,70 @@ fn unavailable_index_notes_refuse_without_confusing_valid_watcher_off_results() 
     assert!(!is_index_unavailable(&["Watcher disabled; queries revalidate candidates and may miss newly added files until refresh.".into()]));
 }
 
-#[test]
-fn definitions_obey_both_reference_candidate_limits() {
-    let symbol = crate::worker::WorkerSymbol {
+fn symbol(line: u32) -> crate::worker::WorkerSymbol {
+    crate::worker::WorkerSymbol {
         name: "needle".into(),
         kind: "function".into(),
-        start_line: 1,
+        start_line: line,
         start_col: 1,
-        end_line: 1,
+        end_line: line,
         detail: None,
         doc: None,
-    };
+    }
+}
+
+#[test]
+fn occurrences_are_capped_per_file_and_in_total_never_refused() {
+    let content = "fn needle() {}\n".to_owned() + &"needle();\n".repeat(80);
     let mut total = 0;
-    let error = reference_hits(
-        "fn needle() {}",
-        &vec![symbol.clone(); 201],
+    let (hits, capped) = reference_hits(&content, &[symbol(1)], "needle", true, &mut total);
+    assert!(capped, "the per-file bound engaged");
+    assert_eq!(hits.len(), 1 + MAX_REFERENCE_EDGES_PER_FILE);
+    assert_eq!(hits[0].kind.as_deref(), Some("definition"));
+    assert_eq!(hits[0].confidence, Some(SearchConfidence::High));
+    assert!(
+        hits[1..]
+            .iter()
+            .all(|hit| hit.provenance.as_deref() == Some("tier1-imports"))
+    );
+    assert_eq!(total, MAX_REFERENCE_EDGES_PER_FILE);
+
+    let mut total = MAX_REFERENCE_EDGES_TOTAL;
+    let (hits, capped) = reference_hits("needle();\n", &[], "needle", false, &mut total);
+    assert!(hits.is_empty(), "the aggregate bound stops before any use");
+    assert!(!capped, "the aggregate bound is not this file's own");
+    assert_eq!(total, MAX_REFERENCE_EDGES_TOTAL);
+}
+
+#[test]
+fn bare_name_matches_respect_identifier_boundaries() {
+    let mut total = 0;
+    let (hits, _) = reference_hits(
+        "needle();\nneedles();\nmy_needle();\nx.needle\n",
+        &[],
         "needle",
-        true,
+        false,
         &mut total,
-    )
-    .expect_err("definitions must respect the per-file bound");
-    assert_eq!(error.kind, ErrorKind::BudgetTooSmall);
-    let mut total = 20_000;
-    let error = reference_hits("fn needle() {}", &[symbol], "needle", true, &mut total)
-        .expect_err("definitions must respect the aggregate bound");
-    assert_eq!(error.kind, ErrorKind::BudgetTooSmall);
+    );
+    assert_eq!(
+        hits.iter().map(|hit| hit.line).collect::<Vec<_>>(),
+        vec![1, 4]
+    );
+    assert!(
+        hits.iter()
+            .all(|hit| hit.confidence == Some(SearchConfidence::Low))
+    );
+}
+
+#[test]
+fn the_observed_freshness_is_the_worse_of_two() {
+    assert_eq!(observed(Freshness::Warm, Freshness::Warm), Freshness::Warm);
+    assert_eq!(
+        observed(Freshness::Warm, Freshness::Warming),
+        Freshness::Warming
+    );
+    assert_eq!(
+        observed(Freshness::Warming, Freshness::Cold),
+        Freshness::Cold
+    );
 }

@@ -60,6 +60,14 @@ flate2 = "1"
 shell-escape = "0.1"
 tempfile = "3"
 
+# The native workspace perf harness (chunk arch-14c10b): the retained
+# tier-0 / tier-1 / references / worker round-trip gates measured over the
+# retained synthetic corpora against the shipping worker binary.
+# `cargo bench -p magistr-cli --bench workspace_bench -- --profile index`.
+[[bench]]
+name = "workspace_bench"
+harness = false
+
 [dev-dependencies]
 # Replay the supervised cockpit integration harness through a real VT emulator.
 vt100 = "0.16"

@@ -196,6 +196,12 @@ tools after the core names. The empty session is the retained anonymous
 identity. Production consumers still reach the workspace through the legacy
 server until owner cutover; `magistr mcp-serve` is unchanged.
 
+Beside the MCP host, `magistr workspace doctor [bundle|config]`, `journal`,
+`key rotate` and `init` are the CLI host over the same native diagnostics:
+read-only and lock-free where the reference was, the retained renderings on
+stdout, and the retained process exit codes (0 healthy, 1 findings, 64 usage,
+65 durable data this binary cannot read, 66 missing root, 75 a live owner).
+
 ## Evidence requires source identity
 
 The workspace service publishes a versioned `SourceSnapshot` capability,
@@ -233,7 +239,7 @@ freshness. Late results remain durable without attaching to a newer objective.
 | `arch-14c8-workspace-extensions` | Plugin manifests, grants, breaker, host and TCK, the QuickJS script verb and the lang-pack/ranking/resolver/runner lanes over the worker |
 | `arch-14c9-workspace-execution` | Owned-group declared-command execution with the retained parsers, plus read-only status/journal/trace/doctor diagnostics |
 | `arch-14c10-workspace-port-parity` | Typed `WorkspaceService` composition root with OS-held single-owner admission and the thin rmcp adapter `magistr workspace serve`; served conformance in disposable workspaces and against the reference server |
-| `arch-14c10b-workspace-port-acceptance` | Pending: CLI diagnostic verbs with the retained exit codes, the Bun-free release smoke, the supported matrix and the measured budgets |
+| `arch-14c10b-workspace-port-acceptance` | The operational verbs (`magistr workspace doctor [bundle|config]`, `journal`, `key rotate`, `init`) with the retained renderings and exit codes; the Bun-free release smoke as the required `workspace-release-smoke` gate; the supported matrix (`subsystems/workspace/SUPPORT_MATRIX.md`); the measured budgets (`subsystems/workspace/bench/`), all four holding after the references lane was brought back to the retained index-driven candidate design |
 | `arch-14d-workspace-owner` | Pending: admitted owner serving multiple clients |
 | `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |
 

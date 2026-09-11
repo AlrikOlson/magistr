@@ -130,6 +130,80 @@ impl JournalRow {
         }
         rows
     }
+
+    /// The retained human rendering of the `journal` verb: one header line
+    /// per op, one line per file, diffs last; an empty log says so.
+    #[must_use]
+    pub fn render_text(rows: &[Self]) -> String {
+        let mut out: Vec<String> = Vec::new();
+        let mut current_seq = None;
+        for row in rows {
+            if current_seq != Some(row.seq) {
+                current_seq = Some(row.seq);
+                out.push(header_line(row));
+            }
+            let Some(path) = &row.path else {
+                out.push("    (no file changed)".into());
+                continue;
+            };
+            let mark = match row.change {
+                Some("create") => "A",
+                Some("delete") => "D",
+                _ => "M",
+            };
+            let evicted = if row.evicted == Some(true) {
+                "  [blob evicted — history only]"
+            } else {
+                ""
+            };
+            out.push(format!(
+                "    {mark} {path}  +{} -{}{evicted}",
+                row.added, row.removed
+            ));
+            if let Some(diff) = row.diff.as_deref().filter(|diff| !diff.is_empty()) {
+                out.extend(diff.split('\n').map(|line| format!("      {line}")));
+                if row.diff_truncated == Some(true) {
+                    out.push("      … diff cut at the per-row cap".into());
+                }
+            }
+        }
+        if out.is_empty() {
+            "(the journal is empty)".into()
+        } else {
+            out.join("\n")
+        }
+    }
+}
+
+/// `#<seq>  <ISO stamp>  <tool>  [session=<id>]  undoable|undone[ by #N]  [(undo of …)]`.
+fn header_line(row: &JournalRow) -> String {
+    let session = if row.session_id.is_empty() {
+        String::new()
+    } else {
+        format!("  session={}", row.session_id)
+    };
+    let state = if row.undoable {
+        "undoable".to_owned()
+    } else {
+        match row.undone_by {
+            Some(by) => format!("undone by #{by}"),
+            None => "undone".to_owned(),
+        }
+    };
+    let undo_of = row
+        .undo_of
+        .as_ref()
+        .map(|ops| {
+            let ops: Vec<String> = ops.iter().map(ToString::to_string).collect();
+            format!("  (undo of {})", ops.join(", "))
+        })
+        .unwrap_or_default();
+    format!(
+        "#{}  {}  {}{session}  {state}{undo_of}",
+        row.seq,
+        super::utc_timestamp(u64::try_from(row.at).unwrap_or(0)),
+        row.tool
+    )
 }
 
 fn kind_name(kind: JournalFileKind) -> &'static str {
@@ -167,3 +241,7 @@ fn take_utf16(text: &str, units: usize) -> String {
         })
         .collect()
 }
+
+#[cfg(test)]
+#[path = "journal_row.tests.rs"]
+mod tests;

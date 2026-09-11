@@ -21,7 +21,7 @@ async fn main() -> eyre::Result<()> {
             .await
             .map_err(Into::into);
     }
-    let cli = Cli::parse();
+    let cli = parse_cli();
     // MCP launch owns stdio and process shutdown. Do not install the cockpit's
     // terminal restoration handlers or propagate interactive-session settings.
     if let Some(Command::McpLaunch { target, ref dir }) = cli.command {
@@ -367,6 +367,21 @@ async fn main() -> eyre::Result<()> {
             },
             None => report,
         }
+    })
+}
+
+/// Parse the command line. clap's own usage errors exit 2 everywhere in
+/// `magistr`; under `magistr workspace` the retained EX_USAGE (64) is part
+/// of the verbs' process contract, so a malformed workspace invocation
+/// exits 64 instead. Help and version still exit 0.
+fn parse_cli() -> Cli {
+    Cli::try_parse().unwrap_or_else(|error| {
+        let workspace_verb = std::env::args().nth(1).as_deref() == Some("workspace");
+        if workspace_verb && error.use_stderr() {
+            let _ = error.print();
+            std::process::exit(64);
+        }
+        error.exit()
     })
 }
 

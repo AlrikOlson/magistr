@@ -7,26 +7,32 @@ pub(super) struct Selection {
     pub truncated: bool,
 }
 impl Selection {
-    /// Recheck the candidate's inherited ignore files without enumerating the
-    /// workspace. A watcher can be disabled or its event can still be pending.
-    pub fn allows(root: &Path, path: &str) -> bool {
-        let relative = Path::new(path);
-        if relative.as_os_str().is_empty()
-            || relative.components().any(|part| {
-                !matches!(part, std::path::Component::Normal(_))
-                    || matches!(part.as_os_str().to_str(), Some(".git" | ".workbench"))
-            })
-        {
-            return false;
+    /// Recheck candidates' inherited ignore files without enumerating the
+    /// workspace (a watcher can be disabled or its event still pending): the
+    /// rules built once for one answer and applied to each of its candidate
+    /// rows. The incremental API shares the walker's
+    /// exact precedence and nested-directory bases without enumerating the
+    /// source tree, and building it per answer rather than per row keeps a
+    /// 200-row answer at one matcher instead of two hundred. Edits to the
+    /// rules are observed by the next answer.
+    pub fn admission(root: &Path) -> impl FnMut(&str) -> bool {
+        let mut matcher = Self::walker(root).build_matchers().pop();
+        move |path: &str| {
+            let relative = Path::new(path);
+            if relative.as_os_str().is_empty()
+                || relative.components().any(|part| {
+                    !matches!(part, std::path::Component::Normal(_))
+                        || matches!(part.as_os_str().to_str(), Some(".git" | ".workbench"))
+                })
+            {
+                return false;
+            }
+            let Some(matcher) = matcher.as_mut() else {
+                return false;
+            };
+            let (matched, error) = matcher.matched_with_errors(relative, false);
+            error.is_none() && !matched.is_ignore()
         }
-        // Rebuild for each validation so edits to inherited/global rules are
-        // observed. The incremental API shares the walker's exact precedence
-        // and nested-directory bases without enumerating the source tree.
-        let Some(mut matcher) = Self::walker(root).build_matchers().pop() else {
-            return false;
-        };
-        let (matched, error) = matcher.matched_with_errors(relative, false);
-        error.is_none() && !matched.is_ignore()
     }
 
     pub fn scan(

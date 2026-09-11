@@ -392,6 +392,14 @@ impl WorkspaceService {
         IndexBuildTask::since_open(&self.index.status(), self.opened_at_ms)
     }
 
+    /// The derived index's own progress row — cache progress, never a
+    /// source revision — for hosts that observe a build (the bench, a
+    /// cockpit) without walking the tree through `map`.
+    #[must_use]
+    pub fn index_status(&self) -> crate::index::IndexStatus {
+        self.index.status()
+    }
+
     /// Stop the index, reap the worker and release the lock. Nothing under
     /// the state directory is removed.
     pub async fn shutdown(mut self) -> Result<(), WorkspaceError> {

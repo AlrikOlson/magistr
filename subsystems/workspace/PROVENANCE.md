@@ -391,8 +391,11 @@ adapter. Native index health notes propagate cache/journal status; independent
 build timestamps are omitted and cache generation never certifies source state.
 
 Work is bounded before formatting the envelope: 1 MiB per live file,
-100,000 walk entries, 10,000 search files, 64 MiB search source, 20,000 total
-hits and 200 reference hits per file. Query patterns are at most 8,192 bytes
+100,000 walk entries, 10,000 search files, 64 MiB search source and, for
+references, the retained candidate bounds (200 definitions, 200 files, 50
+occurrences per file, 1,000 in total) which cap the answer with a note rather
+than refuse (arch-14c10b; the c4 port had refused at 200 hits per file and
+20,000 in total over an unbounded file scan). Query patterns are at most 8,192 bytes
 and contain no NUL; context is at most 20 lines. Budgeted row cuts produce
 truncation manifests; work ceilings and oversized source/patterns receive
 explicit errors or per-file omission notes. Whole-row accounting uses serialized UTF-16
@@ -955,3 +958,68 @@ adds no runtime crate; magistr-cli gains one dev-only edge to jsonschema 0.49
 (already in the lock) because a real validator is the right tool for envelope
 validation, and the served suites drive child processes over their own pipes
 with tokio because a reader/writer pair already is an rmcp transport.
+
+## Port acceptance evidence (arch-14c10b)
+
+The evidence half of the port, closing the source-to-native inventory
+([`FEATURE_INVENTORY.md`](FEATURE_INVENTORY.md)).
+
+The operational verbs live in `crates/magistr-cli/src/workspace_cli/`, a CLI
+host beside the MCP host: `magistr workspace doctor [bundle|config]` over
+`DoctorRun`/`DoctorBundle`/`ResolvedConfig::doctor`, `journal` over
+`JournalInspection::rows` (split out of the budgeted `list` so the verb shapes
+the reference's own envelope — `requested: 0`, `used` estimated — and the
+text rendering ported onto `JournalRow::render_text`), `key rotate` over
+`WorkspaceKeyStore::rotate`, and `init` over `DetectedCommand`. The retained
+renderings and exit codes hold: 0 healthy, 1 findings, 64 usage, 65 durable
+data this binary cannot read, 66 missing root; clap parses the verbs, and a
+clap usage error under `magistr workspace` exits 64 (`parse_cli` in
+`main.rs`) where every other `magistr` verb exits clap's 2. `doctor` and
+`journal` take no lock and rewrite nothing under the state directory; the
+tests hold the OS lock and an open journal writer while they run.
+Evidence: `tests/workspace_cli_verbs.rs` (nine binary-level tests: the
+envelope, flags, text rendering, the newer-journal 65 with the file untouched,
+the healthy 0 and the findings 1, the default bundle name, the refused
+overwrite, key rotation with 0600, init seeding once).
+
+The release smoke, `tests/workspace_release_smoke.rs`, runs only through
+`scripts/workspace-release-smoke.sh` (the required `workspace-release-smoke`
+gate): it refuses a debug-profile binary, gives the release binary a PATH
+holding only `echo`, and drives initialize, tools/list in the retained order
+and every core tool once — status, map, read, search, edit, files create,
+undo list and rewind, script over the embedded interpreter, run of a declared
+echo. No Bun, Node, N-API addon or addon-to-WASM fallback is reachable; the
+`workspace-source` gate proves the production graph has no such edge.
+
+The supported matrix is [`SUPPORT_MATRIX.md`](SUPPORT_MATRIX.md): Rust 1.95.0
+stable, macOS 26.5.2 arm64 as the only platform actually run, the four
+feature lanes the `workspace-native` gate builds, Wasmtime 36.0.15 and 48.0.2,
+and the direct dependency table from `cargo tree --locked`.
+
+The measurements are [`bench/README.md`](bench/README.md) and
+`bench/results/*.json`, written by `crates/magistr-cli/benches/workspace_bench.rs`
+through `scripts/workspace-bench.sh` over the retained synthetic corpora in a
+temp dir: tier-0 0.051 s, tier-1 2.87 s for 504k LOC, references p95 29.06 ms
+over 506k LOC, worker round-trip p95 0.19 ms — all four retained gates hold.
+The first references run did not: the hot query was refused and a miss cost
+570 ms, because the c4 lane read, hashed and line-scanned every file in scope
+per query where the retained indexer took candidates from the content index.
+Fixed at the root in this iteration: `search_references` takes candidates
+from the index (defining files, then content-index mentions) within the
+retained bounds and caps with a note instead of refusing, keeping the
+omission note through `IndexCache::unknown_paths` (one `json_each` statement,
+no rows hydrated); `Selection::admission` builds the ignore matcher once per
+index answer instead of once per returned row (36 ms for 200 rows before);
+`WorkspaceIndex::fts_paths` is an early-terminating, unvalidated candidate
+probe — a candidate is verified against its live bytes when it is scanned, as
+before, not when it is named — and the FTS query no longer orders by path,
+which had forced every match of a hot name to be evaluated before the cap
+could apply; the live scope walk runs on the ignore walker's thread pool.
+`WorkspaceService::index_status` exposes the progress row for observers.
+Limits: verified on this macOS host only, under system load 15–22; the live
+walk and the unindexed symbol-name lookup remain the references floor
+(backlog `workspace-references-scope-floor`); the native `Ping` includes the
+parser self-test, so the worker number bounds the frame round-trip from
+above; no multi-client or SourceSnapshot completion is claimed and production
+consumers still reach the workspace through the legacy server until
+`arch-14d-workspace-owner`. Dependencies: none added or changed.

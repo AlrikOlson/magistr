@@ -16,6 +16,11 @@
 			"required": true
 		},
 		{
+			"command": "./scripts/workspace-release-smoke.sh",
+			"name": "workspace-release-smoke",
+			"required": true
+		},
+		{
 			"command": "./scripts/workflow-source-gate.sh",
 			"name": "workflow-source",
 			"required": true

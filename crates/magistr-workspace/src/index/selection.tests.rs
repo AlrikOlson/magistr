@@ -8,10 +8,10 @@ fn live_ignore_validation_tracks_nested_rules_and_negation() {
     fs::write(root.join(".gitignore"), "*.rs\n!src/keep.rs\n").unwrap();
     fs::write(root.join("src/keep.rs"), "fn kept() {}").unwrap();
     fs::write(root.join("src/hide.rs"), "fn hidden() {}").unwrap();
-    assert!(Selection::allows(&root, "src/keep.rs"));
-    assert!(!Selection::allows(&root, "src/hide.rs"));
+    assert!(Selection::admission(&root)("src/keep.rs"));
+    assert!(!Selection::admission(&root)("src/hide.rs"));
     fs::write(root.join("src/.ignore"), "keep.rs\n").unwrap();
-    assert!(!Selection::allows(&root, "src/keep.rs"));
+    assert!(!Selection::admission(&root)("src/keep.rs"));
 }
 #[test]
 fn bounded_selection_excludes_state_and_does_not_claim_full_walk() {
@@ -37,8 +37,8 @@ fn nested_anchored_rules_are_relative_to_the_ignore_file() {
     fs::write(root.join("src/.gitignore"), "/hidden.rs\n").unwrap();
     fs::write(root.join("src/hidden.rs"), "fn hidden() {}").unwrap();
     fs::write(root.join("hidden.rs"), "fn visible() {}").unwrap();
-    assert!(!Selection::allows(&root, "src/hidden.rs"));
-    assert!(Selection::allows(&root, "hidden.rs"));
+    assert!(!Selection::admission(&root)("src/hidden.rs"));
+    assert!(Selection::admission(&root)("hidden.rs"));
     let scan = Selection::scan(
         &root,
         &root.join(".workbench"),
@@ -58,7 +58,7 @@ fn parent_ignore_rules_take_precedence_over_nested_gitignore() {
     fs::write(root.join(".ignore"), "*.rs\n").unwrap();
     fs::write(root.join("src/.gitignore"), "!kept.rs\n").unwrap();
     fs::write(root.join("src/kept.rs"), "fn hidden() {}").unwrap();
-    assert!(!Selection::allows(&root, "src/kept.rs"));
+    assert!(!Selection::admission(&root)("src/kept.rs"));
     let scan = Selection::scan(
         &root,
         &root.join(".workbench"),
@@ -68,7 +68,7 @@ fn parent_ignore_rules_take_precedence_over_nested_gitignore() {
     .unwrap();
     assert!(!scan.paths.contains("src/kept.rs"));
     fs::remove_file(root.join(".ignore")).unwrap();
-    assert!(Selection::allows(&root, "src/kept.rs"));
+    assert!(Selection::admission(&root)("src/kept.rs"));
 }
 
 #[test]
@@ -79,7 +79,7 @@ fn live_validation_inherits_parent_rules_and_reloads_them() {
     fs::create_dir(&root).unwrap();
     fs::write(parent.join(".ignore"), "private.rs\n").unwrap();
     fs::write(root.join("private.rs"), "fn hidden() {}").unwrap();
-    assert!(!Selection::allows(&root, "private.rs"));
+    assert!(!Selection::admission(&root)("private.rs"));
     fs::write(parent.join(".ignore"), "").unwrap();
-    assert!(Selection::allows(&root, "private.rs"));
+    assert!(Selection::admission(&root)("private.rs"));
 }

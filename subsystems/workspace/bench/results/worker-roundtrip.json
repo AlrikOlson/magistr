@@ -1,0 +1,35 @@
+{
+  "schema": "workbench-bench/1",
+  "script": "bench-ipc",
+  "profile": "worker-roundtrip",
+  "recordedAt": "2026-09-11T19:21:36.423Z",
+  "machine": {
+    "platform": "macos",
+    "arch": "aarch64",
+    "cpu": "Apple M5 Max",
+    "cores": 18,
+    "memoryGb": 48.0,
+    "rust": "rustc 1.95.0 (59807616e 2026-04-14)",
+    "coreFlavor": "native",
+    "worker": "magistr --workspace-worker",
+    "magistrCommit": "7458ee0798f95ce7d85e79011728b4cd5e3fb1b0"
+  },
+  "measurements": {
+    "pings": 2000,
+    "p50Ms": 0.0964,
+    "p95Ms": 0.1915,
+    "p99Ms": 0.2995,
+    "maxMs": 0.6628
+  },
+  "gates": [
+    {
+      "name": "ipc_p95",
+      "value": 0.1915,
+      "limit": 1.0,
+      "unit": "ms",
+      "pass": true,
+      "note": "the native Ping runs the parser self-test inside the worker, so this bounds the frame round-trip from above"
+    }
+  ],
+  "failures": []
+}
