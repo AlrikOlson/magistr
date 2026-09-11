@@ -1,0 +1,202 @@
+{
+	"files": [
+		{
+			"path": "src/alpha.ts",
+			"content": "export class Alpha {\n  greet(name: string) {\n    return name;\n  }\n}\nexport function alpha() { return 1; }\n"
+		},
+		{
+			"path": "src/use.ts",
+			"content": "import { alpha } from \"./alpha\";\nexport function call() {\n  return alpha();\n}\n"
+		},
+		{
+			"path": "tests/check.ts",
+			"content": "import { alpha } from \"../src/alpha\";\nalpha();\n"
+		},
+		{
+			"path": "vendor/copy.ts",
+			"content": "export function copied() { return alpha(); }\n"
+		},
+		{
+			"path": "src/macros.rs",
+			"content": "use std::fmt;\n#[derive(Debug)]\npub struct Stack<T> { value: T }\nimpl<T> Stack<T> {\n    pub fn show(&self) { println!(\"{}\", 1 + 2); }\n}\nfn broken( {\nfn intact() { println!(\"still\"); }\n"
+		},
+		{
+			"path": "notes.txt",
+			"content": "first 😀\npassword = \"correct-horse-staple\"\nthird\n"
+		},
+		{
+			"path": "empty.txt",
+			"content": ""
+		}
+	],
+	"cases": [
+		{
+			"name": "read whole cold",
+			"tool": "read",
+			"warm": false,
+			"input": {
+				"file": "notes.txt",
+				"budget": 4000
+			}
+		},
+		{
+			"name": "read range cold",
+			"tool": "read",
+			"warm": false,
+			"input": {
+				"file": "notes.txt",
+				"lines": {
+					"start": 2,
+					"end": 3
+				},
+				"budget": 4000
+			}
+		},
+		{
+			"name": "read empty",
+			"tool": "read",
+			"warm": false,
+			"input": {
+				"file": "empty.txt",
+				"budget": 4000
+			}
+		},
+		{
+			"name": "read symbol",
+			"tool": "read",
+			"warm": true,
+			"input": {
+				"file": "src/alpha.ts",
+				"symbol": "Alpha.greet",
+				"surround": "none",
+				"budget": 4000
+			}
+		},
+		{
+			"name": "read enclosing",
+			"tool": "read",
+			"warm": true,
+			"input": {
+				"file": "src/alpha.ts",
+				"symbol": "Alpha.greet",
+				"surround": "enclosing",
+				"budget": 4000
+			}
+		},
+		{
+			"name": "read imports",
+			"tool": "read",
+			"warm": true,
+			"input": {
+				"file": "src/use.ts",
+				"symbol": "call",
+				"surround": "imports",
+				"budget": 4000
+			}
+		},
+		{
+			"name": "search lexical cold",
+			"tool": "search",
+			"warm": false,
+			"input": {
+				"query": "alpha",
+				"mode": "lexical",
+				"context": 0,
+				"budget": 4000
+			}
+		},
+		{
+			"name": "search files",
+			"tool": "search",
+			"warm": false,
+			"input": {
+				"query": "*.ts",
+				"mode": "files",
+				"context": 0,
+				"budget": 4000
+			}
+		},
+		{
+			"name": "search structural",
+			"tool": "search",
+			"warm": false,
+			"input": {
+				"query": "println!($$$ARGS)",
+				"mode": "structural",
+				"path": "src/*.rs",
+				"context": 0,
+				"budget": 4000
+			}
+		},
+		{
+			"name": "search auto warm",
+			"tool": "search",
+			"warm": true,
+			"input": {
+				"query": "alpha",
+				"mode": "auto",
+				"context": 0,
+				"budget": 4000
+			}
+		},
+		{
+			"name": "search references",
+			"tool": "search",
+			"warm": true,
+			"input": {
+				"query": "alpha",
+				"mode": "references",
+				"context": 0,
+				"budget": 4000
+			}
+		},
+		{
+			"name": "search filters",
+			"tool": "search",
+			"warm": true,
+			"input": {
+				"query": "alpha",
+				"mode": "lexical",
+				"include": {
+					"tests": false,
+					"vendor": false
+				},
+				"context": 1,
+				"budget": 4000
+			}
+		},
+		{
+			"name": "search budget",
+			"tool": "search",
+			"warm": false,
+			"input": {
+				"query": "alpha",
+				"mode": "lexical",
+				"context": 0,
+				"budget": 75
+			}
+		},
+		{
+			"name": "map cold",
+			"tool": "map",
+			"warm": false,
+			"input": {
+				"path": ".",
+				"detail": "skeleton",
+				"depth": 2,
+				"budget": 6000
+			}
+		},
+		{
+			"name": "map warm",
+			"tool": "map",
+			"warm": true,
+			"input": {
+				"path": "src",
+				"detail": "outline",
+				"depth": 2,
+				"budget": 6000
+			}
+		}
+	]
+}

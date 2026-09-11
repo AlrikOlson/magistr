@@ -2,6 +2,7 @@
 
 mod cache_counts;
 mod cache_error;
+mod cache_owner;
 mod cached_symbol;
 mod indexed_file;
 
@@ -10,6 +11,7 @@ pub use cache_error::CacheError;
 pub use cached_symbol::CachedSymbol;
 pub use indexed_file::IndexedFile;
 
+use cache_owner::CacheOwner;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -69,7 +71,7 @@ pub struct IndexCache {
     db: Connection,
     // Rust drops fields in declaration order: SQLite closes and checkpoints
     // before this native-only ownership lock is released. Never unlink it.
-    _owner: std::fs::File,
+    _owner: CacheOwner,
     /// Why an expendable native cache was rebuilt, if it was incompatible.
     pub rebuild_reason: Option<String>,
     /// Journal mode actually accepted by SQLite for this connection.
@@ -351,7 +353,7 @@ fn cache_paths(path: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-fn lock_native_cache(path: &Path) -> Result<std::fs::File, CacheError> {
+fn lock_native_cache(path: &Path) -> Result<CacheOwner, CacheError> {
     check_cache_path(path)?;
     let mut options = std::fs::OpenOptions::new();
     options.read(true).write(true).create(true).truncate(false);
@@ -388,7 +390,7 @@ fn lock_native_cache(path: &Path) -> Result<std::fs::File, CacheError> {
     check_windows_link_count(&owner, path)?;
     check_cache_path(path)?;
     owner.try_lock().map_err(std::io::Error::from)?;
-    Ok(owner)
+    Ok(CacheOwner(owner))
 }
 
 fn check_cache_path(path: &Path) -> Result<(), CacheError> {

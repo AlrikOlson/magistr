@@ -234,6 +234,27 @@ fn live_owner_refuses_second_open_without_rebuilding_and_releases_on_drop() {
     assert_eq!(cache.counts().unwrap().files, 1);
 }
 
+#[cfg(unix)]
+#[test]
+fn dropping_cache_releases_lock_even_while_a_duplicated_descriptor_is_alive() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = IndexCache::open(dir.path(), "WAL").unwrap();
+    cache.update(&sample("a.rs", "retained")).unwrap();
+    // dup and fork share a flock ownership reference. Model a concurrently
+    // spawned child's pre-exec descriptor without forking this test process.
+    let inherited = cache._owner.0.try_clone().unwrap();
+    assert!(
+        matches!(IndexCache::open(dir.path(), "WAL"), Err(CacheError::Io(error)) if error.kind() == std::io::ErrorKind::WouldBlock)
+    );
+    drop(cache);
+    let reopened = IndexCache::open(dir.path(), "WAL").expect(
+        "the completed cache owner must release its lock before inherited descriptors close",
+    );
+    assert_eq!(reopened.counts().unwrap().files, 1);
+    assert!(inherited.metadata().is_ok());
+    drop(inherited);
+}
+
 #[test]
 fn native_lock_rejects_hardlinks_to_durable_state() {
     let dir = tempfile::tempdir().unwrap();

@@ -19,9 +19,10 @@ execution in Magistr's private executable role, with bounded frames, admission,
 deadlines, cancellation, backoff, quarantine and owned process cleanup.
 The c3 index now persists native file/symbol/import/test-region and FTS records,
 refreshes through bounded native/poll watchers, and revalidates live candidate
-bytes, modes and ignore selection. Filesystem mutation authority, service
-orchestration, tools and CLI cutover still
-require the chunks below. Listed tests are retained evidence targets; listing a test does
+bytes, modes and ignore selection. The c4 typed query service now composes
+admitted read/search/map operations, deterministic ranking and budget envelopes.
+Filesystem mutation authority, extension composition, service orchestration and
+CLI/tool cutover still require the chunks below. Listed tests are retained evidence targets; listing a test does
 not claim that a particular platform or execution lane passed.
 
 ## Public tools
@@ -30,13 +31,14 @@ There are eight schema-defined tools plus schema-less `workbench_status`.
 Names, inputs, and the status registration come from
 [`schemas/tools`](reference/schemas/tools) and
 [`src/protocol/server.ts`](reference/src/protocol/server.ts). The native core
-supplies primitives, not these complete tool contracts yet.
+supplies typed read/search/map use cases as well as primitives; production tool
+registration and extension composition remain separate delivery boundaries.
 
 | Tool | Contract and behavior to preserve | Reference implementation and tests | Native completion boundary |
 | --- | --- | --- | --- |
-| `search` | Auto/lexical, structural, references, files; regex and glob validation; test/vendor ranking, kind/context filters, grouped deduped budgeted results and truncation manifest; reference confidence provenance; semantic is reserved and rejected | `src/tools/search.ts`, `ranking.ts`; `test/search-tool.test.ts`, `ranking.test.ts`, `ranking-shadow.test.ts`, `rust-structural.test.ts`, `freshness-fuzz.test.ts` | Engine matching/extraction adopted; live workspace admission/index queries and ranking in `arch-14c4-workspace-queries`, parity in c10 |
-| `map` | Pruned tree, skeleton/outline/full, language census, index health and generation TTL, trusted/sideloaded plugin inventory, import graph, bounded Cargo workspace/crate/entry-point rows | `src/tools/map.ts`, `map-cargo.ts`; `test/map.test.ts`, `support/golden/map/cargo-workspace.expected.json` | Extraction adopted; enumeration, Cargo summaries, index and plugin composition in c4 |
-| `read` | Whole file, inclusive 1-based line ranges, symbol and enclosing/import surrounds; fresh hashes, exact symbol extents, segmented budgets/cursors; ambiguous/missing symbol and binary handling | `src/tools/read.ts`, `src/envelope/file-content.ts`; `test/read.test.ts`, `binary-files.test.ts`, `freshness-fuzz.test.ts` | Symbol extraction adopted; admitted fresh filesystem reads/envelopes in c4 |
+| `search` | Auto/lexical, structural, references, files; regex and glob validation; test/vendor ranking, kind/context filters, grouped deduped budgeted results and truncation manifest; reference confidence provenance; semantic is reserved and rejected | `src/tools/search.ts`, `ranking.ts`; `test/search-tool.test.ts`, `ranking.test.ts`, `ranking-shadow.test.ts`, `rust-structural.test.ts`, `freshness-fuzz.test.ts` | Typed c4 native queries, live admission/freshness, native engine matching and retained ranking goldens delivered; extension enrichment c8 and served parity c10 |
+| `map` | Pruned tree, skeleton/outline/full, language census, index health and generation TTL, trusted/sideloaded plugin inventory, import graph, bounded Cargo workspace/crate/entry-point rows | `src/tools/map.ts`, `map-cargo.ts`; `test/map.test.ts`, `support/golden/map/cargo-workspace.expected.json` | Typed c4 tree, outlines, native index/import and bounded Cargo summaries delivered; plugin inventory explicitly unavailable pending c8 |
+| `read` | Whole file, inclusive 1-based line ranges, symbol and enclosing/import surrounds; fresh hashes, exact symbol extents, segmented budgets/cursors; ambiguous/missing symbol and binary handling | `src/tools/read.ts`, `src/envelope/file-content.ts`; `test/read.test.ts`, `binary-files.test.ts`, `freshness-fuzz.test.ts` | Typed c4 admitted reads, exact native symbol/surrounds, byte hashes and segmented envelopes delivered |
 | `edit` | Symbol body/insert/rename, structural rewrite, anchored replace-text; stale expectedHash rejection; aggregate dry-run, confirmation, parsing, formatting, journal and atomic application | `src/tools/edit.ts`, `write-engine.ts`; `test/edit-verbs.test.ts`, `write-engine.test.ts`, `mrtr-confirm.test.ts`, `rust-structural.test.ts` | Parse/rewrite primitives adopted; transaction engine c6 and editing c7 |
 | `files` | Create/mkdir/copy/move/delete; binary preservation; import-aware JS/TS/Python/Java/C/C++ moves and Rust module/Cargo target moves; protected paths; recoverable trash; no accidental overwrite | `src/tools/files.ts`, `rust-move.ts`; `test/files-tool.test.ts`, `rust-move.test.ts`, `binary-files.test.ts`, `binary-mcp.test.ts` | Native tool deferred to c7; shared admitted transactions in c6 |
 | `run` | One declared argv command, guarded extra args, no shell or text/file munging; bounded time and output; runner failures versus compiler diagnostics; Cargo/Clippy/nextest and other bundled runners; plugin runner extensions | `src/tools/run.ts`, `run-parse.ts`, `run-cargo.ts`; `test/run-tool.test.ts`, `run-cargo.test.ts`, `runner-plugin.test.ts`, Cargo golden fixtures | Native subprocess/diagnostic use case in c9; policy in c1 and extension registration in c8 |
@@ -50,7 +52,7 @@ Paths in the tables are relative to [`reference/`](reference).
 
 | Capability | Source and executable evidence | What is native now; remaining boundary |
 | --- | --- | --- |
-| Envelope version negotiation, deterministic row ordering, token accounting and truncation, additive compatibility, content hashes, diff and secret redaction | `src/envelope/*`, `schemas/envelope.schema.json`, `schemas/baselines/envelope.v1.schema.json`, `src/generated/schemas.ts`; `test/envelope-*.test.ts`, `diff.test.ts`, `redaction.test.ts`, `generated-schemas.test.ts`, `statelessness.test.ts` | Native typed response contracts and wire adapter in c1; shared responses/content fixtures; c4/c10 integrate returned rows and query budgets |
+| Envelope version negotiation, deterministic row ordering, token accounting and truncation, additive compatibility, content hashes, diff and secret redaction | `src/envelope/*`, `schemas/envelope.schema.json`, `schemas/baselines/envelope.v1.schema.json`, `src/generated/schemas.ts`; `test/envelope-*.test.ts`, `diff.test.ts`, `redaction.test.ts`, `generated-schemas.test.ts`, `statelessness.test.ts` | Native c1 response adapter plus c4 query rows/budgets; shared responses/content fixtures and real independent-root query envelope comparison; served schema parity c10 |
 | Error code → recovery and required payload; eight tool input schemas and schema generation | `schemas/error-taxonomy.json`, `schemas/tools/*`, `src/envelope/errors.ts`, `scripts/generate-schemas.ts`; `test/error-taxonomy.test.ts`, `generated-schemas.test.ts`, `skill-drift.test.ts` | Native 24-code typed taxonomy and required payloads in c1; c10 verifies served surface/schema parity |
 | Five-layer config merge, key provenance, command allowlist, policy ceilings and detection | `src/config/*`, `workbench.toml`; `test/redteam-policy.test.ts`, `redteam-served.test.ts`, `doctor.test.ts` | Native five-layer config, provenance, command admission and suggestion-only detection in c1; composed policy protects all loaded layers |
 | Canonical jail, nonexistent in-root path handling, symlink/TOCTOU checks, protected configuration and metadata, secret-key creation | `src/jail/*`, `src/protocol/write-access.ts`; `test/redteam-jail.test.ts`, `jail-keys.test.ts`, `write-engine.test.ts` | Native c1 admission/private key lifecycle with malicious-path regressions; c6 adds application-time revalidation and key-bound confirmation grants |
@@ -103,7 +105,7 @@ code's recovery and payload rather than flatten failures into strings:
 | `arch-14c1-workspace-policy` | Native configuration, composed path/command admission, protected policy, key lifecycle, envelopes and typed error/byte contracts; shared fixture parity |
 | `arch-14c2-workspace-workers` | Parser/extension process supervision, bounded IPC, crash and quarantine behavior |
 | `arch-14c3-workspace-index` | Native persistent derived index, bounded refresh/watchers, candidate queries and build health; public navigation semantics remain c4 |
-| `arch-14c4-workspace-queries` | Search, map and read behavior over admitted live source |
+| `arch-14c4-workspace-queries` | Delivered typed search/map/read over admitted live source; documented native limits and independent-root reference fixtures |
 | `arch-14c5-workspace-journal` | Binary durable journal, schema recovery, retention and undo selection |
 | `arch-14c6-workspace-transactions` | Verified atomic writes, formatter integration and confirmation |
 | `arch-14c7-workspace-editing` | Edit/files verbs and applied undo through the transaction owner |

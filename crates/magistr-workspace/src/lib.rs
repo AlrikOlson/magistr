@@ -19,9 +19,12 @@ pub mod jail;
 #[cfg(feature = "lang-pack")]
 pub mod lang_registry;
 pub mod langs;
+pub mod query;
 pub mod response;
 #[cfg(feature = "sandbox")]
 pub mod sandbox;
+mod source_language;
+mod source_open;
 pub mod worker;
 pub mod workspace_policy;
 

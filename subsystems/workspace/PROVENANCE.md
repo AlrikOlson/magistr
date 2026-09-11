@@ -359,3 +359,80 @@ Verification is on the macOS host; Linux/Windows execution and reference WASM
 addon rebuilding are not claimed. Full required gate results belong to the
 native ship checks and iteration receipt.
 
+## Native query port (arch-14c4)
+
+`query::WorkspaceQueries` exposes typed read/search/map requests and outcomes
+over the c1 admission policy, c2 supervised engine and c3 derived index.
+It does not open a workspace owner, register production tools or dispatch
+internal JSON tool calls. The shared bundled-language lookup serves scanning
+and live queries; the direct globset dependency was already in the lockfile.
+
+Reads preserve original-byte SHA-256 hashes, inclusive line/symbol extents,
+32-line segments, enclosing/import surroundings and explicit ambiguous/missing
+symbol errors. The leading import scan retains its lexical meaning and
+200-line bound. Cold whole/range reads require no parser; symbol reads require
+a live-validated, complete cached outline. Binary/invalid UTF-8 input is
+`PATTERN_INVALID`, and mismatched cached content is `INDEX_UNAVAILABLE`;
+neither can become lossy text or an apparently current source anchor.
+
+Search preserves the seven retained ranking goldens, stable tie order,
+definition/test/vendor weights, kind filters, context and grouped results.
+Lexical and structural matching execute in the actual native parser worker.
+References combine validated index candidates with live name occurrences;
+heuristic confidence and provenance remain explicit. Missing/stale index rows
+are omitted and marked warming, not treated as proof that references are absent.
+Semantic mode is explicitly unsupported. Rust macro matching sees source
+syntax, not macro expansion; multi-node patterns are refused by the engine.
+
+Maps combine an admitted live tree with validated outlines, import summaries
+and bounded Cargo workspace/crate/entry-point rows. The retained Cargo golden
+is unchanged. Plugin inventory is explicitly unavailable until c8 supplies its
+adapter. Native index health notes propagate cache/journal status; independent
+build timestamps are omitted and cache generation never certifies source state.
+
+Work is bounded before formatting the envelope: 1 MiB per live file,
+100,000 walk entries, 10,000 search files, 64 MiB search source, 20,000 total
+hits and 200 reference hits per file. Query patterns are at most 8,192 bytes
+and contain no NUL; context is at most 20 lines. Budgeted row cuts produce
+truncation manifests; work ceilings and oversized source/patterns receive
+explicit errors or per-file omission notes. Whole-row accounting uses serialized UTF-16
+units divided by four, rounded up, matching the retained wire contract.
+Search retains the reference's pre-context budget accounting; requested context
+can enlarge the final payload within its separate line/file ceilings.
+Read/map stop before a row that does not fit; zero useful rows are an explicit
+budget error rather than a fabricated continuation. Import graph validation
+requires a complete inventory of at most 512 files in one cache generation;
+otherwise graph/count summaries are omitted with a note. Outline enrichment
+is capped at 512 files; Cargo scans at 256 manifests with 24 output rows,
+eight entry points and 16 features per crate.
+
+Live bytes are optimistic observations with before/open/after metadata checks,
+fresh hashes and one retry. Unix opens traverse directory descriptors with
+`O_NOFOLLOW` on every component and nonblocking final-file admission, preventing
+a raced ancestor symlink from redirecting reads or a FIFO from blocking them.
+The same opener serves index observations so cached query enrichment and
+parser admission cannot bypass this source boundary. Required matrix testing
+also exposed close-only cache-lock retention by duplicated descriptors. A
+private owner guard explicitly unlocks after SQLite drops, preserving the
+live-owner refusal while allowing immediate reopen even if a duplicated
+handle survives. A deterministic duplicate-handle regression covers this
+lifetime independently of concurrent process-spawn timing, consistent with
+[Rust lock lifetime](https://doc.rust-lang.org/std/fs/struct.File.html#method.try_lock)
+and [Apple flock semantics](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/flock.2.html).
+Non-Unix admission retains path revalidation; atomic handle confinement there
+is not established. Neither lane claims immutable snapshots or check-input
+certification; that remains arch-14e.
+
+The [query fixtures](conformance/README.md) compare complete envelopes against
+the pinned real addon and index in independent temporary roots. Exact additive
+native health/plugin diagnostics are asserted separately; all other notes,
+hashes, freshness, budgets, ordering and cursors are compared. Native unit and
+real worker tests cover cold/warm behavior, stale timestamp-preserving edits,
+Rust macros/generics/attributes, malformed source, bounds and recovery.
+Current primary research checked [ast-grep pattern parsing](https://ast-grep.github.io/advanced/pattern-parse.html),
+[pattern syntax](https://ast-grep.github.io/guide/pattern-syntax.html) and
+[globset options](https://docs.rs/globset/latest/globset/struct.GlobBuilder.html).
+Verification is on this macOS host; Linux/Windows execution, extension
+composition and production protocol cutover are not claimed by this chunk.
+
+

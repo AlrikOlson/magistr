@@ -3367,6 +3367,7 @@ version = "0.1.0"
 dependencies = [
  "ast-grep-core",
  "getrandom 0.4.2",
+ "globset",
  "grep",
  "ignore",
  "libc",
