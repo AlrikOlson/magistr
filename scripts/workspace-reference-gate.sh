@@ -15,6 +15,7 @@ bun ../conformance/config-reference.ts
 bun ../conformance/jail-reference.ts
 bun ../conformance/responses-reference.ts
 bun ../conformance/content-reference.ts
+bun ../conformance/journal-reference.ts
 cargo fmt --all -- --check
 cargo clippy --locked --workspace --all-targets --features workbench-core/no-bindings -- -D warnings
 # no-bindings is used only for reference Rust test linking, never native proof.
@@ -33,3 +34,5 @@ bun run lint:skill
 bun test
 # Compare complete native query envelopes after the retained native addon exists.
 cargo test --manifest-path "$PROJECT_ROOT/Cargo.toml" -p magistr-cli --test workspace_queries_conformance -- --ignored
+# Cross-runtime journal append/read uses only disposable SQLite databases.
+cargo test --manifest-path "$PROJECT_ROOT/Cargo.toml" -p magistr-workspace --test journal_conformance -- --ignored

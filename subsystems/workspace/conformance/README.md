@@ -85,3 +85,34 @@ refusal, and bounded work/truncation. Query snapshots are optimistic reads,
 not immutable source certification; see [provenance](../PROVENANCE.md) for
 native limits and intentional deviations.
 
+## Durable journal fixtures (arch-14c5)
+
+`journal.json` contains two complete SQLite databases written by the pinned
+`JournalDb.append` implementation, stored as zstd-compressed base64 for portable
+text review. The manifest also records every operation, ordered file, compressed
+blob, hash, reference sequence and undo relationship. `journal-reference.ts
+--emit` regenerates the manifest on stdout with fixed operation timestamps. Its
+v1 fixture uses text-only production appends followed by the same version stamp
+used in the pinned migration test; v1 and v2 share the SQL and blob layout.
+The v2 fixture includes NUL, invalid UTF-8, every byte value and text/binary
+transitions. Both include BOM text, shared blobs, multiple sessions and no-file
+undo bookkeeping.
+
+Run `bun subsystems/workspace/conformance/journal-reference.ts` to verify both
+fixtures with the pinned reader and migration path. The ordinary Rust
+`journal_conformance` integration tests read these actual SQLite files, prove
+read-only opening preserves the file bytes, migrate v1 without changing any
+record or compressed blob, compare session and undo eligibility, and construct
+exact-byte binary restoration plans. The ignored
+`native_append_is_decoded_by_the_pinned_reference_reader` test runs through the
+required `workspace-reference` gate: it appends native zstd binary history to
+both databases and compares every record with the pinned reader's result,
+beside a live WAL writer and after a TRUNCATE writer closes. The pinned Bun
+reader on the verified macOS host refuses a closed WAL database once its
+sidecars are removed; the interoperability test records that reference limit
+instead of changing the pinned reader.
+No journal fixture runner needs the native addon or starts a workspace server.
+
+These fixtures establish storage and pure restoration-plan compatibility.
+They do not apply restoration plans to the filesystem or certify the later
+atomic write pipeline.

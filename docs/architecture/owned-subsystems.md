@@ -202,7 +202,8 @@ freshness. Late results remain durable without attaching to a newer objective.
 | `arch-14c2-workspace-workers` | Native supervised parser, grammar and sandbox/LSP workers with bounded admission and owned cleanup |
 | `arch-14c3-workspace-index` | Native SQLite/FTS cache, background worker extraction, bounded watcher refresh and live candidate revalidation |
 | `arch-14c4-workspace-queries` | Typed admitted read/search/map queries, native worker/index composition, retained ranking/Cargo goldens and independent-root envelope comparison; transport and plugin inventory integration deferred |
-| `arch-14c5-workspace-journal`–`arch-14c7-workspace-editing` | Pending: durable binary journal, verified transactions, edit/files and applied undo |
+| `arch-14c5-workspace-journal` | Native v1/v2 durable SQLite journal, exact-byte CAS history, read-only views and undo restoration plans; no filesystem application |
+| `arch-14c6-workspace-transactions`–`arch-14c7-workspace-editing` | Pending: verified transactions, edit/files and applied undo |
 | `arch-14c8-workspace-extensions`–`arch-14c10-workspace-port-parity` | Pending: plugin/script orchestration, declared execution and complete typed port/tool parity |
 | `arch-14d-workspace-owner` | Pending: admitted owner serving multiple clients |
 | `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |

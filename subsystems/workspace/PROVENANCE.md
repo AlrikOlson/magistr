@@ -435,4 +435,70 @@ Current primary research checked [ast-grep pattern parsing](https://ast-grep.git
 Verification is on this macOS host; Linux/Windows execution, extension
 composition and production protocol cutover are not claimed by this chunk.
 
+## Native durable journal (arch-14c5)
+
+The native `journal` module reads the retained v1/v2 `.workbench/journal.db`
+format through ordinary Rust APIs. It preserves operation sequence and timestamp,
+file ordinal, session identity, undo relationships, and SHA-256 addresses of
+uncompressed bytes. Existing zstd blobs remain unchanged during reads, migration
+and deduplication. The v1-to-v2 migration changes only `user_version`; binary
+snapshots and text, including BOMs, use the same lossless `FileContent` type.
+
+Append records, blobs, undo links and retention changes share one SQLite
+transaction. Read-only readers share the same query implementation, accept v1/v2
+without migration and expose ascending history, newest-first bounded history,
+keyset bounds and eligible operations filtered by session or named sequence.
+Metadata eligibility and byte availability are separate: evicted history remains
+visible with unavailable content, never an invented empty string. The default
+retention cap counts 256 MiB of compressed blobs, evicting oldest reference
+sequences with hash tie-breaking and protecting the newly appended operation.
+If its protected bytes alone exceed the cap, a separate note reports the
+overage. Operation metadata is retained; this cap is not a total database-size
+limit.
+
+Native query hydration refuses more than 1,000 operations or file records,
+1 MiB per text field, or 64 MiB of aggregate decoded content and metadata.
+Compressed blobs and zstd decoder windows are also bounded to 64 MiB;
+SQLite row allocation is capped at 65 MiB before Rust copies row values. The
+raw ascending list refuses an oversized result; bounded recent queries provide
+sequence pagination. Hash/codec/size corruption is an error rather than eviction.
+These explicit bounds and strict schema-object validation are intentional
+hardening of the reference's unbounded reads, not silent truncation.
+
+The separate `undo` module produces pure restoration plans. It simulates newest
+operations first, preserves journal file order, skips a whole operation with
+missing required blobs, and supports surface/keep-current/force conflict policies.
+Surface conflicts propose neither writes nor consumed operation IDs. Empty and
+absent files remain distinct, including the planned existence and hash anchors.
+Ambiguous duplicate paths within one operation are explicitly refused by planning;
+the stored history is still readable. Applying a plan must re-admit and revalidate
+paths and observations, disable formatting for exact-byte restoration, and record
+undo relationships only after success. This chunk does not apply source writes,
+claim parse admission, certify an applied receipt or provide rendered tool rows.
+
+Unreadable durable databases use quarantine with visible lifecycle notes and
+preserved sidecars. Unknown versions fail closed before writable PRAGMAs. Derived
+`native-index.db` recovery remains a separate implementation; conformance rebuilds
+a corrupt cache beside an actual reference-produced journal and verifies the
+journal bytes and records remain unchanged. Operational failures are errors,
+not permission to discard history. Missing or empty main files with surviving
+sidecars are refused intact. If replacement creation fails after quarantine,
+the error identifies the preserved recovery location.
+
+The [journal corpus](conformance/README.md) embeds actual pinned Bun-produced
+SQLite databases. Native tests compare hydrated byte vectors and raw table
+records, including compressed blob bytes, before and after migration. A
+cross-runtime check appends native zstd content and reads it with the pinned
+reference. Fixture verification uses disposable databases and no workspace server.
+
+Current research checked [SQLite WAL lifecycle and reader snapshots](https://www.sqlite.org/wal.html),
+[application-owned schema versions](https://www.sqlite.org/pragma.html#pragma_user_version)
+and [bounded zstd streaming decoding](https://docs.rs/zstd/0.13.3/zstd/stream/read/struct.Decoder.html).
+The pinned native SQLite is 3.48.0, before the published WAL-reset race fix.
+The required topology is one admitted writer with true read-only readers and no
+independent checkpoint connection; that excludes the documented race between
+writable connections. Native backlog `workspace-sqlite-wal-upgrade` records the
+dependency update before broader owner/checkpoint integration. Production owner
+admission and launcher/protocol cutover remain later chunks.
+
 
