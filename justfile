@@ -33,6 +33,14 @@ structure:
 run *args:
     cargo run -- {{args}}
 
+# rm + cp, never cp in place: overwriting a running binary SIGKILLs live magistr processes
+# Build the release binary and install it globally on PATH
+install:
+    cargo build --release -p magistr-cli
+    rm -f "${CARGO_HOME:-$HOME/.cargo}/bin/magistr"
+    cp target/release/magistr "${CARGO_HOME:-$HOME/.cargo}/bin/magistr"
+    @echo "installed $(magistr --version) at ${CARGO_HOME:-$HOME/.cargo}/bin/magistr"
+
 # Website
 
 # Start website dev server
