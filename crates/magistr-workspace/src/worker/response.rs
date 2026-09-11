@@ -18,6 +18,9 @@ pub enum WorkerResponse {
         error_count: u32,
         has_error: bool,
     },
+    DataValidated {
+        diagnostic: Option<String>,
+    },
     Search {
         hits: Vec<WorkerSearchHit>,
     },

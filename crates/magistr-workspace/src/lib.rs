@@ -10,6 +10,7 @@
 //! and the retained reference live under `subsystems/workspace/`.
 
 pub mod config;
+pub mod confirmation;
 pub mod contracts;
 pub mod engine;
 pub mod file_content;
@@ -26,6 +27,7 @@ pub mod response;
 pub mod sandbox;
 mod source_language;
 mod source_open;
+pub mod transaction;
 pub mod undo;
 pub mod worker;
 pub mod workspace_policy;

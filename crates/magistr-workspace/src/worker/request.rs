@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::WorkerDataFormat;
+
 #[cfg(feature = "sandbox")]
 use super::{WorkerPolicy, WorkerSubprocessSpec};
 
@@ -14,6 +16,11 @@ pub enum WorkerRequest {
     Parse {
         path: String,
         language: String,
+        source: String,
+    },
+    ValidateData {
+        path: String,
+        format: WorkerDataFormat,
         source: String,
     },
     Search {
@@ -106,6 +113,7 @@ impl WorkerRequest {
         let label = match self {
             Self::Ping => return None,
             Self::Parse { path, .. }
+            | Self::ValidateData { path, .. }
             | Self::Search { path, .. }
             | Self::Structural { path, .. }
             | Self::Rewrite { path, .. }

@@ -27,6 +27,9 @@ impl WorkerRequest {
                     has_error: summary.has_error,
                 })
             }
+            Self::ValidateData { format, source, .. } => Ok(WorkerResponse::DataValidated {
+                diagnostic: super::data_validation::validate_data(format, &source),
+            }),
             Self::Search {
                 pattern,
                 haystack,

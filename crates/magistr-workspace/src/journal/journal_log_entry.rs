@@ -7,4 +7,6 @@ pub struct JournalLogEntry {
     pub op: JournalOp,
     pub undoable: bool,
     pub undone_by: Option<i64>,
+    /// Native outcomes are absent for retained legacy operations.
+    pub write_outcome: Option<super::JournalWriteOutcome>,
 }
