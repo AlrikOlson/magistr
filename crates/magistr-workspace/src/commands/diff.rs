@@ -5,7 +5,7 @@ use crate::file_content::FileContent;
 /// Unified diff of two file states in the retained dialect: `a/<path>` and
 /// `b/<path>` headers, `/dev/null` for absence, a byte summary for binary
 /// content, and the empty string when the states are identical.
-pub(super) fn unified_diff(
+pub(crate) fn unified_diff(
     path: &str,
     before: Option<&FileContent>,
     after: Option<&FileContent>,
@@ -30,7 +30,7 @@ pub(super) fn unified_diff(
 }
 
 /// Lines a diff would apply: inserted plus deleted lines, headers excluded.
-pub(super) fn changed_lines(before: Option<&FileContent>, after: Option<&FileContent>) -> usize {
+pub(crate) fn changed_lines(before: Option<&FileContent>, after: Option<&FileContent>) -> usize {
     if before == after {
         return 0;
     }

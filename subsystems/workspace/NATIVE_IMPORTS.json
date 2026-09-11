@@ -252,6 +252,37 @@
 				"crates/magistr-cli/tests/workspace_script.rs"
 			],
 			"adaptation": "Typed manifest/record/grant validation with the blessed-only subprocess rule, per-call inventory and disk breaker, PluginHost and the four-chapter TCK over an ExtensionLane whose production lane is the supervised worker; QuickJS script verb with the retained shim/sentinel protocol over typed queries and the c7 gate (write jail before any token); LangPackBoot, RankingSignals with a PluginFeatureLookup seam in the first-party combiner, PluginResolver merged into references, RunnerAdapter; worker gains RankingContribute/RunnerParse, runs requests on a blocking thread (wasmtime-wasi block_on fix) and caches compiled WASI modules by digest. Char-based fuzz corpus; protected queued writes refused as SANDBOX_CAP_DENIED before minting; host-side pack language selection, map inventory, served rows and composition remain later chunks."
+		},
+		{
+			"chunk": "arch-14c9-workspace-execution",
+			"upstream_inputs": [
+				"src/tools/run.ts",
+				"src/tools/run-parse.ts",
+				"src/tools/run-cargo.ts",
+				"src/tools/journal-view.ts",
+				"src/doctor/probes.ts",
+				"src/doctor/report.ts",
+				"src/doctor/bundle.ts",
+				"src/doctor/tar.ts",
+				"src/config/doctor.ts",
+				"src/protocol/tracing.ts",
+				"src/ports/tracing.ts",
+				"src/protocol/server.ts",
+				"test/run-tool.test.ts",
+				"test/run-cargo.test.ts",
+				"test/support/golden/cargo/",
+				"test/doctor.test.ts",
+				"test/doctor-bundle-gate.test.ts",
+				"test/tracing.test.ts",
+				"test/journal-cli.test.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/execution/",
+				"crates/magistr-workspace/src/diagnostics/",
+				"crates/magistr-workspace/src/contracts/result_set.rs",
+				"crates/magistr-workspace/tests/live_cargo_run.rs"
+			],
+			"adaptation": "Typed WorkspaceRun over the c1 CommandAdmission (never widened) and a RunExecutor seam whose production ProcessExecutor spawns one literal argv in the workspace root inside its own process group, captures both streams under a head+tail ceiling with a visible gap marker, and kills the owned group on timeout, cancellation or a drain deadline (a grandchild holding the pipes cannot hang the answer); ENOENT is FILE_NOT_FOUND, other spawn failures ENGINE_UNAVAILABLE, signals are data. Seven bundled runner parsers and the rustc/clippy diagnostics extractor ported as pure functions behind open RunnerParser/DiagnosticExtractor/PluginRunnerLane registries (bundled defaults, plugin guests first, honest head+tail floor); every retained cargo golden equal by JSON. Diagnostics: WorkspaceStatus, JournalInspection over the read-only reader, TraceRecorder with typed spans, credential redaction and a dedicated writer thread (no async-local active span; the composition passes spans), doctor probes reading the native cache path read-only with the lock untouched, retained quarantine.jsonl beside the in-memory worker ledger, ustar+gzip bundle through the redaction choke point. CLI verbs, exit codes, served tool rows and composition remain c10."
 		}
 	]
 }

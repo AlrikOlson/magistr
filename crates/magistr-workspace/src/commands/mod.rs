@@ -51,6 +51,7 @@ mod undo_scope;
 mod write_action;
 mod write_report;
 
+pub(crate) use diff::unified_diff;
 pub use edit_input::EditInput;
 pub use edit_op::EditOp;
 pub use files_input::FilesInput;

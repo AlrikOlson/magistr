@@ -3382,6 +3382,7 @@ name = "magistr-workspace"
 version = "0.1.0"
 dependencies = [
  "ast-grep-core",
+ "flate2",
  "getrandom 0.4.2",
  "globset",
  "grep",
