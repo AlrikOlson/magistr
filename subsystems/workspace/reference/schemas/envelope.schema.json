@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/envelope.schema.json",
+  "title": "ResponseEnvelope",
+  "description": "The single response shape every tool returns; doubles as each tool's MCP outputSchema (SDD 4.2). Version 1. Evolution within a major is strictly additive: new optional fields only, checked against schemas/baselines/envelope.v1.schema.json.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m0-envelope-contract",
+  "type": "object",
+  "required": ["v", "ok"],
+  "properties": {
+    "v": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Envelope schema version, resolved per request via _meta negotiation (workbench/maxEnvelopeVersion) and mirrored here."
+    },
+    "ok": { "type": "boolean" },
+    "freshness": {
+      "enum": ["cold", "warming", "warm"],
+      "description": "Freshness tier of the answer (SDD 7.3.3). Carried on every success envelope."
+    },
+    "budget": {
+      "type": "object",
+      "description": "Token budget accounting, estimated (Constitution II).",
+      "required": ["requested", "used"],
+      "properties": {
+        "requested": { "type": "integer", "minimum": 0 },
+        "used": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": true,
+      "description": "Tool-specific results, always ranked and grouped."
+    },
+    "truncation": {
+      "type": "object",
+      "description": "Present if and only if results were cut. Truncation is never silent: a cut always carries dropped, reason, narrow and cursor.",
+      "required": ["dropped", "reason", "narrow", "cursor"],
+      "properties": {
+        "dropped": { "type": "integer", "minimum": 1 },
+        "reason": { "enum": ["budget", "ceiling", "timeout"] },
+        "narrow": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Typed refinement hints, e.g. kind:function or path:src/**."
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resumable continuation token."
+        }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } },
+    "error": {
+      "type": "object",
+      "description": "Failure payload. The code taxonomy and its one-code-one-recovery invariant are owned by chunk:m0-error-taxonomy; the envelope owns the shape and the five recovery classes.",
+      "required": ["code", "recovery", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Machine-readable error code from the published taxonomy (SDD 4.3)."
+        },
+        "recovery": { "enum": ["retry", "narrow", "escalate", "confirm", "abort"] },
+        "message": { "type": "string" },
+        "candidates": { "type": "array", "items": { "type": "string" } },
+        "parserMessage": {
+          "type": "string",
+          "description": "PARSE_REJECTED: the parser's own message for the syntax break (SDD 4.3)."
+        },
+        "rejectedDiff": {
+          "type": "string",
+          "description": "PARSE_REJECTED: the diff that was rolled back (SDD 4.3)."
+        },
+        "contentHash": {
+          "type": "string",
+          "description": "STALE_ANCHOR: fresh content hash of the file that moved under the diff (SDD 4.3)."
+        },
+        "confirmToken": {
+          "type": "string",
+          "description": "CONFIRM_REQUIRED: the HMAC-sealed confirm grant for the offered diff (SDD 9.4). Re-invoke the same call with confirm set to this token to apply."
+        },
+        "backoffMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "ENGINE_BUSY: suggested backoff before retrying, milliseconds (SDD 4.3)."
+        },
+        "plugin": {
+          "type": "string",
+          "description": "PLUGIN_CRASHED: the plugin that trapped or exhausted fuel (SDD 4.3)."
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "description": "Success envelope: carries freshness, budget and results; never an error.",
+      "required": ["v", "ok", "freshness", "budget", "results"],
+      "properties": { "ok": { "const": true } },
+      "not": { "required": ["error"] }
+    },
+    {
+      "description": "Failure envelope: carries the error; never results or a truncation manifest.",
+      "required": ["v", "ok", "error"],
+      "properties": { "ok": { "const": false } },
+      "allOf": [{ "not": { "required": ["results"] } }, { "not": { "required": ["truncation"] } }]
+    }
+  ]
+}

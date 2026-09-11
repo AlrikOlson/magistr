@@ -1,0 +1,29 @@
+# The bundled go runner adapter's guest crate (chunk:m5-runner-adapter).
+# Standalone (not a workspace member): builds ONLY to wasm32-wasip1. Rebuild +
+# componentize with plugins/runner-go/build.ps1 (or build.sh); the committed
+# guest.wasm is the shipped artifact.
+#
+# Same no-WASI discipline as the resolver guest (think:119 recipe): no_std +
+# alloc, panic = "abort", dlmalloc, no HashMap — the core module must import
+# NOTHING (this guest declares zero capabilities).
+
+[package]
+name = "runner-go-guest"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = { version = "0.46", default-features = false, features = ["macros", "realloc"] }
+dlmalloc = { version = "0.2", features = ["global"] }
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
+strip = "debuginfo"
+
+[workspace]

@@ -56,7 +56,18 @@ fn development_metadata() -> Value {
         ("memchr", vec![]),
         ("zmij", vec![]),
         ("equivalent", vec![]),
-        ("hashbrown", vec![]),
+        (
+            "hashbrown",
+            vec![
+                "allocator-api2",
+                "equivalent",
+                "foldhash",
+                "serde",
+                "serde_core",
+            ],
+        ),
+        ("allocator-api2", vec![]),
+        ("foldhash", vec![]),
     ] {
         fixture["packages"]
             .as_array_mut()
@@ -70,6 +81,7 @@ fn development_metadata() -> Value {
     fixture["resolve"] = json!({"nodes": fixture["packages"].as_array().expect("packages")
         .iter().map(|package| json!({
             "id": package["id"],
+            "features": if package["name"] == "allocator-api2" { vec!["alloc"] } else { vec![] },
             "deps": package["dependencies"].as_array().expect("dependencies")
                 .iter().map(|dependency| json!({
                     "pkg": dependency["name"], "name": dependency["name"],
@@ -83,6 +95,107 @@ fn development_metadata() -> Value {
 fn dependency_guard_accepts_the_explicit_serialization_closure() {
     assert_eq!(check(&metadata()), Vec::<String>::new());
     assert_eq!(check(&development_metadata()), Vec::<String>::new());
+}
+
+#[test]
+fn development_collection_leaves_reject_runtime_and_filesystem_dependencies() {
+    for name in ["allocator-api2", "foldhash"] {
+        for effect in ["tokio", "fs-err"] {
+            let mut fixture = development_metadata();
+            fixture["packages"]
+                .as_array_mut()
+                .expect("packages")
+                .push(json!({
+                    "id": effect, "name": effect,
+                    "source": "registry+https://github.com/rust-lang/crates.io-index",
+                    "dependencies": []
+                }));
+            let leaf = fixture["resolve"]["nodes"]
+                .as_array_mut()
+                .expect("nodes")
+                .iter_mut()
+                .find(|node| node["id"] == name)
+                .expect("collection node");
+            leaf["deps"].as_array_mut().expect("edges").push(json!({
+                "pkg": effect, "name": "collection_helper",
+                "dep_kinds": [{"kind": null, "target": null}]
+            }));
+            assert!(
+                check(&fixture)
+                    .iter()
+                    .any(|error| { error.contains(&format!("{name} -> {effect}")) }),
+                "accepted {name} dependency on {effect}"
+            );
+        }
+    }
+}
+
+#[test]
+fn development_collection_leaves_require_reviewed_resolved_features() {
+    for name in ["allocator-api2", "foldhash"] {
+        for features in [
+            json!(["std"]),
+            json!(["alloc", "std"]),
+            json!(["nightly"]),
+            Value::Null,
+        ] {
+            let mut fixture = development_metadata();
+            let leaf = fixture["resolve"]["nodes"]
+                .as_array_mut()
+                .expect("nodes")
+                .iter_mut()
+                .find(|node| node["id"] == name)
+                .expect("collection node");
+            leaf["features"] = features;
+            assert!(
+                check(&fixture).iter().any(|error| {
+                    error.contains(&format!(
+                        "development package {name} has unreviewed or missing resolved features"
+                    ))
+                }),
+                "accepted unreviewed {name} features"
+            );
+        }
+        let mut fixture = development_metadata();
+        fixture["resolve"]["nodes"]
+            .as_array_mut()
+            .expect("nodes")
+            .iter_mut()
+            .find(|node| node["id"] == name)
+            .expect("collection node")
+            .as_object_mut()
+            .expect("node")
+            .remove("features");
+        assert!(
+            check(&fixture).iter().any(|error| {
+                error.contains(&format!(
+                    "development package {name} has unreviewed or missing resolved features"
+                ))
+            }),
+            "accepted absent {name} features"
+        );
+    }
+}
+
+#[test]
+fn development_collection_leaves_reject_local_replacements() {
+    for name in ["allocator-api2", "foldhash"] {
+        let mut fixture = development_metadata();
+        fixture["packages"]
+            .as_array_mut()
+            .expect("packages")
+            .iter_mut()
+            .find(|package| package["name"] == name)
+            .expect("collection package")["source"] = Value::Null;
+        assert!(
+            check(&fixture).iter().any(|error| {
+                error.contains(&format!(
+                    "development package {name} must come from crates.io"
+                ))
+            }),
+            "accepted local replacement for {name}"
+        );
+    }
 }
 
 #[test]

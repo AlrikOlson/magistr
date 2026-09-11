@@ -13,6 +13,7 @@ members = [
     "crates/magistr-cockpit",
     "crates/magistr-tui",
     "subsystems/workflow/crates/think-and-ship",
+    "crates/magistr-workspace",
 ]
 default-members = ["crates/magistr-cli"]
 resolver = "3"

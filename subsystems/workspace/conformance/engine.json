@@ -1,0 +1,78 @@
+{
+  "errors": {
+    "unknown_language": "unsupported-language",
+    "search_pattern": "(unclosed",
+    "structural_pattern": "",
+    "rewrite_pattern": ""
+  },
+  "parse": [
+    {
+      "language": "typescript",
+      "source": "export const x: string = \"hi\";\n",
+      "root_kind": "program",
+      "has_error": false
+    },
+    {
+      "language": "json",
+      "source": "{ \"a\": ",
+      "root_kind": "document",
+      "has_error": true
+    }
+  ],
+  "search": {
+    "pattern": "fn \\w+",
+    "source": "fn main() {}\nlet x = 1;\nfn helper() {}\n",
+    "hits": [
+      {
+        "line": 1,
+        "start": 0,
+        "end": 7,
+        "line_text": "fn main() {}"
+      },
+      {
+        "line": 3,
+        "start": 0,
+        "end": 9,
+        "line_text": "fn helper() {}"
+      }
+    ]
+  },
+  "rewrite": {
+    "language": "javascript",
+    "source": "console.log(a);\nkeep(b);\nconsole.log(c);\n",
+    "pattern": "console.log($A)",
+    "replacement": "console.debug($A)",
+    "output": "console.debug(a);\nkeep(b);\nconsole.debug(c);\n",
+    "match_lines": [
+      1,
+      3
+    ]
+  },
+  "extract": {
+    "language": "rust",
+    "source": "use std::fmt::Debug;\n\npub struct Point { x: i32 }\n\npub fn origin() -> Point { Point { x: 0 } }\n\npub trait Draw {}\n",
+    "symbols": [
+      [
+        "Point",
+        "struct",
+        3,
+        1
+      ],
+      [
+        "origin",
+        "function",
+        5,
+        1
+      ],
+      [
+        "Draw",
+        "trait",
+        7,
+        1
+      ]
+    ],
+    "imports": [
+      "std::fmt::Debug"
+    ]
+  }
+}

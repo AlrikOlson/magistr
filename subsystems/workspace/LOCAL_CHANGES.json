@@ -1,0 +1,61 @@
+{
+	"version": 1,
+	"files": [
+		{
+			"path": "plugins/runner-go/build.sh",
+			"added": true,
+			"sha256": "1aac1b6060e5e09df50c85f5b31dffe27758ea61ddc96195aeda009e9f65d557",
+			"mode": "100644",
+			"reason": "Restore missing standalone runner-go guest builder with locked builds and reliable target paths; PowerShell checks native process exit codes."
+		},
+		{
+			"path": "plugins/runner-go/build.ps1",
+			"added": true,
+			"sha256": "309501635b455bf6e2ab788d5538b6f7df7f3fcddca4779ec017a64621060f1c",
+			"mode": "100644",
+			"reason": "Restore missing standalone runner-go guest builder with locked builds and reliable target paths; PowerShell checks native process exit codes."
+		},
+		{
+			"path": "crates/componentize/src/main.rs",
+			"sha256": "d7bbe27916010d6b17d106a7fc3f39fd742a605823072c1487bc1bd84500fb37",
+			"mode": "100644",
+			"reason": "Rust 1.95 cargo fmt only: inherited source formatting/import ordering; behavior and pinned upstream evidence retained."
+		},
+		{
+			"path": "crates/workbench-core/tests/lang_pack_hot_path.rs",
+			"sha256": "3dce020f0bd54b59d341fbc626b36ced3581752a6a0cdf94c6e6982cddda6c23",
+			"mode": "100644",
+			"reason": "Rust 1.95 cargo fmt only: inherited source formatting/import ordering; behavior and pinned upstream evidence retained."
+		},
+		{
+			"path": "crates/workbench-core/tests/wit_contracts.rs",
+			"sha256": "16f1365919d2dd6577be438200a7306b921c1df9be52c50d96a04784317b86b8",
+			"mode": "100644",
+			"reason": "Rust 1.95 cargo fmt only: inherited source formatting/import ordering; behavior and pinned upstream evidence retained."
+		},
+		{
+			"path": "plugins/lsp-resolver/guest/src/lib.rs",
+			"sha256": "703c429f092fef4e12a958a72ebc2490a344f9f889b00620baa87dff23263ef4",
+			"mode": "100644",
+			"reason": "Rust 1.95 cargo fmt only: inherited source formatting/import ordering; behavior and pinned upstream evidence retained."
+		},
+		{
+			"path": "plugins/runner-go/guest/src/lib.rs",
+			"sha256": "01709b2b4c0f7dd43fd7ee0e4cc8f8256b62f2a3027f87ed09a0d4d95f991da1",
+			"mode": "100644",
+			"reason": "Equivalent Clippy cleanup: use a character-array pattern for slash/backslash basename splitting."
+		},
+		{
+			"path": "plugins/ranking-visibility/guest/src/lib.rs",
+			"sha256": "bf289def312f0c80b75a83a84bd357de5a0e247c544f1835b8b70dc2d47dc4ed",
+			"mode": "100644",
+			"reason": "Equivalent Clippy cleanup: use MARKERS.contains for token membership."
+		},
+		{
+			"path": "plugins/lang-pack-gleam/guest/src/lib.rs",
+			"sha256": "cc3a1564c191316d5afc4a5bbd676ef8e408624fdb8c558a89263bba9f68cb73",
+			"mode": "100644",
+			"reason": "Equivalent Clippy cleanup: initialize the single extension with alloc::vec!."
+		}
+	]
+}

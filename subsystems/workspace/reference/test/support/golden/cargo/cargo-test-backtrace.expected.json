@@ -1,0 +1,18 @@
+{
+  "kind": "report",
+  "command": "c",
+  "resolvedLine": "cargo test -p alpha --lib tests::fails_panic",
+  "adapter": "cargo",
+  "exitCode": 101,
+  "timedOut": false,
+  "durationMs": 7,
+  "failures": [
+    {
+      "testName": "tests::fails_panic",
+      "file": "crates/alpha/src/lib.rs",
+      "assertion": "boom 42",
+      "trace": "crates/alpha/src/lib.rs:11:24\nalpha::tests::fails_panic at ./src/lib.rs:11\nalpha::tests::fails_panic::closure$0 at ./src/lib.rs:11"
+    }
+  ],
+  "summary": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.01s"
+}

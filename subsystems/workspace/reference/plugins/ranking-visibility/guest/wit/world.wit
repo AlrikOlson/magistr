@@ -1,0 +1,14 @@
+/// The bundled visibility ranking signal's world (chunk:m5-ranking-shadow):
+/// the public ranking surface plus the standard `(string) -> string` root
+/// invoke so the plugin is TCK-conformant unmodified. Zero imports — a
+/// ranking signal is a pure function from per-hit facts to named feature
+/// values.
+///
+/// The deps/ copy of ranking.wit must stay byte-equal to the top-level wit/
+/// file; test/ranking-shadow.test.ts pins the drift.
+package workbench:ranking-visibility-guest@0.1.0;
+
+world ranking-visibility {
+  export workbench:ranking/ranking@0.1.0;
+  export invoke: func(payload: string) -> string;
+}

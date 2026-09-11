@@ -1,0 +1,29 @@
+node_modules/
+target/
+dist/
+*.tsbuildinfo
+
+# workspace-local runtime state (cache-class data, SDD §10.2)
+.workbench/
+
+# napi/wasm build output for workbench-core (rebuilt per platform; see CI matrix)
+crates/workbench-core/artifacts/
+
+# Bundled-plugin guest build output (the committed guest.wasm is the artifact)
+plugins/lsp-resolver/guest/target/
+
+
+# ── magistr managed ── DO NOT EDIT between markers ──
+.workbench/
+.magistr/scope/
+.magistr/current-plan.md
+.magistr/current-task.md
+.magistr/loop-state.json
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+/target/
+**/*.rs.bk
+# ── end magistr ──

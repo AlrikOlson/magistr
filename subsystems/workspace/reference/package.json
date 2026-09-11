@@ -1,0 +1,51 @@
+{
+  "name": "workbench-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Workbench MCP \u2014 a ranked, verified file substrate for coding agents.",
+  "bin": {
+    "workbench-mcp": "src/main.ts"
+  },
+  "engines": {
+    "bun": ">=1.4.1"
+  },
+  "scripts": {
+    "codegen": "bun run scripts/generate-schemas.ts",
+    "codegen:check": "bun run scripts/generate-schemas.ts --check",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:imports": "bun run scripts/check-import-graph.ts",
+    "lint:skill": "bun run scripts/check-skill-drift.ts",
+    "format": "biome check --write .",
+    "test": "bun test",
+    "test:core": "cargo test --workspace --features workbench-core/no-bindings",
+    "test:multi-client": "WORKBENCH_MULTI_CLIENT=1 bun test test/multi-client.test.ts",
+    "check:codex-subagent": "bun run scripts/codex-subagent-check.ts",
+    "eval:rank": "bun run scripts/eval-ranking.ts",
+    "bench:ipc": "bun run scripts/bench-ipc.ts",
+    "bench:index": "bun run scripts/bench-index.ts",
+    "bench:refs": "bun run scripts/bench-refs.ts",
+    "dogfood": "bun run scripts/dogfood-smoke.ts",
+    "gate:m0": "bun test test/mcp-conformance.test.ts test/statelessness.test.ts test/redteam-jail.test.ts test/engine-supervisor.test.ts && bun run bench:ipc",
+    "gate:m1": "bun test test/freshness-fuzz.test.ts test/migrations.test.ts && bun run bench:index",
+    "build:core": "napi build --manifest-path crates/workbench-core/Cargo.toml --platform --release --esm --output-dir crates/workbench-core/artifacts",
+    "build:core:wasm": "napi build --manifest-path crates/workbench-core/Cargo.toml --platform --release --esm --output-dir crates/workbench-core/artifacts --target wasm32-wasip1-threads --dts index.d.cts --no-default-features"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.9",
+    "@napi-rs/cli": "^3.8.6",
+    "@napi-rs/wasm-runtime": "^1.2.3",
+    "@types/bun": "1.4.0",
+    "ajv": "8.20.0",
+    "emnapi": "1.9.2",
+    "fast-check": "4.9.0",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  },
+  "napi": {
+    "binaryName": "workbench-core"
+  }
+}

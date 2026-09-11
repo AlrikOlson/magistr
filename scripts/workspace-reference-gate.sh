@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Compatibility evidence only. Never launch a server against the real checkout.
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT/subsystems/workspace/reference"
+unset WORKBENCH_MULTI_CLIENT
+bun install --frozen-lockfile
+# The second "--" belongs to napi; bun run would consume it.
+bunx napi build --manifest-path crates/workbench-core/Cargo.toml \
+    --platform --release --esm --output-dir crates/workbench-core/artifacts -- --locked
+bun run scripts/smoke-core.ts native
+bun ../conformance/reference.ts
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets --features workbench-core/no-bindings -- -D warnings
+# no-bindings is used only for reference Rust test linking, never native proof.
+cargo test --locked --workspace --features workbench-core/no-bindings
+# Standalone guest packages retain separate locks and are checked as WASI code.
+for guest in plugins/*/guest/Cargo.toml; do
+    cargo fmt --manifest-path "$guest" -- --check
+    cargo clippy --locked --manifest-path "$guest" --target wasm32-wasip1 -- -D warnings
+done
+python3 "$PROJECT_ROOT/scripts/workspace-runner-build-check.py"
+bun run codegen:check
+bun run typecheck
+bun run lint
+bun run lint:imports
+bun run lint:skill
+bun test

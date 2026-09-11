@@ -190,11 +190,12 @@ fn check_development_closure(
                 "domain development package {name} must come from crates.io"
             ));
         }
-        let Some(edges) = nodes
-            .iter()
-            .find(|node| node["id"] == id)
-            .and_then(|node| node["deps"].as_array())
-        else {
+        let Some(node) = nodes.iter().find(|node| node["id"] == id) else {
+            errors.push(format!("missing development dependency node for {name}"));
+            continue;
+        };
+        check_development_features(name, &node["features"], errors);
+        let Some(edges) = node["deps"].as_array() else {
             errors.push(format!("missing development dependency edges for {name}"));
             continue;
         };
@@ -224,13 +225,46 @@ fn check_development_closure(
     }
 }
 
+fn check_development_features(name: &str, features: &Value, errors: &mut Vec<String>) {
+    // Audited collection helpers in the dev-only serde_json/indexmap closure:
+    // foldhash 0.2.0 gates clock access on std (src/seed.rs), and allocator-api2
+    // 0.2.21 gates std::io implementations on std. Keep both capabilities off
+    // even if another workspace package enables them through feature unification.
+    let allowed: &[&str] = match name {
+        "foldhash" => &[],
+        "allocator-api2" => &["alloc"],
+        _ => return,
+    };
+    if !features.as_array().is_some_and(|features| {
+        features.iter().all(|feature| {
+            feature
+                .as_str()
+                .is_some_and(|feature| allowed.contains(&feature))
+        })
+    }) {
+        errors.push(format!(
+            "domain development package {name} has unreviewed or missing resolved features"
+        ));
+    }
+}
+
 fn allowed_development_children(name: &str) -> &'static [&'static str] {
     match name {
         "serde_json" => &["indexmap", "itoa", "memchr", "serde", "serde_core", "zmij"],
         "indexmap" => &["equivalent", "hashbrown", "serde", "serde_core"],
+        // Wasmtime 48 requires indexmap >=2.14, which shares hashbrown 0.17
+        // features with the workspace. These reviewed edges provide allocation,
+        // hashing, equality and serialization; production Serde is unchanged.
+        "hashbrown" => &[
+            "allocator-api2",
+            "equivalent",
+            "foldhash",
+            "serde",
+            "serde_core",
+        ],
         // These are resolved leaves. Activating one of their optional dependency
         // features requires a deliberate boundary review, even via another user.
-        "itoa" | "memchr" | "zmij" | "equivalent" | "hashbrown" => &[],
+        "itoa" | "memchr" | "zmij" | "equivalent" | "allocator-api2" | "foldhash" => &[],
         _ => allowed_children(name),
     }
 }

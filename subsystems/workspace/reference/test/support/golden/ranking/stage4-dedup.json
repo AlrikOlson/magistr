@@ -1,0 +1,47 @@
+[
+  {
+    "file": "vendor/gen-a.ts",
+    "totalHits": 1,
+    "hits": []
+  },
+  {
+    "file": "src/real.ts",
+    "totalHits": 2,
+    "hits": [
+      {
+        "line": 3,
+        "excerpt": "export const GENERATED = \"needle\";",
+        "duplicates": 2
+      },
+      {
+        "line": 9,
+        "excerpt": "needle();"
+      }
+    ]
+  },
+  {
+    "file": "vendor/gen-b.ts",
+    "totalHits": 1,
+    "hits": []
+  },
+  {
+    "file": "src/pair-one.ts",
+    "totalHits": 1,
+    "hits": [
+      {
+        "line": 2,
+        "excerpt": "twice(needle);"
+      }
+    ]
+  },
+  {
+    "file": "src/pair-two.ts",
+    "totalHits": 1,
+    "hits": [
+      {
+        "line": 4,
+        "excerpt": "twice(needle);"
+      }
+    ]
+  }
+]

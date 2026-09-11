@@ -1,0 +1,69 @@
+/// workbench:tool — new namespaced MCP tools (SDD §8.2, §8.3). The seven core
+/// tools plus undo are reserved and immutable (§1.1); plugin tools register
+/// under `<publisher>.<pkg>/<toolname>` beside them.
+///
+/// Payloads are envelope-versioned JSON STRINGS, deliberately: the JSON
+/// Schemas under schemas/ are the ONE source of truth for request and
+/// envelope shape (SDD §4.2), and re-modeling them as WIT types would freeze
+/// a second copy of the highest-risk contract (§14). WIT carries the
+/// transport; the schemas carry the shape. The host wraps every tool result
+/// in the standard ResponseEnvelope — budget accounting, truncation manifest,
+/// and the §7.1 redaction pass included — so the agent-facing contract stays
+/// uniform no matter who wrote the tool.
+///
+/// Vocabulary provenance (the §6.4 re-export):
+///   host.search / host.read <-> the same runSearch/runRead the MCP surface
+///                               and the script guest's workspace global use
+///                               (SDD §9.7) — live, jail-checked (§7.1)
+///   host.queue-write        <-> script's queued-mutation lane: writes only
+///                               QUEUE here and resolve through the §7.5
+///                               write-engine choke point behind the §9.4
+///                               confirm gate
+///
+/// Evolution: additive within a major, per-interface stamp. See wit/README.md;
+/// enforced by crates/workbench-core/tests/wit_contracts.rs against
+/// wit/baseline.json.
+package workbench:tool@0.1.0;
+
+/// Capabilities the host grants a tool plugin. Every import must be covered
+/// by an install-time grant (default deny, SDD §8.1); the grant vocabulary is
+/// the capability manifest's (chunk m4-capability-manifests).
+interface host {
+  /// Live workspace search. `request-json` / return: the search tool's
+  /// envelope-versioned request and ResponseEnvelope JSON (schemas/tools/).
+  search: func(request-json: string) -> string;
+
+  /// Live workspace read behind the §7.1 jail. Same JSON contract as the
+  /// read tool.
+  read: func(request-json: string) -> string;
+
+  /// Queue one write operation (the script tool's edit.queue/files.queue
+  /// vocabulary as JSON). Nothing applies here: queued writes resolve through
+  /// the §7.5 choke point and are confirm-gated per §9.4.
+  queue-write: func(op-json: string);
+}
+
+interface guest {
+  /// One tool this plugin offers. The host registers it under the mandatory
+  /// `<publisher>.<pkg>/<name>` namespace — `name` is the last segment only.
+  record tool-descriptor {
+    name: string,
+    description: string,
+    /// JSON Schema for the tool's input, as JSON text (SDD §4.2 one source
+    /// of truth: schemas are data, not WIT types).
+    input-schema-json: string,
+  }
+
+  list-tools: func() -> list<tool-descriptor>;
+
+  /// Invoke one tool by its unqualified `name` with JSON arguments. Ok is the
+  /// tool's raw result JSON, which the host seals into a ResponseEnvelope
+  /// (redaction included); Err is a message the host wraps as a typed
+  /// PLUGIN_CRASHED-class failure — a plugin never authors envelopes.
+  invoke: func(name: string, args-json: string) -> result<string, string>;
+}
+
+world tool-provider {
+  import host;
+  export guest;
+}

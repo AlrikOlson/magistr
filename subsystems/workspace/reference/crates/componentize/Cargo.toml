@@ -1,0 +1,17 @@
+# First-party componentizer (chunk:m5-lsp-resolver-plugin, research D-b1):
+# wraps the wit-component CRATE (what the wasm-tools CLI uses internally) so
+# guest components build without any globally installed CLI toolchain. The
+# wit-component line is kept on the same release train as the wit-parser
+# dev-dependency in workbench-core.
+
+[package]
+name = "componentize"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow = "1"
+wit-component = "0.257"

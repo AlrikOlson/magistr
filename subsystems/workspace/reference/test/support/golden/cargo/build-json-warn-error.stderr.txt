@@ -1,0 +1,2 @@
+   Compiling gamma v0.1.0 (/ws\probe\crates\gamma)
+error: could not compile `gamma` (lib) due to 2 previous errors

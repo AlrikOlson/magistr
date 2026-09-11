@@ -1,0 +1,21 @@
+{
+  "kind": "diagnostics",
+  "command": "c",
+  "resolvedLine": "cargo clippy -p alpha",
+  "extractor": "cargo",
+  "exitCode": 0,
+  "timedOut": false,
+  "durationMs": 7,
+  "diagnostics": [
+    {
+      "level": "warning",
+      "code": "unused_variables",
+      "message": "unused variable: `y`",
+      "file": "crates/alpha/src/lib.rs",
+      "line": 2,
+      "column": 42,
+      "detail": "  |\n2 | pub fn unused_thing(x: i32) -> i32 { let y = x; x }\n  |                                          ^ help: if this is intentional, prefix it with an underscore: `_y`\n  |\n  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default"
+    }
+  ],
+  "summary": "1 warning"
+}

@@ -1,0 +1,25 @@
+# The bundled go runner adapter (chunk:m5-runner-adapter): the first
+# first-party runner on the public workbench:runner@0.1.0 interface — the
+# same interface a third-party adapter would ship against. Declares ZERO
+# capabilities: a runner adapter is a pure function from captured output to
+# structured failures, so the sandbox's default-deny has nothing to grant.
+
+[plugin]
+publisher = "workbench"
+pkg = "runner-go"
+version = "0.1.0"
+
+[component]
+path = "guest.wasm"
+
+# The runner surface is the typed workbench:runner/runner@0.1.0 export,
+# consumed by the host's runner lane. This tool rides the standard
+# (string) -> string invoke convention so the plugin is TCK-conformant
+# unmodified and inspectable like any other plugin.
+[[tools]]
+name = "status"
+description = "Reports the runner adapter's identity and surface"
+
+[limits]
+fuel = 200000000
+memory_bytes = 33554432

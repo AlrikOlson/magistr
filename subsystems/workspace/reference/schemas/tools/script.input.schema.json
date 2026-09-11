@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/script.input.schema.json",
+  "title": "script",
+  "description": "Typed Code Mode for the long tail — replaces ad-hoc bash pipelines (SDD 9.7). The source runs as a JavaScript function body in a QuickJS-ng-on-WASM guest under the Wasmtime host (SDD 8.1): fuel-metered, memory-capped, no ambient filesystem, network, or shell. The one global is `workspace`: search(args) and read(args) answer the same envelopes as the tools, glob(pattern) lists matching workspace paths — all live and jail-checked — while workspace.edit.queue({file, old, new, occurrence?}) and workspace.files.queue({op: create|mkdir|delete, ...}) only QUEUE writes. Use `return` for the script's JSON-serializable result value. Queued writes resolve through the 7.5 write engine and are ALWAYS confirm-gated: dryRun:true (the default) returns the value plus every dry-run diff and never applies; dryRun:false answers CONFIRM_REQUIRED with a confirmToken, and re-invoking the identical call with confirm applies. Abuse dies typed: SANDBOX_FUEL_EXCEEDED, SANDBOX_MEMORY_EXCEEDED, SANDBOX_CAP_DENIED.",
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "JavaScript (QuickJS) function body. `workspace` is in scope; `return` a JSON-serializable value. A thrown error comes back as data (status \"threw\"), not a tool failure."
+    },
+    "dryRun": {
+      "type": "boolean",
+      "default": true,
+      "description": "true (default): queued writes are previewed as dry-run diffs and never applied. false: applying requires the confirm-token flow (or MRTR elicitation in-call)."
+    },
+    "confirm": {
+      "type": "string",
+      "description": "The confirmToken from a prior CONFIRM_REQUIRED answer for this exact call (SDD 9.4). The script re-runs deterministically; matching aggregate hashes apply the queue, a changed workspace answers STALE_ANCHOR, a forged or mismatched token CONFIRM_MISMATCH."
+    },
+    "autoApply": {
+      "type": "boolean",
+      "default": false,
+      "description": "Trusted-harness bypass of the confirm gate (SDD 9.4). Prefer the confirm-token flow."
+    },
+    "fuel": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "CPU budget per guest round. Clamps DOWNWARD from the server default — a request can narrow the sandbox, never widen it."
+    },
+    "memoryCapBytes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Guest linear-memory cap in bytes. Clamps DOWNWARD from the server default (256MB)."
+    },
+    "budget": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 4000,
+      "description": "Token budget for the response envelope."
+    }
+  },
+  "required": ["source"],
+  "x-workbench-owned-by": "chunk:m4-script-sandbox",
+  "x-workbench-status": "normative"
+}

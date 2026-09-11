@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/edit.input.schema.json",
+  "title": "edit",
+  "description": "Verified structural editing — replaces sed, awk and patch (SDD 9.4). Symbol verbs (replace_body | insert_after | insert_before | rename) address code via the Tier-1 index; rewrite applies an ast-grep pattern across a glob scope; replace_text is the anchored literal fallback for any file. Every verb resolves to a full-content write batch through the 7.5 write engine: dry-run diff, parse-verify (a new syntax error rejects the whole call with PARSE_REJECTED), format, journal, atomic swap. Single-file symbol/text edits auto-apply; rewrite, rename, and any op touching more than one file or more than 200 changed lines are confirm-gated (SDD 9.4): on MRTR clients the confirmation is elicited inside the same call, otherwise CONFIRM_REQUIRED carries the aggregated dry-run diff plus an HMAC-sealed confirmToken — re-invoke the identical call with confirm set to that token to apply. A stale confirm fails closed with STALE_ANCHOR, a forged or mismatched one with CONFIRM_MISMATCH. read's contentHash is the staleness anchor: pass it as expectedHash and a changed file answers STALE_ANCHOR with the fresh hash.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m2-mrtr-confirm",
+  "type": "object",
+  "required": ["op"],
+  "properties": {
+    "op": {
+      "enum": [
+        "replace_body",
+        "insert_after",
+        "insert_before",
+        "rename",
+        "rewrite",
+        "replace_text"
+      ],
+      "description": "replace_body: replace the addressed symbol's whole definition with `content`. insert_after / insert_before: insert `content` after/before the symbol's extent. rename: rename the symbol to `newName` across the definition file and every index-known reference file (word-boundary, name-resolution-free). rewrite: apply `pattern` -> `rewritePattern` (ast-grep, $VAR metavariables) across `path`. replace_text: replace `old` with `new` in `file` (literal; `occurrence` picks one match, absent replaces all)."
+    },
+    "file": {
+      "type": "string",
+      "description": "Workspace-relative target file. Required for symbol verbs and replace_text."
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Symbol address within `file`, e.g. UserService.authenticate or Rust's Config::load — same dialect as read, both separators. Requires the Tier-1 index (INDEX_UNAVAILABLE until warm); ambiguity answers AMBIGUOUS_SYMBOL with candidates naming the type (and trait, for a Rust trait impl)."
+    },
+    "content": {
+      "type": "string",
+      "description": "The replacement or inserted source text (replace_body, insert_after, insert_before)."
+    },
+    "newName": {
+      "type": "string",
+      "description": "rename only: the new identifier."
+    },
+    "pattern": {
+      "type": "string",
+      "description": "rewrite only: the ast-grep match pattern ($VAR metavariables). Structural on the native core; degraded lanes apply it literally and say so."
+    },
+    "rewritePattern": {
+      "type": "string",
+      "description": "rewrite only: the replacement pattern ($VAR metavariables carry over)."
+    },
+    "path": {
+      "type": "string",
+      "description": "rewrite only: glob scope over workspace-relative paths, e.g. src/**. Defaults to the whole workspace (vendor/junk excluded)."
+    },
+    "lang": {
+      "type": "string",
+      "description": "rewrite only: restrict to one language by extension family, e.g. ts, python, rust. An unknown value is treated as a literal file extension."
+    },
+    "old": {
+      "type": "string",
+      "description": "replace_text only: the exact literal text to replace. Not found (or occurrence out of range) answers STALE_ANCHOR with the fresh contentHash — re-read and re-anchor."
+    },
+    "new": {
+      "type": "string",
+      "description": "replace_text only: the replacement text (empty string deletes the match)."
+    },
+    "occurrence": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "replace_text only: 1-based match to replace. Absent replaces every occurrence."
+    },
+    "expectedHash": {
+      "type": "string",
+      "description": "read's contentHash for `file`. A mismatch with the file's current content answers STALE_ANCHOR carrying the fresh hash (SDD 9.3/7.7)."
+    },
+    "dryRun": {
+      "type": "boolean",
+      "default": false,
+      "description": "Run the full pipeline through re-verify and return the diffs, touching nothing."
+    },
+    "confirm": {
+      "type": "string",
+      "description": "The confirmToken from a prior CONFIRM_REQUIRED answer for this exact call (SDD 9.4). Verified statelessly against the per-workspace key: valid and current applies; files moved under the confirmed diff answers STALE_ANCHOR; a forged token or changed arguments answers CONFIRM_MISMATCH."
+    },
+    "autoApply": {
+      "type": "boolean",
+      "default": false,
+      "description": "Trusted-harness bypass of the confirm gate for multi-file / large ops (SDD 9.4). Prefer the confirm-token flow; autoApply skips the human-approvable diff entirely."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 4000 }
+  }
+}

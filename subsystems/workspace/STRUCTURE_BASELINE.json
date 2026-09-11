@@ -1,0 +1,168 @@
+{
+	"version": 1,
+	"upstream_revision": "2a2430bbcd5dcbed00920f92c6f3e6928f387d95",
+	"files": {
+		"crates/magistr-workspace/src/engine.rs": {
+			"public_items": 11,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 62
+		},
+		"crates/magistr-workspace/src/indexer.rs": {
+			"public_items": 7,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 93
+		},
+		"crates/magistr-workspace/src/lang_registry.rs": {
+			"public_items": 10,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 128
+		},
+		"crates/magistr-workspace/src/langs.rs": {
+			"public_items": 3,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 23
+		},
+		"crates/magistr-workspace/src/lib.rs": {
+			"public_items": 1,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 0
+		},
+		"crates/magistr-workspace/src/sandbox.rs": {
+			"public_items": 44,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 139
+		},
+		"crates/magistr-workspace/tests/lang_pack_hot_path.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 43
+		},
+		"crates/magistr-workspace/tests/wit_contracts.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 107
+		},
+		"subsystems/workspace/reference/crates/componentize/src/main.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 20
+		},
+		"subsystems/workspace/reference/crates/workbench-core/build.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 3
+		},
+		"subsystems/workspace/reference/crates/workbench-core/src/bindings.rs": {
+			"public_items": 60,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 26
+		},
+		"subsystems/workspace/reference/crates/workbench-core/src/engine.rs": {
+			"public_items": 11,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 62
+		},
+		"subsystems/workspace/reference/crates/workbench-core/src/indexer.rs": {
+			"public_items": 7,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 93
+		},
+		"subsystems/workspace/reference/crates/workbench-core/src/lang_registry.rs": {
+			"public_items": 10,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 128
+		},
+		"subsystems/workspace/reference/crates/workbench-core/src/langs.rs": {
+			"public_items": 3,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 23
+		},
+		"subsystems/workspace/reference/crates/workbench-core/src/lib.rs": {
+			"public_items": 1,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 3
+		},
+		"subsystems/workspace/reference/crates/workbench-core/src/sandbox.rs": {
+			"public_items": 44,
+			"inline_test_modules": 1,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 139
+		},
+		"subsystems/workspace/reference/crates/workbench-core/tests/lang_pack_hot_path.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 43
+		},
+		"subsystems/workspace/reference/crates/workbench-core/tests/wit_contracts.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 107
+		},
+		"subsystems/workspace/reference/plugins/lang-pack-gleam/guest/src/lib.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 19
+		},
+		"subsystems/workspace/reference/plugins/lsp-resolver/guest/src/lib.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 52
+		},
+		"subsystems/workspace/reference/plugins/ranking-visibility/guest/src/lib.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 12
+		},
+		"subsystems/workspace/reference/plugins/runner-go/guest/src/lib.rs": {
+			"public_items": 0,
+			"inline_test_modules": 0,
+			"long_functions": 0,
+			"long_function_excess_lines": 0,
+			"longest_function": 43
+		}
+	},
+	"measurement_note": "Initial adoption baseline after Rust 1.95 formatting of inherited source. Original bytes and modes remain pinned in UPSTREAM_MANIFEST; formatting deltas are explicit in LOCAL_CHANGES. New files use normal limits."
+}

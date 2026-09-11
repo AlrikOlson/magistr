@@ -1,0 +1,33 @@
+warning: unused variable: `y`
+ --> crates\alpha\src\lib.rs:2:42
+  |
+2 | pub fn unused_thing(x: i32) -> i32 { let y = x; x }
+  |                                          ^ help: if this is intentional, prefix it with an underscore: `_y`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `alpha` (lib) generated 1 warning (run `cargo fix --lib -p alpha` to apply 1 suggestion)
+   Compiling gamma v0.1.0 (/ws\probe\crates\gamma)
+error[E0308]: mismatched types
+ --> crates\gamma\src\lib.rs:1:42
+  |
+1 | pub fn broken() -> i32 { let s: String = 1; s }
+  |                                 ------   ^ expected `String`, found integer
+  |                                 |
+  |                                 expected due to this
+  |
+help: try using a conversion method
+  |
+1 | pub fn broken() -> i32 { let s: String = 1.to_string(); s }
+  |                                           ++++++++++++
+
+error[E0308]: mismatched types
+ --> crates\gamma\src\lib.rs:1:45
+  |
+1 | pub fn broken() -> i32 { let s: String = 1; s }
+  |                    ---                      ^ expected `i32`, found `String`
+  |                    |
+  |                    expected `i32` because of return type
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `gamma` (lib) due to 2 previous errors

@@ -1,0 +1,18 @@
+{
+  "allFit": {
+    "keep": 3,
+    "used": 167
+  },
+  "partial": {
+    "keep": 2,
+    "used": 95
+  },
+  "firstTooBig": {
+    "keep": 0,
+    "used": 0
+  },
+  "empty": {
+    "keep": 0,
+    "used": 0
+  }
+}

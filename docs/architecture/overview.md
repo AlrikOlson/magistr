@@ -12,6 +12,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
+| `magistr-workspace` | Adopted native parsing, search/rewrite, index extraction, language registry and sandbox primitives; workspace use cases remain pending |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
@@ -35,8 +36,9 @@ effect and reconcile interrupted attempts against their authorities on recovery.
 
 The CLI's MCP service embeds the repository-local
 [think-and-ship source](../../subsystems/workflow/PROVENANCE.md). Its roadmap,
-reasoning, execution, and signal tools share native project state. Workbench is
-a separate workspace service for navigation and edits. The
+reasoning, execution, and signal tools share native project state. The current
+Workbench connection remains a separate workspace service for navigation and
+edits while its native replacement is developed. The
 [project authority](project-authority.md)
 controls cooperating MCP owners; a second process must not open an independent
 cached writer for the same project.
@@ -44,11 +46,19 @@ cached writer for the same project.
 The accepted [first-party subsystem decision](owned-subsystems.md) makes
 hard forks of think-and-ship and Workbench part of the refactor. It defines
 workflow and workspace ownership, source certification, and migration
-constraints. Workflow source belongs to the root Cargo workspace. Typed
+constraints. The accepted target is one Rust-native Magistr product. Workflow
+source and the adopted `magistr-workspace` engine belong to the root Cargo
+workspace. Typed
 reasoning, ship, roadmap, and signal use cases now own native behavior beneath
 MCP and local owner adapters; command execution and tracker probes are explicit
-async effects. Workbench adoption, workspace ownership, and source snapshots
-remain separate native roadmap chunks.
+async effects. The complete Workbench reference source, contracts and tests are
+retained with pinned provenance under `subsystems/workspace/reference`; Bun and
+NAPI are reference-only dependencies. The
+[source-to-native feature inventory](../../subsystems/workspace/FEATURE_INVENTORY.md)
+maps native workspace policy, tools, journal, transactions, worker supervision
+and extension orchestration to the remaining parity chunks. Complete tool/port
+parity, workspace ownership, source snapshots and CLI cutover remain separate
+native roadmap work.
 
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes

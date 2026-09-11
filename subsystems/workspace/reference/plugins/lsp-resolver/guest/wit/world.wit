@@ -1,0 +1,15 @@
+/// The bundled LSP resolver's own world — plugin-local vocabulary composing
+/// PUBLIC packages only (specs/001-lsp-resolver-plugin, FR-001): the resolver
+/// export surface, the subprocess capability import, and the standard
+/// `(string) -> string` root invoke so the plugin is an ordinary,
+/// TCK-conformant tool plugin as well.
+///
+/// The deps/ copies of subprocess.wit and resolver.wit must stay byte-equal
+/// to the top-level wit/ files; test/resolver-plugin.test.ts pins the drift.
+package workbench:lsp-resolver-guest@0.1.0;
+
+world lsp-resolver {
+  import workbench:subprocess/subprocess@0.2.0;
+  export workbench:resolver/resolver@0.1.0;
+  export invoke: func(payload: string) -> string;
+}

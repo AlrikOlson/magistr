@@ -1,0 +1,66 @@
+[
+  {
+    "name": "symbol tag function",
+    "class": "declaration"
+  },
+  {
+    "name": "structural call node",
+    "class": "call"
+  },
+  {
+    "name": "structural import node",
+    "class": "import"
+  },
+  {
+    "name": "structural comment node",
+    "class": "comment"
+  },
+  {
+    "name": "structural string node",
+    "class": "string"
+  },
+  {
+    "name": "references definition",
+    "class": "declaration"
+  },
+  {
+    "name": "references use falls back to excerpt",
+    "class": "call"
+  },
+  {
+    "name": "cold comment",
+    "class": "comment"
+  },
+  {
+    "name": "cold hash comment",
+    "class": "comment"
+  },
+  {
+    "name": "cold import",
+    "class": "import"
+  },
+  {
+    "name": "cold rust use",
+    "class": "import"
+  },
+  {
+    "name": "cold fn declaration",
+    "class": "declaration"
+  },
+  {
+    "name": "cold const declaration",
+    "class": "declaration"
+  },
+  {
+    "name": "cold string span",
+    "class": "string"
+  },
+  {
+    "name": "cold call",
+    "class": "call"
+  },
+  {
+    "name": "cold bare mention",
+    "class": "other"
+  }
+]

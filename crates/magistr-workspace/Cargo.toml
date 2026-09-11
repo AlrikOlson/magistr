@@ -1,0 +1,63 @@
+[package]
+name = "magistr-workspace"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = ["sandbox", "lang-pack"]
+# Wasmtime extension host (SDD §8.1). Native builds only: wasmtime cannot
+# target wasm32, so the wasip1 fallback build passes --no-default-features
+# and that lane honestly lacks the extension host (§6.2 degradation).
+sandbox = ["dep:wasmtime", "dep:wasmtime-wasi"]
+# Dynamic language registry for WASM lang packs (SDD §8.3, feature 002).
+# Native builds only, like `sandbox`: tree-sitter's wasm feature pins its own
+# wasmtime major (36 via wasmtime-c-api-impl) which coexists with the sandbox
+# host's 48 as distinct crates — the accepted double-compile cost is recorded
+# in specs/002-wasm-lang-pack/research.md R2. tree-sitter-gleam is the native
+# promotion lane for the first-party pack (research R5).
+lang-pack = ["tree-sitter/wasm", "dep:tree-sitter-gleam", "dep:streaming-iterator"]
+[dependencies]
+tree-sitter = "0.26.12"
+tree-sitter-language = "0.1.7"
+tree-sitter-bash = "0.25.1"
+tree-sitter-c = "0.24.2"
+tree-sitter-c-sharp = "0.23.5"
+tree-sitter-cpp = "0.23.4"
+tree-sitter-go = "0.25.0"
+tree-sitter-java = "0.23.5"
+tree-sitter-javascript = "0.25.0"
+tree-sitter-json = "0.24.8"
+tree-sitter-python = "0.25.0"
+tree-sitter-ruby = "0.23.1"
+tree-sitter-rust = "0.24.2"
+tree-sitter-typescript = "0.23.2"
+tree-sitter-gleam = { version = "1.0.0", optional = true }
+streaming-iterator = { version = "0.1.9", optional = true }
+
+grep = "0.4.1"
+ignore = "0.4.23"
+ast-grep-core = "0.45.1"
+thiserror = "2"
+
+wasmtime = { version = "48.0.0", optional = true }
+wasmtime-wasi = { version = "48.0.0", optional = true }
+
+[dev-dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+wit-parser = "0.257.1"
+
+# specs/007-resolver-server-pool research R5: OS-level kill-on-parent-death for
+# pooled language-server processes. Both crates are already in Cargo.lock
+# (transitively); these are new direct, target-scoped edges, not new crates.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"

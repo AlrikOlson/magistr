@@ -9,6 +9,12 @@ the other components.
 
 Use Rust 1.95 or later. The root `Cargo.lock` pins the release dependencies.
 The documentation website has its own package manifest under `apps/website`.
+The native `magistr-workspace` library participates in the root Rust gates.
+Its pinned Workbench compatibility reference also requires Bun 1.4.1 or later
+and Rust 1.95.0 for `workspace-reference`; see the
+[workspace provenance](../subsystems/workspace/PROVENANCE.md) for the separate
+native and reference matrices. Reference tests create disposable workspaces.
+They do not start an owner over this checkout.
 
 The standard Rust checks run from the workspace root:
 

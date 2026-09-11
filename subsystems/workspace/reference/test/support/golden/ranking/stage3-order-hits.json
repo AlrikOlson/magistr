@@ -1,0 +1,28 @@
+[
+  {
+    "line": 5,
+    "kindClass": "declaration"
+  },
+  {
+    "line": 8,
+    "kindClass": "call"
+  },
+  {
+    "line": 9,
+    "kindClass": "call",
+    "confidence": "high"
+  },
+  {
+    "line": 1,
+    "kindClass": "other"
+  },
+  {
+    "line": 2,
+    "kindClass": "comment"
+  },
+  {
+    "line": 3,
+    "kindClass": "call",
+    "confidence": "low"
+  }
+]

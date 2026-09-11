@@ -1,0 +1,9 @@
+[
+  "test/def-here.test.ts",
+  "src/refs-high.ts",
+  "src/refs-low.ts",
+  "src/needle/core.ts",
+  "src/deep/nested/mention.ts",
+  "test/needle.test.ts",
+  "vendor/lock.json"
+]

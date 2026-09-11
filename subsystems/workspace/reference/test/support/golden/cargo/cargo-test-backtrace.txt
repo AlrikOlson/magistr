@@ -1,0 +1,43 @@
+warning: unused variable: `y`
+ --> crates\alpha\src\lib.rs:2:42
+  |
+2 | pub fn unused_thing(x: i32) -> i32 { let y = x; x }
+  |                                          ^ help: if this is intentional, prefix it with an underscore: `_y`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `alpha` (lib test) generated 1 warning (run `cargo fix --lib -p alpha --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src\lib.rs (target\debug\deps\alpha-25eaadcfe0062c04.exe)
+
+running 1 test
+test tests::fails_panic ... FAILED
+
+failures:
+
+---- tests::fails_panic stdout ----
+
+thread 'tests::fails_panic' (43176) panicked at crates\alpha\src\lib.rs:11:24:
+boom 42
+stack backtrace:
+   0: std::panicking::panic_handler
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library\std\src\panicking.rs:689
+   1: core::panicking::panic_fmt
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library\core\src\panicking.rs:80
+   2: alpha::tests::fails_panic
+             at .\src\lib.rs:11
+   3: alpha::tests::fails_panic::closure$0
+             at .\src\lib.rs:11
+   4: core::ops::function::FnOnce::call_once<alpha::tests::fails_panic::closure_env$0,tuple$<> >
+             at \home\dev\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\src\rust\library\core\src\ops\function.rs:250
+   5: core::ops::function::FnOnce::call_once
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library\core\src\ops\function.rs:250
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+failures:
+    tests::fails_panic
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p alpha --lib`
