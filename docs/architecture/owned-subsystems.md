@@ -178,10 +178,15 @@ private key, the sole journal writer with SQLite's applied mode read back,
 the supervised worker, the derived index, the extension lanes, the
 owned-process executor and the flight recorder — behind typed methods that
 append the workspace's deterministic notes to every answer. Admission is an
-OS-held exclusive lock on `.workbench/server.lock`: no pid is read, no age is
-judged, nothing is stolen and no holder is signalled, so a crashed owner
-releases on exit and a live one is refused (exit 75). This is single-owner
-admission for one process; the multi-client owner protocol of
+OS-held exclusive lock on an atomically published, immutable native marker in
+`.workbench/server.lock`. The retained legacy server refuses its foreign-host
+JSON marker; native admission refuses legacy, empty or malformed records
+untouched. No pid is ownership evidence, no age is judged, nothing is stolen
+and no holder is signalled. A crash releases the OS lock, and each successful
+admission durably advances `.workbench/server.generation` before stores open.
+Missing, corrupt or exhausted generation state fails closed. Existing legacy
+or c10 empty locks require [offline migration](../../subsystems/workspace/PROVENANCE.md#offline-migration).
+This is single-owner admission; the multi-client owner protocol of
 `arch-14d-workspace-owner` layers on top of it and is not claimed here.
 
 `magistr workspace serve <root>` is the thin rmcp adapter over that service:
@@ -192,9 +197,15 @@ negotiation and session identity from `_meta`, MRTR form elicitation with
 the token fallback honoring `edit.confirm_mode`, the request's cancellation
 token into search and run, the `index/build` task over SEP-2663 `tasks/get`
 and the retained `tasks/list`, one trace span per call and namespaced plugin
-tools after the core names. The empty session is the retained anonymous
-identity. Production consumers still reach the workspace through the legacy
-server until owner cutover; `magistr mcp-serve` is unchanged.
+tools after the core names. Each connection receives a nonempty random default
+session; valid explicit metadata preserves durable identity across connections.
+Native mutation and session-journal APIs require a `WorkspaceSession` admitted
+for the canonical root and current generation. Re-admitting the same identity
+preserves undo history. `mgw2` confirmations bind that generation and reject
+previous-owner previews, including all `wb1` and `mgw1` tokens. This local
+identity boundary is not peer authentication. Production consumers still reach
+the workspace through the legacy server until owner cutover;
+`magistr mcp-serve` is unchanged.
 
 Beside the MCP host, `magistr workspace doctor [bundle|config]`, `journal`,
 `key rotate` and `init` are the CLI host over the same native diagnostics:

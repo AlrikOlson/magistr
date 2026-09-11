@@ -12,7 +12,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
-| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, and native edit/files/undo commands over them; served tool rows and ownership remain pending |
+| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, and generation-fenced single-owner admission with explicit sessions; multi-client ownership remains pending |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
@@ -56,12 +56,12 @@ retained with pinned provenance under `subsystems/workspace/reference`; Bun and
 NAPI are reference-only dependencies. The
 [source-to-native feature inventory](../../subsystems/workspace/FEATURE_INVENTORY.md)
 maps the delivered native policy, worker, index, source-query, journal,
-transaction and command boundaries alongside the remaining extension and
-orchestration chunks. The private
+transaction, extension, command and served-tool boundaries. The private
 `magistr --workspace-worker` role runs parser, grammar and sandbox operations
 under `WorkerSupervisor`; it has no workspace lock or independent service
-lifecycle. Complete tool/port parity, workspace ownership, source snapshots and
-CLI cutover remain separate native roadmap work.
+lifecycle. Admission now fences legacy/native overlap, stale sessions and
+previous-generation confirmations. Multi-client workspace ownership, source
+snapshots and production launcher cutover remain separate native roadmap work.
 
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes

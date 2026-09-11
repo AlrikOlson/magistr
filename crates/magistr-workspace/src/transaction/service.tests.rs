@@ -31,7 +31,7 @@ impl Harness {
         let key = WorkspaceKeyStore::new(root.path().join(".workbench"))
             .ensure()
             .unwrap();
-        let seal = ConfirmationSeal::new(&key);
+        let seal = ConfirmationSeal::new(&key, 1);
         Self {
             root,
             policy,

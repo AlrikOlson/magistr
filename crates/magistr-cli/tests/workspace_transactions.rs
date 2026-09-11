@@ -48,7 +48,7 @@ impl Fixture {
             policy,
             worker,
             journal,
-            seal: ConfirmationSeal::new(&key),
+            seal: ConfirmationSeal::new(&key, 1),
         }
     }
 

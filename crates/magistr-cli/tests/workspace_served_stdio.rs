@@ -14,7 +14,7 @@ use std::{
 use magistr_command::magistr_command;
 use rmcp::{
     ServiceExt,
-    model::CallToolRequestParams,
+    model::{CallToolRequestParams, RequestMetaObject},
     service::{RoleClient, RunningService},
 };
 use serde_json::{Value, json};
@@ -196,4 +196,147 @@ fn a_second_instance_is_refused_with_exit_75_while_the_first_owns_the_workspace(
         lock.is_file(),
         "the lock file stays; the OS lock is what released"
     );
+}
+
+/// Reusing the explicit identity after a crash isolates owner-generation
+/// fencing from the fresh fallback identity each MCP connection receives.
+async fn session_call(
+    client: &RunningService<RoleClient, ()>,
+    name: &'static str,
+    args: Value,
+) -> Value {
+    let mut request = CallToolRequestParams::new(name);
+    request.arguments = args.as_object().cloned();
+    let mut meta = RequestMetaObject::new();
+    meta.insert("workbench/sessionId".into(), json!("process-crash-session"));
+    request.meta = Some(meta);
+    tokio::time::timeout(Duration::from_secs(30), client.peer().call_tool(request))
+        .await
+        .expect("bounded tool response")
+        .expect("tool call")
+        .structured_content
+        .expect("structured envelope")
+}
+
+fn recorded_generation(root: &Path) -> u64 {
+    let bytes = std::fs::read(root.join(".workbench/server.generation"))
+        .expect("published native generation");
+    assert_eq!(bytes.len(), 20, "complete fixed-width generation");
+    String::from_utf8(bytes)
+        .expect("generation digits")
+        .parse()
+        .expect("numeric generation")
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn owner_process_crash_releases_admission_and_fences_its_confirmation_on_restart() {
+    let dir = tempfile::tempdir().expect("scratch workspace");
+    std::fs::create_dir(dir.path().join(".git")).expect("repository marker");
+    std::fs::write(dir.path().join("pending.txt"), "reviewed bytes\n").expect("source");
+    let (mut first_child, first) =
+        tokio::time::timeout(Duration::from_secs(30), served_client(dir.path()))
+            .await
+            .expect("first owner initializes");
+    let request = json!({"op": "move", "from": "pending.txt", "to": "moved.txt"});
+    let preview = session_call(&first, "files", request.clone()).await;
+    assert_eq!(preview["error"]["code"], "CONFIRM_REQUIRED", "{preview}");
+    let token = preview["error"]["confirmToken"]
+        .as_str()
+        .expect("token")
+        .to_owned();
+    let generation = recorded_generation(dir.path());
+    let state = dir.path().join(".workbench");
+    let marker = std::fs::read(state.join("server.lock")).expect("lock marker");
+    let key = std::fs::read(state.join("keys/workspace.key")).expect("workspace key");
+    let before = session_call(&first, "undo", json!({"action": "list"})).await;
+    assert_eq!(before["results"], json!([]));
+
+    // This handle belongs only to the disposable server spawned above. No
+    // lock record supplies a pid, and no active development owner is signalled.
+    first_child
+        .start_kill()
+        .expect("crash the owned scratch child");
+    let crashed = tokio::time::timeout(Duration::from_secs(30), first_child.wait())
+        .await
+        .expect("crashed child exits")
+        .expect("reap crashed child");
+    assert!(!crashed.success(), "the owner did not shut down gracefully");
+    let _ = tokio::time::timeout(Duration::from_secs(5), first.cancel()).await;
+
+    let (mut replacement_child, replacement) =
+        tokio::time::timeout(Duration::from_secs(30), served_client(dir.path()))
+            .await
+            .expect("replacement acquires the released OS lock and initializes");
+    assert_eq!(recorded_generation(dir.path()), generation + 1);
+    assert_eq!(
+        std::fs::read(state.join("server.lock")).expect("same marker"),
+        marker
+    );
+    assert_eq!(
+        std::fs::read(state.join("keys/workspace.key")).expect("same key"),
+        key
+    );
+    let mut confirmed = request.clone();
+    confirmed["confirm"] = json!(token);
+    let refused = session_call(&replacement, "files", confirmed).await;
+    assert_eq!(refused["error"]["code"], "CONFIRM_MISMATCH", "{refused}");
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("pending.txt")).expect("unchanged source"),
+        "reviewed bytes\n"
+    );
+    assert!(!dir.path().join("moved.txt").exists());
+    let after = session_call(&replacement, "undo", json!({"action": "list"})).await;
+    assert_eq!(
+        after["results"], before["results"],
+        "stale approval writes no journal row"
+    );
+
+    let fresh = session_call(&replacement, "files", request.clone()).await;
+    assert_eq!(fresh["error"]["code"], "CONFIRM_REQUIRED", "{fresh}");
+    assert_ne!(fresh["error"]["confirmToken"], json!(token));
+    let mut confirmed = request;
+    confirmed["confirm"] = fresh["error"]["confirmToken"].clone();
+    let applied = session_call(&replacement, "files", confirmed).await;
+    assert_eq!(applied["ok"], true, "{applied}");
+    assert!(!dir.path().join("pending.txt").exists());
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("moved.txt")).expect("approved bytes"),
+        "reviewed bytes\n"
+    );
+    replacement
+        .cancel()
+        .await
+        .expect("replacement client closes");
+    let status = tokio::time::timeout(Duration::from_secs(30), replacement_child.wait())
+        .await
+        .expect("replacement shuts down")
+        .expect("reap replacement");
+    assert!(status.success(), "{status}");
+}
+
+#[test]
+fn legacy_lock_refusal_preserves_the_record_and_never_opens_workspace_stores() {
+    let dir = workspace();
+    let state = dir.path().join(".workbench");
+    std::fs::create_dir(&state).expect("state");
+    // The legacy owner takes no OS lock. Its pid can be live or dead:
+    // neither grants a native process permission to migrate its record.
+    let bytes = format!(r#"{{"pid":{},"host":"legacy-host"}}"#, std::process::id());
+    std::fs::write(state.join("server.lock"), &bytes).expect("legacy owner");
+    let result = served(dir.path())
+        .stdin(Stdio::null())
+        .output()
+        .expect("native contender");
+    assert_eq!(result.status.code(), Some(75));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("migration"));
+    assert_eq!(
+        std::fs::read_to_string(state.join("server.lock")).expect("preserved"),
+        bytes
+    );
+    for forbidden in ["journal.db", "index.db", "keys"] {
+        assert!(
+            !state.join(forbidden).exists(),
+            "refusal opened {forbidden}"
+        );
+    }
 }

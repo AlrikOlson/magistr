@@ -4,7 +4,7 @@ use crate::jail::WorkspaceKeyStore;
 fn fixture() -> (tempfile::TempDir, WorkspaceKeyStore, ConfirmationSeal) {
     let dir = tempfile::tempdir().expect("temporary state");
     let store = WorkspaceKeyStore::new(dir.path().join("state"));
-    let seal = ConfirmationSeal::new(&store.ensure().expect("private key"));
+    let seal = ConfirmationSeal::new(&store.ensure().expect("private key"), 7);
     (dir, store, seal)
 }
 
@@ -13,12 +13,12 @@ fn roundtrip_survives_key_reload_but_not_rotation_or_foreign_workspace() {
     let (_dir, store, seal) = fixture();
     let token = seal.seal("alice", "edit", b"{\"old\":1}", b"before\0after");
     assert_eq!(token.len(), 69);
-    let loaded = ConfirmationSeal::new(&store.ensure().expect("same key"));
+    let loaded = ConfirmationSeal::new(&store.ensure().expect("same key"), 7);
     assert_eq!(
         loaded.verify(&token, "alice", "edit", b"{\"old\":1}", b"before\0after"),
         Ok(())
     );
-    let rotated = ConfirmationSeal::new(&store.rotate().expect("rotate"));
+    let rotated = ConfirmationSeal::new(&store.rotate().expect("rotate"), 7);
     assert_eq!(
         rotated.verify(&token, "alice", "edit", b"{\"old\":1}", b"before\0after"),
         Err(ConfirmationError::Mismatch)
@@ -77,17 +77,17 @@ fn field_framing_prevents_separator_and_partition_aliases() {
 fn rejects_forged_malformed_and_retained_tokens() {
     let (_dir, _store, seal) = fixture();
     let token = seal.seal("a", "edit", b"{}", b"plan");
-    for legacy in ["wb1.a.b.c", "mgw2.any", ""] {
+    for legacy in ["wb1.a.b.c", "mgw1.any", "mgw3.any", ""] {
         assert_eq!(
             seal.verify(legacy, "a", "edit", b"{}", b"plan"),
             Err(ConfirmationError::UnsupportedVersion)
         );
     }
     for malformed in [
-        "mgw1.",
-        "mgw1.x",
+        "mgw2.",
+        "mgw2.x",
         &format!("{token}.extra"),
-        &format!("mgw1.{}", "g".repeat(64)),
+        &format!("mgw2.{}", "g".repeat(64)),
     ] {
         assert_eq!(
             seal.verify(malformed, "a", "edit", b"{}", b"plan"),
@@ -106,5 +106,24 @@ fn rejects_forged_malformed_and_retained_tokens() {
             b"plan"
         )
         .is_err()
+    );
+}
+
+#[test]
+fn replacement_owner_must_not_accept_the_previous_preview() {
+    let dir = tempfile::tempdir().expect("state");
+    let lock = crate::service::ServerLock::acquire(dir.path().join("server.lock")).expect("owner");
+    let store = WorkspaceKeyStore::new(dir.path());
+    let key = store.ensure().expect("key");
+    let first = ConfirmationSeal::new(&key, lock.generation().get());
+    let preview = first.seal("alice", "edit", b"{}", b"plan");
+    drop(lock);
+    let replacement =
+        crate::service::ServerLock::acquire(dir.path().join("server.lock")).expect("new owner");
+    let second = ConfirmationSeal::new(&key, replacement.generation().get());
+    assert!(
+        second
+            .verify(&preview, "alice", "edit", b"{}", b"plan")
+            .is_err()
     );
 }

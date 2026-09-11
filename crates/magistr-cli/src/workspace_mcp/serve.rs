@@ -41,7 +41,7 @@ pub async fn run_workspace_stdio_server(root: &Path, config: &[String]) -> eyre:
         Ok(service) => Arc::new(service),
         Err(error) => fail(error.exit_code(), &error.to_string()),
     };
-    let handler = WorkspaceMcpService::new(Arc::clone(&service));
+    let handler = WorkspaceMcpService::new(Arc::clone(&service))?;
     // Capped below 2026-07-28 like `mcp-serve`: the SEP-2322 result shapes of
     // that era are what the Claude Agent SDK's bundled CLI rejects.
     let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<

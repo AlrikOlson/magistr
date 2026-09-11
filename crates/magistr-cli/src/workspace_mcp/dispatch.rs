@@ -9,7 +9,7 @@ use magistr_workspace::{
     diagnostics::{SpanOutcome, SpanStatus},
     extensions::PluginHost,
     response::{ResponseAdapter, SealedResponse},
-    service::WorkspaceService,
+    service::{WorkspaceService, WorkspaceSession},
 };
 use rmcp::{
     ErrorData,
@@ -33,6 +33,7 @@ struct Answer {
 
 pub(crate) async fn call(
     service: &WorkspaceService,
+    fallback: &WorkspaceSession,
     request: CallToolRequestParams,
     context: &RequestContext<RoleServer>,
 ) -> Result<CallToolResult, ErrorData> {
@@ -45,7 +46,7 @@ pub(crate) async fn call(
     // the params carry none by the time a handler sees them.
     let meta: &JsonObject = &context.meta;
     let args = request.arguments.unwrap_or_default();
-    let answer = dispatch(service, &name, &args, Some(meta), context).await?;
+    let answer = dispatch(service, fallback, &name, &args, Some(meta), context).await?;
     span.end(&answer.status, answer.outcome);
     // The one door to the wire: the sealed envelope is both representations.
     let mut result =
@@ -56,6 +57,7 @@ pub(crate) async fn call(
 
 async fn dispatch(
     service: &WorkspaceService,
+    fallback: &WorkspaceSession,
     name: &str,
     args: &JsonObject,
     meta: Option<&JsonObject>,
@@ -65,7 +67,17 @@ async fn dispatch(
         Ok(version) => version,
         Err(error) => return answer(service.refusal::<Value>(error), EnvelopeVersion::LATEST),
     };
-    let session = ResponseAdapter::session_meta(meta);
+    let explicit = ResponseAdapter::session_meta(meta);
+    let admitted;
+    let session = if explicit.is_empty() {
+        fallback
+    } else {
+        admitted = match service.admit_session(explicit) {
+            Ok(session) => session,
+            Err(error) => return answer(service.refusal::<Value>(error), version),
+        };
+        &admitted
+    };
     match name {
         "workbench_status" => answer(service.status(), version),
         "map" => answer(service.map(&arguments::map_input(args)?).await, version),
@@ -83,7 +95,6 @@ async fn dispatch(
                 if confirm.is_some() {
                     input.confirm = confirm;
                 }
-                let session = session.as_str();
                 async move { service.edit(&input, session).await }
             })
             .await;
@@ -96,33 +107,32 @@ async fn dispatch(
                 if confirm.is_some() {
                     input.confirm = confirm;
                 }
-                let session = session.as_str();
                 async move { service.files(&input, session).await }
             })
             .await;
             answer(response, version)
         }
         "undo" => match arguments::undo_request(args)? {
-            UndoRequest::Rewind(input) => answer(service.undo(&input, &session).await, version),
+            UndoRequest::Rewind(input) => answer(service.undo(&input, session).await, version),
             UndoRequest::List(input) => {
-                answer(service.journal_list(&input, &session).await, version)
+                answer(service.journal_list(&input, session).await, version)
             }
         },
-        "script" => script(service, args, &session, context, version).await,
+        "script" => script(service, args, session, context, version).await,
         "run" => answer(
             service
-                .run(&arguments::run_input(args)?, context.ct.clone())
+                .run(&arguments::run_input(args)?, session, context.ct.clone())
                 .await,
             version,
         ),
-        other => plugin(service, other, args, version).await,
+        other => plugin(service, other, args, session, version).await,
     }
 }
 
 async fn script(
     service: &WorkspaceService,
     args: &JsonObject,
-    session: &str,
+    session: &WorkspaceSession,
     context: &RequestContext<RoleServer>,
     version: EnvelopeVersion,
 ) -> Result<Answer, ErrorData> {
@@ -161,12 +171,13 @@ async fn plugin(
     service: &WorkspaceService,
     name: &str,
     args: &JsonObject,
+    session: &WorkspaceSession,
     version: EnvelopeVersion,
 ) -> Result<Answer, ErrorData> {
     if PluginHost::is_plugin_tool_name(name) {
         let budget = args.get("budget").and_then(Value::as_u64).unwrap_or(4000);
         if let Some(response) = service
-            .run_plugin_tool(name, &Value::Object(args.clone()), budget)
+            .run_plugin_tool(name, &Value::Object(args.clone()), budget, session)
             .await
         {
             return answer(response, version);

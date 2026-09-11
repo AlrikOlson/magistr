@@ -112,10 +112,10 @@ fn verify_confirm(presented: Option<&str>, token: &str) -> Result<bool, Workspac
         None => Ok(false),
         Some(presented) if presented == token => Ok(true),
         Some(presented) => {
-            let message = if presented.starts_with("mgw1.") {
-                "confirm: the token does not authenticate this exact session, intent and finalized plan — the confirmed files changed after it was minted, the call's arguments differ, or it was minted under another key; re-run the call without confirm to review the fresh diff and get a new token"
+            let message = if presented.starts_with("mgw2.") {
+                "confirm: the token does not authenticate this owner generation, session, intent and finalized plan — the confirmed files changed after it was minted, the call's arguments differ, or it was minted under another key; re-run the call without confirm to review the fresh diff and get a new token"
             } else {
-                "confirm: the token is not a native mgw1 confirmation (retained wb1 tokens are invalidated); re-run the call without confirm for a fresh diff and token"
+                "confirm: the token is not a native mgw2 confirmation (earlier wb1 and mgw1 tokens are invalidated); re-run the call without confirm for a fresh diff and token"
             };
             Err(WorkspaceError::new(ErrorKind::ConfirmMismatch, message))
         }
