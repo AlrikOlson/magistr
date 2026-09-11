@@ -1,0 +1,66 @@
+/// workbench:resolver — resolveReferences, rename, diagnostics: the Tier-2
+/// upgrade path (SDD §8.2, §8.3). The bundled LSP plugin is the first
+/// first-party consumer; any crash or timeout circuit-breakers the plugin and
+/// everything continues at tree-sitter fidelity.
+///
+/// Vocabulary provenance (the §6.4 re-export):
+///   source-location    <-> SourceLocation (src/ports/types.ts), 1-based
+///   resolve-references <-> ResolverPort.resolve kind "references"
+///                          (src/ports/resolver.ts) — the internal port is
+///                          deliberately narrower in v1 (symbolic resolve
+///                          only) and grows INTO this surface via a
+///                          PORT_VERSIONS bump when the LSP plugin lands (M5)
+///   rename             <-> edit's rename verb vocabulary (SDD §9.4)
+///   diagnostics        <-> the write engine's report-new-diagnostics step
+///                          (SDD §7.5)
+///
+/// Evolution: additive within a major, per-interface stamp. See wit/README.md;
+/// enforced by crates/workbench-core/tests/wit_contracts.rs against
+/// wit/baseline.json.
+package workbench:resolver@0.1.0;
+
+interface resolver {
+  /// Mirrors SourceLocation (src/ports/types.ts). Lines and columns 1-based.
+  record source-location {
+    /// Workspace-relative path.
+    path: string,
+    line: u32,
+    column: u32,
+  }
+
+  /// One textual replacement produced by a rename.
+  record rename-edit {
+    location: source-location,
+    /// The identifier text to substitute at the location.
+    new-text: string,
+  }
+
+  enum severity {
+    error,
+    warning,
+    info,
+    hint,
+  }
+
+  record diagnostic {
+    location: source-location,
+    message: string,
+    severity: severity,
+  }
+
+  /// All reference sites of a symbol, by name. Resolution precision beyond
+  /// tree-sitter fidelity is exactly what this interface exists to add.
+  resolve-references: func(symbol: string) -> list<source-location>;
+
+  /// The edits a rename requires. The HOST applies them through the §7.5
+  /// write-engine choke point behind the §9.4 confirm gate — a resolver
+  /// proposes text, it never touches the filesystem.
+  rename: func(symbol: string, new-name: string) -> list<rename-edit>;
+
+  /// Diagnostics for one workspace-relative file.
+  diagnostics: func(path: string) -> list<diagnostic>;
+}
+
+world resolver-provider {
+  export resolver;
+}

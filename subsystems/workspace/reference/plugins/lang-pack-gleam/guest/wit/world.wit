@@ -1,0 +1,13 @@
+/// The bundled gleam lang pack's world (chunk:m5-lang-pack): the public
+/// lang-pack surface plus the standard `(string) -> string` root invoke so
+/// the plugin is TCK-conformant unmodified. Zero imports — a lang pack is a
+/// carrier of pure data (grammar bytes, tag queries, a path heuristic).
+///
+/// The deps/ copy of lang-pack.wit must stay byte-equal to the top-level
+/// wit/ file; test/lang-pack.test.ts pins the drift.
+package workbench:lang-pack-gleam-guest@0.1.0;
+
+world lang-pack-gleam {
+  export workbench:lang-pack/lang-pack@0.1.0;
+  export invoke: func(payload: string) -> string;
+}

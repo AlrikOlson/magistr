@@ -1,0 +1,10 @@
+warning: unused variable: `y`
+ --> crates\alpha\src\lib.rs:2:42
+  |
+2 | pub fn unused_thing(x: i32) -> i32 { let y = x; x }
+  |                                          ^ help: if this is intentional, prefix it with an underscore: `_y`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `alpha` (lib) generated 1 warning (run `cargo clippy --fix --lib -p alpha -- ` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s

@@ -1,0 +1,102 @@
+warning: unused variable: `y`
+ --> crates\alpha\src\lib.rs:2:42
+  |
+2 | pub fn unused_thing(x: i32) -> i32 { let y = x; x }
+  |                                          ^ help: if this is intentional, prefix it with an underscore: `_y`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `alpha` (lib) generated 1 warning (run `cargo fix --lib -p alpha` to apply 1 suggestion)
+warning: `alpha` (lib test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+────────────
+ Nextest run ID 2f2a19cf-4ae6-43da-88cf-61362b34b315 with nextest profile: default
+    Starting 6 tests across 3 binaries
+        FAIL [   0.008s] (1/6) alpha tests::fails_eq
+  stdout ───
+
+    running 1 test
+    test tests::fails_eq ... FAILED
+
+    failures:
+
+    failures:
+        tests::fails_eq
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::fails_eq' (25036) panicked at crates\alpha\src\lib.rs:9:21:
+    assertion `left == right` failed: math is hard
+      left: 3
+     right: 4
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 5 tests still running
+        FAIL [   0.011s] (2/6) beta::integration integration_fails
+  stdout ───
+
+    running 1 test
+    test integration_fails ... FAILED
+
+    failures:
+
+    failures:
+        integration_fails
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'integration_fails' (41284) panicked at crates\beta\tests\integration.rs:2:61:
+    index out of bounds: the len is 0 but the index is 0
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.014s] (3/6) alpha tests::fails_panic
+  stdout ───
+
+    running 1 test
+    test tests::fails_panic ... FAILED
+
+    failures:
+
+    failures:
+        tests::fails_panic
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::fails_panic' (1224) panicked at crates\alpha\src\lib.rs:11:24:
+    boom 42
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.017s] (4/6) alpha tests::fails_assert
+  stdout ───
+
+    running 1 test
+    test tests::fails_assert ... FAILED
+
+    failures:
+
+    failures:
+        tests::fails_assert
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::fails_assert' (47600) panicked at crates\alpha\src\lib.rs:13:25:
+    assertion failed: add(1, 1) == 3
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.020s] (5/6) beta::integration integration_ok
+        PASS [   0.023s] (6/6) alpha tests::adds
+────────────
+     Summary [   0.024s] 6 tests run: 2 passed, 4 failed, 0 skipped
+        FAIL [   0.008s] (1/6) alpha tests::fails_eq
+        FAIL [   0.011s] (2/6) beta::integration integration_fails
+        FAIL [   0.014s] (3/6) alpha tests::fails_panic
+        FAIL [   0.017s] (4/6) alpha tests::fails_assert
+error: test run failed

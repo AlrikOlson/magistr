@@ -1,0 +1,63 @@
+/// workbench:ranking — feature contributions to the ranking scorer (SDD §8.2,
+/// §7.4). The tightest leash: plugins contribute FEATURES into stage 5's
+/// scorer, never final orderings; the combining model is first-party, always.
+/// A newly installed signal runs in shadow mode — logged, not applied — until
+/// the user promotes it, and registry admission requires submitted
+/// eval-harness numbers (no number, no merge).
+///
+/// Vocabulary provenance (the §6.4 re-export):
+///   kind-class  <-> KindClass (src/tools/ranking.ts) — stage-1 classes;
+///                   %import and %string are WIT keyword escapes, the case
+///                   names are literally "import" and "string"
+///   file-class  <-> FileClass (src/tools/ranking.ts) — stage-2 classes
+///   hit-context <-> the per-hit facts the stage-5 scorer already sees
+///                   (SearchHit + its file group's class)
+///
+/// Evolution: additive within a major, per-interface stamp. See wit/README.md;
+/// enforced by crates/workbench-core/tests/wit_contracts.rs against
+/// wit/baseline.json.
+package workbench:ranking@0.1.0;
+
+interface ranking {
+  /// Stage-1 kind classes — mirrors KindClass in src/tools/ranking.ts.
+  enum kind-class {
+    declaration,
+    call,
+    %import,
+    comment,
+    %string,
+    other,
+  }
+
+  /// Stage-2 file classes — mirrors FileClass in src/tools/ranking.ts.
+  enum file-class {
+    source,
+    test,
+    vendor,
+  }
+
+  /// The facts the first-party scorer already has for one hit.
+  record hit-context {
+    /// Workspace-relative path of the hit's file group.
+    file: string,
+    /// 1-based, like SourceLocation (src/ports/types.ts).
+    line: u32,
+    column: u32,
+    excerpt: string,
+    kind-class: kind-class,
+    file-class: file-class,
+  }
+
+  /// One named feature value for the stage-5 scorer. The first-party
+  /// combiner decides its weight; a plugin never sets a final score.
+  record feature {
+    name: string,
+    value: f64,
+  }
+
+  contribute: func(hit: hit-context) -> list<feature>;
+}
+
+world ranking-provider {
+  export ranking;
+}

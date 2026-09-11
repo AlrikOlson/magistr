@@ -1,0 +1,32 @@
+{
+  "schema": "workbench-bench/1",
+  "script": "bench-ipc",
+  "profile": "ipc",
+  "recordedAt": "2026-08-24T04:46:44.542Z",
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 7950X3D 16-Core Processor",
+    "cores": 32,
+    "memoryGb": 63.1,
+    "bun": "1.4.0",
+    "coreFlavor": "stub",
+    "workbenchCommit": "e00443b38f7cabb04ddb85618b6524bf7812e39a"
+  },
+  "measurements": {
+    "pings": 2000,
+    "p50Ms": 0.0318,
+    "p95Ms": 0.0563,
+    "p99Ms": 0.0758,
+    "maxMs": 1.4433
+  },
+  "gates": [
+    {
+      "name": "ipc_p95",
+      "value": 0.0563,
+      "limit": 1,
+      "unit": "ms",
+      "pass": true
+    }
+  ]
+}

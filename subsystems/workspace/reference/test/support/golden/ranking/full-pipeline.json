@@ -1,0 +1,74 @@
+[
+  {
+    "file": "src/core.ts",
+    "junk": false,
+    "totalHits": 2,
+    "hits": [
+      {
+        "line": 1,
+        "column": 17,
+        "excerpt": "export function needle() {}",
+        "kind": "function"
+      },
+      {
+        "line": 10,
+        "column": 3,
+        "excerpt": "needle();"
+      }
+    ]
+  },
+  {
+    "file": "src/docs.ts",
+    "junk": false,
+    "totalHits": 1,
+    "hits": [
+      {
+        "line": 4,
+        "column": 4,
+        "excerpt": "// needle explains this"
+      }
+    ]
+  },
+  {
+    "file": "test/core.test.ts",
+    "junk": false,
+    "totalHits": 2,
+    "hits": [
+      {
+        "line": 1,
+        "column": 1,
+        "excerpt": "needle(); needle();"
+      },
+      {
+        "line": 2,
+        "column": 1,
+        "excerpt": "expect(needle).toBe(1);"
+      }
+    ]
+  },
+  {
+    "file": "vendor/a.js",
+    "junk": true,
+    "totalHits": 1,
+    "hits": [
+      {
+        "line": 1,
+        "column": 1,
+        "excerpt": "module.exports = { needle: true };",
+        "duplicates": 2
+      }
+    ]
+  },
+  {
+    "file": "vendor/b.js",
+    "junk": true,
+    "totalHits": 1,
+    "hits": []
+  },
+  {
+    "file": "vendor/c.js",
+    "junk": true,
+    "totalHits": 1,
+    "hits": []
+  }
+]

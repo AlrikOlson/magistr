@@ -1,0 +1,26 @@
+export {
+  type BridgeOptions,
+  type BridgeOutcome,
+  type BridgeSubscription,
+  bindWatcherToIndex,
+  FsWatchAdapter,
+  POLL_INTERVAL_MS,
+  PollingWatcherAdapter,
+  WATCH_DEBOUNCE_MS,
+  WATCH_MAX_IN_FLIGHT,
+} from "./watcher";
+export {
+  isWatcherMode,
+  type RunningWatcher,
+  readWatcherStatus,
+  type StartWatcherOptions,
+  selectWatcherMode,
+  startWatcher,
+  WATCHER_MODES,
+  WATCHER_STATUS_FILE,
+  WATCHER_STATUS_THROTTLE_MS,
+  type WatcherAdapterName,
+  type WatcherMode,
+  type WatcherStatusRecord,
+  type WatcherStatusView,
+} from "./wiring";

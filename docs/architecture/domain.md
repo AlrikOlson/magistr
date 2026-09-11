@@ -161,6 +161,21 @@ regression guard, not a sandbox for hostile Rust code or a proof about arbitrary
 third-party implementations. Expanding its dependency or syntax allowlist
 requires reviewing the new capability.
 
+The Workbench source adoption requires Wasmtime 48 and Indexmap 2.14. Its
+workspace feature unification also enables Hashbrown's collection helpers in
+the test-only Serde JSON graph. The reviewed development closure includes
+Hashbrown's allocator-api2, equivalent, foldhash and Serde edges; the production
+Serde declaration closure remains unchanged. Inspection of the locked sources
+found foldhash 0.2.0's clock access behind `std` in `src/seed.rs`, and
+allocator-api2 0.2.21's I/O trait implementations behind `std`. The guard
+therefore requires resolved feature metadata, admits no foldhash features and
+only allocator-api2's `alloc` feature, and keeps both packages as dependency
+leaves. These checks apply to each resolved package ID, so workspace feature
+unification cannot silently enable the excluded capabilities. Negative fixtures
+cover clock/I/O-enabling features, runtime/filesystem dependency grafts and local
+package replacements. Hash seeds inside test collections are not a domain
+identity source or a promise of deterministic hash-table internals.
+
 Focused verification:
 
 ```sh

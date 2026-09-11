@@ -1,0 +1,95 @@
+{
+  "schema": "workbench-bench/1",
+  "script": "bench-index",
+  "profile": "root",
+  "recordedAt": "2026-08-24T15:41:38.533Z",
+  "corpus": {
+    "kind": "root",
+    "root": "D:\\Code\\_ext\\rust",
+    "loc": 4402825,
+    "files": 62197,
+    "sourceFiles": 37821,
+    "junkFiles": 1539,
+    "languages": [
+      {
+        "language": "rust",
+        "files": 37253,
+        "loc": 3956694
+      },
+      {
+        "language": "json",
+        "files": 57,
+        "loc": 347355
+      },
+      {
+        "language": "c",
+        "files": 125,
+        "loc": 28978
+      },
+      {
+        "language": "javascript",
+        "files": 163,
+        "loc": 23416
+      },
+      {
+        "language": "bash",
+        "files": 135,
+        "loc": 19915
+      },
+      {
+        "language": "python",
+        "files": 39,
+        "loc": 12184
+      },
+      {
+        "language": "typescript",
+        "files": 31,
+        "loc": 8776
+      },
+      {
+        "language": "cpp",
+        "files": 18,
+        "loc": 5507
+      }
+    ],
+    "repo": {
+      "url": "https://github.com/rust-lang/rust.git",
+      "commit": "da5114692c9ebe46b869488c5f34f92eb10b98c1"
+    }
+  },
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 7950X3D 16-Core Processor",
+    "cores": 32,
+    "memoryGb": 63.1,
+    "bun": "1.4.0",
+    "coreFlavor": "native",
+    "workbenchCommit": "5b7364c9b327d9c3fd2c1c072325b025c58729b3"
+  },
+  "measurements": {
+    "tier0S": 0.145,
+    "tier1S": 63.481,
+    "tier1Reached": true,
+    "filesIndexed": 62197,
+    "filesTotal": 62197,
+    "languagesIndexed": 8
+  },
+  "gates": [
+    {
+      "name": "tier0",
+      "value": 0.145,
+      "limit": 5,
+      "unit": "s",
+      "pass": true
+    },
+    {
+      "name": "tier1",
+      "value": 7.209,
+      "limit": 60,
+      "unit": "s",
+      "pass": true,
+      "note": "normalized per 500000 LOC; measured 63.48s over 4402825 LOC"
+    }
+  ]
+}

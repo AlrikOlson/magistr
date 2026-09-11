@@ -1,0 +1,39 @@
+{
+  "kind": "diagnostics",
+  "command": "c",
+  "resolvedLine": "cargo build --workspace --message-format=json",
+  "extractor": "cargo",
+  "exitCode": 101,
+  "timedOut": false,
+  "durationMs": 7,
+  "diagnostics": [
+    {
+      "level": "error",
+      "code": "E0308",
+      "message": "mismatched types",
+      "file": "crates/gamma/src/lib.rs",
+      "line": 1,
+      "column": 42,
+      "detail": "  |\n1 | pub fn broken() -> i32 { let s: String = 1; s }\n  |                                 ------   ^ expected `String`, found integer\n  |                                 |\n  |                                 expected due to this\n  |\nhelp: try using a conversion method\n  |\n1 | pub fn broken() -> i32 { let s: String = 1.to_string(); s }\n  |                                           ++++++++++++"
+    },
+    {
+      "level": "error",
+      "code": "E0308",
+      "message": "mismatched types",
+      "file": "crates/gamma/src/lib.rs",
+      "line": 1,
+      "column": 45,
+      "detail": "  |\n1 | pub fn broken() -> i32 { let s: String = 1; s }\n  |                    ---                      ^ expected `i32`, found `String`\n  |                    |\n  |                    expected `i32` because of return type"
+    },
+    {
+      "level": "warning",
+      "code": "unused_variables",
+      "message": "unused variable: `y`",
+      "file": "crates/alpha/src/lib.rs",
+      "line": 2,
+      "column": 42,
+      "detail": "  |\n2 | pub fn unused_thing(x: i32) -> i32 { let y = x; x }\n  |                                          ^ help: if this is intentional, prefix it with an underscore: `_y`\n  |\n  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default"
+    }
+  ],
+  "summary": "2 errors, 1 warning"
+}

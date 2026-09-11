@@ -1,0 +1,193 @@
+{
+  "cargo": {
+    "kind": "workspace",
+    "members": 5,
+    "edges": 6,
+    "unusedDeps": 3,
+    "top": [
+      {
+        "name": "alpha",
+        "dependents": 2
+      },
+      {
+        "name": "beta-crate",
+        "dependents": 2
+      },
+      {
+        "name": "cli",
+        "dependents": 1
+      },
+      {
+        "name": "macros",
+        "dependents": 1
+      },
+      {
+        "name": "rootpkg",
+        "dependents": 0
+      }
+    ]
+  },
+  "crates": [
+    {
+      "kind": "crate",
+      "path": "crates/alpha",
+      "name": "alpha",
+      "roles": [
+        "lib",
+        "bin",
+        "build"
+      ],
+      "edition": "2021",
+      "entryPoints": [
+        {
+          "path": "crates/alpha/benches/speed.rs",
+          "kind": "bench",
+          "name": "speed"
+        },
+        {
+          "path": "crates/alpha/build.rs",
+          "kind": "build"
+        },
+        {
+          "path": "crates/alpha/examples/demo.rs",
+          "kind": "example",
+          "name": "demo"
+        },
+        {
+          "path": "crates/alpha/src/bin/alpha-cli.rs",
+          "kind": "bin",
+          "name": "alpha-cli"
+        },
+        {
+          "path": "crates/alpha/src/lib.rs",
+          "kind": "lib"
+        },
+        {
+          "path": "crates/alpha/src/main.rs",
+          "kind": "bin"
+        },
+        {
+          "path": "crates/alpha/tests/integration.rs",
+          "kind": "test",
+          "name": "integration"
+        }
+      ],
+      "features": [
+        "default",
+        "fast",
+        "slow"
+      ],
+      "dependencies": [],
+      "dependents": 2,
+      "externalDependencies": 1
+    },
+    {
+      "kind": "crate",
+      "path": "crates/beta",
+      "name": "beta-crate",
+      "roles": [
+        "lib"
+      ],
+      "entryPoints": [
+        {
+          "path": "crates/beta/src/lib.rs",
+          "kind": "lib"
+        }
+      ],
+      "features": [],
+      "dependencies": [
+        {
+          "name": "alpha",
+          "files": 2
+        },
+        {
+          "name": "macros",
+          "kind": "dev",
+          "files": 0
+        },
+        {
+          "name": "cli",
+          "kind": "build",
+          "files": 0
+        }
+      ],
+      "dependents": 2,
+      "externalDependencies": 1
+    },
+    {
+      "kind": "crate",
+      "path": "tools/cli",
+      "name": "cli",
+      "roles": [
+        "bin"
+      ],
+      "entryPoints": [
+        {
+          "path": "tools/cli/src/main.rs",
+          "kind": "bin"
+        }
+      ],
+      "features": [],
+      "dependencies": [
+        {
+          "name": "alpha",
+          "files": 1
+        },
+        {
+          "name": "beta-crate",
+          "files": 1
+        }
+      ],
+      "dependents": 1,
+      "externalDependencies": 1
+    },
+    {
+      "kind": "crate",
+      "path": "crates/macros",
+      "name": "macros",
+      "roles": [
+        "proc-macro"
+      ],
+      "entryPoints": [
+        {
+          "path": "crates/macros/src/lib.rs",
+          "kind": "lib"
+        }
+      ],
+      "features": [],
+      "dependencies": [],
+      "dependents": 1,
+      "externalDependencies": 2
+    },
+    {
+      "kind": "crate",
+      "path": ".",
+      "name": "rootpkg",
+      "roles": [
+        "lib",
+        "bin"
+      ],
+      "edition": "2024",
+      "entryPoints": [
+        {
+          "path": "tools/root-tool.rs",
+          "kind": "bin",
+          "name": "root-tool"
+        },
+        {
+          "path": "src/lib.rs",
+          "kind": "lib"
+        }
+      ],
+      "features": [],
+      "dependencies": [
+        {
+          "name": "beta-crate",
+          "files": 0
+        }
+      ],
+      "dependents": 0,
+      "externalDependencies": 0
+    }
+  ]
+}

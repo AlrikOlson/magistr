@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "upstream_revision": "2a2430bbcd5dcbed00920f92c6f3e6928f387d95",
+  "files": [
+    {
+      "upstream_path": "crates/workbench-core/Cargo.toml",
+      "upstream_sha256": "56ff8f6daca132d8fc3545d0d376a57ca3d4101e1b341f27a02c62409e7a9257",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/Cargo.toml",
+      "disposition": "adopted native library",
+      "adaptation": "Rust package identity and normal rlib; no NAPI features or dependencies"
+    },
+    {
+      "upstream_path": "crates/workbench-core/build.rs",
+      "upstream_sha256": "fcbd1ff3f627a7553fa1704dc6f558998daff8bc256015c37aace62cc49ce584",
+      "upstream_mode": "100644",
+      "native_path": null,
+      "disposition": "test reference only; addon adapter/build/loader not in production",
+      "adaptation": "Pinned original retained unchanged"
+    },
+    {
+      "upstream_path": "crates/workbench-core/loader/wasi-bun.cjs",
+      "upstream_sha256": "01cd1d1025eef14a560b88a804c4dc0d56006fbfc6e848b4c3bebef732e568cb",
+      "upstream_mode": "100644",
+      "native_path": null,
+      "disposition": "test reference only; addon adapter/build/loader not in production",
+      "adaptation": "Pinned original retained unchanged"
+    },
+    {
+      "upstream_path": "crates/workbench-core/loader/wasi-worker-bun.mjs",
+      "upstream_sha256": "6805e1e358a9f936f6f5d55568b25dcac3b96e70f7bcd1a188d48acb4f633116",
+      "upstream_mode": "100644",
+      "native_path": null,
+      "disposition": "test reference only; addon adapter/build/loader not in production",
+      "adaptation": "Pinned original retained unchanged"
+    },
+    {
+      "upstream_path": "crates/workbench-core/src/bindings.rs",
+      "upstream_sha256": "94acec3c4b49a83d3cb6cf323757c7adf8336d2c3e7b1f37b575bd17f4bdd7da",
+      "upstream_mode": "100644",
+      "native_path": null,
+      "disposition": "test reference only; addon adapter/build/loader not in production",
+      "adaptation": "Pinned original retained unchanged"
+    },
+    {
+      "upstream_path": "crates/workbench-core/src/engine.rs",
+      "upstream_sha256": "99544c193571f035094c5e1e094a5f8b191593e150c3d1f73a1a4be9200daf7b",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/src/engine.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Retained implementation; fixture/WIT paths and integration crate imports point to repository-local reference"
+    },
+    {
+      "upstream_path": "crates/workbench-core/src/indexer.rs",
+      "upstream_sha256": "e509b2baa7cf8937b6c6bb206e7cd0addb2dee36df38148684a7f0af6e911867",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/src/indexer.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Retained implementation; fixture/WIT paths and integration crate imports point to repository-local reference"
+    },
+    {
+      "upstream_path": "crates/workbench-core/src/lang_registry.rs",
+      "upstream_sha256": "dc565ebe94989dcedf215559a31016410ff6b3479a2dd6f4b251667c7f23eb7e",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/src/lang_registry.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Retained implementation; fixture/WIT paths and integration crate imports point to repository-local reference"
+    },
+    {
+      "upstream_path": "crates/workbench-core/src/langs.rs",
+      "upstream_sha256": "57c5fdd3f0c8a6880a577d6b91489f473d681f4e5cf5f4e2d4876a8c35e552c6",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/src/langs.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Retained implementation; fixture/WIT paths and integration crate imports point to repository-local reference"
+    },
+    {
+      "upstream_path": "crates/workbench-core/src/lib.rs",
+      "upstream_sha256": "2e071ec3c3e6c63a5bb025c2d4351685ace292487ca3715e84137c1282c8abc0",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/src/lib.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Public native modules; extracted version unit test, removed bindings module"
+    },
+    {
+      "upstream_path": "crates/workbench-core/src/sandbox.rs",
+      "upstream_sha256": "fc9ca378c86066bd4a868e4ef0a4cb4f107a4f18a391fa1d407187cf997e1c92",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/src/sandbox.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Retained implementation; fixture/WIT paths and integration crate imports point to repository-local reference"
+    },
+    {
+      "upstream_path": "crates/workbench-core/tests/lang_pack_hot_path.rs",
+      "upstream_sha256": "145ea659013a0c4be5cc8c5c0c6ab83308b7ede14293b96aeae4854925a53302",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/tests/lang_pack_hot_path.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Retained implementation; fixture/WIT paths and integration crate imports point to repository-local reference"
+    },
+    {
+      "upstream_path": "crates/workbench-core/tests/wit_contracts.rs",
+      "upstream_sha256": "4ade11661dab0716b6a988f1052afa015626da5a79815ff8ab4e4b85bf3de3b4",
+      "upstream_mode": "100644",
+      "native_path": "crates/magistr-workspace/tests/wit_contracts.rs",
+      "disposition": "adopted native library",
+      "adaptation": "Retained implementation; fixture/WIT paths and integration crate imports point to repository-local reference"
+    }
+  ]
+}

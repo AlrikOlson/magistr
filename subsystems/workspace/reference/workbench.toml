@@ -1,0 +1,17 @@
+# workbench-mcp's OWN workbench config — the server dogfooding itself.
+# `run` executes these as a single argv (no shell). Human-amendable only.
+[commands]
+"test" = "bun test"
+"test:core" = "cargo test --workspace --features workbench-core/no-bindings"
+"typecheck" = "bun run typecheck"
+"lint" = "bun run lint"
+"lint:imports" = "bun run lint:imports"
+"lint:skill" = "bun run lint:skill"
+"codegen:check" = "bun run codegen:check"
+"clippy" = "cargo clippy --locked --workspace --all-targets -- -D warnings"
+
+# magistr runs unattended (`magistr next-loop`), so a confirm-gated write
+# takes workbench's token flow — the agent confirms against the diff in the
+# envelope — rather than an elicitation dialog nobody is there to answer.
+[edit]
+confirm_mode = "token"

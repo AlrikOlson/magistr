@@ -56,6 +56,16 @@ fi
 
 errors=0
 
+# Native/reference workspace Rust uses numeric per-file ratchets for all
+# structure rules, including inherited long functions. New files get the
+# normal limits; growth in inherited violations fails. Synthetic lint test
+# trees without this crate continue to exercise the legacy rules alone.
+if [[ -d "$PROJECT_ROOT/crates/magistr-workspace" ]]; then
+    if ! python3 -B "$PROJECT_ROOT/scripts/workspace-structure-gate.py" "$PROJECT_ROOT"; then
+        errors=$((errors + 1))
+    fi
+fi
+
 # Rule 1: One pub item per file
 while IFS= read -r f; do
     rel="${f#"$PROJECT_ROOT/"}"
@@ -168,7 +178,7 @@ while IFS= read -r f; do
                 print start ":" name ":" lines;
         }
     ' "$f" 2>/dev/null)
-done < <(find "$PROJECT_ROOT/crates/" -name '*.rs' -not -name '*.tests.rs' 2>/dev/null)
+done < <(find "$PROJECT_ROOT/crates/" -path "$PROJECT_ROOT/crates/magistr-workspace" -prune -o -name '*.rs' -not -name '*.tests.rs' -print 2>/dev/null)
 
 # Rule 5: No lint silencing under the cockpit crates
 #

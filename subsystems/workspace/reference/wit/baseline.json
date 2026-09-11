@@ -1,0 +1,162 @@
+{
+  "workbench:lang-pack": {
+    "version": "0.1.0",
+    "interfaces": {
+      "lang-pack": {
+        "types": {
+          "file-class": "enum { source, test, vendor }",
+          "language-info": "record { name: string, extensions: list<string> }"
+        },
+        "functions": {
+          "classify-file": "func(path: string) -> option<file-class>",
+          "grammar-wasm": "func() -> list<u8>",
+          "info": "func() -> language-info",
+          "tag-queries": "func() -> string"
+        }
+      }
+    },
+    "worlds": {
+      "lang-pack-provider": {
+        "imports": [],
+        "exports": [
+          "lang-pack"
+        ]
+      }
+    }
+  },
+  "workbench:ranking": {
+    "version": "0.1.0",
+    "interfaces": {
+      "ranking": {
+        "types": {
+          "feature": "record { name: string, value: f64 }",
+          "file-class": "enum { source, test, vendor }",
+          "hit-context": "record { file: string, line: u32, column: u32, excerpt: string, kind-class: kind-class, file-class: file-class }",
+          "kind-class": "enum { declaration, call, import, comment, string, other }"
+        },
+        "functions": {
+          "contribute": "func(hit: hit-context) -> list<feature>"
+        }
+      }
+    },
+    "worlds": {
+      "ranking-provider": {
+        "imports": [],
+        "exports": [
+          "ranking"
+        ]
+      }
+    }
+  },
+  "workbench:resolver": {
+    "version": "0.1.0",
+    "interfaces": {
+      "resolver": {
+        "types": {
+          "diagnostic": "record { location: source-location, message: string, severity: severity }",
+          "rename-edit": "record { location: source-location, new-text: string }",
+          "severity": "enum { error, warning, info, hint }",
+          "source-location": "record { path: string, line: u32, column: u32 }"
+        },
+        "functions": {
+          "diagnostics": "func(path: string) -> list<diagnostic>",
+          "rename": "func(symbol: string, new-name: string) -> list<rename-edit>",
+          "resolve-references": "func(symbol: string) -> list<source-location>"
+        }
+      }
+    },
+    "worlds": {
+      "resolver-provider": {
+        "imports": [],
+        "exports": [
+          "resolver"
+        ]
+      }
+    }
+  },
+  "workbench:runner": {
+    "version": "0.1.0",
+    "interfaces": {
+      "runner": {
+        "types": {
+          "run-output": "record { command: string, exit-code: s32, stdout: string, stderr: string }",
+          "run-report": "record { failures: list<structured-failure>, summary: option<string> }",
+          "structured-failure": "record { test-name: string, file: option<string>, assertion: string, trace: string }"
+        },
+        "functions": {
+          "can-parse": "func(command: string) -> bool",
+          "parse-output": "func(output: run-output) -> option<run-report>"
+        }
+      }
+    },
+    "worlds": {
+      "runner-provider": {
+        "imports": [],
+        "exports": [
+          "runner"
+        ]
+      }
+    }
+  },
+  "workbench:subprocess": {
+    "version": "0.2.0",
+    "interfaces": {
+      "subprocess": {
+        "types": {
+          "io-error": "variant { dead(string), timeout(string), frame-too-large(string), bad-session(string) }",
+          "open-error": "variant { unknown-spec(string), spawn-refused(string), unhealthy(string) }"
+        },
+        "functions": {
+          "close": "func(session: u32)",
+          "open": "func(language-id: string) -> result<u32, open-error>",
+          "read-frame": "func(session: u32, timeout-ms: u32) -> result<list<u8>, io-error>",
+          "release": "func(session: u32)",
+          "reused": "func(session: u32) -> bool",
+          "specs": "func() -> list<string>",
+          "workspace-root": "func() -> string",
+          "write-frame": "func(session: u32, frame: list<u8>) -> result<_, io-error>"
+        }
+      }
+    },
+    "worlds": {
+      "subprocess-user": {
+        "imports": [
+          "subprocess"
+        ],
+        "exports": []
+      }
+    }
+  },
+  "workbench:tool": {
+    "version": "0.1.0",
+    "interfaces": {
+      "guest": {
+        "types": {
+          "tool-descriptor": "record { name: string, description: string, input-schema-json: string }"
+        },
+        "functions": {
+          "invoke": "func(name: string, args-json: string) -> result<string, string>",
+          "list-tools": "func() -> list<tool-descriptor>"
+        }
+      },
+      "host": {
+        "types": {},
+        "functions": {
+          "queue-write": "func(op-json: string)",
+          "read": "func(request-json: string) -> string",
+          "search": "func(request-json: string) -> string"
+        }
+      }
+    },
+    "worlds": {
+      "tool-provider": {
+        "imports": [
+          "host"
+        ],
+        "exports": [
+          "guest"
+        ]
+      }
+    }
+  }
+}

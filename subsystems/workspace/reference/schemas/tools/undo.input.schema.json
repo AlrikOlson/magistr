@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/undo.input.schema.json",
+  "title": "undo",
+  "description": "The journal, read and rewound (SDD 9.8, 7.6). action \"list\" reads the durable per-workspace op log — newest op first, one row per file an op touched, each row carrying the op seq, its added/removed line counts and its unified diff — and writes nothing. action \"rewind\" (the default) rewinds whole ops: the newest `steps`, or exactly the ops named by `ops` (the seqs `list` reports). Rewind is session-scoped by default: only the calling session's ops (identity via _meta workbench/sessionId) are candidates unless scope is \"workspace\". Conflicts — a later change touched a file this undo would restore — are detected by content hash and surfaced in the envelope as a three-way choice (keepCurrent | force | merge by hand), never silently clobbered. Every restoration runs through the verified write pipeline with staleness anchors.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m2-journal-undo",
+  "type": "object",
+  "properties": {
+    "action": {
+      "enum": ["rewind", "list"],
+      "default": "rewind",
+      "description": "rewind: revert ops. list: read the journal as rows; nothing is written, nothing is locked, so a change view can tail it."
+    },
+    "steps": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 1,
+      "description": "rewind: how many ops to rewind, newest first. One op = one write batch. Ignored when ops names the ops."
+    },
+    "ops": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 },
+      "minItems": 1,
+      "maxItems": 100,
+      "description": "rewind: the exact ops to rewind, by the journal seq that action \"list\" reports. A named op that is not a candidate — already undone, an undo's own op, or another session's under session scope — is named in the notes and skipped."
+    },
+    "scope": {
+      "enum": ["session", "workspace"],
+      "description": "session: only the calling session's ops (two agents sharing a workspace never silently revert each other). workspace: ops from any session. Defaults to session for rewind and workspace for list — reading another session's history reverts nothing."
+    },
+    "onConflict": {
+      "enum": ["surface", "force", "keepCurrent"],
+      "default": "surface",
+      "description": "rewind: surface applies nothing and returns conflict rows with expected/current/restore hashes. force restores the journaled content over the conflicting change. keepCurrent leaves conflicted files as they are and undoes the rest."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200,
+      "default": 20,
+      "description": "list: how many ops to return, newest first."
+    },
+    "diff": {
+      "type": "boolean",
+      "default": true,
+      "description": "list: render each row's unified diff. false keeps the counts and drops the bodies."
+    },
+    "sinceSeq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "list: only ops with seq >= this — tail the log since the last one seen."
+    },
+    "beforeSeq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "list: only ops with seq < this — the pagination cursor a truncated listing hands back."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 4000 }
+  }
+}

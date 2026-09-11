@@ -1,0 +1,36 @@
+{
+  "kind": "report",
+  "command": "c",
+  "resolvedLine": "cargo nextest run --workspace",
+  "adapter": "nextest",
+  "exitCode": 100,
+  "timedOut": false,
+  "durationMs": 7,
+  "failures": [
+    {
+      "testName": "alpha tests::fails_eq",
+      "file": "crates/alpha/src/lib.rs",
+      "assertion": "assertion `left == right` failed: math is hard",
+      "trace": "crates/alpha/src/lib.rs:9:21\nleft: 3\nright: 4"
+    },
+    {
+      "testName": "beta::integration integration_fails",
+      "file": "crates/beta/tests/integration.rs",
+      "assertion": "index out of bounds: the len is 0 but the index is 0",
+      "trace": "crates/beta/tests/integration.rs:2:61"
+    },
+    {
+      "testName": "alpha tests::fails_panic",
+      "file": "crates/alpha/src/lib.rs",
+      "assertion": "boom 42",
+      "trace": "crates/alpha/src/lib.rs:11:24"
+    },
+    {
+      "testName": "alpha tests::fails_assert",
+      "file": "crates/alpha/src/lib.rs",
+      "assertion": "assertion failed: add(1, 1) == 3",
+      "trace": "crates/alpha/src/lib.rs:13:25"
+    }
+  ],
+  "summary": "Summary [ 0.024s] 6 tests run: 2 passed, 4 failed, 0 skipped (cancelled: 5 still running)"
+}

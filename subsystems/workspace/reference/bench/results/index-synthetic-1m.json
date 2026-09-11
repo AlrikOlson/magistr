@@ -1,0 +1,115 @@
+{
+  "schema": "workbench-bench/1",
+  "script": "bench-index",
+  "profile": "synthetic-1m",
+  "recordedAt": "2026-08-24T15:40:25.201Z",
+  "corpus": {
+    "kind": "synthetic",
+    "loc": 1008019,
+    "files": 4015,
+    "sourceFiles": 4013,
+    "junkFiles": 0,
+    "languages": [
+      {
+        "language": "typescript",
+        "files": 4001,
+        "loc": 1008001
+      },
+      {
+        "language": "bash",
+        "files": 1,
+        "loc": 3
+      },
+      {
+        "language": "go",
+        "files": 1,
+        "loc": 3
+      },
+      {
+        "language": "python",
+        "files": 1,
+        "loc": 2
+      },
+      {
+        "language": "ruby",
+        "files": 1,
+        "loc": 2
+      },
+      {
+        "language": "c",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "cpp",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "csharp",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "java",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "javascript",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "json",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "rust",
+        "files": 1,
+        "loc": 1
+      },
+      {
+        "language": "tsx",
+        "files": 1,
+        "loc": 1
+      }
+    ]
+  },
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 7950X3D 16-Core Processor",
+    "cores": 32,
+    "memoryGb": 63.1,
+    "bun": "1.4.0",
+    "coreFlavor": "native",
+    "workbenchCommit": "5b7364c9b327d9c3fd2c1c072325b025c58729b3"
+  },
+  "measurements": {
+    "tier0S": 0.127,
+    "tier1S": 2.381,
+    "tier1Reached": true,
+    "filesIndexed": 4015,
+    "filesTotal": 4015,
+    "languagesIndexed": 13
+  },
+  "gates": [
+    {
+      "name": "tier0",
+      "value": 0.127,
+      "limit": 5,
+      "unit": "s",
+      "pass": true
+    },
+    {
+      "name": "tier1",
+      "value": 1.181,
+      "limit": 60,
+      "unit": "s",
+      "pass": true,
+      "note": "normalized per 500000 LOC; measured 2.38s over 1008019 LOC"
+    }
+  ]
+}

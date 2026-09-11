@@ -1,0 +1,13 @@
+/// The bundled go runner adapter's world (chunk:m5-runner-adapter): the
+/// public runner surface plus the standard `(string) -> string` root invoke
+/// so the plugin is TCK-conformant unmodified. Zero imports — a runner
+/// adapter is a pure function from captured output to structured failures.
+///
+/// The deps/ copy of runner.wit must stay byte-equal to the top-level wit/
+/// file; test/runner-plugin.test.ts pins the drift.
+package workbench:runner-go-guest@0.1.0;
+
+world runner-go {
+  export workbench:runner/runner@0.1.0;
+  export invoke: func(payload: string) -> string;
+}

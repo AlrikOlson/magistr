@@ -2,8 +2,10 @@
 
 Decision: accepted on 10 September 2026, authorized by the project owner.
 Native reasoning `think:712` supersedes the adapter-based receipt plan in
-`think:710`. Workflow source and typed use cases are now repository-local;
-workspace integration remains pending. This document distinguishes the
+`think:710`. Workflow source and typed use cases, the Workbench reference source,
+and its native Rust engine are now repository-local.
+The accepted target is one Rust-native Magistr product; workspace service
+integration remains pending. This document distinguishes the
 adopted source from the target behavior and migration constraints. The native
 roadmap remains authoritative for delivery status.
 
@@ -25,9 +27,20 @@ service, bundled skills, tests, and their supporting documentation and fixtures
 retain their inherited layout. The root Cargo workspace and lockfile resolve
 the adopted crate for both Magistr consumers through relative path dependencies.
 The [provenance record](../../subsystems/workflow/PROVENANCE.md) identifies the
-license, included and excluded components, and verification boundary. Workbench
-source adoption remains pending. Magistr owns these forks' tests, compatibility,
-and release cadence; future upstream changes are reviewed imports.
+license, included and excluded components, and verification boundary.
+Workbench's audited source is retained under
+[`subsystems/workspace/reference`](../../subsystems/workspace/PROVENANCE.md),
+with every original Git file accounted for in the upstream manifest and local
+repairs recorded separately. Its Rust engine is adopted into
+[`magistr-workspace`](../../crates/magistr-workspace/src/lib.rs), a first-party
+root workspace member. The
+[feature inventory](../../subsystems/workspace/FEATURE_INVENTORY.md) maps all
+tools, contracts, storage and degraded paths to native implementation chunks.
+The upstream package declares Apache-2.0 but omits a root license file;
+[third-party notices](../../subsystems/workspace/THIRD_PARTY_NOTICES.md) record
+that limitation and retained guest/grammar attribution. Magistr owns these
+forks' tests, compatibility, and release cadence; future upstream changes are
+reviewed imports.
 
 ## Why change ownership now?
 
@@ -77,6 +90,11 @@ Workspace owns path admission, navigation, edits, confirmation, session-scoped
 undo, write recovery, indexing, and source snapshots. The index remains a
 derived cache. Workflow project identity and workspace/worktree identity are
 distinct; multiple worktrees must not accidentally share file ownership.
+The production workspace boundary will be an ordinary typed Rust service
+composed into Magistr. The retained Bun/NAPI source is a reference for parity;
+it is not a second product or a production Rust dependency. The CLI still uses
+the existing workspace integration until the native port and owner cutover
+meet their acceptance criteria.
 
 The application composes these services through narrow ports. This does not
 require one global mutex, one database, or a single process containing every
@@ -98,11 +116,18 @@ admission and generation fencing: the audited lock can declare an old lock
 stale even while its recorded process is alive. Never kill a current owner
 to acquire its workspace.
 
-Source adoption preserves the Bun/NAPI boundary initially. A Rust rewrite is
-a separate, measured decision requiring behavior parity. The audited build
-requires an explicit platform/feature matrix: Rust 1.95, Bun 1.4.1, NAPI and
-addon fallback, parser packs, and Wasmtime dependencies. The core's
-`no-bindings` test path is not proof of a shipping native service.
+The accepted migration now targets Rust-native use cases and service ownership.
+Source adoption extracts the existing Rust engine as an ordinary `rlib` without
+NAPI, an addon loader, a build script, or a `no-bindings` feature. TypeScript
+orchestration remains reference source until its behavior moves into the native
+chunks; importing the engine does not complete tool parity or ownership.
+The reference build retains its explicit platform/feature matrix: Rust 1.95,
+Bun 1.4.1, NAPI/addon fallback, parser packs, and Wasmtime dependencies. The WASM
+fallback disables native-only default features. The native library retains
+Tree-sitter's Wasmtime 36 and the extension host's Wasmtime 48; their duplicate
+compile cost is deliberate pending a measured compatible dependency change.
+The reference core's `no-bindings` test path is not proof of a shipping native
+service. Recorded checks must identify the actual feature and platform lane.
 
 Retain canonical path and protected-file checks, binary journal semantics,
 confirmation guarantees, parser-worker isolation and backpressure, plugin
@@ -138,12 +163,15 @@ freshness. Late results remain durable without attaching to a newer objective.
 | --- | --- |
 | `arch-14a-workflow-source-fork` | Repository-local workflow source adopted; native state and behavior preserved |
 | `arch-14b-workflow-use-cases` | Typed family use cases, ordinary completion policy, and run/task admission beneath transports; receipt enforcement remains deferred |
-| `arch-14c-workbench-source-fork` | Pending: Bun/TypeScript service and Rust core adoption |
+| `arch-14c-workbench-source-fork` | Reference source retained with complete provenance; native Rust engine adopted and checked as a first-party library; service cutover deferred |
+| `arch-14c1-workspace-policy`–`arch-14c4-workspace-queries` | Pending: native policy, supervised workers, persistent derived index and navigation use cases |
+| `arch-14c5-workspace-journal`–`arch-14c7-workspace-editing` | Pending: durable binary journal, verified transactions, edit/files and applied undo |
+| `arch-14c8-workspace-extensions`–`arch-14c10-workspace-port-parity` | Pending: plugin/script orchestration, declared execution and complete typed port/tool parity |
 | `arch-14d-workspace-owner` | Pending: admitted owner serving multiple clients |
 | `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |
 
-The native refactor continues with workspace source adoption, owner/client
-integration, and source certification.
+The native refactor continues with workspace use cases, owner/client integration,
+and source certification.
 Receipt completion depends on both the typed workflow service and source
 snapshots. Configuration, supervision, projections, host cleanup, diagnostics,
 module gates, and final acceptance inherit the applicable dependencies.
@@ -159,7 +187,12 @@ or migrate a live owner's store. Imported source participates in the real
 quality gates rather than receiving a blanket vendor exemption. The workflow
 crate participates in root workspace formatting, check, Clippy, and nextest;
 the structure gate tracks inherited style with a per-file baseline that may
-only decrease.
+only decrease. The native workspace crate joins the same root checks; all
+native and retained reference Rust files also receive numeric per-file
+structure limits. New files receive the normal limits and inherited violations
+cannot grow. Reference source and its standalone locks remain isolated from the
+production Cargo dependency graph. Hash, mode and pinned Git-tree checks prevent
+silent source loss or undocumented reference edits.
 
 The unfinished receipt implementation is preserved as a blocked checkpoint,
 including regressions and runner work. Its temporary MCP interceptions and

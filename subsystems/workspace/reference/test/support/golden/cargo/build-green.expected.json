@@ -1,0 +1,11 @@
+{
+  "kind": "diagnostics",
+  "command": "c",
+  "resolvedLine": "cargo build",
+  "extractor": "cargo",
+  "exitCode": 0,
+  "timedOut": false,
+  "durationMs": 7,
+  "diagnostics": [],
+  "summary": "no diagnostics"
+}

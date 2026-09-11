@@ -1,0 +1,76 @@
+{
+  "schema": "workbench-bench/1",
+  "script": "bench-refs",
+  "profile": "synthetic-500k",
+  "recordedAt": "2026-08-24T15:40:19.456Z",
+  "corpus": {
+    "kind": "synthetic",
+    "loc": 506003,
+    "files": 2001,
+    "sourceFiles": 2001,
+    "junkFiles": 0,
+    "languages": [
+      {
+        "language": "typescript",
+        "files": 2001,
+        "loc": 506003
+      }
+    ]
+  },
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 7950X3D 16-Core Processor",
+    "cores": 32,
+    "memoryGb": 63.1,
+    "bun": "1.4.0",
+    "coreFlavor": "native",
+    "workbenchCommit": "5b7364c9b327d9c3fd2c1c072325b025c58729b3"
+  },
+  "measurements": {
+    "tier1S": 1.361,
+    "tier1Reached": true,
+    "filesIndexed": 2001,
+    "filesTotal": 2001,
+    "calls": 120,
+    "p50Ms": 1.203,
+    "p95Ms": 5.196,
+    "maxMs": 7.895,
+    "queries": [
+      {
+        "role": "hot",
+        "name": "shared_ref_target",
+        "definitions": 1,
+        "p50Ms": 4.355,
+        "p95Ms": 6.181,
+        "edges": 1033
+      },
+      {
+        "role": "rare",
+        "name": "bulk_5_2",
+        "definitions": 1,
+        "p50Ms": 1.203,
+        "p95Ms": 1.499,
+        "edges": 1
+      },
+      {
+        "role": "miss",
+        "name": "bench_refs_no_such_symbol",
+        "definitions": 0,
+        "p50Ms": 0.193,
+        "p95Ms": 0.837,
+        "edges": 0
+      }
+    ]
+  },
+  "gates": [
+    {
+      "name": "references_p95",
+      "value": 5.196,
+      "limit": 50,
+      "unit": "ms",
+      "pass": true,
+      "note": "constitution states the gate at 1M LOC; measured over 506003 LOC"
+    }
+  ]
+}

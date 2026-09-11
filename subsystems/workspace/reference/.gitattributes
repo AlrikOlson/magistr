@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.wasm binary
+bun.lock text eol=lf
+Cargo.lock text eol=lf

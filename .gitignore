@@ -52,6 +52,9 @@ dist/
 .codescope.toml
 .firecrawl
 vendor/
+# Pinned workspace test-reference asset and its provenance.
+!subsystems/workspace/reference/vendor/
+!subsystems/workspace/reference/vendor/**
 *.png
 # Versioned screenshots; exclude unreviewed candidates
 !crates/magistr-tui/tests/golden/**/*.png

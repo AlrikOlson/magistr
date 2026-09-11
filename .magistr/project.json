@@ -1,6 +1,21 @@
 {
 	"custom_gates": [
 		{
+			"command": "./scripts/workspace-source-gate.sh",
+			"name": "workspace-source",
+			"required": true
+		},
+		{
+			"command": "./scripts/workspace-native-gate.sh",
+			"name": "workspace-native",
+			"required": true
+		},
+		{
+			"command": "./scripts/workspace-reference-gate.sh",
+			"name": "workspace-reference",
+			"required": true
+		},
+		{
 			"command": "./scripts/workflow-source-gate.sh",
 			"name": "workflow-source",
 			"required": true
