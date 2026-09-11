@@ -164,6 +164,30 @@
 				"crates/magistr-cli/tests/workspace_index.rs"
 			],
 			"adaptation": "Typed rebuildable SQLite/FTS cache with separate native-index paths and held cache-only OS lock. Bounded native worker extraction, live byte/mode/ignore revalidation, coalesced native and joined content/mode polling watchers. Cache generation never source certification. Bundled language selection; extension activation remains c8. Reference unchanged; no production owner/cutover."
+		},
+		{
+			"chunk": "arch-14c4-workspace-queries",
+			"upstream_inputs": [
+				"src/tools/read.ts",
+				"src/tools/search.ts",
+				"src/tools/ranking.ts",
+				"src/tools/map.ts",
+				"src/tools/map-cargo.ts",
+				"src/adapters/engine-ipc/indexer.ts",
+				"src/envelope/envelope.ts",
+				"schemas/tools/"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/query/",
+				"crates/magistr-workspace/src/source_language.rs",
+				"crates/magistr-workspace/src/source_open.rs",
+				"crates/magistr-workspace/src/source_open.tests.rs",
+				"crates/magistr-workspace/src/index/cache/cache_owner.rs",
+				"crates/magistr-cli/tests/workspace_queries_read.rs",
+				"crates/magistr-cli/tests/workspace_queries_search.rs",
+				"crates/magistr-cli/tests/workspace_queries_conformance.rs"
+			],
+			"adaptation": "Typed borrowed WorkspaceQueries over admitted policy/live snapshots, optional validated hydrated index and isolated native worker. Preserves addressing/surrounds, ranking, lexical/structural/reference/files search, tree/Cargo/import summaries and budget manifests. Strict binary read refusal, explicit stale snapshot rejection and bounded work; no owner or production consumer cutover. Independent native/retained-addon temporary-root comparisons; retained goldens unchanged."
 		}
 	]
 }

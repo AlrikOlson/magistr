@@ -135,6 +135,14 @@ impl WorkspaceIndex {
             |row| &row.file,
         )
     }
+    /// A hydrated file outline whose source bytes, mode and selection are verified live.
+    pub fn file(&self, path: &str) -> Result<IndexQuery<IndexedFile>, IndexError> {
+        self.query(
+            1,
+            |db, _| Ok(db.file(path)?.into_iter().collect()),
+            |row| row,
+        )
+    }
     pub fn fts(&self, literal: &str, limit: usize) -> Result<IndexQuery<IndexedFile>, IndexError> {
         self.query(limit, |db, bound| db.fts(literal, bound), |row| row)
     }

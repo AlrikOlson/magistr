@@ -1,7 +1,7 @@
 use super::{IndexError, cache::IndexedFile};
 use crate::jail::JailPolicy;
 use sha2::{Digest, Sha256};
-use std::{fs::File, io::Read, path::Path, time::UNIX_EPOCH};
+use std::{io::Read, path::Path, time::UNIX_EPOCH};
 
 /// One bounded optimistic read. Changed metadata invalidates it.
 pub(super) struct Observation {
@@ -23,7 +23,8 @@ impl Observation {
                 "index excludes symlink inputs".into(),
             ));
         }
-        let mut input = File::open(absolute)?;
+        let mut input = crate::source_open::open_source(root, &absolute)
+            .map_err(|error| IndexError::Unavailable(error.to_string()))?;
         let before = input.metadata()?;
         if !before.is_file() {
             return Err(IndexError::Unavailable(
@@ -60,7 +61,7 @@ impl Observation {
         Ok(Self {
             file: IndexedFile {
                 path: path.into(),
-                language: language(path).map(str::to_owned),
+                language: crate::source_language::language(path).map(str::to_owned),
                 size: before.len(),
                 mtime_ms: before
                     .modified()
@@ -96,28 +97,5 @@ fn mode(meta: &std::fs::Metadata) -> u32 {
     #[cfg(not(unix))]
     {
         u32::from(meta.permissions().readonly())
-    }
-}
-fn language(path: &str) -> Option<&'static str> {
-    match Path::new(path)
-        .extension()?
-        .to_str()?
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "rs" => Some("rust"),
-        "ts" | "mts" | "cts" => Some("typescript"),
-        "tsx" => Some("tsx"),
-        "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
-        "py" | "pyi" => Some("python"),
-        "go" => Some("go"),
-        "java" => Some("java"),
-        "c" | "h" => Some("c"),
-        "cpp" | "cc" | "cxx" | "hpp" | "hh" => Some("cpp"),
-        "cs" => Some("csharp"),
-        "rb" => Some("ruby"),
-        "sh" | "bash" => Some("bash"),
-        "json" => Some("json"),
-        _ => None,
     }
 }

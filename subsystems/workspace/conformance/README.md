@@ -57,3 +57,31 @@ cargo test --locked -p magistr-workspace --test config_conformance --test jail_c
 These tests certify policy/value boundaries only. They do not establish atomic
 filesystem confinement, confirmation-grant verification, complete tool parity,
 workspace ownership, source certification or production protocol integration.
+
+## Native query fixtures (arch-14c4)
+
+`queries.json` supplies 15 shared cases for whole/range/symbol/surround reads,
+lexical/files/structural/automatic/reference searches, filters/context/budgets,
+and cold/warm maps. `queries-reference.ts` starts the pinned real NAPI core and
+`IndexerHost` in a temporary root with an in-process typed adapter; it starts
+no workspace server. The Rust comparator uses a separate root, native index and
+the actual Magistr parser worker. Both owners are shut down after comparison.
+
+The required `workspace-reference` gate builds the addon first, then explicitly
+runs `workspace_queries_conformance` with `--ignored`. Its single test compares
+all 15 complete envelopes: rows, hashes, order, confidence/provenance, freshness,
+UTF-16 row token costs, truncation and notes. Only independent cache generation
+and wall-clock build timestamps are normalized, adjusting their row cost.
+Native read/map health notes (cache progress and requested/applied SQLite
+journal mode) and the explicit unavailable-plugin-inventory note are asserted
+and removed by exact text before comparison. Every other note remains compared.
+These additive diagnostics are intentional; plugin composition remains c8.
+
+Native tests also replay all seven unchanged ranking goldens and the retained
+Cargo workspace map golden. Companion tests cover line and symbol ambiguity,
+invalid bytes, same-size/same-mtime stale edits, warm recovery, Rust generics,
+attributes, macro arguments, pre-existing parse errors, explicit semantic
+refusal, and bounded work/truncation. Query snapshots are optimistic reads,
+not immutable source certification; see [provenance](../PROVENANCE.md) for
+native limits and intentional deviations.
+

@@ -31,3 +31,5 @@ bun run lint
 bun run lint:imports
 bun run lint:skill
 bun test
+# Compare complete native query envelopes after the retained native addon exists.
+cargo test --manifest-path "$PROJECT_ROOT/Cargo.toml" -p magistr-cli --test workspace_queries_conformance -- --ignored
