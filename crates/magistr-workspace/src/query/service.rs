@@ -14,6 +14,12 @@ pub struct WorkspaceQueries<'a> {
     pub(super) worker: &'a WorkerSupervisor,
     pub(super) index: Option<&'a WorkspaceIndex>,
     pub(super) timeout: Duration,
+    /// Promoted ranking signals and the shadow lane (chunk arch-14c8).
+    #[cfg(feature = "sandbox")]
+    pub(super) ranking: Option<&'a crate::extensions::RankingSignals>,
+    /// The resolver upgrade lane for references (chunk arch-14c8).
+    #[cfg(feature = "sandbox")]
+    pub(super) resolver: Option<&'a crate::extensions::PluginResolver<'a>>,
 }
 
 impl<'a> WorkspaceQueries<'a> {
@@ -28,7 +34,28 @@ impl<'a> WorkspaceQueries<'a> {
             worker,
             index,
             timeout: Duration::from_secs(30),
+            #[cfg(feature = "sandbox")]
+            ranking: None,
+            #[cfg(feature = "sandbox")]
+            resolver: None,
         })
+    }
+
+    /// Fold promoted ranking features into search and feed the shadow lane
+    /// after every search, off the response path.
+    #[cfg(feature = "sandbox")]
+    #[must_use]
+    pub fn with_ranking(mut self, ranking: &'a crate::extensions::RankingSignals) -> Self {
+        self.ranking = Some(ranking);
+        self
+    }
+
+    /// Merge resolver-confirmed edges into references searches.
+    #[cfg(feature = "sandbox")]
+    #[must_use]
+    pub fn with_resolver(mut self, resolver: &'a crate::extensions::PluginResolver<'a>) -> Self {
+        self.resolver = Some(resolver);
+        self
     }
 
     pub async fn search(

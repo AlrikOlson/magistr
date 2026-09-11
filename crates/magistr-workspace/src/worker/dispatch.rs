@@ -179,6 +179,65 @@ impl WorkerRequest {
                     sessions_reused: outcome.sessions_reused,
                 })
             }
+            request => request.execute_signal_lanes(),
+        }
+    }
+
+    /// The ranking and runner provider lanes (chunk arch-14c8): typed records
+    /// in, typed records out, same sandbox and grant model as every other lane.
+    #[cfg(feature = "sandbox")]
+    fn execute_signal_lanes(self) -> Result<WorkerResponse, WorkerError> {
+        match self {
+            Self::RankingContribute {
+                guest,
+                hits,
+                capabilities,
+                policy,
+            } => {
+                let hits: Vec<_> = hits.into_iter().map(Into::into).collect();
+                let outcome = crate::sandbox::invoke_ranking_contribute(
+                    &guest,
+                    &hits,
+                    &capabilities,
+                    policy.admitted()?,
+                )
+                .map_err(sandbox_error)?;
+                Ok(WorkerResponse::RankingContributed {
+                    end: outcome.end.into(),
+                    fuel_used: outcome.fuel_used,
+                    contributions: outcome
+                        .contributions
+                        .into_iter()
+                        .map(|features| features.into_iter().map(Into::into).collect())
+                        .collect(),
+                })
+            }
+            Self::RunnerParse {
+                guest,
+                command,
+                exit_code,
+                stdout,
+                stderr,
+                capabilities,
+                policy,
+            } => {
+                let outcome = crate::sandbox::invoke_runner_parse(
+                    &guest,
+                    &command,
+                    exit_code,
+                    &stdout,
+                    &stderr,
+                    &capabilities,
+                    policy.admitted()?,
+                )
+                .map_err(sandbox_error)?;
+                Ok(WorkerResponse::RunnerParsed {
+                    end: outcome.end.into(),
+                    fuel_used: outcome.fuel_used,
+                    claimed: outcome.claimed,
+                    report: outcome.report.map(Into::into),
+                })
+            }
             _ => Err(WorkerError::Protocol(
                 "unexpected sandbox dispatch".to_owned(),
             )),

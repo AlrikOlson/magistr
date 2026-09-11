@@ -2369,6 +2369,40 @@ fn lift_file_class(val: &Val) -> Option<Option<String>> {
     }
 }
 
+/// Compiled WASI modules kept per guest digest (chunk arch-14c8). The script
+/// interpreter is the same 1.5 MB module on every round of every script and
+/// JIT compilation dominates a round, so the worker keeps the last few
+/// compiled modules; the digest keys them, so changed bytes never reuse code.
+const WASI_MODULE_CACHE: usize = 4;
+
+/// Guest digest → compiled module, oldest first.
+type WasiModuleCache = Vec<([u8; 32], Module)>;
+
+fn cached_wasi_module(engine: &Engine, guest: &[u8]) -> Result<Module, wasmtime::Error> {
+    use sha2::Digest;
+    static CACHE: OnceLock<Mutex<WasiModuleCache>> = OnceLock::new();
+    let digest: [u8; 32] = sha2::Sha256::digest(guest).into();
+    let cache = CACHE.get_or_init(|| Mutex::new(Vec::new()));
+    let hit = cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .iter()
+        .find(|(known, _)| *known == digest)
+        .map(|(_, module)| module.clone());
+    if let Some(module) = hit {
+        return Ok(module);
+    }
+    let module = Module::new(engine, guest)?;
+    let mut cache = cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if cache.len() >= WASI_MODULE_CACHE {
+        cache.remove(0);
+    }
+    cache.push((digest, module.clone()));
+    Ok(module)
+}
+
 /// Run a `wasm32-wasip1` command module (`_start`) under `policy`.
 ///
 /// The guest's world: `argv`, and stdout/stderr captured into memory. No
@@ -2389,7 +2423,7 @@ pub fn run_wasi_module(
         stderr: String::new(),
     };
 
-    let module = match Module::new(engine, guest) {
+    let module = match cached_wasi_module(engine, guest) {
         Ok(m) => m,
         Err(e) => return Ok(invalid(e.to_string())),
     };

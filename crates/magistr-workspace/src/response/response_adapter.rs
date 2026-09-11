@@ -39,48 +39,71 @@ impl ResponseAdapter {
     pub fn seal<R: Serialize>(
         response: &WorkspaceResponse<R>,
     ) -> Result<SealedResponse, serde_json::Error> {
-        let envelope = match response {
-            WorkspaceResponse::Success {
-                version,
-                freshness,
-                budget,
-                results,
-                notes,
-            } => {
-                let mut envelope = json!({"v": version.get(), "ok": true,
-                    "freshness": freshness.as_str(),
-                    "budget": {"requested": budget.requested, "used": budget.used},
-                    "results": redact_value(serde_json::to_value(results.rows())?)});
-                if let Some(cut) = results.truncation() {
-                    // The pinned response seam preserves cursor and typed hints verbatim.
-                    envelope["truncation"] = json!({"dropped": cut.dropped(),
-                        "reason": cut.reason().as_str(), "narrow": cut.narrow(), "cursor": cut.cursor()});
-                }
-                add_notes(&mut envelope, notes);
-                envelope
-            }
-            WorkspaceResponse::Failure {
-                version,
-                error,
-                notes,
-            } => {
-                let mut envelope = json!({"v": version.get(), "ok": false,
-                    "error": redact_value(error_value(error))});
-                add_notes(&mut envelope, notes);
-                envelope
-            }
-        };
+        let envelope = build(response, true)?;
         let json = serde_json::to_string(&envelope)?;
         Ok(SealedResponse { envelope, json })
     }
+
+    /// The same envelope shape without redaction: what a script guest sees
+    /// for its own workspace reads. It never crosses a transport; the guest's
+    /// return value is redacted when the script envelope itself is sealed.
+    pub fn envelope<R: Serialize>(
+        response: &WorkspaceResponse<R>,
+    ) -> Result<Value, serde_json::Error> {
+        build(response, false)
+    }
 }
 
-fn add_notes(envelope: &mut Value, notes: &Option<Vec<String>>) {
+fn build<R: Serialize>(
+    response: &WorkspaceResponse<R>,
+    redact: bool,
+) -> Result<Value, serde_json::Error> {
+    let guard = |value: Value| if redact { redact_value(value) } else { value };
+    Ok(match response {
+        WorkspaceResponse::Success {
+            version,
+            freshness,
+            budget,
+            results,
+            notes,
+        } => {
+            let mut envelope = json!({"v": version.get(), "ok": true,
+                "freshness": freshness.as_str(),
+                "budget": {"requested": budget.requested, "used": budget.used},
+                "results": guard(serde_json::to_value(results.rows())?)});
+            if let Some(cut) = results.truncation() {
+                // The pinned response seam preserves cursor and typed hints verbatim.
+                envelope["truncation"] = json!({"dropped": cut.dropped(),
+                    "reason": cut.reason().as_str(), "narrow": cut.narrow(), "cursor": cut.cursor()});
+            }
+            add_notes(&mut envelope, notes, redact);
+            envelope
+        }
+        WorkspaceResponse::Failure {
+            version,
+            error,
+            notes,
+        } => {
+            let mut envelope = json!({"v": version.get(), "ok": false,
+                "error": guard(error_value(error))});
+            add_notes(&mut envelope, notes, redact);
+            envelope
+        }
+    })
+}
+
+fn add_notes(envelope: &mut Value, notes: &Option<Vec<String>>, redact: bool) {
     if let Some(notes) = notes {
         envelope["notes"] = Value::Array(
             notes
                 .iter()
-                .map(|note| Value::String(Redactor::redact(note).text))
+                .map(|note| {
+                    Value::String(if redact {
+                        Redactor::redact(note).text
+                    } else {
+                        note.clone()
+                    })
+                })
                 .collect(),
         );
     }

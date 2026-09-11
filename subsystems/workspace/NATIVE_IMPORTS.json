@@ -211,6 +211,47 @@
 				"crates/magistr-cli/tests/workspace_editing.rs"
 			],
 			"adaptation": "Typed WorkspaceCommands resolving edit/files/undo intent into exact TransactionChange anchors over the c6 pipeline; the prepared mgw1 token is the confirmation token and any non-reproducing token is a mismatch. Trash-backed deletion and parent creation inside the pinned swap. Import families and the Rust module planner ported without look-around regexes; unified diffs via the locked similar crate. Undo applies c5 plans unformatted with surfaced conflicts. No tool handler, owner or cutover; action:list not ported."
+		},
+		{
+			"chunk": "arch-14c8-workspace-extensions",
+			"upstream_inputs": [
+				"src/tools/plugins.ts",
+				"src/tools/tck.ts",
+				"src/tools/script.ts",
+				"src/protocol/lang-pack-plugin.ts",
+				"src/protocol/ranking-plugin.ts",
+				"src/protocol/resolver-plugin.ts",
+				"src/protocol/runner-plugin.ts",
+				"src/protocol/server.ts",
+				"src/tools/ranking.ts",
+				"wit/",
+				"plugins/",
+				"examples/plugins/",
+				"vendor/qjs/qjs-wasi.wasm",
+				"test/plugin-manifests.test.ts",
+				"test/plugin-tck.test.ts",
+				"test/script-tool.test.ts",
+				"test/sandbox-escape.test.ts",
+				"test/lang-pack.test.ts",
+				"test/lang-pack-promotion.test.ts",
+				"test/ranking-shadow.test.ts",
+				"test/resolver-plugin.test.ts",
+				"test/runner-plugin.test.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/extensions/",
+				"crates/magistr-workspace/src/commands/script_*.rs",
+				"crates/magistr-workspace/src/query/plugin_feature.rs",
+				"crates/magistr-workspace/src/query/plugin_feature_lookup.rs",
+				"crates/magistr-workspace/src/query/search_resolver.rs",
+				"crates/magistr-workspace/src/worker/ranking_hit.rs",
+				"crates/magistr-workspace/src/worker/ranking_feature.rs",
+				"crates/magistr-workspace/src/worker/run_report.rs",
+				"crates/magistr-workspace/src/worker/run_failure.rs",
+				"crates/magistr-cli/tests/workspace_extensions.rs",
+				"crates/magistr-cli/tests/workspace_script.rs"
+			],
+			"adaptation": "Typed manifest/record/grant validation with the blessed-only subprocess rule, per-call inventory and disk breaker, PluginHost and the four-chapter TCK over an ExtensionLane whose production lane is the supervised worker; QuickJS script verb with the retained shim/sentinel protocol over typed queries and the c7 gate (write jail before any token); LangPackBoot, RankingSignals with a PluginFeatureLookup seam in the first-party combiner, PluginResolver merged into references, RunnerAdapter; worker gains RankingContribute/RunnerParse, runs requests on a blocking thread (wasmtime-wasi block_on fix) and caches compiled WASI modules by digest. Char-based fuzz corpus; protected queued writes refused as SANDBOX_CAP_DENIED before minting; host-side pack language selection, map inventory, served rows and composition remain later chunks."
 		}
 	]
 }

@@ -12,8 +12,16 @@ mod language_registration;
 mod location;
 #[cfg(feature = "sandbox")]
 mod policy;
+#[cfg(feature = "sandbox")]
+mod ranking_feature;
+#[cfg(feature = "sandbox")]
+mod ranking_hit;
 mod request;
 mod response;
+#[cfg(feature = "sandbox")]
+mod run_failure;
+#[cfg(feature = "sandbox")]
+mod run_report;
 mod search_hit;
 mod structural_hit;
 #[cfg(feature = "sandbox")]
@@ -31,8 +39,16 @@ pub use language_registration::WorkerLanguageRegistration;
 pub use location::WorkerLocation;
 #[cfg(feature = "sandbox")]
 pub use policy::WorkerPolicy;
+#[cfg(feature = "sandbox")]
+pub use ranking_feature::WorkerRankingFeature;
+#[cfg(feature = "sandbox")]
+pub use ranking_hit::WorkerRankingHit;
 pub use request::WorkerRequest;
 pub use response::WorkerResponse;
+#[cfg(feature = "sandbox")]
+pub use run_failure::WorkerRunFailure;
+#[cfg(feature = "sandbox")]
+pub use run_report::WorkerRunReport;
 pub use search_hit::WorkerSearchHit;
 pub use structural_hit::WorkerStructuralHit;
 #[cfg(feature = "sandbox")]

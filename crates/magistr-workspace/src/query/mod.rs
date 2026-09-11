@@ -42,8 +42,21 @@ mod source_snapshot;
 mod worker_error;
 pub use service::WorkspaceQueries;
 pub(crate) use worker_error::worker_error;
+mod plugin_feature;
+mod plugin_feature_lookup;
+pub use plugin_feature::PluginFeature;
+pub use plugin_feature_lookup::PluginFeatureLookup;
 mod ranking;
 mod ranking_candidate;
+/// Test seam over the private ranking classifier.
+#[cfg(all(test, feature = "sandbox"))]
+pub(crate) fn hit_contexts_for_tests(
+    query: &str,
+    groups: &[SearchGroup],
+    cap: usize,
+) -> Vec<crate::worker::WorkerRankingHit> {
+    ranking::Ranking::hit_contexts(query, groups, cap)
+}
 mod read;
 mod read_input;
 mod read_range;
@@ -53,6 +66,8 @@ mod read_selection;
 mod read_surround;
 mod read_symbol_ref;
 mod read_symbols;
+#[cfg(feature = "sandbox")]
+mod search_resolver;
 pub(crate) use read_symbols::SymbolAddress;
 mod read_unit;
 mod search;

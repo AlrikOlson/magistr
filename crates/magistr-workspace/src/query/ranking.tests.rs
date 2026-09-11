@@ -320,7 +320,7 @@ fn retained_stage5_group_order_golden_is_identical() {
             2,
         ),
     ];
-    order_groups(&mut groups, &["needle".into()]);
+    order_groups(&mut groups, &["needle".into()], None);
     golden(
         "stage5-order-groups",
         json!(groups.iter().map(|group| &group.file).collect::<Vec<_>>()),
@@ -411,4 +411,87 @@ fn rust_test_regions_demote_hits_and_test_only_files() {
         "compute",
     );
     assert_eq!(groups[0].file, "src/other.rs");
+}
+
+#[test]
+fn promoted_plugin_features_reorder_only_through_the_first_party_combiner() {
+    use crate::query::{PluginFeature, PluginFeatureLookup};
+    let tied = || {
+        vec![
+            candidate(
+                "src/alpha.ts",
+                false,
+                false,
+                vec![hit(3, 1, "function needle() {", None)],
+            ),
+            candidate(
+                "src/beta.ts",
+                false,
+                false,
+                vec![hit(3, 1, "function needle() {", None)],
+            ),
+        ]
+    };
+    let files = |groups: Vec<SearchGroup>| groups.into_iter().map(|g| g.file).collect::<Vec<_>>();
+    assert_eq!(
+        files(Ranking::rank_with(tied(), "needle", None)),
+        vec!["src/alpha.ts", "src/beta.ts"]
+    );
+    let mut boost = PluginFeatureLookup::default();
+    boost.insert(
+        PluginFeatureLookup::key("src/beta.ts", 3, 1, "function needle() {"),
+        vec![PluginFeature {
+            name: "ranking-visibility/exported".into(),
+            value: 1.0,
+        }],
+    );
+    assert_eq!(
+        files(Ranking::rank_with(tied(), "needle", Some(&boost))),
+        vec!["src/beta.ts", "src/alpha.ts"]
+    );
+    // An unlisted feature name weighs zero even when promoted and warm.
+    let mut unlisted = PluginFeatureLookup::default();
+    unlisted.insert(
+        PluginFeatureLookup::key("src/beta.ts", 3, 1, "function needle() {"),
+        vec![PluginFeature {
+            name: "ranking-visibility/unknown".into(),
+            value: 9.9,
+        }],
+    );
+    assert_eq!(
+        files(Ranking::rank_with(tied(), "needle", Some(&unlisted))),
+        vec!["src/alpha.ts", "src/beta.ts"]
+    );
+    // A huge value cannot leapfrog the definition-first rule.
+    let mut huge = PluginFeatureLookup::default();
+    huge.insert(
+        PluginFeatureLookup::key("src/call.ts", 1, 1, "  needle();"),
+        vec![PluginFeature {
+            name: "ranking-visibility/exported".into(),
+            value: 999_999.0,
+        }],
+    );
+    let groups = Ranking::rank_with(
+        vec![
+            candidate(
+                "src/decl.ts",
+                false,
+                false,
+                vec![hit(1, 1, "function needle() {", None)],
+            ),
+            candidate(
+                "src/call.ts",
+                false,
+                false,
+                vec![hit(1, 1, "  needle();", None)],
+            ),
+        ],
+        "needle",
+        Some(&huge),
+    );
+    assert_eq!(files(groups), vec!["src/decl.ts", "src/call.ts"]);
+    assert_eq!(
+        PluginFeatureLookup::weight("ranking-visibility/exported"),
+        0.5
+    );
 }

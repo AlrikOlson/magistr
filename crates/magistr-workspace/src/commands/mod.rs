@@ -19,6 +19,28 @@ mod move_imports_python;
 mod resolution;
 mod resolved;
 pub mod rust_move;
+#[cfg(feature = "sandbox")]
+mod script_guest;
+#[cfg(feature = "sandbox")]
+mod script_host_calls;
+#[cfg(feature = "sandbox")]
+mod script_input;
+#[cfg(feature = "sandbox")]
+mod script_interpreter;
+#[cfg(feature = "sandbox")]
+mod script_loop;
+#[cfg(feature = "sandbox")]
+mod script_program;
+#[cfg(feature = "sandbox")]
+mod script_queue;
+#[cfg(feature = "sandbox")]
+mod script_result;
+#[cfg(feature = "sandbox")]
+mod script_row;
+#[cfg(feature = "sandbox")]
+mod script_run;
+#[cfg(feature = "sandbox")]
+mod script_status;
 mod service;
 mod source_reads;
 mod transaction_errors;
@@ -33,6 +55,16 @@ pub use edit_input::EditInput;
 pub use edit_op::EditOp;
 pub use files_input::FilesInput;
 pub use files_op::FilesOp;
+#[cfg(feature = "sandbox")]
+pub use script_input::ScriptInput;
+#[cfg(feature = "sandbox")]
+pub use script_interpreter::ScriptInterpreter;
+#[cfg(feature = "sandbox")]
+pub use script_result::ScriptResult;
+#[cfg(feature = "sandbox")]
+pub use script_row::ScriptRow;
+#[cfg(feature = "sandbox")]
+pub use script_status::ScriptStatus;
 pub use service::WorkspaceCommands;
 pub use undo_input::UndoInput;
 pub use undo_row::UndoRow;

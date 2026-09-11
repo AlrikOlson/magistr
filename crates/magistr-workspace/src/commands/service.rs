@@ -61,6 +61,18 @@ impl<'a> WorkspaceCommands<'a> {
         super::undo_run::run(self, input).await
     }
 
+    /// Run a script in the QuickJS guest through `lane`; its queued writes
+    /// resolve through the same confirm gate and pipeline as `edit`.
+    #[cfg(feature = "sandbox")]
+    pub async fn script(
+        &mut self,
+        input: &super::ScriptInput,
+        interpreter: &super::ScriptInterpreter,
+        lane: &dyn crate::extensions::ExtensionLane,
+    ) -> WorkspaceResponse<super::ScriptRow> {
+        super::script_run::run(self, input, interpreter, lane).await
+    }
+
     pub(super) fn queries(&self) -> Result<WorkspaceQueries<'_>, WorkspaceError> {
         WorkspaceQueries::new(self.policy, self.worker, self.index)
     }

@@ -5,13 +5,60 @@ use std::{
 
 use regex::Regex;
 
-use super::{SearchGroup, SearchHit, ranking_candidate::RankingCandidate};
+#[cfg(feature = "sandbox")]
+use super::search_scope::SearchScope;
+use super::{PluginFeatureLookup, SearchGroup, SearchHit, ranking_candidate::RankingCandidate};
+#[cfg(feature = "sandbox")]
+use crate::worker::WorkerRankingHit;
 
 /// First-party deterministic ranking, independent of workspace I/O and workers.
 pub(super) struct Ranking;
 
 impl Ranking {
+    /// The baseline pipeline: no plugin features.
+    #[cfg(test)]
     pub fn rank(candidates: Vec<RankingCandidate>, query: &str) -> Vec<SearchGroup> {
+        Self::rank_with(candidates, query, None)
+    }
+
+    /// Stage-5 hit contexts for the ranked groups, the ranking lane's input:
+    /// the same per-hit facts the scorer already sees, capped per search.
+    #[cfg(feature = "sandbox")]
+    pub fn hit_contexts(query: &str, groups: &[SearchGroup], cap: usize) -> Vec<WorkerRankingHit> {
+        let classifier = Classifier::new(query);
+        let mut contexts = Vec::new();
+        for group in groups {
+            let file_class = if group.junk {
+                "vendor"
+            } else if SearchScope::is_test(&group.file) {
+                "test"
+            } else {
+                "source"
+            };
+            for hit in &group.hits {
+                if contexts.len() >= cap {
+                    return contexts;
+                }
+                contexts.push(WorkerRankingHit {
+                    file: group.file.clone(),
+                    line: u32::try_from(hit.line).unwrap_or(u32::MAX),
+                    column: hit.column,
+                    excerpt: hit.excerpt.clone(),
+                    kind_class: classify(hit, &classifier).name().to_owned(),
+                    file_class: file_class.to_owned(),
+                });
+            }
+        }
+        contexts
+    }
+
+    /// Rank with promoted plugin features folded into stage 5 through the
+    /// first-party combiner; `None` is exactly the baseline pipeline.
+    pub fn rank_with(
+        candidates: Vec<RankingCandidate>,
+        query: &str,
+        features: Option<&PluginFeatureLookup>,
+    ) -> Vec<SearchGroup> {
         let classifier = Classifier::new(query);
         let tokens: Vec<_> = query_tokens()
             .find_iter(&query.to_ascii_lowercase())
@@ -47,7 +94,7 @@ impl Ranking {
             })
             .collect();
         dedup(&mut groups);
-        order_groups(&mut groups, &tokens);
+        order_groups(&mut groups, &tokens, features);
         groups
             .into_iter()
             .map(|group| SearchGroup {
@@ -81,7 +128,7 @@ impl KindClass {
             Self::Comment => 0.5,
         }
     }
-    #[cfg(test)]
+    #[cfg(any(test, feature = "sandbox"))]
     fn name(self) -> &'static str {
         match self {
             Self::Declaration => "declaration",
@@ -326,12 +373,21 @@ fn query_tokens() -> &'static Regex {
     &TOKENS
 }
 
-fn order_groups(groups: &mut [ClassifiedGroup], tokens: &[String]) {
+fn order_groups(
+    groups: &mut [ClassifiedGroup],
+    tokens: &[String],
+    features: Option<&PluginFeatureLookup>,
+) {
     let score = |group: &ClassifiedGroup| {
         let best = group
             .hits
             .iter()
-            .map(|hit| hit.class.weight() * confidence(&hit.hit))
+            .map(|hit| {
+                let boost = features.map_or(0.0, |lookup| {
+                    lookup.boost(&group.file, hit.hit.line, hit.hit.column, &hit.hit.excerpt)
+                });
+                hit.class.weight() * confidence(&hit.hit) + boost
+            })
             .fold(0.0, f64::max);
         let path = group.file.to_lowercase();
         best + tokens
