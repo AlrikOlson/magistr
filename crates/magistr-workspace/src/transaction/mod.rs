@@ -8,6 +8,7 @@ mod file_result;
 mod format_mode;
 mod formatter;
 mod formatter_options;
+mod formatter_process;
 mod outcome;
 mod prepared;
 mod request;

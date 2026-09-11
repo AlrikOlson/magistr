@@ -31,13 +31,20 @@ pub mod native_reader;
 mod open_engines;
 pub mod owner_client;
 pub mod owner_command;
+#[cfg(unix)]
+mod owner_connections;
 mod owner_dispatch;
 pub mod owner_endpoint;
 pub mod owner_generation;
+pub mod owner_identity;
 mod owner_lease;
 pub mod owner_reply;
 pub mod owner_socket;
+#[cfg(unix)]
+mod owner_socket_file;
 pub mod owner_wire;
+#[cfg(unix)]
+mod owner_workspace_link;
 pub mod progress;
 pub mod project_authority;
 pub mod region_counts;
@@ -49,6 +56,7 @@ pub mod snapshot;
 pub mod subscriber;
 pub mod tas_config;
 pub mod think_command;
+pub mod workspace_socket_path;
 pub mod writer_role;
 
 pub use attach_error::AttachError;
@@ -66,6 +74,7 @@ pub use owner_client::OwnerClient;
 pub use owner_command::OwnerCommand;
 pub use owner_endpoint::OwnerEndpoint;
 pub use owner_generation::OwnerGeneration;
+pub use owner_identity::OwnerIdentity;
 pub use owner_reply::OwnerReply;
 pub use owner_socket::owner_socket_path;
 pub use owner_wire::OWNER_PROTOCOL_VERSION;
@@ -80,6 +89,7 @@ pub use snapshot::NativeRoadmapSnapshot;
 pub use subscriber::spawn_broadcast_subscriber;
 pub use tas_config::TasConfig;
 pub use think_command::ThinkCommand;
+pub use workspace_socket_path::workspace_socket_path;
 pub use writer_role::WriterRole;
 
 // The library types the typed commands speak, re-exported so consumers

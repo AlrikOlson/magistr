@@ -29,7 +29,7 @@ pub(crate) mod gate;
 pub(crate) mod hooks;
 mod init;
 mod owner_attach;
-mod owner_stdio;
+pub(crate) mod owner_stdio;
 pub mod protocol_cap;
 mod roadmap_export;
 mod service;

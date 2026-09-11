@@ -26,6 +26,17 @@ pub struct OwnerGeneration(u64);
 const WIDTH: usize = 20;
 
 impl OwnerGeneration {
+    /// Wrap the nonzero generation minted by another admitted local owner.
+    pub(crate) fn admitted(value: u64) -> io::Result<Self> {
+        if value == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "magistr: an owner generation must be nonzero",
+            ));
+        }
+        Ok(Self(value))
+    }
+
     /// Read the counter at the head of `lock`, advance it, and write it
     /// back in place. Called once per admission, under the lock the file
     /// carries; a file that holds nothing (or something that is not a

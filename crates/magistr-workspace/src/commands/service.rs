@@ -25,6 +25,7 @@ pub struct WorkspaceCommands<'a> {
     pub(super) options: FormatterOptions,
     pub(super) session_id: String,
     pub(super) reads: SourceReads<'a>,
+    pub(super) formatter_tasks: tokio_util::task::TaskTracker,
 }
 
 impl<'a> WorkspaceCommands<'a> {
@@ -46,7 +47,13 @@ impl<'a> WorkspaceCommands<'a> {
             options,
             session_id: session_id.into(),
             reads: SourceReads::new(policy)?,
+            formatter_tasks: tokio_util::task::TaskTracker::new(),
         })
+    }
+
+    pub(crate) fn with_formatter_tasks(mut self, tasks: tokio_util::task::TaskTracker) -> Self {
+        self.formatter_tasks = tasks;
+        self
     }
 
     pub async fn edit(&mut self, input: &EditInput) -> WorkspaceResponse<WriteReport> {

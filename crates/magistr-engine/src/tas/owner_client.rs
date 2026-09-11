@@ -11,6 +11,7 @@ use super::attach_kind::AttachKind;
 use super::caller_identity::CallerIdentity;
 use super::owner_command::OwnerCommand;
 use super::owner_generation::OwnerGeneration;
+use super::owner_identity::OwnerIdentity;
 use super::owner_reply::OwnerReply;
 use super::owner_socket::owner_socket_path;
 use super::owner_wire::{ClientFrame, CommandRefusal, Hello, OWNER_PROTOCOL_VERSION};
@@ -95,8 +96,7 @@ impl OwnerClient {
         let path = owner_socket_path(config, &project_id, role);
         let hello = Hello {
             protocol: OWNER_PROTOCOL_VERSION,
-            project_id,
-            role,
+            identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Commands,
             caller,
         };
@@ -130,12 +130,35 @@ impl OwnerClient {
         let path = owner_socket_path(config, &project_id, role);
         let hello = Hello {
             protocol: OWNER_PROTOCOL_VERSION,
-            project_id,
-            role,
+            identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Mcp,
             caller,
         };
-        let (link, generation, _) = unix::connect(&path, &hello, deadline)?;
+        Self::attach_mcp_at(&path, &hello, deadline)
+    }
+
+    /// Attach to the MCP session of an owner of the canonical workspace root.
+    /// This opens no workspace store and takes no workflow or workspace lease.
+    /// The returned generation names the owner reached by this connection.
+    ///
+    /// # Errors
+    /// As [`Self::attach_with`], plus canonical-root resolution failures.
+    #[cfg(unix)]
+    pub async fn attach_workspace(
+        root: &Path,
+        caller: CallerIdentity,
+        deadline: Duration,
+    ) -> Result<(OwnerGeneration, tokio::net::UnixStream), AttachError> {
+        super::owner_workspace_link::attach(root, caller, deadline).await
+    }
+
+    #[cfg(unix)]
+    fn attach_mcp_at(
+        path: &Path,
+        hello: &Hello,
+        deadline: Duration,
+    ) -> Result<(OwnerGeneration, std::os::unix::net::UnixStream), AttachError> {
+        let (link, generation, _) = unix::connect(path, hello, deadline)?;
         let stream = link.into_stream();
         stream
             .set_read_timeout(None)

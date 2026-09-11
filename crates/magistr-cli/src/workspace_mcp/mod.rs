@@ -12,15 +12,20 @@
 //! preserved for queries and envelopes. Each connection now holds a fallback
 //! session identity; explicit `_meta` identities receive fresh owner admission.
 //!
-//! This module negotiates the wire. It never reaches past the service into
-//! the stores, and `magistr mcp-serve` — the project workflow server — is
-//! untouched: the native workspace server is its own subcommand,
-//! `magistr workspace serve`, until owner cutover.
+//! This module negotiates the wire without reaching into service stores.
+//! `magistr workspace serve` admits one native workspace owner or attaches
+//! another Unix MCP connection through the shared owner transport. Workflow
+//! serving remains a separate subcommand and production launcher cutover is
+//! deferred until the remaining workspace lifecycle acceptance is complete.
 mod arguments;
+mod connection;
 mod dispatch;
 mod elicitation;
+#[cfg(unix)]
+mod endpoint;
 mod serve;
 mod service;
+mod session_lifetime;
 mod tasks;
 mod tool_surface;
 

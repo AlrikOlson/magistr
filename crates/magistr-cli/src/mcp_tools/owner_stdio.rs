@@ -15,19 +15,44 @@ use std::task::{Context, Poll, ready};
 use tokio::io::unix::AsyncFd;
 use tokio::io::{AsyncRead, AsyncWrite, Interest, ReadBuf};
 
-pub(super) struct ProxyStdio {
+pub(crate) struct ProxyStdio {
     file: Arc<NonblockingFile>,
     readiness: Option<AsyncFd<Arc<NonblockingFile>>>,
     interest: Interest,
 }
 
 impl ProxyStdio {
-    pub(super) fn stdin() -> io::Result<Self> {
+    pub(crate) fn stdin() -> io::Result<Self> {
         Self::new(&io::stdin(), Interest::READABLE)
     }
 
-    pub(super) fn stdout() -> io::Result<Self> {
+    pub(crate) fn stdout() -> io::Result<Self> {
         Self::new(&io::stdout(), Interest::WRITABLE)
+    }
+
+    /// Relay one welcomed attachment with cancellable stdio. Owner EOF never
+    /// replays an ambiguous request against a replacement writer.
+    pub(crate) async fn relay(
+        stream: std::os::unix::net::UnixStream,
+        scope: &str,
+    ) -> io::Result<()> {
+        stream.set_nonblocking(true)?;
+        let mut owner = tokio::net::UnixStream::from_std(stream)?;
+        let (mut from_owner, mut to_owner) = owner.split();
+        let mut stdin = Self::stdin()?;
+        let mut stdout = Self::stdout()?;
+        tokio::select! {
+            client = tokio::io::copy(&mut stdin, &mut to_owner) => {
+                client?;
+                Ok(())
+            }
+            owner = tokio::io::copy(&mut from_owner, &mut stdout) => {
+                owner?;
+                Err(io::Error::new(io::ErrorKind::UnexpectedEof, format!(
+                    "magistr: the {scope} owner ended its session; start a new server to take the {scope}"
+                )))
+            }
+        }
     }
 
     fn new(descriptor: &impl AsFd, interest: Interest) -> io::Result<Self> {

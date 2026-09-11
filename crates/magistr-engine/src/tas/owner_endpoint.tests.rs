@@ -82,8 +82,7 @@ fn raw_greeting(path: &std::path::Path, hello: serde_json::Value) -> Greeting {
 fn hello(project_id: &str, role: &str, attach: &str, protocol: u32) -> serde_json::Value {
     serde_json::json!({
         "protocol": protocol,
-        "project_id": project_id,
-        "role": role,
+        "identity": { "kind": "workflow", "project_id": project_id, "role": role },
         "attach": attach,
         "caller": {"pid": std::process::id(), "surface": "test"},
     })
@@ -347,8 +346,11 @@ async fn an_mcp_attachment_hands_the_socket_to_the_acceptor_after_the_welcome() 
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let owner = host(&cfg);
-    let acceptor: McpAcceptor = Arc::new(|stream: tokio::net::UnixStream| {
-        tokio::spawn(async move {
+    let acceptor: McpAcceptor = Arc::new(|stream: tokio::net::UnixStream, cancel| {
+        Box::pin(async move {
+            tokio::select! {
+                _ = cancel.cancelled() => {},
+                _ = async move {
             let (read, mut write) = stream.into_split();
             let mut lines = tokio::io::BufReader::new(read).lines();
             while let Ok(Some(line)) = lines.next_line().await {
@@ -360,7 +362,9 @@ async fn an_mcp_attachment_hands_the_socket_to_the_acceptor_after_the_welcome() 
                     return;
                 }
             }
-        });
+                } => {},
+            }
+        })
     });
     let endpoint = OwnerEndpoint::serve_with(owner.clone(), Some(acceptor))
         .await
@@ -437,11 +441,16 @@ async fn an_mcp_only_owner_refuses_typed_commands_at_the_handshake() {
     let cfg = config(&tmp);
     let authority = Arc::new(admit_host(&cfg).expect("admitted"));
     // An acceptor that holds the session open until the client leaves.
-    let acceptor: McpAcceptor = Arc::new(|stream: tokio::net::UnixStream| {
-        tokio::spawn(async move {
+    let acceptor: McpAcceptor = Arc::new(|stream: tokio::net::UnixStream, cancel| {
+        Box::pin(async move {
+            tokio::select! {
+                _ = cancel.cancelled() => {},
+                _ = async move {
             let mut sink = tokio::io::sink();
             let _ = tokio::io::copy(&mut tokio::io::BufReader::new(stream), &mut sink).await;
-        });
+                } => {},
+            }
+        })
     });
     let endpoint = OwnerEndpoint::serve_mcp(Arc::clone(&authority), acceptor)
         .await
@@ -463,4 +472,24 @@ async fn an_mcp_only_owner_refuses_typed_commands_at_the_handshake() {
         DEADLINE,
     )
     .expect("mcp is what it offers");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_regular_file_at_the_owner_endpoint_is_preserved() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = config(&tmp);
+    let owner = host(&cfg);
+    let path = owner_socket_path(&cfg, "lease", WriterRole::Host);
+    std::fs::create_dir_all(path.parent().expect("parent")).expect("parent");
+    std::fs::write(&path, b"preserve this file").expect("occupant");
+
+    let result = OwnerEndpoint::serve(owner).await;
+    assert!(
+        result.is_err(),
+        "an occupied regular file must never become a socket"
+    );
+    assert_eq!(
+        std::fs::read(&path).expect("preserved"),
+        b"preserve this file"
+    );
 }

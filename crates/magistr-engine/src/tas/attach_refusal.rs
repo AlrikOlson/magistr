@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::attach_kind::AttachKind;
+use super::owner_identity::OwnerIdentity;
 use super::writer_role::WriterRole;
 
 /// The owner's answer to a `Hello` it will not serve. Each is a fact about
@@ -33,6 +34,11 @@ pub enum AttachRefusal {
         /// The client's.
         offered: WriterRole,
     },
+    /// The client named another workspace or a different ownership domain.
+    Identity {
+        expected: OwnerIdentity,
+        offered: OwnerIdentity,
+    },
     /// The connecting process is not the owner's user, or its credentials
     /// could not be read.
     Caller(String),
@@ -55,6 +61,9 @@ impl std::fmt::Display for AttachRefusal {
                     f,
                     "endpoint serves the {expected:?} role, client asked for {offered:?}"
                 )
+            }
+            Self::Identity { expected, offered } => {
+                write!(f, "owner identity {expected:?} does not match {offered:?}")
             }
             Self::Caller(why) => write!(f, "caller refused: {why}"),
             Self::Unsupported(kind) => {

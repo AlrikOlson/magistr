@@ -1,18 +1,18 @@
-//! How an MCP owner takes an attached MCP session.
+//! How a host serves an endpoint-owned MCP connection.
 
-use std::sync::Arc;
+use std::{future::Future, pin::Pin, sync::Arc};
 
-/// The connection an acceptor is handed: the client's socket on Unix,
-/// nothing anywhere else (there is no endpoint to accept on).
+use tokio_util::sync::CancellationToken;
+
 #[cfg(unix)]
 type Attached = tokio::net::UnixStream;
 #[cfg(not(unix))]
 type Attached = ();
 
-/// What an [`OwnerEndpoint`](super::OwnerEndpoint) hands an attached
-/// connection to after a welcomed [`AttachKind::Mcp`](super::AttachKind::Mcp)
-/// handshake: the host's own rmcp session, served over the socket the
-/// client is holding. Supplied by the host that has an MCP service to
-/// offer (`magistr mcp-serve`); a host without one refuses MCP attachment
-/// at the handshake. The engine crate never sees MCP itself.
-pub type McpAcceptor = Arc<dyn Fn(Attached) + Send + Sync>;
+/// A complete attached MCP session. The endpoint owns this future and
+/// cancels its token on shutdown. An acceptor must stop and join any service
+/// task it started before returning; it must not detach that task. The
+/// engine owns connection lifetime without depending on MCP itself.
+pub type McpAcceptor = Arc<
+    dyn Fn(Attached, CancellationToken) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync,
+>;

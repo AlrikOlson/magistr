@@ -1,15 +1,11 @@
 //! `magistr workspace serve` as a real subprocess over its own stdio: the
 //! shipping artifact driven by an rmcp client — initialize, tools/list,
 //! status, search and an applied edit — and the retained process-level
-//! refusals (64 usage, 66 missing root, 75 a live owner).
+//! refusals (64 usage, 66 missing root, 75 a legacy lock requiring migration).
 #[path = "support/magistr_command.rs"]
 mod magistr_command;
 
-use std::{
-    path::Path,
-    process::Stdio,
-    time::{Duration, Instant},
-};
+use std::{path::Path, process::Stdio, time::Duration};
 
 use magistr_command::magistr_command;
 use rmcp::{
@@ -146,56 +142,6 @@ fn a_missing_root_and_a_malformed_config_are_refused_with_the_retained_exit_code
     let usage = usage.output().expect("run");
     assert_eq!(usage.status.code(), Some(64));
     assert!(String::from_utf8_lossy(&usage.stderr).contains("--config expects key=value"));
-}
-
-#[test]
-fn a_second_instance_is_refused_with_exit_75_while_the_first_owns_the_workspace() {
-    let dir = workspace();
-    let mut first = served(dir.path())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .expect("first owner");
-    let lock = dir.path().join(".workbench/server.lock");
-    let deadline = Instant::now() + Duration::from_secs(30);
-    while !lock.exists() {
-        assert!(
-            Instant::now() < deadline,
-            "the first owner never took the lock"
-        );
-        assert!(
-            first.try_wait().expect("poll").is_none(),
-            "the first owner exited early"
-        );
-        std::thread::sleep(Duration::from_millis(50));
-    }
-    // The lock file exists a moment before the flock lands; a live owner
-    // either refuses us at once or within the next few retries.
-    let mut code = None;
-    for _ in 0..50 {
-        let second = served(dir.path())
-            .stdin(Stdio::null())
-            .output()
-            .expect("second instance");
-        code = second.status.code();
-        if code == Some(75) {
-            let stderr = String::from_utf8_lossy(&second.stderr);
-            assert!(stderr.contains("already owns this workspace"), "{stderr}");
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(100));
-    }
-    assert_eq!(code, Some(75));
-    drop(first.stdin.take());
-    let status = first
-        .wait()
-        .expect("the first owner exits when stdin closes");
-    assert!(status.success(), "{status}");
-    assert!(
-        lock.is_file(),
-        "the lock file stays; the OS lock is what released"
-    );
 }
 
 /// Reusing the explicit identity after a crash isolates owner-generation
