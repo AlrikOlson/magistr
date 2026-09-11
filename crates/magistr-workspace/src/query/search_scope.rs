@@ -4,7 +4,7 @@ use super::{SearchInput, source_entry::SourceEntry};
 use crate::contracts::{ErrorKind, WorkspaceError};
 
 /// The retained path glob and include exclusions, applied before any worker call.
-pub(super) struct SearchScope {
+pub(crate) struct SearchScope {
     path: Option<GlobMatcher>,
     exclude_tests: bool,
     exclude_vendor: bool,

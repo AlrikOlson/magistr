@@ -1,5 +1,6 @@
 /// One admitted entry in the deterministic live source walk.
-pub(super) struct SourceEntry {
+#[derive(Debug, Clone)]
+pub(crate) struct SourceEntry {
     pub path: String,
     pub is_dir: bool,
     pub language: Option<String>,

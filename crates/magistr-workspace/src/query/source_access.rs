@@ -81,7 +81,7 @@ impl WorkspaceQueries<'_> {
         ))
     }
 
-    pub(super) fn files(&self) -> Result<Vec<SourceEntry>, WorkspaceError> {
+    pub(crate) fn files(&self) -> Result<Vec<SourceEntry>, WorkspaceError> {
         let mut builder = ignore::WalkBuilder::new(&self.root);
         builder
             .hidden(false)

@@ -9,6 +9,7 @@
 //! transport serialization is isolated in `response`. Adoption evidence
 //! and the retained reference live under `subsystems/workspace/`.
 
+pub mod commands;
 pub mod config;
 pub mod confirmation;
 pub mod contracts;
