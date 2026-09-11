@@ -149,6 +149,21 @@
 				"crates/magistr-cli/src/main.rs"
 			],
 			"adaptation": "Typed native worker requests, bounded private process frames and supervised Magistr executable role. Absolute deadlines/cancellation, owned group kill/wait, bounded input fingerprints, and LSP reader/session ceilings. Reference unchanged; no workspace owner/production cutover."
+		},
+		{
+			"chunk": "arch-14c3-workspace-index",
+			"upstream_inputs": [
+				"src/adapters/engine-ipc/indexer.ts",
+				"src/adapters/engine-ipc/ipc-index.ts",
+				"src/adapters/fswatch/",
+				"src/data/versioned-db.ts",
+				"src/protocol/workspace.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/index/",
+				"crates/magistr-cli/tests/workspace_index.rs"
+			],
+			"adaptation": "Typed rebuildable SQLite/FTS cache with separate native-index paths and held cache-only OS lock. Bounded native worker extraction, live byte/mode/ignore revalidation, coalesced native and joined content/mode polling watchers. Cache generation never source certification. Bundled language selection; extension activation remains c8. Reference unchanged; no production owner/cutover."
 		}
 	]
 }

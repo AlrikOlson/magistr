@@ -303,3 +303,59 @@ must restore admitted state in later chunks. This iteration's gate results are
 recorded in native ship state; it does not claim Windows/Linux execution or
 production workspace port parity.
 
+
+## Native index port (arch-14c3)
+
+`WorkspaceIndex` starts cache opening and scanning in the background and sends
+bounded extraction inputs through the existing native worker. Source content is
+limited to 1 MiB per file; binary, invalid UTF-8 and oversized content receive
+metadata records without parser/FTS content. A scan admits at most 100,000 files
+by default, with a configurable ceiling of one million, and reports incomplete
+walks. Each file replacement atomically updates file metadata, symbols (including
+detail/doc), imports, test regions and aligned FTS5 rowids. Cache queries are
+limited to 1,000 rows and live validation to 8 MiB of file content per call;
+name-prefix and literal-phrase lookup are candidate operations for the later
+navigation port, not complete public tool parity.
+
+The fixed `native-index.db` and its SQLite sidecars are separate from retained
+Workbench `index.db`, durable journals and workflow state. An OS-held
+`native-index.lock` admits one native cache opener and is released after SQLite
+closes; it neither reads nor replaces the workspace owner's lock. Version,
+schema and integrity mismatches rebuild only the derived cache. Operational
+busy/permission errors preserve its bytes. Database, lock and sidecar links
+cannot alias durable files. The composing application supplies an admitted
+state directory outside the source root or below its excluded `.workbench`;
+in-workspace alternatives are refused to prevent cache writes from triggering
+endless refreshes.
+
+Network detection retains the explicit override, UNC and Linux longest-mount
+selection, with a named local-default limitation elsewhere. The same result
+selects WAL versus TRUNCATE and native versus polling watchers. Native overflow
+or failure requests a complete reconciliation. The joined polling worker hashes
+content and modes, coalesces changes into one epoch, and reports its 100,000-entry
+and 64 MiB scan ceilings. Status includes pending changes, lag and errors.
+Queries never wait for a cache build or parser: a busy/opening cache returns
+explicit cold/warming results. Candidate hashes, modes, metadata and inherited
+ignore rules are checked live; stale or unvalidated anchors are omitted.
+Watcher-off queries remain warming and can miss additions until refresh.
+Native mode also reconciles periodically to recover missed events.
+
+Freshness is optimistic observation. A file may change after validation; index
+generation is cache progress, never a source revision or completion receipt.
+Startup rechecks persisted entries, and worker failure preserves host/cold
+query availability and retries extraction through supervision. This coordinator
+uses bundled language selection; dynamic extension activation and replay policy
+remain c8. Await index shutdown before worker shutdown/runtime exit to settle
+scans and join the poller. No production CLI/MCP consumer is switched over here.
+
+The native cache and real Magistr executable tests cover initial/incremental
+indexing, FTS replacement/deletion, corruption/incompatible-cache recovery,
+exclusive cache ownership, watcher rename/delete/mode changes, ignore changes,
+unchanged size/timestamp edits, bounded queries and owned worker crash/restart.
+Current primary references are [SQLite WAL](https://www.sqlite.org/wal.html),
+[FTS5](https://www.sqlite.org/fts5.html), [notify](https://docs.rs/notify/8.2.0/notify/)
+and [Rust file locking](https://doc.rust-lang.org/std/fs/struct.File.html#method.try_lock).
+Verification is on the macOS host; Linux/Windows execution and reference WASM
+addon rebuilding are not claimed. Full required gate results belong to the
+native ship checks and iteration receipt.
+

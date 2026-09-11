@@ -17,7 +17,10 @@ path/command admission, keys and response/byte contracts are native through c1.
 The c2 worker supervisor now isolates parser, dynamic grammar and sandbox/LSP
 execution in Magistr's private executable role, with bounded frames, admission,
 deadlines, cancellation, backoff, quarantine and owned process cleanup.
-Filesystem mutation authority, service orchestration, tools and CLI cutover still
+The c3 index now persists native file/symbol/import/test-region and FTS records,
+refreshes through bounded native/poll watchers, and revalidates live candidate
+bytes, modes and ignore selection. Filesystem mutation authority, service
+orchestration, tools and CLI cutover still
 require the chunks below. Listed tests are retained evidence targets; listing a test does
 not claim that a particular platform or execution lane passed.
 
@@ -99,7 +102,7 @@ code's recovery and payload rather than flatten failures into strings:
 | --- | --- |
 | `arch-14c1-workspace-policy` | Native configuration, composed path/command admission, protected policy, key lifecycle, envelopes and typed error/byte contracts; shared fixture parity |
 | `arch-14c2-workspace-workers` | Parser/extension process supervision, bounded IPC, crash and quarantine behavior |
-| `arch-14c3-workspace-index` | Persistent derived index, refresh, watcher, queries and build health |
+| `arch-14c3-workspace-index` | Native persistent derived index, bounded refresh/watchers, candidate queries and build health; public navigation semantics remain c4 |
 | `arch-14c4-workspace-queries` | Search, map and read behavior over admitted live source |
 | `arch-14c5-workspace-journal` | Binary durable journal, schema recovery, retention and undo selection |
 | `arch-14c6-workspace-transactions` | Verified atomic writes, formatter integration and confirmation |
