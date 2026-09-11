@@ -13,7 +13,9 @@ pub mod commands;
 pub mod config;
 pub mod confirmation;
 pub mod contracts;
+pub mod diagnostics;
 pub mod engine;
+pub mod execution;
 #[cfg(feature = "sandbox")]
 pub mod extensions;
 pub mod file_content;

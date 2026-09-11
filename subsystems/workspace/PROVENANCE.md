@@ -784,3 +784,83 @@ LSP fixture merged into references, the runner goldens, and the script tool
 over the pinned QuickJS-ng guest (the ten one-liners, fuel/memory/capability
 kills, redaction at the seal, guest failure as data and the confirm flow).
 Verification is on this macOS host; no dependency or version changed.
+
+## Native execution and diagnostics (arch-14c9)
+
+`crates/magistr-workspace/src/execution/` ports `src/tools/run.ts`,
+`run-parse.ts` and `run-cargo.ts`; `crates/magistr-workspace/src/diagnostics/`
+ports `src/tools/journal-view.ts`, `src/doctor/{probes,report,bundle,tar}.ts`,
+`src/config/doctor.ts` (already native as `ResolvedConfig::doctor`),
+`src/protocol/tracing.ts`, `src/ports/tracing.ts` and the `workbench_status`
+answer from `src/protocol/server.ts`. The reference is unchanged.
+
+Execution: `WorkspaceRun` is composition over the c1 `CommandAdmission` — the
+allowlist, the no-shell guard and the munging redirect decide before any
+executor is consulted and nothing here widens them. The executor is a seam
+(`RunExecutor`, boxed future plus `CancellationToken`) whose production
+implementation `ProcessExecutor` spawns one literal argv in the workspace root
+with stdin closed, both streams piped, `kill_on_drop` and its own process
+group; it captures each stream under a ceiling (three quarters head, one
+quarter rolling tail, the dropped byte count reported and a marker line that
+no parser matches), waits under a wall-clock deadline or the cancel token, and
+on either kills the owned group by its own pid (never a caller-provided pid)
+before reaping. A drain deadline covers a grandchild that holds the pipes after
+the parent exits. Native safety deltas versus the reference's Bun executor:
+bounded output (the reference buffered everything), a typed `FILE_NOT_FOUND`
+for a missing program and `ENGINE_UNAVAILABLE` for other spawn failures (the
+reference threw), signals reported as data with no exit code, and cancellation
+as a first-class terminal outcome. Parsing is pure and byte-for-byte pinned:
+the seven bundled runner parsers, the panic-block/backtrace helpers and the
+rustc/clippy extractor reproduce every retained cargo golden by JSON equality,
+the JS regexes are ported with ASCII word boundaries, and the retained
+semantics that a claimant without structure ends the search (the honest
+head+tail cut, never a weaker parser's guess) is kept. The registries are open
+trait lists (`RunnerParser`, `DiagnosticExtractor`, `PluginRunnerLane`) with
+bundled defaults in the retained trust order; the plugin lane is the c8
+`RunnerAdapter` consulted first, a dead lane degrading with a note. Budget
+fitting, the diagnostics manifest (`diagnostic:N`) and the head+tail line
+allocation (budget × 4 / 80, one quarter to stderr) are the reference's; the
+manifest rides `ResultSet::with_manifest`, added for a cut made inside a row.
+
+Diagnostics: `WorkspaceStatus` answers root, state dir, the detected journal
+mode, the envelope versions and the worker/index snapshots the composition
+holds, degradations in notes. `JournalInspection` renders the retained
+journal-view rows (one row per touched file, thin rows for fileless ops,
+`evicted`, `binary`, the 20,000-unit diff cap) over the read-only
+`JournalReader`: no lock, nothing rewritten, a missing journal is an empty
+listing and a newer journal is `UNSUPPORTED_VERSION` with the file untouched.
+`TraceRecorder` keeps the reference's structural privacy (typed attributes
+only, no free-form attach), OTel id widths, derived recovery classes, the
+8 MiB cap keeping the newest half, torn tails tolerated and never repaired; it
+adds the credential redactor on every line and a dedicated writer thread with
+a bounded flush handshake so the served path never awaits trace IO. There is
+no async-local active span: the composition passes spans explicitly.
+`DoctorRun` composes the six retained sections read-only: the index probe
+opens `native-index.db` (the native cache, not the retained `index.db`) with
+`SQLITE_OPEN_READ_ONLY | NOFOLLOW` after canonicalizing the state dir and never
+touches `native-index.lock`; the watcher line says status is in memory;
+quarantine reads the retained `quarantine.jsonl` tolerant of torn lines and
+says the native worker ledger is per session; plugins read the inventory and
+breaker files under the sandbox feature and say so when the host is not
+compiled in. `DoctorBundle` is the retained members under the retained
+`workbench-doctor/` prefix, every member through `redact_bundle_text` (root
+spellings, foreign absolute paths) and then the credential redactor, packed by
+the in-tree ustar writer and `flate2` gzip (the one new direct dependency,
+already in the lock). Doctor CLI verbs and exit codes (0/1/64/65/66), the
+lock-free `journal` CLI subcommand and served tool rows remain c10.
+
+Evidence: 50 execution tests (real-process executor: exit codes, missing
+program, timeout kill, cancel kill of grandchildren, pipe-holding grandchild,
+noisy output bounded, signals; scripted-executor port of `run-tool.test.ts`;
+`run-cargo.test.ts` goldens and assertions; plugin-lane fakes) and 22
+diagnostics tests (status notes, journal rows beside a live writer with a
+state-dir byte snapshot, newer-journal refusal, trace contract/cap/torn
+tail/unwritable/redaction, doctor seeded stores, corrupt and newer index,
+read-only beside a live `IndexCache` holding its lock, no state creation,
+bundle ustar conformance through an independent reader, sentinel privacy,
+support-engineer derivation), plus `tests/live_cargo_run.rs` running the real
+toolchain over a fixture workspace through the production executor. Limits:
+verification on this macOS host; on Windows the group kill degrades to
+`kill_on_drop`; the plugin runner lane over a real worker guest is covered by
+the c8 suites, not re-run here; the live cargo test skips honestly without
+cargo on PATH.

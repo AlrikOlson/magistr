@@ -48,6 +48,36 @@ impl<R> ResultSet<R> {
         })
     }
 
+    /// Rows that are complete as rows but stand in for a cut made inside
+    /// them (a head+tail window, a fitted diagnostics list): the manifest
+    /// names what the cut dropped and how to widen it.
+    pub fn with_manifest(
+        rows: Vec<R>,
+        dropped: usize,
+        reason: TruncationReason,
+        narrow: Vec<String>,
+        cursor: String,
+    ) -> Result<Self, WorkspaceError> {
+        if dropped == 0 {
+            return Ok(Self::complete(rows));
+        }
+        if cursor.is_empty() {
+            return Err(WorkspaceError::new(
+                ErrorKind::BudgetTooSmall,
+                "a cut requires a non-empty cursor",
+            ));
+        }
+        Ok(Self {
+            rows,
+            truncation: Some(Truncation {
+                dropped,
+                reason,
+                narrow,
+                cursor,
+            }),
+        })
+    }
+
     #[must_use]
     pub fn rows(&self) -> &[R] {
         &self.rows

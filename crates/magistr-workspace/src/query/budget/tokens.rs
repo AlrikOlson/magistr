@@ -2,7 +2,7 @@ use crate::contracts::{ErrorKind, WorkspaceError};
 use serde::Serialize;
 
 /// The retained wire estimator uses JavaScript string length, hence UTF-16 units.
-pub(in crate::query) fn tokens<R: Serialize>(row: &R) -> Result<u64, WorkspaceError> {
+pub(crate) fn tokens<R: Serialize>(row: &R) -> Result<u64, WorkspaceError> {
     let text = serde_json::to_string(row).map_err(|error| {
         WorkspaceError::new(
             ErrorKind::PatternInvalid,
