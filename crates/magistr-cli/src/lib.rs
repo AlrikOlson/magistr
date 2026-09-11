@@ -44,6 +44,7 @@ pub mod scaffold;
 pub mod team;
 pub mod tools;
 pub mod utils;
+pub mod workspace_mcp;
 
 // ── Test infrastructure (test-only) ─────────────────────────────────────────
 

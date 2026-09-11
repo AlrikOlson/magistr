@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/search.input.schema.json",
+  "title": "search",
+  "description": "Ranked, grouped search over the workspace — replaces grep, glob and find (SDD 9.1). Lexical, structural, references and files modes are live; semantic is reserved and rejected in v1 with a typed error, never a schema failure.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m1-search-structural",
+  "type": "object",
+  "required": ["query"],
+  "properties": {
+    "query": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Text or regex (lexical), an ast-grep pattern with $VAR metavariables (structural), an identifier (references), or a glob/filename fragment (files mode)."
+    },
+    "mode": {
+      "enum": ["auto", "lexical", "structural", "references", "files", "semantic"],
+      "default": "auto",
+      "description": "auto escalates from lexical as index tiers allow. semantic is reserved — accepted by this schema and rejected by the tool with a typed error (SDD 1.1)."
+    },
+    "kind": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional structural filter over matched node kinds, e.g. [\"function\",\"call\"] (\"call\" matches \"call_expression\"). In Rust, method calls are call_expression too; item kinds end in _item (function_item, impl_item, trait_item, struct_item, enum_item); macros are macro_invocation. Advisory in lexical mode (kind-tags ranking only)."
+    },
+    "path": {
+      "type": "string",
+      "description": "Glob scope over workspace-relative paths, e.g. src/**."
+    },
+    "include": {
+      "type": "object",
+      "description": "Ranking demotes tests and vendor by default; an explicit false here excludes them entirely.",
+      "properties": {
+        "tests": { "type": "boolean" },
+        "vendor": { "type": "boolean" }
+      }
+    },
+    "context": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20,
+      "default": 2,
+      "description": "Lines of context per hit."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 4000 }
+  }
+}

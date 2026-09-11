@@ -5,6 +5,7 @@ use crate::{
     workspace_policy::WorkspacePolicy,
 };
 use std::{path::PathBuf, time::Duration};
+use tokio_util::sync::CancellationToken;
 
 /// Typed source queries over admitted policy, optional derived index and native parser worker.
 /// This borrowed facade creates no workspace owner and acquires no workspace lock.
@@ -14,6 +15,12 @@ pub struct WorkspaceQueries<'a> {
     pub(super) worker: &'a WorkerSupervisor,
     pub(super) index: Option<&'a WorkspaceIndex>,
     pub(super) timeout: Duration,
+    /// The request's own cancellation: a caller that goes away stops the
+    /// worker call instead of letting the query burn on (chunk arch-14c10).
+    pub(super) cancel: CancellationToken,
+    /// The admitted state directory whose `plugins.json` the map inventory
+    /// reads; absent, the map row says the inventory is unavailable.
+    pub(super) state_dir: Option<PathBuf>,
     /// Promoted ranking signals and the shadow lane (chunk arch-14c8).
     #[cfg(feature = "sandbox")]
     pub(super) ranking: Option<&'a crate::extensions::RankingSignals>,
@@ -34,11 +41,27 @@ impl<'a> WorkspaceQueries<'a> {
             worker,
             index,
             timeout: Duration::from_secs(30),
+            cancel: CancellationToken::new(),
+            state_dir: None,
             #[cfg(feature = "sandbox")]
             ranking: None,
             #[cfg(feature = "sandbox")]
             resolver: None,
         })
+    }
+
+    /// Tie every worker call to the request's cancellation token.
+    #[must_use]
+    pub fn with_cancel(mut self, cancel: CancellationToken) -> Self {
+        self.cancel = cancel;
+        self
+    }
+
+    /// Let map read the installed-plugin inventory under this state directory.
+    #[must_use]
+    pub fn with_state_dir(mut self, state_dir: PathBuf) -> Self {
+        self.state_dir = Some(state_dir);
+        self
     }
 
     /// Fold promoted ranking features into search and feed the shadow lane
@@ -88,11 +111,7 @@ impl<'a> WorkspaceQueries<'a> {
         request: WorkerRequest,
     ) -> Result<WorkerResponse, WorkspaceError> {
         self.worker
-            .call(
-                request,
-                self.timeout,
-                &tokio_util::sync::CancellationToken::new(),
-            )
+            .call(request, self.timeout, &self.cancel)
             .await
             .map_err(super::worker_error::worker_error)
     }

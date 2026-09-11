@@ -8,6 +8,24 @@ pub struct ResponseAdapter;
 
 impl ResponseAdapter {
     pub const META_MAX_ENVELOPE_VERSION: &str = "workbench/maxEnvelopeVersion";
+    pub const META_SESSION_ID: &str = "workbench/sessionId";
+    /// Ceiling on a session identity, in UTF-16 units as retained, so a
+    /// hostile client cannot bloat the journal's identity column.
+    pub const SESSION_ID_MAX_UNITS: usize = 256;
+
+    /// The caller's session identity from `_meta`: identity travels on the
+    /// request and "" is the anonymous identity. Anything but a non-empty
+    /// string within the ceiling is anonymous.
+    #[must_use]
+    pub fn session_meta(meta: Option<&Map<String, Value>>) -> String {
+        meta.and_then(|meta| meta.get(Self::META_SESSION_ID))
+            .and_then(Value::as_str)
+            .filter(|session| {
+                !session.is_empty() && session.encode_utf16().count() <= Self::SESSION_ID_MAX_UNITS
+            })
+            .map(str::to_owned)
+            .unwrap_or_default()
+    }
 
     pub fn negotiate_meta(
         meta: Option<&Map<String, Value>>,

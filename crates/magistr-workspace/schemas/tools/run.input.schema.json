@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-mcp.dev/schemas/tools/run.input.schema.json",
+  "title": "run",
+  "description": "The declared-command escape hatch (SDD 9.6). Executes one command from the merged config's [commands] table as a single argv — no shell, ever. Commands are seeded at init from lockfile/manifest detection, amendable only by a human (workbench.toml is a protected path), and governable by org policy (7.2). Known runners (bun/jest/vitest/pytest/cargo test/cargo nextest/go) get structured failure extraction (test name, file, assertion, trimmed trace) via bundled runner adapters; cargo build/check/clippy (and a test run that failed to compile) get a diagnostics row (level, code, message, file:line:column, help) from rustc's JSON or its rendered output, errors first, trimmed to the budget with a manifest; unknown commands get head+tail with a truncation manifest. An undeclared command answers COMMAND_NOT_DECLARED; munging or shell attempts answer RUN_REDIRECTED with a redirect to search/edit.",
+  "x-workbench-status": "normative",
+  "x-workbench-owned-by": "chunk:m3-run-tool",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The declared command key from the [commands] table, e.g. \"test\"."
+    },
+    "args": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Extra argv appended to the declared command line, e.g. [\"--filter\", \"auth\"]. Passed literally — shell operators are rejected, never interpreted."
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3600,
+      "default": 300,
+      "description": "Wall-clock limit in seconds. A timeout kills the process and returns partial output as data (timedOut: true), not an error."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 4000 }
+  },
+  "required": ["command"]
+}

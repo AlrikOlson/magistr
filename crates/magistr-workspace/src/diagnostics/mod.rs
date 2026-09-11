@@ -52,6 +52,7 @@ pub use span_outcome::SpanOutcome;
 pub use span_status::SpanStatus;
 pub use tool_span::ToolSpan;
 pub use trace_recorder::TraceRecorder;
+pub(crate) use utc_timestamp::now_unix_ms;
 pub use utc_timestamp::utc_timestamp;
 pub use worker_health::WorkerHealth;
 pub use workspace_status::WorkspaceStatus;

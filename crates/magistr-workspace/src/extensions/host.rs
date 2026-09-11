@@ -98,6 +98,26 @@ impl<'a> PluginHost<'a> {
         name.contains('/')
     }
 
+    /// Installed runner plugins (`runner-` packages) whose component is
+    /// readable: the guests the run tool consults before its bundled
+    /// parsers, named by their inventory entry. A plugin that cannot be
+    /// resolved is a note, never a failure of the run tool.
+    #[must_use]
+    pub fn runner_components(&self) -> (Vec<(String, PluginComponent)>, Vec<String>) {
+        let (plugins, mut notes) = self.discovery.resolve_all();
+        let mut components = Vec::new();
+        for plugin in plugins
+            .iter()
+            .filter(|plugin| plugin.record.pkg().starts_with("runner-"))
+        {
+            match self.component(plugin) {
+                Ok(component) => components.push((plugin.record.name.clone(), component)),
+                Err(error) => notes.push(format!("plugin {}: {error}", plugin.record.name)),
+            }
+        }
+        (components, notes)
+    }
+
     /// Invoke one plugin tool by wire name. `None` when no installed plugin
     /// derives that name — the caller answers its unknown-tool error.
     pub async fn run_tool(

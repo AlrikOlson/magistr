@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OptionalExtension, params};
@@ -15,7 +16,12 @@ use super::{
 
 /// Durable SQLite journal writer for the workspace owner.
 pub struct JournalDb {
-    db: Connection,
+    /// The sole writer connection. A `rusqlite::Connection` is `Send` but not
+    /// `Sync`; behind this mutex the writer is `Sync`, so an owner may borrow
+    /// it across await points inside `Send` futures — what every transport
+    /// handler that serves the mutation verbs requires. It is never contended:
+    /// the owner serializes writes above it, the lock only states the fact.
+    db: Mutex<Connection>,
     cap_bytes: u64,
     pub lifecycle_notes: Vec<String>,
     pub quarantined_to: Option<PathBuf>,
@@ -30,11 +36,28 @@ impl JournalDb {
     pub fn open(options: JournalDbOptions) -> Result<Self, JournalError> {
         let opened = OpenedJournal::writer(&options)?;
         Ok(Self {
-            db: opened.db,
+            db: Mutex::new(opened.db),
             cap_bytes: options.cap_bytes,
             lifecycle_notes: opened.notes,
             quarantined_to: opened.quarantined_to,
         })
+    }
+
+    /// The connection, recovered from poisoning: a panic that unwound through
+    /// an open `Transaction` rolled it back on the way out, so the connection
+    /// is consistent and refusing every later call would only turn one bug
+    /// into a dead journal.
+    fn connection(&self) -> MutexGuard<'_, Connection> {
+        self.db.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// The journal mode SQLite reports for this writer, verbatim (SQLite
+    /// answers in lowercase): the mode the filesystem detector asked for is
+    /// a request, this is the measured fact a status answer states.
+    pub fn journal_mode(&self) -> Result<String, JournalError> {
+        Ok(self
+            .connection()
+            .query_row("PRAGMA journal_mode", [], |row| row.get(0))?)
     }
 
     /// Commit an operation, undo links, ordered files, CAS recency and eviction
@@ -58,7 +81,9 @@ impl JournalDb {
         let at = i64::try_from(at).map_err(|_| {
             JournalError::InvalidInput("timestamp exceeds SQLite integer range".to_owned())
         })?;
-        let transaction = self.db.transaction()?;
+        let cap_bytes = self.cap_bytes;
+        let mut db = self.connection();
+        let transaction = db.transaction()?;
         let is_undo = op.undo_of.as_ref().is_some_and(|seqs| !seqs.is_empty());
         transaction.execute(
             "INSERT INTO ops(at,tool,args_hash,session_id,is_undo) VALUES (?,?,?,?,?)",
@@ -83,7 +108,7 @@ impl JournalDb {
             protect.insert(before);
             protect.insert(after);
         }
-        let notes = evict(&transaction, self.cap_bytes, &protect)?;
+        let notes = evict(&transaction, cap_bytes, &protect)?;
         let op = JournalQueries::new(&transaction).get(seq)?.ok_or_else(|| {
             JournalError::CorruptRecord("appended operation vanished within transaction".to_owned())
         })?;
@@ -104,7 +129,8 @@ impl JournalDb {
         seq: i64,
         outcome: super::JournalWriteOutcome,
     ) -> Result<(), JournalError> {
-        let transaction = self.db.transaction()?;
+        let mut db = self.connection();
+        let transaction = db.transaction()?;
         super::intent_store::IntentStore::resolve(&transaction, seq, outcome)?;
         transaction.commit()?;
         Ok(())
@@ -114,23 +140,27 @@ impl JournalDb {
         &self,
         seq: i64,
     ) -> Result<Option<super::JournalWriteOutcome>, JournalError> {
-        let snapshot = self.db.unchecked_transaction()?;
+        let db = self.connection();
+        let snapshot = db.unchecked_transaction()?;
         super::intent_store::IntentStore::read(&snapshot, seq)
     }
 
     pub fn get(&self, seq: i64) -> Result<Option<JournalOp>, JournalError> {
-        let snapshot = self.db.unchecked_transaction()?;
+        let db = self.connection();
+        let snapshot = db.unchecked_transaction()?;
         JournalQueries::new(&snapshot).get(seq)
     }
 
     /// Ascending append order; refuses more than 1000 ops without truncation.
     pub fn list(&self, since_seq: i64) -> Result<Vec<JournalOp>, JournalError> {
-        let snapshot = self.db.unchecked_transaction()?;
+        let db = self.connection();
+        let snapshot = db.unchecked_transaction()?;
         JournalQueries::new(&snapshot).list(since_seq)
     }
 
     pub fn recent(&self, query: &JournalLogQuery) -> Result<Vec<JournalLogEntry>, JournalError> {
-        let snapshot = self.db.unchecked_transaction()?;
+        let db = self.connection();
+        let snapshot = db.unchecked_transaction()?;
         JournalQueries::new(&snapshot).recent(query)
     }
 
@@ -138,7 +168,8 @@ impl JournalDb {
         &self,
         query: &UndoCandidateQuery,
     ) -> Result<Vec<JournalOp>, JournalError> {
-        let snapshot = self.db.unchecked_transaction()?;
+        let db = self.connection();
+        let snapshot = db.unchecked_transaction()?;
         JournalQueries::new(&snapshot).candidates(query)
     }
 }

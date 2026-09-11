@@ -433,7 +433,7 @@ async fn empty_undo_bookkeeping_consumes_history_without_filesystem_effects() {
     );
 }
 #[tokio::test]
-async fn unsupported_text_is_explicitly_unverified_and_identity_cannot_be_empty() {
+async fn unsupported_text_is_explicitly_unverified_and_identity_is_bounded_not_required() {
     let mut h = Harness::new();
     let mut input = request(
         "notes.md",
@@ -447,7 +447,13 @@ async fn unsupported_text_is_explicitly_unverified_and_identity_cannot_be_empty(
         crate::transaction::VerificationStatus::Unsupported
     );
     assert!(prepared.preview()[0].formatting.contains("unsupported"));
+    // The empty session is the retained anonymous identity; the seal binds
+    // it like any other, so the token differs from the named session's.
+    let named_token = prepared.confirmation_token().to_owned();
     input.session_id.clear();
+    let anonymous = h.service().prepare(input.clone()).await.unwrap();
+    assert_ne!(anonymous.confirmation_token(), named_token);
+    input.session_id = "s".repeat(4097);
     assert!(matches!(
         h.service().prepare(input).await,
         Err(TransactionError::InvalidInput(_))

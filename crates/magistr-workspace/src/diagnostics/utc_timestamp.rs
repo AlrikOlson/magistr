@@ -1,3 +1,12 @@
+/// Milliseconds since the Unix epoch now; a clock before the epoch reads 0.
+#[must_use]
+pub(crate) fn now_unix_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_millis() as u64)
+        .unwrap_or(0)
+}
+
 /// RFC 3339 UTC with milliseconds (`2026-08-22T00:00:00.000Z`), the shape
 /// JavaScript's `toISOString` prints — no calendar dependency needed.
 #[must_use]

@@ -9,6 +9,11 @@ pub struct IndexStatus {
     pub parsed: usize,
     pub reused: usize,
     pub last_error: Option<String>,
+    /// Milliseconds since the Unix epoch when the current or last build
+    /// started; `None` until a build has been kicked in this process.
+    pub build_started_at_ms: Option<u64>,
+    /// Milliseconds since the Unix epoch of the last build status change.
+    pub build_updated_at_ms: Option<u64>,
     pub notes: Vec<String>,
 }
 impl Default for IndexStatus {
@@ -21,6 +26,8 @@ impl Default for IndexStatus {
             parsed: 0,
             reused: 0,
             last_error: None,
+            build_started_at_ms: None,
+            build_updated_at_ms: None,
             notes: vec![
                 "Index generation is cache progress, not a source revision or completion evidence."
                     .into(),
