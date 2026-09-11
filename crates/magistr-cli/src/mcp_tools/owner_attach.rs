@@ -42,15 +42,15 @@ impl MagistrService {
     /// it cannot be bound.
     pub async fn serve_owner_endpoint(&self) -> io::Result<OwnerEndpoint> {
         let service = self.clone();
-        let acceptor: McpAcceptor = Arc::new(move |stream: tokio::net::UnixStream| {
+        let acceptor: McpAcceptor = Arc::new(move |stream: tokio::net::UnixStream, cancel| {
             let service = service.clone();
-            tokio::spawn(async move {
+            Box::pin(async move {
                 let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<
                     rmcp::service::RoleServer,
                     io::Error,
                     _,
                 >::into_transport(stream));
-                match service.serve(transport).await {
+                match service.serve_with_ct(transport, cancel).await {
                     Ok(running) => {
                         let _ = running.waiting().await;
                     }
@@ -59,7 +59,7 @@ impl MagistrService {
                         "an attached MCP session did not start: {error}"
                     ),
                 }
-            });
+            })
         });
         OwnerEndpoint::serve_mcp(Arc::clone(&self.authority), acceptor).await
     }
@@ -92,24 +92,8 @@ pub async fn proxy_to_owner(project_root: &Path, refusal: &io::Error) -> eyre::R
         generation = generation.get(),
         "attached to the running project owner"
     );
-    stream.set_nonblocking(true)?;
-    let mut owner = tokio::net::UnixStream::from_std(stream)?;
-    let (mut from_owner, mut to_owner) = owner.split();
-    let mut stdin = ProxyStdio::stdin()?;
-    let mut stdout = ProxyStdio::stdout()?;
-    tokio::select! {
-        client = tokio::io::copy(&mut stdin, &mut to_owner) => {
-            client?;
-            Ok(())
-        }
-        owner = tokio::io::copy(&mut from_owner, &mut stdout) => {
-            owner?;
-            Err(eyre::eyre!(
-                "magistr: the project owner ended its session; start a new server to take \
-                 the project"
-            ))
-        }
-    }
+    ProxyStdio::relay(stream, "project").await?;
+    Ok(())
 }
 
 /// Why this process could neither own the project nor attach to its owner.

@@ -1090,3 +1090,48 @@ through the required `workspace-reference` gate. The recorded execution is
 on the macOS host in the support matrix; other operating systems and the
 full multi-client owner acceptance remain unclaimed. No dependencies added.
 
+## Native workspace attachment (arch-14d2)
+
+This chunk adapts the retained ADR-018 multi-client design to Magistr's existing
+local owner/client composition. `magistr workspace serve` admits one
+`WorkspaceService` or, on Unix native lock contention, attaches to that
+service. The shared `Hello` protocol is version 2, with
+`OwnerIdentity::Workspace` keyed by canonical root independently of workflow
+project/store roles. The endpoint uses a private `.workbench/run/owner.sock`,
+or `/tmp/magistr-workspace-<uid>/<root-digest>.sock` for long roots. Peers must
+be the same operating-system user; identity and protocol mismatches fail closed.
+Startup contention has a five-second attachment retry budget. Legacy migration
+errors never enter attachment; explicit `--config` on an attaching invocation
+is refused because the admitted owner's policy already governs the service.
+
+Each accepted connection constructs a fresh MCP handler over the admitted
+service, with a new nonempty fallback session. Explicit `_meta` session
+identity, generation-bound `mgw2` confirmation and durable undo semantics are
+unchanged. MCP messages after the owner handshake use the existing transport
+adapter. Ordered endpoint shutdown cancels connections, joins their MCP
+service loops and awaits each connection's final handler release, including
+clones retained by rmcp request tasks beyond its bounded response drain. The
+host then requires sole service ownership. Workspace shutdown drains shared
+formatter tasks before the existing index and worker cleanup; a dropped
+preparation request signals its owned formatter task, which kills and waits
+for its child before completing. The same tracking covers formatter discovery.
+This barrier does not claim to join arbitrary background tasks or clean up
+every descendant after the owner is killed.
+
+This is an embedded owner whose initial invocation controls its lifetime.
+Attached client EOF leaves the owner and other clients running; owner EOF ends
+all attachments. Transparent reconnect, a detached idle/retire lifecycle,
+crash parent-death cleanup and the complete retained matrix are not delivered.
+Non-Unix remains exclusive. Production launchers retain their legacy routing
+until the parent owner chunk's lifecycle and full-matrix acceptance are met.
+The [native ADR-018 matrix](../../docs/architecture/workspace-owner.md#adr-018-scope)
+names this adaptation and its deferred observables.
+
+`crates/magistr-cli/tests/workspace_attachment.rs` is the native process suite
+for startup races, canonical aliases and independent roots, simultaneous writes,
+connection/explicit session identity, confirmation/undo and detach/EOF/crash.
+The shared endpoint tests cover handshake identity and protocol refusal. Actual
+platform results and gate outcomes belong to recorded ship checks and the
+iteration receipt. These are first-party native adaptations recorded in
+`NATIVE_IMPORTS.json`; the adopted engine and retained reference inputs are not
+re-imported or rewritten by this change.

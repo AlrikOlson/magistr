@@ -1,6 +1,6 @@
 # Project authority
 
-Every native writer in Magistr is admitted by a `ProjectAuthority` before it
+Every native workflow writer in Magistr is admitted by a `ProjectAuthority` before it
 can open the think-and-ship engines. The type lives in `magistr-engine`
 (`tas::ProjectAuthority`), not in the MCP transport: the MCP service, the
 cockpit, the loops and one-shot commands all admit through it. It owns the
@@ -12,6 +12,10 @@ A surface that finds its role already held does not open a second writer. It
 attaches to the running owner's endpoint through a local application client
 and acts through that owner's writer, or it fails closed. Attachment is local:
 one user, one machine, Unix domain sockets.
+
+The [workspace owner](workspace-owner.md) uses the same local endpoint and
+handshake implementation with a distinct canonical-root identity. It owns
+`WorkspaceService`, not a workflow writer role or workflow store.
 
 ## Capabilities
 
@@ -147,13 +151,15 @@ endpoint while a socket file nothing answers on is reclaimed.
 ### Handshake and identity
 
 Both ways the wire is one JSON object per line. The client opens with a
-`Hello` naming the protocol version (`OWNER_PROTOCOL_VERSION`, exact match
-only), the project identity, the role it expects, the kind of attachment it
-wants (`commands` or `mcp`) and its `CallerIdentity` (pid and surface). The
-owner checks the peer credential of the socket first — the connecting process
-must be the owner's own user, which the socket's file mode also enforces — and
-then the version, project, role and offered kind, answering `Welcome` with its
-generation and pid or `Refused` with the reason. The caller identity is kept
+`Hello` naming protocol version 2 (`OWNER_PROTOCOL_VERSION`, exact match
+only), an `OwnerIdentity`, the kind of attachment it wants (`commands` or
+`mcp`) and its `CallerIdentity` (pid and surface). Workflow identity names
+the project and writer role; workspace identity names the canonical root
+without a workflow role. The owner checks the peer credential of the socket
+first — the connecting process must be the owner's own user, which the
+socket's file mode also enforces — and then the version, identity and offered
+kind, answering `Welcome` with its generation and pid or `Refused` with the
+reason. The caller identity is kept
 for diagnostics; the credential is the proof.
 
 ### What an owner serves
@@ -162,6 +168,10 @@ for diagnostics; the credential is the proof.
 | --- | --- | --- |
 | Cockpit `run`, cockpit `next` / `next-loop`, plain and headless `next-loop` (Host) | `OwnerEndpoint::serve` over the writer: typed `OwnerCommand`s — every `NativeEngines` verb, carried out by `NativeEngines::apply` on the host's own writer. | A second `magistr run` on the project: `EngineClient::admit_or_attach` attaches when the host lease is held and its `AttachedEnginePort` sends each cockpit verb to the running host. Reads still come from the attached cockpit's own `NativeReader`, the feed and the re-seed timer. |
 | `magistr mcp-serve` (Service) | `OwnerEndpoint::serve_mcp` over the bare admission: an rmcp session of the same `MagistrService`, under the same protocol cap, on every welcomed socket. Typed commands are refused at the handshake. | A second `magistr mcp-serve` on the project: refused the Service lease, it attaches as `mcp` and proxies its stdio to the owner's session, so a second agent session in one project gets the full tool set through the one admitted writer. |
+
+`magistr workspace serve` also uses the MCP endpoint with
+`OwnerIdentity::Workspace`. Its separate admission, policy and process
+lifetime are described in the [workspace guide](workspace-owner.md).
 
 `next` and `next-loop` on a held host stay refused: execution cycles are
 serialized per project by design, and a loop that cannot be the host is not

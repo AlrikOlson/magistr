@@ -14,20 +14,19 @@ use super::attach_refusal::AttachRefusal;
 use super::caller_identity::CallerIdentity;
 use super::owner_command::OwnerCommand;
 use super::owner_generation::OwnerGeneration;
+use super::owner_identity::OwnerIdentity;
 use super::owner_reply::OwnerReply;
-use super::writer_role::WriterRole;
 
 /// The protocol this binary speaks. Exact match only — during development
 /// every change to the frames is a new version, and an older or newer
 /// client is refused rather than guessed at.
-pub const OWNER_PROTOCOL_VERSION: u32 = 1;
+pub const OWNER_PROTOCOL_VERSION: u32 = 2;
 
 /// The first line a client sends.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Hello {
     pub(crate) protocol: u32,
-    pub(crate) project_id: String,
-    pub(crate) role: WriterRole,
+    pub(crate) identity: OwnerIdentity,
     pub(crate) attach: AttachKind,
     pub(crate) caller: CallerIdentity,
 }

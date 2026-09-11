@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions, TryLockError},
-    io::{self, Read, Write},
+    io::{self, Read, Seek, Write},
     path::{Path, PathBuf},
 };
 
@@ -25,7 +25,7 @@ impl ServerLock {
     pub const FILE_NAME: &'static str = "server.lock";
 
     /// Take the lock and advance its generation before any workspace store
-    /// opens. Legacy, empty and unknown lock formats refuse with `WouldBlock`:
+    /// opens. Legacy, empty and unknown lock formats refuse with `AlreadyExists`:
     /// migration requires all workspace owners to be stopped first. A native
     /// lock file is never replaced or removed, including after process exit.
     pub fn acquire(path: impl Into<PathBuf>) -> io::Result<Self> {
@@ -45,6 +45,12 @@ impl ServerLock {
                 format!("{} is not a regular lock file", path.display()),
             ));
         }
+        // Only a validated native marker permits attachment on contention.
+        // Unix locks are advisory, so inspect the immutable bytes first. On
+        // Windows the lock denies reads through another handle; that platform
+        // keeps exclusive admission and validates after taking the lock.
+        #[cfg(unix)]
+        validate_marker(&mut file, &path)?;
         file.try_lock().map_err(|error| match error {
             TryLockError::WouldBlock => io::Error::new(
                 io::ErrorKind::WouldBlock,
@@ -55,13 +61,7 @@ impl ServerLock {
             ),
             TryLockError::Error(error) => error,
         })?;
-        let mut marker = Vec::new();
-        (&mut file)
-            .take(NATIVE_MARKER.len() as u64 + 1)
-            .read_to_end(&mut marker)?;
-        if marker != NATIVE_MARKER {
-            return Err(migration_refusal(&path));
-        }
+        validate_marker(&mut file, &path)?;
         let generation = WorkspaceGeneration::advance(&path)?;
         Ok(Self {
             file,
@@ -109,9 +109,21 @@ fn ensure_marker(path: &Path) -> io::Result<()> {
     }
 }
 
+/// Bound both reads and rewind before the post-admission revalidation.
+fn validate_marker(file: &mut File, path: &Path) -> io::Result<()> {
+    file.rewind()?;
+    let mut marker = Vec::new();
+    file.take(NATIVE_MARKER.len() as u64 + 1)
+        .read_to_end(&mut marker)?;
+    if marker != NATIVE_MARKER {
+        return Err(migration_refusal(path));
+    }
+    Ok(())
+}
+
 fn migration_refusal(path: &Path) -> io::Error {
     io::Error::new(
-        io::ErrorKind::WouldBlock,
+        io::ErrorKind::AlreadyExists,
         format!(
             "workspace owner lock {} uses a legacy or unrecognized format; startup refused \
              before opening workspace stores. Stop every workspace owner for offline migration of the \

@@ -48,6 +48,12 @@ impl<'a> WorkspaceTransactions<'a> {
             faults: Default::default(),
         })
     }
+    /// Use the composing owner's tracker for cancellation cleanup.
+    pub(crate) fn with_formatter_tasks(mut self, tasks: tokio_util::task::TaskTracker) -> Self {
+        self.formatter = self.formatter.with_tasks(tasks);
+        self
+    }
+
     pub async fn prepare(
         &mut self,
         request: TransactionRequest,

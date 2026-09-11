@@ -377,6 +377,26 @@
 				"crates/magistr-cli/tests/workspace_served_reference.rs"
 			],
 			"adaptation": "Prerequisite for arch-14d, superseding c10's empty-lock and anonymous-session adaptations. Immutable atomically published legacy-readable native marker plus OS-held lock prevents retained legacy/native overlap without pid probing or stealing; strict durable generation advances before stores open. Explicit canonical-root/generation/session admission fences effects and session journal access; re-admission preserves durable identity. mgw2 HMAC binds generation, identity, exact intent and byte plan, deliberately invalidating wb1/mgw1. MCP connections mint nonempty random fallback identities and accept valid explicit metadata. Legacy/empty locks require documented offline migration; native marker/counter are never reset to bypass ownership. Real native process tests and the native/Bun mutual-refusal oracle complement native handle and confirmation tests. No cross-process attachment, peer authentication, reconnect, complete ADR-018 matrix or production launcher cutover claim."
+		},
+		{
+			"chunk": "arch-14d2-workspace-attachment",
+			"upstream_inputs": [
+				"specs/018-multi-client-daemon/adr.md",
+				"specs/018-multi-client-daemon/acceptance-matrix.md",
+				"test/multi-client.test.ts",
+				"src/protocol/server.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-cli/src/workspace_mcp/",
+				"crates/magistr-engine/src/tas/",
+				"crates/magistr-cli/tests/workspace_attachment.rs",
+				"crates/magistr-cli/tests/workspace_attachment_support/",
+				"docs/architecture/workspace-owner.md",
+				"crates/magistr-workspace/src/transaction/",
+				"crates/magistr-workspace/src/commands/",
+				"crates/magistr-workspace/src/service/workspace_service.rs"
+			],
+			"adaptation": "Native adaptation of the retained ADR-018 design over Magistr's existing local owner endpoint, not an import of an implemented upstream daemon. Hello protocol 2 separates canonical-root Workspace identity from workflow project/role identity. Unix workspace serve admits the sole WorkspaceService or attaches on native OS-lock contention with a bounded startup retry; legacy migration refusals never attach and attaching with explicit config is refused. Each accepted MCP connection has a fresh fallback session over the same service; explicit metadata, mgw2 confirmation and undo semantics remain intact. Endpoint shutdown cancels connections, joins service loops and awaits final handler release, including rmcp request-task clones beyond its bounded response drain. After the sole-service-reference check, workspace shutdown drains shared formatter operations before index and worker cleanup. Dropped preparation requests signal owned formatter/discovery tasks, which kill and wait for their children before completing. This is not an arbitrary-background-task join or owner-SIGKILL cleanup guarantee. The first invocation owns process lifetime: attached EOF leaves peers alive, owner EOF ends them. Transparent reconnect, detached idle/retire lifecycle, crash parent-death cleanup, full ADR-018 acceptance and production launcher cutover remain deferred; non-Unix stays exclusive. Native process tests map the delivered subset; reference source remains unchanged."
 		}
 	]
 }

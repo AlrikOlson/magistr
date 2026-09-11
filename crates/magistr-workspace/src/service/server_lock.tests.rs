@@ -64,7 +64,7 @@ fn legacy_and_unrecognized_records_are_refused_without_modification() {
         let (_dir, path) = lock_path();
         std::fs::write(&path, bytes).expect("old owner record");
         let refused = ServerLock::acquire(&path).expect_err("requires offline migration");
-        assert_eq!(refused.kind(), io::ErrorKind::WouldBlock);
+        assert_eq!(refused.kind(), io::ErrorKind::AlreadyExists);
         assert!(refused.to_string().contains("migration"));
         assert_eq!(std::fs::read(&path).expect("preserved"), bytes);
     }
@@ -125,4 +125,35 @@ fn directory_aliases_share_the_lock_inode_and_other_workspaces_do_not() {
     drop(first);
     let _next = ServerLock::acquire(&path).expect("reopen");
     assert_eq!(std::fs::metadata(&path).expect("stable inode").ino(), inode);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_held_legacy_or_unknown_marker_requires_migration_instead_of_native_attachment() {
+    for bytes in [
+        br#"{"pid":123,"host":"legacy-host"}"#.as_slice(),
+        b"",
+        b"not a lock record",
+    ] {
+        let (_dir, path) = lock_path();
+        std::fs::write(&path, bytes).expect("foreign owner marker");
+        let holder = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .expect("open the foreign marker");
+        holder.lock().expect("hold its OS lock");
+        let refused = ServerLock::acquire(&path).expect_err("migration remains mandatory");
+        assert_eq!(refused.kind(), io::ErrorKind::AlreadyExists);
+        assert!(matches!(
+            super::super::WorkspaceOpenError::lock(refused),
+            super::super::WorkspaceOpenError::MigrationRequired(_)
+        ));
+        assert_eq!(std::fs::read(&path).expect("preserved marker"), bytes);
+        assert!(
+            !path.with_file_name("server.generation").exists(),
+            "refusal must not bootstrap native state"
+        );
+        holder.unlock().expect("release fixture lock");
+    }
 }

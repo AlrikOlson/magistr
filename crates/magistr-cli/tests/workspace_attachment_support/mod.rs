@@ -1,0 +1,177 @@
+//! Real-process fixtures for native workspace owner attachment.
+#[path = "../support/magistr_command.rs"]
+mod magistr_command;
+
+use rmcp::{
+    ServiceExt,
+    model::{CallToolRequestParams, RequestMetaObject},
+    service::{RoleClient, RunningService},
+};
+use serde_json::{Value, json};
+use std::{path::Path, process::Stdio, time::Duration};
+
+pub(super) const WAIT: Duration = Duration::from_secs(30);
+
+pub(super) struct Connection {
+    pub(super) child: tokio::process::Child,
+    pub(super) client: RunningService<RoleClient, ()>,
+}
+
+impl Connection {
+    pub(super) async fn open(root: &Path) -> Self {
+        let mut child = command(root)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .kill_on_drop(true)
+            .spawn()
+            .expect("spawn the workspace client");
+        let stdin = child.stdin.take().expect("child stdin");
+        let stdout = child.stdout.take().expect("child stdout");
+        let client = tokio::time::timeout(WAIT, ().serve((stdout, stdin)))
+            .await
+            .expect("bounded initialization")
+            .expect("initialize against the native workspace owner");
+        Self { child, client }
+    }
+
+    pub(super) async fn call(&self, name: &str, args: Value) -> Value {
+        self.session_call(name, args, None).await
+    }
+
+    pub(super) async fn session_call(
+        &self,
+        name: &str,
+        args: Value,
+        session: Option<&str>,
+    ) -> Value {
+        let mut request = CallToolRequestParams::new(name.to_owned());
+        request.arguments = args.as_object().cloned();
+        if let Some(session) = session {
+            let mut meta = RequestMetaObject::new();
+            meta.insert("workbench/sessionId".into(), json!(session));
+            request.meta = Some(meta);
+        }
+        let result = tokio::time::timeout(WAIT, self.client.peer().call_tool(request))
+            .await
+            .expect("bounded tool response")
+            .expect("tool response");
+        let text = result
+            .content
+            .iter()
+            .find_map(|block| block.as_text().map(|text| text.text.as_str()))
+            .expect("text envelope");
+        let parsed: Value = serde_json::from_str(text).expect("envelope JSON");
+        assert_eq!(Some(&parsed), result.structured_content.as_ref());
+        parsed
+    }
+
+    pub(super) async fn assert_tools(&self) {
+        let tools = tokio::time::timeout(WAIT, self.client.peer().list_tools(None))
+            .await
+            .expect("bounded tools/list")
+            .expect("tools/list")
+            .tools;
+        let mut names: Vec<_> = tools.iter().map(|tool| tool.name.as_ref()).collect();
+        names.sort_unstable();
+        assert_eq!(
+            names,
+            [
+                "edit",
+                "files",
+                "map",
+                "read",
+                "run",
+                "script",
+                "search",
+                "undo",
+                "workbench_status"
+            ]
+        );
+    }
+
+    pub(super) async fn close(self) {
+        let Self { mut child, client } = self;
+        tokio::time::timeout(WAIT, client.cancel())
+            .await
+            .expect("bounded client cancellation")
+            .expect("client closes");
+        let status = tokio::time::timeout(WAIT, child.wait())
+            .await
+            .expect("client process exits after EOF")
+            .expect("reap client process");
+        assert!(status.success(), "{status}");
+    }
+
+    pub(super) async fn assert_owner_lost(mut self) {
+        tokio::time::timeout(WAIT, self.child.wait())
+            .await
+            .expect("attached process exits when the owner disappears")
+            .expect("reap attached process");
+        let result = tokio::time::timeout(
+            WAIT,
+            self.client
+                .peer()
+                .call_tool(CallToolRequestParams::new("workbench_status")),
+        )
+        .await
+        .expect("the closed transport refuses promptly");
+        assert!(
+            result.is_err(),
+            "lost owners are not transparently replaced"
+        );
+        let _ = self.client.cancel().await;
+    }
+}
+
+pub(super) fn command(root: &Path) -> tokio::process::Command {
+    let mut command = magistr_command::magistr_command();
+    command
+        .args(["workspace", "serve"])
+        .arg(root)
+        .env("WORKBENCH_NETWORK_FS", "0")
+        .env_remove("WORKBENCH_ORG_POLICY")
+        .env_remove("WORKBENCH_USER_CONFIG");
+    tokio::process::Command::from(command)
+}
+
+pub(super) fn workspace() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().expect("workspace");
+    std::fs::create_dir(dir.path().join(".git")).expect("repository marker");
+    for file in ["alice.txt", "bob.txt", "shared.txt", "pending.txt"] {
+        std::fs::write(dir.path().join(file), "original bytes\n").expect("source fixture");
+    }
+    dir
+}
+
+pub(super) fn generation(root: &Path) -> u64 {
+    let bytes =
+        std::fs::read(root.join(".workbench/server.generation")).expect("published generation");
+    assert_eq!(bytes.len(), 20, "complete fixed-width generation");
+    String::from_utf8(bytes)
+        .expect("generation digits")
+        .parse()
+        .expect("numeric generation")
+}
+
+pub(super) fn edit(file: &str, replacement: &str) -> Value {
+    json!({"op": "replace_text", "file": file, "old": "original bytes", "new": replacement})
+}
+
+pub(super) fn file_text(root: &Path, file: &str) -> String {
+    std::fs::read_to_string(root.join(file)).expect("workspace bytes")
+}
+
+pub(super) fn read_text(envelope: &Value) -> String {
+    envelope["results"]
+        .as_array()
+        .expect("read rows")
+        .iter()
+        .filter_map(|row| row["text"].as_str())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+pub(super) fn assert_ok(envelope: &Value) {
+    assert_eq!(envelope["ok"], true, "{envelope}");
+}

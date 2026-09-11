@@ -19,7 +19,11 @@ tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
 # native store. No ambient checkout, registry fallback, or second writer.
 think-and-ship = { path = "../../subsystems/workflow/crates/think-and-ship" }
 tracing = "0.1"
+tokio-util = { version = "0.7", features = ["rt"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread", "time"] }
 tempfile = "3"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

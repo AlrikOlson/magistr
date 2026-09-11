@@ -5,7 +5,7 @@ use std::{
 
 use serde_json::Value;
 use tokio::sync::Mutex;
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
     IndexBuildTask, JournalListInput, ServerLock, StatusRow, WorkspaceGeneration,
@@ -47,6 +47,7 @@ pub struct WorkspaceService {
     executor: ProcessExecutor,
     trace: TraceRecorder,
     formatter: FormatterOptions,
+    formatter_tasks: TaskTracker,
     detection: NetworkDetection,
     applied_journal_mode: String,
     notes: Vec<String>,
@@ -131,6 +132,7 @@ impl WorkspaceService {
             seal: ConfirmationSeal::new(&key, lock.generation().get()),
             trace,
             formatter: options.formatter.clone(),
+            formatter_tasks: TaskTracker::new(),
             detection,
             applied_journal_mode,
             notes,
@@ -445,6 +447,11 @@ impl WorkspaceService {
     /// Stop the index, reap the worker and release the lock. Nothing under
     /// the state directory is removed.
     pub async fn shutdown(mut self) -> Result<(), WorkspaceError> {
+        // Handler lifetimes have ended before the host consumes this service,
+        // so no new formatter can be admitted. Drain owned cancellation work
+        // before a fallible index/worker shutdown or release of the OS lock.
+        self.formatter_tasks.close();
+        self.formatter_tasks.wait().await;
         self.index.shutdown().await.map_err(|error| {
             WorkspaceError::new(
                 crate::contracts::ErrorKind::EngineUnavailable,
@@ -482,6 +489,7 @@ impl WorkspaceService {
             self.formatter.clone(),
             session.id(),
         )
+        .map(|commands| commands.with_formatter_tasks(self.formatter_tasks.clone()))
     }
 
     #[cfg(feature = "sandbox")]

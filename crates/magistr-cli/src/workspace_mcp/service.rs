@@ -15,7 +15,7 @@ use rmcp::{
 };
 use serde_json::json;
 
-use super::{dispatch, tasks, tool_surface};
+use super::{dispatch, session_lifetime::SessionLifetime, tasks, tool_surface};
 
 /// The protocol eras this server will negotiate or advertise: everything
 /// below 2026-07-28, as `magistr mcp-serve` caps them too, so every Claude
@@ -34,12 +34,24 @@ const SERVED_PROTOCOL_VERSIONS: &[ProtocolVersion] = &[
 pub struct WorkspaceMcpService {
     service: Arc<WorkspaceService>,
     session: WorkspaceSession,
+    // Last field: completion signals only after this handler's service reference drops.
+    lifetime: Arc<SessionLifetime>,
 }
 
 impl WorkspaceMcpService {
     pub fn new(service: Arc<WorkspaceService>) -> Result<Self, WorkspaceError> {
         let session = service.new_session()?;
-        Ok(Self { service, session })
+        Ok(Self {
+            service,
+            session,
+            lifetime: Arc::default(),
+        })
+    }
+
+    /// Completes after the final handler clone and every rmcp request task
+    /// has released this connection, beyond the service loop's bounded drain.
+    pub(super) fn completion(&self) -> tokio_util::sync::CancellationToken {
+        self.lifetime.completion()
     }
 
     /// The composed workspace this server serves.
@@ -89,9 +101,18 @@ impl ServerHandler for WorkspaceMcpService {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
-        dispatch::call(&self.service, &self.session, request, &context)
-            .await
-            .map(Into::into)
+        // Run must finish its existing cancellation path to kill and reap its
+        // owned process group; search likewise settles its worker cancellation.
+        let joins_cleanup = matches!(request.name.as_ref(), "run" | "search");
+        let response = dispatch::call(&self.service, &self.session, request, &context);
+        if joins_cleanup {
+            return response.await.map(Into::into);
+        }
+        tokio::select! {
+            biased;
+            _ = context.ct.cancelled() => Err(ErrorData::internal_error("workspace request cancelled before completion", None)),
+            response = response => response.map(Into::into),
+        }
     }
 
     async fn get_task(
