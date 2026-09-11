@@ -11,6 +11,16 @@ use magistr::{agent, cli, detect, scaffold, types};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
+    // Private owned worker role: bypass interactive hooks, config repair, MCP,
+    // and workspace owner admission. Strict argv keeps it out of normal CLI use.
+    if std::env::args_os()
+        .skip(1)
+        .eq([std::ffi::OsStr::new("--workspace-worker")])
+    {
+        return magistr_workspace::worker::serve_worker()
+            .await
+            .map_err(Into::into);
+    }
     let cli = Cli::parse();
     // MCP launch owns stdio and process shutdown. Do not install the cockpit's
     // terminal restoration handlers or propagate interactive-session settings.

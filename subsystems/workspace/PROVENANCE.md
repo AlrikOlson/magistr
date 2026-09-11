@@ -254,3 +254,52 @@ owner, production tool dispatch or launcher cutover. Those remain separate
 native roadmap chunks. The earlier source-adoption result counts above describe
 that earlier iteration, not the policy port.
 
+## Native worker port (arch-14c2)
+
+The `worker` module ports reference `adapters/engine-ipc/{frames,supervisor,
+engine-child}.ts` into typed Rust requests and private process framing.
+Magistr's executable hosts the worker role before normal application startup.
+Existing workspace consumers and the Workbench connection have not switched
+owners. This role never opens a workspace lock or native workflow store.
+
+The native boundary keeps a 32 MiB per-frame ceiling, explicit version and
+request identity, startup self-test, 128-call default admission ceiling, absolute
+call deadlines, readiness timeout and restart backoff. A cancelled or dropped
+active request recycles its owned synchronous worker. Quarantine fingerprints
+include source and options, correcting the reference's path-only strikes and
+its attribution of a crash to every queued request. The bounded ledger is
+in-memory; durable diagnostics belong to later workspace status integration.
+
+Tree-sitter, dynamic grammars and Wasmtime execution stay in the worker.
+Sandbox limits may only tighten the existing one-billion-fuel/256 MiB ceilings.
+Curated LSP specifications and capability admission remain the existing host
+policy. LSP reader queues now retain at most 16 frames of at most 4 MiB each,
+headers stop at 8 KiB, and each shared pool allows at most 16 live sessions,
+including private invocations. Teardown kills/waits the owned LSP process and
+joins its reader. Unix worker groups terminate descendants on hard cancellation;
+graceful shutdown closes the sandbox pool before the worker is reaped. These
+operations never inspect or kill a workspace lock owner. Callers must await
+`shutdown()` before stopping the async runtime; Drop is a best-effort guard,
+not a substitute for awaited cleanup.
+
+Tokio and tokio-util were already in the root lockfile; this port adds direct
+edges and no package/version update. The Unix libc edge now includes macOS for
+dedicated process-group cleanup. Existing Linux parent-death and Windows
+job-object LSP protections remain. Current primary API research checked
+[Tokio child cleanup](https://docs.rs/tokio/latest/tokio/process/struct.Child.html),
+[process groups](https://docs.rs/tokio/latest/tokio/process/struct.Command.html#method.process_group),
+[Tree-sitter parse cancellation](https://docs.rs/tree-sitter/latest/tree_sitter/struct.ParseOptions.html),
+and [Wasmtime resource limits](https://docs.wasmtime.dev/api/wasmtime/struct.Store.html).
+The installed versions remain those recorded above.
+
+The native process tests use the actual Magistr executable for parser,
+dynamic grammar and sandbox behavior, plus a compiled Rust fixture for
+deterministic crashes, stalls and corrupt streams. They also check queued and
+active cancellation, dropped callers, deadline/backoff behavior, quarantine,
+shutdown and owned-child cleanup. The fixture is test-only and adds no
+production fault-injection mode. Dynamic language registrations and LSP warm
+state are intentionally lost on worker restart; index/extension orchestration
+must restore admitted state in later chunks. This iteration's gate results are
+recorded in native ship state; it does not claim Windows/Linux execution or
+production workspace port parity.
+

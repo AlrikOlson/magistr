@@ -22,6 +22,7 @@ path = "src/main.rs"
 [dependencies]
 magistr-application = { path = "../magistr-application" }
 magistr-core = { path = "../magistr-core" }
+magistr-workspace = { path = "../magistr-workspace" }
 magistr-engine = { path = "../magistr-engine" }
 magistr-protocol = { path = "../magistr-protocol" }
 rmcp = { version = "3.1", features = ["server", "transport-io"] }

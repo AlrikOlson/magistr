@@ -12,7 +12,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
-| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives; complete tools and ownership remain pending |
+| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision; complete tools and ownership remain pending |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
@@ -55,10 +55,12 @@ async effects. The complete Workbench reference source, contracts and tests are
 retained with pinned provenance under `subsystems/workspace/reference`; Bun and
 NAPI are reference-only dependencies. The
 [source-to-native feature inventory](../../subsystems/workspace/FEATURE_INVENTORY.md)
-maps native workspace policy, tools, journal, transactions, worker supervision
-and extension orchestration to the remaining parity chunks. Complete tool/port
-parity, workspace ownership, source snapshots and CLI cutover remain separate
-native roadmap work.
+maps the delivered native policy and worker boundary alongside the remaining
+tools, journal, transaction and extension orchestration chunks. The private
+`magistr --workspace-worker` role runs parser, grammar and sandbox operations
+under `WorkerSupervisor`; it has no workspace lock or independent service
+lifecycle. Complete tool/port parity, workspace ownership, source snapshots and
+CLI cutover remain separate native roadmap work.
 
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes
