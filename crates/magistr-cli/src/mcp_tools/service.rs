@@ -5,10 +5,11 @@
 //! resources, and task methods delegate with the original request context.
 //!
 //! `magistr_gate` runs every gate on Magistr's own pty runner, streaming its
-//! output to the feed, and records the run through the admitted writer's
-//! `ship_record_gate` — the same recording the loop driver makes for the
-//! gates it runs — on the task named as active at the time. Without a task
-//! the gate still runs and the answer says `recorded: false` and why.
+//! output to the feed, and records the run through the composition
+//! boundary's [`AdmittedCheck`] — the same admission and settlement the loop
+//! driver uses for the gates it runs — on the task named as active at the
+//! time. Without a task the gate still runs and the answer says
+//! `recorded: false` and why.
 //!
 //! `magistr_set_phase` validates ship state before transitioning and records
 //! an action afterward. Execute and verify require an objective and task;
@@ -29,6 +30,8 @@ use std::sync::Arc;
 use magistr_engine::tas::{
     ActionType, Check, CheckSettlement, NativeEngines, ProjectAuthority, TasConfig, WriterRole,
 };
+
+use crate::application::AdmittedCheck;
 use magistr_engine::{GateOutput, ShipGuardState};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use rmcp::model::{
@@ -45,7 +48,6 @@ use think_and_ship::mcp::UnifiedService;
 
 use super::gate::{GateSpec, gate_json, resolve_gates};
 use super::roadmap_export::RoadmapExport;
-use crate::utils::gate::nextest_junit_report_path;
 
 const INSTRUCTIONS: &str = "magistr — project workflow server. \
 `magistr_*` tools run quality gates (magistr_gate, recorded through ship_check), \
@@ -232,9 +234,17 @@ impl MagistrService {
     async fn run_gate(&self, spec: &GateSpec, timeout_secs: u64) -> Value {
         // Named *before* the run, so the record lands where the caller
         // stood when it asked — never on a task started while the gate ran.
-        let admission =
-            self.engines
-                .ship_admit_gate(None, &spec.name, spec.command.clone(), spec.required);
+        // Source capture stays off here until the receipts chunk sets the
+        // policy for which checks certify source.
+        let admission = AdmittedCheck::admit(
+            &self.engines,
+            &self.project_root,
+            None,
+            &spec.name,
+            spec.command.clone(),
+            spec.required,
+            None,
+        );
         // A gate this server runs is live on the feed socket: every chunk
         // goes out as a `gate_output` frame keyed by the gate, the frame
         // the cockpit's engine feed folds into its terminal store. A frame
@@ -269,25 +279,17 @@ impl MagistrService {
             Ok(admission) => admission,
             Err(why) => {
                 result["recorded"] = json!(false);
-                result["note"] = json!(unrecorded_note(&why));
+                result["note"] = json!(unrecorded_note(&why.to_string()));
                 return result;
             }
         };
-        let task = admission.target.task_id.clone();
-        // nextest can emit a junit report; parsed into the record additively
-        // (a missing report never fails the check). An absolute path: the
-        // engine reads it verbatim.
-        let report = nextest_junit_report_path(&spec.command)
-            .map(|relative| self.project_root.join(relative));
-        let report = report
-            .as_deref()
-            .map(|path| path.to_string_lossy().into_owned());
-        match self.engines.ship_settle_gate(
-            admission,
-            run.exit_code,
-            run.details(),
-            report.as_deref().map(|path| ("junit", path)),
-        ) {
+        let task = admission.target().task_id.clone();
+        // A nextest junit report is parsed into the record additively by
+        // the boundary (a missing report never fails the check).
+        match admission
+            .settle(&self.engines, run.exit_code, run.details())
+            .map(|settled| settled.settlement)
+        {
             Ok(CheckSettlement::Applied { check }) => {
                 // Rows from the captured output, plus the junit failures the
                 // record parsed (the report names tests the panic scan may
@@ -309,7 +311,7 @@ impl MagistrService {
             }
             Err(why) => {
                 result["recorded"] = json!(false);
-                result["note"] = json!(unrecorded_note(&why));
+                result["note"] = json!(unrecorded_note(&why.to_string()));
             }
         }
         result

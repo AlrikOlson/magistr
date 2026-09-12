@@ -6,13 +6,10 @@
 
 extern crate alloc;
 
-pub mod checks;
 pub mod configuration;
 pub mod effects;
 pub mod permissions;
-pub mod projections;
 pub mod sessions;
-pub mod workflow;
 
 mod application_error;
 mod capability;

@@ -288,8 +288,26 @@ freshness) and the removal of the paused workflow-side scanner draft.
 | `arch-14d2-workspace-attachment` | Unix clients attach to one admitted `WorkspaceService` through the shared owner protocol; native process tests and the [ADR-018 scope matrix](workspace-owner.md#adr-018-scope) distinguish delivered attachment from remaining lifecycle work |
 | `arch-14d-workspace-owner` | The session-stamping bridge with on-demand reconnect and typed unavailable answers, build refusal, worker exit on owner death, the native `workbench-mcp` launch alias with the external resolver deleted, cockpit and Codex clients through one owner, and the guarded legacy migration verb; the [ADR-018 matrix](workspace-owner.md#adr-018-scope) maps every row to executed evidence |
 | `arch-14e-source-snapshots` | The `snapshot` module: `SourceSnapshot` (identity, generation, scheme/policy digests, content manifest, optimistic validation with foreign-workspace refusal), `SourceExport` for immutable inputs, `MutationReceipt` from the resolved durable intent, the owner's `source_snapshot`/`validate_snapshot`/`mutation_receipt` and the lock-free `magistr workspace snapshot` verb; check consumption remains `arch-14-verification-receipts` |
+| `arch-14f-native-application` | The [composition boundary](application.md#the-composition-boundary) `magistr::application`: `AdmittedCheck`/`SettledCheck`/`CheckSource`/`CheckIdentities` binding a workflow check admission to a lock-free source observation and settling both; `magistr_gate` and the loop driver routed through it; the contract-only workflow/checks/projections facades deleted; `arch-11b` retired on evidence; the [standalone surface decisions](#standalone-surface-decisions) below; source-write routing (`arch-14f2`), the client audit (`arch-14f3`) and rehoming (`arch-14f4`) split out |
 
-The native refactor continues with the concrete native application and
+## Standalone surface decisions
+
+The adopted trees still carry surfaces that were products in their own right.
+`arch-14f` decided each; `arch-14f4-rehome-naming` performs the deletions.
+
+| Surface | Decision | Why |
+| --- | --- | --- |
+| think-and-ship `[[bin]]` (`src/main.rs`, `src/cli/*`: serve, init, skills, roadmap, tracker, otel, cloud, telemetry commands) | Retire; delete in `arch-14f4` | No Magistr code invokes it and it is not released; three imported seam tests (`roadmap_export_tool_seam`, `roadmap_next_command_seam`, `roadmap_status_command_seam`) exec it and are re-pointed or deleted with it |
+| think-and-ship bundled `skills/` and `skill-clients/` (embedded by `build.rs`) | Retire the embedding and the client trees; keep the skill text as reference until the deletion chunk | Magistr ships its own `.claude/skills`; no Magistr code reads the embedded tree |
+| think-and-ship `examples/cloud_census.rs` | Delete in `arch-14f4` | Example of the cloud sync surface, not a dependency |
+| think-and-ship cloud sync, tracker mirroring, OTel export | Retain as served capabilities | Reachable through the served tool families (`tracker_*`, `think_export_trace`) that agents use today |
+| think-and-ship `contract/`, `shared/`, `docs/`, `tests/` | Retain | Inputs of retained tests and of the `workflow-source` gate |
+| Workbench reference source (`subsystems/workspace/reference`, including the Bun server and vendored guests) | Retain | The parity oracle behind the required `workspace-reference` gate; never in the production dependency graph |
+| Workbench `conformance/`, `bench/`, `SUPPORT_MATRIX.md` | Retain | Executed evidence of the native port |
+| `magistr-application` `workflow`, `checks`, `projections` facades | Deleted by `arch-14f` | No adapter; duplicated the native family use cases |
+| Hypothetical Service-owner typed attachment (`arch-11b`) | Retired, not built | No consumer; the Service already holds the writer its session serves |
+
+The native refactor continues with the split integration chunks and
 receipt consumption.
 Receipt completion depends on both the typed workflow service and the
 delivered source snapshots. Configuration, supervision, projections, host cleanup, diagnostics,

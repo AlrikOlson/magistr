@@ -76,10 +76,13 @@ Removed instances are fenced so a stale merge cannot resurrect them.
 
 `TaskAdmission` names the project, run, task ID, and task instance.
 `CheckAdmission` binds that target to the check request before an effect begins.
-Both `magistr_gate` and native `ship_check` retain this admission across command
-execution. The loop additionally fixes one task admission for the complete gate
-set, including retries. Reusing a task name in a later objective cannot collect
-an earlier command's result.
+Native `ship_check` retains this admission across command execution inside the
+workflow crate; `magistr_gate` and the loop driver retain it through the
+[composition boundary](application.md#the-composition-boundary)'s
+`AdmittedCheck`, which can also bind the workspace's `SourceSnapshot` to the
+same admission. The loop additionally fixes one task admission for the complete
+gate set, including retries. Reusing a task name in a later objective cannot
+collect an earlier command's result.
 
 Settlement re-reads the current native ship state and compares identity under
 the existing persistence lock before appending an ordinary check. A stale
@@ -183,6 +186,22 @@ request. Its admission, policy and process lifetime are described in the
 `next` and `next-loop` on a held host stay refused: execution cycles are
 serialized per project by design, and a loop that cannot be the host is not
 started as a client.
+
+### Typed attachment on the Service owner (retired)
+
+`arch-11b-service-owner-commands` asked the Service owner to serve typed
+`OwnerCommand`s so that a one-shot CLI write could attach to a running
+`magistr mcp-serve`. Its premise was that `ProjectAuthority::serve` composed
+the family services without a writer over the same engines; that has not
+been true since the one write path: `serve` returns the `UnifiedService` and
+the `NativeEngines` over the very same family services, and `MagistrService`
+holds that writer for its own gate and phase records. Its consumer never
+existed either: every Host admission in the binary is a loop or the cockpit,
+and `magistr roadmap show|next|status|export` are readers. `arch-14f` therefore
+retired the requirement rather than manufacture a command or a second
+protocol. The Service endpoint keeps refusing `commands` at the handshake; a
+real one-shot writer, if one is ever added, attaches through the existing
+`OwnerEndpoint::serve` path the Host already uses.
 
 ### Process lifetime
 

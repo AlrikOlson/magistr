@@ -10,6 +10,8 @@
 # 4. MCP never constructs a call to its own wire.
 # 5. Only magistr-engine and magistr-cli depend directly on the workflow crate.
 # 6. First-party application modules contain no MCP dependency.
+# 7. Check admission and settlement run only through the composition
+#    boundary (magistr-cli/src/application) or the writer itself (arch-14f).
 #
 # Doc comments are not code: rule 1 skips comment lines.
 #
@@ -95,8 +97,21 @@ while IFS= read -r f; do
     fi
 done < <(find "$application" -path '*/application/*' -name '*.rs' -not -name '*.tests.rs' | sort)
 
+# --- Rule 7: check admission/settlement only through the boundary -----------
+while IFS= read -r f; do
+    case "$f" in
+        crates/magistr-engine/src/tas/*) continue ;;
+        crates/magistr-cli/src/application/*) continue ;;
+    esac
+    hits=$(grep -nE '\.(ship_admit_gate|ship_settle_gate|ship_record_gate)\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
+    if [[ -n "$hits" ]]; then
+        fail "$f admits or settles a check outside the composition boundary (use magistr::application::AdmittedCheck):"
+        echo "$hits"
+    fi
+done < <(production_sources)
+
 if [[ "$errors" -eq 0 ]]; then
-    echo "OK: one native write path — engines composed in magistr-engine/tas, typed application verbs beneath transports, no MCP roundtrips."
+    echo "OK: one native write path — engines composed in magistr-engine/tas, typed application verbs beneath transports, checks admitted through the composition boundary, no MCP roundtrips."
     exit 0
 fi
 echo "native-write-path-gate: $errors error(s)"

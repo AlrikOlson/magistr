@@ -13,9 +13,18 @@ requests through the [effect capability contract](effects.md). The live cockpit
 uses `sessions::SessionHandle`, implemented by the same CLI supervisor as headless
 execution. Project-wide writer admission is the engine's
 [`ProjectAuthority`](project-authority.md): every native writer is admitted
-there before its engines open, and reading needs no admission. The scoped
-workflow facade retains its existing adapters; these ports do not themselves
-establish the owner.
+there before its engines open, and reading needs no admission.
+
+`arch-14f-native-application` reconciled this crate with the native workflow
+use cases that now exist: the contract-only `workflow`, `checks` and
+`projections` facades — start/complete a chunk, run a configured gate, read a
+run projection — had no adapter and duplicated what the first-party family
+use cases and `NativeEngines` already do under real admission, so they were
+deleted together with the `Capability` variants only they named. What remains
+here is the contract layer live adapters implement: sessions, permissions,
+effects and configuration, plus the scope, command and receipt types they
+share. The place where workflow and workspace capabilities are composed is
+the [composition boundary](#the-composition-boundary) in the entry-point crate.
 
 ## Use cases and effect owners
 
@@ -24,16 +33,13 @@ establish the owner.
 | `sessions` | Start or resume a session, submit a prompt, cancel a turn, close a session | Resolve provider capabilities and models, own live resources, maintain explicit provider bindings, observe terminal events |
 | `permissions` | Resolve a scoped decision by selecting an offered option or cancelling | Correlate the live request, enforce project policy before approval, map the option to the provider response |
 | `effects` | Read or write text files, create terminals, observe and release owned terminals | Resolve actual targets, authorize through the shared session policy, enforce cancellation and resource ownership, perform host I/O |
-| `checks` | Execute a named gate for a scoped verification task | Resolve and run the configured command, record real evidence, distinguish execution from recording |
-| `workflow` | Start and complete a native chunk with a scoped task reference | Admit native mutations and preserve the native engine's canonical records and lifecycle rules |
 | `configuration` | Read resolved settings, initialize project setup, and patch project settings | Resolve configuration layers, preserve file ownership and user changes, refuse setup over existing configuration |
-| `projections` | Read a run's typed state with provenance | Produce a coherent observation with an honest revision, generation, sequence and freshness |
 
 Each scoped facade borrows a `ProjectScope` and its own port. The public methods
 name use cases rather than exposing a universal message dispatcher or repository.
 Small command enums and request structures describe only the relevant family.
-Native chunks and tasks have scoped references; their full native records and
-transition rules are not replicated here.
+Native chunks, tasks and checks are not modeled here at all: their records,
+transition rules and admission live in the native workflow use cases.
 
 The port methods return `PortFuture`, an explicit boxed
 [`core::future::Future`](https://doc.rust-lang.org/core/future/trait.Future.html).
@@ -77,13 +83,12 @@ facade cannot make a separate read and write atomic. A returned
 expected revision. These checks reject misrouted acknowledgements; they do not
 provide durable deduplication or make a dishonest adapter authoritative.
 
-`Revision`, `OwnerGeneration` and `EventSequence` are different types.
-Revisions are comparable only within the same project authority history.
-A generation identifies an owner incarnation, and a sequence orders its events;
-neither can be substituted for a state revision. Projection freshness is explicit.
-Configuration snapshots use that same authoritative project revision history.
-Setup requires absent project configuration; patches preserve unmentioned settings
-and the ownership of other configuration layers.
+`Revision` is comparable only within the same project authority history; it is
+neither the workflow owner generation nor a workspace generation nor a source
+revision (see the [identity map](#identity-map)). Configuration snapshots use
+that same authoritative project revision history. Setup requires absent project
+configuration; patches preserve unmentioned settings and the ownership of other
+configuration layers.
 
 ## Outcomes and recovery
 
@@ -95,13 +100,6 @@ terminal response in the
 [ACP prompt-turn lifecycle](https://agentclientprotocol.com/protocol/v1/prompt-turn).
 The application does not import ACP types or equate a saved provider binding with
 supported restoration; that capability belongs at the adapter.
-
-Checks retain the exact configured gate name (including custom and archetype
-gates), the domain outcome category, and separate evidence-recording status.
-Recorded evidence names the requested scoped task. A passing process result
-alone is not a completed workflow task or chunk.
-Native completion names a real scoped verification task; native admission and
-evidence validity remain the adapter's responsibility.
 
 `ApplicationError` preserves machine-readable recovery categories:
 
@@ -123,12 +121,84 @@ records, their retries and the atomic checkpoint are described in
 [durable operations](durability.md); the scoped facades' `CommandContext`
 still has no production adapter.
 
+## The composition boundary
+
+`magistr::application` (`crates/magistr-cli/src/application`) is the one place
+where a native workflow use case and the workspace's source evidence are
+composed for a consumer. It lives in the entry-point crate because every real
+consumer of both capabilities is there, together with the pty gate runner,
+gate resolution and project configuration; a crate with one consumer would be a
+boundary with one side. The `native-write-path` gate (rule 7) keeps check
+admission and settlement inside this module and the writer itself.
+
+### Consumers
+
+| Consumer | Workflow capability | Workspace capability | Through |
+| --- | --- | --- | --- |
+| `magistr_gate` in `magistr mcp-serve` | `NativeEngines` (Service role, the same writer the MCP session serves) | none yet (source capture waits for the receipts policy) | `AdmittedCheck::admit` before the pty run, `settle` after |
+| Loop driver gates (`next`, `next-loop`) | `NativeEngines` (Host role), one admitted verification task for the set | none yet | `AdmittedCheck` per gate, refusing a superseded verification target |
+| Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | none | the workflow's own async runner |
+| Cockpit `run` | `NativeEngines` or an attached `OwnerClient` | the agent's workspace owner over the spawned bridge | engine port; `magistr workspace journal` for the Changes tab |
+| ACP effects (`fs/*`, `terminal/*`) | none | direct host I/O after session authorization | `LocalEffectPort` (routing through the pipeline is `arch-14f2`) |
+| `magistr workspace snapshot` | none | lock-free `SourceSnapshot::capture` | CLI verb |
+
+### The check-admission and source-capability interface
+
+`AdmittedCheck::admit(engines, root, task, gate, command, required, policy)`
+asks the workflow first — the concrete task instance the check belongs to,
+refused before any byte is hashed when there is no task — and then, when a
+`SelectionPolicy` is given, observes `root` lock-free as a `SourceSnapshot`.
+The command runs outside every lock with the owner's edits still flowing.
+`settle(engines, exit_code, details)` re-observes the same root, then settles
+the check under the captured admission: `SettledCheck` carries the workflow's
+`CheckSettlement` (`Applied` with the recorded check, or `Stale` with the
+admission and outcome intact when the run or task was superseded) beside a
+`CheckSource` — the admission snapshot and its `SnapshotValidation`. A nextest
+junit report is parsed additively from the project's `target/nextest/<profile>`
+path; the exit code alone decides `passed`.
+
+Nothing in this interface is durable beyond the ordinary check the workflow
+appends. Which checks capture source, how long the evidence lives, and what
+completion demands of it are `arch-14-verification-receipts`; the boundary
+gives that chunk one typed shape to consume instead of a second scanner.
+
+### Identity map
+
+| Identity | Authority | Type | Changes when |
+| --- | --- | --- | --- |
+| Project | native workflow store (`.think-and-ship/project.json`) | `project_id` on `TaskAdmission`; domain `ProjectId` | never for a project |
+| Run | ship objective | `run_id` on `TaskAdmission` | a fresh objective after finalize |
+| Task and task instance | ship plan | `task_id`, `task_instance` on `TaskAdmission` | the same name in a later run is a new instance |
+| Attempt | loop operation ledger | domain `AttemptId` (command plus attempt number) | each retry of one command |
+| Workflow owner generation | role lease (`ProjectAuthority`) | `OwnerGeneration` | a new writer of that role is admitted |
+| Workspace | admitted `WorkspaceService` | `WorkspaceIdentity { root, generation }` | the canonical root never; the generation on every owner admission |
+| Source revision | the selected bytes | `SourceSnapshot::revision()` (content-addressed) | any selected byte, mode, kind or explicit input |
+| Mutation receipt revision | the journal's resolved intent | `MutationReceipt::revision` | per applied intent, over the applied files only |
+
+`CheckIdentities` carries the workflow row and the workspace row side by side.
+No type combines them: a workflow run and a workspace generation are
+independent stores with independent histories, and a source revision is a
+statement about bytes, not about either store. `Revision` in this crate stays
+the project authority's own counter.
+
 ## Verification and limits
 
 The application companion suites exercise exact request forwarding, rejected
 foreign scopes before dispatch, receipt and response correlation, explicit
 outcomes and typed error propagation. Ready fake futures run without an external
 executor. Scope regressions were observed failing before their guards were added.
+
+The composition boundary's companion tests admit against a real Host writer
+and a disposable root: an external edit during the run is reported at
+settlement, a missing task is refused before hashing, a rolled-over objective
+settles `Stale` with the target, exit code and source intact, and a missing
+root is a typed source refusal. The `application_composition` integration
+suite composes a real Host writer with a real `WorkspaceService` (real worker
+binary): a check admitted with source observes an edit made through the owner,
+lands on its task, agrees with the owner's own `MutationReceipt` on the
+generation while keeping the two revisions distinct, and is visible to an
+unadmitted reader of the same store; the owner refuses a snapshot of another
+checkout; a reused task name in a later run cannot collect the result.
 
 The CLI `application_boundary` integration suite checks Cargo declarations,
 workspace membership, the library target and application Rust syntax, including
@@ -145,6 +215,7 @@ Focused checks:
 ```sh
 cargo nextest run -p magistr-application
 cargo nextest run -p magistr-cli --test application_boundary --test domain_boundary
+cargo nextest run -p magistr-cli -E 'test(/application::/) | binary(application_composition)'
 cargo test -p magistr-application --doc
 ```
 
@@ -156,7 +227,9 @@ implementation on every surface — the library's tool handler behind the MCP
 verb, reached through the admitted writer (see
 [one write path](project-authority.md#one-write-path)). Durable command
 admission, full setup consolidation and further host migration remain subsequent
-chunks. Shared permission decisions
+chunks; routing Magistr's own source writes through the workspace pipeline is
+`arch-14f2`, the client audit `arch-14f3`, and rehoming the adopted source
+under Magistr names `arch-14f4`. Shared permission decisions
 are now implemented by the [permission service](permissions.md); production adapters use
 that policy for both provider permission requests and [host effects](effects.md),
 while the scoped permission-command facade remains a separate contract.

@@ -22,6 +22,7 @@ pub use self::orchestration::{commands, roadmap, workflow};
 // ── Agent domain (consolidated: agent, engine, models, session) ─────────────
 
 pub mod agent;
+pub mod application;
 
 pub use self::agent::engine;
 pub use self::agent::models;
