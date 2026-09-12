@@ -9,7 +9,7 @@ use agent_client_protocol::schema::v1::{
     McpServer, Meta, NewSessionRequest, SessionConfigOption, SessionId,
 };
 use agent_client_protocol::{Agent, ConnectionTo};
-use tokio::process::Child;
+use magistr_process::ReapingChild as Child;
 
 use super::wait_child::{exit_code, wait_child};
 use crate::stderr_tail::StderrTail;

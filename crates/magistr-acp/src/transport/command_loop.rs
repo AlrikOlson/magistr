@@ -12,7 +12,7 @@ use agent_client_protocol::schema::v1::{
     SessionId, SetSessionConfigOptionRequest, TextContent,
 };
 use agent_client_protocol::{Agent, ConnectionTo};
-use tokio::process::Child;
+use magistr_process::ReapingChild as Child;
 use tokio::sync::{mpsc, oneshot};
 
 use super::command::AcpCommand;

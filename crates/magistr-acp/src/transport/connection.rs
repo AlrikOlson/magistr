@@ -11,7 +11,7 @@ use agent_client_protocol::schema::v1::{
     WaitForTerminalExitRequest, WriteTextFileRequest,
 };
 use agent_client_protocol::{Client, ConnectTo, on_receive_notification, on_receive_request};
-use tokio::process::Child;
+use magistr_process::ReapingChild as Child;
 use tokio::sync::mpsc;
 
 use super::command::AcpCommand;

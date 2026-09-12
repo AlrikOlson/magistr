@@ -8,7 +8,7 @@ use tokio_util::sync::CancellationToken;
 
 #[cfg(unix)]
 use crate::OutputMode;
-use crate::{BoundedCapture, Launch, ProcessOutcome, ProcessSpec, Termination};
+use crate::{BoundedCapture, Launch, ProcessGroup, ProcessOutcome, ProcessSpec, Termination};
 
 /// How long, once the group is dead or exited, the pipes get to close
 /// before what is left in them is abandoned.
@@ -36,10 +36,11 @@ enum Streams {
 
 /// One spawned child in its own session and process group. [`Self::run`]
 /// consumes it and answers a [`ProcessOutcome`]; dropping it before that
-/// kills the child (`kill_on_drop`), so an abandoned future never leaves a
-/// running command behind.
+/// kills its process group and retains child reaping ownership. Registration
+/// follows the group through timeout, cancellation, panic and caller drop.
 pub struct OwnedProcess {
-    child: Child,
+    child: crate::ReapingChild,
+    group: Option<ProcessGroup>,
     pid: Option<u32>,
     streams: Streams,
     timeout: Duration,
@@ -96,8 +97,10 @@ impl OwnedProcess {
             });
         }
         let started = Instant::now();
-        let mut child = command.spawn()?;
+        let mut child = crate::ReapingChild::new(command.spawn()?);
         let pid = child.id();
+        // SAFETY: pre_exec created an isolated session/group for this child.
+        let group = pid.map(|pid| unsafe { ProcessGroup::from_spawned_pid(pid) });
         #[cfg(unix)]
         let streams = match pty {
             Some(pty) => {
@@ -116,6 +119,7 @@ impl OwnedProcess {
         };
         Ok(Self {
             child,
+            group,
             pid,
             streams,
             timeout: spec.timeout,
@@ -152,6 +156,7 @@ impl OwnedProcess {
     ) -> ProcessOutcome {
         let Self {
             mut child,
+            mut group,
             pid,
             streams,
             timeout,
@@ -190,11 +195,9 @@ impl OwnedProcess {
                         () = cancel.cancelled() => { outcome.cancelled = true; break; }
                     }
                 }
-                if status.is_none() || outcome.timed_out || outcome.cancelled {
-                    end_group(&mut child, pid, termination).await;
-                }
-                // The group is dead or exited; the pipes close promptly.
-                // Bound the drain anyway: a stray descriptor is not a hang.
+                outcome.record_cleanup(end_group(&mut child, group.as_mut(), termination).await);
+                // Bound the drain even if settlement failed or a descriptor
+                // escaped the group; a stray descriptor cannot hang the caller.
                 if !drained {
                     let _ = tokio::time::timeout(DRAIN_AFTER_END, &mut readers).await;
                 }
@@ -212,11 +215,9 @@ impl OwnedProcess {
                     &mut outcome,
                 )
                 .await;
-                if status.is_none() || outcome.timed_out || outcome.cancelled {
-                    end_group(&mut child, pid, termination).await;
-                }
-                // The child is gone either way: only now may the parent's
-                // slave close.
+                outcome.record_cleanup(end_group(&mut child, group.as_mut(), termination).await);
+                // Settlement was attempted and any failure recorded. Release
+                // the parent's slave without extending a failed cleanup.
                 drop(keepalive);
                 status
             }
@@ -383,37 +384,62 @@ async fn read_terminal(
 
 /// End the group this process leads — its id is the child's own pid,
 /// never a caller-supplied value — then reap the leader.
-async fn end_group(child: &mut Child, pid: Option<u32>, termination: Termination) {
-    #[cfg(unix)]
+async fn end_group(
+    child: &mut Child,
+    mut group: Option<&mut ProcessGroup>,
+    termination: Termination,
+) -> io::Result<()> {
+    if child.try_wait()?.is_some()
+        && group
+            .as_mut()
+            .map_or(Ok(true), |group| group.is_settled())?
     {
-        let group = pid
-            .and_then(|pid| i32::try_from(pid).ok())
-            .filter(|group| *group > 0);
-        let signal = |signal: libc::c_int| {
-            if let Some(group) = group {
-                // SAFETY: the spawn put the child in its own session whose
-                // group id is its pid, and the leader is still owned by
-                // `child`; a group with no members left answers ESRCH.
-                unsafe {
-                    libc::kill(-group, signal);
-                }
-            }
-        };
-        match termination {
-            Termination::Graceful { grace } => {
-                signal(libc::SIGTERM);
-                if tokio::time::timeout(grace, child.wait()).await.is_ok() {
-                    return;
-                }
-                signal(libc::SIGKILL);
-            }
-            Termination::Immediate => signal(libc::SIGKILL),
+        return Ok(());
+    }
+    #[cfg(unix)]
+    if let Termination::Graceful { grace } = termination {
+        if let Some(group) = group.as_ref() {
+            let _ = group.signal(libc::SIGTERM);
+        }
+        if let Ok(result) =
+            tokio::time::timeout(grace, reap_group(child, group.as_deref_mut())).await
+        {
+            return result;
         }
     }
     #[cfg(not(unix))]
-    let _ = (pid, termination);
+    let _ = termination;
+    if let Some(group) = group.as_ref() {
+        let _ = group.kill();
+    }
+    // Signal delivery can race exit; only the bounded reap/probe below
+    // establishes settlement. A persistent refusal becomes a cleanup fault.
     let _ = child.start_kill();
-    let _ = child.wait().await;
+    tokio::time::timeout(
+        crate::process_group::CLEANUP_TIMEOUT,
+        reap_group(child, group),
+    )
+    .await
+    .map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::TimedOut,
+            "process group did not settle by cleanup deadline",
+        )
+    })?
+}
+
+async fn reap_group(child: &mut Child, mut group: Option<&mut ProcessGroup>) -> io::Result<()> {
+    loop {
+        let reaped = child.try_wait()?.is_some();
+        if reaped
+            && group
+                .as_mut()
+                .map_or(Ok(true), |group| group.is_settled())?
+        {
+            return Ok(());
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
 }
 
 #[cfg(test)]

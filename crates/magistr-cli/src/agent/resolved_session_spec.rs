@@ -254,8 +254,6 @@ impl ResolvedSessionSpec {
         transport.connect().await.map_err(|error| {
             MagistrError::Acp(format!("Failed to connect ACP transport: {error}"))
         })?;
-        #[cfg(unix)]
-        crate::utils::child_guard::register_child_pgid(transport.child_pgid());
         Ok(transport)
     }
 

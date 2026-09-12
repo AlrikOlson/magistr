@@ -27,11 +27,22 @@ pub struct ProcessOutcome {
     /// The spawned process id (also its group id on Unix).
     pub pid: Option<u32>,
     /// An I/O failure while waiting on or reading the child, when one
-    /// happened; the process was ended and reaped regardless.
+    /// happened, or cleanup could not confirm group disappearance by its deadline.
+    /// Incomplete cleanup remains registered for emergency shutdown.
     pub fault: Option<String>,
 }
 
 impl ProcessOutcome {
+    pub(crate) fn record_cleanup(&mut self, result: std::io::Result<()>) {
+        if let Err(error) = result {
+            let fault = self.fault.get_or_insert_with(String::new);
+            if !fault.is_empty() {
+                fault.push_str("; ");
+            }
+            fault.push_str(&format!("cleanup incomplete: {error}"));
+        }
+    }
+
     /// The process ran to its own end and reported an exit code, with no
     /// deadline or cancel involved.
     #[must_use]
