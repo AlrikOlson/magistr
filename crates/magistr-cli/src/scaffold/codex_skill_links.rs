@@ -30,17 +30,8 @@ impl CodexSkillLinks {
                 continue;
             };
             let path = root.join(prefix);
-            let target = match std::fs::read_link(&path) {
-                Ok(target) => target,
-                Err(error)
-                    if matches!(
-                        error.kind(),
-                        std::io::ErrorKind::NotFound | std::io::ErrorKind::InvalidInput
-                    ) =>
-                {
-                    continue;
-                }
-                Err(error) => return Err(MagistrError::io(&path, error)),
+            let Some(target) = read_symlink(&path)? else {
+                continue;
             };
             let claude = prefix.replacen(".agents/", ".claude/", 1);
             let expected = root.join(&claude);
@@ -133,9 +124,7 @@ impl CodexSkillLinks {
             .collect();
         for (prefix, expected) in &selected {
             let path = dir.join(prefix);
-            let current =
-                std::fs::read_link(&path).map_err(|error| MagistrError::io(&path, error))?;
-            if &current != *expected {
+            if read_symlink(&path)?.as_ref() != Some(*expected) {
                 return Err(invalid(
                     &path,
                     "changed since preview; regenerate the preview",
@@ -154,10 +143,25 @@ impl CodexSkillLinks {
     }
 }
 
+/// The link target when `path` is a symlink; `None` for a missing path or a
+/// real file or directory. Deciding by file type keeps platform-specific
+/// `read_link` errors (EINVAL on Unix, ERROR_NOT_A_REPARSE_POINT on Windows)
+/// out of the control flow.
+fn read_symlink(path: &Path) -> Result<Option<PathBuf>> {
+    match std::fs::symlink_metadata(path) {
+        Ok(meta) if meta.file_type().is_symlink() => std::fs::read_link(path)
+            .map(Some)
+            .map_err(|error| MagistrError::io(path, error)),
+        Ok(_) => Ok(None),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(MagistrError::io(path, error)),
+    }
+}
+
 fn invalid(path: &Path, reason: &str) -> MagistrError {
     MagistrError::Config(format!("{} {reason}; left untouched", path.display()))
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 #[path = "codex_skill_links.tests.rs"]
 mod tests;

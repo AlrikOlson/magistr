@@ -1,5 +1,5 @@
 use std::{
-    fs::{File, OpenOptions, TryLockError},
+    fs::{File, OpenOptions},
     io::{self, Read, Seek, Write},
     path::{Path, PathBuf},
 };
@@ -46,20 +46,17 @@ impl ServerLock {
             ));
         }
         // Only a validated native marker permits attachment on contention.
-        // Unix locks are advisory, so inspect the immutable bytes first. On
-        // Windows the lock denies reads through another handle; that platform
-        // keeps exclusive admission and validates after taking the lock.
-        #[cfg(unix)]
+        // Inspect the immutable bytes first, then again under the lock.
         validate_marker(&mut file, &path)?;
-        file.try_lock().map_err(|error| match error {
-            TryLockError::WouldBlock => io::Error::new(
+        crate::os_file_lock::try_lock_exclusive(&file).map_err(|error| match error.kind() {
+            io::ErrorKind::WouldBlock => io::Error::new(
                 io::ErrorKind::WouldBlock,
                 format!(
                     "another workspace server already owns this workspace (lock: {})",
                     path.display()
                 ),
             ),
-            TryLockError::Error(error) => error,
+            _ => error,
         })?;
         validate_marker(&mut file, &path)?;
         let generation = WorkspaceGeneration::advance(&path)?;
@@ -252,7 +249,7 @@ impl Drop for ServerLock {
         // A concurrently spawned child can inherit this descriptor until it
         // execs; closing ours alone would leave the lock held through that
         // reference. Explicit unlock ends ownership when the owner closes.
-        let _ = self.file.unlock();
+        let _ = crate::os_file_lock::unlock(&self.file);
     }
 }
 

@@ -6,7 +6,12 @@ fn content_changes_with_restored_mtime_and_length_change_digest() {
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("file.rs");
     fs::write(&path, "pub fn old() {}\n").unwrap();
-    let file = File::open(&path).unwrap();
+    // Restoring the timestamp needs write access to the handle on Windows.
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&path)
+        .unwrap();
     let mtime = file.metadata().unwrap().modified().unwrap();
     let stop = AtomicBool::new(false);
     let before = PollingDigest::capture(root.path(), &stop).unwrap();

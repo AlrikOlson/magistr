@@ -51,7 +51,14 @@ fn validation_modes_enforce_required_custom_and_archetype_gates() {
             .arg(&project)
             .env("HOME", root.path())
             .env("XDG_CONFIG_HOME", root.path().join("config"))
-            .env("PATH", "/usr/bin:/bin")
+            .env(
+                "PATH",
+                if cfg!(windows) {
+                    std::env::var_os("PATH").unwrap_or_default()
+                } else {
+                    "/usr/bin:/bin".into()
+                },
+            )
             .current_dir(root.path())
             .output()
             .unwrap();

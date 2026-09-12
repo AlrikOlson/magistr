@@ -10,6 +10,14 @@ fn production_capture_preserves_the_platform_temp_store_fallback() {
                 "evidence::writer_config_from_env::tests::production_capture_preserves_the_platform_temp_store_fallback",
             ])
             .env_clear()
+            .envs(
+                // A Windows process needs its system root to start, and the
+                // platform temp fallback under test is read from TEMP/TMP.
+                ["SYSTEMROOT", "TEMP", "TMP"]
+                    .into_iter()
+                    .filter(|_| cfg!(windows))
+                    .filter_map(|key| std::env::var_os(key).map(|value| (key, value))),
+            )
             .env(CHILD, "1")
             .env("THINK_AND_SHIP_PERSIST", "false")
             .status()

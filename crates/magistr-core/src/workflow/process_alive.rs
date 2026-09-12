@@ -22,7 +22,40 @@ pub fn is_process_alive(pid: u32) -> Option<bool> {
             _ => None,
         }
     }
-    #[cfg(not(unix))]
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Foundation::{CloseHandle, ERROR_ACCESS_DENIED, STILL_ACTIVE};
+        use windows_sys::Win32::System::Threading::{
+            GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+        };
+        if pid == 0 {
+            return None;
+        }
+        // SAFETY: OpenProcess takes plain values and returns a handle or null;
+        // the handle is closed below on every path that received one.
+        let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+        if handle.is_null() {
+            let error = std::io::Error::last_os_error();
+            return match error.raw_os_error() {
+                // Exists, but is not ours to inspect: alive for our purposes.
+                Some(code) if code == ERROR_ACCESS_DENIED as i32 => Some(true),
+                // ERROR_INVALID_PARAMETER: no such process.
+                Some(87) => Some(false),
+                _ => None,
+            };
+        }
+        let mut code = 0_u32;
+        // SAFETY: `handle` is a valid open process handle and `code` outlives
+        // the call that writes it.
+        let answered = unsafe { GetExitCodeProcess(handle, &mut code) } != 0;
+        // SAFETY: closing the handle this function opened.
+        unsafe { CloseHandle(handle) };
+        if !answered {
+            return None;
+        }
+        Some(code == STILL_ACTIVE as u32)
+    }
+    #[cfg(not(any(unix, windows)))]
     {
         let _ = pid;
         None

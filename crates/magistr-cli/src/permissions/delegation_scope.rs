@@ -5,6 +5,8 @@ use std::path::{Component, Path};
 
 use magistr_engine::policy::PolicyCondition;
 
+use super::resolve_against::glob_spelling;
+
 /// The scope of one ask, as the charter keys it: a tool over a path
 /// prefix (`Edit · crates/magistr-tui`), a tool over a shell program
 /// (`Bash · cargo`), or the bare tool — with the [`PolicyCondition`] a
@@ -71,7 +73,7 @@ impl DelegationScope {
     fn under(tool: &str, prefix: &str, root: Option<&Path>) -> Self {
         let absolute = root.map_or_else(
             || format!("*/{prefix}"),
-            |root| root.join(prefix).display().to_string(),
+            |root| glob_spelling(&root.join(prefix)),
         );
         Self {
             key: format!("{}:{prefix}", tool.to_lowercase()),

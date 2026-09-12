@@ -26,7 +26,7 @@ use super::permission_decision::PermissionDecision;
 use super::permission_profile::PermissionProfile;
 use super::policy_request_for::policy_request_for;
 use super::profile_action::ProfileAction;
-use super::resolve_against::{checked_resolve_against, resolve_against};
+use super::resolve_against::{checked_resolve_against, glob_spelling, resolve_against};
 
 /// Shared host adapter for the domain's deterministic permission service.
 /// Every surface supplies ACP requests to this owner of normalization, risk
@@ -297,9 +297,9 @@ impl SessionPermissionPolicy {
             let aliases = root
                 .as_deref()
                 .and_then(|root| resolved.strip_prefix(root).ok())
-                .map(|relative| vec![relative.display().to_string()])
+                .map(|relative| vec![glob_spelling(relative)])
                 .unwrap_or_default();
-            *path = resolved.display().to_string();
+            *path = glob_spelling(&resolved);
             act.path_aliases.push(aliases);
         }
         (act, None)

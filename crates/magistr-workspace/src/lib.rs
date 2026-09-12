@@ -26,6 +26,7 @@ pub mod journal;
 #[cfg(feature = "lang-pack")]
 pub mod lang_registry;
 pub mod langs;
+mod os_file_lock;
 pub mod plugins;
 pub mod query;
 pub mod response;
