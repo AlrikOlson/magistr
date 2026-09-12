@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+#[cfg(unix)]
 use std::time::Duration;
 
 use tokio_util::sync::CancellationToken;

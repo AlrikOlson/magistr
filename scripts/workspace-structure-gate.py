@@ -23,11 +23,11 @@ def measurements(root):
     files = [path for subtree in ROOTS for path in (root / subtree).rglob("*.rs")
              if "target" not in path.relative_to(root / subtree).parts
              and "node_modules" not in path.relative_to(root / subtree).parts]
-    return {str(path.relative_to(root)): measure(path.read_text()) for path in sorted(files)}
+    return {path.relative_to(root).as_posix(): measure(path.read_text(encoding="utf-8")) for path in sorted(files)}
 
 
 def check(root):
-    baseline = json.loads((root / BASELINE).read_text())
+    baseline = json.loads((root / BASELINE).read_text(encoding="utf-8"))
     if baseline.get("version") != 1 or baseline.get("upstream_revision") != REVISION:
         return ["unknown baseline schema or upstream revision"]
     errors = []

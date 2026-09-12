@@ -1,9 +1,11 @@
 use std::time::Duration;
 
+#[cfg(unix)]
 use magistr_engine::{Delivery, NativeEvent, RoadmapFrame};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::*;
+#[cfg(unix)]
 use crate::harness::fixtures;
 
 async fn next(rx: &mut UnboundedReceiver<Msg>) -> EngineEvent {
