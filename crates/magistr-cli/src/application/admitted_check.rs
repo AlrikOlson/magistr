@@ -2,39 +2,40 @@
 
 use std::path::{Path, PathBuf};
 
-use magistr_engine::tas::{CheckAdmission, NativeEngines, TaskAdmission};
-use magistr_workspace::snapshot::{SelectionPolicy, SourceSnapshot};
+use magistr_engine::tas::{
+    CheckAdmission, CheckExecution, NativeEngines, SourceObservation, TaskAdmission,
+};
 
-use super::{CheckEvidenceError, CheckIdentities, CheckSource, SettledCheck};
+use super::{CheckEvidenceError, CheckIdentities, SettledCheck};
 use crate::utils::gate::nextest_junit_report_path;
 
-/// One gate, admitted by the workflow before its command runs and — when
-/// the consumer asked — bound to the workspace's source as observed at
-/// that moment.
+/// One gate, admitted by the workflow before its command runs.
 ///
-/// Admission captures the concrete task instance the check belongs to, so
-/// a task started while the gate ran can never collect its result; the
-/// optional snapshot captures the selected bytes lock-free, so the command
-/// runs with the owner's edits still flowing and nothing waits on it.
-/// Settlement re-observes the same root, then settles through the same
-/// admitted writer, in that order: the source validation is taken as close
-/// to the command's end as possible, before the workflow lock is touched.
+/// Admission captures the concrete task instance the check belongs to and
+/// publishes its durable receipt, and — through the evidence capability
+/// the writer was admitted with — observes the workspace's selected source
+/// at that moment, so a task started while the gate ran can never collect
+/// the result and the receipt names the bytes it certifies. The command
+/// then runs with the owner's edits still flowing and nothing waiting on
+/// it. Settlement re-observes the source, then settles through the same
+/// admitted writer, in that order: the validation is taken as close to the
+/// command's end as possible, before the workflow lock is touched.
 #[derive(Clone, Debug)]
 pub struct AdmittedCheck {
     admission: CheckAdmission,
     root: PathBuf,
-    source: Option<SourceSnapshot>,
 }
 
 impl AdmittedCheck {
     /// Admit `gate` on `task_id` (the active task when `None`) through the
-    /// admitted writer, then observe `root` under `source` when a policy is
-    /// given. The workflow is asked first: a check with no task to land on
-    /// is refused before any bytes are hashed.
+    /// admitted writer. The workflow is asked first: a check with no task
+    /// to land on is refused before any byte is hashed; a workspace that
+    /// cannot be observed refuses the admission too, so an unobservable
+    /// gate is never recorded as evidence.
     ///
     /// # Errors
     /// `Admission` when the workflow names no task or refuses the request;
-    /// `Source` when the workspace cannot be observed under the policy.
+    /// `Source` when the workspace cannot be observed.
     pub fn admit(
         engines: &NativeEngines,
         root: &Path,
@@ -42,18 +43,13 @@ impl AdmittedCheck {
         gate: &str,
         command: String,
         required: bool,
-        source: Option<SelectionPolicy>,
     ) -> Result<Self, CheckEvidenceError> {
         let admission = engines
             .ship_admit_gate(task_id, gate, command, required)
-            .map_err(CheckEvidenceError::Admission)?;
-        let source = source
-            .map(|policy| SourceSnapshot::capture(root, policy))
-            .transpose()?;
+            .map_err(CheckEvidenceError::from_admission)?;
         Ok(Self {
             admission,
             root: root.to_path_buf(),
-            source,
         })
     }
 
@@ -63,50 +59,47 @@ impl AdmittedCheck {
         &self.admission.target
     }
 
-    /// The full admission: target and the request as admitted.
+    /// The full admission: target, request, receipt id, acceptance
+    /// revision and the source observed.
     #[must_use]
     pub fn admission(&self) -> &CheckAdmission {
         &self.admission
     }
 
-    /// The source observed at admission, when one was asked for.
+    /// The durable receipt this check runs under.
     #[must_use]
-    pub fn source(&self) -> Option<&SourceSnapshot> {
-        self.source.as_ref()
+    pub fn receipt_id(&self) -> &str {
+        &self.admission.receipt_id
+    }
+
+    /// The source observed at admission, when the writer carries the
+    /// evidence capability.
+    #[must_use]
+    pub fn source(&self) -> Option<&SourceObservation> {
+        self.admission.source.as_ref()
     }
 
     /// Both identities, side by side and never combined.
     #[must_use]
     pub fn identities(&self) -> CheckIdentities {
-        CheckIdentities::new(
-            &self.admission.target,
-            self.source.as_ref().map(|s| s.identity.clone()),
-        )
+        CheckIdentities::new(&self.admission.target, self.admission.source.as_ref())
     }
 
-    /// Settle the finished command: re-observe the source it was admitted
-    /// with, then settle the check under its captured identity. A `cargo
+    /// Settle the finished command under its captured identity. A `cargo
     /// nextest` command's junit report is parsed additively from the
-    /// project's `target/nextest/<profile>/junit.xml`; the exit code alone
-    /// decides `passed`, and a missing report is "not parsed".
+    /// project's `target/nextest/<profile>/junit.xml`; only an exit decides
+    /// `passed`, and a missing report is "not parsed".
     ///
     /// # Errors
-    /// `Source` when the workspace cannot be re-observed; `Settlement` when
-    /// the workflow refuses. A superseded run or task is not an error: it
-    /// is a `Stale` settlement carrying the admission and outcome intact.
+    /// `Settlement` when the workflow refuses. A superseded run or task is
+    /// not an error: it is a `Stale` settlement carrying the admission,
+    /// the outcome and the settled receipt intact.
     pub fn settle(
         self,
         engines: &NativeEngines,
-        exit_code: i32,
+        execution: CheckExecution,
         details: String,
     ) -> Result<SettledCheck, CheckEvidenceError> {
-        let source = match self.source {
-            Some(before) => {
-                let validation = before.validate(&self.root)?;
-                Some(CheckSource { before, validation })
-            }
-            None => None,
-        };
         let report = self
             .admission
             .request
@@ -117,12 +110,12 @@ impl AdmittedCheck {
         let settlement = engines
             .ship_settle_gate(
                 self.admission,
-                exit_code,
+                execution,
                 details,
                 report.as_deref().map(|path| ("junit", path)),
             )
             .map_err(CheckEvidenceError::Settlement)?;
-        Ok(SettledCheck { settlement, source })
+        Ok(SettledCheck { settlement })
     }
 }
 

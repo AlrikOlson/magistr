@@ -1,21 +1,21 @@
 use super::*;
-use magistr_engine::tas::{CheckSettlement, ProjectAuthority, TasConfig, TaskType, WriterRole};
-use magistr_workspace::snapshot::{ChangeKind, SnapshotError, SnapshotValidation};
+use magistr_engine::tas::{
+    CheckSettlement, ProjectAuthority, ReceiptSettlement, SourceFreshness, TaskType, WriterRole,
+};
 
-fn host(tmp: &tempfile::TempDir) -> NativeEngines {
+/// A host writer admitted the way production admits one: on a writer
+/// config carrying the project's own evidence capability.
+fn host(tmp: &tempfile::TempDir) -> (NativeEngines, PathBuf) {
     let root = tmp.path().join("project");
-    std::fs::create_dir_all(&root).expect("project directory");
-    let config = TasConfig::from_lookup(root, |_| None).with_data_dir(tmp.path().join("store"));
-    ProjectAuthority::admit_for_project(&config, "composition".into(), WriterRole::Host)
-        .expect("host admitted")
-        .open()
-}
-
-fn workspace(tmp: &tempfile::TempDir) -> PathBuf {
-    let root = tmp.path().join("workspace");
-    std::fs::create_dir_all(root.join(".git")).expect("repository marker");
+    std::fs::create_dir_all(root.join(".git")).expect("project directory");
     std::fs::write(root.join("notes.txt"), "alpha\n").expect("source");
-    root
+    let store = tmp.path().join("store");
+    let config = magistr_core::evidence::writer_config(&root, |_| None).with_data_dir(store);
+    let engines =
+        ProjectAuthority::admit_for_project(&config, "composition".into(), WriterRole::Host)
+            .expect("host admitted")
+            .open();
+    (engines, root)
 }
 
 fn objective(engines: &NativeEngines, task: &str) {
@@ -31,20 +31,11 @@ fn objective(engines: &NativeEngines, task: &str) {
 #[test]
 fn admission_binds_the_task_and_the_source_before_the_run_and_settles_both() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = host(&tmp);
-    let root = workspace(&tmp);
+    let (engines, root) = host(&tmp);
     objective(&engines, "verify");
 
-    let admitted = AdmittedCheck::admit(
-        &engines,
-        &root,
-        None,
-        "test",
-        "true".into(),
-        true,
-        Some(SelectionPolicy::default()),
-    )
-    .expect("admitted with source");
+    let admitted = AdmittedCheck::admit(&engines, &root, None, "test", "true".into(), true)
+        .expect("admitted with source");
     let identities = admitted.identities();
     assert_eq!(identities.project_id, engines.project_id());
     assert_eq!(identities.task_id, "verify");
@@ -57,48 +48,40 @@ fn admission_binds_the_task_and_the_source_before_the_run_and_settles_both() {
         "no owner ever admitted this root"
     );
     assert_ne!(identities.run_id, workspace.root.to_string_lossy());
-    let before = admitted.source().expect("snapshot").revision();
+    let before = admitted.source().expect("observation").revision.clone();
+    assert!(!admitted.receipt_id().is_empty());
 
     // An external edit while the "gate" runs: observed, never journaled.
     std::fs::write(root.join("notes.txt"), "beta\n").expect("external edit");
 
-    let settled = admitted.settle(&engines, 0, "ok".into()).expect("settled");
+    let settled = admitted
+        .settle(&engines, CheckExecution::Exited { code: 0 }, "ok".into())
+        .expect("settled");
     assert!(settled.is_applied());
     let check = settled.check().expect("recorded check");
     assert!(check.passed && check.verified);
     assert_eq!(check.exit_code, Some(0));
-    let source = settled.source.expect("source evidence");
-    assert_eq!(source.revision(), before);
-    match &source.validation {
-        SnapshotValidation::Changed(changes) => {
-            assert_eq!(changes.len(), 1);
-            assert_eq!(changes[0].path, "notes.txt");
-            assert_eq!(changes[0].kind, ChangeKind::Modified);
-        }
-        SnapshotValidation::Unchanged => panic!("the external edit must be observed"),
-    }
-    assert!(!source.is_unchanged());
+    let receipt = settled.receipt();
+    assert_eq!(receipt.source.as_ref().expect("source").revision, before);
+    assert_eq!(receipt.settlement, Some(ReceiptSettlement::Applied));
+    assert_eq!(
+        settled.freshness(),
+        Some(&SourceFreshness::Changed {
+            paths: vec!["notes.txt (Modified)".into()]
+        })
+    );
     assert_eq!(engines.ship_active_task_id().as_deref(), Some("verify"));
 }
 
 #[test]
 fn a_check_with_no_task_is_refused_before_any_bytes_are_hashed() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = host(&tmp);
-    let root = workspace(&tmp);
+    let (engines, root) = host(&tmp);
     engines
         .ship_set_objective("Compose".into(), vec![], vec![], "chunk:test".into())
         .expect("objective");
-    let refused = AdmittedCheck::admit(
-        &engines,
-        &root,
-        None,
-        "lint",
-        "true".into(),
-        true,
-        Some(SelectionPolicy::default()),
-    )
-    .expect_err("no active task");
+    let refused = AdmittedCheck::admit(&engines, &root, None, "lint", "true".into(), true)
+        .expect_err("no active task");
     assert!(
         matches!(&refused, CheckEvidenceError::Admission(reason) if reason.contains("no active task")),
         "{refused}"
@@ -106,10 +89,9 @@ fn a_check_with_no_task_is_refused_before_any_bytes_are_hashed() {
 }
 
 #[test]
-fn a_superseded_objective_settles_stale_with_the_outcome_and_source_intact() {
+fn a_superseded_objective_settles_stale_with_the_outcome_and_receipt_intact() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = host(&tmp);
-    let root = workspace(&tmp);
+    let (engines, root) = host(&tmp);
     objective(&engines, "verify");
     let admitted = AdmittedCheck::admit(
         &engines,
@@ -118,10 +100,10 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_source_intact() {
         "check",
         "false".into(),
         true,
-        Some(SelectionPolicy::default()),
     )
     .expect("admitted");
     let original = admitted.target().clone();
+    let receipt_id = admitted.receipt_id().to_owned();
 
     // The agent shipped and rolled the objective over while the gate ran;
     // the same task name in the new run is a different instance.
@@ -129,19 +111,29 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_source_intact() {
     objective(&engines, "verify");
 
     let settled = admitted
-        .settle(&engines, 1, "red".into())
+        .settle(&engines, CheckExecution::Exited { code: 1 }, "red".into())
         .expect("settled, not an error");
     assert!(!settled.is_applied());
     match &settled.settlement {
-        CheckSettlement::Stale { admission, outcome } => {
+        CheckSettlement::Stale {
+            admission,
+            outcome,
+            receipt,
+        } => {
             assert_eq!(admission.target, original);
             assert_eq!(outcome.exit_code, Some(1));
             assert!(!outcome.passed);
             assert!(outcome.verified);
+            assert_eq!(receipt.id, receipt_id);
+            assert_eq!(receipt.target, original);
+            assert!(matches!(
+                receipt.settlement,
+                Some(ReceiptSettlement::Stale { .. })
+            ));
         }
         CheckSettlement::Applied { .. } => panic!("a superseded task must not collect the result"),
     }
-    assert!(settled.source.expect("source").is_unchanged());
+    assert_eq!(settled.freshness(), Some(&SourceFreshness::Unchanged));
     assert!(
         engines.ship_status()["checks"]
             .as_array()
@@ -151,43 +143,43 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_source_intact() {
 }
 
 #[test]
-fn without_a_policy_no_source_is_observed() {
+fn a_timeout_and_a_cancel_are_recorded_as_what_they_were() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = host(&tmp);
-    let root = workspace(&tmp);
+    let (engines, root) = host(&tmp);
     objective(&engines, "verify");
-    let admitted = AdmittedCheck::admit(&engines, &root, None, "lint", "true".into(), false, None)
-        .expect("admitted");
-    assert!(admitted.source().is_none());
-    assert!(admitted.identities().workspace.is_none());
-    let settled = admitted
-        .settle(&engines, 0, String::new())
-        .expect("settled");
-    assert!(settled.is_applied());
-    assert!(settled.source.is_none());
-    assert!(!settled.check().expect("check").required);
+    for execution in [CheckExecution::TimedOut, CheckExecution::Cancelled] {
+        let admitted = AdmittedCheck::admit(&engines, &root, None, "test", "true".into(), true)
+            .expect("admitted");
+        let settled = admitted
+            .settle(&engines, execution.clone(), String::new())
+            .expect("settled");
+        let check = settled.check().expect("recorded");
+        assert!(!check.passed && check.verified);
+        assert_eq!(check.exit_code, None);
+        assert_eq!(settled.receipt().execution, Some(execution));
+    }
 }
 
 #[test]
-fn an_unobservable_root_is_a_source_refusal_after_admission() {
+fn an_unobservable_root_is_a_source_refusal_at_admission() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = host(&tmp);
+    let absent = tmp.path().join("absent");
+    let config = magistr_core::evidence::writer_config(&absent, |_| None)
+        .with_data_dir(tmp.path().join("store"));
+    let engines = ProjectAuthority::admit_for_project(&config, "absent".into(), WriterRole::Host)
+        .expect("host admitted")
+        .open();
     objective(&engines, "verify");
-    let refused = AdmittedCheck::admit(
-        &engines,
-        &tmp.path().join("absent"),
-        None,
-        "test",
-        "true".into(),
-        true,
-        Some(SelectionPolicy::default()),
-    )
-    .expect_err("missing root");
+    let refused = AdmittedCheck::admit(&engines, &absent, None, "test", "true".into(), true)
+        .expect_err("missing root");
     assert!(
-        matches!(
-            refused,
-            CheckEvidenceError::Source(SnapshotError::RootMissing(_))
-        ),
+        matches!(&refused, CheckEvidenceError::Source(reason) if reason.contains("does not exist")),
         "{refused}"
+    );
+    assert!(
+        engines.ship_status()["checks"]
+            .as_array()
+            .is_some_and(Vec::is_empty),
+        "nothing was recorded"
     );
 }

@@ -437,7 +437,7 @@ impl RoadmapService {
 
     #[tool(
         name = "roadmap_set_status",
-        description = "Transition a chunk to a new status, validated against the lifecycle table.\n\nInputs: id (required), status (required — backlog|pending|in_progress|blocked|done|obsoleted).\n\nReturns: the updated chunk.\n\nAn explicit transition also disposes any open status proposal on the chunk: transitioning to the suggested status accepts it, transitioning anywhere else supersedes it. The sweep re-proposes if the divergence persists.\n\nPitfalls: illegal transitions (e.g. done→obsoleted) are rejected.",
+        description = "Transition a chunk to a new status, validated against the lifecycle table.\n\nInputs: id (required), status (required — backlog|pending|in_progress|blocked|done|obsoleted).\n\nReturns: the updated chunk.\n\nAn explicit transition also disposes any open status proposal on the chunk: transitioning to the suggested status accepts it, transitioning anywhere else supersedes it. The sweep re-proposes if the divergence persists.\n\nPitfalls: illegal transitions (e.g. done→obsoleted) are rejected",
         annotations(
             title = "Set chunk status",
             read_only_hint = false,
@@ -630,7 +630,7 @@ impl RoadmapService {
 
     #[tool(
         name = "roadmap_complete_chunk",
-        description = "Mark a chunk done, optionally attaching the proof-of-ship cross-ref (e.g. task:<id> from the ship objective that realized it).\n\nInputs: id (required), ship_ref (optional cross-ref string).\n\nReturns: the completed chunk.\n\nPitfalls: a malformed ship_ref is rejected before the status changes; only InProgress chunks transition to done.",
+        description = "Mark a chunk done on the current run's evidence: the objective is scoped chunk:<id> and its verification task (ship_ref task:<id>, else where the receipts landed) holds current passing verified receipts for every required gate.\n\nInputs: id (required), ship_ref (optional).\n\nReturns: the completed chunk.\n\nPitfalls: a refusal names each outstanding gate; re-run and retry. Only InProgress chunks go done.",
         annotations(
             title = "Complete chunk",
             read_only_hint = false,

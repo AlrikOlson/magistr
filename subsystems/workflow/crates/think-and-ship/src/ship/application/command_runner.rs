@@ -1,6 +1,6 @@
 //! Asynchronous command execution outside the native state lock.
 
-use super::{CheckAdmission, CheckOutcome, ShipUseCases};
+use super::{CheckAdmission, CheckExecution, CheckOutcome, ShipUseCases};
 
 // ── Verified-check command execution ───────────────────────────────
 
@@ -8,6 +8,7 @@ use super::{CheckAdmission, CheckOutcome, ShipUseCases};
 pub(crate) struct CommandOutcome {
     pub(crate) passed: bool,
     pub(crate) exit_code: Option<i32>,
+    pub(crate) execution: CheckExecution,
     pub(crate) output_tail: String,
 }
 
@@ -53,17 +54,26 @@ pub(crate) async fn run_check_command(cmd: &str) -> CommandOutcome {
             CommandOutcome {
                 passed: output.status.success(),
                 exit_code: code,
+                // A process ended by a signal has no exit code; it did not
+                // pass, and -1 is the code the host's own runner reports.
+                execution: CheckExecution::Exited {
+                    code: code.unwrap_or(-1),
+                },
                 output_tail: format!("$ {cmd}\n[exit {code_str}]\n{}", tail_chars(&combined)),
             }
         }
         Ok(Err(e)) => CommandOutcome {
             passed: false,
             exit_code: None,
+            execution: CheckExecution::LaunchFailed {
+                reason: e.to_string(),
+            },
             output_tail: format!("failed to run `{cmd}`: {e}"),
         },
         Err(_) => CommandOutcome {
             passed: false,
             exit_code: None,
+            execution: CheckExecution::TimedOut,
             output_tail: format!("`{cmd}` timed out after {CHECK_TIMEOUT_SECS}s"),
         },
     }
@@ -84,7 +94,7 @@ pub(crate) fn tail_chars(s: &str) -> String {
 impl ShipUseCases {
     pub async fn execute_check(admission: &CheckAdmission) -> CheckOutcome {
         let request = &admission.request;
-        let (passed, details, verified, command, exit_code) = match &request.command {
+        let (passed, details, verified, command, exit_code, execution) = match &request.command {
             Some(command) => {
                 let outcome = run_check_command(command).await;
                 let details = if request.details.is_empty() {
@@ -98,6 +108,7 @@ impl ShipUseCases {
                     true,
                     Some(command.clone()),
                     outcome.exit_code,
+                    outcome.execution,
                 )
             }
             None => (
@@ -106,6 +117,7 @@ impl ShipUseCases {
                 false,
                 None,
                 None,
+                ShipUseCases::self_reported(request),
             ),
         };
         let (report, results) = match &request.report {
@@ -121,6 +133,7 @@ impl ShipUseCases {
             verified,
             command,
             exit_code,
+            execution,
             report,
             results,
         }

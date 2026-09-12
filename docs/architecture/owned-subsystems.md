@@ -262,10 +262,19 @@ read back, `Failed` when the intent was rolled back, and `Indeterminate`
 for a pending intent after an interruption, a failed compensation or
 outcome persistence, and for legacy history that predates native intents.
 Verification consumes these workspace capabilities instead of a second
-scanner or fingerprint in workflow; `arch-14-verification-receipts` owns
-that consumption, completion validation (objective/task/run/attempt
-identity, gate and acceptance revisions, required outcomes, source
-freshness) and the removal of the paused workflow-side scanner draft.
+scanner or fingerprint in workflow: `arch-14-verification-receipts`
+composes `WorkspaceEvidence` (the snapshot under the default policy plus
+the gate resolver) as the workflow's one `EvidencePort`, every
+server-executed check — `magistr_gate`, the loop's gates, native
+`ship_check` — carries a durable `CheckReceipt` bound to the observed
+revision, and completion validates run/task-instance/attempt identity,
+gate contracts, acceptance revision, required outcomes and source
+freshness against the current tree
+([project authority](project-authority.md#receipts-and-the-evidence-capability)).
+The interrupted adapter-side draft (an engine-owned fingerprint scanner,
+receipt store and ad-hoc gate reader) never reached main and was not
+imported; its useful shapes — per-attempt records, context rejection,
+recovered versus outstanding — informed the workflow-owned design.
 
 ## Delivery and preserved work
 
@@ -288,7 +297,8 @@ freshness) and the removal of the paused workflow-side scanner draft.
 | `arch-14d2-workspace-attachment` | Unix clients attach to one admitted `WorkspaceService` through the shared owner protocol; native process tests and the [ADR-018 scope matrix](workspace-owner.md#adr-018-scope) distinguish delivered attachment from remaining lifecycle work |
 | `arch-14d-workspace-owner` | The session-stamping bridge with on-demand reconnect and typed unavailable answers, build refusal, worker exit on owner death, the native `workbench-mcp` launch alias with the external resolver deleted, cockpit and Codex clients through one owner, and the guarded legacy migration verb; the [ADR-018 matrix](workspace-owner.md#adr-018-scope) maps every row to executed evidence |
 | `arch-14e-source-snapshots` | The `snapshot` module: `SourceSnapshot` (identity, generation, scheme/policy digests, content manifest, optimistic validation with foreign-workspace refusal), `SourceExport` for immutable inputs, `MutationReceipt` from the resolved durable intent, the owner's `source_snapshot`/`validate_snapshot`/`mutation_receipt` and the lock-free `magistr workspace snapshot` verb; check consumption remains `arch-14-verification-receipts` |
-| `arch-14f-native-application` | The [composition boundary](application.md#the-composition-boundary) `magistr::application`: `AdmittedCheck`/`SettledCheck`/`CheckSource`/`CheckIdentities` binding a workflow check admission to a lock-free source observation and settling both; `magistr_gate` and the loop driver routed through it; the contract-only workflow/checks/projections facades deleted; `arch-11b` retired on evidence; the [standalone surface decisions](#standalone-surface-decisions) below; source-write routing (`arch-14f2`), the client audit (`arch-14f3`) and rehoming (`arch-14f4`) split out |
+| `arch-14f-native-application` | The [composition boundary](application.md#the-composition-boundary) `magistr::application`: `AdmittedCheck`/`SettledCheck`/`CheckIdentities` binding a workflow check admission to a lock-free source observation and settling both; `magistr_gate` and the loop driver routed through it; the contract-only workflow/checks/projections facades deleted; `arch-11b` retired on evidence; the [standalone surface decisions](#standalone-surface-decisions) below; source-write routing (`arch-14f2`), the client audit (`arch-14f3`) and rehoming (`arch-14f4`) split out |
+| `arch-14-verification-receipts` | Durable `CheckReceipt`s in the workflow's ship family (`ReceiptLedger`, one published file per receipt, outliving the cycle), the `EvidencePort`/`SourceWitness`/`GateContract`/`CheckExecution` types, receipt-bearing admission and settlement with stale results kept under their own identity, `verify_completion` and the roadmap's completion authority on every route (`roadmap_set_status(done)` refused), `ShipReport` recovered versus outstanding; Magistr's `WorkspaceEvidence` + `writer_config` composed at every production admission, the cockpit failing closed without it, `native-write-path` rule 8; the gate resolver moved to `magistr_core::gates` |
 
 ## Standalone surface decisions
 

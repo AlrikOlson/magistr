@@ -1,38 +1,86 @@
-//! The composition boundary against its real adapters (chunk arch-14f): an
-//! admitted Host writer over the native workflow store and an admitted
-//! `WorkspaceService` over a disposable workspace, composed the way
-//! `magistr mcp-serve` and the loop compose them — no fake port, no MCP
-//! roundtrip, no second owner.
+//! The composition boundary against its real adapters (chunks arch-14f and
+//! arch-14-verification-receipts): an admitted Host writer over the native
+//! workflow store — on the writer config production admits it on, carrying
+//! this workspace's evidence capability — and an admitted `WorkspaceService`
+//! over a disposable workspace, composed the way `magistr mcp-serve` and the
+//! loop compose them. No fake port, no MCP roundtrip, no second owner.
+//!
+//! Every completion here goes through `roadmap_complete_chunk` on the
+//! writer — the verb the MCP tool, the owner command, the loop judge and
+//! the cockpit's Complete action all land on — so what these tests prove
+//! about refusal and acceptance holds for every route.
 
 use std::path::{Path, PathBuf};
 
-use magistr::application::{AdmittedCheck, CheckEvidenceError};
+use magistr::application::AdmittedCheck;
+use magistr_cockpit::engine::{EnginePort, NativeEnginePort};
+use magistr_engine::tas::ProjectAuthority;
 use magistr_engine::tas::{
-    CheckSettlement, NativeEngines, NativeReader, ProjectAuthority, TasConfig, TaskType, WriterRole,
+    CheckExecution, CheckSettlement, ChunkStatus, NativeEngines, NativeReader, ReceiptSettlement,
+    SourceFreshness, TasConfig, TaskType, WriterRole,
 };
 use magistr_workspace::{
     commands::{EditInput, EditOp},
     contracts::WorkspaceResponse,
     service::{WorkspaceOpenOptions, WorkspaceService},
-    snapshot::{ChangeKind, MutationStatus, SelectionPolicy, SnapshotError, SnapshotValidation},
+    snapshot::MutationStatus,
 };
 
 const PROJECT: &str = "composition-integration";
+const CHUNK: &str = "test";
 
+/// A workspace with a project configuration naming three gates: the
+/// evidence capability resolves the contracts from it, and the snapshot
+/// hashes it as a config input.
 fn workspace(tmp: &tempfile::TempDir, name: &str) -> PathBuf {
     let root = tmp.path().join(name);
     std::fs::create_dir_all(root.join(".git")).expect("repository marker");
+    std::fs::create_dir_all(root.join(".magistr")).expect("config directory");
+    std::fs::write(root.join(".magistr/project.json"), project_json("true")).expect("config");
     std::fs::write(root.join("notes.txt"), "alpha\n").expect("source");
     root
 }
 
-fn host(tmp: &tempfile::TempDir) -> (NativeEngines, TasConfig) {
-    let root = tmp.path().join("project");
-    std::fs::create_dir_all(&root).expect("project directory");
-    let config = TasConfig::from_lookup(root, |_| None).with_data_dir(tmp.path().join("store"));
+fn project_json(test_command: &str) -> String {
+    serde_json::json!({
+        "project": { "name": "p", "description": "", "type": "cli" },
+        "stack": {
+            "language": "rust", "framework": "none", "package_manager": "cargo",
+            "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
+        },
+        "quality_gate": { "check": "true", "test": test_command, "lint": "true" },
+        "format": { "extensions": ["rs"], "command": "true" },
+        "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
+        "reference_repos": [],
+        "state_prefix": "p",
+        "roadmap_backend": "think-and-ship"
+    })
+    .to_string()
+}
+
+/// The Host writer, admitted the way `admit_native_host` admits it: on a
+/// writer config whose evidence capability observes `root`.
+fn host(tmp: &tempfile::TempDir, root: &Path) -> (NativeEngines, TasConfig) {
+    let config = magistr_core::evidence::writer_config(root, |_| None)
+        .with_data_dir(tmp.path().join("store"));
     let engines = ProjectAuthority::admit_for_project(&config, PROJECT.into(), WriterRole::Host)
         .expect("host admitted")
         .open();
+    engines
+        .roadmap_add_chunk(
+            CHUNK.into(),
+            "The chunk under test".into(),
+            String::new(),
+            ChunkStatus::Pending,
+            100,
+            String::new(),
+            vec![],
+            vec![],
+            None,
+            None,
+        )
+        .expect("chunk");
+    engines.roadmap_start_chunk(CHUNK).expect("in progress");
     (engines, config)
 }
 
@@ -45,13 +93,41 @@ async fn owner(root: &Path) -> WorkspaceService {
 }
 
 fn objective(engines: &NativeEngines, task: &str) {
+    objective_with(engines, task, vec![]);
+}
+
+fn objective_with(engines: &NativeEngines, task: &str, acceptance: Vec<String>) {
     engines
-        .ship_set_objective("Compose".into(), vec![], vec![], "chunk:test".into())
+        .ship_set_objective(
+            "Compose".into(),
+            acceptance,
+            vec![],
+            format!("chunk:{CHUNK}"),
+        )
         .expect("objective");
     engines
         .ship_add_task(task.into(), "Verify".into(), TaskType::Test, None)
         .expect("task");
     engines.ship_start_task(task).expect("active task");
+}
+
+/// One gate admitted and settled through the boundary, the way
+/// `magistr_gate` and the loop settle theirs.
+fn gate(engines: &NativeEngines, root: &Path, name: &str, code: i32) -> CheckSettlement {
+    AdmittedCheck::admit(engines, root, None, name, "true".into(), true)
+        .expect("admitted")
+        .settle(engines, CheckExecution::Exited { code }, String::new())
+        .expect("settled")
+        .settlement
+}
+
+fn all_gates(engines: &NativeEngines, root: &Path) {
+    for name in ["check", "test", "lint"] {
+        assert!(matches!(
+            gate(engines, root, name, 0),
+            CheckSettlement::Applied { .. }
+        ));
+    }
 }
 
 /// One edit through the admitted owner, the way every workspace client
@@ -76,24 +152,23 @@ async fn owner_edit(service: &WorkspaceService, old: &str, new: &str) -> i64 {
     }
 }
 
+fn refusal(engines: &NativeEngines, ship_ref: Option<&str>) -> String {
+    engines
+        .roadmap_complete_chunk(CHUNK, ship_ref)
+        .expect_err("completion refused")
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its_task() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let (engines, config) = host(&tmp);
     let root = workspace(&tmp, "workspace");
     let service = owner(&root).await;
+    let (engines, config) = host(&tmp, service.root());
     objective(&engines, "verify");
 
-    let admitted = AdmittedCheck::admit(
-        &engines,
-        service.root(),
-        None,
-        "test",
-        "true".into(),
-        true,
-        Some(SelectionPolicy::default()),
-    )
-    .expect("admitted with source");
+    let admitted =
+        AdmittedCheck::admit(&engines, service.root(), None, "test", "true".into(), true)
+            .expect("admitted with source");
     let identities = admitted.identities();
     // The workflow names the project, run, task and instance; the
     // workspace names the canonical root and the owner's generation —
@@ -105,41 +180,47 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
         identities.workspace.as_ref().and_then(|w| w.generation),
         Some(service.generation().get())
     );
-    let admitted_revision = admitted.source().expect("snapshot").revision();
+    let admitted_revision = admitted.source().expect("observation").revision.clone();
 
     // The agent edits through the owner while the gate runs.
     let seq = owner_edit(&service, "alpha", "beta").await;
 
-    let settled = admitted.settle(&engines, 0, "ok".into()).expect("settled");
+    let settled = admitted
+        .settle(&engines, CheckExecution::Exited { code: 0 }, "ok".into())
+        .expect("settled");
     let check = settled.check().expect("applied on the admitted task");
     assert!(check.passed && check.verified);
-    let source = settled.source.as_ref().expect("source evidence");
-    assert_eq!(source.revision(), admitted_revision);
-    match &source.validation {
-        SnapshotValidation::Changed(changes) => {
-            assert_eq!(changes.len(), 1, "{changes:?}");
-            assert_eq!(changes[0].path, "notes.txt");
-            assert_eq!(changes[0].kind, ChangeKind::Modified);
-        }
-        SnapshotValidation::Unchanged => panic!("the owner's write must be observed"),
-    }
+    let receipt = settled.receipt();
+    assert_eq!(
+        receipt.source.as_ref().expect("source").revision,
+        admitted_revision
+    );
+    assert_eq!(receipt.settlement, Some(ReceiptSettlement::Applied));
+    assert_eq!(
+        receipt.freshness,
+        Some(SourceFreshness::Changed {
+            paths: vec!["notes.txt (Modified)".into()]
+        }),
+        "the owner's write must be observed"
+    );
     // The workspace's own receipt says the same write was applied under
     // the generation the check named; nothing here invents a shared revision.
-    let receipt = service
+    let mutation = service
         .mutation_receipt(seq)
         .await
         .expect("read")
         .expect("exists");
-    assert_eq!(receipt.status, MutationStatus::Applied);
-    assert_eq!(receipt.generation, Some(service.generation().get()));
+    assert_eq!(mutation.status, MutationStatus::Applied);
+    assert_eq!(mutation.generation, Some(service.generation().get()));
     assert_ne!(
-        receipt.revision.expect("applied revision"),
-        source.revision(),
+        mutation.revision.expect("applied revision"),
+        admitted_revision,
         "a mutation receipt revision and a source revision are different facts"
     );
 
     // Storage compatibility: the check is in the native store the way the
-    // agent's own ship_check would leave it, visible to an unadmitted reader.
+    // agent's own ship_check would leave it, visible to an unadmitted
+    // reader, and the receipt is durable beside it.
     let reader = NativeReader::open_for_project(&config, PROJECT.into());
     let checks = reader.ship_status()["checks"]
         .as_array()
@@ -149,84 +230,117 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
     assert_eq!(checks[0]["name"], "test");
     assert_eq!(checks[0]["task_id"], "verify");
     assert_eq!(checks[0]["verified"], true);
-    service.shutdown().await.expect("clean shutdown");
-}
+    let published = config
+        .data_dir
+        .join("ship/receipts")
+        .join(PROJECT)
+        .join(format!("{}.json", receipt.id));
+    assert!(published.is_file(), "{}", published.display());
 
-#[tokio::test(flavor = "multi_thread")]
-async fn the_owner_refuses_a_boundary_snapshot_of_another_workspace() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let (engines, _) = host(&tmp);
-    let root = workspace(&tmp, "workspace");
-    let other = workspace(&tmp, "other");
-    let service = owner(&root).await;
-    objective(&engines, "verify");
-
-    let foreign = AdmittedCheck::admit(
-        &engines,
-        &other,
-        None,
-        "lint",
-        "true".into(),
-        true,
-        Some(SelectionPolicy::default()),
-    )
-    .expect("admitted against the other checkout");
-    let refused = service
-        .validate_snapshot(foreign.source().expect("snapshot"))
-        .expect_err("another checkout never substitutes");
+    // A gate that saw the tree move under it is not evidence of the tree
+    // as it is now: completion refuses it by name, and accepts the set
+    // once every gate has run against the settled tree.
+    let refused = refusal(&engines, Some("task:verify"));
     assert!(
-        matches!(refused, SnapshotError::ForeignWorkspace { .. }),
+        refused.contains("test: the workspace changed while the gate ran: notes.txt (Modified)"),
         "{refused}"
     );
-    // The boundary's own typed refusal for an unobservable root.
-    let missing = AdmittedCheck::admit(
-        &engines,
-        &tmp.path().join("absent"),
-        None,
-        "lint",
-        "true".into(),
-        true,
-        Some(SelectionPolicy::default()),
-    )
-    .expect_err("missing root");
     assert!(
-        matches!(
-            missing,
-            CheckEvidenceError::Source(SnapshotError::RootMissing(_))
-        ),
-        "{missing}"
+        refused.contains("check: required gate has no receipt"),
+        "{refused}"
+    );
+    all_gates(&engines, service.root());
+    let done = engines
+        .roadmap_complete_chunk(CHUNK, Some("task:verify"))
+        .expect("every required gate is current");
+    assert_eq!(done.status, ChunkStatus::Done);
+    service.shutdown().await.expect("clean shutdown");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the_gates_rerun() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = workspace(&tmp, "workspace");
+    let service = owner(&root).await;
+    let (engines, _) = host(&tmp, service.root());
+    objective_with(&engines, "verify", vec!["it works".into()]);
+    all_gates(&engines, service.root());
+
+    // The source moved on through the owner after the gates passed.
+    owner_edit(&service, "alpha", "beta").await;
+    let refused = refusal(&engines, None);
+    assert!(
+        refused.contains("the source changed since the gate ran"),
+        "{refused}"
+    );
+    all_gates(&engines, service.root());
+
+    // The gate configuration changed: the config input moves the revision
+    // and the contract names another command.
+    std::fs::write(root.join(".magistr/project.json"), project_json("false")).expect("config");
+    let refused = refusal(&engines, None);
+    assert!(refused.contains("test: "), "{refused}");
+    assert!(
+        refused.contains("source changed") || refused.contains("not the configured"),
+        "{refused}"
+    );
+    std::fs::write(root.join(".magistr/project.json"), project_json("true")).expect("config");
+    all_gates(&engines, service.root());
+
+    // The acceptance was edited mid-flight: same run, new revision.
+    engines
+        .ship_set_objective(
+            "Compose".into(),
+            vec!["it works".into(), "and reads well".into()],
+            vec![],
+            format!("chunk:{CHUNK}"),
+        )
+        .expect("edited in flight");
+    let refused = refusal(&engines, None);
+    assert!(refused.contains("acceptance changed"), "{refused}");
+    all_gates(&engines, service.root());
+    assert_eq!(
+        engines
+            .roadmap_complete_chunk(CHUNK, None)
+            .expect("current again")
+            .status,
+        ChunkStatus::Done
     );
     service.shutdown().await.expect("clean shutdown");
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_rolled_over_objective_leaves_the_result_stale_with_its_source_intact() {
+async fn a_rolled_over_objective_leaves_the_result_stale_and_a_reused_name_has_no_evidence() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let (engines, _) = host(&tmp);
     let root = workspace(&tmp, "workspace");
     let service = owner(&root).await;
+    let (engines, config) = host(&tmp, service.root());
     objective(&engines, "verify");
     let admitted = AdmittedCheck::admit(
         &engines,
         service.root(),
         Some("verify"),
         "check",
-        "false".into(),
+        "true".into(),
         true,
-        Some(SelectionPolicy::default()),
     )
     .expect("admitted");
     let original = admitted.target().clone();
+    let receipt_id = admitted.receipt_id().to_owned();
 
     engines.ship_finalize(vec![], None).expect("shipped");
     objective(&engines, "verify");
     owner_edit(&service, "alpha", "gamma").await;
 
     let settled = admitted
-        .settle(&engines, 1, "red".into())
+        .settle(&engines, CheckExecution::Exited { code: 0 }, "green".into())
         .expect("a stale settlement is an answer, not an error");
     match &settled.settlement {
-        CheckSettlement::Stale { admission, outcome } => {
+        CheckSettlement::Stale {
+            admission,
+            outcome,
+            receipt,
+        } => {
             assert_eq!(admission.target, original);
             assert_ne!(
                 admission.target.task_instance,
@@ -235,16 +349,118 @@ async fn a_rolled_over_objective_leaves_the_result_stale_with_its_source_intact(
                     .expect("new instance")
                     .task_instance
             );
-            assert_eq!(outcome.exit_code, Some(1));
-            assert!(!outcome.passed);
+            assert!(outcome.passed);
+            assert_eq!(receipt.id, receipt_id);
+            assert_eq!(receipt.target.run_id, original.run_id);
+            assert!(matches!(
+                receipt.settlement,
+                Some(ReceiptSettlement::Stale { .. })
+            ));
+            assert!(
+                !receipt
+                    .freshness
+                    .as_ref()
+                    .expect("validated")
+                    .is_unchanged()
+            );
         }
         CheckSettlement::Applied { .. } => panic!("a reused task name must not collect it"),
     }
-    assert!(!settled.source.expect("source").is_unchanged());
     assert!(
         engines.ship_status()["checks"]
             .as_array()
             .is_some_and(Vec::is_empty)
     );
+    // The late receipt is durable under its own run; the new run's
+    // `verify` cannot complete on it.
+    let reader = NativeReader::open_for_project(&config, PROJECT.into());
+    assert!(
+        reader.ship_status()["checks"]
+            .as_array()
+            .is_some_and(Vec::is_empty)
+    );
+    let refused = refusal(&engines, Some("task:verify"));
+    assert!(
+        refused.contains("check: required gate has no receipt on task `verify` in this run"),
+        "{refused}"
+    );
+    let refused = refusal(&engines, None);
+    assert!(
+        refused.contains("no check was recorded in run"),
+        "{refused}"
+    );
+    service.shutdown().await.expect("clean shutdown");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_cockpit_complete_action_names_the_verification_task_and_refuses_without_evidence() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = workspace(&tmp, "workspace");
+    let service = owner(&root).await;
+    let (engines, _) = host(&tmp, service.root());
+    let mut port = NativeEnginePort::new(engines.clone());
+
+    // No objective yet: the button is refused in words the stage can show.
+    let refused = port.complete_chunk(CHUNK).expect_err("no evidence");
+    assert!(refused.contains("no ship objective"), "{refused}");
+
+    objective(&engines, "verify");
+    // A failed gate, then a passing one: recovered, not outstanding.
+    assert!(matches!(
+        gate(&engines, service.root(), "test", 1),
+        CheckSettlement::Applied { .. }
+    ));
+    let refused = port.complete_chunk(CHUNK).expect_err("red gate");
+    assert!(
+        refused.contains("test: the latest attempt did not pass (exit 1)"),
+        "{refused}"
+    );
+    all_gates(&engines, service.root());
+
+    let done = port.complete_chunk(CHUNK).expect("current evidence");
+    assert_eq!(done["status"], "done");
+    assert!(
+        done["cross_refs"]
+            .as_array()
+            .is_some_and(|refs| refs.iter().any(|r| r == "task:verify")),
+        "the completion names the verification task it was decided on: {done}"
+    );
+    // The final summary tells the recovered failure apart from an
+    // outstanding one.
+    let report = engines.ship_finalize(vec![], None).expect("report");
+    assert_eq!(report.recovered_failures, vec!["test (task: verify)"]);
+    assert!(report.outstanding_failures.is_empty());
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|w| w.starts_with("required checks failed:")),
+        "{:?}",
+        report.warnings
+    );
+    service.shutdown().await.expect("clean shutdown");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_plain_status_route_and_a_foreign_scope_are_refused() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = workspace(&tmp, "workspace");
+    let service = owner(&root).await;
+    let (engines, _) = host(&tmp, service.root());
+    let refused = engines
+        .roadmap_set_status(CHUNK, ChunkStatus::Done)
+        .expect_err("no direct done");
+    assert!(refused.contains("roadmap_complete_chunk"), "{refused}");
+
+    engines
+        .ship_set_objective("Other".into(), vec![], vec![], "chunk:other".into())
+        .expect("objective");
+    engines
+        .ship_add_task("verify".into(), "Verify".into(), TaskType::Test, None)
+        .expect("task");
+    engines.ship_start_task("verify").expect("active");
+    all_gates(&engines, service.root());
+    let refused = refusal(&engines, Some("task:verify"));
+    assert!(refused.contains("scoped to `chunk:other`"), "{refused}");
     service.shutdown().await.expect("clean shutdown");
 }

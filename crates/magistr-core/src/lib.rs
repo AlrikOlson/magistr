@@ -12,6 +12,8 @@ pub mod config;
 pub mod detection;
 pub mod env;
 pub mod error;
+pub mod evidence;
+pub mod gates;
 pub mod paths;
 pub mod types;
 

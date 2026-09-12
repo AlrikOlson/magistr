@@ -10,13 +10,16 @@
 use std::path::Path;
 
 use color_eyre::eyre;
-use magistr_engine::{NativeEngines, ProjectAuthority, TasConfig, WriterRole};
+use magistr_core::evidence::writer_config;
+use magistr_engine::{NativeEngines, ProjectAuthority, WriterRole};
 
 use super::open_native_reader::roadmap_backend_of;
 
 /// The admitted writer for `dir`, `None` when the project runs the YAML
 /// roadmap (or has no `.magistr/project.json`). Store location and
-/// persistence come from the process environment (`THINK_AND_SHIP_*`).
+/// persistence come from the process environment (`THINK_AND_SHIP_*`); the
+/// writer carries the project's evidence capability, so the gates it
+/// records are bound to the source and its completions are governed.
 ///
 /// # Errors
 /// The host lease is held by another cockpit or loop on this project and
@@ -34,7 +37,7 @@ pub(crate) fn admit_native_host_with(
     if !roadmap_backend_of(dir).is_native() {
         return Ok(None);
     }
-    let authority = ProjectAuthority::admit(&TasConfig::from_lookup(dir, lookup), WriterRole::Host)
+    let authority = ProjectAuthority::admit(&writer_config(dir, lookup), WriterRole::Host)
         .map_err(|error| eyre::eyre!("{error}"))?;
     Ok(Some(authority.open()))
 }

@@ -1,9 +1,11 @@
 use chrono::Utc;
 
-use crate::ship::application::{CheckAdmission, CheckOutcome, CheckSettlement};
+use crate::ship::application::{CheckAdmission, CheckOutcome, CheckSettlement, SourceFreshness};
 use crate::ship::broadcast::BroadcastFrame;
 use crate::ship::domain::check::Check;
+use crate::ship::domain::check_receipt::CheckReceipt;
 use crate::ship::domain::execution_identity::ExecutionIdentity;
+use crate::ship::domain::receipt_settlement::ReceiptSettlement;
 use crate::ship::persistence::PersistedState;
 
 use super::ShipEngine;
@@ -38,14 +40,19 @@ impl ShipEngine {
         Ok(())
     }
 
+    /// Settle an admitted check: the result lands on the admitted task
+    /// instance only while that instance, run and project are still
+    /// current; otherwise it stays with its admission. Either way the
+    /// receipt is rewritten under its original id with the execution, the
+    /// timing, the source freshness and how it was settled — a late result
+    /// after an objective rollover keeps its record and never reaches the
+    /// task that reused the name.
     pub(crate) fn settle_admitted_check(
         &mut self,
         admission: CheckAdmission,
         outcome: CheckOutcome,
+        freshness: Option<SourceFreshness>,
     ) -> Result<CheckSettlement, String> {
-        if admission.target.project_id != self.project_id {
-            return Ok(CheckSettlement::Stale { admission, outcome });
-        }
         let check = Check {
             check_type: admission.request.check_type.clone(),
             name: admission.request.name.clone(),
@@ -59,14 +66,16 @@ impl ShipEngine {
             results: outcome.results.clone(),
             timestamp: Utc::now().to_rfc3339(),
         };
-        let applied = if let Some(persistence) = &self.persistence
+        let stale = if admission.target.project_id != self.project_id {
+            Some("the admitted project is not this project".to_owned())
+        } else if let Some(persistence) = &self.persistence
             && persistence.enabled()
         {
             let (current, applied) = persistence
                 .settle_check(&admission.target, &check)
                 .map_err(|error| error.to_string())?;
             self.adopt_current(current);
-            applied
+            (!applied).then(|| self.stale_reason(&admission))
         } else if self.snapshot().contains(&admission.target) {
             let task = self
                 .tasks
@@ -74,18 +83,75 @@ impl ShipEngine {
                 .find(|task| task.id == admission.target.task_id)
                 .expect("admitted task exists");
             task.checks.push(check.clone());
-            true
+            None
         } else {
-            false
+            Some(self.stale_reason(&admission))
         };
-        if !applied {
-            return Ok(CheckSettlement::Stale { admission, outcome });
+        let settlement = match &stale {
+            None => ReceiptSettlement::Applied,
+            Some(reason) => ReceiptSettlement::Stale {
+                reason: reason.clone(),
+            },
+        };
+        let settled_at = Utc::now();
+        let receipt = self.receipts.settle(
+            &admission.receipt_id,
+            || {
+                CheckReceipt::admitted(
+                    admission.receipt_id.clone(),
+                    admission.target.clone(),
+                    0,
+                    &admission.request,
+                    admission.acceptance_revision.clone(),
+                    admission.source.clone(),
+                    settled_at.to_rfc3339(),
+                )
+            },
+            |receipt| {
+                receipt.settled_at = Some(settled_at.to_rfc3339());
+                receipt.duration_ms = chrono::DateTime::parse_from_rfc3339(&receipt.admitted_at)
+                    .ok()
+                    .and_then(|admitted| {
+                        u64::try_from(
+                            (settled_at - admitted.with_timezone(&Utc)).num_milliseconds(),
+                        )
+                        .ok()
+                    });
+                receipt.execution = Some(outcome.execution.clone());
+                receipt.freshness = freshness;
+                receipt.settlement = Some(settlement);
+            },
+        )?;
+        if stale.is_some() {
+            return Ok(CheckSettlement::Stale {
+                admission,
+                outcome,
+                receipt: Box::new(receipt),
+            });
         }
         self.broadcast(BroadcastFrame::CheckRecorded {
             task_id: admission.target.task_id,
             check: check.clone(),
         });
-        Ok(CheckSettlement::Applied { check })
+        Ok(CheckSettlement::Applied {
+            check,
+            receipt: Box::new(receipt),
+        })
+    }
+
+    /// Why an admission no longer names a current task instance.
+    fn stale_reason(&self, admission: &CheckAdmission) -> String {
+        if admission.target.run_id != self.execution.run_id {
+            format!(
+                "run {} was superseded by run {}",
+                admission.target.run_id, self.execution.run_id
+            )
+        } else {
+            format!(
+                "task '{}' instance {} is no longer current in run {}",
+                admission.target.task_id, admission.target.task_instance, self.execution.run_id
+            )
+        }
     }
 
     fn adopt_current(&mut self, current: Option<PersistedState>) {

@@ -7,15 +7,16 @@ use think_and_ship::content::StructuredContent;
 use think_and_ship::roadmap::application::{BlockerDraft, ChunkDraft, ChunkPatch};
 use think_and_ship::roadmap::domain::{BlockerKind, Chunk, ChunkStatus};
 use think_and_ship::ship::application::{
-    CheckAdmission, CheckOutcome, CheckRequest, CheckSettlement, ShipReport,
+    CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, ShipReport,
 };
 use think_and_ship::ship::domain::action::{Action, ActionType};
 use think_and_ship::ship::domain::artifact::Artifact;
-use think_and_ship::ship::domain::check::{Check, CheckType};
+use think_and_ship::ship::domain::check::Check;
 use think_and_ship::ship::domain::task::{Task, TaskType};
 use think_and_ship::signal::domain::{Signal, SignalKind};
 use think_and_ship::think::domain::{RecordedStep, StepError, ThinkStep};
 
+use super::check_type_for::check_type_for;
 use super::family_services::FamilyServices;
 use super::native_reader::NativeReader;
 use super::project_authority::ProjectAuthority;
@@ -56,17 +57,6 @@ impl Deref for NativeEngines {
 
     fn deref(&self) -> &NativeReader {
         &self.reader
-    }
-}
-
-/// The kind of check a gate name stands for. An archetype suffix
-/// (`test:app-typescript`) does not change the kind, and a custom gate is
-/// a lint — the same derivation `magistr_gate` uses for its own records.
-fn check_type_for(gate: &str) -> CheckType {
-    match gate.split(':').next().unwrap_or(gate) {
-        "check" => CheckType::Typecheck,
-        "test" => CheckType::Test,
-        _ => CheckType::Lint,
     }
 }
 
@@ -407,8 +397,13 @@ impl NativeEngines {
         report: Option<(&str, &str)>,
     ) -> Result<Check, String> {
         let admission = self.ship_admit_gate(task_id, gate, command, required)?;
-        match self.ship_settle_gate(admission, exit_code, details, report)? {
-            CheckSettlement::Applied { check } => Ok(check),
+        match self.ship_settle_gate(
+            admission,
+            CheckExecution::Exited { code: exit_code },
+            details,
+            report,
+        )? {
+            CheckSettlement::Applied { check, .. } => Ok(check),
             CheckSettlement::Stale { admission, .. } => Err(format!(
                 "check belongs to superseded run {} task {}",
                 admission.target.run_id, admission.target.task_id,
@@ -448,11 +443,14 @@ impl NativeEngines {
     }
 
     /// Settle only against the captured native identity. A stale result retains
-    /// its admission and execution data for recovery, never another task.
+    /// its admission and execution data for recovery, never another task; the
+    /// receipt is settled under its original identity either way. Only an
+    /// exit decides `passed`: a timeout, a cancel or a launch failure is
+    /// recorded as what it was.
     pub fn ship_settle_gate(
         &self,
         admission: CheckAdmission,
-        exit_code: i32,
+        execution: CheckExecution,
         details: String,
         report: Option<(&str, &str)>,
     ) -> Result<CheckSettlement, String> {
@@ -464,11 +462,12 @@ impl NativeEngines {
             None => (None, None),
         };
         let outcome = CheckOutcome {
-            passed: exit_code == 0,
+            passed: execution.passed(),
             details,
             verified: true,
             command: admission.request.command.clone(),
-            exit_code: Some(exit_code),
+            exit_code: execution.exit_code(),
+            execution,
             report,
             results,
         };

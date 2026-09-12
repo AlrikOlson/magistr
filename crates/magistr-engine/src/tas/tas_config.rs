@@ -1,6 +1,9 @@
+use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use think_and_ship::infra::{PersistenceConfig, project_id_for_path};
+use think_and_ship::ship::application::EvidencePort;
 
 const PERSIST_VAR: &str = "THINK_AND_SHIP_PERSIST";
 const BROADCAST_VAR: &str = "THINK_AND_SHIP_BROADCAST_PATH";
@@ -28,7 +31,7 @@ pub(crate) fn fits_sun_path(path: &Path) -> bool {
 /// (`THINK_AND_SHIP_PERSIST=false|0`). The server defaults to off because a
 /// stateless demo is a valid way to run it; a native subsystem that forgets
 /// its roadmap at exit is not a valid way to run Magistr.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct TasConfig {
     /// The project root the identity is resolved from.
     pub project_root: PathBuf,
@@ -41,7 +44,42 @@ pub struct TasConfig {
     /// Short per-user directory for a socket that cannot live under the
     /// project root: `XDG_RUNTIME_DIR`, else `TMPDIR`, else `/tmp`.
     pub runtime_dir: PathBuf,
+    /// The host's verification evidence capability — source observation and
+    /// the required gate contracts — composed into the ship family of every
+    /// writer opened on this configuration. A writer opened without one
+    /// records checks with no source and cannot complete a chunk; the host
+    /// attaches it at every production admission.
+    pub evidence: Option<Arc<dyn EvidencePort>>,
 }
+
+impl fmt::Debug for TasConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TasConfig")
+            .field("project_root", &self.project_root)
+            .field("data_dir", &self.data_dir)
+            .field("persist", &self.persist)
+            .field("broadcast_path", &self.broadcast_path)
+            .field("runtime_dir", &self.runtime_dir)
+            .field("evidence", &self.evidence.is_some())
+            .finish()
+    }
+}
+
+impl PartialEq for TasConfig {
+    /// Two configurations are equal when they name the same store and
+    /// project and both carry (or both lack) an evidence capability; the
+    /// capability itself has no identity to compare.
+    fn eq(&self, other: &Self) -> bool {
+        self.project_root == other.project_root
+            && self.data_dir == other.data_dir
+            && self.persist == other.persist
+            && self.broadcast_path == other.broadcast_path
+            && self.runtime_dir == other.runtime_dir
+            && self.evidence.is_some() == other.evidence.is_some()
+    }
+}
+
+impl Eq for TasConfig {}
 
 impl TasConfig {
     /// Resolve from the process environment.
@@ -90,7 +128,21 @@ impl TasConfig {
             persist,
             broadcast_path,
             runtime_dir,
+            evidence: None,
         }
+    }
+
+    /// Attach the host's verification evidence capability.
+    #[must_use]
+    pub fn with_evidence(mut self, evidence: Arc<dyn EvidencePort>) -> Self {
+        self.evidence = Some(evidence);
+        self
+    }
+
+    /// The evidence capability writers opened on this configuration carry.
+    #[must_use]
+    pub fn evidence(&self) -> Option<&Arc<dyn EvidencePort>> {
+        self.evidence.as_ref()
     }
 
     /// Point the store at `dir` — what every test does.

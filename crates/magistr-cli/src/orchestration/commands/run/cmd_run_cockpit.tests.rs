@@ -12,7 +12,7 @@ fn position(needle: &str) -> usize {
 
 #[test]
 fn the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_printed() {
-    let engines = position("EngineClient::admit_or_attach(");
+    let engines = position("EngineClient::admit_or_attach_config(");
     let agent = position("CockpitSession::start(");
     let terminal = position("RealTerminal::stdio()");
     assert!(

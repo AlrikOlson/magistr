@@ -75,30 +75,94 @@ task instances receive fresh identities. Duplicate plan task IDs are refused.
 Removed instances are fenced so a stale merge cannot resurrect them.
 
 `TaskAdmission` names the project, run, task ID, and task instance.
-`CheckAdmission` binds that target to the check request before an effect begins.
-Native `ship_check` retains this admission across command execution inside the
-workflow crate; `magistr_gate` and the loop driver retain it through the
-[composition boundary](application.md#the-composition-boundary)'s
-`AdmittedCheck`, which can also bind the workspace's `SourceSnapshot` to the
-same admission. The loop additionally fixes one task admission for the complete
-gate set, including retries. Reusing a task name in a later objective cannot
-collect an earlier command's result.
+`CheckAdmission` binds that target to the check request before an effect
+begins — together with the durable receipt it was admitted under, the
+acceptance revision then current, and the source the workflow observed at
+that moment. Native `ship_check` retains this admission across command
+execution inside the workflow crate; `magistr_gate` and the loop driver
+retain it through the [composition boundary](application.md#the-composition-boundary)'s
+`AdmittedCheck`. The loop additionally fixes one task admission for the
+complete gate set, including retries. Reusing a task name in a later
+objective cannot collect an earlier command's result.
+
+### Receipts and the evidence capability
+
+Every admitted check writes a durable `CheckReceipt` before its command
+runs (`ship/receipts/<project>/<id>.json` beside the session record, one
+file per receipt, published by temp → fsync → rename → fsync-directory;
+in memory when persistence is off). The receipt names the run, task
+instance and per-gate attempt, the gate contract as requested (name, type,
+command, required), the objective's acceptance revision (a content digest
+of description, acceptance criteria, constraints and scope — an in-flight
+`ship_set_objective` keeps the run id but moves the revision) and, when the
+writer carries the evidence capability, a `SourceObservation`: which
+workspace and owner generation, under which scheme and selection policy,
+the content-addressed revision of the selected bytes and what that
+observation may claim. Settlement rewrites the same receipt once with how
+the command ended (`CheckExecution`: exited with a code, timed out,
+cancelled, launch failed, or self-reported), the timing, whether the source
+still matched (`SourceFreshness`) and how the workflow settled it.
+
+The evidence capability is the workflow's `EvidencePort`: `observe()`
+answers a `SourceWitness` — held in the admitting process until the check
+settles, consumed once to validate — and `required_gates()` answers the
+`GateContract`s the project requires now. Magistr composes exactly one
+implementation, `magistr_core::evidence::WorkspaceEvidence`, from the
+workspace's lock-free `SourceSnapshot` under its default selection policy
+(which hashes `.magistr/project.json` as a config input) and the same gate
+resolver `magistr_gate all` runs. `writer_config` attaches it to the
+`TasConfig` every production writer is admitted on — the MCP service, the
+loop host and the cockpit host — and the `native-write-path` gate (rule 8)
+refuses a production admission without it; the cockpit refuses a writer
+config that lacks it before taking the lease. Every observation and every
+command runs outside the engine lock, the ledger lock and any workspace
+mutation lock: admission holds the engine lock only to name the target,
+observes, then publishes; settlement validates the witness first and takes
+the lock only to append the check and rewrite the receipt.
 
 Settlement re-reads the current native ship state and compares identity under
 the existing persistence lock before appending an ordinary check. A stale
-settlement returns its admission and execution outcome intact; the MCP adapter
-reports `stale_result`, and host runners report an unrecorded result. This
-boundary supplies correlation for the later receipt implementation. It does
-not yet durably archive stale results or provide exactly-once settlement.
+settlement — the run or task instance superseded while the command ran —
+returns its admission and execution outcome intact and settles the receipt
+`Stale` with the reason under its original identity, so a late result after
+an objective rollover keeps its record and never reaches the task that reused
+the name; the MCP adapter reports `stale_result` with the receipt, and host
+runners report an unrecorded result. An observation that cannot be taken
+refuses the admission before anything runs: an unobservable gate is never
+recorded as evidence.
 
-Ordinary completion policy remains native and compatible: incomplete tasks or
-failed required checks produce the inherited finalization warnings. Durable
-CheckReceipts, configured evidence freshness, and enforcement at completion
-belong to the pending `arch-14-verification-receipts` chunk, which consumes the
-workspace's `SourceSnapshot` and `MutationReceipt` capabilities
-([owned subsystems](owned-subsystems.md#evidence-requires-source-identity)).
-There is no second receipt database or workflow-owned source scanner in this
-extraction.
+### Completion is governed by receipts
+
+`roadmap_complete_chunk` is the one route to `done`, and every adapter lands
+on it — the MCP tool, the owner command, the loop judge and the cockpit's
+Complete action. With the completion authority composed (the ship family is
+wired into the roadmap use cases whenever the evidence capability is), it
+asks `ShipUseCases::verify_completion` first: the current objective must be
+scoped `chunk:<id>`; the verification task is the caller's `task:` reference
+(a task of the current run) or, absent one, the instance the run's latest
+receipt landed on, and the completion is stored with that reference so it
+always names its task. For every gate contract the project requires, and for
+every required verified receipt recorded on that instance, the latest receipt
+must have settled `Applied`, passed, been run by a server, run the configured
+command, seen the source unchanged during its run, and certify the source
+revision and the acceptance revision current now. Anything else is
+`outstanding` with its reason, and the refusal lists every outstanding gate
+and what re-running it would satisfy; earlier failures a later pass
+superseded are reported as `recovered`. A self-reported pass neither
+certifies a configured gate nor blocks. `roadmap_set_status(done)` and
+accepting a `done` status proposal are refused toward `roadmap_complete_chunk`.
+`ship_finalize`'s report separates `recovered_failures` from
+`outstanding_failures`, and its failed-required warning names only the
+outstanding ones.
+
+Limits: an optimistic observation certifies agreement of two reads, never
+isolation (`SourceExport` is the immutable path and is not consumed by
+checks yet); a `Changed` freshness names paths only when the admitting
+process settles the check, otherwise the revisions are compared
+(`Diverged`); receipts are never pruned; engines opened without the
+capability (tests, the retired standalone binary) record source-less checks
+and keep the legacy completion — production admissions are pinned by the
+gate rather than by a refusal in the engine.
 
 ## Roles
 

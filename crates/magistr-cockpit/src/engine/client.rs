@@ -49,26 +49,31 @@ pub struct EngineClient {
 }
 
 impl EngineClient {
-    /// Admit this process as the host of the project at `root` and open its
-    /// engines, the store resolved from the process environment the way
-    /// `magistr mcp-serve` resolves it.
+    /// Admit this process as the host of the project the configuration
+    /// names and open its engines. The configuration must carry the
+    /// project's verification evidence capability — the host attaches it
+    /// through its writer config — because a host records gates and
+    /// completes chunks, and neither may happen unbound from the source;
+    /// a configuration without it is refused before any lease is taken.
     ///
     /// # Errors
     ///
-    /// `root` is not a directory, the store's directory cannot be created,
-    /// or the host lease is refused because another cockpit or loop holds
-    /// this project.
-    pub fn open(root: impl Into<PathBuf>) -> Result<Self, EngineError> {
-        Self::with_config(TasConfig::from_env(root))
-    }
-
-    /// [`Self::open`] on an explicit store configuration.
-    ///
-    /// # Errors
-    ///
-    /// As [`Self::open`].
+    /// The root is not a directory, the store's directory cannot be
+    /// created, the configuration carries no evidence capability, or the
+    /// host lease is refused because another cockpit or loop holds this
+    /// project.
     pub fn with_config(config: TasConfig) -> Result<Self, EngineError> {
         Self::store_ready(&config)?;
+        if config.evidence().is_none() {
+            return Err(EngineError::Admission {
+                root: config.project_root().to_path_buf(),
+                source: io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "the writer configuration carries no verification evidence capability; \
+                     a host must be admitted on a writer config",
+                ),
+            });
+        }
         let engines = ProjectAuthority::admit(&config, WriterRole::Host)
             .map_err(|source| EngineError::Admission {
                 root: config.project_root().to_path_buf(),
@@ -78,27 +83,18 @@ impl EngineClient {
         Ok(Self::attach(engines))
     }
 
-    /// The host of the project at `root` when the role is free; otherwise
-    /// a client attached to the running host's owner endpoint, acting
-    /// through that host's writer. Fails closed when the role is held and
-    /// no endpoint answers: the caller may run the observer cockpit
-    /// ([`Self::observe`]) explicitly, but nothing here opens a second
-    /// writer.
+    /// The host of the project the configuration names when the role is
+    /// free; otherwise a client attached to the running host's owner
+    /// endpoint, acting through that host's writer. Fails closed when the
+    /// role is held and no endpoint answers: the caller may run the
+    /// observer cockpit ([`Self::observe`]) explicitly, but nothing here
+    /// opens a second writer.
     ///
     /// # Errors
     ///
-    /// As [`Self::open`], except that a held host lease becomes
+    /// As [`Self::with_config`], except that a held host lease becomes
     /// [`EngineError::Occupied`] only when attaching failed too — the
     /// refusal carries both reasons.
-    pub fn admit_or_attach(root: impl Into<PathBuf>) -> Result<Self, EngineError> {
-        Self::admit_or_attach_config(TasConfig::from_env(root))
-    }
-
-    /// [`Self::admit_or_attach`] on an explicit store configuration.
-    ///
-    /// # Errors
-    ///
-    /// As [`Self::admit_or_attach`].
     pub fn admit_or_attach_config(config: TasConfig) -> Result<Self, EngineError> {
         let (root, lease) = match Self::with_config(config.clone()) {
             Ok(host) => return Ok(host),

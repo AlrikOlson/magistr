@@ -1,9 +1,44 @@
+use std::sync::Arc;
+
 use magistr_engine::TasConfig;
+use magistr_engine::tas::{EvidencePort, GateContract, SourceWitness};
 
 use super::*;
 
+/// The shape of the capability a host attaches; what it answers is not
+/// this crate's concern.
+struct NoEvidence;
+
+impl EvidencePort for NoEvidence {
+    fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
+        Err("not observed in this test".into())
+    }
+    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
+        Ok(Vec::new())
+    }
+}
+
 fn config(root: &Path, data: &Path) -> TasConfig {
-    TasConfig::from_lookup(root, |_| None).with_data_dir(data)
+    TasConfig::from_lookup(root, |_| None)
+        .with_data_dir(data)
+        .with_evidence(Arc::new(NoEvidence))
+}
+
+#[test]
+fn a_writer_config_without_evidence_is_refused_before_the_lease() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("proj");
+    std::fs::create_dir_all(&root).expect("root");
+    let bare = TasConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
+    let err = EngineClient::with_config(bare.clone()).expect_err("refused");
+    assert!(
+        matches!(err, EngineError::Admission { root: ref refused, ref source }
+            if *refused == root && source.kind() == io::ErrorKind::InvalidInput),
+        "{err}"
+    );
+    assert!(err.to_string().contains("evidence capability"));
+    // The lease was never taken: a proper host still admits.
+    EngineClient::with_config(config(&root, &tmp.path().join("data"))).expect("opens");
 }
 
 #[test]
