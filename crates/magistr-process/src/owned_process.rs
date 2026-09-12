@@ -246,10 +246,7 @@ impl OwnedProcess {
 fn command_for(launch: &Launch) -> io::Result<Command> {
     match launch {
         Launch::Shell(line) => {
-            #[cfg(windows)]
-            let (shell, flag) = ("cmd", "/C");
-            #[cfg(not(windows))]
-            let (shell, flag) = ("sh", "-c");
+            let (shell, flag) = shell_program();
             let mut command = Command::new(shell);
             command.arg(flag).arg(line);
             Ok(command)
@@ -262,6 +259,27 @@ fn command_for(launch: &Launch) -> io::Result<Command> {
             command.args(args);
             Ok(command)
         }
+    }
+}
+
+/// The interpreter a shell line runs under. A line is written in POSIX
+/// shell — every declared command, gate and hook in this workspace is —
+/// so Windows uses `sh` too when one is on `PATH` (Git for Windows ships
+/// it), and falls back to `cmd` only when there is none.
+fn shell_program() -> (&'static str, &'static str) {
+    #[cfg(windows)]
+    {
+        static SH: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        let has_sh = *SH.get_or_init(|| {
+            std::env::var_os("PATH").is_some_and(|path| {
+                std::env::split_paths(&path).any(|dir| dir.join("sh.exe").is_file())
+            })
+        });
+        if has_sh { ("sh", "-c") } else { ("cmd", "/C") }
+    }
+    #[cfg(not(windows))]
+    {
+        ("sh", "-c")
     }
 }
 

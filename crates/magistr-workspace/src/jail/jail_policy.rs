@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::resolve_path::resolve_path;
+use super::resolve_path::{join_under, resolve_path};
 use crate::contracts::{ErrorKind, WorkspaceError};
 
 /// Immutable path restrictions shared by every workspace operation.
@@ -37,7 +37,7 @@ impl JailPolicy {
         paths: impl IntoIterator<Item = impl AsRef<Path>>,
     ) -> Result<Self, WorkspaceError> {
         for path in paths {
-            let path = self.root.join(path.as_ref());
+            let path = join_under(&self.root, path.as_ref());
             let canonical = resolve_path(&path)?;
             self.protected_paths.push(canonical);
             // Retain the configured spelling too, so a changed symlink
@@ -53,7 +53,7 @@ impl JailPolicy {
     }
 
     pub fn check_read(&self, candidate: impl AsRef<Path>) -> Result<PathBuf, WorkspaceError> {
-        let canonical = resolve_path(&self.root.join(candidate))?;
+        let canonical = resolve_path(&join_under(&self.root, candidate.as_ref()))?;
         if !is_within(&self.root, &canonical, cfg!(windows)) {
             return Err(outside("path resolves outside the workspace root"));
         }

@@ -213,7 +213,19 @@ fn publish(directory: &Path, receipt: &CheckReceipt) -> Result<(), String> {
         .and_then(|()| file.sync_all())
         .map_err(|error| format!("persist receipt: {error}"))?;
     fs::rename(&temporary, &target).map_err(|error| format!("publish receipt: {error}"))?;
+    sync_directory(directory)
+}
+
+/// Make the rename durable. Directory fsync is a Unix notion; Windows cannot
+/// open a directory as a plain file and NTFS journals the rename itself.
+#[cfg(unix)]
+fn sync_directory(directory: &Path) -> Result<(), String> {
     File::open(directory)
         .and_then(|dir| dir.sync_all())
         .map_err(|error| format!("sync receipt ledger: {error}"))
+}
+
+#[cfg(not(unix))]
+fn sync_directory(_directory: &Path) -> Result<(), String> {
+    Ok(())
 }

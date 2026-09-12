@@ -84,7 +84,9 @@ async fn chunks_reach_the_sink_as_they_land() {
 #[tokio::test(flavor = "multi_thread")]
 async fn the_working_directory_is_the_specs() {
     let dir = tempfile::tempdir().expect("dir");
-    let outcome = run(shell("pwd", 5_000).in_dir(dir.path())).await;
+    // Git's sh prints POSIX spellings; -W asks it for the Windows one.
+    let pwd = if cfg!(windows) { "pwd -W" } else { "pwd" };
+    let outcome = run(shell(pwd, 5_000).in_dir(dir.path())).await;
     let expected = std::fs::canonicalize(dir.path()).expect("canonical");
     assert_eq!(
         std::fs::canonicalize(outcome.stdout.trim()).expect("canonical"),

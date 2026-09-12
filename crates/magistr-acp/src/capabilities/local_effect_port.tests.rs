@@ -309,6 +309,23 @@ fn resolver_follows_a_symlink_before_parent_components_and_detects_loops() {
     ));
 }
 
+#[test]
+fn resolver_accepts_a_canonical_root_and_restates_requests_under_it() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(dir.path().join("real")).unwrap();
+    let root = std::fs::canonicalize(dir.path()).unwrap();
+    assert_eq!(resolve_target(&root, &root).unwrap(), root);
+    assert_eq!(
+        resolve_target(&root, Path::new("real/new")).unwrap(),
+        root.join("real").join("new")
+    );
+    // The same file spelled with the caller's original prefix form.
+    let plain = dir.path().join("real").join("new");
+    let resolved = resolve_target(&root, &plain).unwrap();
+    assert_eq!(resolved, root.join("real").join("new"));
+    assert!(resolved.starts_with(&root));
+}
+
 /// A source writer that records what reached it and answers a receipt.
 struct RecordingWriter {
     writes: Mutex<Vec<(String, String)>>,

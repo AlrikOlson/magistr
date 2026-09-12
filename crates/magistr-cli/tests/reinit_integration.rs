@@ -175,7 +175,7 @@ fn reinit_rejects_invalid_json_before_any_scaffold_write() {
             pipeline.preview(dir).map(|_| ()),
             pipeline.generate(dir).map(|_| ()),
         ] {
-            let error = result.expect_err(path).to_string();
+            let error = result.expect_err(path).to_string().replace('\\', "/");
             assert!(error.contains(path), "{error}");
         }
         let after: Vec<_> = std::fs::read_dir(dir)
