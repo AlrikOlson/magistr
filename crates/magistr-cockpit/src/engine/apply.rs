@@ -1,6 +1,7 @@
 //! Carrying an engine command out on a port.
 
-use magistr_engine::NativeFrame;
+use magistr_engine::native::{Chunk, Signal};
+use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::event::EngineEvent;
 use super::port::EnginePort;
@@ -13,11 +14,11 @@ use crate::cockpit::EngineCmd;
 /// was asked. A checkpoint report is rendered to lines here, so the
 /// cockpit never sees JSON.
 ///
-/// A mutation's answer — the updated chunk or signal — comes back as
-/// [`EngineEvent::Frame`] carrying a synthesized broadcast frame of the
-/// kind the external server would have written, so the rail, the dock
-/// and the Roadmap tab fold it through the one path they already have;
-/// the in-process engines write no socket of their own.
+/// A mutation's answer — the updated chunk or signal — comes back as a
+/// local [`EngineEvent::Event`] carrying the typed frame the engines
+/// would have announced for it, so the rail, the dock and the Roadmap
+/// tab fold it through the one path they already have; the in-process
+/// engines write no socket of their own.
 pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
     match cmd {
         EngineCmd::Pin {
@@ -44,15 +45,15 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
                 error,
             },
         },
-        EngineCmd::StartChunk { id } => chunk_frame(
+        EngineCmd::StartChunk { id } => chunk_event(
             port.start_chunk(id),
-            "chunk_changed",
+            |chunk| RoadmapFrame::ChunkChanged { chunk },
             format!("start {id}"),
             cmd,
         ),
-        EngineCmd::CompleteChunk { id } => chunk_frame(
+        EngineCmd::CompleteChunk { id } => chunk_event(
             port.complete_chunk(id),
-            "chunk_completed",
+            |chunk| RoadmapFrame::ChunkCompleted { chunk },
             format!("complete {id}"),
             cmd,
         ),
@@ -60,9 +61,9 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
             chunk,
             kind,
             accept,
-        } => chunk_frame(
+        } => chunk_event(
             port.resolve_proposal(chunk, *kind, *accept),
-            "chunk_changed",
+            |chunk| RoadmapFrame::ChunkChanged { chunk },
             format!(
                 "{} {} proposal on {chunk}",
                 if *accept { "accept" } else { "reject" },
@@ -70,67 +71,59 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
             ),
             cmd,
         ),
-        EngineCmd::ClearBlocker { chunk } => chunk_frame(
+        EngineCmd::ClearBlocker { chunk } => chunk_event(
             port.clear_blocker(chunk),
-            "chunk_changed",
+            |chunk| RoadmapFrame::ChunkChanged { chunk },
             format!("clear the blocker on {chunk}"),
             cmd,
         ),
-        EngineCmd::PromoteSignal { id } => signal_frame(
+        EngineCmd::PromoteSignal { id } => signal_event(
             port.promote_signal(id),
-            "signal_changed",
+            |signal| SignalFrame::SignalChanged { signal },
             format!("promote {id}"),
             cmd,
         ),
-        EngineCmd::IgnoreSignal { id } => signal_frame(
+        EngineCmd::IgnoreSignal { id } => signal_event(
             port.ignore_signal(id),
-            "signal_dismissed",
+            |signal| SignalFrame::SignalDismissed { signal },
             format!("ignore {id}"),
             cmd,
         ),
-        EngineCmd::SnoozeSignal { id, minutes } => signal_frame(
+        EngineCmd::SnoozeSignal { id, minutes } => signal_event(
             port.snooze_signal(id, *minutes),
-            "signal_changed",
+            |signal| SignalFrame::SignalChanged { signal },
             format!("snooze {id}"),
             cmd,
         ),
     }
 }
 
-/// A port's chunk answer as the broadcast frame the server would write.
-fn chunk_frame(
-    answer: Result<serde_json::Value, String>,
-    kind: &str,
-    what: String,
-    cmd: &EngineCmd,
-) -> EngineEvent {
-    frame(answer, "roadmap", "chunk", kind, what, cmd)
-}
-
-/// A port's signal answer as the broadcast frame the server would write.
-fn signal_frame(
-    answer: Result<serde_json::Value, String>,
-    kind: &str,
-    what: String,
-    cmd: &EngineCmd,
-) -> EngineEvent {
-    frame(answer, "signal", "signal", kind, what, cmd)
-}
-
-fn frame(
-    answer: Result<serde_json::Value, String>,
-    family: &str,
-    key: &str,
-    kind: &str,
+/// A port's chunk answer as the roadmap event the engines would announce.
+fn chunk_event(
+    answer: Result<Chunk, String>,
+    frame: impl FnOnce(Chunk) -> RoadmapFrame,
     what: String,
     cmd: &EngineCmd,
 ) -> EngineEvent {
     match answer {
-        Ok(payload) => EngineEvent::Frame(NativeFrame {
-            family: family.to_owned(),
-            kind: kind.to_owned(),
-            payload: serde_json::json!({ "family": family, "type": kind, key: payload }),
-        }),
+        Ok(chunk) => EngineEvent::local(NativeEvent::Roadmap(frame(chunk))),
+        Err(error) => EngineEvent::PortFailed {
+            cmd: cmd.clone(),
+            what,
+            error,
+        },
+    }
+}
+
+/// A port's signal answer as the signal event the engines would announce.
+fn signal_event(
+    answer: Result<Signal, String>,
+    frame: impl FnOnce(Signal) -> SignalFrame,
+    what: String,
+    cmd: &EngineCmd,
+) -> EngineEvent {
+    match answer {
+        Ok(signal) => EngineEvent::local(NativeEvent::Signal(frame(signal))),
         Err(error) => EngineEvent::PortFailed {
             cmd: cmd.clone(),
             what,

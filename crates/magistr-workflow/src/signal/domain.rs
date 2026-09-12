@@ -41,7 +41,34 @@ pub enum SignalStatus {
     Dismissed,
 }
 
+impl SignalKind {
+    /// The wire spelling (snake_case), matching the serde representation.
+    #[must_use]
+    pub const fn as_wire(self) -> &'static str {
+        match self {
+            SignalKind::Question => "question",
+            SignalKind::Idea => "idea",
+            SignalKind::Concern => "concern",
+            SignalKind::Bug => "bug",
+            SignalKind::Feedback => "feedback",
+        }
+    }
+}
+
 impl SignalStatus {
+    /// The wire spelling (snake_case), matching the serde representation.
+    #[must_use]
+    pub const fn as_wire(self) -> &'static str {
+        match self {
+            SignalStatus::New => "new",
+            SignalStatus::Triaged => "triaged",
+            SignalStatus::Researched => "researched",
+            SignalStatus::Surfaced => "surfaced",
+            SignalStatus::Promoted => "promoted",
+            SignalStatus::Dismissed => "dismissed",
+        }
+    }
+
     /// Whether a transition from `self` to `to` is legal. One forward step along
     /// the pipeline, or a jump to `Dismissed` from any non-terminal state.
     /// `Promoted` and `Dismissed` are terminal.

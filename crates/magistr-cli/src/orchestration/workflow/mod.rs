@@ -13,4 +13,3 @@ pub use magistr_core::workflow::*;
 pub mod gate_runner;
 pub mod hook_dispatch;
 pub mod watcher;
-pub mod workflow_socket;

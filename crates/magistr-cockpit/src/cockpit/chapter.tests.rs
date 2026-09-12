@@ -1,6 +1,6 @@
 use super::*;
 use crate::cockpit::{Model, Msg, Size, update};
-use crate::engine::{EngineEvent, StoreSeed};
+use crate::engine::EngineEvent;
 
 /// A roadmap with `shipped` done under `desktop-gui`, `next` waiting
 /// on it alone (so it is Ready), `later` waiting on it and on `next`
@@ -19,20 +19,15 @@ fn seeded() -> Model {
     shipped["updated_at"] = "2026-08-30T14:02:00Z".into();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: None,
-            done: 1,
-            total: 4,
-            signals_pending: 0,
-            chunks: vec![
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(1, 4),
+            chunks: crate::harness::fixtures::chunks_from(vec![
                 shipped,
                 chunk("next", "pending", vec!["shipped"]),
                 chunk("later", "pending", vec!["shipped", "next"]),
                 chunk("elsewhere", "pending", vec![]),
-            ],
-            signals: Vec::new(),
-            trace: Vec::new(),
+            ]),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     m

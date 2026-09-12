@@ -175,7 +175,8 @@ receipt's revision stay three facts (see the
 The audit is of Magistr's own binaries: an older binary, a direct edit of
 a store file or a deleted lock file are outside admission. Cached reads
 across roles are a documented limit, not a defect the audit fixed;
-`workflow-read-through-queries` in the backlog names the follow-up (or
-`arch-15-typed-projections` subsumes it). The consistency tables describe
+`workflow-read-through-queries` in the backlog names the follow-up.
+[Projections](projections.md) made what a client reads typed and
+freshness-aware; they did not change when a cached query reloads. The consistency tables describe
 one machine, one user and Unix sockets; off Unix there is no attachment and
 no endpoint.

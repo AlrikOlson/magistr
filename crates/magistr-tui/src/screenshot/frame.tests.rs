@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::graphics::{Kitty, Passthrough};
 use magistr_cockpit::cockpit::{Size, StageTab};
-use magistr_cockpit::engine::{EngineEvent, StoreSeed};
+use magistr_cockpit::engine::EngineEvent;
 use magistr_cockpit::theme::{Theme, ThemeMode};
 
 /// The clock every still is rasterized against.
@@ -27,21 +27,24 @@ fn roadmapped() -> Model {
     let mut model = model().with_tab(StageTab::Roadmap);
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: Some("tui2-2-rail".to_owned()),
-            done: 1,
-            total: 3,
-            signals_pending: 1,
-            chunks: vec![
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: magistr_cockpit::harness::fixtures::progress(1, 3),
+            chunks: magistr_cockpit::harness::fixtures::chunks_from(vec![
                 serde_json::json!({"id": "acp-2", "name": "ACP transport", "status": "done",
                     "priority": 100, "group": "Engine"}),
                 serde_json::json!({"id": "tui2-2-rail", "name": "Rail and dock", "status": "in_progress",
                     "priority": 100, "group": "TUI rewrite", "deps": ["acp-2"]}),
                 serde_json::json!({"id": "tui2-3-roadmap", "name": "Roadmap view", "status": "pending",
                     "priority": 200, "group": "TUI rewrite", "deps": ["tui2-2-rail"]}),
-            ],
-            ..StoreSeed::default()
+            ]),
+            signals: (0..1)
+                .map(|n| {
+                    magistr_cockpit::harness::fixtures::signal_from(
+                        serde_json::json!({"id": format!("s{n}"), "status": "new"}),
+                    )
+                })
+                .collect(),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     model

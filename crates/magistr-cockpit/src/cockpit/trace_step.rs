@@ -1,9 +1,10 @@
-//! One reasoning step as the think feed carries it.
+//! One reasoning step as the Trace tab holds it.
 
-/// One think step off the feed — every field a `step_appended` frame's
-/// `step` carries that the Trace tab shows, parsed leniently: a missing
-/// text is empty, a missing flag is off, only the step number is
-/// required.
+use magistr_engine::native::{DepEdge, NextAction, ThinkStep};
+
+/// One think step as the Trace tab shows it, read off the store's own
+/// [`ThinkStep`] record — from a snapshot or a `step_appended` event:
+/// an absent text is empty, an absent flag is off.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TraceStep {
     /// The step's project-global number.
@@ -47,35 +48,38 @@ pub struct TraceStep {
 }
 
 impl TraceStep {
-    /// The step behind a `step_appended` frame's `step` value; `None`
-    /// without a step number.
+    /// The row for the store's record.
     #[must_use]
-    pub fn from_step(step: &serde_json::Value) -> Option<Self> {
-        let number = u32::try_from(step["step_number"].as_u64()?).ok()?;
-        let text = |key: &str| step[key].as_str().unwrap_or_default().to_owned();
-        let some_text = |key: &str| step[key].as_str().map(str::to_owned);
-        let step_ref = |key: &str| step[key].as_u64().and_then(|n| u32::try_from(n).ok());
-        Some(Self {
-            number,
-            estimated_total: step_ref("estimated_total").unwrap_or(0),
-            purpose: text("purpose"),
-            context: text("context"),
-            thought: text("thought"),
-            outcome: text("outcome"),
-            next_action: next_action(&step["next_action"]),
-            rationale: text("rationale"),
-            confidence: step["confidence"].as_f64(),
-            uncertainty: text("uncertainty_notes"),
-            revises: step_ref("revises_step"),
-            revised_by: step_ref("revised_by"),
-            is_final: step["is_final_step"].as_bool().unwrap_or(false),
-            branch_id: some_text("branch_id"),
-            branch_name: some_text("branch_name"),
-            branch_from: step_ref("branch_from"),
-            dependencies: dependencies(&step["dependencies"]),
-            execution_ref: some_text("execution_ref"),
-            pinned: step["pinned"].as_bool().unwrap_or(false),
-        })
+    pub fn from_think(step: &ThinkStep) -> Self {
+        Self {
+            number: step.step_number,
+            estimated_total: step.estimated_total,
+            purpose: step.purpose.clone(),
+            context: step.context.clone(),
+            thought: step.thought.clone(),
+            outcome: step.outcome.clone(),
+            next_action: next_action(&step.next_action),
+            rationale: step.rationale.clone(),
+            confidence: step.confidence,
+            uncertainty: step.uncertainty_notes.clone().unwrap_or_default(),
+            revises: step.revises_step,
+            revised_by: step.revised_by,
+            is_final: step.is_final_step.unwrap_or(false),
+            branch_id: step.branch_id.clone(),
+            branch_name: step.branch_name.clone(),
+            branch_from: step.branch_from,
+            dependencies: step
+                .dependencies
+                .as_deref()
+                .unwrap_or_default()
+                .iter()
+                .map(|edge| match edge {
+                    DepEdge::Bare(n) | DepEdge::Tagged { step: n, .. } => *n,
+                })
+                .collect(),
+            execution_ref: step.execution_ref.clone(),
+            pinned: step.pinned.unwrap_or(false),
+        }
     }
 
     /// The labelled fields an expanded step shows, in display order,
@@ -155,26 +159,11 @@ impl TraceStep {
 
 /// The `next_action` field: a plain string, or a structured action whose
 /// `action` speaks for it.
-fn next_action(value: &serde_json::Value) -> String {
+fn next_action(value: &NextAction) -> String {
     match value {
-        serde_json::Value::String(text) => text.clone(),
-        serde_json::Value::Object(_) => value["action"].as_str().unwrap_or_default().to_owned(),
-        _ => String::new(),
+        NextAction::Text(text) => text.clone(),
+        NextAction::Structured(action) => action.action.clone(),
     }
-}
-
-/// Dependency edges: each entry a bare step number or `{step, relation}`.
-fn dependencies(value: &serde_json::Value) -> Vec<u32> {
-    value
-        .as_array()
-        .map(|entries| {
-            entries
-                .iter()
-                .filter_map(|entry| entry.as_u64().or_else(|| entry["step"].as_u64()))
-                .filter_map(|n| u32::try_from(n).ok())
-                .collect()
-        })
-        .unwrap_or_default()
 }
 
 #[cfg(test)]

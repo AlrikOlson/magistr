@@ -274,7 +274,7 @@ fn the_interview_charts_and_the_charting_accepts() {
     let born = BornData {
         name: "tidewatch".to_owned(),
         dir: "/p/tidewatch".to_owned(),
-        chunks: proposal().wire(),
+        chunks: proposal().records(),
         gates: vec!["cargo test".to_owned()],
         protected: Vec::new(),
     };

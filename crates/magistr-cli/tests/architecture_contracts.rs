@@ -117,7 +117,8 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
         .expect("add chunk");
     engines.roadmap_start_chunk("fixture").expect("start chunk");
     objective_with_task(&engines, "chunk:fixture", "fixture-verify");
-    let before = ShipGuardState::from_status(&engines.ship_status());
+    let before =
+        ShipGuardState::from_ship(engines.ship_objective().as_ref(), &engines.ship_tasks());
     assert!(before.phase_block("verify").is_none());
     assert!(before.phase_block("done").is_some());
 
@@ -129,7 +130,7 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
     assert_eq!(done.status, ChunkStatus::Done);
     assert!(done.cross_refs.is_empty());
     assert!(
-        ShipGuardState::from_status(&engines.ship_status())
+        ShipGuardState::from_ship(engines.ship_objective().as_ref(), &engines.ship_tasks())
             .phase_block("done")
             .is_some()
     );
@@ -159,7 +160,7 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
     assert!(check.required && check.verified);
     assert!(!check.passed);
     assert_eq!(check.exit_code, Some(exit_code));
-    let guard = ShipGuardState::from_status(&engines.ship_status());
+    let guard = ShipGuardState::from_ship(engines.ship_objective().as_ref(), &engines.ship_tasks());
     assert_eq!(guard.checks_recorded, 1);
     assert!(guard.phase_block("done").is_none());
 

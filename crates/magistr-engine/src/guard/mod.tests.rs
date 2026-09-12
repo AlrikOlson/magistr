@@ -95,7 +95,6 @@ fn guards_config_roundtrip() {
         spec: false,
         clean_tree: true,
         quality_gate: true,
-        research: true,
     };
     let json = serde_json::to_string(&config).unwrap();
     let parsed: GuardsConfig = serde_json::from_str(&json).unwrap();

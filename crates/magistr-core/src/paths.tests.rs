@@ -42,34 +42,6 @@ fn settings_json_path() {
     );
 }
 
-// ── File detection ──────────────────────────────────────────────────────────
-
-#[test]
-fn is_plan_file_detects_plan() {
-    assert!(is_plan_file("current-plan.md"));
-    assert!(is_plan_file(".magistr/current-plan.md"));
-    assert!(!is_plan_file("some-other-plan.md"));
-}
-
-#[test]
-fn is_task_file_detects_task() {
-    assert!(is_task_file("current-task.md"));
-    assert!(!is_task_file("task.md"));
-}
-
-#[test]
-fn is_config_path_detects_config_dirs() {
-    // Paths under .magistr/, .jig/, or .claude/ are config paths.
-    assert!(is_config_path(".magistr/project.json"));
-    assert!(is_config_path(".claude/settings.json"));
-    assert!(is_config_path(".jig/legacy.json"));
-    assert!(is_config_path("some/prefix/.magistr/plan.md"));
-    // Regular source files are NOT config paths.
-    assert!(!is_config_path("src/main.rs"));
-    assert!(!is_config_path("project.json")); // bare file is not under a config dir
-    assert!(!is_config_path("CLAUDE.md")); // CLAUDE.md at root is not a config path
-}
-
 // ── Migration ───────────────────────────────────────────────────────────────
 
 #[test]
@@ -174,12 +146,4 @@ fn migrate_does_not_overwrite_existing_magistr_dir() {
         tmp.path().join(MAGISTR_DIR).join("existing.json").exists(),
         "existing .magistr content should be preserved"
     );
-}
-
-#[test]
-fn config_path_detection_is_directory_based() {
-    // Only directory-prefixed paths count — case doesn't matter for
-    // this test since directory names are always lowercase.
-    assert!(is_config_path(".claude/rules/workflow.md"));
-    assert!(!is_config_path(".Claude/settings.json")); // wrong case
 }

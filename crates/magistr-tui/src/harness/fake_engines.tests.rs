@@ -20,12 +20,15 @@ fn frames_carry_family_kind_and_payload() {
         }))
     );
     match &steps[1].1 {
-        Msg::Engine(EngineEvent::Frame(frame)) => {
-            assert_eq!(frame.family, "ship");
-            assert_eq!(frame.kind, "action_recorded");
-            assert_eq!(frame.payload["action"]["id"], 7);
-        }
-        other => panic!("not a frame: {other:?}"),
+        Msg::Engine(EngineEvent::Event {
+            event:
+                magistr_engine::NativeEvent::Ship(magistr_engine::ShipFrame::ActionRecorded {
+                    action,
+                    ..
+                }),
+            delivery: magistr_engine::Delivery::Local,
+        }) => assert_eq!(action.id, 7),
+        other => panic!("not a local ship event: {other:?}"),
     }
 }
 

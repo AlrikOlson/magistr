@@ -1,4 +1,5 @@
 use super::*;
+use crate::harness::fixtures;
 
 #[test]
 fn the_toast_counts_the_chunks_and_workstreams_and_names_the_gates() {
@@ -6,9 +7,9 @@ fn the_toast_counts_the_chunks_and_workstreams_and_names_the_gates() {
         name: "tidewatch".to_owned(),
         dir: "~/Code/tidewatch".to_owned(),
         chunks: vec![
-            serde_json::json!({"id": "a", "group": "core", "deps": []}),
-            serde_json::json!({"id": "b", "group": "core", "deps": ["a"]}),
-            serde_json::json!({"id": "c", "group": "ops"}),
+            fixtures::chunk_from(serde_json::json!({"id": "a", "group": "core", "deps": []})),
+            fixtures::chunk_from(serde_json::json!({"id": "b", "group": "core", "deps": ["a"]})),
+            fixtures::chunk_from(serde_json::json!({"id": "c", "group": "ops"})),
         ],
         gates: Vec::new(),
         protected: Vec::new(),

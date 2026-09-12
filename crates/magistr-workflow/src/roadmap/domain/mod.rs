@@ -151,6 +151,20 @@ pub enum ChunkStatus {
 }
 
 impl ChunkStatus {
+    /// The wire spelling (snake_case), matching the serde representation —
+    /// what a surface shows and what `parse_status` reads back.
+    #[must_use]
+    pub const fn as_wire(self) -> &'static str {
+        match self {
+            ChunkStatus::Backlog => "backlog",
+            ChunkStatus::Pending => "pending",
+            ChunkStatus::InProgress => "in_progress",
+            ChunkStatus::Blocked => "blocked",
+            ChunkStatus::Done => "done",
+            ChunkStatus::Obsoleted => "obsoleted",
+        }
+    }
+
     /// Whether this chunk is still WORK — the one definition of "active".
     ///
     /// Written down once because two places need the same answer for the same

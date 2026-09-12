@@ -40,8 +40,13 @@ async fn a_gates_bytes_reach_the_inbox_as_frames_before_its_outcome() {
     let mut bytes: Vec<u8> = Vec::new();
     loop {
         match next(&mut posted).await {
-            Msg::Engine(EngineEvent::Frame(frame)) => {
-                let output = GateOutput::from_frame(&frame).expect("a gate_output frame");
+            Msg::Engine(EngineEvent::Event {
+                event:
+                    magistr_engine::NativeEvent::Magistr(magistr_engine::MagistrFrame::GateOutput(
+                        output,
+                    )),
+                delivery: magistr_engine::Delivery::Local,
+            }) => {
                 assert_eq!(output.gate, "check");
                 bytes.extend(output.bytes);
             }

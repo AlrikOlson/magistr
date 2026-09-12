@@ -1,27 +1,37 @@
 //! What the feed — or the cockpit's own engine port — reports.
 
-use magistr_engine::{FeedStatus, NativeFrame};
+use magistr_engine::{Delivery, FeedStatus, NativeEvent, NativeSnapshot};
 
-use super::seed::StoreSeed;
 use crate::cockpit::EngineCmd;
 
-/// One thing the think-and-ship side said, as
+/// One thing the native store side said, as
 /// [`Msg::Engine`](crate::cockpit::Msg::Engine) carries it: the live
-/// feed's attachment, frames and seeds, and the answers of the
+/// feed's attachment, its typed events with how each was delivered, the
+/// store read whole, and the answers of the
 /// [`EnginePort`](super::EnginePort) — the in-process engines broadcast
 /// nothing, so a cockpit-made pin or checkpoint comes back this way
 /// rather than on the socket.
+// `Event` carries a whole record (see `NativeEvent`): it is folded the
+// moment it leaves the inbox and never kept in bulk, so boxing it would
+// buy an allocation per frame and no memory.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum EngineEvent {
     /// The feed's attachment to the broadcast socket changed.
     Feed(FeedStatus),
-    /// An engine mutated something: one broadcast frame.
-    Frame(NativeFrame),
-    /// The store re-read whole: what the loop driver posts at each
-    /// iteration start and what
-    /// [`spawn_reseed`](super::spawn_reseed) posts on its timer, for
-    /// state recorded while no feed was attached.
-    Seed(StoreSeed),
+    /// An engine changed something: one typed event, and where it stood in
+    /// its publisher's sequence when the feed took it in.
+    Event {
+        /// What changed.
+        event: NativeEvent,
+        /// How it arrived — in order, a duplicate, after a gap, from a new
+        /// owner, or from this process's own writer.
+        delivery: Delivery,
+    },
+    /// The store read whole: what the loop driver posts at each iteration
+    /// start and what the re-seed posts on its timer or when the feed asks
+    /// for one, for state recorded while no frame carried it.
+    Seed(NativeSnapshot),
     /// The port marked the step at the cockpit's ask.
     Pinned {
         /// The step that was marked.
@@ -43,4 +53,17 @@ pub enum EngineEvent {
         /// The engine's reason.
         error: String,
     },
+}
+
+impl EngineEvent {
+    /// An event this process's own writer answered with — the port's
+    /// chunk or signal, the loop driver's gate bytes — which has no
+    /// publisher and nothing to sequence.
+    #[must_use]
+    pub const fn local(event: NativeEvent) -> Self {
+        Self::Event {
+            event,
+            delivery: Delivery::Local,
+        }
+    }
 }

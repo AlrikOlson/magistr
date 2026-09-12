@@ -1,29 +1,13 @@
+use magistr_engine::native::TaskStatus;
+
 use super::*;
 
 #[test]
-fn parses_every_named_state() {
-    assert_eq!(TaskState::parse("active"), TaskState::Active);
-    assert_eq!(TaskState::parse("completed"), TaskState::Completed);
-    assert_eq!(TaskState::parse("blocked"), TaskState::Blocked);
-    assert_eq!(TaskState::parse("skipped"), TaskState::Skipped);
-    assert_eq!(TaskState::parse("planned"), TaskState::Planned);
-}
-
-#[test]
-fn unknown_names_read_as_planned() {
-    assert_eq!(TaskState::parse(""), TaskState::Planned);
-    assert_eq!(TaskState::parse("finished"), TaskState::Planned);
-}
-
-#[test]
-fn every_state_has_a_one_column_glyph() {
-    for state in [
-        TaskState::Planned,
-        TaskState::Active,
-        TaskState::Completed,
-        TaskState::Blocked,
-        TaskState::Skipped,
-    ] {
-        assert_eq!(state.glyph(&Icons::UNICODE).chars().count(), 1, "{state:?}");
-    }
+fn every_ship_status_maps_to_its_state() {
+    assert_eq!(TaskState::from(TaskStatus::Active), TaskState::Active);
+    assert_eq!(TaskState::from(TaskStatus::Completed), TaskState::Completed);
+    assert_eq!(TaskState::from(TaskStatus::Blocked), TaskState::Blocked);
+    assert_eq!(TaskState::from(TaskStatus::Skipped), TaskState::Skipped);
+    assert_eq!(TaskState::from(TaskStatus::Planned), TaskState::Planned);
+    assert_eq!(TaskState::default(), TaskState::Planned);
 }

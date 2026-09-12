@@ -1,5 +1,8 @@
 use magistr_engine::native::BlockerKind;
-use magistr_engine::{ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
+use magistr_engine::{
+    ChunkStatus, Delivery, NativeConfig, NativeEngines, NativeEvent, ProjectAuthority,
+    RoadmapFrame, WriterRole,
+};
 
 use super::*;
 use crate::cockpit::{Dock, EngineCmd};
@@ -34,11 +37,14 @@ fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
     engines
 }
 
-/// The frame `cmd` answers with, or the port's refusal as a panic —
+/// The event `cmd` answers with, or the port's refusal as a panic —
 /// these are the real engines, so a refusal is a test failure.
-fn frame_of(port: &mut NativeEnginePort, cmd: &EngineCmd) -> magistr_engine::NativeFrame {
+fn frame_of(port: &mut NativeEnginePort, cmd: &EngineCmd) -> NativeEvent {
     match apply(port, cmd) {
-        EngineEvent::Frame(frame) => frame,
+        EngineEvent::Event {
+            event,
+            delivery: Delivery::Local,
+        } => event,
         other => panic!("the engines refused {cmd:?}: {other:?}"),
     }
 }
@@ -72,8 +78,11 @@ fn an_accepted_reprioritize_moves_the_chunk_and_the_frame_takes_the_card() {
     let after = engines.roadmap_chunk("auth").expect("the chunk");
     assert_eq!(after.priority, 100, "the suggestion was applied");
     assert!(after.reprioritize.is_none(), "and the proposal is disposed");
-    // …and the frame the answer came back as is what takes the card.
-    assert_eq!(frame.kind, "chunk_changed");
+    // …and the event the answer came back as is what takes the card.
+    assert!(matches!(
+        &frame,
+        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged { chunk }) if chunk.id == "auth"
+    ));
     dock.apply(&frame);
     assert!(dock.is_empty(), "the card resolved on the engines' answer");
 }
@@ -98,7 +107,10 @@ fn a_rejected_reprioritize_disposes_the_proposal_and_leaves_the_priority() {
     let after = engines.roadmap_chunk("auth").expect("the chunk");
     assert_eq!(after.priority, 200, "a rejection applies nothing");
     assert!(after.reprioritize.is_none(), "and clears the proposal");
-    assert!(frame.payload["chunk"]["reprioritize"].is_null());
+    assert!(matches!(
+        frame,
+        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged { chunk }) if chunk.reprioritize.is_none()
+    ));
 }
 
 #[test]
@@ -153,14 +165,10 @@ fn a_cleared_blocker_lifts_blocked_by_and_the_frame_takes_the_card() {
     ));
 }
 
-/// The broadcast frame the external server writes for a changed chunk —
-/// what the dock folds when the feed, rather than the port, reports.
-fn chunk_changed(chunk: &magistr_engine::native::Chunk) -> magistr_engine::NativeFrame {
-    let payload = serde_json::to_value(chunk).expect("a chunk serializes");
-    magistr_engine::NativeFrame {
-        family: "roadmap".to_owned(),
-        kind: "chunk_changed".to_owned(),
-        payload: serde_json::json!({"family": "roadmap", "type": "chunk_changed",
-            "chunk": payload}),
-    }
+/// The event the external server announces for a changed chunk — what
+/// the dock folds when the feed, rather than the port, reports.
+fn chunk_changed(chunk: &magistr_engine::native::Chunk) -> NativeEvent {
+    NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
+        chunk: chunk.clone(),
+    })
 }

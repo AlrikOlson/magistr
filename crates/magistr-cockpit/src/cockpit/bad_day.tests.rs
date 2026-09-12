@@ -9,7 +9,7 @@ use crate::cockpit::{
     AgentMissing, Budget, CheckpointEvent, Cmd, LoopEvent, LoopStage, LoopStatus, Msg,
     SettingsGroup, Size, StageTab, StarState, Surface, update,
 };
-use crate::engine::{EngineEvent, StoreSeed};
+use crate::engine::EngineEvent;
 use crate::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use crate::job::{JobId, JobOutput};
 use crate::widget_id::WidgetId;
@@ -22,18 +22,13 @@ fn sky() -> Model {
         .with_tab(StageTab::Roadmap);
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: Some("e6b".to_owned()),
-            done: 211,
-            total: 306,
-            signals_pending: 0,
-            chunks: vec![
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(211, 306),
+            chunks: crate::harness::fixtures::chunks_from(vec![
                 json!({"id": "layout", "name": "layout", "status": "done", "priority": 200, "deps": []}),
                 json!({"id": "e6b", "name": "e6b", "status": "in_progress", "priority": 300, "deps": ["layout"]}),
-            ],
-            signals: Vec::new(),
-            trace: Vec::new(),
+            ]),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     model
@@ -383,11 +378,11 @@ fn a_bad_day_stands_the_brief_down_and_holds_the_sky_still() {
     let mut model = sky().with_away(Duration::from_secs(3600));
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Frame(magistr_engine::NativeFrame {
-            family: "roadmap".to_owned(),
-            kind: "chunk_completed".to_owned(),
-            payload: json!({"chunk": {"id": "layout", "name": "layout", "status": "done"}}),
-        })),
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "roadmap",
+            "chunk_completed",
+            json!({"chunk": {"id": "layout", "name": "layout", "status": "done"}}),
+        ))),
     );
     assert!(model.brief().is_some(), "news raises the Brief");
     let mut model = model.with_agent_missing(AgentMissing::new("claude"));

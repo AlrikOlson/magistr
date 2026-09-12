@@ -1,23 +1,21 @@
-//! Where the iteration stands, as the engine feed tells it.
+//! Where the iteration stands, as the engines' typed events tell it.
 
 use std::fmt;
 
-use magistr_engine::NativeFrame;
-
-/// What a `magistr_set_phase` call is recorded as on the ship trace, before
-/// the phase's name.
-const SET_PHASE_PREFIX: &str = "workflow phase → ";
+use magistr_engine::native::ChunkStatus;
+use magistr_engine::{MagistrFrame, NativeEvent, RoadmapFrame, ShipFrame, WorkflowPhase};
 
 /// The workflow phase of the running iteration — research, plan, execute,
 /// verify, done — ordered, so the cockpit can refuse to fall back to an
 /// earlier phase within one iteration.
 ///
-/// The phase is read off the broadcast frames the think-and-ship engines
-/// emit while the agent works ([`Phase::from_frame`]): the roadmap chunk
-/// being started, the ship objective set, the first task started, the
-/// first check recorded, the objective shipped. A `magistr_set_phase` call
-/// is only recorded on the trace while a task is active, so its frame is
-/// honoured when it comes but never waited for.
+/// The phase is read off the typed events the engines emit while the
+/// agent works ([`Phase::from_event`]): the roadmap chunk being started,
+/// the ship objective set, the first task started, the first check
+/// recorded, the objective shipped — and the phase the agent announced
+/// through `magistr_set_phase`, which the host publishes typed
+/// ([`MagistrFrame::PhaseSet`]) and which is honoured when it comes but
+/// never waited for. Nothing is read out of an action's words.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Phase {
     /// The chunk is being read and the world researched.
@@ -64,22 +62,31 @@ impl Phase {
             .find(|phase| phase.label().eq_ignore_ascii_case(name))
     }
 
-    /// The phase `frame` implies, if any.
+    /// The phase `event` implies, if any.
     #[must_use]
-    pub fn from_frame(frame: &NativeFrame) -> Option<Self> {
-        match (frame.family.as_str(), frame.kind.as_str()) {
-            ("roadmap", "chunk_changed") => (frame.payload["chunk"]["status"].as_str()
-                == Some("in_progress"))
-            .then_some(Self::Research),
-            ("ship", "objective_set") => Some(Self::Plan),
-            ("ship", "task_started") => Some(Self::Execute),
-            ("ship", "check_recorded") => Some(Self::Verify),
-            ("ship", "objective_shipped") => Some(Self::Done),
-            ("ship", "action_recorded") => frame.payload["action"]["description"]
-                .as_str()
-                .and_then(|description| description.strip_prefix(SET_PHASE_PREFIX))
-                .and_then(Self::from_name),
+    pub fn from_event(event: &NativeEvent) -> Option<Self> {
+        match event {
+            NativeEvent::Roadmap(RoadmapFrame::ChunkChanged { chunk }) => {
+                (chunk.status == ChunkStatus::InProgress).then_some(Self::Research)
+            }
+            NativeEvent::Ship(ShipFrame::ObjectiveSet { .. }) => Some(Self::Plan),
+            NativeEvent::Ship(ShipFrame::TaskStarted { .. }) => Some(Self::Execute),
+            NativeEvent::Ship(ShipFrame::CheckRecorded { .. }) => Some(Self::Verify),
+            NativeEvent::Ship(ShipFrame::ObjectiveShipped { .. }) => Some(Self::Done),
+            NativeEvent::Magistr(MagistrFrame::PhaseSet { phase }) => Some(Self::from(*phase)),
             _ => None,
+        }
+    }
+}
+
+impl From<WorkflowPhase> for Phase {
+    fn from(phase: WorkflowPhase) -> Self {
+        match phase {
+            WorkflowPhase::Researching => Self::Research,
+            WorkflowPhase::Planning => Self::Plan,
+            WorkflowPhase::Executing => Self::Execute,
+            WorkflowPhase::Verifying => Self::Verify,
+            WorkflowPhase::Complete => Self::Done,
         }
     }
 }

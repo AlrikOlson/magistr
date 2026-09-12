@@ -275,33 +275,6 @@ impl AsRef<Path> for ProjectPaths {
     }
 }
 
-// ── Path predicates (for workflow tracker) ───────────────────────────────────
-
-/// Is this path a plan file? (`.magistr/current-plan.md` or legacy `.claude/current-plan.md`)
-pub fn is_plan_file(path: &str) -> bool {
-    path.contains("current-plan")
-}
-
-/// Is this path a task file?
-pub fn is_task_file(path: &str) -> bool {
-    path.contains("current-task")
-}
-
-/// Is this path an iteration log?
-pub fn is_iteration_log(path: &str) -> bool {
-    path.contains("iteration-log")
-}
-
-/// Is this a config/scaffold path? (either `.magistr/` or `.claude/`)
-pub fn is_config_path(path: &str) -> bool {
-    path.contains("/.magistr/")
-        || path.starts_with(".magistr/")
-        || path.contains("/.jig/")
-        || path.starts_with(".jig/")
-        || path.contains("/.claude/")
-        || path.starts_with(".claude/")
-}
-
 // ── Migration ───────────────────────────────────────────────────────────────
 
 /// Migrate a legacy `.jig/` directory to `.magistr/`.

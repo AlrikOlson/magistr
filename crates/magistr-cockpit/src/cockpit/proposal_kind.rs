@@ -1,5 +1,7 @@
 //! Which field of a chunk an open proposal wants to change.
 
+use magistr_engine::native::Chunk;
+
 /// The kind of an open roadmap proposal on a chunk, mirroring the three
 /// the engine records: re-prioritization, status, title.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -13,26 +15,26 @@ pub enum ProposalKind {
 }
 
 impl ProposalKind {
-    /// Every kind, in the order the engine's chunk payload carries them.
+    /// Every kind, in the order the engine's chunk record carries them.
     pub const ALL: [Self; 3] = [Self::Reprioritize, Self::Status, Self::Title];
 
-    /// The proposal's key on a `chunk_changed` frame's chunk payload.
+    /// The open proposal of this kind on `chunk`, as the card shows it:
+    /// the suggested value in words and the reason the proposer gave.
     #[must_use]
-    pub const fn payload_key(self) -> &'static str {
+    pub fn on(self, chunk: &Chunk) -> Option<(String, String)> {
         match self {
-            Self::Reprioritize => "reprioritize",
-            Self::Status => "status_proposal",
-            Self::Title => "title_proposal",
-        }
-    }
-
-    /// The suggested value's key inside the proposal object.
-    #[must_use]
-    pub const fn suggestion_key(self) -> &'static str {
-        match self {
-            Self::Reprioritize => "suggested_priority",
-            Self::Status => "suggested_status",
-            Self::Title => "suggested_title",
+            Self::Reprioritize => chunk
+                .reprioritize
+                .as_ref()
+                .map(|p| (p.suggested_priority.to_string(), p.reason.clone())),
+            Self::Status => chunk
+                .status_proposal
+                .as_ref()
+                .map(|p| (p.suggested_status.as_wire().to_owned(), p.reason.clone())),
+            Self::Title => chunk
+                .title_proposal
+                .as_ref()
+                .map(|p| (p.suggested_title.clone(), p.reason.clone())),
         }
     }
 

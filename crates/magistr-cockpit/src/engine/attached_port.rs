@@ -2,12 +2,12 @@
 
 use std::sync::{Arc, Mutex, PoisonError};
 
+use magistr_engine::native::{Chunk, Signal};
 use magistr_engine::{
     OwnerClient, OwnerCommand, OwnerGeneration, OwnerReply, RoadmapCommand, SignalCommand,
     ThinkCommand,
 };
 
-use super::native_port::{chunk_value, signal_value};
 use super::port::EnginePort;
 use crate::cockpit::ProposalKind;
 
@@ -62,16 +62,16 @@ impl AttachedEnginePort {
         client.command(command).map_err(|error| error.to_string())
     }
 
-    fn chunk(&mut self, command: RoadmapCommand) -> Result<serde_json::Value, String> {
+    fn chunk(&mut self, command: RoadmapCommand) -> Result<Chunk, String> {
         match self.run(OwnerCommand::Roadmap(command))? {
-            OwnerReply::Chunk(chunk) => Ok(chunk_value(*chunk)),
+            OwnerReply::Chunk(chunk) => Ok(*chunk),
             other => Err(format!("the owner answered {other:?} instead of a chunk")),
         }
     }
 
-    fn signal(&mut self, command: SignalCommand) -> Result<serde_json::Value, String> {
+    fn signal(&mut self, command: SignalCommand) -> Result<Signal, String> {
         match self.run(OwnerCommand::Signal(command))? {
-            OwnerReply::Signal(signal) => Ok(signal_value(signal)),
+            OwnerReply::Signal(signal) => Ok(signal),
             other => Err(format!("the owner answered {other:?} instead of a signal")),
         }
     }
@@ -93,11 +93,11 @@ impl EnginePort for AttachedEnginePort {
         }
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String> {
         self.chunk(RoadmapCommand::StartChunk { id: id.to_owned() })
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String> {
         self.chunk(RoadmapCommand::CompleteChunk {
             id: id.to_owned(),
             ship_ref: None,
@@ -109,7 +109,7 @@ impl EnginePort for AttachedEnginePort {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<serde_json::Value, String> {
+    ) -> Result<Chunk, String> {
         let id = id.to_owned();
         self.chunk(match kind {
             ProposalKind::Title => RoadmapCommand::ResolveTitleProposal { id, accept },
@@ -118,19 +118,19 @@ impl EnginePort for AttachedEnginePort {
         })
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String> {
         self.chunk(RoadmapCommand::ClearBlockedBy { id: id.to_owned() })
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn promote_signal(&mut self, id: &str) -> Result<Signal, String> {
         self.signal(SignalCommand::Promote { id: id.to_owned() })
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String> {
         self.signal(SignalCommand::Ignore { id: id.to_owned() })
     }
 
-    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<serde_json::Value, String> {
+    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<Signal, String> {
         self.signal(SignalCommand::Snooze {
             id: id.to_owned(),
             minutes: i64::from(minutes),

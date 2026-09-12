@@ -3,7 +3,7 @@
 use std::collections::VecDeque;
 use std::time::Duration;
 
-use magistr_engine::FeedStatus;
+use magistr_engine::{FeedStatus, NativeSnapshot};
 
 use super::agent_missing::AgentMissing;
 use super::animation::Animation;
@@ -35,6 +35,7 @@ use super::path_stop::PathStop;
 use super::permission::Permission;
 use super::phase::Phase;
 use super::place::Place;
+use super::projection::Projection;
 use super::prompt::Prompt;
 use super::rail::Rail;
 use super::roadmap::Roadmap;
@@ -241,6 +242,9 @@ pub struct Model {
     pub(super) engine_frames: u64,
     pub(super) feed: Option<FeedStatus>,
     pub(super) feed_lost_at: Option<Duration>,
+    /// How fresh the store's picture here is, and how the last event was
+    /// delivered.
+    pub(super) projection: Projection,
     pub(super) agent_missing: Option<AgentMissing>,
     pub(super) server: Option<String>,
     pub(super) refused: bool,
@@ -351,6 +355,7 @@ impl Model {
             agent_events: 0,
             engine_frames: 0,
             feed: None,
+            projection: Projection::default(),
             jobs_done: 0,
             last_job: None,
             last_job_frame: None,
@@ -424,17 +429,24 @@ impl Model {
         self.session_started.as_deref()
     }
 
-    /// Start the rail, the Roadmap tab and the Trace tab on `seed` —
+    /// Start the rail, the Roadmap tab and the Trace tab on `snapshot` —
     /// what the entry point read off the engines before taking the
     /// terminal over, so an objective recorded before the feed connected
     /// shows its plan (and the roadmap its chunks, and the trace its
     /// steps) on the first frame.
     #[must_use]
-    pub fn with_store_seed(mut self, seed: &crate::engine::StoreSeed) -> Self {
-        self.rail.seed(seed);
-        self.roadmap.seed(&seed.chunks, &seed.signals);
-        self.trace.seed(&seed.trace);
+    pub fn with_snapshot(mut self, snapshot: &NativeSnapshot) -> Self {
+        self.seed(snapshot);
         self
+    }
+
+    /// Take the store's snapshot as the rail's, the Roadmap tab's and the
+    /// Trace tab's state, and mark the projection current.
+    pub(super) fn seed(&mut self, snapshot: &NativeSnapshot) {
+        self.rail.seed(snapshot);
+        self.roadmap.seed(&snapshot.chunks, &snapshot.signals);
+        self.trace.seed(snapshot);
+        self.projection.seeded();
     }
 
     /// The workspace's files, workspace-relative, for the prompt's
@@ -2600,10 +2612,17 @@ impl Model {
         self.agent_events
     }
 
-    /// Broadcast frames the think-and-ship feed delivered so far.
+    /// Typed events the engines delivered so far, duplicates excluded.
     #[must_use]
     pub const fn engine_frames(&self) -> u64 {
         self.engine_frames
+    }
+
+    /// How fresh the store's picture here is, and how the last event was
+    /// delivered.
+    #[must_use]
+    pub const fn projection(&self) -> &Projection {
+        &self.projection
     }
 
     /// The feed's attachment to the broadcast socket, once it reported one.

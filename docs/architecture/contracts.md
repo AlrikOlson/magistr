@@ -25,7 +25,7 @@ remain available to application adapters; existing session wire IDs stay compati
 | Session/turn | Headless/plain `AgentSession` and cockpit `agent::Session` are distinct lifecycle owners over the same `connect_transport` seam. Providers own opaque conversation IDs. | A shared supervisor owns live tasks, provider attempts and terminal outcomes; the interface observes and sends commands. |
 | Decision | `CockpitPolicy` evaluates protected paths, profile, charter and governance; cockpit Session correlates requests and answers. Headless has a separate option-selection worker. | Shared policy decides Allow/Deny/Ask; hosts resolve Ask according to an explicit interaction mode. |
 | Verification | MCP gate service and CLI `LoopDriver` execute checks; native Ship records them. Native roadmap completion and phase admission are separate operations. | Completion validates applicable required evidence and references the actual verification task. |
-| Projection | `StoreSeed`, native feed frames, agent translation and cockpit `Model` describe stored/live facts. They are not another workflow authority. | Typed, freshness-aware views; revision, owner generation and event sequence have distinct meanings. |
+| Projection | `NativeSnapshot` and `NativeEvent` from `magistr_engine::native` (the one producer), agent translation and cockpit `Model` describe stored/live facts; `NativeFrame` is decoded at the transport edge only. They are not another workflow authority. | Typed, freshness-aware views; schema version, owner epoch, aggregate revision, event sequence and snapshot cursor have distinct meanings — see [projections](projections.md). |
 | Presentation | TUI owns terminal protocols; cockpit currently includes shared state, cell view/layout and effect adapters. gui2 owns native pixel composition and geometry. | Share semantic state/actions; keep each surface's layout, input and renderer local. |
 
 Current sources: [native facade](../../crates/magistr-engine/src/native/native_engines.rs),
@@ -141,8 +141,8 @@ but the executable never takes that receiver. Its [route][gui-route] forwards
 nonlocal commands and ignores a failed send. There are no production CLI gui2
 references or desktop transport/session launch calls in that snapshot.
 
-Desktop fixtures construct the same Model/StoreSeed/NativeFrame shapes as live
-clients. Those values are sample data, not an additional project/run/session
+Desktop fixtures construct the same Model/`NativeSnapshot`/`NativeEvent` shapes
+as live clients, through the cockpit harness fixtures. Those values are sample data, not an additional project/run/session
 authority. The shared cockpit crate and CLI cockpit run wiring are identical
 between the audited snapshots. Native pixel composition is separate from the
 terminal cell tree. This baseline does not build gui2, require its private

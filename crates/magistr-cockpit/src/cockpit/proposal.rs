@@ -87,10 +87,10 @@ impl Proposal {
         self.chunks.iter().filter(|c| c.pinned).cloned().collect()
     }
 
-    /// Every chunk as the store's wire carries it.
+    /// Every chunk as the store will record it.
     #[must_use]
-    pub fn wire(&self) -> Vec<serde_json::Value> {
-        self.chunks.iter().map(ProposedChunk::wire).collect()
+    pub fn records(&self) -> Vec<magistr_engine::native::Chunk> {
+        self.chunks.iter().map(ProposedChunk::record).collect()
     }
 
     /// The first chunk that stands on nothing — the one the sky

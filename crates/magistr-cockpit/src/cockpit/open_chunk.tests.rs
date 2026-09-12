@@ -3,40 +3,41 @@ use magistr_engine::policy::RiskTier;
 use super::*;
 use crate::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 use crate::cockpit::{Msg, Size, StageTab, Surface, update};
-use crate::engine::{EngineEvent, StoreSeed};
+use crate::engine::EngineEvent;
 use crate::input::{KeyCode, KeyEvent};
 
-/// A store with three chunks — `here` in progress, `stuck` stuck,
-/// `shipped` done, `blocked` blocked and `next` pending — and the rail
-/// naming `rail` as the chunk this session is on (`None` for a window
-/// with no session on any of them).
-fn seeded(surface: Surface, rail: Option<&str>) -> Model {
+/// A store with `here` in progress, `stuck` stuck, `shipped` done,
+/// `blocked` blocked and `next` pending — and, when `other` is set, a
+/// second chunk in progress ahead of `here`, so the rail (which names
+/// the store's first chunk in progress) is on that one and `here` is a
+/// session this window is not on.
+fn seeded(surface: Surface, other: Option<&str>) -> Model {
     let mut m = Model::new(Size::new(120, 40)).with_surface(surface);
     let chunk = |id: &str, status: &str| serde_json::json!({"id": id, "name": id, "title": id, "status": status, "priority": 200});
+    let mut chunks = vec![
+        chunk("here", "in_progress"),
+        chunk("stuck", "stuck"),
+        chunk("shipped", "done"),
+        chunk("blocked", "blocked"),
+        chunk("next", "pending"),
+    ];
+    if let Some(other) = other {
+        chunks.insert(0, chunk(other, "in_progress"));
+    }
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: rail.map(str::to_owned),
-            done: 1,
-            total: 5,
-            signals_pending: 0,
-            chunks: vec![
-                chunk("here", "in_progress"),
-                chunk("stuck", "stuck"),
-                chunk("shipped", "done"),
-                chunk("blocked", "blocked"),
-                chunk("next", "pending"),
-            ],
-            signals: Vec::new(),
-            trace: Vec::new(),
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(1, 5),
+            chunks: crate::harness::fixtures::chunks_from(chunks),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     m
 }
 
-fn window(rail: Option<&str>) -> Model {
-    seeded(Surface::Native, rail)
+/// A window whose rail is on `here`.
+fn window() -> Model {
+    seeded(Surface::Native, None)
 }
 
 fn selected(model: &Model) -> Option<&str> {
@@ -64,7 +65,7 @@ fn ask(id: u64) -> Msg {
 #[test]
 fn a_terminal_selects_the_chunk_and_turns_to_the_roadmap_tab() {
     for id in ["here", "stuck", "shipped", "blocked", "next"] {
-        let mut t = seeded(Surface::Terminal, Some("here"));
+        let mut t = seeded(Surface::Terminal, None);
         assert!(open_chunk(&mut t, id), "{id}");
         assert_eq!(t.tab(), StageTab::Roadmap, "{id}");
         assert_eq!(t.place(), None, "{id}: a terminal has no place");
@@ -76,7 +77,7 @@ fn a_terminal_selects_the_chunk_and_turns_to_the_roadmap_tab() {
 /// and no card opens.
 #[test]
 fn an_unknown_chunk_moves_nothing() {
-    let mut w = window(Some("here")).with_place(Place::Trace);
+    let mut w = window().with_place(Place::Trace);
     assert!(!open_chunk(&mut w, "nope"));
     assert_eq!(w.place(), Some(Place::Trace), "the camera held");
     assert_eq!(selected(&w), None);
@@ -91,7 +92,7 @@ fn an_unknown_chunk_moves_nothing() {
 /// window's session is on, so opening it lands on the turn.
 #[test]
 fn an_executing_chunk_the_rail_names_opens_its_session() {
-    let mut w = window(Some("here")).with_place(Place::Sky);
+    let mut w = window().with_place(Place::Sky);
     assert!(open_chunk(&mut w, "here"));
     assert_eq!(w.place(), Some(Place::Session));
     assert_eq!(
@@ -102,28 +103,27 @@ fn an_executing_chunk_the_rail_names_opens_its_session() {
 }
 
 /// An executing chunk this window has no session on has no Session to
-/// open: it gets the Sky's selection card, like any other star.
+/// open: it gets the Sky's selection card, like any other star. The
+/// rail names the store's first chunk in progress, so a second one in
+/// progress is the one the rail is not on.
 #[test]
 fn an_executing_chunk_without_a_session_here_opens_the_sky_card() {
-    let mut w = window(None).with_place(Place::Session);
-    assert!(open_chunk(&mut w, "here"));
-    assert_eq!(w.place(), Some(Place::Sky));
-    assert_eq!(selected(&w), Some("here"));
-
-    let mut other = window(Some("next")).with_place(Place::Session);
+    let mut other = seeded(Surface::Native, Some("other")).with_place(Place::Session);
+    assert_eq!(other.rail().chunk(), Some("other"));
     assert!(open_chunk(&mut other, "here"));
     assert_eq!(
         other.place(),
         Some(Place::Sky),
         "the rail is on another chunk"
     );
+    assert_eq!(selected(&other), Some("here"));
 }
 
 /// Stuck → its decision: the Session, with the Moment that was stood
 /// down to the dock raised again — the card comes back, unanswered.
 #[test]
 fn a_stuck_chunk_opens_its_decision() {
-    let mut w = window(Some("here")).with_place(Place::Sky);
+    let mut w = window().with_place(Place::Sky);
     update(&mut w, ask(7));
     assert!(w.moment().is_some(), "the card came");
     assert_eq!(
@@ -149,7 +149,7 @@ fn a_stuck_chunk_opens_its_decision() {
 /// decision here to open: the Sky card, where the star wears its ring.
 #[test]
 fn a_stuck_chunk_with_no_decision_here_opens_the_sky_card() {
-    let mut w = window(Some("here")).with_place(Place::Session);
+    let mut w = window().with_place(Place::Session);
     assert!(open_chunk(&mut w, "stuck"));
     assert_eq!(w.place(), Some(Place::Sky));
     assert_eq!(selected(&w), Some("stuck"));
@@ -159,7 +159,7 @@ fn a_stuck_chunk_with_no_decision_here_opens_the_sky_card() {
 /// verb; a blocker is not a dock decision.
 #[test]
 fn a_blocked_chunk_opens_the_sky_card_where_its_blocker_is_cleared() {
-    let mut w = window(Some("here")).with_place(Place::Session);
+    let mut w = window().with_place(Place::Session);
     update(&mut w, ask(7));
     assert!(open_chunk(&mut w, "blocked"));
     assert_eq!(w.place(), Some(Place::Sky));
@@ -172,7 +172,7 @@ fn a_blocked_chunk_opens_the_sky_card_where_its_blocker_is_cleared() {
 #[test]
 fn a_done_chunk_opens_its_report() {
     for from in [Place::Changes, Place::Galaxy, Place::Trace, Place::Sky] {
-        let mut w = window(Some("here")).with_place(from);
+        let mut w = window().with_place(from);
         assert!(open_chunk(&mut w, "shipped"));
         assert_eq!(w.place(), Some(Place::Report), "from {from:?}");
         assert_eq!(selected(&w), Some("shipped"));
@@ -183,7 +183,7 @@ fn a_done_chunk_opens_its_report() {
 /// into yet: the Sky's selection card.
 #[test]
 fn a_pending_chunk_opens_the_sky_card() {
-    let mut w = window(Some("here")).with_place(Place::Galaxy);
+    let mut w = window().with_place(Place::Galaxy);
     assert!(open_chunk(&mut w, "next"));
     assert_eq!(w.place(), Some(Place::Sky));
     assert_eq!(selected(&w), Some("next"));

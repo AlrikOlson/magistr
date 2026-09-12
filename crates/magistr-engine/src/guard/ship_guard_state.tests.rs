@@ -1,20 +1,54 @@
 use super::*;
-use serde_json::json;
+use magistr_workflow::ship::domain::check::{Check, CheckType};
+use magistr_workflow::ship::domain::task::{TaskStatus, TaskType};
 
-fn status(objective: Option<&str>, tasks: &[&str], checks: &[(&str, bool)]) -> Value {
-    json!({
-        "objective": objective.map(|s| json!({"status": s})),
-        "task_list": tasks.iter().map(|id| json!({"id": id})).collect::<Vec<_>>(),
-        "checks": checks
-            .iter()
-            .map(|(task, passed)| json!({"task_id": task, "name": "gate", "passed": passed}))
-            .collect::<Vec<_>>(),
-    })
+fn objective(status: ObjectiveStatus) -> Objective {
+    Objective {
+        description: "goal".to_owned(),
+        acceptance_criteria: Vec::new(),
+        constraints: Vec::new(),
+        scope: String::new(),
+        status,
+        project_id: String::new(),
+        created_at: None,
+        completed_at: None,
+    }
+}
+
+fn task(id: &str, checks: usize) -> Task {
+    Task {
+        id: id.to_owned(),
+        title: id.to_owned(),
+        task_type: TaskType::Implement,
+        status: TaskStatus::Planned,
+        estimate: None,
+        started_at: None,
+        completed_at: None,
+        artifacts: Vec::new(),
+        checks: (0..checks)
+            .map(|_| Check {
+                check_type: CheckType::Test,
+                name: "gate".to_owned(),
+                passed: false,
+                details: String::new(),
+                required: true,
+                verified: true,
+                command: None,
+                exit_code: None,
+                report: None,
+                results: None,
+                timestamp: String::new(),
+            })
+            .collect(),
+        actions: Vec::new(),
+        blocked_reason: None,
+        think_branch: None,
+    }
 }
 
 #[test]
-fn empty_status_has_nothing() {
-    let s = ShipGuardState::from_status(&json!({}));
+fn an_empty_ship_has_nothing() {
+    let s = ShipGuardState::from_ship(None, &[]);
     assert_eq!(s, ShipGuardState::default());
     assert!(!s.has_plan());
     assert!(!s.has_check());
@@ -22,46 +56,33 @@ fn empty_status_has_nothing() {
 
 #[test]
 fn defined_or_active_objective_counts_completed_does_not() {
-    assert!(ShipGuardState::from_status(&status(Some("defined"), &[], &[])).objective_set);
-    assert!(ShipGuardState::from_status(&status(Some("active"), &[], &[])).objective_set);
-    assert!(!ShipGuardState::from_status(&status(Some("completed"), &[], &[])).objective_set);
-    assert!(!ShipGuardState::from_status(&status(Some("abandoned"), &[], &[])).objective_set);
-    assert!(!ShipGuardState::from_status(&status(None, &[], &[])).objective_set);
+    let set = |status| ShipGuardState::from_ship(Some(&objective(status)), &[]).objective_set;
+    assert!(set(ObjectiveStatus::Defined));
+    assert!(set(ObjectiveStatus::Active));
+    assert!(!set(ObjectiveStatus::Completed));
+    assert!(!set(ObjectiveStatus::Abandoned));
+    assert!(!ShipGuardState::from_ship(None, &[]).objective_set);
 }
 
 #[test]
 fn plan_needs_objective_and_a_task() {
-    assert!(!ShipGuardState::from_status(&status(Some("defined"), &[], &[])).has_plan());
-    assert!(!ShipGuardState::from_status(&status(None, &["t1"], &[])).has_plan());
-    let s = ShipGuardState::from_status(&status(Some("defined"), &["t1", "t2"], &[]));
+    let defined = objective(ObjectiveStatus::Defined);
+    assert!(!ShipGuardState::from_ship(Some(&defined), &[]).has_plan());
+    assert!(!ShipGuardState::from_ship(None, &[task("t1", 0)]).has_plan());
+    let s = ShipGuardState::from_ship(Some(&defined), &[task("t1", 0), task("t2", 0)]);
     assert!(s.has_plan());
     assert_eq!(s.tasks_planned, 2);
 }
 
 #[test]
-fn checks_count_only_current_tasks() {
-    // A check left over from a finished cycle (task not in the list) is ignored.
-    let s = ShipGuardState::from_status(&status(
-        Some("active"),
-        &["t1"],
-        &[("old-task", true), ("t1", false)],
-    ));
-    assert_eq!(s.checks_recorded, 1);
+fn checks_are_counted_on_the_current_plans_tasks() {
+    // The plan is the current cycle's tasks: a check from a finished cycle
+    // is on no task here and is not counted.
+    let active = objective(ObjectiveStatus::Active);
+    let s = ShipGuardState::from_ship(Some(&active), &[task("t1", 1), task("t2", 2)]);
+    assert_eq!(s.checks_recorded, 3);
     assert!(s.has_check());
-
-    let stale_only =
-        ShipGuardState::from_status(&status(Some("active"), &["t1"], &[("old-task", true)]));
-    assert!(!stale_only.has_check());
-}
-
-#[test]
-fn check_without_task_id_counts() {
-    let doc = json!({
-        "objective": {"status": "active"},
-        "task_list": [{"id": "t1"}],
-        "checks": [{"name": "manual", "passed": true}],
-    });
-    assert_eq!(ShipGuardState::from_status(&doc).checks_recorded, 1);
+    assert!(!ShipGuardState::from_ship(Some(&active), &[task("t1", 0)]).has_check());
 }
 
 #[test]

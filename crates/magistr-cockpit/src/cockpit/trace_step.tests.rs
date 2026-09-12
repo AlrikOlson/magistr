@@ -1,10 +1,11 @@
 use serde_json::json;
 
 use super::*;
+use crate::harness::fixtures;
 
 #[test]
-fn every_field_parses_from_a_full_step() {
-    let step = TraceStep::from_step(&json!({
+fn every_field_is_read_off_a_full_step() {
+    let step = TraceStep::from_think(&fixtures::step_from(json!({
         "step_number": 7,
         "estimated_total": 9,
         "purpose": "hypothesis",
@@ -25,8 +26,7 @@ fn every_field_parses_from_a_full_step() {
         "dependencies": [2, {"step": 5, "relation": "supports"}],
         "execution_ref": "task:fix-cache",
         "pinned": true,
-    }))
-    .expect("a numbered step parses");
+    })));
     assert_eq!(step.number, 7);
     assert_eq!(step.estimated_total, 9);
     assert_eq!(step.purpose, "hypothesis");
@@ -49,8 +49,8 @@ fn every_field_parses_from_a_full_step() {
 }
 
 #[test]
-fn a_bare_step_number_is_enough_and_everything_else_defaults() {
-    let step = TraceStep::from_step(&json!({"step_number": 1})).expect("parses");
+fn a_bare_step_has_empty_text_and_every_flag_off() {
+    let step = TraceStep::from_think(&fixtures::step_from(json!({"step_number": 1})));
     assert_eq!(step.number, 1);
     assert!(step.purpose.is_empty());
     assert_eq!(step.confidence, None);
@@ -62,16 +62,9 @@ fn a_bare_step_number_is_enough_and_everything_else_defaults() {
 
 #[test]
 fn a_structured_next_action_reads_its_action() {
-    let step = TraceStep::from_step(&json!({
+    let step = TraceStep::from_think(&fixtures::step_from(json!({
         "step_number": 2,
         "next_action": {"action": "run the gates", "tool": "magistr_gate"},
-    }))
-    .expect("parses");
+    })));
     assert_eq!(step.next_action, "run the gates");
-}
-
-#[test]
-fn no_step_number_is_no_step() {
-    assert_eq!(TraceStep::from_step(&json!({"purpose": "x"})), None);
-    assert_eq!(TraceStep::from_step(&json!("nonsense")), None);
 }

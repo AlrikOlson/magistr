@@ -6,7 +6,7 @@ use tokio::sync::broadcast;
 
 use crate::cost::{BudgetConfig, CostGovernor};
 use crate::error::Result;
-use crate::native::{NativeFrame, NativeReader, NativeRoadmapSnapshot};
+use crate::native::{NativeReader, NativeRoadmapSnapshot};
 use crate::project::ProjectContext;
 use crate::roadmap::RoadmapEvent;
 use crate::roadmap::{RoadmapManager, RoadmapProgress};
@@ -446,17 +446,6 @@ impl EngineHandle {
             snapshot: snapshot.clone(),
         }));
         Some(snapshot)
-    }
-
-    /// Relay a frame from the think-and-ship broadcast socket. Roadmap
-    /// frames also refresh the native roadmap so progress tracks writes an
-    /// external server made.
-    pub fn emit_native_frame(&self, frame: NativeFrame) {
-        let refresh = frame.is_roadmap();
-        self.emit(EngineEvent::Native(frame));
-        if refresh {
-            self.refresh_native_roadmap();
-        }
     }
 
     // ── Project context ─────────────────────────────────────────────────

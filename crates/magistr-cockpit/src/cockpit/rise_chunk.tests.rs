@@ -1,6 +1,6 @@
 use super::*;
 use crate::cockpit::{Msg, Size, Surface, update};
-use crate::engine::{EngineEvent, StoreSeed};
+use crate::engine::EngineEvent;
 
 /// A window on `here` — the chunk the rail names, executing — with a
 /// pending `next` and a done `shipped` beside it.
@@ -10,14 +10,13 @@ fn window() -> Model {
     let chunk = |id: &str, status: &str| serde_json::json!({"id": id, "name": id, "title": id, "status": status, "priority": 200});
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            chunk: Some("here".to_owned()),
-            chunks: vec![
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            chunks: crate::harness::fixtures::chunks_from(vec![
                 chunk("here", "in_progress"),
                 chunk("next", "pending"),
                 chunk("shipped", "done"),
-            ],
-            ..StoreSeed::default()
+            ]),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     m

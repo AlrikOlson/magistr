@@ -1,11 +1,22 @@
-use magistr_engine::NativeFrame;
+use magistr_engine::NativeEvent;
+use magistr_engine::native::{Chunk, Signal};
 use serde_json::json;
 
 use super::*;
 use crate::cockpit::Eased;
+use crate::harness::fixtures;
 
-fn chunk(id: &str, status: &str, priority: u32, group: &str, deps: &[&str]) -> serde_json::Value {
-    json!({
+/// The record for a chunk of `status` and `priority` in `group` standing
+/// on `deps`, as the wire would carry it — the store's real statuses,
+/// plus `stuck` for work in progress that waits on a person.
+fn chunk_json(
+    id: &str,
+    status: &str,
+    priority: u32,
+    group: &str,
+    deps: &[&str],
+) -> serde_json::Value {
+    let mut chunk = json!({
         "id": id,
         "name": id,
         "title": format!("Chunk {id}"),
@@ -16,33 +27,58 @@ fn chunk(id: &str, status: &str, priority: u32, group: &str, deps: &[&str]) -> s
         "description": "desc",
         "acceptance": ["works"],
         "cross_refs": [],
-    })
+    });
+    if status == "stuck" {
+        chunk["status"] = json!("in_progress");
+        chunk["blocked_by"] = json!({"kind": "awaiting_human", "reason": "needs a decision"});
+    }
+    chunk
 }
 
-fn signal(id: &str, status: &str) -> serde_json::Value {
-    json!({
+fn chunk(id: &str, status: &str, priority: u32, group: &str, deps: &[&str]) -> Chunk {
+    fixtures::chunk_from(chunk_json(id, status, priority, group, deps))
+}
+
+fn signal(id: &str, status: &str) -> Signal {
+    fixtures::signal_from(json!({
         "id": id,
         "kind": "idea",
         "from": "alice",
         "body": "make it faster",
         "status": status,
         "enrichment": [{"confidence": 0.8}, {"confidence": 0.4}],
-    })
+    }))
 }
 
-fn frame(family: &str, kind: &str, key: &str, payload: serde_json::Value) -> NativeFrame {
-    NativeFrame {
-        family: family.to_owned(),
-        kind: kind.to_owned(),
-        payload: json!({ "family": family, "type": kind, key: payload }),
-    }
+fn frame(family: &str, kind: &str, key: &str, payload: serde_json::Value) -> NativeEvent {
+    fixtures::frame(family, kind, json!({ key: payload }))
+}
+
+/// The roadmap event of `kind` carrying `chunk`.
+fn chunk_frame(kind: &str, chunk: Chunk) -> NativeEvent {
+    frame(
+        "roadmap",
+        kind,
+        "chunk",
+        serde_json::to_value(chunk).expect("a chunk serializes"),
+    )
+}
+
+/// The signal event of `kind` carrying `signal`.
+fn signal_frame(kind: &str, signal: Signal) -> NativeEvent {
+    frame(
+        "signal",
+        kind,
+        "signal",
+        serde_json::to_value(signal).expect("a signal serializes"),
+    )
 }
 
 /// A dependency chain `c0 → c1 → …`, wide enough to overflow a small
 /// graph block.
 fn chained(n: usize) -> Roadmap {
     let ids: Vec<String> = (0..n).map(|i| format!("c{i}")).collect();
-    let chunks: Vec<serde_json::Value> = ids
+    let chunks: Vec<Chunk> = ids
         .iter()
         .enumerate()
         .map(|(i, id)| {
@@ -128,10 +164,8 @@ fn frames_upsert_chunks_and_signals() {
     let mut roadmap = seeded();
     // A change to a known chunk replaces it.
     roadmap.apply(
-        &frame(
-            "roadmap",
+        &chunk_frame(
             "chunk_changed",
-            "chunk",
             chunk("ui", "in_progress", 200, "Views", &["mid"]),
         ),
         0.0,
@@ -143,24 +177,14 @@ fn frames_upsert_chunks_and_signals() {
     );
     // A new chunk appends.
     roadmap.apply(
-        &frame(
-            "roadmap",
-            "chunk_added",
-            "chunk",
-            chunk("new", "pending", 300, "Views", &[]),
-        ),
+        &chunk_frame("chunk_added", chunk("new", "pending", 300, "Views", &[])),
         0.0,
         false,
     );
     assert!(roadmap.chunk("new").is_some());
     // A dismissal empties the inbox.
     roadmap.apply(
-        &frame(
-            "signal",
-            "signal_dismissed",
-            "signal",
-            signal("s1", "dismissed"),
-        ),
+        &signal_frame("signal_dismissed", signal("s1", "dismissed")),
         0.0,
         false,
     );
@@ -251,7 +275,7 @@ fn panning_shifts_nodes_and_clamps_at_the_extent() {
 #[test]
 fn proposals_list_every_open_suggestion_with_its_chunk() {
     let mut roadmap = seeded();
-    let mut with_proposal = chunk("ui", "pending", 200, "Views", &["mid"]);
+    let mut with_proposal = chunk_json("ui", "pending", 200, "Views", &["mid"]);
     with_proposal["reprioritize"] = json!({"suggested_priority": 100, "reason": "sooner"});
     with_proposal["title_proposal"] = json!({"suggested_title": "Better", "reason": "clearer"});
     roadmap.apply(
@@ -276,7 +300,7 @@ fn an_empty_tab_says_so() {
 
 /// A 15-chunk chain c00 ← c01 ← … ← c14 with `here` in progress.
 fn chain(here: usize) -> Roadmap {
-    let chunks: Vec<serde_json::Value> = (0..15)
+    let chunks: Vec<Chunk> = (0..15)
         .map(|n| {
             let deps: Vec<String> = if n > 0 {
                 vec![format!("c{:02}", n - 1)]
@@ -288,10 +312,10 @@ fn chain(here: usize) -> Roadmap {
                 _ if n < here => "done",
                 _ => "pending",
             };
-            json!({
+            fixtures::chunk_from(json!({
                 "id": format!("c{n:02}"), "name": format!("c{n:02}"),
                 "status": status, "priority": 100, "group": "Core", "deps": deps,
-            })
+            }))
         })
         .collect();
     let mut roadmap = Roadmap::default();
@@ -318,12 +342,12 @@ fn the_mini_dag_keeps_the_neighbourhood_of_you_are_here() {
 
 #[test]
 fn the_mini_dag_without_a_here_takes_the_working_sets_head() {
-    let chunks: Vec<serde_json::Value> = (0..12)
+    let chunks: Vec<Chunk> = (0..12)
         .map(|n| {
-            json!({
+            fixtures::chunk_from(json!({
                 "id": format!("p{n:02}"), "name": format!("p{n:02}"),
                 "status": "pending", "priority": 100 + n, "group": "Core", "deps": [],
-            })
+            }))
         })
         .collect();
     let mut roadmap = Roadmap::default();
@@ -380,10 +404,10 @@ fn eyeball_a_hundred_chunk_tree() {
             7 => "backlog",
             _ => "blocked",
         };
-        chunks.push(json!({
+        chunks.push(fixtures::chunk_from(json!({
             "id": format!("c{i}"), "status": status,
             "priority": 100 + (i % 4) * 100, "group": group, "deps": deps,
-        }));
+        })));
     }
     roadmap.seed(&chunks, &[]);
     roadmap.set_viewport(Some((64, 14)));
@@ -705,10 +729,8 @@ fn opening_a_row_focuses_its_node_and_folding_it_leaves_the_camera() {
 fn a_frame_that_puts_a_chunk_in_progress_takes_the_camera_with_it() {
     let mut roadmap = overflowing();
     roadmap.apply(
-        &frame(
-            "roadmap",
-            "chunk_started",
-            "chunk",
+        &chunk_frame(
+            "chunk_changed",
             chunk("c39", "in_progress", 100, "Core", &["c38"]),
         ),
         0.0,
@@ -724,10 +746,8 @@ fn a_frame_that_puts_a_chunk_in_progress_takes_the_camera_with_it() {
     roadmap.pan_by(-5.0, 0.0);
     let held = roadmap.pan();
     roadmap.apply(
-        &frame(
-            "roadmap",
+        &chunk_frame(
             "chunk_changed",
-            "chunk",
             chunk("c39", "in_progress", 100, "Core", &["c38"]),
         ),
         Eased::STEPS as f32,
@@ -860,7 +880,7 @@ fn a_ref_resolves_to_the_chunk_that_names_it_or_to_no_chunk_at_all() {
     // cross_refs. Everything else is not a link, which is what keeps an
     // unresolvable ref plain text.
     let mut linked = chunk("tui2-5b", "pending", 100, "TUI", &[]);
-    linked["cross_refs"] = json!(["task:trace-jump", "think:261"]);
+    linked.cross_refs = vec!["task:trace-jump".to_owned(), "think:261".to_owned()];
     let mut roadmap = Roadmap::default();
     roadmap.seed(&[linked, chunk("other", "done", 90, "TUI", &[])], &[]);
 
@@ -910,13 +930,8 @@ fn shipping() -> Roadmap {
     roadmap
 }
 
-fn completed(id: &str, group: &str, deps: &[&str]) -> NativeFrame {
-    frame(
-        "roadmap",
-        "chunk_completed",
-        "chunk",
-        chunk(id, "done", 100, group, deps),
-    )
+fn completed(id: &str, group: &str, deps: &[&str]) -> NativeEvent {
+    chunk_frame("chunk_completed", chunk(id, "done", 100, group, deps))
 }
 
 /// A completion names exactly the chunks it made ready — not the ones
@@ -969,12 +984,7 @@ fn reduced_motion_ships_without_a_moment() {
 fn only_a_completion_opens_a_moment() {
     let mut roadmap = shipping();
     roadmap.apply(
-        &frame(
-            "roadmap",
-            "chunk_changed",
-            "chunk",
-            chunk("a", "done", 100, "Core", &[]),
-        ),
+        &chunk_frame("chunk_changed", chunk("a", "done", 100, "Core", &[])),
         10.0,
         true,
     );
@@ -1000,10 +1010,8 @@ fn a_target_that_left_the_graph_is_not_lit() {
     let mut roadmap = shipping();
     roadmap.apply(&completed("a", "Core", &[]), 10.0, true);
     roadmap.apply(
-        &frame(
-            "roadmap",
+        &chunk_frame(
             "chunk_obsoleted",
-            "chunk",
             chunk("b", "obsoleted", 200, "Core", &["a"]),
         ),
         11.0,
@@ -1019,7 +1027,7 @@ fn a_small_graphs_sky_keeps_every_shipped_star() {
     // floor — the constellation is exactly what it always was, which is
     // what keeps every golden and the view-03 template byte-identical.
     let mut roadmap = Roadmap::default();
-    let mut chunks: Vec<serde_json::Value> = (0..7)
+    let mut chunks: Vec<Chunk> = (0..7)
         .map(|n| chunk(&format!("d{n}"), "done", 100, "Core", &[]))
         .collect();
     chunks.push(chunk("work", "in_progress", 100, "Core", &["d6"]));
@@ -1033,7 +1041,7 @@ fn a_deep_history_collapses_to_the_frontier_its_context_and_the_newest_ships() {
     // direct dep of the frontier): the sky keeps the living set, that
     // context star, and the newest twelve ships — the rest live in the
     // counter alone.
-    let mut chunks: Vec<serde_json::Value> = (0..30)
+    let mut chunks: Vec<Chunk> = (0..30)
         .map(|n| chunk(&format!("d{n:02}"), "done", 100, "Core", &[]))
         .collect();
     chunks.push(chunk("work", "in_progress", 100, "Core", &["d02"]));
@@ -1079,7 +1087,7 @@ fn the_filtered_skys_edges_never_dangle_and_the_frontiers_ground_rides_as_contex
     // Every edge names indices inside the filtered graph, and a
     // frontier chunk's shipped ground is always shown — so readiness
     // is never judged against a star that is not there.
-    let mut chunks: Vec<serde_json::Value> = (0..20)
+    let mut chunks: Vec<Chunk> = (0..20)
         .map(|n| chunk(&format!("d{n:02}"), "done", 100, "Core", &[]))
         .collect();
     // Depends on the oldest ship, which the sky hides.

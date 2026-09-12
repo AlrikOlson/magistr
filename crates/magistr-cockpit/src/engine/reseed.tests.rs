@@ -1,7 +1,9 @@
 use std::time::Duration;
 
+use magistr_engine::native::SignalStatus;
 use magistr_engine::{
-    ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, SignalKind, WriterRole,
+    ChunkStatus, NativeConfig, NativeEngines, NativeSnapshot, ProjectAuthority, SignalKind,
+    WriterRole,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
 
@@ -41,7 +43,7 @@ fn add_chunk(engines: &NativeEngines, id: &str) {
 }
 
 /// The next seed, or `None` when nothing arrived within `within`.
-async fn next_seed(rx: &mut UnboundedReceiver<Msg>, within: Duration) -> Option<StoreSeed> {
+async fn next_seed(rx: &mut UnboundedReceiver<Msg>, within: Duration) -> Option<NativeSnapshot> {
     match tokio::time::timeout(within, rx.recv()).await {
         Ok(Some(Msg::Engine(EngineEvent::Seed(seed)))) => Some(seed),
         Ok(other) => panic!("not a seed: {other:?}"),
@@ -56,7 +58,7 @@ async fn a_write_by_another_process_reaches_the_inbox_as_a_seed() {
     add_chunk(&engines, "base");
 
     let (inbox, mut rx) = Inbox::channel();
-    let task = spawn_reseed(engines.reader(), FeedAttached::new(), inbox, TICK);
+    let task = spawn_reseed(engines.reader(), FeedLink::new(), inbox, TICK);
 
     // Nothing changed: nothing is posted, and the cockpit stays idle.
     assert!(
@@ -69,11 +71,7 @@ async fn a_write_by_another_process_reaches_the_inbox_as_a_seed() {
     let seed = next_seed(&mut rx, Duration::from_secs(5))
         .await
         .expect("the write reached the inbox");
-    let ids: Vec<&str> = seed
-        .chunks
-        .iter()
-        .filter_map(|chunk| chunk["id"].as_str())
-        .collect();
+    let ids: Vec<&str> = seed.chunks.iter().map(|chunk| chunk.id.as_str()).collect();
     assert_eq!(ids, vec!["base", "next"]);
 
     // And having caught up, it goes quiet again.
@@ -91,7 +89,7 @@ async fn an_attached_feed_stands_the_re_seed_down() {
     add_chunk(&engines, "base");
 
     let (inbox, mut rx) = Inbox::channel();
-    let attached = FeedAttached::new();
+    let attached = FeedLink::new();
     attached.set(true);
     let task = spawn_reseed(engines.reader(), attached.clone(), inbox, TICK);
     // Let the task take its opening stamp before the store moves under it.
@@ -116,7 +114,7 @@ async fn an_attached_feed_stands_the_re_seed_down() {
 async fn it_ends_once_the_loop_is_gone() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (inbox, rx) = Inbox::channel();
-    let task = spawn_reseed(engines(&tmp).reader(), FeedAttached::new(), inbox, TICK);
+    let task = spawn_reseed(engines(&tmp).reader(), FeedLink::new(), inbox, TICK);
     tokio::time::sleep(TICK / 2).await;
     drop(rx);
     tokio::time::timeout(Duration::from_secs(2), task)
@@ -132,7 +130,7 @@ async fn a_signal_captured_by_another_process_reaches_the_seed() {
     add_chunk(&engines, "base");
 
     let (inbox, mut rx) = Inbox::channel();
-    let task = spawn_reseed(engines.reader(), FeedAttached::new(), inbox, TICK);
+    let task = spawn_reseed(engines.reader(), FeedLink::new(), inbox, TICK);
     // Let the task take its opening stamp before the store moves under it.
     tokio::time::sleep(TICK).await;
 
@@ -156,9 +154,53 @@ async fn a_signal_captured_by_another_process_reaches_the_seed() {
     let ids: Vec<&str> = seed
         .signals
         .iter()
-        .filter_map(|signal| signal["id"].as_str())
+        .map(|signal| signal.id.as_str())
         .collect();
     assert_eq!(ids, vec![captured.id.as_str()]);
-    assert_eq!(seed.signals_pending, 1);
+    assert_eq!(seed.signals[0].status, SignalStatus::New);
+    task.abort();
+}
+
+/// The feed's request is the other way in: a snapshot is read at once,
+/// attached or not, when the feed says frames may have been missed — and
+/// only when the store moved, so a request over an unchanged store posts
+/// nothing.
+#[tokio::test]
+async fn a_snapshot_request_from_the_feed_reads_the_store_even_while_attached() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let engines = engines(&tmp);
+    add_chunk(&engines, "base");
+
+    let (inbox, mut rx) = Inbox::channel();
+    let link = FeedLink::new();
+    link.set(true);
+    // A long period: the timer never fires inside this test, so every
+    // seed that arrives was the request's.
+    let task = spawn_reseed(
+        engines.reader(),
+        link.clone(),
+        inbox,
+        Duration::from_secs(60),
+    );
+    tokio::time::sleep(TICK).await;
+
+    link.request_snapshot();
+    assert!(
+        next_seed(&mut rx, TICK * 6).await.is_none(),
+        "the store did not move: nothing to re-read"
+    );
+
+    add_chunk(&engines, "missed");
+    link.request_snapshot();
+    let seed = next_seed(&mut rx, Duration::from_secs(5))
+        .await
+        .expect("the request was served while attached");
+    let ids: Vec<&str> = seed.chunks.iter().map(|chunk| chunk.id.as_str()).collect();
+    assert_eq!(ids, vec!["base", "missed"]);
+    assert_eq!(
+        seed.cursor,
+        engines.snapshot_cursor(),
+        "the snapshot names where it was read"
+    );
     task.abort();
 }

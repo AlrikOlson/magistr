@@ -11,9 +11,10 @@
 //! time. Without a task the gate still runs and the answer says
 //! `recorded: false` and why.
 //!
-//! `magistr_set_phase` validates ship state before transitioning and records
-//! an action afterward. Execute and verify require an objective and task;
-//! done requires a recorded check.
+//! `magistr_set_phase` validates ship state before transitioning, announces
+//! the phase typed on the feed's `magistr` family and records an action
+//! afterward. Execute and verify require an objective and task; done
+//! requires a recorded check.
 //!
 //! Native engines open only through an admitted [`ProjectAuthority`] in the
 //! service role: identity, the cooperative owner lease and the live feed are
@@ -33,7 +34,7 @@ use magistr_engine::native::{
 
 use crate::application::AdmittedCheck;
 use magistr_core::evidence::{WorkspaceEvidence, writer_config};
-use magistr_engine::{GateOutput, ShipGuardState};
+use magistr_engine::{GateOutput, MagistrFrame, ShipGuardState, WorkflowPhase};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use magistr_workflow::infra::Family;
 use magistr_workflow::mcp::UnifiedService;
@@ -171,7 +172,9 @@ impl MagistrService {
                     return Ok(to_call_tool_result(ToolResult::error(reason)));
                 }
                 let result = self.invoke(&name, args.clone()).await?;
-                if result.is_error != Some(true) {
+                if result.is_error != Some(true)
+                    && let Some(phase) = WorkflowPhase::from_name(phase)
+                {
                     self.record_phase(phase);
                 }
                 Ok(result)
@@ -251,10 +254,10 @@ impl MagistrService {
             spec.required,
         );
         // A gate this server runs is live on the feed socket: every chunk
-        // goes out as a `gate_output` frame keyed by the gate, the frame
-        // the cockpit's engine feed folds into its terminal store. A frame
-        // nobody is attached for is dropped, which is the library's
-        // documented degraded mode, not an error.
+        // goes out on the host's own family as a typed gate-output frame
+        // keyed by the gate, the event the cockpit's engine feed folds into
+        // its terminal store. A frame nobody is attached for is dropped,
+        // which is the library's documented degraded mode, not an error.
         let feed = self.authority.feed().cloned();
         let gate = spec.name.clone();
         let stream = move |bytes: &[u8]| {
@@ -263,7 +266,7 @@ impl MagistrService {
                     gate: gate.clone(),
                     bytes: bytes.to_vec(),
                 };
-                let _ = feed.emit(Family::Ship, &output.frame().payload);
+                let _ = feed.emit(Family::Magistr, &MagistrFrame::GateOutput(output));
             }
         };
         let run = crate::utils::gate::run_gate(
@@ -332,23 +335,33 @@ impl MagistrService {
 
     /// The plan guard on `magistr_set_phase`: why `phase` may not be entered
     /// given this server's ship state, or `None` when it may. Reads the
-    /// same engines `ship_status` answers from, so the guard and the agent
-    /// never disagree on the state.
+    /// same engines' records `ship_status` is answered from, so the guard
+    /// and the agent never disagree on the state.
     fn ship_phase_block(&self, phase: &str) -> Option<String> {
-        ShipGuardState::from_status(&self.engines.ship_status()).phase_block(phase)
+        ShipGuardState::from_ship(
+            self.engines.ship_objective().as_ref(),
+            &self.engines.ship_tasks(),
+        )
+        .phase_block(phase)
     }
 
-    /// `magistr_set_phase` side effect: a `ship_record` action on the active
-    /// task, named. Best effort — without an active task there is nothing
-    /// to record on.
-    fn record_phase(&self, phase: &str) {
+    /// `magistr_set_phase` side effects: the phase announced typed on the
+    /// feed's `magistr` family — what the cockpit reads the phase from —
+    /// and, when a task is active, a `ship_record` action on it naming the
+    /// transition as trace narrative. Both are best effort: a feed nobody
+    /// listens to drops the frame, and without an active task there is
+    /// nothing to record on.
+    fn record_phase(&self, phase: WorkflowPhase) {
+        if let Some(feed) = self.authority.feed() {
+            let _ = feed.emit(Family::Magistr, &MagistrFrame::PhaseSet { phase });
+        }
         let Some(task) = self.engines.ship_active_task_id() else {
             return;
         };
         let _ = self.engines.ship_record_action(
             Some(&task),
             ActionType::Config,
-            format!("workflow phase → {phase}"),
+            format!("workflow phase → {}", phase.label()),
             Vec::new(),
             vec!["magistr_set_phase".to_owned()],
             None,

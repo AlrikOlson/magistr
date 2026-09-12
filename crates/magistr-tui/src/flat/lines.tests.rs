@@ -1,5 +1,3 @@
-use magistr_engine::NativeFrame;
-
 use super::*;
 use magistr_cockpit::agent::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
 use magistr_cockpit::capability::{Mode, TextReason};
@@ -15,11 +13,9 @@ fn agent(model: &mut Model, event: AgentEvent) {
 fn frame(model: &mut Model, family: &str, kind: &str, payload: serde_json::Value) {
     update(
         model,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: family.to_owned(),
-            kind: kind.to_owned(),
-            payload,
-        })),
+        Msg::Engine(EngineEvent::local(
+            magistr_cockpit::harness::fixtures::frame(family, kind, payload),
+        )),
     );
 }
 
@@ -75,8 +71,14 @@ fn session() -> Model {
     frame(
         &mut model,
         "ship",
+        "task_added",
+        serde_json::json!({"task_id": "t1", "title": "wire the banner"}),
+    );
+    frame(
+        &mut model,
+        "ship",
         "task_started",
-        serde_json::json!({"task": {"id": "t1", "title": "wire the banner"}}),
+        serde_json::json!({"task_id": "t1"}),
     );
     frame(
         &mut model,

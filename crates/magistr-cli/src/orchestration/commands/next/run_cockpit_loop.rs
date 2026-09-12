@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use color_eyre::eyre::{self, Context as _};
 use magistr_cockpit::cockpit::{Model, Summary};
-use magistr_cockpit::engine::{EngineClient, StoreSeed};
+use magistr_cockpit::engine::EngineClient;
 use magistr_cockpit::theme::Theme;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};
@@ -92,9 +92,7 @@ pub(crate) async fn run_cockpit_loop(
         ))),
         None => driver,
     };
-    let seed = engines
-        .as_ref()
-        .map(|engines| StoreSeed::read(engines.reader()));
+    let seed = engines.as_ref().map(|engines| engines.reader().snapshot());
     // The socket carries the driver's own iterations; the timer is the
     // safety net for a store written while nothing is attached (the
     // driver re-seeds only at each iteration start).
@@ -114,7 +112,7 @@ pub(crate) async fn run_cockpit_loop(
             crate::orchestration::commands::workspace_files::workspace_files(dir),
         );
     if let Some(seed) = &seed {
-        model = model.with_store_seed(seed);
+        model = model.with_snapshot(seed);
     }
     // The rail is governed the way the driver's sessions are: the
     // project's profile under workflow mode — the terminal draws none

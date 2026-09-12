@@ -13,7 +13,23 @@ pub enum ActionType {
     Review,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl ActionType {
+    /// The wire spelling (snake_case), matching the serde representation.
+    #[must_use]
+    pub const fn as_wire(&self) -> &'static str {
+        match self {
+            ActionType::Code => "code",
+            ActionType::Test => "test",
+            ActionType::Debug => "debug",
+            ActionType::Research => "research",
+            ActionType::Config => "config",
+            ActionType::Refactor => "refactor",
+            ActionType::Review => "review",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Action {
     pub id: u32,
     pub task_id: String,

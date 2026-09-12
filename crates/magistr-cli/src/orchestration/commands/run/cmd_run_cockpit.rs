@@ -7,7 +7,7 @@ use std::time::Duration;
 use color_eyre::eyre::{self, Context as _};
 use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::cockpit::{Model, Summary};
-use magistr_cockpit::engine::{EngineClient, StoreSeed};
+use magistr_cockpit::engine::EngineClient;
 use magistr_cockpit::theme::Theme;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};
@@ -133,7 +133,7 @@ pub async fn cmd_run_cockpit(
                 .with_theme(theme)
                 .with_title(title)
                 .with_debug(debug)
-                .with_store_seed(&StoreSeed::read(engines.reader()))
+                .with_snapshot(&engines.reader().snapshot())
                 .with_workspace_files(
                     crate::orchestration::commands::workspace_files::workspace_files(&root),
                 ),

@@ -1,14 +1,16 @@
 //! One stakeholder signal as the Roadmap tab's inbox holds it.
 
+use magistr_engine::native::{Signal, SignalStatus};
+
 use super::copy::Copy;
 
-/// A signal parsed leniently off a store seed or a `signal_*` broadcast
-/// frame's payload. Only the id is required.
+/// A signal as the inbox shows it, read off the store's own [`Signal`]
+/// record — from a snapshot or a `signal_*` event.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SignalRow {
     /// The signal's id.
     pub id: String,
-    /// The kind wire name (`idea`, `bug`, …).
+    /// The kind, in the store's spelling (`idea`, `bug`, …).
     pub kind: String,
     /// Who raised it.
     pub from: String,
@@ -18,7 +20,8 @@ pub struct SignalRow {
     /// (`content.summary`) — what the Signals view titles the card
     /// with, the body being the stakeholder's own words under it.
     pub summary: Option<String>,
-    /// The status wire name (`new`, `researched`, `promoted`, …).
+    /// The status, in the store's spelling (`new`, `researched`,
+    /// `promoted`, …).
     pub status: String,
     /// The strongest enrichment confidence, when researched.
     pub confidence: Option<f64>,
@@ -29,59 +32,57 @@ pub struct SignalRow {
     /// when promoted — the star the signal became.
     pub promoted_to: Option<String>,
     /// When it was captured, in seconds since the Unix epoch. `None`
-    /// when the payload carries no `created` stamp or one that is not
-    /// RFC 3339.
+    /// when the record's `created` stamp is not RFC 3339.
     pub created_secs: Option<i64>,
 }
 
 impl SignalRow {
-    /// The signal under a payload, when it carries an id.
+    /// The row for the store's record.
     #[must_use]
-    pub fn from_payload(signal: &serde_json::Value) -> Option<Self> {
-        let text = |key: &str| signal[key].as_str().unwrap_or_default().to_owned();
-        let filled = |value: &serde_json::Value| {
-            value
-                .as_str()
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-                .map(str::to_owned)
+    pub fn from_signal(signal: &Signal) -> Self {
+        let filled = |text: &str| {
+            let text = text.trim();
+            (!text.is_empty()).then(|| text.to_owned())
         };
-        let enrichment = signal["enrichment"].as_array();
-        Some(Self {
-            id: signal["id"].as_str()?.to_owned(),
-            kind: text("kind"),
-            from: text("from"),
-            body: text("body"),
-            summary: filled(&signal["content"]["summary"]),
-            status: text("status"),
-            confidence: enrichment.and_then(|trail| {
-                trail
-                    .iter()
-                    .filter_map(|e| e["confidence"].as_f64())
-                    .fold(None, |best: Option<f64>, c| {
-                        Some(best.map_or(c, |b| b.max(c)))
-                    })
-            }),
-            findings: enrichment
-                .and_then(|trail| trail.iter().rev().find_map(|e| filled(&e["summary"]))),
-            promoted_to: signal["cross_refs"].as_array().and_then(|refs| {
-                refs.iter()
-                    .filter_map(serde_json::Value::as_str)
-                    .find_map(|r| r.strip_prefix("chunk:"))
-                    .map(str::to_owned)
-            }),
-            created_secs: signal["created"]
-                .as_str()
-                .and_then(|stamp| chrono::DateTime::parse_from_rfc3339(stamp).ok())
+        Self {
+            id: signal.id.clone(),
+            kind: signal.kind.as_wire().to_owned(),
+            from: signal.from.clone(),
+            body: signal.body.clone(),
+            summary: signal
+                .content
+                .as_ref()
+                .and_then(|content| filled(&content.summary)),
+            status: signal.status.as_wire().to_owned(),
+            confidence: signal
+                .enrichment
+                .iter()
+                .map(|e| e.confidence)
+                .fold(None, |best: Option<f64>, c| {
+                    Some(best.map_or(c, |b| b.max(c)))
+                }),
+            findings: signal
+                .enrichment
+                .iter()
+                .rev()
+                .find_map(|e| filled(&e.summary)),
+            promoted_to: signal
+                .cross_refs
+                .iter()
+                .find_map(|r| r.strip_prefix("chunk:"))
+                .map(str::to_owned),
+            created_secs: chrono::DateTime::parse_from_rfc3339(&signal.created)
+                .ok()
                 .map(|stamp| stamp.timestamp()),
-        })
+        }
     }
 
     /// Whether the inbox still shows it — promotion and dismissal end
     /// the triage.
     #[must_use]
     pub fn is_open(&self) -> bool {
-        self.status != "promoted" && self.status != "dismissed"
+        self.status != SignalStatus::Promoted.as_wire()
+            && self.status != SignalStatus::Dismissed.as_wire()
     }
 
     /// The line a card is titled with: the structured summary when the

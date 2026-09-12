@@ -6,7 +6,7 @@ use crate::workflow::guards::{GuardResult, WorkflowGuard};
 /// Steers the agent when it is about to execute without a recorded ship
 /// plan, or to commit without a recorded quality gate.
 ///
-/// Reads `GuardContext::ship` (a [`magistr_engine::ShipGuardState`] parsed
+/// Reads `GuardContext::ship` (a [`magistr_engine::ShipGuardState`] read
 /// from `ship_status`), so the guard is IO-free: whoever builds the context
 /// asks the ship engine.
 pub struct PlanGuard;

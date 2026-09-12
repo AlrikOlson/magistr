@@ -418,12 +418,10 @@ async fn the_cockpit_complete_action_names_the_verification_task_and_refuses_wit
     all_gates(&engines, service.root());
 
     let done = port.complete_chunk(CHUNK).expect("current evidence");
-    assert_eq!(done["status"], "done");
+    assert_eq!(done.status, magistr_engine::ChunkStatus::Done);
     assert!(
-        done["cross_refs"]
-            .as_array()
-            .is_some_and(|refs| refs.iter().any(|r| r == "task:verify")),
-        "the completion names the verification task it was decided on: {done}"
+        done.cross_refs.iter().any(|r| r == "task:verify"),
+        "the completion names the verification task it was decided on: {done:?}"
     );
     // The final summary tells the recovered failure apart from an
     // outstanding one.

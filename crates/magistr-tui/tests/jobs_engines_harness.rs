@@ -125,7 +125,7 @@ async fn scripted_engines_are_counted_and_the_feed_status_kept() {
                 MS(32),
                 "think",
                 "step_appended",
-                serde_json::json!({"step": 135}),
+                serde_json::json!({"step": {"step_number": 135}}),
             )
             .feed(MS(60), FeedStatus::Disconnected)
             .play(inbox);

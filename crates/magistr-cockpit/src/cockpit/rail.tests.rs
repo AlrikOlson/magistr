@@ -1,13 +1,27 @@
-use magistr_engine::NativeFrame;
+use magistr_engine::{NativeEvent, NativeSnapshot, RoadmapProgress};
 use serde_json::json;
 
 use super::*;
+use crate::harness::fixtures;
 
-fn frame(family: &str, kind: &str, payload: serde_json::Value) -> NativeFrame {
-    NativeFrame {
-        family: family.to_owned(),
-        kind: kind.to_owned(),
-        payload,
+fn frame(family: &str, kind: &str, payload: serde_json::Value) -> NativeEvent {
+    fixtures::frame(family, kind, payload)
+}
+
+/// A snapshot with `done` of `total` chunks and the chunk `chunk` in
+/// progress, when one is named.
+fn progress(chunk: Option<&str>, done: u32, total: u32) -> NativeSnapshot {
+    NativeSnapshot {
+        progress: RoadmapProgress {
+            total_tasks: total,
+            checked_tasks: done,
+            ..RoadmapProgress::default()
+        },
+        chunks: chunk
+            .map(|id| fixtures::chunk_from(json!({"id": id, "status": "in_progress"})))
+            .into_iter()
+            .collect(),
+        ..NativeSnapshot::default()
     }
 }
 
@@ -15,15 +29,15 @@ fn frame(family: &str, kind: &str, payload: serde_json::Value) -> NativeFrame {
 fn seeds_plan_position_and_signals_keeping_geometry() {
     let mut rail = Rail::default();
     rail.toggle();
-    let seed = StoreSeed {
-        ship_status: json!({"objective": {"description": "goal", "status": "in_progress"}}),
-        chunk: Some("r1".to_owned()),
-        done: 3,
-        total: 8,
-        signals_pending: 2,
-        chunks: Vec::new(),
-        signals: Vec::new(),
-        trace: Vec::new(),
+    let seed = NativeSnapshot {
+        objective: Some(fixtures::objective("goal")),
+        signals: vec![
+            fixtures::signal_from(json!({"id": "s1", "status": "new"})),
+            fixtures::signal_from(json!({"id": "s2", "status": "researched"})),
+            fixtures::signal_from(json!({"id": "s3", "status": "promoted"})),
+            fixtures::signal_from(json!({"id": "s4", "status": "dismissed"})),
+        ],
+        ..progress(Some("r1"), 3, 8)
     };
     rail.seed(&seed);
     assert_eq!(rail.ship().objective(), Some("goal"));
@@ -68,12 +82,7 @@ fn a_chunk_turning_in_progress_becomes_you_are_here() {
 #[test]
 fn a_completion_advances_done_and_clears_the_position() {
     let mut rail = Rail::default();
-    rail.seed(&StoreSeed {
-        chunk: Some("r1".to_owned()),
-        done: 3,
-        total: 8,
-        ..StoreSeed::default()
-    });
+    rail.seed(&progress(Some("r1"), 3, 8));
     rail.apply(&frame(
         "roadmap",
         "chunk_completed",

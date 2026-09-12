@@ -1,13 +1,13 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: s
 ---
 ▲ magistr  idle                                                            00:01
-Research▸Plan▸Execute▸Verify
+tabs  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
 │no objective yet          │ │╭─ project ─────────────────────────────────────╮│
-│roadmap 2/4 done          │ ││magistr · Rust / Cargo                         ││
+│▲ tabs · 2/4 done         │ ││magistr · Rust / Cargo                         ││
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ ││master, clean · ACP (available)                ││
 │▲ Tabs                    │ │╰───────────────────────────────────────────────╯│
 │0 before · 1 after        │ │╭─ roadmap ─────────────────────────────────────╮│

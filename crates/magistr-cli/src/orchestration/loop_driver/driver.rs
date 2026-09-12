@@ -11,10 +11,10 @@ use magistr_cockpit::agent::{AgentEvent, SessionOptions, TurnEnd, spawn_session}
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::checkpoint::{CheckpointPort, detach};
 use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
-use magistr_cockpit::engine::{EngineEvent, NativeEnginePort, StoreSeed};
+use magistr_cockpit::engine::{EngineEvent, NativeEnginePort};
 use magistr_cockpit::job::Jobs;
 use magistr_engine::native::{BlockerKind, CheckSettlement, Chunk};
-use magistr_engine::{ChunkStatus, NativeEngines, NativeFrame};
+use magistr_engine::{ChunkStatus, NativeEngines, NativeEvent, RoadmapFrame};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
@@ -156,6 +156,10 @@ enum Intent {
 }
 
 /// What the driver woke up for.
+// `Tap` carries a cockpit `Msg`, which carries a whole store record (see
+// `NativeEvent`); a wake is matched and consumed at once, never kept, so
+// boxing it would buy an allocation per message and no memory.
+#[allow(clippy::large_enum_variant)]
 enum Wake {
     /// A message a tapped producer posted on the cockpit.
     Tap(Msg),
@@ -576,7 +580,7 @@ impl LoopDriver {
             // signals — recorded while no feed was attached, without
             // waiting for a frame.
             self.inbox
-                .send(Msg::Engine(EngineEvent::Seed(StoreSeed::read(engines))));
+                .send(Msg::Engine(EngineEvent::Seed(engines.snapshot())));
             // The chunk the prompt is about to be built for: what the
             // judge is asked about if the agent starts nothing itself.
             self.target = engines.roadmap_next().map(|chunk| chunk.id);
@@ -1358,7 +1362,7 @@ impl LoopDriver {
         match completed {
             Ok(Some(done)) => {
                 self.completed.push(done.id.clone());
-                self.post_chunk_frame(&done, "chunk_completed");
+                self.post_chunk_event(RoadmapFrame::ChunkCompleted { chunk: done });
                 self.note(format!("judge: met — {reason}; {} completed", chunk.id));
             }
             Ok(None) => self.note(format!(
@@ -1452,7 +1456,9 @@ impl LoopDriver {
             )
         });
         match blocked {
-            Ok(Some(blocked)) => self.post_chunk_frame(&blocked, "chunk_changed"),
+            Ok(Some(blocked)) => {
+                self.post_chunk_event(RoadmapFrame::ChunkChanged { chunk: blocked })
+            }
             Ok(None) => {}
             Err(e) => self.post(LoopEvent::Failed(format!(
                 "could not block {} on a human: {e}",
@@ -1462,29 +1468,30 @@ impl LoopDriver {
         Step::End(LoopEnd::NeedsHuman(reason.to_owned()))
     }
 
-    /// A roadmap mutation of the driver's own, as the broadcast frame the
-    /// server would have written — the rail, the dock and the Roadmap tab
-    /// fold it through the one path they already have; the in-process
-    /// engines write no socket.
+    /// A roadmap mutation of the driver's own, as the typed event the
+    /// engines would have announced — the rail, the dock and the Roadmap
+    /// tab fold it through the one path they already have; the in-process
+    /// engines write no socket, so the event is this process's own.
     ///
     /// A publication is recorded like any other operation, and is the one
-    /// kind recovery never redoes: a surface that missed the frame reseeds
+    /// kind recovery never redoes: a surface that missed the event reseeds
     /// from the store, which is where the mutation it announces already is.
-    fn post_chunk_frame(&mut self, chunk: &Chunk, kind: &str) {
-        let publication = match self.intend(
-            OperationKind::Publication,
-            &format!("frame:{kind}:{}", chunk.id),
-        ) {
-            Intent::Attempt(attempt) => Some(attempt),
-            Intent::Established => return,
-            Intent::Unrecorded(_) => None,
+    fn post_chunk_event(&mut self, frame: RoadmapFrame) {
+        let (kind, id) = match &frame {
+            RoadmapFrame::ChunkChanged { chunk } => ("chunk_changed", chunk.id.clone()),
+            RoadmapFrame::ChunkCompleted { chunk } => ("chunk_completed", chunk.id.clone()),
+            RoadmapFrame::ChunkAdded { chunk } => ("chunk_added", chunk.id.clone()),
+            RoadmapFrame::ChunkObsoleted { chunk } => ("chunk_obsoleted", chunk.id.clone()),
+            RoadmapFrame::RefreshRecorded { .. } => ("refresh_recorded", String::new()),
         };
-        let payload = serde_json::to_value(chunk).unwrap_or(serde_json::Value::Null);
-        self.inbox.send(Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "roadmap".to_owned(),
-            kind: kind.to_owned(),
-            payload: serde_json::json!({ "family": "roadmap", "type": kind, "chunk": payload }),
-        })));
+        let publication =
+            match self.intend(OperationKind::Publication, &format!("frame:{kind}:{id}")) {
+                Intent::Attempt(attempt) => Some(attempt),
+                Intent::Established => return,
+                Intent::Unrecorded(_) => None,
+            };
+        self.inbox
+            .send(Msg::Engine(EngineEvent::local(NativeEvent::Roadmap(frame))));
         if let Some(publication) = publication {
             self.settled(&publication, OperationOutcome::Completed);
         }
@@ -1876,7 +1883,7 @@ impl LoopDriver {
             match reopened {
                 Ok(Some(chunk)) => {
                     self.note(format!("{id} reopened: {names} is red"));
-                    self.post_chunk_frame(&chunk, "chunk_changed");
+                    self.post_chunk_event(RoadmapFrame::ChunkChanged { chunk });
                 }
                 Ok(None) => {}
                 Err(e) => self.note(format!("could not reopen {id}: {e}")),
@@ -1949,17 +1956,14 @@ impl LoopDriver {
         }
     }
 
-    /// A roadmap `chunk_completed` frame names a chunk this iteration
+    /// A roadmap completion event names a chunk this iteration
     /// completed; the agent's own words are kept for the judge.
     fn observe(&mut self, msg: &Msg) {
         match msg {
-            Msg::Engine(EngineEvent::Frame(frame))
-                if frame.family == "roadmap" && frame.kind == "chunk_completed" =>
-            {
-                if let Some(id) = frame.payload["chunk"]["id"].as_str() {
-                    self.completed.push(id.to_owned());
-                }
-            }
+            Msg::Engine(EngineEvent::Event {
+                event: NativeEvent::Roadmap(RoadmapFrame::ChunkCompleted { chunk }),
+                ..
+            }) => self.completed.push(chunk.id.clone()),
             Msg::Agent(AgentEvent::Text(text)) => self.transcript.push_str(text),
             // ACP's `UsageUpdate.used` is the context's level; the
             // highest level of the turn is what the turn put in context.

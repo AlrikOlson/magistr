@@ -1,8 +1,13 @@
-//! NDJSON-over-Unix-socket fan-out, shared by both tool families.
+//! NDJSON-over-Unix-socket fan-out, shared by every family.
 //!
 //! Every emitted frame carries a `family` tag so a single viewer can
 //! interleave `think_*` and `ship_*` events on one timeline without
-//! maintaining two socket readers.
+//! maintaining two socket readers, a `seq` — the publisher's own counter,
+//! one per emitted frame across every family sharing the socket — and,
+//! when the publisher declared one, an `epoch`: which incarnation of the
+//! publishing owner this is. Together they let a subscriber tell an
+//! in-order frame from a duplicate, a gap or a new owner without
+//! consulting the store; neither is a revision of any record.
 //!
 //! Construct with [`Broadcaster::spawn`]; missing tokio runtime or a bind
 //! failure returns `None` and the server keeps running unobserved.
@@ -13,12 +18,15 @@
 //! handle for a bind failure.
 
 use std::path::PathBuf;
-#[cfg(unix)]
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(unix)]
 use std::time::Duration;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+use super::epoch_key::EPOCH_KEY;
+use super::seq_key::SEQ_KEY;
 #[cfg(unix)]
 use tokio::io::AsyncWriteExt;
 #[cfg(unix)]
@@ -33,24 +41,45 @@ use tracing::info;
 use tracing::{debug, warn};
 
 /// Identifies which family emitted a frame. Wire form is the lowercase
-/// name (`"think"` / `"ship"` / `"roadmap"` / `"signal"`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+/// name (`"think"` / `"ship"` / `"roadmap"` / `"signal"` / `"magistr"`).
+///
+/// `Magistr` is the host's own family: what the process serving the
+/// socket says about itself — a running gate's bytes, the phase the agent
+/// announced — beside the four store families.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Family {
     Think,
     Ship,
     Roadmap,
     Signal,
+    Magistr,
 }
 
 impl Family {
+    /// Every family, in declaration order.
+    pub const ALL: [Family; 5] = [
+        Family::Think,
+        Family::Ship,
+        Family::Roadmap,
+        Family::Signal,
+        Family::Magistr,
+    ];
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Think => "think",
             Self::Ship => "ship",
             Self::Roadmap => "roadmap",
             Self::Signal => "signal",
+            Self::Magistr => "magistr",
         }
+    }
+
+    /// The family whose wire name is `name`, if any.
+    #[must_use]
+    pub fn parse(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|family| family.as_str() == name)
     }
 }
 
@@ -62,6 +91,13 @@ pub struct Broadcaster {
     /// same thing as being registered.
     #[cfg(unix)]
     subscribers: watch::Receiver<usize>,
+    /// The publisher's counter: one per emitted frame, shared by every
+    /// family handle wrapping this broadcaster, so the socket carries one
+    /// sequence, not one per family.
+    sequence: Arc<AtomicU64>,
+    /// Which incarnation of the publishing owner this is, when the
+    /// publisher declared one ([`Broadcaster::with_epoch`]).
+    epoch: Option<u64>,
 }
 
 impl Broadcaster {
@@ -99,7 +135,28 @@ impl Broadcaster {
         tokio::spawn(fanout_loop(rx, clients, sub_tx));
 
         info!(target: "magistr_workflow::broadcast", "listening at {}", path.display());
-        Some(Self { tx, subscribers })
+        Some(Self {
+            tx,
+            subscribers,
+            sequence: Arc::new(AtomicU64::new(0)),
+            epoch: None,
+        })
+    }
+
+    /// Declare which incarnation of the publishing owner this is: every
+    /// frame carries it as `epoch`, so a subscriber that outlived one
+    /// publisher recognises the next one's frames as a new owner's rather
+    /// than a continuation. Not a revision of anything in the store.
+    #[must_use]
+    pub fn with_epoch(mut self, epoch: u64) -> Self {
+        self.epoch = Some(epoch);
+        self
+    }
+
+    /// The epoch this publisher declared, if any.
+    #[must_use]
+    pub fn epoch(&self) -> Option<u64> {
+        self.epoch
     }
 
     /// Unix sockets don't exist on this platform — always `None`, the same
@@ -114,11 +171,14 @@ impl Broadcaster {
         None
     }
 
-    /// Encode a family-tagged frame: `{"family": "<f>", ...payload}`.
+    /// Encode a family-tagged frame: `{"family": "<f>", "seq": n,
+    /// ["epoch": e,] ...payload}`.
     ///
-    /// `payload` must serialize to a JSON object so the `family` field can
-    /// be flattened onto it. Returns `Err` if encoding fails; otherwise
-    /// the frame is queued for fan-out and the caller does not block.
+    /// `payload` must serialize to a JSON object so the tags can be
+    /// flattened onto it. `seq` is taken from the publisher's counter as
+    /// the frame is encoded, so the sequence follows emission order.
+    /// Returns `Err` if encoding fails; otherwise the frame is queued for
+    /// fan-out and the caller does not block.
     pub fn emit<T: Serialize>(&self, family: Family, payload: &T) -> Result<(), EmitError> {
         let mut value = serde_json::to_value(payload).map_err(EmitError::Encode)?;
         let obj = value.as_object_mut().ok_or(EmitError::PayloadNotObject)?;
@@ -126,6 +186,11 @@ impl Broadcaster {
             "family".to_string(),
             serde_json::Value::String(family.as_str().to_string()),
         );
+        let seq = self.sequence.fetch_add(1, Ordering::AcqRel) + 1;
+        obj.insert(SEQ_KEY.to_string(), serde_json::Value::from(seq));
+        if let Some(epoch) = self.epoch {
+            obj.insert(EPOCH_KEY.to_string(), serde_json::Value::from(epoch));
+        }
         let line = serde_json::to_string(&value).map_err(EmitError::Encode)?;
         self.tx.send(line).map_err(|_| EmitError::Closed)
     }
@@ -315,6 +380,84 @@ mod tests {
         assert_eq!(v["family"], "think");
         assert_eq!(v["kind"], "step");
         assert_eq!(v["n"], 7);
+        assert_eq!(v["seq"], 1, "the first frame is sequence one");
+        assert!(
+            v.get("epoch").is_none(),
+            "a publisher that declared no epoch stamps none: {v}"
+        );
+    }
+
+    /// The sequence is the publisher's, not a family's: two family handles
+    /// over one broadcaster share one counter, and the declared epoch
+    /// rides every frame.
+    #[tokio::test]
+    async fn the_sequence_is_shared_across_families_and_the_epoch_rides_every_frame() {
+        let tmp = TempDir::new().unwrap();
+        let sock = tmp.path().join("broadcast.sock");
+        let b = Broadcaster::spawn(sock.clone())
+            .expect("spawn")
+            .with_epoch(7);
+        assert_eq!(b.epoch(), Some(7));
+        let think = b.clone();
+        let ship = b.clone();
+
+        let stream = UnixStream::connect(&sock).await.unwrap();
+        assert!(
+            b.wait_for_subscribers(1, Duration::from_secs(10)).await,
+            "accept loop never registered the connected client",
+        );
+        let mut reader = BufReader::new(stream);
+
+        think
+            .emit(Family::Think, &Sample { kind: "step", n: 1 })
+            .unwrap();
+        ship.emit(Family::Ship, &Sample { kind: "task", n: 2 })
+            .unwrap();
+        b.emit(
+            Family::Magistr,
+            &Sample {
+                kind: "phase",
+                n: 3,
+            },
+        )
+        .unwrap();
+
+        let mut seen = Vec::new();
+        for _ in 0..3 {
+            let mut line = String::new();
+            tokio::time::timeout(Duration::from_secs(5), reader.read_line(&mut line))
+                .await
+                .unwrap()
+                .unwrap();
+            let v: serde_json::Value = serde_json::from_str(line.trim()).unwrap();
+            assert_eq!(v["epoch"], 7, "{v}");
+            seen.push((
+                v["family"].as_str().unwrap().to_owned(),
+                v["seq"].as_u64().unwrap(),
+            ));
+        }
+        assert_eq!(
+            seen,
+            vec![
+                ("think".to_owned(), 1),
+                ("ship".to_owned(), 2),
+                ("magistr".to_owned(), 3)
+            ],
+            "one counter across the families, in emission order",
+        );
+    }
+
+    #[test]
+    fn every_family_parses_from_its_wire_name_and_nothing_else_does() {
+        for family in Family::ALL {
+            assert_eq!(Family::parse(family.as_str()), Some(family));
+            assert_eq!(
+                serde_json::to_value(family).unwrap(),
+                serde_json::Value::String(family.as_str().to_owned()),
+            );
+        }
+        assert_eq!(Family::parse("workspace"), None);
+        assert_eq!(Family::parse("Ship"), None);
     }
 
     /// The reason `wait_for_subscribers` exists, stated as a property:
@@ -505,8 +648,8 @@ mod tests {
         }
 
         assert_eq!(
-            total_connects, 4,
-            "expected 4 live in-process connect sites across the broadcast tests; \
+            total_connects, 5,
+            "expected 5 live in-process connect sites across the broadcast tests; \
              found {total_connects}. If a file moved or was renamed this gate stopped \
              covering it — fix the window, do not adjust the count to match.",
         );

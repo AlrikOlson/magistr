@@ -61,10 +61,12 @@ pub use guard::{
 };
 pub use handle::{EngineEvent, EngineHandle, WorkflowEvent};
 pub use native::{
-    AttachError, AttachKind, AttachRefusal, CallerIdentity, FeedStatus, GateOutput, McpAcceptor,
-    NativeConfig, NativeEngines, NativeFrame, NativeReader, NativeRoadmapSnapshot, OwnerClient,
-    OwnerCommand, OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, RoadmapBackend,
-    RoadmapCommand, ShipCommand, SignalCommand, ThinkCommand, WriterRole,
+    AttachError, AttachKind, AttachRefusal, CallerIdentity, Delivery, EventCursor, FeedCursor,
+    FeedStatus, GateOutput, MagistrFrame, McpAcceptor, NativeConfig, NativeEngines, NativeEvent,
+    NativeFrame, NativeReader, NativeRoadmapSnapshot, NativeSnapshot, OwnerClient, OwnerCommand,
+    OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, RoadmapBackend, RoadmapCommand,
+    RoadmapFrame, ShipCommand, ShipFrame, SignalCommand, SignalFrame, SnapshotCursor, ThinkCommand,
+    ThinkFrame, WriterRole,
 };
 pub use policy::{
     GovernancePolicy, ModelTier, ModelTierRule, PolicyCondition, PolicyDecision, PolicyEffect,

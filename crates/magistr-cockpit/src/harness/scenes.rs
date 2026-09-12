@@ -20,6 +20,8 @@ use crate::layout::LayoutTree;
 use crate::theme::{Theme, ThemeMode};
 use crate::widget_id::WidgetId;
 
+use super::fixtures;
+
 /// The scenes, as associated functions: each takes the size the still is
 /// taken at and answers the model that surface shows.
 pub struct Scenes;
@@ -318,16 +320,7 @@ impl Scenes {
             ),
             ("ship", "task_started", serde_json::json!({"task_id": "t1"})),
         ] {
-            update(
-                &mut m,
-                Msg::Engine(crate::engine::EngineEvent::Frame(
-                    magistr_engine::NativeFrame {
-                        family: family.to_owned(),
-                        kind: kind.to_owned(),
-                        payload,
-                    },
-                )),
-            );
+            Self::engine_frame(&mut m, family, kind, payload);
         }
         agent(
             &mut m,
@@ -398,15 +391,13 @@ impl Scenes {
         m
     }
 
+    /// Fold the event a socket line of `family` and `kind` carrying
+    /// `payload` would deliver — see [`fixtures::frame`](super::fixtures::frame)
+    /// for how a partial record is filled out.
     pub fn engine_frame(m: &mut Model, family: &str, kind: &str, payload: serde_json::Value) {
-        use crate::engine::EngineEvent;
         update(
             m,
-            Msg::Engine(EngineEvent::Frame(magistr_engine::NativeFrame {
-                family: family.to_owned(),
-                kind: kind.to_owned(),
-                payload,
-            })),
+            Msg::Engine(super::fixtures::event(family, kind, payload)),
         );
     }
 
@@ -482,7 +473,7 @@ impl Scenes {
             "ship",
             "action_recorded",
             serde_json::json!({"task_id": "trace-state", "action": {
-                "action_type": "code", "description": "wired the trace tab"}}),
+                "type": "code", "description": "wired the trace tab"}}),
         );
         Self::engine_frame(
             &mut m,
@@ -554,25 +545,32 @@ impl Scenes {
             serde_json::json!({"suggested_priority": 100, "reason": "sooner"});
         update(
             &mut m,
-            Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-                ship_status: serde_json::Value::Null,
-                chunk: Some("tui2-2-rail".to_owned()),
-                done: 1,
-                total: 3,
-                signals_pending: 1,
-                chunks: vec![
-                    serde_json::json!({"id": "acp-2", "name": "ACP transport", "status": "done",
-                        "priority": 100, "group": "Engine"}),
-                    serde_json::json!({"id": "tui2-2-rail", "name": "Rail and dock", "status": "in_progress",
-                        "priority": 100, "group": "TUI rewrite", "deps": ["acp-2"]}),
-                    proposed,
-                ],
-                signals: vec![serde_json::json!({
-                    "id": "sig-fast", "kind": "idea", "from": "alice", "body": "make startup faster",
-                    "status": "researched", "enrichment": [{"confidence": 0.8}],
-                })],
-                trace: Vec::new(),
-            })),
+            Msg::Engine(crate::engine::EngineEvent::Seed(
+                magistr_engine::NativeSnapshot {
+                    progress: magistr_engine::RoadmapProgress {
+                        total_tasks: 3,
+                        checked_tasks: 1,
+                        ..magistr_engine::RoadmapProgress::default()
+                    },
+                    chunks: vec![
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "acp-2", "name": "ACP transport",
+                        "status": "done", "priority": 100, "group": "Engine"}),
+                        ),
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "tui2-2-rail", "name": "Rail and dock",
+                        "status": "in_progress", "priority": 100, "group": "TUI rewrite",
+                        "deps": ["acp-2"]}),
+                        ),
+                        fixtures::chunk_from(proposed),
+                    ],
+                    signals: vec![fixtures::signal_from(serde_json::json!({
+                        "id": "sig-fast", "kind": "idea", "from": "alice", "body": "make startup faster",
+                        "status": "researched", "enrichment": [{"confidence": 0.8}],
+                    }))],
+                    ..magistr_engine::NativeSnapshot::default()
+                },
+            )),
         );
         m
     }
@@ -635,24 +633,32 @@ impl Scenes {
             .with_tab(StageTab::Roadmap);
         update(
             &mut m,
-            Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-                ship_status: serde_json::Value::Null,
-                chunk: Some("gui2-2a".to_owned()),
-                done: 211,
-                total: 306,
-                signals_pending: 0,
-                chunks: vec![
-                    serde_json::json!({"id": "motion", "name": "motion", "status": "done",
-                        "priority": 200, "group": "core"}),
-                    serde_json::json!({"id": "gui2-2a", "name": "gui2-2a design",
+            Msg::Engine(crate::engine::EngineEvent::Seed(
+                magistr_engine::NativeSnapshot {
+                    progress: magistr_engine::RoadmapProgress {
+                        total_tasks: 306,
+                        checked_tasks: 211,
+                        ..magistr_engine::RoadmapProgress::default()
+                    },
+                    chunks: vec![
+                        fixtures::chunk_from(serde_json::json!({"id": "motion", "name": "motion",
+                        "status": "done", "priority": 200, "group": "core"})),
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "gui2-2a", "name": "gui2-2a design",
                         "status": "in_progress", "priority": 159, "group": "core",
                         "deps": ["motion"]}),
-                    serde_json::json!({"id": "e6b", "name": "OTLP endpoint scope",
-                        "status": "stuck", "priority": 300, "group": "ops"}),
-                ],
-                signals: Vec::new(),
-                trace: Vec::new(),
-            })),
+                        ),
+                        // Stuck: in progress and blocked on a person — the
+                        // record the store keeps for the state word.
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "e6b", "name": "OTLP endpoint scope",
+                        "status": "in_progress", "priority": 300, "group": "ops",
+                        "blocked_by": {"kind": "awaiting_human", "reason": "scope undecided"}}),
+                        ),
+                    ],
+                    ..magistr_engine::NativeSnapshot::default()
+                },
+            )),
         );
         m
     }
@@ -663,21 +669,30 @@ impl Scenes {
         let mut m = Model::new(size).with_tab(StageTab::Home);
         update(
             &mut m,
-            Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-                ship_status: serde_json::Value::Null,
-                chunk: None,
-                done: 2,
-                total: 4,
-                signals_pending: 0,
-                chunks: vec![
-                    serde_json::json!({"id": "core", "name": "Core", "status": "done", "priority": 100}),
-                    serde_json::json!({"id": "rail", "name": "Rail", "status": "done", "priority": 200}),
-                    serde_json::json!({"id": "tabs", "name": "Tabs", "status": "in_progress", "priority": 200}),
-                    serde_json::json!({"id": "launcher", "name": "Launcher", "title": "The launcher page", "status": "pending", "priority": 300, "deps": ["tabs", "rail"]}),
-                ],
-                signals: Vec::new(),
-                trace: Vec::new(),
-            })),
+            Msg::Engine(crate::engine::EngineEvent::Seed(
+                magistr_engine::NativeSnapshot {
+                    progress: magistr_engine::RoadmapProgress {
+                        total_tasks: 4,
+                        checked_tasks: 2,
+                        ..magistr_engine::RoadmapProgress::default()
+                    },
+                    chunks: vec![
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "core", "name": "Core", "status": "done", "priority": 100}),
+                        ),
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "rail", "name": "Rail", "status": "done", "priority": 200}),
+                        ),
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "tabs", "name": "Tabs", "status": "in_progress", "priority": 200}),
+                        ),
+                        fixtures::chunk_from(
+                            serde_json::json!({"id": "launcher", "name": "Launcher", "title": "The launcher page", "status": "pending", "priority": 300, "deps": ["tabs", "rail"]}),
+                        ),
+                    ],
+                    ..magistr_engine::NativeSnapshot::default()
+                },
+            )),
         );
         update(
             &mut m,

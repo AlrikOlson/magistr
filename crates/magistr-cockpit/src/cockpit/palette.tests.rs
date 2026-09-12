@@ -231,10 +231,10 @@ fn a_loop_verb_row_dispatches_the_verb_not_its_key() {
 fn a_chunk_place_opens_the_sky_on_that_star() {
     let mut model = native();
     model.roadmap.seed(
-        &[serde_json::json!({
+        &[crate::harness::fixtures::chunk_from(serde_json::json!({
             "id": "gui2-2d5", "name": "palette", "title": "the palette",
             "status": "in_progress", "priority": 162,
-        })],
+        }))],
         &[],
     );
     chord(&mut model);
@@ -259,19 +259,16 @@ fn enter_on_a_chunk_row_takes_the_fold_and_cmd_enter_holds_the_camera() {
     let seed = |model: &mut Model| {
         update(
             model,
-            Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-                ship_status: serde_json::Value::Null,
-                chunk: Some("gui2-2d5".to_owned()),
-                done: 0,
-                total: 1,
-                signals_pending: 0,
-                chunks: vec![serde_json::json!({
-                    "id": "gui2-2d5", "name": "palette", "title": "the palette",
-                    "status": "in_progress", "priority": 162,
-                })],
-                signals: Vec::new(),
-                trace: Vec::new(),
-            })),
+            Msg::Engine(crate::engine::EngineEvent::Seed(
+                magistr_engine::NativeSnapshot {
+                    progress: crate::harness::fixtures::progress(0, 1),
+                    chunks: crate::harness::fixtures::chunks_from(vec![serde_json::json!({
+                        "id": "gui2-2d5", "name": "palette", "title": "the palette",
+                        "status": "in_progress", "priority": 162,
+                    })]),
+                    ..magistr_engine::NativeSnapshot::default()
+                },
+            )),
         );
     };
     let mut model = native().with_place(Place::Sky);

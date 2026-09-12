@@ -2,7 +2,7 @@
 
 use magistr_engine::{CheckpointReason, policy::RiskTier};
 
-use magistr_engine::FeedStatus;
+use magistr_engine::{FeedStatus, MagistrFrame, NativeEvent, ShipFrame, ThinkFrame};
 
 use super::bad_day::BadDay;
 use super::binding::Binding;
@@ -251,13 +251,18 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 _ => None,
             };
             model.feed = Some(status);
+            model.projection.feed(status);
         }
-        Msg::Engine(EngineEvent::Frame(frame)) => {
+        Msg::Engine(EngineEvent::Event { event, delivery }) => {
+            // A frame delivered twice is folded once.
+            if !model.projection.delivered(delivery) {
+                return Vec::new();
+            }
             // A running gate's bytes are kept by the gate's name, not
             // shown: the pane paints them from the store, and nothing
             // else in the cockpit — the rail, the trace, the phase — has
             // a reading of them.
-            if let Some(output) = magistr_engine::GateOutput::from_frame(&frame) {
+            if let NativeEvent::Magistr(MagistrFrame::GateOutput(output)) = &event {
                 model.note_activity();
                 let tick = model.ticks;
                 model.terminals.push(&output.gate, &output.bytes, tick);
@@ -266,14 +271,14 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             }
             model.engine_frames += 1;
             model.note_activity();
-            model.rail.apply(&frame);
+            model.rail.apply(&event);
             let docked = model.dock.len();
-            model.dock.apply(&frame);
-            model.trace.apply(&frame);
+            model.dock.apply(&event);
+            model.trace.apply(&event);
             let animate = model.theme.motion().is_full();
-            model.roadmap.apply(&frame, model.now(), animate);
-            turn_frame(model, &frame);
-            // The screen-reader channel: each card the frame queued and
+            model.roadmap.apply(&event, model.now(), animate);
+            turn_event(model, &event);
+            // The screen-reader channel: each card the event queued and
             // the phase it moved, as plain lines for the runtime to speak.
             let icons = model.theme().icons();
             let mut cmds: Vec<Cmd> = model
@@ -282,18 +287,14 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 .skip(docked)
                 .map(|card| Cmd::Announce(format!("needs you: {}", card.text(icons))))
                 .collect();
-            if let Some(phase) = Phase::from_frame(&frame)
+            if let Some(phase) = Phase::from_event(&event)
                 && advance_phase(model, phase)
             {
                 cmds.push(Cmd::Announce(format!("phase {phase}")));
             }
             return cmds;
         }
-        Msg::Engine(EngineEvent::Seed(seed)) => {
-            model.rail.seed(&seed);
-            model.roadmap.seed(&seed.chunks, &seed.signals);
-            model.trace.seed(&seed.trace);
-        }
+        Msg::Engine(EngineEvent::Seed(snapshot)) => model.seed(&snapshot),
         Msg::Engine(EngineEvent::Pinned {
             step_number,
             pinned,
@@ -1503,22 +1504,20 @@ fn sync_strip(model: &mut Model, id: &str) {
     model.turn.set_terminal_strip(id, on);
 }
 
-/// Fold one broadcast frame into the turn: a recorded check becomes a
+/// Fold one typed event into the turn: a recorded check becomes a
 /// foldable card, ship task/objective milestones and think steps become
-/// one-line event rows; every other frame stays off the stage.
-fn turn_frame(model: &mut Model, frame: &magistr_engine::NativeFrame) {
-    let payload = &frame.payload;
-    match (frame.family.as_str(), frame.kind.as_str()) {
-        ("ship", "check_recorded") => {
-            let check = &payload["check"];
-            let name = check["name"].as_str().unwrap_or("check");
+/// one-line event rows; every other event stays off the stage.
+fn turn_event(model: &mut Model, native: &NativeEvent) {
+    match native {
+        NativeEvent::Ship(ShipFrame::CheckRecorded { check, .. }) => {
+            let name = check.name.as_str();
             model.turn.push_check(
                 name,
-                check["command"].as_str(),
-                check["passed"].as_bool().unwrap_or(false),
-                check["exit_code"].as_i64(),
-                check["duration_ms"].as_u64(),
-                check["details"].as_str().unwrap_or_default(),
+                check.command.as_deref(),
+                check.passed,
+                check.exit_code.map(i64::from),
+                check.results.as_ref().and_then(|r| r.duration_ms),
+                &check.details,
             );
             // The gate's run is over: its screen holds still, and the
             // card it just made opens into it when it streamed.
@@ -1528,48 +1527,46 @@ fn turn_frame(model: &mut Model, frame: &magistr_engine::NativeFrame) {
                 sync_strip(model, name);
             }
         }
-        ("ship", "objective_set") => {
-            let description = payload["objective"]["description"]
-                .as_str()
-                .unwrap_or_default();
+        NativeEvent::Ship(ShipFrame::ObjectiveSet { objective }) => {
             model
                 .turn
-                .push_event(&event(model, "objective set", description));
+                .push_event(&event(model, "objective set", &objective.description));
         }
-        ("ship", "task_started") => {
-            let title = payload["task"]["title"]
-                .as_str()
-                .or_else(|| payload["task_id"].as_str())
-                .unwrap_or_default();
-            model.turn.push_event(&event(model, "task started", title));
+        NativeEvent::Ship(ShipFrame::TaskStarted { task_id }) => {
+            let title = task_title(model, task_id);
+            model.turn.push_event(&event(model, "task started", &title));
         }
-        ("ship", "task_completed") => {
-            let title = payload["task"]["title"]
-                .as_str()
-                .or_else(|| payload["task_id"].as_str())
-                .unwrap_or_default();
+        NativeEvent::Ship(ShipFrame::TaskCompleted { task_id }) => {
+            let title = task_title(model, task_id);
             model
                 .turn
-                .push_event(&event(model, "task completed", title));
+                .push_event(&event(model, "task completed", &title));
         }
-        ("ship", "objective_shipped") => {
+        NativeEvent::Ship(ShipFrame::ObjectiveShipped { .. }) => {
             model
                 .turn
                 .push_event(&event(model, "objective shipped", ""));
         }
-        ("think", "step_appended") => {
-            let step = &payload["step"];
-            let head = step["step_number"]
-                .as_u64()
-                .map_or_else(|| "think".to_owned(), |n| format!("think {n}"));
+        NativeEvent::Think(ThinkFrame::StepAppended { step, .. }) => {
+            let head = format!("think {}", step.step_number);
             model.turn.push_event(&format!(
                 "{} {}",
                 model.theme().icons().think,
-                detailed(&head, step["purpose"].as_str().unwrap_or_default())
+                detailed(&head, &step.purpose)
             ));
         }
         _ => {}
     }
+}
+
+/// The task's title as the plan knows it, or its id when the plan does
+/// not — a task event names only the id.
+fn task_title(model: &Model, task_id: &str) -> String {
+    model
+        .rail
+        .ship()
+        .task(task_id)
+        .map_or_else(|| task_id.to_owned(), |task| task.title.clone())
 }
 
 /// `▸ what · detail` in the model's icon vocabulary, the detail left

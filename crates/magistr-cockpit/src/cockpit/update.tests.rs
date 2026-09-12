@@ -1,5 +1,5 @@
+use magistr_engine::FeedStatus;
 use magistr_engine::policy::RiskTier;
-use magistr_engine::{FeedStatus, NativeFrame};
 
 use super::*;
 use crate::agent::{AgentEvent, ImageBlock, TurnEnd};
@@ -151,7 +151,14 @@ fn the_activity_ribbon_records_busy_frames_only_and_keeps_its_width() {
          between them is not a sample"
     );
     let busy = |m: &mut Model| {
-        update(m, frame("ship", "noop", serde_json::json!({})));
+        update(
+            m,
+            frame(
+                "magistr",
+                "phase_set",
+                serde_json::json!({"phase": "executing"}),
+            ),
+        );
         update(m, Msg::FrameDue);
     };
     for _ in 0..crate::cockpit::model::ACTIVITY * 2 {
@@ -443,11 +450,11 @@ fn producers_are_counted_and_never_remembered_as_inputs() {
     );
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "roadmap".to_owned(),
-            kind: "chunk_changed".to_owned(),
-            payload: serde_json::json!({"chunk": {"id": "a"}}),
-        })),
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "roadmap",
+            "chunk_changed",
+            serde_json::json!({"chunk": {"id": "a"}}),
+        ))),
     );
     update(
         &mut m,
@@ -647,18 +654,23 @@ fn a_seed_shows_the_stores_plan_without_waiting_for_a_frame() {
     assert_eq!(m.rail().ship().objective(), None);
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-            ship_status: serde_json::json!({
-                "objective": {"description": "ship the rail", "status": "in_progress"},
-                "task_list": [{"id": "t1", "title": "implement", "status": "active"}],
-            }),
-            chunk: Some("tui2-2a1-rail".to_owned()),
-            done: 5,
-            total: 9,
-            signals_pending: 1,
-            chunks: vec![serde_json::json!({"id": "tui2-2a1-rail", "status": "in_progress"})],
-            signals: Vec::new(),
-            trace: Vec::new(),
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            objective: Some(crate::harness::fixtures::objective("ship the rail")),
+            tasks: vec![crate::harness::fixtures::task_from(serde_json::json!({
+                "id": "t1", "title": "implement", "status": "active"
+            }))],
+            progress: crate::harness::fixtures::progress(5, 9),
+            chunks: crate::harness::fixtures::chunks_from(vec![
+                serde_json::json!({"id": "tui2-2a1-rail", "status": "in_progress"}),
+            ]),
+            signals: (0..1)
+                .map(|n| {
+                    crate::harness::fixtures::signal_from(
+                        serde_json::json!({"id": format!("s{n}"), "status": "new"}),
+                    )
+                })
+                .collect(),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     assert_eq!(m.rail().ship().objective(), Some("ship the rail"));
@@ -672,31 +684,25 @@ fn a_seed_shows_the_stores_plan_without_waiting_for_a_frame() {
 fn a_seed_shows_the_stores_trace_and_a_re_seed_replaces_it() {
     let mut m = model();
     assert!(m.trace().is_empty());
-    let frame = |kind: &str, payload: serde_json::Value| magistr_engine::NativeFrame {
-        family: if kind == "step_appended" {
-            "think"
-        } else {
-            "ship"
-        }
-        .to_owned(),
-        kind: kind.to_owned(),
-        payload,
+    let step = |number: u32, purpose: &str| {
+        crate::harness::fixtures::step_from(
+            serde_json::json!({"step_number": number, "purpose": purpose}),
+        )
     };
-    let seed = |trace: Vec<magistr_engine::NativeFrame>| {
-        Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-            trace,
-            ..crate::engine::StoreSeed::default()
+    // The task the gate was recorded on, as the store holds it.
+    let gated_task = || {
+        crate::harness::fixtures::task_from(serde_json::json!({
+            "id": "t1", "checks": [{"name": "lint", "passed": true}],
         }))
     };
-    let step_one = frame(
-        "step_appended",
-        serde_json::json!({"step": {"step_number": 1, "purpose": "open"}}),
-    );
-    let gate = frame(
-        "check_recorded",
-        serde_json::json!({"task_id": "t1", "check": {"name": "lint", "passed": true}}),
-    );
-    update(&mut m, seed(vec![step_one.clone(), gate.clone()]));
+    let seed = |steps: Vec<magistr_engine::ThinkStep>| {
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            steps,
+            tasks: vec![gated_task()],
+            ..magistr_engine::NativeSnapshot::default()
+        }))
+    };
+    update(&mut m, seed(vec![step(1, "open")]));
     assert_eq!(
         m.trace().steps().len(),
         1,
@@ -707,17 +713,7 @@ fn a_seed_shows_the_stores_trace_and_a_re_seed_replaces_it() {
 
     // The loop driver's per-iteration re-seed: the store grew by a step,
     // and the gate it already carried is not counted twice.
-    update(
-        &mut m,
-        seed(vec![
-            step_one,
-            frame(
-                "step_appended",
-                serde_json::json!({"step": {"step_number": 2, "purpose": "close"}}),
-            ),
-            gate,
-        ]),
-    );
+    update(&mut m, seed(vec![step(1, "open"), step(2, "close")]));
     assert_eq!(m.trace().steps().len(), 2);
     assert_eq!(m.trace().moments().len(), 1, "no duplicate moment");
 }
@@ -727,20 +723,20 @@ fn one_engine_frame_updates_the_rail_at_the_next_paint() {
     let mut m = model();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "ship".to_owned(),
-            kind: "objective_set".to_owned(),
-            payload: serde_json::json!({"objective": {"description": "goal"}}),
-        })),
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "ship",
+            "objective_set",
+            serde_json::json!({"objective": {"description": "goal"}}),
+        ))),
     );
     assert_eq!(m.rail().ship().objective(), Some("goal"));
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "signal".to_owned(),
-            kind: "signal_captured".to_owned(),
-            payload: serde_json::json!({"signal": {"id": "s1", "status": "new"}}),
-        })),
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "signal",
+            "signal_captured",
+            serde_json::json!({"signal": {"id": "s1", "status": "new"}}),
+        ))),
     );
     assert_eq!(m.rail().signals_pending(), 1);
 }
@@ -760,9 +756,13 @@ fn ship_and_think_frames_land_as_cards_in_the_turn() {
         &mut m,
         frame(
             "ship",
-            "task_started",
-            serde_json::json!({"task": {"id": "t1", "title": "wire the cards"}}),
+            "task_added",
+            serde_json::json!({"task_id": "t1", "title": "wire the cards"}),
         ),
+    );
+    update(
+        &mut m,
+        frame("ship", "task_started", serde_json::json!({"task_id": "t1"})),
     );
     update(
         &mut m,
@@ -1661,11 +1661,9 @@ fn loop_msg(event: LoopEvent) -> Msg {
 }
 
 fn frame(family: &str, kind: &str, payload: serde_json::Value) -> Msg {
-    Msg::Engine(EngineEvent::Frame(NativeFrame {
-        family: family.to_owned(),
-        kind: kind.to_owned(),
-        payload,
-    }))
+    Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+        family, kind, payload,
+    )))
 }
 
 #[test]
@@ -2309,10 +2307,22 @@ fn refused_proposal_answers_restore_the_original_card_before_queued_cards() {
     for kind in ProposalKind::ALL {
         for (accept, click) in [(true, false), (false, false), (true, true), (false, true)] {
             let mut m = model();
-            let suggestion = if kind == ProposalKind::Reprioritize {
-                serde_json::json!(300)
-            } else {
-                serde_json::json!("updated")
+            // The record's field for each proposal kind, as the store
+            // spells it.
+            let (proposal_key, suggestion_key, suggestion) = match kind {
+                ProposalKind::Reprioritize => {
+                    ("reprioritize", "suggested_priority", serde_json::json!(300))
+                }
+                ProposalKind::Status => (
+                    "status_proposal",
+                    "suggested_status",
+                    serde_json::json!("done"),
+                ),
+                ProposalKind::Title => (
+                    "title_proposal",
+                    "suggested_title",
+                    serde_json::json!("updated"),
+                ),
             };
             update(
                 &mut m,
@@ -2322,7 +2332,7 @@ fn refused_proposal_answers_restore_the_original_card_before_queued_cards() {
                     serde_json::json!({
                         "chunk": {
                             "id": "base",
-                            kind.payload_key(): { kind.suggestion_key(): suggestion, "reason": "review this" }
+                            proposal_key: { suggestion_key: suggestion, "reason": "review this" }
                         }
                     }),
                 ),
@@ -3106,7 +3116,7 @@ fn ship_action_and_check_frames_join_the_timeline() {
             "action_recorded",
             serde_json::json!({
                 "task_id": "wire",
-                "action": {"action_type": "code", "description": "wired the port"},
+                "action": {"type": "code", "description": "wired the port"},
             }),
         ),
     );
@@ -3189,22 +3199,18 @@ fn roadmap_model() -> Model {
     proposed["reprioritize"] = serde_json::json!({"suggested_priority": 100, "reason": "sooner"});
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: Some("mid".to_owned()),
-            done: 1,
-            total: 3,
-            signals_pending: 1,
-            chunks: vec![
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(1, 3),
+            chunks: crate::harness::fixtures::chunks_from(vec![
                 serde_json::json!({"id": "base", "status": "done", "priority": 100, "group": "Core"}),
                 serde_json::json!({"id": "mid", "status": "in_progress", "priority": 100, "group": "Core", "deps": ["base"]}),
                 proposed,
-            ],
-            signals: vec![serde_json::json!({
+            ]),
+            signals: crate::harness::fixtures::signals_from(vec![serde_json::json!({
                 "id": "s1", "kind": "idea", "from": "alice", "body": "faster",
                 "status": "researched",
-            })],
-            trace: Vec::new(),
+            })]),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     m
@@ -3374,11 +3380,11 @@ fn a_port_answer_updates_the_tab_and_the_rail_within_one_frame() {
     // The port's synthesized frame after [Complete] on mid.
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "roadmap".to_owned(),
-            kind: "chunk_completed".to_owned(),
-            payload: serde_json::json!({"chunk": {"id": "mid", "status": "done"}}),
-        })),
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "roadmap",
+            "chunk_completed",
+            serde_json::json!({"chunk": {"id": "mid", "status": "done"}}),
+        ))),
     );
     assert_eq!(
         m.roadmap().chunk("mid").map(|c| c.status.as_str()),
@@ -3390,11 +3396,11 @@ fn a_port_answer_updates_the_tab_and_the_rail_within_one_frame() {
     // A signal answer likewise empties the inbox.
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "signal".to_owned(),
-            kind: "signal_dismissed".to_owned(),
-            payload: serde_json::json!({"signal": {"id": "s1", "status": "dismissed"}}),
-        })),
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "signal",
+            "signal_dismissed",
+            serde_json::json!({"signal": {"id": "s1", "status": "dismissed"}}),
+        ))),
     );
     assert!(m.roadmap().signals().is_empty());
 }
@@ -3841,10 +3847,9 @@ fn a_tab_switch_transitions_on_the_tick_and_goes_still_when_it_is_over() {
 #[test]
 fn progress_eases_on_the_tick_and_seeds_in_place() {
     let mut m = model();
-    let seed = Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-        done: 2,
-        total: 4,
-        ..crate::engine::StoreSeed::default()
+    let seed = Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+        progress: crate::harness::fixtures::progress(2, 4),
+        ..magistr_engine::NativeSnapshot::default()
     }));
     assert_eq!(
         update(&mut m, seed),
@@ -4165,19 +4170,14 @@ fn next_ready_follows_the_engines_pick() {
     let mut m = model();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: None,
-            done: 1,
-            total: 3,
-            signals_pending: 0,
-            chunks: vec![
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(1, 3),
+            chunks: crate::harness::fixtures::chunks_from(vec![
                 serde_json::json!({"id": "base", "status": "done", "priority": 100}),
                 serde_json::json!({"id": "gated", "status": "pending", "priority": 100, "deps": ["open"]}),
                 serde_json::json!({"id": "open", "status": "pending", "priority": 300, "deps": ["base"]}),
-            ],
-            signals: Vec::new(),
-            trace: Vec::new(),
+            ]),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     let next = m.roadmap().next_ready().expect("one chunk is ready");
@@ -4229,9 +4229,9 @@ fn long_roadmap(n: usize) -> Model {
         .collect();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-            chunks,
-            ..crate::engine::StoreSeed::default()
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            chunks: crate::harness::fixtures::chunks_from(chunks),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     m
@@ -5037,18 +5037,18 @@ fn the_zoom_keys_belong_to_the_roadmap_tab_alone() {
 /// pins.
 fn undocked(steps: u32, lines: usize) -> Model {
     let mut m = Model::new(Size::new(180, 50));
-    let trace = (1..=steps)
-        .map(|n| NativeFrame {
-            family: "think".to_owned(),
-            kind: "step_appended".to_owned(),
-            payload: serde_json::json!({"step": {"step_number": n, "purpose": "open"}}),
+    let steps = (1..=steps)
+        .map(|n| {
+            crate::harness::fixtures::step_from(
+                serde_json::json!({"step_number": n, "purpose": "open"}),
+            )
         })
         .collect();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-            trace,
-            ..crate::engine::StoreSeed::default()
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            steps,
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     for n in 0..lines {
@@ -5160,7 +5160,7 @@ fn without_an_undock_rect_the_wheel_moves_the_stage_everywhere() {
 fn chunk_frame(id: &str, reference: &str) -> Msg {
     frame(
         "roadmap",
-        "chunk_updated",
+        "chunk_changed",
         serde_json::json!({"chunk": {
             "id": id, "name": id, "title": "a chunk", "status": "pending",
             "priority": 100, "group": "TUI rewrite", "cross_refs": [reference],
@@ -6274,13 +6274,13 @@ fn briefed() -> Model {
         .with_tab(StageTab::Roadmap);
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "roadmap".to_owned(),
-            kind: "chunk_completed".to_owned(),
-            payload: serde_json::json!({
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "roadmap",
+            "chunk_completed",
+            serde_json::json!({
                 "chunk": {"id": "e10-fleet", "name": "e10-fleet", "status": "done"}
             }),
-        })),
+        ))),
     );
     model.with_away(std::time::Duration::from_secs(6 * 3600 + 12 * 60))
 }
@@ -6740,7 +6740,7 @@ fn a_dropped_folder_walks_the_five_moments() {
     let born = BornData {
         name: "tidewatch".to_owned(),
         dir: "/tmp/tidewatch".to_owned(),
-        chunks: proposal.wire(),
+        chunks: proposal.records(),
         gates: vec!["cargo test".to_owned()],
         protected: Vec::new(),
     };
@@ -6837,7 +6837,7 @@ fn the_ground_fields_choose_and_later_lands_on_the_sky() {
 fn shelf_chunk_frame(id: &str, status: &str) -> Msg {
     frame(
         "roadmap",
-        "chunk_updated",
+        "chunk_changed",
         serde_json::json!({"chunk": {
             "id": id, "name": id, "title": "a shipped chunk", "status": status,
             "priority": 170, "group": "Desktop GUI",
@@ -7281,7 +7281,12 @@ fn a_gates_bytes_arrive_as_engine_frames_and_are_kept_by_the_gate() {
             gate: "check".to_owned(),
             bytes: chunk.to_vec(),
         };
-        let cmds = update(&mut m, Msg::Engine(EngineEvent::Frame(output.frame())));
+        let cmds = update(
+            &mut m,
+            Msg::Engine(EngineEvent::local(magistr_engine::NativeEvent::Magistr(
+                magistr_engine::MagistrFrame::GateOutput(output),
+            ))),
+        );
         assert!(cmds.is_empty(), "{cmds:?}");
     }
     assert_eq!(
@@ -7390,15 +7395,32 @@ fn a_recorded_check_freezes_its_gates_pane_and_seats_it_on_the_card() {
         gate: "check".to_owned(),
         bytes: b"\x1b[32m   Compiling\x1b[0m foo\r\n".to_vec(),
     };
-    update(&mut m, Msg::Engine(EngineEvent::Frame(output.frame())));
-    let frame = magistr_engine::NativeFrame {
-        family: "ship".to_owned(),
-        kind: "check_recorded".to_owned(),
-        payload: serde_json::json!({"check": {
-            "name": "check", "passed": true, "exit_code": 0, "duration_ms": 900, "details": "ok"
-        }}),
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::local(magistr_engine::NativeEvent::Magistr(
+            magistr_engine::MagistrFrame::GateOutput(output),
+        ))),
+    );
+    let check = |name: &str, extra: serde_json::Value| {
+        let mut check = serde_json::json!({"name": name, "passed": true});
+        if let (Some(check), Some(extra)) = (check.as_object_mut(), extra.as_object()) {
+            for (key, value) in extra {
+                check.insert(key.clone(), value.clone());
+            }
+        }
+        Msg::Engine(crate::harness::fixtures::event(
+            "ship",
+            "check_recorded",
+            serde_json::json!({"check": check}),
+        ))
     };
-    update(&mut m, Msg::Engine(EngineEvent::Frame(frame.clone())));
+    update(
+        &mut m,
+        check(
+            "check",
+            serde_json::json!({"exit_code": 0, "duration_ms": 900, "details": "ok"}),
+        ),
+    );
     assert!(
         m.term("check")
             .is_some_and(crate::cockpit::Term::is_finished)
@@ -7412,9 +7434,7 @@ fn a_recorded_check_freezes_its_gates_pane_and_seats_it_on_the_card() {
     );
     // A gate that never streamed makes a card with no pane.
     let mut quiet = model();
-    let mut lint = frame;
-    lint.payload = serde_json::json!({"check": {"name": "lint", "passed": true}});
-    update(&mut quiet, Msg::Engine(EngineEvent::Frame(lint)));
+    update(&mut quiet, check("lint", serde_json::json!({})));
     update(&mut quiet, key(KeyCode::Enter));
     assert!(quiet.turn().rows().iter().all(|r| r.kind != RowKind::Pane));
 }
@@ -7928,15 +7948,14 @@ fn the_chunk_chip_rises_to_the_sky_with_the_card_framed() {
     );
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(crate::engine::StoreSeed {
-            chunk: Some("gui2-2a".to_owned()),
-            chunks: vec![serde_json::json!({
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            chunks: crate::harness::fixtures::chunks_from(vec![serde_json::json!({
                 "id": "gui2-2a",
                 "title": "The design language",
                 "status": "in_progress",
                 "priority": 100
-            })],
-            ..crate::engine::StoreSeed::default()
+            })]),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     let _ = update(&mut m, click(Widget::SessionChunk.id()));
@@ -8276,14 +8295,14 @@ fn anchored_turn() -> Model {
     }
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "ship".to_owned(),
-            kind: "check_recorded".to_owned(),
-            payload: serde_json::json!({"check": {
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "ship",
+            "check_recorded",
+            serde_json::json!({"check": {
                 "name": "test", "passed": true, "exit_code": 0,
                 "details": "r1\nr2\nr3\nr4\nr5\nr6\nr7\nr8"
             }}),
-        })),
+        ))),
     );
     for i in 300..600 {
         agent(&mut m, AgentEvent::Text(format!("line {i}\n")));
@@ -8551,4 +8570,90 @@ fn a_window_paints_between_rows_while_a_notch_glides_and_a_terminal_never_does()
         assert_eq!(m.top_row(), top - Viewport::WHEEL);
         assert_eq!(m.visible_rows().len(), height);
     }
+}
+
+/// A rebuild is deterministic: the same snapshot and the same in-order
+/// events, folded into two fresh models, leave the same projection — and
+/// a frame delivered twice is folded once, so a duplicate changes nothing.
+#[test]
+fn folding_the_same_seed_and_events_rebuilds_the_same_projection_and_a_duplicate_changes_nothing() {
+    use crate::engine::EngineEvent;
+    use crate::harness::fixtures;
+    use magistr_engine::Delivery;
+
+    let seed = || {
+        fixtures::snapshot(
+            vec![
+                fixtures::chunk_from(serde_json::json!({"id": "a", "status": "in_progress"})),
+                fixtures::chunk_from(serde_json::json!({"id": "b", "status": "pending"})),
+            ],
+            vec![fixtures::signal_from(
+                serde_json::json!({"id": "s1", "status": "new"}),
+            )],
+        )
+    };
+    let events = || {
+        vec![
+            (
+                fixtures::frame(
+                    "ship",
+                    "objective_set",
+                    serde_json::json!({"objective": {"description": "goal"}}),
+                ),
+                Delivery::First,
+            ),
+            (
+                fixtures::frame(
+                    "roadmap",
+                    "chunk_completed",
+                    serde_json::json!({"chunk": {"id": "a"}}),
+                ),
+                Delivery::InOrder,
+            ),
+            (
+                fixtures::frame(
+                    "think",
+                    "step_appended",
+                    serde_json::json!({"step": {"step_number": 3, "purpose": "open"}}),
+                ),
+                Delivery::InOrder,
+            ),
+        ]
+    };
+    let build = || {
+        let mut m = model();
+        update(&mut m, Msg::Engine(EngineEvent::Seed(seed())));
+        for (event, delivery) in events() {
+            update(&mut m, Msg::Engine(EngineEvent::Event { event, delivery }));
+        }
+        m
+    };
+    let (first, second) = (build(), build());
+    assert_eq!(first.rail(), second.rail());
+    assert_eq!(first.roadmap(), second.roadmap());
+    assert_eq!(first.trace(), second.trace());
+    assert_eq!(first.projection(), second.projection());
+    assert_eq!(first.turn().rows().len(), second.turn().rows().len());
+
+    let mut again = build();
+    let (event, _) = events().remove(1);
+    update(
+        &mut again,
+        Msg::Engine(EngineEvent::Event {
+            event,
+            delivery: Delivery::Duplicate,
+        }),
+    );
+    assert_eq!(
+        again.rail(),
+        first.rail(),
+        "a duplicate completion is not counted twice"
+    );
+    assert_eq!(again.roadmap(), first.roadmap());
+    assert_eq!(again.turn().rows().len(), first.turn().rows().len());
+    assert_eq!(
+        again.projection().freshness(),
+        first.projection().freshness(),
+        "the projection records the duplicate it saw and stays current"
+    );
 }

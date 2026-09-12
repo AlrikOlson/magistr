@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use magistr_workflow::infra::resolve_project_id_with;
 use magistr_workflow::roadmap::RoadmapEngine;
 use magistr_workflow::roadmap::domain::Chunk;
+use magistr_workflow::ship::domain::objective::Objective;
 use magistr_workflow::ship::domain::task::Task;
 use magistr_workflow::ship::engine::ShipEngine;
 use magistr_workflow::signal::SignalEngine;
@@ -12,8 +13,10 @@ use magistr_workflow::think::domain::ThinkStep;
 use magistr_workflow::think::engine::ReasoningServer;
 
 use super::native_config::NativeConfig;
+use super::native_snapshot::NativeSnapshot;
 use super::open_engines::{open_engines, open_roadmap, open_ship, open_signal};
 use super::snapshot::NativeRoadmapSnapshot;
+use super::snapshot_cursor::SnapshotCursor;
 use crate::roadmap::RoadmapProgress;
 
 /// The read capability over the four think-and-ship engines: queries,
@@ -153,20 +156,17 @@ impl NativeReader {
         *lock(&self.signal) = open_signal(&self.config, self.project_id.clone());
     }
 
-    /// What the store's files look like on disk right now: the newest
-    /// modification time across the persisted domains and their total
-    /// length. `None` with persistence off, and while nothing has been
-    /// written yet.
+    /// Where the store stands on disk: the newest modification time across
+    /// the persisted domains and their total length. `None` with
+    /// persistence off, and while nothing has been written yet.
     ///
     /// A cheap "did anyone else touch this?" for a host that re-reads the
-    /// store on a timer (the cockpit's periodic re-seed while no feed is
-    /// attached): a reload is not free (and [`Self::reload_ship`] is not
-    /// silent), so a caller compares stamps and reloads only when one
-    /// moved. The length is carried beside the time because a filesystem
-    /// with one-second mtime granularity would otherwise hide a fast
-    /// rewrite.
+    /// store on a timer (the cockpit's re-seed while no feed is attached):
+    /// a reload is not free (and [`Self::reload_ship`] is not silent), so a
+    /// caller compares cursors and reloads only when one moved. See
+    /// [`SnapshotCursor`] for what it is not.
     #[must_use]
-    pub fn store_stamp(&self) -> Option<(std::time::SystemTime, u64)> {
+    pub fn snapshot_cursor(&self) -> Option<SnapshotCursor> {
         use magistr_workflow::infra::{Domain, Persistence};
 
         let persist = self.config.persistence_config();
@@ -187,8 +187,47 @@ impl NativeReader {
         files
             .iter()
             .filter_map(|path| std::fs::metadata(path).ok())
-            .filter_map(|meta| Some((meta.modified().ok()?, meta.len())))
-            .reduce(|(newest, total), (at, len)| (newest.max(at), total.saturating_add(len)))
+            .filter_map(|meta| {
+                Some(SnapshotCursor {
+                    modified: meta.modified().ok()?,
+                    length: meta.len(),
+                })
+            })
+            .reduce(|newest, next| SnapshotCursor {
+                modified: newest.modified.max(next.modified),
+                length: newest.length.saturating_add(next.length),
+            })
+    }
+
+    /// The store read whole, family by family, as [`NativeSnapshot`]
+    /// documents it: the cursor first, then the ship objective and tasks,
+    /// the roadmap's chunks and progress, the signals, and the persisted
+    /// reasoning steps — each family under its own lock, none of them
+    /// under a shared one.
+    #[must_use]
+    pub fn snapshot(&self) -> NativeSnapshot {
+        let cursor = self.snapshot_cursor();
+        let (objective, tasks) = {
+            let ship = lock(&self.ship);
+            (ship.objective.clone(), ship.tasks.clone())
+        };
+        let (chunks, progress) = {
+            let roadmap = lock(&self.roadmap);
+            (
+                roadmap.roadmap().chunks.clone(),
+                super::progress::progress_from_roadmap(roadmap.roadmap()),
+            )
+        };
+        let signals = lock(&self.signal).signals().signals.clone();
+        NativeSnapshot {
+            cursor,
+            objective,
+            tasks,
+            progress,
+            chunks,
+            signals,
+            steps: self.think_steps_from_store(),
+        }
     }
 
     /// The reasoning steps as the store holds them right now, read silently
@@ -276,6 +315,12 @@ impl NativeReader {
     #[must_use]
     pub fn ship_status(&self) -> serde_json::Value {
         lock(&self.ship).status()
+    }
+
+    /// The ship objective, once one is set.
+    #[must_use]
+    pub fn ship_objective(&self) -> Option<Objective> {
+        lock(&self.ship).objective.clone()
     }
 
     /// The task a record with no explicit task would land on — the one

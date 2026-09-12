@@ -319,22 +319,21 @@ fn rail_gliding() -> Model {
     update(
         &mut m,
         Msg::Engine(magistr_cockpit::engine::EngineEvent::Seed(
-            magistr_cockpit::engine::StoreSeed {
-                done: 2,
-                total: 8,
-                ..magistr_cockpit::engine::StoreSeed::default()
+            magistr_engine::NativeSnapshot {
+                progress: magistr_cockpit::harness::fixtures::progress(2, 8),
+                ..magistr_engine::NativeSnapshot::default()
             },
         )),
     );
     for _ in 0..4 {
         update(
             &mut m,
-            Msg::Engine(magistr_cockpit::engine::EngineEvent::Frame(
-                magistr_engine::NativeFrame {
-                    family: "roadmap".to_owned(),
-                    kind: "chunk_completed".to_owned(),
-                    payload: serde_json::json!({"chunk": {"id": "x"}}),
-                },
+            Msg::Engine(magistr_cockpit::engine::EngineEvent::local(
+                magistr_cockpit::harness::fixtures::frame(
+                    "roadmap",
+                    "chunk_completed",
+                    serde_json::json!({"chunk": {"id": "x"}}),
+                ),
             )),
         );
     }

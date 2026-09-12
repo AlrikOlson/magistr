@@ -25,10 +25,7 @@
 //! The registry also generates the MCP server configuration needed to
 //! make these tools available to agent sessions (via `.mcp.json`).
 
-pub mod classify;
-pub mod gate_patterns;
 pub mod normalize;
-pub mod patterns;
 
 mod registry;
 mod server;

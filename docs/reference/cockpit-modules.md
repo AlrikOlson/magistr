@@ -157,6 +157,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/fault.rs` | Failure card content, severity, actions, related history, and blocking state | `magistr-cockpit/src/cockpit/fault.tests.rs` |
 | `magistr-cockpit/src/cockpit/fault_verb.rs` | Failure card action label, widget ID, and emphasis | `magistr-cockpit/src/cockpit/fault.tests.rs` |
 | `magistr-cockpit/src/cockpit/frame_clock.rs` | The only clock `view` ever sees | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
+| `magistr-cockpit/src/cockpit/freshness.rs` | Whether the projection is current, stale after a gap or a new owner, or unavailable | `magistr-cockpit/src/cockpit/projection.tests.rs` |
 | `magistr-cockpit/src/cockpit/galaxy.rs` | Native project overview state: projects, selection, and zoom | `magistr-cockpit/src/cockpit/galaxy.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/galaxy_data.rs` | Project overview data and total spend | `magistr-cockpit/src/cockpit/galaxy.tests.rs`
 | `magistr-cockpit/src/cockpit/galaxy_project.rs` | Project metrics for the overview | —
@@ -192,6 +193,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/plan_task.rs` | One task of the ship plan, as the rail lists it | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/pointer_shape.rs` | The mouse pointer's shape, as kitty's OSC 22 names it | `magistr-cockpit/src/cockpit/pointer_shape.tests.rs` |
 | `magistr-cockpit/src/cockpit/progress.rs` | What the terminal's own progress indicator is told | `magistr-cockpit/src/cockpit/progress.tests.rs` |
+| `magistr-cockpit/src/cockpit/projection.rs` | How the model stands to the store: freshness and the last delivery folded | `magistr-cockpit/src/cockpit/projection.tests.rs` |
 | `magistr-cockpit/src/cockpit/prompt.rs` | The prompt: a multi-line editor with history | `magistr-cockpit/src/cockpit/prompt.tests.rs` |
 | `magistr-cockpit/src/cockpit/proposal.rs` | Proposed roadmap items and workstreams, including ordering and names | `magistr-cockpit/src/cockpit/proposal.tests.rs` |
 | `magistr-cockpit/src/cockpit/proposal_kind.rs` | Which field of a chunk an open proposal wants to change | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
@@ -255,16 +257,15 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-cockpit/src/engine/mod.rs` | The think-and-ship engines, in-process, and their live feed | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cockpit/src/engine/apply.rs` | Carrying an engine command out on a port | `magistr-cockpit/src/engine/apply.tests.rs` |
-| `magistr-cockpit/src/engine/attached.rs` | Whether the live feed currently holds the broadcast socket | `magistr-cockpit/src/engine/attached.tests.rs` |
 | `magistr-cockpit/src/engine/attached_port.rs` | The engine port over an owner this process did not open | `magistr-cockpit/src/engine/client.tests.rs` |
 | `magistr-cockpit/src/engine/client.rs` | The engines, opened before the terminal is taken over | `magistr-cockpit/src/engine/client.tests.rs` |
 | `magistr-cockpit/src/engine/error.rs` | Why the engines could not open | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cockpit/src/engine/event.rs` | What the feed — or the cockpit's own engine port — reports | `magistr-tui/tests/jobs_engines_harness.rs` |
-| `magistr-cockpit/src/engine/feed.rs` | The broadcast socket, relayed onto the inbox | `magistr-cockpit/src/engine/feed.tests.rs` |
+| `magistr-cockpit/src/engine/feed.rs` | The broadcast socket decoded at the edge into typed events with their delivery, relayed onto the inbox | `magistr-cockpit/src/engine/feed.tests.rs` |
+| `magistr-cockpit/src/engine/feed_link.rs` | What the feed tells the re-seed: attached or not, and a snapshot asked for | `magistr-cockpit/src/engine/feed_link.tests.rs` |
 | `magistr-cockpit/src/engine/native_port.rs` | The engine port over the in-process engines | `magistr-cockpit/src/engine/native_port.tests.rs` |
 | `magistr-cockpit/src/engine/port.rs` | What the cockpit asks of the think-and-ship engines | `magistr-tui/tests/jobs_engines_harness.rs` |
-| `magistr-cockpit/src/engine/reseed.rs` | Re-reading the store on a timer while no feed is attached | `magistr-cockpit/src/engine/reseed.tests.rs` |
-| `magistr-cockpit/src/engine/seed.rs` | Initial interface state loaded from the engines | `magistr-cockpit/src/engine/seed.tests.rs` |
+| `magistr-cockpit/src/engine/reseed.rs` | Re-reading the store as one snapshot on a timer while no feed is attached, or when the feed asks | `magistr-cockpit/src/engine/reseed.tests.rs` |
 
 ### `golden` — the PNG review flow
 
@@ -289,6 +290,7 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-cockpit/src/harness/mod.rs` | Shared mock services and interface test scenes | `magistr-cockpit/src/cockpit/view.tests.rs` |
 | `magistr-cockpit/src/harness/fake_workbench.rs` | A scripted workbench for the harness | `magistr-cockpit/src/harness/fake_workbench.tests.rs` |
+| `magistr-cockpit/src/harness/fixtures.rs` | Typed store records and events for scenes and tests, filled from partial JSON at the wire's edge | `magistr-cockpit/src/cockpit/view.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/harness/scenes.rs` | Shared scenes for view tests, screenshots, and animation filmstrips | `magistr-tui/tests/goldens.rs` · `magistr-cockpit/src/cockpit/view.tests.rs` |
 
 ### `hit` — mouse hit-testing

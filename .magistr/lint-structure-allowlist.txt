@@ -61,9 +61,7 @@ crates/magistr-cli/src/orchestration/workflow/hook_dispatch.rs
 crates/magistr-cli/src/orchestration/workflow/iteration.rs
 crates/magistr-cli/src/orchestration/workflow/plan.rs
 crates/magistr-cli/src/orchestration/workflow/plans.rs
-crates/magistr-cli/src/orchestration/workflow/tracker.rs
 crates/magistr-cli/src/orchestration/workflow/watcher.rs
-crates/magistr-cli/src/orchestration/workflow/workflow_socket.rs
 crates/magistr-cli/src/output/envelope.rs
 crates/magistr-cli/src/output/renderer.rs
 crates/magistr-cli/src/plugin/discovery.rs

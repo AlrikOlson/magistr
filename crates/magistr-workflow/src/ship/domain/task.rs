@@ -5,7 +5,7 @@ use super::action::Action;
 use super::artifact::Artifact;
 use super::check::Check;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskStatus {
     Planned,
@@ -26,7 +26,7 @@ pub enum TaskType {
     Research,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
     pub title: String,

@@ -1,11 +1,13 @@
 //! One roadmap chunk as the Roadmap tab holds it.
 
+use magistr_engine::native::{Chunk, ChunkStatus};
+
 use super::proposal_kind::ProposalKind;
 
-/// A chunk parsed leniently off a store seed or a `chunk_*` broadcast
-/// frame's payload: identity and status always, the detail fields as the
-/// payload carries them, and every open proposal with its suggestion.
-/// Only the id is required — the engines' wire shape is theirs to grow.
+/// A chunk as the Roadmap tab shows it, read off the store's own
+/// [`Chunk`] record — from a snapshot or a `chunk_*` event: identity and
+/// status always, the detail fields as the record carries them, and
+/// every open proposal with its suggestion.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RoadmapChunk {
     /// The chunk's stable id.
@@ -14,7 +16,11 @@ pub struct RoadmapChunk {
     pub name: String,
     /// The full claim.
     pub title: String,
-    /// The status wire name (`pending`, `in_progress`, …).
+    /// The status, in the roadmap's own spelling (`pending`,
+    /// `in_progress`, …) — the vocabulary the list's section headers and
+    /// the sky's states are named in — with one word the store spells
+    /// as two fields: `stuck`, a chunk in progress that carries a
+    /// blocker (the star that breathes and wears the alert ring).
     pub status: String,
     /// Lower sorts earlier; 100/200/300/400 are the named bands.
     pub priority: u32,
@@ -37,60 +43,36 @@ pub struct RoadmapChunk {
 }
 
 impl RoadmapChunk {
-    /// The chunk under a payload, when it carries an id.
+    /// The row for the store's record.
     #[must_use]
-    pub fn from_payload(chunk: &serde_json::Value) -> Option<Self> {
-        let id = chunk["id"].as_str()?.to_owned();
-        let text = |key: &str| chunk[key].as_str().unwrap_or_default().to_owned();
-        let list = |key: &str| -> Vec<String> {
-            chunk[key]
-                .as_array()
-                .map(|items| {
-                    items
-                        .iter()
-                        .filter_map(|item| item.as_str().map(str::to_owned))
-                        .collect()
-                })
-                .unwrap_or_default()
+    pub fn from_chunk(chunk: &Chunk) -> Self {
+        let name = if chunk.name.is_empty() {
+            chunk.id.clone()
+        } else {
+            chunk.name.clone()
         };
-        let name = match chunk["name"].as_str() {
-            Some(name) if !name.is_empty() => name.to_owned(),
-            _ => id.clone(),
-        };
-        let proposals = ProposalKind::ALL
-            .into_iter()
-            .filter_map(|kind| {
-                let open = chunk.get(kind.payload_key())?.as_object()?;
-                let suggestion = match open.get(kind.suggestion_key())? {
-                    serde_json::Value::String(s) => s.clone(),
-                    serde_json::Value::Number(n) => n.to_string(),
-                    _ => return None,
-                };
-                let reason = open
-                    .get("reason")
-                    .and_then(|r| r.as_str())
-                    .unwrap_or_default()
-                    .to_owned();
-                Some((kind, suggestion, reason))
-            })
-            .collect();
-        Some(Self {
+        Self {
+            id: chunk.id.clone(),
             name,
-            title: text("title"),
-            status: text("status"),
-            priority: u32::try_from(chunk["priority"].as_u64().unwrap_or(0)).unwrap_or(u32::MAX),
-            group: chunk["group"].as_str().map(str::to_owned),
-            deps: list("deps"),
-            description: text("description"),
-            acceptance: list("acceptance"),
-            cross_refs: list("cross_refs"),
-            proposals,
-            updated_secs: chunk["updated_at"]
-                .as_str()
-                .and_then(|stamp| chrono::DateTime::parse_from_rfc3339(stamp).ok())
+            title: chunk.title.clone(),
+            status: status_word(chunk).to_owned(),
+            priority: chunk.priority,
+            group: chunk.group.clone(),
+            deps: chunk.deps.clone(),
+            description: chunk.description.clone(),
+            acceptance: chunk.acceptance.clone(),
+            cross_refs: chunk.cross_refs.clone(),
+            proposals: ProposalKind::ALL
+                .into_iter()
+                .filter_map(|kind| {
+                    kind.on(chunk)
+                        .map(|(suggestion, reason)| (kind, suggestion, reason))
+                })
+                .collect(),
+            updated_secs: chrono::DateTime::parse_from_rfc3339(&chunk.updated_at)
+                .ok()
                 .map(|stamp| stamp.timestamp()),
-            id,
-        })
+        }
     }
 
     /// Whether the chunk still takes part in the plan.
@@ -128,6 +110,15 @@ impl RoadmapChunk {
             _ => "low",
         }
     }
+}
+
+/// The state word for a record: its status as the roadmap spells it, or
+/// `stuck` for work in progress that waits on a blocker.
+fn status_word(chunk: &Chunk) -> &'static str {
+    if chunk.status == ChunkStatus::InProgress && chunk.blocked_by.is_some() {
+        return "stuck";
+    }
+    chunk.status.as_wire()
 }
 
 #[cfg(test)]

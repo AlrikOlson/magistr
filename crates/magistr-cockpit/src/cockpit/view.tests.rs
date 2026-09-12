@@ -305,12 +305,12 @@ fn a_started_chunk_reaches_the_phase_rail_and_a_collapse_drops_the_divider() {
     let mut m = model();
     update(
         &mut m,
-        Msg::Engine(crate::engine::EngineEvent::Frame(
-            magistr_engine::NativeFrame {
-                family: "roadmap".to_owned(),
-                kind: "chunk_changed".to_owned(),
-                payload: serde_json::json!({"chunk": {"id": "tui2-2a1-rail", "status": "in_progress"}}),
-            },
+        Msg::Engine(crate::engine::EngineEvent::local(
+            crate::harness::fixtures::frame(
+                "roadmap",
+                "chunk_changed",
+                serde_json::json!({"chunk": {"id": "tui2-2a1-rail", "status": "in_progress"}}),
+            ),
         )),
     );
     let widgets = laid_out(&m);
@@ -811,15 +811,12 @@ fn snap_tool_calls_120x40() {
 /// passed check and a failed one whose details wait behind the fold.
 fn gated(size: Size) -> Model {
     use crate::engine::EngineEvent;
-    use magistr_engine::NativeFrame;
     fn feed(m: &mut Model, family: &str, kind: &str, payload: serde_json::Value) {
         update(
             m,
-            Msg::Engine(EngineEvent::Frame(NativeFrame {
-                family: family.to_owned(),
-                kind: kind.to_owned(),
-                payload,
-            })),
+            Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+                family, kind, payload,
+            ))),
         );
     }
     let mut m = Model::new(size);
@@ -1102,12 +1099,8 @@ fn minimal_text(size: Size) -> Model {
     ] {
         update(
             &mut m,
-            Msg::Engine(crate::engine::EngineEvent::Frame(
-                magistr_engine::NativeFrame {
-                    family: "ship".to_owned(),
-                    kind: kind.to_owned(),
-                    payload,
-                },
+            Msg::Engine(crate::engine::EngineEvent::local(
+                crate::harness::fixtures::frame("ship", kind, payload),
             )),
         );
     }
@@ -1400,22 +1393,18 @@ fn docked(size: Size) -> Model {
     let mut m = model_at(size);
     for chunk in [
         serde_json::json!({"chunk": {
-            "id": "tui2-3",
+            "id": "tui2-3", "status": "backlog",
             "reprioritize": {"suggested_priority": 300, "reason": "later"},
         }}),
         serde_json::json!({"chunk": {
-            "id": "tui2-4",
+            "id": "tui2-4", "status": "blocked",
             "blocked_by": {"kind": "awaiting_human", "reason": "needs a decision"},
         }}),
     ] {
         update(
             &mut m,
-            Msg::Engine(crate::engine::EngineEvent::Frame(
-                magistr_engine::NativeFrame {
-                    family: "roadmap".to_owned(),
-                    kind: "chunk_changed".to_owned(),
-                    payload: chunk,
-                },
+            Msg::Engine(crate::engine::EngineEvent::local(
+                crate::harness::fixtures::frame("roadmap", "chunk_changed", chunk),
             )),
         );
     }
@@ -1507,11 +1496,11 @@ fn refused_dock_answers_paint_the_error_and_restore_actionable_cards_in_both_the
                 ] {
                     update(
                         &mut m,
-                        Msg::Engine(EngineEvent::Frame(magistr_engine::NativeFrame {
-                            family: "roadmap".to_owned(),
-                            kind: "chunk_changed".to_owned(),
-                            payload: serde_json::json!({"chunk": chunk}),
-                        })),
+                        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+                            "roadmap",
+                            "chunk_changed",
+                            serde_json::json!({"chunk": chunk}),
+                        ))),
                     );
                 }
                 let before: Vec<_> = m.dock().cards().cloned().collect();
@@ -1974,7 +1963,7 @@ fn snap_trace_ship_timeline_120x40() {
         "ship",
         "action_recorded",
         serde_json::json!({"task_id": "wire", "action": {
-            "action_type": "test", "description": "red first"}}),
+            "type": "test", "description": "red first"}}),
     );
     Scenes::engine_frame(
         &mut m,
@@ -2173,13 +2162,13 @@ fn a_tree_selected_done_chunk_shows_its_card_under_the_graph() {
 fn think_step_frame(m: &mut Model, number: u32) {
     update(
         m,
-        Msg::Engine(crate::engine::EngineEvent::Frame(
-            magistr_engine::NativeFrame {
-                family: "think".to_owned(),
-                kind: "step_appended".to_owned(),
-                payload: serde_json::json!({"step": {
+        Msg::Engine(crate::engine::EngineEvent::local(
+            crate::harness::fixtures::frame(
+                "think",
+                "step_appended",
+                serde_json::json!({"step": {
                     "step_number": number, "purpose": "hypothesis", "confidence": 0.7}}),
-            },
+            ),
         )),
     );
 }
@@ -3390,12 +3379,8 @@ fn a_settled_gate_a_completed_task_and_a_completed_chunk_each_pop_once() {
     let ship = |m: &mut Model, kind: &str, payload: serde_json::Value| {
         update(
             m,
-            Msg::Engine(crate::engine::EngineEvent::Frame(
-                magistr_engine::NativeFrame {
-                    family: "ship".to_owned(),
-                    kind: kind.to_owned(),
-                    payload,
-                },
+            Msg::Engine(crate::engine::EngineEvent::local(
+                crate::harness::fixtures::frame("ship", kind, payload),
             )),
         );
     };
@@ -3436,23 +3421,24 @@ fn a_settled_gate_a_completed_task_and_a_completed_chunk_each_pop_once() {
     // the stage that also says "done".
     update(
         &mut m,
-        Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-            done: 3,
-            total: 10,
-            ..crate::engine::StoreSeed::default()
-        })),
+        Msg::Engine(crate::engine::EngineEvent::Seed(
+            magistr_engine::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(3, 10),
+                ..magistr_engine::NativeSnapshot::default()
+            },
+        )),
     );
     Scenes::settle(&mut m);
     let counter = row_of(&m, "3/10 done");
     let quiet = cell_style(&m, 4, counter);
     update(
         &mut m,
-        Msg::Engine(crate::engine::EngineEvent::Frame(
-            magistr_engine::NativeFrame {
-                family: "roadmap".to_owned(),
-                kind: "chunk_completed".to_owned(),
-                payload: serde_json::json!({"chunk": {"id": "x"}}),
-            },
+        Msg::Engine(crate::engine::EngineEvent::local(
+            crate::harness::fixtures::frame(
+                "roadmap",
+                "chunk_completed",
+                serde_json::json!({"chunk": {"id": "x"}}),
+            ),
         )),
     );
     Scenes::ticks(&mut m, Motion::TRANSITION_STEPS / 2);
@@ -3472,11 +3458,12 @@ fn the_progress_bar_eases_to_its_new_value() {
     let mut m = model();
     update(
         &mut m,
-        Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-            done: 2,
-            total: 8,
-            ..crate::engine::StoreSeed::default()
-        })),
+        Msg::Engine(crate::engine::EngineEvent::Seed(
+            magistr_engine::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(2, 8),
+                ..magistr_engine::NativeSnapshot::default()
+            },
+        )),
     );
     let bar = |m: &Model| {
         let mut lines = Vec::new();
@@ -3492,12 +3479,12 @@ fn the_progress_bar_eases_to_its_new_value() {
     for _ in 0..4 {
         update(
             &mut m,
-            Msg::Engine(crate::engine::EngineEvent::Frame(
-                magistr_engine::NativeFrame {
-                    family: "roadmap".to_owned(),
-                    kind: "chunk_completed".to_owned(),
-                    payload: serde_json::json!({"chunk": {"id": "x"}}),
-                },
+            Msg::Engine(crate::engine::EngineEvent::local(
+                crate::harness::fixtures::frame(
+                    "roadmap",
+                    "chunk_completed",
+                    serde_json::json!({"chunk": {"id": "x"}}),
+                ),
             )),
         );
     }
@@ -3857,11 +3844,12 @@ mod pixel_chrome {
         let mut m = model();
         update(
             &mut m,
-            Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-                done: 1,
-                total: 4,
-                ..crate::engine::StoreSeed::default()
-            })),
+            Msg::Engine(crate::engine::EngineEvent::Seed(
+                magistr_engine::NativeSnapshot {
+                    progress: crate::harness::fixtures::progress(1, 4),
+                    ..magistr_engine::NativeSnapshot::default()
+                },
+            )),
         );
         let cells = slot(&m, Widget::RailGauge);
         assert!(
@@ -3905,10 +3893,12 @@ fn long_roadmap(size: Size) -> Model {
         .collect();
     update(
         &mut m,
-        Msg::Engine(crate::engine::EngineEvent::Seed(crate::engine::StoreSeed {
-            chunks,
-            ..crate::engine::StoreSeed::default()
-        })),
+        Msg::Engine(crate::engine::EngineEvent::Seed(
+            magistr_engine::NativeSnapshot {
+                chunks: crate::harness::fixtures::chunks_from(chunks),
+                ..magistr_engine::NativeSnapshot::default()
+            },
+        )),
     );
     m
 }
@@ -4390,7 +4380,7 @@ fn traced_with_chunk(size: Size) -> Model {
     Scenes::engine_frame(
         &mut m,
         "roadmap",
-        "chunk_updated",
+        "chunk_changed",
         serde_json::json!({"chunk": {
             "id": "tui2-5b", "name": "Trace chunk jump", "title": "Jump from a step to its chunk",
             "status": "pending", "priority": 115, "group": "TUI rewrite",

@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::cost::CostEvent;
-use crate::native::NativeFrame;
 use crate::roadmap::RoadmapEvent;
 use crate::session::SessionEvent;
 
@@ -22,6 +21,4 @@ pub enum EngineEvent {
     Cost(CostEvent),
     /// Roadmap progress event.
     Roadmap(RoadmapEvent),
-    /// A frame relayed from the think-and-ship broadcast socket.
-    Native(NativeFrame),
 }

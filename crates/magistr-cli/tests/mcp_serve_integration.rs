@@ -469,7 +469,9 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
     assert_eq!(rows[0]["line"], 3);
     assert_eq!(rows[0]["column"], 5);
 
-    // The phase transition lands as an action on the active task.
+    // The phase transition lands as an action on the active task — a
+    // narrative record of the tool call; the phase itself travels typed on
+    // the feed, and nothing reads it back out of these words.
     let phase = call(&client, "magistr_set_phase", json!({"phase": "verify"})).await;
     assert_ne!(phase.is_error, Some(true), "{phase:?}");
 
@@ -495,9 +497,10 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
         .cloned()
         .unwrap_or_default();
     assert!(
-        actions.iter().any(|a| a["description"]
-            .as_str()
-            .is_some_and(|d| d.contains("verify"))),
+        actions.iter().any(|a| a["tools_used"]
+            .as_array()
+            .is_some_and(|tools| tools.iter().any(|t| t == "magistr_set_phase"))
+            && a["description"] == "workflow phase → Verifying"),
         "phase action recorded: {actions:?} (task {task})"
     );
 
@@ -938,7 +941,7 @@ async fn a_direct_gate_streams_its_bytes_on_the_feed_socket() {
             tokio::time::timeout(Duration::from_millis(500), lines.next_line()).await
         {
             let frame: Value = serde_json::from_str(&line).expect("a json line");
-            if frame["family"] == "ship" && frame["type"] == "gate_output" {
+            if frame["family"] == "magistr" && frame["type"] == "gate_output" {
                 assert_eq!(frame["gate"], "diag", "{frame}");
                 let chunk: Vec<u8> =
                     serde_json::from_value(frame["bytes"].clone()).expect("a byte array");

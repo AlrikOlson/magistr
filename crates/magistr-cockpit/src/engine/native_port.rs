@@ -1,14 +1,15 @@
 //! The engine port over the in-process engines.
 
 use magistr_engine::NativeEngines;
+use magistr_engine::native::{Chunk, Signal};
 
 use super::port::EnginePort;
 use crate::cockpit::ProposalKind;
 
 /// The production [`EnginePort`]: the same admitted in-process
-/// [`NativeEngines`] the entry point opened for the store seed, acting
-/// on the shared store the way the MCP server's verbs do — a pin is
-/// `think_pin_step`, a checkpoint is `think_checkpoint`. The store
+/// [`NativeEngines`] the entry point opened for the store snapshot,
+/// acting on the shared store the way the MCP server's verbs do — a pin
+/// is `think_pin_step`, a checkpoint is `think_checkpoint`. The store
 /// merges on write, so the agent's `magistr mcp-serve` on the same
 /// project sees the mutation too.
 pub struct NativeEnginePort {
@@ -32,14 +33,12 @@ impl EnginePort for NativeEnginePort {
         self.engines.think_checkpoint()
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
-        self.engines.roadmap_start_chunk(id).map(chunk_value)
+    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String> {
+        self.engines.roadmap_start_chunk(id)
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
-        self.engines
-            .roadmap_complete_chunk(id, None)
-            .map(chunk_value)
+    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String> {
+        self.engines.roadmap_complete_chunk(id, None)
     }
 
     fn resolve_proposal(
@@ -47,42 +46,29 @@ impl EnginePort for NativeEnginePort {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<serde_json::Value, String> {
+    ) -> Result<Chunk, String> {
         match kind {
             ProposalKind::Title => self.engines.roadmap_resolve_title_proposal(id, accept),
             ProposalKind::Status => self.engines.roadmap_resolve_status_proposal(id, accept),
             ProposalKind::Reprioritize => self.engines.roadmap_resolve_reprioritize(id, accept),
         }
-        .map(chunk_value)
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<serde_json::Value, String> {
-        self.engines.roadmap_clear_blocked_by(id).map(chunk_value)
+    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String> {
+        self.engines.roadmap_clear_blocked_by(id)
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
-        self.engines.signal_promote(id).map(signal_value)
+    fn promote_signal(&mut self, id: &str) -> Result<Signal, String> {
+        self.engines.signal_promote(id)
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
-        self.engines.signal_ignore(id).map(signal_value)
+    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String> {
+        self.engines.signal_ignore(id)
     }
 
-    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<serde_json::Value, String> {
-        self.engines
-            .signal_snooze(id, i64::from(minutes))
-            .map(signal_value)
+    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<Signal, String> {
+        self.engines.signal_snooze(id, i64::from(minutes))
     }
-}
-
-/// A chunk as the wire would carry it; serialization cannot fail.
-pub(super) fn chunk_value(chunk: magistr_engine::native::Chunk) -> serde_json::Value {
-    serde_json::to_value(chunk).unwrap_or(serde_json::Value::Null)
-}
-
-/// A signal as the wire would carry it; serialization cannot fail.
-pub(super) fn signal_value(signal: magistr_engine::native::Signal) -> serde_json::Value {
-    serde_json::to_value(signal).unwrap_or(serde_json::Value::Null)
 }
 
 #[cfg(test)]

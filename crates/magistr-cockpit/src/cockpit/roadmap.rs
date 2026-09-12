@@ -1,6 +1,7 @@
 //! The Roadmap tab's state.
 
-use magistr_engine::NativeFrame;
+use magistr_engine::native::{Chunk, Signal};
+use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::camera::Camera;
 use super::dag_node::DagNode;
@@ -57,12 +58,12 @@ const FOCUS_PAD: f32 = 1.0;
 const FOCUS_ZOOM: f32 = 1.0;
 
 /// What the Roadmap tab shows: the chunks as the store seeded them and
-/// the broadcast frames (or the engine port's synthesized answers) keep
-/// them, the signals inbox, the selection whose detail card is open, the
-/// hover, and the tech-tree's camera.
+/// the engines' typed events (from the feed or the engine port's own
+/// answers) keep them, the signals inbox, the selection whose detail
+/// card is open, the hover, and the tech-tree's camera.
 ///
-/// Pure state: the store seed arrives through [`Roadmap::seed`], frames
-/// through [`Roadmap::apply`]; nothing here talks to an engine. The
+/// Pure state: the store's snapshot arrives through [`Roadmap::seed`],
+/// events through [`Roadmap::apply`]; nothing here talks to an engine. The
 /// tech-tree layout is derived, not stored: dependency depth is the
 /// column, workstreams are horizontal bands ordered by their best
 /// priority (the tiers), and edges are the `deps`.
@@ -106,17 +107,13 @@ impl Roadmap {
     /// periodic re-read of an unattached cockpit) re-reads later.
     /// Selection, pan and zoom stay: a re-seed must not move the tab
     /// under the human looking at it.
-    pub fn seed(&mut self, chunks: &[serde_json::Value], signals: &[serde_json::Value]) {
-        self.chunks = chunks
-            .iter()
-            .filter_map(RoadmapChunk::from_payload)
-            .collect();
-        self.signals = signals.iter().filter_map(SignalRow::from_payload).collect();
+    pub fn seed(&mut self, chunks: &[Chunk], signals: &[Signal]) {
+        self.chunks = chunks.iter().map(RoadmapChunk::from_chunk).collect();
+        self.signals = signals.iter().map(SignalRow::from_signal).collect();
     }
 
-    /// Fold one broadcast frame in: a roadmap `chunk_*` frame upserts
-    /// its chunk, a signal frame its signal. Every other frame is
-    /// ignored.
+    /// Fold one typed event in: a roadmap chunk event upserts its chunk,
+    /// a signal event its signal. Every other event is ignored.
     ///
     /// A frame that puts a chunk *into* progress also moves the camera
     /// onto it ([`Roadmap::focus`]) — the completion frame the tech-tree
@@ -135,54 +132,62 @@ impl Roadmap {
     /// Under reduced motion no run is recorded at all. That is what
     /// settles the view structurally rather
     /// than a curve pinned at its end: there is nothing to pin.
-    pub fn apply(&mut self, frame: &NativeFrame, now: f32, animate: bool) {
-        match frame.family.as_str() {
-            "roadmap" => {
-                if let Some(chunk) = RoadmapChunk::from_payload(&frame.payload["chunk"]) {
-                    let arrived = chunk.is_in_progress();
-                    let id = chunk.id.clone();
-                    let ships = frame.kind == "chunk_completed" && animate;
-                    let before = ships.then(|| self.ready_ids());
-                    let was = match self.chunks.iter_mut().find(|c| c.id == chunk.id) {
-                        Some(existing) => {
-                            let was = existing.is_in_progress();
-                            *existing = chunk;
-                            was
-                        }
-                        None => {
-                            self.chunks.push(chunk);
-                            false
-                        }
-                    };
-                    if frame.kind == "chunk_completed" && !self.shipped_log.contains(&id) {
-                        self.shipped_log.push(id.clone());
+    pub fn apply(&mut self, event: &NativeEvent, now: f32, animate: bool) {
+        match event {
+            NativeEvent::Roadmap(frame) => {
+                let (chunk, completed) = match frame {
+                    RoadmapFrame::ChunkAdded { chunk }
+                    | RoadmapFrame::ChunkChanged { chunk }
+                    | RoadmapFrame::ChunkObsoleted { chunk } => (chunk, false),
+                    RoadmapFrame::ChunkCompleted { chunk } => (chunk, true),
+                    RoadmapFrame::RefreshRecorded { .. } => return,
+                };
+                let chunk = RoadmapChunk::from_chunk(chunk);
+                let arrived = chunk.is_in_progress();
+                let id = chunk.id.clone();
+                let ships = completed && animate;
+                let before = ships.then(|| self.ready_ids());
+                let was = match self.chunks.iter_mut().find(|c| c.id == chunk.id) {
+                    Some(existing) => {
+                        let was = existing.is_in_progress();
+                        *existing = chunk;
+                        was
                     }
-                    if let Some(before) = before {
-                        let unlocked = self
-                            .ready_ids()
-                            .into_iter()
-                            .filter(|id| !before.contains(id))
-                            .collect();
-                        self.shipped = Some(Shipped {
-                            chunk: id.clone(),
-                            unlocked,
-                            since: now,
-                        });
+                    None => {
+                        self.chunks.push(chunk);
+                        false
                     }
-                    if arrived && !was {
-                        self.focus(&id, now, animate);
-                    }
+                };
+                if completed && !self.shipped_log.contains(&id) {
+                    self.shipped_log.push(id.clone());
+                }
+                if let Some(before) = before {
+                    let unlocked = self
+                        .ready_ids()
+                        .into_iter()
+                        .filter(|id| !before.contains(id))
+                        .collect();
+                    self.shipped = Some(Shipped {
+                        chunk: id.clone(),
+                        unlocked,
+                        since: now,
+                    });
+                }
+                if arrived && !was {
+                    self.focus(&id, now, animate);
                 }
             }
-            "signal" => {
-                if let Some(signal) = SignalRow::from_payload(&frame.payload["signal"]) {
-                    match self.signals.iter_mut().find(|s| s.id == signal.id) {
-                        Some(existing) => *existing = signal,
-                        None => self.signals.push(signal),
-                    }
+            NativeEvent::Signal(frame) => {
+                let (SignalFrame::SignalCaptured { signal }
+                | SignalFrame::SignalChanged { signal }
+                | SignalFrame::SignalDismissed { signal }) = frame;
+                let signal = SignalRow::from_signal(signal);
+                match self.signals.iter_mut().find(|s| s.id == signal.id) {
+                    Some(existing) => *existing = signal,
+                    None => self.signals.push(signal),
                 }
             }
-            _ => {}
+            NativeEvent::Think(_) | NativeEvent::Ship(_) | NativeEvent::Magistr(_) => {}
         }
     }
 

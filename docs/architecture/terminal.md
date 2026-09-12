@@ -26,6 +26,12 @@ workbench ─────┘                         v
 Everything that changes the model arrives as a `Msg`. Effect requests leave as a
 `Cmd`; results return through the inbox. Rendering does not mutate project state.
 
+Engine events are typed before they reach the inbox: the feed task decodes each
+wire line into a `NativeEvent` with its `Delivery`, and the re-seed task posts
+the store as a `NativeSnapshot`. The model folds both through typed rows and
+keeps a `Projection` that says whether what it shows is current, stale or
+unavailable; see [projections](projections.md).
+
 ## Crate boundaries
 
 The cockpit owns `Model`, `Msg`, `Cmd`, `update`, the cell view, layout, hit

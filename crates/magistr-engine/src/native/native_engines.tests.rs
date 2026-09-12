@@ -1,5 +1,5 @@
 use super::*;
-use crate::native::{NativeConfig, NativeReader, ProjectAuthority, WriterRole};
+use crate::native::{NativeConfig, NativeReader, NativeSnapshot, ProjectAuthority, WriterRole};
 use magistr_workflow::roadmap::domain::{BlockerKind, ChunkStatus};
 use magistr_workflow::ship::domain::action::ActionType;
 use magistr_workflow::ship::domain::check::{Check, CheckType};
@@ -552,30 +552,127 @@ fn think_pin_and_checkpoint_act_on_the_live_trace() {
 }
 
 #[test]
-fn the_store_stamp_is_none_without_persistence_and_moves_when_a_writer_lands() {
+fn the_snapshot_cursor_is_none_without_persistence_and_moves_when_a_writer_lands() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
 
     let engines = host(&cfg, "stamped");
-    // Nothing written yet: no file, no stamp.
-    assert_eq!(engines.store_stamp(), None);
+    // Nothing written yet: no file, no cursor.
+    assert_eq!(engines.snapshot_cursor(), None);
 
     add_chunk(&engines, "base", 100, &[]);
-    let first = engines.store_stamp().expect("the roadmap file exists now");
+    let first = engines
+        .snapshot_cursor()
+        .expect("the roadmap file exists now");
 
-    // A second process writing the same store moves the stamp.
+    // A second process writing the same store moves the cursor.
     let other = service(&cfg, "stamped");
     add_chunk(&other, "next", 200, &["base"]);
-    assert_ne!(engines.store_stamp(), Some(first), "the stamp moved");
+    assert_ne!(engines.snapshot_cursor(), Some(first), "the cursor moved");
 
-    // And a store with persistence off never stamps at all.
+    // And a store with persistence off never has one at all.
     let off = reader(
         &NativeConfig::from_lookup(tmp.path().join("proj"), |_| None)
             .with_data_dir(tmp.path().join("data"))
             .persist(false),
         "quiet",
     );
-    assert_eq!(off.store_stamp(), None);
+    assert_eq!(off.snapshot_cursor(), None);
+}
+
+/// The snapshot is the store whole, typed: what the cockpit seeds from
+/// and what a re-read after a gap restores. Each family comes back as the
+/// engine holds it — the ship half with actions and checks on their
+/// tasks — and the cursor is the store's, taken first.
+#[test]
+fn a_snapshot_reads_every_family_whole_with_its_cursor() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = temp_config(&tmp);
+    let engines = host(&cfg, "snapshotted");
+
+    let empty = engines.snapshot();
+    assert_eq!(
+        empty,
+        NativeSnapshot::default(),
+        "an empty store is an empty snapshot"
+    );
+
+    add_chunk(&engines, "base", 100, &[]);
+    add_chunk(&engines, "next", 200, &["base"]);
+    engines.roadmap_start_chunk("base").expect("start");
+    engines
+        .ship_set_objective(
+            "ship the snapshot".into(),
+            vec![],
+            vec![],
+            "chunk:base".into(),
+        )
+        .expect("objective");
+    engines
+        .ship_add_task("t1".into(), "read it".into(), TaskType::Implement, None)
+        .expect("task");
+    engines.ship_start_task("t1").expect("start task");
+    engines
+        .ship_record_action(
+            Some("t1"),
+            ActionType::Code,
+            "wrote the seed".into(),
+            vec![],
+            vec![],
+            None,
+        )
+        .expect("action");
+    engines
+        .ship_record_gate(
+            Some("t1"),
+            "cargo nextest",
+            "true".into(),
+            0,
+            String::new(),
+            true,
+            None,
+        )
+        .expect("gate");
+    engines
+        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .expect("signal");
+    assert!(engines.think_record_step(step(1, "open")).is_ok());
+
+    let snapshot = engines.snapshot();
+    assert_eq!(
+        snapshot.cursor,
+        engines.snapshot_cursor(),
+        "the cursor is the store's stamp"
+    );
+    assert_eq!(
+        snapshot.objective.as_ref().map(|o| o.scope.as_str()),
+        Some("chunk:base")
+    );
+    assert_eq!(snapshot.tasks.len(), 1);
+    assert_eq!(
+        snapshot.tasks[0].actions.len(),
+        1,
+        "actions ride their task"
+    );
+    assert_eq!(snapshot.tasks[0].checks.len(), 1, "checks ride their task");
+    assert_eq!(
+        snapshot.tasks[0].checks[0].exit_code,
+        Some(0),
+        "the exit code ship_status would have dropped"
+    );
+    let ids: Vec<&str> = snapshot.chunks.iter().map(|c| c.id.as_str()).collect();
+    assert_eq!(ids, vec!["base", "next"], "stored order");
+    assert_eq!(snapshot.chunks[0].status, ChunkStatus::InProgress);
+    assert_eq!(snapshot.progress.total_tasks, 2);
+    assert_eq!(snapshot.signals.len(), 1);
+    assert_eq!(snapshot.steps.len(), 1, "the persisted step");
+    assert_eq!(snapshot.steps[0].step_number, 1);
+
+    // A reader opened beside the writer reads the same store to the same
+    // snapshot: the projection is a function of the files, not of the
+    // process that wrote them.
+    let observer = reader(&cfg, "snapshotted");
+    assert_eq!(observer.snapshot(), snapshot);
 }
 
 #[test]

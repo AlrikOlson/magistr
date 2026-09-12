@@ -20,17 +20,9 @@ pub const WORKFLOW_EVENT: &str = "workflow.event";
 pub const COST_EVENT: &str = "cost.event";
 /// Notification method for roadmap progress events.
 pub const ROADMAP_EVENT: &str = "roadmap.event";
-/// A frame relayed from the think-and-ship broadcast socket.
-pub const NATIVE_EVENT: &str = "native.event";
 
 /// All valid notification method names.
-pub const ALL_NOTIFICATIONS: &[&str] = &[
-    SESSION_EVENT,
-    WORKFLOW_EVENT,
-    COST_EVENT,
-    ROADMAP_EVENT,
-    NATIVE_EVENT,
-];
+pub const ALL_NOTIFICATIONS: &[&str] = &[SESSION_EVENT, WORKFLOW_EVENT, COST_EVENT, ROADMAP_EVENT];
 
 // ── Notification payload ────────────────────────────────────────────────────
 
@@ -86,7 +78,6 @@ impl EventNotification {
             EngineEvent::Workflow(_) => WORKFLOW_EVENT,
             EngineEvent::Cost(_) => COST_EVENT,
             EngineEvent::Roadmap(_) => ROADMAP_EVENT,
-            EngineEvent::Native(_) => NATIVE_EVENT,
         }
     }
 
@@ -205,11 +196,10 @@ mod tests {
 
     #[test]
     fn all_notification_methods() {
-        assert_eq!(ALL_NOTIFICATIONS.len(), 5);
+        assert_eq!(ALL_NOTIFICATIONS.len(), 4);
         assert!(ALL_NOTIFICATIONS.contains(&SESSION_EVENT));
         assert!(ALL_NOTIFICATIONS.contains(&WORKFLOW_EVENT));
         assert!(ALL_NOTIFICATIONS.contains(&COST_EVENT));
         assert!(ALL_NOTIFICATIONS.contains(&ROADMAP_EVENT));
-        assert!(ALL_NOTIFICATIONS.contains(&NATIVE_EVENT));
     }
 }

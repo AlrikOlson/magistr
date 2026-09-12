@@ -11,7 +11,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-domain` | Deterministic identities, run rules, policy, and verification values |
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
-| `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
+| `magistr-engine` | Sessions, workflow policies, costs, gates, native think-and-ship integration, and the one producer of typed workflow snapshots and events |
 | `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, generation-fenced single-owner admission with explicit sessions, Unix client attachment through the shared owner endpoint, and the explicit legacy lock migration; the bridge, launcher and worker lifetime live in `magistr-cli` |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
@@ -91,7 +91,10 @@ behavior as external runtimes.
 
 The [terminal](terminal.md) renders the cockpit's `Model` as a cell tree and
 sends `Msg` values to its update function. Effectful work returns messages to
-the shared state instead of mutating it from renderer code.
+the shared state instead of mutating it from renderer code. What the model
+shows of the store arrives as typed [projections](projections.md): one
+producer, a whole snapshot and a sequenced live feed, decoded only at the
+transport edge.
 
 The [peer protocol](peers.md) is a separate engine API for two-party plan agreement
 and worker admission. Its domain types are implemented, but production runtime

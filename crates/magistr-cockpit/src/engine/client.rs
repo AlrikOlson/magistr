@@ -11,10 +11,10 @@ use magistr_engine::{
 };
 use tokio::task::JoinHandle;
 
-use super::attached::FeedAttached;
 use super::attached_port::AttachedEnginePort;
 use super::error::EngineError;
 use super::feed::spawn_feed;
+use super::feed_link::FeedLink;
 use super::native_port::NativeEnginePort;
 use super::port::EnginePort;
 use super::reseed::spawn_reseed;
@@ -45,7 +45,9 @@ pub struct EngineClient {
     /// speaks on it one verb at a time.
     attached: Option<Arc<Mutex<OwnerClient>>>,
     socket: PathBuf,
-    feed_attached: FeedAttached,
+    /// What the feed tells the re-seed: attached or not, and a snapshot
+    /// request when frames may have been missed.
+    link: FeedLink,
 }
 
 impl EngineClient {
@@ -115,7 +117,7 @@ impl EngineClient {
                 reader: NativeReader::open(&config),
                 writer: None,
                 attached: Some(Arc::new(Mutex::new(client))),
-                feed_attached: FeedAttached::new(),
+                link: FeedLink::new(),
             }),
             Err(attach) => Err(EngineError::Occupied {
                 root,
@@ -150,7 +152,7 @@ impl EngineClient {
             reader: NativeReader::open(&config),
             writer: None,
             attached: None,
-            feed_attached: FeedAttached::new(),
+            link: FeedLink::new(),
         })
     }
 
@@ -164,7 +166,7 @@ impl EngineClient {
             reader: engines.reader(),
             writer: Some(engines),
             attached: None,
-            feed_attached: FeedAttached::new(),
+            link: FeedLink::new(),
         }
     }
 
@@ -247,11 +249,11 @@ impl EngineClient {
         &self.socket
     }
 
-    /// Attach the live feed: every frame on the socket and every change
+    /// Attach the live feed: every event on the socket and every change
     /// of attachment reaches `inbox` as `Msg::Engine`, reconnecting for as
     /// long as the loop lives. Abort the handle to stop it early.
     pub fn subscribe(&self, inbox: Inbox) -> JoinHandle<()> {
-        spawn_feed(self.socket.clone(), inbox, self.feed_attached.clone())
+        spawn_feed(self.socket.clone(), inbox, self.link.clone())
     }
 
     /// How often a cockpit with no feed attached re-reads the store.
@@ -260,17 +262,13 @@ impl EngineClient {
     pub const RESEED: Duration = Duration::from_secs(15);
 
     /// Re-read the store every [`EngineClient::RESEED`] while the feed
-    /// is not attached, posting each changed read on `inbox` as
-    /// `Msg::Engine` — how a cockpit opened without the loop driver sees
-    /// what another process wrote. Abort the handle to stop it early;
-    /// see [`spawn_reseed`] for what it declines to do.
+    /// is not attached, and whenever the feed asks for a snapshot, posting
+    /// each changed read on `inbox` as `Msg::Engine` — how a cockpit opened
+    /// without the loop driver sees what another process wrote, and how
+    /// one that missed frames catches up. Abort the handle to stop it
+    /// early; see [`spawn_reseed`] for what it declines to do.
     pub fn reseed(&self, inbox: Inbox) -> JoinHandle<()> {
-        spawn_reseed(
-            self.reader.clone(),
-            self.feed_attached.clone(),
-            inbox,
-            Self::RESEED,
-        )
+        spawn_reseed(self.reader.clone(), self.link.clone(), inbox, Self::RESEED)
     }
 }
 

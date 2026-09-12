@@ -1,4 +1,6 @@
-//! What the cockpit asks of the think-and-ship engines.
+//! What the cockpit asks of the native workflow engines.
+
+use magistr_engine::native::{Chunk, Signal};
 
 use crate::cockpit::ProposalKind;
 
@@ -7,10 +9,10 @@ use crate::cockpit::ProposalKind;
 /// proposal and signal actions. The in-process engines broadcast
 /// nothing, so the consumer answers the cockpit itself with an
 /// [`EngineEvent`](super::EngineEvent) built from the port's return —
-/// mutations come back as the updated chunk or signal payload, which
-/// [`apply`](super::apply) folds into a synthesized broadcast frame.
-/// Errors are words for the stage, not codes. `Send + Sync` because the
-/// session task holds the port across its awaits.
+/// mutations come back as the updated record, which
+/// [`apply`](super::apply) folds into the typed event the engines would
+/// have announced. Errors are words for the stage, not codes. `Send +
+/// Sync` because the session task holds the port across its awaits.
 pub trait EnginePort: Send + Sync {
     /// Pin or unpin the step.
     ///
@@ -19,7 +21,8 @@ pub trait EnginePort: Send + Sync {
     /// number included.
     fn pin(&mut self, step_number: u32, pinned: bool) -> Result<(), String>;
 
-    /// The trace-wide metacognitive checkpoint report.
+    /// The trace-wide metacognitive checkpoint report, as the engine
+    /// renders it.
     ///
     /// # Errors
     /// The engine's reason no report was taken.
@@ -29,13 +32,13 @@ pub trait EnginePort: Send + Sync {
     ///
     /// # Errors
     /// The engine's reason — an unknown id or an illegal transition.
-    fn start_chunk(&mut self, id: &str) -> Result<serde_json::Value, String>;
+    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String>;
 
     /// Mark the chunk done; the updated chunk comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id or an illegal transition.
-    fn complete_chunk(&mut self, id: &str) -> Result<serde_json::Value, String>;
+    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String>;
 
     /// Resolve the chunk's open proposal of `kind`: accept takes the
     /// suggestion, reject clears it. The updated chunk comes back.
@@ -47,7 +50,7 @@ pub trait EnginePort: Send + Sync {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<serde_json::Value, String>;
+    ) -> Result<Chunk, String>;
 
     /// Lift the chunk's blocker; the updated chunk comes back.
     ///
@@ -55,23 +58,23 @@ pub trait EnginePort: Send + Sync {
     /// The engine's reason — an unknown id, or a chunk with no blocker
     /// to clear, which the engines refuse loudly rather than answer as
     /// a no-op.
-    fn clear_blocker(&mut self, id: &str) -> Result<serde_json::Value, String>;
+    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String>;
 
     /// Promote the signal to the roadmap; the updated signal comes back.
     ///
     /// # Errors
     /// The engine's reason — a signal not yet researched included.
-    fn promote_signal(&mut self, id: &str) -> Result<serde_json::Value, String>;
+    fn promote_signal(&mut self, id: &str) -> Result<Signal, String>;
 
     /// Dismiss the signal; the updated signal comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id or a terminal signal.
-    fn ignore_signal(&mut self, id: &str) -> Result<serde_json::Value, String>;
+    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String>;
 
     /// Snooze the signal for `minutes`; the updated signal comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id.
-    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<serde_json::Value, String>;
+    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<Signal, String>;
 }

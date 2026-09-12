@@ -16,7 +16,7 @@ use crate::ship::domain::action::Action;
 use crate::ship::domain::check::Check;
 use crate::ship::domain::objective::Objective;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BroadcastFrame {
     ObjectiveSet { objective: Objective },
