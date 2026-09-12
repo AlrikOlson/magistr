@@ -406,10 +406,11 @@ async fn cancelling_a_gate_kills_the_child_process() {
     // the premise observable is what turns "probably raced correctly" into a
     // fact.
     let started = dir.path().join("the-child-started");
+    // Quoted sh words: a Windows temp path would otherwise be read as escapes.
     let command = format!(
-        "touch {} && sleep 2 && touch {}",
-        started.display(),
-        marker.display()
+        "touch '{}' && sleep 2 && touch '{}'",
+        started.display().to_string().replace('\\', "/"),
+        marker.display().to_string().replace('\\', "/")
     );
 
     let client = session("tasks-cancel-kill", true).await;

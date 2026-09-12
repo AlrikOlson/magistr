@@ -677,6 +677,7 @@ fn an_empty_policy_leaves_every_decision_exactly_as_it_was() {
 mod charter {
     use super::*;
     use crate::permissions::CharterStore;
+    #[cfg(unix)]
     use magistr_cockpit::agent::PermissionKind;
     use magistr_engine::policy::{
         Charter, GovernancePolicy, PolicyCondition, PolicyEffect as Effect, PolicyRule,
@@ -706,10 +707,12 @@ mod charter {
         .chartered(charter, store)
     }
 
+    #[cfg(unix)]
     fn asks(decision: PolicyDecision) -> bool {
         matches!(decision, PolicyDecision::Ask(_))
     }
 
+    #[cfg(unix)]
     #[test]
     fn a_delegated_scope_is_allowed_where_the_profile_would_ask() {
         let mut plain = cautious(Charter::default(), None);
@@ -764,6 +767,7 @@ mod charter {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn an_always_answer_writes_the_rule_the_next_session_enforces() {
         let dir = TempDir::new().expect("a temp dir");
@@ -797,6 +801,7 @@ mod charter {
         assert!(asks(next.decide(&write_under("/repo/crates/y/src/c.rs"))));
     }
 
+    #[cfg(unix)]
     #[test]
     fn a_never_answer_denies_and_a_written_condition_asks_where_yolo_would_allow() {
         let yolo = || {
@@ -837,6 +842,7 @@ mod charter {
         assert!(blank.charter().is_empty(), "no words, no rule");
     }
 
+    #[cfg(unix)]
     #[test]
     fn once_answers_only_tally_and_an_accepted_offer_writes_the_rule() {
         let mut policy = cautious(Charter::default(), None);
@@ -876,6 +882,7 @@ mod charter {
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn remembered_refusal_caps_workflow_shortcuts() {
     let mut policy = policy(PermissionProfile::Yolo, true);
@@ -932,6 +939,7 @@ fn a_remembered_path_allow_cannot_widen_a_multi_target_call() {
     assert!(matches!(policy.decide(&target), PolicyDecision::Ask(_)));
 }
 
+#[cfg(unix)]
 #[test]
 fn shared_decisions_carry_stable_request_scope_and_behavior_version() {
     let make = || {
@@ -971,6 +979,7 @@ fn shared_decisions_carry_stable_request_scope_and_behavior_version() {
     assert_eq!(baseline.scope, refused.scope);
 }
 
+#[cfg(unix)]
 #[test]
 fn governance_matches_normalized_absolute_and_project_relative_paths() {
     for pattern in ["src/private/*", "/repo/src/private/*"] {

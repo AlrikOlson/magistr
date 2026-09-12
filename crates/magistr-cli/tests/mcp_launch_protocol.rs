@@ -89,9 +89,14 @@ impl Fixture {
             .env("XDG_DATA_HOME", home.join("data"))
             .env("THINK_AND_SHIP_DATA_DIR", home.join("think-and-ship"))
             .env("THINK_AND_SHIP_PERSIST", "true")
-            .env(
-                "THINK_AND_SHIP_BROADCAST_PATH",
-                self.temporary.path().join("feed.sock"),
+            .envs(
+                // The live feed is a Unix domain socket; Windows serves none.
+                (!cfg!(windows)).then(|| {
+                    (
+                        "THINK_AND_SHIP_BROADCAST_PATH",
+                        self.temporary.path().join("feed.sock"),
+                    )
+                }),
             )
             .env_remove("MAGISTR_LOG")
             .env_remove("MAGISTR_LOG_FILE")

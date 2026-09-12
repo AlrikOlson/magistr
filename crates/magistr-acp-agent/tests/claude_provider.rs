@@ -267,7 +267,13 @@ async fn session_load_resumes_and_replays_the_transcript() {
         .path()
         .to_string_lossy()
         .chars()
-        .map(|c| if c == '/' { '-' } else { c })
+        .map(|c| {
+            if matches!(c, '/' | '\\' | ':') {
+                '-'
+            } else {
+                c
+            }
+        })
         .collect();
     let transcript_dir = config.path().join("projects").join(encoded);
     std::fs::create_dir_all(&transcript_dir).expect("mkdir");
@@ -316,7 +322,7 @@ async fn a_fresh_client_process_replays_claude_history_written_by_its_parent() {
         Some(path) => PathBuf::from(path),
         None => {
             let config = tempfile::tempdir().expect("persisted Claude config");
-            let encoded = cwd.to_string_lossy().replace('/', "-");
+            let encoded = cwd.to_string_lossy().replace(['/', '\\', ':'], "-");
             let dir = config.path().join("projects").join(encoded);
             std::fs::create_dir_all(&dir).expect("projects directory");
             std::fs::write(

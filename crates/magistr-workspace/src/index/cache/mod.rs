@@ -408,7 +408,7 @@ fn lock_native_cache(path: &Path) -> Result<CacheOwner, CacheError> {
     #[cfg(windows)]
     check_windows_link_count(&owner, path)?;
     check_cache_path(path)?;
-    owner.try_lock().map_err(std::io::Error::from)?;
+    crate::os_file_lock::try_lock_exclusive(&owner)?;
     Ok(CacheOwner(owner))
 }
 

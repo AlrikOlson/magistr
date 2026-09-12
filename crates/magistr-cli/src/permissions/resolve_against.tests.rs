@@ -57,7 +57,7 @@ fn an_existing_path_is_canonicalized_so_symlinked_roots_agree() {
     // target resolved against the uncanonical root must still land on
     // the canonical file.
     let out = resolve_against(Some(dir.path()), Path::new("ROADMAP.md"));
-    assert_eq!(out, canonical);
+    assert_eq!(out, plain_form(&canonical));
 }
 
 #[test]

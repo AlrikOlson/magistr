@@ -21,7 +21,47 @@ pub(crate) fn checked_resolve_against(root: Option<&Path>, path: &Path) -> Resul
         .ancestors()
         .last()
         .expect("an absolute path has a root");
-    magistr_acp::capabilities::resolve_target(anchor, &joined).map_err(|error| error.to_string())
+    magistr_acp::capabilities::resolve_target(anchor, &joined)
+        .map(|resolved| plain_form(&resolved))
+        .map_err(|error| error.to_string())
+}
+
+/// One spelling per file. Windows `canonicalize` answers in the verbatim
+/// form (`\\?\C:\...`) while the agent and the session root speak the
+/// plain drive form; a protected entry recorded one way must still match
+/// a request made the other way, so both sides are put in the plain form.
+#[cfg(windows)]
+pub(crate) fn plain_form(path: &Path) -> PathBuf {
+    use std::path::Prefix;
+    let mut components = path.components();
+    match components.next() {
+        Some(Component::Prefix(prefix)) => match prefix.kind() {
+            Prefix::VerbatimDisk(letter) => {
+                let mut plain = PathBuf::from(format!("{}:", char::from(letter)));
+                plain.extend(components);
+                plain
+            }
+            _ => path.to_path_buf(),
+        },
+        _ => path.to_path_buf(),
+    }
+}
+
+#[cfg(not(windows))]
+pub(crate) fn plain_form(path: &Path) -> PathBuf {
+    path.to_path_buf()
+}
+
+/// The spelling a path is glob-matched under. Policy patterns are written
+/// with `/` (`crates/x/*`, `*/src/private/*`); on Windows a resolved path
+/// would otherwise carry `\` and never match its own rule.
+pub(crate) fn glob_spelling(path: &Path) -> String {
+    let text = path.display().to_string();
+    if cfg!(windows) {
+        text.replace('\\', "/")
+    } else {
+        text
+    }
 }
 
 fn joined(root: Option<&Path>, path: &Path) -> PathBuf {

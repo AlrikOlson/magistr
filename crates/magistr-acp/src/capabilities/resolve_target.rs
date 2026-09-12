@@ -8,7 +8,7 @@ use magistr_application::effects::EffectError;
 /// This is a policy target resolver, not an atomic filesystem sandbox.
 pub fn resolve_target(root: &Path, path: &Path) -> Result<PathBuf, EffectError> {
     let joined = if path.is_absolute() {
-        path.to_path_buf()
+        adopt_prefix_form(root, path)
     } else {
         root.join(path)
     };
@@ -28,6 +28,12 @@ pub fn resolve_target(root: &Path, path: &Path) -> Result<PathBuf, EffectError> 
             value if value == std::ffi::OsStr::new(".") => {}
             _ => {
                 resolved.push(&component);
+                // A prefix or root component cannot be a symlink, and probing a
+                // bare Windows verbatim prefix (`\\?\C:`) fails with
+                // ERROR_INVALID_FUNCTION rather than NotFound.
+                if resolved.file_name().is_none() {
+                    continue;
+                }
                 match std::fs::symlink_metadata(&resolved) {
                     Ok(meta) if meta.file_type().is_symlink() => {
                         links += 1;
@@ -46,13 +52,54 @@ pub fn resolve_target(root: &Path, path: &Path) -> Result<PathBuf, EffectError> 
                         pending = target;
                     }
                     Ok(_) => {}
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    // A name the filesystem cannot spell (Windows rejects `*` and
+                    // `?`) is as absent as a missing child: nothing to follow.
+                    Err(error)
+                        if matches!(
+                            error.kind(),
+                            std::io::ErrorKind::NotFound | std::io::ErrorKind::InvalidFilename
+                        ) => {}
                     Err(error) => return Err(failed(error)),
                 }
             }
         }
     }
     Ok(resolved)
+}
+
+/// Windows spells one volume two ways: `C:\` and the verbatim `\\?\C:\`
+/// that `canonicalize` produces. Prefix comparison is textual, so an absolute
+/// request spelled differently from the root would never `starts_with` it.
+/// Restate the request under the root's spelling when both name the same drive.
+#[cfg(windows)]
+fn adopt_prefix_form(root: &Path, path: &Path) -> PathBuf {
+    match (drive(root), drive(path)) {
+        (Some((root_letter, root_prefix)), Some((letter, _))) if root_letter == letter => {
+            let mut restated = PathBuf::from(root_prefix.as_os_str());
+            restated.extend(path.components().skip(1));
+            restated
+        }
+        _ => path.to_path_buf(),
+    }
+}
+
+#[cfg(windows)]
+fn drive(path: &Path) -> Option<(u8, std::path::PrefixComponent<'_>)> {
+    use std::path::Prefix;
+    match path.components().next()? {
+        Component::Prefix(prefix) => match prefix.kind() {
+            Prefix::Disk(letter) | Prefix::VerbatimDisk(letter) => {
+                Some((letter.to_ascii_uppercase(), prefix))
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+#[cfg(not(windows))]
+fn adopt_prefix_form(_root: &Path, path: &Path) -> PathBuf {
+    path.to_path_buf()
 }
 
 fn components(path: &Path) -> VecDeque<PathBuf> {

@@ -1,8 +1,8 @@
-use crate::scaffold::{
-    CodexSetup, FileAction, apply::apply_approved, generate_with_result,
-    manifest::ScaffoldManifest, pipeline::ScaffoldPipeline, preview,
-};
+#[cfg(unix)]
+use crate::scaffold::{CodexSetup, FileAction, apply::apply_approved, manifest::ScaffoldManifest};
+use crate::scaffold::{generate_with_result, pipeline::ScaffoldPipeline, preview};
 use std::collections::{BTreeMap, HashMap};
+#[cfg(unix)]
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 
@@ -30,6 +30,7 @@ fn write(dir: &Path, relative: &str, content: &str) {
     std::fs::write(path, content).unwrap();
 }
 
+#[cfg(unix)]
 fn link(dir: &Path, name: &str, content: Option<&str>) {
     if let Some(content) = content {
         write(dir, &format!(".claude/skills/{name}/SKILL.md"), content);
@@ -42,6 +43,7 @@ fn link(dir: &Path, name: &str, content: Option<&str>) {
     .unwrap();
 }
 
+#[cfg(unix)]
 fn legacy_skills(dir: &Path) {
     for name in SKILLS {
         link(dir, name, Some(&format!("Legacy Claude {name} workflow\n")));
@@ -81,6 +83,7 @@ fn snapshot(dir: &Path) -> BTreeMap<PathBuf, Entry> {
     entries
 }
 
+#[cfg(unix)]
 #[test]
 fn nine_legacy_skill_links_preview_without_writes_and_generate_native_codex_files() {
     let tmp = tempfile::tempdir().unwrap();
@@ -148,6 +151,7 @@ fn nine_legacy_skill_links_preview_without_writes_and_generate_native_codex_file
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn selected_link_migration_preserves_claude_sources_and_claims_only_approved_files() {
     let tmp = tempfile::tempdir().unwrap();
@@ -180,6 +184,7 @@ fn selected_link_migration_preserves_claude_sources_and_claims_only_approved_fil
     assert_eq!(snapshot(&dir.join(".claude")), claude_before);
 }
 
+#[cfg(unix)]
 #[test]
 fn craft_link_migration_requires_skill_and_runtime_companion_approval_together() {
     let tmp = tempfile::tempdir().unwrap();
@@ -217,6 +222,7 @@ fn craft_link_migration_requires_skill_and_runtime_companion_approval_together()
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn dangling_legacy_link_migrates_without_creating_a_claude_source() {
     let tmp = tempfile::tempdir().unwrap();
@@ -239,6 +245,7 @@ fn dangling_legacy_link_migrates_without_creating_a_claude_source() {
     assert!(!dir.join(".claude").exists());
 }
 
+#[cfg(unix)]
 #[test]
 fn equal_content_still_previews_and_applies_legacy_link_replacement() {
     let tmp = tempfile::tempdir().unwrap();
@@ -278,6 +285,7 @@ fn equal_content_still_previews_and_applies_legacy_link_replacement() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn retargeted_or_replaced_legacy_links_reject_selected_batch_even_when_text_matches() {
     for replace_with_directory in [false, true] {
@@ -313,6 +321,7 @@ fn retargeted_or_replaced_legacy_links_reject_selected_batch_even_when_text_matc
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn malformed_config_rejects_setup_before_detaching_any_legacy_skill_link() {
     let tmp = tempfile::tempdir().unwrap();
@@ -330,6 +339,7 @@ fn malformed_config_rejects_setup_before_detaching_any_legacy_skill_link() {
     assert_eq!(snapshot(dir), before);
 }
 
+#[cfg(unix)]
 #[test]
 fn unsafe_link_among_recognized_skills_rejects_the_entire_migration_without_writes() {
     for unsafe_source_ancestor in [false, true] {
@@ -356,6 +366,7 @@ fn unsafe_link_among_recognized_skills_rejects_the_entire_migration_without_writ
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn startup_repair_leaves_legacy_link_migration_to_explicit_initialization() {
     let tmp = tempfile::tempdir().unwrap();
@@ -367,4 +378,41 @@ fn startup_repair_leaves_legacy_link_migration_to_explicit_initialization() {
     let before = snapshot(dir);
     assert!(CodexSetup::repair(dir).unwrap().is_empty());
     assert_eq!(snapshot(dir), before);
+}
+
+#[test]
+fn native_skill_directories_are_not_legacy_links_and_survive_reinitialization() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path();
+    generate_with_result(dir, &vars(), &HashMap::new()).unwrap();
+    write(
+        dir,
+        ".agents/skills/team/SKILL.md",
+        "User's team workflow\n",
+    );
+    for name in SKILLS {
+        let metadata =
+            std::fs::symlink_metadata(dir.join(format!(".agents/skills/{name}"))).unwrap();
+        assert!(metadata.is_dir() && !metadata.is_symlink(), "{name}");
+    }
+    let before = snapshot(&dir.join(".agents/skills"));
+    let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+    assert_eq!(snapshot(&dir.join(".agents/skills")), before);
+    for file in planned
+        .files
+        .iter()
+        .filter(|file| file.path.starts_with(".agents/skills/"))
+    {
+        assert!(
+            !file
+                .diff
+                .as_deref()
+                .unwrap_or_default()
+                .contains("legacy skill symlink"),
+            "{} was treated as a legacy link",
+            file.path
+        );
+    }
+    generate_with_result(dir, &vars(), &HashMap::new()).unwrap();
+    assert_eq!(snapshot(&dir.join(".agents/skills")), before);
 }
