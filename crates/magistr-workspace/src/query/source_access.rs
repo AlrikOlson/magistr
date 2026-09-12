@@ -1,4 +1,4 @@
-use super::{WorkspaceQueries, source_entry::SourceEntry, source_snapshot::SourceSnapshot};
+use super::{WorkspaceQueries, source_entry::SourceEntry, source_observation::SourceObservation};
 use crate::workspace_policy::WorkspacePolicy;
 use crate::{
     contracts::{ErrorKind, Freshness, WorkspaceError},
@@ -16,7 +16,7 @@ const MAX_FILE_BYTES: usize = 1024 * 1024;
 const MAX_ENTRIES: usize = 100_000;
 
 impl WorkspaceQueries<'_> {
-    pub(super) fn snapshot(&self, path: &str) -> Result<SourceSnapshot, WorkspaceError> {
+    pub(super) fn snapshot(&self, path: &str) -> Result<SourceObservation, WorkspaceError> {
         let requested = path.replace('\\', "/");
         let admitted = self.policy.check_read(&requested)?;
         let relative = admitted
@@ -67,7 +67,7 @@ impl WorkspaceQueries<'_> {
             }
             let content = FileContent::decode(bytes);
             let content_hash = content.content_hash();
-            return Ok(SourceSnapshot {
+            return Ok(SourceObservation {
                 path: relative,
                 content,
                 content_hash,

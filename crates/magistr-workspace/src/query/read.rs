@@ -1,6 +1,6 @@
 use super::{
     ReadInput, ReadRange, ReadRow, ReadSegment, ReadSurround, ReadUnit, WorkspaceQueries,
-    source_snapshot::SourceSnapshot,
+    source_observation::SourceObservation,
 };
 use crate::{
     contracts::{EnvelopeVersion, ErrorKind, WorkspaceError, WorkspaceResponse},
@@ -40,7 +40,7 @@ pub(super) async fn run(q: &WorkspaceQueries<'_>, input: &ReadInput) -> Workspac
 }
 
 fn render(
-    snapshot: SourceSnapshot,
+    snapshot: SourceObservation,
     input: &ReadInput,
     outline: Option<IndexQuery<IndexedFile>>,
 ) -> WorkspaceResponse<ReadRow> {

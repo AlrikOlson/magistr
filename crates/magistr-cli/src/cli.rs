@@ -686,6 +686,20 @@ pub enum WorkspaceAction {
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
+
+    /// The source certification observation — canonical root, durable owner
+    /// generation, selection policy and content manifest — as the serialized
+    /// SourceSnapshot, read beside a live server without taking any lock.
+    Snapshot {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+
+        /// Explicit artifact input to hash even when ignored (repeatable,
+        /// workspace-relative)
+        #[arg(long = "artifact", value_name = "PATH")]
+        artifact: Vec<String>,
+    },
 }
 
 /// The two non-report forms of `magistr workspace doctor`.

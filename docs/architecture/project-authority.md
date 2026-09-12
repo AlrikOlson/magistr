@@ -91,8 +91,11 @@ not yet durably archive stale results or provide exactly-once settlement.
 Ordinary completion policy remains native and compatible: incomplete tasks or
 failed required checks produce the inherited finalization warnings. Durable
 CheckReceipts, configured evidence freshness, and enforcement at completion
-belong to the blocked `arch-14-verification-receipts` chunk. There is no second
-receipt database or workflow-owned source scanner in this extraction.
+belong to the pending `arch-14-verification-receipts` chunk, which consumes the
+workspace's `SourceSnapshot` and `MutationReceipt` capabilities
+([owned subsystems](owned-subsystems.md#evidence-requires-source-identity)).
+There is no second receipt database or workflow-owned source scanner in this
+extraction.
 
 ## Roles
 
