@@ -10,7 +10,6 @@ mod goal;
 mod opening;
 mod owner;
 mod permissions;
-mod registration;
 mod residency;
 mod snapshot;
 mod turn_outcome;
@@ -154,8 +153,9 @@ impl SessionSupervisor {
         mut transport: AcpTransport,
         policy: Option<Policy>,
     ) -> Result<(Self, Messages)> {
-        let guard = registration::Registration::new(transport.child_pgid());
-        let provider_pid = guard.provider_pid();
+        let provider_pid = u32::try_from(transport.child_pgid())
+            .ok()
+            .filter(|pid| *pid > 0);
         let events = transport
             .read_events()
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
@@ -195,7 +195,6 @@ impl SessionSupervisor {
             permissions,
             command_rx,
             state,
-            guard,
             None,
         ));
         Ok((
@@ -216,8 +215,9 @@ impl SessionSupervisor {
         options: SessionOptions,
         policy: Box<dyn SessionPolicy>,
     ) -> Result<(Self, mpsc::UnboundedReceiver<AgentEvent>)> {
-        let guard = registration::Registration::new(transport.child_pgid());
-        let provider_pid = guard.provider_pid();
+        let provider_pid = u32::try_from(transport.child_pgid())
+            .ok()
+            .filter(|pid| *pid > 0);
         let events = transport
             .read_events()
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
@@ -261,7 +261,6 @@ impl SessionSupervisor {
             permissions,
             command_rx,
             Arc::clone(&inner),
-            guard,
             Some(options),
         ));
         Ok((

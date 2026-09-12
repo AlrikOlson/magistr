@@ -131,14 +131,7 @@ pub(crate) async fn run_guarded(
     cancel: &CancellationToken,
     sink: impl FnMut(&[u8]) + Send,
 ) -> ProcessOutcome {
-    #[cfg(unix)]
-    let pgid = process.pid().map_or(0, |pid| pid as i32);
-    #[cfg(unix)]
-    super::child_guard::register_child_pgid(pgid);
-    let outcome = process.run(cancel, sink).await;
-    #[cfg(unix)]
-    super::child_guard::unregister_child_pgid(pgid);
-    outcome
+    process.run(cancel, sink).await
 }
 
 /// The answer for a gate with no command configured: nothing ran.
@@ -168,15 +161,18 @@ pub(crate) fn spawn_failed(error: &std::io::Error) -> CommandResult {
 /// The gate's account of an outcome: partial output kept, and how the
 /// run ended named on stderr when it was not the child's own exit.
 pub(crate) fn command_result(outcome: ProcessOutcome, timeout_secs: u64) -> CommandResult {
+    let exit_code = if outcome.fault.is_some() {
+        -1
+    } else {
+        outcome.exit_code.unwrap_or(-1)
+    };
     let mut stderr = outcome.stderr;
     let ending = if outcome.cancelled {
         Some("cancelled".to_owned())
     } else if outcome.timed_out {
         Some(format!("timed out after {timeout_secs}s"))
     } else {
-        outcome
-            .fault
-            .map(|fault| format!("failed to execute: {fault}"))
+        None
     };
     if let Some(ending) = ending {
         if !stderr.is_empty() && !stderr.ends_with('\n') {
@@ -184,8 +180,14 @@ pub(crate) fn command_result(outcome: ProcessOutcome, timeout_secs: u64) -> Comm
         }
         stderr.push_str(&ending);
     }
+    if let Some(fault) = outcome.fault {
+        if !stderr.is_empty() && !stderr.ends_with('\n') {
+            stderr.push('\n');
+        }
+        stderr.push_str(&format!("failed to execute: {fault}"));
+    }
     CommandResult {
-        exit_code: outcome.exit_code.unwrap_or(-1),
+        exit_code,
         stdout: outcome.stdout,
         stderr,
         duration: outcome.duration,

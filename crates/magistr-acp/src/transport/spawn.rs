@@ -4,14 +4,16 @@ use std::env;
 use std::path::Path;
 use std::process::Stdio;
 
-use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
+use magistr_process::ReapingChild;
+use tokio::process::{ChildStderr, ChildStdin, ChildStdout, Command};
 
 use crate::{AcpError, Result};
 
 /// The spawned agent and its pipes, split out so the transport can wire each
 /// one up separately.
 pub(crate) struct SpawnedAgent {
-    pub child: Child,
+    pub child: ReapingChild,
+    pub group: Option<magistr_process::ProcessGroup>,
     pub stdin: ChildStdin,
     pub stdout: ChildStdout,
     pub stderr: ChildStderr,
@@ -55,9 +57,13 @@ pub(crate) fn build_command(cli_path: &Path, cli_args: &[String], cwd: Option<&P
 /// Spawn `cmd` and take its three pipes.
 pub(crate) fn spawn_agent(mut cmd: Command) -> Result<SpawnedAgent> {
     let program = cmd.as_std().get_program().to_string_lossy().into_owned();
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| AcpError::connection(format!("Failed to spawn ACP agent `{program}`: {e}")))?;
+    let mut child = ReapingChild::new(cmd.spawn().map_err(|e| {
+        AcpError::connection(format!("Failed to spawn ACP agent `{program}`: {e}"))
+    })?);
+    // SAFETY: build_command configures an isolated process group before exec.
+    let group = child
+        .id()
+        .map(|pid| unsafe { magistr_process::ProcessGroup::from_spawned_pid(pid) });
     let stdin = child
         .stdin
         .take()
@@ -72,6 +78,7 @@ pub(crate) fn spawn_agent(mut cmd: Command) -> Result<SpawnedAgent> {
         .ok_or_else(|| AcpError::connection("Failed to get ACP subprocess stderr"))?;
     Ok(SpawnedAgent {
         child,
+        group,
         stdin,
         stdout,
         stderr,
@@ -86,7 +93,9 @@ fn configure_agent_subprocess(cmd: &mut Command) {
     unsafe {
         cmd.pre_exec(|| {
             libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL);
-            libc::setpgid(0, 0);
+            if libc::setpgid(0, 0) < 0 {
+                return Err(std::io::Error::last_os_error());
+            }
             Ok(())
         });
     }
@@ -97,7 +106,9 @@ fn configure_agent_subprocess(cmd: &mut Command) {
     // SAFETY: `setpgid` is async-signal-safe and runs between fork and exec.
     unsafe {
         cmd.pre_exec(|| {
-            libc::setpgid(0, 0);
+            if libc::setpgid(0, 0) < 0 {
+                return Err(std::io::Error::last_os_error());
+            }
             Ok(())
         });
     }

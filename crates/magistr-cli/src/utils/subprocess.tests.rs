@@ -140,3 +140,23 @@ async fn graceful_sigterm_allows_cleanup() {
     let content = std::fs::read_to_string(&marker_path).unwrap_or_default();
     assert_eq!(content.trim(), "terminated");
 }
+
+#[test]
+fn cleanup_fault_cannot_be_a_success_or_hidden_by_cancellation() {
+    for cancelled in [false, true] {
+        let result = command_result(
+            ProcessOutcome {
+                exit_code: Some(0),
+                stdout: "partial output".into(),
+                cancelled,
+                fault: Some("cleanup incomplete".into()),
+                ..ProcessOutcome::default()
+            },
+            30,
+        );
+        assert_eq!(result.exit_code, -1);
+        assert_eq!(result.stdout, "partial output");
+        assert!(result.stderr.contains("cleanup incomplete"));
+        assert_eq!(result.cancelled, cancelled);
+    }
+}

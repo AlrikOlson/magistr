@@ -1,6 +1,6 @@
 //! Watch the agent process, or wait forever when there is none.
 
-use tokio::process::Child;
+use magistr_process::ReapingChild as Child;
 
 /// Exit code of a reaped child (`-1` when killed by a signal or unknown).
 pub(crate) fn exit_code(status: std::io::Result<std::process::ExitStatus>) -> i32 {

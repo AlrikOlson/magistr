@@ -278,3 +278,187 @@ async fn dropping_a_running_process_kills_its_child() {
     tokio::time::sleep(Duration::from_millis(2_500)).await;
     assert!(!survived.exists(), "the child outlived the dropped process");
 }
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn settlement_survives_leader_exit_during_grace() {
+    let outcome = run(shell(
+        "trap 'exit 0' TERM; sh -c 'trap \"\" TERM; echo ready; while :; do sleep 1; done' & wait",
+        300,
+    )
+    .with_termination(Termination::Graceful {
+        grace: Duration::from_millis(100),
+    }))
+    .await;
+    let pid = outcome.pid.expect("pid");
+    let gone = wait_for_group_exit(pid).await;
+    // SAFETY: clean up only this fixture's isolated group if the assertion fails.
+    if !gone {
+        unsafe {
+            libc::kill(-(pid as i32), libc::SIGKILL);
+        }
+    }
+    assert!(
+        gone,
+        "leader exit left a TERM-ignoring descendant alive: {outcome:?}"
+    );
+    assert_settled(pid).await;
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn settlement_survives_dropped_future() {
+    let process = OwnedProcess::spawn(shell(
+        "sh -c 'trap \"\" TERM; echo ready; while :; do sleep 1; done' & wait",
+        30_000,
+    ))
+    .expect("spawn");
+    let pid = process.pid().expect("pid");
+    let cancel = CancellationToken::new();
+    let (ready, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let task = tokio::spawn(async move {
+        process
+            .run(&cancel, move |_| {
+                let _ = ready.send(());
+            })
+            .await
+    });
+    tokio::time::timeout(Duration::from_secs(5), rx.recv())
+        .await
+        .expect("ready deadline")
+        .expect("ready");
+    task.abort();
+    assert!(task.await.expect_err("aborted").is_cancelled());
+    let gone = wait_for_group_exit(pid).await;
+    // SAFETY: clean up only this fixture's isolated group if the assertion fails.
+    if !gone {
+        unsafe {
+            libc::kill(-(pid as i32), libc::SIGKILL);
+        }
+    }
+    assert!(gone, "dropped caller left a descendant alive");
+    assert_settled(pid).await;
+}
+
+#[cfg(unix)]
+async fn assert_settled(pid: u32) {
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !group_is_gone(pid) || crate::ChildRegistry::contains(pid as i32) {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("group and registry must settle");
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn settlement_cleans_closed_pipes_and_terminal_descendants_after_leader_exit() {
+    for terminal in [false, true] {
+        let dir = tempfile::tempdir().expect("dir");
+        let mut spec = shell(
+            "sh -c 'trap \"\" TERM HUP; touch ready; while :; do sleep 1; done' >/dev/null 2>&1 & while [ ! -f ready ]; do sleep 0.01; done; echo done",
+            5_000,
+        ).in_dir(dir.path()).with_termination(Termination::Graceful { grace: Duration::from_millis(50) });
+        if terminal {
+            spec = spec.on_terminal(80, 24);
+        }
+        let outcome = run(spec).await;
+        assert!(outcome.is_complete(), "{outcome:?}");
+        assert_eq!(outcome.stdout.trim(), "done");
+        assert_settled(outcome.pid.expect("pid")).await;
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn settlement_owns_an_unpolled_run_future() {
+    let dir = tempfile::tempdir().expect("dir");
+    let process = OwnedProcess::spawn(
+        shell(
+            "sh -c 'trap \"\" TERM; touch ready; while :; do sleep 1; done' & wait",
+            30_000,
+        )
+        .in_dir(dir.path()),
+    )
+    .expect("spawn");
+    let pid = process.pid().expect("pid");
+    assert!(
+        crate::ChildRegistry::contains(pid as i32),
+        "registered at spawn"
+    );
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !dir.path().join("ready").exists() {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("descendant started");
+    let cancel = CancellationToken::new();
+    drop(process.run(&cancel, |_| {}));
+    assert_settled(pid).await;
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn settlement_survives_sink_panic() {
+    let process = OwnedProcess::spawn(shell(
+        "sh -c 'trap \"\" TERM; echo ready; while :; do sleep 1; done' & wait",
+        30_000,
+    ))
+    .expect("spawn");
+    let pid = process.pid().expect("pid");
+    let task = tokio::spawn(async move {
+        process
+            .run(&CancellationToken::new(), |_| {
+                panic!("fixture sink failure")
+            })
+            .await
+    });
+    assert!(task.await.expect_err("sink panicked").is_panic());
+    assert_settled(pid).await;
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn settlement_deadline_keeps_incomplete_outcome_and_registration() {
+    let mut process = OwnedProcess::spawn(shell("sleep 30", 30_000)).expect("spawn");
+    let pid = process.pid().expect("pid");
+    let error = process
+        .group
+        .as_mut()
+        .expect("group")
+        .wait_for_settlement(Duration::ZERO)
+        .await
+        .expect_err("live group");
+    assert_eq!(error.kind(), io::ErrorKind::TimedOut);
+    let mut outcome = ProcessOutcome {
+        exit_code: Some(0),
+        ..ProcessOutcome::default()
+    };
+    outcome.record_cleanup(Err(error));
+    assert!(!outcome.is_complete());
+    assert!(outcome.fault.expect("fault").contains("cleanup incomplete"));
+    assert!(crate::ChildRegistry::contains(pid as i32));
+    drop(process);
+    assert_settled(pid).await;
+}
+
+#[cfg(unix)]
+#[test]
+fn settlement_reaps_after_async_runtime_shutdown() {
+    let runtime = tokio::runtime::Runtime::new().expect("runtime");
+    let process =
+        runtime.block_on(async { OwnedProcess::spawn(shell("sleep 30", 30_000)).expect("spawn") });
+    let pid = process.pid().expect("pid");
+    drop(runtime);
+    drop(process);
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !group_is_gone(pid) || crate::ChildRegistry::contains(pid as i32) {
+        assert!(
+            Instant::now() < deadline,
+            "runtime shutdown lost reaping ownership"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}

@@ -3213,6 +3213,7 @@ dependencies = [
  "libc",
  "magistr-domain",
  "magistr-engine",
+ "magistr-process",
  "magistr-workspace",
  "serde",
  "serde_json",

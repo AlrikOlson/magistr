@@ -239,7 +239,7 @@ async fn stuck_subprocess_transport() -> (AcpTransport, i32, Arc<AtomicBool>) {
     ))
     .expect("spawn sleep in the agent's process group");
     let pid = spawned.child.id().expect("live child") as i32;
-    transport.child_pgid.store(pid, Ordering::SeqCst);
+    transport.child_group = spawned.group;
     transport
         .background_tasks
         .push(drain_stderr(spawned.stderr, transport.stderr_tail.clone()));
@@ -276,16 +276,17 @@ async fn assert_subprocess_reaped(pid: i32) {
 }
 
 #[cfg(unix)]
-#[tokio::test(start_paused = true)]
+#[tokio::test]
 async fn close_timeout_cleans_the_owned_subprocess_and_stderr_task() {
     let (mut transport, pid, dropped) = stuck_subprocess_transport().await;
 
-    assert!(matches!(transport.close().await, Err(AcpError::Timeout(_))));
+    let outcome = transport.close().await;
+    assert!(matches!(outcome, Err(AcpError::Timeout(_))), "{outcome:?}");
     assert!(dropped.load(Ordering::SeqCst));
     assert!(transport.background_tasks.is_empty());
     assert_eq!(transport.child_pgid(), 0);
-    tokio::time::resume();
     assert_subprocess_reaped(pid).await;
+    assert!(!magistr_process::ChildRegistry::contains(pid));
 }
 
 #[cfg(unix)]
@@ -299,6 +300,28 @@ async fn drop_cleans_the_owned_subprocess_connection_and_stderr_task() {
     assert_subprocess_reaped(pid).await;
     assert!(dropped.load(Ordering::SeqCst));
     assert!(stderr_task.is_finished());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn abandoned_spawn_handoff_retires_process_registration() {
+    let spawned = spawn::spawn_agent(spawn::build_command(
+        std::path::Path::new("sh"),
+        &["-c".into(), "sleep 60".into()],
+        None,
+    ))
+    .expect("spawn");
+    let pid = spawned.child.id().expect("pid") as i32;
+    assert!(magistr_process::ChildRegistry::contains(pid));
+    drop(spawned);
+    assert_subprocess_reaped(pid).await;
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while magistr_process::ChildRegistry::contains(pid) {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("registry retired after failed handoff");
 }
 
 #[tokio::test]

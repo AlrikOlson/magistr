@@ -181,6 +181,24 @@ workflow passes the caller's own command string as `Launch::Shell`; only the
 workspace's `CommandAdmission` produces a `Launch::Argv`, and nothing turns
 one into the other.
 
+The spawn acquires a `ProcessGroup` guard and hard-exit registration together.
+Normal completion also settles remaining group members, including descendants
+that closed their pipes or outlived the leader. Graceful termination waits for
+the group, then escalates to SIGKILL and allows two seconds for reaping and
+group disappearance. Permission-denied probes retain ownership until a later
+probe or the deadline; signal delivery alone never proves settlement.
+A cleanup fault makes `ProcessOutcome::is_complete` false, and CLI command
+results cannot report success or hide that fault behind cancellation.
+Partial output, elapsed time and terminal outcome attribution remain available.
+
+Dropping a process or its run future requests group termination synchronously.
+`ReapingChild` keeps child reaping alive outside the async runtime, and the group
+guard observes disappearance before retiring the registry entry. If bounded
+cleanup fails, fallback observation continues with the group still registered.
+These Unix guarantees cover members of the owned group; descendants that create
+their own session escape it. Windows retains child-only cleanup pending its
+separate job-object work.
+
 ### The check-admission and source-capability interface
 
 `AdmittedCheck::admit(engines, root, task, gate, command, required)` asks the

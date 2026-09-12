@@ -13,7 +13,7 @@ mod wait_child;
 
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use agent_client_protocol::schema::v1::{
@@ -62,9 +62,9 @@ pub struct AcpTransport {
     perm_rx: Option<mpsc::UnboundedReceiver<AcpPermissionRequest>>,
     connection: Option<JoinHandle<()>>,
     background_tasks: Vec<JoinHandle<()>>,
-    /// Process group of the agent (== its PID after `setpgid(0, 0)`); `0`
-    /// before spawn.
-    child_pgid: Arc<AtomicI32>,
+    /// Owns the agent's isolated group and registry membership from spawn
+    /// until confirmed settlement, including failed handoff.
+    child_group: Option<magistr_process::ProcessGroup>,
     stderr_tail: StderrTail,
     effect_port: Option<Arc<dyn EffectPort>>,
     local_effects: bool,
@@ -107,7 +107,7 @@ impl AcpTransport {
             perm_rx: None,
             connection: None,
             background_tasks: Vec::new(),
-            child_pgid: Arc::new(AtomicI32::new(0)),
+            child_group: None,
             stderr_tail: StderrTail::default(),
             effect_port: None,
             local_effects: false,
@@ -226,9 +226,7 @@ impl AcpTransport {
         self.close_previous_connection().await?;
         let command = spawn::build_command(&self.cli_path, &self.cli_args, self.cwd.as_deref());
         let spawned = spawn::spawn_agent(command)?;
-        if let Some(pid) = spawned.child.id() {
-            self.child_pgid.store(pid as i32, Ordering::SeqCst);
-        }
+        self.child_group = spawned.group;
         self.background_tasks
             .push(drain_stderr(spawned.stderr, self.stderr_tail.clone()));
         let component = lines::agent_lines(spawned.stdin, spawned.stdout);
@@ -259,7 +257,7 @@ impl AcpTransport {
     async fn start(
         &mut self,
         component: impl ConnectTo<Client> + 'static,
-        child: Option<tokio::process::Child>,
+        child: Option<magistr_process::ReapingChild>,
     ) -> Result<()> {
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
         let (event_tx, event_rx) = mpsc::unbounded_channel();
@@ -504,34 +502,23 @@ impl AcpTransport {
         self.perm_rx.take()
     }
 
-    /// Process group of the agent, valid after `connect()`; `0` before or after
-    /// shutdown, or when the session runs over an in-process component.
+    /// Owned process group; `0` before spawn, after confirmed settlement,
+    /// or for an in-process component. Failed cleanup retains the group.
     pub fn child_pgid(&self) -> i32 {
-        self.child_pgid.load(Ordering::SeqCst)
+        self.child_group
+            .as_ref()
+            .map_or(0, magistr_process::ProcessGroup::id)
     }
 
     /// `SIGKILL` the agent's whole process group. Idempotent; no-op off Unix
     /// or before spawn.
     fn kill_child_process_group(&self) -> Result<()> {
-        #[cfg(unix)]
-        {
-            let pgid = self.child_pgid.load(Ordering::SeqCst);
-            if pgid > 0 {
-                // SAFETY: this is the process group created for our agent.
-                if unsafe { libc::killpg(pgid, libc::SIGKILL) } == -1 {
-                    let error = std::io::Error::last_os_error();
-                    if error.raw_os_error() != Some(libc::ESRCH) {
-                        // Retain the group for a later close or Drop retry.
-                        tracing::warn!(pgid, %error, "Failed to kill ACP agent process group");
-                        return Err(AcpError::transport(format!(
-                            "Failed to kill ACP agent process group {pgid}: {error}"
-                        )));
-                    }
-                }
-            }
-        }
-        self.child_pgid.store(0, Ordering::SeqCst);
-        Ok(())
+        self.child_group
+            .as_ref()
+            .map_or(Ok(()), |group| group.kill())
+            .map_err(|error| {
+                AcpError::transport(format!("Failed to kill ACP agent process group: {error}"))
+            })
     }
 
     /// Cancel any turn in flight, let the connection wind down, and make sure
@@ -546,9 +533,23 @@ impl AcpTransport {
             let _ = tx.send(AcpCommand::Close);
         }
         let outcome = self.finish_connection().await;
-        let process_outcome = self.kill_child_process_group();
+        // Settlement is authoritative: a second signal can race reaping and
+        // report EPERM for an already-exiting group on Darwin.
+        let _ = self.kill_child_process_group();
         let background_outcome = self.stop_background_tasks().await;
-        outcome.and(process_outcome).and(background_outcome)
+        let settlement = match self.child_group.as_mut() {
+            Some(group) => group
+                .wait_for_settlement(Duration::from_secs(2))
+                .await
+                .map_err(|error| {
+                    AcpError::transport(format!("ACP process cleanup incomplete: {error}"))
+                }),
+            None => Ok(()),
+        };
+        if settlement.is_ok() {
+            self.child_group = None;
+        }
+        settlement.and(background_outcome).and(outcome)
     }
 
     async fn finish_connection(&mut self) -> Result<()> {

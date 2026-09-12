@@ -16,27 +16,34 @@
 //! the whole group — gracefully or at once ([`Termination`]) — and answers
 //! partial output as data. Every chunk the child writes also reaches the
 //! caller's sink as it lands, so a cockpit can stream a gate live. Dropping
-//! an [`OwnedProcess`] mid-run kills the child: an abandoned future never
-//! leaves a running command behind.
+//! an [`OwnedProcess`] mid-run kills its group and retains reaping ownership.
+//! [`ProcessGroup`] couples group lifetime to [`ChildRegistry`]; cleanup only
+//! succeeds after group disappearance. Admission remains with each caller.
 
 #![warn(missing_docs)]
 
 mod bounded_capture;
+mod child_registry;
 mod launch;
 mod output_mode;
 mod owned_process;
+mod process_group;
 mod process_outcome;
 mod process_spec;
 #[cfg(unix)]
 mod pty;
+mod reaping_child;
 mod termination;
 
 pub use bounded_capture::BoundedCapture;
+pub use child_registry::ChildRegistry;
 pub use launch::Launch;
 pub use output_mode::OutputMode;
 pub use owned_process::OwnedProcess;
+pub use process_group::ProcessGroup;
 pub use process_outcome::ProcessOutcome;
 pub use process_spec::ProcessSpec;
 #[cfg(unix)]
 pub use pty::Pty;
+pub use reaping_child::ReapingChild;
 pub use termination::Termination;

@@ -13,8 +13,6 @@ use super::{Command, Inner, SessionResidency, TurnOutcome, acp_error};
 use crate::agent::message::AgentMessage;
 use crate::error::Result;
 
-use super::registration::Registration;
-
 struct OwnerState(Arc<Mutex<Inner>>);
 
 impl Drop for OwnerState {
@@ -38,7 +36,6 @@ pub(super) async fn run(
     mut permissions: Permissions,
     mut commands: mpsc::UnboundedReceiver<Command>,
     state: Arc<Mutex<Inner>>,
-    _registration: Registration,
     options: Option<SessionOptions>,
 ) -> Result<()> {
     let _owner = OwnerState(Arc::clone(&state));

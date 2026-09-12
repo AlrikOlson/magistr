@@ -145,6 +145,17 @@ Transport shutdown retains task handles through timeout/caller cancellation,
 aborts tasks that exceed the deadline, and awaits their release. Explicit
 shutdown errors are returned to callers.
 
+ACP subprocesses acquire the shared `magistr-process::ProcessGroup` guard at
+spawn, before pipe extraction or transport handoff. The transport retains it
+through handshake failures and owner cancellation; the supervisor reads its
+provider PID without separately owning registry membership. Closing a transport
+confirms group disappearance after its child/task cleanup, with a two-second
+settlement deadline. Cleanup failure takes precedence over an earlier connection
+timeout. A dropped child retains explicit reaping ownership outside the async
+runtime; a dropped group requests SIGKILL and retires its registry entry only
+after disappearance. Incomplete cleanup remains observable in the hard-exit
+registry while fallback observation continues.
+
 The workflow MCP owner proxy also uses cancellable stdio. Once either copy
 direction ends, cancelling the other leaves no blocking stdin or stdout worker
 keeping the client process alive. Client EOF ends its attachment cleanly; an
