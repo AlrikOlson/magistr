@@ -339,7 +339,9 @@ multi-writer store. A settled `magistr_gate` record is visible to the same
 server's `ship_status`.
 
 Reloading is separate from command authority. It neither admits a second writer
-nor authenticates a client.
+nor authenticates a client. Which family reads through and which answers
+its cache, per surface pair, is stated in the
+[consistency model](clients.md#workflow-consistency-model).
 
 ## Limits
 

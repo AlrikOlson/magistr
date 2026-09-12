@@ -280,9 +280,11 @@ verb, reached through the admitted writer (see
 [one write path](project-authority.md#one-write-path)). Durable command
 admission, full setup consolidation and further host migration remain subsequent
 chunks; Magistr's own source writes go through the workspace pipeline and the
-three process runners share one mechanism (`arch-14f2`, above); the client
-audit is `arch-14f3`, and rehoming the adopted source under Magistr names
-`arch-14f4`. Shared permission decisions
+three process runners share one mechanism (`arch-14f2`, above); every
+client's capability, admission path and evidence, the ownership rules the
+`native-write-path` gate pins and the consistency model are the
+[client inventory](clients.md) (`arch-14f3`); rehoming the adopted source
+under Magistr names is `arch-14f4`. Shared permission decisions
 are now implemented by the [permission service](permissions.md); production adapters use
 that policy for both provider permission requests and [host effects](effects.md),
 while the scoped permission-command facade remains a separate contract.

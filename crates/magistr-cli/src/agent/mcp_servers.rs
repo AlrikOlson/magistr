@@ -2,7 +2,7 @@
 //!
 //! Without this the agent would assemble its tool surface from the CLI's
 //! own config — the user's global servers — and the project's servers
-//! (`magistr mcp-serve`, workbench-mcp, think-and-ship) would only be
+//! (`magistr mcp-serve` and the `workbench-mcp` bridge) would only be
 //! present if the CLI happened to trust the project file. Passing them on
 //! the session request makes them a guarantee: the in-binary claude
 //! provider hands the CLI exactly these (`--strict-mcp-config`). Only stdio
