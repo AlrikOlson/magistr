@@ -29,6 +29,165 @@ fn cost_of(update: &SessionUpdate) -> Option<f64> {
     }
 }
 
+#[tokio::test]
+async fn openai_rejects_errors_and_invalid_terminal_sequences() {
+    let finish = "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n";
+    for (body, expected) in [
+        (
+            "data: {\"error\":{\"message\":\"overloaded\"}}\n\n".to_owned(),
+            "overloaded",
+        ),
+        (
+            "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n".to_owned(),
+            "unsupported finish",
+        ),
+        (
+            format!("{finish}{finish}data: [DONE]\n\n"),
+            "duplicate provider finish",
+        ),
+        (
+            format!("{finish}data: {{\"choices\":[{{\"delta\":{{\"content\":\"late\"}}}}]}}\n\n"),
+            "text after provider finish",
+        ),
+        (
+            format!("{finish}data: [DONE]\n\ndata: [DONE]\n\n"),
+            "event after end sentinel",
+        ),
+    ] {
+        let server = FakeHttp::serve(vec![Reply::stream("text/event-stream", &body)]).await;
+        assert_stream_error(OpenAi::new("test", &server.url), expected).await;
+    }
+}
+
+async fn assert_stream_error<A: magistr_acp_agent::ChatApi>(api: A, expected: &str) {
+    let (_, observed) = with_provider(
+        ApiProvider::new(api),
+        PermissionAnswer::Cancel,
+        async |cx, _| {
+            initialize(&cx).await?;
+            let session = new_session(&cx).await?;
+            let err = prompt_and_wait(&cx, &session.session_id, "hi")
+                .await
+                .expect_err("invalid stream");
+            assert!(
+                err.data
+                    .as_ref()
+                    .and_then(|data| data.as_str())
+                    .is_some_and(|data| data.contains(expected)),
+                "{err:?}"
+            );
+            Ok(())
+        },
+    )
+    .await;
+    assert!(!observed.saw(|u| matches!(u, SessionUpdate::UsageUpdate(_))));
+}
+
+#[tokio::test]
+async fn every_api_rejects_truncated_transport_and_malformed_tail() {
+    for name in ["openai", "gemini", "ollama"] {
+        let (content_type, complete) = match name {
+            "openai" => ("text/event-stream", fixture("openai/turn.sse")),
+            "gemini" => ("text/event-stream", fixture("gemini/turn.sse")),
+            _ => ("application/x-ndjson", fixture("ollama/turn.ndjson")),
+        };
+        for truncated in [true, false] {
+            let reply = if truncated {
+                Reply::Truncated {
+                    content_type,
+                    body: complete.clone(),
+                }
+            } else {
+                let mut malformed = complete.trim_end().to_owned();
+                malformed.pop();
+                Reply::stream(content_type, &malformed)
+            };
+            let mut replies = Vec::new();
+            if name == "ollama" {
+                replies.push(Reply::ok("application/json", fixture("ollama/tags.json")));
+            }
+            replies.push(reply);
+            let server = FakeHttp::serve(replies).await;
+            let expected = if truncated {
+                "stream failed"
+            } else {
+                "cannot parse"
+            };
+            match name {
+                "openai" => assert_stream_error(OpenAi::new("test", &server.url), expected).await,
+                "gemini" => assert_stream_error(Gemini::new("test", &server.url), expected).await,
+                _ => {
+                    assert_stream_error(
+                        Ollama::discover_at(&server.url).await.expect("tags"),
+                        expected,
+                    )
+                    .await
+                }
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn failed_streams_settle_history_before_the_next_prompt() {
+    for first in [
+        "",
+        "data: {\"choices\":[{\"delta\":{\"content\":\"partial\"}}]}\n\ndata: {",
+    ] {
+        let server = FakeHttp::serve(vec![
+            Reply::stream("text/event-stream", first),
+            Reply::stream("text/event-stream", &fixture("openai/turn.sse")),
+        ])
+        .await;
+        let provider = ApiProvider::new(OpenAi::new("test", &server.url));
+        with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+            initialize(&cx).await?;
+            let session = new_session(&cx).await?;
+            assert!(
+                prompt_and_wait(&cx, &session.session_id, "first")
+                    .await
+                    .is_err()
+            );
+            assert_eq!(
+                prompt_and_wait(&cx, &session.session_id, "retry")
+                    .await?
+                    .stop_reason,
+                StopReason::EndTurn
+            );
+            Ok(())
+        })
+        .await;
+        let requests = server.recorded();
+        let second = requests[1].json();
+        let messages = second["messages"].as_array().expect("messages");
+        if first.is_empty() {
+            assert_eq!(messages.len(), 1);
+        } else {
+            assert_eq!(messages.len(), 3);
+            assert_eq!(messages[1]["role"], "assistant");
+            assert_eq!(messages[1]["content"], "partial");
+        }
+        assert_eq!(messages.last().expect("retry")["content"], "retry");
+    }
+}
+
+#[tokio::test]
+async fn openai_success_without_usage_accepts_an_unterminated_sentinel() {
+    let server = FakeHttp::serve(vec![Reply::stream("text/event-stream",
+        "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\r\n\r\ndata: [DONE]"
+    )]).await;
+    let provider = ApiProvider::new(OpenAi::new("test", &server.url));
+    let (response, observed) = with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+        initialize(&cx).await?;
+        let session = new_session(&cx).await?;
+        prompt_and_wait(&cx, &session.session_id, "hi").await
+    })
+    .await;
+    assert_eq!(response.stop_reason, StopReason::EndTurn);
+    assert_eq!(observed.messages(), "ok");
+    assert!(!observed.saw(|u| matches!(u, SessionUpdate::UsageUpdate(_))));
+}
+
 // ── OpenAI ───────────────────────────────────────────────────────────────
 
 #[tokio::test]
@@ -188,6 +347,156 @@ fn openai_without_a_key_is_refused_naming_the_variable() {
         err.to_string(),
         "provider error: OPENAI_API_KEY environment variable not set"
     );
+}
+
+#[tokio::test]
+async fn openai_requires_both_finish_and_sentinel() {
+    for body in [
+        "",
+        "data: {\"choices\":[{\"delta\":{\"content\":\"partial\"}}]}\n\n",
+        "data: [DONE]\n\n",
+        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+    ] {
+        let server = FakeHttp::serve(vec![Reply::stream("text/event-stream", body)]).await;
+        let provider = ApiProvider::new(OpenAi::new("sk-test", &server.url));
+        let (_, observed) = with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+            initialize(&cx).await?;
+            let session = new_session(&cx).await?;
+            assert!(
+                prompt_and_wait(&cx, &session.session_id, "hi")
+                    .await
+                    .is_err(),
+                "incomplete stream accepted: {body:?}"
+            );
+            Ok(())
+        })
+        .await;
+        assert!(!observed.saw(|u| matches!(u, SessionUpdate::UsageUpdate(_))));
+    }
+}
+
+#[tokio::test]
+async fn openai_length_is_max_tokens_without_fabricated_usage() {
+    let server = FakeHttp::serve(vec![Reply::stream("text/event-stream",
+        "data: {\"choices\":[{\"delta\":{\"content\":\"partial\"},\"finish_reason\":\"length\"}]}\n\ndata: [DONE]\n\n"
+    )]).await;
+    let provider = ApiProvider::new(OpenAi::new("sk-test", &server.url));
+    let (response, observed) = with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+        initialize(&cx).await?;
+        let session = new_session(&cx).await?;
+        prompt_and_wait(&cx, &session.session_id, "hi").await
+    })
+    .await;
+    assert_eq!(response.stop_reason, StopReason::MaxTokens);
+    assert_eq!(observed.messages(), "partial");
+    assert!(!observed.saw(|u| matches!(u, SessionUpdate::UsageUpdate(_))));
+}
+
+#[tokio::test]
+async fn openai_refusal_deltas_and_content_filter_are_refusals() {
+    for body in [
+        "data: {\"choices\":[{\"delta\":{\"refusal\":\"Cannot help.\"}}]}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"content_filter\"}]}\n\ndata: [DONE]\n\n",
+    ] {
+        let server = FakeHttp::serve(vec![Reply::stream("text/event-stream", body)]).await;
+        let provider = ApiProvider::new(OpenAi::new("sk-test", &server.url));
+        let (response, _) = with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+            initialize(&cx).await?;
+            let session = new_session(&cx).await?;
+            prompt_and_wait(&cx, &session.session_id, "hi").await
+        })
+        .await;
+        assert_eq!(response.stop_reason, StopReason::Refusal);
+    }
+}
+
+#[tokio::test]
+async fn gemini_terminal_reasons_survive_http() {
+    for (body, expected) in [
+        (
+            r#"{"candidates":[{"finishReason":"STOP"}]}"#,
+            Some(StopReason::EndTurn),
+        ),
+        (
+            r#"{"candidates":[{"finishReason":"MAX_TOKENS"}]}"#,
+            Some(StopReason::MaxTokens),
+        ),
+        (
+            r#"{"candidates":[{"finishReason":"SAFETY"}]}"#,
+            Some(StopReason::Refusal),
+        ),
+        (
+            r#"{"promptFeedback":{"blockReason":"SAFETY"}}"#,
+            Some(StopReason::Refusal),
+        ),
+        (
+            r#"{"candidates":[{"content":{"parts":[{"text":"partial"}]}}]}"#,
+            None,
+        ),
+        (r#"{"usageMetadata":{"promptTokenCount":1}}"#, None),
+        (
+            r#"{"candidates":[{"finishReason":"MALFORMED_FUNCTION_CALL"}]}"#,
+            None,
+        ),
+        (r#"{"error":{"message":"provider failed"}}"#, None),
+    ] {
+        let server = FakeHttp::serve(vec![Reply::stream(
+            "text/event-stream",
+            &format!("data: {body}\n\n"),
+        )])
+        .await;
+        let provider = ApiProvider::new(Gemini::new("test", &server.url));
+        let (_, observed) = with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+            initialize(&cx).await?;
+            let session = new_session(&cx).await?;
+            let result = prompt_and_wait(&cx, &session.session_id, "hi").await;
+            match expected {
+                Some(stop) => assert_eq!(result?.stop_reason, stop, "{body}"),
+                None => assert!(result.is_err(), "{body}"),
+            }
+            Ok(())
+        })
+        .await;
+        assert!(!observed.saw(|u| matches!(u, SessionUpdate::UsageUpdate(_))));
+    }
+}
+
+#[tokio::test]
+async fn ollama_terminal_reasons_survive_http() {
+    for (body, expected) in [
+        (
+            r#"{"done":true,"done_reason":"stop"}"#,
+            Some(StopReason::EndTurn),
+        ),
+        (r#"{"done":true}"#, Some(StopReason::EndTurn)),
+        (
+            r#"{"done":true,"done_reason":"length"}"#,
+            Some(StopReason::MaxTokens),
+        ),
+        (r#"{"done":false,"message":{"content":"partial"}}"#, None),
+        (r#"{"error":"provider failed"}"#, None),
+        (r#"{"done":true,"done_reason":"unload"}"#, None),
+        (r#"{"done":true,"done_reason":"future"}"#, None),
+    ] {
+        let server = FakeHttp::serve(vec![
+            Reply::ok("application/json", fixture("ollama/tags.json")),
+            Reply::stream("application/x-ndjson", &format!("{body}\n")),
+        ])
+        .await;
+        let provider = ApiProvider::new(Ollama::discover_at(&server.url).await.expect("tags"));
+        let (_, observed) = with_provider(provider, PermissionAnswer::Cancel, async |cx, _| {
+            initialize(&cx).await?;
+            let session = new_session(&cx).await?;
+            let result = prompt_and_wait(&cx, &session.session_id, "hi").await;
+            match expected {
+                Some(stop) => assert_eq!(result?.stop_reason, stop, "{body}"),
+                None => assert!(result.is_err(), "{body}"),
+            }
+            Ok(())
+        })
+        .await;
+        assert!(!observed.saw(|u| matches!(u, SessionUpdate::UsageUpdate(_))));
+    }
 }
 
 // ── Gemini ───────────────────────────────────────────────────────────────

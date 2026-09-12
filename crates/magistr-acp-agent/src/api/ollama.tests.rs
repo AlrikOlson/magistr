@@ -1,5 +1,44 @@
 use super::*;
 
+#[test]
+fn done_is_terminal_even_without_usage_and_length_is_distinct() {
+    for (reason, stop) in [
+        ("stop", StopReason::EndTurn),
+        ("length", StopReason::MaxTokens),
+    ] {
+        let line = format!(r#"{{"done":true,"done_reason":"{reason}"}}"#);
+        assert_eq!(
+            api().decode(&line).expect("terminal"),
+            vec![StreamEvent::Finish(stop)]
+        );
+    }
+    assert!(
+        api()
+            .decode(r#"{"done":false,"done_reason":"stop"}"#)
+            .expect("not finished")
+            .is_empty()
+    );
+    assert_eq!(
+        api().decode(r#"{"done":true}"#).expect("legacy done"),
+        vec![StreamEvent::Finish(StopReason::EndTurn)]
+    );
+}
+
+#[test]
+fn errors_and_unknown_done_reasons_fail() {
+    for reason in ["load", "unload", "future", ""] {
+        let line = format!(r#"{{"done":true,"done_reason":"{reason}"}}"#);
+        assert!(api().decode(&line).is_err(), "{line}");
+    }
+    assert!(
+        api()
+            .decode(r#"{"error":"overloaded"}"#)
+            .expect_err("error")
+            .to_string()
+            .contains("overloaded")
+    );
+}
+
 fn api() -> Ollama {
     Ollama {
         base_url: "http://127.0.0.1:11434".to_owned(),
@@ -23,7 +62,7 @@ fn a_host_without_a_scheme_gets_http_and_a_trailing_slash_goes() {
 }
 
 #[test]
-fn a_content_line_is_text_and_the_done_line_is_usage() {
+fn a_content_line_is_text_and_done_carries_usage_and_finish() {
     let api = api();
     assert_eq!(
         api.decode(
@@ -40,12 +79,12 @@ fn a_content_line_is_text_and_the_done_line_is_usage() {
         vec![StreamEvent::Usage {
             input: 9,
             output: 4
-        }]
+        }, StreamEvent::Finish(StopReason::EndTurn)]
     );
 }
 
 #[test]
-fn a_done_line_with_text_yields_both() {
+fn a_done_line_keeps_text_without_inventing_missing_token_counts() {
     let events = api()
         .decode(r#"{"message":{"role":"assistant","content":"."},"done":true,"eval_count":1}"#)
         .expect("decodes");
@@ -53,10 +92,7 @@ fn a_done_line_with_text_yields_both() {
         events,
         vec![
             StreamEvent::Text(".".to_owned()),
-            StreamEvent::Usage {
-                input: 0,
-                output: 1
-            }
+            StreamEvent::Finish(StopReason::EndTurn)
         ]
     );
 }

@@ -92,6 +92,24 @@ Claude loading requires a readable, valid transcript; missing or malformed
 history is an error. Codex validates restored thread identity. Unknown provider
 capabilities default to unsupported.
 
+## Chat API completion
+
+Chat adapters require explicit provider terminal evidence and a complete HTTP
+body before answering ACP: OpenAI requires a recognized `finish_reason` followed
+by `[DONE]`; Gemini requires a recognized `finishReason` or prompt block;
+Ollama requires `done: true` with a recognized reason (older responses may omit
+the reason). Normal stops, token limits and content refusals produce distinct
+ACP stop reasons. Unsupported reasons, stream error objects, malformed data,
+truncated transport and missing terminal evidence fail the turn.
+
+Usage is independent of completion: absent counts produce no usage update.
+OpenAI refusal deltas remain visible as text and cannot turn a normal finish
+into success. Cancellation drops the HTTP request or body and reports local
+cancellation, without claiming remote acknowledgment. Failed and cancelled
+turns retain visible partial replies, or remove unanswered prompts, before the
+next request uses the session history. Decoder tests and loopback HTTP fixtures
+exercise these contracts without live credentials.
+
 ## Shared session supervision
 
 The CLI host's [SessionSupervisor](../../crates/magistr-cli/src/agent/session_supervisor/mod.rs)

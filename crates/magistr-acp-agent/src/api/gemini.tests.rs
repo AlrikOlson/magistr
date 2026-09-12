@@ -1,5 +1,55 @@
 use super::*;
 
+#[test]
+fn terminal_and_block_evidence_is_independent_of_usage() {
+    for (reason, stop) in [
+        ("STOP", StopReason::EndTurn),
+        ("MAX_TOKENS", StopReason::MaxTokens),
+        ("SAFETY", StopReason::Refusal),
+        ("RECITATION", StopReason::Refusal),
+        ("SPII", StopReason::Refusal),
+    ] {
+        let line = format!(r#"data: {{"candidates":[{{"finishReason":"{reason}"}}]}}"#);
+        assert_eq!(
+            api().decode(&line).expect("terminal"),
+            vec![StreamEvent::Finish(stop)]
+        );
+    }
+    assert_eq!(
+        api()
+            .decode(r#"data: {"promptFeedback":{"blockReason":"SAFETY"}}"#)
+            .expect("block"),
+        vec![StreamEvent::Finish(StopReason::Refusal)]
+    );
+}
+
+#[test]
+fn malformed_unknown_and_error_outcomes_fail() {
+    for reason in [
+        "OTHER",
+        "FINISH_REASON_UNSPECIFIED",
+        "MALFORMED_FUNCTION_CALL",
+        "future",
+    ] {
+        let line = format!(r#"data: {{"candidates":[{{"finishReason":"{reason}"}}]}}"#);
+        assert!(
+            api()
+                .decode(&line)
+                .expect_err("unsupported")
+                .to_string()
+                .contains(reason)
+        );
+    }
+    assert!(
+        api()
+            .decode(r#"data: {"error":{"message":"overloaded"}}"#)
+            .expect_err("error")
+            .to_string()
+            .contains("overloaded")
+    );
+    assert!(api().decode("data: {").is_err());
+}
+
 fn api() -> Gemini {
     Gemini::new("AIza-test", "https://example.test/v1beta")
 }

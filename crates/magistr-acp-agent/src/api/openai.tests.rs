@@ -1,5 +1,51 @@
 use super::*;
 
+#[test]
+fn terminal_and_refusal_evidence_is_independent_of_usage() {
+    for (reason, stop) in [
+        ("stop", StopReason::EndTurn),
+        ("length", StopReason::MaxTokens),
+        ("content_filter", StopReason::Refusal),
+    ] {
+        let line = format!(r#"data: {{"choices":[{{"delta":{{}},"finish_reason":"{reason}"}}]}}"#);
+        assert_eq!(
+            api().decode(&line).expect("terminal"),
+            vec![StreamEvent::Finish(stop)]
+        );
+    }
+    assert_eq!(
+        api().decode("data: [DONE]").expect("sentinel"),
+        vec![StreamEvent::Done]
+    );
+    assert_eq!(
+        api()
+            .decode(r#"data: {"choices":[{"delta":{"refusal":"No."}}]}"#)
+            .expect("refusal"),
+        vec![StreamEvent::Refusal("No.".to_owned())]
+    );
+}
+
+#[test]
+fn unsupported_finishes_and_stream_errors_fail() {
+    for reason in ["tool_calls", "function_call", "future"] {
+        let line = format!(r#"data: {{"choices":[{{"delta":{{}},"finish_reason":"{reason}"}}]}}"#);
+        assert!(
+            api()
+                .decode(&line)
+                .expect_err("unsupported")
+                .to_string()
+                .contains(reason)
+        );
+    }
+    assert!(
+        api()
+            .decode(r#"data: {"error":{"message":"overloaded"}}"#)
+            .expect_err("error")
+            .to_string()
+            .contains("overloaded")
+    );
+}
+
 fn api() -> OpenAi {
     OpenAi::new("sk-test", "https://example.test/v1/")
 }
@@ -34,9 +80,9 @@ fn a_text_delta_decodes_to_text_and_the_usage_chunk_to_usage() {
 }
 
 #[test]
-fn done_blank_and_comment_lines_carry_nothing() {
+fn blank_and_comment_lines_carry_nothing() {
     let api = api();
-    for line in ["data: [DONE]", "", ": keep-alive", "event: message"] {
+    for line in ["", ": keep-alive", "event: message"] {
         assert!(api.decode(line).expect("decodes").is_empty(), "{line:?}");
     }
 }

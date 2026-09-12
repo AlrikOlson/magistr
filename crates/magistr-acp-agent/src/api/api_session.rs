@@ -36,7 +36,7 @@ impl ApiSession {
         self.cost_usd += cost;
     }
 
-    /// Close a turn the client cancelled. A partial reply stays in the
+    /// Close a cancelled or failed turn. A partial reply stays in the
     /// history as what the user saw; an empty one takes its prompt with it,
     /// so the history keeps alternating (Gemini refuses one that does not).
     pub(crate) fn abandon_turn(&mut self, partial: String) {

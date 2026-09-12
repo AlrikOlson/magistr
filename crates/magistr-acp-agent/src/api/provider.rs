@@ -67,101 +67,146 @@ impl<A: ChatApi> ApiProvider<A> {
         let session = self.session(turn.session_id())?;
         let model = turn
             .model()
-            .ok_or_else(|| AgentError::provider(format!("{name}: no model selected")))?
-            .to_owned();
-        let spec = self.spec(&model)?;
+            .ok_or_else(|| AgentError::provider(format!("{name}: no model selected")))?;
+        let spec = self.spec(model)?;
         let history = lock(&session).begin_turn(turn.text());
-        let request = self.api.request(&self.http, &model, &history);
+        let request = self.api.request(&self.http, model, &history);
+        let mut state = ReplyState::default();
+        let result = tokio::select! {
+            biased;
+            () = turn.cancelled() => Ok(StopReason::Cancelled),
+            result = self.receive(&turn, request, &mut state) => result,
+        };
+        let stop = match result {
+            Ok(stop) if stop != StopReason::Cancelled => stop,
+            other => {
+                // Includes request, HTTP, transport, decoding and incomplete-stream
+                // failures. Keep only the partial answer the client actually saw.
+                lock(&session).abandon_turn(state.reply);
+                return other;
+            }
+        };
+        let cost = state
+            .usage
+            .map_or(0.0, |(input, output)| spec.pricing.cost(input, output));
+        let total = {
+            let mut session = lock(&session);
+            session.end_turn(state.reply, state.usage, cost);
+            session.cost_usd
+        };
+        if let Some((input, output)) = state.usage {
+            turn.usage(
+                UsageUpdate::new(input.saturating_add(output), spec.context_window)
+                    .cost(Cost::new(total, "USD")),
+            )?;
+        }
+        Ok(stop)
+    }
 
-        let sent = tokio::select! {
-            sent = request.send() => sent,
-            () = turn.cancelled() => {
-                lock(&session).abandon_turn(String::new());
-                return Ok(StopReason::Cancelled);
-            }
-        };
-        let response = match sent {
-            Ok(response) => response,
-            Err(e) => {
-                lock(&session).abandon_turn(String::new());
-                return Err(AgentError::provider(format!("{name}: request failed: {e}")));
-            }
-        };
+    async fn receive(
+        &self,
+        turn: &Turn,
+        request: reqwest::RequestBuilder,
+        state: &mut ReplyState,
+    ) -> Result<StopReason, AgentError> {
+        let name = self.api.name();
+        let mut response = request
+            .send()
+            .await
+            .map_err(|e| AgentError::provider(format!("{name}: request failed: {e}")))?;
         let status = response.status();
         if !status.is_success() {
             let body = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "<unreadable>".to_owned());
-            lock(&session).abandon_turn(String::new());
             return Err(AgentError::provider(format!(
                 "{name} API error {status}: {body}"
             )));
         }
-
-        let mut response = response;
         let mut lines = LineBuffer::default();
-        let mut reply = String::new();
-        let mut usage = None;
-        loop {
-            let next = tokio::select! {
-                chunk = response.chunk() => Some(chunk),
-                () = turn.cancelled() => None,
-            };
-            let Some(chunk) = next else {
-                // Dropping the response closes the connection: the stream
-                // is aborted, not drained.
-                drop(response);
-                lock(&session).abandon_turn(reply);
-                return Ok(StopReason::Cancelled);
-            };
-            let chunk =
-                chunk.map_err(|e| AgentError::provider(format!("{name}: stream failed: {e}")))?;
-            let Some(bytes) = chunk else {
-                if let Some(tail) = lines.finish()? {
-                    self.absorb(&turn, &tail, &mut reply, &mut usage)?;
-                }
-                break;
-            };
+        while let Some(bytes) = response
+            .chunk()
+            .await
+            .map_err(|e| AgentError::provider(format!("{name}: stream failed: {e}")))?
+        {
             lines.push(&bytes);
             for line in lines.drain_lines()? {
-                self.absorb(&turn, &line, &mut reply, &mut usage)?;
+                self.absorb(turn, &line, state)?;
             }
         }
-
-        let (input, output) = usage.unwrap_or((0, 0));
-        let cost = spec.pricing.cost(input, output);
-        let total = {
-            let mut session = lock(&session);
-            session.end_turn(reply, usage, cost);
-            session.cost_usd
-        };
-        turn.usage(
-            UsageUpdate::new(input + output, spec.context_window).cost(Cost::new(total, "USD")),
-        )?;
-        Ok(StopReason::EndTurn)
+        if let Some(tail) = lines.finish()? {
+            self.absorb(turn, &tail, state)?;
+        }
+        if self.api.requires_done() && !state.done {
+            return Err(AgentError::provider(format!(
+                "{name}: stream ended without end sentinel"
+            )));
+        }
+        let stop = state.finish.ok_or_else(|| {
+            AgentError::provider(format!("{name}: stream ended without provider finish"))
+        })?;
+        Ok(if state.refused && stop == StopReason::EndTurn {
+            StopReason::Refusal
+        } else {
+            stop
+        })
     }
 
-    /// Decode one line and act on it: text goes to the client at once and
-    /// into the reply; usage is remembered for the end of the turn.
-    fn absorb(
-        &self,
-        turn: &Turn,
-        line: &str,
-        reply: &mut String,
-        usage: &mut Option<(u64, u64)>,
-    ) -> Result<(), AgentError> {
+    /// Text is forwarded immediately; accounting and terminal evidence remain
+    /// separate until the complete response has been validated.
+    fn absorb(&self, turn: &Turn, line: &str, state: &mut ReplyState) -> Result<(), AgentError> {
         for event in self.api.decode(line)? {
+            if state.done {
+                return Err(AgentError::provider(format!(
+                    "{}: event after end sentinel",
+                    self.api.name()
+                )));
+            }
+            let is_refusal = matches!(event, StreamEvent::Refusal(_));
             match event {
-                StreamEvent::Text(text) => {
-                    reply.push_str(&text);
-                    turn.message(text)?;
+                StreamEvent::Text(_) | StreamEvent::Refusal(_) if state.finish.is_some() => {
+                    return Err(AgentError::provider(format!(
+                        "{}: text after provider finish",
+                        self.api.name()
+                    )));
                 }
-                StreamEvent::Usage { input, output } => *usage = Some((input, output)),
+                StreamEvent::Text(text) | StreamEvent::Refusal(text) => {
+                    state.refused |= is_refusal;
+                    turn.message(text.as_str())?;
+                    state.reply.push_str(&text);
+                }
+                StreamEvent::Usage { input, output } => state.usage = Some((input, output)),
+                StreamEvent::Finish(stop) => {
+                    if state.finish.replace(stop).is_some() {
+                        return Err(AgentError::provider(format!(
+                            "{}: duplicate provider finish",
+                            self.api.name()
+                        )));
+                    }
+                }
+                StreamEvent::Done => {
+                    if state.finish.is_none() {
+                        return Err(AgentError::provider(format!(
+                            "{}: end sentinel without provider finish",
+                            self.api.name()
+                        )));
+                    }
+                    state.done = true;
+                }
             }
         }
         Ok(())
     }
+}
+
+#[derive(Default)]
+struct ReplyState {
+    reply: String,
+    usage: Option<(u64, u64)>,
+    finish: Option<StopReason>,
+    refused: bool,
+    done: bool,
 }
 
 fn lock(session: &Mutex<ApiSession>) -> std::sync::MutexGuard<'_, ApiSession> {

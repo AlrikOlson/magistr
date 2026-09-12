@@ -1,5 +1,6 @@
 //! Ollama over `/api/chat`, streamed as newline-delimited JSON.
 
+use agent_client_protocol::schema::v1::StopReason;
 use serde::{Deserialize, Serialize};
 
 use crate::{AgentError, ChatApi, ChatMessage, ModelSpec, Pricing, Role, StreamEvent};
@@ -110,6 +111,8 @@ struct Chunk {
     message: Option<ChunkMessage>,
     #[serde(default)]
     done: bool,
+    done_reason: Option<String>,
+    error: Option<String>,
     #[serde(default)]
     prompt_eval_count: Option<u64>,
     #[serde(default)]
@@ -165,15 +168,30 @@ impl ChatApi for Ollama {
                 "ollama: cannot parse stream line: {e} (line: {line})"
             ))
         })?;
+        if let Some(error) = chunk.error {
+            return Err(AgentError::provider(format!(
+                "ollama: stream error: {error}"
+            )));
+        }
         let mut events = Vec::new();
         if let Some(text) = chunk.message.map(|m| m.content).filter(|c| !c.is_empty()) {
             events.push(StreamEvent::Text(text));
         }
         if chunk.done {
-            events.push(StreamEvent::Usage {
-                input: chunk.prompt_eval_count.unwrap_or(0),
-                output: chunk.eval_count.unwrap_or(0),
-            });
+            if let (Some(input), Some(output)) = (chunk.prompt_eval_count, chunk.eval_count) {
+                events.push(StreamEvent::Usage { input, output });
+            }
+            let stop = match chunk.done_reason.as_deref() {
+                // Older Ollama responses omit the reason but still carry done.
+                None | Some("stop") => StopReason::EndTurn,
+                Some("length") => StopReason::MaxTokens,
+                Some(reason) => {
+                    return Err(AgentError::provider(format!(
+                        "ollama: unsupported done reason: {reason}"
+                    )));
+                }
+            };
+            events.push(StreamEvent::Finish(stop));
         }
         Ok(events)
     }

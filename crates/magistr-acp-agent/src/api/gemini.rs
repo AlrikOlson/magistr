@@ -1,5 +1,6 @@
 //! Gemini over `streamGenerateContent`, streamed as server-sent events.
 
+use agent_client_protocol::schema::v1::StopReason;
 use serde::{Deserialize, Serialize};
 
 use crate::{AgentError, ChatApi, ChatMessage, ModelSpec, Pricing, Role, StreamEvent};
@@ -115,12 +116,24 @@ struct Chunk {
     candidates: Vec<Candidate>,
     #[serde(default)]
     usage_metadata: Option<UsageMetadata>,
+    prompt_feedback: Option<PromptFeedback>,
+    error: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PromptFeedback {
+    block_reason: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct Candidate {
     #[serde(default)]
     content: Option<CandidateContent>,
+    finish_reason: Option<String>,
+    #[serde(default)]
+    index: u64,
 }
 
 #[derive(Deserialize)]
@@ -187,15 +200,63 @@ impl ChatApi for Gemini {
                 "gemini: cannot parse stream chunk: {e} (data: {data})"
             ))
         })?;
-        let mut events: Vec<StreamEvent> = chunk
-            .candidates
-            .into_iter()
-            .filter_map(|candidate| candidate.content)
-            .flat_map(|content| content.parts)
-            .filter_map(|part| part.text)
-            .filter(|text| !text.is_empty())
-            .map(StreamEvent::Text)
-            .collect();
+        if let Some(error) = chunk.error {
+            return Err(AgentError::provider(format!(
+                "gemini: stream error: {error}"
+            )));
+        }
+        let mut events = Vec::new();
+        if let Some(reason) = chunk
+            .prompt_feedback
+            .and_then(|feedback| feedback.block_reason)
+        {
+            let stop = match reason.as_str() {
+                "SAFETY" | "BLOCKLIST" | "PROHIBITED_CONTENT" | "IMAGE_SAFETY" => {
+                    StopReason::Refusal
+                }
+                _ => {
+                    return Err(AgentError::provider(format!(
+                        "gemini: prompt blocked: {reason}"
+                    )));
+                }
+            };
+            events.push(StreamEvent::Finish(stop));
+        }
+        for candidate in chunk.candidates {
+            if candidate.index != 0 {
+                return Err(AgentError::provider("gemini: unexpected candidate index"));
+            }
+            events.extend(
+                candidate
+                    .content
+                    .into_iter()
+                    .flat_map(|content| content.parts)
+                    .filter_map(|part| part.text)
+                    .filter(|text| !text.is_empty())
+                    .map(StreamEvent::Text),
+            );
+            if let Some(reason) = candidate.finish_reason {
+                let stop = match reason.as_str() {
+                    "STOP" => StopReason::EndTurn,
+                    "MAX_TOKENS" => StopReason::MaxTokens,
+                    "SAFETY"
+                    | "RECITATION"
+                    | "BLOCKLIST"
+                    | "PROHIBITED_CONTENT"
+                    | "SPII"
+                    | "IMAGE_SAFETY"
+                    | "IMAGE_PROHIBITED_CONTENT"
+                    | "IMAGE_RECITATION"
+                    | "ESCALATION" => StopReason::Refusal,
+                    _ => {
+                        return Err(AgentError::provider(format!(
+                            "gemini: unsupported finish reason: {reason}"
+                        )));
+                    }
+                };
+                events.push(StreamEvent::Finish(stop));
+            }
+        }
         if let Some(usage) = chunk.usage_metadata {
             events.push(StreamEvent::Usage {
                 input: usage.prompt_token_count,

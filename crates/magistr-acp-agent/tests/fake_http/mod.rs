@@ -15,6 +15,11 @@ use tokio::net::{TcpListener, TcpStream};
 /// How a request is answered.
 #[derive(Clone, Debug)]
 pub enum Reply {
+    /// Close before the advertised content length, exercising a transport error.
+    Truncated {
+        content_type: &'static str,
+        body: String,
+    },
     /// A whole body at once.
     Body {
         status: u16,
@@ -202,6 +207,15 @@ async fn handle(mut stream: TcpStream, reply: Reply, requests: Arc<Mutex<Vec<Rec
         requests.len() - 1
     };
     match reply {
+        Reply::Truncated { content_type, body } => {
+            let head = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: {content_type}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
+                body.len() + 128
+            );
+            let _ = stream.write_all(head.as_bytes()).await;
+            let _ = stream.write_all(body.as_bytes()).await;
+            let _ = stream.shutdown().await;
+        }
         Reply::Body {
             status,
             content_type,
