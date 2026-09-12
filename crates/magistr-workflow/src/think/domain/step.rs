@@ -1,9 +1,11 @@
 //! The core reasoning step type and its `next_action` companion.
 //!
-//! `ThinkStep` is the canonical wire+storage shape recorded for every
+//! `ThinkStep` is the canonical persisted shape recorded for every
 //! `think_record_step` call. The struct is `pub` because both the
 //! engine and the Tauri viewer (via `magistr_workflow::think::domain::ThinkStep`)
-//! deserialize from the same JSON.
+//! deserialize from the same JSON. Live MCP requirements are published and
+//! checked independently by `think::mcp::record_input`; storage defaults never
+//! make an authored reasoning field optional on a new wire call.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

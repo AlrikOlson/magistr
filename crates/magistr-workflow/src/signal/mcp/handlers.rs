@@ -38,12 +38,14 @@ fn parse_kind(s: &str) -> Result<SignalKind, String> {
 pub struct CaptureArgs {
     /// One of: question, idea, concern, bug, feedback.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub kind: String,
     /// Who raised the signal (display name / handle / email).
     #[serde(default)]
     pub from: String,
     /// The signal content.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub body: String,
     /// PREFER THIS over packing detail into `body` — the structured body that
     /// renders as UI: {version:1, summary: one plain sentence (no shorthand,
@@ -65,6 +67,7 @@ pub struct LinkArgs {
     /// A cross-ref string: `think:N`, `task:X`, `action:N`, `check:X`,
     /// `chunk:X`, `signal:X`. `ref`/`crossref` accepted as forgiving aliases.
     #[serde(default, alias = "ref", alias = "crossref")]
+    #[schemars(required, !default)]
     pub cross_ref: String,
 }
 
@@ -78,6 +81,7 @@ pub struct ResearchArgs {
     pub id: String,
     /// A summary of what the agent found this round.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub summary: String,
     /// Agent confidence in the enrichment, 0..1 (clamped).
     #[serde(default)]

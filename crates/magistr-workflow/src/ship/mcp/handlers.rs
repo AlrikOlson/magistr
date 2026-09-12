@@ -21,6 +21,7 @@ impl ShipService {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SetObjectiveArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub description: String,
     #[serde(default, deserialize_with = "crate::infra::coerce::string_or_seq")]
     pub acceptance_criteria: Vec<String>,
@@ -33,8 +34,10 @@ pub struct SetObjectiveArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct PlanArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub action: PlanAction,
     #[serde(default)]
+    #[schemars(required, !default)]
     pub task_id: String,
     #[serde(default)]
     pub title: Option<String>,
@@ -66,6 +69,7 @@ pub enum PlanAction {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct StartArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub task_id: String,
 }
 
@@ -187,6 +191,7 @@ pub struct NoArgs {}
 pub struct GateOpenArgs {
     /// The one plain-language sentence a human answers.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub question: String,
     /// Plain-prose context: what happens on each answer, what was verified.
     #[serde(default)]
@@ -196,6 +201,7 @@ pub struct GateOpenArgs {
     pub options: serde_json::Value,
     /// The safe answer an unanswered gate resolves to at expiry. REQUIRED.
     #[serde(default, rename = "default")]
+    #[schemars(required, !default)]
     pub default_key: Option<String>,
     /// Seconds until the gate answers itself with the default (default 3600).
     #[serde(default)]
@@ -205,6 +211,7 @@ pub struct GateOpenArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GateWaitArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub gate_id: String,
     /// Seconds this ONE call may wait before returning `pending` (default 25,
     /// max 55 — always under the MCP client's own call timeout; loop to keep

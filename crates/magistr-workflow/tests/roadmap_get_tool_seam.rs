@@ -135,9 +135,13 @@ async fn call_get(arguments: Value) -> Value {
         .expect("the call must succeed as a protocol operation");
     assert_eq!(
         response.is_error,
-        Some(false),
-        "every outcome here degrades through the structured envelope; a protocol \
-         error would cancel sibling calls in a parallel batch"
+        Some(
+            response
+                .structured_content
+                .as_ref()
+                .is_some_and(|body| body["ok"] == false)
+        ),
+        "MCP error flag must agree with the domain refusal"
     );
     Value::Object(
         response

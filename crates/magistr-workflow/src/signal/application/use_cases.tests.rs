@@ -67,7 +67,7 @@ async fn mcp_and_native_views_share_state_and_logical_error_classification() {
         }))
         .await
         .unwrap();
-    assert_eq!(result.is_error, Some(false));
+    assert_eq!(result.is_error, Some(true));
     let error = result.structured_content.unwrap();
     let native = app
         .capture(SignalKind::Idea, "user".into(), "  ".into(), None)
