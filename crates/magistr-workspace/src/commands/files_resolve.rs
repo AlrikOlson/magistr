@@ -11,7 +11,7 @@ use crate::{
     contracts::{EnvelopeVersion, ErrorKind, Freshness, WorkspaceError, WorkspaceResponse},
     file_content::FileContent,
     query::budget,
-    transaction::{BaselineSource, ExpectedState, TransactionChange},
+    transaction::{BaselineSource, ExpectedState, FormatMode, TransactionChange},
 };
 
 pub(super) async fn run(
@@ -82,6 +82,7 @@ pub(super) async fn run(
             dry_run: input.dry_run,
             auto_apply: input.auto_apply,
             budget: input.budget,
+            format: FormatMode::Enabled,
         },
         resolved,
     )

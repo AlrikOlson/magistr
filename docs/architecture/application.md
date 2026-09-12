@@ -139,9 +139,47 @@ admission and settlement inside this module and the writer itself.
 | Loop driver gates (`next`, `next-loop`) | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
 | Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
 | `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
-| Cockpit `run` | `NativeEngines` or an attached `OwnerClient` | the agent's workspace owner over the spawned bridge | engine port; `magistr workspace journal` for the Changes tab |
-| ACP effects (`fs/*`, `terminal/*`) | none | direct host I/O after session authorization | `LocalEffectPort` (routing through the pipeline is `arch-14f2`) |
+| Cockpit `run` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the Changes tab |
+| ACP `fs/write_text_file` | none | `WorkspaceSourceWriter` over the hosted workspace's `write` verb, after session authorization | `LocalEffectPort` routes the authorized write through the pipeline (journal intent, `MutationReceipt`) and stamps the `fs_write` event `route: workspace`; without a hosted workspace it writes directly and says `route: direct` |
+| ACP `fs/read_text_file`, `terminal/*` | none | direct host I/O after session authorization | `LocalEffectPort` |
 | `magistr workspace snapshot` | none | lock-free `SourceSnapshot::capture` | CLI verb |
+
+### The hosted workspace
+
+`HostedWorkspace::admit(root)` is how a `magistr run` or a cockpit loop becomes
+the checkout's one workspace owner for the run: it opens `WorkspaceService` on
+the same open options the bridge composes (this binary as the worker, the host
+environment's configuration layers, the embedded interpreter), serves the
+existing owner endpoint so every `workbench-mcp` bridge the agent or the
+cockpit spawns attaches to this process, and hands the session a
+`WorkspaceSourceWriter` — one explicit journal session over the service's
+`write` verb. When a live owner already holds the lock the host admits
+nothing: it never attaches to write through a socket and never opens a second
+owner, and its effects write directly and say so on the normal terminal and in
+the `fs_write` event. The `write` verb is the pipeline every other client
+writes through — anchored on the current bytes, verified, journaled, atomic —
+with formatting off (the session's bytes are the intent) and no confirm gate
+(the session's permission decision is the confirmation). What the pipeline
+refuses (a protected path, a syntax error into a valid source, a stale
+anchor) comes back to the agent as a typed effect error in the pipeline's
+words. Writes by an editor, a provider CLI or git stay external: no journal
+row, no receipt, only `SourceSnapshot` validation naming the changed paths.
+The workspace generation, the source revision and the mutation receipt's
+revision remain three distinct facts.
+
+### One process mechanism
+
+Every command Magistr runs for a caller — a quality gate on its pty, a
+workflow `ship_check` command, a workspace declared command — is a
+`magistr_process::OwnedProcess`: its own session and process group, stdin
+closed, both streams under a bounded head+tail capture, a timeout and a
+cancel that end the whole group (gracefully with a `SIGTERM` grace, or at
+once), every chunk to a live sink, and a kill on drop so an abandoned future
+never leaves a running command behind. What is shared is the mechanism, not
+the admission: the gate runner passes the configured gate line and the
+workflow passes the caller's own command string as `Launch::Shell`; only the
+workspace's `CommandAdmission` produces a `Launch::Argv`, and nothing turns
+one into the other.
 
 ### The check-admission and source-capability interface
 
@@ -241,9 +279,10 @@ implementation on every surface — the library's tool handler behind the MCP
 verb, reached through the admitted writer (see
 [one write path](project-authority.md#one-write-path)). Durable command
 admission, full setup consolidation and further host migration remain subsequent
-chunks; routing Magistr's own source writes through the workspace pipeline is
-`arch-14f2`, the client audit `arch-14f3`, and rehoming the adopted source
-under Magistr names `arch-14f4`. Shared permission decisions
+chunks; Magistr's own source writes go through the workspace pipeline and the
+three process runners share one mechanism (`arch-14f2`, above); the client
+audit is `arch-14f3`, and rehoming the adopted source under Magistr names
+`arch-14f4`. Shared permission decisions
 are now implemented by the [permission service](permissions.md); production adapters use
 that policy for both provider permission requests and [host effects](effects.md),
 while the scoped permission-command facade remains a separate contract.

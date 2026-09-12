@@ -1,6 +1,6 @@
 //! `terminal/*`: spawn commands for the agent and track their output.
 //!
-//! On Unix a command runs under a pseudo-terminal ([`Pty`]) so it sees a
+//! On Unix a command runs under a pseudo-terminal ([`magistr_process::Pty`]) so it sees a
 //! tty; elsewhere — or when no pty can be had — it runs on pipes, and the
 //! `terminal_create` event says which. Either way every chunk the command
 //! writes streams to the consumer as [`AcpEvent::Terminal`] in order, and
@@ -170,7 +170,7 @@ fn spawn_error(args: &CreateTerminalRequest, e: &std::io::Error) -> Error {
 #[cfg(unix)]
 fn spawn_on_pty(
     args: &CreateTerminalRequest,
-    pty: super::pty::Pty,
+    pty: magistr_process::Pty,
 ) -> std::io::Result<(tokio::process::Child, Capture)> {
     let mut cmd = command(args);
     cmd.stdout(pty.stdio()?).stderr(pty.stdio()?);
@@ -212,7 +212,7 @@ fn spawn_on_pipes(
 /// A pty when the platform gives one, pipes otherwise.
 fn spawn(args: &CreateTerminalRequest) -> std::io::Result<(tokio::process::Child, Capture)> {
     #[cfg(unix)]
-    let reason = match super::pty::Pty::open(PTY_SIZE.0, PTY_SIZE.1) {
+    let reason = match magistr_process::Pty::open(PTY_SIZE.0, PTY_SIZE.1) {
         Ok(pty) => return spawn_on_pty(args, pty),
         Err(e) => format!("no pty: {e}"),
     };

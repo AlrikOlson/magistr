@@ -1,4 +1,6 @@
-use super::{EditInput, FilesInput, UndoInput, UndoRow, WriteReport, source_reads::SourceReads};
+use super::{
+    EditInput, FilesInput, UndoInput, UndoRow, WriteInput, WriteReport, source_reads::SourceReads,
+};
 use crate::{
     confirmation::ConfirmationSeal,
     contracts::{WorkspaceError, WorkspaceResponse},
@@ -62,6 +64,12 @@ impl<'a> WorkspaceCommands<'a> {
 
     pub async fn files(&mut self, input: &FilesInput) -> WorkspaceResponse<WriteReport> {
         super::files_resolve::run(self, input).await
+    }
+
+    /// The whole content of one file as exact bytes: Magistr's own source
+    /// writes after the session's permission decision.
+    pub async fn write(&mut self, input: &WriteInput) -> WorkspaceResponse<WriteReport> {
+        super::write_resolve::run(self, input).await
     }
 
     pub async fn undo(&mut self, input: &UndoInput) -> WorkspaceResponse<UndoRow> {

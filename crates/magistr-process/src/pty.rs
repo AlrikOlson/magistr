@@ -1,9 +1,8 @@
-//! A pseudo-terminal pair for the agent's commands (Unix only): the
-//! child gets the slave as its stdout and stderr so it sees a tty —
-//! colours, progress bars, its own width — and the master is what the
-//! transport reads and streams to the cockpit. Magistr's gate runner
-//! spawns the quality gates on the same pair, so one pty serves every
-//! command a cockpit watches.
+//! A pseudo-terminal pair (Unix only): the child gets the slave as its
+//! stdout and stderr so it sees a tty — colours, progress bars, its own
+//! width — and the master is what the owner reads and streams. The gate
+//! runner's [`OutputMode::Terminal`](crate::OutputMode::Terminal) and the
+//! ACP agent's terminals both run on this pair.
 
 use std::fs::File;
 use std::os::fd::OwnedFd;

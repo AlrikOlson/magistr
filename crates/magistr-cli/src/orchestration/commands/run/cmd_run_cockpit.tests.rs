@@ -23,8 +23,13 @@ fn the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_pri
     let between = &SOURCE[engines..terminal];
     assert_eq!(
         between.matches("println!(").count(),
-        3,
-        "the store, the owner endpoint and the agent failures are printed on a normal stdout"
+        4,
+        "the store, the owner endpoint, the workspace session and the agent failures are printed on a normal stdout"
+    );
+    let workspace = position("admit_workspace(&root)");
+    assert!(
+        engines < workspace && workspace < agent,
+        "the workspace is admitted after the store and before the agent whose writes it routes"
     );
 }
 

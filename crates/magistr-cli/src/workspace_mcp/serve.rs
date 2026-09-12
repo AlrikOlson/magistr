@@ -26,9 +26,7 @@ pub async fn run_workspace_stdio_server(root: &Path, config: &[String]) -> eyre:
     if !flags.errors.is_empty() {
         fail(64, &flags.errors.join("; "));
     }
-    let options = WorkspaceOpenOptions::from_environment(root, std::env::current_exe()?)
-        .with_session_flags(flags.flags)
-        .with_interpreter(ScriptInterpreter::from_bytes(QJS_WASI.to_vec()));
+    let options = open_options(root, flags.flags)?;
     let link = match Link::open(&options).await {
         Ok(link) => link,
         Err(error) => fail(error.exit_code(), &error.to_string()),
@@ -38,6 +36,21 @@ pub async fn run_workspace_stdio_server(root: &Path, config: &[String]) -> eyre:
         _ => mint_session_identity("bridge").map_err(|error| eyre::eyre!("{error}"))?,
     };
     Bridge::new(options, identity, link).run().await
+}
+
+/// The open options every Magistr owner of `root` composes — the bridge
+/// and the run host alike: this binary as the worker, the host
+/// environment's configuration layers, the embedded interpreter, plus the
+/// session's `--config` flags.
+pub(crate) fn open_options(
+    root: &Path,
+    flags: serde_json::Map<String, serde_json::Value>,
+) -> std::io::Result<WorkspaceOpenOptions> {
+    Ok(
+        WorkspaceOpenOptions::from_environment(root, std::env::current_exe()?)
+            .with_session_flags(flags)
+            .with_interpreter(ScriptInterpreter::from_bytes(QJS_WASI.to_vec())),
+    )
 }
 
 fn fail(code: i32, message: &str) -> ! {

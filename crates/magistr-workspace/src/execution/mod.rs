@@ -11,7 +11,6 @@
 //! plugin runner lanes, then the bundled runner parsers — each an open,
 //! trust-ordered registry — and finally an honest head+tail cut with a
 //! truncation manifest.
-mod bounded_capture;
 mod bundled_extractors;
 mod bundled_runners;
 mod cargo_diagnostics;

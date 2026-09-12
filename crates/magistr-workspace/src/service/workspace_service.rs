@@ -12,7 +12,9 @@ use super::{
     WorkspaceOpenError, WorkspaceOpenOptions, WorkspaceSession, journal_list,
 };
 use crate::{
-    commands::{EditInput, FilesInput, UndoInput, UndoRow, WorkspaceCommands, WriteReport},
+    commands::{
+        EditInput, FilesInput, UndoInput, UndoRow, WorkspaceCommands, WriteInput, WriteReport,
+    },
     config::ResolvedConfig,
     confirmation::ConfirmationSeal,
     contracts::{WorkspaceError, WorkspaceResponse},
@@ -309,6 +311,22 @@ impl WorkspaceService {
         let mut journal = self.journal.lock().await;
         let response = match self.commands(&mut journal, session) {
             Ok(mut commands) => commands.files(input).await,
+            Err(error) => crate::query::budget::failure(error),
+        };
+        self.with_notes(response)
+    }
+
+    /// The whole content of one file as exact bytes through the same
+    /// pipeline: Magistr's own source writes after the session's
+    /// permission decision, journaled like every other mutation.
+    pub async fn write(
+        &self,
+        input: &WriteInput,
+        session: &WorkspaceSession,
+    ) -> WorkspaceResponse<WriteReport> {
+        let mut journal = self.journal.lock().await;
+        let response = match self.commands(&mut journal, session) {
+            Ok(mut commands) => commands.write(input).await,
             Err(error) => crate::query::budget::failure(error),
         };
         self.with_notes(response)

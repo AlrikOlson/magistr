@@ -49,6 +49,12 @@ pub(crate) async fn run_cockpit_loop(
     // runtime, before the loop's writer.
     let owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
     let engines = iter_loop.native().cloned().map(EngineClient::attach);
+    // The workspace this host owns for the loop: the sessions' authorized
+    // writes run through its pipeline; the agents' bridges attach to it.
+    let workspace = crate::orchestration::commands::run::admit_workspace(dir).await;
+    let writer = workspace
+        .as_ref()
+        .and_then(|workspace| workspace.source_writer().ok());
     let auto_pause = crate::config::user_config::load()
         .map(|cfg| cfg.general.auto_pause_or_default())
         .unwrap_or(true);
@@ -71,7 +77,7 @@ pub(crate) async fn run_cockpit_loop(
         backend,
         runtime.inbox(),
         commands,
-        Connector::live(),
+        Connector::live_routed(writer),
     )
     .permission_profile(profile)
     .persisting(persist)
@@ -126,6 +132,11 @@ pub(crate) async fn run_cockpit_loop(
     // at its next wake and drops its session, which ends the agent. Give
     // it a moment, never wait forever on a stuck child.
     let report = tokio::time::timeout(LOOP_GRACE, looping).await;
+    if let Some(workspace) = workspace
+        && let Err(err) = workspace.shutdown().await
+    {
+        println!("magistr: workspace shutdown: {err}");
+    }
     let model = model.context("the cockpit failed")?;
     println!("{}", Summary::of(&model));
     if let Ok(Ok(report)) = report {

@@ -39,7 +39,11 @@ pub(crate) async fn write_text_file(
     let path = &args.path;
     let _ = event_tx.send(Ok(AcpEvent::System {
         subtype: "fs_write".to_string(),
-        data: serde_json::json!({ "path": path.display().to_string() }),
+        data: serde_json::json!({
+            "path": path.display().to_string(),
+            "route": "direct",
+            "note": "no admitted workspace in this host: written directly, unjournaled",
+        }),
     }));
 
     if let Some(parent) = path.parent()

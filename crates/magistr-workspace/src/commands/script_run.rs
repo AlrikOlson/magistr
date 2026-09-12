@@ -14,6 +14,7 @@ use crate::{
     contracts::{EnvelopeVersion, ErrorKind, Freshness, WorkspaceError, WorkspaceResponse},
     extensions::{ExtensionLane, PluginGuestPolicy},
     query::budget,
+    transaction::FormatMode,
 };
 
 /// Ceiling on the return-value JSON echoed into CONFIRM_REQUIRED notes.
@@ -155,6 +156,7 @@ async fn gated(
             dry_run: input.dry_run,
             auto_apply: input.auto_apply,
             budget: input.budget,
+            format: FormatMode::Enabled,
         },
         resolved,
     )

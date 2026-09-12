@@ -391,7 +391,7 @@ async fn cancelling_a_gate_settles_the_task_as_cancelled() {
 
 /// Claim 6: and the actual process dies. This is the claim a code reading cannot
 /// make: an abandoned `tokio::select!` loser is only killed because
-/// `run_check_command` builds its child with `.kill_on_drop(true)`.
+/// `run_check_command` runs its child as an owned process that kills it on drop.
 ///
 /// The marker file is the whole test. A surviving child would create it, and a
 /// child that merely stopped being AWAITED would still create it.
@@ -402,7 +402,7 @@ async fn cancelling_a_gate_kills_the_child_process() {
     // The child announces itself BEFORE it starts sleeping. Without this the
     // test fails open: a cancellation that arrived before the shell had even
     // spawned would leave the marker absent for the boring reason, and the
-    // assertion below would pass without ever exercising kill_on_drop. Making
+    // assertion below would pass without ever exercising the drop. Making
     // the premise observable is what turns "probably raced correctly" into a
     // fact.
     let started = dir.path().join("the-child-started");

@@ -8,7 +8,7 @@ use rmcp::ServiceExt;
 use super::WorkspaceMcpService;
 use crate::mcp_tools::protocol_cap::ProtocolCap;
 
-pub(super) async fn serve(service: Arc<WorkspaceService>) -> io::Result<OwnerEndpoint> {
+pub(crate) async fn serve(service: Arc<WorkspaceService>) -> io::Result<OwnerEndpoint> {
     let root = service.root().to_owned();
     let generation = service.generation().get();
     let acceptor: McpAcceptor = Arc::new(move |stream, cancel| {

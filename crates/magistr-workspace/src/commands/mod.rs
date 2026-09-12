@@ -49,7 +49,9 @@ mod undo_row;
 mod undo_run;
 mod undo_scope;
 mod write_action;
+mod write_input;
 mod write_report;
+mod write_resolve;
 
 pub(crate) use diff::unified_diff;
 pub use edit_input::EditInput;
@@ -71,6 +73,7 @@ pub use undo_input::UndoInput;
 pub use undo_row::UndoRow;
 pub use undo_scope::UndoScope;
 pub use write_action::WriteAction;
+pub use write_input::WriteInput;
 pub use write_report::WriteReport;
 
 /// Ops beyond this many changed lines are confirm-gated (retained §9.4 rule).

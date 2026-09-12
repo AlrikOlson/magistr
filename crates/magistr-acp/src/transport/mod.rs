@@ -27,7 +27,7 @@ use tokio::task::JoinHandle;
 use self::command::AcpCommand;
 use self::connection::ConnectionInputs;
 pub use self::sender::AcpSender;
-use magistr_application::effects::EffectPort;
+use magistr_application::effects::{EffectPort, SourceWriter};
 
 use crate::capabilities::LocalEffectPort;
 use crate::handlers::effects::EffectBridge;
@@ -68,6 +68,7 @@ pub struct AcpTransport {
     stderr_tail: StderrTail,
     effect_port: Option<Arc<dyn EffectPort>>,
     local_effects: bool,
+    source_writer: Option<Arc<dyn SourceWriter>>,
     effects: Option<Arc<EffectBridge>>,
 }
 
@@ -110,6 +111,7 @@ impl AcpTransport {
             stderr_tail: StderrTail::default(),
             effect_port: None,
             local_effects: false,
+            source_writer: None,
             effects: None,
         })
     }
@@ -129,6 +131,15 @@ impl AcpTransport {
     pub fn local_effects(mut self) -> Self {
         self.effect_port = None;
         self.local_effects = true;
+        self
+    }
+
+    /// Route the local effects' authorized writes through `writer` — the
+    /// host's admitted workspace pipeline. Only meaningful with
+    /// [`Self::local_effects`]; a custom port composes its own route.
+    #[must_use]
+    pub fn source_writer(mut self, writer: Arc<dyn SourceWriter>) -> Self {
+        self.source_writer = Some(writer);
         self
     }
 
@@ -270,10 +281,11 @@ impl AcpTransport {
             ))
         })?;
         let port = if self.local_effects {
-            Some(
-                Arc::new(LocalEffectPort::new(cwd.clone(), event_tx.clone()))
-                    as Arc<dyn EffectPort>,
-            )
+            let mut local = LocalEffectPort::new(cwd.clone(), event_tx.clone());
+            if let Some(writer) = &self.source_writer {
+                local = local.with_source_writer(Arc::clone(writer));
+            }
+            Some(Arc::new(local) as Arc<dyn EffectPort>)
         } else {
             self.effect_port.clone()
         };

@@ -51,10 +51,9 @@ mod transport;
 
 pub use error::AcpError;
 pub use event::AcpEvent;
-// The pty pair and the escape stripper behind the agent's terminals, so
-// Magistr's gate runner spawns and strips its gates the same way.
-#[cfg(unix)]
-pub use handlers::pty::Pty;
+// The escape stripper behind the agent's terminals, so Magistr's gate
+// runner strips its gates' transcripts the same way (the pty pair itself
+// is `magistr_process::Pty`).
 pub use handlers::strip_escapes::EscapeStripper;
 pub use permission::{
     AcpPermissionOption, AcpPermissionOptionKind, AcpPermissionRequest, AcpPermissionResponse,

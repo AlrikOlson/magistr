@@ -1,0 +1,26 @@
+[package]
+name = "magistr-process"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+description = "Magistr's one owned-process mechanism: a child in its own process group, bounded capture, a timeout and a cancel that end the whole group"
+license = "MIT"
+publish = false
+
+[lib]
+name = "magistr_process"
+path = "src/lib.rs"
+
+[dependencies]
+# `net` for the AsyncFd the pty master is read through.
+tokio = { version = "1", features = ["io-util", "macros", "net", "process", "rt", "time"] }
+tokio-util = "0.7"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+# openpt/grantpt/unlockpt/ptsname, the window size and the non-blocking master.
+rustix = { version = "1", features = ["fs", "pty", "termios"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread"] }

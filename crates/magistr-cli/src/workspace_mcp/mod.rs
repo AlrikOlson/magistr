@@ -33,5 +33,8 @@ mod session_lifetime;
 mod tasks;
 mod tool_surface;
 
+#[cfg(unix)]
+pub(crate) use endpoint::serve as serve_owner_endpoint;
+pub(crate) use serve::open_options;
 pub use serve::run_workspace_stdio_server;
 pub use service::WorkspaceMcpService;

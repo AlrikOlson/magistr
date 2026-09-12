@@ -2,9 +2,11 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
+use std::sync::Arc;
 
 use agent_client_protocol::schema::v1::McpServer;
 use magistr_acp::{AcpSessionMode, AcpTransport};
+use magistr_application::effects::SourceWriter;
 
 use super::{AgentConfig, AgentRuntime, SessionConfigSource};
 use crate::config::user_config::UserConfig;
@@ -22,6 +24,7 @@ pub struct ResolvedSessionSpec {
     handling: NoninteractivePolicy,
     profile: PermissionProfile,
     provenance: BTreeMap<&'static str, SessionConfigSource>,
+    source_writer: Option<Arc<dyn SourceWriter>>,
 }
 
 impl ResolvedSessionSpec {
@@ -141,7 +144,16 @@ impl ResolvedSessionSpec {
             handling,
             profile,
             provenance,
+            source_writer: None,
         })
+    }
+
+    /// Route the session's authorized writes through the host's admitted
+    /// workspace; `None` keeps the direct write and the effect says so.
+    #[must_use]
+    pub fn with_source_writer(mut self, writer: Option<Arc<dyn SourceWriter>>) -> Self {
+        self.source_writer = writer;
+        self
     }
 
     /// Project root supplied to transport, MCP discovery, and permission policy.
@@ -236,6 +248,9 @@ impl ResolvedSessionSpec {
         .session_model_preferred(self.session_model_choice(true))
         .session_effort(self.config.effort.clone())
         .local_effects();
+        if let Some(writer) = &self.source_writer {
+            transport = transport.source_writer(Arc::clone(writer));
+        }
         transport.connect().await.map_err(|error| {
             MagistrError::Acp(format!("Failed to connect ACP transport: {error}"))
         })?;

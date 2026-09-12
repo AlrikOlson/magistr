@@ -12,6 +12,7 @@ path = "src/lib.rs"
 
 [dependencies]
 magistr-application = { path = "../magistr-application" }
+magistr-process = { path = "../magistr-process" }
 agent-client-protocol = "2.0"
 futures = "0.3"
 serde_json = "1"
@@ -23,10 +24,8 @@ tracing = "0.1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
-# The agent's terminals run on a pty pair: openpt/grantpt/unlockpt/ptsname,
-# the window size, the non-blocking master, setsid + TIOCSCTTY in the child.
-# Already in the workspace through magistr-tui.
-rustix = { version = "1", features = ["fs", "process", "pty", "termios"] }
+# setsid + TIOCSCTTY in the terminal child; the pty pair is magistr-process's.
+rustix = { version = "1", features = ["process"] }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
