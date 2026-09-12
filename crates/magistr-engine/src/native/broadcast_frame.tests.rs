@@ -1,6 +1,7 @@
 use super::*;
 use crate::native::{GateOutput, MagistrFrame, RoadmapFrame, ShipFrame, SignalFrame, ThinkFrame};
 use crate::workflow::WorkflowPhase;
+#[cfg(unix)]
 use magistr_workflow::infra::Broadcaster;
 use magistr_workflow::roadmap::domain::ChunkStatus;
 use magistr_workflow::signal::domain::SignalKind;
