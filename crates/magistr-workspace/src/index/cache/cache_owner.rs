@@ -8,6 +8,6 @@ impl Drop for CacheOwner {
         // Closing our descriptor alone leaves flock held by that inherited
         // reference. Explicit unlock ends ownership when this cache closes.
         // Drop cannot surface unlock errors; the owned descriptor still closes.
-        let _ = self.0.unlock();
+        let _ = crate::os_file_lock::unlock(&self.0);
     }
 }

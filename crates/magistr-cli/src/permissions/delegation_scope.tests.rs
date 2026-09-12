@@ -6,6 +6,7 @@ fn holds(scope: &DelegationScope, request: &PolicyRequest) -> bool {
     scope.condition.matches(request)
 }
 
+#[cfg(unix)]
 #[test]
 fn a_path_scopes_to_the_tool_over_its_first_two_directories() {
     let root = Path::new("/repo");
@@ -55,6 +56,7 @@ fn a_path_scopes_to_the_tool_over_its_first_two_directories() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn a_shallow_path_scopes_to_what_it_has() {
     let one = DelegationScope::of("Write", &serde_json::json!({"path": "src/lib.rs"}), None)
@@ -90,6 +92,7 @@ fn a_shallow_path_scopes_to_what_it_has() {
     ));
 }
 
+#[cfg(unix)]
 #[test]
 fn an_absolute_path_outside_the_root_falls_back_to_the_tool() {
     let scope = DelegationScope::of(

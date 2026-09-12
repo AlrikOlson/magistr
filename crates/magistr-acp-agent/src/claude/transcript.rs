@@ -2,8 +2,9 @@
 //!
 //! `--resume` restores the conversation inside the CLI but replays nothing on
 //! the wire, so the history a client expects on `session/load` is read from
-//! where Claude Code persists it: `<config dir>/projects/<cwd with every `/`
-//! as `-`>/<session id>.jsonl`, one JSON object per line, of which the
+//! where Claude Code persists it: `<config dir>/projects/<cwd with every
+//! path separator and drive colon as `-`>/<session id>.jsonl`, one JSON
+//! object per line, of which the
 //! `user` and `assistant` lines carry the messages. A transcript that is
 //! missing, malformed, or unsupported fails before a runtime is resumed.
 
@@ -33,7 +34,13 @@ pub(crate) fn transcript_path(config_dir: &Path, cwd: &Path, session_id: &str) -
     let encoded: String = cwd
         .to_string_lossy()
         .chars()
-        .map(|c| if c == '/' || c == '\\' { '-' } else { c })
+        .map(|c| {
+            if matches!(c, '/' | '\\' | ':') {
+                '-'
+            } else {
+                c
+            }
+        })
         .collect();
     config_dir
         .join("projects")

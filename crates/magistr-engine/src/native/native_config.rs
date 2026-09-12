@@ -166,7 +166,7 @@ impl NativeConfig {
             .unwrap_or_else(|| {
                 // On Unix temp_dir uses TMPDIR; Windows also accepts TEMP/TMP.
                 let keys: &[&'static str] = if cfg!(windows) {
-                    &["TMP", "TEMP", "USERPROFILE"]
+                    &["TMPDIR", "TMP", "TEMP", "USERPROFILE"]
                 } else {
                     &["TMPDIR"]
                 };

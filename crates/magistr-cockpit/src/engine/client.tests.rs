@@ -126,6 +126,7 @@ fn a_second_host_on_the_same_project_is_refused_until_the_first_is_gone() {
 }
 
 /// A pending chunk on the host's writer.
+#[cfg(unix)]
 fn seed_chunk(host: &EngineClient, id: &str) {
     host.writer()
         .expect("the host")
@@ -146,10 +147,12 @@ fn seed_chunk(host: &EngineClient, id: &str) {
 
 /// The store under a tempdir is too deep for `sun_path`: the endpoint
 /// lands in the runtime directory, and `/tmp` always fits.
+#[cfg(unix)]
 fn attachable(root: &Path, data: &Path) -> NativeConfig {
     config(root, data).with_runtime_dir("/tmp")
 }
 
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -197,6 +200,7 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     drop(endpoint);
 }
 
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_held_host_without_an_endpoint_fails_closed() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -222,6 +226,7 @@ async fn a_held_host_without_an_endpoint_fails_closed() {
     assert!(host.writer().is_some() && host.attached_generation().is_none());
 }
 
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
     let tmp = tempfile::tempdir().expect("tempdir");
