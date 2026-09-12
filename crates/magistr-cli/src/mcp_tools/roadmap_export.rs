@@ -5,12 +5,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use magistr_workflow::mcp::UnifiedService;
 use rmcp::ErrorData;
 use rmcp::ServerHandler;
 use rmcp::model::{CallToolRequestParams, CallToolResponse, CallToolResult, Tool, ToolAnnotations};
 use rmcp::service::{RequestContext, RoleServer};
 use serde_json::{Value, json};
-use think_and_ship::mcp::UnifiedService;
 
 #[derive(Clone)]
 pub(super) struct RoadmapExport {

@@ -35,7 +35,7 @@ pub mod tracker;
 
 use std::path::Path;
 
-use magistr_engine::{NativeReader, TasConfig};
+use magistr_engine::{NativeConfig, NativeReader};
 
 use crate::error::{MagistrError, Result};
 use crate::types::ProjectConfig;
@@ -121,7 +121,7 @@ impl WorkflowConfig {
         Some(
             self.native
                 .clone()
-                .unwrap_or_else(|| NativeReader::open(&TasConfig::from_env(&self.project_dir))),
+                .unwrap_or_else(|| NativeReader::open(&NativeConfig::from_env(&self.project_dir))),
         )
     }
 

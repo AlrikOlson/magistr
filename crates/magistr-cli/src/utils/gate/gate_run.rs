@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use magistr_core::GateFailureRow;
-use magistr_engine::tas::CheckExecution;
+use magistr_engine::native::CheckExecution;
 
 use super::gate_verdict::GateVerdict;
 

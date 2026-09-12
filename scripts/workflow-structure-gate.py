@@ -15,7 +15,7 @@ import sys
 
 REVISION = "8c10c1fcfb479e90b33c59502eabd92586cf0761"
 SUBSYSTEM = Path("subsystems/workflow")
-CRATE = SUBSYSTEM / "crates/think-and-ship"
+CRATE = Path("crates/magistr-workflow")
 BASELINE = SUBSYSTEM / "STRUCTURE_BASELINE.json"
 LIMITS = {"public_items": 1, "inline_test_modules": 0, "long_functions": 0,
           "long_function_excess_lines": 0, "longest_function": 150}
@@ -109,11 +109,9 @@ def measure(source):
 
 def measurements(root):
     crate = root / CRATE
-    # Include every imported Cargo target, without scanning generated target/ files.
-    files = [crate / "build.rs"]
-    files.extend((crate / "src").rglob("*.rs"))
+    # Include every retained Cargo target, without scanning generated target/ files.
+    files = list((crate / "src").rglob("*.rs"))
     files.extend((crate / "tests").rglob("*.rs"))
-    files.extend((crate / "examples").rglob("*.rs"))
     return {str(path.relative_to(root)): measure(path.read_text()) for path in sorted(files)}
 
 

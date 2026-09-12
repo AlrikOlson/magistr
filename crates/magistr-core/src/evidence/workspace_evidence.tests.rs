@@ -2,7 +2,7 @@ use super::*;
 
 use std::fs;
 
-use magistr_engine::tas::{CheckType, SourceFreshness};
+use magistr_engine::native::{CheckType, SourceFreshness};
 
 fn project(root: &Path) {
     fs::create_dir_all(root.join(".magistr")).unwrap();

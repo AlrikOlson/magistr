@@ -135,7 +135,7 @@ impl SourceGuard {
                         | "magistr_protocol"
                         | "magistr_mcp"
                         | "rmcp"
-                        | "think_and_ship"
+                        | "magistr_workflow"
                         | "magistr_acp"
                         | "magistr_acp_agent"
                         | "magistr_cockpit"

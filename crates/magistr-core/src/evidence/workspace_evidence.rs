@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use magistr_engine::tas::{EvidencePort, GateContract, SourceWitness, check_type_for};
+use magistr_engine::native::{EvidencePort, GateContract, SourceWitness, check_type_for};
 use magistr_workspace::snapshot::{SelectionPolicy, SourceSnapshot};
 
 use super::SnapshotWitness;

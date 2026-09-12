@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use magistr_engine::tas::RoadmapBackend;
+use magistr_engine::native::RoadmapBackend;
 
 /// An auto-fixable migration action.
 #[derive(Debug, Clone, PartialEq, Eq)]

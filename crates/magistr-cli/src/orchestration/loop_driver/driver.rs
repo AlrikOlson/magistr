@@ -13,7 +13,7 @@ use magistr_cockpit::checkpoint::{CheckpointPort, detach};
 use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
 use magistr_cockpit::engine::{EngineEvent, NativeEnginePort, StoreSeed};
 use magistr_cockpit::job::Jobs;
-use magistr_engine::tas::{BlockerKind, CheckSettlement, Chunk};
+use magistr_engine::native::{BlockerKind, CheckSettlement, Chunk};
 use magistr_engine::{ChunkStatus, NativeEngines, NativeFrame};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot;

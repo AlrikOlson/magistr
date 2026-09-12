@@ -8,9 +8,9 @@
 //! so the boundary is composed here, in the entry-point crate that already
 //! knows every concrete type, rather than in a crate with one consumer.
 //!
-//! What it binds: a workflow [`CheckAdmission`](magistr_engine::tas::CheckAdmission)
+//! What it binds: a workflow [`CheckAdmission`](magistr_engine::native::CheckAdmission)
 //! — project, run, task and task instance captured *before* a gate runs,
-//! under a durable [`CheckReceipt`](magistr_engine::tas::CheckReceipt) —
+//! under a durable [`CheckReceipt`](magistr_engine::native::CheckReceipt) —
 //! whose source the workflow observed through the evidence capability the
 //! writer was admitted with ([`WorkspaceEvidence`](magistr_core::evidence::WorkspaceEvidence),
 //! composed by [`writer_config`](magistr_core::evidence::writer_config)).

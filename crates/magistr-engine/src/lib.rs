@@ -20,8 +20,8 @@
 //! - **Spec parsing** — `SpecSummary`
 //! - **Prompt building** — `PromptConfig`
 //! - **Error handling** — `EngineError`
-//! - **Native think-and-ship** — `tas::ProjectAuthority` (admitted writer), `tas::NativeEngines`,
-//!   `tas::NativeReader`, `tas::TasConfig`, `tas::RoadmapBackend`
+//! - **Native think-and-ship** — `native::ProjectAuthority` (admitted writer), `native::NativeEngines`,
+//!   `native::NativeReader`, `native::NativeConfig`, `native::RoadmapBackend`
 //!
 //! Zero TUI dependencies. No ratatui, crossterm, or tachyonfx.
 //! Infrastructure adapters in `magistr-cli` bridge these domain types
@@ -34,6 +34,7 @@ pub mod fleet;
 pub mod gate;
 pub mod guard;
 pub mod handle;
+pub mod native;
 pub mod peer;
 pub mod policy;
 pub mod project;
@@ -41,7 +42,6 @@ pub mod prompt;
 pub mod roadmap;
 pub mod session;
 pub mod spec;
-pub mod tas;
 pub mod workflow;
 
 // Re-export primary types for convenience.
@@ -60,6 +60,12 @@ pub use guard::{
     GuardAction, GuardContext, GuardResult, GuardsConfig, ShipGuardState, WorkflowGuard,
 };
 pub use handle::{EngineEvent, EngineHandle, WorkflowEvent};
+pub use native::{
+    AttachError, AttachKind, AttachRefusal, CallerIdentity, FeedStatus, GateOutput, McpAcceptor,
+    NativeConfig, NativeEngines, NativeFrame, NativeReader, NativeRoadmapSnapshot, OwnerClient,
+    OwnerCommand, OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, RoadmapBackend,
+    RoadmapCommand, ShipCommand, SignalCommand, ThinkCommand, WriterRole,
+};
 pub use policy::{
     GovernancePolicy, ModelTier, ModelTierRule, PolicyCondition, PolicyDecision, PolicyEffect,
     PolicyEngine, PolicyRequest, PolicyRule, RiskTier,
@@ -72,21 +78,15 @@ pub use session::{
     SessionEvent, SessionResidency, SessionSnapshot, SessionStatus,
 };
 pub use spec::SpecSummary;
-pub use tas::{
-    AttachError, AttachKind, AttachRefusal, CallerIdentity, FeedStatus, GateOutput, McpAcceptor,
-    NativeEngines, NativeFrame, NativeReader, NativeRoadmapSnapshot, OwnerClient, OwnerCommand,
-    OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, RoadmapBackend, RoadmapCommand,
-    ShipCommand, SignalCommand, TasConfig, ThinkCommand, WriterRole,
-};
 // The library's own wire types behind the NativeEngines verbs, re-exported
 // so engine hosts (the TUI, the GUI) can drive them without depending on
 // think-and-ship directly.
-pub use think_and_ship::roadmap::domain::ChunkStatus;
-pub use think_and_ship::ship::domain::action::ActionType;
-pub use think_and_ship::ship::domain::check::CheckType;
-pub use think_and_ship::ship::domain::task::TaskType;
-pub use think_and_ship::signal::domain::SignalKind;
-pub use think_and_ship::think::domain::ThinkStep;
+pub use magistr_workflow::roadmap::domain::ChunkStatus;
+pub use magistr_workflow::ship::domain::action::ActionType;
+pub use magistr_workflow::ship::domain::check::CheckType;
+pub use magistr_workflow::ship::domain::task::TaskType;
+pub use magistr_workflow::signal::domain::SignalKind;
+pub use magistr_workflow::think::domain::ThinkStep;
 pub use workflow::{
     HookAction, HookDispatcher, HookError, HookExecutionReport, HookExecutor, HookOutput,
     HookResolver, IterationState, IterationStatus, LifecycleEvent, LifecycleHook,

@@ -120,7 +120,7 @@ fn the_core_never_names_an_effectful_producer_handle() {
     let forbidden = [
         "EngineClient",
         "NativeEngines",
-        "TasConfig",
+        "NativeConfig",
         "spawn_feed",
         "spawn_session",
         "Commands",

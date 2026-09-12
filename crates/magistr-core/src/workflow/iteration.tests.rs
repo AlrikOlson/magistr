@@ -629,16 +629,16 @@ pub(super) fn agent_engines(tmp: &tempfile::TempDir) -> NativeEngines {
 }
 
 fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> NativeEngines {
-    use magistr_engine::{ProjectAuthority, TasConfig};
+    use magistr_engine::{NativeConfig, ProjectAuthority};
     let cfg =
-        TasConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas-data"));
+        NativeConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas-data"));
     ProjectAuthority::admit_for_project(&cfg, "iteration-native".into(), role)
         .expect("admitted")
         .open()
 }
 
 pub(super) fn add_native_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
-    use magistr_engine::tas::ChunkStatus;
+    use magistr_engine::native::ChunkStatus;
     engines
         .roadmap_add_chunk(
             id.into(),

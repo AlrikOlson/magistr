@@ -6,13 +6,13 @@ use tokio::sync::broadcast;
 
 use crate::cost::{BudgetConfig, CostGovernor};
 use crate::error::Result;
+use crate::native::{NativeFrame, NativeReader, NativeRoadmapSnapshot};
 use crate::project::ProjectContext;
 use crate::roadmap::RoadmapEvent;
 use crate::roadmap::{RoadmapManager, RoadmapProgress};
 use crate::session::{
     EngineSession, RestoredSession, SessionCommand, SessionEvent, SessionSnapshot, SessionStatus,
 };
-use crate::tas::{NativeFrame, NativeReader, NativeRoadmapSnapshot};
 use crate::workflow::lifecycle_event::LifecycleEvent;
 use crate::workflow::{
     HookResolver, RunMode, StopReason, WorkflowCommand, WorkflowConfig, WorkflowEngine,

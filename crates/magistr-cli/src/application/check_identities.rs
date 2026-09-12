@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use magistr_engine::tas::{SourceObservation, TaskAdmission};
+use magistr_engine::native::{SourceObservation, TaskAdmission};
 use magistr_workspace::snapshot::WorkspaceIdentity;
 
 /// Which workflow execution and which workspace an admitted check names.

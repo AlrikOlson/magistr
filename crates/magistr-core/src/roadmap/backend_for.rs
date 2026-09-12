@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use magistr_engine::tas::RoadmapBackend;
+use magistr_engine::native::RoadmapBackend;
 
 /// The backend `.magistr/project.json` declares, if it declares one.
 #[must_use]

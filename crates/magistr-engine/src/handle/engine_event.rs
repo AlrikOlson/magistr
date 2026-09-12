@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::cost::CostEvent;
+use crate::native::NativeFrame;
 use crate::roadmap::RoadmapEvent;
 use crate::session::SessionEvent;
-use crate::tas::NativeFrame;
 
 use super::workflow_event::WorkflowEvent;
 

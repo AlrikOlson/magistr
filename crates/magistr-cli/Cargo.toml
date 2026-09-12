@@ -27,7 +27,7 @@ magistr-process = { path = "../magistr-process" }
 magistr-engine = { path = "../magistr-engine" }
 magistr-protocol = { path = "../magistr-protocol" }
 rmcp = { version = "3.1", features = ["server", "transport-io"] }
-think-and-ship = { path = "../../subsystems/workflow/crates/think-and-ship" }
+magistr-workflow = { path = "../magistr-workflow" }
 agent-client-protocol = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive"] }

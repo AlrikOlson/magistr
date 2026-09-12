@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use magistr_engine::tas::{SourceFreshness, SourceObservation, SourceWitness};
+use magistr_engine::native::{SourceFreshness, SourceObservation, SourceWitness};
 use magistr_workspace::snapshot::{SnapshotValidation, SourceSnapshot};
 
 /// One optimistic observation of the workspace, held until the check it

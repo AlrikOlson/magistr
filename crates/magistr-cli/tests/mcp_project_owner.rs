@@ -250,8 +250,8 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     assert_eq!(fresh["records"][0]["id"], "acknowledged", "{fresh}");
     let status = restarted.call("think_engine_status", json!({})).await;
     assert_eq!(
-        status["version"], "0.6.0",
-        "fixture targets Cargo.lock: {status}"
+        status["version"], "0.1.0",
+        "the served status reports the first-party workflow crate's version: {status}"
     );
     restarted.child.kill().await.expect("stop server");
     restarted.child.wait().await.expect("reap server");

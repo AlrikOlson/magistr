@@ -313,7 +313,7 @@ fn project_with(dir: &std::path::Path, json: &str) {
 
 #[test]
 fn missing_backend_key_is_auto_fixable_with_the_default() {
-    use magistr_engine::tas::RoadmapBackend;
+    use magistr_engine::native::RoadmapBackend;
     let dir = tempfile::TempDir::new().unwrap();
     project_with(dir.path(), "{}");
     let check = check_migration(dir.path()).unwrap();
@@ -335,7 +335,7 @@ fn missing_backend_key_is_auto_fixable_with_the_default() {
 
 #[test]
 fn legacy_yaml_project_gets_yaml_written_and_keeps_its_roadmap() {
-    use magistr_engine::tas::RoadmapBackend;
+    use magistr_engine::native::RoadmapBackend;
     let dir = tempfile::TempDir::new().unwrap();
     project_with(dir.path(), "{}");
     std::fs::write(

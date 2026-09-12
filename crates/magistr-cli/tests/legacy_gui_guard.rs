@@ -10,7 +10,7 @@ mod magistr_command;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-use magistr_engine::{NativeEngines, ProjectAuthority, TasConfig, WriterRole};
+use magistr_engine::{NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
 use tempfile::TempDir;
 
 const RATCHET: &str = r#"{"path": "crates/magistr-gui", "files": 1, "loc": 1,
@@ -52,7 +52,7 @@ impl Project {
     /// the guard subprocess (a reader) and the next mutation see it free.
     fn engines(&self) -> NativeEngines {
         let data_dir = self.data_dir.display().to_string();
-        let config = TasConfig::from_lookup(&self.root, |key| {
+        let config = NativeConfig::from_lookup(&self.root, |key| {
             (key == "THINK_AND_SHIP_DATA_DIR").then(|| data_dir.clone())
         });
         ProjectAuthority::admit(&config, WriterRole::Host)

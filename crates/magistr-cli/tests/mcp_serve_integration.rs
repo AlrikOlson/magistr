@@ -6,7 +6,7 @@
 use std::path::Path;
 
 use magistr::mcp_tools::MagistrService;
-use magistr_engine::tas::TasConfig;
+use magistr_engine::native::NativeConfig;
 use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::{ClientHandler, ServiceExt};
 use serde_json::{Value, json};
@@ -62,7 +62,7 @@ fn write_fixture(root: &Path) {
 }
 
 async fn pair(root: &Path, data_dir: &Path) -> (Client, tokio::task::JoinHandle<()>) {
-    let tas = TasConfig::from_lookup(root, |_| None).with_data_dir(data_dir);
+    let tas = NativeConfig::from_lookup(root, |_| None).with_data_dir(data_dir);
     let service = MagistrService::new(root.to_path_buf(), &tas)
         .await
         .expect("project owner");
@@ -528,7 +528,7 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
     write_fixture(&root);
     let data_dir = tmp.path().join("data");
 
-    let tas = TasConfig::from_lookup(&root, |_| None).with_data_dir(&data_dir);
+    let tas = NativeConfig::from_lookup(&root, |_| None).with_data_dir(&data_dir);
     let service = MagistrService::new(root.clone(), &tas)
         .await
         .expect("project owner");
@@ -901,7 +901,7 @@ async fn a_direct_gate_streams_its_bytes_on_the_feed_socket() {
     write_fixture(&root);
     let data_dir = tmp.path().join("data");
     let sock = tmp.path().join("feed.sock");
-    let tas = TasConfig::from_lookup(&root, |_| None)
+    let tas = NativeConfig::from_lookup(&root, |_| None)
         .with_data_dir(&data_dir)
         .with_broadcast_path(Some(sock.clone()));
     let service = MagistrService::new(root.clone(), &tas)

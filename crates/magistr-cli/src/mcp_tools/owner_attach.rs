@@ -16,11 +16,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use color_eyre::eyre;
-use magistr_engine::tas::{
-    AttachError, CallerIdentity, McpAcceptor, OwnerClient, OwnerEndpoint, TasConfig, WriterRole,
+use magistr_engine::native::{
+    AttachError, CallerIdentity, McpAcceptor, NativeConfig, OwnerClient, OwnerEndpoint, WriterRole,
 };
+use magistr_workflow::infra::resolve_project_id_with;
 use rmcp::ServiceExt as _;
-use think_and_ship::infra::resolve_project_id_with;
 
 use super::owner_stdio::ProxyStdio;
 use super::protocol_cap::ProtocolCap;
@@ -77,7 +77,7 @@ impl MagistrService {
 /// The owner endpoint did not take this process (it carries `refusal`,
 /// the lease's own reason, beside the attachment's), or the proxy failed.
 pub async fn proxy_to_owner(project_root: &Path, refusal: &io::Error) -> eyre::Result<()> {
-    let config = TasConfig::from_env(project_root);
+    let config = NativeConfig::from_env(project_root);
     let (project_id, _) = resolve_project_id_with(None, Some(config.project_root()));
     let (generation, stream) = OwnerClient::attach_mcp(
         &config,

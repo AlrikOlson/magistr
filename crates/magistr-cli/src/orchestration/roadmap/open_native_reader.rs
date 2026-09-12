@@ -10,7 +10,7 @@
 
 use std::path::Path;
 
-use magistr_engine::{NativeReader, RoadmapBackend, TasConfig};
+use magistr_engine::{NativeConfig, NativeReader, RoadmapBackend};
 
 /// The reader for `dir`, or `None` when the project runs the YAML roadmap
 /// (or has no `.magistr/project.json`). Store location and persistence come
@@ -30,7 +30,7 @@ pub(crate) fn open_native_reader_with(
     if !roadmap_backend_of(dir).is_native() {
         return None;
     }
-    Some(NativeReader::open(&TasConfig::from_lookup(dir, lookup)))
+    Some(NativeReader::open(&NativeConfig::from_lookup(dir, lookup)))
 }
 
 /// The backend a project effectively runs: the declared `roadmap_backend`,

@@ -1,5 +1,5 @@
-use magistr_engine::tas::BlockerKind;
-use magistr_engine::{ChunkStatus, NativeEngines, ProjectAuthority, TasConfig, WriterRole};
+use magistr_engine::native::BlockerKind;
+use magistr_engine::{ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
 
 use super::*;
 use crate::cockpit::{Dock, EngineCmd};
@@ -10,7 +10,7 @@ use crate::engine::{EngineEvent, apply};
 fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
-    let config = TasConfig::from_lookup(&root, |_| None)
+    let config = NativeConfig::from_lookup(&root, |_| None)
         .with_data_dir(tmp.path().join("data"))
         .persist(false);
     let engines =
@@ -155,7 +155,7 @@ fn a_cleared_blocker_lifts_blocked_by_and_the_frame_takes_the_card() {
 
 /// The broadcast frame the external server writes for a changed chunk —
 /// what the dock folds when the feed, rather than the port, reports.
-fn chunk_changed(chunk: &magistr_engine::tas::Chunk) -> magistr_engine::NativeFrame {
+fn chunk_changed(chunk: &magistr_engine::native::Chunk) -> magistr_engine::NativeFrame {
     let payload = serde_json::to_value(chunk).expect("a chunk serializes");
     magistr_engine::NativeFrame {
         family: "roadmap".to_owned(),

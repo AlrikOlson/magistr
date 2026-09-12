@@ -111,7 +111,7 @@ fn a_run_that_should_be_retried_is_a_red_required_one_and_nothing_else() {
 
 #[test]
 fn the_execution_names_the_verdict_and_a_flake_is_its_passing_retry() {
-    use magistr_engine::tas::CheckExecution;
+    use magistr_engine::native::CheckExecution;
     assert_eq!(
         run(GateVerdict::Passed, 0).execution(),
         CheckExecution::Exited { code: 0 }

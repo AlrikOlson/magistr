@@ -21,14 +21,19 @@ recheck the source and record any change from these audited revisions.
 | Workbench | `/Users/alrik/Serious_Code/workbench-mcp` | `2a2430bbcd5dcbed00920f92c6f3e6928f387d95` | Apache-2.0 |
 
 These paths identify research inputs, not runtime or build dependencies.
-Magistr owns the workflow fork at
-[`subsystems/workflow`](../../subsystems/workflow/PROVENANCE.md), imported after
-rechecking the clean think-and-ship checkout at the audited revision. The Rust
-service, bundled skills, tests, and their supporting documentation and fixtures
-retain their inherited layout. The root Cargo workspace and lockfile resolve
-the adopted crate for both Magistr consumers through relative path dependencies.
-The [provenance record](../../subsystems/workflow/PROVENANCE.md) identifies the
-license, included and excluded components, and verification boundary.
+Magistr owns the workflow fork as
+[`magistr-workflow`](../../crates/magistr-workflow/Cargo.toml) (library
+`magistr_workflow`), imported after rechecking the clean think-and-ship
+checkout at the audited revision and rehomed under Magistr's name by
+`arch-14f4-rehome-naming`; the imported contract, fixtures, docs and the
+[provenance record](../../subsystems/workflow/PROVENANCE.md) stay under
+`subsystems/workflow`. The Rust service, bundled skills and tests keep their
+inherited layout inside the crate; the standalone binary, CLI, skill embedding
+and upstream packaging are deleted. The root Cargo workspace and lockfile
+resolve the crate for both Magistr consumers through relative path
+dependencies at the one first-party version. The provenance record identifies
+the license, included, excluded and retired components, and the verification
+boundary.
 Workbench's audited source is retained under
 [`subsystems/workspace/reference`](../../subsystems/workspace/PROVENANCE.md),
 with every original Git file accounted for in the upstream manifest and local
@@ -300,20 +305,21 @@ recovered versus outstanding — informed the workflow-owned design.
 | `arch-14f-native-application` | The [composition boundary](application.md#the-composition-boundary) `magistr::application`: `AdmittedCheck`/`SettledCheck`/`CheckIdentities` binding a workflow check admission to a lock-free source observation and settling both; `magistr_gate` and the loop driver routed through it; the contract-only workflow/checks/projections facades deleted; `arch-11b` retired on evidence; the [standalone surface decisions](#standalone-surface-decisions) below; source-write routing (`arch-14f2`), the client audit (`arch-14f3`) and rehoming (`arch-14f4`) split out |
 | `arch-14-verification-receipts` | Durable `CheckReceipt`s in the workflow's ship family (`ReceiptLedger`, one published file per receipt, outliving the cycle), the `EvidencePort`/`SourceWitness`/`GateContract`/`CheckExecution` types, receipt-bearing admission and settlement with stale results kept under their own identity, `verify_completion` and the roadmap's completion authority on every route (`roadmap_set_status(done)` refused), `ShipReport` recovered versus outstanding; Magistr's `WorkspaceEvidence` + `writer_config` composed at every production admission, the cockpit failing closed without it, `native-write-path` rule 8; the gate resolver moved to `magistr_core::gates` |
 | `arch-14f2-source-pipeline-routing` | The workspace `write` verb (exact bytes, anchored, verified, journaled, never confirm-gated) behind `WorkspaceService::write`; the `SourceWriter` capability in `magistr-application` and `LocalEffectPort` routing an authorized `fs/write_text_file` through it with route-stamped events; `HostedWorkspace` + `WorkspaceSourceWriter` in [`magistr::application`](application.md#the-hosted-workspace) so `magistr run` and the cockpit loops own the workspace and their bridges attach; the `magistr-process` crate as the [one process mechanism](application.md#one-process-mechanism) under the gate runner, the workflow's `ship_check` runner and the workspace's declared-command executor, the pty pair rehomed there from `magistr-acp` |
+| `arch-14f4-rehome-naming` | The fork rehomed as `crates/magistr-workflow` (`magistr-workflow` 0.1.0, `magistr_workflow`) with provenance under `subsystems/workflow`; `magistr_engine::tas` → `native` (`NativeConfig`); the standalone binary, CLI, skill embedding, examples, packaging files and their tests deleted, the served tracker plumbing rehomed to `tracker::host`; the workflow-source gate pins the deletions and one first-party version, the structure baseline follows the crate, native-write-path and lint-structure pin the new paths |
 | `arch-14f3-client-audit-consistency` | The [client inventory](clients.md): every supported surface's workflow and workspace capability, admission path and test evidence; `native-write-path` rules 9–11 pinning where a `WorkspaceService` is opened, a writer admitted and an owner attached; the owner-command vocabulary left as is on the evidence that the attached cockpit is its only producer; the [consistency model](clients.md#workflow-consistency-model) stating read-through ship verbs against cached roadmap/signal/ship queries, backed by `tests/workflow_consistency.rs` |
 
 ## Standalone surface decisions
 
-The adopted trees still carry surfaces that were products in their own right.
-`arch-14f` decided each; `arch-14f4-rehome-naming` performs the deletions.
+The adopted trees carried surfaces that were products in their own right.
+`arch-14f` decided each; `arch-14f4-rehome-naming` performed the deletions.
 
 | Surface | Decision | Why |
 | --- | --- | --- |
-| think-and-ship `[[bin]]` (`src/main.rs`, `src/cli/*`: serve, init, skills, roadmap, tracker, otel, cloud, telemetry commands) | Retire; delete in `arch-14f4` | No Magistr code invokes it and it is not released; three imported seam tests (`roadmap_export_tool_seam`, `roadmap_next_command_seam`, `roadmap_status_command_seam`) exec it and are re-pointed or deleted with it |
-| think-and-ship bundled `skills/` and `skill-clients/` (embedded by `build.rs`) | Retire the embedding and the client trees; keep the skill text as reference until the deletion chunk | Magistr ships its own `.claude/skills`; no Magistr code reads the embedded tree |
-| think-and-ship `examples/cloud_census.rs` | Delete in `arch-14f4` | Example of the cloud sync surface, not a dependency |
-| think-and-ship cloud sync, tracker mirroring, OTel export | Retain as served capabilities | Reachable through the served tool families (`tracker_*`, `think_export_trace`) that agents use today |
-| think-and-ship `contract/`, `shared/`, `docs/`, `tests/` | Retain | Inputs of retained tests and of the `workflow-source` gate |
+| think-and-ship `[[bin]]` (`src/main.rs`, `src/cli/*`: serve, init, skills, roadmap, tracker, otel, cloud, telemetry commands) | Deleted by `arch-14f4` | No Magistr code invoked it and it was not released; the seam tests that executed or parsed it were deleted, and the library plumbing the served `tracker_*` tools reached through it moved to `tracker::host` |
+| think-and-ship bundled `skills/` and `skill-clients/` (embedded by `build.rs`) | Embedding and client trees deleted by `arch-14f4`; `skills/` retained inside the crate as the `skill_evaluations` input | Magistr ships its own `.claude/skills`; no Magistr code reads the tree |
+| think-and-ship `examples/cloud_census.rs` | Deleted by `arch-14f4` | Example of the cloud sync surface, not a dependency |
+| think-and-ship cloud sync, tracker mirroring, OTel export | Retained as served capabilities | Reachable through the served tool families (`tracker_*`, `think_export_trace`); the standalone server's background cadences (tracker push and sweep, cloud realtime) are not composed by Magistr — `workflow-host-cadences` decides them |
+| think-and-ship `contract/`, `shared/`, `docs/`, `tests/` | Retained | Inputs of retained tests and of the `workflow-source` gate; upstream packaging files (`deny.toml`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CODE_OF_CONDUCT`, `docs/deploy`, `RELEASING`, `DEPLOYMENT`, `scripts/`) deleted by `arch-14f4` |
 | Workbench reference source (`subsystems/workspace/reference`, including the Bun server and vendored guests) | Retain | The parity oracle behind the required `workspace-reference` gate; never in the production dependency graph |
 | Workbench `conformance/`, `bench/`, `SUPPORT_MATRIX.md` | Retain | Executed evidence of the native port |
 | `magistr-application` `workflow`, `checks`, `projections` facades | Deleted by `arch-14f` | No adapter; duplicated the native family use cases |
@@ -336,7 +342,7 @@ or migrate a live owner's store. Imported source participates in the real
 quality gates rather than receiving a blanket vendor exemption. The workflow
 crate participates in root workspace formatting, check, Clippy, and nextest;
 the structure gate tracks inherited style with a per-file baseline that may
-only decrease. The native workspace crate joins the same root checks; all
+only decrease, keyed by the crate's current path. The native workspace crate joins the same root checks; all
 native and retained reference Rust files also receive numeric per-file
 structure limits. New files receive the normal limits and inherited violations
 cannot grow. Reference source and its standalone locks remain isolated from the

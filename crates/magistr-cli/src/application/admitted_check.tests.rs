@@ -1,5 +1,5 @@
 use super::*;
-use magistr_engine::tas::{
+use magistr_engine::native::{
     CheckSettlement, ProjectAuthority, ReceiptSettlement, SourceFreshness, TaskType, WriterRole,
 };
 

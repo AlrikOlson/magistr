@@ -1,7 +1,7 @@
 //! The workspace service over Magistr's existing local owner transport.
 use std::{io, sync::Arc};
 
-use magistr_engine::tas::{McpAcceptor, OwnerEndpoint};
+use magistr_engine::native::{McpAcceptor, OwnerEndpoint};
 use magistr_workspace::service::WorkspaceService;
 use rmcp::ServiceExt;
 

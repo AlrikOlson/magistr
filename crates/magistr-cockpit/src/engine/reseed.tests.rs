@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use magistr_engine::{
-    ChunkStatus, NativeEngines, ProjectAuthority, SignalKind, TasConfig, WriterRole,
+    ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, SignalKind, WriterRole,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
 
@@ -11,9 +11,10 @@ use super::*;
 /// long enough that a slow machine does not race the first tick.
 const TICK: Duration = Duration::from_millis(40);
 
-fn config(tmp: &tempfile::TempDir) -> TasConfig {
+fn config(tmp: &tempfile::TempDir) -> NativeConfig {
     std::fs::create_dir_all(tmp.path().join("proj")).expect("project root");
-    TasConfig::from_lookup(tmp.path().join("proj"), |_| None).with_data_dir(tmp.path().join("data"))
+    NativeConfig::from_lookup(tmp.path().join("proj"), |_| None)
+        .with_data_dir(tmp.path().join("data"))
 }
 
 fn engines(tmp: &tempfile::TempDir) -> NativeEngines {

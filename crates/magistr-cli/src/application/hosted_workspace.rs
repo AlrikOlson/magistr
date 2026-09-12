@@ -20,7 +20,7 @@ use super::WorkspaceSourceWriter;
 pub struct HostedWorkspace {
     service: Arc<WorkspaceService>,
     #[cfg(unix)]
-    endpoint: Option<magistr_engine::tas::OwnerEndpoint>,
+    endpoint: Option<magistr_engine::native::OwnerEndpoint>,
 }
 
 impl HostedWorkspace {

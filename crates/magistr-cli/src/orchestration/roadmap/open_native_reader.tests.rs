@@ -1,6 +1,6 @@
 use super::super::admit_native_host::admit_native_host_with;
 use super::*;
-use magistr_engine::tas::ChunkStatus;
+use magistr_engine::native::ChunkStatus;
 
 fn write_project_json(dir: &Path, backend: Option<&str>) {
     let magistr = dir.join(".magistr");

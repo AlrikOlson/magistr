@@ -15,7 +15,7 @@ filesystem, network client, or renderer.
 
 The native think-and-ship library continues to own chunks, signals, reasoning,
 execution tasks and their durable records. These are not replicated in the
-domain. `magistr-engine::tas` remains the native adapter. Engine and core still
+domain. `magistr-engine::native` remains the native adapter. Engine and core still
 contain effects; neither crate is a substitute for the domain dependency boundary.
 The old core `DomainState` remains a session/interface aggregate.
 

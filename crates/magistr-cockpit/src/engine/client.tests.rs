@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use magistr_engine::TasConfig;
-use magistr_engine::tas::{EvidencePort, GateContract, SourceWitness};
+use magistr_engine::NativeConfig;
+use magistr_engine::native::{EvidencePort, GateContract, SourceWitness};
 
 use super::*;
 
@@ -18,8 +18,8 @@ impl EvidencePort for NoEvidence {
     }
 }
 
-fn config(root: &Path, data: &Path) -> TasConfig {
-    TasConfig::from_lookup(root, |_| None)
+fn config(root: &Path, data: &Path) -> NativeConfig {
+    NativeConfig::from_lookup(root, |_| None)
         .with_data_dir(data)
         .with_evidence(Arc::new(NoEvidence))
 }
@@ -29,7 +29,7 @@ fn a_writer_config_without_evidence_is_refused_before_the_lease() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
-    let bare = TasConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
+    let bare = NativeConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
     let err = EngineClient::with_config(bare.clone()).expect_err("refused");
     assert!(
         matches!(err, EngineError::Admission { root: ref refused, ref source }
@@ -146,7 +146,7 @@ fn seed_chunk(host: &EngineClient, id: &str) {
 
 /// The store under a tempdir is too deep for `sun_path`: the endpoint
 /// lands in the runtime directory, and `/tmp` always fits.
-fn attachable(root: &Path, data: &Path) -> TasConfig {
+fn attachable(root: &Path, data: &Path) -> NativeConfig {
     config(root, data).with_runtime_dir("/tmp")
 }
 

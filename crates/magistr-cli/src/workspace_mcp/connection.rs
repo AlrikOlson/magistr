@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 #[cfg(unix)]
-use magistr_engine::tas::{AttachError, CallerIdentity, OwnerClient};
+use magistr_engine::native::{AttachError, CallerIdentity, OwnerClient};
 use magistr_workspace::service::{WorkspaceOpenError, WorkspaceOpenOptions, WorkspaceService};
 
 /// Startup either owns the native service or holds only a welcomed transport.
@@ -12,7 +12,7 @@ pub(super) enum WorkspaceConnection {
     Owner(Arc<WorkspaceService>),
     #[cfg(unix)]
     Attached {
-        generation: magistr_engine::tas::OwnerGeneration,
+        generation: magistr_engine::native::OwnerGeneration,
         stream: tokio::net::UnixStream,
     },
 }

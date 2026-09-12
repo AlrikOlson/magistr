@@ -1,8 +1,8 @@
 use super::*;
-use magistr_engine::tas::{NativeEngines, ProjectAuthority, TasConfig, WriterRole};
+use magistr_engine::native::{NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
 
 fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
-    let cfg = TasConfig::from_lookup(tmp.path().join("proj"), |_| None)
+    let cfg = NativeConfig::from_lookup(tmp.path().join("proj"), |_| None)
         .with_data_dir(tmp.path().join("data"));
     ProjectAuthority::admit_for_project(&cfg, "render-test".into(), WriterRole::Host)
         .expect("host admitted")

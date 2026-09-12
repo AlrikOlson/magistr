@@ -2,7 +2,7 @@
 //! it. No colour, no IO — the command layer decides where the text goes.
 
 use magistr_engine::NativeRoadmapSnapshot;
-use magistr_engine::tas::{Chunk, ChunkStatus};
+use magistr_engine::native::{Chunk, ChunkStatus};
 
 /// What `next`/`status` say on a project that still runs the YAML roadmap.
 pub(crate) const NATIVE_REQUIRED: &str = "This project's roadmap backend is `yaml`. Set \

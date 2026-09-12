@@ -16,9 +16,9 @@ use magistr_cockpit::cockpit::{DockItem, Model, Msg, Size};
 use magistr_cockpit::input::{KeyCode, KeyEvent, Modifiers};
 use magistr_cockpit::theme::Icons;
 use magistr_cockpit::turn::RowKind;
-use magistr_engine::tas::BlockerKind;
+use magistr_engine::native::BlockerKind;
 use magistr_engine::{
-    ChunkStatus, NativeEngines, ProjectAuthority, SignalKind, TasConfig, WriterRole,
+    ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, SignalKind, WriterRole,
 };
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{AcpObserved, FakeAcpAgent, FakeTerminal, Script};
@@ -95,12 +95,12 @@ fn engines_with_work(dir: &Path) -> NativeEngines {
 }
 
 /// The store [`engines_with_work`] opens.
-fn work_config(dir: &Path) -> TasConfig {
-    TasConfig::from_lookup(dir.to_path_buf(), |_| None).with_data_dir(dir.join("tas-data"))
+fn work_config(dir: &Path) -> NativeConfig {
+    NativeConfig::from_lookup(dir.to_path_buf(), |_| None).with_data_dir(dir.join("tas-data"))
 }
 
 /// The loop's own writer role on `config`.
-fn host(config: &TasConfig, project_id: &str) -> NativeEngines {
+fn host(config: &NativeConfig, project_id: &str) -> NativeEngines {
     ProjectAuthority::admit_for_project(config, project_id.to_owned(), WriterRole::Host)
         .expect("host admitted")
         .open()
@@ -108,7 +108,7 @@ fn host(config: &TasConfig, project_id: &str) -> NativeEngines {
 
 /// A second writer on the same store, in the role the agent's own
 /// `magistr mcp-serve` process holds beside the loop.
-fn agent_side(config: &TasConfig, project_id: &str) -> NativeEngines {
+fn agent_side(config: &NativeConfig, project_id: &str) -> NativeEngines {
     ProjectAuthority::admit_for_project(config, project_id.to_owned(), WriterRole::Service)
         .expect("service admitted")
         .open()
@@ -928,7 +928,7 @@ fn the_driver_runs_gates_only_through_jobs_and_spawns_nothing_itself() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_native_iteration_re_seeds_the_signals_another_process_captured() {
     let dir = project("true", "true", "true");
-    let config = TasConfig::from_lookup(dir.path().to_path_buf(), |_| None)
+    let config = NativeConfig::from_lookup(dir.path().to_path_buf(), |_| None)
         .with_data_dir(dir.path().join("tas-data"));
     let engines = host(&config, "loop-signal");
     engines
@@ -1749,7 +1749,7 @@ fn engines_with_active_task(dir: &Path) -> NativeEngines {
         .ship_add_task(
             "impl".into(),
             "implement".into(),
-            think_and_ship::ship::domain::task::TaskType::Implement,
+            magistr_workflow::ship::domain::task::TaskType::Implement,
             None,
         )
         .expect("add task");
@@ -1757,7 +1757,7 @@ fn engines_with_active_task(dir: &Path) -> NativeEngines {
     engines
 }
 
-fn recorded(engines: &NativeEngines) -> Vec<think_and_ship::ship::domain::check::Check> {
+fn recorded(engines: &NativeEngines) -> Vec<magistr_workflow::ship::domain::check::Check> {
     engines
         .ship_tasks()
         .into_iter()

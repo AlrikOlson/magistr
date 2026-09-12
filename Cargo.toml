@@ -12,7 +12,7 @@ members = [
     "crates/magistr-theme",
     "crates/magistr-cockpit",
     "crates/magistr-tui",
-    "subsystems/workflow/crates/think-and-ship",
+    "crates/magistr-workflow",
     "crates/magistr-workspace",
     "crates/magistr-process",
 ]

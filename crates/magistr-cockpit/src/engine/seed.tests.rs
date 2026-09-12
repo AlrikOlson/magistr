@@ -1,5 +1,5 @@
 use magistr_engine::{
-    ActionType, ChunkStatus, NativeEngines, ProjectAuthority, SignalKind, TasConfig, TaskType,
+    ActionType, ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, SignalKind, TaskType,
     WriterRole,
 };
 
@@ -9,7 +9,7 @@ use super::*;
 fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
-    let config = TasConfig::from_lookup(&root, |_| None)
+    let config = NativeConfig::from_lookup(&root, |_| None)
         .with_data_dir(tmp.path().join("data"))
         .persist(false);
     ProjectAuthority::admit(&config, WriterRole::Host)
@@ -95,7 +95,7 @@ fn reads_the_objective_the_chunk_and_the_pending_signals() {
 fn persisted(tmp: &tempfile::TempDir) -> NativeEngines {
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
-    let config = TasConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
+    let config = NativeConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
     ProjectAuthority::admit_for_project(&config, "trace-seed".to_owned(), WriterRole::Host)
         .expect("host admitted")
         .open()

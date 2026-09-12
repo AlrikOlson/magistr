@@ -146,7 +146,7 @@ impl ScaffoldPipeline {
         // Declare the think-and-ship identity once, so the native engines, an
         // external think-and-ship server and every agent session key the same
         // store. Idempotent; never rewrites an existing declaration.
-        if let Err(e) = magistr_engine::tas::ensure_project_file(dir) {
+        if let Err(e) = magistr_engine::native::ensure_project_file(dir) {
             tracing::warn!("could not write .think-and-ship/project.json: {e}");
         }
 

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::roadmap_progress::RoadmapProgress;
-use crate::tas::NativeRoadmapSnapshot;
+use crate::native::NativeRoadmapSnapshot;
 
 /// Events emitted by the roadmap manager.
 ///
