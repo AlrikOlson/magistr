@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use magistr_engine::NativeFrame;
+use magistr_engine::{NativeEvent, NativeSnapshot, ShipFrame, ThinkFrame};
 
 use super::ship_moment::ShipMoment;
 use super::trace_step::TraceStep;
@@ -12,9 +12,10 @@ use super::trace_step::TraceStep;
 /// statuses, the ship timeline of actions and checks, and the
 /// checkpoint report pane while one is open.
 ///
-/// Pure state: broadcast frames arrive through [`Trace::apply`], the
-/// port's answers through [`Trace::set_pinned`] and
-/// [`Trace::open_viewer`]; nothing here talks to an engine.
+/// Pure state: typed events arrive through [`Trace::apply`], the store's
+/// snapshot through [`Trace::seed`], the port's answers through
+/// [`Trace::set_pinned`] and [`Trace::open_viewer`]; nothing here talks
+/// to an engine.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Trace {
     steps: Vec<TraceStep>,
@@ -25,75 +26,105 @@ pub struct Trace {
 }
 
 impl Trace {
-    /// Fold one broadcast frame in: a think `step_appended` lands (or
-    /// replaces a re-recorded number), `step_revised` and `pin_changed`
-    /// mark their step, `branch_status_changed` keeps the branch's
-    /// status, `cleared` empties the think half; a ship
-    /// `action_recorded` or `check_recorded` joins the timeline,
-    /// ship `cleared` empties it. Every other frame is ignored.
-    pub fn apply(&mut self, frame: &NativeFrame) {
-        let payload = &frame.payload;
-        match (frame.family.as_str(), frame.kind.as_str()) {
-            ("think", "step_appended") => {
-                let Some(step) = TraceStep::from_step(&payload["step"]) else {
-                    return;
-                };
-                if let Some(revised) = step.revises {
-                    self.mark_revised(revised, step.number);
-                }
-                match self.steps.iter_mut().find(|s| s.number == step.number) {
-                    Some(existing) => *existing = step,
-                    None => self.steps.push(step),
-                }
+    /// Fold one typed event in: a think step appended lands (or replaces
+    /// a re-recorded number), a revision and a pin mark their step, a
+    /// branch status change keeps the branch's status, a think clear
+    /// empties the think half; a ship action or check joins the
+    /// timeline, a ship clear empties it. Every other event is ignored.
+    pub fn apply(&mut self, event: &NativeEvent) {
+        match event {
+            NativeEvent::Think(frame) => self.apply_think(frame),
+            NativeEvent::Ship(frame) => self.apply_ship(frame),
+            NativeEvent::Roadmap(_) | NativeEvent::Signal(_) | NativeEvent::Magistr(_) => {}
+        }
+    }
+
+    fn apply_think(&mut self, frame: &ThinkFrame) {
+        match frame {
+            ThinkFrame::StepAppended { step, .. } => self.land(TraceStep::from_think(step)),
+            ThinkFrame::StepRevised {
+                revised_step,
+                by_step,
+                ..
+            } => self.mark_revised(*revised_step, *by_step),
+            ThinkFrame::PinChanged {
+                step_number,
+                pinned,
+                ..
+            } => self.set_pinned(*step_number, *pinned),
+            ThinkFrame::BranchStatusChanged {
+                branch_id, status, ..
+            } => {
+                self.branch_status
+                    .insert(branch_id.clone(), branch_status_name(*status).to_owned());
             }
-            ("think", "step_revised") => {
-                if let (Some(revised), Some(by)) = (
-                    step_number(&payload["revised_step"]),
-                    step_number(&payload["by_step"]),
-                ) {
-                    self.mark_revised(revised, by);
-                }
-            }
-            ("think", "pin_changed") => {
-                if let Some(number) = step_number(&payload["step_number"]) {
-                    self.set_pinned(number, payload["pinned"].as_bool().unwrap_or(false));
-                }
-            }
-            ("think", "branch_status_changed") => {
-                if let (Some(branch), Some(status)) =
-                    (payload["branch_id"].as_str(), payload["status"].as_str())
-                {
-                    self.branch_status
-                        .insert(branch.to_owned(), status.to_owned());
-                }
-            }
-            ("think", "cleared") => {
+            ThinkFrame::Cleared => {
                 self.steps.clear();
                 self.branch_status.clear();
                 self.expanded = None;
             }
-            ("ship", "action_recorded") => self.moments.push(ShipMoment::from_action(payload)),
-            ("ship", "check_recorded") => self.moments.push(ShipMoment::from_check(payload)),
-            ("ship", "cleared") => self.moments.clear(),
-            _ => {}
+            ThinkFrame::EstimateRevised { .. } => {}
         }
     }
 
-    /// Take the store's trace as the tab's: the steps and the ship
-    /// timeline the entry point (or the loop driver, at each iteration)
-    /// read off the engines, as
-    /// [`StoreSeed::trace`](crate::engine::StoreSeed::trace) carries them.
+    fn apply_ship(&mut self, frame: &ShipFrame) {
+        match frame {
+            ShipFrame::ActionRecorded { task_id, action } => {
+                self.moments.push(ShipMoment::action(task_id, action));
+            }
+            ShipFrame::CheckRecorded { check, .. } => self.moments.push(ShipMoment::check(check)),
+            ShipFrame::Cleared => self.moments.clear(),
+            ShipFrame::ObjectiveSet { .. }
+            | ShipFrame::TaskAdded { .. }
+            | ShipFrame::TaskStarted { .. }
+            | ShipFrame::TaskCompleted { .. }
+            | ShipFrame::TaskBlocked { .. }
+            | ShipFrame::ObjectiveShipped { .. } => {}
+        }
+    }
+
+    /// A step landed: a re-recorded number replaces, a new one appends,
+    /// and the step it revises is marked.
+    fn land(&mut self, step: TraceStep) {
+        if let Some(revised) = step.revises {
+            self.mark_revised(revised, step.number);
+        }
+        match self.steps.iter_mut().find(|s| s.number == step.number) {
+            Some(existing) => *existing = step,
+            None => self.steps.push(step),
+        }
+    }
+
+    /// Take the store's trace as the tab's: the persisted steps in stored
+    /// order, then every action and check on the snapshot's tasks in the
+    /// order the engines stamped them.
     ///
     /// Replaces both halves rather than appending, so a re-seed mid-run
     /// never doubles a moment the feed already delivered — the store is
     /// the superset. What the feed alone knows survives: the branch
     /// statuses, which step is expanded, and an open checkpoint pane.
-    pub fn seed(&mut self, frames: &[NativeFrame]) {
+    pub fn seed(&mut self, snapshot: &NativeSnapshot) {
         self.steps.clear();
         self.moments.clear();
-        for frame in frames {
-            self.apply(frame);
+        for step in &snapshot.steps {
+            self.land(TraceStep::from_think(step));
         }
+        // One offset on every stamp, so the strings sort chronologically.
+        let mut moments: Vec<(&str, ShipMoment)> = Vec::new();
+        for task in &snapshot.tasks {
+            for action in &task.actions {
+                moments.push((
+                    action.timestamp.as_str(),
+                    ShipMoment::action(&task.id, action),
+                ));
+            }
+            for check in &task.checks {
+                moments.push((check.timestamp.as_str(), ShipMoment::check(check)));
+            }
+        }
+        moments.sort_by_key(|(timestamp, _)| *timestamp);
+        self.moments
+            .extend(moments.into_iter().map(|(_, moment)| moment));
     }
 
     /// The steps, in arrival order.
@@ -331,8 +362,15 @@ impl Trace {
     }
 }
 
-fn step_number(value: &serde_json::Value) -> Option<u32> {
-    value.as_u64().and_then(|n| u32::try_from(n).ok())
+/// The branch status in the store's spelling — the word the window's
+/// `branches · 1 · merged` row shows.
+fn branch_status_name(status: magistr_engine::native::BranchStatus) -> &'static str {
+    use magistr_engine::native::BranchStatus;
+    match status {
+        BranchStatus::Active => "active",
+        BranchStatus::Merged => "merged",
+        BranchStatus::Abandoned => "abandoned",
+    }
 }
 
 #[cfg(test)]

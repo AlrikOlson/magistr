@@ -12,7 +12,7 @@ pub enum CheckType {
     Manual,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Check {
     #[serde(rename = "type")]
     pub check_type: CheckType,

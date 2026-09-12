@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use magistr_engine::{FeedStatus, NativeFrame};
+use magistr_engine::{FeedStatus, NativeEvent};
 use tokio::task::JoinHandle;
 
 use super::timeline::Timeline;
@@ -43,17 +43,22 @@ impl FakeEngines {
         self.feed(at, FeedStatus::Connected { reconnect: false })
     }
 
-    /// A frame from `family` of kind `kind` carrying `payload` at `at`.
+    /// The event a socket line of `family` and `kind` carrying `payload`
+    /// would deliver, at `at` — decoded the way the live feed decodes it
+    /// (see [`fixtures::frame`](magistr_cockpit::harness::fixtures::frame)
+    /// for how a partial record is filled out).
     #[must_use]
     pub fn frame(self, at: Duration, family: &str, kind: &str, payload: serde_json::Value) -> Self {
-        self.event(
+        self.native(
             at,
-            EngineEvent::Frame(NativeFrame {
-                family: family.to_owned(),
-                kind: kind.to_owned(),
-                payload,
-            }),
+            magistr_cockpit::harness::fixtures::frame(family, kind, payload),
         )
+    }
+
+    /// A typed event at `at`, delivered as this process's own.
+    #[must_use]
+    pub fn native(self, at: Duration, event: NativeEvent) -> Self {
+        self.event(at, EngineEvent::local(event))
     }
 
     /// The events scheduled so far.

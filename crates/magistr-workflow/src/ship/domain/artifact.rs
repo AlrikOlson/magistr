@@ -12,7 +12,7 @@ pub enum ArtifactType {
     Release,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Artifact {
     #[serde(rename = "type")]
     pub artifact_type: ArtifactType,

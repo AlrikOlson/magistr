@@ -1,16 +1,22 @@
+//! The socket line, and the one place it is read as strings.
+
 use serde::{Deserialize, Serialize};
 
-/// One frame off the think-and-ship broadcast socket.
-///
-/// The wire is NDJSON: every line is a JSON object with a `family` tag
-/// (`think` | `ship` | `roadmap` | `signal`) flattened onto a typed payload
-/// whose discriminator is `type` (`chunk_changed`, `step_appended`,
-/// `action_recorded`, `signal_captured`, …). The payload is kept whole so a
-/// consumer can deserialize it into the family's own frame type when it
-/// wants more than the two tags.
+use magistr_workflow::infra::{EPOCH_KEY, Family, SEQ_KEY};
+
+use super::event_cursor::EventCursor;
+use super::native_event::NativeEvent;
+use super::owner_generation::OwnerGeneration;
+
+/// One line off the native store's broadcast socket, as the wire carries
+/// it: a JSON object with a `family` tag flattened onto a typed payload
+/// whose discriminator is `type`, plus the publisher's `seq` and `epoch`
+/// stamps. This is the compatibility shape at the transport edge, and
+/// [`NativeFrame::decode`] is the only reader of its strings: everything
+/// past it holds a [`NativeEvent`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NativeFrame {
-    /// Which engine emitted it.
+    /// Which family emitted it, as the wire spells it.
     pub family: String,
     /// The payload's `type` discriminator.
     pub kind: String,
@@ -39,11 +45,30 @@ impl NativeFrame {
         })
     }
 
-    /// Whether this frame came from the roadmap engine.
+    /// The typed event this line carries, and where it stands in its
+    /// publisher's sequence. `None` for a family or a kind this build does
+    /// not know, or a payload that is not the shape its kind promises — a
+    /// newer publisher's frame is dropped here rather than half-read. The
+    /// cursor is `None` when the publisher stamped no epoch or no
+    /// sequence, or an epoch no owner could have minted.
     #[must_use]
-    pub fn is_roadmap(&self) -> bool {
-        self.family == "roadmap"
+    pub fn decode(self) -> Option<(NativeEvent, Option<EventCursor>)> {
+        let cursor = cursor_of(&self.payload);
+        let event = match Family::parse(&self.family)? {
+            Family::Think => NativeEvent::Think(serde_json::from_value(self.payload).ok()?),
+            Family::Ship => NativeEvent::Ship(serde_json::from_value(self.payload).ok()?),
+            Family::Roadmap => NativeEvent::Roadmap(serde_json::from_value(self.payload).ok()?),
+            Family::Signal => NativeEvent::Signal(serde_json::from_value(self.payload).ok()?),
+            Family::Magistr => NativeEvent::Magistr(serde_json::from_value(self.payload).ok()?),
+        };
+        Some((event, cursor))
     }
+}
+
+fn cursor_of(payload: &serde_json::Value) -> Option<EventCursor> {
+    let epoch = OwnerGeneration::admitted(payload.get(EPOCH_KEY)?.as_u64()?).ok()?;
+    let sequence = payload.get(SEQ_KEY)?.as_u64()?;
+    Some(EventCursor { epoch, sequence })
 }
 
 #[cfg(test)]

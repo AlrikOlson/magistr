@@ -3,10 +3,9 @@ use crate::cockpit::{
     LauncherData, LauncherSession, Msg, Place, SessionOutcome, Size, StageTab, Surface, Widget,
     update,
 };
-use crate::engine::{EngineEvent, StoreSeed};
+use crate::engine::EngineEvent;
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
 use crate::job::{JobId, JobOutput};
-use magistr_engine::NativeFrame;
 
 fn native() -> Model {
     Model::new(Size::new(120, 40)).with_surface(Surface::Native)
@@ -54,13 +53,9 @@ fn seeded() -> Model {
     };
     let _ = update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: None,
-            done: 4,
-            total: 5,
-            signals_pending: 0,
-            chunks: vec![
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(4, 5),
+            chunks: crate::harness::fixtures::chunks_from(vec![
                 done(
                     "latte-floor",
                     "Every light palette clears its floor",
@@ -89,36 +84,23 @@ fn seeded() -> Model {
                     "id": "gui2-2a", "name": "gui2-2a", "status": "in_progress", "priority": 159,
                     "description": "contrast floor everywhere — but not shipped, so not a chapter",
                 }),
-            ],
-            signals: Vec::new(),
-            trace: vec![
-                NativeFrame {
-                    family: "think".to_owned(),
-                    kind: "step_appended".to_owned(),
-                    payload: serde_json::json!({"step": {
-                        "step_number": 387,
-                        "purpose": "the pen on screen",
-                        "thought": "Anti-aliasing is a rasterizer-question; the pen on screen is style after REVERSE, and the floor is asked of what was painted, never of the palette.",
-                    }}),
-                },
-                NativeFrame {
-                    family: "ship".to_owned(),
-                    kind: "action_recorded".to_owned(),
-                    payload: serde_json::json!({
-                        "task_id": "ink",
-                        "action": {
-                            "id": 198, "action_type": "edit",
-                            "description": "ensure_contrast at the consumer",
-                            "files_touched": ["theme/ink.rs"],
-                        },
-                    }),
-                },
-                NativeFrame {
-                    family: "ship".to_owned(),
-                    kind: "check_recorded".to_owned(),
-                    payload: serde_json::json!({"check": {"name": "contrast", "passed": true}}),
-                },
-            ],
+            ]),
+            steps: vec![crate::harness::fixtures::step_from(serde_json::json!({
+                "step_number": 387,
+                "purpose": "the pen on screen",
+                "thought": "Anti-aliasing is a rasterizer-question; the pen on screen is style after REVERSE, and the floor is asked of what was painted, never of the palette.",
+            }))],
+            tasks: vec![crate::harness::fixtures::task_from(serde_json::json!({
+                "id": "ink",
+                "actions": [{
+                    "id": 198, "type": "code",
+                    "description": "ensure_contrast at the consumer",
+                    "files_touched": ["theme/ink.rs"],
+                    "timestamp": "2026-08-30T10:00:00Z",
+                }],
+                "checks": [{"name": "contrast", "passed": true, "timestamp": "2026-08-30T10:01:00Z"}],
+            }))],
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     let _ = update(
@@ -236,7 +218,7 @@ fn results_group_by_kind_cut_each_kind_and_count_every_hit() {
     let receipt = &results.rows[3];
     assert_eq!(
         receipt.line,
-        "#198 \u{b7} edit \u{b7} theme/ink.rs \u{b7} ensure_contrast at the consumer"
+        "#198 \u{b7} code \u{b7} theme/ink.rs \u{b7} ensure_contrast at the consumer"
     );
     assert_eq!(
         &receipt.line[receipt.marks[0].0..receipt.marks[0].1],

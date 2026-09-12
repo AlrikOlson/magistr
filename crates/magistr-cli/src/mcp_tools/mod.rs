@@ -52,7 +52,6 @@ pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
     let root_delete = project_root.clone();
     let root_gate = project_root.clone();
     let root_format = project_root.clone();
-    let root_phase = project_root.clone();
     let root_hooks = project_root.clone();
     let root_init = project_root.clone();
     let root_list = project_root;
@@ -212,7 +211,7 @@ pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
     );
 
     // ── Workflow phase tool ──────────────────────────────────────────────────
-    let set_phase_tool = set_phase::build_set_phase_tool(root_phase);
+    let set_phase_tool = set_phase::build_set_phase_tool();
 
     // ── Quality gate & format tools ─────────────────────────────────────────
     let gate_tool = gate::build_gate_tool(root_gate);

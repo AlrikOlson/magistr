@@ -1,10 +1,25 @@
+use magistr_engine::native::{Chunk, ChunkStatus, Signal, SignalStatus};
+use magistr_engine::{Delivery, NativeEvent, RoadmapFrame, SignalFrame};
 use serde_json::json;
 
 use super::*;
+use crate::harness::fixtures;
 
 struct Port {
     pins: Vec<(u32, bool)>,
     fail: bool,
+}
+
+fn chunk(id: &str, status: ChunkStatus) -> Chunk {
+    let mut chunk = fixtures::chunk(id);
+    chunk.status = status;
+    chunk
+}
+
+fn signal(id: &str, status: SignalStatus) -> Signal {
+    let mut signal = fixtures::signal(id);
+    signal.status = status;
+    signal
 }
 
 impl EnginePort for Port {
@@ -23,18 +38,18 @@ impl EnginePort for Port {
         Ok(json!({"open_hypotheses": []}))
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String> {
         if self.fail {
             return Err("no such chunk".to_owned());
         }
-        Ok(json!({"id": id, "status": "in_progress"}))
+        Ok(chunk(id, ChunkStatus::InProgress))
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String> {
         if self.fail {
             return Err("no such chunk".to_owned());
         }
-        Ok(json!({"id": id, "status": "done"}))
+        Ok(chunk(id, ChunkStatus::Done))
     }
 
     fn resolve_proposal(
@@ -42,85 +57,117 @@ impl EnginePort for Port {
         id: &str,
         _kind: crate::cockpit::ProposalKind,
         _accept: bool,
-    ) -> Result<serde_json::Value, String> {
+    ) -> Result<Chunk, String> {
         if self.fail {
             return Err("no open proposal".to_owned());
         }
-        Ok(json!({"id": id, "status": "pending"}))
+        Ok(chunk(id, ChunkStatus::Pending))
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String> {
         if self.fail {
             return Err("no blocker to clear".to_owned());
         }
-        Ok(json!({"id": id, "status": "pending"}))
+        Ok(chunk(id, ChunkStatus::Pending))
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn promote_signal(&mut self, id: &str) -> Result<Signal, String> {
         if self.fail {
             return Err("not researched".to_owned());
         }
-        Ok(json!({"id": id, "status": "promoted"}))
+        Ok(signal(id, SignalStatus::Promoted))
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String> {
         if self.fail {
             return Err("no such signal".to_owned());
         }
-        Ok(json!({"id": id, "status": "dismissed"}))
+        Ok(signal(id, SignalStatus::Dismissed))
     }
 
-    fn snooze_signal(&mut self, id: &str, _minutes: u32) -> Result<serde_json::Value, String> {
+    fn snooze_signal(&mut self, id: &str, _minutes: u32) -> Result<Signal, String> {
         if self.fail {
             return Err("no such signal".to_owned());
         }
-        Ok(json!({"id": id, "snooze_until": "soon"}))
+        let mut signal = signal(id, SignalStatus::Researched);
+        signal.snooze_until = Some("soon".to_owned());
+        Ok(signal)
+    }
+}
+
+/// The event a successful act answers with — the typed frame the engines
+/// would have announced, delivered locally.
+fn event_of(port: &mut Port, cmd: &EngineCmd) -> NativeEvent {
+    match apply(port, cmd) {
+        EngineEvent::Event {
+            event,
+            delivery: Delivery::Local,
+        } => event,
+        other => panic!("{cmd:?} answered {other:?}, not a local event"),
     }
 }
 
 #[test]
-fn chunk_and_signal_acts_answer_as_synthesized_frames() {
+fn chunk_and_signal_acts_answer_as_the_typed_events_the_engines_would_announce() {
     let mut port = Port {
         pins: Vec::new(),
         fail: false,
     };
-    let EngineEvent::Frame(frame) = apply(
-        &mut port,
-        &EngineCmd::StartChunk {
-            id: "auth".to_owned(),
-        },
-    ) else {
-        panic!("a start answers with a frame");
-    };
     assert_eq!(
-        (frame.family.as_str(), frame.kind.as_str()),
-        ("roadmap", "chunk_changed")
+        event_of(
+            &mut port,
+            &EngineCmd::StartChunk {
+                id: "auth".to_owned(),
+            },
+        ),
+        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
+            chunk: chunk("auth", ChunkStatus::InProgress),
+        })
     );
-    assert_eq!(frame.payload["chunk"]["status"], "in_progress");
-
-    let EngineEvent::Frame(frame) = apply(
-        &mut port,
-        &EngineCmd::CompleteChunk {
-            id: "auth".to_owned(),
-        },
-    ) else {
-        panic!("a completion answers with a frame");
-    };
-    assert_eq!(frame.kind, "chunk_completed");
-
-    let EngineEvent::Frame(frame) = apply(
-        &mut port,
-        &EngineCmd::IgnoreSignal {
-            id: "s1".to_owned(),
-        },
-    ) else {
-        panic!("an ignore answers with a frame");
-    };
     assert_eq!(
-        (frame.family.as_str(), frame.kind.as_str()),
-        ("signal", "signal_dismissed")
+        event_of(
+            &mut port,
+            &EngineCmd::CompleteChunk {
+                id: "auth".to_owned(),
+            },
+        ),
+        NativeEvent::Roadmap(RoadmapFrame::ChunkCompleted {
+            chunk: chunk("auth", ChunkStatus::Done),
+        })
     );
-    assert_eq!(frame.payload["signal"]["id"], "s1");
+    assert_eq!(
+        event_of(
+            &mut port,
+            &EngineCmd::IgnoreSignal {
+                id: "s1".to_owned(),
+            },
+        ),
+        NativeEvent::Signal(SignalFrame::SignalDismissed {
+            signal: signal("s1", SignalStatus::Dismissed),
+        })
+    );
+    assert_eq!(
+        event_of(
+            &mut port,
+            &EngineCmd::PromoteSignal {
+                id: "s2".to_owned(),
+            },
+        ),
+        NativeEvent::Signal(SignalFrame::SignalChanged {
+            signal: signal("s2", SignalStatus::Promoted),
+        })
+    );
+    assert!(matches!(
+        event_of(
+            &mut port,
+            &EngineCmd::SnoozeSignal {
+                id: "s3".to_owned(),
+                minutes: 5,
+            },
+        ),
+        NativeEvent::Signal(SignalFrame::SignalChanged { signal })
+            if signal.snooze_until.as_deref() == Some("soon")
+    ));
 }
 
 #[test]
@@ -223,24 +270,22 @@ fn a_refusal_names_what_was_asked() {
 }
 
 #[test]
-fn a_cleared_blocker_answers_with_the_chunk_changed_frame_the_dock_folds() {
+fn a_cleared_blocker_answers_with_the_chunk_changed_event_the_dock_folds() {
     let mut port = Port {
         pins: Vec::new(),
         fail: false,
     };
-    let EngineEvent::Frame(frame) = apply(
-        &mut port,
-        &EngineCmd::ClearBlocker {
-            chunk: "auth".to_owned(),
-        },
-    ) else {
-        panic!("a clear answers with a frame");
-    };
     assert_eq!(
-        (frame.family.as_str(), frame.kind.as_str()),
-        ("roadmap", "chunk_changed")
+        event_of(
+            &mut port,
+            &EngineCmd::ClearBlocker {
+                chunk: "auth".to_owned(),
+            },
+        ),
+        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
+            chunk: chunk("auth", ChunkStatus::Pending),
+        })
     );
-    assert_eq!(frame.payload["chunk"]["id"], "auth");
 }
 
 #[test]

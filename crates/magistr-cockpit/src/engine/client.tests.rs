@@ -170,7 +170,7 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     assert_eq!(second.attached_generation(), Some(endpoint.generation()));
     let mut port = second.port().expect("an attached port");
     let started = port.start_chunk("c1").expect("acts through the host");
-    assert_eq!(started["status"], "in_progress");
+    assert_eq!(started.status, magistr_engine::ChunkStatus::InProgress);
     assert_eq!(
         host.reader().roadmap_chunk("c1").map(|chunk| chunk.status),
         Some(magistr_engine::ChunkStatus::InProgress),

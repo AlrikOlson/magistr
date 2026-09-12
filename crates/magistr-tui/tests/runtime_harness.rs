@@ -679,17 +679,17 @@ async fn a_wheel_over_the_undocked_column_moves_its_feed_and_not_the_turn() {
     let terminal = FakeTerminal::new(WIDE, script);
     let runtime = Runtime::new(terminal, options());
     let inbox = runtime.inbox();
-    let trace = (1..=60)
-        .map(|n| magistr_engine::NativeFrame {
-            family: "think".to_owned(),
-            kind: "step_appended".to_owned(),
-            payload: serde_json::json!({"step": {"step_number": n, "purpose": "open"}}),
+    let steps = (1..=60)
+        .map(|n| {
+            magistr_cockpit::harness::fixtures::step_from(
+                serde_json::json!({"step_number": n, "purpose": "open"}),
+            )
         })
         .collect();
     inbox.send(Msg::Engine(magistr_cockpit::engine::EngineEvent::Seed(
-        magistr_cockpit::engine::StoreSeed {
-            trace,
-            ..magistr_cockpit::engine::StoreSeed::default()
+        magistr_engine::NativeSnapshot {
+            steps,
+            ..magistr_engine::NativeSnapshot::default()
         },
     )));
     let lines: String = (0..60).map(|n| format!("line {n}\n")).collect();

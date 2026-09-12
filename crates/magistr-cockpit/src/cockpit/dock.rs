@@ -2,7 +2,8 @@
 
 use std::collections::VecDeque;
 
-use magistr_engine::NativeFrame;
+use magistr_engine::native::{BlockerKind, Chunk};
+use magistr_engine::{NativeEvent, RoadmapFrame};
 
 use super::dock_item::DockItem;
 use super::engine_cmd::EngineCmd;
@@ -12,8 +13,8 @@ use super::proposal_kind::ProposalKind;
 /// The dock's cards, front first. Permission requests come from the
 /// agent's session and sit ahead of everything else — the agent is
 /// blocked on them; proposals and awaiting-human blockers fold from
-/// roadmap frames ([`Dock::apply`]) and leave when answered or when a
-/// later frame shows them gone.
+/// roadmap events ([`Dock::apply`]) and leave when answered or when a
+/// later event shows them gone.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Dock {
     cards: VecDeque<DockItem>,
@@ -146,48 +147,45 @@ impl Dock {
         self.cards.insert(at, DockItem::Permission(permission));
     }
 
-    /// Fold one broadcast frame in: a `chunk_changed` upserts a card per
-    /// open proposal and per awaiting-human blocker on the chunk and
-    /// drops the cards the payload no longer carries; a completed or
-    /// obsoleted chunk takes its cards away.
-    pub fn apply(&mut self, frame: &NativeFrame) {
-        if frame.family != "roadmap" {
-            return;
-        }
-        let chunk = &frame.payload["chunk"];
-        let Some(id) = chunk["id"].as_str() else {
+    /// Fold one typed event in: a changed chunk upserts a card per open
+    /// proposal and per awaiting-human blocker on it and drops the cards
+    /// the record no longer carries; a completed or obsoleted chunk takes
+    /// its cards away. Every other event is ignored.
+    pub fn apply(&mut self, event: &NativeEvent) {
+        let NativeEvent::Roadmap(frame) = event else {
             return;
         };
-        if matches!(
-            frame.kind.as_str(),
-            "chunk_changed" | "chunk_completed" | "chunk_obsoleted"
-        ) {
-            // A frame is authoritative: a still-open decision returns, a
-            // resolved one leaves. Neither gets queued behind newer cards.
-            self.pending.retain(|cmd| {
-                !matches!(cmd,
-                    EngineCmd::ResolveProposal { chunk, .. } | EngineCmd::ClearBlocker { chunk }
-                    if chunk == id)
-            });
-        }
-        match frame.kind.as_str() {
-            "chunk_changed" => {
-                for kind in ProposalKind::ALL {
-                    match proposal(chunk, kind) {
-                        Some(card) => self.upsert(id, card),
-                        None => self.remove_proposal(id, kind),
-                    }
-                }
-                match blocker(id, chunk) {
-                    Some(card) => self.upsert(id, card),
-                    None => self.remove_blocker(id),
-                }
+        let (chunk, ended) = match frame {
+            RoadmapFrame::ChunkChanged { chunk } => (chunk, false),
+            RoadmapFrame::ChunkCompleted { chunk } | RoadmapFrame::ChunkObsoleted { chunk } => {
+                (chunk, true)
             }
-            "chunk_completed" | "chunk_obsoleted" => self.cards.retain(|card| match card {
+            RoadmapFrame::ChunkAdded { .. } | RoadmapFrame::RefreshRecorded { .. } => return,
+        };
+        let id = chunk.id.as_str();
+        // An event is authoritative: a still-open decision returns, a
+        // resolved one leaves. Neither gets queued behind newer cards.
+        self.pending.retain(|cmd| {
+            !matches!(cmd,
+                EngineCmd::ResolveProposal { chunk, .. } | EngineCmd::ClearBlocker { chunk }
+                if chunk == id)
+        });
+        if ended {
+            self.cards.retain(|card| match card {
                 DockItem::Permission(_) => true,
                 DockItem::Proposal { chunk, .. } | DockItem::Blocker { chunk, .. } => chunk != id,
-            }),
-            _ => {}
+            });
+            return;
+        }
+        for kind in ProposalKind::ALL {
+            match proposal(chunk, kind) {
+                Some(card) => self.upsert(id, card),
+                None => self.remove_proposal(id, kind),
+            }
+        }
+        match blocker(chunk) {
+            Some(card) => self.upsert(id, card),
+            None => self.remove_blocker(id),
         }
     }
 
@@ -234,38 +232,23 @@ fn answers(cmd: &EngineCmd, card: &DockItem) -> bool {
     }
 }
 
-/// The proposal card `chunk` carries for `kind`, if the payload has one.
-fn proposal(chunk: &serde_json::Value, kind: ProposalKind) -> Option<DockItem> {
-    let open = chunk.get(kind.payload_key())?.as_object()?;
-    let suggestion = match open.get(kind.suggestion_key())? {
-        serde_json::Value::String(s) => s.clone(),
-        other => other.to_string(),
-    };
+/// The proposal card `chunk` carries for `kind`, if the record has one.
+fn proposal(chunk: &Chunk, kind: ProposalKind) -> Option<DockItem> {
+    let (suggestion, reason) = kind.on(chunk)?;
     Some(DockItem::Proposal {
-        chunk: chunk["id"].as_str()?.to_owned(),
+        chunk: chunk.id.clone(),
         kind,
         suggestion,
-        reason: open
-            .get("reason")
-            .and_then(|r| r.as_str())
-            .unwrap_or_default()
-            .to_owned(),
+        reason,
     })
 }
 
 /// The blocker card `chunk` carries, when it is blocked on a human.
-fn blocker(id: &str, chunk: &serde_json::Value) -> Option<DockItem> {
-    let blocked = chunk.get("blocked_by")?.as_object()?;
-    if blocked.get("kind")?.as_str()? != "awaiting_human" {
-        return None;
-    }
-    Some(DockItem::Blocker {
-        chunk: id.to_owned(),
-        reason: blocked
-            .get("reason")
-            .and_then(|r| r.as_str())
-            .unwrap_or_default()
-            .to_owned(),
+fn blocker(chunk: &Chunk) -> Option<DockItem> {
+    let blocked = chunk.blocked_by.as_ref()?;
+    (blocked.kind == BlockerKind::AwaitingHuman).then(|| DockItem::Blocker {
+        chunk: chunk.id.clone(),
+        reason: blocked.reason.clone(),
     })
 }
 

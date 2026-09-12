@@ -214,7 +214,11 @@ in `magistr_core::evidence` because the loop host is admitted there too.
 | Run | ship objective | `run_id` on `TaskAdmission` | a fresh objective after finalize |
 | Task and task instance | ship plan | `task_id`, `task_instance` on `TaskAdmission` | the same name in a later run is a new instance |
 | Attempt | loop operation ledger | domain `AttemptId` (command plus attempt number) | each retry of one command |
-| Workflow owner generation | role lease (`ProjectAuthority`) | `OwnerGeneration` | a new writer of that role is admitted |
+| Workflow owner generation | role lease (`ProjectAuthority`) | `OwnerGeneration`; `epoch` on every feed line | a new writer of that role is admitted |
+| Workflow event sequence | the owner's broadcaster | `seq` on every feed line, `EventCursor { epoch, sequence }` decoded | every frame that owner emits, whatever its family |
+| Workflow snapshot cursor | the store's on-disk stamp | `SnapshotCursor { modified, length }` | any family file is written |
+| Workflow record stamp | the family engine | `updated_at` on chunks and signals; ids and timestamps on ship actions and checks | that record is written |
+| Workflow schema version | the think history file | `schema_version` (1) | the file format changes; roadmap, signal and ship files carry none |
 | Workspace | admitted `WorkspaceService` | `WorkspaceIdentity { root, generation }` | the canonical root never; the generation on every owner admission |
 | Source revision | the selected bytes | `SourceSnapshot::revision()` (content-addressed) | any selected byte, mode, kind or explicit input |
 | Mutation receipt revision | the journal's resolved intent | `MutationReceipt::revision` | per applied intent, over the applied files only |
@@ -223,7 +227,9 @@ in `magistr_core::evidence` because the loop host is admitted there too.
 No type combines them: a workflow run and a workspace generation are
 independent stores with independent histories, and a source revision is a
 statement about bytes, not about either store. `Revision` in this crate stays
-the project authority's own counter.
+the project authority's own counter. The workflow rows are the projection
+identities of [projections](projections.md); none of them is a revision of
+the store as a whole, which has none.
 
 ## Verification and limits
 

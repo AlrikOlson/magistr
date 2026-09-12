@@ -24,14 +24,12 @@ pub mod process_alive;
 pub mod project_context;
 pub mod prompt;
 pub mod reconciliation;
-pub mod research_guard;
 pub mod rollback;
 pub mod rollback_result;
 pub mod spec;
 pub mod spec_guard;
 pub mod spec_parse;
 pub mod spec_read;
-pub mod tracker;
 
 use std::path::Path;
 

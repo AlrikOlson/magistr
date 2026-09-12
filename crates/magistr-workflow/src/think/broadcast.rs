@@ -27,7 +27,7 @@ use crate::think::domain::{BranchStatus, ThinkStep};
 /// The wrapping [`Broadcaster`] flattens a `family: "think"` field onto
 /// every emitted frame so a shared viewer can interleave events from
 /// other tool families on one timeline.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BroadcastFrame {
     /// A new step was appended to the trace (either main line or branch).

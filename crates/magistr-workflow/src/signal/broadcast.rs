@@ -12,7 +12,7 @@ use tracing::warn;
 use crate::infra::{Broadcaster as EngineBroadcaster, Family};
 use crate::signal::domain::Signal;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SignalFrame {
     /// A new signal was captured.

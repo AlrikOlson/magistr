@@ -6,7 +6,7 @@ use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
 use magistr_cockpit::engine::EngineEvent;
 use magistr_cockpit::job::JobOutput;
-use magistr_engine::GateOutput;
+use magistr_engine::{GateOutput, MagistrFrame, NativeEvent};
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_util::sync::CancellationToken;
@@ -22,10 +22,10 @@ const GATE_TIMEOUT_SECS: u64 = 300;
 /// shared gate runner — the same one `magistr_gate` goes through, so the
 /// two paths cannot disagree about what a gate did — driven on the
 /// runtime's handle from the blocking thread. The gate runs on a pty, and
-/// every chunk it writes goes to `inbox` while it runs as a `gate_output`
-/// frame keyed by `name` — the frame `magistr mcp-serve`'s socket carries
-/// for the agent's own gates, folded into the cockpit's terminal store
-/// either way. The whole run goes to the driver on `report`: the stripped
+/// every chunk it writes goes to `inbox` while it runs as a
+/// [`GateOutput`] event keyed by `name` — the same event `magistr
+/// mcp-serve`'s socket carries for the agent's own gates, folded into the
+/// cockpit's terminal store either way. The whole run goes to the driver on `report`: the stripped
 /// transcript, the parsed failure rows, the real exit code, and a verdict
 /// that tells a timeout apart from a red test. The job's own result — pass
 /// as text, fail as a failure — reaches the cockpit as `Msg::Job` and
@@ -47,7 +47,9 @@ pub(crate) fn gate_job(
                 gate: name.to_owned(),
                 bytes: bytes.to_vec(),
             };
-            inbox.send(Msg::Engine(EngineEvent::Frame(output.frame())));
+            inbox.send(Msg::Engine(EngineEvent::local(NativeEvent::Magistr(
+                MagistrFrame::GateOutput(output),
+            ))));
         };
         // Every gate the loop runs is one the project requires: they are
         // the top-level `quality_gate`, not the optional custom set.

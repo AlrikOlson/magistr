@@ -6,7 +6,7 @@ use std::path::Path;
 
 use color_eyre::eyre::{self, Context as _};
 use magistr_cockpit::cockpit::{Model, StageTab, Summary};
-use magistr_cockpit::engine::{EngineClient, StoreSeed};
+use magistr_cockpit::engine::EngineClient;
 use magistr_cockpit::theme::Theme;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};
@@ -63,7 +63,7 @@ pub(crate) async fn cockpit_model_on(
                 .with_title(title)
                 .with_debug(debug)
                 .with_tab(tab)
-                .with_store_seed(&StoreSeed::read(engines.reader()))
+                .with_snapshot(&engines.reader().snapshot())
                 .with_workspace_files(super::workspace_files::workspace_files(root)),
         )
         .await;

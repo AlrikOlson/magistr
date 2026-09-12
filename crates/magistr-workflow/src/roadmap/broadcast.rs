@@ -12,7 +12,7 @@ use tracing::warn;
 use crate::infra::{Broadcaster as EngineBroadcaster, Family};
 use crate::roadmap::domain::Chunk;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RoadmapFrame {
     ChunkAdded {

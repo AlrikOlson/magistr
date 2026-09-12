@@ -121,13 +121,18 @@ impl OwnerLease {
         lock_path.push(".mcp-owner.lock");
         self.lock(&PathBuf::from(lock_path), "live-feed socket owner")?;
         ensure_feed_available(path).await?;
-        Broadcaster::spawn(path.to_path_buf()).ok_or_else(|| {
-            io::Error::other(format!(
-                "magistr: cannot bind live-feed socket {}; startup refused \
+        // Every frame this owner publishes carries its generation as the
+        // feed's epoch, so a subscriber that outlives it recognises the
+        // next owner's frames as a change of hands.
+        Broadcaster::spawn(path.to_path_buf())
+            .map(|broadcaster| broadcaster.with_epoch(self.generation.get()))
+            .ok_or_else(|| {
+                io::Error::other(format!(
+                    "magistr: cannot bind live-feed socket {}; startup refused \
              before opening project engines (check the path and runtime support)",
-                path.display()
-            ))
-        })
+                    path.display()
+                ))
+            })
     }
 }
 

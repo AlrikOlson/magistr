@@ -23,7 +23,6 @@ use magistr_cockpit::harness::FakeWorkbench;
 use magistr_cockpit::layout::LayoutTree;
 use magistr_cockpit::turn::{RowKind, Voice};
 use magistr_cockpit::workbench::WorkbenchPort;
-use magistr_engine::NativeFrame;
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{AcpObserved, Capture, Deliveries, FakeAcpAgent, FakeTerminal, Script};
 use magistr_tui::runtime::{Options, Runtime};
@@ -695,7 +694,7 @@ async fn the_ledger_palette_round_trips_through_the_checkpoint_port() {
 #[tokio::test]
 async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rail() {
     use magistr_cockpit::cockpit::StageTab;
-    use magistr_cockpit::engine::{EngineEvent, StoreSeed};
+    use magistr_cockpit::engine::EngineEvent;
     use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
     use magistr_cockpit::layout::Rect;
     use magistr_tui::harness::FakeEnginePort;
@@ -712,15 +711,11 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
     let mut model = Model::new(SIZE).with_tab(StageTab::Roadmap);
     magistr_cockpit::cockpit::update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: None,
-            done: 1,
-            total: 2,
-            signals_pending: 1,
-            chunks: vec![ui.clone()],
-            signals: vec![signal.clone()],
-            trace: Vec::new(),
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: magistr_cockpit::harness::fixtures::progress(1, 2),
+            chunks: magistr_cockpit::harness::fixtures::chunks_from(vec![ui.clone()]),
+            signals: magistr_cockpit::harness::fixtures::signals_from(vec![signal.clone()]),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
 
@@ -764,7 +759,9 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
         .click(MS(700), row.x, row.y)
         .click(MS(900), promote.x + 1, promote.y)
         .text(MS(1200), "\x04");
-    let port = FakeEnginePort::new().with_chunk(ui).with_signal(signal);
+    let port = FakeEnginePort::new()
+        .with_chunk(magistr_cockpit::harness::fixtures::chunk_from(ui))
+        .with_signal(magistr_cockpit::harness::fixtures::signal_from(signal));
     let (model, observed, capture, deliveries, _arrivals) = run_seeded(
         options(),
         script,
@@ -832,11 +829,9 @@ fn planned_model() -> Model {
     ] {
         update(
             &mut m,
-            Msg::Engine(EngineEvent::Frame(NativeFrame {
-                family: "ship".to_owned(),
-                kind: kind.to_owned(),
-                payload,
-            })),
+            Msg::Engine(EngineEvent::local(
+                magistr_cockpit::harness::fixtures::frame("ship", kind, payload),
+            )),
         );
     }
     m
@@ -926,12 +921,14 @@ async fn a_blocker_card_clears_through_the_session_engine_and_the_frame_takes_th
     let mut model = Model::new(SIZE);
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "roadmap".to_owned(),
-            kind: "chunk_changed".to_owned(),
-            payload: serde_json::json!({"family": "roadmap", "type": "chunk_changed",
+        Msg::Engine(EngineEvent::local(
+            magistr_cockpit::harness::fixtures::frame(
+                "roadmap",
+                "chunk_changed",
+                serde_json::json!({"family": "roadmap", "type": "chunk_changed",
                 "chunk": stuck.clone()}),
-        })),
+            ),
+        )),
     );
     assert_eq!(model.dock().len(), 1, "the card is on the dock to answer");
 
@@ -941,7 +938,8 @@ async fn a_blocker_card_clears_through_the_session_engine_and_the_frame_takes_th
         .startup_replies(MS(0))
         .text(MS(300), "c")
         .text(MS(700), "\x04");
-    let port = FakeEnginePort::new().with_chunk(stuck);
+    let port =
+        FakeEnginePort::new().with_chunk(magistr_cockpit::harness::fixtures::chunk_from(stuck));
     let (model, observed, _capture, _deliveries, _arrivals) = run_seeded(
         options(),
         script,

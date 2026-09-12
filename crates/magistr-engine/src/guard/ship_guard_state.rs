@@ -1,11 +1,12 @@
-use serde_json::Value;
+use magistr_workflow::ship::domain::objective::{Objective, ObjectiveStatus};
+use magistr_workflow::ship::domain::task::Task;
 
 /// The slice of ship (execution-trace) state the lifecycle guards key on.
 ///
-/// Parsed from the `ship_status` JSON the ship engine answers — the same
-/// document `ship_status` returns over MCP — so the engine layer stays
-/// IO-free: whoever holds the engine (mcp-serve, the TUI, a test) reads the
-/// status and hands the guard this value.
+/// Read off the ship engine's own records — the objective and the tasks
+/// with the checks on them — so the engine layer stays IO-free: whoever
+/// holds the engine (mcp-serve, a test) reads them and hands the guard
+/// this value.
 ///
 /// The rule it encodes replaces the old "`.magistr/current-plan.md` exists"
 /// check: an objective must be set and at least one task planned before the
@@ -22,39 +23,22 @@ pub struct ShipGuardState {
 }
 
 impl ShipGuardState {
-    /// Read the guard-relevant slice out of a `ship_status` document.
+    /// Read the guard-relevant slice off the ship records: whether an
+    /// objective is defined or active, how many tasks the plan holds, and
+    /// how many checks are recorded on them.
     ///
-    /// Checks are counted only for tasks present in the current `task_list`:
-    /// after `ship_finalize`, `ship_status` still lists the finished cycle's
-    /// checks until a fresh objective clears its tasks, and a stale check
-    /// must not satisfy the next iteration's `done` guard.
+    /// Checks are counted only on the current plan's tasks: after
+    /// `ship_finalize` a fresh objective clears its tasks, and a stale
+    /// check from the finished cycle must not satisfy the next iteration's
+    /// `done` guard.
     #[must_use]
-    pub fn from_status(status: &Value) -> Self {
-        let objective_set = matches!(
-            status["objective"]["status"].as_str(),
-            Some("defined" | "active")
-        );
-        let task_ids: Vec<&str> = status["task_list"]
-            .as_array()
-            .map(|tasks| tasks.iter().filter_map(|t| t["id"].as_str()).collect())
-            .unwrap_or_default();
-        let checks_recorded = status["checks"]
-            .as_array()
-            .map(|checks| {
-                checks
-                    .iter()
-                    .filter(|c| {
-                        c["task_id"]
-                            .as_str()
-                            .is_none_or(|id| task_ids.contains(&id))
-                    })
-                    .count()
-            })
-            .unwrap_or(0);
+    pub fn from_ship(objective: Option<&Objective>, tasks: &[Task]) -> Self {
         Self {
-            objective_set,
-            tasks_planned: task_ids.len(),
-            checks_recorded,
+            objective_set: objective.is_some_and(|o| {
+                matches!(o.status, ObjectiveStatus::Defined | ObjectiveStatus::Active)
+            }),
+            tasks_planned: tasks.len(),
+            checks_recorded: tasks.iter().map(|task| task.checks.len()).sum(),
         }
     }
 

@@ -1,7 +1,7 @@
 //! Agent message types shared between frontends.
 //!
 //! These types are extracted from the main crate's `agent::message` module
-//! so that `StateUpdate` and other core types can reference them without
+//! so that other core types can reference them without
 //! depending on TUI or backend-specific code.
 
 use super::ToolKind;

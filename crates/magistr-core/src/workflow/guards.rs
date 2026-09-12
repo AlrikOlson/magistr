@@ -10,7 +10,6 @@ pub use magistr_engine::guard::{
 
 use crate::workflow::clean_tree_guard::CleanTreeGuard;
 use crate::workflow::plan_guard::PlanGuard;
-use crate::workflow::research_guard::ResearchGuard;
 use crate::workflow::spec_guard::SpecGuard;
 
 // ── GuardRunner ─────────────────────────────────────────────────────────────
@@ -40,9 +39,6 @@ impl GuardRunner {
         }
         if config.quality_gate {
             guards.push(Box::new(super::gate_guard::QualityGateGuard::new()));
-        }
-        if config.research {
-            guards.push(Box::new(ResearchGuard));
         }
         Self { guards }
     }

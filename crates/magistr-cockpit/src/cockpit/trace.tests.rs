@@ -1,17 +1,14 @@
-use magistr_engine::NativeFrame;
+use magistr_engine::{NativeEvent, NativeSnapshot};
 use serde_json::json;
 
 use super::*;
+use crate::harness::fixtures;
 
-fn frame(family: &str, kind: &str, payload: serde_json::Value) -> NativeFrame {
-    NativeFrame {
-        family: family.to_owned(),
-        kind: kind.to_owned(),
-        payload,
-    }
+fn frame(family: &str, kind: &str, payload: serde_json::Value) -> NativeEvent {
+    fixtures::frame(family, kind, payload)
 }
 
-fn step(number: u32) -> NativeFrame {
+fn step(number: u32) -> NativeEvent {
     frame(
         "think",
         "step_appended",
@@ -19,7 +16,7 @@ fn step(number: u32) -> NativeFrame {
     )
 }
 
-fn branch_step(number: u32, branch: &str, from: u32) -> NativeFrame {
+fn branch_step(number: u32, branch: &str, from: u32) -> NativeEvent {
     frame(
         "think",
         "step_appended",
@@ -45,9 +42,9 @@ fn a_branch_status_is_active_until_the_frame_says_otherwise() {
     trace.apply(&frame(
         "think",
         "branch_status_changed",
-        json!({"branch_id": "alt", "status": "kept"}),
+        json!({"branch_id": "alt", "status": "merged"}),
     ));
-    assert_eq!(trace.branch_status("alt"), "kept");
+    assert_eq!(trace.branch_status("alt"), "merged");
 }
 
 #[test]
@@ -146,7 +143,7 @@ fn ship_frames_join_the_timeline_and_cleared_empties_each_half() {
     trace.apply(&frame(
         "ship",
         "action_recorded",
-        json!({"task_id": "t", "action": {"action_type": "code", "description": "did"}}),
+        json!({"task_id": "t", "action": {"type": "code", "description": "did"}}),
     ));
     trace.apply(&frame(
         "ship",
@@ -178,15 +175,19 @@ fn the_checkpoint_viewer_opens_and_closes() {
 }
 
 #[test]
-fn junk_and_foreign_frames_are_ignored() {
+fn foreign_events_are_ignored() {
     let mut trace = Trace::default();
-    trace.apply(&frame("think", "step_appended", json!({"step": "junk"})));
-    trace.apply(&frame("roadmap", "chunk_changed", json!({})));
+    trace.apply(&frame(
+        "roadmap",
+        "chunk_changed",
+        json!({"chunk": {"id": "a"}}),
+    ));
     trace.apply(&frame(
         "think",
         "estimate_revised",
         json!({"old": 3, "new": 9}),
     ));
+    trace.apply(&frame("ship", "task_started", json!({"task_id": "t1"})));
     assert!(trace.is_empty());
 }
 
@@ -204,23 +205,30 @@ fn a_seed_replaces_both_halves_and_keeps_what_only_the_feed_knows() {
     trace.apply(&frame(
         "ship",
         "action_recorded",
-        json!({"task_id": "t1", "action": {"action_type": "code", "description": "first"}}),
+        json!({"task_id": "t1", "action": {"type": "code", "description": "first"}}),
     ));
     trace.toggle(0);
     assert!(trace.is_expanded(1));
 
     // The store is the superset: the same two steps plus a third, and
     // the same moment — a re-seed must not double it.
-    trace.seed(&[
-        step(1),
-        branch_step(2, "alt", 1),
-        step(3),
-        frame(
-            "ship",
-            "action_recorded",
-            json!({"task_id": "t1", "action": {"action_type": "code", "description": "first"}}),
-        ),
-    ]);
+    trace.seed(&NativeSnapshot {
+        steps: vec![
+            fixtures::step_from(json!({"step_number": 1, "purpose": "analysis"})),
+            fixtures::step_from(json!({
+                "step_number": 2,
+                "branch_id": "alt",
+                "branch_name": "alt name",
+                "branch_from": 1,
+            })),
+            fixtures::step_from(json!({"step_number": 3, "purpose": "analysis"})),
+        ],
+        tasks: vec![fixtures::task_from(json!({
+            "id": "t1",
+            "actions": [{"type": "code", "description": "first"}],
+        }))],
+        ..NativeSnapshot::default()
+    });
 
     assert_eq!(
         trace.steps().iter().map(|s| s.number).collect::<Vec<_>>(),

@@ -4,9 +4,11 @@
 pub mod broadcast;
 pub mod coerce;
 pub mod cross_ref;
+pub mod epoch_key;
 pub mod persistence;
 pub mod project_id;
 pub mod repo_sync;
+pub mod seq_key;
 pub mod session;
 #[cfg(test)]
 pub mod source_gate;
@@ -16,6 +18,7 @@ pub use broadcast::{Broadcaster, EmitError, Family};
 pub use cross_ref::{
     ActionId, CheckName, CrossRef, ExternalId, ParseError, ProviderId, StepNumber, TaskId,
 };
+pub use epoch_key::EPOCH_KEY;
 pub use persistence::{Domain, Persistence, PersistenceConfig};
 pub use project_id::{
     IdSource, PROJECT_DIR, PROJECT_FILE, PROJECT_SEP, ProjectIdentity, declared_identity_in,
@@ -26,4 +29,5 @@ pub use repo_sync::{
     MirrorJob, MirrorWorker, PromoteOutcome, RecordCtx, RepoSink, SyncTarget, discover_repo_root,
     file_attribution, shared_from_env,
 };
+pub use seq_key::SEQ_KEY;
 pub use session::resolve_default_session_id;

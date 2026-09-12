@@ -1,8 +1,10 @@
 //! What accepting the proposal left behind.
 
+use magistr_engine::native::Chunk;
+
 /// The roadmap as written (Birth F5): the chunks the entry point put
 /// in the new project's think-and-ship store through
-/// `roadmap_add_chunk`, as the wire carries them back — what the first
+/// `roadmap_add_chunk`, as the store records them — what the first
 /// sky is seeded from — with the gates and protected paths the
 /// interview configured. Delivered as
 /// [`JobOutput::Born`](crate::job::JobOutput::Born).
@@ -12,8 +14,8 @@ pub struct BornData {
     pub name: String,
     /// The folder the project lives in.
     pub dir: String,
-    /// Every chunk written, as the store's wire carries it.
-    pub chunks: Vec<serde_json::Value>,
+    /// Every chunk written, as the store records it.
+    pub chunks: Vec<Chunk>,
     /// The required gates the interview's picks became.
     pub gates: Vec<String>,
     /// The protected paths the interview's picks became.
@@ -26,7 +28,7 @@ impl BornData {
     pub fn workstreams(&self) -> usize {
         let mut groups: Vec<&str> = Vec::new();
         for chunk in &self.chunks {
-            if let Some(group) = chunk["group"].as_str()
+            if let Some(group) = chunk.group.as_deref()
                 && !groups.contains(&group)
             {
                 groups.push(group);
@@ -59,8 +61,8 @@ impl BornData {
     pub fn first_ready(&self) -> Option<&str> {
         self.chunks
             .iter()
-            .find(|c| c["deps"].as_array().is_none_or(Vec::is_empty))
-            .and_then(|c| c["id"].as_str())
+            .find(|c| c.deps.is_empty())
+            .map(|c| c.id.as_str())
     }
 }
 

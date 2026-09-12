@@ -1,5 +1,7 @@
 //! One star of a proposed roadmap.
 
+use magistr_engine::native::{Chunk, ChunkStatus};
+
 /// A chunk the charting proposes (Birth F4) — what `roadmap_add_chunk`
 /// will be called with once the proposal is accepted: the id, the
 /// short label, the claim, the workstream it belongs to, what it
@@ -53,19 +55,39 @@ impl ProposedChunk {
         format!("{} \u{b7} {}", self.group, self.name)
     }
 
-    /// The chunk as the store's wire carries it — what the Sky seeds
-    /// from and what the entry point writes.
+    /// The chunk as the store will record it — what the Sky seeds from
+    /// and what the entry point writes: pending, in its workstream,
+    /// standing on its deps, the name standing in for a missing claim.
     #[must_use]
-    pub fn wire(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": self.name,
-            "title": if self.title.is_empty() { self.name.clone() } else { self.title.clone() },
-            "status": "pending",
-            "priority": self.priority,
-            "group": self.group,
-            "deps": self.deps,
-        })
+    pub fn record(&self) -> Chunk {
+        Chunk {
+            id: self.id.clone(),
+            title: if self.title.is_empty() {
+                self.name.clone()
+            } else {
+                self.title.clone()
+            },
+            name: self.name.clone(),
+            status: ChunkStatus::Pending,
+            priority: self.priority,
+            description: String::new(),
+            content: None,
+            notes: String::new(),
+            group: Some(self.group.clone()),
+            acceptance: Vec::new(),
+            deps: self.deps.clone(),
+            tier: None,
+            cross_refs: Vec::new(),
+            shared: false,
+            reprioritize: None,
+            status_proposal: None,
+            title_proposal: None,
+            obsoleted_reason: None,
+            blocked_by: None,
+            project_id: None,
+            created_at: String::new(),
+            updated_at: String::new(),
+        }
     }
 }
 

@@ -18,7 +18,7 @@ impl PlanSnapshot {
                     id: task.id.clone(),
                     title: task.title.clone(),
                     task_type: task.task_type.clone(),
-                    status: task.status.clone(),
+                    status: task.status,
                     estimate: task.estimate.clone(),
                 })
                 .collect(),

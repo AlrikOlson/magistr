@@ -254,10 +254,7 @@ fn candidates(model: &Model, kind: SearchKind) -> Vec<Candidate> {
                     files,
                     ..
                 } => {
-                    let mut parts: Vec<String> = Vec::new();
-                    if let Some(id) = id {
-                        parts.push(format!("#{id}"));
-                    }
+                    let mut parts: Vec<String> = vec![format!("#{id}")];
                     if !verb.is_empty() {
                         parts.push(verb.clone());
                     }

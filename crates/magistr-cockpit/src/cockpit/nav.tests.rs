@@ -84,19 +84,16 @@ fn esc_climbs_one_altitude_and_holds_at_the_galaxy() {
 /// here. The Session keeps its three.
 #[test]
 fn the_path_at_a_record_is_four_stops_with_the_record_here() {
-    use crate::engine::{EngineEvent, StoreSeed};
+    use crate::engine::EngineEvent;
     let mut w = window();
     update(
         &mut w,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: Some("gui2-2a".to_owned()),
-            done: 1,
-            total: 2,
-            signals_pending: 0,
-            chunks: Vec::new(),
-            signals: Vec::new(),
-            trace: Vec::new(),
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(1, 2),
+            chunks: vec![crate::harness::fixtures::chunk_from(
+                serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
+            )],
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     for (place, label) in [(Place::Trace, "trace"), (Place::Changes, "changes")] {
@@ -134,19 +131,23 @@ fn the_path_at_a_record_is_four_stops_with_the_record_here() {
 /// pressing back to the Sky and `signals` the here stop.
 #[test]
 fn the_signals_path_hangs_off_the_project_never_the_session() {
-    use crate::engine::{EngineEvent, StoreSeed};
+    use crate::engine::EngineEvent;
     let mut w = window();
     update(
         &mut w,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: Some("gui2-2a".to_owned()),
-            done: 1,
-            total: 2,
-            signals_pending: 2,
-            chunks: Vec::new(),
-            signals: Vec::new(),
-            trace: Vec::new(),
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(1, 2),
+            chunks: vec![crate::harness::fixtures::chunk_from(
+                serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
+            )],
+            signals: (0..2)
+                .map(|n| {
+                    crate::harness::fixtures::signal_from(
+                        serde_json::json!({"id": format!("s{n}"), "status": "new"}),
+                    )
+                })
+                .collect(),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     w.place = Place::Signals;
@@ -398,7 +399,7 @@ fn esc_lowers_the_dock_before_folding_a_card_or_climbing() {
 /// had.
 #[test]
 fn the_session_stop_names_when_the_session_started() {
-    use crate::engine::{EngineEvent, StoreSeed};
+    use crate::engine::EngineEvent;
     assert_eq!(window().session_started(), None);
     let mut w = window().with_session_started("09:02");
     assert_eq!(w.session_started(), Some("09:02"));
@@ -419,9 +420,11 @@ fn the_session_stop_names_when_the_session_started() {
     );
     update(
         &mut w,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            chunk: Some("gui2-2a".to_owned()),
-            ..StoreSeed::default()
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            chunks: vec![crate::harness::fixtures::chunk_from(
+                serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
+            )],
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     let path = w.path();

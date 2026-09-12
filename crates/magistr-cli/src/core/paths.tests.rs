@@ -73,37 +73,6 @@ fn rules_dir_construction() {
 }
 
 #[test]
-fn predicates_match_magistr_paths() {
-    assert!(is_plan_file(".magistr/current-plan.md"));
-    assert!(is_task_file(".magistr/current-task.md"));
-    assert!(is_iteration_log(".magistr/iteration-log.md"));
-    assert!(is_config_path(".magistr/project.json"));
-    assert!(is_config_path("/home/user/project/.magistr/project.json"));
-}
-
-#[test]
-fn predicates_match_legacy_jig_paths() {
-    // Backward compat: tracker should still detect old .jig/ paths
-    assert!(is_config_path(".jig/project.json"));
-    assert!(is_config_path("/home/user/project/.jig/project.json"));
-}
-
-#[test]
-fn predicates_match_legacy_claude_paths() {
-    // Backward compat: tracker should still detect old paths
-    assert!(is_plan_file(".claude/current-plan.md"));
-    assert!(is_task_file(".claude/current-task.md"));
-    assert!(is_config_path(".claude/project.json"));
-}
-
-#[test]
-fn predicates_reject_unrelated() {
-    assert!(!is_plan_file("src/main.rs"));
-    assert!(!is_task_file("README.md"));
-    assert!(!is_config_path("src/lib.rs"));
-}
-
-#[test]
 fn loop_state_path() {
     assert_eq!(loop_state("myapp"), PathBuf::from("/tmp/myapp-next-loop"));
 }

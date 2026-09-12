@@ -1,11 +1,10 @@
-use magistr_engine::NativeFrame;
 use serde_json::json;
 
 use super::*;
 use crate::cockpit::{
     Budget, LauncherData, LauncherSession, Msg, Size, StageTab, Surface, WorkbenchEvent, update,
 };
-use crate::engine::{EngineEvent, StoreSeed};
+use crate::engine::EngineEvent;
 use crate::workbench::JournalEntry;
 
 fn chunk(id: &str, status: &str) -> serde_json::Value {
@@ -20,15 +19,10 @@ fn sky(chunks: Vec<serde_json::Value>) -> Model {
         .with_tab(StageTab::Roadmap);
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(StoreSeed {
-            ship_status: serde_json::Value::Null,
-            chunk: Some("gui2-2a".to_owned()),
-            done: 211,
-            total: 306,
-            signals_pending: 0,
-            chunks,
-            signals: Vec::new(),
-            trace: Vec::new(),
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(211, 306),
+            chunks: crate::harness::fixtures::chunks_from(chunks),
+            ..magistr_engine::NativeSnapshot::default()
         })),
     );
     model
@@ -37,11 +31,11 @@ fn sky(chunks: Vec<serde_json::Value>) -> Model {
 fn completed(model: &mut Model, id: &str) {
     update(
         model,
-        Msg::Engine(EngineEvent::Frame(NativeFrame {
-            family: "roadmap".to_owned(),
-            kind: "chunk_completed".to_owned(),
-            payload: json!({ "chunk": chunk(id, "done") }),
-        })),
+        Msg::Engine(EngineEvent::local(crate::harness::fixtures::frame(
+            "roadmap",
+            "chunk_completed",
+            json!({ "chunk": chunk(id, "done") }),
+        ))),
     );
 }
 

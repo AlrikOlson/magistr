@@ -1,6 +1,8 @@
+use magistr_engine::NativeEvent;
 use serde_json::json;
 
 use super::*;
+use crate::harness::fixtures;
 
 fn accept_priority(id: &str) -> EngineCmd {
     EngineCmd::ResolveProposal {
@@ -148,15 +150,11 @@ fn authoritative_frames_reconcile_pending_cards_without_stale_restoration() {
     assert_eq!(dock.len(), 2, "an upsert stays in the original place");
 }
 
-fn frame(kind: &str, chunk: serde_json::Value) -> NativeFrame {
-    NativeFrame {
-        family: "roadmap".to_owned(),
-        kind: kind.to_owned(),
-        payload: json!({ "chunk": chunk }),
-    }
+fn frame(kind: &str, chunk: serde_json::Value) -> NativeEvent {
+    fixtures::frame("roadmap", kind, json!({ "chunk": chunk }))
 }
 
-fn reprioritize(id: &str) -> NativeFrame {
+fn reprioritize(id: &str) -> NativeEvent {
     frame(
         "chunk_changed",
         json!({
@@ -281,13 +279,13 @@ fn permissions_queue_ahead_of_proposals_and_count_separately() {
 }
 
 #[test]
-fn frames_from_other_families_and_kinds_are_ignored() {
+fn events_from_other_families_and_kinds_are_ignored() {
     let mut dock = Dock::default();
-    dock.apply(&NativeFrame {
-        family: "ship".to_owned(),
-        kind: "objective_set".to_owned(),
-        payload: json!({}),
-    });
+    dock.apply(&fixtures::frame(
+        "ship",
+        "objective_set",
+        json!({"objective": {}}),
+    ));
     dock.apply(&frame("chunk_added", json!({ "id": "base" })));
     assert!(dock.is_empty());
 }

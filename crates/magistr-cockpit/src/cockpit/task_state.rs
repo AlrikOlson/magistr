@@ -1,4 +1,6 @@
-//! Where one planned task stands, as `ship_status` and the ship frames name it.
+//! Where one planned task stands, as the ship records and events name it.
+
+use magistr_engine::native::TaskStatus;
 
 use crate::theme::Icons;
 
@@ -19,18 +21,6 @@ pub enum TaskState {
 }
 
 impl TaskState {
-    /// The state named `name`; anything unrecognised reads as `Planned`.
-    #[must_use]
-    pub fn parse(name: &str) -> Self {
-        match name {
-            "active" => Self::Active,
-            "completed" => Self::Completed,
-            "blocked" => Self::Blocked,
-            "skipped" => Self::Skipped,
-            _ => Self::Planned,
-        }
-    }
-
     /// The one-cell mark the rail draws before the task's title, in
     /// `icons`' vocabulary.
     #[must_use]
@@ -41,6 +31,18 @@ impl TaskState {
             Self::Completed => icons.done,
             Self::Blocked => icons.blocked,
             Self::Skipped => icons.skipped,
+        }
+    }
+}
+
+impl From<TaskStatus> for TaskState {
+    fn from(status: TaskStatus) -> Self {
+        match status {
+            TaskStatus::Planned => Self::Planned,
+            TaskStatus::Active => Self::Active,
+            TaskStatus::Completed => Self::Completed,
+            TaskStatus::Blocked => Self::Blocked,
+            TaskStatus::Skipped => Self::Skipped,
         }
     }
 }

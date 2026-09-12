@@ -4,13 +4,14 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use magistr_cockpit::cockpit::ProposalKind;
 use magistr_cockpit::engine::EnginePort;
+use magistr_engine::native::{Chunk, ChunkStatus, Signal, SignalStatus};
 
 /// An [`EnginePort`] made of a script: pins are accepted (or refused
 /// for step numbers past a scripted ceiling) and remembered, a
 /// checkpoint answers a scripted report, and the Roadmap tab's chunk,
 /// proposal and signal actions act on scripted chunk and signal
-/// payloads — the answer is the payload with the act applied, the way
-/// the real engines answer. Clones share the log and the payloads, so a
+/// records — the answer is the record with the act applied, the way
+/// the real engines answer. Clones share the log and the records, so a
 /// test keeps one and boxes the other — the witness that a cockpit
 /// click reached the engine and came back.
 #[derive(Clone, Debug, Default)]
@@ -18,8 +19,8 @@ pub struct FakeEnginePort {
     pins: Arc<Mutex<Vec<(u32, bool)>>>,
     known_to: Option<u32>,
     report: serde_json::Value,
-    chunks: Arc<Mutex<Vec<serde_json::Value>>>,
-    signals: Arc<Mutex<Vec<serde_json::Value>>>,
+    chunks: Arc<Mutex<Vec<Chunk>>>,
+    signals: Arc<Mutex<Vec<Signal>>>,
     acts: Arc<Mutex<Vec<String>>>,
 }
 
@@ -45,18 +46,17 @@ impl FakeEnginePort {
         self
     }
 
-    /// The port knowing `chunk` (a chunk payload with at least an
-    /// `id`); chunk and proposal acts answer with it, updated.
+    /// The port knowing `chunk`; chunk and proposal acts answer with it,
+    /// updated.
     #[must_use]
-    pub fn with_chunk(self, chunk: serde_json::Value) -> Self {
+    pub fn with_chunk(self, chunk: Chunk) -> Self {
         lock(&self.chunks).push(chunk);
         self
     }
 
-    /// The port knowing `signal` (a signal payload with at least an
-    /// `id`); signal acts answer with it, updated.
+    /// The port knowing `signal`; signal acts answer with it, updated.
     #[must_use]
-    pub fn with_signal(self, signal: serde_json::Value) -> Self {
+    pub fn with_signal(self, signal: Signal) -> Self {
         lock(&self.signals).push(signal);
         self
     }
@@ -78,12 +78,12 @@ impl FakeEnginePort {
         &self,
         id: &str,
         act: String,
-        update: impl FnOnce(&mut serde_json::Value),
-    ) -> Result<serde_json::Value, String> {
+        update: impl FnOnce(&mut Chunk),
+    ) -> Result<Chunk, String> {
         let mut chunks = lock(&self.chunks);
         let chunk = chunks
             .iter_mut()
-            .find(|c| c["id"].as_str() == Some(id))
+            .find(|c| c.id == id)
             .ok_or_else(|| format!("no chunk '{id}'"))?;
         update(chunk);
         lock(&self.acts).push(act);
@@ -94,12 +94,12 @@ impl FakeEnginePort {
         &self,
         id: &str,
         act: String,
-        update: impl FnOnce(&mut serde_json::Value),
-    ) -> Result<serde_json::Value, String> {
+        update: impl FnOnce(&mut Signal),
+    ) -> Result<Signal, String> {
         let mut signals = lock(&self.signals);
         let signal = signals
             .iter_mut()
-            .find(|s| s["id"].as_str() == Some(id))
+            .find(|s| s.id == id)
             .ok_or_else(|| format!("no signal '{id}'"))?;
         update(signal);
         lock(&self.acts).push(act);
@@ -122,15 +122,15 @@ impl EnginePort for FakeEnginePort {
         Ok(self.report.clone())
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn start_chunk(&mut self, id: &str) -> Result<Chunk, String> {
         self.update_chunk(id, format!("start {id}"), |chunk| {
-            chunk["status"] = "in_progress".into();
+            chunk.status = ChunkStatus::InProgress;
         })
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn complete_chunk(&mut self, id: &str) -> Result<Chunk, String> {
         self.update_chunk(id, format!("complete {id}"), |chunk| {
-            chunk["status"] = "done".into();
+            chunk.status = ChunkStatus::Done;
         })
     }
 
@@ -139,47 +139,58 @@ impl EnginePort for FakeEnginePort {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<serde_json::Value, String> {
+    ) -> Result<Chunk, String> {
         let verb = if accept { "accept" } else { "reject" };
-        self.update_chunk(id, format!("{verb} {} on {id}", kind.label()), |chunk| {
-            let suggestion = chunk[kind.payload_key()][kind.suggestion_key()].clone();
-            if accept && !suggestion.is_null() {
-                let field = match kind {
-                    ProposalKind::Reprioritize => "priority",
-                    ProposalKind::Status => "status",
-                    ProposalKind::Title => "title",
-                };
-                chunk[field] = suggestion;
-            }
-            if let Some(object) = chunk.as_object_mut() {
-                object.remove(kind.payload_key());
-            }
-        })
+        self.update_chunk(
+            id,
+            format!("{verb} {} on {id}", kind.label()),
+            |chunk| match kind {
+                ProposalKind::Reprioritize => {
+                    if let Some(proposal) = chunk.reprioritize.take()
+                        && accept
+                    {
+                        chunk.priority = proposal.suggested_priority;
+                    }
+                }
+                ProposalKind::Status => {
+                    if let Some(proposal) = chunk.status_proposal.take()
+                        && accept
+                    {
+                        chunk.status = proposal.suggested_status;
+                    }
+                }
+                ProposalKind::Title => {
+                    if let Some(proposal) = chunk.title_proposal.take()
+                        && accept
+                    {
+                        chunk.title = proposal.suggested_title;
+                    }
+                }
+            },
+        )
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn clear_blocker(&mut self, id: &str) -> Result<Chunk, String> {
         self.update_chunk(id, format!("clear the blocker on {id}"), |chunk| {
-            if let Some(object) = chunk.as_object_mut() {
-                object.remove("blocked_by");
-            }
+            chunk.blocked_by = None;
         })
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn promote_signal(&mut self, id: &str) -> Result<Signal, String> {
         self.update_signal(id, format!("promote {id}"), |signal| {
-            signal["status"] = "promoted".into();
+            signal.status = SignalStatus::Promoted;
         })
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<serde_json::Value, String> {
+    fn ignore_signal(&mut self, id: &str) -> Result<Signal, String> {
         self.update_signal(id, format!("ignore {id}"), |signal| {
-            signal["status"] = "dismissed".into();
+            signal.status = SignalStatus::Dismissed;
         })
     }
 
-    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<serde_json::Value, String> {
+    fn snooze_signal(&mut self, id: &str, minutes: u32) -> Result<Signal, String> {
         self.update_signal(id, format!("snooze {id} for {minutes}m"), |signal| {
-            signal["snooze_until"] = "soon".into();
+            signal.snooze_until = Some("soon".to_owned());
         })
     }
 }

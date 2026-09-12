@@ -1,18 +1,18 @@
 use serde_json::json;
 
 use super::*;
+use crate::harness::fixtures;
 
 #[test]
-fn a_payload_parses_and_takes_the_best_confidence() {
-    let signal = SignalRow::from_payload(&json!({
+fn a_record_reads_and_takes_the_best_confidence() {
+    let signal = SignalRow::from_signal(&fixtures::signal_from(json!({
         "id": "s1",
         "kind": "bug",
         "from": "bob",
         "body": "it crashes",
         "status": "researched",
         "enrichment": [{"confidence": 0.3}, {"confidence": 0.9}, {"confidence": 0.5}],
-    }))
-    .expect("id present");
+    })));
     assert_eq!(signal.kind, "bug");
     assert_eq!(signal.confidence, Some(0.9));
     assert!(signal.is_open());
@@ -21,8 +21,7 @@ fn a_payload_parses_and_takes_the_best_confidence() {
 #[test]
 fn terminal_statuses_leave_the_inbox() {
     let at = |status: &str| {
-        SignalRow::from_payload(&json!({"id": "s", "status": status}))
-            .expect("id")
+        SignalRow::from_signal(&fixtures::signal_from(json!({"id": "s", "status": status})))
             .is_open()
     };
     assert!(at("new") && at("researched") && at("surfaced"));
@@ -30,21 +29,20 @@ fn terminal_statuses_leave_the_inbox() {
 }
 
 #[test]
-fn no_enrichment_means_no_confidence_and_no_id_means_no_row() {
-    let signal = SignalRow::from_payload(&json!({"id": "s"})).expect("id present");
+fn no_enrichment_means_no_confidence() {
+    let signal = SignalRow::from_signal(&fixtures::signal_from(json!({"id": "s"})));
     assert_eq!(signal.confidence, None);
     assert_eq!(signal.findings, None);
     assert_eq!(signal.promoted_to, None);
     assert_eq!(signal.created_secs, None);
-    assert!(SignalRow::from_payload(&json!({"body": "x"})).is_none());
 }
 
 /// The Signals view's words come off the wire: the structured summary
 /// titles the card (the body when there is none), the newest enrichment
 /// with words is the findings, the `chunk:` cross-ref is the star.
 #[test]
-fn the_title_the_findings_and_the_star_are_read_off_the_payload() {
-    let signal = SignalRow::from_payload(&json!({
+fn the_title_the_findings_and_the_star_are_read_off_the_record() {
+    let signal = SignalRow::from_signal(&fixtures::signal_from(json!({
         "id": "s2",
         "body": "Affects all native windows.",
         "content": {"version": 1, "summary": "Retina window renders text at half size"},
@@ -55,8 +53,7 @@ fn the_title_the_findings_and_the_star_are_read_off_the_payload() {
             {"summary": "   ", "confidence": 0.1},
         ],
         "cross_refs": ["think:12", "chunk:e10c-session-migration", "chunk:other"],
-    }))
-    .expect("id present");
+    })));
     assert_eq!(signal.title(), "Retina window renders text at half size");
     assert_eq!(
         signal.findings.as_deref(),
@@ -68,7 +65,9 @@ fn the_title_the_findings_and_the_star_are_read_off_the_payload() {
         Some("e10c-session-migration"),
         "the first chunk ref"
     );
-    let bare = SignalRow::from_payload(&json!({"id": "s3", "body": "just words"})).expect("id");
+    let bare = SignalRow::from_signal(&fixtures::signal_from(
+        json!({"id": "s3", "body": "just words"}),
+    ));
     assert_eq!(bare.title(), "just words", "no summary: the body titles");
 }
 
@@ -76,10 +75,9 @@ fn the_title_the_findings_and_the_star_are_read_off_the_payload() {
 /// clock the caller passes — never a clock of its own.
 #[test]
 fn the_age_is_the_coarsest_unit_against_the_given_now() {
-    let signal = SignalRow::from_payload(&json!({
+    let signal = SignalRow::from_signal(&fixtures::signal_from(json!({
         "id": "s", "created": "2026-08-30T12:00:00Z",
-    }))
-    .expect("id");
+    })));
     let created = signal.created_secs.expect("RFC 3339 parses");
     assert_eq!(created, 1_788_091_200, "2026-08-30T12:00:00Z");
     assert_eq!(
@@ -99,15 +97,16 @@ fn the_age_is_the_coarsest_unit_against_the_given_now() {
         Some("0 s"),
         "no negative age"
     );
-    let offset =
-        SignalRow::from_payload(&json!({"id": "o", "created": "2026-08-30T14:00:00+02:00"}))
-            .expect("id");
+    let offset = SignalRow::from_signal(&fixtures::signal_from(
+        json!({"id": "o", "created": "2026-08-30T14:00:00+02:00"}),
+    ));
     assert_eq!(
         offset.created_secs,
         Some(created),
         "an offset stamp is the same instant"
     );
-    let unstamped =
-        SignalRow::from_payload(&json!({"id": "u", "created": "yesterday"})).expect("id");
+    let unstamped = SignalRow::from_signal(&fixtures::signal_from(
+        json!({"id": "u", "created": "yesterday"}),
+    ));
     assert_eq!(unstamped.age_text(created), None);
 }

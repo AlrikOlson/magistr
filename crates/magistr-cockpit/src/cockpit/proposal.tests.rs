@@ -46,8 +46,8 @@ fn reorder_and_rename_pin_and_the_wire_follows_the_list() {
     assert!(p.rename(1, "tide engine"));
     assert_eq!(p.chunks[1].name, "tide engine");
     assert_eq!(p.pinned().len(), 2);
-    let wire = p.wire();
-    assert_eq!(wire[0]["id"], "single-binary-install");
-    assert_eq!(wire[1]["name"], "tide engine");
+    let records = p.records();
+    assert_eq!(records[0].id, "single-binary-install");
+    assert_eq!(records[1].name, "tide engine");
     assert_eq!(p.workstreams(), vec!["ops", "core", "api"]);
 }

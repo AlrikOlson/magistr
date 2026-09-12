@@ -249,10 +249,6 @@ pub(crate) fn notification_to_agent_message(notification: &Notification) -> Opti
             subtype: "roadmap".to_owned(),
             data: serde_json::to_value(&roadmap_event).ok()?,
         }),
-        magistr_engine::EngineEvent::Native(frame) => Some(AgentMessage::System {
-            subtype: format!("native.{}", frame.family),
-            data: serde_json::to_value(&frame).ok()?,
-        }),
     }
 }
 

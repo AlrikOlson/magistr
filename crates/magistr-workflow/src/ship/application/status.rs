@@ -114,7 +114,7 @@ impl From<&Task> for TaskSummary {
             id: task.id.clone(),
             title: task.title.clone(),
             task_type: task.task_type.clone(),
-            status: task.status.clone(),
+            status: task.status,
             estimate: task.estimate.clone(),
             actions_count: task.actions.len(),
             checks_count: task.checks.len(),

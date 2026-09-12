@@ -1,32 +1,6 @@
 use super::*;
 
 #[test]
-fn every_status_round_trips_through_its_payload() {
-    let socket = Path::new("/tmp/magistr-x.sock");
-    for status in [
-        FeedStatus::Waiting,
-        FeedStatus::Connected { reconnect: false },
-        FeedStatus::Connected { reconnect: true },
-        FeedStatus::Disconnected,
-    ] {
-        let payload = status.to_payload(socket);
-        assert_eq!(payload["socket"], "/tmp/magistr-x.sock", "{payload}");
-        assert_eq!(FeedStatus::from_value(&payload), Some(status), "{payload}");
-    }
-}
-
-#[test]
-fn payload_shape_is_tagged_by_status() {
-    let payload = FeedStatus::Connected { reconnect: true }.to_payload(Path::new("/s"));
-    assert_eq!(payload["status"], "connected");
-    assert_eq!(payload["reconnect"], true);
-    assert_eq!(
-        FeedStatus::Waiting.to_payload(Path::new("/s"))["status"],
-        "waiting"
-    );
-}
-
-#[test]
 fn only_connected_counts_as_available() {
     assert!(FeedStatus::Connected { reconnect: false }.is_connected());
     assert!(!FeedStatus::Connected { reconnect: true }.is_unavailable());
@@ -35,10 +9,12 @@ fn only_connected_counts_as_available() {
 }
 
 #[test]
-fn junk_is_not_a_status() {
+fn the_status_is_tagged_on_the_wire() {
+    let connected = serde_json::to_value(FeedStatus::Connected { reconnect: true }).unwrap();
+    assert_eq!(connected["status"], "connected");
+    assert_eq!(connected["reconnect"], true);
     assert_eq!(
-        FeedStatus::from_value(&serde_json::json!({"family": "ship"})),
-        None
+        serde_json::to_value(FeedStatus::Waiting).unwrap()["status"],
+        "waiting"
     );
-    assert_eq!(FeedStatus::from_value(&Value::Null), None);
 }

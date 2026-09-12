@@ -17,6 +17,11 @@ use crate::widget_id::WidgetId;
 /// resolves a mouse position to the widget under it; `Resize`,
 /// `FrameDue` and `Tick` come from the runtime itself; `Agent`, `Engine` and `Job`
 /// arrive through the runtime's inbox from their producers.
+// `Engine` carries a typed store event, which carries a whole record (see
+// `NativeEvent`): one message is taken from the inbox and folded at once,
+// never kept in bulk, so boxing it would buy an allocation per frame and
+// no memory.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Msg {
     /// A key report.

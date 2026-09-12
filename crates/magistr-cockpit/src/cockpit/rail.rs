@@ -1,6 +1,7 @@
 //! Where you are and what the plan is — the left rail's state.
 
-use magistr_engine::NativeFrame;
+use magistr_engine::native::{ChunkStatus, SignalStatus};
+use magistr_engine::{NativeEvent, NativeSnapshot, RoadmapFrame, SignalFrame};
 
 use super::budget::Budget;
 use super::charter_offer::CharterOffer;
@@ -8,7 +9,6 @@ use super::charter_rule::CharterRule;
 use super::session_agent::SessionAgent;
 use super::ship_view::ShipView;
 use super::spine::Spine;
-use crate::engine::StoreSeed;
 
 /// Columns the rail takes when expanded, until the user drags it.
 const DEFAULT_WIDTH: u16 = 28;
@@ -23,8 +23,8 @@ const DIVIDER_COLS: u16 = 1;
 
 /// The left rail: the ship objective and plan, the roadmap's position
 /// ("you are here" plus done/total) and the pending signals count —
-/// seeded from the store at start ([`Rail::seed`]) and folded from the
-/// engines' broadcast frames after ([`Rail::apply`]) — plus its own
+/// seeded from the store's snapshot at start ([`Rail::seed`]) and folded
+/// from the engines' typed events after ([`Rail::apply`]) — plus its own
 /// geometry: collapsed or not, and the width the user dragged it to —
 /// plus the session's checkpoint [`Spine`], the ledger of states it can
 /// be taken back to.
@@ -91,57 +91,78 @@ impl Default for Rail {
 
 impl Rail {
     /// Take the store's state as the rail's: what was recorded before
-    /// the feed connected. Geometry stays.
-    pub fn seed(&mut self, seed: &StoreSeed) {
-        self.ship = ShipView::from_status(&seed.ship_status);
-        self.chunk.clone_from(&seed.chunk);
-        self.done = seed.done;
-        self.total = seed.total;
-        self.signals_pending = seed.signals_pending;
+    /// the feed connected, or what a re-read found. Geometry stays.
+    pub fn seed(&mut self, snapshot: &NativeSnapshot) {
+        self.ship = ShipView::from_ship(snapshot.objective.as_ref(), &snapshot.tasks);
+        self.chunk = snapshot
+            .chunks
+            .iter()
+            .find(|chunk| chunk.status == ChunkStatus::InProgress)
+            .map(|chunk| chunk.id.clone());
+        self.done = snapshot.progress.checked_tasks;
+        self.total = snapshot.progress.total_tasks;
+        self.signals_pending = u32::try_from(
+            snapshot
+                .signals
+                .iter()
+                .filter(|signal| {
+                    !matches!(
+                        signal.status,
+                        SignalStatus::Promoted | SignalStatus::Dismissed
+                    )
+                })
+                .count(),
+        )
+        .unwrap_or(u32::MAX);
     }
 
-    /// Fold one broadcast frame in.
+    /// Fold one typed event in.
     ///
-    /// Ship frames go to the plan; a roadmap chunk turning `in_progress`
+    /// Ship events go to the plan; a roadmap chunk turning `in_progress`
     /// becomes "you are here" and a completion advances done/total; a
     /// signal captured counts as pending until a change promotes it or a
     /// dismissal ends it.
-    pub fn apply(&mut self, frame: &NativeFrame) {
-        match frame.family.as_str() {
-            "ship" => self.ship.apply(&frame.kind, &frame.payload),
-            "roadmap" => self.apply_roadmap(&frame.kind, &frame.payload),
-            "signal" => self.apply_signal(&frame.kind, &frame.payload),
-            _ => {}
+    pub fn apply(&mut self, event: &NativeEvent) {
+        match event {
+            NativeEvent::Ship(frame) => self.ship.apply(frame),
+            NativeEvent::Roadmap(frame) => self.apply_roadmap(frame),
+            NativeEvent::Signal(frame) => self.apply_signal(frame),
+            NativeEvent::Think(_) | NativeEvent::Magistr(_) => {}
         }
     }
 
-    fn apply_roadmap(&mut self, kind: &str, payload: &serde_json::Value) {
-        let id = payload["chunk"]["id"].as_str();
-        match kind {
-            "chunk_changed" => match payload["chunk"]["status"].as_str() {
-                Some("in_progress") => self.chunk = id.map(str::to_owned),
-                Some(_) if self.chunk.as_deref() == id => self.chunk = None,
-                _ => {}
-            },
-            "chunk_completed" => {
-                self.done = self.done.saturating_add(1).min(self.total);
-                if self.chunk.as_deref() == id {
+    fn apply_roadmap(&mut self, frame: &RoadmapFrame) {
+        match frame {
+            RoadmapFrame::ChunkChanged { chunk } => {
+                if chunk.status == ChunkStatus::InProgress {
+                    self.chunk = Some(chunk.id.clone());
+                } else if self.chunk.as_deref() == Some(chunk.id.as_str()) {
                     self.chunk = None;
                 }
             }
-            "chunk_added" => self.total = self.total.saturating_add(1),
-            _ => {}
+            RoadmapFrame::ChunkCompleted { chunk } => {
+                self.done = self.done.saturating_add(1).min(self.total);
+                if self.chunk.as_deref() == Some(chunk.id.as_str()) {
+                    self.chunk = None;
+                }
+            }
+            RoadmapFrame::ChunkAdded { .. } => self.total = self.total.saturating_add(1),
+            RoadmapFrame::ChunkObsoleted { .. } | RoadmapFrame::RefreshRecorded { .. } => {}
         }
     }
 
-    fn apply_signal(&mut self, kind: &str, payload: &serde_json::Value) {
-        match kind {
-            "signal_captured" => self.signals_pending = self.signals_pending.saturating_add(1),
-            "signal_changed" if payload["signal"]["status"].as_str() == Some("promoted") => {
+    fn apply_signal(&mut self, frame: &SignalFrame) {
+        match frame {
+            SignalFrame::SignalCaptured { .. } => {
+                self.signals_pending = self.signals_pending.saturating_add(1);
+            }
+            SignalFrame::SignalChanged { signal } if signal.status == SignalStatus::Promoted => {
                 self.signals_pending = self.signals_pending.saturating_sub(1);
             }
-            "signal_dismissed" => self.signals_pending = self.signals_pending.saturating_sub(1),
-            _ => {}
+            SignalFrame::SignalDismissed { .. } => {
+                self.signals_pending = self.signals_pending.saturating_sub(1);
+            }
+            SignalFrame::SignalChanged { .. } => {}
         }
     }
 

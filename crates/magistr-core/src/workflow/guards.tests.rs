@@ -389,7 +389,6 @@ fn guards_config_roundtrip() {
         spec: false,
         clean_tree: true,
         quality_gate: true,
-        research: true,
     };
     let json = serde_json::to_string(&config).unwrap();
     let parsed: GuardsConfig = serde_json::from_str(&json).unwrap();
@@ -402,7 +401,7 @@ fn guards_config_roundtrip() {
 fn runner_from_config_all_enabled() {
     let config = GuardsConfig::default();
     let runner = GuardRunner::from_config(&config);
-    assert_eq!(runner.len(), 5);
+    assert_eq!(runner.len(), 4);
     assert!(!runner.is_empty());
 }
 
@@ -413,7 +412,6 @@ fn runner_from_config_none_enabled() {
         spec: false,
         clean_tree: false,
         quality_gate: false,
-        research: false,
     };
     let runner = GuardRunner::from_config(&config);
     assert_eq!(runner.len(), 0);
@@ -427,7 +425,6 @@ fn runner_from_config_partial() {
         spec: false,
         clean_tree: true,
         quality_gate: false,
-        research: false,
     };
     let runner = GuardRunner::from_config(&config);
     assert_eq!(runner.len(), 2);
@@ -461,7 +458,6 @@ fn runner_disabled_guards_are_skipped() {
         spec: false,
         clean_tree: false,
         quality_gate: false,
-        research: false,
     };
     let runner = GuardRunner::from_config(&config);
     let results = runner.run_pre_session(&ctx);

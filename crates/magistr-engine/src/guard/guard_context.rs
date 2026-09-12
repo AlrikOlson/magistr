@@ -4,7 +4,7 @@ use super::ship_guard_state::ShipGuardState;
 ///
 /// Uses `String` paths (not `PathBuf`) because the engine layer is IO-free.
 /// Infrastructure adapters convert `PathBuf` to `String` at the boundary,
-/// and read the ship engine's status into [`ShipGuardState`] before handing
+/// and read the ship engine's records into [`ShipGuardState`] before handing
 /// it here — the guards never open a store or a plan file themselves.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GuardContext {

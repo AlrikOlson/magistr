@@ -15,12 +15,6 @@ pub struct GuardsConfig {
     /// Enable the quality gate guard (default: true).
     #[serde(default = "default_true")]
     pub quality_gate: bool,
-    /// Enable the research guard (default: true).
-    ///
-    /// When enabled, blocks Research→Plan phase transition until at least one
-    /// research tool call (web_search, firecrawl, web_fetch) has been observed.
-    #[serde(default = "default_true")]
-    pub research: bool,
 }
 
 fn default_true() -> bool {
@@ -34,7 +28,6 @@ impl Default for GuardsConfig {
             spec: true,
             clean_tree: true,
             quality_gate: true,
-            research: true,
         }
     }
 }

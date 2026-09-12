@@ -1,5 +1,5 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen(&m)
 ---
 ▲ magistr  ▘ streaming                                                                                             00:01
@@ -7,7 +7,7 @@ Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
 │no objective yet          │ │▎ Running the gates.                                                                     │
-│roadmap 0/0 done          │ │  ▸ task started · run the gates                                                         │
+│roadmap 0/0 done          │ │  ▸ task started · verify                                                                │
 │signals 0                 │ │  ✦ think 7 · verify the slice                                                           │
 │                          │ │▎ ✓ gate   cargo check · exit 0 · 812ms                                                  │
 │                          │ │▎ ✗ gate   cargo nextest run · exit 100 · 12.3s                                          │

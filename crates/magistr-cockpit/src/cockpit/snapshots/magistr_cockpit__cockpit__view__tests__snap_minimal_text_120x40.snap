@@ -1,5 +1,5 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: "screen(&minimal_text(Size::new(120, 40)))"
 ---
 ▲ magistr  ▘ streaming                                                                                             00:01
@@ -9,7 +9,7 @@ Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough on
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
 │ship the plain-text       │ │▎ Let me run the tests.                                                                  │
 │cockpit                   │ │▎ ○ run    cargo nextest run -p magistr-tui                                              │
-│· wire the banner         │ │  ▸ objective set · ship the plain-text cockpit                                          │
+│▸ wire the banner         │ │  ▸ objective set · ship the plain-text cockpit                                          │
 │· snapshot both sizes     │ │  ▸ task started · wire the banner                                                       │
 │roadmap 0/0 done          │ │                                                                                         │
 │signals 0                 │ │                                                                                         │
