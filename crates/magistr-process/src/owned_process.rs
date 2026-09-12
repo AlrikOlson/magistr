@@ -6,7 +6,9 @@ use tokio::io::AsyncReadExt;
 use tokio::process::{Child, ChildStderr, ChildStdout, Command};
 use tokio_util::sync::CancellationToken;
 
-use crate::{BoundedCapture, Launch, OutputMode, ProcessOutcome, ProcessSpec, Termination};
+#[cfg(unix)]
+use crate::OutputMode;
+use crate::{BoundedCapture, Launch, ProcessOutcome, ProcessSpec, Termination};
 
 /// How long, once the group is dead or exited, the pipes get to close
 /// before what is left in them is abandoned.

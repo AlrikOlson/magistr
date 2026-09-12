@@ -4,7 +4,9 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use super::{AttachRefusal, WriterRole};
+#[cfg(unix)]
+use super::AttachRefusal;
+use super::WriterRole;
 
 /// Workflow ownership follows project/store identity and role; workspace
 /// ownership follows a canonical directory, so linked worktrees never share
@@ -22,6 +24,7 @@ pub enum OwnerIdentity {
 }
 
 impl OwnerIdentity {
+    #[cfg(unix)]
     pub(crate) fn admit(&self, offered: &Self) -> Result<(), AttachRefusal> {
         match (self, offered) {
             (

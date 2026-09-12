@@ -5,6 +5,7 @@ struct Authorizer {
     requests: Mutex<Vec<EffectRequest>>,
     deny: bool,
     cancelled: AtomicBool,
+    #[cfg(unix)]
     swap: Option<(PathBuf, PathBuf)>,
 }
 
@@ -14,6 +15,7 @@ impl Authorizer {
             requests: Mutex::new(Vec::new()),
             deny: false,
             cancelled: AtomicBool::new(false),
+            #[cfg(unix)]
             swap: None,
         })
     }
@@ -377,9 +379,12 @@ async fn an_authorized_write_is_routed_through_the_source_writer_after_the_decis
     );
     // The writer, not the port, owns the bytes: nothing was written directly.
     assert!(!path.exists());
-    let expected = std::fs::canonicalize(dir.path())
+    // Resolved the way the port resolves it: `canonicalize` would add the
+    // verbatim prefix on Windows, which the port never produces.
+    let expected = resolve_target(dir.path(), dir.path())
         .unwrap()
-        .join("src/new.txt");
+        .join("src")
+        .join("new.txt");
     assert_eq!(
         writer.writes.lock().unwrap().as_slice(),
         &[(expected.display().to_string(), "new".to_owned())]

@@ -17,8 +17,12 @@ use magistr_acp::AcpTransport;
 use magistr_cockpit::agent::{AgentEvent, PermissionKind, SessionOptions, spawn_session};
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::cockpit::{Cmd, Msg};
+#[cfg(unix)]
 use magistr_engine::policy::{Charter, PolicyCondition, PolicyEffect, PolicyEngine, PolicyRule};
 
+// The process actions are driven only by the Unix terminal tests; the
+// dispatch in `run` stays whole so the enum reads the same everywhere.
+#[cfg_attr(not(unix), allow(dead_code))]
 #[derive(Clone)]
 enum Action {
     ExplicitWrite(PathBuf),
