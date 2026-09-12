@@ -32,6 +32,21 @@ see the [project authority guide](architecture/project-authority.md#one-write-pa
 Use `just gate` from the workspace root, or `$validate` in an agent session, to
 run all required checks.
 
+## Declared workspace commands
+
+Workbench `run` executes the admitted argument vector without a shell. Declared
+lines split on whitespace; extra request arguments retain their literal boundaries.
+The admission guard supports option-free wrapper chains (`env`, `nice`, `time`,
+`xargs`, `npx`, `bunx`) and `NAME=value` prefixes after `env`, for example
+`env RUST_BACKTRACE=1 nice cargo test`. Names use shell identifier syntax
+(letters, digits and underscores, with no leading digit). Each chain must name
+a final program.
+Wrapper options and separators, including `env -u NAME`, `nice -n N`, `env -S`
+and wrapper-level `--`, are refused with `RUN_REDIRECTED`; their operands are
+never guessed to be program names. Options after the final program remain normal
+arguments, as in `cargo test -- --nocapture`. Shells, file-munging programs and
+standalone shell operators remain refused. This guard is not a process sandbox.
+
 ## Tests
 
 Rust unit tests usually live beside their implementation as `{name}.tests.rs`.

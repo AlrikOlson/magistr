@@ -240,6 +240,72 @@ async fn munging_shells_and_operators_are_redirected_before_any_execution() {
 }
 
 #[tokio::test]
+async fn wrapped_operand_bypasses_never_reach_the_executor() {
+    let executor = Scripted::new(exited(0, "", ""));
+    for line in [
+        "env -u NAME sh -c pwd",
+        "nice -n 10 cat Cargo.toml",
+        "env NAME=value nice -n 10 sh -c pwd",
+    ] {
+        let response = run_with(&[("test", line)], &executor, RunInput::new("test")).await;
+        assert_eq!(failure(&response).kind, ErrorKind::RunRedirected);
+    }
+    assert!(executor.calls().is_empty());
+}
+
+#[tokio::test]
+async fn a_wrapped_command_delivers_exactly_the_admitted_argv() {
+    let executor = Scripted::new(exited(0, "", ""));
+    let line = "env NAME=value nice cargo test";
+    let input = RunInput::new("test").with_args(["--", "has spaces", "$(literal)", "cat"]);
+    let (_dir, policy) = workspace(&[("test", line)]);
+    let admitted = policy
+        .admit_command(&input.command, &input.args)
+        .expect("admitted");
+    let response = WorkspaceRun::new(&policy, &executor)
+        .run(&input, CancellationToken::new())
+        .await;
+    assert_eq!(row(&response).command(), "test");
+    assert_eq!(executor.calls()[0].0, admitted);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn an_admitted_wrapped_process_preserves_literal_arguments() {
+    let (dir, policy) = workspace(&[("print", "env MAGISTR_ARGV_TEST=1 /usr/bin/printf")]);
+    let executor = super::super::ProcessExecutor::new(dir.path());
+    let input = RunInput::new("print").with_args([
+        "%s\\n",
+        "has spaces",
+        "$(touch must-not-exist)",
+        "*",
+        "$MAGISTR_ARGV_TEST",
+    ]);
+    let response = WorkspaceRun::new(&policy, &executor)
+        .run(&input, CancellationToken::new())
+        .await;
+    let RunRow::Output {
+        exit_code,
+        stdout_head,
+        ..
+    } = row(&response)
+    else {
+        panic!("expected literal process output");
+    };
+    assert_eq!(*exit_code, Some(0));
+    assert_eq!(
+        stdout_head,
+        &[
+            "has spaces",
+            "$(touch must-not-exist)",
+            "*",
+            "$MAGISTR_ARGV_TEST"
+        ]
+    );
+    assert!(!dir.path().join("must-not-exist").exists());
+}
+
+#[tokio::test]
 async fn a_missing_program_is_a_typed_failure_not_an_output_row() {
     let executor = Scripted::failing(WorkspaceError::new(
         ErrorKind::FileNotFound,
