@@ -72,6 +72,6 @@ pub(crate) fn gate_job(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "gate_job.tests.rs"]
 mod tests;

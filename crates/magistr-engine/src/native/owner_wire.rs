@@ -10,11 +10,13 @@
 use serde::{Deserialize, Serialize};
 
 use super::attach_kind::AttachKind;
+#[cfg(unix)]
 use super::attach_refusal::AttachRefusal;
 use super::caller_identity::CallerIdentity;
 use super::owner_command::OwnerCommand;
 use super::owner_generation::OwnerGeneration;
 use super::owner_identity::OwnerIdentity;
+#[cfg(unix)]
 use super::owner_reply::OwnerReply;
 
 /// The protocol this binary speaks. Exact match only — during development
@@ -41,6 +43,7 @@ pub(crate) struct Hello {
 /// The owner's answer to a [`Hello`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "greeting", rename_all = "snake_case")]
+#[cfg(unix)]
 pub(crate) enum Greeting {
     Welcome {
         generation: OwnerGeneration,
@@ -71,6 +74,7 @@ pub(crate) enum CommandRefusal {
 
 /// The owner's answer to one command.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(unix)]
 pub(crate) struct ReplyFrame {
     pub(crate) id: u64,
     pub(crate) outcome: Result<OwnerReply, CommandRefusal>,

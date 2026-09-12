@@ -250,6 +250,7 @@ fn reader_done(mgr: &TerminalManager, tid: &str) {
 
 /// Whether the child is gone — reaping it and recording the status when
 /// it just exited. An unknown terminal counts as gone.
+#[cfg(unix)]
 fn child_exited(mgr: &TerminalManager, tid: &str) -> bool {
     let mut map = lock(mgr);
     let Some(state) = map.get_mut(tid) else {

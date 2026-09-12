@@ -194,9 +194,9 @@ fn another_workspace_never_substitutes_even_with_identical_bytes() {
             .expect("own root")
             .is_unchanged()
     );
-    let alias = tempfile::tempdir().expect("alias parent");
     #[cfg(unix)]
     {
+        let alias = tempfile::tempdir().expect("alias parent");
         let link = alias.path().join("alias");
         std::os::unix::fs::symlink(first.path(), &link).expect("alias");
         assert!(

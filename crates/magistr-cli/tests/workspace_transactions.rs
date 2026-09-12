@@ -1,6 +1,8 @@
 //! Native transaction acceptance through the real parser child and formatters.
 use std::{fs, path::PathBuf};
 
+#[cfg(unix)]
+use magistr_workspace::transaction::FileDisposition;
 use magistr_workspace::{
     config::ResolveOptions,
     confirmation::ConfirmationSeal,
@@ -10,8 +12,8 @@ use magistr_workspace::{
         JournalDb, JournalDbOptions, JournalReader, JournalWriteOutcome, UndoCandidateQuery,
     },
     transaction::{
-        ExpectedState, FileDisposition, FormatMode, FormatterOptions, TransactionChange,
-        TransactionError, TransactionRequest, TransactionStatus, WorkspaceTransactions,
+        ExpectedState, FormatMode, FormatterOptions, TransactionChange, TransactionError,
+        TransactionRequest, TransactionStatus, WorkspaceTransactions,
     },
     worker::{WorkerOptions, WorkerSupervisor},
     workspace_policy::WorkspacePolicy,

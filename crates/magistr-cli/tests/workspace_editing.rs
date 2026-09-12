@@ -10,6 +10,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(unix)]
+use magistr_workspace::journal::JournalWriteOutcome;
 use magistr_workspace::{
     commands::{
         EditInput, EditOp, FilesInput, FilesOp, UndoInput, UndoRow, UndoScope, WorkspaceCommands,
@@ -21,7 +23,7 @@ use magistr_workspace::{
     file_content::FileContent,
     index::{IndexOptions, WorkspaceIndex, watch::WatchMode},
     jail::WorkspaceKeyStore,
-    journal::{JournalDb, JournalDbOptions, JournalWriteOutcome, UndoCandidateQuery},
+    journal::{JournalDb, JournalDbOptions, UndoCandidateQuery},
     transaction::FormatterOptions,
     undo::UndoConflictPolicy,
     worker::{WorkerOptions, WorkerSupervisor},
