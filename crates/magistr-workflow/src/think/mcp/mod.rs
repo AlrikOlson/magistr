@@ -16,6 +16,7 @@
 pub mod args;
 pub mod handlers;
 pub mod instructions;
+mod record_input;
 pub mod service;
 
 pub use service::ThinkService;

@@ -73,7 +73,7 @@ async fn native_domain_refusals_keep_their_existing_tool_error_shapes() {
         .think_step_impact(Parameters(ImpactArgs { step_number: 1 }))
         .await
         .expect("missing step is a tool result");
-    assert_ne!(missing.is_error, Some(true));
+    assert_eq!(missing.is_error, Some(true));
     assert_eq!(
         missing.structured_content.unwrap()["error_kind"],
         "step_not_found"

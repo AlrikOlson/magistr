@@ -51,6 +51,7 @@ pub(crate) async fn call(
     // The one door to the wire: the sealed envelope is both representations.
     let mut result =
         CallToolResult::success(vec![ContentBlock::text(answer.sealed.json().to_owned())]);
+    result.is_error = Some(answer.sealed.structured()["ok"] == false);
     result.structured_content = Some(answer.sealed.structured().clone());
     Ok(result)
 }
