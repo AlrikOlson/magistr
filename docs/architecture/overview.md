@@ -12,7 +12,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, and native think-and-ship integration |
-| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, generation-fenced single-owner admission with explicit sessions, and Unix client attachment through the shared owner endpoint; lifecycle acceptance and production cutover remain pending |
+| `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, generation-fenced single-owner admission with explicit sessions, Unix client attachment through the shared owner endpoint, and the explicit legacy lock migration; the bridge, launcher and worker lifetime live in `magistr-cli` |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
@@ -36,9 +36,10 @@ effect and reconcile interrupted attempts against their authorities on recovery.
 
 The CLI's MCP service embeds the repository-local
 [think-and-ship source](../../subsystems/workflow/PROVENANCE.md). Its roadmap,
-reasoning, execution, and signal tools share native project state. The current
-Workbench connection remains a separate workspace service for navigation and
-edits while its native replacement is developed. The
+reasoning, execution, and signal tools share native project state. The
+workspace tools are served by the same binary's native workspace bridge
+(`magistr mcp-launch workbench-mcp`), every client of a workspace reaching its
+one admitted owner. The
 [project authority](project-authority.md)
 controls cooperating MCP owners; a second process must not open an independent
 cached writer for the same project.
@@ -62,9 +63,10 @@ under `WorkerSupervisor`; it has no workspace lock or independent service
 lifecycle. Admission fences legacy/native overlap, stale sessions and
 previous-generation confirmations. The [workspace owner](workspace-owner.md)
 serves multiple Unix MCP clients over one admitted service, keyed by canonical
-root independently of workflow roles. Its initial invocation controls owner
-lifetime; reconnect, remaining lifecycle acceptance, source snapshots and
-production launcher cutover remain separate native roadmap work.
+root independently of workflow roles: every invocation is a bridge that stamps
+a durable client identity and reconnects (attaching or admitting) on its next
+request when the owner goes away, and workers end with a killed owner. Source
+snapshots remain separate native roadmap work.
 
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes

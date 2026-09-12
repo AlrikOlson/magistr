@@ -20,6 +20,15 @@ pub enum AttachRefusal {
         /// What the client asked for.
         offered: u32,
     },
+    /// The client is another build of Magistr; only the same build is served,
+    /// so the client waits for this owner's session to end rather than mix
+    /// two versions across one workspace.
+    Build {
+        /// The owner's build.
+        served: String,
+        /// The client's.
+        offered: String,
+    },
     /// The client named a different project than the owner holds.
     Project {
         /// The owner's project.
@@ -52,6 +61,10 @@ impl std::fmt::Display for AttachRefusal {
             Self::Protocol { served, offered } => write!(
                 f,
                 "owner speaks protocol {served}, client offered {offered}"
+            ),
+            Self::Build { served, offered } => write!(
+                f,
+                "owner is magistr {served}, client is magistr {offered}; end the owner's session to change builds"
             ),
             Self::Project { expected, offered } => {
                 write!(f, "owner holds project {expected}, client named {offered}")

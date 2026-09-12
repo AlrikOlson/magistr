@@ -156,15 +156,7 @@ impl WorkspaceService {
 
     /// Mint a distinct identity for a client that did not supply one.
     pub fn new_session(&self) -> Result<WorkspaceSession, WorkspaceError> {
-        let mut bytes = [0; 16];
-        getrandom::fill(&mut bytes).map_err(|error| {
-            WorkspaceError::new(
-                crate::contracts::ErrorKind::EngineUnavailable,
-                format!("cannot mint workspace session identity: {error}"),
-            )
-        })?;
-        let id: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
-        self.admit_session(format!("native-{id}"))
+        self.admit_session(super::mint_session_identity("native")?)
     }
 
     /// Ownership incarnation, independent of index progress and source revisions.

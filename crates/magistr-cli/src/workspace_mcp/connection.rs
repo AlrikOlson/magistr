@@ -11,7 +11,10 @@ use magistr_workspace::service::{WorkspaceOpenError, WorkspaceOpenOptions, Works
 pub(super) enum WorkspaceConnection {
     Owner(Arc<WorkspaceService>),
     #[cfg(unix)]
-    Attached(tokio::net::UnixStream),
+    Attached {
+        generation: magistr_engine::tas::OwnerGeneration,
+        stream: tokio::net::UnixStream,
+    },
 }
 
 impl WorkspaceConnection {
@@ -48,7 +51,7 @@ impl WorkspaceConnection {
                                 generation = generation.get(),
                                 "attached to native workspace owner"
                             );
-                            return Ok(Self::Attached(stream));
+                            return Ok(Self::Attached { generation, stream });
                         }
                         Err(AttachError::Unavailable(_) | AttachError::Deadline(_)) => {
                             tokio::time::sleep(

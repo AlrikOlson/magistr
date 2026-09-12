@@ -20,12 +20,19 @@ use super::owner_reply::OwnerReply;
 /// The protocol this binary speaks. Exact match only — during development
 /// every change to the frames is a new version, and an older or newer
 /// client is refused rather than guessed at.
-pub const OWNER_PROTOCOL_VERSION: u32 = 2;
+pub const OWNER_PROTOCOL_VERSION: u32 = 3;
+
+/// The build this binary is: an owner serves only clients of the same
+/// build, so a session never mixes two versions' tool surfaces or
+/// confirmation formats across one workspace. Equal package versions from
+/// different checkouts are not told apart.
+pub(crate) const OWNER_BUILD: &str = env!("CARGO_PKG_VERSION");
 
 /// The first line a client sends.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Hello {
     pub(crate) protocol: u32,
+    pub(crate) build: String,
     pub(crate) identity: OwnerIdentity,
     pub(crate) attach: AttachKind,
     pub(crate) caller: CallerIdentity,

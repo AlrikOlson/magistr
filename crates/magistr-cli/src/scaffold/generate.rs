@@ -231,7 +231,7 @@ pub fn generate_with_result(
     // already declared is never touched.
     let seed = super::WorkbenchSeed::from_template_vars(&vars);
     if !seed.is_empty() {
-        match seed.apply(dir, super::WorkbenchCommand::resolve().available) {
+        match seed.apply(dir) {
             Ok(true) => result.created.push("workbench.toml".to_string()),
             Ok(false) => {}
             Err(e) => tracing::warn!("could not seed workbench.toml: {e}"),

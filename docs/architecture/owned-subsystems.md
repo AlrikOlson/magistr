@@ -5,8 +5,8 @@ Native reasoning `think:712` supersedes the adapter-based receipt plan in
 `think:710`. Workflow source and typed use cases, the Workbench reference source,
 and its native Rust engine are now repository-local.
 The accepted target is one Rust-native Magistr product. Native workspace
-service composition and Unix client attachment are implemented; production
-launcher integration remains pending. This document distinguishes the
+service composition, Unix client attachment and the production launcher are
+implemented; every workspace client reaches one admitted native owner. This document distinguishes the
 adopted source from the target behavior and migration constraints. The native
 roadmap remains authoritative for delivery status.
 
@@ -93,9 +93,9 @@ derived cache. Workflow project identity and workspace/worktree identity are
 distinct; multiple worktrees must not accidentally share file ownership.
 The production workspace boundary will be an ordinary typed Rust service
 composed into Magistr. The retained Bun/NAPI source is a reference for parity;
-it is not a second product or a production Rust dependency. The CLI still uses
-the existing workspace integration until the native port and owner cutover
-meet their acceptance criteria.
+it is not a second product or a production Rust dependency. The CLI's
+workspace launch, scaffold, interview and cockpit paths use the native owner;
+the retained legacy server is reference-only.
 
 The application composes these services through narrow ports. This does not
 require one global mutex, one database, or a single process containing every
@@ -190,7 +190,10 @@ or c10 empty locks require [offline migration](../../subsystems/workspace/PROVEN
 The [workspace owner](workspace-owner.md) layers Unix multi-client attachment
 on this admission through Magistr's shared local owner protocol. A second
 `magistr workspace serve` connects to the admitted service without opening
-another journal, index or worker. Legacy migration refusals never attach.
+another journal, index or worker; when that owner goes away the bridge answers
+in-flight calls with the typed refusal and, on its next request, attaches to
+the new owner or admits the workspace itself. Legacy migration refusals never
+attach; `magistr workspace migrate` is the explicit, refusing migration.
 
 `magistr workspace serve <root>` is the thin rmcp adapter over that service:
 the complete retained tool surface with the eight input schemas and the
@@ -208,8 +211,8 @@ Native mutation and session-journal APIs require a `WorkspaceSession` admitted
 for the canonical root and current generation. Re-admitting the same identity
 preserves undo history. `mgw2` confirmations bind that generation and reject
 previous-owner previews, including all `wb1` and `mgw1` tokens. This local
-identity boundary is not peer authentication. Production consumers still reach
-the workspace through the legacy server until owner cutover;
+identity boundary is not peer authentication. Production consumers reach the
+workspace through the native bridge (`magistr mcp-launch workbench-mcp`);
 `magistr mcp-serve` is unchanged.
 
 Beside the MCP host, `magistr workspace doctor [bundle|config]`, `journal`,
@@ -258,7 +261,7 @@ freshness. Late results remain durable without attaching to a newer objective.
 | `arch-14c10b-workspace-port-acceptance` | The operational verbs (`magistr workspace doctor [bundle|config]`, `journal`, `key rotate`, `init`) with the retained renderings and exit codes; the Bun-free release smoke as the required `workspace-release-smoke` gate; the supported matrix (`subsystems/workspace/SUPPORT_MATRIX.md`); the measured budgets (`subsystems/workspace/bench/`), all four holding after the references lane was brought back to the retained index-driven candidate design |
 | `arch-14d1-workspace-fencing` | Immutable legacy-compatible admission, durable owner generations, explicit sessions and generation-bound confirmations |
 | `arch-14d2-workspace-attachment` | Unix clients attach to one admitted `WorkspaceService` through the shared owner protocol; native process tests and the [ADR-018 scope matrix](workspace-owner.md#adr-018-scope) distinguish delivered attachment from remaining lifecycle work |
-| `arch-14d-workspace-owner` | Pending: remaining lifecycle/full-matrix acceptance and production launcher cutover |
+| `arch-14d-workspace-owner` | The session-stamping bridge with on-demand reconnect and typed unavailable answers, build refusal, worker exit on owner death, the native `workbench-mcp` launch alias with the external resolver deleted, cockpit and Codex clients through one owner, and the guarded legacy migration verb; the [ADR-018 matrix](workspace-owner.md#adr-018-scope) maps every row to executed evidence |
 | `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |
 
 The native refactor continues with workspace use cases, owner/client integration,

@@ -1,5 +1,7 @@
-//! Portable scaffold commands exercised as subprocesses without installed MCP servers.
-//! The process fixtures use a POSIX shell so exact stdio and exit behavior are observable.
+//! Portable scaffold commands exercised as subprocesses: the generated
+//! `magistr mcp-launch workbench-mcp .` line serves this binary's own native
+//! workspace bridge for the project it selects, with nothing on PATH and no
+//! environment override consulted.
 #![cfg(unix)]
 
 #[path = "support/magistr_command.rs"]
@@ -7,8 +9,7 @@ mod magistr_command;
 
 use std::collections::HashMap;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
 use magistr::scaffold;
@@ -58,6 +59,9 @@ fn fixture_command(root: &Path) -> Command {
         .current_dir(root)
         .env("HOME", root)
         .env("PATH", "")
+        .env("WORKBENCH_NETWORK_FS", "0")
+        .env_remove("WORKBENCH_ORG_POLICY")
+        .env_remove("WORKBENCH_USER_CONFIG")
         .env_remove("WORKBENCH_MCP")
         .env_remove("WORKBENCH_MCP_REPO")
         .env_remove("MAGISTR_LOG")
@@ -66,37 +70,12 @@ fn fixture_command(root: &Path) -> Command {
     command
 }
 
-fn write_dependency(root: &Path) -> PathBuf {
-    let executable = root.join("workbench fixture λ");
-    std::fs::write(
-        &executable,
-        r#"#!/bin/sh
-printf '%s\n' "$PWD" > "$LAUNCH_CWD"
-printf '%s\n' "$#" "$@" > "$LAUNCH_ARGS"
-printf 'dependency diagnostic\n' >&2
-while IFS= read -r line; do
-    printf '%s\n' "$line"
-done
-exit 23
-"#,
-    )
-    .expect("dependency fixture");
-    std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o755))
-        .expect("executable fixture");
-    executable
-}
-
-fn invoke_dependency(mut command: Command, executable: &Path, receipts: &Path) -> Output {
-    command.env("WORKBENCH_MCP", executable);
-    invoke_fixture(command, receipts)
-}
-
-fn invoke_fixture(mut command: Command, receipts: &Path) -> Output {
-    const INPUT: &[u8] =
-        b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}\nbackslash \\ and literal $(text)\n";
+/// Drive one MCP initialization through the launched bridge's stdio and let
+/// EOF end it. The answer is this binary's own server, and the process exits
+/// cleanly once its client leaves.
+fn invoke_native(mut command: Command) -> Output {
+    const INPUT: &[u8] = b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"fixture\",\"version\":\"0\"}}}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n";
     command
-        .env("LAUNCH_CWD", receipts.join("cwd"))
-        .env("LAUNCH_ARGS", receipts.join("args"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -110,25 +89,40 @@ fn invoke_fixture(mut command: Command, receipts: &Path) -> Output {
     let output = child.wait_with_output().expect("portable command output");
     assert_eq!(
         output.status.code(),
-        Some(23),
+        Some(0),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert_eq!(output.stdout, INPUT);
-    assert_eq!(output.stderr, b"dependency diagnostic\n");
+    let answer: Value = serde_json::from_str(
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .next()
+            .expect("an initialize answer"),
+    )
+    .expect("JSON-RPC answer");
+    assert_eq!(answer["id"], 1, "{answer}");
+    assert_eq!(
+        answer["result"]["serverInfo"]["name"], "magistr",
+        "{answer}"
+    );
     output
 }
 
-fn assert_workspace(receipts: &Path, expected: &Path) {
-    let expected = expected.canonicalize().expect("canonical workspace");
-    assert_eq!(
-        std::fs::read_to_string(receipts.join("cwd")).expect("cwd receipt"),
-        format!("{}\n", expected.display())
+/// The native owner admitted exactly `expected`: its state directory carries
+/// the durable generation, and no other candidate root gained one.
+fn assert_workspace(expected: &Path, others: &[&Path]) {
+    assert!(
+        expected.join(".workbench/server.generation").is_file(),
+        "no native admission under {}",
+        expected.display()
     );
-    assert_eq!(
-        std::fs::read_to_string(receipts.join("args")).expect("argv receipt"),
-        format!("1\n{}\n", expected.display())
-    );
+    for other in others {
+        assert!(
+            !other.join(".workbench").exists(),
+            "an unrelated root was admitted: {}",
+            other.display()
+        );
+    }
 }
 
 #[test]
@@ -174,7 +168,7 @@ fn generated_servers_are_portable_and_match_the_preview() {
 }
 
 #[test]
-fn relocated_project_uses_runtime_dependency_and_preserves_process_io() {
+fn relocated_project_is_served_natively_from_a_nested_directory() {
     let temporary = tempfile::tempdir().expect("temporary relocation");
     let original = temporary.path().join("old clone λ");
     let config = generate_project(&original);
@@ -182,7 +176,6 @@ fn relocated_project_uses_runtime_dependency_and_preserves_process_io() {
     std::fs::rename(&original, &relocated).expect("relocate project");
     let nested = relocated.join("src/nested");
     std::fs::create_dir_all(&nested).expect("nested working directory");
-    let dependency = write_dependency(temporary.path());
     let entry = &config["mcpServers"]["workbench-mcp"];
     assert_eq!(entry["command"], "magistr");
     let mut command = fixture_command(&nested);
@@ -193,8 +186,8 @@ fn relocated_project_uses_runtime_dependency_and_preserves_process_io() {
             .iter()
             .map(|argument| argument.as_str().expect("string argument")),
     );
-    invoke_dependency(command, &dependency, temporary.path());
-    assert_workspace(temporary.path(), &relocated);
+    invoke_native(command);
+    assert_workspace(&relocated, &[&nested]);
     assert_eq!(
         read_config(&relocated),
         config,
@@ -211,11 +204,10 @@ fn nearest_legacy_project_is_selected_from_a_nested_directory() {
     std::fs::write(inner.join(".jig/project.json"), "{}").expect("legacy project marker");
     let nested = inner.join("src/deeper");
     std::fs::create_dir_all(&nested).expect("nested directory");
-    let dependency = write_dependency(temporary.path());
     let mut command = fixture_command(&nested);
     command.args(["mcp-launch", "workbench-mcp"]);
-    invoke_dependency(command, &dependency, temporary.path());
-    assert_workspace(temporary.path(), &inner);
+    invoke_native(command);
+    assert_workspace(&inner, &[temporary.path(), &nested]);
 }
 
 #[test]
@@ -227,104 +219,30 @@ fn repository_boundary_keeps_an_unconfigured_project_out_of_its_parent() {
     std::fs::create_dir_all(&nested).expect("nested directory");
     std::fs::write(repository.join(".git"), "gitdir: ignored-by-fixture\n")
         .expect("worktree boundary");
-    let dependency = write_dependency(temporary.path());
     let mut command = fixture_command(temporary.path());
     command.args(["mcp-launch", "workbench-mcp"]).arg(&nested);
-    invoke_dependency(command, &dependency, temporary.path());
-    assert_workspace(temporary.path(), &nested);
+    invoke_native(command);
+    assert_workspace(&nested, &[temporary.path(), &repository]);
 }
 
 #[test]
-fn unavailable_dependencies_fail_with_an_actionable_stderr_message() {
-    let temporary = tempfile::tempdir().expect("temporary missing dependency");
+fn legacy_resolver_overrides_are_ignored_and_nothing_external_is_required() {
+    // The retired resolver read WORKBENCH_MCP and WORKBENCH_MCP_REPO and fell
+    // back to PATH or a home checkout. The native launch consults none of
+    // them: bogus values change nothing and an empty PATH is enough.
+    let temporary = tempfile::tempdir().expect("temporary project");
     let original_config = generate_project(temporary.path());
     let missing = temporary.path().join("missing executable λ");
-    for explicit_override in [false, true] {
-        let mut command = fixture_command(temporary.path());
-        command.args(["mcp-launch", "workbench-mcp", "."]);
-        if explicit_override {
-            command.env("WORKBENCH_MCP", &missing);
-        }
-        let output = command.output().expect("run missing dependency case");
-        let diagnostic = String::from_utf8_lossy(&output.stderr);
-        assert!(!output.status.success());
-        assert!(output.stdout.is_empty(), "diagnostic leaked to MCP stdout");
-        assert!(
-            diagnostic.contains("WORKBENCH_MCP") || diagnostic.to_lowercase().contains("install"),
-            "missing remediation: {diagnostic}"
-        );
-        if explicit_override {
-            assert!(diagnostic.contains("missing executable λ"), "{diagnostic}");
-        }
-        assert_eq!(read_config(temporary.path()), original_config);
-    }
-}
-
-#[test]
-fn relative_executable_override_is_resolved_before_selecting_the_workspace() {
-    let temporary = tempfile::tempdir().expect("temporary relative executable");
-    generate_project(temporary.path());
-    let nested = temporary.path().join("src/nested");
-    std::fs::create_dir_all(&nested).expect("nested directory");
-    let executable = write_dependency(&nested);
-    let relative = Path::new(".").join(executable.file_name().expect("fixture filename"));
-    let mut command = fixture_command(&nested);
-    command.args(["mcp-launch", "workbench-mcp"]);
-    invoke_dependency(command, &relative, temporary.path());
-    assert_workspace(temporary.path(), temporary.path());
-}
-
-#[test]
-fn relative_path_entry_keeps_the_dependency_found_from_the_invocation_directory() {
-    let temporary = tempfile::tempdir().expect("temporary relative PATH");
-    generate_project(temporary.path());
-    let nested = temporary.path().join("src/nested");
-    let tools = nested.join("tools λ");
-    std::fs::create_dir_all(&tools).expect("fixture tools directory");
-    let executable = write_dependency(&tools);
-    std::fs::rename(executable, tools.join("workbench-mcp")).expect("installed Workbench fixture");
-    let mut command = fixture_command(&nested);
+    let mut command = fixture_command(temporary.path());
     command
-        .args(["mcp-launch", "workbench-mcp"])
-        .env("PATH", "tools λ");
-    invoke_fixture(command, temporary.path());
-    assert_workspace(temporary.path(), temporary.path());
-}
-
-#[test]
-fn relative_checkout_passes_an_absolute_entrypoint_and_workspace_to_bun() {
-    let temporary = tempfile::tempdir().expect("temporary relative checkout");
-    generate_project(temporary.path());
-    let nested = temporary.path().join("src/nested");
-    let checkout = nested.join("checkout λ");
-    let tools = temporary.path().join("fixture tools");
-    std::fs::create_dir_all(checkout.join("src")).expect("checkout directory");
-    std::fs::create_dir(&tools).expect("Bun fixture directory");
-    let main = checkout.join("src/main.ts");
-    std::fs::write(
-        &main,
-        "// The Bun fixture records this path without running it.\n",
-    )
-    .expect("checkout entrypoint");
-    let executable = write_dependency(&tools);
-    std::fs::rename(executable, tools.join("bun")).expect("Bun fixture");
-    let mut command = fixture_command(&nested);
-    command
-        .args(["mcp-launch", "workbench-mcp"])
-        .env("PATH", &tools)
-        .env("WORKBENCH_MCP_REPO", "checkout λ");
-    invoke_fixture(command, temporary.path());
-    let root = temporary.path().canonicalize().expect("canonical project");
-    assert_eq!(
-        std::fs::read_to_string(temporary.path().join("cwd")).expect("cwd receipt"),
-        format!("{}\n", root.display())
+        .args(["mcp-launch", "workbench-mcp", "."])
+        .env("WORKBENCH_MCP", &missing)
+        .env("WORKBENCH_MCP_REPO", temporary.path().join("no checkout"));
+    let output = invoke_native(command);
+    assert!(
+        !String::from_utf8_lossy(&output.stderr).contains("missing executable λ"),
+        "the override was consulted"
     );
-    assert_eq!(
-        std::fs::read_to_string(temporary.path().join("args")).expect("argv receipt"),
-        format!(
-            "3\nrun\n{}\n{}\n",
-            main.canonicalize().expect("canonical entrypoint").display(),
-            root.display()
-        )
-    );
+    assert_eq!(read_config(temporary.path()), original_config);
+    assert_workspace(temporary.path(), &[]);
 }

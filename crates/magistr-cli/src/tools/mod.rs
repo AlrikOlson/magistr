@@ -34,4 +34,4 @@ mod registry;
 mod server;
 
 pub use registry::{Choice, MagistrTool, Question, ToolOutput, ToolRegistry};
-pub use server::{is_workbench_available, write_interview_mcp_config, write_mcp_config};
+pub use server::{write_interview_mcp_config, write_mcp_config};

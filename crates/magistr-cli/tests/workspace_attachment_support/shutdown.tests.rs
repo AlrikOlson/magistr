@@ -85,13 +85,15 @@ async fn owner_eof_joins_a_cancelled_attached_edit_before_releasing_admission() 
         .await
         .expect("pending call settles")
         .expect("pending request task");
-    attached.assert_owner_lost().await;
     assert_eq!(
         file_text(dir.path(), "fixture.ts"),
         original,
         "cancelled preparation cannot apply later"
     );
-    let replacement = Connection::open(dir.path()).await;
+    // The attached bridge outlives the owner; its next call admits and the
+    // cancelled preparation is not replayed.
+    assert_ok(&attached.call("workbench_status", json!({})).await);
     assert_eq!(generation(dir.path()), 2);
-    replacement.close().await;
+    assert_eq!(file_text(dir.path(), "fixture.ts"), original);
+    attached.close().await;
 }

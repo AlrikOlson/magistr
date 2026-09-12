@@ -17,7 +17,6 @@ pub mod types;
 
 pub mod tools;
 pub mod validate;
-pub mod workbench_command;
 
 // ── Orchestration (roadmap, workflow) ─────────────────────────────────────────
 

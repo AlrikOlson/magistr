@@ -59,7 +59,6 @@ pub use selections::ScaffoldSelections;
 pub use substitute::substitute;
 pub(crate) use update_policy::UpdatePolicy;
 pub use vars::vars;
-pub use workbench::WorkbenchCommand;
 pub use workbench_toml::WorkbenchSeed;
 
 use std::collections::HashMap;

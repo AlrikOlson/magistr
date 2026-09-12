@@ -1,58 +1,20 @@
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 
 use color_eyre::eyre::{self, WrapErr};
 
 use crate::mcp_target::McpTarget;
-use crate::scaffold::WorkbenchCommand;
 
 /// Launch a built-in endpoint without storing machine paths in host config.
+///
+/// Both targets are this binary: `magistr` serves the workflow families,
+/// `workbench-mcp` is the retained name of the native workspace bridge —
+/// the same admitted owner every other Magistr surface reaches, never an
+/// external executable, a checkout or a runtime looked up on this machine.
 pub async fn cmd_mcp_launch(target: McpTarget, dir: &Path) -> eyre::Result<()> {
     let root = project_root(dir)?;
-    if target == McpTarget::Magistr {
-        return super::cmd_mcp_serve(&root).await;
-    }
-
-    let resolved = WorkbenchCommand::resolve();
-    if let Some(hint) = resolved.install_hint() {
-        eyre::bail!("{hint}");
-    }
-    let context = || {
-        format!(
-            "could not launch Workbench executable {:?}; check WORKBENCH_MCP, \
-         WORKBENCH_MCP_REPO and PATH (a checkout also requires Bun)",
-            resolved.command
-        )
-    };
-
-    let mut command = resolved.process_command(&root).wrap_err_with(context)?;
-    command
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-
-    // Replace this process: the MCP client's PID, stdio, signals, EOF and
-    // exit status now belong directly to Workbench. Never filter MCP output.
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        Err(command.exec()).wrap_err_with(context)
-    }
-    #[cfg(not(unix))]
-    {
-        let mut child = tokio::process::Command::from(command)
-            .kill_on_drop(true)
-            .spawn()
-            .wrap_err_with(context)?;
-        let status = tokio::select! {
-            status = child.wait() => status.wrap_err("waiting for Workbench")?,
-            signal = tokio::signal::ctrl_c() => {
-                signal.wrap_err("waiting for shutdown")?;
-                child.kill().await.wrap_err("stopping Workbench")?;
-                std::process::exit(130);
-            }
-        };
-        std::process::exit(status.code().unwrap_or(1));
+    match target {
+        McpTarget::Magistr => super::cmd_mcp_serve(&root).await,
+        McpTarget::Workbench => crate::workspace_mcp::run_workspace_stdio_server(&root, &[]).await,
     }
 }
 

@@ -1,11 +1,18 @@
 use super::{WorkerError, WorkerRequest, frame::Frame};
 
-/// Private executable role. Does not admit a workspace or install application hooks.
+/// Private executable role. Does not admit a workspace or install application
+/// hooks. Ends with its owner: orderly through the shutdown frame, or by the
+/// parent watch when the owner was killed.
 pub async fn serve_worker() -> Result<(), WorkerError> {
+    super::parent_watch::watch_parent(pool_shutdown);
     let result = serve().await;
+    pool_shutdown();
+    result
+}
+
+fn pool_shutdown() {
     #[cfg(feature = "sandbox")]
     crate::sandbox::server_pool_shutdown();
-    result
 }
 
 async fn serve() -> Result<(), WorkerError> {

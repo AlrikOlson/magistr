@@ -34,18 +34,19 @@ const JOURNAL_LIMIT: &str = "200";
 /// binary's `journal` CLI subcommand.
 ///
 /// The server is spawned lazily, on the first call that needs it, and
-/// at most once: workbench-mcp takes an exclusive per-workspace lock
-/// and during `magistr run` the agent's own copy already holds it, so
-/// the connection usually cannot be made at all. That refusal is
-/// remembered and answered — the lock's own words land on the stage —
-/// rather than retried, which would spawn a doomed child per click.
+/// at most once. The native workspace bridge attaches to the agent's own
+/// owner during `magistr run`, so the cockpit and the agent act through one
+/// admitted writer; the retained legacy server still takes an exclusive
+/// lock and refuses. A refusal is remembered and answered — the server's
+/// own words land on the stage — rather than retried, which would spawn a
+/// doomed child per click.
 ///
 /// [`journal`](WorkbenchPort::journal) deliberately does NOT go through
 /// the server: the CLI takes no lock, so it answers *during* a run —
 /// which is when the Changes tab most wants it. [`undo`](WorkbenchPort::undo)
-/// deliberately DOES: the exclusive lock is what keeps a rewind from
-/// landing under a running agent, so the refusal it produces is the
-/// enforcement, not an accident.
+/// does: through the native owner it lands as a workspace-scoped rewind of
+/// one named op with the server's conflict surfacing; under the legacy
+/// server the exclusive lock's refusal is the enforcement.
 pub struct McpWorkbench {
     command: String,
     args: Vec<String>,
@@ -89,13 +90,20 @@ impl McpWorkbench {
     /// everything before it is the launcher prefix, so
     /// `bun run src/main.ts .` becomes
     /// `bun run src/main.ts journal . --json --limit 200` and the CLI
-    /// can never point at a different workbench than the server.
+    /// can never point at a different workbench than the server. Magistr's
+    /// own launcher, `magistr mcp-launch workbench-mcp .`, names the native
+    /// workspace bridge; its journal verb is `magistr workspace journal`.
     fn journal_args(&self) -> Vec<String> {
         let (leading, root) = match self.args.split_last() {
             Some((root, leading)) => (leading, root.as_str()),
             None => (&[] as &[String], "."),
         };
-        let mut args: Vec<String> = leading.to_vec();
+        let mut args: Vec<String> = match leading {
+            [verb, target] if verb == "mcp-launch" && target == "workbench-mcp" => {
+                vec!["workspace".to_owned()]
+            }
+            leading => leading.to_vec(),
+        };
         args.extend(
             ["journal", root, "--json", "--limit", JOURNAL_LIMIT]
                 .into_iter()

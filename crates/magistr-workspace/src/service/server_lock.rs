@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::WorkspaceGeneration;
+use super::{LegacyMigration, WorkspaceGeneration};
 
 /// Immutable compatibility marker. The retained exclusive-create owner sees
 /// a foreign host and refuses it, even after this native owner has exited.
@@ -79,6 +79,120 @@ impl ServerLock {
     #[must_use]
     pub const fn generation(&self) -> WorkspaceGeneration {
         self.generation
+    }
+
+    /// The documented offline migration, as one refusing command: move an
+    /// obsolete legacy or empty lock record aside (never delete it) so the
+    /// native owner can admit. A native marker is never touched. The legacy
+    /// record names the process that wrote it; when that host is this host
+    /// and that pid is still alive the migration refuses, because the legacy
+    /// server never took an OS lock this code could observe. A record from
+    /// another host is refused as well: liveness cannot be judged here.
+    ///
+    /// # Errors
+    /// `WouldBlock` for a possibly live legacy owner or a foreign host,
+    /// `InvalidInput` for a path that is not a regular file, and I/O errors.
+    pub fn migrate_legacy(path: &Path) -> io::Result<LegacyMigration> {
+        let metadata = match std::fs::symlink_metadata(path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Ok(LegacyMigration::Absent);
+            }
+            Err(error) => return Err(error),
+        };
+        if metadata.is_symlink() || !metadata.is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{} is not a regular lock file", path.display()),
+            ));
+        }
+        let mut record = Vec::new();
+        File::open(path)?.take(4096).read_to_end(&mut record)?;
+        if record == NATIVE_MARKER {
+            return Ok(LegacyMigration::AlreadyNative);
+        }
+        if let Ok(legacy) = serde_json::from_slice::<serde_json::Value>(&record) {
+            let host = legacy["host"].as_str().unwrap_or_default();
+            let pid = legacy["pid"].as_u64().unwrap_or(0);
+            let local = local_hostname();
+            if !host.is_empty() && host != local {
+                return Err(io::Error::new(
+                    io::ErrorKind::WouldBlock,
+                    format!(
+                        "legacy workspace lock {} was written on host {host}, not {local}; migrate it there",
+                        path.display()
+                    ),
+                ));
+            }
+            if pid != 0 && is_alive(pid) {
+                return Err(io::Error::new(
+                    io::ErrorKind::WouldBlock,
+                    format!(
+                        "legacy workspace server pid {pid} is still alive on this host; stop it before migrating {}",
+                        path.display()
+                    ),
+                ));
+            }
+        }
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|elapsed| elapsed.as_secs())
+            .unwrap_or_default();
+        let backup = path.with_file_name(format!("{}.legacy-{stamp}", Self::FILE_NAME));
+        if backup.exists() {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                format!("migration backup {} already exists", backup.display()),
+            ));
+        }
+        std::fs::rename(path, &backup)?;
+        WorkspaceGeneration::sync_parent(path)?;
+        Ok(LegacyMigration::Migrated { backup })
+    }
+}
+
+/// Whether `pid` names a live process of this host. `EPERM` means it exists
+/// under another user; only `ESRCH` means it is gone.
+fn is_alive(pid: u64) -> bool {
+    #[cfg(unix)]
+    {
+        let Ok(pid) = libc::pid_t::try_from(pid) else {
+            return false;
+        };
+        // SAFETY: signal 0 delivers nothing; it only asks whether pid exists.
+        if unsafe { libc::kill(pid, 0) } == 0 {
+            return true;
+        }
+        io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = pid;
+        true
+    }
+}
+
+/// This host's name, as the retained legacy server recorded it.
+fn local_hostname() -> String {
+    #[cfg(unix)]
+    {
+        let mut buffer = [0_u8; 256];
+        // SAFETY: the buffer is valid for its whole length and gethostname
+        // writes at most that many bytes.
+        let code =
+            unsafe { libc::gethostname(buffer.as_mut_ptr().cast::<libc::c_char>(), buffer.len()) };
+        if code != 0 {
+            return String::new();
+        }
+        let end = buffer
+            .iter()
+            .position(|byte| *byte == 0)
+            .unwrap_or(buffer.len());
+        String::from_utf8_lossy(&buffer[..end]).into_owned()
+    }
+    #[cfg(not(unix))]
+    {
+        String::new()
     }
 }
 

@@ -14,7 +14,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use super::owner_wire::{
-    ClientFrame, CommandRefusal, Greeting, Hello, OWNER_PROTOCOL_VERSION, ReplyFrame,
+    ClientFrame, CommandRefusal, Greeting, Hello, OWNER_BUILD, OWNER_PROTOCOL_VERSION, ReplyFrame,
 };
 use super::{
     AttachKind, AttachRefusal, McpAcceptor, NativeEngines, OwnerGeneration, OwnerIdentity,
@@ -100,6 +100,12 @@ impl OwnerConnections {
             return Err(AttachRefusal::Protocol {
                 served: OWNER_PROTOCOL_VERSION,
                 offered: hello.protocol,
+            });
+        }
+        if hello.build != OWNER_BUILD {
+            return Err(AttachRefusal::Build {
+                served: OWNER_BUILD.to_owned(),
+                offered: hello.build.clone(),
             });
         }
         self.identity.admit(&hello.identity)?;
