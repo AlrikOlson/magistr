@@ -425,6 +425,24 @@
 				"scripts/codex-subagent-check.py"
 			],
 			"adaptation": "Native adaptation of ADR-018's bridge role without its daemon: every `magistr workspace serve` (and the retained `magistr mcp-launch workbench-mcp` alias) relays newline JSON-RPC between its stdio client and one owner — the in-process service it admitted over a duplex, or the socket a running owner welcomed it on. The bridge stamps a durable per-process identity on tools/call lacking one (WORKBENCH_SESSION_ID or minted), records the client's initialize, answers requests in flight on owner loss with the retained ENGINE_UNAVAILABLE recovery:retry envelope (tools/list from the last listing), and on the next request attaches to whoever admitted meanwhile or admits itself within the bounded window, replaying initialize under a bridge id. Client EOF half-closes the link and drains the owner's answers before ordered shutdown. Hello protocol 3 carries the build and refuses other builds. Workers poll getppid and exit when their owner dies. The WorkbenchCommand resolver (WORKBENCH_MCP, PATH, Bun home checkout) is deleted; scaffold seeding, the interview config and the cockpit port (journal through `magistr workspace journal`) use the native owner. `magistr workspace migrate` performs the documented offline lock migration only when the record's host is this host and its pid is dead; it never touches a native marker. The retained Codex check is ported to Python as the optional codex-subagent gate and passed against the real codex exec. No detached daemon, idle timer, retire protocol or automatic lock removal; startup with no reachable owner still fails closed; this repository's own live legacy workspace stays on its explicit entry until migrated offline."
+		},
+		{
+			"chunk": "arch-14e-source-snapshots",
+			"upstream_inputs": [
+				"src/adapters/engine-ipc/indexer.ts",
+				"src/adapters/fswatch/",
+				"src/tools/write-engine.ts",
+				"src/adapters/journal-db.ts"
+			],
+			"native_outputs": [
+				"crates/magistr-workspace/src/snapshot/",
+				"crates/magistr-workspace/src/service/workspace_service.rs",
+				"crates/magistr-workspace/src/service/owner_generation.rs",
+				"crates/magistr-workspace/src/query/source_observation.rs",
+				"crates/magistr-cli/src/workspace_cli/snapshot.rs",
+				"crates/magistr-cli/tests/workspace_cli_verbs.rs"
+			],
+			"adaptation": "Native origin, no upstream equivalent: the reference's freshness is an index cache (mtime/size then hash) and its journal sequence precedes file swaps, so neither certified check inputs. The snapshot module reuses the retained ignore-walker selection semantics and the c6 native write intents: SourceSnapshot (canonical root, lock-free durable generation, scheme and selection-policy digests, path/kind/mode/size/SHA-256 manifest with explicit config/artifact inputs, content-addressed revision), validation on the same root with foreign-workspace refusal, Consistency::Optimistic that can never certify immutable inputs versus SourceExport (a private re-observed copy) that can, and MutationReceipt read from the resolved intent (applied with revision / failed / indeterminate for pending, failed compensation or legacy history). The owner exposes capture and validation without a mutation lock and `magistr workspace snapshot` reads beside a live owner. Check consumption remains arch-14-verification-receipts."
 		}
 	]
 }

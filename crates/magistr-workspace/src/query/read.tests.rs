@@ -4,9 +4,9 @@ use crate::index::cache::IndexedFile;
 use crate::query::{ReadRange, ReadSurround};
 use crate::worker::WorkerSymbol;
 
-fn snapshot(content: &str) -> SourceSnapshot {
+fn snapshot(content: &str) -> SourceObservation {
     let content = FileContent::Text(content.into());
-    SourceSnapshot {
+    SourceObservation {
         path: "src/auth.ts".into(),
         content_hash: content.content_hash(),
         content,
@@ -26,7 +26,7 @@ fn symbol(name: &str, start: u32, end: u32) -> WorkerSymbol {
     }
 }
 
-fn outline(source: &SourceSnapshot, symbols: Vec<WorkerSymbol>) -> IndexQuery<IndexedFile> {
+fn outline(source: &SourceObservation, symbols: Vec<WorkerSymbol>) -> IndexQuery<IndexedFile> {
     IndexQuery {
         rows: vec![IndexedFile {
             path: source.path.clone(),

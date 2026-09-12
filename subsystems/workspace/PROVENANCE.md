@@ -1176,3 +1176,59 @@ is migrated offline. The [native ADR-018 matrix](../../docs/architecture/workspa
 maps every retained row to executed evidence; the retained reference files
 are unchanged and the audited multi-client tests remain the opt-in red
 reference reproductions.
+
+## Native source snapshots and mutation receipts (arch-14e)
+
+This chunk delivers the source certification capability the retained
+reference never had. `crates/magistr-workspace/src/snapshot` is native
+origin: `SourceSnapshot` names the canonical workspace root and the durable
+owner generation observed lock-free (`WorkspaceGeneration::observe`), the
+scheme `magistr-source-snapshot/1`, the `SelectionPolicy` and its digest,
+and a `SourceManifest` of every selected path with kind (text, binary,
+symlink, missing explicit input), permission bits, byte length and SHA-256.
+Selection reuses the retained ignore-walker semantics of the index
+(`ignore::WalkBuilder`, hidden files in, `require_git(false)`, links not
+followed, `.git`/`.workbench` never entered) and adds explicit inputs
+hashed even when ignored: `.magistr/project.json` and `workbench.toml` by
+default, caller-declared artifacts on request. Digests are length-framed;
+no mtime, inode, device, watcher event, index generation or journal sequence
+enters a revision. A selection past the ceiling, a file that changes while
+hashed, an explicit input that escapes the root or names owner/repository
+state, and a directory as an explicit input are refused.
+
+Validation re-runs the embedded policy on the same canonical root and lists
+the exact added/removed/modified paths; another root — another worktree —
+is refused as a foreign workspace however similar its bytes. An
+`Optimistic` snapshot refuses `certify_immutable` even after an unchanged
+validation; `SourceExport` copies the selected bytes (modes and symlinks
+preserved) into a private temporary directory, re-observes it, requires the
+manifest identical and is the only source of `Consistency::Immutable`.
+`MutationReceipt` is read from the journal's resolved native intent
+(`native_write_intents`, c6): `Applied` with a revision only when every swap
+succeeded and read back, `Failed` for a rolled-back intent, `Indeterminate`
+for a pending intent after an interruption, a failed compensation or
+outcome persistence, and for pre-v3 legacy history. `WorkspaceService`
+exposes `identity`, `source_snapshot` and `validate_snapshot` without
+touching the journal writer, and `mutation_receipt` with a read-only
+borrow; `magistr workspace snapshot [dir] [--artifact PATH]` prints the
+serialized snapshot beside a live owner without any lock (exit 66 missing
+root, 64 refused input). The query module's private single-file live read
+was renamed `SourceObservation` so the crate has one `SourceSnapshot`.
+
+Evidence: `snapshot/*.tests.rs` (manifest accounting for tracked, untracked,
+deleted, binary, symlink, mode and configuration changes, mtime-only and
+same-size rewrites, foreign-root refusal through a symlinked alias,
+ceiling refusal, strict generation observation, serde round trip,
+certification refusal, export immutability under later workspace writes,
+applied/failed/indeterminate/legacy receipts with binary bytes intact),
+`service/workspace_snapshot.tests.rs` (a live owner edit invalidates an
+earlier snapshot and yields an applied receipt whose after-hash is the next
+snapshot's digest; a foreign snapshot is refused by the owner) and
+`tests/workspace_cli_verbs.rs` (the verb beside a live lock holder).
+
+Deliberately not delivered: consumption by configured, ad-hoc, native or
+loop checks and completion enforcement (`arch-14-verification-receipts`,
+which also removes the paused workflow-side fingerprint draft); a kernel or
+filesystem snapshot (an export is a copy, and a consumer that needs build
+caches keeps running optimistically in the live tree); directory explicit
+inputs; and any change to the retained reference files.

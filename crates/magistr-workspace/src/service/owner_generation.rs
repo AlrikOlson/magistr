@@ -80,6 +80,18 @@ impl WorkspaceGeneration {
         Ok(Self(next))
     }
 
+    /// Observe the durable generation beside `lock` without holding the lock:
+    /// `None` when no owner was ever admitted, a strict read otherwise. A
+    /// snapshot names the incarnation it observed; it never advances one.
+    pub(crate) fn observe(lock: &Path) -> io::Result<Option<Self>> {
+        let path = Self::path(lock);
+        match std::fs::symlink_metadata(&path) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error),
+            Ok(_) => Self::read(&path).map(|value| Some(Self(value))),
+        }
+    }
+
     fn read(path: &Path) -> io::Result<u64> {
         let metadata = std::fs::symlink_metadata(path).map_err(|error| {
             if error.kind() == io::ErrorKind::NotFound {

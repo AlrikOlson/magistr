@@ -223,24 +223,49 @@ stdout, and the retained process exit codes (0 healthy, 1 findings, 64 usage,
 
 ## Evidence requires source identity
 
-The workspace service publishes a versioned `SourceSnapshot` capability,
-including workspace identity, selection-policy digest, content-manifest
-digest, and declared consistency guarantees. Its policy must account for
-external edits, relevant ignored/untracked files, configuration, binary data,
-symlinks, and modes. An index generation or a journal sequence is not a
-source revision: the audited write engine allocates journal sequence before
-file swaps, and a watcher can be disabled or lag behind external writes.
+The workspace service publishes the versioned `SourceSnapshot` capability
+(`magistr_workspace::snapshot`, chunk `arch-14e-source-snapshots`). A
+snapshot names the workspace (canonical root — two worktrees are two
+workspaces — and the durable owner generation that was current), the
+hashing scheme (`magistr-source-snapshot/1`), the selection policy and its
+digest, and a content manifest: every selected path with its kind (text,
+binary, symlink, missing explicit input), permission bits, byte length and
+SHA-256. Selection is the workspace's own ignore-driven walk — hidden files
+in, ignore rules honored with or without a repository, `.git` and
+`.workbench` never entered, links recorded by target — plus explicit inputs
+hashed even when ignored: gate configuration (`.magistr/project.json`,
+`workbench.toml`) by default and caller-declared artifacts. The revision is
+content-addressed over scheme, identity, policy and manifest; no mtime,
+inode, watcher event, index generation or journal sequence participates. A
+selection past the policy ceiling and a file that changes while it is being
+hashed are refused, never truncated or guessed.
 
-Applied-write outcomes must distinguish intent, successful application,
-rollback, and crash uncertainty. Verification consumes this workspace
-capability instead of adding another file scanner to workflow.
+Capture (`WorkspaceService::source_snapshot`, or `SourceSnapshot::capture`
+and `magistr workspace snapshot` lock-free beside a live owner) takes no
+journal or mutation lock, so a consumer captures, runs its subprocess with
+edits still flowing through the owner, and validates afterwards.
+Validation re-runs the embedded policy on the same canonical root and
+answers `Unchanged` or the exact `Added`/`Removed`/`Modified` paths; a
+snapshot of another root is refused as a foreign workspace rather than
+compared. `Unchanged` is itself an observation: an
+`Consistency::Optimistic` snapshot can never certify immutable inputs, even
+after matching digests before and after a run, because two agreeing reads
+of a shared tree say nothing about the moments between them. The one path
+to `Consistency::Immutable` is a `SourceExport` — the selected bytes copied
+into a private directory this process owns, re-observed and required
+identical — inside which a consumer executes.
 
-Two matching before/after digests alone do not prove that a check executed
-against immutable inputs. The contract must distinguish optimistic
-observation from an isolated immutable snapshot and reject unsupported
-certification claims. Completion also validates objective/task/run/attempt
-identity, gate and acceptance revisions, required outcomes, and source
-freshness. Late results remain durable without attaching to a newer objective.
+Applied-write outcomes are read from the journal's resolved native intent,
+never from its sequence: a `MutationReceipt` is `Applied` with a revision
+over the applied files' after-hashes only when every swap succeeded and
+read back, `Failed` when the intent was rolled back, and `Indeterminate`
+for a pending intent after an interruption, a failed compensation or
+outcome persistence, and for legacy history that predates native intents.
+Verification consumes these workspace capabilities instead of a second
+scanner or fingerprint in workflow; `arch-14-verification-receipts` owns
+that consumption, completion validation (objective/task/run/attempt
+identity, gate and acceptance revisions, required outcomes, source
+freshness) and the removal of the paused workflow-side scanner draft.
 
 ## Delivery and preserved work
 
@@ -262,12 +287,12 @@ freshness. Late results remain durable without attaching to a newer objective.
 | `arch-14d1-workspace-fencing` | Immutable legacy-compatible admission, durable owner generations, explicit sessions and generation-bound confirmations |
 | `arch-14d2-workspace-attachment` | Unix clients attach to one admitted `WorkspaceService` through the shared owner protocol; native process tests and the [ADR-018 scope matrix](workspace-owner.md#adr-018-scope) distinguish delivered attachment from remaining lifecycle work |
 | `arch-14d-workspace-owner` | The session-stamping bridge with on-demand reconnect and typed unavailable answers, build refusal, worker exit on owner death, the native `workbench-mcp` launch alias with the external resolver deleted, cockpit and Codex clients through one owner, and the guarded legacy migration verb; the [ADR-018 matrix](workspace-owner.md#adr-018-scope) maps every row to executed evidence |
-| `arch-14e-source-snapshots` | Pending: `SourceSnapshot` producer and consistency contract |
+| `arch-14e-source-snapshots` | The `snapshot` module: `SourceSnapshot` (identity, generation, scheme/policy digests, content manifest, optimistic validation with foreign-workspace refusal), `SourceExport` for immutable inputs, `MutationReceipt` from the resolved durable intent, the owner's `source_snapshot`/`validate_snapshot`/`mutation_receipt` and the lock-free `magistr workspace snapshot` verb; check consumption remains `arch-14-verification-receipts` |
 
-The native refactor continues with workspace use cases, owner/client integration,
-and source certification.
-Receipt completion depends on both the typed workflow service and source
-snapshots. Configuration, supervision, projections, host cleanup, diagnostics,
+The native refactor continues with the concrete native application and
+receipt consumption.
+Receipt completion depends on both the typed workflow service and the
+delivered source snapshots. Configuration, supervision, projections, host cleanup, diagnostics,
 module gates, and final acceptance inherit the applicable dependencies.
 The former request for an upstream synchronous handler API is absorbed by
 the owned workflow extraction.

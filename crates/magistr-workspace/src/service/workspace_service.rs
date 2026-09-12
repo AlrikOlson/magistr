@@ -25,6 +25,10 @@ use crate::{
     jail::WorkspaceKeyStore,
     journal::{JournalDb, JournalDbOptions, JournalMode},
     query::{MapInput, MapRow, ReadInput, ReadRow, SearchGroup, SearchInput, WorkspaceQueries},
+    snapshot::{
+        MutationReceipt, SelectionPolicy, SnapshotError, SnapshotValidation, SourceSnapshot,
+        WorkspaceIdentity,
+    },
     transaction::FormatterOptions,
     worker::WorkerSupervisor,
     workspace_policy::WorkspacePolicy,
@@ -421,6 +425,50 @@ impl WorkspaceService {
         Some(self.with_notes(response))
     }
 
+    /// The identity this owner holds: its canonical root and the generation
+    /// its admission advanced.
+    #[must_use]
+    pub fn identity(&self) -> WorkspaceIdentity {
+        WorkspaceIdentity::admitted(self.root.clone(), self.generation())
+    }
+
+    /// Observe the selected source of this workspace. The read takes no
+    /// journal or mutation lock: a consumer captures, runs its subprocess,
+    /// and validates afterwards while edits keep flowing through the owner.
+    pub fn source_snapshot(
+        &self,
+        policy: SelectionPolicy,
+    ) -> Result<SourceSnapshot, SnapshotError> {
+        SourceSnapshot::capture_admitted(self.identity(), policy)
+    }
+
+    /// Re-observe this workspace against `snapshot`; a snapshot of another
+    /// workspace is refused rather than compared.
+    pub fn validate_snapshot(
+        &self,
+        snapshot: &SourceSnapshot,
+    ) -> Result<SnapshotValidation, SnapshotError> {
+        snapshot.validate_against(&self.identity())
+    }
+
+    /// The truthful receipt of journal op `seq`, read from its resolved
+    /// intent; `None` when no such op exists. The journal writer is borrowed
+    /// only for the read.
+    pub async fn mutation_receipt(
+        &self,
+        seq: i64,
+    ) -> Result<Option<MutationReceipt>, WorkspaceError> {
+        let journal = self.journal.lock().await;
+        MutationReceipt::from_journal(&journal, seq, Some(self.generation().get())).map_err(
+            |error| {
+                WorkspaceError::new(
+                    crate::contracts::ErrorKind::EngineUnavailable,
+                    error.to_string(),
+                )
+            },
+        )
+    }
+
     /// The one background task. The first build is kicked at open, so the
     /// task exists from open on; `None` only once the index has stopped.
     #[must_use]
@@ -579,3 +627,7 @@ async fn compose_extensions(
 #[cfg(test)]
 #[path = "workspace_service.tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "workspace_snapshot.tests.rs"]
+mod snapshot_tests;

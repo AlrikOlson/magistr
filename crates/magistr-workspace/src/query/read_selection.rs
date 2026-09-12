@@ -1,6 +1,6 @@
 use super::{
     ReadInput, ReadRange, ReadSurround, ReadSymbolRef, read_symbols::SymbolAddress,
-    source_snapshot::SourceSnapshot,
+    source_observation::SourceObservation,
 };
 use crate::{
     contracts::{ErrorKind, Freshness, WorkspaceError},
@@ -19,7 +19,7 @@ pub(super) struct ReadSelection {
 
 impl ReadSelection {
     pub fn resolve(
-        snapshot: &SourceSnapshot,
+        snapshot: &SourceObservation,
         input: &ReadInput,
         lines: &[&str],
         outline: Option<IndexQuery<IndexedFile>>,
@@ -52,7 +52,7 @@ impl ReadSelection {
 
     fn select_symbol(
         &mut self,
-        snapshot: &SourceSnapshot,
+        snapshot: &SourceObservation,
         address: &str,
         surround: ReadSurround,
         lines: &[&str],

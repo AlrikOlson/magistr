@@ -1,6 +1,6 @@
 //! The operational workspace verbs as the real binary (chunk arch-14c10b):
-//! `magistr workspace doctor [bundle|config]`, `journal`, `key rotate` and
-//! `init` with the retained renderings and process exit codes — 0 healthy,
+//! `magistr workspace doctor [bundle|config]`, `journal`, `key rotate`,
+//! `init` and `snapshot` with the retained renderings and process exit codes — 0 healthy,
 //! 1 findings, 64 usage, 65 durable data this binary cannot read, 66
 //! missing root — read-only and lock-free beside a live owner.
 #[path = "support/magistr_command.rs"]
@@ -437,4 +437,40 @@ fn init_seeds_the_commands_table_once_and_never_touches_an_existing_one() {
         toml
     );
     assert_eq!(code(&run(&["init", "missing"], dir.path())), Some(66));
+}
+
+#[test]
+fn snapshot_prints_the_source_observation_beside_a_live_owner_and_refuses_bad_inputs() {
+    let dir = seeded();
+    let root = dir.path().to_str().expect("utf8 root");
+    let state = dir.path().join(".workbench");
+    std::fs::write(dir.path().join(".gitignore"), "target/\n").expect("ignore");
+    std::fs::create_dir_all(dir.path().join("target")).expect("target");
+    std::fs::write(dir.path().join("target/built"), "artifact").expect("artifact");
+    let lock = ServerLock::acquire(state.join(ServerLock::FILE_NAME)).expect("live owner");
+    let generation = lock.generation().get();
+    let before = snapshot(&state);
+    let printed = run(
+        &["snapshot", root, "--artifact", "target/built"],
+        dir.path(),
+    );
+    assert_eq!(code(&printed), Some(0), "{}", stderr(&printed));
+    let parsed: Value = serde_json::from_str(stdout(&printed).trim()).expect("one snapshot");
+    assert_eq!(parsed["scheme"], "magistr-source-snapshot/1");
+    assert_eq!(parsed["consistency"], "optimistic");
+    assert_eq!(parsed["identity"]["generation"], Value::from(generation));
+    assert_eq!(
+        parsed["identity"]["root"].as_str().map(PathBuf::from),
+        Some(dir.path().canonicalize().expect("canonical"))
+    );
+    let entries = parsed["manifest"]["entries"].as_object().expect("entries");
+    assert_eq!(entries["a.ts"]["kind"], "text");
+    assert_eq!(entries["target/built"]["kind"], "text");
+    assert_eq!(entries["workbench.toml"]["kind"], "missing");
+    assert!(!entries.contains_key(".workbench/journal.db"));
+    assert_eq!(snapshot(&state), before, "the state dir was rewritten");
+    let refused = run(&["snapshot", root, "--artifact", "../escape"], dir.path());
+    assert_eq!(code(&refused), Some(64), "{}", stderr(&refused));
+    assert_eq!(code(&run(&["snapshot", "missing"], dir.path())), Some(66));
+    drop(lock);
 }

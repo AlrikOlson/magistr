@@ -32,6 +32,7 @@ pub mod response;
 #[cfg(feature = "sandbox")]
 pub mod sandbox;
 pub mod service;
+pub mod snapshot;
 mod source_language;
 mod source_open;
 pub mod transaction;
