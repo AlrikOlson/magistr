@@ -9,6 +9,27 @@ fn config(tmp: &tempfile::TempDir) -> NativeConfig {
     NativeConfig::from_lookup(root, |_| None).with_data_dir(tmp.path().join("data"))
 }
 
+#[test]
+fn readers_and_writers_use_the_captured_identity_before_the_project_pin() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("project");
+    std::fs::create_dir_all(&root).expect("project root");
+    magistr_workflow::infra::write_project_file(&root, "pinned-project", None)
+        .expect("project pin");
+    let cfg = NativeConfig::from_lookup(root.clone(), |key| {
+        (key == "THINK_AND_SHIP_PROJECT_NAME").then(|| "Captured Project".into())
+    })
+    .with_data_dir(tmp.path().join("data"));
+    let pin = root.join(".think-and-ship/project.json");
+    let pin_before = std::fs::read(&pin).expect("original identity");
+
+    let reader = NativeReader::open(&cfg);
+    assert_eq!(reader.project_id(), "captured-project");
+    let writer = ProjectAuthority::admit(&cfg, WriterRole::Host).expect("project authority");
+    assert_eq!(writer.project_id(), reader.project_id());
+    assert_eq!(std::fs::read(pin).expect("preserved identity"), pin_before);
+}
+
 fn refused(config: &NativeConfig, role: WriterRole) -> io::Error {
     match ProjectAuthority::admit_for_project(config, "lease".into(), role) {
         Ok(_) => panic!("a second {role:?} writer must be refused"),

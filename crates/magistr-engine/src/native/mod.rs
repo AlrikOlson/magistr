@@ -87,6 +87,7 @@ pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use identity::ensure_project_file;
 pub use magistr_frame::MagistrFrame;
+pub use magistr_workflow::think::ConfigSource;
 pub use mcp_acceptor::McpAcceptor;
 pub use native_config::NativeConfig;
 pub use native_engines::NativeEngines;

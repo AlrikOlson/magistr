@@ -33,7 +33,7 @@ use magistr_engine::native::{
 };
 
 use crate::application::AdmittedCheck;
-use magistr_core::evidence::{WorkspaceEvidence, writer_config};
+use magistr_core::evidence::{WorkspaceEvidence, writer_config_from_env};
 use magistr_engine::{GateOutput, MagistrFrame, ShipGuardState, WorkflowPhase};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use magistr_workflow::infra::Family;
@@ -87,7 +87,7 @@ impl MagistrService {
     /// cannot be bound. No engines are opened after failed admission.
     pub async fn for_project(project_root: PathBuf) -> std::io::Result<Self> {
         let project_root = project_root.canonicalize()?;
-        let tas = writer_config(&project_root, |key| std::env::var(key).ok());
+        let tas = writer_config_from_env(&project_root);
         #[cfg(unix)]
         let tas = tas.with_project_socket_default();
         Self::new(project_root, &tas).await
@@ -100,13 +100,12 @@ impl MagistrService {
     /// bound to the source it certifies.
     pub async fn new(project_root: PathBuf, tas: &NativeConfig) -> std::io::Result<Self> {
         let project_root = project_root.canonicalize()?;
-        let mut tas = tas.clone();
-        tas.project_root = project_root.clone();
+        let mut tas = tas.clone().with_project_root(project_root.clone());
         if tas.evidence().is_none() {
             tas = tas.with_evidence(Arc::new(WorkspaceEvidence::new(project_root.clone())));
         }
         let mut authority = ProjectAuthority::admit(&tas, WriterRole::Service)?;
-        if let Some(path) = tas.broadcast_path.as_ref() {
+        if let Some(path) = tas.broadcast_path() {
             authority = authority.publish(path).await?;
         }
         let (unified, engines) = authority.serve();

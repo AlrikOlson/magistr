@@ -5,7 +5,6 @@ use magistr_workflow::ship::persistence::{
     Persistence as ShipPersistence, PersistenceConfig as ShipPersistenceConfig,
 };
 use magistr_workflow::signal::SignalEngine;
-use magistr_workflow::think::config::load_config;
 use magistr_workflow::think::engine::ReasoningServer;
 
 use super::native_config::NativeConfig;
@@ -24,16 +23,10 @@ pub(crate) fn open_engines(
     project_id: String,
     broadcaster: Option<Broadcaster>,
 ) -> (ReasoningServer, ShipEngine, RoadmapEngine, SignalEngine) {
-    let persist = config.persistence_config();
-
     let mut roadmap = open_roadmap(config, project_id.clone());
     let mut signal = open_signal(config, project_id.clone());
     let mut ship = open_ship(config, project_id.clone());
-    let mut think_config = load_config();
-    think_config.persistence = persist;
-    // The socket is bound (or not) by the caller; the think engine must not
-    // try to bind a second one from the environment.
-    think_config.broadcast.path = None;
+    let think_config = config.think_config(&project_id);
     let mut think = ReasoningServer::new_for_project(think_config, project_id);
 
     if let Some(b) = broadcaster {
@@ -94,3 +87,7 @@ pub(crate) fn open_ship(config: &NativeConfig, project_id: String) -> ShipEngine
         data_dir: persist.data_dir,
     }))
 }
+
+#[cfg(test)]
+#[path = "open_engines.tests.rs"]
+mod tests;

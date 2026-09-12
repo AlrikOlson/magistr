@@ -1,7 +1,6 @@
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use magistr_workflow::infra::resolve_project_id_with;
 use magistr_workflow::roadmap::RoadmapEngine;
 use magistr_workflow::roadmap::domain::Chunk;
 use magistr_workflow::ship::domain::objective::Objective;
@@ -56,8 +55,7 @@ impl NativeReader {
     /// the way the external server would. No lease is taken.
     #[must_use]
     pub fn open(config: &NativeConfig) -> Self {
-        let (project_id, _) = resolve_project_id_with(None, Some(config.project_root()));
-        Self::open_for_project(config, project_id)
+        Self::open_for_project(config, config.resolve_project_id())
     }
 
     /// Observe the store under an explicit project id. No lease is taken.

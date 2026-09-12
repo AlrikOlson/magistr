@@ -10,14 +10,16 @@
 //! the same gate resolver `magistr_gate all` runs. There is no second
 //! scanner: a receipt's source revision is the snapshot's.
 //!
-//! [`writer_config`] is how every production writer admission attaches the
-//! capability; a writer opened without it records source-less checks and
-//! cannot complete a chunk.
+//! [`writer_config_from_env`] captures production configuration and attaches
+//! the capability; [`writer_config`] accepts explicit test inputs. A writer
+//! opened without evidence records source-less checks and cannot complete a chunk.
 
 mod snapshot_witness;
 mod workspace_evidence;
 mod writer_config;
+mod writer_config_from_env;
 
 pub use snapshot_witness::SnapshotWitness;
 pub use workspace_evidence::WorkspaceEvidence;
 pub use writer_config::writer_config;
+pub use writer_config_from_env::writer_config_from_env;

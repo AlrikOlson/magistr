@@ -71,6 +71,8 @@ a durable client identity and reconnects (attaching or admitting) on its next
 request when the owner goes away, and workers end with a killed owner. Source
 snapshots remain separate native roadmap work.
 
+[Native workflow configuration](configuration.md) is captured before admission;
+reader, writer and attachment paths use its typed settings and identity inputs.
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes
 `.magistr/project.json` and agent-specific files from the CLI crate's templates

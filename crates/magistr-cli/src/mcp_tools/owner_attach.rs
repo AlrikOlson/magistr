@@ -19,7 +19,6 @@ use color_eyre::eyre;
 use magistr_engine::native::{
     AttachError, CallerIdentity, McpAcceptor, NativeConfig, OwnerClient, OwnerEndpoint, WriterRole,
 };
-use magistr_workflow::infra::resolve_project_id_with;
 use rmcp::ServiceExt as _;
 
 use super::owner_stdio::ProxyStdio;
@@ -78,7 +77,7 @@ impl MagistrService {
 /// the lease's own reason, beside the attachment's), or the proxy failed.
 pub async fn proxy_to_owner(project_root: &Path, refusal: &io::Error) -> eyre::Result<()> {
     let config = NativeConfig::from_env(project_root);
-    let (project_id, _) = resolve_project_id_with(None, Some(config.project_root()));
+    let project_id = config.resolve_project_id();
     let (generation, stream) = OwnerClient::attach_mcp(
         &config,
         project_id,

@@ -31,7 +31,7 @@ impl OutputFormat {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ValidationConfig {
     pub require_thought_prefix: bool,
     pub require_rationale_prefix: bool,
@@ -39,7 +39,7 @@ pub struct ValidationConfig {
     pub strict_mode: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeaturesConfig {
     pub enable_revisions: bool,
     pub enable_branching: bool,
@@ -54,22 +54,23 @@ pub struct FeaturesConfig {
     ///
     /// Resolved in this order at startup:
     ///   1. `THINK_AND_SHIP_DEFAULT_SESSION_ID` env var (explicit override)
-    ///   2. `THINK_AND_SHIP_AUTO_SESSION=true` → the resolved `project_id`
-    ///      (`<basename>-<6hex>`; stable across server spawns so a fresh
-    ///      conversation sees its own past steps)
-    ///   3. None (caller must pass `session_id` explicitly to use a session)
+    ///   2. Enabled sessions (`THINK_AND_SHIP_ENABLE_SESSIONS=true` or the
+    ///      compatibility `THINK_AND_SHIP_AUTO_SESSION=true`) use the admitted
+    ///      project identity, stable across server spawns.
+    ///   3. None (caller must pass `session_id` explicitly to use a session).
     ///
-    /// Setting either env implies `enable_sessions = true`.
+    /// A valid explicit session ID also enables sessions. Pure configuration
+    /// resolution leaves the automatic ID unset until project admission.
     pub default_session_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DisplayConfig {
     pub color_output: bool,
     pub output_format: OutputFormat,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SystemConfig {
     pub max_history_size: usize,
     pub max_branch_depth: u32,
@@ -120,7 +121,7 @@ pub const ROLLUP_PINNED_FLOOR: usize = 5;
 /// which is exactly why it is revised with a reason rather than tuned away.
 pub const PIN_DECAY_LAG: usize = 3;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BroadcastConfig {
     /// When set, the server binds a Unix domain socket here and emits a
     /// newline-delimited JSON frame for every trace mutation. Passive
@@ -139,8 +140,30 @@ pub struct ThinkConfig {
     pub broadcast: BroadcastConfig,
 }
 
+impl PartialEq for ThinkConfig {
+    fn eq(&self, other: &Self) -> bool {
+        self.validation == other.validation
+            && self.features == other.features
+            && self.display == other.display
+            && self.system == other.system
+            && self.persistence.enabled == other.persistence.enabled
+            && self.persistence.data_dir == other.persistence.data_dir
+            && self.broadcast == other.broadcast
+    }
+}
+
+impl Eq for ThinkConfig {}
+
 impl Default for ThinkConfig {
     fn default() -> Self {
+        Self::with_persistence(PersistenceConfig::from_env().enabled(false))
+    }
+}
+
+impl ThinkConfig {
+    /// Defaults with explicit persistence; does not inspect the host environment.
+    #[must_use]
+    pub fn with_persistence(persistence: PersistenceConfig) -> Self {
         Self {
             validation: ValidationConfig {
                 require_thought_prefix: false,
@@ -167,127 +190,23 @@ impl Default for ThinkConfig {
                 recent_steps_limit: 3,
                 rollup_max_items: 12,
             },
-            persistence: PersistenceConfig::from_env().enabled(false),
+            persistence,
             broadcast: BroadcastConfig { path: None },
         }
     }
 }
 
-/// Parse a non-empty env value as an integer `>= min`, returning `None` otherwise.
-fn parse_int_env<T: std::str::FromStr + PartialOrd + Copy>(
-    value: Option<&str>,
-    min: T,
-) -> Option<T> {
-    let raw = value?.trim();
-    if raw.is_empty() {
-        return None;
-    }
-    let parsed = raw.parse::<T>().ok()?;
-    if parsed < min { None } else { Some(parsed) }
-}
-
-/// Build a config from `Default` and the env, matching the TS `loadConfig` behavior.
+/// Compatibility host entry point. Native application owners use the same
+/// parser with captured inputs and provide their admitted project identity.
 pub fn load_config() -> ThinkConfig {
-    let mut config = ThinkConfig::default();
-
-    if env::var("THINK_AND_SHIP_STRICT_MODE").as_deref() == Ok("true") {
-        config.validation.strict_mode = true;
-        config.validation.require_thought_prefix = true;
-        config.validation.require_rationale_prefix = true;
-        config.validation.allow_custom_purpose = false;
-    }
-
-    if let Some(v) = parse_int_env::<usize>(env::var("MAX_HISTORY_SIZE").ok().as_deref(), 1) {
-        config.system.max_history_size = v;
-    }
-
-    if let Ok(raw) = env::var("THINK_AND_SHIP_OUTPUT_FORMAT") {
-        match OutputFormat::parse(&raw) {
-            Some(fmt) => config.display.output_format = fmt,
-            None => {
-                tracing::warn!(
-                    "Invalid THINK_AND_SHIP_OUTPUT_FORMAT '{raw}', using default 'console'. Valid options: console, json, markdown"
-                );
-            }
-        }
-    }
-
-    if env::var("THINK_AND_SHIP_NO_COLOR").as_deref() == Ok("true") {
-        config.display.color_output = false;
-    }
-
-    if let Some(v) = parse_int_env::<u64>(
-        env::var("THINK_AND_SHIP_SESSION_TIMEOUT").ok().as_deref(),
-        1,
-    ) {
-        config.system.session_timeout = v;
-    }
-
-    if let Some(v) = parse_int_env::<u32>(
-        env::var("THINK_AND_SHIP_MAX_BRANCH_DEPTH").ok().as_deref(),
-        1,
-    ) {
-        config.system.max_branch_depth = v;
-    }
-
-    if env::var("THINK_AND_SHIP_ENABLE_SESSIONS").as_deref() == Ok("true") {
-        config.features.enable_sessions = true;
-    }
-
-    if let Some(v) = parse_int_env::<usize>(
-        env::var("THINK_AND_SHIP_RECENT_STEPS_LIMIT")
-            .ok()
-            .as_deref(),
-        1,
-    ) {
-        config.system.recent_steps_limit = v;
-    }
-
-    if let Some(v) = parse_int_env::<usize>(
-        env::var("THINK_AND_SHIP_ROLLUP_MAX_ITEMS").ok().as_deref(),
-        1,
-    ) {
-        config.system.rollup_max_items = v;
-    }
-
-    // Resolved by the shared implementation so every family answers the same
-    // switch the same way, and re-read here (rather than inherited from
-    // `Default`) so a test that sets the environment afterwards is honoured.
-    config.persistence = PersistenceConfig::from_env();
-
-    if let Ok(raw) = env::var("THINK_AND_SHIP_BROADCAST_PATH") {
-        let trimmed = raw.trim();
-        if !trimmed.is_empty() {
-            config.broadcast.path = Some(PathBuf::from(trimmed));
-        }
-    }
-
-    // Project-derived default session is now always-on whenever sessions
-    // are enabled. The previous opt-in (`THINK_AND_SHIP_AUTO_SESSION=true`)
-    // produced silent data corruption: agents in projects without that
-    // env wrote to a shared `_default.json` regardless of cwd. We keep
-    // the env var accepted for back-compat (still enables sessions) but
-    // no longer require it for the default to apply.
-    if env::var("THINK_AND_SHIP_AUTO_SESSION").as_deref() == Ok("true") {
-        config.features.enable_sessions = true;
-    }
+    let mut config = super::ThinkConfigResolution::from_lookup(
+        |key| env::var(key).ok(),
+        PersistenceConfig::from_env(),
+    )
+    .config;
     if config.features.enable_sessions && config.features.default_session_id.is_none() {
         config.features.default_session_id = Some(generate_auto_session_id());
     }
-    if let Ok(raw) = env::var("THINK_AND_SHIP_DEFAULT_SESSION_ID") {
-        let trimmed = raw.trim();
-        if trimmed.is_empty() {
-            // Leave whatever auto-session produced in place.
-        } else if !is_safe_session_id(trimmed) {
-            tracing::warn!(
-                "Ignoring THINK_AND_SHIP_DEFAULT_SESSION_ID={trimmed:?} — must match [A-Za-z0-9_.-], ≤128 chars"
-            );
-        } else {
-            config.features.enable_sessions = true;
-            config.features.default_session_id = Some(trimmed.to_string());
-        }
-    }
-
     config
 }
 
@@ -352,16 +271,4 @@ pub fn namespace_session_id(project_id: &str, raw: &str) -> String {
         }
     }
     combined
-}
-
-/// Same allowlist as persistence::is_safe_session_id. Kept here so the
-/// config layer can validate before passing values downstream.
-fn is_safe_session_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 128
-        && id
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
-        && id != "."
-        && id != ".."
 }

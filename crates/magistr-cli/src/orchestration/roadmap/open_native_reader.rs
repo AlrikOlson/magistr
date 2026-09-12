@@ -17,20 +17,28 @@ use magistr_engine::{NativeConfig, NativeReader, RoadmapBackend};
 /// from the process environment (`THINK_AND_SHIP_*`).
 #[must_use]
 pub fn open_native_reader(dir: &Path) -> Option<NativeReader> {
-    open_native_reader_with(dir, |key| std::env::var(key).ok())
+    open_with_configuration(dir, || NativeConfig::from_env(dir))
 }
 
 /// Same as [`open_native_reader`] with an injected environment lookup, so
 /// tests can point the store at a temp directory.
+#[cfg(test)]
 #[must_use]
 pub(crate) fn open_native_reader_with(
     dir: &Path,
     lookup: impl Fn(&str) -> Option<String>,
 ) -> Option<NativeReader> {
+    open_with_configuration(dir, || NativeConfig::from_lookup(dir, lookup))
+}
+
+fn open_with_configuration(
+    dir: &Path,
+    configure: impl FnOnce() -> NativeConfig,
+) -> Option<NativeReader> {
     if !roadmap_backend_of(dir).is_native() {
         return None;
     }
-    Some(NativeReader::open(&NativeConfig::from_lookup(dir, lookup)))
+    Some(NativeReader::open(&configure()))
 }
 
 /// The backend a project effectively runs: the declared `roadmap_backend`,

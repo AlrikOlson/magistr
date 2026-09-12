@@ -175,9 +175,9 @@ impl EngineClient {
         if !root.is_dir() {
             return Err(EngineError::NoProject(root.to_path_buf()));
         }
-        if config.persist {
-            std::fs::create_dir_all(&config.data_dir).map_err(|source| EngineError::Store {
-                path: config.data_dir.clone(),
+        if config.persistence_enabled() {
+            std::fs::create_dir_all(config.data_dir()).map_err(|source| EngineError::Store {
+                path: config.data_dir().to_path_buf(),
                 source,
             })?;
         }
