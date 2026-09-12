@@ -237,20 +237,28 @@ impl Drop for McpClient {
 /// same JSON. An envelope that came back `ok: false` is the workbench
 /// refusing, and its message is the error.
 fn envelope(result: &Value) -> Result<Value, String> {
-    let unreadable = || "the workbench answered nothing the cockpit could read".to_owned();
+    // Check failure before trying to dereference a success payload. Retain the
+    // complete result: codes, field problems and uncertain-write evidence matter.
+    if result["isError"] == true {
+        return Err(format!("workbench tool failed: {result}"));
+    }
+    let unreadable = || format!("the workbench answered nothing the cockpit could read: {result}");
     let envelope = if result["structuredContent"].is_object() {
         result["structuredContent"].clone()
     } else {
-        let text = result["content"][0]["text"]
-            .as_str()
-            .ok_or_else(unreadable)?;
-        serde_json::from_str::<Value>(text).map_err(|_| unreadable())?
+        result["content"]
+            .as_array()
+            .and_then(|items| {
+                items.iter().find_map(|item| {
+                    item["text"]
+                        .as_str()
+                        .and_then(|text| serde_json::from_str::<Value>(text).ok())
+                })
+            })
+            .ok_or_else(unreadable)?
     };
-    if envelope["ok"] == Value::Bool(false) {
-        let message = envelope["error"]["message"]
-            .as_str()
-            .unwrap_or("the workbench refused");
-        return Err(message.to_owned());
+    if envelope["ok"] != true {
+        return Err(format!("the workbench refused: {result}"));
     }
     Ok(envelope)
 }

@@ -42,8 +42,10 @@ fn parse_status(s: &str) -> Result<ChunkStatus, String> {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct AddChunkArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub id: String,
     #[serde(default)]
+    #[schemars(required, !default)]
     pub title: String,
     // The full rule lives in the tool description and in the engine's refusal,
     // which are the two copies a caller actually reads — one before forming the
@@ -86,6 +88,7 @@ pub struct TrackerSetupArgs {
     /// A Linear team KEY (letters and digits only, e.g. `ENG`) or a GitHub
     /// `owner/repo`.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub into: String,
     /// Display name to use if the destination has to be created.
     #[serde(default)]
@@ -122,9 +125,11 @@ const fn default_push_secs() -> u64 {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SetStatusArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub id: String,
     /// One of: backlog, pending, in_progress, blocked, done, obsoleted.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub status: String,
 }
 
@@ -185,9 +190,11 @@ pub struct UpdateChunkArgs {
 pub struct BlockedByArgs {
     /// premise_refuted | premise_unmet | awaiting_human | external.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub kind: String,
     /// Why, in a sentence nobody should have to re-derive from the title.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub reason: String,
     /// Optional proof — a cross-ref (think:N | chunk:id | task:X).
     #[serde(default)]
@@ -203,10 +210,12 @@ pub struct ObsoleteArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ReprioritizeArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub id: String,
     #[serde(default, deserialize_with = "crate::infra::coerce::priority")]
     pub suggested_priority: u32,
     #[serde(default)]
+    #[schemars(required, !default)]
     pub reason: String,
 }
 
@@ -278,10 +287,12 @@ pub struct CompleteChunkArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct LinkArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub id: String,
     /// A cross-ref string: `think:N`, `task:X`, `action:N`, `check:X`, `chunk:X`.
     /// `ref`/`crossref` are accepted as forgiving aliases.
     #[serde(default, alias = "ref", alias = "crossref")]
+    #[schemars(required, !default)]
     pub cross_ref: String,
 }
 
@@ -296,6 +307,7 @@ pub struct RecordRefreshArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SetGroupArgs {
     #[serde(default)]
+    #[schemars(required, !default)]
     pub id: String,
     /// The workstream name. Omit or pass empty to CLEAR the group — ungrouped
     /// is a valid answer, not a gap.
@@ -328,6 +340,7 @@ pub struct NoArgs {}
 pub struct FocusGetArgs {
     /// Required. The asking caller's stable identity.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub lane: String,
     /// Peek at this workstream instead of the focused one. Changes nothing.
     #[serde(default)]
@@ -338,6 +351,7 @@ pub struct FocusGetArgs {
 pub struct FocusSetArgs {
     /// Required. The focusing caller's stable identity.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub lane: String,
     /// Exact workstream name, or an unambiguous fragment.
     #[serde(default)]

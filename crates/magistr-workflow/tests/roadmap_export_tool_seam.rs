@@ -200,7 +200,7 @@ async fn write_failures_are_explicit_and_leave_no_temporary_files() {
         .with_workspace_root(root.path())
         .unwrap();
     let response = call_export(service.clone(), json!({})).await;
-    assert_eq!(response.is_error, Some(false));
+    assert_eq!(response.is_error, Some(true));
     let receipt = response.structured_content.unwrap();
     assert_eq!(receipt["ok"], false);
     assert_eq!(receipt["error_kind"], "export_failed");

@@ -117,11 +117,7 @@ impl RoadmapService {
         crate::infra::tool_result::ok(value)
     }
 
-    /// A logical failure (unknown id, illegal transition, …). Delegates to
-    /// [`crate::infra::tool_result::soft_error`] so the result is NEVER marked
-    /// `is_error: true` — a non-error sibling can't trigger Claude Code's
-    /// parallel-batch cascade-cancel. The `{ok:false, error_kind, message}`
-    /// envelope is unchanged for callers that pattern-match it.
+    /// Logical failures are MCP errors with stable diagnostics and explicit recovery.
     pub(super) fn err_structured(kind: &str, message: impl Into<String>) -> CallToolResult {
         crate::infra::tool_result::soft_error(kind, message)
     }
@@ -171,8 +167,20 @@ impl ServerHandler for RoadmapService {
         // route to the human, and it exists only inside a tools/call.
         let asked_about = Self::consent_question_for(request.name.as_ref());
         let peer = context.peer.clone();
+        let tool = self
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == request.name);
+        if let Some(tool) = &tool
+            && let Some(error) = crate::infra::tool_input::ToolInput::required(tool, &request)
+        {
+            return Ok(error.into());
+        }
+        let known = tool.is_some();
         let tcc = ToolCallContext::new(self, request, context);
-        let result = self.tool_router.call(tcc).await;
+        let result =
+            crate::infra::tool_input::ToolInput::decoded(self.tool_router.call(tcc).await, known);
 
         // Ask AFTER the work, and only when the work actually landed. A
         // question on top of a failure is noise, and `tracker_setup` failing
@@ -203,29 +211,11 @@ impl RoadmapService {
         tool == "tracker_setup"
     }
 
-    /// Whether a tool call actually did its job.
-    ///
-    /// It reads the `ok` envelope, NOT `is_error`, and that is the whole point.
-    /// `infra::tool_result::soft_error` sets `is_error: false` **deliberately**
-    /// — "the load-bearing bit", in its own words — because a domain failure is
-    /// not a protocol failure (degrade, never fail). So `is_error` is `Some(false)`
-    /// on every result this server produces, success and failure alike, and a
-    /// predicate reading it would call every failure a success.
-    ///
-    /// A first draft of this function did exactly that, and it took
-    /// deliberately breaking the code under test to expose it: the test that
-    /// was supposed to prove "a failed setup asks nobody anything" was really
-    /// only proving that the env gate was off.
+    /// Dependent consent runs only after a checked, readable success result.
     fn landed(result: &Result<CallToolResponse, ErrorData>) -> bool {
-        let Ok(CallToolResponse::Complete(r)) = result else {
+        let Ok(CallToolResponse::Complete(result)) = result else {
             return false;
         };
-        r.structured_content
-            .as_ref()
-            .and_then(|sc| sc.get("ok"))
-            .and_then(serde_json::Value::as_bool)
-            // A tool with no `ok` envelope at all has not reported a failure, so
-            // it is treated as landed. Only an explicit `ok: false` blocks.
-            .unwrap_or(true)
+        crate::infra::checked_tool_result::CheckedToolResult::body(result).is_ok()
     }
 }

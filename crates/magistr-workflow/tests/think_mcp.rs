@@ -303,14 +303,8 @@ async fn get_step_missing_emits_soft_error_envelope() {
         }))
         .await
         .unwrap();
-    // A logical "not found" carries the error_kind envelope BUT must NOT be
-    // marked is_error — otherwise it cancels sibling tool calls in a parallel
-    // batch (anthropics/claude-code#22264). See infra::tool_result::soft_error.
-    assert_eq!(
-        result.is_error,
-        Some(false),
-        "logical failure must stay is_error:false (cascade-safe)"
-    );
+    // A logical failure must be visible to clients before success decoding.
+    assert_eq!(result.is_error, Some(true));
     let sc = structured(&result);
     assert_eq!(sc["ok"], false);
     assert_eq!(sc["error_kind"], "step_not_found");

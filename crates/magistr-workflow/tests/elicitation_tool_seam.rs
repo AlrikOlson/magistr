@@ -142,12 +142,7 @@ async fn with_the_gate_on_a_tracker_setup_that_did_not_land_still_asks_nobody() 
         "this call was supposed to FAIL; if it landed the test below proves \
          nothing: {structured}"
     );
-    assert_eq!(
-        response.is_error,
-        Some(false),
-        "and it must NOT be a protocol error — degrade, never fail — which is \
-         precisely why `landed` cannot read `is_error`"
-    );
+    assert_eq!(response.is_error, Some(true));
 
     assert!(
         asked.lock().unwrap().is_empty(),
@@ -169,11 +164,9 @@ async fn with_the_gate_on_a_tracker_setup_that_did_not_land_still_asks_nobody() 
 ///
 /// The link in the reachability chain that the tool-level positive path cannot
 /// yet supply. A success envelope from this very server must be `landed`, and a
-/// real `soft_error` envelope must not — and crucially both carry
-/// `is_error: Some(false)`, so a predicate reading that field would answer
-/// "landed" to both. That is the bug this test was written after finding.
+/// real failure envelope must not. Both the MCP flag and body preserve the refusal.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn landed_reads_the_ok_envelope_and_not_is_error() {
+async fn landed_distinguishes_success_and_failure_over_the_wire() {
     let data_dir = tempfile::TempDir::new().expect("tempdir");
     unsafe {
         std::env::set_var("THINK_AND_SHIP_DATA_DIR", data_dir.path());
@@ -222,11 +215,7 @@ async fn landed_reads_the_ok_envelope_and_not_is_error() {
         Some(&json!(false)),
         "a domain failure must say so in the envelope: {err_sc}"
     );
-    assert_eq!(
-        err.is_error,
-        Some(false),
-        "THE POINT: a failure and a success are indistinguishable by is_error"
-    );
+    assert_eq!(err.is_error, Some(true));
 
     let _ = client.cancel().await;
 }

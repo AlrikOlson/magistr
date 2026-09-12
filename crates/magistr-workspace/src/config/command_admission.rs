@@ -63,26 +63,37 @@ const WRAPPERS: &[&str] = &["env", "xargs", "npx", "bunx", "exec", "nice", "time
 fn guard(argv: &[String], command: &str) -> Result<(), WorkspaceError> {
     let redirect = "use `search` (or `read`) to inspect files and `edit` to modify them — run executes declared project commands only (SDD §9.6, §1.1)";
     let mut program_position = true;
-    let mut env_options = false;
+    let mut env_assignments = false;
     for token in argv {
         let message = if OPERATORS.contains(&token.as_str()) {
             Some(format!(
                 "run executes a single argv with no shell: {token:?} in command \"{command}\" would be passed as a literal argument, never interpreted; {redirect}"
             ))
         } else if program_position {
-            // env -S reparses one argv element as a command line. Refuse that
-            // second interpretation rather than inspect a different argv from
-            // the one the eventual process would execute (native safety delta).
-            if env_options && splits_env_string(token) {
+            // Supported grammar: option-free wrapper chains, with NAME=value
+            // operands only after env. Do not skip options: their operands may
+            // otherwise be mistaken for the program (env -u NAME, nice -n N).
+            // This also refuses -- and env's argv-reparsing split-string forms.
+            if token.starts_with('-') {
                 return Err(WorkspaceError::new(
                     ErrorKind::RunRedirected,
                     format!(
-                        "command \"{command}\" uses env split-string option {token:?}, which reparses arguments; {redirect}"
+                        "command \"{command}\" uses unsupported wrapper/program option {token:?}; only option-free wrappers and env NAME=value prefixes are supported; {redirect}"
                     ),
                 ));
             }
-            if token.starts_with('-') || is_assignment(token) {
-                continue;
+            if token.contains('=') {
+                // env accepts names beyond shell identifiers. Refuse those
+                // unsupported forms instead of mistaking them for the program.
+                if env_assignments && is_assignment(token) {
+                    continue;
+                }
+                return Err(WorkspaceError::new(
+                    ErrorKind::RunRedirected,
+                    format!(
+                        "command \"{command}\" uses unsupported assignment {token:?}; only env prefixes with shell identifier names are supported; {redirect}"
+                    ),
+                ));
             }
             let program = token
                 .rsplit(['/', '\\'])
@@ -91,7 +102,7 @@ fn guard(argv: &[String], command: &str) -> Result<(), WorkspaceError> {
                 .to_lowercase();
             let program = program.strip_suffix(".exe").unwrap_or(&program);
             program_position = WRAPPERS.contains(&program);
-            env_options = program == "env";
+            env_assignments = program == "env";
             if SHELLS.contains(&program) {
                 Some(format!(
                     "command \"{command}\" resolves to a shell ({token:?}), which is general shell execution; {redirect}"
@@ -110,29 +121,13 @@ fn guard(argv: &[String], command: &str) -> Result<(), WorkspaceError> {
             return Err(WorkspaceError::new(ErrorKind::RunRedirected, message));
         }
     }
+    if program_position {
+        return Err(WorkspaceError::new(
+            ErrorKind::RunRedirected,
+            format!("command \"{command}\" has no program after its wrapper prefix; {redirect}"),
+        ));
+    }
     Ok(())
-}
-
-fn splits_env_string(token: &str) -> bool {
-    if token == "--split-string" || token.starts_with("--split-string=") {
-        return true;
-    }
-    let Some(short) = token
-        .strip_prefix('-')
-        .filter(|short| !short.starts_with('-'))
-    else {
-        return false;
-    };
-    for option in short.chars() {
-        if option == 'S' {
-            return true;
-        }
-        // These short options consume the remainder as data, not option letters.
-        if matches!(option, 'u' | 'C' | 'a') {
-            break;
-        }
-    }
-    false
 }
 
 fn is_assignment(token: &str) -> bool {
