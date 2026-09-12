@@ -9,7 +9,7 @@ use crate::{
     contracts::{EnvelopeVersion, ErrorKind, WorkspaceError, WorkspaceResponse},
     file_content::FileContent,
     query::{SymbolAddress, budget},
-    transaction::{ExpectedState, TransactionChange},
+    transaction::{ExpectedState, FormatMode, TransactionChange},
     worker::WorkerSymbol,
 };
 
@@ -55,6 +55,7 @@ pub(super) async fn run(
             dry_run: input.dry_run,
             auto_apply: input.auto_apply,
             budget: input.budget,
+            format: FormatMode::Enabled,
         },
         resolved,
     )

@@ -53,7 +53,7 @@
 //! join handle. The operation has to notice. [`Eligibility::spawn`] therefore
 //! races the inner call against [`rmcp::task_manager::TaskContext::cancelled`]
 //! in a `select!`, and when cancellation wins, the inner future is **dropped**.
-//! `run_check_command` already builds its child with `.kill_on_drop(true)`, so
+//! `run_check_command` runs its child as a `magistr_process::OwnedProcess`, which kills the child on drop, so
 //! that drop is what kills the actual `cargo test` process — the two facts
 //! compose, and no process-killing code is written here. The task then settles
 //! terminal `cancelled` via [`TaskExit::Cancelled`], which is neither "passed"

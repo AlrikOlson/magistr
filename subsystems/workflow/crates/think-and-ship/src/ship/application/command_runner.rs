@@ -1,5 +1,10 @@
 //! Asynchronous command execution outside the native state lock.
 
+use std::time::Duration;
+
+use magistr_process::{Launch, OwnedProcess, ProcessSpec, Termination};
+use tokio_util::sync::CancellationToken;
+
 use super::{CheckAdmission, CheckExecution, CheckOutcome, ShipUseCases};
 
 // ── Verified-check command execution ───────────────────────────────
@@ -21,61 +26,63 @@ pub(crate) const CHECK_OUTPUT_TAIL: usize = 4000;
 /// task retention window shorter than the longest a gate may run would mark a
 /// still-running gate `failed`.
 pub(crate) const CHECK_TIMEOUT_SECS: u64 = 900;
+/// How long the group gets after `SIGTERM` before `SIGKILL` on a timeout.
+const KILL_GRACE: Duration = Duration::from_secs(5);
 
 /// Run a check command in the server's working directory (the project dir),
-/// capturing exit code + a tail of combined stdout/stderr. The command runs
-/// through the platform shell so `&&`, pipes, and args work as written.
+/// capturing exit code + a tail of combined stdout/stderr. The command is the
+/// caller's own string and runs through the platform shell so `&&`, pipes,
+/// and args work as written — Magistr's owned-process mechanism supplies the
+/// group, the cap and the kill; it never grants the line the workspace's
+/// declared-command admission. Dropping the future mid-run kills the child.
 pub(crate) async fn run_check_command(cmd: &str) -> CommandOutcome {
-    use std::process::Stdio;
-    use tokio::process::Command;
-
-    #[cfg(windows)]
-    let (shell, flag) = ("cmd", "/C");
-    #[cfg(not(windows))]
-    let (shell, flag) = ("sh", "-c");
-
-    let mut command = Command::new(shell);
-    command
-        .arg(flag)
-        .arg(cmd)
-        .stdin(Stdio::null())
-        .kill_on_drop(true);
-
-    let timeout = std::time::Duration::from_secs(CHECK_TIMEOUT_SECS);
-    match tokio::time::timeout(timeout, command.output()).await {
-        Ok(Ok(output)) => {
-            let code = output.status.code();
-            let mut combined = String::from_utf8_lossy(&output.stdout).into_owned();
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            if !stderr.trim().is_empty() {
-                combined.push_str(&stderr);
-            }
-            let code_str = code.map_or_else(|| "signal".to_string(), |c| c.to_string());
-            CommandOutcome {
-                passed: output.status.success(),
-                exit_code: code,
-                // A process ended by a signal has no exit code; it did not
-                // pass, and -1 is the code the host's own runner reports.
-                execution: CheckExecution::Exited {
-                    code: code.unwrap_or(-1),
-                },
-                output_tail: format!("$ {cmd}\n[exit {code_str}]\n{}", tail_chars(&combined)),
-            }
-        }
-        Ok(Err(e)) => CommandOutcome {
-            passed: false,
-            exit_code: None,
-            execution: CheckExecution::LaunchFailed {
-                reason: e.to_string(),
-            },
-            output_tail: format!("failed to run `{cmd}`: {e}"),
-        },
-        Err(_) => CommandOutcome {
+    let spec = ProcessSpec::new(
+        Launch::Shell(cmd.to_owned()),
+        Duration::from_secs(CHECK_TIMEOUT_SECS),
+    )
+    .with_termination(Termination::Graceful { grace: KILL_GRACE });
+    let process = match OwnedProcess::spawn(spec) {
+        Ok(process) => process,
+        Err(error) => return launch_failed(cmd, &error.to_string()),
+    };
+    let outcome = process.run(&CancellationToken::new(), |_| {}).await;
+    if let Some(fault) = &outcome.fault {
+        return launch_failed(cmd, fault);
+    }
+    if outcome.timed_out {
+        return CommandOutcome {
             passed: false,
             exit_code: None,
             execution: CheckExecution::TimedOut,
             output_tail: format!("`{cmd}` timed out after {CHECK_TIMEOUT_SECS}s"),
+        };
+    }
+    let code = outcome.exit_code;
+    let mut combined = outcome.stdout;
+    if !outcome.stderr.trim().is_empty() {
+        combined.push_str(&outcome.stderr);
+    }
+    let code_str = code.map_or_else(|| "signal".to_string(), |c| c.to_string());
+    CommandOutcome {
+        passed: code == Some(0),
+        exit_code: code,
+        // A process ended by a signal has no exit code; it did not
+        // pass, and -1 is the code the host's own runner reports.
+        execution: CheckExecution::Exited {
+            code: code.unwrap_or(-1),
         },
+        output_tail: format!("$ {cmd}\n[exit {code_str}]\n{}", tail_chars(&combined)),
+    }
+}
+
+fn launch_failed(cmd: &str, reason: &str) -> CommandOutcome {
+    CommandOutcome {
+        passed: false,
+        exit_code: None,
+        execution: CheckExecution::LaunchFailed {
+            reason: reason.to_owned(),
+        },
+        output_tail: format!("failed to run `{cmd}`: {reason}"),
     }
 }
 

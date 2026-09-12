@@ -15,7 +15,10 @@ effects unless its builder supplies a capability adapter. The CLI's shared
 `LocalEffectPort`. A host can instead supply its own `EffectPort`.
 
 The local adapter owns filesystem access, process creation and live terminal
-resources. It reports its read, write and terminal support through
+resources. A host that admitted the workspace supplies a `SourceWriter`
+(`with_source_writer`, threaded from `ResolvedSessionSpec::with_source_writer`
+through `AcpTransport::source_writer`), and authorized writes then go through
+the [workspace pipeline](#routing-writes-through-the-workspace-pipeline). It reports its read, write and terminal support through
 `EffectCapabilities`; initialization advertises those values. Unsupported calls
 are refused even if an agent sends them despite the advertised capability.
 File targets and terminal working directories must resolve inside the configured
@@ -67,6 +70,27 @@ execution failures. The ACP bridge converts them to protocol errors instead of
 fabricating successful empty responses. An error after admission does not imply
 rollback; cancellation prevents pending admission and does not undo a completed
 file write or program side effect.
+
+## Routing writes through the workspace pipeline
+
+`arch-14f2` routes an authorized `fs/write_text_file` through the admitted
+workspace when the host is its owner (`magistr::application::HostedWorkspace`,
+composed by `magistr run` and the cockpit loops). The order is unchanged:
+resolution, the session's permission decision, the post-decision recheck — and
+only then the route. A denied or cancelled write reaches neither the pipeline
+nor the file. Through the route the write is the workspace's `write` verb:
+anchored on the current bytes, parse-verified, atomic, journaled as an intent,
+formatting off so the bytes that land are the bytes the agent wrote, and never
+confirm-gated because the permission decision is the confirmation. The port's
+`fs_write` event carries `route: "workspace"`, the journal intent and the
+`MutationReceipt`'s revision. Without a `SourceWriter` the port writes directly
+as before and the event says `route: "direct"` with a note that the write is
+unjournaled. The pipeline's refusals — a protected path, a syntax error into a
+valid source, a stale anchor — are typed effect errors in the pipeline's own
+words; nothing lands. External writes (an editor, a provider CLI, git) are not
+routed and not journaled; `SourceSnapshot` validation reports them as changes.
+`crates/magistr-cli/tests/source_pipeline_routing.rs` proves each of these
+against a real owner and the real port.
 
 ## Limits
 

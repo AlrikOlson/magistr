@@ -9,7 +9,5 @@
 pub(crate) mod effects;
 pub(crate) mod fs;
 pub(crate) mod permission;
-#[cfg(unix)]
-pub(crate) mod pty;
 pub(crate) mod strip_escapes;
 pub(crate) mod terminal;

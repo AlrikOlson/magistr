@@ -306,3 +306,145 @@ fn resolver_follows_a_symlink_before_parent_components_and_detects_loops() {
         Err(EffectError::InvalidRequest(_))
     ));
 }
+
+/// A source writer that records what reached it and answers a receipt.
+struct RecordingWriter {
+    writes: Mutex<Vec<(String, String)>>,
+    refuse: Option<EffectError>,
+}
+
+impl RecordingWriter {
+    fn accepting() -> Arc<Self> {
+        Arc::new(Self {
+            writes: Mutex::new(Vec::new()),
+            refuse: None,
+        })
+    }
+}
+
+impl magistr_application::effects::SourceWriter for RecordingWriter {
+    fn write_text(
+        &self,
+        path: &str,
+        content: &str,
+    ) -> EffectFuture<'_, magistr_application::effects::SourceWriteReceipt> {
+        let path = path.to_owned();
+        let content = content.to_owned();
+        Box::pin(async move {
+            if let Some(refusal) = &self.refuse {
+                return Err(refusal.clone());
+            }
+            self.writes.lock().unwrap().push((path, content));
+            Ok(magistr_application::effects::SourceWriteReceipt {
+                journal_seq: Some(7),
+                revision: Some("rev".into()),
+                changed: true,
+            })
+        })
+    }
+}
+
+fn routed(
+    root: &Path,
+    writer: Arc<RecordingWriter>,
+) -> (LocalEffectPort, mpsc::UnboundedReceiver<Result<AcpEvent>>) {
+    let (events, rx) = mpsc::unbounded_channel();
+    (
+        LocalEffectPort::new(root.to_path_buf(), events).with_source_writer(writer),
+        rx,
+    )
+}
+
+fn write_events(rx: &mut mpsc::UnboundedReceiver<Result<AcpEvent>>) -> Vec<serde_json::Value> {
+    std::iter::from_fn(|| rx.try_recv().ok())
+        .filter_map(|event| match event {
+            Ok(AcpEvent::System { subtype, data }) if subtype == "fs_write" => Some(data),
+            _ => None,
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn an_authorized_write_is_routed_through_the_source_writer_after_the_decision() {
+    let dir = tempfile::tempdir().unwrap();
+    let writer = RecordingWriter::accepting();
+    let (port, mut rx) = routed(dir.path(), writer.clone());
+    let auth = Authorizer::allow();
+    let path = dir.path().join("src/new.txt");
+    assert_eq!(
+        port.execute(write(&path), auth.clone()).await.unwrap(),
+        EffectResponse::Written
+    );
+    // The writer, not the port, owns the bytes: nothing was written directly.
+    assert!(!path.exists());
+    let expected = std::fs::canonicalize(dir.path())
+        .unwrap()
+        .join("src/new.txt");
+    assert_eq!(
+        writer.writes.lock().unwrap().as_slice(),
+        &[(expected.display().to_string(), "new".to_owned())]
+    );
+    assert_eq!(auth.requests.lock().unwrap().len(), 1, "authorized first");
+    let events = write_events(&mut rx);
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["route"], "workspace");
+    assert_eq!(events[0]["journal_seq"], 7);
+    assert_eq!(events[0]["revision"], "rev");
+    assert_eq!(events[0]["changed"], true);
+}
+
+#[tokio::test]
+async fn a_denied_or_cancelled_write_never_reaches_the_source_writer() {
+    let dir = tempfile::tempdir().unwrap();
+    let writer = RecordingWriter::accepting();
+    let (port, mut rx) = routed(dir.path(), writer.clone());
+    let denied = Arc::new(Authorizer {
+        deny: true,
+        ..Arc::try_unwrap(Authorizer::allow()).ok().unwrap()
+    });
+    assert!(matches!(
+        port.execute(write(&dir.path().join("a.txt")), denied).await,
+        Err(EffectError::Denied(_))
+    ));
+    let cancelled = Authorizer::allow();
+    cancelled.cancelled.store(true, Ordering::SeqCst);
+    assert_eq!(
+        port.execute(write(&dir.path().join("b.txt")), cancelled)
+            .await,
+        Err(EffectError::Cancelled)
+    );
+    assert!(writer.writes.lock().unwrap().is_empty());
+    assert!(write_events(&mut rx).is_empty());
+}
+
+#[tokio::test]
+async fn a_writer_refusal_is_the_effects_answer_and_nothing_lands_directly() {
+    let dir = tempfile::tempdir().unwrap();
+    let writer = Arc::new(RecordingWriter {
+        writes: Mutex::new(Vec::new()),
+        refuse: Some(EffectError::Failed("write a.txt: parse rejected".into())),
+    });
+    let (port, _rx) = routed(dir.path(), writer);
+    let path = dir.path().join("a.txt");
+    assert!(matches!(
+        port.execute(write(&path), Authorizer::allow()).await,
+        Err(EffectError::Failed(reason)) if reason.contains("parse rejected")
+    ));
+    assert!(!path.exists());
+}
+
+#[tokio::test]
+async fn without_a_source_writer_the_write_is_direct_and_the_event_says_so() {
+    let dir = tempfile::tempdir().unwrap();
+    let (events, mut rx) = mpsc::unbounded_channel();
+    let port = LocalEffectPort::new(dir.path().to_path_buf(), events);
+    let path = dir.path().join("direct.txt");
+    port.execute(write(&path), Authorizer::allow())
+        .await
+        .unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "new");
+    let events = write_events(&mut rx);
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["route"], "direct");
+    assert!(events[0]["note"].as_str().unwrap().contains("unjournaled"));
+}

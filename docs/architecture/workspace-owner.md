@@ -7,7 +7,12 @@ Codex `config.toml` carries — is a *bridge*: its client speaks MCP on the
 bridge's stdio, and the bridge speaks the same frames to whichever owner is
 reachable. The first invocation admits the workspace and owns the
 `WorkspaceService` in-process; later invocations attach to it over Magistr's
-shared local owner endpoint. No external executable, checkout or runtime is
+shared local owner endpoint. Since `arch-14f2` a `magistr run` or cockpit
+loop admits the workspace itself before its agent starts
+(`magistr::application::HostedWorkspace`) and serves the same endpoint, so the
+agent's bridge and the cockpit's port attach to the host and the host's own
+authorized source writes run through the service in-process; when a live owner
+already holds the lock the host admits nothing and its writes go direct. No external executable, checkout or runtime is
 consulted: `arch-14d-workspace-owner` removed the Bun/PATH/home-checkout
 resolver, so the launch line is this binary or nothing.
 
@@ -130,8 +135,9 @@ owner's own client ends it, and its peers reconnect.
   (`magistr workspace init`), never an installed `workbench-mcp init`.
 - The interview's temporary `.mcp.json` always includes the workspace entry.
 - The cockpit's port reads the project's `workbench-mcp` launch line, spawns
-  it, and attaches to the agent's owner during `magistr run`; its journal
-  view runs `magistr workspace journal`.
+  it, and attaches to the run's owner — the host itself when it admitted the
+  workspace, else whoever did — during `magistr run`; its journal view runs
+  `magistr workspace journal`.
 - Codex parent and subagent threads each launch a bridge; both attach to one
   owner. `scripts/codex-subagent-check.py` (the optional `codex-subagent`
   gate) runs the real `codex exec` under an isolated `CODEX_HOME` and passes

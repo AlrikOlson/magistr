@@ -23,6 +23,7 @@ sandbox = ["dep:wasmtime", "dep:wasmtime-wasi"]
 # promotion lane for the first-party pack (research R5).
 lang-pack = ["tree-sitter/wasm", "dep:tree-sitter-gleam", "dep:streaming-iterator"]
 [dependencies]
+magistr-process = { path = "../magistr-process" }
 tree-sitter = "0.26.12"
 tree-sitter-language = "0.1.7"
 tree-sitter-bash = "0.25.1"

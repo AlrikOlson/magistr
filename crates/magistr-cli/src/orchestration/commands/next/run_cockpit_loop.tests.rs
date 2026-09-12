@@ -34,7 +34,7 @@ fn the_loops_admitted_writer_is_attached_before_the_terminal_and_never_re_admitt
 fn the_driver_is_spawned_before_the_run_on_a_tapped_feed_and_reported_after() {
     let commands = position(".commands()");
     let driver = position("LoopDriver::new(");
-    let live = position("Connector::live()");
+    let live = position("Connector::live_routed(");
     let tap = position(".tap(driver.tap())");
     let spawn = position("driver.spawn()");
     let run = position(".run(");

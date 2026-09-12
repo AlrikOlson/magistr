@@ -2,8 +2,10 @@
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use magistr_acp::AcpTransport;
+use magistr_application::effects::SourceWriter;
 
 use crate::agent::{AgentConfig, ResolvedSessionSpec};
 use crate::error::Result;
@@ -34,13 +36,24 @@ impl Connector {
         }
     }
 
-    /// Resolve setup once, spawn the agent and complete the handshake.
+    /// Resolve setup once, spawn the agent and complete the handshake; the
+    /// session's authorized writes go directly to the files.
     #[must_use]
     pub fn live() -> Self {
-        Self::new(|config| async move {
-            let spec = config.resolve()?;
-            let transport = spec.connect_transport().await?;
-            Ok((transport, spec))
+        Self::live_routed(None)
+    }
+
+    /// As [`Self::live`], with the session's authorized writes routed
+    /// through `writer` — the host's admitted workspace — when one is given.
+    #[must_use]
+    pub fn live_routed(writer: Option<Arc<dyn SourceWriter>>) -> Self {
+        Self::new(move |config| {
+            let writer = writer.clone();
+            async move {
+                let spec = config.resolve()?.with_source_writer(writer);
+                let transport = spec.connect_transport().await?;
+                Ok((transport, spec))
+            }
         })
     }
 

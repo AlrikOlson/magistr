@@ -9,7 +9,7 @@ use agent_client_protocol::schema::v1::{
 };
 use magistr_application::effects::{
     EffectAuthorizer, EffectCapabilities, EffectError, EffectFuture, EffectPort, EffectRequest,
-    EffectResponse, TerminalExit,
+    EffectResponse, SourceWriter, TerminalExit,
 };
 use tokio::sync::mpsc;
 
@@ -20,9 +20,16 @@ use crate::{AcpEvent, Result};
 /// Explicit local host adapter. It owns its terminals and authorizes resolved
 /// resources through the supplied session decision path before effect admission.
 /// It does not isolate the process from the host operating system.
+///
+/// An authorized write goes through the host's [`SourceWriter`] when one is
+/// composed — the admitted workspace's pipeline, journaled and receipted —
+/// and directly to the file otherwise; the `fs_write` event names the
+/// route either way. Authorization comes first on both routes: a denied or
+/// cancelled write reaches neither.
 pub struct LocalEffectPort {
     root: PathBuf,
     events: mpsc::UnboundedSender<Result<AcpEvent>>,
+    source: Option<Arc<dyn SourceWriter>>,
     terminals: terminal::TerminalManager,
     owners: Mutex<HashMap<String, String>>,
     admission: Mutex<()>,
@@ -36,11 +43,20 @@ impl LocalEffectPort {
         Self {
             root,
             events,
+            source: None,
             terminals: terminal::new_terminal_manager(),
             owners: Mutex::new(HashMap::new()),
             admission: Mutex::new(()),
             closed: AtomicBool::new(false),
         }
+    }
+
+    /// Route authorized writes through `writer` — the host's admitted
+    /// workspace — instead of writing the file directly.
+    #[must_use]
+    pub fn with_source_writer(mut self, writer: Arc<dyn SourceWriter>) -> Self {
+        self.source = Some(writer);
+        self
     }
 
     fn workspace_path(&self, path: &str) -> std::result::Result<String, EffectError> {
@@ -130,12 +146,26 @@ impl LocalEffectPort {
                 path,
                 content,
             } => {
-                fs::write_text_file(
-                    WriteTextFileRequest::new(session_id, path, content),
-                    &self.events,
-                )
-                .await
-                .map_err(protocol_error)?;
+                let Some(writer) = &self.source else {
+                    fs::write_text_file(
+                        WriteTextFileRequest::new(session_id, path, content),
+                        &self.events,
+                    )
+                    .await
+                    .map_err(protocol_error)?;
+                    return Ok(EffectResponse::Written);
+                };
+                let receipt = writer.write_text(&path, &content).await?;
+                let _ = self.events.send(Ok(AcpEvent::System {
+                    subtype: "fs_write".to_string(),
+                    data: serde_json::json!({
+                        "path": path,
+                        "route": "workspace",
+                        "journal_seq": receipt.journal_seq,
+                        "revision": receipt.revision,
+                        "changed": receipt.changed,
+                    }),
+                }));
                 Ok(EffectResponse::Written)
             }
             EffectRequest::CreateTerminal {

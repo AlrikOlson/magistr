@@ -126,6 +126,7 @@ mod resolve_permission_profile;
 mod seed_supervision;
 
 pub use cmd_run::cmd_run;
+pub(crate) use cmd_run_cockpit::admit_workspace;
 pub use cmd_run_cockpit::cmd_run_cockpit;
 pub use cmd_run_headless::cmd_run_headless;
 pub(crate) use cmd_run_headless::{HeadlessOutcome, drain_headless, drain_headless_observing};

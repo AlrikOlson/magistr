@@ -19,6 +19,9 @@ pub(super) struct GateInput<'i> {
     pub dry_run: bool,
     pub auto_apply: bool,
     pub budget: u64,
+    /// Whether the pipeline's formatter runs; a whole-file write keeps its
+    /// exact bytes.
+    pub format: FormatMode,
 }
 
 /// Prepare the exact plan, apply the retained confirm gate over its token,
@@ -52,7 +55,7 @@ pub(super) async fn run(
         session_id: service.session_id.clone(),
         changes: changes.clone(),
         undo_of: Vec::new(),
-        format: FormatMode::Enabled,
+        format: gate.format,
     };
     let reads = &service.reads;
     let mut transactions = match WorkspaceTransactions::new(

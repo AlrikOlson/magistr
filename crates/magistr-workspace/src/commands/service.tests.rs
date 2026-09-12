@@ -618,3 +618,78 @@ async fn an_oversized_aggregated_diff_is_cut_honestly_in_the_confirm_answer() {
         "a diff over the cap is cut, not partially shown"
     );
 }
+
+#[tokio::test]
+async fn write_lands_exact_bytes_through_the_pipeline_creating_or_replacing_and_journals_it() {
+    let mut h = Harness::new();
+    let created = ok(h
+        .commands("host")
+        .write(&WriteInput::new("src/new.txt", "one\n"))
+        .await);
+    assert_eq!(created.0.len(), 1);
+    assert_eq!(created.0[0].action, WriteAction::Created);
+    assert!(created.0[0].applied);
+    assert_eq!(created.0[0].formatting, "disabled: exact bytes");
+    let seq = created.0[0].journal_seq.expect("journaled");
+    assert!(created.1[0].contains("exact bytes through the pipeline"));
+    assert_eq!(h.read("src/new.txt").unwrap(), b"one\n");
+
+    // A replacement over 200 changed lines would confirm-gate an edit; the
+    // caller's authorization stands in for the token here.
+    let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
+    let replaced = ok(h
+        .commands("host")
+        .write(&WriteInput::new("src/new.txt", big.clone()))
+        .await);
+    assert_eq!(replaced.0[0].action, WriteAction::Modified);
+    assert!(replaced.0[0].applied);
+    assert!(replaced.0[0].journal_seq.unwrap() > seq);
+    assert_eq!(h.read("src/new.txt").unwrap(), big.as_bytes());
+
+    let unchanged = ok(h
+        .commands("host")
+        .write(&WriteInput::new("src/new.txt", big))
+        .await);
+    assert!(unchanged.0.is_empty());
+    assert!(
+        unchanged
+            .1
+            .iter()
+            .any(|note| note.contains("nothing to change"))
+    );
+
+    let ops = h.journal.list(0).unwrap();
+    assert_eq!(ops.len(), 2);
+    assert!(
+        ops.iter()
+            .all(|op| op.tool == "write" && op.session_id == "host")
+    );
+}
+
+#[tokio::test]
+async fn write_anchors_on_the_expected_hash_and_keeps_protected_paths_closed() {
+    let mut h = Harness::new();
+    h.write("a.txt", "alpha\n");
+    let mut stale = WriteInput::new("a.txt", "beta\n");
+    stale.expected_hash = Some(FileContent::Text("elsewhere\n".into()).content_hash());
+    let (kind, _) = refused(h.commands("s").write(&stale).await);
+    assert!(
+        matches!(kind, ErrorKind::StaleAnchor { content_hash } if content_hash == FileContent::Text("alpha\n".into()).content_hash())
+    );
+    assert_eq!(h.read("a.txt").unwrap(), b"alpha\n");
+
+    let mut anchored = WriteInput::new("a.txt", "beta\n");
+    anchored.expected_hash = Some(FileContent::Text("alpha\n".into()).content_hash());
+    assert!(ok(h.commands("s").write(&anchored).await).0[0].applied);
+    assert_eq!(h.read("a.txt").unwrap(), b"beta\n");
+
+    let (kind, _) = refused(
+        h.commands("s")
+            .write(&WriteInput::new(".workbench/journal.db", "x"))
+            .await,
+    );
+    assert_eq!(kind, ErrorKind::ProtectedPath);
+    let (kind, _) = refused(h.commands("s").write(&WriteInput::new("", "x")).await);
+    assert_eq!(kind, ErrorKind::PatternInvalid);
+    assert_eq!(h.journal.list(0).unwrap().len(), 1);
+}

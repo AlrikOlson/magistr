@@ -3162,6 +3162,7 @@ dependencies = [
  "futures",
  "libc",
  "magistr-application",
+ "magistr-process",
  "rustix 1.1.4",
  "serde",
  "serde_json",
@@ -3220,6 +3221,7 @@ dependencies = [
  "magistr-core",
  "magistr-engine",
  "magistr-mcp",
+ "magistr-process",
  "magistr-protocol",
  "magistr-tui",
  "magistr-workspace",
@@ -3336,6 +3338,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "magistr-process"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "rustix 1.1.4",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "magistr-protocol"
 version = "0.1.0"
 dependencies = [
@@ -3393,6 +3406,7 @@ dependencies = [
  "hmac",
  "ignore",
  "libc",
+ "magistr-process",
  "notify",
  "regex",
  "rusqlite",
@@ -5369,6 +5383,7 @@ dependencies = [
  "clap",
  "futures-util",
  "jsonschema 0.49.9",
+ "magistr-process",
  "owo-colors",
  "pretty_assertions",
  "quick-xml",
