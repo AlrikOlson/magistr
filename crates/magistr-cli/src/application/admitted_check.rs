@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use magistr_engine::tas::{
+use magistr_engine::native::{
     CheckAdmission, CheckExecution, NativeEngines, SourceObservation, TaskAdmission,
 };
 

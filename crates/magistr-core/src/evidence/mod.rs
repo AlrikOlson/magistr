@@ -1,6 +1,6 @@
 //! The host's verification evidence capability, composed once.
 //!
-//! The workflow's ship family asks its [`EvidencePort`](magistr_engine::tas::EvidencePort)
+//! The workflow's ship family asks its [`EvidencePort`](magistr_engine::native::EvidencePort)
 //! two things: what the workspace's selected source looks like now, and
 //! which gates the project requires. Magistr answers both from capabilities
 //! it already owns — the workspace crate's lock-free

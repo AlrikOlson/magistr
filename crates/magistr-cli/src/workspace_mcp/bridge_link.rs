@@ -38,7 +38,7 @@ pub(super) struct Link {
 struct Embedded {
     service: Arc<WorkspaceService>,
     #[cfg(unix)]
-    endpoint: Option<magistr_engine::tas::OwnerEndpoint>,
+    endpoint: Option<magistr_engine::native::OwnerEndpoint>,
     complete: CancellationToken,
     serving: JoinHandle<eyre::Result<()>>,
 }

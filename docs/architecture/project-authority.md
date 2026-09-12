@@ -2,7 +2,7 @@
 
 Every native workflow writer in Magistr is admitted by a `ProjectAuthority` before it
 can open the think-and-ship engines. The type lives in `magistr-engine`
-(`tas::ProjectAuthority`), not in the MCP transport: the MCP service, the
+(`native::ProjectAuthority`), not in the MCP transport: the MCP service, the
 cockpit, the loops and one-shot commands all admit through it. It owns the
 project's native identity, the writer lease for one role, the owner
 generation that lease mints, the live feed when this writer publishes one,
@@ -60,7 +60,7 @@ application capability. CLI and MCP presentation retain their external names
 and ordinary success/error envelopes.
 
 The `native-write-path` gate keeps these boundaries executable: Magistr engine
-composition is confined to `tas`; raw engine reads belong to `NativeReader`;
+composition is confined to `native`; raw engine reads belong to `NativeReader`;
 native writes and workflow application modules cannot depend on MCP handlers,
 wire argument/result types, JSON result decoding, or noop-waker polling.
 Magistr MCP code cannot call its own tools. Direct host dependencies remain
@@ -111,7 +111,7 @@ implementation, `magistr_core::evidence::WorkspaceEvidence`, from the
 workspace's lock-free `SourceSnapshot` under its default selection policy
 (which hashes `.magistr/project.json` as a config input) and the same gate
 resolver `magistr_gate all` runs. `writer_config` attaches it to the
-`TasConfig` every production writer is admitted on — the MCP service, the
+`NativeConfig` every production writer is admitted on — the MCP service, the
 loop host and the cockpit host — and the `native-write-path` gate (rule 8)
 refuses a production admission without it; the cockpit refuses a writer
 config that lacks it before taking the lease. Every observation and every
@@ -367,7 +367,7 @@ owning runtime or process normally before reconnecting.
 
 ## Verification
 
-Engine unit tests (`tas::native_engines::tests`) cover the one write path:
+Engine unit tests (`native::native_engines::tests`) cover the one write path:
 promotion from the in-process writer creating the backlog chunk and linking
 both ways, idempotently; the handlers' refusals — an empty body, a blank
 summary, an illegal transition, an unknown task — reaching the caller in the
@@ -377,19 +377,19 @@ behavior, reciprocal changes, tracker probe concurrency, legacy execution
 identity, peer rollover, reused task IDs, and stale settlement. CLI process
 tests hold commands across objective rollover and prove that both gate adapters
 leave the newer task untouched.
-`tas::project_authority::tests` cover role coexistence,
+`native::project_authority::tests` cover role coexistence,
 same-role refusal, the lease living with the last writer clone while readers
 hold nothing, the stateless lock under the project root, lock I/O failure
 before any engine opens, and the publisher probe.
-`tas::owner_endpoint::tests` cover an occupied host reached through its
+`native::owner_endpoint::tests` cover an occupied host reached through its
 endpoint with no second lease, a stale generation refused until the client
 reconnects, a detach that cancels nothing for the owner or another client, a
 silent owner tripping the command deadline, the handshake refusing another
 protocol, project, role or kind, owner shutdown leaving the client without a
 writer and the role free, the MCP hand-off after the welcome, an MCP-only owner
 refusing typed commands, a live endpoint refused and a stale socket reclaimed,
-and generations growing per role; `tas::owner_generation::tests` and
-`tas::owner_socket::tests` cover the counter and the derived path. The
+and generations growing per role; `native::owner_generation::tests` and
+`native::owner_socket::tests` cover the counter and the derived path. The
 cockpit's `engine::client::tests` cover a refused second host, an attached
 writer, an observer beside it, a second cockpit acting through the running
 host, a held host without an endpoint failing closed, and an attached port

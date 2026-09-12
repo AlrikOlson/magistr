@@ -6,8 +6,8 @@
 use super::*;
 use crate::workflow::iteration::tests::{add_native_chunk, native_engines, setup_project};
 use crate::workflow::iteration::{IterationLoop, PreCheckResult};
-use magistr_engine::tas::ChunkStatus;
-use magistr_engine::tas::TaskType;
+use magistr_engine::native::ChunkStatus;
+use magistr_engine::native::TaskType;
 use std::path::Path;
 
 fn recover(dir: &Path, spec: &Path, native: Option<NativeEngines>) -> IterationLoop {
@@ -162,7 +162,7 @@ fn every_native_mutation_verb_is_read_back_from_the_chunk() {
     engines
         .roadmap_set_blocked_by(
             "blocked",
-            magistr_engine::tas::BlockerKind::AwaitingHuman,
+            magistr_engine::native::BlockerKind::AwaitingHuman,
             "why".into(),
             None,
         )

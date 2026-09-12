@@ -76,12 +76,12 @@ impl EnginePort for NativeEnginePort {
 }
 
 /// A chunk as the wire would carry it; serialization cannot fail.
-pub(super) fn chunk_value(chunk: magistr_engine::tas::Chunk) -> serde_json::Value {
+pub(super) fn chunk_value(chunk: magistr_engine::native::Chunk) -> serde_json::Value {
     serde_json::to_value(chunk).unwrap_or(serde_json::Value::Null)
 }
 
 /// A signal as the wire would carry it; serialization cannot fail.
-pub(super) fn signal_value(signal: magistr_engine::tas::Signal) -> serde_json::Value {
+pub(super) fn signal_value(signal: magistr_engine::native::Signal) -> serde_json::Value {
     serde_json::to_value(signal).unwrap_or(serde_json::Value::Null)
 }
 

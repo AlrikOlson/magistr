@@ -1,6 +1,6 @@
 //! The answer to settling an admitted check.
 
-use magistr_engine::tas::{Check, CheckReceipt, CheckSettlement, SourceFreshness};
+use magistr_engine::native::{Check, CheckReceipt, CheckSettlement, SourceFreshness};
 
 /// One settled check: the workflow's settlement — `Applied` with the
 /// recorded check, or `Stale` with the admission and outcome intact when

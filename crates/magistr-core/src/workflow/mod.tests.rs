@@ -42,8 +42,8 @@ fn yaml_project_still_requires_its_spec_file() {
 
 #[test]
 fn native_project_loads_without_a_spec_file_and_reads_chunks() {
-    use magistr_engine::tas::ChunkStatus;
-    use magistr_engine::{ProjectAuthority, TasConfig, WriterRole};
+    use magistr_engine::native::ChunkStatus;
+    use magistr_engine::{NativeConfig, ProjectAuthority, WriterRole};
 
     let tmp = tempfile::tempdir().unwrap();
     project(tmp.path(), "think-and-ship", ".magistr-roadmap.yml");
@@ -52,7 +52,7 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
     let wf = WorkflowConfig::load(tmp.path()).expect("native projects need no spec file");
     assert!(wf.is_native());
 
-    let cfg = TasConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas"));
+    let cfg = NativeConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas"));
     let engines = ProjectAuthority::admit_for_project(&cfg, "wf-native".into(), WriterRole::Host)
         .expect("host admitted")
         .open();

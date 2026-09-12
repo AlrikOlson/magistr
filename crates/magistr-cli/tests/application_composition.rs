@@ -14,10 +14,10 @@ use std::path::{Path, PathBuf};
 
 use magistr::application::AdmittedCheck;
 use magistr_cockpit::engine::{EnginePort, NativeEnginePort};
-use magistr_engine::tas::ProjectAuthority;
-use magistr_engine::tas::{
-    CheckExecution, CheckSettlement, ChunkStatus, NativeEngines, NativeReader, ReceiptSettlement,
-    SourceFreshness, TasConfig, TaskType, WriterRole,
+use magistr_engine::native::ProjectAuthority;
+use magistr_engine::native::{
+    CheckExecution, CheckSettlement, ChunkStatus, NativeConfig, NativeEngines, NativeReader,
+    ReceiptSettlement, SourceFreshness, TaskType, WriterRole,
 };
 use magistr_workspace::{
     commands::{EditInput, EditOp},
@@ -60,7 +60,7 @@ fn project_json(test_command: &str) -> String {
 
 /// The Host writer, admitted the way `admit_native_host` admits it: on a
 /// writer config whose evidence capability observes `root`.
-fn host(tmp: &tempfile::TempDir, root: &Path) -> (NativeEngines, TasConfig) {
+fn host(tmp: &tempfile::TempDir, root: &Path) -> (NativeEngines, NativeConfig) {
     let config = magistr_core::evidence::writer_config(root, |_| None)
         .with_data_dir(tmp.path().join("store"));
     let engines = ProjectAuthority::admit_for_project(&config, PROJECT.into(), WriterRole::Host)

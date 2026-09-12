@@ -47,11 +47,10 @@ names the test that exercises the row's admission. Paths are under
 
 Not clients: `magistr acp-agent` (a provider adapter whose tools arrive
 through the first row and the bridge, launched by the provider CLI); the
-`magistr-tui` cockpit example (an observer, not shipped); the retained
-standalone `think-and-ship` binary and CLI, which nothing scaffolds — the
-`think-and-ship` name in `scaffold/codex_config.rs` only recognizes an
-entry a user wrote before the cutover — and which
-`arch-14f4-rehome-naming` deletes. There is no row for a daemon, a remote
+`magistr-tui` cockpit example (an observer, not shipped). The standalone
+`think-and-ship` binary and CLI were deleted by `arch-14f4-rehome-naming`;
+the `think-and-ship` name in `scaffold/codex_config.rs` only recognizes an
+entry a user wrote before the cutover. There is no row for a daemon, a remote
 endpoint, a Bun or NAPI path, or an internal MCP round trip.
 
 ## Duplicate ownership is refused
@@ -60,7 +59,7 @@ endpoint, a Bun or NAPI path, or an internal MCP round trip.
   exclusive OS lock before any engine opens; a second admission of the same
   role — in another process or in the same one — is `WouldBlock` with the
   role's own words, and a clone keeps the lease while a reader never holds
-  it. Evidence: `magistr-engine` `tas/project_authority.tests.rs::one_writer_per_role_is_admitted_and_the_roles_coexist`,
+  it. Evidence: `magistr-engine` `native/project_authority.tests.rs::one_writer_per_role_is_admitted_and_the_roles_coexist`,
   `tests/workflow_consistency.rs::a_second_writer_of_a_role_is_refused_in_process_and_the_lease_ends_with_the_last_clone`,
   `tests/mcp_service_owner.rs`, `engine/client.tests.rs::a_second_host_on_the_same_project_is_refused_until_the_first_is_gone`.
 - **A second workspace owner.** `WorkspaceService::open` holds
@@ -140,7 +139,7 @@ until it reloads. A roadmap or signal verb from a stale writer neither sees
 nor erases the other role's record: the merge keeps both on disk, and the
 stale process still answers its cache, even after its own write.
 `tests/workflow_consistency.rs` and `magistr-engine`
-`tas/native_engines.tests.rs::two_writers_merge_without_data_loss`,
+`native/native_engines.tests.rs::two_writers_merge_without_data_loss`,
 `::reload_picks_up_another_writers_changes`, `::reload_signal_picks_up_another_writers_capture`
 and `::think_steps_from_store_sees_another_writers_steps_without_reopening`
 are the executable statements of this table.

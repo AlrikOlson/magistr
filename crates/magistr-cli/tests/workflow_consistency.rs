@@ -13,10 +13,12 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use magistr::application::HostedWorkspace;
-use magistr_engine::tas::{CallerIdentity, OwnerClient, OwnerCommand, OwnerReply, RoadmapCommand};
+use magistr_engine::native::{
+    CallerIdentity, OwnerClient, OwnerCommand, OwnerReply, RoadmapCommand,
+};
 use magistr_engine::{
-    ChunkStatus, NativeEngines, NativeReader, OwnerEndpoint, ProjectAuthority, TasConfig, TaskType,
-    WriterRole,
+    ChunkStatus, NativeConfig, NativeEngines, NativeReader, OwnerEndpoint, ProjectAuthority,
+    TaskType, WriterRole,
 };
 use magistr_workspace::service::WorkspaceOpenOptions;
 
@@ -24,27 +26,27 @@ const PROJECT: &str = "consistency";
 
 /// A store under a tempdir is too deep for `sun_path`: the endpoint lands
 /// in the runtime directory, and `/tmp` always fits.
-fn config(tmp: &tempfile::TempDir) -> TasConfig {
+fn config(tmp: &tempfile::TempDir) -> NativeConfig {
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("project root");
-    TasConfig::from_lookup(root, |_| None)
+    NativeConfig::from_lookup(root, |_| None)
         .with_data_dir(tmp.path().join("data"))
         .with_runtime_dir("/tmp")
 }
 
-fn admit(cfg: &TasConfig, role: WriterRole) -> io::Result<ProjectAuthority> {
+fn admit(cfg: &NativeConfig, role: WriterRole) -> io::Result<ProjectAuthority> {
     ProjectAuthority::admit_for_project(cfg, PROJECT.into(), role)
 }
 
-fn writer(cfg: &TasConfig, role: WriterRole) -> NativeEngines {
+fn writer(cfg: &NativeConfig, role: WriterRole) -> NativeEngines {
     admit(cfg, role).expect("admitted").open()
 }
 
-fn reader(cfg: &TasConfig) -> NativeReader {
+fn reader(cfg: &NativeConfig) -> NativeReader {
     NativeReader::open_for_project(cfg, PROJECT.into())
 }
 
-fn attached(cfg: &TasConfig) -> OwnerClient {
+fn attached(cfg: &NativeConfig) -> OwnerClient {
     OwnerClient::attach_with(
         cfg,
         PROJECT.into(),

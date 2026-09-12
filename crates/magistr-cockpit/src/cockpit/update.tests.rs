@@ -2274,7 +2274,7 @@ fn refused_answer(m: &mut Model, cmd: &Cmd) -> String {
         panic!("a dock answer must reach the engine");
     };
     let tmp = tempfile::tempdir().expect("throwaway store");
-    let config = magistr_engine::TasConfig::from_lookup(tmp.path(), |_| None)
+    let config = magistr_engine::NativeConfig::from_lookup(tmp.path(), |_| None)
         .with_data_dir(tmp.path().join("data"))
         .persist(false);
     let engines = magistr_engine::ProjectAuthority::admit_for_project(

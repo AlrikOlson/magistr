@@ -155,7 +155,7 @@ impl IterationLoop {
 
 /// `verb:chunk[:argument]` against the chunk as the store holds it now.
 fn native_mutation_outcome(engines: &NativeEngines, target: &str) -> Option<OperationOutcome> {
-    use magistr_engine::tas::ChunkStatus;
+    use magistr_engine::native::ChunkStatus;
     engines.reload_roadmap();
     let (verb, rest) = target.split_once(':')?;
     let (id, argument) = match rest.split_once(':') {

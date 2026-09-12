@@ -1,10 +1,10 @@
 use super::*;
-use magistr_engine::tas::ChunkStatus;
-use magistr_engine::{NativeEngines, ProjectAuthority, TasConfig, WriterRole};
+use magistr_engine::native::ChunkStatus;
+use magistr_engine::{NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
 
 fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
     let cfg =
-        TasConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas-data"));
+        NativeConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas-data"));
     ProjectAuthority::admit_for_project(&cfg, "native-summary".into(), WriterRole::Host)
         .expect("host admitted")
         .open()

@@ -5,18 +5,18 @@
 use std::process::Command;
 
 use magistr_engine::{
-    NativeEngines, NativeReader, ProjectAuthority, ShipGuardState, TasConfig, WriterRole,
+    NativeConfig, NativeEngines, NativeReader, ProjectAuthority, ShipGuardState, WriterRole,
 };
-use think_and_ship::roadmap::domain::ChunkStatus;
-use think_and_ship::ship::domain::task::TaskType;
+use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::ship::domain::task::TaskType;
 
-fn config(tmp: &tempfile::TempDir) -> TasConfig {
+fn config(tmp: &tempfile::TempDir) -> NativeConfig {
     let root = tmp.path().join("project");
     std::fs::create_dir_all(&root).expect("project directory");
-    TasConfig::from_lookup(root, |_| None).with_data_dir(tmp.path().join("native-store"))
+    NativeConfig::from_lookup(root, |_| None).with_data_dir(tmp.path().join("native-store"))
 }
 
-fn host(config: &TasConfig, project_id: &str) -> NativeEngines {
+fn host(config: &NativeConfig, project_id: &str) -> NativeEngines {
     ProjectAuthority::admit_for_project(config, project_id.into(), WriterRole::Host)
         .expect("host admitted")
         .open()

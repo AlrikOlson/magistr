@@ -119,7 +119,7 @@ pub fn run_simple_migrations(project_dir: &Path, check: &MigrationCheck) -> Resu
 /// leaving every other key as it is.
 pub fn write_roadmap_backend(
     project_dir: &Path,
-    backend: magistr_engine::tas::RoadmapBackend,
+    backend: magistr_engine::native::RoadmapBackend,
 ) -> Result<()> {
     use crate::error::MagistrError;
     let config_path = paths::project_json(project_dir);

@@ -3,19 +3,19 @@ use std::io;
 use std::path::Path;
 
 use magistr::mcp_tools::MagistrService;
-use magistr_engine::tas::TasConfig;
+use magistr_engine::native::NativeConfig;
 
-fn config(root: &Path, data: &Path, id: &str) -> TasConfig {
+fn config(root: &Path, data: &Path, id: &str) -> NativeConfig {
     std::fs::create_dir_all(root.join(".think-and-ship")).expect("identity directory");
     std::fs::write(
         root.join(".think-and-ship/project.json"),
         serde_json::json!({"id":id}).to_string(),
     )
     .expect("identity");
-    TasConfig::from_lookup(root, |_| None).with_data_dir(data)
+    NativeConfig::from_lookup(root, |_| None).with_data_dir(data)
 }
 
-async fn refused(root: &Path, config: &TasConfig) -> io::Error {
+async fn refused(root: &Path, config: &NativeConfig) -> io::Error {
     match MagistrService::new(root.to_path_buf(), config).await {
         Ok(_) => panic!("independent owner must be refused"),
         Err(error) => error,
@@ -84,7 +84,7 @@ async fn symlinked_project_and_data_paths_cannot_evade_owner_admission() {
     let data_alias = tmp.path().join("data-alias");
     std::os::unix::fs::symlink(&root, &alias).expect("project alias");
     std::os::unix::fs::symlink(&data, &data_alias).expect("data alias");
-    let aliased = TasConfig::from_lookup(&alias, |_| None).with_data_dir(&data_alias);
+    let aliased = NativeConfig::from_lookup(&alias, |_| None).with_data_dir(&data_alias);
     assert_eq!(
         refused(&alias, &aliased).await.kind(),
         io::ErrorKind::WouldBlock
@@ -138,7 +138,7 @@ async fn explicit_unix_feed_is_refused_on_unsupported_platforms() {
 
 #[tokio::test]
 async fn a_host_writer_is_admitted_beside_the_service_owner_and_readers_see_both() {
-    use magistr_engine::tas::{ChunkStatus, NativeReader, ProjectAuthority, WriterRole};
+    use magistr_engine::native::{ChunkStatus, NativeReader, ProjectAuthority, WriterRole};
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("project");
     let cfg = config(&root, &tmp.path().join("data"), "beside");

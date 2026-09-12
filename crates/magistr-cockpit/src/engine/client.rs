@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use magistr_engine::{
-    CallerIdentity, NativeEngines, NativeReader, OwnerClient, OwnerEndpoint, OwnerGeneration,
-    ProjectAuthority, TasConfig, WriterRole,
+    CallerIdentity, NativeConfig, NativeEngines, NativeReader, OwnerClient, OwnerEndpoint,
+    OwnerGeneration, ProjectAuthority, WriterRole,
 };
 use tokio::task::JoinHandle;
 
@@ -62,7 +62,7 @@ impl EngineClient {
     /// created, the configuration carries no evidence capability, or the
     /// host lease is refused because another cockpit or loop holds this
     /// project.
-    pub fn with_config(config: TasConfig) -> Result<Self, EngineError> {
+    pub fn with_config(config: NativeConfig) -> Result<Self, EngineError> {
         Self::store_ready(&config)?;
         if config.evidence().is_none() {
             return Err(EngineError::Admission {
@@ -95,7 +95,7 @@ impl EngineClient {
     /// As [`Self::with_config`], except that a held host lease becomes
     /// [`EngineError::Occupied`] only when attaching failed too — the
     /// refusal carries both reasons.
-    pub fn admit_or_attach_config(config: TasConfig) -> Result<Self, EngineError> {
+    pub fn admit_or_attach_config(config: NativeConfig) -> Result<Self, EngineError> {
         let (root, lease) = match Self::with_config(config.clone()) {
             Ok(host) => return Ok(host),
             Err(EngineError::Admission { root, source })
@@ -135,7 +135,7 @@ impl EngineClient {
     /// `root` is not a directory, or the store's directory cannot be
     /// created.
     pub fn observe(root: impl Into<PathBuf>) -> Result<Self, EngineError> {
-        Self::observe_config(TasConfig::from_env(root))
+        Self::observe_config(NativeConfig::from_env(root))
     }
 
     /// [`Self::observe`] on an explicit store configuration.
@@ -143,7 +143,7 @@ impl EngineClient {
     /// # Errors
     ///
     /// As [`Self::observe`].
-    pub fn observe_config(config: TasConfig) -> Result<Self, EngineError> {
+    pub fn observe_config(config: NativeConfig) -> Result<Self, EngineError> {
         Self::store_ready(&config)?;
         Ok(Self {
             socket: config.feed_socket_path(),
@@ -168,7 +168,7 @@ impl EngineClient {
         }
     }
 
-    fn store_ready(config: &TasConfig) -> Result<(), EngineError> {
+    fn store_ready(config: &NativeConfig) -> Result<(), EngineError> {
         let root = config.project_root();
         if !root.is_dir() {
             return Err(EngineError::NoProject(root.to_path_buf()));

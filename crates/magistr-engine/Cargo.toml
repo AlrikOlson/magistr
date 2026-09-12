@@ -17,7 +17,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync", "net", "io-util", "rt", "time"] }
 # First-party workflow source; the admitted Magistr owner uses the existing
 # native store. No ambient checkout, registry fallback, or second writer.
-think-and-ship = { path = "../../subsystems/workflow/crates/think-and-ship" }
+magistr-workflow = { path = "../magistr-workflow" }
 tracing = "0.1"
 tokio-util = { version = "0.7", features = ["rt"] }
 

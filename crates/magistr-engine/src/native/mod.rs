@@ -1,0 +1,124 @@
+//! The native workflow store: Magistr's think-and-ship fork, composed in process.
+//!
+//! Magistr links the `magistr_workflow` library (the repository-local fork of
+//! think-and-ship, see `subsystems/workflow/PROVENANCE.md`) and runs its four engines —
+//! roadmap, think (reasoning trace), ship (execution trace) and signal — in
+//! this process. State lives in the same XDG store, keyed by the same
+//! `.think-and-ship/project.json` identity, that an external
+//! `think-and-ship` MCP server uses, so agent writes over MCP and Magistr's
+//! native views see one roadmap. Concurrent writers are safe by the
+//! library's locked merge-on-save discipline (advisory lock, merge, atomic
+//! rename); nothing here re-implements persistence or identity.
+//!
+//! Writers are admitted by a [`ProjectAuthority`] — one per [`WriterRole`]
+//! per project and store, cooperatively — and receive the write capability
+//! [`NativeEngines`]; anyone may open the read capability [`NativeReader`].
+//!
+//! The module is named for its responsibility — the native workflow store and
+//! its owner protocol — beside the engine's own `workflow` phase engine.
+
+pub mod attach_error;
+pub mod attach_kind;
+pub mod attach_refusal;
+pub mod broadcast_frame;
+pub mod caller_identity;
+mod check_type_for;
+mod family_services;
+pub mod feed_status;
+pub mod gate_output;
+pub mod identity;
+pub mod mcp_acceptor;
+pub mod native_config;
+pub mod native_engines;
+pub mod native_reader;
+mod open_engines;
+pub mod owner_client;
+pub mod owner_command;
+#[cfg(unix)]
+mod owner_connections;
+mod owner_dispatch;
+pub mod owner_endpoint;
+pub mod owner_generation;
+pub mod owner_identity;
+mod owner_lease;
+pub mod owner_reply;
+pub mod owner_socket;
+#[cfg(unix)]
+mod owner_socket_file;
+pub mod owner_wire;
+#[cfg(unix)]
+mod owner_workspace_link;
+pub mod progress;
+pub mod project_authority;
+pub mod region_counts;
+pub mod roadmap_backend;
+pub mod roadmap_command;
+pub mod ship_command;
+pub mod signal_command;
+pub mod snapshot;
+pub mod subscriber;
+pub mod think_command;
+pub mod workspace_socket_path;
+pub mod writer_role;
+
+pub use attach_error::AttachError;
+pub use attach_kind::AttachKind;
+pub use attach_refusal::AttachRefusal;
+pub use broadcast_frame::NativeFrame;
+pub use caller_identity::CallerIdentity;
+pub use check_type_for::check_type_for;
+pub use feed_status::FeedStatus;
+pub use gate_output::GateOutput;
+pub use identity::ensure_project_file;
+pub use mcp_acceptor::McpAcceptor;
+pub use native_config::NativeConfig;
+pub use native_engines::NativeEngines;
+pub use native_reader::NativeReader;
+pub use owner_client::OwnerClient;
+pub use owner_command::OwnerCommand;
+pub use owner_endpoint::OwnerEndpoint;
+pub use owner_generation::OwnerGeneration;
+pub use owner_identity::OwnerIdentity;
+pub use owner_reply::OwnerReply;
+pub use owner_socket::owner_socket_path;
+pub use owner_wire::OWNER_PROTOCOL_VERSION;
+pub use progress::progress_from_roadmap;
+pub use project_authority::ProjectAuthority;
+pub use region_counts::RegionCounts;
+pub use roadmap_backend::RoadmapBackend;
+pub use roadmap_command::RoadmapCommand;
+pub use ship_command::ShipCommand;
+pub use signal_command::SignalCommand;
+pub use snapshot::NativeRoadmapSnapshot;
+pub use subscriber::spawn_broadcast_subscriber;
+pub use think_command::ThinkCommand;
+pub use workspace_socket_path::workspace_socket_path;
+pub use writer_role::WriterRole;
+
+// The library types the typed commands speak, re-exported so consumers
+// (magistr-core, the GUI, the TUI) never name the `magistr_workflow` crate.
+pub use magistr_workflow::content::{
+    ContentFact, ContentListItem, ContentSection, StructuredContent,
+};
+pub use magistr_workflow::infra::{
+    Broadcaster, IdSource, PROJECT_DIR, PROJECT_FILE, ProjectIdentity, resolve_project_id_with,
+};
+pub use magistr_workflow::roadmap::domain::{
+    BlockedBy, BlockerKind, Chunk, ChunkStatus, ReprioritizeProposal, Roadmap, StatusProposal,
+    TitleProposal,
+};
+pub use magistr_workflow::ship::application::{
+    CheckAdmission, CheckExecution, CheckSettlement, CompletionEvidence, CompletionRefusal,
+    EvidencePort, GateContract, ShipReport, SourceFreshness, SourceObservation, SourceWitness,
+    TaskAdmission,
+};
+pub use magistr_workflow::ship::domain::action::{Action, ActionType};
+pub use magistr_workflow::ship::domain::artifact::{Artifact, ArtifactType};
+pub use magistr_workflow::ship::domain::check::{Check, CheckType};
+pub use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
+pub use magistr_workflow::ship::domain::objective::Objective;
+pub use magistr_workflow::ship::domain::receipt_settlement::ReceiptSettlement;
+pub use magistr_workflow::ship::domain::task::{Task, TaskType};
+pub use magistr_workflow::signal::domain::{Signal, SignalKind};
+pub use magistr_workflow::think::domain::ThinkStep;
+pub use magistr_workflow::think::domain::{RecordedStep, StepError};

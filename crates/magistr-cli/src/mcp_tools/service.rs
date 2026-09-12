@@ -27,14 +27,16 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use magistr_engine::tas::{
-    ActionType, Check, CheckSettlement, NativeEngines, ProjectAuthority, TasConfig, WriterRole,
+use magistr_engine::native::{
+    ActionType, Check, CheckSettlement, NativeConfig, NativeEngines, ProjectAuthority, WriterRole,
 };
 
 use crate::application::AdmittedCheck;
 use magistr_core::evidence::{WorkspaceEvidence, writer_config};
 use magistr_engine::{GateOutput, ShipGuardState};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
+use magistr_workflow::infra::Family;
+use magistr_workflow::mcp::UnifiedService;
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, CancelTaskParams, ContentBlock,
     GetTaskParams, GetTaskResult, Implementation, JsonObject, ListResourceTemplatesResult,
@@ -44,8 +46,6 @@ use rmcp::model::{
 use rmcp::service::{RequestContext, RoleServer};
 use rmcp::{ErrorData, ServerHandler};
 use serde_json::{Value, json};
-use think_and_ship::infra::Family;
-use think_and_ship::mcp::UnifiedService;
 
 use super::gate::{GateSpec, gate_json, resolve_gates};
 use super::roadmap_export::RoadmapExport;
@@ -97,7 +97,7 @@ impl MagistrService {
     /// A configuration without the project's evidence capability gets it here:
     /// this service is a composition root, and every check it records must be
     /// bound to the source it certifies.
-    pub async fn new(project_root: PathBuf, tas: &TasConfig) -> std::io::Result<Self> {
+    pub async fn new(project_root: PathBuf, tas: &NativeConfig) -> std::io::Result<Self> {
         let project_root = project_root.canonicalize()?;
         let mut tas = tas.clone();
         tas.project_root = project_root.clone();

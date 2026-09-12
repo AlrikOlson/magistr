@@ -3,7 +3,12 @@
 Magistr owns this repository-local fork of
 [think-and-ship](https://github.com/AlrikOlson/think-and-ship). The source adoption
 is `arch-14a-workflow-source-fork`; typed use-case extraction is the separate
-`arch-14b-workflow-use-cases` chunk.
+`arch-14b-workflow-use-cases` chunk; `arch-14f4-rehome-naming` moved the crate
+to [`crates/magistr-workflow`](../../crates/magistr-workflow/Cargo.toml) under
+Magistr's name and deleted the standalone surfaces (see
+[Rehome and retired surfaces](#rehome-and-retired-surfaces)). This directory
+keeps the provenance record and the imported inputs the crate's tests and
+gates still read.
 
 ## Origin and license
 
@@ -23,18 +28,22 @@ Magistr's commits record local modifications from this baseline.
 
 ## Included source
 
-Paths below are relative to the upstream repository and retain their layout
-beneath this directory:
+The import retained the following upstream paths, relative to the upstream
+repository. Where they live now:
 
-- `crates/think-and-ship/`: library, binary, build script, manifest, README,
-  examples, unit and integration tests, bundled `skills/`, and `skill-clients/`.
-- `contract/` and `shared/`: schemas and fixtures consumed by inherited tests.
-- `docs/`: inherited architecture, protocol, setup, and compatibility references.
-- `scripts/`: upstream source scripts; compiled Python cache files are excluded.
+- `crates/think-and-ship/`: library, manifest, unit and integration tests and
+  the bundled `skills/` — now [`crates/magistr-workflow`](../../crates/magistr-workflow/Cargo.toml)
+  (package `magistr-workflow`, library `magistr_workflow`). The binary, build
+  script, README, examples and `skill-clients/` were deleted by
+  `arch-14f4-rehome-naming`.
+- `contract/` and `shared/`: schemas and fixtures consumed by inherited tests;
+  still here, read through `../../subsystems/workflow/…` from the crate.
+- `docs/`: inherited architecture, protocol, setup and compatibility
+  references; still here. `CLI.md` and the setup prose describe the retired
+  standalone binary and are kept as the import's reference material.
 - `.githooks/commit-msg`: fixture required by `no_process_narration`; imported
   without activating the hook in Magistr.
-- `LICENSE`, `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`,
-  `CODE_OF_CONDUCT.md`, and `deny.toml`.
+- `LICENSE` and `README.md`.
 
 The initial source copy was byte-identical to the corresponding tracked files
 at the revision above. Build integration and subsequent source changes belong
@@ -49,28 +58,69 @@ surfaces, not dependencies of the adopted Rust service. Upstream repository
 automation and metadata are also excluded: `.github/`,
 `.impeccable/`, `.dockerignore`, `.gitattributes`, `.gitignore`,
 `.think-and-ship/project.json`, `justfile`, and `release-plz.toml`.
-`scripts/release/__pycache__/` is excluded even though upstream tracked it.
+The upstream packaging files that the import first retained (`CHANGELOG.md`,
+`CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `deny.toml`,
+`docs/deploy/`, `docs/RELEASING.md`, `docs/DEPLOYMENT.md`, `scripts/`) were
+deleted by `arch-14f4-rehome-naming`: they described releasing a product
+Magistr does not ship.
 Ignored local artifacts, credentials, build products, and workflow stores are
 not source inputs.
 
 The upstream root `Cargo.toml` and `Cargo.lock` are replaced by Magistr's root
 workspace manifest and lockfile. The adopted crate is a workspace member;
 `magistr-engine` and `magistr-cli` use direct repository-relative path
-dependencies on it. Its inherited `clap` and `anyhow` declarations resolve
-through Magistr's workspace dependencies. There is one release-coupled
-think-and-ship implementation and one Cargo resolution for the workspace.
+dependencies on it. Its inherited `anyhow` declaration resolves through
+Magistr's workspace dependencies. There is one release-coupled workflow
+implementation and one Cargo resolution for the workspace; every first-party
+crate carries the same version.
 
-Preserving `crates/think-and-ship/` two levels beneath this directory keeps
-the inherited manifest-relative fixture paths meaningful. The build script
-still embeds the complete skill trees. Source adoption keeps package and
-library names compatible with current consumers; it does not change native
-store paths, schema, project identity, or persistence policy, and performs no
-live-store migration.
+## Rehome and retired surfaces
+
+`arch-14f4-rehome-naming` (12 September 2026) moved the crate from
+`subsystems/workflow/crates/think-and-ship` to `crates/magistr-workflow`,
+following the workspace precedent (engine under `crates/`, provenance under
+`subsystems/`), and renamed it:
+
+| Before | After |
+| --- | --- |
+| package `think-and-ship` 0.6.0 | package `magistr-workflow` 0.1.0, `publish = false` (the upstream package and version are recorded above) |
+| library `think_and_ship` | library `magistr_workflow` |
+| `magistr_engine::tas` (`TasConfig`) | `magistr_engine::native` (`NativeConfig`), the native workflow store beside the engine's own `workflow` phase engine |
+| crates.io metadata (`readme`, `repository`, `homepage`, `keywords`, `categories`) | dropped; this record carries the origin |
+
+Deleted as retired standalone surfaces (decided by `arch-14f-native-application`):
+the `think-and-ship` binary (`src/main.rs`, `[[bin]]`) and its CLI
+(`src/cli/`: serve, init, project, skills, roadmap, prune/adopt, doctor,
+status, trace, otel, corpus, sync, calls, telemetry, tracker, repair,
+connect/token/disconnect), the `build.rs` skill embedding and
+`skill-clients/`, `examples/cloud_census.rs`, the crate README, the CLI-only
+`corpus` and `hygiene` modules, `otel_receipt` and the OTel retention note
+(both read only by `otel send`), and the tests that executed or parsed the
+binary (`docs_command_reachability`, `http_transport`,
+`project_identity_only`, `roadmap_blocker_command_seam`,
+`roadmap_next_command_seam`, `roadmap_status_command_seam`, the two spawned
+tests in `roadmap_export_tool_seam`). The library plumbing the served
+`tracker_*` tools reached through the CLI — configuration and credential
+resolution and the table-taking port builder — now lives in
+`tracker::host`, and `tracker_command_seam` drives the served setup path
+through it.
+
+Unchanged, and proven by the retained suites: tool names and the served
+tool surface, `THINK_AND_SHIP_*` environment variables, the `think-and-ship`
+data directory and `.think-and-ship/project.json` identity, persistence
+schemas and versions, the cloud envelope contract, OTel `service.name`,
+scope name and `think_and_ship.*` attribute keys, the repo-sync tool name and
+the keychain service name. Two things did change with the module path:
+`tracing` targets follow the crate (`magistr_workflow::…`, and the OTLP log
+fence with them), and `tracker_setup` no longer writes a push interval into
+an MCP configuration — the cadence that read it belonged to the standalone
+server, so `push_secs` is reported as not applied
+(`workflow-host-cadences` decides whether Magistr owns that cadence).
 
 ## Test provenance and verification
 
 The imported tests come from the revision above. They retain engine and
-persistence regressions, MCP and HTTP transport tests, cross-family behavior,
+persistence regressions, MCP transport tests, cross-family behavior,
 schema and documentation checks, skill evaluations, and tracker/cloud tests.
 The `contract/`, `shared/`, and `docs/` trees are included because these tests
 read them through the preserved layout. External-service smoke tests retain
@@ -79,16 +129,15 @@ those live integrations.
 
 The source-adoption chunk changes Rust tests in two files:
 
-- [`tests/think_config.rs`](crates/think-and-ship/tests/think_config.rs): two
+- [`tests/think_config.rs`](../../crates/magistr-workflow/tests/think_config.rs): two
   current-directory identity tests re-execute in a disposable, unmarked
   project child process. This prevents Magistr's ancestor project marker
   from changing their fixture inputs, while preserving the original
   assertions and avoiding a process-wide working-directory race.
-- [`src/cli/setup.rs`](crates/think-and-ship/src/cli/setup.rs): the inline
-  external-configuration test asserts that JSON reserialization changes the
-  original bytes. It no longer requires sorted keys, because the host's
-  unified `serde_json` features enable `preserve_order`. The test still proves
-  that the external configuration is found and never rewritten.
+- `src/cli/setup.rs` (since deleted with the CLI): the inline
+  external-configuration test asserted that JSON reserialization changes the
+  original bytes without requiring sorted keys, because the host's unified
+  `serde_json` features enable `preserve_order`.
 
 At the source-adoption commit `25b7227`, imported production Rust was unchanged.
 That baseline suite recorded 1,737 passed and 14 skipped with both test
@@ -108,8 +157,11 @@ dependency resolution, retained source inputs, and the disabled roadmap-export
 policy. It also runs the imported structure gate against
 [`STRUCTURE_BASELINE.json`](STRUCTURE_BASELINE.json), an explicit per-file
 baseline for inherited public-item, inline-test, and long-function counts.
-Inherited violations cannot grow; new files must satisfy the normal limits.
-The nested source location grants no blanket vendor exemption. All other
+Inherited violations cannot grow; new files must satisfy the normal limits;
+the baseline's keys follow the crate to `crates/magistr-workflow/`.
+Living under `crates/` grants no blanket vendor exemption, and the
+`native-write-path` gate's composition rule treats the crate as the thing
+being composed rather than as a composer. All other
 configured required gates remain part of acceptance.
 Recorded checks in native ship state identify the actual implementation
 worktree and results; earlier architecture-only checks do not certify this
