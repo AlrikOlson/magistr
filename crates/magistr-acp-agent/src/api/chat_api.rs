@@ -24,7 +24,13 @@ pub trait ChatApi: Send + Sync + 'static {
         history: &[ChatMessage],
     ) -> reqwest::RequestBuilder;
 
+    /// Whether a separate end sentinel must follow the generation finish.
+    fn requires_done(&self) -> bool {
+        false
+    }
+
     /// Decode one line of the response body (without its line ending).
+    /// Emit an explicit `Finish` for terminal evidence; EOF is never a finish.
     /// Lines that carry nothing decode to an empty list.
     fn decode(&self, line: &str) -> Result<Vec<StreamEvent>, AgentError>;
 }

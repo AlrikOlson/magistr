@@ -1,5 +1,6 @@
 //! OpenAI over Chat Completions, streamed as server-sent events.
 
+use agent_client_protocol::schema::v1::StopReason;
 use serde::{Deserialize, Serialize};
 
 use crate::{AgentError, ChatApi, ChatMessage, ModelSpec, Pricing, Role, StreamEvent};
@@ -131,17 +132,22 @@ struct Chunk {
     choices: Vec<Choice>,
     #[serde(default)]
     usage: Option<Usage>,
+    error: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
 struct Choice {
     delta: Delta,
+    finish_reason: Option<String>,
+    #[serde(default)]
+    index: u64,
 }
 
 #[derive(Deserialize)]
 struct Delta {
     #[serde(default)]
     content: Option<String>,
+    refusal: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -187,26 +193,53 @@ impl ChatApi for OpenAi {
             })
     }
 
+    fn requires_done(&self) -> bool {
+        true
+    }
+
     fn decode(&self, line: &str) -> Result<Vec<StreamEvent>, AgentError> {
         let Some(data) = line.strip_prefix("data:") else {
             return Ok(Vec::new());
         };
         let data = data.trim();
         if data == "[DONE]" {
-            return Ok(Vec::new());
+            return Ok(vec![StreamEvent::Done]);
         }
         let chunk: Chunk = serde_json::from_str(data).map_err(|e| {
             AgentError::provider(format!(
                 "openai: cannot parse stream chunk: {e} (data: {data})"
             ))
         })?;
-        let mut events: Vec<StreamEvent> = chunk
-            .choices
-            .into_iter()
-            .filter_map(|choice| choice.delta.content)
-            .filter(|text| !text.is_empty())
-            .map(StreamEvent::Text)
-            .collect();
+        if let Some(error) = chunk.error {
+            return Err(AgentError::provider(format!(
+                "openai: stream error: {error}"
+            )));
+        }
+        let mut events = Vec::new();
+        for choice in chunk.choices {
+            if choice.index != 0 {
+                return Err(AgentError::provider("openai: unexpected choice index"));
+            }
+            if let Some(text) = choice.delta.content.filter(|text| !text.is_empty()) {
+                events.push(StreamEvent::Text(text));
+            }
+            if let Some(text) = choice.delta.refusal.filter(|text| !text.is_empty()) {
+                events.push(StreamEvent::Refusal(text));
+            }
+            if let Some(reason) = choice.finish_reason {
+                let stop = match reason.as_str() {
+                    "stop" => StopReason::EndTurn,
+                    "length" => StopReason::MaxTokens,
+                    "content_filter" => StopReason::Refusal,
+                    _ => {
+                        return Err(AgentError::provider(format!(
+                            "openai: unsupported finish reason: {reason}"
+                        )));
+                    }
+                };
+                events.push(StreamEvent::Finish(stop));
+            }
+        }
         if let Some(usage) = chunk.usage {
             events.push(StreamEvent::Usage {
                 input: usage.prompt_tokens,
