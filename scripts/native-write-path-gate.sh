@@ -18,6 +18,15 @@
 #    of that capability itself, the MCP service (which attaches it in its
 #    constructor) and the cockpit client (which refuses a config without
 #    it before taking the lease) (arch-14-verification-receipts).
+# 9. WorkspaceService opens only on the two owner paths the client
+#    inventory names: the workspace bridge (attach-or-admit) and the
+#    run/loop host's HostedWorkspace (arch-14f3).
+# 10. ProjectAuthority is admitted only at the inventory's admission
+#    sites: the MCP service, admit_native_host, the loop's auto_native and
+#    the cockpit host (arch-14f3).
+# 11. Owner attachment happens only on the inventory's attached surfaces:
+#    the second cockpit, the second mcp-serve proxy and the workspace
+#    bridge (arch-14f3).
 #
 # Doc comments are not code: rule 1 skips comment lines.
 #
@@ -140,8 +149,53 @@ while IFS= read -r f; do
     esac
 done < <(production_sources)
 
+# --- Rule 9: workspace owners open only on the inventory's owner paths -------
+while IFS= read -r f; do
+    case "$f" in
+        crates/magistr-workspace/src/*) continue ;;
+        crates/magistr-cli/src/workspace_mcp/connection.rs) continue ;;
+        crates/magistr-cli/src/application/hosted_workspace.rs) continue ;;
+    esac
+    hits=$(grep -nE 'WorkspaceService::open\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
+    if [[ -n "$hits" ]]; then
+        fail "$f opens a WorkspaceService outside the bridge owner and the hosted workspace (a second owner path):"
+        echo "$hits"
+    fi
+done < <(production_sources)
+
+# --- Rule 10: writer admission only at the inventory's admission sites -------
+while IFS= read -r f; do
+    case "$f" in
+        crates/magistr-engine/src/tas/*) continue ;;
+        crates/magistr-cli/src/mcp_tools/service.rs) continue ;;
+        crates/magistr-cli/src/orchestration/roadmap/admit_native_host.rs) continue ;;
+        crates/magistr-core/src/workflow/iteration.rs) continue ;;
+        crates/magistr-cockpit/src/engine/client.rs) continue ;;
+    esac
+    hits=$(grep -nE 'ProjectAuthority::(admit|admit_for_project)\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
+    if [[ -n "$hits" ]]; then
+        fail "$f admits a workflow writer outside the client inventory's admission sites (docs/architecture/clients.md):"
+        echo "$hits"
+    fi
+done < <(production_sources)
+
+# --- Rule 11: attachment only from the inventory's attached surfaces --------
+while IFS= read -r f; do
+    case "$f" in
+        crates/magistr-engine/src/tas/*) continue ;;
+        crates/magistr-cockpit/src/engine/client.rs) continue ;;
+        crates/magistr-cli/src/mcp_tools/owner_attach.rs) continue ;;
+        crates/magistr-cli/src/workspace_mcp/connection.rs) continue ;;
+    esac
+    hits=$(grep -nE 'OwnerClient::attach(_project|_with|_mcp|_workspace)?\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
+    if [[ -n "$hits" ]]; then
+        fail "$f attaches to an owner outside the client inventory's attached surfaces (docs/architecture/clients.md):"
+        echo "$hits"
+    fi
+done < <(production_sources)
+
 if [[ "$errors" -eq 0 ]]; then
-    echo "OK: one native write path — engines composed in magistr-engine/tas, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, no MCP roundtrips."
+    echo "OK: one native write path — engines composed in magistr-engine/tas, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, owners opened and attached only on the inventoried paths, no MCP roundtrips."
     exit 0
 fi
 echo "native-write-path-gate: $errors error(s)"

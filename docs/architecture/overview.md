@@ -42,7 +42,10 @@ workspace tools are served by the same binary's native workspace bridge
 one admitted owner. The
 [project authority](project-authority.md)
 controls cooperating MCP owners; a second process must not open an independent
-cached writer for the same project.
+cached writer for the same project. The [client inventory](clients.md) names
+every supported surface's capability and admission path, and states what
+is and is not coherent across the Host writer, the Service writer, attached
+clients and readers.
 
 The accepted [first-party subsystem decision](owned-subsystems.md) makes
 hard forks of think-and-ship and Workbench part of the refactor. It defines
