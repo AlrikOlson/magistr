@@ -7,7 +7,7 @@
 use serde_json::json;
 use std::path::{Path, PathBuf};
 
-use crate::scaffold::WorkbenchCommand;
+use crate::mcp_target::McpTarget;
 
 /// Write a temporary `.mcp.json` that includes the magistr MCP server.
 ///
@@ -75,22 +75,18 @@ fn build_magistr_entry(magistr_binary: &Path, project_dir: &Path) -> serde_json:
     })
 }
 
-/// Build the workbench-mcp server entry for `.mcp.json`.
+/// Build the workbench-mcp server entry for `.mcp.json`: the native workspace
+/// bridge of this same binary, so it is always launchable.
 fn build_workbench_entry(project_dir: &Path) -> serde_json::Value {
     let root = project_dir
         .canonicalize()
         .unwrap_or_else(|_| project_dir.to_path_buf())
         .to_string_lossy()
         .to_string();
-    WorkbenchCommand::resolve().mcp_entry(&root)
+    McpTarget::Workbench.mcp_entry(&root)
 }
 
-/// Check whether workbench-mcp can be launched on this machine.
-pub fn is_workbench_available() -> bool {
-    WorkbenchCommand::resolve().available
-}
-
-/// Write an MCP config with magistr + workbench-mcp (if available).
+/// Write an MCP config with magistr + workbench-mcp.
 ///
 /// Used by the interview to give the AI agent access to both
 /// `magistr_recommend` and workbench codebase exploration tools.
@@ -120,7 +116,7 @@ pub fn write_interview_mcp_config(
                 );
                 modified = true;
             }
-            if !servers.contains_key("workbench-mcp") && is_workbench_available() {
+            if !servers.contains_key("workbench-mcp") {
                 servers.insert(
                     "workbench-mcp".to_string(),
                     build_workbench_entry(project_dir),
@@ -145,12 +141,10 @@ pub fn write_interview_mcp_config(
             "magistr".to_string(),
             build_magistr_entry(magistr_binary, project_dir),
         );
-        if is_workbench_available() {
-            servers.insert(
-                "workbench-mcp".to_string(),
-                build_workbench_entry(project_dir),
-            );
-        }
+        servers.insert(
+            "workbench-mcp".to_string(),
+            build_workbench_entry(project_dir),
+        );
         let config = json!({ "mcpServers": servers });
         std::fs::write(&mcp_path, serde_json::to_string_pretty(&config)?)?;
         Ok(McpConfigGuard {

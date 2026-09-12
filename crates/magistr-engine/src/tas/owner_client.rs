@@ -14,7 +14,7 @@ use super::owner_generation::OwnerGeneration;
 use super::owner_identity::OwnerIdentity;
 use super::owner_reply::OwnerReply;
 use super::owner_socket::owner_socket_path;
-use super::owner_wire::{ClientFrame, CommandRefusal, Hello, OWNER_PROTOCOL_VERSION};
+use super::owner_wire::{ClientFrame, CommandRefusal, Hello, OWNER_BUILD, OWNER_PROTOCOL_VERSION};
 use super::tas_config::TasConfig;
 use super::writer_role::WriterRole;
 
@@ -96,6 +96,7 @@ impl OwnerClient {
         let path = owner_socket_path(config, &project_id, role);
         let hello = Hello {
             protocol: OWNER_PROTOCOL_VERSION,
+            build: OWNER_BUILD.to_owned(),
             identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Commands,
             caller,
@@ -130,6 +131,7 @@ impl OwnerClient {
         let path = owner_socket_path(config, &project_id, role);
         let hello = Hello {
             protocol: OWNER_PROTOCOL_VERSION,
+            build: OWNER_BUILD.to_owned(),
             identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Mcp,
             caller,

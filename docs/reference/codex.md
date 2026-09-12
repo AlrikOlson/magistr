@@ -29,15 +29,18 @@ The skills are `craft`, `init`, `next`, `next-loop`, `roadmap`, `roadmap-refresh
 `magistr` server, which embeds think-and-ship, and Workbench for workspace work.
 The duplicate standalone `think-and-ship` server is disabled.
 
-Both transports use portable `magistr mcp-launch` commands. Workbench resolves
-from `WORKBENCH_MCP`, then an installed `workbench-mcp`, then a checkout selected
-by `WORKBENCH_MCP_REPO` with Bun available. `WORKBENCH_MCP` names an executable,
-not a shell command. Setup does not install missing dependencies.
+Both transports use portable `magistr mcp-launch` commands. The `workbench-mcp`
+entry is the retained name of Magistr's native workspace bridge: the same
+binary serves it, so no external executable, checkout or Bun runtime is
+consulted, and a second Codex thread's launch attaches to the first thread's
+workspace owner instead of being refused.
 
 Start a new Codex session after setup. Project configuration depends on Codex's
 project trust settings. Inspect `roadmap_status`, `ship_status`, and
-`workbench_status` through existing connections. If Workbench is already owned,
-use that connection or close its owning session normally.
+`workbench_status` through existing connections. Every workspace launch reaches
+the one admitted owner; a workspace whose `.workbench/server.lock` still holds
+the retained legacy server's record needs `magistr workspace migrate` once,
+with that server stopped.
 
 ## Launcher
 

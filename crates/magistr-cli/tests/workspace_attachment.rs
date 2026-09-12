@@ -1,5 +1,6 @@
 //! Native stdio processes share one admitted workspace owner, retain distinct
-//! sessions and end when their invocation-owned server disappears.
+//! sessions and outlive that owner: a bridge whose owner disappears answers
+//! its calls with the typed refusal and reconnects on the next request.
 #![cfg(unix)]
 mod workspace_attachment_support;
 
@@ -7,7 +8,8 @@ use serde_json::json;
 use std::{process::Stdio, sync::Arc};
 use tokio::{sync::Barrier, task::JoinSet};
 use workspace_attachment_support::{
-    Connection, WAIT, assert_ok, command, edit, file_text, generation, read_text, workspace,
+    Connection, WAIT, assert_ok, binary, command, deny_admission, edit, file_text, generation,
+    hostname, magistr, read_text, restore_admission, workspace,
 };
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -251,31 +253,35 @@ async fn confirmation_and_undo_follow_explicit_identity_across_attached_connecti
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn attached_eof_preserves_the_owner_and_owner_eof_closes_remaining_attachments() {
+async fn attached_eof_preserves_the_owner_and_owner_eof_is_survived_by_the_remaining_client() {
     let dir = workspace();
     let owner = Connection::open(dir.path()).await;
     let leaving = Connection::open(dir.path()).await;
-    let remaining = Connection::open(dir.path()).await;
+    let mut remaining = Connection::open(dir.path()).await;
     leaving.close().await;
     assert_ok(&owner.call("workbench_status", json!({})).await);
     assert_ok(&remaining.call("read", json!({"file": "shared.txt"})).await);
     owner.close().await;
-    remaining.assert_owner_lost().await;
     assert_eq!(
         generation(dir.path()),
         1,
-        "disconnect never starts a replacement"
+        "nothing admits until a client asks"
     );
-    let replacement = Connection::open(dir.path()).await;
+    remaining.assert_alive();
+    // The next request reconnects: nobody owns the workspace, so this bridge
+    // admits it and keeps serving the same tool surface.
+    assert_ok(&remaining.call("read", json!({"file": "shared.txt"})).await);
     assert_eq!(generation(dir.path()), 2);
-    replacement.close().await;
+    remaining.assert_tools().await;
+    remaining.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn owner_crash_closes_attachments_and_only_an_explicit_new_invocation_restarts() {
+async fn owner_crash_is_survived_by_attached_clients_which_reconnect_on_their_next_call() {
     let dir = workspace();
     let mut owner = Connection::open(dir.path()).await;
-    let attached = Connection::open(dir.path()).await;
+    let mut attached = Connection::open(dir.path()).await;
+    let peer = Connection::open(dir.path()).await;
     // This handle belongs only to the scratch owner this test spawned.
     owner.child.start_kill().expect("crash the scratch owner");
     let status = tokio::time::timeout(WAIT, owner.child.wait())
@@ -283,17 +289,191 @@ async fn owner_crash_closes_attachments_and_only_an_explicit_new_invocation_rest
         .expect("crashed owner exits")
         .expect("reap crashed owner");
     assert!(!status.success());
-    attached.assert_owner_lost().await;
     let _ = owner.client.cancel().await;
+    attached.assert_alive();
+    assert_ok(&attached.call("workbench_status", json!({})).await);
+    assert_eq!(
+        generation(dir.path()),
+        2,
+        "one client admitted the workspace"
+    );
+    attached.assert_tools().await;
+    // The other survivor attaches to that new owner instead of admitting.
+    assert_ok(&peer.call("read", json!({"file": "shared.txt"})).await);
+    assert_eq!(generation(dir.path()), 2);
+    peer.close().await;
+    attached.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn owner_loss_answers_calls_typed_and_keeps_the_tool_surface_until_an_owner_returns() {
+    let dir = workspace();
+    let mut owner = Connection::open(dir.path()).await;
+    let mut attached = Connection::open(dir.path()).await;
+    attached.assert_tools().await;
+    owner.child.start_kill().expect("crash the scratch owner");
+    tokio::time::timeout(WAIT, owner.child.wait())
+        .await
+        .expect("crashed owner exits")
+        .expect("reap crashed owner");
+    let _ = owner.client.cancel().await;
+    let native = deny_admission(dir.path());
+    let refused = attached.call("workbench_status", json!({})).await;
+    assert_eq!(refused["ok"], false, "{refused}");
+    assert_eq!(refused["error"]["code"], "ENGINE_UNAVAILABLE", "{refused}");
+    assert_eq!(refused["error"]["recovery"], "retry", "{refused}");
+    attached.assert_tools().await;
+    attached.assert_alive();
     assert_eq!(
         generation(dir.path()),
         1,
-        "attached clients never replace a lost owner"
+        "a refused admission mints nothing"
     );
-    let replacement = Connection::open(dir.path()).await;
+    restore_admission(dir.path(), &native);
+    assert_ok(&attached.call("workbench_status", json!({})).await);
     assert_eq!(generation(dir.path()), 2);
-    replacement.assert_tools().await;
-    replacement.close().await;
+    attached.assert_tools().await;
+    attached.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_killed_owner_takes_its_worker_with_it() {
+    let dir = workspace();
+    std::fs::create_dir(dir.path().join("src")).expect("source directory");
+    std::fs::write(dir.path().join("src/main.rs"), "fn main() {}\n").expect("source fixture");
+    let mut owner = Connection::open(dir.path()).await;
+    let owner_pid = owner.child.id().expect("owner pid");
+    // The supervisor starts its worker on the first parse it needs.
+    assert_ok(
+        &owner
+            .call(
+                "search",
+                json!({"query": "fn $NAME() {}", "mode": "structural", "path": "src/**"}),
+            )
+            .await,
+    );
+    let worker = tokio::time::timeout(WAIT, async {
+        loop {
+            if let Some(pid) = worker_of(owner_pid) {
+                break pid;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        }
+    })
+    .await
+    .expect("the owner supervises a worker");
+    owner.child.start_kill().expect("crash the scratch owner");
+    tokio::time::timeout(WAIT, owner.child.wait())
+        .await
+        .expect("crashed owner exits")
+        .expect("reap crashed owner");
+    let _ = owner.client.cancel().await;
+    tokio::time::timeout(WAIT, async {
+        // SAFETY: signal 0 only observes this fixture's worker; it sends none.
+        while unsafe { libc::kill(worker, 0) } == 0 {
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+    })
+    .await
+    .expect("the orphaned worker ends by itself");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn an_orphaned_worker_whose_stdin_stays_open_ends_by_itself() {
+    // A shell parent stands in for a killed owner (the trailing command keeps
+    // the shell from exec'ing the worker in its place). The worker's stdin is
+    // held open here, so EOF cannot end it: only the parent watch can.
+    let mut parent = tokio::process::Command::new("sh")
+        .arg("-c")
+        .arg("\"$0\" --workspace-worker; exit $?")
+        .arg(env!("CARGO_BIN_EXE_magistr"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .kill_on_drop(true)
+        .spawn()
+        .expect("shell parent");
+    let parent_pid = parent.id().expect("parent pid");
+    let worker = tokio::time::timeout(WAIT, async {
+        loop {
+            if let Some(pid) = worker_of(parent_pid) {
+                break pid;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        }
+    })
+    .await
+    .expect("the shell starts a worker");
+    parent.start_kill().expect("kill the stand-in owner");
+    tokio::time::timeout(WAIT, parent.wait())
+        .await
+        .expect("stand-in exits")
+        .expect("reap stand-in");
+    tokio::time::timeout(WAIT, async {
+        // SAFETY: signal 0 only observes this fixture's worker; it sends none.
+        while unsafe { libc::kill(worker, 0) } == 0 {
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+    })
+    .await
+    .expect("the re-parented worker ends although its stdin is open");
+}
+
+/// The `--workspace-worker` child of `owner`, as the process table shows it.
+fn worker_of(owner: u32) -> Option<i32> {
+    let table = std::process::Command::new("ps")
+        .args(["-axo", "pid=,ppid=,command="])
+        .output()
+        .expect("process table");
+    String::from_utf8_lossy(&table.stdout)
+        .lines()
+        .filter_map(|line| {
+            let mut fields = line.split_whitespace();
+            let pid: i32 = fields.next()?.parse().ok()?;
+            let ppid: u32 = fields.next()?.parse().ok()?;
+            let command = fields.collect::<Vec<_>>().join(" ");
+            (ppid == owner && command.contains("--workspace-worker")).then_some(pid)
+        })
+        .next()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_bridge_keeps_its_session_identity_across_owner_change() {
+    let dir = workspace();
+    let mut owner = Connection::open(dir.path()).await;
+    let attached = Connection::open(dir.path()).await;
+    assert_ok(&attached.call("edit", edit("alice.txt", "alice v1")).await);
+    let before = attached
+        .call("undo", json!({"action": "list", "scope": "session"}))
+        .await;
+    assert_ok(&before);
+    assert_eq!(before["results"].as_array().map(Vec::len), Some(1));
+    owner.child.start_kill().expect("crash the scratch owner");
+    tokio::time::timeout(WAIT, owner.child.wait())
+        .await
+        .expect("crashed owner exits")
+        .expect("reap crashed owner");
+    let _ = owner.client.cancel().await;
+    let after = attached
+        .call("undo", json!({"action": "list", "scope": "session"}))
+        .await;
+    assert_ok(&after);
+    assert_eq!(generation(dir.path()), 2);
+    assert_eq!(
+        after["results"], before["results"],
+        "the durable identity still selects its own history under the new owner"
+    );
+    assert_ok(&attached.call("edit", edit("bob.txt", "bob v1")).await);
+    let grown = attached
+        .call("undo", json!({"action": "list", "scope": "session"}))
+        .await;
+    assert_eq!(grown["results"].as_array().map(Vec::len), Some(2));
+    // A default rewind takes the identity's latest batch, journaled under the
+    // new owner; the older op under the old owner stays selectable.
+    assert_ok(&attached.call("undo", json!({"action": "rewind"})).await);
+    assert_eq!(file_text(dir.path(), "bob.txt"), "original bytes\n");
+    assert_eq!(file_text(dir.path(), "alice.txt"), "alice v1\n");
+    attached.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -411,3 +591,6 @@ async fn attachment_rejects_a_confirmation_after_external_bytes_change() {
 
 #[path = "workspace_attachment_support/shutdown.tests.rs"]
 mod shutdown_tests;
+
+#[path = "workspace_attachment_support/launcher.tests.rs"]
+mod launcher_tests;

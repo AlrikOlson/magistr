@@ -14,6 +14,7 @@ mod init;
 mod journal;
 mod journal_view;
 mod key;
+mod migrate;
 
 use std::path::{Path, PathBuf};
 
@@ -22,9 +23,11 @@ use magistr_workspace::{config::SessionFlags, service::WorkspaceOpenError};
 pub use doctor::run_doctor;
 pub(crate) use exit::fail;
 pub use init::run_init;
+pub(crate) use init::seed_allowlist;
 pub use journal::run_journal;
 pub use journal_view::JournalView;
 pub use key::run_key_rotate;
+pub use migrate::run_migrate;
 
 /// The absolute workspace root, or the retained exit 66.
 pub(crate) fn admitted_root(dir: &Path) -> PathBuf {

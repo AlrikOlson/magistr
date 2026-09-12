@@ -167,13 +167,9 @@ fn skills(server: &mut Rpc, cwd: &Path) -> BTreeMap<PathBuf, bool> {
 }
 
 #[test]
-#[ignore = "requires installed Codex and Workbench; no model calls; disposable project only"]
+#[ignore = "requires installed Codex; no model calls; disposable project only"]
 fn installed_codex_discovers_relocated_project_and_generated_mcp_tools() {
     let codex = which::which("codex").expect("install Codex before the live acceptance test");
-    assert!(
-        magistr::scaffold::WorkbenchCommand::resolve().available,
-        "install Workbench or set WORKBENCH_MCP_REPO before this opt-in test"
-    );
     let temp = tempfile::tempdir().expect("disposable fixture");
     let base = temp.path().canonicalize().expect("canonical fixture");
     let original = base.join("original project");

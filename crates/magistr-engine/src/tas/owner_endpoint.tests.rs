@@ -82,6 +82,7 @@ fn raw_greeting(path: &std::path::Path, hello: serde_json::Value) -> Greeting {
 fn hello(project_id: &str, role: &str, attach: &str, protocol: u32) -> serde_json::Value {
     serde_json::json!({
         "protocol": protocol,
+        "build": env!("CARGO_PKG_VERSION"),
         "identity": { "kind": "workflow", "project_id": project_id, "role": role },
         "attach": attach,
         "caller": {"pid": std::process::id(), "surface": "test"},
@@ -273,6 +274,16 @@ async fn the_handshake_is_validated_before_anything_is_served() {
         AttachRefusal::Project {
             expected: "lease".into(),
             offered: "other".into()
+        }
+    );
+    // Same protocol, another build of the binary: refused before identity.
+    let mut skewed = hello("lease", "host", "commands", served);
+    skewed["build"] = serde_json::json!("0.0.0-other");
+    assert_eq!(
+        refused(raw_greeting(path, skewed)),
+        AttachRefusal::Build {
+            served: env!("CARGO_PKG_VERSION").into(),
+            offered: "0.0.0-other".into()
         }
     );
     assert_eq!(

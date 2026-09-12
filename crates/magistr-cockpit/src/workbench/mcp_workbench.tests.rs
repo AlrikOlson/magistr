@@ -366,3 +366,25 @@ fn a_server_that_cannot_be_connected_to_is_refused_once_and_remembered() {
     let second = workbench.map().expect_err("the refusal is answered again");
     assert_eq!(first, second);
 }
+
+#[cfg(unix)]
+#[test]
+fn magistrs_own_launch_line_derives_the_native_journal_verb() {
+    // `magistr mcp-launch workbench-mcp .` is the native workspace bridge;
+    // its journal lives under `magistr workspace journal`.
+    let tmp = tempfile::TempDir::new().expect("tempdir");
+    let cli = stub_cli(tmp.path(), r#"{"v":1,"ok":true,"results":[]}"#, "", 0);
+    let argv = tmp.path().join("argv.txt");
+    let mut workbench = McpWorkbench::new(
+        cli,
+        vec![
+            "mcp-launch".to_owned(),
+            "workbench-mcp".to_owned(),
+            ".".to_owned(),
+        ],
+        vec![("ARGS_FILE".to_owned(), argv.to_string_lossy().into_owned())],
+    );
+    workbench.journal().expect("the CLI answers");
+    let recorded = std::fs::read_to_string(&argv).expect("argv recorded");
+    assert_eq!(recorded.trim(), "workspace journal . --json --limit 200");
+}

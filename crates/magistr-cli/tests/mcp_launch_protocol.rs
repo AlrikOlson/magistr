@@ -8,7 +8,6 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use magistr::detect::detect_stack;
-use magistr::scaffold::WorkbenchCommand;
 use magistr::scaffold::pipeline::ScaffoldPipeline;
 use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::{ClientHandler, ServiceExt};
@@ -196,16 +195,12 @@ async fn generated_magistr_launch_serves_native_tools_after_relocation_from_root
 }
 
 #[tokio::test]
-#[ignore = "requires installed Workbench"]
 async fn generated_workbench_launch_reads_and_searches_relocated_workspace_from_root_and_nested_cwd()
  {
-    let workbench = WorkbenchCommand::resolve();
-    assert!(
-        workbench.available,
-        "install Workbench before running this probe"
-    );
-    // Each launch gets its own workspace so an installed server's shutdown
-    // cannot leave the following probe waiting on its previous workspace lock.
+    // The retained `workbench-mcp` alias launches this binary's native
+    // workspace bridge: nothing installed, on PATH or in a checkout is
+    // consulted. Each launch gets its own workspace so one owner's shutdown
+    // cannot leave the following probe attaching to its predecessor.
     for nested in [false, true] {
         let fixture = Fixture::relocated();
         let cwd = if nested {
@@ -214,19 +209,10 @@ async fn generated_workbench_launch_reads_and_searches_relocated_workspace_from_
             fixture.root.clone()
         };
         let mut command = fixture.command("workbench-mcp", &cwd);
-        if workbench.leading_args.is_empty() {
-            command.env("WORKBENCH_MCP", &workbench.command);
-        } else {
-            // Preserve a home-checkout resolution across the isolated HOME.
-            let main = Path::new(&workbench.leading_args[1]);
-            let repo = main
-                .parent()
-                .and_then(Path::parent)
-                .expect("Workbench checkout");
-            command
-                .env_remove("WORKBENCH_MCP")
-                .env("WORKBENCH_MCP_REPO", repo);
-        }
+        command
+            .env("WORKBENCH_NETWORK_FS", "0")
+            .env_remove("WORKBENCH_MCP")
+            .env_remove("WORKBENCH_MCP_REPO");
         let (client, child) = connect(command).await;
         let tools = timeout(DEADLINE, client.peer().list_all_tools())
             .await

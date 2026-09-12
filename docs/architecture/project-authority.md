@@ -151,15 +151,16 @@ endpoint while a socket file nothing answers on is reclaimed.
 ### Handshake and identity
 
 Both ways the wire is one JSON object per line. The client opens with a
-`Hello` naming protocol version 2 (`OWNER_PROTOCOL_VERSION`, exact match
-only), an `OwnerIdentity`, the kind of attachment it wants (`commands` or
+`Hello` naming protocol version 3 (`OWNER_PROTOCOL_VERSION`, exact match
+only), its build (the package version; an owner serves only its own build),
+an `OwnerIdentity`, the kind of attachment it wants (`commands` or
 `mcp`) and its `CallerIdentity` (pid and surface). Workflow identity names
 the project and writer role; workspace identity names the canonical root
 without a workflow role. The owner checks the peer credential of the socket
 first — the connecting process must be the owner's own user, which the
-socket's file mode also enforces — and then the version, identity and offered
-kind, answering `Welcome` with its generation and pid or `Refused` with the
-reason. The caller identity is kept
+socket's file mode also enforces — and then the version, build, identity and
+offered kind, answering `Welcome` with its generation and pid or `Refused`
+with the reason. The caller identity is kept
 for diagnostics; the credential is the proof.
 
 ### What an owner serves
@@ -170,8 +171,11 @@ for diagnostics; the credential is the proof.
 | `magistr mcp-serve` (Service) | `OwnerEndpoint::serve_mcp` over the bare admission: an rmcp session of the same `MagistrService`, under the same protocol cap, on every welcomed socket. Typed commands are refused at the handshake. | A second `magistr mcp-serve` on the project: refused the Service lease, it attaches as `mcp` and proxies its stdio to the owner's session, so a second agent session in one project gets the full tool set through the one admitted writer. |
 
 `magistr workspace serve` also uses the MCP endpoint with
-`OwnerIdentity::Workspace`. Its separate admission, policy and process
-lifetime are described in the [workspace guide](workspace-owner.md).
+`OwnerIdentity::Workspace`, and unlike the workflow proxy its attached
+invocation is a bridge that outlives the owner: it answers in-flight calls
+with a typed refusal and reconnects — attaching or admitting — on its next
+request. Its admission, policy and process lifetime are described in the
+[workspace guide](workspace-owner.md).
 
 `next` and `next-loop` on a held host stay refused: execution cycles are
 serialized per project by design, and a loop that cannot be the host is not

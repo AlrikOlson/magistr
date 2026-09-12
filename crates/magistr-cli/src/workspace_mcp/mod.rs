@@ -13,11 +13,15 @@
 //! session identity; explicit `_meta` identities receive fresh owner admission.
 //!
 //! This module negotiates the wire without reaching into service stores.
-//! `magistr workspace serve` admits one native workspace owner or attaches
-//! another Unix MCP connection through the shared owner transport. Workflow
-//! serving remains a separate subcommand and production launcher cutover is
-//! deferred until the remaining workspace lifecycle acceptance is complete.
+//! `magistr workspace serve` — and the production alias `magistr mcp-launch
+//! workbench-mcp` — is the bridge in [`bridge`]: it admits one native
+//! workspace owner or attaches to it through the shared owner transport,
+//! stamps a durable client identity, and reconnects on its next request when
+//! the owner goes away. Workflow serving remains a separate subcommand.
 mod arguments;
+mod bridge;
+mod bridge_link;
+mod bridge_session;
 mod connection;
 mod dispatch;
 mod elicitation;

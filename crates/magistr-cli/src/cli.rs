@@ -676,6 +676,16 @@ pub enum WorkspaceAction {
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
+
+    /// Move an obsolete legacy or empty `.workbench/server.lock` aside so
+    /// the native owner can admit the workspace. Refuses (exit 75) while
+    /// the record's process is alive on this host or was written on another
+    /// host; never touches a native marker, the journal, the key or the index.
+    Migrate {
+        /// Workspace root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+    },
 }
 
 /// The two non-report forms of `magistr workspace doctor`.

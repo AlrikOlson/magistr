@@ -1076,8 +1076,11 @@ and never delete or reset `server.generation`. Damaged generation state needs
 offline restoration of the latest durable generation; an older backup must
 not lower the counter and revive old grants. It is not automatically reset.
 The retained legacy server will continue to refuse a native marker even after
-the native owner exits. Production launchers still use their existing routing;
-this prerequisite performs no migration in the real checkout.
+the native owner exits. `magistr workspace migrate <root>` is that offline
+procedure as one command: it moves a legacy or empty record to
+`server.lock.legacy-<timestamp>` only when the record was written on this host
+and its process is not alive, refuses (exit 75) otherwise, and never touches a
+native marker. Nothing migrates a live checkout implicitly.
 
 Evidence: `service/server_lock.tests.rs` and `owner_generation.tests.rs`
 cover concurrent first admission, canonical aliases, independent roots,
@@ -1122,10 +1125,8 @@ This is an embedded owner whose initial invocation controls its lifetime.
 Attached client EOF leaves the owner and other clients running; owner EOF ends
 all attachments. Transparent reconnect, a detached idle/retire lifecycle,
 crash parent-death cleanup and the complete retained matrix are not delivered.
-Non-Unix remains exclusive. Production launchers retain their legacy routing
-until the parent owner chunk's lifecycle and full-matrix acceptance are met.
-The [native ADR-018 matrix](../../docs/architecture/workspace-owner.md#adr-018-scope)
-names this adaptation and its deferred observables.
+Non-Unix remains exclusive. The parent owner chunk below delivers the
+lifecycle and the launcher cutover.
 
 `crates/magistr-cli/tests/workspace_attachment.rs` is the native process suite
 for startup races, canonical aliases and independent roots, simultaneous writes,
@@ -1135,3 +1136,43 @@ platform results and gate outcomes belong to recorded ship checks and the
 iteration receipt. These are first-party native adaptations recorded in
 `NATIVE_IMPORTS.json`; the adopted engine and retained reference inputs are not
 re-imported or rewritten by this change.
+
+## Native workspace owner (arch-14d)
+
+This chunk completes the native adaptation of the retained ADR-018 design
+without its daemon. Every `magistr workspace serve` — and the retained
+production alias `magistr mcp-launch workbench-mcp <root>` — is a bridge over
+whichever owner is reachable: the in-process `WorkspaceService` it admitted
+(served to its own client over a duplex) or the socket a running owner
+welcomed it on. The bridge stamps a durable per-process identity
+(`WORKBENCH_SESSION_ID` or a minted `bridge-<random>`) on every `tools/call`
+without one, records the client's `initialize`, and on owner loss answers the
+requests in flight with the retained `ENGINE_UNAVAILABLE` recovery `retry`
+envelope while `tools/list` keeps answering from the last listing. Its next
+request runs one bounded attach-or-admit attempt and replays `initialize`
+under a bridge-owned id; when the workspace cannot be reached or admitted the
+request is answered with the typed refusal and the next one tries again. The
+bridge process never exits on owner loss. Client EOF half-closes the link so
+the owner's remaining answers are relayed before ordered shutdown.
+
+The shared `Hello` is protocol 3 and carries the build; an owner refuses other
+builds. The `--workspace-worker` role polls its parent and exits once
+re-parented, so a killed owner leaves no worker. The `WorkbenchCommand`
+resolver (`WORKBENCH_MCP`, an installed `workbench-mcp` on PATH, a Bun home
+checkout) is deleted together with `magistr-core`'s `which` dependency;
+scaffold seeding, the interview configuration and the cockpit port (journal
+through `magistr workspace journal`) use the native owner. Codex parent and
+subagent threads attach to one owner; `scripts/codex-subagent-check.py`
+(the optional `codex-subagent` gate, a Python port of the retained
+`scripts/codex-subagent-check.ts`) passed against the real `codex exec` on
+2026-09-12. `magistr workspace migrate` is the explicit legacy migration.
+
+Deliberately not delivered: a detached daemon, idle timer or retire protocol;
+automatic removal of any lock record; a synthetic `initialize` before any
+owner was ever reached (startup with no reachable owner still exits 75);
+build identity finer than the package version. This repository's own
+`.mcp.json` keeps its explicit legacy entry until its live legacy workspace
+is migrated offline. The [native ADR-018 matrix](../../docs/architecture/workspace-owner.md#adr-018-scope)
+maps every retained row to executed evidence; the retained reference files
+are unchanged and the audited multi-client tests remain the opt-in red
+reference reproductions.

@@ -157,3 +157,83 @@ fn a_held_legacy_or_unknown_marker_requires_migration_instead_of_native_attachme
         holder.unlock().expect("release fixture lock");
     }
 }
+
+#[test]
+fn migration_leaves_absent_and_native_markers_alone() {
+    let (_dir, path) = lock_path();
+    assert_eq!(
+        ServerLock::migrate_legacy(&path).expect("nothing to do"),
+        LegacyMigration::Absent
+    );
+    let held = ServerLock::acquire(&path).expect("native owner");
+    let marker = std::fs::read(&path).expect("native marker");
+    assert_eq!(
+        ServerLock::migrate_legacy(&path).expect("already native"),
+        LegacyMigration::AlreadyNative
+    );
+    assert_eq!(std::fs::read(&path).expect("untouched"), marker);
+    drop(held);
+    assert_eq!(
+        ServerLock::migrate_legacy(&path).expect("still native after release"),
+        LegacyMigration::AlreadyNative
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn migration_refuses_a_live_legacy_owner_and_a_foreign_host() {
+    let (_dir, path) = lock_path();
+    let alive = format!(
+        r#"{{"pid":{},"host":"{}"}}"#,
+        std::process::id(),
+        local_hostname()
+    );
+    std::fs::write(&path, &alive).expect("legacy record");
+    let refused = ServerLock::migrate_legacy(&path).expect_err("its process is this one");
+    assert_eq!(refused.kind(), io::ErrorKind::WouldBlock);
+    assert!(refused.to_string().contains("alive"), "{refused}");
+    assert_eq!(std::fs::read_to_string(&path).expect("preserved"), alive);
+
+    let foreign = r#"{"pid":1,"host":"another-machine.local"}"#;
+    std::fs::write(&path, foreign).expect("foreign record");
+    let refused = ServerLock::migrate_legacy(&path).expect_err("another host wrote it");
+    assert_eq!(refused.kind(), io::ErrorKind::WouldBlock);
+    assert!(
+        refused.to_string().contains("another-machine.local"),
+        "{refused}"
+    );
+    assert_eq!(std::fs::read_to_string(&path).expect("preserved"), foreign);
+}
+
+#[cfg(unix)]
+#[test]
+fn migration_moves_a_dead_legacy_record_or_an_empty_lock_aside_and_admission_follows() {
+    let mut child = std::process::Command::new("true")
+        .spawn()
+        .expect("a process to outlive");
+    let dead = child.id();
+    child
+        .wait()
+        .expect("reaped: the pid is gone before the record names it");
+    let (_dir, path) = lock_path();
+    let record = format!(r#"{{"pid":{dead},"host":"{}"}}"#, local_hostname());
+    std::fs::write(&path, &record).expect("legacy record");
+    let LegacyMigration::Migrated { backup } =
+        ServerLock::migrate_legacy(&path).expect("dead owner migrates")
+    else {
+        panic!("a dead legacy owner is migrated");
+    };
+    assert!(!path.exists(), "the record is moved, not copied");
+    assert_eq!(std::fs::read_to_string(&backup).expect("backup"), record);
+    let admitted = ServerLock::acquire(&path).expect("native admission after migration");
+    assert_eq!(admitted.generation().get(), 1);
+    drop(admitted);
+
+    let (_dir, path) = lock_path();
+    std::fs::write(&path, b"").expect("empty pre-migration lock");
+    assert!(matches!(
+        ServerLock::migrate_legacy(&path).expect("empty lock migrates"),
+        LegacyMigration::Migrated { .. }
+    ));
+    ServerLock::acquire(&path).expect("native admission after migration");
+}

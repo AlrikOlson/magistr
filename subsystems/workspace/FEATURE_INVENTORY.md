@@ -40,8 +40,7 @@ the operational CLI verbs (`magistr workspace doctor [bundle|config]`,
 `journal`, `key rotate`, `init`) with the retained renderings and exit codes,
 the Bun-free release-artifact smoke as the required `workspace-release-smoke`
 gate, the supported matrix in [`SUPPORT_MATRIX.md`](SUPPORT_MATRIX.md) and the
-measured budgets under [`bench/`](bench/README.md); production owner routing
-and launcher cutover remain `arch-14d-workspace-owner`.
+measured budgets under [`bench/`](bench/README.md).
 The d1 prerequisite adds immutable legacy-readable admission markers, durable
 owner generations, explicit native session handles and generation-bound
 `mgw2` confirmations. Each MCP connection has a nonempty default identity;
@@ -50,10 +49,13 @@ legacy or c10 empty locks require the documented
 [offline migration](PROVENANCE.md#offline-migration). The d2 attachment uses
 Magistr's shared owner endpoint to serve multiple Unix MCP connections over
 one `WorkspaceService`; each has its own fallback session identity. The
-[workspace owner guide](../../docs/architecture/workspace-owner.md) maps this
-bounded ADR-018 adaptation. The initial invocation still owns process lifetime;
-reconnect, remaining lifecycle acceptance and production cutover remain in
-`arch-14d-workspace-owner`.
+parent `arch-14d-workspace-owner` makes every invocation a bridge: stamped
+durable identities, typed `ENGINE_UNAVAILABLE` answers and on-demand
+attach-or-admit reconnect on owner loss, build refusal in the handshake, worker
+exit on owner death, the native `workbench-mcp` launch alias, the cockpit port
+and Codex threads through one owner, and `magistr workspace migrate` for legacy
+lock records. The [workspace owner guide](../../docs/architecture/workspace-owner.md)
+maps the delivered ADR-018 adaptation row by row.
 Listed tests are retained evidence targets; listing a test does
 not claim that a particular platform or execution lane passed.
 
@@ -66,9 +68,9 @@ Names, inputs, and the status registration come from
 [`WorkspaceService`](../../crates/magistr-workspace/src/service/workspace_service.rs)
 composes every capability and the rmcp adapter in
 [`crates/magistr-cli/src/workspace_mcp`](../../crates/magistr-cli/src/workspace_mcp/mod.rs)
-registers the complete surface under `magistr workspace serve`; production
-consumers still reach the workspace through the legacy server until owner
-cutover.
+registers the complete surface under `magistr workspace serve`, which the
+production alias `magistr mcp-launch workbench-mcp` runs as the bridge every
+client reaches the owner through.
 
 | Tool | Contract and behavior to preserve | Reference implementation and tests | Native completion boundary |
 | --- | --- | --- | --- |
@@ -106,7 +108,7 @@ Paths in the tables are relative to [`reference/`](reference).
 | Dynamic WASM language packs, query validation, native Gleam promotion and indexed hot path | `crates/workbench-core/src/lang_registry.rs`, `wit/lang-pack.wit`, `plugins/lang-pack-gleam/*`; `crates/workbench-core/tests/lang_pack_hot_path.rs`, `test/lang-pack.test.ts`, `lang-pack-promotion.test.ts` | Registry adopted in native `lang_registry.rs`, native hot-path/WIT tests retained; c8 `LangPackBoot` discovers, breakers and registers packs through the worker with the tier selecting the lane (blessed → native); host-side extension selection for index/queries stays bundled (backlog) |
 | Resolver confidence and LSP process isolation, ranking shadow failure isolation, runner-go failure extraction | `wit/{resolver,ranking,runner,subprocess}.wit`, `plugins/{lsp-resolver,ranking-visibility,runner-go}/*`; `test/resolver-plugin.test.ts`, `ranking-shadow.test.ts`, `runner-plugin.test.ts`, `server-pool.test.ts` | Native c8 `PluginResolver` (blessed + granted, warm-index gate, 60 s breach expiry, budget, jail-admitted edges merged into references search), `RankingSignals` (promotion store, shadow log, feature cache, promoted features through the first-party combiner off the response path) and `RunnerAdapter` over new worker ranking/runner requests; the run tool's fallback floor is c9; component guests, sources, locks and fixtures retained |
 | Operational CLI setup/doctor/journal/TCK, telemetry ring buffer, bounded redacted diagnostic bundles, status and task polling | `src/main.ts`, `src/doctor/*`, `src/protocol/{tracing,tasks,serve,server}.ts`; `test/doctor.test.ts`, `doctor-bundle-gate.test.ts`, `tracing.test.ts`, `journal-cli.test.ts`, `tasks.test.ts`, `mcp-conformance.test.ts` | Native c9 `WorkspaceStatus`, `JournalInspection` (read-only reader, no lock, no rewrite), `TraceRecorder` (typed spans, derived recovery, credential-redacted JSONL, capped, fire-and-forget) and `DoctorRun`/`DoctorBundle` (six probes, read-only, ustar+gzip through one redaction choke point) delivered; c10 serves the `index/build` task over tasks/get and the retained tasks/list plus one trace span per call; c10b ships the CLI verbs over them — `doctor [bundle|config]`, `journal`, `key rotate`, `init` — with the retained renderings and exit codes (0 healthy, 1 findings, 64 usage, 65 unreadable durable data, 66 missing root), read-only and lock-free beside a live owner; the retained `doctor.test.ts` and `journal-cli.test.ts` cases run against the binary in `tests/workspace_cli_verbs.rs` |
-| One owner, session admission, confirm/undo identity, reconnect, shutdown, stale-generation fencing | `src/adapters/workspace-lock.ts`, `specs/018-multi-client-daemon/*`; `test/multi-client.test.ts`, `write-lock.test.ts` | d1 delivers OS-held admission, durable generations and session/confirmation fencing; d2 delivers Unix attachment to one admitted service, isolated connection defaults and joined MCP teardown. The [native ADR-018 matrix](../../docs/architecture/workspace-owner.md#adr-018-scope) maps process coverage and remaining lifecycle/default-flip cases. Audited multi-client tests remain opt-in red reference reproductions; no age-based stealing or lock-owner signalling |
+| One owner, session admission, confirm/undo identity, reconnect, shutdown, stale-generation fencing | `src/adapters/workspace-lock.ts`, `specs/018-multi-client-daemon/*`; `test/multi-client.test.ts`, `write-lock.test.ts` | d1 delivers OS-held admission, durable generations and session/confirmation fencing; d2 delivers Unix attachment to one admitted service, isolated connection defaults and joined MCP teardown; d delivers the bridge (stamped durable identity, typed unavailable answers, on-demand attach-or-admit reconnect), build refusal, worker exit on owner death, the production launch alias, cockpit and Codex clients and the guarded legacy migration verb. The [native ADR-018 matrix](../../docs/architecture/workspace-owner.md#adr-018-scope) maps every retained row to executed native evidence; the audited multi-client tests remain the opt-in red reference reproductions; no age-based stealing or lock-owner signalling |
 | Source identity/selection manifest, external writes, ignored/untracked/binary inputs, symlinks/modes, observation versus immutable snapshots | Existing freshness/write source above; accepted contract in `docs/architecture/owned-subsystems.md` | Deferred to `arch-14e-source-snapshots`; neither index generation nor journal sequence proves check input identity |
 
 ## Degradation and error paths
@@ -151,9 +153,9 @@ code's recovery and payload rather than flatten failures into strings:
 | `arch-14c10b-workspace-port-acceptance` | Delivered: the operational CLI verbs with the retained renderings and exit codes, the Bun-free release smoke as a required gate against the release binary, the supported matrix (`SUPPORT_MATRIX.md`) and the measured budgets (`bench/`, all four gates holding after three references-lane fixes); this inventory is closed — every retained row above names native coverage or an explicitly deferred boundary (owner protocol → arch-14d, source snapshots → arch-14e) |
 | `arch-14d1-workspace-fencing` | Delivered: immutable legacy-readable marker, OS-held admission, durable generations, explicit sessions and generation-bound `mgw2` confirmations |
 | `arch-14d2-workspace-attachment` | Delivered: one native Unix workspace owner serving independent MCP connections through the shared protocol; bounded startup retry, canonical-root identity and ordered session teardown; embedded-owner lifetime remains explicit |
+| `arch-14d-workspace-owner` | Delivered: every `workspace serve` is a session-stamping bridge with on-demand attach-or-admit reconnect and typed `ENGINE_UNAVAILABLE` answers; `Hello` 3 refuses other builds; workers end with a killed owner; `magistr mcp-launch workbench-mcp` serves the native bridge with the Bun/PATH/home-checkout resolver deleted; cockpit port and Codex parent/subagent through one owner; `magistr workspace migrate` for legacy records |
 
-`arch-14d-workspace-owner` and `arch-14e-source-snapshots` follow their native
-prerequisites. This table maps implementation scope; native roadmap state owns
+`arch-14e-source-snapshots` follows its native prerequisites. This table maps implementation scope; native roadmap state owns
 readiness and completion. There is no implicit CLI/MCP runtime cutover in c.
 
 Root formatting, check, Clippy and nextest include `magistr-workspace`.

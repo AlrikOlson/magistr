@@ -19,7 +19,12 @@ pub(super) struct Connection {
 
 impl Connection {
     pub(super) async fn open(root: &Path) -> Self {
-        let mut child = command(root)
+        Self::open_with(command(root)).await
+    }
+
+    /// A client over any invocation of the binary that serves MCP on stdio.
+    pub(super) async fn open_with(mut command: tokio::process::Command) -> Self {
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -103,36 +108,61 @@ impl Connection {
         assert!(status.success(), "{status}");
     }
 
-    pub(super) async fn assert_owner_lost(mut self) {
-        tokio::time::timeout(WAIT, self.child.wait())
-            .await
-            .expect("attached process exits when the owner disappears")
-            .expect("reap attached process");
-        let result = tokio::time::timeout(
-            WAIT,
-            self.client
-                .peer()
-                .call_tool(CallToolRequestParams::new("workbench_status")),
-        )
-        .await
-        .expect("the closed transport refuses promptly");
+    /// The bridge process is still serving its client.
+    pub(super) fn assert_alive(&mut self) {
         assert!(
-            result.is_err(),
-            "lost owners are not transparently replaced"
+            self.child
+                .try_wait()
+                .expect("poll the bridge process")
+                .is_none(),
+            "the bridge exited"
         );
-        let _ = self.client.cancel().await;
     }
 }
 
+/// Make native admission fail closed without touching any live owner: the
+/// scratch root's marker is rewritten to the legacy record the native lock
+/// refuses. Returns the native bytes so the caller can restore them.
+pub(super) fn deny_admission(root: &Path) -> Vec<u8> {
+    let lock = root.join(".workbench/server.lock");
+    let native = std::fs::read(&lock).expect("native marker");
+    std::fs::write(&lock, b"{\"pid\":0,\"host\":\"legacy-fixture\"}\n").expect("legacy marker");
+    native
+}
+
+pub(super) fn restore_admission(root: &Path, native: &[u8]) {
+    std::fs::write(root.join(".workbench/server.lock"), native).expect("native marker restored");
+}
+
 pub(super) fn command(root: &Path) -> tokio::process::Command {
+    let mut command = magistr();
+    command.args(["workspace", "serve"]).arg(root);
+    command
+}
+
+/// The binary under test with the workspace environment every fixture uses.
+pub(super) fn magistr() -> tokio::process::Command {
     let mut command = magistr_command::magistr_command();
     command
-        .args(["workspace", "serve"])
-        .arg(root)
         .env("WORKBENCH_NETWORK_FS", "0")
         .env_remove("WORKBENCH_ORG_POLICY")
         .env_remove("WORKBENCH_USER_CONFIG");
     tokio::process::Command::from(command)
+}
+
+/// The path of the binary under test, for launch lines written to disk.
+pub(super) fn binary() -> &'static str {
+    env!("CARGO_BIN_EXE_magistr")
+}
+
+/// This host's name as the legacy server recorded it.
+pub(super) fn hostname() -> String {
+    let mut buffer = [0_u8; 256];
+    // SAFETY: the buffer is valid for its length; gethostname writes within it.
+    let code = unsafe { libc::gethostname(buffer.as_mut_ptr().cast(), buffer.len()) };
+    assert_eq!(code, 0, "gethostname");
+    let end = buffer.iter().position(|b| *b == 0).unwrap_or(buffer.len());
+    String::from_utf8_lossy(&buffer[..end]).into_owned()
 }
 
 pub(super) fn workspace() -> tempfile::TempDir {

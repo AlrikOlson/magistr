@@ -2,7 +2,7 @@
 //! `workbench.toml` from lockfile/manifest detection. A human runs this;
 //! the served surface can never write `workbench.toml`, so seeding is the
 //! one sanctioned machine-assisted amendment — and even it never touches an
-//! existing table.
+//! existing table. The scaffold seeds through the same function.
 
 use std::path::Path;
 
@@ -15,10 +15,49 @@ use super::admitted_root;
 pub fn run_init(dir: &Path) -> eyre::Result<()> {
     let root = admitted_root(dir);
     let toml_path = root.join("workbench.toml");
-    let detected = DetectedCommand::detect(&root);
+    match seed_allowlist(&root)? {
+        Seeded::Nothing => {
+            eprintln!("magistr workspace: no project commands detected — nothing seeded");
+        }
+        Seeded::Declared => eprintln!(
+            "magistr workspace: workbench.toml already declares [commands] — left untouched (amend by hand)"
+        ),
+        Seeded::Commands(detected) => {
+            eprintln!(
+                "magistr workspace: seeded {} command(s) into {}",
+                detected.len(),
+                toml_path.display()
+            );
+            for command in &detected {
+                eprintln!(
+                    "  {} = {}  ({})",
+                    command.name,
+                    serde_json::Value::String(command.line.clone()),
+                    command.provenance
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+/// What seeding found.
+pub(crate) enum Seeded {
+    /// No manifest or lockfile named a command.
+    Nothing,
+    /// The file already declares `[commands]`; nothing was written.
+    Declared,
+    /// These rows were written as the new table.
+    Commands(Vec<DetectedCommand>),
+}
+
+/// Write the detected `[commands]` table into `root/workbench.toml` unless
+/// the file already declares one.
+pub(crate) fn seed_allowlist(root: &Path) -> std::io::Result<Seeded> {
+    let toml_path = root.join("workbench.toml");
+    let detected = DetectedCommand::detect(root);
     if detected.is_empty() {
-        eprintln!("magistr workspace: no project commands detected — nothing seeded");
-        return Ok(());
+        return Ok(Seeded::Nothing);
     }
     let existing = if toml_path.exists() {
         std::fs::read_to_string(&toml_path)?
@@ -29,10 +68,7 @@ pub fn run_init(dir: &Path) -> eyre::Result<()> {
         .lines()
         .any(|line| line.trim_start().starts_with("[commands]"))
     {
-        eprintln!(
-            "magistr workspace: workbench.toml already declares [commands] — left untouched (amend by hand)"
-        );
-        return Ok(());
+        return Ok(Seeded::Declared);
     }
     let block = DetectedCommand::render_table(&detected);
     let body = if existing.is_empty() {
@@ -41,18 +77,5 @@ pub fn run_init(dir: &Path) -> eyre::Result<()> {
         format!("{}\n\n{block}", existing.trim_end_matches('\n'))
     };
     std::fs::write(&toml_path, body)?;
-    eprintln!(
-        "magistr workspace: seeded {} command(s) into {}",
-        detected.len(),
-        toml_path.display()
-    );
-    for command in &detected {
-        eprintln!(
-            "  {} = {}  ({})",
-            command.name,
-            serde_json::Value::String(command.line.clone()),
-            command.provenance
-        );
-    }
-    Ok(())
+    Ok(Seeded::Commands(detected))
 }

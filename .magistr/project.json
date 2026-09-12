@@ -64,11 +64,18 @@
 			"command": "./scripts/native-write-path-gate.sh",
 			"name": "native-write-path",
 			"required": true
+		},
+		{
+			"command": "python3 scripts/codex-subagent-check.py",
+			"name": "codex-subagent",
+			"required": false
 		}
 	],
 	"format": {
 		"command": "cargo fmt",
-		"extensions": ["rs"]
+		"extensions": [
+			"rs"
+		]
 	},
 	"hints": [],
 	"project": {

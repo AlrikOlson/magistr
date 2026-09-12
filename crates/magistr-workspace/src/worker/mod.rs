@@ -58,6 +58,7 @@ pub use test_range::WorkerTestRange;
 mod error;
 mod frame;
 mod options;
+mod parent_watch;
 mod process;
 mod serve;
 mod status;

@@ -40,5 +40,6 @@ pub async fn cmd_workspace(action: WorkspaceAction) -> eyre::Result<()> {
             action: WorkspaceKeyAction::Rotate { dir },
         } => workspace_cli::run_key_rotate(&dir),
         WorkspaceAction::Init { dir } => workspace_cli::run_init(&dir),
+        WorkspaceAction::Migrate { dir } => workspace_cli::run_migrate(&dir),
     }
 }

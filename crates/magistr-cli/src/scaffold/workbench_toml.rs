@@ -3,7 +3,6 @@
 
 use std::collections::HashMap;
 use std::path::Path;
-use std::process::Command;
 
 const HEADER: &str = "# Seeded by `magistr init` from .magistr/project.json (and `workbench-mcp init` \
 manifest detection).\n# Amend by hand: this table is workbench `run`'s allowlist and only a human may change it.\n";
@@ -190,10 +189,11 @@ impl WorkbenchSeed {
     }
 
     /// Seed `<root>/workbench.toml`. A file that already declares
-    /// `[commands]` is never modified (returns `Ok(false)`). Otherwise, when
-    /// `run_init` is set, `workbench-mcp init <root>` runs first; then the
-    /// gate keys are folded in. Returns whether the file was written.
-    pub fn apply(&self, root: &Path, run_init: bool) -> std::io::Result<bool> {
+    /// `[commands]` is never modified (returns `Ok(false)`). Otherwise the
+    /// native lockfile/manifest detection (`magistr workspace init`) seeds
+    /// the table first; then the gate keys are folded in. Returns whether the
+    /// file was written.
+    pub fn apply(&self, root: &Path) -> std::io::Result<bool> {
         let path = root.join("workbench.toml");
         let before = std::fs::read_to_string(&path).unwrap_or_default();
         let mut wrote = false;
@@ -202,16 +202,9 @@ impl WorkbenchSeed {
         // because the common case is exactly a file that already declares
         // `[commands]` and has never heard of `edit.confirm_mode`.
         if !declares_commands(&before) {
-            if run_init {
-                // Best effort: a missing or failing binary just means no
-                // manifest-detected rows, which the gate keys below cover.
-                let _ = Command::new("workbench-mcp")
-                    .arg("init")
-                    .arg(root)
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .status();
-            }
+            // Best effort: a detection failure just means no manifest-detected
+            // rows, which the gate keys below cover.
+            let _ = crate::workspace_cli::seed_allowlist(root);
             let current = std::fs::read_to_string(&path).unwrap_or_default();
             if let Some(body) = self.merge_into(&current) {
                 std::fs::write(&path, body)?;
