@@ -47,6 +47,8 @@ never guessed to be program names. Options after the final program remain normal
 arguments, as in `cargo test -- --nocapture`. Shells, file-munging programs and
 standalone shell operators remain refused. This guard is not a process sandbox.
 
+Workflow MCP consumers follow the [tool input and recovery contract](reference/tool-recovery.md).
+
 ## Tests
 
 Rust unit tests usually live beside their implementation as `{name}.tests.rs`.

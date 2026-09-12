@@ -115,9 +115,7 @@ impl ShipService {
         crate::infra::tool_result::ok(value)
     }
 
-    /// A logical failure. Delegates to [`crate::infra::tool_result::soft_error`]
-    /// so the result is never `is_error: true` and can't be the errored sibling
-    /// that cancels a parallel tool-call batch. Envelope shape is unchanged.
+    /// Logical failures are MCP errors with stable diagnostics and explicit recovery.
     pub(super) fn err_structured(kind: &str, message: impl Into<String>) -> CallToolResult {
         crate::infra::tool_result::soft_error(kind, message)
     }
@@ -147,7 +145,18 @@ impl ServerHandler for ShipService {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        let tool = self
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == request.name);
+        if let Some(tool) = &tool
+            && let Some(error) = crate::infra::tool_input::ToolInput::required(tool, &request)
+        {
+            return Ok(error.into());
+        }
+        let known = tool.is_some();
         let tcc = ToolCallContext::new(self, request, context);
-        self.tool_router.call(tcc).await
+        crate::infra::tool_input::ToolInput::decoded(self.tool_router.call(tcc).await, known)
     }
 }

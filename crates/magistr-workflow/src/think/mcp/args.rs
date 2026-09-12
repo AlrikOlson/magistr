@@ -35,6 +35,7 @@ pub struct ReviseEstimateArgs {
     /// becomes 0 and the handler returns a soft "must be >= 1" error rather
     /// than a -32602 that would cancel sibling tool calls.
     #[serde(default, deserialize_with = "crate::infra::coerce::lenient_u32")]
+    #[schemars(required, !default)]
     pub estimated_total: u32,
     /// Optional human-readable note about why the estimate is changing.
     /// Surfaced back in the response text so the trace remains self-explaining.
@@ -49,6 +50,7 @@ pub struct StepLookupArgs {
     /// an unparseable/absent value becomes 0, which the handler reports as a
     /// soft "not found" rather than a -32602 that would cancel siblings.
     #[serde(default, deserialize_with = "crate::infra::coerce::lenient_u32")]
+    #[schemars(required, !default)]
     pub step_number: u32,
     /// When true, walk the `revised_by` chain forward and return the live
     /// (latest-revision) step instead of the original. Defaults to false so
@@ -65,6 +67,7 @@ pub struct SearchArgs {
     /// fields of every recorded step (including branch steps). Defaults to ""
     /// when absent; the handler reports an empty query as a soft error.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub query: String,
     /// Maximum number of matches to return. Defaults to 10 when omitted.
     #[serde(default, deserialize_with = "crate::infra::coerce::lenient_opt_u32")]
@@ -79,6 +82,7 @@ pub struct ImpactArgs {
     /// that fork off it. Coerced forgivingly (int | numeric string); an
     /// unparseable/absent value becomes 0 → soft "not found", never a -32602.
     #[serde(default, deserialize_with = "crate::infra::coerce::lenient_u32")]
+    #[schemars(required, !default)]
     pub step_number: u32,
 }
 
@@ -89,10 +93,12 @@ pub struct BranchStatusArgs {
     /// `branch.id` field when the branch was created). Defaults to "" when
     /// absent; the handler reports an empty id as a soft error.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub branch_id: String,
     /// New status. One of: "active", "merged", "abandoned". Defaults to ""
     /// when absent → soft "invalid status" rather than a -32602.
     #[serde(default)]
+    #[schemars(required, !default)]
     pub status: String,
     /// Optional step number that synthesized this branch back into the
     /// main reasoning line. Recorded on the branch and surfaced by
@@ -107,6 +113,7 @@ pub struct PinArgs {
     /// Step number to pin or unpin. Coerced forgivingly (int | numeric
     /// string); an unparseable/absent value becomes 0 → soft "not found".
     #[serde(default, deserialize_with = "crate::infra::coerce::lenient_u32")]
+    #[schemars(required, !default)]
     pub step_number: u32,
     /// True to pin, false to unpin. Defaults to true.
     #[serde(default, deserialize_with = "crate::infra::coerce::lenient_opt_bool")]

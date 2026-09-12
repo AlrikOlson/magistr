@@ -92,10 +92,7 @@ impl SignalService {
         crate::infra::tool_result::ok(value)
     }
 
-    /// A logical failure (unknown id, illegal transition, …). Delegates to
-    /// [`crate::infra::tool_result::soft_error`] so the result is NEVER marked
-    /// `is_error: true` — keeping the `{ok:false, error_kind, message}` envelope
-    /// without tripping Claude Code's parallel-batch cascade-cancel.
+    /// Logical failures are MCP errors with stable diagnostics and explicit recovery.
     pub(super) fn err_structured(kind: &str, message: impl Into<String>) -> CallToolResult {
         crate::infra::tool_result::soft_error(kind, message)
     }
@@ -141,7 +138,18 @@ impl ServerHandler for SignalService {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        let tool = self
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == request.name);
+        if let Some(tool) = &tool
+            && let Some(error) = crate::infra::tool_input::ToolInput::required(tool, &request)
+        {
+            return Ok(error.into());
+        }
+        let known = tool.is_some();
         let tcc = ToolCallContext::new(self, request, context);
-        self.tool_router.call(tcc).await
+        crate::infra::tool_input::ToolInput::decoded(self.tool_router.call(tcc).await, known)
     }
 }

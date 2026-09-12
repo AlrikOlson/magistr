@@ -2,6 +2,7 @@
 //! sessions, persistence, broadcast, typed cross-references.
 
 pub mod broadcast;
+pub mod checked_tool_result;
 pub mod coerce;
 pub mod cross_ref;
 pub mod epoch_key;
@@ -13,6 +14,8 @@ pub mod seq_key;
 pub mod session;
 #[cfg(test)]
 pub mod source_gate;
+pub mod tool_failure;
+pub mod tool_input;
 pub mod tool_result;
 
 pub use broadcast::{Broadcaster, EmitError, Family};

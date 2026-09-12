@@ -94,6 +94,9 @@ impl ThinkService {
     pub fn list_tools_view(&self) -> Vec<rmcp::model::Tool> {
         let mut tools = self.tool_router.list_all();
         for tool in tools.iter_mut() {
+            if tool.name == "think_record_step" {
+                super::record_input::RecordInput::publish(tool);
+            }
             if let Some(schema) = output_schemas::output_schema_for(&tool.name) {
                 tool.output_schema = Some(schema);
             }
@@ -102,11 +105,7 @@ impl ThinkService {
         tools
     }
 
-    /// A logical failure, emitted so callers can pattern-match `error_kind`
-    /// rather than parse prose. Delegates to
-    /// [`crate::infra::tool_result::soft_error`], which keeps `is_error: false`
-    /// so the result can never be the errored sibling that cancels a parallel
-    /// tool-call batch (anthropics/claude-code#22264).
+    /// Logical failures are MCP errors with stable diagnostics and explicit recovery.
     pub(super) fn structured_err(error_kind: &str, message: impl Into<String>) -> CallToolResult {
         crate::infra::tool_result::soft_error(error_kind, message)
     }
@@ -136,7 +135,24 @@ impl ServerHandler for ThinkService {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        if request.name == "think_record_step" {
+            let arguments = request.arguments.clone().unwrap_or_default();
+            if let Some(error) = super::record_input::RecordInput::validate(&arguments) {
+                return Ok(error.into());
+            }
+        }
+        let tool = self
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == request.name);
+        if let Some(tool) = &tool
+            && let Some(error) = crate::infra::tool_input::ToolInput::required(tool, &request)
+        {
+            return Ok(error.into());
+        }
+        let known = tool.is_some();
         let tcc = ToolCallContext::new(self, request, context);
-        self.tool_router.call(tcc).await
+        crate::infra::tool_input::ToolInput::decoded(self.tool_router.call(tcc).await, known)
     }
 }

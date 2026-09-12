@@ -215,7 +215,7 @@ fn unavailable(
                     ),
                 ),
                 notes: Some(vec![
-                    "the bridge keeps its session identity; retry the call".to_owned(),
+                    "effect unknown: read back the affected object or operation receipt before retrying a write; the bridge keeps its session identity".to_owned(),
                     format!("owner: {reason}"),
                 ]),
             };
@@ -226,7 +226,7 @@ fn unavailable(
                     "result": {
                         "content": [{"type": "text", "text": sealed.json()}],
                         "structuredContent": sealed.structured(),
-                        "isError": false,
+                        "isError": true,
                     },
                 }),
                 Err(error) => rpc_error(

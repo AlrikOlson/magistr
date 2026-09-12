@@ -47,7 +47,7 @@ impl ThinkService {
 impl ThinkService {
     #[tool(
         name = "think_record_step",
-        description = "Record one reasoning step in a structured trace. Use any time you'd otherwise just think internally — write the step instead so the trace viewer and later turns of this conversation can audit the reasoning.\n\nInputs: see inputSchema. Required (server will diagnose if missing): estimated_total, purpose, context, thought, outcome, next_action, rationale. `step_number` is best OMITTED — the engine then appends at the head of the project-global numbering. If you do pass one, take it from think_engine_status.next_step_number, NEVER from total_steps (that is a COUNT, not the head, and numbering from it writes an orphan step). Optional: confidence, uncertainty_notes, revises_step + revision_reason, is_final_step, branch_from + branch_id + branch_name, tools_used, dependencies, session_id, pinned, execution_ref.\n\nEach field is a SEPARATE top-level JSON parameter — `outcome` is its own parameter, NOT a section inside `thought`. Same for `rationale`, `next_action`, etc.\n\nReturns: structuredContent shaped by outputSchema (RecordStepOutput) — step_number, total_steps, optional excerpts, recent_steps rollup, warnings, branches_summary. The `recent_steps` rollup is SIZE-BUDGETED: it prefers the newest pinned steps and never exceeds a fixed item ceiling. When it drops pinned steps it says so in `recent_steps_omitted` — a `pinned_withheld` count plus the handle to get them back. Those steps are still in the trace; fetch any by step_number with think_get_step.\n\nPitfalls:\n\n❌ Do NOT serialize the rest of the call inside `thought` using XML tags:\n  \"thought\": \"Reasoning here. </thought><outcome>The result</outcome><rationale>...</rationale>\"\nThe harness reads `</thought>` as the end of `thought`; sibling parameters never reach the server. The most common failure in production traces — even Claude Code itself does this when not warned. The server will auto-recover when possible and tell you exactly what happened.\n\n✅ DO pass each as its own parameter:\n  { \"thought\": \"Reasoning here.\", \"outcome\": \"The result\", \"rationale\": \"...\" }\n\nOther pitfalls: step numbers are project-global, never reuse. To continue an EXISTING branch, pass branch_from + the branch_id from a prior response — inventing a new id creates a sub-branch. Use `execution_ref` to link this reasoning step to a ship_* entity (e.g. \"task:auth-refactor\", \"action:42\").",
+        description = "Record one authored reasoning step in the project trace.\n\nInputs: required estimated_total (positive integer), purpose, context, thought, outcome, next_action, rationale. Supply every field as a separate top-level JSON parameter, with nonblank text; next_action also accepts an object with nonblank action. Omit step_number to allocate it. Explicit numbers come from think_engine_status.next_step_number, never total_steps. Optional fields are listed in inputSchema.\n\nReturns: structuredContent with step_number, total_steps, excerpts, warnings and a bounded recent_steps rollup. recent_steps_omitted names withheld pins; fetch them with think_get_step. Check isError before using step_number or linking dependent work.\n\nPitfalls: missing fields are rejected with invalid_args, field-level problems and effect:none; correct the arguments before retrying. Do not embed outcome or rationale as XML sections such as </thought><outcome> inside thought, or invent omitted text. A transport or uncertain-write error requires read-back before retry. Step numbers are project-global. To continue an existing branch, use branch_from and its returned branch_id. execution_ref links a task, action or check.",
         annotations(
             title = "Record reasoning step",
             read_only_hint = false,
@@ -63,10 +63,30 @@ impl ThinkService {
         match self.use_cases().record_step(step) {
             Ok(recorded) => Ok(CallToolResult::structured(recorded.report)),
             Err(error) if error.error == "engine mutex poisoned" => Err(Self::poisoned()),
-            Err(error) => Ok(CallToolResult::structured_error(
-                serde_json::to_value(error)
-                    .map_err(|e| ErrorData::internal_error(e.to_string(), None))?,
-            )),
+            Err(error) => {
+                // Keep the native diagnostic intact alongside the wire recovery contract.
+                let mut result = crate::infra::tool_failure::ToolFailure::uncertain(
+                    "step_rejected",
+                    &error.error,
+                );
+                if let Some(body) = result
+                    .structured_content
+                    .as_mut()
+                    .and_then(serde_json::Value::as_object_mut)
+                {
+                    body.insert("error".into(), serde_json::json!(error.error));
+                    body.insert("status".into(), serde_json::json!(error.status));
+                    body.insert("hint".into(), serde_json::json!(error.hint));
+                }
+                result.content = vec![ContentBlock::text(
+                    result
+                        .structured_content
+                        .as_ref()
+                        .expect("structured failure")
+                        .to_string(),
+                )];
+                Ok(result)
+            }
         }
     }
 

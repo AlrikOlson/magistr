@@ -120,17 +120,17 @@ impl RoadmapExport {
         let CallToolResponse::Complete(result) = result else {
             return Ok(result);
         };
-        let body = result.structured_content.clone().or_else(|| {
-            result.content.iter().find_map(|item| {
-                item.as_text()
-                    .and_then(|text| serde_json::from_str::<Value>(&text.text).ok())
-            })
-        });
-        if result.is_error == Some(true) || body.as_ref().is_some_and(|v| v["ok"] == false) {
-            return Ok(result.into());
-        }
-        let Some(document) = body.as_ref().and_then(|v| v["roadmap"].as_str()) else {
-            return Ok(failure("export_failed", "roadmap renderer returned no document").into());
+        let body =
+            match magistr_workflow::infra::checked_tool_result::CheckedToolResult::body(&result) {
+                Ok(body) => body,
+                Err(error) => return Ok((*error).into()),
+            };
+        let Some(document) = body["roadmap"].as_str() else {
+            return Ok(failure(
+                "export_failed",
+                format!("roadmap renderer returned no document: {body}"),
+            )
+            .into());
         };
         let Some(root) = &self.root else {
             return Ok(failure(
@@ -162,7 +162,7 @@ impl RoadmapExport {
 }
 
 fn failure(kind: &str, message: impl Into<String>) -> CallToolResult {
-    CallToolResult::structured(json!({"ok": false, "error_kind": kind, "message": message.into()}))
+    magistr_workflow::infra::tool_failure::ToolFailure::uncertain(kind, message)
 }
 
 fn write_export(path: &Path, document: &str) -> std::io::Result<()> {

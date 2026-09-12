@@ -9,6 +9,35 @@ fn result(envelope: Value) -> Value {
 }
 
 #[test]
+fn tool_errors_preserve_diagnostics_before_decoding_success() {
+    let original = json!({"isError":true, "content":[{"type":"text","text":"write outcome uncertain: inspect journal"}]});
+    let error = envelope(&original).unwrap_err();
+    assert!(
+        error.contains("write outcome uncertain: inspect journal"),
+        "{error}"
+    );
+    let original = json!({"isError":true, "structuredContent":{"ok":true,"results":["misleading"]},
+        "content":[{"type":"text","text":"original failure"}]});
+    assert!(
+        envelope(&original)
+            .unwrap_err()
+            .contains("original failure")
+    );
+}
+
+#[test]
+fn a_false_envelope_keeps_recovery_and_effect_fields() {
+    let original = result(
+        json!({"v":1,"ok":false,"error":{"code":"ENGINE_BUSY","message":"busy",
+        "recovery":"retry","backoffMs":50},"effect":"none"}),
+    );
+    let error = envelope(&original).unwrap_err();
+    for evidence in ["ENGINE_BUSY", "backoffMs", "effect"] {
+        assert!(error.contains(evidence), "{error}");
+    }
+}
+
+#[test]
 fn an_ok_envelope_comes_back_whole() {
     let answered = envelope(&result(json!({ "v": 1, "ok": true, "results": [1, 2] })))
         .expect("an ok envelope is not a refusal");
@@ -22,13 +51,15 @@ fn a_refusal_becomes_the_workbenchs_own_words() {
         "ok": false,
         "error": { "code": "COMMAND_NOT_DECLARED", "message": "command \"test\" is not declared" },
     })));
-    assert_eq!(refused, Err("command \"test\" is not declared".to_owned()));
+    let message = refused.unwrap_err();
+    assert!(message.contains("COMMAND_NOT_DECLARED"));
+    assert!(message.contains("is not declared"));
 }
 
 #[test]
 fn a_refusal_without_a_message_still_reads_as_a_refusal() {
     let refused = envelope(&result(json!({ "v": 1, "ok": false })));
-    assert_eq!(refused, Err("the workbench refused".to_owned()));
+    assert!(refused.unwrap_err().contains("the workbench refused"));
 }
 
 #[test]
@@ -43,9 +74,10 @@ fn a_text_block_is_parsed_when_there_is_no_structured_content() {
 #[test]
 fn an_answer_the_cockpit_cannot_read_is_refused_in_words() {
     let unreadable = envelope(&json!({ "content": [{ "type": "image" }] }));
-    assert_eq!(
-        unreadable,
-        Err("the workbench answered nothing the cockpit could read".to_owned())
+    assert!(
+        unreadable
+            .unwrap_err()
+            .contains("the workbench answered nothing the cockpit could read")
     );
 }
 
