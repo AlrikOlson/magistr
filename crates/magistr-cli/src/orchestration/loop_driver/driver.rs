@@ -13,7 +13,7 @@ use magistr_cockpit::checkpoint::{CheckpointPort, detach};
 use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
 use magistr_cockpit::engine::{EngineEvent, NativeEnginePort, StoreSeed};
 use magistr_cockpit::job::Jobs;
-use magistr_engine::tas::{BlockerKind, CheckAdmission, CheckSettlement, Chunk};
+use magistr_engine::tas::{BlockerKind, CheckSettlement, Chunk};
 use magistr_engine::{ChunkStatus, NativeEngines, NativeFrame};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot;
@@ -29,12 +29,13 @@ use super::iteration_metrics::IterationMetrics;
 use super::loop_end::LoopEnd;
 use super::loop_report::LoopReport;
 use crate::agent::{AgentConfig, Backend, ResolvedSessionSpec, ToolPermissions};
+use crate::application::AdmittedCheck;
 use crate::orchestration::goal::{
     AgentGoal, Decision, Delegation, Delivery, DeliveryKind, GateEvidence, GoalMode, Judge,
     JudgeInput,
 };
 use crate::permissions::PermissionProfile;
-use crate::utils::gate::{GateVerdict, nextest_junit_report_path};
+use crate::utils::gate::GateVerdict;
 use crate::validate::{Gate, gate_command};
 use crate::workflow::WorkflowConfig;
 use crate::workflow::iteration::{
@@ -1565,18 +1566,24 @@ impl LoopDriver {
             if command.trim().is_empty() {
                 continue;
             }
+            // Source capture stays off in the loop until the receipts
+            // chunk sets the policy for which checks certify source.
             let admission = verification
                 .as_ref()
                 .map_err(Clone::clone)
                 .and_then(|target| {
                     let engines = engines.as_ref().expect("verification has an owner");
-                    let admission = engines.ship_admit_gate(
+                    let admission = AdmittedCheck::admit(
+                        engines,
+                        &self.wf.project_dir,
                         Some(&target.task_id),
                         gate.label(),
                         command.to_owned(),
                         true,
-                    )?;
-                    if &admission.target != target {
+                        None,
+                    )
+                    .map_err(|why| why.to_string())?;
+                    if admission.target() != target {
                         return Err("the verification run or task was superseded".to_owned());
                     }
                     Ok(admission)
@@ -1643,7 +1650,7 @@ impl LoopDriver {
     fn record_gate(
         &mut self,
         engines: Option<&NativeEngines>,
-        admission: &Result<CheckAdmission, String>,
+        admission: &Result<AdmittedCheck, String>,
         gate: &GateOutcome,
         said: &mut bool,
     ) {
@@ -1664,7 +1671,7 @@ impl LoopDriver {
                 return;
             }
         };
-        let task = admission.target.task_id.clone();
+        let task = admission.target().task_id.clone();
         let receipt = match self.intend(
             OperationKind::Receipt,
             &format!("gate:{}@task:{task}", gate.name),
@@ -1681,21 +1688,19 @@ impl LoopDriver {
             // recording it. Recovery reads the trace either way.
             Intent::Unrecorded(_) => None,
         };
-        // An absolute path: `read_report` uses it verbatim, and the loop
-        // makes no promise about its own working directory.
-        let report =
-            nextest_junit_report_path(&gate.command).map(|rel| self.wf.project_dir.join(rel));
-        let report = report.as_ref().map(|path| path.to_string_lossy());
-        let recorded = engines.ship_settle_gate(
-            admission, gate.exit_code, gate.details(),
-            report.as_ref().map(|path| ("junit", path.as_ref())),
-        ).and_then(|settlement| match settlement {
-            CheckSettlement::Applied { check } => Ok(check),
-            CheckSettlement::Stale { admission, .. } => Err(format!(
-                "check belongs to superseded run {} task {}; result remains in the loop gate outcome",
-                admission.target.run_id, admission.target.task_id,
-            )),
-        });
+        // The boundary derives the junit report path under the project
+        // directory itself; the loop makes no promise about its own
+        // working directory.
+        let recorded = admission
+            .settle(engines, gate.exit_code, gate.details())
+            .map_err(|why| why.to_string())
+            .and_then(|settled| match settled.settlement {
+                CheckSettlement::Applied { check } => Ok(check),
+                CheckSettlement::Stale { admission, .. } => Err(format!(
+                    "check belongs to superseded run {} task {}; result remains in the loop gate outcome",
+                    admission.target.run_id, admission.target.task_id,
+                )),
+            });
         if let Some(receipt) = receipt {
             self.settled(
                 &receipt,

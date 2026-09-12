@@ -8,8 +8,5 @@ pub enum Capability {
     CancelTurn,
     CloseSession,
     ResolvePermission,
-    RunChecks,
-    MutateWorkflow,
     ConfigureProject,
-    ReadProjection,
 }
