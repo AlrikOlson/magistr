@@ -135,32 +135,38 @@ admission and settlement inside this module and the writer itself.
 
 | Consumer | Workflow capability | Workspace capability | Through |
 | --- | --- | --- | --- |
-| `magistr_gate` in `magistr mcp-serve` | `NativeEngines` (Service role, the same writer the MCP session serves) | none yet (source capture waits for the receipts policy) | `AdmittedCheck::admit` before the pty run, `settle` after |
-| Loop driver gates (`next`, `next-loop`) | `NativeEngines` (Host role), one admitted verification task for the set | none yet | `AdmittedCheck` per gate, refusing a superseded verification target |
-| Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | none | the workflow's own async runner |
+| `magistr_gate` in `magistr mcp-serve` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
+| Loop driver gates (`next`, `next-loop`) | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
+| Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
+| `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
 | Cockpit `run` | `NativeEngines` or an attached `OwnerClient` | the agent's workspace owner over the spawned bridge | engine port; `magistr workspace journal` for the Changes tab |
 | ACP effects (`fs/*`, `terminal/*`) | none | direct host I/O after session authorization | `LocalEffectPort` (routing through the pipeline is `arch-14f2`) |
 | `magistr workspace snapshot` | none | lock-free `SourceSnapshot::capture` | CLI verb |
 
 ### The check-admission and source-capability interface
 
-`AdmittedCheck::admit(engines, root, task, gate, command, required, policy)`
-asks the workflow first — the concrete task instance the check belongs to,
-refused before any byte is hashed when there is no task — and then, when a
-`SelectionPolicy` is given, observes `root` lock-free as a `SourceSnapshot`.
-The command runs outside every lock with the owner's edits still flowing.
-`settle(engines, exit_code, details)` re-observes the same root, then settles
-the check under the captured admission: `SettledCheck` carries the workflow's
+`AdmittedCheck::admit(engines, root, task, gate, command, required)` asks the
+workflow — the concrete task instance the check belongs to, refused before any
+byte is hashed when there is no task — which publishes the durable receipt and
+observes the workspace through the evidence capability the writer was admitted
+with; an unobservable workspace refuses the admission, so an unobservable gate
+is never recorded as evidence. The command runs outside every lock with the
+owner's edits still flowing. `settle(engines, execution, details)` takes the
+run's `CheckExecution` (an exit code, a timeout, a cancel — a flake is its
+passing retry's exit) and settles the check under the captured admission: the
+workflow re-observes the source first, then `SettledCheck` carries the
 `CheckSettlement` (`Applied` with the recorded check, or `Stale` with the
-admission and outcome intact when the run or task was superseded) beside a
-`CheckSource` — the admission snapshot and its `SnapshotValidation`. A nextest
-junit report is parsed additively from the project's `target/nextest/<profile>`
-path; the exit code alone decides `passed`.
+admission and outcome intact when the run or task was superseded) and, either
+way, the settled `CheckReceipt` with its freshness. A nextest junit report is
+parsed additively from the project's `target/nextest/<profile>` path; only an
+exit decides `passed`.
 
-Nothing in this interface is durable beyond the ordinary check the workflow
-appends. Which checks capture source, how long the evidence lives, and what
-completion demands of it are `arch-14-verification-receipts`; the boundary
-gives that chunk one typed shape to consume instead of a second scanner.
+The receipt, the evidence capability and the completion rule are the
+workflow's (see [receipts](project-authority.md#receipts-and-the-evidence-capability)
+and [completion](project-authority.md#completion-is-governed-by-receipts));
+the boundary observes nothing itself and composes the consumer's typed shape
+over what the workflow admitted. `WorkspaceEvidence` and `writer_config` live
+in `magistr_core::evidence` because the loop host is admitted there too.
 
 ### Identity map
 
@@ -188,17 +194,25 @@ foreign scopes before dispatch, receipt and response correlation, explicit
 outcomes and typed error propagation. Ready fake futures run without an external
 executor. Scope regressions were observed failing before their guards were added.
 
-The composition boundary's companion tests admit against a real Host writer
-and a disposable root: an external edit during the run is reported at
-settlement, a missing task is refused before hashing, a rolled-over objective
-settles `Stale` with the target, exit code and source intact, and a missing
-root is a typed source refusal. The `application_composition` integration
-suite composes a real Host writer with a real `WorkspaceService` (real worker
-binary): a check admitted with source observes an edit made through the owner,
-lands on its task, agrees with the owner's own `MutationReceipt` on the
+The composition boundary's companion tests admit against a real Host writer on
+the production writer config and a disposable root: an external edit during
+the run is reported at settlement with its path, a missing task is refused
+before hashing, a rolled-over objective settles `Stale` with the target, exit
+code and receipt intact, a timeout and a cancel are recorded as what they were,
+and a missing root is a typed source refusal at admission. The
+`application_composition` integration suite composes a real Host writer with a
+real `WorkspaceService` (real worker binary): a check admitted with source
+observes an edit made through the owner, lands on its task with a durable
+receipt on disk, agrees with the owner's own `MutationReceipt` on the
 generation while keeping the two revisions distinct, and is visible to an
-unadmitted reader of the same store; the owner refuses a snapshot of another
-checkout; a reused task name in a later run cannot collect the result.
+unadmitted reader of the same store; completion refuses that gate by name and
+accepts once every gate re-ran; completion refuses after an owner edit, a
+gate-configuration edit and an in-flight acceptance edit until the gates
+re-run; a reused task name in a later run cannot collect the late result and
+has no evidence of its own; the cockpit's Complete action refuses in words and,
+with current evidence, completes naming `task:verify` while the finalize report
+separates the recovered failure from outstanding ones; `roadmap_set_status`
+cannot reach `done` and a foreign-scoped objective is refused.
 
 The CLI `application_boundary` integration suite checks Cargo declarations,
 workspace membership, the library target and application Rust syntax, including

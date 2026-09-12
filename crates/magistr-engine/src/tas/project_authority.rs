@@ -153,7 +153,8 @@ impl ProjectAuthority {
     pub fn open(self) -> NativeEngines {
         let (think, ship, roadmap, signal) =
             open_engines(&self.config, self.project_id.clone(), self.feed.clone());
-        let services = FamilyServices::compose(think, ship, roadmap, signal);
+        let services =
+            FamilyServices::compose(think, ship, roadmap, signal, self.config.evidence.clone());
         let (think, ship, roadmap, signal) = services.engines();
         let reader = NativeReader::from_shared(
             self.project_id.clone(),

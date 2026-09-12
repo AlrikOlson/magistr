@@ -1566,8 +1566,9 @@ impl LoopDriver {
             if command.trim().is_empty() {
                 continue;
             }
-            // Source capture stays off in the loop until the receipts
-            // chunk sets the policy for which checks certify source.
+            // Admitted before the run: the receipt names the source as it
+            // is now, through the evidence capability the host writer was
+            // admitted with.
             let admission = verification
                 .as_ref()
                 .map_err(Clone::clone)
@@ -1580,7 +1581,6 @@ impl LoopDriver {
                         gate.label(),
                         command.to_owned(),
                         true,
-                        None,
                     )
                     .map_err(|why| why.to_string())?;
                     if admission.target() != target {
@@ -1692,10 +1692,10 @@ impl LoopDriver {
         // directory itself; the loop makes no promise about its own
         // working directory.
         let recorded = admission
-            .settle(engines, gate.exit_code, gate.details())
+            .settle(engines, gate.execution(), gate.details())
             .map_err(|why| why.to_string())
             .and_then(|settled| match settled.settlement {
-                CheckSettlement::Applied { check } => Ok(check),
+                CheckSettlement::Applied { check, .. } => Ok(check),
                 CheckSettlement::Stale { admission, .. } => Err(format!(
                     "check belongs to superseded run {} task {}; result remains in the loop gate outcome",
                     admission.target.run_id, admission.target.task_id,

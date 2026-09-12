@@ -6,7 +6,7 @@ use rmcp::handler::server::wrapper::Parameters;
 use serde_json::{Value, json};
 use think_and_ship::ship::ShipService;
 use think_and_ship::ship::application::{
-    CheckOutcome, CheckRequest, CheckSettlement, ShipUseCases,
+    CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, ShipUseCases,
 };
 use think_and_ship::ship::domain::{check::CheckType, task::TaskType};
 use think_and_ship::ship::engine::ShipEngine;
@@ -53,6 +53,7 @@ fn outcome() -> CheckOutcome {
         verified: true,
         command: Some("exit 0".into()),
         exit_code: Some(0),
+        execution: CheckExecution::Exited { code: 0 },
         report: None,
         results: None,
     }
@@ -109,6 +110,7 @@ async fn ordinary_completion_keeps_failed_required_checks_as_warnings() {
     let mut failed = outcome();
     failed.passed = false;
     failed.exit_code = Some(7);
+    failed.execution = CheckExecution::Exited { code: 7 };
     cases.record_check(request(), failed).unwrap();
     cases.complete_task("verify", vec![]).unwrap();
     let service = ShipService::from_use_cases(cases.clone());
@@ -125,7 +127,8 @@ async fn ordinary_completion_keeps_failed_required_checks_as_warnings() {
         report,
         json!({ "status": "shipped", "summary": null,
         "tasks": { "total": 1, "completed": 1 }, "artifacts_count": 0,
-        "ship_artifacts": [], "warnings": ["required checks failed: test (task: verify)"] })
+        "ship_artifacts": [], "warnings": ["required checks failed: test (task: verify)"],
+        "recovered_failures": [], "outstanding_failures": ["test (task: verify)"] })
     );
     let restored = stored(temp.path());
     assert_eq!(
@@ -187,11 +190,17 @@ async fn late_async_result_after_peer_rollover_is_returned_intact() {
     let CheckSettlement::Stale {
         admission,
         outcome: returned,
+        receipt,
     } = settlement
     else {
         panic!("late run result applied");
     };
-    assert_eq!(serde_json::to_value(admission).unwrap(), expected);
+    assert_eq!(serde_json::to_value(&admission).unwrap(), expected);
+    // The late result kept its own durable record under the original run.
+    assert_eq!(receipt.id, admission.receipt_id);
+    assert_eq!(receipt.target.run_id, admitted_run);
+    assert!(!receipt.is_applied());
+    assert!(receipt.passed());
     assert_eq!(
         serde_json::to_value(returned).unwrap(),
         serde_json::to_value(outcome()).unwrap()

@@ -3,6 +3,7 @@
 use std::time::Duration;
 
 use magistr_core::GateFailureRow;
+use magistr_engine::tas::CheckExecution;
 
 use super::gate_verdict::GateVerdict;
 
@@ -58,6 +59,21 @@ pub(crate) struct GateRun {
 }
 
 impl GateRun {
+    /// How the command ended, for the check's receipt: only an exit is a
+    /// statement about the code (a flake is its passing retry's exit), and
+    /// a timeout or a cancel is recorded as exactly that.
+    pub(crate) fn execution(&self) -> CheckExecution {
+        match self.verdict {
+            GateVerdict::Passed | GateVerdict::Failed | GateVerdict::Flaky => {
+                CheckExecution::Exited {
+                    code: self.exit_code,
+                }
+            }
+            GateVerdict::TimedOut => CheckExecution::TimedOut,
+            GateVerdict::Cancelled => CheckExecution::Cancelled,
+        }
+    }
+
     /// Whether this run lets the loop go on.
     pub(crate) const fn passed(&self) -> bool {
         self.verdict.passed()

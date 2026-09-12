@@ -12,6 +12,12 @@
 # 6. First-party application modules contain no MCP dependency.
 # 7. Check admission and settlement run only through the composition
 #    boundary (magistr-cli/src/application) or the writer itself (arch-14f).
+# 8. Every production writer admission carries the verification evidence
+#    capability: a file that admits a ProjectAuthority builds its config
+#    through magistr_core::evidence::writer_config, except the composition
+#    of that capability itself, the MCP service (which attaches it in its
+#    constructor) and the cockpit client (which refuses a config without
+#    it before taking the lease) (arch-14-verification-receipts).
 #
 # Doc comments are not code: rule 1 skips comment lines.
 #
@@ -110,8 +116,32 @@ while IFS= read -r f; do
     fi
 done < <(production_sources)
 
+# --- Rule 8: writer admissions carry the evidence capability ---------------
+while IFS= read -r f; do
+    case "$f" in
+        crates/magistr-engine/src/tas/*) continue ;;
+        crates/magistr-core/src/evidence/*) continue ;;
+    esac
+    hits=$(grep -nE 'ProjectAuthority::(admit|admit_for_project)\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
+    [[ -z "$hits" ]] && continue
+    case "$f" in
+        crates/magistr-cli/src/mcp_tools/service.rs)
+            grep -qE 'with_evidence\(' "$f" || fail "$f admits the MCP service without attaching the evidence capability"
+            ;;
+        crates/magistr-cockpit/src/engine/client.rs)
+            grep -qE 'evidence\(\)\.is_none\(\)' "$f" || fail "$f admits a cockpit host without refusing a config that lacks the evidence capability"
+            ;;
+        *)
+            grep -qE 'writer_config\(' "$f" || {
+                fail "$f admits a writer without magistr_core::evidence::writer_config (its checks would certify no source and its chunks could not complete):"
+                echo "$hits"
+            }
+            ;;
+    esac
+done < <(production_sources)
+
 if [[ "$errors" -eq 0 ]]; then
-    echo "OK: one native write path — engines composed in magistr-engine/tas, typed application verbs beneath transports, checks admitted through the composition boundary, no MCP roundtrips."
+    echo "OK: one native write path — engines composed in magistr-engine/tas, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, no MCP roundtrips."
     exit 0
 fi
 echo "native-write-path-gate: $errors error(s)"

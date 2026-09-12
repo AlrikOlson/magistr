@@ -248,6 +248,22 @@ impl Persistence {
         self.enabled
     }
 
+    /// The receipt ledger beside this store's sessions: on disk under
+    /// `ship/receipts/<project>` when persistence is on, in memory otherwise.
+    pub(crate) fn receipt_ledger(
+        &self,
+        project_id: &str,
+    ) -> crate::ship::receipt_ledger::ReceiptLedger {
+        if !self.enabled {
+            return crate::ship::receipt_ledger::ReceiptLedger::in_memory();
+        }
+        let root = self
+            .sessions_dir
+            .parent()
+            .map_or_else(|| self.sessions_dir.clone(), std::path::Path::to_path_buf);
+        crate::ship::receipt_ledger::ReceiptLedger::on_disk(root.join("receipts").join(project_id))
+    }
+
     /// Persist the cycle under the locked merge-on-save discipline (see
     /// `merge_states`) so a concurrent process's acked tasks — or its newer
     /// cycle — are never erased by a stale writer.

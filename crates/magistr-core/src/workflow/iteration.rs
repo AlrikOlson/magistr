@@ -659,11 +659,12 @@ fn git_head_sha(project_dir: &Path) -> Option<String> {
 /// store the environment names — prints load banners, so call it before
 /// raw mode — and refuses loudly when another host holds the project.
 fn auto_native(project_dir: &Path) -> Result<Option<NativeEngines>> {
-    use magistr_engine::{ProjectAuthority, TasConfig, WriterRole};
+    use magistr_engine::{ProjectAuthority, WriterRole};
     if !crate::roadmap::backend_for(project_dir).is_native() {
         return Ok(None);
     }
-    ProjectAuthority::admit(&TasConfig::from_env(project_dir), WriterRole::Host)
+    let config = crate::evidence::writer_config(project_dir, |key| std::env::var(key).ok());
+    ProjectAuthority::admit(&config, WriterRole::Host)
         .map(|authority| Some(authority.open()))
         .map_err(|source| MagistrError::io(project_dir, source))
 }

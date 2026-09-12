@@ -6,6 +6,7 @@ use think_and_ship::mcp::UnifiedService;
 use think_and_ship::roadmap::application::RoadmapUseCases;
 use think_and_ship::roadmap::{RoadmapEngine, RoadmapService};
 use think_and_ship::ship::ShipService;
+use think_and_ship::ship::application::EvidencePort;
 use think_and_ship::ship::application::ShipUseCases;
 use think_and_ship::ship::engine::ShipEngine;
 use think_and_ship::signal::application::SignalUseCases;
@@ -29,16 +30,24 @@ pub(crate) struct FamilyServices {
 
 impl FamilyServices {
     /// Wrap freshly opened engines in their services and wire the
-    /// reciprocal handles between roadmap and signal.
+    /// reciprocal handles: roadmap ↔ signal, and — when the host composed
+    /// an evidence capability — ship as the roadmap's completion authority,
+    /// so a chunk completes only on the run's current receipts whichever
+    /// adapter asks.
     pub(crate) fn compose(
         think: ReasoningServer,
         ship: ShipEngine,
         roadmap: RoadmapEngine,
         signal: SignalEngine,
+        evidence: Option<Arc<dyn EvidencePort>>,
     ) -> Self {
         let think = ThinkUseCases::new(Arc::new(Mutex::new(think)));
-        let ship = ShipUseCases::new(Arc::new(Mutex::new(ship)));
-        let roadmap = RoadmapUseCases::new(Arc::new(Mutex::new(roadmap)));
+        let mut ship = ShipUseCases::new(Arc::new(Mutex::new(ship)));
+        let mut roadmap = RoadmapUseCases::new(Arc::new(Mutex::new(roadmap)));
+        if let Some(evidence) = evidence {
+            ship = ship.with_evidence(evidence);
+            roadmap = roadmap.with_completion_evidence(ship.clone());
+        }
         let signal =
             SignalUseCases::new(Arc::new(Mutex::new(signal))).with_roadmap(roadmap.engine());
         let roadmap = roadmap.with_signal(signal.engine());

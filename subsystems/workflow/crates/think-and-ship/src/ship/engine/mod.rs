@@ -10,6 +10,7 @@ use crate::ship::domain::execution_identity::ExecutionIdentity;
 use crate::ship::domain::objective::{Objective, ObjectiveStatus};
 use crate::ship::domain::task::{Task, TaskStatus, TaskType};
 use crate::ship::persistence::Persistence;
+use crate::ship::receipt_ledger::ReceiptLedger;
 
 pub struct ShipEngine {
     pub objective: Option<Objective>,
@@ -18,6 +19,8 @@ pub struct ShipEngine {
     pub(crate) execution: ExecutionIdentity,
     next_action_id: u32,
     persistence: Option<Persistence>,
+    /// Durable check receipts for this project, outliving the cycle.
+    receipts: ReceiptLedger,
     broadcaster: Option<Broadcaster>,
     /// Optional git-native trace mirror. When set, every mutation is
     /// mirrored into `.think-and-ship/` as an Agent Trace JSONL record and the
@@ -43,6 +46,7 @@ impl ShipEngine {
             execution: ExecutionIdentity::fresh(),
             next_action_id: 1,
             persistence: None,
+            receipts: ReceiptLedger::in_memory(),
             broadcaster: None,
             mirror: None,
             repo_shared: false,
@@ -274,8 +278,23 @@ impl ShipEngine {
             self.execution = execution;
             eprintln!("ship: loaded {} task(s) from disk", self.tasks.len());
         }
+        self.receipts = persistence.receipt_ledger(&self.project_id);
         self.persistence = Some(persistence);
         self
+    }
+
+    /// The durable receipt ledger this engine settles checks into. Cloned
+    /// by the use cases so admission can publish a receipt without holding
+    /// this engine's lock.
+    #[must_use]
+    pub fn receipts(&self) -> &ReceiptLedger {
+        &self.receipts
+    }
+
+    /// The revision of the current objective's acceptance, `None` without one.
+    #[must_use]
+    pub fn acceptance_revision(&self) -> Option<String> {
+        self.objective.as_ref().map(Objective::acceptance_revision)
     }
 
     fn persist(&self) {
@@ -600,21 +619,50 @@ impl ShipEngine {
             ));
         }
 
-        let mut failed_required: Vec<String> = Vec::new();
+        // Required checks in recording order, latest per name last: a
+        // failure a later record of the same name passed over is
+        // recovered, one nothing passed over is outstanding.
+        let mut latest_by_name: std::collections::BTreeMap<&str, (&Task, &Check)> =
+            std::collections::BTreeMap::new();
+        let mut required_in_order: Vec<(&Task, &Check)> = Vec::new();
         let mut unverified_required: Vec<String> = Vec::new();
         for task in &self.tasks {
             for check in &task.checks {
-                if check.required && !check.passed {
-                    failed_required.push(format!("{} (task: {})", check.name, task.id));
-                } else if check.required && check.passed && !check.verified {
+                if !check.required {
+                    continue;
+                }
+                required_in_order.push((task, check));
+                latest_by_name.insert(check.name.as_str(), (task, check));
+                if check.passed && !check.verified {
                     unverified_required.push(format!("{} (task: {})", check.name, task.id));
                 }
             }
         }
-        if !failed_required.is_empty() {
+        let outstanding_failures: Vec<String> = latest_by_name
+            .values()
+            .filter(|(_, check)| !check.passed)
+            .map(|(task, check)| format!("{} (task: {})", check.name, task.id))
+            .collect();
+        let recovered_failures: Vec<String> = required_in_order
+            .iter()
+            .filter(|(_, check)| !check.passed)
+            .filter(|(_, check)| {
+                latest_by_name
+                    .get(check.name.as_str())
+                    .is_some_and(|(_, latest)| latest.passed)
+            })
+            .map(|(task, check)| format!("{} (task: {})", check.name, task.id))
+            .collect();
+        if !outstanding_failures.is_empty() {
             warnings.push(format!(
                 "required checks failed: {}",
-                failed_required.join(", ")
+                outstanding_failures.join(", ")
+            ));
+        }
+        if !recovered_failures.is_empty() {
+            warnings.push(format!(
+                "required checks failed and later passed under the same name (recovered): {}",
+                recovered_failures.join(", ")
             ));
         }
         if !unverified_required.is_empty() {
@@ -651,6 +699,7 @@ impl ShipEngine {
             summary,
             warnings,
         )
+        .with_failures(recovered_failures, outstanding_failures)
     }
 
     /// Compatibility JSON view; application callers use the typed snapshot.

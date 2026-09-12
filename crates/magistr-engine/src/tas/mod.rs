@@ -21,6 +21,7 @@ pub mod attach_kind;
 pub mod attach_refusal;
 pub mod broadcast_frame;
 pub mod caller_identity;
+mod check_type_for;
 mod family_services;
 pub mod feed_status;
 pub mod gate_output;
@@ -64,6 +65,7 @@ pub use attach_kind::AttachKind;
 pub use attach_refusal::AttachRefusal;
 pub use broadcast_frame::NativeFrame;
 pub use caller_identity::CallerIdentity;
+pub use check_type_for::check_type_for;
 pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use identity::ensure_project_file;
@@ -105,12 +107,16 @@ pub use think_and_ship::roadmap::domain::{
     TitleProposal,
 };
 pub use think_and_ship::ship::application::{
-    CheckAdmission, CheckSettlement, ShipReport, TaskAdmission,
+    CheckAdmission, CheckExecution, CheckSettlement, CompletionEvidence, CompletionRefusal,
+    EvidencePort, GateContract, ShipReport, SourceFreshness, SourceObservation, SourceWitness,
+    TaskAdmission,
 };
 pub use think_and_ship::ship::domain::action::{Action, ActionType};
 pub use think_and_ship::ship::domain::artifact::{Artifact, ArtifactType};
 pub use think_and_ship::ship::domain::check::{Check, CheckType};
+pub use think_and_ship::ship::domain::check_receipt::CheckReceipt;
 pub use think_and_ship::ship::domain::objective::Objective;
+pub use think_and_ship::ship::domain::receipt_settlement::ReceiptSettlement;
 pub use think_and_ship::ship::domain::task::{Task, TaskType};
 pub use think_and_ship::signal::domain::{Signal, SignalKind};
 pub use think_and_ship::think::domain::ThinkStep;

@@ -32,6 +32,7 @@ use magistr_engine::tas::{
 };
 
 use crate::application::AdmittedCheck;
+use magistr_core::evidence::{WorkspaceEvidence, writer_config};
 use magistr_engine::{GateOutput, ShipGuardState};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use rmcp::model::{
@@ -85,7 +86,7 @@ impl MagistrService {
     /// cannot be bound. No engines are opened after failed admission.
     pub async fn for_project(project_root: PathBuf) -> std::io::Result<Self> {
         let project_root = project_root.canonicalize()?;
-        let tas = TasConfig::from_env(&project_root);
+        let tas = writer_config(&project_root, |key| std::env::var(key).ok());
         #[cfg(unix)]
         let tas = tas.with_project_socket_default();
         Self::new(project_root, &tas).await
@@ -93,10 +94,16 @@ impl MagistrService {
 
     /// Open one owner on an explicit configuration. Clones share the same engines
     /// and lease. Independent instances must acquire ownership before loading state.
+    /// A configuration without the project's evidence capability gets it here:
+    /// this service is a composition root, and every check it records must be
+    /// bound to the source it certifies.
     pub async fn new(project_root: PathBuf, tas: &TasConfig) -> std::io::Result<Self> {
         let project_root = project_root.canonicalize()?;
         let mut tas = tas.clone();
         tas.project_root = project_root.clone();
+        if tas.evidence().is_none() {
+            tas = tas.with_evidence(Arc::new(WorkspaceEvidence::new(project_root.clone())));
+        }
         let mut authority = ProjectAuthority::admit(&tas, WriterRole::Service)?;
         if let Some(path) = tas.broadcast_path.as_ref() {
             authority = authority.publish(path).await?;
@@ -233,9 +240,8 @@ impl MagistrService {
     /// it on; without one the answer says so and why.
     async fn run_gate(&self, spec: &GateSpec, timeout_secs: u64) -> Value {
         // Named *before* the run, so the record lands where the caller
-        // stood when it asked — never on a task started while the gate ran.
-        // Source capture stays off here until the receipts chunk sets the
-        // policy for which checks certify source.
+        // stood when it asked — never on a task started while the gate ran
+        // — and the receipt observes the source as it is at this moment.
         let admission = AdmittedCheck::admit(
             &self.engines,
             &self.project_root,
@@ -243,7 +249,6 @@ impl MagistrService {
             &spec.name,
             spec.command.clone(),
             spec.required,
-            None,
         );
         // A gate this server runs is live on the feed socket: every chunk
         // goes out as a `gate_output` frame keyed by the gate, the frame
@@ -287,10 +292,10 @@ impl MagistrService {
         // A nextest junit report is parsed into the record additively by
         // the boundary (a missing report never fails the check).
         match admission
-            .settle(&self.engines, run.exit_code, run.details())
+            .settle(&self.engines, run.execution(), run.details())
             .map(|settled| settled.settlement)
         {
-            Ok(CheckSettlement::Applied { check }) => {
+            Ok(CheckSettlement::Applied { check, receipt }) => {
                 // Rows from the captured output, plus the junit failures the
                 // record parsed (the report names tests the panic scan may
                 // not).
@@ -300,14 +305,22 @@ impl MagistrService {
                 result["recorded"] = json!(true);
                 result["verified"] = json!(check.verified);
                 result["task_id"] = json!(task);
+                result["receipt"] = json!(receipt.id);
+                result["source_revision"] = json!(receipt.source.as_ref().map(|s| &s.revision));
+                result["source_freshness"] = json!(receipt.freshness);
             }
-            Ok(CheckSettlement::Stale { admission, outcome }) => {
+            Ok(CheckSettlement::Stale {
+                admission,
+                outcome,
+                receipt,
+            }) => {
                 result["recorded"] = json!(false);
                 result["note"] = json!(unrecorded_note(
                     "the admitted workflow run or task was superseded"
                 ));
                 result["stale_admission"] = json!(admission);
                 result["unsettled_outcome"] = json!(outcome);
+                result["receipt"] = json!(receipt.id);
             }
             Err(why) => {
                 result["recorded"] = json!(false);

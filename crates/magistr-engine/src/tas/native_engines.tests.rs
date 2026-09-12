@@ -2,7 +2,7 @@ use super::*;
 use crate::tas::{NativeReader, ProjectAuthority, TasConfig, WriterRole};
 use think_and_ship::roadmap::domain::{BlockerKind, ChunkStatus};
 use think_and_ship::ship::domain::action::ActionType;
-use think_and_ship::ship::domain::check::Check;
+use think_and_ship::ship::domain::check::{Check, CheckType};
 use think_and_ship::ship::domain::task::TaskType;
 use think_and_ship::signal::domain::SignalKind;
 use think_and_ship::think::domain::ThinkStep;

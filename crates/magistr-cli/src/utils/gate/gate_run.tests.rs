@@ -108,3 +108,28 @@ fn a_run_that_should_be_retried_is_a_red_required_one_and_nothing_else() {
     // And a flake is already the product of a retry.
     assert!(!run(GateVerdict::Flaky, 0).is_retryable());
 }
+
+#[test]
+fn the_execution_names_the_verdict_and_a_flake_is_its_passing_retry() {
+    use magistr_engine::tas::CheckExecution;
+    assert_eq!(
+        run(GateVerdict::Passed, 0).execution(),
+        CheckExecution::Exited { code: 0 }
+    );
+    assert_eq!(
+        run(GateVerdict::Failed, 101).execution(),
+        CheckExecution::Exited { code: 101 }
+    );
+    let mut flaky = run(GateVerdict::Flaky, 0);
+    flaky.first_exit_code = Some(101);
+    assert_eq!(flaky.execution(), CheckExecution::Exited { code: 0 });
+    assert_eq!(
+        run(GateVerdict::TimedOut, -1).execution(),
+        CheckExecution::TimedOut
+    );
+    assert_eq!(
+        run(GateVerdict::Cancelled, -1).execution(),
+        CheckExecution::Cancelled
+    );
+    assert!(!CheckExecution::TimedOut.passed() && CheckExecution::TimedOut.verified());
+}

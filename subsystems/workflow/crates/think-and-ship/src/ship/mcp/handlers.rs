@@ -393,14 +393,16 @@ impl ShipService {
         };
         let outcome = ShipUseCases::execute_check(&admission).await;
         match self.use_cases.settle_check(admission, outcome) {
-            Ok(CheckSettlement::Applied { check }) => Self::application_result(Ok(check)),
-            Ok(CheckSettlement::Stale { admission, outcome }) => {
-                Ok(Self::ok_structured(serde_json::json!({
-                    "ok": false, "error_kind": "stale_result",
-                    "message": "The admitted project/run/task changed while the check ran; its result was not reassigned. Admission and outcome are returned for recovery.",
-                    "admission": admission, "outcome": outcome,
-                })))
-            }
+            Ok(CheckSettlement::Applied { check, .. }) => Self::application_result(Ok(check)),
+            Ok(CheckSettlement::Stale {
+                admission,
+                outcome,
+                receipt,
+            }) => Ok(Self::ok_structured(serde_json::json!({
+                "ok": false, "error_kind": "stale_result",
+                "message": "The admitted project/run/task changed while the check ran; its result was not reassigned. Admission, outcome and the settled receipt are returned for recovery.",
+                "admission": admission, "outcome": outcome, "receipt": receipt,
+            }))),
             Err(error) => Self::application_result::<()>(Err(error)),
         }
     }
