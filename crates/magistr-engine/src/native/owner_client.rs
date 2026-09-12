@@ -4,8 +4,6 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use magistr_workflow::infra::resolve_project_id_with;
-
 use super::attach_error::AttachError;
 use super::attach_kind::AttachKind;
 use super::caller_identity::CallerIdentity;
@@ -75,8 +73,7 @@ impl OwnerClient {
         role: WriterRole,
         caller: CallerIdentity,
     ) -> Result<Self, AttachError> {
-        let (project_id, _) = resolve_project_id_with(None, Some(config.project_root()));
-        Self::attach(config, project_id, role, caller)
+        Self::attach(config, config.resolve_project_id(), role, caller)
     }
 
     /// Attach for typed commands with an explicit `deadline`.

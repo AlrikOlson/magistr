@@ -24,6 +24,42 @@ fn config(tmp: &tempfile::TempDir) -> NativeConfig {
         .with_runtime_dir("/tmp")
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn project_attachment_uses_the_same_captured_identity_as_its_owner() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("proj");
+    std::fs::create_dir_all(&root).expect("project root");
+    magistr_workflow::infra::write_project_file(&root, "pinned-project", None)
+        .expect("project pin");
+    let cfg = NativeConfig::from_lookup(root, |key| {
+        (key == "THINK_AND_SHIP_PROJECT_NAME").then(|| "Captured Project".into())
+    })
+    .with_data_dir(tmp.path().join("data"))
+    .with_runtime_dir("/tmp");
+    let owner = ProjectAuthority::admit(&cfg, WriterRole::Host)
+        .expect("owner admitted")
+        .open();
+    let endpoint = OwnerEndpoint::serve(owner.clone()).await.expect("endpoint");
+
+    let mut attached = OwnerClient::attach_project(
+        &cfg,
+        WriterRole::Host,
+        CallerIdentity::this_process("captured-config-test"),
+    )
+    .expect("attach to the captured project");
+    assert_eq!(owner.project_id(), "captured-project");
+    assert_eq!(attached.path(), endpoint.path());
+    assert_eq!(attached.generation(), endpoint.generation());
+    attached
+        .command(add_chunk("captured-attachment"))
+        .expect("owner command");
+    assert!(
+        NativeReader::open(&cfg)
+            .roadmap_chunk("captured-attachment")
+            .is_some()
+    );
+}
+
 fn host(cfg: &NativeConfig) -> NativeEngines {
     ProjectAuthority::admit_for_project(cfg, "lease".into(), WriterRole::Host)
         .expect("host admitted")

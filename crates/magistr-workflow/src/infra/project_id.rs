@@ -123,31 +123,19 @@ pub fn resolve_project_id_with(
     server_env_var: Option<&str>,
     cwd: Option<&Path>,
 ) -> (String, IdSource) {
-    if let Some(var) = server_env_var
-        && let Ok(raw) = env::var(var)
-    {
-        let sanitized = sanitize_project_name(raw.trim());
-        if !sanitized.is_empty() {
-            return (sanitized, IdSource::Environment);
-        }
-    }
-
-    if let Ok(raw) = env::var(SHARED_OVERRIDE_VAR) {
-        let sanitized = sanitize_project_name(raw.trim());
-        if !sanitized.is_empty() {
-            return (sanitized, IdSource::Environment);
-        }
-    }
-
+    let project_name = server_env_var
+        .into_iter()
+        .chain([SHARED_OVERRIDE_VAR])
+        .filter_map(|var| env::var(var).ok())
+        .map(|raw| sanitize_project_name(raw.trim()))
+        .find(|name| !name.is_empty());
     if let Some(cwd) = cwd {
-        let path = cwd.canonicalize().unwrap_or_else(|_| cwd.to_path_buf());
-        if let Some(declared) = declared_identity_in(&path) {
-            return (declared.id, IdSource::RepoFile);
-        }
-        return (project_id_for_path(&path), IdSource::DerivedFromPath);
+        return super::resolve_project_id_from(project_name.as_deref(), cwd);
     }
-
-    ("auto".to_string(), IdSource::DerivedFromPath)
+    project_name.map_or_else(
+        || ("auto".to_string(), IdSource::DerivedFromPath),
+        |name| (name, IdSource::Environment),
+    )
 }
 
 /// Project id derived purely from a filesystem path (no env overrides):

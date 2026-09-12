@@ -17,6 +17,10 @@ The [workspace owner](workspace-owner.md) uses the same local endpoint and
 handshake implementation with a distinct canonical-root identity. It owns
 `WorkspaceService`, not a workflow writer role or workflow store.
 
+The [configuration capture boundary](configuration.md) supplies the store,
+identity override and think settings for every open. Engine construction and
+owner attachment use those captured inputs instead of reloading ambient settings.
+
 ## Capabilities
 
 The read and write capabilities are separate types; the attached client is a

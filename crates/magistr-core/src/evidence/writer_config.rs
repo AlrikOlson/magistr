@@ -5,12 +5,10 @@ use magistr_engine::native::NativeConfig;
 
 use super::WorkspaceEvidence;
 
-/// The store configuration a production writer is admitted on: the same
-/// environment-derived store `NativeConfig::from_lookup` resolves, with this
-/// project's [`WorkspaceEvidence`] attached. Every host admission — the
-/// MCP service, the loop host, the cockpit host — goes through here, so no
-/// writer opens without the capability that binds its checks to the source
-/// and lets its chunks complete.
+/// Explicit-input native configuration with this project's evidence attached.
+/// Tests and injected hosts use this environment-independent resolver. Production
+/// entry points use [`super::writer_config_from_env`] to retain the operating
+/// system's temporary-directory fallback as part of their captured host inputs.
 #[must_use]
 pub fn writer_config(
     project_root: impl Into<PathBuf>,

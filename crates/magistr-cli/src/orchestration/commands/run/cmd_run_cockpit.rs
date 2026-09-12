@@ -50,10 +50,9 @@ pub async fn cmd_run_cockpit(
     profile: PermissionProfile,
 ) -> eyre::Result<()> {
     let root = config.cwd.clone();
-    let engines = match EngineClient::admit_or_attach_config(magistr_core::evidence::writer_config(
-        &root,
-        |key| std::env::var(key).ok(),
-    )) {
+    let engines = match EngineClient::admit_or_attach_config(
+        magistr_core::evidence::writer_config_from_env(&root),
+    ) {
         Ok(engines) => engines,
         Err(err) => {
             println!(

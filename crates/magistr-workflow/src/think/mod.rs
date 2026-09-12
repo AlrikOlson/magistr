@@ -9,6 +9,8 @@
 pub mod application;
 pub mod broadcast;
 pub mod config;
+mod config_resolution;
+mod config_source;
 pub mod constants;
 pub mod domain;
 pub mod engine;
@@ -18,4 +20,6 @@ pub mod output_schemas;
 pub mod persistence;
 pub mod util;
 
+pub use config_resolution::ThinkConfigResolution;
+pub use config_source::ConfigSource;
 pub use mcp::service::ThinkService;

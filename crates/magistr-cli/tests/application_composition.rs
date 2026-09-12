@@ -231,7 +231,7 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
     assert_eq!(checks[0]["task_id"], "verify");
     assert_eq!(checks[0]["verified"], true);
     let published = config
-        .data_dir
+        .data_dir()
         .join("ship/receipts")
         .join(PROJECT)
         .join(format!("{}.json", receipt.id));

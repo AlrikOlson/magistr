@@ -31,7 +31,7 @@ async fn last_clone_releases_a_stable_owner_lock_and_distinct_stores_are_indepen
         .await
         .expect("owner");
     let clone = owner.clone();
-    let lock = cfg.data_dir.join("roadmap/sessions/lease.mcp-owner.lock");
+    let lock = cfg.data_dir().join("roadmap/sessions/lease.mcp-owner.lock");
     assert!(lock.is_file());
     drop(owner);
     assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
@@ -102,7 +102,7 @@ async fn stateless_servers_still_exclude_duplicate_project_owners() {
         .expect("owner");
     assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
     assert!(
-        !cfg.data_dir.exists(),
+        !cfg.data_dir().exists(),
         "no persistent native store in stateless mode"
     );
     drop(owner);
@@ -175,7 +175,7 @@ async fn a_host_writer_is_admitted_beside_the_service_owner_and_readers_see_both
     let observer = NativeReader::open(&cfg);
     assert!(observer.roadmap_chunk("from-host").is_some());
     assert!(
-        cfg.data_dir
+        cfg.data_dir()
             .join("roadmap/sessions/beside.host-owner.lock")
             .is_file(),
         "the host holds its own lock file beside the service's"

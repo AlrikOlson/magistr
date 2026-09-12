@@ -8,6 +8,7 @@ pub mod epoch_key;
 pub mod persistence;
 pub mod project_id;
 pub mod repo_sync;
+mod resolve_project_id_from;
 pub mod seq_key;
 pub mod session;
 #[cfg(test)]
@@ -29,5 +30,6 @@ pub use repo_sync::{
     MirrorJob, MirrorWorker, PromoteOutcome, RecordCtx, RepoSink, SyncTarget, discover_repo_root,
     file_attribution, shared_from_env,
 };
+pub use resolve_project_id_from::resolve_project_id_from;
 pub use seq_key::SEQ_KEY;
 pub use session::resolve_default_session_id;

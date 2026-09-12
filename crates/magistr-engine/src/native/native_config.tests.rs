@@ -9,6 +9,12 @@ fn lookup(vars: Vec<(&'static str, &'static str)>) -> impl Fn(&str) -> Option<St
 }
 
 #[test]
+fn injected_temporary_store_uses_only_injected_tmpdir() {
+    let cfg = NativeConfig::from_lookup("/proj", lookup(vec![("TMPDIR", "/injected/tmp")]));
+    assert_eq!(cfg.data_dir, PathBuf::from("/injected/tmp/think-and-ship"));
+}
+
+#[test]
 fn persistence_is_on_by_default() {
     let cfg = NativeConfig::from_lookup("/proj", lookup(vec![]));
     assert!(cfg.persist);
@@ -220,4 +226,150 @@ fn the_derived_socket_binds_for_a_very_long_project_root() {
         .unwrap_or_else(|e| panic!("bind {}: {e}", path.display()));
     drop(listener);
     std::fs::remove_file(&path).expect("remove the owned socket");
+}
+#[test]
+fn captured_settings_do_not_consult_the_lookup_again() {
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
+    let vars = RefCell::new(BTreeMap::from([
+        ("THINK_AND_SHIP_ENABLE_SESSIONS", "true"),
+        ("THINK_AND_SHIP_STRICT_MODE", "true"),
+        ("THINK_AND_SHIP_RECENT_STEPS_LIMIT", "17"),
+        ("TMPDIR", "/captured/tmp"),
+    ]));
+    let reads = RefCell::new(BTreeMap::<String, usize>::new());
+    let cfg = NativeConfig::from_lookup("/project", |key| {
+        *reads.borrow_mut().entry(key.to_string()).or_default() += 1;
+        vars.borrow().get(key).map(|v| (*v).to_owned())
+    });
+    let count = reads.borrow().clone();
+    vars.borrow_mut().clear();
+    for project in ["first-project", "second-project"] {
+        let think = cfg.think_config(project);
+        assert!(think.validation.strict_mode);
+        assert_eq!(think.system.recent_steps_limit, 17);
+        assert_eq!(think.features.default_session_id.as_deref(), Some(project));
+        assert!(think.persistence.enabled);
+        assert_eq!(
+            think.persistence.data_dir,
+            PathBuf::from("/captured/tmp/think-and-ship")
+        );
+        assert!(think.broadcast.path.is_none());
+    }
+    assert_eq!(*reads.borrow(), count);
+    assert!(count.values().all(|&calls| calls == 1));
+    assert!(!count.contains_key("API_KEY"));
+}
+
+#[test]
+fn effective_sources_track_native_precedence_and_builder_overrides() {
+    let cfg = NativeConfig::from_lookup(
+        "/project",
+        lookup(vec![
+            ("THINK_AND_SHIP_DATA_DIR", "/explicit/store"),
+            ("XDG_DATA_HOME", "/ignored"),
+            ("THINK_AND_SHIP_PERSIST", " false "),
+            ("THINK_AND_SHIP_STRICT_MODE", "true"),
+            ("THINK_AND_SHIP_BROADCAST_PATH", "/secret-looking/socket"),
+            ("THINK_AND_SHIP_DEFAULT_SESSION_ID", "sensitive/session"),
+        ]),
+    );
+    let sources = cfg.configuration_sources();
+    assert_eq!(
+        sources["persistence.data_dir"],
+        ConfigSource::Environment("THINK_AND_SHIP_DATA_DIR")
+    );
+    assert_eq!(
+        sources["persistence.enabled"],
+        ConfigSource::Environment("THINK_AND_SHIP_PERSIST")
+    );
+    assert_eq!(
+        sources["validation.strict_mode"],
+        ConfigSource::Environment("THINK_AND_SHIP_STRICT_MODE")
+    );
+    assert_eq!(
+        sources["features.default_session_id"],
+        ConfigSource::Default
+    );
+    let diagnostic = format!("{sources:?}");
+    assert!(!diagnostic.contains("/secret-looking/socket"));
+    assert!(!diagnostic.contains("sensitive/session"));
+    let updated = cfg
+        .with_data_dir("/builder/store")
+        .persist(true)
+        .with_broadcast_path(None)
+        .with_runtime_dir("/builder/runtime");
+    for field in [
+        "persistence.data_dir",
+        "persistence.enabled",
+        "broadcast.path",
+        "runtime_dir",
+    ] {
+        assert_eq!(
+            updated.configuration_sources()[field],
+            ConfigSource::Explicit
+        );
+    }
+    let think = updated.think_config("project");
+    assert!(think.persistence.enabled);
+    assert_eq!(think.persistence.data_dir, PathBuf::from("/builder/store"));
+    assert!(think.broadcast.path.is_none());
+}
+
+#[test]
+fn explicit_session_is_frozen_while_automatic_sessions_follow_admission() {
+    let cfg = NativeConfig::from_lookup(
+        "/project",
+        lookup(vec![
+            ("THINK_AND_SHIP_AUTO_SESSION", "true"),
+            ("THINK_AND_SHIP_DEFAULT_SESSION_ID", "chosen-session"),
+        ]),
+    );
+    assert_eq!(
+        cfg.think_config("admitted-project")
+            .features
+            .default_session_id
+            .as_deref(),
+        Some("chosen-session")
+    );
+    let automatic = NativeConfig::from_lookup(
+        "/project",
+        lookup(vec![("THINK_AND_SHIP_ENABLE_SESSIONS", "true")]),
+    );
+    assert_eq!(
+        automatic.configuration_sources()["features.default_session_id"],
+        ConfigSource::ProjectIdentity
+    );
+    assert_eq!(
+        automatic
+            .think_config("admitted-project")
+            .features
+            .default_session_id
+            .as_deref(),
+        Some("admitted-project")
+    );
+}
+
+#[test]
+fn injected_empty_lookup_has_a_deterministic_fallback_and_no_ambient_think_settings() {
+    let cfg = NativeConfig::from_lookup("/project", |_| None);
+    assert_eq!(cfg.data_dir, PathBuf::from("/tmp/think-and-ship"));
+    let think = cfg.think_config("project");
+    assert!(!think.validation.strict_mode);
+    assert!(!think.features.enable_sessions);
+    assert_eq!(think.system.recent_steps_limit, 3);
+    assert_eq!(
+        cfg.configuration_sources()["persistence.data_dir"],
+        ConfigSource::Default
+    );
+}
+
+#[test]
+fn configuration_equality_includes_captured_behavior() {
+    let strict = NativeConfig::from_lookup(
+        "/project",
+        lookup(vec![("THINK_AND_SHIP_STRICT_MODE", "true")]),
+    );
+    let defaults = NativeConfig::from_lookup("/project", |_| None);
+    assert_ne!(strict, defaults);
 }

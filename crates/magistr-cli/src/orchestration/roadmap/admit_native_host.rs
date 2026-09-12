@@ -10,8 +10,8 @@
 use std::path::Path;
 
 use color_eyre::eyre;
-use magistr_core::evidence::writer_config;
-use magistr_engine::{NativeEngines, ProjectAuthority, WriterRole};
+use magistr_core::evidence::writer_config_from_env;
+use magistr_engine::{NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
 
 use super::open_native_reader::roadmap_backend_of;
 
@@ -25,19 +25,27 @@ use super::open_native_reader::roadmap_backend_of;
 /// The host lease is held by another cockpit or loop on this project and
 /// store, or its lock file cannot be taken.
 pub fn admit_native_host(dir: &Path) -> eyre::Result<Option<NativeEngines>> {
-    admit_native_host_with(dir, |key| std::env::var(key).ok())
+    admit_with_configuration(dir, || writer_config_from_env(dir))
 }
 
 /// Same as [`admit_native_host`] with an injected environment lookup, so
 /// tests can point the store at a temp directory.
+#[cfg(test)]
 pub(crate) fn admit_native_host_with(
     dir: &Path,
     lookup: impl Fn(&str) -> Option<String>,
 ) -> eyre::Result<Option<NativeEngines>> {
+    admit_with_configuration(dir, || magistr_core::evidence::writer_config(dir, lookup))
+}
+
+fn admit_with_configuration(
+    dir: &Path,
+    configure: impl FnOnce() -> NativeConfig,
+) -> eyre::Result<Option<NativeEngines>> {
     if !roadmap_backend_of(dir).is_native() {
         return Ok(None);
     }
-    let authority = ProjectAuthority::admit(&writer_config(dir, lookup), WriterRole::Host)
+    let authority = ProjectAuthority::admit(&configure(), WriterRole::Host)
         .map_err(|error| eyre::eyre!("{error}"))?;
     Ok(Some(authority.open()))
 }

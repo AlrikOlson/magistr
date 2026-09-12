@@ -2,7 +2,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use magistr_workflow::infra::{Broadcaster, resolve_project_id_with};
+use magistr_workflow::infra::Broadcaster;
 use magistr_workflow::mcp::UnifiedService;
 
 use super::family_services::FamilyServices;
@@ -63,8 +63,7 @@ impl ProjectAuthority {
     /// project and store; any other I/O failure creating or opening the lock
     /// file. Nothing is opened after a refusal.
     pub fn admit(config: &NativeConfig, role: WriterRole) -> io::Result<Self> {
-        let (project_id, _) = resolve_project_id_with(None, Some(config.project_root()));
-        Self::admit_for_project(config, project_id, role)
+        Self::admit_for_project(config, config.resolve_project_id(), role)
     }
 
     /// Admit `role` under an explicit project id.
