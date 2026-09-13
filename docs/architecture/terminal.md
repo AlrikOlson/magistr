@@ -28,9 +28,10 @@ Everything that changes the model arrives as a `Msg`. Effect requests leave as a
 
 Engine events are typed before they reach the inbox: the feed task decodes each
 wire line into a `NativeEvent` with its `Delivery`, and the re-seed task posts
-the store as a `NativeSnapshot`. The model folds both through typed rows and
-keeps a `Projection` that says whether what it shows is current, stale or
-unavailable; see [projections](projections.md).
+the store as a `NativeSnapshot`, or a confirmation that it stands where the
+last one left it. The model folds both through typed rows and keeps a
+`Projection` that says whether what it shows is current, stale or unavailable;
+see [projections](projections.md).
 
 ## Crate boundaries
 

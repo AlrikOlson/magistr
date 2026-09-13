@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use magistr_engine::{
     CallerIdentity, NativeConfig, NativeEngines, NativeReader, OwnerClient, OwnerEndpoint,
-    OwnerGeneration, ProjectAuthority, WriterRole,
+    OwnerGeneration, ProjectAuthority, SnapshotCursor, WriterRole,
 };
 use tokio::task::JoinHandle;
 
@@ -265,10 +265,20 @@ impl EngineClient {
     /// is not attached, and whenever the feed asks for a snapshot, posting
     /// each changed read on `inbox` as `Msg::Engine` — how a cockpit opened
     /// without the loop driver sees what another process wrote, and how
-    /// one that missed frames catches up. Abort the handle to stop it
-    /// early; see [`spawn_reseed`] for what it declines to do.
-    pub fn reseed(&self, inbox: Inbox) -> JoinHandle<()> {
-        spawn_reseed(self.reader.clone(), self.link.clone(), inbox, Self::RESEED)
+    /// one that missed frames catches up — and confirming an unchanged
+    /// store when the feed asked, so a projection the feed marked stale
+    /// comes back without a write. `seeded` is the cursor of the snapshot
+    /// the model was seeded with, the baseline the re-reads are measured
+    /// against. Abort the handle to stop it early; see [`spawn_reseed`]
+    /// for what it declines to do.
+    pub fn reseed(&self, inbox: Inbox, seeded: Option<SnapshotCursor>) -> JoinHandle<()> {
+        spawn_reseed(
+            self.reader.clone(),
+            self.link.clone(),
+            inbox,
+            Self::RESEED,
+            seeded,
+        )
     }
 }
 

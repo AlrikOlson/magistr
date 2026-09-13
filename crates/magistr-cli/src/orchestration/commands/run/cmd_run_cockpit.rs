@@ -101,9 +101,12 @@ pub async fn cmd_run_cockpit(
         .commands()
         .ok_or_else(|| eyre::eyre!("the runtime's commands were already taken"))?;
     let feed = engines.subscribe(runtime.inbox());
+    // The store as the model first sees it; the re-seed measures every
+    // later read against it.
+    let seed = engines.reader().snapshot();
     // The safety net under the socket: what the agent's own
     // `magistr mcp-serve` records reaches the tabs even with no feed.
-    let reseed = engines.reseed(runtime.inbox());
+    let reseed = engines.reseed(runtime.inbox(), seed.cursor);
     // The workbench port is the project's own workbench-mcp, spoken to
     // over its stdio; the server is only spawned once something is asked
     // of it. The engine port is the same in-process engines the rail
@@ -125,7 +128,7 @@ pub async fn cmd_run_cockpit(
                 .with_theme(theme)
                 .with_title(title)
                 .with_debug(debug)
-                .with_snapshot(&engines.reader().snapshot())
+                .with_snapshot(&seed)
                 .with_workspace_files(
                     crate::orchestration::commands::workspace_files::workspace_files(&root),
                 ),

@@ -52,9 +52,12 @@ pub(crate) async fn cockpit_model_on(
     let size = terminal.size()?;
     let runtime = Runtime::new(terminal, Options::from_os());
     let feed = engines.subscribe(runtime.inbox());
+    // The store as the model first sees it; the re-seed measures every
+    // later read against it.
+    let seed = engines.reader().snapshot();
     // No loop driver here: without the broadcast socket the store is
     // only re-read by this timer.
-    let reseed = engines.reseed(runtime.inbox());
+    let reseed = engines.reseed(runtime.inbox(), seed.cursor);
     before_run(&runtime);
     let model = runtime
         .run(
@@ -63,7 +66,7 @@ pub(crate) async fn cockpit_model_on(
                 .with_title(title)
                 .with_debug(debug)
                 .with_tab(tab)
-                .with_snapshot(&engines.reader().snapshot())
+                .with_snapshot(&seed)
                 .with_workspace_files(super::workspace_files::workspace_files(root)),
         )
         .await;

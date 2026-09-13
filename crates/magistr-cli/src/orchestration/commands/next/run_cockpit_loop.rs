@@ -96,13 +96,14 @@ pub(crate) async fn run_cockpit_loop(
     let seed = engines.as_ref().map(|engines| engines.reader().snapshot());
     // The socket carries the driver's own iterations; the timer is the
     // safety net for a store written while nothing is attached (the
-    // driver re-seeds only at each iteration start).
-    let (feed, reseed) = match engines {
-        Some(engines) => (
+    // driver re-seeds only at each iteration start), measured against
+    // the snapshot the model is seeded with.
+    let (feed, reseed) = match (&engines, &seed) {
+        (Some(engines), Some(seed)) => (
             Some(engines.subscribe(runtime.inbox().tap(driver.tap()))),
-            Some(engines.reseed(runtime.inbox())),
+            Some(engines.reseed(runtime.inbox(), seed.cursor)),
         ),
-        None => (None, None),
+        _ => (None, None),
     };
     let looping = driver.spawn();
     let mut model = Model::new(size)

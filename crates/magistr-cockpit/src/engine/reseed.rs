@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use magistr_engine::NativeReader;
+use magistr_engine::{NativeReader, SnapshotCursor};
 use tokio::task::JoinHandle;
 
 use super::event::EngineEvent;
@@ -25,7 +25,10 @@ enum Wake {
 /// cockpit opened without the loop driver picks up what another process
 /// (the agent's `magistr mcp-serve`) wrote; and whenever `link` asks —
 /// the feed just attached, saw a gap or a new owner — attached or not.
-/// Ends when the loop is gone; abort the handle to end it sooner.
+/// `seeded` is where the snapshot the model was seeded with stood: the
+/// baseline every re-read is measured against, so that a store the
+/// model has not seen is never taken for one it has. Ends when the loop
+/// is gone; abort the handle to end it sooner.
 ///
 /// Two things it will not do, both load-bearing:
 ///
@@ -41,6 +44,13 @@ enum Wake {
 ///   own files on every query anyway; the cursor gate is about when a seed
 ///   is *posted*, and it keeps the timer's cost at a few `stat`s.
 ///
+/// One thing it does only when asked: a request from the feed over an
+/// unchanged store is answered with [`EngineEvent::Confirmed`] — the
+/// store stands where the last seed left it, which is what the
+/// projection the feed marked stale needs to hear to be current again.
+/// The timer never confirms: an unchanged store on a timer wake posts
+/// nothing, and the idle cockpit stays idle.
+///
 /// The read itself is blocking file I/O, so it runs on the blocking pool
 /// rather than on the runtime's threads.
 pub fn spawn_reseed(
@@ -48,13 +58,21 @@ pub fn spawn_reseed(
     link: FeedLink,
     inbox: Inbox,
     period: Duration,
+    seeded: Option<SnapshotCursor>,
 ) -> JoinHandle<()> {
-    tokio::spawn(reseed(engines, link, inbox, period))
+    tokio::spawn(reseed(engines, link, inbox, period, seeded))
 }
 
-async fn reseed(engines: NativeReader, link: FeedLink, inbox: Inbox, period: Duration) {
-    // What the entry point's own snapshot already covered.
-    let mut seen = engines.snapshot_cursor();
+async fn reseed(
+    engines: NativeReader,
+    link: FeedLink,
+    inbox: Inbox,
+    period: Duration,
+    seeded: Option<SnapshotCursor>,
+) {
+    // What the model already holds: the entry point's own snapshot, then
+    // each seed posted from here.
+    let mut seen = seeded;
     loop {
         let wake = tokio::select! {
             () = inbox.closed() => return,
@@ -76,11 +94,15 @@ async fn reseed(engines: NativeReader, link: FeedLink, inbox: Inbox, period: Dur
             Some((cursor, read.snapshot()))
         })
         .await;
-        let Ok(Some((cursor, snapshot))) = read else {
-            continue;
+        let event = match read {
+            Ok(Some((cursor, snapshot))) => {
+                seen = cursor;
+                EngineEvent::Seed(snapshot)
+            }
+            Ok(None) if wake == Wake::Requested => EngineEvent::Confirmed { cursor: seen },
+            _ => continue,
         };
-        seen = cursor;
-        if !inbox.send(Msg::Engine(EngineEvent::Seed(snapshot))) {
+        if !inbox.send(Msg::Engine(event)) {
             return;
         }
     }

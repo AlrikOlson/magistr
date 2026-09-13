@@ -265,7 +265,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/engine/feed_link.rs` | What the feed tells the re-seed: attached or not, and a snapshot asked for | `magistr-cockpit/src/engine/feed_link.tests.rs` |
 | `magistr-cockpit/src/engine/native_port.rs` | The engine port over the in-process engines | `magistr-cockpit/src/engine/native_port.tests.rs` |
 | `magistr-cockpit/src/engine/port.rs` | What the cockpit asks of the think-and-ship engines | `magistr-tui/tests/jobs_engines_harness.rs` |
-| `magistr-cockpit/src/engine/reseed.rs` | Re-reading the store as one snapshot on a timer while no feed is attached, or when the feed asks | `magistr-cockpit/src/engine/reseed.tests.rs` |
+| `magistr-cockpit/src/engine/reseed.rs` | Re-reading the store as one snapshot on a timer while no feed is attached, or when the feed asks — confirming an unchanged store when it asked | `magistr-cockpit/src/engine/reseed.tests.rs` |
 
 ### `golden` — the PNG review flow
 

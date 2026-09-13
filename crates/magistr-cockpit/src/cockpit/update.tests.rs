@@ -3223,6 +3223,108 @@ fn left_click(target: WidgetId) -> Msg {
     }
 }
 
+/// A hangup marks the projection stale and the reattachment asks the
+/// re-seed for a snapshot; over an unchanged store the answer is a
+/// confirmation, which restores the projection without touching a view
+/// — the open detail stays open, nothing is re-seeded, no frame is
+/// counted and nothing is announced.
+#[test]
+fn a_reconnect_over_an_unchanged_store_is_confirmed_current_and_moves_no_selection() {
+    use crate::cockpit::Freshness;
+
+    let mut m = roadmap_model();
+    assert_eq!(update(&mut m, left_click(Widget::roadmap_row(0))), vec![]);
+    assert_eq!(m.roadmap().selected().map(|c| c.id.as_str()), Some("mid"));
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Feed(FeedStatus::Connected {
+            reconnect: false,
+        })),
+    );
+    assert_eq!(m.projection().freshness(), Freshness::Current);
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Feed(FeedStatus::Disconnected)),
+    );
+    assert_eq!(m.projection().freshness(), Freshness::Stale);
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Feed(FeedStatus::Connected { reconnect: true })),
+    );
+    assert_eq!(
+        m.projection().freshness(),
+        Freshness::Stale,
+        "reattaching promises nothing; the snapshot it asks for does"
+    );
+
+    let (rail, roadmap, trace) = (m.rail().clone(), m.roadmap().clone(), m.trace().clone());
+    let frames = m.engine_frames();
+    assert_eq!(
+        update(&mut m, Msg::Engine(EngineEvent::Confirmed { cursor: None })),
+        vec![]
+    );
+    assert_eq!(m.projection().freshness(), Freshness::Current);
+    assert_eq!(
+        m.roadmap().selected().map(|c| c.id.as_str()),
+        Some("mid"),
+        "the selection is stable across a confirmation"
+    );
+    assert_eq!(m.rail(), &rail);
+    assert_eq!(m.roadmap(), &roadmap);
+    assert_eq!(m.trace(), &trace);
+    assert_eq!(m.engine_frames(), frames, "a confirmation is not a frame");
+}
+
+/// A new owner behind the feed marks the projection stale (its frame is
+/// folded all the same) and the re-seed is asked; in-order frames after
+/// it conceal nothing, and the confirmation that the store stands where
+/// the last seed left it is what restores current.
+#[test]
+fn an_owner_change_is_stale_until_the_resync_confirms_and_in_order_frames_conceal_nothing() {
+    use crate::cockpit::Freshness;
+    use crate::harness::fixtures;
+    use magistr_engine::Delivery;
+
+    let changed = |id: &str| {
+        fixtures::frame(
+            "roadmap",
+            "chunk_changed",
+            serde_json::json!({"chunk": {"id": id}}),
+        )
+    };
+    let mut m = roadmap_model();
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Event {
+            event: changed("mid"),
+            delivery: Delivery::First,
+        }),
+    );
+    assert_eq!(m.projection().freshness(), Freshness::Current);
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Event {
+            event: changed("ui"),
+            delivery: Delivery::NewEpoch,
+        }),
+    );
+    assert_eq!(m.projection().freshness(), Freshness::Stale);
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Event {
+            event: changed("base"),
+            delivery: Delivery::InOrder,
+        }),
+    );
+    assert_eq!(
+        m.projection().freshness(),
+        Freshness::Stale,
+        "in-order frames after a new owner do not conceal what it may have written"
+    );
+    update(&mut m, Msg::Engine(EngineEvent::Confirmed { cursor: None }));
+    assert_eq!(m.projection().freshness(), Freshness::Current);
+}
+
 #[test]
 fn roadmap_rows_toggle_and_the_detail_buttons_ask_the_engine() {
     let mut m = roadmap_model();

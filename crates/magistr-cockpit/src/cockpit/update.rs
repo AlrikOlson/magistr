@@ -295,6 +295,10 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             return cmds;
         }
         Msg::Engine(EngineEvent::Seed(snapshot)) => model.seed(&snapshot),
+        // The store stands where the last seed left it: the projection
+        // is current again and no view is touched — the open detail,
+        // the rail and the trace stay exactly as painted.
+        Msg::Engine(EngineEvent::Confirmed { .. }) => model.projection.confirmed(),
         Msg::Engine(EngineEvent::Pinned {
             step_number,
             pinned,

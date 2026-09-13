@@ -342,9 +342,10 @@ file on every query and mutation, and re-reads it only when the stamp
 moved. A persistence merge hands the merged file back to the writer's
 memory with the written stamp, so an own write leaves memory equal to
 disk. Reload methods on the reader force the same read; the cockpit
-re-seeds when its detached-feed timer observes a changed store cursor,
-and the loop reloads the roadmap at every iteration boundary — both keep
-their cost. An attached mutation is carried out on the owner's engines, so
+re-seeds when its detached-feed timer observes a changed store cursor
+(and confirms an unchanged one only when the feed asked, so a projection
+marked stale by a hangup comes back without a write), and the loop
+reloads the roadmap at every iteration boundary — both keep their cost. An attached mutation is carried out on the owner's engines, so
 the owner's own views are current; the attached surface reads it on its
 next query and repaints on the feed or its next seed. Within one process
 the use cases and reader share the same engines. Admitted settlement

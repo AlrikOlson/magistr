@@ -89,18 +89,27 @@ fresh cursor would read it as an innocent first frame.
 
 A consumer never blocks on a gap. It records what it saw, marks itself stale and
 asks for a snapshot through the `FeedLink` shared with the re-seed task; the
-re-seed reads at once, attached or not, and posts a seed only when the snapshot
-cursor moved. The model folds the seed whole and returns to current. Every
-(re)connect requests a snapshot the same way, so an observer cockpit that
-attached late is covered without a command of its own.
+re-seed reads at once, attached or not, and answers one of two ways. When the
+snapshot cursor moved past the one the model was seeded with, it posts a seed
+and the model folds it whole. When the cursor did not move, it posts
+`EngineEvent::Confirmed { cursor }` — a bookmark, not a read: the store stands
+where the last seed left it, so the projection returns to current and no view
+is touched (the open detail, the rail and the trace stay as painted, no frame
+is counted, nothing is announced). Either answer restores current; ordinary
+in-order frames never do, so a gap is concealed by nothing but the store's own
+word. Every (re)connect requests a snapshot the same way, so an observer
+cockpit that attached late — or one that reattached over an unchanged store —
+is covered without a command of its own. The re-seed's baseline is the cursor
+of the snapshot the model was seeded with, handed to it by the entry point, so
+a confirmation is always relative to what the model actually holds.
 
 `Projection` on the cockpit model holds the resulting freshness:
 
 | `Freshness` | Meaning |
 | --- | --- |
 | `Unavailable` | no snapshot and no feed yet |
-| `Current` | the last seed or in-order frame is what the store holds |
-| `Stale` | a gap or a new epoch was seen and the snapshot has not landed yet |
+| `Current` | the last seed, confirmation or in-order frame is what the store holds |
+| `Stale` | a gap, a new epoch or a hangup was seen and neither a snapshot nor a confirmation has landed since |
 
 A rebuild is deterministic: folding the same seed then the same in-order frames
 yields the same model, and folding a duplicate changes nothing.
@@ -108,9 +117,11 @@ yields the same model, and folding a duplicate changes nothing.
 ## Offline fallback
 
 With no feed attached the re-seed timer reads the store on its interval and
-posts a seed only when the cursor moved. A surface therefore always shows the
-last coherent read; it does not synthesize events from timestamps or guess a
-phase from action descriptions. The loop driver seeds each iteration from a
+posts a seed only when the cursor moved; an unchanged store on a timer wake
+posts nothing — not a seed, not a confirmation — so an idle cockpit stays idle
+and paints nothing. A surface therefore always shows the last coherent read; it
+does not synthesize events from timestamps or guess a phase from action
+descriptions. The loop driver seeds each iteration from a
 fresh snapshot and observes completions as typed roadmap events.
 
 ## Verification
@@ -118,8 +129,12 @@ fresh snapshot and observes completions as typed roadmap events.
 Companion suites pin the contract: ordering, duplicates, gaps, reconnect and
 re-snapshot on the feed cursor and the feed task; the snapshot's per-family
 coherence and cursor on the reader; deterministic rebuild, duplicate folding
-and the three freshness states on the projection; the offline re-seed and the
-feed's snapshot request on the re-seed task; a live broadcaster round trip
+and the three freshness states on the projection, with the confirmation that
+restores current after a hangup, a gap or a new owner and the in-order frames
+that do not; the offline re-seed, the feed's snapshot request and its
+confirmation over an unchanged store measured against the seeded cursor on the
+re-seed task; the reconnect-with-unchanged-store and owner-epoch-change folds
+on the model, with their selection untouched; a live broadcaster round trip
 through `NativeFrame::decode`; and, in the CLI, that gate output, phase
 announcements and chunk completions reach hosts typed. A structural check
 keeps `payload[` digs and phase-from-description parsing out of production

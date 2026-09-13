@@ -13,7 +13,9 @@
 //! how it was delivered, and every change of attachment onto the inbox as
 //! [`Msg::Engine`](crate::cockpit::Msg::Engine); [`EngineClient::reseed`]
 //! re-reads the store on a timer while nothing is attached and whenever the
-//! feed asks, posting the typed [`NativeSnapshot`](magistr_engine::NativeSnapshot).
+//! feed asks, posting the typed [`NativeSnapshot`](magistr_engine::NativeSnapshot)
+//! — or, when the feed asked and the store did not move, a confirmation
+//! that it stands where the last snapshot left it.
 //! [`EngineClient::admit_or_attach_config`] is the cockpit's own entry: when
 //! another cockpit or loop holds the host role, this one attaches to that
 //! host's owner endpoint and acts through its writer

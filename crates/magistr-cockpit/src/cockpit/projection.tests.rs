@@ -66,3 +66,40 @@ fn a_hangup_makes_a_read_view_stale_and_a_reattachment_alone_does_not_restore_it
     projection.seeded();
     assert_eq!(projection.freshness(), Freshness::Current);
 }
+
+/// A resynchronization the feed asked for can find the store standing
+/// where the last seed left it: the confirmation restores a stale view
+/// without a snapshot to fold. It confirms nothing for a view that never
+/// read anything, and an in-order frame between a gap and its
+/// confirmation conceals nothing.
+#[test]
+fn a_confirmed_resync_restores_current_after_a_hangup_or_gap_and_confirms_nothing_unread() {
+    let mut projection = Projection::default();
+    projection.confirmed();
+    assert_eq!(
+        projection.freshness(),
+        Freshness::Unavailable,
+        "nothing was folded, so there is nothing the store could confirm"
+    );
+    projection.seeded();
+    projection.feed(FeedStatus::Disconnected);
+    projection.feed(FeedStatus::Connected { reconnect: true });
+    assert_eq!(projection.freshness(), Freshness::Stale);
+    projection.confirmed();
+    assert_eq!(
+        projection.freshness(),
+        Freshness::Current,
+        "the store stands where the seed left it"
+    );
+    assert!(projection.delivered(Delivery::Gap { missed: 1 }));
+    assert!(projection.delivered(Delivery::InOrder));
+    assert_eq!(
+        projection.freshness(),
+        Freshness::Stale,
+        "an in-order frame after a gap conceals nothing"
+    );
+    projection.confirmed();
+    assert_eq!(projection.freshness(), Freshness::Current);
+    projection.confirmed();
+    assert_eq!(projection.freshness(), Freshness::Current);
+}
