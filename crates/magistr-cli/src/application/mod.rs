@@ -22,12 +22,15 @@
 //! are never folded into one revision.
 //!
 //! The boundary also composes the host's side of the workspace: a
-//! [`HostedWorkspace`] is the one native owner a `magistr run` or loop
-//! admits for its run, and a [`WorkspaceSourceWriter`] over it is the
-//! route the host's own source writes take after the session's permission
-//! decision — journaled intents and truthful receipts, the same pipeline
-//! every workspace client writes through. A workspace generation, a source
-//! revision and a mutation receipt's revision remain three distinct facts.
+//! [`WorkspaceAdmission`] is what every source-writing host gets when it
+//! tries to own the checkout for its run — a [`HostedWorkspace`], the one
+//! native owner, with a [`WorkspaceSourceWriter`] over it as the route the
+//! session's authorized source writes take (journaled intents and truthful
+//! receipts, the same pipeline every workspace client writes through), or
+//! a typed refusal under which those writes are refused rather than
+//! written directly (chunk audit-260912-04). A workspace generation, a
+//! source revision and a mutation receipt's revision remain three distinct
+//! facts.
 //!
 //! Durability and completion policy live in the workflow: the receipt is
 //! the workflow's record, and `roadmap_complete_chunk` refuses without a
@@ -40,6 +43,7 @@ mod check_evidence_error;
 mod check_identities;
 mod hosted_workspace;
 mod settled_check;
+mod workspace_admission;
 mod workspace_source_writer;
 
 pub use admitted_check::AdmittedCheck;
@@ -47,4 +51,5 @@ pub use check_evidence_error::CheckEvidenceError;
 pub use check_identities::CheckIdentities;
 pub use hosted_workspace::HostedWorkspace;
 pub use settled_check::SettledCheck;
+pub use workspace_admission::WorkspaceAdmission;
 pub use workspace_source_writer::WorkspaceSourceWriter;

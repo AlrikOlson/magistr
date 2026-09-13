@@ -33,17 +33,13 @@ fn line_zero_is_treated_as_one() {
 }
 
 #[tokio::test]
-async fn read_and_write_round_trip_and_announce_themselves() {
+async fn a_read_announces_itself_and_honours_line_parameters() {
     let dir = tempfile::tempdir().expect("tempdir");
     let path = dir.path().join("nested").join("note.txt");
+    std::fs::create_dir_all(path.parent().expect("parent")).expect("dirs");
+    std::fs::write(&path, "hello\nworld").expect("fixture");
     let (tx, mut rx) = mpsc::unbounded_channel();
 
-    write_text_file(
-        WriteTextFileRequest::new("s", path.clone(), "hello\nworld"),
-        &tx,
-    )
-    .await
-    .expect("write");
     let read = read_text_file(ReadTextFileRequest::new("s", path.clone()).line(2u32), &tx)
         .await
         .expect("read");
@@ -55,7 +51,7 @@ async fn read_and_write_round_trip_and_announce_themselves() {
             _ => None,
         })
         .collect();
-    assert_eq!(subtypes, vec!["fs_write", "fs_read"]);
+    assert_eq!(subtypes, vec!["fs_read"]);
 }
 
 #[tokio::test]

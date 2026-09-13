@@ -28,6 +28,10 @@
 # 11. Owner attachment happens only on the inventory's attached surfaces:
 #    the second cockpit, the second mcp-serve proxy and the workspace
 #    bridge (arch-14f3).
+# 12. The ACP host writes no source file itself: a session's source writes
+#    take the host's SourceRoute (the admitted workspace's pipeline) or are
+#    refused, so magistr-acp production sources contain no direct file
+#    write or directory creation (audit-260912-04).
 #
 # Doc comments are not code: rule 1 skips comment lines.
 #
@@ -197,8 +201,17 @@ while IFS= read -r f; do
     fi
 done < <(production_sources)
 
+# --- Rule 12: the ACP host never writes a source file directly -------------
+while IFS= read -r f; do
+    hits=$(grep -nE '(tokio::fs|std::fs|fs)::(write|create_dir|create_dir_all|remove_file|rename|copy)\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
+    if [[ -n "$hits" ]]; then
+        fail "$f writes the filesystem from the ACP host (a session's source writes take its SourceRoute or are refused):"
+        echo "$hits"
+    fi
+done < <(find crates/magistr-acp/src -name '*.rs' -not -name '*.tests.rs' | sort)
+
 if [[ "$errors" -eq 0 ]]; then
-    echo "OK: one native write path — engines composed in magistr-engine/native, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, owners opened and attached only on the inventoried paths, no MCP roundtrips."
+    echo "OK: one native write path — engines composed in magistr-engine/native, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, owners opened and attached only on the inventoried paths, no MCP roundtrips, no direct file write in the ACP host."
     exit 0
 fi
 echo "native-write-path-gate: $errors error(s)"

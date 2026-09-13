@@ -1,18 +1,20 @@
 //! Magistr's own source writes through the admitted workspace pipeline
-//! (chunk arch-14f2), against the real adapters: a `HostedWorkspace` the
-//! way `magistr run` admits one (the real worker binary, the owner endpoint
-//! served), its `WorkspaceSourceWriter`, and the ACP `LocalEffectPort` the
-//! session's writes arrive through. No fake port, no MCP roundtrip, no
-//! second owner.
+//! (chunks arch-14f2 and audit-260912-04), against the real adapters: a
+//! `HostedWorkspace` the way `magistr run` admits one (the real worker
+//! binary, the owner endpoint served), its `WorkspaceSourceWriter`, the
+//! `WorkspaceAdmission` every host composes, and the ACP `LocalEffectPort`
+//! the session's writes arrive through. No fake port, no MCP roundtrip, no
+//! second owner — and no direct write when the workspace is not admitted.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use magistr::application::HostedWorkspace;
+use magistr::application::{HostedWorkspace, WorkspaceAdmission};
 use magistr_acp::AcpEvent;
 use magistr_acp::capabilities::LocalEffectPort;
 use magistr_application::effects::{
     EffectAuthorizer, EffectError, EffectFuture, EffectPort, EffectRequest, EffectResponse,
+    SourceRefusal, SourceRoute,
 };
 use magistr_workspace::{
     contracts::WorkspaceResponse,
@@ -84,13 +86,14 @@ impl EffectAuthorizer for Decision {
 
 type Events = mpsc::UnboundedReceiver<magistr_acp::Result<AcpEvent>>;
 
-fn port(root: &Path, hosted: Option<&HostedWorkspace>) -> (LocalEffectPort, Events) {
+fn port(root: &Path, source: SourceRoute) -> (LocalEffectPort, Events) {
     let (events, rx) = mpsc::unbounded_channel();
-    let mut port = LocalEffectPort::new(root.to_path_buf(), events);
-    if let Some(hosted) = hosted {
-        port = port.with_source_writer(hosted.source_writer().expect("session"));
-    }
-    (port, rx)
+    (LocalEffectPort::new(root.to_path_buf(), events, source), rx)
+}
+
+/// The route a host that admitted `hosted` hands its session.
+fn admitted(hosted: &HostedWorkspace) -> SourceRoute {
+    SourceRoute::Admitted(hosted.source_writer().expect("session"))
 }
 
 fn write(path: &Path, content: &str) -> EffectRequest {
@@ -132,7 +135,7 @@ async fn an_authorized_write_lands_through_the_pipeline_with_a_journal_intent_an
         .service()
         .source_snapshot(SelectionPolicy::default())
         .expect("snapshot");
-    let (port, mut rx) = port(&root, Some(&hosted));
+    let (port, mut rx) = port(&root, admitted(&hosted));
     let decision = Decision::allowing();
 
     let target = root.join("src/new.rs");
@@ -213,7 +216,7 @@ async fn a_denied_write_never_reaches_the_pipeline_and_journals_nothing() {
     let root = workspace(&tmp);
     let hosted = hosted(&root).await;
     let root = hosted.service().root().to_path_buf();
-    let (port, mut rx) = port(&root, Some(&hosted));
+    let (port, mut rx) = port(&root, admitted(&hosted));
 
     let target = root.join("src/refused.rs");
     let refused = port
@@ -237,7 +240,7 @@ async fn a_write_the_pipeline_refuses_is_the_effects_answer_in_its_words() {
     let root = workspace(&tmp);
     let hosted = hosted(&root).await;
     let root = hosted.service().root().to_path_buf();
-    let (port, _rx) = port(&root, Some(&hosted));
+    let (port, _rx) = port(&root, admitted(&hosted));
 
     // A syntax error into a valid source: parse verification refuses it.
     let target = root.join("src/lib.rs");
@@ -268,49 +271,85 @@ async fn a_write_the_pipeline_refuses_is_the_effects_answer_in_its_words() {
     hosted.shutdown().await.expect("clean shutdown");
 }
 
+/// The write a refused host's session asks for: refused before any
+/// permission decision, nothing on disk, nothing in the owner's journal and
+/// no receipt — and the session goes on reading.
+async fn refused_write_leaves_the_tree_alone(
+    root: &Path,
+    admission: &WorkspaceAdmission,
+    expected: &SourceRefusal,
+) {
+    let route = admission.source_route();
+    assert_eq!(route.refusal(), Some(expected), "{}", admission.report());
+    let (port, mut rx) = port(root, route);
+    assert!(
+        !port.capabilities().write_text_file,
+        "a host without an admitted writer advertises no write capability"
+    );
+    let decision = Decision::allowing();
+    let target = root.join("refused.txt");
+    let refused = port
+        .execute(write(&target, "never\n"), decision.clone())
+        .await;
+    assert!(
+        matches!(&refused, Err(EffectError::Unavailable(reason)) if reason.starts_with("source write refused")),
+        "{refused:?}"
+    );
+    assert!(!target.exists(), "nothing lands directly");
+    assert!(
+        decision.seen.lock().expect("lock").is_empty(),
+        "no permission is asked for a write that cannot land"
+    );
+    let events = fs_write_events(&mut rx);
+    assert_eq!(events.len(), 1, "{events:?}");
+    assert_eq!(events[0]["route"], "refused");
+    assert_eq!(events[0]["refusal"], expected.kind());
+
+    // The session keeps operating: the read is authorized and answered.
+    let read = port
+        .execute(
+            EffectRequest::ReadTextFile {
+                session_id: "s".into(),
+                path: root.join("notes.txt").display().to_string(),
+                line: None,
+                limit: None,
+            },
+            decision.clone(),
+        )
+        .await
+        .expect("read");
+    assert_eq!(
+        read,
+        EffectResponse::Text("alpha".into()),
+        "the read handler joins lines without a trailing newline"
+    );
+    assert_eq!(decision.seen.lock().expect("lock").len(), 1);
+    drop(port);
+}
+
 #[tokio::test(flavor = "multi_thread")]
-async fn without_an_admitted_workspace_the_effect_writes_directly_and_says_so() {
+async fn a_held_workspace_refuses_the_second_hosts_writes_and_invents_no_receipt() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = workspace(&tmp);
     let hosted = hosted(&root).await;
     let root = hosted.service().root().to_path_buf();
-
-    // A second host on the same checkout admits nothing: no second owner,
-    // no attachment to write through, and the effect keeps its direct write.
-    let second = HostedWorkspace::admit_with(options(&root))
-        .await
-        .expect("admissible");
-    assert!(second.is_none(), "a live owner is never doubled");
-    assert!(matches!(
-        WorkspaceService::open(options(&root)).await,
-        Err(WorkspaceOpenError::Locked(_))
-    ));
     let before = hosted
         .service()
         .source_snapshot(SelectionPolicy::default())
         .expect("snapshot");
 
-    let (port, mut rx) = port(&root, None);
-    let target = root.join("direct.txt");
-    port.execute(write(&target, "direct\n"), Decision::allowing())
-        .await
-        .expect("written directly");
-    assert_eq!(
-        std::fs::read_to_string(&target).expect("landed"),
-        "direct\n"
-    );
-    let events = fs_write_events(&mut rx);
-    assert_eq!(events.len(), 1);
-    assert_eq!(events[0]["route"], "direct");
-    assert!(
-        events[0]["note"]
-            .as_str()
-            .expect("note")
-            .contains("unjournaled")
-    );
+    // A second host on the same checkout admits nothing: no second owner,
+    // no attachment to write through — and no direct write either.
+    let second = WorkspaceAdmission::admit_with(options(&root)).await;
+    assert!(second.hosted().is_none(), "a live owner is never doubled");
+    assert!(matches!(
+        WorkspaceService::open(options(&root)).await,
+        Err(WorkspaceOpenError::Locked(_))
+    ));
+    refused_write_leaves_the_tree_alone(&root, &second, &SourceRefusal::OwnerElsewhere).await;
 
-    // To the owner that write is external: no journal row, no receipt,
-    // only the snapshot's word that the tree moved.
+    // To the owner nothing happened: no journal row, no receipt, and the
+    // tree is exactly what it was.
     assert!(journal(hosted.service()).await.is_empty());
     assert!(
         hosted
@@ -325,14 +364,79 @@ async fn without_an_admitted_workspace_the_effect_writes_directly_and_says_so() 
             .service()
             .validate_snapshot(&before)
             .expect("validated"),
-        SnapshotValidation::Changed(vec![magistr_workspace::snapshot::SourceChange {
-            path: "direct.txt".into(),
-            kind: ChangeKind::Added,
-        }])
+        SnapshotValidation::Unchanged
     );
 
-    drop(port);
+    second.shutdown().await.expect("a refusal releases nothing");
     hosted.shutdown().await.expect("clean shutdown");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_marker_needing_migration_refuses_admission_and_the_write() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = workspace(&tmp);
+    let state = root.join(".workbench");
+    std::fs::create_dir(&state).expect("state");
+    // A retained legacy owner's record: it takes no OS lock, and a native
+    // host must never migrate it on its own.
+    let marker = format!(r#"{{"pid":{},"host":"legacy-host"}}"#, std::process::id());
+    std::fs::write(state.join("server.lock"), &marker).expect("legacy owner");
+
+    let admission = WorkspaceAdmission::admit_with(options(&root)).await;
+    let WorkspaceAdmission::Refused(SourceRefusal::NotAdmitted(reason)) = &admission else {
+        panic!("a legacy marker is a refusal: {}", admission.report());
+    };
+    assert!(reason.contains("migration"), "{reason}");
+    let root = root.canonicalize().expect("canonical");
+    refused_write_leaves_the_tree_alone(
+        &root,
+        &admission,
+        &SourceRefusal::NotAdmitted(reason.clone()),
+    )
+    .await;
+
+    // The refusal opened nothing and preserved the record.
+    assert_eq!(
+        std::fs::read_to_string(state.join("server.lock")).expect("preserved"),
+        marker
+    );
+    for forbidden in ["journal.db", "index.db", "keys"] {
+        assert!(
+            !state.join(forbidden).exists(),
+            "refusal opened {forbidden}"
+        );
+    }
+    admission.shutdown().await.expect("nothing to release");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_invalid_configuration_refuses_admission_and_the_write() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = workspace(&tmp);
+    // A protected-paths pattern the policy does not support.
+    std::fs::write(
+        root.join("workbench.toml"),
+        "[security]\nprotected_paths = ['secrets/*.pem']\n",
+    )
+    .expect("configuration");
+
+    let admission = WorkspaceAdmission::admit_with(options(&root)).await;
+    let WorkspaceAdmission::Refused(SourceRefusal::NotAdmitted(reason)) = &admission else {
+        panic!(
+            "an invalid configuration is a refusal: {}",
+            admission.report()
+        );
+    };
+    assert!(reason.contains("protected_paths"), "{reason}");
+    let root = root.canonicalize().expect("canonical");
+    refused_write_leaves_the_tree_alone(
+        &root,
+        &admission,
+        &SourceRefusal::NotAdmitted(reason.clone()),
+    )
+    .await;
+    assert!(!root.join("refused.txt").exists());
+    admission.shutdown().await.expect("nothing to release");
 }
 
 #[tokio::test(flavor = "multi_thread")]

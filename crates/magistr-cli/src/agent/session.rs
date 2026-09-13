@@ -55,10 +55,15 @@ pub struct AgentSession {
 }
 
 impl AgentSession {
-    /// Start a new agent session with the given config.
+    /// Start a new agent session with the given config; `source` is the
+    /// route its authorized source writes take — the host's admitted
+    /// workspace, or the refusal every host without one holds.
     #[instrument(skip_all, name = "agent_session_start")]
-    pub async fn start(config: super::AgentConfig) -> Result<Self> {
-        let spec = config.resolve()?;
+    pub async fn start(
+        config: super::AgentConfig,
+        source: magistr_application::effects::SourceRoute,
+    ) -> Result<Self> {
+        let spec = config.resolve()?.with_source_route(source);
         let resolved_model = spec.model().map(str::to_owned);
         let (backend, message_rx) = super::backend::AcpBackend::start_resolved(spec).await?;
         Ok(Self {

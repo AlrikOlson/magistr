@@ -44,11 +44,14 @@ pub async fn cmd_init_interactive(dir: &std::path::Path, force: bool) -> eyre::R
             .system_prompt(init_prompt)
             .permission_mode(crate::agent::PermissionMode::AcceptEdits);
 
-    let mut session = agent::session::AgentSession::start(config)
+    // The interview's session writes source the way every host's does:
+    // through the admitted workspace, or not at all.
+    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;
 
-    loop {
+    'turns: loop {
         let mut turn_done = false;
         while let Some(msg_result) = session.next_message().await {
             match msg_result {
@@ -74,7 +77,7 @@ pub async fn cmd_init_interactive(dir: &std::path::Path, force: bool) -> eyre::R
                 },
                 Err(e) => {
                     eprintln!("{} {e}", fmt::red("error:"));
-                    return Ok(());
+                    break 'turns;
                 }
             }
         }
@@ -89,6 +92,10 @@ pub async fn cmd_init_interactive(dir: &std::path::Path, force: bool) -> eyre::R
             break;
         }
         session.send_followup(input.trim())?;
+    }
+    drop(session);
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
     }
 
     Ok(())

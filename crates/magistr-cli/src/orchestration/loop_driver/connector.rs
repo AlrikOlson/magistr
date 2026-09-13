@@ -2,10 +2,9 @@
 
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 
 use magistr_acp::AcpTransport;
-use magistr_application::effects::SourceWriter;
+use magistr_application::effects::SourceRoute;
 
 use crate::agent::{AgentConfig, ResolvedSessionSpec};
 use crate::error::Result;
@@ -18,8 +17,8 @@ type Connect = dyn Fn(
 
 /// Turns an [`AgentConfig`] into a connected [`AcpTransport`] and its frozen setup — the one
 /// seam between the loop driver and a process. [`Connector::live`]
-/// spawns the real agent; a test hands in a closure that connects the
-/// transport over a channel to an in-process fake.
+/// spawns the real agent with the host's source route; a test hands in a
+/// closure that connects the transport over a channel to an in-process fake.
 pub struct Connector {
     connect: Box<Connect>,
 }
@@ -37,20 +36,14 @@ impl Connector {
     }
 
     /// Resolve setup once, spawn the agent and complete the handshake; the
-    /// session's authorized writes go directly to the files.
+    /// session's authorized source writes take `source` — the host's
+    /// admitted workspace, or the refusal a host without one holds.
     #[must_use]
-    pub fn live() -> Self {
-        Self::live_routed(None)
-    }
-
-    /// As [`Self::live`], with the session's authorized writes routed
-    /// through `writer` — the host's admitted workspace — when one is given.
-    #[must_use]
-    pub fn live_routed(writer: Option<Arc<dyn SourceWriter>>) -> Self {
+    pub fn live(source: SourceRoute) -> Self {
         Self::new(move |config| {
-            let writer = writer.clone();
+            let source = source.clone();
             async move {
-                let spec = config.resolve()?.with_source_writer(writer);
+                let spec = config.resolve()?.with_source_route(source);
                 let transport = spec.connect_transport().await?;
                 Ok((transport, spec))
             }

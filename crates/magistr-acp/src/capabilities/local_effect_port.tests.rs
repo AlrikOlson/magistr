@@ -1,4 +1,5 @@
 use super::*;
+use magistr_application::effects::SourceRefusal;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 struct Authorizer {
@@ -42,9 +43,39 @@ impl EffectAuthorizer for Authorizer {
     }
 }
 
+/// A stand-in for the admitted workspace pipeline: it lands the bytes at
+/// the resolved path so resolution and authorization can be checked on disk.
+struct DiskWriter;
+
+impl magistr_application::effects::SourceWriter for DiskWriter {
+    fn write_text(
+        &self,
+        path: &str,
+        content: &str,
+    ) -> EffectFuture<'_, magistr_application::effects::SourceWriteReceipt> {
+        let path = PathBuf::from(path);
+        let content = content.to_owned();
+        Box::pin(async move {
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).unwrap();
+            }
+            std::fs::write(&path, content).unwrap();
+            Ok(magistr_application::effects::SourceWriteReceipt {
+                journal_seq: Some(1),
+                revision: Some("disk".into()),
+                changed: true,
+            })
+        })
+    }
+}
+
+fn admitted() -> SourceRoute {
+    SourceRoute::Admitted(Arc::new(DiskWriter))
+}
+
 fn local(root: &Path) -> LocalEffectPort {
     let (events, _) = mpsc::unbounded_channel();
-    LocalEffectPort::new(root.to_path_buf(), events)
+    LocalEffectPort::new(root.to_path_buf(), events, admitted())
 }
 
 fn write(path: &Path) -> EffectRequest {
@@ -369,7 +400,7 @@ fn routed(
 ) -> (LocalEffectPort, mpsc::UnboundedReceiver<Result<AcpEvent>>) {
     let (events, rx) = mpsc::unbounded_channel();
     (
-        LocalEffectPort::new(root.to_path_buf(), events).with_source_writer(writer),
+        LocalEffectPort::new(root.to_path_buf(), events, SourceRoute::Admitted(writer)),
         rx,
     )
 }
@@ -456,17 +487,71 @@ async fn a_writer_refusal_is_the_effects_answer_and_nothing_lands_directly() {
 }
 
 #[tokio::test]
-async fn without_a_source_writer_the_write_is_direct_and_the_event_says_so() {
+async fn a_refused_route_withholds_the_write_capability_and_refuses_before_authorization() {
     let dir = tempfile::tempdir().unwrap();
     let (events, mut rx) = mpsc::unbounded_channel();
-    let port = LocalEffectPort::new(dir.path().to_path_buf(), events);
-    let path = dir.path().join("direct.txt");
-    port.execute(write(&path), Authorizer::allow())
-        .await
-        .unwrap();
-    assert_eq!(std::fs::read_to_string(&path).unwrap(), "new");
+    let port = LocalEffectPort::new(
+        dir.path().to_path_buf(),
+        events,
+        SourceRoute::Refused(SourceRefusal::OwnerElsewhere),
+    );
+    let caps = port.capabilities();
+    assert!(caps.read_text_file && caps.terminal && !caps.write_text_file);
+
+    let auth = Authorizer::allow();
+    let path = dir.path().join("refused.txt");
+    let refused = port.execute(write(&path), auth.clone()).await;
+    assert!(
+        matches!(&refused, Err(EffectError::Unavailable(reason)) if reason.contains("another owner holds the workspace")),
+        "{refused:?}"
+    );
+    assert!(!path.exists(), "nothing lands directly");
+    assert!(
+        auth.requests.lock().unwrap().is_empty(),
+        "no permission is asked for a write that cannot land"
+    );
     let events = write_events(&mut rx);
     assert_eq!(events.len(), 1);
-    assert_eq!(events[0]["route"], "direct");
-    assert!(events[0]["note"].as_str().unwrap().contains("unjournaled"));
+    assert_eq!(events[0]["route"], "refused");
+    assert_eq!(events[0]["refusal"], "owner_elsewhere");
+
+    // The session goes on: reads and terminals are unaffected.
+    std::fs::write(dir.path().join("readable.txt"), "still here").unwrap();
+    let read = port
+        .execute(
+            EffectRequest::ReadTextFile {
+                session_id: "s".into(),
+                path: dir.path().join("readable.txt").display().to_string(),
+                line: None,
+                limit: None,
+            },
+            auth.clone(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(read, EffectResponse::Text("still here".into()));
+    assert_eq!(
+        auth.requests.lock().unwrap().len(),
+        1,
+        "the read was authorized"
+    );
+}
+
+#[tokio::test]
+async fn a_session_without_authority_is_denied_not_unavailable() {
+    let dir = tempfile::tempdir().unwrap();
+    let (events, _rx) = mpsc::unbounded_channel();
+    let port = LocalEffectPort::new(
+        dir.path().to_path_buf(),
+        events,
+        SourceRoute::Refused(SourceRefusal::NoAuthority),
+    );
+    let refused = port
+        .execute(write(&dir.path().join("judge.txt")), Authorizer::allow())
+        .await;
+    assert!(
+        matches!(&refused, Err(EffectError::Denied(reason)) if reason.contains("no source-write authority")),
+        "{refused:?}"
+    );
+    assert!(!dir.path().join("judge.txt").exists());
 }

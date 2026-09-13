@@ -19,7 +19,11 @@ pub async fn cmd_run(
         .with_run_args(model, resume, continue_conversation)
         .with_project_context(&cwd);
 
-    let mut session = agent::session::AgentSession::start(config)
+    // The one workspace composition every source-writing host shares:
+    // admitted, the session's writes run through the pipeline; refused,
+    // they are refused — never written directly.
+    let workspace = admit_workspace(&cwd, |line| eprintln!("{line}")).await;
+    let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;
 
@@ -40,5 +44,9 @@ pub async fn cmd_run(
 
     let outcome = drain_session_interactive(&mut session, &cwd, model_name.as_deref()).await;
     let cleanup = session.terminate_session().await.suggest();
+    drop(session);
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
+    }
     outcome.and(cleanup)
 }

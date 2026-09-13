@@ -14,12 +14,16 @@ effects unless its builder supplies a capability adapter. The CLI's shared
 `connect_transport` path opts into `.local_effects()`, which installs
 `LocalEffectPort`. A host can instead supply its own `EffectPort`.
 
-The local adapter owns filesystem access, process creation and live terminal
-resources. A host that admitted the workspace supplies a `SourceWriter`
-(`with_source_writer`, threaded from `ResolvedSessionSpec::with_source_writer`
-through `AcpTransport::source_writer`), and authorized writes then go through
-the [workspace pipeline](#routing-writes-through-the-workspace-pipeline). It reports its read, write and terminal support through
-`EffectCapabilities`; initialization advertises those values. Unsupported calls
+The local adapter owns filesystem reads, process creation and live terminal
+resources. It never writes a source file itself: the host composes it with a
+`SourceRoute` (`AcpTransport::local_effects(route)`, threaded from
+`ResolvedSessionSpec::with_source_route`) — the admitted workspace's
+`SourceWriter`, under which authorized writes go through the
+[workspace pipeline](#routing-writes-through-the-workspace-pipeline), or a
+`SourceRefusal`, under which the write capability is withheld and every write
+is refused. It reports its read, write and terminal support through
+`EffectCapabilities`; initialization advertises those values, so the write
+capability is advertised only when a writer is admitted. Unsupported calls
 are refused even if an agent sends them despite the advertised capability.
 File targets and terminal working directories must resolve inside the configured
 workspace. Absolute paths outside it and symlinks escaping it are denied before
@@ -83,14 +87,30 @@ anchored on the current bytes, parse-verified, atomic, journaled as an intent,
 formatting off so the bytes that land are the bytes the agent wrote, and never
 confirm-gated because the permission decision is the confirmation. The port's
 `fs_write` event carries `route: "workspace"`, the journal intent and the
-`MutationReceipt`'s revision. Without a `SourceWriter` the port writes directly
-as before and the event says `route: "direct"` with a note that the write is
-unjournaled. The pipeline's refusals — a protected path, a syntax error into a
-valid source, a stale anchor — are typed effect errors in the pipeline's own
-words; nothing lands. External writes (an editor, a provider CLI, git) are not
-routed and not journaled; `SourceSnapshot` validation reports them as changes.
-`crates/magistr-cli/tests/source_pipeline_routing.rs` proves each of these
-against a real owner and the real port.
+`MutationReceipt`'s revision. The pipeline's refusals — a protected path, a
+syntax error into a valid source, a stale anchor — are typed effect errors in
+the pipeline's own words; nothing lands.
+
+Since `audit-260912-04` there is no direct route. A host that did not admit the
+workspace — another owner holds it, its marker needs migration, its
+configuration is refused, its durable data is from a newer binary — composes
+the port with a `SourceRefusal` instead of a writer (`SourceRoute::Refused`;
+`magistr::application::WorkspaceAdmission` is the one place every host gets
+one). The port then advertises `fs.writeTextFile: false`, so a cooperating
+agent must not call `fs/write_text_file` and runs its own workspace tools
+instead; a write it sends anyway is answered before resolution and
+authorization with the refusal (`unavailable` for a missing owner, `denied`
+for a session without authority), the `fs_write` event says
+`route: "refused"` with the refusal's kind, and nothing is written, journaled
+or receipted. The judge's sessions and any session resolved without a route
+carry `NoAuthority`. The agent's own runtime writes, like every external
+write (an editor, a provider CLI, git), are outside this cooperative
+contract: not routed, not journaled, observed by `SourceSnapshot` validation
+as changes. `crates/magistr-cli/tests/source_pipeline_routing.rs` proves the
+routed and the refused paths against real owners and the real port;
+`tests/effect_capabilities.rs` proves both through the real transport and
+session supervisor; the `native-write-path` gate's rule 12 forbids any direct
+file write in `magistr-acp` production sources.
 
 ## Limits
 

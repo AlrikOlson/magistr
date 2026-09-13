@@ -12,7 +12,10 @@ loop admits the workspace itself before its agent starts
 (`magistr::application::HostedWorkspace`) and serves the same endpoint, so the
 agent's bridge and the cockpit's port attach to the host and the host's own
 authorized source writes run through the service in-process; when a live owner
-already holds the lock the host admits nothing and its writes go direct. No external executable, checkout or runtime is
+already holds the lock — or the root cannot be admitted — the host admits
+nothing and its sessions' source writes are refused
+(`magistr::application::WorkspaceAdmission`, `audit-260912-04`), never written
+directly. No external executable, checkout or runtime is
 consulted: `arch-14d-workspace-owner` removed the Bun/PATH/home-checkout
 resolver, so the launch line is this binary or nothing.
 

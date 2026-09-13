@@ -36,6 +36,18 @@ pub async fn cmd_next(
         fmt::info("Starting research-plan-execute-verify cycle...")
     );
 
-    // Delegate to cmd_run with the workflow prompt
-    crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile).await
+    // Delegate to the workflow session with this run's workspace admission.
+    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let ran = crate::commands::run::cmd_run_workflow(
+        &prompt,
+        &dir,
+        backend,
+        profile,
+        workspace.source_route(),
+    )
+    .await;
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
+    }
+    ran
 }

@@ -12,8 +12,10 @@ use agent_client_protocol::schema::v1::{
 };
 use agent_client_protocol::{Agent, Channel, on_receive_request};
 use magistr::agent::cockpit_session::CockpitSession;
+use magistr::application::WorkspaceAdmission;
 use magistr::permissions::{PermissionProfile, SessionPermissionPolicy};
 use magistr_acp::AcpTransport;
+use magistr_application::effects::{EffectFuture, SourceRoute, SourceWriteReceipt, SourceWriter};
 use magistr_cockpit::agent::{AgentEvent, PermissionKind, SessionOptions, spawn_session};
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::cockpit::{Cmd, Msg};
@@ -47,11 +49,47 @@ fn permission_options() -> Vec<PermissionOption> {
     ]
 }
 
+/// The admitted route's stand-in for the policy tests: lands the bytes at
+/// the resolved path so the shared profile can be checked on disk.
+struct DiskWriter;
+
+impl SourceWriter for DiskWriter {
+    fn write_text(&self, path: &str, content: &str) -> EffectFuture<'_, SourceWriteReceipt> {
+        let path = PathBuf::from(path);
+        let content = content.to_owned();
+        Box::pin(async move {
+            std::fs::write(&path, content).expect("disk");
+            Ok(SourceWriteReceipt {
+                journal_seq: Some(1),
+                revision: Some("disk".into()),
+                changed: true,
+            })
+        })
+    }
+}
+
 async fn run(
     root: &Path,
     policy: SessionPermissionPolicy,
     actions: Vec<Action>,
     answer: Answer,
+) -> (Vec<bool>, Vec<String>) {
+    run_routed(
+        root,
+        policy,
+        actions,
+        answer,
+        SourceRoute::Admitted(std::sync::Arc::new(DiskWriter)),
+    )
+    .await
+}
+
+async fn run_routed(
+    root: &Path,
+    policy: SessionPermissionPolicy,
+    actions: Vec<Action>,
+    answer: Answer,
+    source: SourceRoute,
 ) -> (Vec<bool>, Vec<String>) {
     tokio::time::timeout(Duration::from_secs(10), async {
         let count = actions.len();
@@ -127,7 +165,7 @@ async fn run(
         );
         let mut transport = AcpTransport::new_with_args(
             PathBuf::from("unused-in-process-agent"), Vec::new(), Some(root.to_path_buf()),
-        ).unwrap().local_effects();
+        ).unwrap().local_effects(source);
         transport.connect_over(client_end).await.unwrap();
         let (inbox, mut events) = Inbox::channel();
         let (command_tx, commands) = Commands::channel();
@@ -242,6 +280,128 @@ async fn direct_reads_and_approved_writes_use_the_shared_profile() {
         "the standard profile permits Read and asks for Write"
     );
     assert_eq!(std::fs::read_to_string(path).unwrap(), "changed");
+}
+
+/// A repository root the way a host admits one for its run.
+fn repository(tmp: &tempfile::TempDir) -> PathBuf {
+    let root = tmp.path().join("workspace");
+    std::fs::create_dir_all(root.join(".git")).expect("repository marker");
+    std::fs::write(root.join("target.txt"), "original").expect("fixture");
+    root
+}
+
+async fn admit(root: &Path) -> WorkspaceAdmission {
+    WorkspaceAdmission::admit_with(
+        magistr_workspace::service::WorkspaceOpenOptions::new(root, env!("CARGO_BIN_EXE_magistr"))
+            .with_network_override("0"),
+    )
+    .await
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_admitted_workspace_routes_the_approved_write_and_the_session_goes_on() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = repository(&tmp);
+    let admission = admit(&root).await;
+    let hosted = admission.hosted().expect("this host owns the checkout");
+    let root = hosted.service().root().to_path_buf();
+    let path = root.join("target.txt");
+    let (outcomes, asks) = run_routed(
+        &root,
+        policy(&root, false, Vec::new()),
+        vec![Action::Write(path.clone()), Action::Read(path.clone())],
+        Answer::Allow,
+        admission.source_route(),
+    )
+    .await;
+    assert_eq!(
+        outcomes,
+        [true, true],
+        "the write lands and the session reads on"
+    );
+    assert_eq!(
+        asks,
+        ["Write"],
+        "the permission decision precedes the route"
+    );
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "changed");
+
+    // The owner's word: one journal intent, applied under this generation.
+    let session = hosted.service().new_session().expect("session");
+    let rows = match hosted
+        .service()
+        .journal_list(
+            &magistr_workspace::service::JournalListInput::default(),
+            &session,
+        )
+        .await
+    {
+        magistr_workspace::contracts::WorkspaceResponse::Success { results, .. } => {
+            results.rows().to_vec()
+        }
+        magistr_workspace::contracts::WorkspaceResponse::Failure { error, .. } => {
+            panic!("journal: {}", error.message)
+        }
+    };
+    assert_eq!(rows.len(), 1, "{rows:?}");
+    assert_eq!(rows[0].tool, "write");
+    let receipt = hosted
+        .service()
+        .mutation_receipt(rows[0].seq)
+        .await
+        .expect("read")
+        .expect("exists");
+    assert_eq!(
+        receipt.status,
+        magistr_workspace::snapshot::MutationStatus::Applied
+    );
+    assert_eq!(receipt.generation, Some(hosted.generation()));
+    drop(session);
+    admission
+        .shutdown()
+        .await
+        .expect("the session released its writer");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_held_workspace_refuses_the_write_without_asking_and_the_read_goes_on() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = repository(&tmp);
+    let owner = admit(&root).await;
+    let root = owner
+        .hosted()
+        .expect("owner")
+        .service()
+        .root()
+        .to_path_buf();
+    // The second host on the same checkout: refused, never a second owner.
+    let second = admit(&root).await;
+    assert!(second.hosted().is_none());
+    let path = root.join("target.txt");
+    let (outcomes, asks) = run_routed(
+        &root,
+        policy(&root, false, Vec::new()),
+        vec![Action::Write(path.clone()), Action::Read(path.clone())],
+        Answer::Allow,
+        second.source_route(),
+    )
+    .await;
+    assert_eq!(
+        outcomes,
+        [false, true],
+        "the write is refused and the session reads on"
+    );
+    assert!(
+        asks.is_empty(),
+        "no permission is asked for a write that cannot land"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "original",
+        "nothing lands directly"
+    );
+    second.shutdown().await.expect("nothing to release");
+    owner.shutdown().await.expect("clean shutdown");
 }
 
 #[tokio::test]

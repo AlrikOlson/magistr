@@ -65,5 +65,17 @@ pub async fn cmd_next_continue(
         fmt::info("Continuing research-plan-execute-verify cycle...")
     );
 
-    crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile).await
+    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let ran = crate::commands::run::cmd_run_workflow(
+        &prompt,
+        &dir,
+        backend,
+        profile,
+        workspace.source_route(),
+    )
+    .await;
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
+    }
+    ran
 }
