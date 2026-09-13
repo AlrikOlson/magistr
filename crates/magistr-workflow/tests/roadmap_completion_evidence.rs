@@ -12,7 +12,9 @@ use magistr_workflow::ship::application::{
 use magistr_workflow::ship::domain::{check::CheckType, task::TaskType};
 use magistr_workflow::ship::engine::ShipEngine;
 
-struct Fixed;
+/// A source that never moves while a gate runs: the revision it was
+/// observed at is the revision it validates.
+struct Fixed(String);
 
 impl SourceWitness for Fixed {
     fn observation(&self) -> SourceObservation {
@@ -21,7 +23,7 @@ impl SourceWitness for Fixed {
             workspace_generation: None,
             scheme: "fake/1".into(),
             policy_digest: "p".into(),
-            revision: "r1".into(),
+            revision: self.0.clone(),
             consistency: "optimistic".into(),
             captured_at_ms: 0,
         }
@@ -31,11 +33,15 @@ impl SourceWitness for Fixed {
     }
 }
 
-struct Port;
+/// A fake evidence capability whose source revision the test moves between
+/// a gate and the completion that consults it.
+struct Port {
+    revision: Arc<Mutex<String>>,
+}
 
 impl EvidencePort for Port {
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
-        Ok(Box::new(Fixed))
+        Ok(Box::new(Fixed(self.revision.lock().unwrap().clone())))
     }
     fn required_gates(&self) -> Result<Vec<GateContract>, String> {
         Ok(vec![GateContract {
@@ -46,28 +52,49 @@ impl EvidencePort for Port {
     }
 }
 
-fn composed() -> (RoadmapUseCases, ShipUseCases) {
-    let ship = ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into()))))
-        .with_evidence(Arc::new(Port));
-    let roadmap = RoadmapUseCases::new(Arc::new(Mutex::new(RoadmapEngine::new("project".into()))))
-        .with_completion_evidence(ship.clone());
+fn chunk(id: &str, status: ChunkStatus) -> ChunkDraft {
+    ChunkDraft {
+        id: id.into(),
+        title: format!("Chunk {id}"),
+        name: String::new(),
+        status,
+        priority: 100,
+        description: String::new(),
+        acceptance: vec![],
+        deps: vec![],
+        shared: false,
+        group: None,
+        content: None,
+    }
+}
+
+/// A roadmap over `ship`, with `c1` started.
+fn roadmap_over(ship: &ShipUseCases) -> RoadmapUseCases {
+    let roadmap = RoadmapUseCases::new(
+        Arc::new(Mutex::new(RoadmapEngine::new("project".into()))),
+        ship.clone(),
+    );
     roadmap
-        .add_chunk(ChunkDraft {
-            id: "c1".into(),
-            title: "Chunk one".into(),
-            name: String::new(),
-            status: ChunkStatus::Pending,
-            priority: 100,
-            description: String::new(),
-            acceptance: vec![],
-            deps: vec![],
-            shared: false,
-            group: None,
-            content: None,
-        })
+        .add_chunk(chunk("c1", ChunkStatus::Pending))
         .unwrap();
     roadmap.start_chunk("c1").unwrap();
-    (roadmap, ship)
+    roadmap
+}
+
+/// The ship family with the fake evidence capability, and the handle that
+/// moves its source revision.
+fn evidenced() -> (ShipUseCases, Arc<Mutex<String>>) {
+    let revision = Arc::new(Mutex::new("r1".to_owned()));
+    let ship = ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into()))))
+        .with_evidence(Arc::new(Port {
+            revision: Arc::clone(&revision),
+        }));
+    (ship, revision)
+}
+
+fn composed() -> (RoadmapUseCases, ShipUseCases) {
+    let (ship, _) = evidenced();
+    (roadmap_over(&ship), ship)
 }
 
 fn objective(ship: &ShipUseCases, scope: &str) {
@@ -203,26 +230,99 @@ fn the_plain_status_routes_cannot_reach_done() {
 }
 
 #[test]
-fn without_a_completion_authority_the_legacy_routes_stay_as_they_were() {
-    let roadmap = RoadmapUseCases::new(Arc::new(Mutex::new(RoadmapEngine::new("project".into()))));
-    roadmap
-        .add_chunk(ChunkDraft {
-            id: "c1".into(),
-            title: "Chunk one".into(),
-            name: String::new(),
-            status: ChunkStatus::Pending,
-            priority: 100,
-            description: String::new(),
-            acceptance: vec![],
-            deps: vec![],
-            shared: false,
-            group: None,
-            content: None,
-        })
-        .unwrap();
-    roadmap.start_chunk("c1").unwrap();
+fn stale_source_evidence_is_refused_until_the_gate_reruns() {
+    let (ship, revision) = evidenced();
+    let roadmap = roadmap_over(&ship);
+    objective(&ship, "chunk:c1");
+    gate(&ship, 0);
+    *revision.lock().unwrap() = "r2".into();
+    let refusal = roadmap.complete_chunk("c1", None).unwrap_err();
+    assert!(
+        refusal
+            .to_string()
+            .contains("the source changed since the gate ran"),
+        "{refusal}"
+    );
+    assert_eq!(
+        roadmap.engine().lock().unwrap().roadmap().chunks[0].status,
+        ChunkStatus::InProgress
+    );
+    gate(&ship, 0);
     assert_eq!(
         roadmap.complete_chunk("c1", None).unwrap().status,
         ChunkStatus::Done
+    );
+}
+
+/// A ship family composed without an evidence capability is still the
+/// roadmap's completion authority — one that refuses every completion with
+/// the reason. There is no permissive branch to fall back to: the
+/// constructor takes the authority, and the plain status routes refuse
+/// `done` whatever the ship family can certify.
+#[test]
+fn without_an_evidence_capability_every_route_to_done_is_refused_and_planning_continues() {
+    let ship = ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into()))));
+    let roadmap = roadmap_over(&ship);
+    objective(&ship, "chunk:c1");
+
+    let refusal = roadmap
+        .complete_chunk("c1", Some("task:verify"))
+        .unwrap_err();
+    assert!(
+        refusal
+            .to_string()
+            .contains("no verification evidence capability is composed"),
+        "{refusal}"
+    );
+    assert!(matches!(
+        roadmap.set_status("c1", ChunkStatus::Done),
+        Err(RoadmapError::InvalidState(reason)) if reason.contains("roadmap_complete_chunk")
+    ));
+    roadmap
+        .propose_status(
+            "c1",
+            ChunkStatus::Done,
+            "ticket closed".into(),
+            "tracker".into(),
+        )
+        .unwrap();
+    assert!(matches!(
+        roadmap.resolve_status_proposal("c1", true),
+        Err(RoadmapError::InvalidState(reason)) if reason.contains("roadmap_complete_chunk")
+    ));
+    let chunks = roadmap.engine().lock().unwrap().roadmap().chunks.clone();
+    assert_eq!(chunks[0].status, ChunkStatus::InProgress);
+    assert!(
+        chunks[0].cross_refs.is_empty(),
+        "{:?}",
+        chunks[0].cross_refs
+    );
+
+    // Ordinary planning mutations and completed history are untouched.
+    roadmap.resolve_status_proposal("c1", false).unwrap();
+    assert_eq!(
+        roadmap
+            .set_status("c1", ChunkStatus::Blocked)
+            .unwrap()
+            .status,
+        ChunkStatus::Blocked
+    );
+    assert_eq!(
+        roadmap.link_chunk("c1", "think:7").unwrap().cross_refs,
+        vec!["think:7".to_owned()]
+    );
+    assert_eq!(
+        roadmap
+            .add_chunk(chunk("shipped-last-year", ChunkStatus::Done))
+            .unwrap()
+            .status,
+        ChunkStatus::Done
+    );
+    assert_eq!(
+        roadmap
+            .obsolete_chunk("c1", "superseded".into())
+            .unwrap()
+            .status,
+        ChunkStatus::Obsoleted
     );
 }

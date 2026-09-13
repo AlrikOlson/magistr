@@ -936,12 +936,17 @@ mod tests {
     use super::*;
 
     fn service() -> UnifiedService {
+        let ship = ShipService::new(crate::ship::engine::ShipEngine::new("p".into()));
+        let roadmap = RoadmapService::new(
+            crate::roadmap::engine::RoadmapEngine::new("p".into()),
+            ship.use_cases(),
+        );
         UnifiedService::new(
             ThinkService::new(crate::think::engine::core::ReasoningServer::new(
                 crate::think::config::ThinkConfig::default(),
             )),
-            ShipService::new(crate::ship::engine::ShipEngine::new("p".into())),
-            RoadmapService::new(crate::roadmap::engine::RoadmapEngine::new("p".into())),
+            ship,
+            roadmap,
             SignalService::new(crate::signal::engine::SignalEngine::new("p".into())),
         )
     }

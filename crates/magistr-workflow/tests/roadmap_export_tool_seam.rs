@@ -1,5 +1,6 @@
 //! Export must do the file write itself; document-sized tool results are opt-in.
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::ship::{ShipService, ShipUseCases, engine::ShipEngine};
 use rmcp::{
     ServiceExt,
     model::{CallToolRequestParams, CallToolResult},
@@ -24,7 +25,7 @@ async fn call_export(service: RoadmapService, arguments: Value) -> CallToolResul
 #[tokio::test]
 async fn default_export_cannot_report_success_without_a_workspace() {
     let result = call_export(
-        RoadmapService::new(RoadmapEngine::new("test".into())),
+        RoadmapService::new(RoadmapEngine::new("test".into()), completion()),
         json!({}),
     )
     .await;
@@ -35,6 +36,12 @@ async fn default_export_cannot_report_success_without_a_workspace() {
     );
     assert_eq!(receipt["error_kind"], "workspace_unavailable");
     assert!(receipt.get("roadmap").is_none());
+}
+
+/// The ship family every roadmap under test completes against; nothing
+/// here completes a chunk, so it carries no evidence capability.
+fn completion() -> ShipUseCases {
+    ShipService::new(ShipEngine::new("export-test".into())).use_cases()
 }
 
 fn seeded_service(root: &std::path::Path) -> RoadmapService {
@@ -51,7 +58,7 @@ fn seeded_service(root: &std::path::Path) -> RoadmapService {
             false,
         )
         .unwrap();
-    RoadmapService::new(engine)
+    RoadmapService::new(engine, completion())
         .with_workspace_root(root)
         .unwrap()
 }
@@ -130,7 +137,7 @@ async fn default_export_replaces_the_complete_view_and_returns_only_a_small_rece
 #[tokio::test]
 async fn json_writes_its_own_file_and_inline_remains_an_explicit_read() {
     let root = tempfile::tempdir().unwrap();
-    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()))
+    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()), completion())
         .with_workspace_root(root.path())
         .unwrap();
     let expected = service.engine().lock().unwrap().export("json");
@@ -166,7 +173,7 @@ async fn json_writes_its_own_file_and_inline_remains_an_explicit_read() {
 #[tokio::test]
 async fn invalid_modes_and_formats_do_not_touch_the_existing_export() {
     let root = tempfile::tempdir().unwrap();
-    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()))
+    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()), completion())
         .with_workspace_root(root.path())
         .unwrap();
     let destination = root.path().join("ROADMAP.md");
@@ -196,7 +203,7 @@ async fn write_failures_are_explicit_and_leave_no_temporary_files() {
     let destination = root.path().join("ROADMAP.md");
     std::fs::create_dir(&destination).unwrap();
     std::fs::write(destination.join("untouched"), "keep me").unwrap();
-    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()))
+    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()), completion())
         .with_workspace_root(root.path())
         .unwrap();
     let response = call_export(service.clone(), json!({})).await;
@@ -225,7 +232,7 @@ async fn symlink_and_dangling_symlink_destinations_are_never_followed_or_replace
         }
         let destination = root.path().join("ROADMAP.md");
         std::os::unix::fs::symlink(&target, &destination).unwrap();
-        let service = RoadmapService::new(RoadmapEngine::new("export-test".into()))
+        let service = RoadmapService::new(RoadmapEngine::new("export-test".into()), completion())
             .with_workspace_root(root.path())
             .unwrap();
         let response = call_export(service, json!({})).await;
@@ -248,7 +255,7 @@ async fn symlink_and_dangling_symlink_destinations_are_never_followed_or_replace
 
 #[test]
 fn an_empty_workspace_path_is_rejected_during_configuration() {
-    let error = RoadmapService::new(RoadmapEngine::new("export-test".into()))
+    let error = RoadmapService::new(RoadmapEngine::new("export-test".into()), completion())
         .with_workspace_root("")
         .err()
         .expect("an invalid root must fail before the service is used");
@@ -261,7 +268,7 @@ async fn a_relative_workspace_path_is_bound_to_an_absolute_export_destination() 
     let root = tempfile::tempdir_in(&cwd).unwrap();
     let relative_root = root.path().strip_prefix(&cwd).unwrap();
     assert!(relative_root.is_relative());
-    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()))
+    let service = RoadmapService::new(RoadmapEngine::new("export-test".into()), completion())
         .with_workspace_root(relative_root)
         .unwrap();
     let receipt = call_export(service, json!({}))

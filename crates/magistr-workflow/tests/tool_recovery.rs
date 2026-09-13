@@ -159,7 +159,13 @@ fn every_advertised_required_field_has_actionable_admission() {
     .list_tools_view()
     .into_iter()
     .chain(ShipService::new(ShipEngine::new("schema-contract".into())).list_tools_view())
-    .chain(RoadmapService::new(RoadmapEngine::new("schema-contract".into())).list_tools_view())
+    .chain(
+        RoadmapService::new(
+            RoadmapEngine::new("schema-contract".into()),
+            ShipService::new(ShipEngine::new("schema-contract".into())).use_cases(),
+        )
+        .list_tools_view(),
+    )
     .chain(SignalService::new(SignalEngine::new("schema-contract".into())).list_tools_view());
     let mut checked = 0;
     for tool in tools {

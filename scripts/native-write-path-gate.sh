@@ -18,7 +18,11 @@
 #    through magistr_core::evidence::writer_config, except the composition
 #    of that capability itself, the MCP service (which attaches it in its
 #    constructor) and the cockpit client (which refuses a config without
-#    it before taking the lease) (arch-14-verification-receipts).
+#    it before taking the lease) (arch-14-verification-receipts). This
+#    rule is supplementary: the ship family is the roadmap's completion
+#    authority by construction and refuses every completion without the
+#    capability (audit-260912-05); the rule keeps a production writer
+#    from being admitted into that refusal.
 # 9. WorkspaceService opens only on the two owner paths the client
 #    inventory names: the workspace bridge (attach-or-admit) and the
 #    run/loop host's HostedWorkspace (arch-14f3).

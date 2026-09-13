@@ -8,9 +8,14 @@
 //! in `think_mcp.rs` and `ship_mcp.rs` — those still run as cheap
 //! sanity checks, but this test exercises the actual wire path.
 
+use std::sync::Arc;
+
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
 use magistr_workflow::ship::ShipService;
+use magistr_workflow::ship::application::{
+    EvidencePort, GateContract, SourceFreshness, SourceObservation, SourceWitness,
+};
 use magistr_workflow::ship::engine::ShipEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
@@ -29,12 +34,49 @@ struct TestClient;
 
 impl ClientHandler for TestClient {}
 
+/// A source that never moves and a project that configures no gates: the
+/// evidence capability a host composes, at its simplest, so a check the
+/// server runs over the wire certifies a source and a chunk can complete.
+struct Fixed;
+
+impl SourceWitness for Fixed {
+    fn observation(&self) -> SourceObservation {
+        SourceObservation {
+            workspace_root: "/w".into(),
+            workspace_generation: None,
+            scheme: "fake/1".into(),
+            policy_digest: "p".into(),
+            revision: "r1".into(),
+            consistency: "optimistic".into(),
+            captured_at_ms: 0,
+        }
+    }
+    fn validate(&self) -> Result<SourceFreshness, String> {
+        Ok(SourceFreshness::Unchanged)
+    }
+}
+
+struct Evidence;
+
+impl EvidencePort for Evidence {
+    fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
+        Ok(Box::new(Fixed))
+    }
+    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
+        Ok(Vec::new())
+    }
+}
+
 fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
-    let ship = ShipService::new(ShipEngine::new("test-abc123".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()));
+    let ship = ShipService::from_use_cases(
+        ShipService::new(ShipEngine::new("test-abc123".into()))
+            .use_cases()
+            .with_evidence(Arc::new(Evidence)),
+    );
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), ship.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
     UnifiedService::new(think, ship, roadmap, signal)
 }
@@ -217,13 +259,54 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
     );
     assert_ne!(call("roadmap_link", l).await.is_error, Some(true));
 
-    // complete with a proof-of-ship ref.
+    // Completion is governed by the run's receipts on every route, the
+    // wire included: with nothing verified yet it is refused by name.
     let mut c = serde_json::Map::new();
     c.insert("id".to_string(), Value::String("phase-1".to_string()));
     c.insert(
         "ship_ref".to_string(),
         Value::String("task:wire-it".to_string()),
     );
+    let refused = call("roadmap_complete_chunk", c.clone()).await;
+    assert_eq!(refused.is_error, Some(true));
+    let refusal = refused.structured_content.expect("refusal structured");
+    assert!(
+        refusal.to_string().contains("no ship objective"),
+        "{refusal}"
+    );
+
+    // The objective scoped to the chunk, its verification task, and a
+    // check the server runs itself: the receipt that lets it complete.
+    let objective = serde_json::json!({
+        "description": "Wire it", "scope": "chunk:phase-1",
+    });
+    assert_ne!(
+        call("ship_set_objective", objective.as_object().unwrap().clone())
+            .await
+            .is_error,
+        Some(true)
+    );
+    let plan = serde_json::json!({
+        "action": "add", "task_id": "wire-it", "title": "Wire it", "task_type": "test",
+    });
+    assert_ne!(
+        call("ship_plan", plan.as_object().unwrap().clone())
+            .await
+            .is_error,
+        Some(true)
+    );
+    let start = serde_json::json!({ "task_id": "wire-it" });
+    assert_ne!(
+        call("ship_start", start.as_object().unwrap().clone())
+            .await
+            .is_error,
+        Some(true)
+    );
+    let check = serde_json::json!({ "type": "test", "name": "wire", "command": "true" });
+    let checked = call("ship_check", check.as_object().unwrap().clone()).await;
+    assert_ne!(checked.is_error, Some(true), "{checked:?}");
+
+    // complete with the verification task as its proof-of-ship ref.
     let done = call("roadmap_complete_chunk", c).await;
     let dc = done.structured_content.expect("complete structured");
     assert_eq!(dc["status"], "done");

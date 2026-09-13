@@ -4,7 +4,9 @@
 //! what recovery establishes.
 
 use super::*;
-use crate::workflow::iteration::tests::{add_native_chunk, native_engines, setup_project};
+use crate::workflow::iteration::tests::{
+    add_native_chunk, complete_native_chunk, native_engines, setup_project,
+};
 use crate::workflow::iteration::{IterationLoop, PreCheckResult};
 use magistr_engine::native::ChunkStatus;
 use magistr_engine::native::TaskType;
@@ -96,7 +98,7 @@ fn a_native_mutation_is_reconciled_against_the_store() {
     il.persist().unwrap();
     // The effect lands for c1 and the process dies before settling either.
     engines.roadmap_start_chunk("c1").unwrap();
-    engines.roadmap_complete_chunk("c1", None).unwrap();
+    complete_native_chunk(&engines, "c1");
     drop(il);
 
     let mut recovered = recover(dir.path(), &spec, Some(engines.clone()));

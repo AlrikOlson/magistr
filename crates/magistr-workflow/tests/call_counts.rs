@@ -61,7 +61,7 @@ fn build_unified(cfg: &PersistenceConfig, families: FamilySelection) -> UnifiedS
     dcfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(dcfg));
     let ship = ShipService::new(ShipEngine::new("test-abc123".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), ship.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
 
     // Every registered name, taken the same way the service does — so the

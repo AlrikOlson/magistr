@@ -30,10 +30,11 @@ pub(crate) struct FamilyServices {
 
 impl FamilyServices {
     /// Wrap freshly opened engines in their services and wire the
-    /// reciprocal handles: roadmap ↔ signal, and — when the host composed
-    /// an evidence capability — ship as the roadmap's completion authority,
-    /// so a chunk completes only on the run's current receipts whichever
-    /// adapter asks.
+    /// reciprocal handles: roadmap ↔ signal, and ship as the roadmap's
+    /// completion authority, so a chunk completes only on the run's
+    /// current receipts whichever adapter asks. The host's evidence
+    /// capability, when composed, is what lets those receipts certify a
+    /// source; without it the ship family refuses every completion.
     pub(crate) fn compose(
         think: ReasoningServer,
         ship: ShipEngine,
@@ -43,11 +44,10 @@ impl FamilyServices {
     ) -> Self {
         let think = ThinkUseCases::new(Arc::new(Mutex::new(think)));
         let mut ship = ShipUseCases::new(Arc::new(Mutex::new(ship)));
-        let mut roadmap = RoadmapUseCases::new(Arc::new(Mutex::new(roadmap)));
         if let Some(evidence) = evidence {
             ship = ship.with_evidence(evidence);
-            roadmap = roadmap.with_completion_evidence(ship.clone());
         }
+        let roadmap = RoadmapUseCases::new(Arc::new(Mutex::new(roadmap)), ship.clone());
         let signal =
             SignalUseCases::new(Arc::new(Mutex::new(signal))).with_roadmap(roadmap.engine());
         let roadmap = roadmap.with_signal(signal.engine());

@@ -908,6 +908,12 @@ impl RoadmapService {
 mod tests {
     use super::*;
 
+    /// The ship family every roadmap under test completes against; nothing
+    /// here completes a chunk, so it carries no evidence capability.
+    fn completion() -> crate::ship::ShipUseCases {
+        crate::ship::ShipService::new(crate::ship::engine::ShipEngine::new("p".into())).use_cases()
+    }
+
     // Priority *parsing* is unit-tested in infra::coerce. Here we only prove
     // the arg structs wire it up and deserialize infallibly.
 
@@ -999,7 +1005,7 @@ mod tests {
                 false,
             )
             .expect("chunk added");
-        RoadmapService::new(engine)
+        RoadmapService::new(engine, completion())
     }
 
     /// Patch the chunk with raw wire JSON, exactly as a client would send it.
@@ -1264,7 +1270,7 @@ mod tests {
                     .expect("these names are real places, not id prefixes");
             }
         }
-        RoadmapService::new(engine)
+        RoadmapService::new(engine, completion())
     }
 
     async fn focus_get(svc: &RoadmapService, wire: &str) -> serde_json::Value {
@@ -1294,7 +1300,7 @@ mod tests {
     #[tokio::test]
     async fn a_chunk_added_with_a_group_is_focusable_without_a_second_call() {
         use crate::roadmap::engine::RoadmapEngine;
-        let svc = RoadmapService::new(RoadmapEngine::new("p".into()));
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
 
         let args: AddChunkArgs = serde_json::from_str(
             r#"{"id":"auth-1","title":"Rotate sessions","priority":10,"group":"Authentication"}"#,
@@ -1323,7 +1329,7 @@ mod tests {
     #[tokio::test]
     async fn omitting_the_group_still_creates_an_ungrouped_chunk() {
         use crate::roadmap::engine::RoadmapEngine;
-        let svc = RoadmapService::new(RoadmapEngine::new("p".into()));
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
         let args: AddChunkArgs =
             serde_json::from_str(r#"{"id":"loose","title":"t","priority":1}"#).unwrap();
         let created = svc
@@ -1343,7 +1349,7 @@ mod tests {
     #[tokio::test]
     async fn an_unusable_group_refuses_the_add_over_the_wire() {
         use crate::roadmap::engine::RoadmapEngine;
-        let svc = RoadmapService::new(RoadmapEngine::new("p".into()));
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
         let args: AddChunkArgs = serde_json::from_str(
             r#"{"id":"billing-1","title":"t","priority":1,"group":"Billing"}"#,
         )
@@ -1590,7 +1596,7 @@ mod tests {
         se.research(&id, "looked".into(), 0.9, vec![], None)
             .unwrap();
 
-        let svc = RoadmapService::new(RoadmapEngine::new("p".into()))
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion())
             .with_signal(Arc::new(Mutex::new(se)));
         let res = svc.roadmap_status(Parameters(NoArgs {})).await.unwrap();
         let sc = res.structured_content.expect("structured content");
@@ -1665,7 +1671,7 @@ mod tests {
     #[tokio::test]
     async fn a_missing_destination_writes_nothing_when_create_missing_is_omitted() {
         use crate::roadmap::engine::RoadmapEngine;
-        let svc = RoadmapService::new(RoadmapEngine::new("p".into()));
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
 
         // Deserialized from the wire WITHOUT create_missing, which is how an
         // agent that has not been told to provision will call it.
@@ -1699,7 +1705,7 @@ mod tests {
     #[tokio::test]
     async fn tracker_status_reports_when_nothing_is_mirrored() {
         use crate::roadmap::engine::RoadmapEngine;
-        let svc = RoadmapService::new(RoadmapEngine::new("p".into()));
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
         let res = svc.tracker_status(Parameters(NoArgs {})).await.unwrap();
         let sc = res.structured_content.expect("structured content");
         assert!(
@@ -1711,7 +1717,7 @@ mod tests {
     #[tokio::test]
     async fn roadmap_status_omits_count_when_signal_unwired() {
         use crate::roadmap::engine::RoadmapEngine;
-        let svc = RoadmapService::new(RoadmapEngine::new("p".into()));
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
         let res = svc.roadmap_status(Parameters(NoArgs {})).await.unwrap();
         let sc = res.structured_content.expect("structured content");
         assert!(sc.get("pending_signals").is_none());

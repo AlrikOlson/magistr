@@ -9,9 +9,15 @@ use crate::roadmap::application::{
 };
 use crate::roadmap::domain::{BlockerKind, FocusMode};
 use crate::roadmap::mcp::handlers::UpdateChunkArgs;
+use crate::ship::engine::ShipEngine;
 
+/// A roadmap over a ship family with no evidence capability: nothing here
+/// completes a chunk.
 fn application() -> RoadmapUseCases {
-    RoadmapUseCases::new(Arc::new(Mutex::new(RoadmapEngine::new("project".into()))))
+    RoadmapUseCases::new(
+        Arc::new(Mutex::new(RoadmapEngine::new("project".into()))),
+        ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into())))),
+    )
 }
 
 fn draft() -> ChunkDraft {

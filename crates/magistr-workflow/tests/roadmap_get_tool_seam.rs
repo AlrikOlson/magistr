@@ -99,10 +99,12 @@ fn seeded_engine() -> RoadmapEngine {
 fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
+    let ship = ShipService::new(ShipEngine::new("waterworks-seam".into()));
+    let roadmap = RoadmapService::new(seeded_engine(), ship.use_cases());
     UnifiedService::new(
         ThinkService::new(ReasoningServer::new(cfg)),
-        ShipService::new(ShipEngine::new("waterworks-seam".into())),
-        RoadmapService::new(seeded_engine()),
+        ship,
+        roadmap,
         SignalService::new(SignalEngine::new("waterworks-seam".into())),
     )
 }

@@ -1,14 +1,7 @@
 use super::*;
+use crate::workflow::iteration::tests::{complete_native_chunk, native_engines as engines};
+use magistr_engine::NativeEngines;
 use magistr_engine::native::ChunkStatus;
-use magistr_engine::{NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
-
-fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
-    let cfg =
-        NativeConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas-data"));
-    ProjectAuthority::admit_for_project(&cfg, "native-summary".into(), WriterRole::Host)
-        .expect("host admitted")
-        .open()
-}
 
 fn add(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
     engines
@@ -40,7 +33,7 @@ fn counts_chunks_and_names_the_next_ready_one() {
     assert!(!s.all_done());
 
     e.roadmap_start_chunk("first").unwrap();
-    e.roadmap_complete_chunk("first", None).unwrap();
+    complete_native_chunk(&e, "first");
     let s = native_spec_summary(&e);
     assert_eq!((s.total, s.checked), (2, 1));
     assert_eq!(s.unchecked_items, vec!["second — Chunk second".to_string()]);
