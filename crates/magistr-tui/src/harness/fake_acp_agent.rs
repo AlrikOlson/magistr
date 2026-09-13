@@ -29,10 +29,14 @@ pub const SESSION_ID: &str = "fake-session";
 /// A scripted ACP agent on one end of a [`Channel::duplex`]: it completes
 /// the handshake (advertising a model option), and on every prompt says
 /// `reply`, asks permission for `permission` when set (offering allow,
-/// allow-always and reject), and ends the turn. `session/cancel` ends a
-/// turn that is waiting on a permission — or a [`stalling`](Self::stalling)
-/// turn that never answers — with `Cancelled`. What the client
-/// did is in the [`AcpObserved`] handed back by [`FakeAcpAgent::spawn`].
+/// allow-always and reject), and ends the turn — with `EndTurn`, or the
+/// stop reason [`ending_with`](Self::ending_with) names. `session/cancel`
+/// ends a turn that is waiting on a permission — or a
+/// [`stalling`](Self::stalling) turn that never answers — with
+/// `Cancelled`. A [`vanishing`](Self::vanishing) agent says its reply
+/// and then drops its side of the connection without any terminal
+/// response. What the client did is in the [`AcpObserved`] handed back
+/// by [`FakeAcpAgent::spawn`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct FakeAcpAgent {
     reply: String,
@@ -40,6 +44,8 @@ pub struct FakeAcpAgent {
     kind: Option<ToolKind>,
     input: Option<serde_json::Value>,
     stalling: bool,
+    vanishing: bool,
+    stop: StopReason,
     goal_extension: bool,
     goal_command: bool,
     goal_mute: bool,
@@ -54,6 +60,8 @@ impl Default for FakeAcpAgent {
             kind: None,
             input: None,
             stalling: false,
+            vanishing: false,
+            stop: StopReason::EndTurn,
             goal_extension: false,
             goal_command: false,
             goal_mute: false,
@@ -132,6 +140,24 @@ impl FakeAcpAgent {
         self
     }
 
+    /// End every plain turn with `stop` instead of `EndTurn` — what a
+    /// provider's own cancel, a token limit or a refusal look like from
+    /// the client, after the reply has been said in full.
+    #[must_use]
+    pub const fn ending_with(mut self, stop: StopReason) -> Self {
+        self.stop = stop;
+        self
+    }
+
+    /// Say the reply, then drop the agent's side of the connection
+    /// without any terminal response — stream loss after a complete
+    /// answer, as the client sees it.
+    #[must_use]
+    pub const fn vanishing(mut self) -> Self {
+        self.vanishing = true;
+        self
+    }
+
     /// Advertise the `_session/goal` extension in `initialize._meta`
     /// and serve it: a `set` echoes the objective back as a
     /// `session_info_update`, streams one working line, and answers
@@ -198,10 +224,14 @@ impl FakeAcpAgent {
         let (client_end, agent_end) = Channel::duplex();
         let observed = Arc::new(AcpObserved::default());
         let pending: Pending = Arc::new(Mutex::new(None));
+        // A vanishing turn fires this; the agent future is dropped with
+        // its end of the channel, and the client sees the stream end.
+        let (vanish_tx, vanish_rx) = tokio::sync::oneshot::channel::<()>();
+        let vanish: Vanish = Arc::new(Mutex::new(Some(vanish_tx)));
         let task = tokio::spawn({
             let observed = Arc::clone(&observed);
             let script = self;
-            Agent
+            let agent = Agent
                 .builder()
                 .name("fake-acp-agent")
                 .on_receive_request(
@@ -298,16 +328,32 @@ impl FakeAcpAgent {
                 )
                 .on_receive_request(
                     {
-                        let (observed, pending) = (Arc::clone(&observed), Arc::clone(&pending));
+                        let (observed, pending, vanish) = (
+                            Arc::clone(&observed),
+                            Arc::clone(&pending),
+                            Arc::clone(&vanish),
+                        );
                         async move |req: PromptRequest, responder, cx| {
-                            let (observed, pending, script) =
-                                (Arc::clone(&observed), Arc::clone(&pending), script.clone());
+                            let (observed, pending, vanish, script) = (
+                                Arc::clone(&observed),
+                                Arc::clone(&pending),
+                                Arc::clone(&vanish),
+                                script.clone(),
+                            );
                             let turn = cx.clone();
                             let text = prompt_text(&req.prompt);
                             observed.saw_prompt(text.clone());
                             cx.spawn(async move {
                                 script
-                                    .turn(turn, req.session_id, text, responder, observed, pending)
+                                    .turn(
+                                        turn,
+                                        req.session_id,
+                                        text,
+                                        responder,
+                                        observed,
+                                        pending,
+                                        vanish,
+                                    )
                                     .await
                             })?;
                             Ok(())
@@ -328,12 +374,19 @@ impl FakeAcpAgent {
                     },
                     on_receive_notification!(),
                 )
-                .connect_to(agent_end)
+                .connect_to(agent_end);
+            async move {
+                tokio::select! {
+                    result = agent => result,
+                    _ = vanish_rx => Ok(()),
+                }
+            }
         });
         (client_end, observed, task)
     }
 
     /// One turn, off the dispatch loop so it can wait on the client.
+    #[allow(clippy::too_many_arguments)] // the turn's own handles plus the vanish trigger
     async fn turn(
         self,
         cx: ConnectionTo<Client>,
@@ -342,6 +395,7 @@ impl FakeAcpAgent {
         responder: Responder<PromptResponse>,
         observed: Arc<AcpObserved>,
         pending: Pending,
+        vanish: Vanish,
     ) -> Result<(), Error> {
         if self.goal_command
             && let Some(arg) = text.strip_prefix("/goal")
@@ -391,6 +445,23 @@ impl FakeAcpAgent {
                 TextContent::new(self.reply.clone()),
             ))),
         ))?;
+        if self.vanishing {
+            // The reply is said and given a moment to leave the agent's
+            // writer; the responder is parked so no terminal response
+            // ever goes out, and the connection is dropped.
+            *pending
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(responder);
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            if let Some(vanish) = vanish
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .take()
+            {
+                let _ = vanish.send(());
+            }
+            return Ok(());
+        }
         if let Some(title) = &self.permission {
             *pending
                 .lock()
@@ -430,14 +501,17 @@ impl FakeAcpAgent {
             let Some(responder) = take(&pending) else {
                 return Ok(());
             };
-            return responder.respond(PromptResponse::new(StopReason::EndTurn));
+            return responder.respond(PromptResponse::new(self.stop));
         }
-        responder.respond(PromptResponse::new(StopReason::EndTurn))
+        responder.respond(PromptResponse::new(self.stop))
     }
 }
 
 /// The responder of a turn waiting on the client, so a cancel can end it.
 type Pending = Arc<Mutex<Option<Responder<PromptResponse>>>>;
+
+/// The trigger a vanishing turn fires to drop the agent's connection.
+type Vanish = Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>>;
 
 fn take(pending: &Pending) -> Option<Responder<PromptResponse>> {
     pending
