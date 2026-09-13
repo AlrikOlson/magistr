@@ -362,7 +362,10 @@ async fn cmd_roadmap_generate(
 
     config = config.with_project_context(&dir);
 
-    let mut session = agent::session::AgentSession::start(config)
+    // The generator's session writes source the way every host's does:
+    // through the admitted workspace, or not at all.
+    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;
 
@@ -420,6 +423,10 @@ async fn cmd_roadmap_generate(
         if turn_done || session.next_message().await.is_none() {
             break;
         }
+    }
+    drop(session);
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
     }
 
     eprintln!(

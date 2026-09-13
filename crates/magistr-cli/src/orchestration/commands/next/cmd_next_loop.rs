@@ -34,6 +34,10 @@ pub async fn cmd_next_loop(
     // The host's owner endpoint, for a cockpit opened beside this loop;
     // it lives for the loop and drops before the writer.
     let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
+    // The workspace this host owns for the loop: every iteration's session
+    // writes through it, or is refused when it could not be admitted.
+    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let source = workspace.source_route();
 
     eprintln!(
         "{}\n",
@@ -75,6 +79,9 @@ pub async fn cmd_next_loop(
                     .iter()
                     .map(|record| format!("{} {}", record.kind, record.target))
                     .collect();
+                if let Err(err) = workspace.shutdown().await {
+                    eprintln!("magistr: workspace shutdown: {err}");
+                }
                 return Err(eyre::eyre!(
                     "recovery could not establish what happened to: {} — reconcile before retrying, \
                      or preserve/remove .magistr/loop-state.json for an explicit new run",
@@ -115,7 +122,9 @@ pub async fn cmd_next_loop(
         };
         iter_loop.start_operation(&dispatch, None).suggest()?;
         iter_loop.persist().suggest()?;
-        let ran = crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile).await;
+        let ran =
+            crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile, source.clone())
+                .await;
         iter_loop
             .settle_operation(
                 &dispatch,
@@ -131,6 +140,9 @@ pub async fn cmd_next_loop(
             iter_loop.advance();
             iter_loop.mark_failed();
             iter_loop.persist().suggest()?;
+            if let Err(err) = workspace.shutdown().await {
+                eprintln!("magistr: workspace shutdown: {err}");
+            }
             return Err(error);
         }
 
@@ -158,6 +170,9 @@ pub async fn cmd_next_loop(
 
     // Clean up
     iter_loop.persist().suggest()?;
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
+    }
     eprintln!(
         "\n{}",
         fmt::success(&format!(

@@ -2,11 +2,10 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::sync::Arc;
 
 use agent_client_protocol::schema::v1::McpServer;
 use magistr_acp::{AcpSessionMode, AcpTransport};
-use magistr_application::effects::SourceWriter;
+use magistr_application::effects::{SourceRefusal, SourceRoute};
 
 use super::{AgentConfig, AgentRuntime, SessionConfigSource};
 use crate::config::user_config::UserConfig;
@@ -24,7 +23,7 @@ pub struct ResolvedSessionSpec {
     handling: NoninteractivePolicy,
     profile: PermissionProfile,
     provenance: BTreeMap<&'static str, SessionConfigSource>,
-    source_writer: Option<Arc<dyn SourceWriter>>,
+    source: SourceRoute,
 }
 
 impl ResolvedSessionSpec {
@@ -144,15 +143,16 @@ impl ResolvedSessionSpec {
             handling,
             profile,
             provenance,
-            source_writer: None,
+            source: SourceRoute::Refused(SourceRefusal::NoAuthority),
         })
     }
 
-    /// Route the session's authorized writes through the host's admitted
-    /// workspace; `None` keeps the direct write and the effect says so.
+    /// The route the session's authorized source writes take: the host's
+    /// admitted workspace, or a refusal. A spec resolved without one holds
+    /// no source-write authority.
     #[must_use]
-    pub fn with_source_writer(mut self, writer: Option<Arc<dyn SourceWriter>>) -> Self {
-        self.source_writer = writer;
+    pub fn with_source_route(mut self, source: SourceRoute) -> Self {
+        self.source = source;
         self
     }
 
@@ -247,10 +247,7 @@ impl ResolvedSessionSpec {
         .session_model(self.session_model_choice(false))
         .session_model_preferred(self.session_model_choice(true))
         .session_effort(self.config.effort.clone())
-        .local_effects();
-        if let Some(writer) = &self.source_writer {
-            transport = transport.source_writer(Arc::clone(writer));
-        }
+        .local_effects(self.source.clone());
         transport.connect().await.map_err(|error| {
             MagistrError::Acp(format!("Failed to connect ACP transport: {error}"))
         })?;

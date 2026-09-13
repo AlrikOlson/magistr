@@ -54,7 +54,10 @@ pub async fn cmd_run_headless(
         .with_run_args(model, resume, continue_conversation)
         .with_project_context(&cwd);
 
-    let mut session = agent::session::AgentSession::start(config)
+    // Admitted, the session's source writes run through the pipeline;
+    // refused, they are refused (stderr carries the reason as metadata).
+    let workspace = super::admit_workspace(&cwd, |line| eprintln!("{line}")).await;
+    let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;
     let model = session.resolved_model().map(str::to_owned);
@@ -77,6 +80,10 @@ pub async fn cmd_run_headless(
     )
     .await;
     let cleanup = session.terminate_session().await.suggest();
+    drop(session);
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
+    }
     let outcome = drained?;
 
     // The ledger every budget scope is measured over. Written here

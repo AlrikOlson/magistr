@@ -118,7 +118,15 @@ impl AgentPool {
             task_id: task_id.clone(),
         };
 
-        let mut session = AgentSession::start(config).await?;
+        // Pool workers hold no ACP source-write authority: no routed
+        // workspace is composed for a pool, so their writes are refused.
+        let mut session = AgentSession::start(
+            config,
+            magistr_application::effects::SourceRoute::Refused(
+                magistr_application::effects::SourceRefusal::NoAuthority,
+            ),
+        )
+        .await?;
 
         // Cancel channel: the pool sends () to signal the worker to stop.
         let (cancel_tx, mut cancel_rx) = mpsc::unbounded_channel::<()>();
@@ -198,7 +206,15 @@ impl AgentPool {
             task_id: task_id.clone(),
         };
 
-        let mut session = AgentSession::start(config).await?;
+        // Pool workers hold no ACP source-write authority: no routed
+        // workspace is composed for a pool, so their writes are refused.
+        let mut session = AgentSession::start(
+            config,
+            magistr_application::effects::SourceRoute::Refused(
+                magistr_application::effects::SourceRefusal::NoAuthority,
+            ),
+        )
+        .await?;
 
         let (cancel_tx, mut cancel_rx) = mpsc::unbounded_channel::<()>();
         let bridge_tx = self.event_tx.clone();

@@ -34,7 +34,7 @@ fn the_loops_admitted_writer_is_attached_before_the_terminal_and_never_re_admitt
 fn the_driver_is_spawned_before_the_run_on_a_tapped_feed_and_reported_after() {
     let commands = position(".commands()");
     let driver = position("LoopDriver::new(");
-    let live = position("Connector::live_routed(");
+    let live = position("Connector::live(source)");
     let tap = position(".tap(driver.tap())");
     let spawn = position("driver.spawn()");
     let run = position(".run(");
@@ -55,6 +55,21 @@ fn the_driver_is_spawned_before_the_run_on_a_tapped_feed_and_reported_after() {
         "the driver is waited for once the terminal is back"
     );
     assert!(grace < summary && summary < report);
+}
+
+#[test]
+fn the_judge_holds_no_source_write_authority() {
+    let judge = position("fn judge(");
+    let refused = position("Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority))");
+    assert!(
+        judge < refused,
+        "the judge's sessions are composed with the no-authority route, never the loop's writer"
+    );
+    assert_eq!(
+        SOURCE.matches("Connector::live(").count(),
+        2,
+        "exactly two live connectors: the loop's routed one and the judge's refused one"
+    );
 }
 
 #[test]

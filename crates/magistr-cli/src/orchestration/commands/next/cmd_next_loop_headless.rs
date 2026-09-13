@@ -45,6 +45,10 @@ pub async fn cmd_next_loop_headless(
     // The host's owner endpoint, for a cockpit opened beside this loop;
     // it lives for the loop and drops before the writer.
     let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
+    // The workspace this host owns for the loop: every iteration's session
+    // writes through it, or is refused when it could not be admitted.
+    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let source = workspace.source_route();
 
     let loop_start = Instant::now();
     let mut cumulative_cost = iter_loop.run_state().budget_total_usd;
@@ -152,7 +156,10 @@ pub async fn cmd_next_loop_headless(
             continue;
         };
         iter_loop.persist().suggest()?;
-        let mut session = match agent::session::AgentSession::start(config).await.suggest() {
+        let mut session = match agent::session::AgentSession::start(config, source.clone())
+            .await
+            .suggest()
+        {
             Ok(session) => session,
             Err(error) => {
                 iter_loop
@@ -162,6 +169,7 @@ pub async fn cmd_next_loop_headless(
                 iter_loop.advance();
                 iter_loop.mark_failed();
                 iter_loop.persist().suggest()?;
+                release_workspace(workspace).await;
                 return Err(error);
             }
         };
@@ -198,6 +206,7 @@ pub async fn cmd_next_loop_headless(
         .await;
         // End provider residency before another attempt or a process exit.
         let cleanup = session.terminate_session().await.suggest();
+        drop(session);
         if let Ok((_, Some(spend))) = &drained {
             crate::cost::record_session(&dir, spend);
         }
@@ -212,6 +221,7 @@ pub async fn cmd_next_loop_headless(
                 iter_loop.advance();
                 iter_loop.mark_failed();
                 iter_loop.persist().suggest()?;
+                release_workspace(workspace).await;
                 return Err(error);
             }
         };
@@ -305,7 +315,17 @@ pub async fn cmd_next_loop_headless(
     )?;
 
     iter_loop.persist().suggest()?;
+    // Released before the exit code below can end the process.
+    release_workspace(workspace).await;
     finish_loop(final_outcome)
+}
+
+/// Release the loop's workspace admission, reporting a refused shutdown on
+/// stderr rather than turning it into the loop's outcome.
+async fn release_workspace(workspace: crate::application::WorkspaceAdmission) {
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
+    }
 }
 
 /// Match the single-session exit contract after loop reporting and cleanup.

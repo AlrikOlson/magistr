@@ -14,7 +14,7 @@ use magistr_tui::term::{RealTerminal, Terminal as _};
 
 use crate::agent;
 use crate::agent::cockpit_session::CockpitSession;
-use crate::application::HostedWorkspace;
+use crate::application::WorkspaceAdmission;
 use crate::orchestration::ledger::{SpinePort, session_engine};
 use crate::permissions::PermissionProfile;
 
@@ -36,8 +36,9 @@ const SESSION_GRACE: Duration = Duration::from_secs(5);
 /// and the workspace is admitted in this process (its owner endpoint
 /// served, so the agent's bridge and the cockpit's port attach to it and
 /// the session's authorized writes run through its pipeline) or, when
-/// another owner holds it, left to that owner with the writes going direct,
-/// then the agent is spawned and its handshake completed. A store that
+/// another owner holds it or it cannot be admitted, left alone with the
+/// session's source writes refused, then the agent is spawned and its
+/// handshake completed. A store that
 /// cannot be opened, a held host with no endpoint to attach to, or an agent
 /// that cannot start is printed on stdout and nothing else happens. Only
 /// then is the terminal taken over, the feed and the session attached, and
@@ -74,19 +75,11 @@ pub async fn cmd_run_cockpit(
             return Err(eyre::eyre!("the cockpit did not start"));
         }
     };
-    let workspace = admit_workspace(&root).await;
-    let writer = match workspace.as_ref().map(HostedWorkspace::source_writer) {
-        Some(Ok(writer)) => Some(writer),
-        Some(Err(err)) => {
-            println!("magistr: workspace session refused ({err}); agent writes go direct");
-            None
-        }
-        None => None,
-    };
+    let workspace = admit_workspace(&root, |line| println!("{line}")).await;
     let spec = config
         .permission_profile(profile)
         .resolve()?
-        .with_source_writer(writer);
+        .with_source_route(workspace.source_route());
     let root = spec.cwd().to_path_buf();
     let profile = spec.permission_profile();
     let workflow = spec.workflow_permissions();
@@ -158,9 +151,7 @@ pub async fn cmd_run_cockpit(
             ));
         }
     }
-    if let Some(workspace) = workspace
-        && let Err(err) = workspace.shutdown().await
-    {
+    if let Err(err) = workspace.shutdown().await {
         println!("magistr: workspace shutdown: {err}");
     }
     let model = model.context("the cockpit failed")?;
@@ -168,27 +159,18 @@ pub async fn cmd_run_cockpit(
     Ok(())
 }
 
-/// Admit the run's workspace in this process, or say on the normal
-/// terminal why the session's writes will go direct: a live owner
-/// elsewhere, or a root this binary cannot admit.
-pub(crate) async fn admit_workspace(root: &std::path::Path) -> Option<HostedWorkspace> {
-    match HostedWorkspace::admit(root).await {
-        Ok(Some(workspace)) => {
-            println!(
-                "magistr: workspace admitted (generation {}); agent writes run through its pipeline",
-                workspace.generation()
-            );
-            Some(workspace)
-        }
-        Ok(None) => {
-            println!("magistr: another owner holds the workspace; agent writes go direct");
-            None
-        }
-        Err(err) => {
-            println!("magistr: workspace not admitted ({err}); agent writes go direct");
-            None
-        }
-    }
+/// Admit the run's workspace in this process — the composition every
+/// source-writing host shares — and `announce` one line saying what the
+/// session's source writes will do: run through the admitted pipeline, or
+/// be refused because a live owner holds the workspace or this binary
+/// cannot admit the root.
+pub(crate) async fn admit_workspace(
+    root: &std::path::Path,
+    announce: impl FnOnce(String),
+) -> WorkspaceAdmission {
+    let admission = WorkspaceAdmission::admit(root).await;
+    announce(admission.report());
+    admission
 }
 
 #[cfg(test)]

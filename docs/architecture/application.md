@@ -140,23 +140,35 @@ admission and settlement inside this module and the writer itself.
 | Native `ship_check` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
 | `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
 | Cockpit `run` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the Changes tab |
-| ACP `fs/write_text_file` | none | `WorkspaceSourceWriter` over the hosted workspace's `write` verb, after session authorization | `LocalEffectPort` routes the authorized write through the pipeline (journal intent, `MutationReceipt`) and stamps the `fs_write` event `route: workspace`; without a hosted workspace it writes directly and says `route: direct` |
+| ACP `fs/write_text_file` | none | the host's `SourceRoute`: `WorkspaceSourceWriter` over the hosted workspace's `write` verb after session authorization, or a `SourceRefusal` | `LocalEffectPort` routes the authorized write through the pipeline (journal intent, `MutationReceipt`) and stamps the `fs_write` event `route: workspace`; with a refusal it advertises no write capability and refuses the call before authorization (`route: refused`) — there is no direct write |
 | ACP `fs/read_text_file`, `terminal/*` | none | direct host I/O after session authorization | `LocalEffectPort` |
 | `magistr workspace snapshot` | none | lock-free `SourceSnapshot::capture` | CLI verb |
 
 ### The hosted workspace
 
-`HostedWorkspace::admit(root)` is how a `magistr run` or a cockpit loop becomes
-the checkout's one workspace owner for the run: it opens `WorkspaceService` on
+`WorkspaceAdmission::admit(root)` is how every source-writing host — `magistr
+run` on the cockpit, plain and headless, the cockpit, plain and headless loops,
+`magistr roadmap generate` and the init interview — tries to become the
+checkout's one workspace owner for the run. Admitted, it holds a
+`HostedWorkspace`: it opens `WorkspaceService` on
 the same open options the bridge composes (this binary as the worker, the host
 environment's configuration layers, the embedded interpreter), serves the
 existing owner endpoint so every `workbench-mcp` bridge the agent or the
 cockpit spawns attaches to this process, and hands the session a
 `WorkspaceSourceWriter` — one explicit journal session over the service's
-`write` verb. When a live owner already holds the lock the host admits
-nothing: it never attaches to write through a socket and never opens a second
-owner, and its effects write directly and say so on the normal terminal and in
-the `fs_write` event. The `write` verb is the pipeline every other client
+`write` verb — as its `SourceRoute`. Refused, it holds a `SourceRefusal`:
+another owner holds the lock (`OwnerElsewhere`), or the root could not be
+admitted (`NotAdmitted`, in the owner's words: a marker that needs migration,
+a configuration the policy refused, durable data from a newer binary). The
+host then admits nothing — it never attaches to write through a socket and
+never opens a second owner — and the session's source writes are refused
+rather than written directly: the port advertises no write capability, so a
+cooperating agent runs its own workspace tools (external effects, observed by
+`SourceSnapshot`, never routed), and any write it asks for anyway is answered
+with the refusal before any permission decision, with nothing on disk, no
+journal row and no receipt. The reason is said once on the normal terminal.
+The judge's sessions are composed with `NoAuthority` and refuse every write.
+The `write` verb is the pipeline every other client
 writes through — anchored on the current bytes, verified, journaled, atomic —
 with formatting off (the session's bytes are the intent) and no confirm gate
 (the session's permission decision is the confirmation). What the pipeline

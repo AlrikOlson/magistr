@@ -1,9 +1,9 @@
-//! `fs/read_text_file` and `fs/write_text_file`.
+//! `fs/read_text_file`. There is no direct `fs/write_text_file`: a session's
+//! source writes take the host's [`SourceRoute`](magistr_application::effects::SourceRoute)
+//! through the local effect port, or are refused.
 
 use agent_client_protocol::Error;
-use agent_client_protocol::schema::v1::{
-    ReadTextFileRequest, ReadTextFileResponse, WriteTextFileRequest, WriteTextFileResponse,
-};
+use agent_client_protocol::schema::v1::{ReadTextFileRequest, ReadTextFileResponse};
 use tokio::sync::mpsc;
 
 use crate::{AcpEvent, Result};
@@ -30,39 +30,6 @@ pub(crate) async fn read_text_file(
     Ok(ReadTextFileResponse::new(apply_line_params(
         &content, args.line, args.limit,
     )))
-}
-
-pub(crate) async fn write_text_file(
-    args: WriteTextFileRequest,
-    event_tx: &mpsc::UnboundedSender<Result<AcpEvent>>,
-) -> std::result::Result<WriteTextFileResponse, Error> {
-    let path = &args.path;
-    let _ = event_tx.send(Ok(AcpEvent::System {
-        subtype: "fs_write".to_string(),
-        data: serde_json::json!({
-            "path": path.display().to_string(),
-            "route": "direct",
-            "note": "no admitted workspace in this host: written directly, unjournaled",
-        }),
-    }));
-
-    if let Some(parent) = path.parent()
-        && !parent.exists()
-    {
-        tokio::fs::create_dir_all(parent).await.map_err(|e| {
-            Error::new(
-                INTERNAL_ERROR,
-                format!("Failed to create directories for {}: {e}", path.display()),
-            )
-        })?;
-    }
-    tokio::fs::write(path, &args.content).await.map_err(|e| {
-        Error::new(
-            INTERNAL_ERROR,
-            format!("Failed to write {}: {e}", path.display()),
-        )
-    })?;
-    Ok(WriteTextFileResponse::new())
 }
 
 /// Apply the request's `line` (1-based start) and `limit` (max lines).

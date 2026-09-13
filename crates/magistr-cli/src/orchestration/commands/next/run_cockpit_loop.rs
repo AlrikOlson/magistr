@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use color_eyre::eyre::{self, Context as _};
+use magistr_application::effects::{SourceRefusal, SourceRoute};
 use magistr_cockpit::cockpit::{Model, Summary};
 use magistr_cockpit::engine::EngineClient;
 use magistr_cockpit::theme::Theme;
@@ -50,11 +51,11 @@ pub(crate) async fn run_cockpit_loop(
     let owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
     let engines = iter_loop.native().cloned().map(EngineClient::attach);
     // The workspace this host owns for the loop: the sessions' authorized
-    // writes run through its pipeline; the agents' bridges attach to it.
-    let workspace = crate::orchestration::commands::run::admit_workspace(dir).await;
-    let writer = workspace
-        .as_ref()
-        .and_then(|workspace| workspace.source_writer().ok());
+    // writes run through its pipeline (or are refused when it could not be
+    // admitted); the agents' bridges attach to it.
+    let workspace =
+        crate::orchestration::commands::run::admit_workspace(dir, |line| println!("{line}")).await;
+    let source = workspace.source_route();
     let auto_pause = crate::config::user_config::load()
         .map(|cfg| cfg.general.auto_pause_or_default())
         .unwrap_or(true);
@@ -77,7 +78,7 @@ pub(crate) async fn run_cockpit_loop(
         backend,
         runtime.inbox(),
         commands,
-        Connector::live_routed(writer),
+        Connector::live(source),
     )
     .permission_profile(profile)
     .persisting(persist)
@@ -130,9 +131,7 @@ pub(crate) async fn run_cockpit_loop(
     // at its next wake and drops its session, which ends the agent. Give
     // it a moment, never wait forever on a stuck child.
     let report = tokio::time::timeout(LOOP_GRACE, looping).await;
-    if let Some(workspace) = workspace
-        && let Err(err) = workspace.shutdown().await
-    {
+    if let Err(err) = workspace.shutdown().await {
         println!("magistr: workspace shutdown: {err}");
     }
     let model = model.context("the cockpit failed")?;
@@ -147,6 +146,8 @@ pub(crate) async fn run_cockpit_loop(
 /// on a roadmap-driven project under the native mode — and under the
 /// delegated modes too, as what an unconfirmed delivery falls back to;
 /// nobody under `off`, and nobody on a project with no chunk to judge.
+/// The judge is constrained: it holds no source-write authority, so its
+/// session advertises no write capability and refuses any write.
 pub(crate) fn judge(
     goal: GoalMode,
     native: bool,
@@ -156,7 +157,11 @@ pub(crate) fn judge(
     match goal {
         GoalMode::Off => None,
         GoalMode::Native | GoalMode::Extension | GoalMode::Command | GoalMode::Auto if native => {
-            Some(Arc::new(SessionJudge::new(Connector::live(), dir, backend)))
+            Some(Arc::new(SessionJudge::new(
+                Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
+                dir,
+                backend,
+            )))
         }
         _ => None,
     }

@@ -5,11 +5,11 @@ use std::sync::{Arc, Mutex};
 
 use agent_client_protocol::schema::v1::{
     CreateTerminalRequest, EnvVariable, ReadTextFileRequest, ReleaseTerminalRequest,
-    TerminalOutputRequest, WaitForTerminalExitRequest, WriteTextFileRequest,
+    TerminalOutputRequest, WaitForTerminalExitRequest,
 };
 use magistr_application::effects::{
     EffectAuthorizer, EffectCapabilities, EffectError, EffectFuture, EffectPort, EffectRequest,
-    EffectResponse, SourceWriter, TerminalExit,
+    EffectResponse, SourceRoute, TerminalExit,
 };
 use tokio::sync::mpsc;
 
@@ -21,15 +21,17 @@ use crate::{AcpEvent, Result};
 /// resources through the supplied session decision path before effect admission.
 /// It does not isolate the process from the host operating system.
 ///
-/// An authorized write goes through the host's [`SourceWriter`] when one is
-/// composed — the admitted workspace's pipeline, journaled and receipted —
-/// and directly to the file otherwise; the `fs_write` event names the
-/// route either way. Authorization comes first on both routes: a denied or
-/// cancelled write reaches neither.
+/// Source writes have exactly one route, the host's [`SourceRoute`]: an
+/// admitted workspace's pipeline — journaled and receipted — or a typed
+/// refusal. A port composed with a refusal advertises no write capability
+/// and answers any write it is nevertheless asked for with the refusal
+/// before resolution or authorization: nothing is written directly, ever.
+/// On the admitted route authorization comes first: a denied or cancelled
+/// write never reaches the pipeline. The `fs_write` event names the route.
 pub struct LocalEffectPort {
     root: PathBuf,
     events: mpsc::UnboundedSender<Result<AcpEvent>>,
-    source: Option<Arc<dyn SourceWriter>>,
+    source: SourceRoute,
     terminals: terminal::TerminalManager,
     owners: Mutex<HashMap<String, String>>,
     admission: Mutex<()>,
@@ -37,13 +39,18 @@ pub struct LocalEffectPort {
 }
 
 impl LocalEffectPort {
-    /// Configure a workspace root and the owning session's event channel.
+    /// Configure a workspace root, the owning session's event channel and
+    /// the route the session's authorized source writes take.
     #[must_use]
-    pub fn new(root: PathBuf, events: mpsc::UnboundedSender<Result<AcpEvent>>) -> Self {
+    pub fn new(
+        root: PathBuf,
+        events: mpsc::UnboundedSender<Result<AcpEvent>>,
+        source: SourceRoute,
+    ) -> Self {
         Self {
             root,
             events,
-            source: None,
+            source,
             terminals: terminal::new_terminal_manager(),
             owners: Mutex::new(HashMap::new()),
             admission: Mutex::new(()),
@@ -51,12 +58,22 @@ impl LocalEffectPort {
         }
     }
 
-    /// Route authorized writes through `writer` — the host's admitted
-    /// workspace — instead of writing the file directly.
-    #[must_use]
-    pub fn with_source_writer(mut self, writer: Arc<dyn SourceWriter>) -> Self {
-        self.source = Some(writer);
-        self
+    /// The refusal a write would get from this port, when it has one.
+    fn refused_write(&self, request: &EffectRequest) -> Option<EffectError> {
+        let EffectRequest::WriteTextFile { path, .. } = request else {
+            return None;
+        };
+        let refusal = self.source.refusal()?;
+        let _ = self.events.send(Ok(AcpEvent::System {
+            subtype: "fs_write".to_string(),
+            data: serde_json::json!({
+                "path": path,
+                "route": "refused",
+                "refusal": refusal.kind(),
+                "reason": refusal.to_string(),
+            }),
+        }));
+        Some(refusal.effect_error())
     }
 
     fn workspace_path(&self, path: &str) -> std::result::Result<String, EffectError> {
@@ -142,18 +159,18 @@ impl LocalEffectPort {
                 Ok(EffectResponse::Text(response.content))
             }
             EffectRequest::WriteTextFile {
-                session_id,
+                session_id: _,
                 path,
                 content,
             } => {
-                let Some(writer) = &self.source else {
-                    fs::write_text_file(
-                        WriteTextFileRequest::new(session_id, path, content),
-                        &self.events,
-                    )
-                    .await
-                    .map_err(protocol_error)?;
-                    return Ok(EffectResponse::Written);
+                let SourceRoute::Admitted(writer) = &self.source else {
+                    // Refused ahead of authorization in `execute`; a direct
+                    // `perform` gets the same answer and no write.
+                    return Err(self
+                        .source
+                        .refusal()
+                        .map(magistr_application::effects::SourceRefusal::effect_error)
+                        .unwrap_or_else(|| EffectError::Unavailable("no source route".into())));
                 };
                 let receipt = writer.write_text(&path, &content).await?;
                 let _ = self.events.send(Ok(AcpEvent::System {
@@ -283,7 +300,7 @@ impl EffectPort for LocalEffectPort {
     fn capabilities(&self) -> EffectCapabilities {
         EffectCapabilities {
             read_text_file: true,
-            write_text_file: true,
+            write_text_file: self.source.is_admitted(),
             terminal: true,
         }
     }
@@ -296,6 +313,9 @@ impl EffectPort for LocalEffectPort {
         Box::pin(async move {
             if self.closed.load(Ordering::SeqCst) {
                 return Err(EffectError::Cancelled);
+            }
+            if let Some(refused) = self.refused_write(&request) {
+                return Err(refused);
             }
             let needs_authorization = matches!(
                 request,

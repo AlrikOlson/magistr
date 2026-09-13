@@ -16,7 +16,8 @@ use super::WorkspaceSourceWriter;
 /// this process instead of admitting; its own source writes go through
 /// the service in-process. When another owner already holds the lock the
 /// host admits nothing — it never attaches to write through a socket and
-/// never opens a second owner — and its effects write directly and say so.
+/// never opens a second owner — and its sessions' source writes are
+/// refused (see [`super::WorkspaceAdmission`]).
 pub struct HostedWorkspace {
     service: Arc<WorkspaceService>,
     #[cfg(unix)]

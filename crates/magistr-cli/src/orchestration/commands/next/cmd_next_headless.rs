@@ -35,7 +35,8 @@ pub async fn cmd_next_headless(
 
     let config = workflow_agent_config(&prompt, &dir, backend).permission_profile(profile);
 
-    let mut session = agent::session::AgentSession::start(config)
+    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;
 
@@ -66,6 +67,10 @@ pub async fn cmd_next_headless(
     )
     .await;
     let cleanup = session.terminate_session().await.suggest();
+    drop(session);
+    if let Err(err) = workspace.shutdown().await {
+        eprintln!("magistr: workspace shutdown: {err}");
+    }
     let outcome = drained?;
     if let Some(spend) = spend {
         crate::cost::record_session(&dir, &spend);

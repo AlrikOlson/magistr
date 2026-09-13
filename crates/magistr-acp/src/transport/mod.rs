@@ -27,7 +27,7 @@ use tokio::task::JoinHandle;
 use self::command::AcpCommand;
 use self::connection::ConnectionInputs;
 pub use self::sender::AcpSender;
-use magistr_application::effects::{EffectPort, SourceWriter};
+use magistr_application::effects::{EffectPort, SourceRoute};
 
 use crate::capabilities::LocalEffectPort;
 use crate::handlers::effects::EffectBridge;
@@ -67,8 +67,8 @@ pub struct AcpTransport {
     child_group: Option<magistr_process::ProcessGroup>,
     stderr_tail: StderrTail,
     effect_port: Option<Arc<dyn EffectPort>>,
-    local_effects: bool,
-    source_writer: Option<Arc<dyn SourceWriter>>,
+    /// The local port's source route, when the host opted into local effects.
+    local_effects: Option<SourceRoute>,
     effects: Option<Arc<EffectBridge>>,
 }
 
@@ -110,8 +110,7 @@ impl AcpTransport {
             child_group: None,
             stderr_tail: StderrTail::default(),
             effect_port: None,
-            local_effects: false,
-            source_writer: None,
+            local_effects: None,
             effects: None,
         })
     }
@@ -121,25 +120,18 @@ impl AcpTransport {
     #[must_use]
     pub fn effect_port(mut self, port: Arc<dyn EffectPort>) -> Self {
         self.effect_port = Some(port);
-        self.local_effects = false;
+        self.local_effects = None;
         self
     }
 
     /// Opt into governed local workspace and terminal effects. Each admission
-    /// is resolved through the application's permission receiver.
+    /// is resolved through the application's permission receiver; authorized
+    /// source writes take `source` — the host's admitted workspace pipeline,
+    /// or a refusal that also withholds the write capability.
     #[must_use]
-    pub fn local_effects(mut self) -> Self {
+    pub fn local_effects(mut self, source: SourceRoute) -> Self {
         self.effect_port = None;
-        self.local_effects = true;
-        self
-    }
-
-    /// Route the local effects' authorized writes through `writer` — the
-    /// host's admitted workspace pipeline. Only meaningful with
-    /// [`Self::local_effects`]; a custom port composes its own route.
-    #[must_use]
-    pub fn source_writer(mut self, writer: Arc<dyn SourceWriter>) -> Self {
-        self.source_writer = Some(writer);
+        self.local_effects = Some(source);
         self
     }
 
@@ -278,14 +270,13 @@ impl AcpTransport {
                 cwd.display()
             ))
         })?;
-        let port = if self.local_effects {
-            let mut local = LocalEffectPort::new(cwd.clone(), event_tx.clone());
-            if let Some(writer) = &self.source_writer {
-                local = local.with_source_writer(Arc::clone(writer));
-            }
-            Some(Arc::new(local) as Arc<dyn EffectPort>)
-        } else {
-            self.effect_port.clone()
+        let port = match &self.local_effects {
+            Some(source) => Some(Arc::new(LocalEffectPort::new(
+                cwd.clone(),
+                event_tx.clone(),
+                source.clone(),
+            )) as Arc<dyn EffectPort>),
+            None => self.effect_port.clone(),
         };
         let effects = Arc::new(EffectBridge::new(port, perm_tx, event_tx.clone()));
         self.effects = Some(Arc::clone(&effects));

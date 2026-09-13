@@ -11,7 +11,28 @@ use agent_client_protocol::schema::v1::{
 };
 use fake_agent::{FABLE, SESSION_ID, Script};
 use magistr_acp::{AcpError, AcpEvent, AcpPermissionResponse, AcpSessionMode, AcpTransport};
+use magistr_application::effects::{
+    EffectFuture, SourceRefusal, SourceRoute, SourceWriteReceipt, SourceWriter,
+};
 use tokio::sync::mpsc;
+
+/// The admitted route's stand-in: lands the bytes at the resolved path.
+struct DiskWriter;
+
+impl SourceWriter for DiskWriter {
+    fn write_text(&self, path: &str, content: &str) -> EffectFuture<'_, SourceWriteReceipt> {
+        let path = PathBuf::from(path);
+        let content = content.to_owned();
+        Box::pin(async move {
+            std::fs::write(&path, content).expect("disk");
+            Ok(SourceWriteReceipt {
+                journal_seq: Some(1),
+                revision: Some("disk".into()),
+                changed: true,
+            })
+        })
+    }
+}
 
 type Events = mpsc::UnboundedReceiver<magistr_acp::Result<AcpEvent>>;
 
@@ -41,10 +62,23 @@ async fn connect_local(
     script: Script,
     cwd: PathBuf,
 ) -> (AcpTransport, Events, std::sync::Arc<fake_agent::Observed>) {
+    connect_routed(
+        script,
+        cwd,
+        SourceRoute::Admitted(std::sync::Arc::new(DiskWriter)),
+    )
+    .await
+}
+
+async fn connect_routed(
+    script: Script,
+    cwd: PathBuf,
+    source: SourceRoute,
+) -> (AcpTransport, Events, std::sync::Arc<fake_agent::Observed>) {
     let (client_end, observed, _agent) = fake_agent::spawn(script);
     let mut transport = AcpTransport::new_with_args(PathBuf::from("fake-agent"), vec![], Some(cwd))
         .expect("construct")
-        .local_effects();
+        .local_effects(source);
     transport.connect_over(client_end).await.expect("handshake");
     let events = transport.read_events().expect("events");
     (transport, events, observed)
@@ -945,6 +979,67 @@ async fn a_missing_host_permission_consumer_denies_a_direct_effect() {
     assert_eq!(
         i32::from(observed.effect_errors.lock().expect("lock")[0].code),
         -32003
+    );
+}
+
+#[tokio::test]
+async fn a_refused_source_route_withholds_the_write_capability_and_reads_go_on() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let readable = dir.path().join("readable.txt");
+    std::fs::write(&readable, "still readable").expect("fixture");
+    let target = dir.path().join("existing.txt");
+    std::fs::write(&target, "original").expect("fixture");
+    let (mut transport, mut events, observed) = connect_routed(
+        Script {
+            read_file: Some(readable),
+            write_file: Some((target.clone(), "replacement".into())),
+            ..Script::default()
+        },
+        dir.path().to_path_buf(),
+        SourceRoute::Refused(SourceRefusal::OwnerElsewhere),
+    )
+    .await;
+    let caps = observed
+        .client_capabilities
+        .lock()
+        .expect("lock")
+        .clone()
+        .expect("caps");
+    assert!(
+        caps.fs.read_text_file && caps.terminal && !caps.fs.write_text_file,
+        "a host without an admitted writer advertises no write capability"
+    );
+    let mut permissions = transport.take_permission_rx().expect("permissions");
+    transport.prompt("read then write").expect("prompt");
+    let request = tokio::time::timeout(WAIT, permissions.recv())
+        .await
+        .expect("request")
+        .expect("open");
+    assert_eq!(request.tool_title, "Read", "only the read asks");
+    request
+        .response_tx
+        .send(AcpPermissionResponse::Selected("allow".into()))
+        .expect("allow");
+    let _ = next_matching(&mut events, |event| {
+        matches!(event, AcpEvent::PromptResponse { .. })
+    })
+    .await;
+    assert_eq!(
+        observed.file_content.lock().expect("lock").as_deref(),
+        Some("still readable"),
+        "the session keeps operating after the refused write"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&target).expect("unchanged"),
+        "original",
+        "nothing lands directly"
+    );
+    let errors = observed.effect_errors.lock().expect("lock");
+    assert_eq!(errors.len(), 1);
+    assert_eq!(i32::from(errors[0].code), -32601);
+    assert_eq!(
+        errors[0].data.as_ref().expect("category")["effect"],
+        "unavailable"
     );
 }
 
