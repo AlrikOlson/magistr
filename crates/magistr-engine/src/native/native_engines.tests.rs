@@ -236,16 +236,30 @@ fn two_writers_merge_without_data_loss() {
         "B's chunk survived: {ids:?}"
     );
 
-    // 0.6.0 merges the disk file, but never repairs the caller's cached reads,
-    // even on its next write. A read-through authority must not assume otherwise.
-    assert!(b.roadmap_chunk("from-a").is_none());
+    // The merge lands on disk and in the writer's memory: B's own save
+    // handed it the merged file, so B answers A's chunk without a reload,
+    // and A's next query observes B's chunk the same way.
+    assert!(
+        b.roadmap_chunk("from-a").is_some(),
+        "B's memory is the merged file after its own write"
+    );
+    assert!(
+        a.roadmap_chunk("from-b").is_some(),
+        "A's query re-read the moved store"
+    );
     b.roadmap_start_chunk("from-b").expect("start");
-    assert!(b.roadmap_chunk("from-a").is_none());
-    b.reload_roadmap();
-    assert!(b.roadmap_chunk("from-a").is_some());
+    assert_eq!(
+        a.roadmap_chunk("from-b").map(|c| c.status),
+        Some(ChunkStatus::InProgress),
+        "A observes B's transition on its next query"
+    );
     let d = reader(&cfg, "shared");
     assert_eq!(d.roadmap_snapshot().count("in_progress"), 1);
     assert_eq!(d.roadmap_snapshot().count("pending"), 1);
+    // A snapshot read on the writer that never reloaded is the current
+    // store too, family by family.
+    let snapshot = a.snapshot();
+    assert_eq!(snapshot.chunks.len(), 2);
 }
 
 #[test]
@@ -363,9 +377,13 @@ fn reload_picks_up_another_writers_changes() {
         .ship_add_task("t1".into(), "task".into(), TaskType::Implement, None)
         .expect("add task");
 
-    // The host's in-memory copies predate those writes.
-    assert!(host.roadmap_next().is_none());
-    assert_eq!(host.ship_status()["tasks"]["total"], 0);
+    // The host's in-memory copies predate those writes; its queries read
+    // through, and an explicit reload is the same current answer.
+    assert_eq!(
+        host.roadmap_next().map(|c| c.id).as_deref(),
+        Some("only-on-disk")
+    );
+    assert_eq!(host.ship_status()["tasks"]["total"], 1);
 
     host.reload_roadmap();
     host.reload_ship();
@@ -816,9 +834,9 @@ fn reload_signal_picks_up_another_writers_capture() {
         .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
         .expect("capture");
 
-    // The host's in-memory copy predates it.
-    assert!(host.signal_list().is_empty());
-    assert_eq!(host.signal_status()["counts"]["total"], 0);
+    // The host's in-memory copy predates it; its queries read through.
+    assert_eq!(host.signal_list().len(), 1);
+    assert_eq!(host.signal_status()["counts"]["total"], 1);
 
     host.reload_signal();
     let ids: Vec<String> = host.signal_list().into_iter().map(|s| s.id).collect();

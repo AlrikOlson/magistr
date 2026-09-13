@@ -805,7 +805,10 @@ impl ServerHandler for UnifiedService {
         let uri = request.uri.as_str();
         if uri == ROADMAP_URI {
             let engine = self.roadmap.engine();
-            let guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
+            let mut guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
+            guard
+                .refresh_if_stale()
+                .map_err(|error| ErrorData::internal_error(error, None))?;
             return Ok(Self::text_resource(uri, guard.export("markdown")));
         }
         if uri == PINNED_URI {
@@ -830,7 +833,10 @@ impl ServerHandler for UnifiedService {
             };
             let chunks = {
                 let engine = self.roadmap.engine();
-                let guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
+                let mut guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
+                guard
+                    .refresh_if_stale()
+                    .map_err(|error| ErrorData::internal_error(error, None))?;
                 guard.roadmap().chunks.clone()
             };
             return Ok(Self::text_resource(

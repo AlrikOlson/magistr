@@ -32,6 +32,9 @@ use std::path::{Path, PathBuf};
 
 use serde::{Serialize, de::DeserializeOwned};
 
+use super::merged_write::MergedWrite;
+use super::store_stamp::StoreStamp;
+
 const PERSIST_VAR: &str = "THINK_AND_SHIP_PERSIST";
 const DATA_DIR_VAR: &str = "THINK_AND_SHIP_DATA_DIR";
 
@@ -198,32 +201,62 @@ impl Persistence {
     /// lock, first folding the current on-disk state into it via `merge`.
     /// `merge(memory, disk)` returns what actually lands on disk, so a stale
     /// writer can never erase mutations a concurrent process already
-    /// persisted. No-op when persistence is disabled.
-    pub fn save_merging<T, F>(&self, session_id: &str, state: &T, merge: F) -> std::io::Result<()>
+    /// persisted. Answers what landed and the stamp of the written file, so
+    /// the writer's memory can adopt the merged state instead of keeping
+    /// its pre-merge copy. `Ok(None)` when persistence is disabled.
+    pub fn save_merging<T, F>(
+        &self,
+        session_id: &str,
+        state: &T,
+        merge: F,
+    ) -> std::io::Result<Option<MergedWrite<T>>>
     where
         T: Serialize + DeserializeOwned,
         F: FnOnce(&T, T) -> T,
     {
         if !self.enabled {
-            return Ok(());
+            return Ok(None);
         }
-        locked_merge_write(&self.path_for(session_id), state, merge)
+        locked_merge_write_stamped(&self.path_for(session_id), state, merge).map(Some)
     }
 
     /// Read and deserialize the persisted state for `session_id`. Returns
     /// `Ok(None)` when persistence is off or the file doesn't exist.
     pub fn load<T: DeserializeOwned>(&self, session_id: &str) -> std::io::Result<Option<T>> {
+        self.load_stamped(session_id).map(|(state, _)| state)
+    }
+
+    /// [`Self::load`] with the stamp of the file it read. The stamp is taken
+    /// *before* the read: a write landing between the two leaves the older
+    /// stamp beside the newer content, which costs one spurious re-read
+    /// later and never a missed one. `(None, None)` when persistence is off
+    /// or there is no file.
+    pub fn load_stamped<T: DeserializeOwned>(
+        &self,
+        session_id: &str,
+    ) -> std::io::Result<(Option<T>, Option<StoreStamp>)> {
+        if !self.enabled {
+            return Ok((None, None));
+        }
+        let path = self.path_for(session_id);
+        let stamp = StoreStamp::of(&path)?;
+        match fs::read_to_string(&path) {
+            Ok(s) => Ok((
+                Some(serde_json::from_str(&s).map_err(std::io::Error::other)?),
+                stamp,
+            )),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok((None, None)),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// The stamp of the store file for `session_id` as it stands: `None`
+    /// when persistence is off or there is no file. A `stat`, never a read.
+    pub fn stamp(&self, session_id: &str) -> std::io::Result<Option<StoreStamp>> {
         if !self.enabled {
             return Ok(None);
         }
-        let path = self.path_for(session_id);
-        match fs::read_to_string(&path) {
-            Ok(s) => Ok(Some(
-                serde_json::from_str(&s).map_err(std::io::Error::other)?,
-            )),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(e) => Err(e),
-        }
+        StoreStamp::of(&self.path_for(session_id))
     }
 
     pub fn clear(&self, session_id: &str) -> std::io::Result<()> {
@@ -252,6 +285,21 @@ where
     T: Serialize + DeserializeOwned,
     F: FnOnce(&T, T) -> T,
 {
+    locked_merge_write_stamped(path, state, merge).map(drop)
+}
+
+/// [`locked_merge_write`] answering what landed: the merged state when the
+/// file held one, and the stamp of the written file taken while the lock
+/// is still held, so it names exactly the bytes this call wrote.
+pub(crate) fn locked_merge_write_stamped<T, F>(
+    path: &Path,
+    state: &T,
+    merge: F,
+) -> std::io::Result<MergedWrite<T>>
+where
+    T: Serialize + DeserializeOwned,
+    F: FnOnce(&T, T) -> T,
+{
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -266,9 +314,10 @@ where
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok());
     let merged = on_disk.map(|disk| merge(state, disk));
-    let result = atomic_write_json(path, merged.as_ref().unwrap_or(state));
+    let result = atomic_write_json(path, merged.as_ref().unwrap_or(state))
+        .map(|()| StoreStamp::of(path).ok().flatten());
     let _ = lock_file.unlock();
-    result
+    result.map(|stamp| MergedWrite { merged, stamp })
 }
 
 fn atomic_write_json<T: Serialize>(path: &Path, value: &T) -> std::io::Result<()> {

@@ -33,8 +33,13 @@ impl SignalUseCases {
         Arc::clone(&self.engine)
     }
 
+    /// The engine, current: every query and mutation observes the store
+    /// before it answers or acts, so two roles on one store answer one
+    /// state without a reload; an unchanged store costs a `stat`.
     pub(super) fn lock(&self) -> Result<MutexGuard<'_, SignalEngine>, SignalError> {
-        self.engine.lock().map_err(|_| SignalError::Poisoned)
+        let mut engine = self.engine.lock().map_err(|_| SignalError::Poisoned)?;
+        engine.refresh_if_stale().map_err(SignalError::Store)?;
+        Ok(engine)
     }
 
     pub fn capture(

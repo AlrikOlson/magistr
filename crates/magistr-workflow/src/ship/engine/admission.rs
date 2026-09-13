@@ -26,18 +26,44 @@ impl ShipEngine {
         Ok(())
     }
 
-    /// Reload the current native store before admitting asynchronous work;
-    /// another admitted host role may have advanced the execution run.
-    pub(crate) fn refresh_current(&mut self) -> Result<(), String> {
-        if let Some(persistence) = &self.persistence
-            && persistence.enabled()
-        {
-            let state = persistence
-                .current_state(&self.project_id)
-                .map_err(|error| error.to_string())?;
-            self.adopt_current(state);
+    /// Observe the persisted cycle before answering or acting: another
+    /// admitted role may have advanced the run. A `stat` compares the
+    /// file's stamp with the one this memory was read from or written to;
+    /// only a moved stamp re-reads the file, which then replaces memory
+    /// whole (a missing file is the cleared cycle). Answers whether it
+    /// re-read.
+    pub fn refresh_if_stale(&mut self) -> Result<bool, String> {
+        let Some(persistence) = &self.persistence else {
+            return Ok(false);
+        };
+        if !persistence.enabled() {
+            return Ok(false);
         }
-        Ok(())
+        let on_disk = persistence
+            .stamp(&self.project_id)
+            .map_err(|error| error.to_string())?;
+        if on_disk == self.stamp {
+            return Ok(false);
+        }
+        self.reload_from_store()
+    }
+
+    /// Re-read the persisted cycle whatever the stamp says; the engine's
+    /// wiring (broadcaster, mirror, cloud, receipts) stays. Answers `true`
+    /// when persistence is on.
+    pub fn reload_from_store(&mut self) -> Result<bool, String> {
+        let Some(persistence) = &self.persistence else {
+            return Ok(false);
+        };
+        if !persistence.enabled() {
+            return Ok(false);
+        }
+        let (state, stamp) = persistence
+            .current_stamped(&self.project_id)
+            .map_err(|error| error.to_string())?;
+        self.adopt_current(state);
+        self.stamp = stamp;
+        Ok(true)
     }
 
     /// Settle an admitted check: the result lands on the admitted task
@@ -71,10 +97,11 @@ impl ShipEngine {
         } else if let Some(persistence) = &self.persistence
             && persistence.enabled()
         {
-            let (current, applied) = persistence
+            let (current, applied, stamp) = persistence
                 .settle_check(&admission.target, &check)
                 .map_err(|error| error.to_string())?;
             self.adopt_current(current);
+            self.stamp = stamp;
             (!applied).then(|| self.stale_reason(&admission))
         } else if self.snapshot().contains(&admission.target) {
             let task = self
@@ -154,7 +181,7 @@ impl ShipEngine {
         }
     }
 
-    fn adopt_current(&mut self, current: Option<PersistedState>) {
+    pub(super) fn adopt_current(&mut self, current: Option<PersistedState>) {
         match current {
             Some(state) => {
                 self.execution = state.execution.unwrap_or_else(|| {

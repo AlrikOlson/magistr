@@ -13,16 +13,18 @@ use magistr_workflow::think::engine::ReasoningServer;
 
 use super::native_config::NativeConfig;
 use super::native_snapshot::NativeSnapshot;
-use super::open_engines::{open_engines, open_roadmap, open_ship, open_signal};
+use super::open_engines::open_engines;
 use super::snapshot::NativeRoadmapSnapshot;
 use super::snapshot_cursor::SnapshotCursor;
 use crate::roadmap::RoadmapProgress;
 
 /// The read capability over the four think-and-ship engines: queries,
 /// reloads and the store stamp. It needs no admission — the store is the
-/// library's locked merge-on-save file, and a reader re-reads it when the
-/// stamp moves — so a `magistr roadmap status`, a desktop projection or the
-/// cockpit's re-seed timer runs beside any admitted writer.
+/// library's locked merge-on-save file, and every query observes it
+/// first: a `stat` of the family's file against the stamp the engine last
+/// read or wrote, and a re-read only when it moved — so a `magistr roadmap
+/// status`, a desktop projection or the cockpit's re-seed timer runs
+/// beside any admitted writer and answers what that writer persisted.
 ///
 /// Cheap to clone (every engine sits behind an `Arc<Mutex<_>>`); `Send +
 /// Sync`. Each query takes the one lock it needs and releases it before
@@ -119,39 +121,61 @@ impl NativeReader {
         &self.config
     }
 
-    /// Re-read the roadmap from the store, picking up writes another
-    /// process (the agent's `magistr mcp-serve`) made since this instance
-    /// was opened. Quiet since think-and-ship 0.5.1: the load narrates on
-    /// `tracing::info!` (see [`open_roadmap`]), so under the default `warn`
-    /// subscriber nothing reaches stderr — the loop driver reaches this at
-    /// every iteration boundary through `native_spec_summary` and prints
-    /// nothing for it.
+    /// Re-read the roadmap from the store whatever its stamp says. Every
+    /// query already observes the store, so this is for a caller that
+    /// wants the read to happen now — the loop at an iteration boundary,
+    /// the cockpit's re-seed. Silent: the engine keeps its wiring and
+    /// re-reads its file, nothing is re-opened and no load banner prints.
     pub fn reload_roadmap(&self) {
-        *lock(&self.roadmap) = open_roadmap(&self.config, self.project_id.clone());
+        if let Err(error) = lock(&self.roadmap).reload_from_store() {
+            tracing::warn!("magistr: roadmap store not re-read: {error}");
+        }
     }
 
-    /// Re-read the execution trace from the store; see [`Self::reload_roadmap`]
-    /// — but unlike it, not quiet: through 0.5.2 the ship load `eprintln!`s
-    /// its task count (see [`open_ship`]), so a caller inside a raw-mode
-    /// terminal must own stderr for the session, as the cockpit does.
+    /// Re-read the execution trace from the store; see
+    /// [`Self::reload_roadmap`]. Silent as well.
     pub fn reload_ship(&self) {
-        *lock(&self.ship) = open_ship(&self.config, self.project_id.clone());
+        if let Err(error) = lock(&self.ship).reload_from_store() {
+            tracing::warn!("magistr: ship store not re-read: {error}");
+        }
     }
 
-    /// Re-read the signal inbox from the store; see [`Self::reload_ship`],
-    /// whose stderr caveat this shares — the signal load path still
-    /// `eprintln!`s its count (see [`open_signal`]).
-    ///
-    /// The one domain a host cannot get at any other way: the roadmap and
-    /// the execution trace have their reloads above and the reasoning
-    /// trace is read straight off disk by
-    /// [`Self::think_steps_from_store`], but [`Self::signal_list`] and
-    /// [`Self::signal_status`] answer from the engine opened at startup.
-    /// Without this a cockpit re-seeding on a timer shows the inbox it
-    /// booted with, however many signals the agent's `magistr mcp-serve`
-    /// captured since.
+    /// Re-read the signal inbox from the store; see
+    /// [`Self::reload_roadmap`]. Silent as well.
     pub fn reload_signal(&self) {
-        *lock(&self.signal) = open_signal(&self.config, self.project_id.clone());
+        if let Err(error) = lock(&self.signal).reload_from_store() {
+            tracing::warn!("magistr: signal store not re-read: {error}");
+        }
+    }
+
+    /// The roadmap engine, observed: re-read when its file's stamp moved
+    /// since it was last read or written, else as it stands. A store that
+    /// cannot be observed is logged and the engine answers what it holds —
+    /// a query has no refusal to give.
+    fn current_roadmap(&self) -> MutexGuard<'_, RoadmapEngine> {
+        let mut engine = lock(&self.roadmap);
+        if let Err(error) = engine.refresh_if_stale() {
+            tracing::warn!("magistr: roadmap store not observed: {error}");
+        }
+        engine
+    }
+
+    /// The ship engine, observed; see [`Self::current_roadmap`].
+    fn current_ship(&self) -> MutexGuard<'_, ShipEngine> {
+        let mut engine = lock(&self.ship);
+        if let Err(error) = engine.refresh_if_stale() {
+            tracing::warn!("magistr: ship store not observed: {error}");
+        }
+        engine
+    }
+
+    /// The signal engine, observed; see [`Self::current_roadmap`].
+    fn current_signal(&self) -> MutexGuard<'_, SignalEngine> {
+        let mut engine = lock(&self.signal);
+        if let Err(error) = engine.refresh_if_stale() {
+            tracing::warn!("magistr: signal store not observed: {error}");
+        }
+        engine
     }
 
     /// Where the store stands on disk: the newest modification time across
@@ -200,23 +224,23 @@ impl NativeReader {
     /// The store read whole, family by family, as [`NativeSnapshot`]
     /// documents it: the cursor first, then the ship objective and tasks,
     /// the roadmap's chunks and progress, the signals, and the persisted
-    /// reasoning steps — each family under its own lock, none of them
-    /// under a shared one.
+    /// reasoning steps — each family observed and read under its own
+    /// lock, none of them under a shared one.
     #[must_use]
     pub fn snapshot(&self) -> NativeSnapshot {
         let cursor = self.snapshot_cursor();
         let (objective, tasks) = {
-            let ship = lock(&self.ship);
+            let ship = self.current_ship();
             (ship.objective.clone(), ship.tasks.clone())
         };
         let (chunks, progress) = {
-            let roadmap = lock(&self.roadmap);
+            let roadmap = self.current_roadmap();
             (
                 roadmap.roadmap().chunks.clone(),
                 super::progress::progress_from_roadmap(roadmap.roadmap()),
             )
         };
-        let signals = lock(&self.signal).signals().signals.clone();
+        let signals = self.current_signal().signals().signals.clone();
         NativeSnapshot {
             cursor,
             objective,
@@ -263,25 +287,25 @@ impl NativeReader {
     /// Counts, next ready chunk, regions and progress.
     #[must_use]
     pub fn roadmap_snapshot(&self) -> NativeRoadmapSnapshot {
-        NativeRoadmapSnapshot::from_engine(&lock(&self.roadmap))
+        NativeRoadmapSnapshot::from_engine(&self.current_roadmap())
     }
 
     /// The engine's progress view of the roadmap.
     #[must_use]
     pub fn roadmap_progress(&self) -> RoadmapProgress {
-        super::progress::progress_from_roadmap(lock(&self.roadmap).roadmap())
+        super::progress::progress_from_roadmap(self.current_roadmap().roadmap())
     }
 
     /// The next ready chunk, if any.
     #[must_use]
     pub fn roadmap_next(&self) -> Option<Chunk> {
-        lock(&self.roadmap).next().cloned()
+        self.current_roadmap().next().cloned()
     }
 
     /// One chunk by id.
     #[must_use]
     pub fn roadmap_chunk(&self, id: &str) -> Option<Chunk> {
-        lock(&self.roadmap)
+        self.current_roadmap()
             .roadmap()
             .chunks
             .iter()
@@ -292,19 +316,19 @@ impl NativeReader {
     /// Every chunk, in stored order.
     #[must_use]
     pub fn roadmap_chunks(&self) -> Vec<Chunk> {
-        lock(&self.roadmap).roadmap().chunks.clone()
+        self.current_roadmap().roadmap().chunks.clone()
     }
 
     /// The same bounded JSON `roadmap_status` answers over MCP.
     #[must_use]
     pub fn roadmap_status(&self) -> serde_json::Value {
-        lock(&self.roadmap).status()
+        self.current_roadmap().status()
     }
 
     /// The markdown (or json) projection `roadmap_export` produces.
     #[must_use]
     pub fn roadmap_export(&self, format: &str) -> String {
-        lock(&self.roadmap).export(format)
+        self.current_roadmap().export(format)
     }
 
     // ── Ship ───────────────────────────────────────────────────────────
@@ -312,13 +336,13 @@ impl NativeReader {
     /// The full execution-state snapshot.
     #[must_use]
     pub fn ship_status(&self) -> serde_json::Value {
-        lock(&self.ship).status()
+        self.current_ship().status()
     }
 
     /// The ship objective, once one is set.
     #[must_use]
     pub fn ship_objective(&self) -> Option<Objective> {
-        lock(&self.ship).objective.clone()
+        self.current_ship().objective.clone()
     }
 
     /// The task a record with no explicit task would land on — the one
@@ -326,7 +350,7 @@ impl NativeReader {
     /// rely on "whichever is active" at write time.
     #[must_use]
     pub fn ship_active_task_id(&self) -> Option<String> {
-        lock(&self.ship).active_task_id()
+        self.current_ship().active_task_id()
     }
 
     /// Every task in the execution trace, in plan order, with its actions
@@ -336,7 +360,7 @@ impl NativeReader {
     /// The TUI's trace seed reads the timeline off this.
     #[must_use]
     pub fn ship_tasks(&self) -> Vec<Task> {
-        lock(&self.ship).tasks.clone()
+        self.current_ship().tasks.clone()
     }
 
     // ── Signal ─────────────────────────────────────────────────────────
@@ -344,18 +368,18 @@ impl NativeReader {
     /// Signal status counts.
     #[must_use]
     pub fn signal_status(&self) -> serde_json::Value {
-        lock(&self.signal).status()
+        self.current_signal().status()
     }
 
     /// One signal by id.
     #[must_use]
     pub fn signal(&self, id: &str) -> Option<Signal> {
-        lock(&self.signal).get(id).ok().cloned()
+        self.current_signal().get(id).ok().cloned()
     }
 
     /// Every signal in the store, capture order.
     #[must_use]
     pub fn signal_list(&self) -> Vec<Signal> {
-        lock(&self.signal).signals().signals.clone()
+        self.current_signal().signals().signals.clone()
     }
 }

@@ -1,11 +1,13 @@
 //! The workflow consistency model across adapters, as
 //! `docs/architecture/clients.md` states it: a Host writer serving its
 //! owner endpoint, a Service writer, a client attached to the Host and an
-//! unadmitted reader, all in one process on one store. The families
-//! differ — roadmap and signal merge on save but answer cached reads until
-//! a reload; ship refreshes the persisted cycle before every use case —
-//! and duplicate ownership of a workflow role or a workspace root is
-//! refused in-process, not only across processes.
+//! unadmitted reader, all in one process on one store. Every family reads
+//! through: a query or a verb on any role re-reads its file when the
+//! store stamp moved and answers its cache otherwise, so two roles on one
+//! store answer one state without a reload; a write from either role
+//! merges on save and hands the merged file back to the writer's memory.
+//! Duplicate ownership of a workflow role or a workspace root is refused
+//! in-process, not only across processes.
 
 #![cfg(unix)]
 
@@ -20,6 +22,7 @@ use magistr_engine::{
     ChunkStatus, NativeConfig, NativeEngines, NativeReader, OwnerEndpoint, ProjectAuthority,
     TaskType, WriterRole,
 };
+use magistr_workflow::signal::domain::SignalKind;
 use magistr_workspace::service::WorkspaceOpenOptions;
 
 const PROJECT: &str = "consistency";
@@ -106,8 +109,7 @@ fn checks_on(reader: &NativeReader, task: &str) -> Vec<String> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_attached_command_is_current_on_the_owner_and_stale_on_the_other_role_until_it_reloads()
-{
+async fn an_attached_command_is_current_on_the_owner_and_on_every_other_role_without_a_reload() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
@@ -117,8 +119,8 @@ async fn an_attached_command_is_current_on_the_owner_and_stale_on_the_other_role
     // Both roles and the observer opened on an empty store.
     assert!(service.roadmap_chunks().is_empty() && observer.roadmap_chunks().is_empty());
 
-    // The attached client's command runs on the host's cached engines:
-    // read-your-writes for the owner, and on disk at once for a reload.
+    // The attached client's command runs on the host's engines: read-your-
+    // writes for the owner, and on disk at once.
     let mut client = attached(&cfg);
     let OwnerReply::Chunk(chunk) = client
         .command(add_chunk_command("via-attached"))
@@ -133,42 +135,53 @@ async fn an_attached_command_is_current_on_the_owner_and_stale_on_the_other_role
     );
     assert_eq!(chunk_ids(&reader(&cfg)), vec!["via-attached".to_owned()]);
 
-    // The other role's cached roadmap does not see it — not on a query, not
-    // on its own next write — and its merge-save keeps the row on disk.
+    // The other role's next query observes the store as it stands: no
+    // reload, the stamp moved, the file is read once. Its own write then
+    // merges on save and lands beside the host's chunk, and its memory is
+    // the merged file — the write neither erased nor hid the other record.
     assert!(
-        service.roadmap_chunk("via-attached").is_none(),
-        "no cross-role read-through for the roadmap"
+        service.roadmap_chunk("via-attached").is_some(),
+        "a query on the other role reads through"
     );
     add_chunk(&service, "via-service");
-    assert!(
-        service.roadmap_chunk("via-attached").is_none(),
-        "a write from stale memory does not refresh the cache either"
+    assert_eq!(
+        chunk_ids(&service.reader()),
+        vec!["via-attached".to_owned(), "via-service".to_owned()],
+        "the writer's memory is the merged file after its own save"
     );
     assert_eq!(
         chunk_ids(&reader(&cfg)),
         vec!["via-attached".to_owned(), "via-service".to_owned()],
         "the locked merge-on-save erased nothing"
     );
-    // The observer opened before both writes is equally stale until it reloads.
-    assert!(observer.roadmap_chunks().is_empty());
-    observer.reload_roadmap();
-    service.reload_roadmap();
+    // The observer opened before both writes and the host that never saw
+    // the service's write both answer the current file on their next query.
     assert_eq!(
         chunk_ids(&observer),
         vec!["via-attached".to_owned(), "via-service".to_owned()]
     );
-    assert!(service.roadmap_chunk("via-attached").is_some());
-    // The host, in turn, is stale about the service's chunk until it reloads.
-    assert!(host.roadmap_chunk("via-service").is_none());
-    host.reload_roadmap();
     assert!(host.roadmap_chunk("via-service").is_some());
+    // A transition on the host validates against the current record, so
+    // starting the chunk the service just obsoleted is refused with the
+    // current status, not carried out on a stale pending copy.
+    service
+        .roadmap_obsolete_chunk("via-attached", "superseded".into())
+        .expect("obsolete");
+    let refused = host
+        .roadmap_start_chunk("via-attached")
+        .expect_err("obsoleted on disk");
+    assert!(refused.contains("Obsoleted"), "{refused}");
+    assert_eq!(
+        host.roadmap_chunk("via-attached").map(|c| c.status),
+        Some(ChunkStatus::Obsoleted)
+    );
 
     drop(client);
     drop(endpoint);
 }
 
 #[test]
-fn ship_verbs_read_through_across_roles_so_a_gate_the_service_recorded_survives_a_stale_host() {
+fn ship_queries_and_verbs_read_through_across_roles_so_a_gate_the_service_recorded_survives() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
@@ -183,7 +196,7 @@ fn ship_verbs_read_through_across_roles_so_a_gate_the_service_recorded_survives_
     host.ship_start_task("verify").expect("start");
 
     // The service — opened on the empty store — records a gate on that task
-    // without any reload: the use case refreshed the persisted cycle first.
+    // without any reload: the use case observed the current cycle first.
     let check = service
         .ship_record_gate(
             Some("verify"),
@@ -198,8 +211,8 @@ fn ship_verbs_read_through_across_roles_so_a_gate_the_service_recorded_survives_
     assert!(check.verified && check.passed);
     assert_eq!(service.ship_active_task_id().as_deref(), Some("verify"));
 
-    // The host's cached memory predates the check; completing the task from
-    // it neither loses the check nor answers a stale task.
+    // The host's memory predates the check; completing the task from it
+    // neither loses the check nor answers a stale task.
     let completed = host.ship_complete_task("verify", vec![]).expect("complete");
     assert_eq!(
         completed
@@ -208,26 +221,63 @@ fn ship_verbs_read_through_across_roles_so_a_gate_the_service_recorded_survives_
             .map(|c| c.name.as_str())
             .collect::<Vec<_>>(),
         vec!["lint"],
-        "the host's verb answered the refreshed task"
+        "the host's verb answered the current task"
     );
     assert_eq!(checks_on(&reader(&cfg), "verify"), vec!["lint".to_owned()]);
     assert_eq!(host.ship_status()["tasks"]["completed"], 1);
 
-    // Only the use cases read through. A query on another role — and on a
-    // reader opened before the writes — answers the cached cycle until it
-    // reloads: the service still shows the task it last refreshed to (active,
-    // with its gate), the observer the empty store it opened on.
+    // Queries read through as well: the service's status answers the
+    // completed task the host wrote, and a reader opened on the empty
+    // store answers the whole cycle — no reload on either.
     assert_eq!(
         service.ship_status()["tasks"]["completed"],
-        0,
-        "a query does not refresh the other role's cache"
+        1,
+        "a query on the other role observes the current cycle"
     );
-    assert_eq!(observer.ship_status()["tasks"]["total"], 0);
-    service.reload_ship();
-    observer.reload_ship();
-    assert_eq!(service.ship_status()["tasks"]["completed"], 1);
     assert_eq!(checks_on(&observer, "verify"), vec!["lint".to_owned()]);
     assert_eq!(observer.ship_status()["tasks"]["completed"], 1);
+    assert_eq!(observer.snapshot().tasks.len(), 1);
+}
+
+#[test]
+fn a_signal_captured_by_one_role_is_pending_on_the_other_and_promotes_once() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = config(&tmp);
+    let host = writer(&cfg, WriterRole::Host);
+    let service = writer(&cfg, WriterRole::Service);
+    let observer = reader(&cfg);
+    assert!(host.signal_list().is_empty() && observer.signal_list().is_empty());
+
+    let captured = service
+        .signal_capture(SignalKind::Idea, "alice".into(), "read through".into())
+        .expect("capture");
+    assert_eq!(
+        host.signal(&captured.id).map(|s| s.body).as_deref(),
+        Some("read through"),
+        "the host's query observes the service's capture"
+    );
+    assert_eq!(observer.signal_status()["counts"]["total"], 1);
+
+    // A decision on the host: research then promote, both from a role that
+    // never captured the signal; the service observes the promoted chunk.
+    host.signal_research(&captured.id, "worth it".into(), 0.9, vec![], None)
+        .expect("research");
+    let promoted = host.signal_promote(&captured.id).expect("promote");
+    let chunk_id = promoted
+        .cross_refs
+        .iter()
+        .find_map(|r| r.strip_prefix("chunk:"))
+        .expect("a chunk back-reference")
+        .to_owned();
+    assert!(
+        service.roadmap_chunk(&chunk_id).is_some(),
+        "the promoted chunk is current on the other role"
+    );
+    // The service's own promote of the same signal is the same promotion:
+    // it observes the promoted record and creates nothing.
+    let again = service.signal_promote(&captured.id).expect("idempotent");
+    assert_eq!(again.cross_refs, promoted.cross_refs);
+    assert_eq!(observer.roadmap_chunks().len(), 1);
 }
 
 #[test]

@@ -103,9 +103,11 @@ The vocabulary is the client-centric one from
 [Jepsen's consistency models](https://jepsen.io/consistency/models):
 *read-your-writes* (a process sees its own earlier write) and *monotonic
 reads* (a process never sees an older state after a newer one). Magistr's
-workflow store gives read-your-writes inside one process and none of the
-cross-process guarantees except where a use case reads through, as stated
-below.
+workflow store gives read-your-writes and monotonic reads per family
+across every role and reader on one machine: each family's engine
+observes its file before it answers or acts, as stated below. What it does
+not give is atomicity across the four families, and a write racing inside
+one family's read-to-save window resolves by that family's merge rule.
 
 ### The store and its merge
 
@@ -124,36 +126,75 @@ acknowledged. The policies:
 | think | steps union by number or by content identity, so a renumbered trace is recognized rather than duplicated | none: steps are append-only |
 | signal | signals union by id | the furthest lifecycle rank wins (`Promoted` outranks `Dismissed`); equal rank is last writer wins |
 
-### Read-through and cached reads
+### Read-through: the store stamp
 
-| Family | Mutation | Query | Cross-process refresh |
+Each persisted family's engine remembers the *store stamp* of the file it
+last read or wrote — the inode, modification time and length, as
+`StoreStamp` in `magistr-workflow` `infra/store_stamp.rs` defines it.
+Before any query or mutation the engine `stat`s its file and compares:
+an unchanged stamp answers memory, a moved stamp re-reads the file whole
+and replaces memory (every mutation persists at once, so the file is the
+merged truth of everything acknowledged; a missing file is the empty
+family). A save hands the merged file back to the writer's memory together
+with the stamp taken under the lock after the rename, so an own write
+leaves memory equal to disk and the next access is a `stat`. The stamp is
+per family and orders nothing — no revision is built over the four files.
+Every Magistr writer renames a fresh temporary over the store, so a write
+always moves the inode; the known gap is an editor rewriting the file in
+place inside one timestamp tick at the same length, which is the direct
+edit the audit already excludes.
+
+| Family | Mutation | Query | Explicit reload |
 | --- | --- | --- | --- |
-| roadmap | merges on save; operates on the cached roadmap | cached | `NativeReader::reload_roadmap` |
-| ship | every use case re-reads the persisted cycle under the engine lock before operating (`refresh_current`); check settlement compares identity and appends under the file lock | cached (`ship_status`, `ship_tasks`, `ship_active_task_id`) | `reload_ship` |
+| roadmap | observes the store (`refresh_if_stale` under the use-case lock), validates the transition against the current record, merges on save and adopts the merged file | observes the store, then answers memory (`NativeReader` queries, `roadmap_status`, the MCP resources) | `NativeReader::reload_roadmap` — the same re-read, forced |
+| ship | observes the store before every use case (the former unconditional per-verb re-read, now the stamp gate); check settlement compares identity and appends under the file lock and adopts the written stamp | observes the store (`ship_status`, `ship_tasks`, `ship_active_task_id`, `ship_objective`) | `reload_ship` |
 | think | appends; the archive on disk is the record | `think_steps_from_store` reads the archive directly; the pinned view and `think_step` read the live trace | none needed for the archive; the live trace answers what this process recorded |
-| signal | merges on save; operates on the cached inbox | cached | `reload_signal` |
+| signal | observes the store, validates against the current record, merges on save and adopts the merged file; promotion observes the roadmap before it reads or creates the chunk | observes the store (`signal_list`, `signal_status`, `signal`; the pending count on `roadmap_status`) | `reload_signal` |
 
-The distinction that matters: a ship *verb* from a stale writer acts on the
-current cycle — the Service records a gate on a task the Host started
-without either reloading, and the Host's completion of that task keeps the
-Service's check — while a ship *query* on the other role answers its cache
-until it reloads. A roadmap or signal verb from a stale writer neither sees
-nor erases the other role's record: the merge keeps both on disk, and the
-stale process still answers its cache, even after its own write.
-`tests/workflow_consistency.rs` and `magistr-engine`
+The published `NativeSnapshot` observes each of the three families under
+its own lock before reading it, so a snapshot is one consistent state per
+family, never across them. A store that cannot be stated or read refuses
+the mutation or the use-case query (`RoadmapError::Store`,
+`SignalError::Store`, the ship use case's error) and is logged on a
+`NativeReader` query, which answers memory — a query has no refusal to give.
+An explicit reload is the engine's own re-read: the wiring (broadcaster,
+mirror, cloud, receipts) stays and no load banner prints.
+`tests/workflow_consistency.rs`, `magistr-workflow`
+`tests/store_freshness.rs` and `magistr-engine`
 `native/native_engines.tests.rs::two_writers_merge_without_data_loss`,
 `::reload_picks_up_another_writers_changes`, `::reload_signal_picks_up_another_writers_capture`
 and `::think_steps_from_store_sees_another_writers_steps_without_reopening`
 are the executable statements of this table.
+
+### Conflicting transitions
+
+A transition validates against the record as the store holds it at the
+moment of the call, so two roles acting in turn see each other's outcome:
+the Host cannot start a chunk the Service just obsoleted, and a second
+promotion of a signal another role promoted creates nothing. Two writes
+that both land inside one family's window between a read and its save —
+a stat, a mutation, a locked merge-write — are not serialized; the
+family's merge rule decides the record and the loser observes the winner
+on its next access:
+
+| Family | Both roles wrote one record in the window | Outcome |
+| --- | --- | --- |
+| roadmap | any two mutations of one chunk | the copy with the newest `updated_at` wins whole, the other mutation is superseded (`store_freshness.rs::a_conflicting_roadmap_transition_resolves_by_the_newest_record_and_the_loser_observes_it`) |
+| signal | any two mutations of one signal | the further lifecycle rank wins, then the larger enrichment count, then the last writer (`::a_conflicting_signal_write_resolves_by_lifecycle_rank_not_by_who_wrote_last`) |
+| ship | two writes in one cycle | tasks union by id, memory wins per shared task, `next_action_id` takes the max; a newer cycle on disk wins the file and the stale writer re-reads it on its next verb (`::a_ship_engine_re_reads_only_when_the_store_stamp_moved`) |
+| think | two appends | steps union by number or content identity; nothing is superseded |
+
+No timestamp, generation or source revision is promoted into a global
+revision to arbitrate these: the rule is the family's, on the record.
 
 ### What attachment and the roles make coherent
 
 | Pair | Coherent | Not coherent |
 | --- | --- | --- |
 | One process: a writer and the readers derived from it (`NativeEngines::reader`, the cockpit loop's `EngineClient::attach`) | read-your-writes and monotonic reads: the same engines behind one lock | — |
-| Owner and an attached client (a second `magistr run`) | the command runs on the owner's cached engines, so the owner's own views are current at once and the reply carries the record; a stale generation is refused until the client reconnects | the client's reads are its own `NativeReader`, current only through the feed, the re-seed timer or a reload; the client gets read-your-writes only from the reply, not from its next query |
-| Host and Service writers (the cockpit or a loop, and the agent's `mcp-serve`) | nothing acknowledged is lost (merge on save); ship verbs read through; a settled check lands on the task instance it was admitted for or settles `Stale`; the Service's feed carries its frames to a cockpit that holds the socket | roadmap and signal queries — and every ship query — answer each role's cache until it reloads; there are no monotonic reads across roles without a reload; one record written by both roles between a refresh and a save resolves by the family's conflict rule (recency, rank or last writer), not by refusal; the owner generation fences attached clients of a role, not the other role |
-| Readers (`magistr roadmap status`, the observer cockpit, the guard) | a fresh open or a reload reads the merged file | a reader opened earlier answers what it opened on until it reloads; the cockpit reloads only when `store_stamp` moved and stands down while the feed holds the socket; the loop reloads the roadmap and re-seeds signals at each iteration boundary |
+| Owner and an attached client (a second `magistr run`) | the command runs on the owner's engines, so the owner's own views are current at once and the reply carries the record; the client's own `NativeReader` observes the store on its next query, so it reads its write back without the feed; a stale generation is refused until the client reconnects | the feed and the re-seed timer decide when the client *repaints*, not what it reads: a view painted from an earlier snapshot shows that snapshot until the next seed |
+| Host and Service writers (the cockpit or a loop, and the agent's `mcp-serve`) | nothing acknowledged is lost (merge on save); every family's queries and verbs observe the store, so each role reads the other's acknowledged writes and validates its transitions against them; a settled check lands on the task instance it was admitted for or settles `Stale`; the Service's feed carries its frames to a cockpit that holds the socket | one record written by both roles inside one family's read-to-save window resolves by the family's rule above, not by refusal; the four families are four files with four locks, so a query across them can see one family's write and not another's; the owner generation fences attached clients of a role, not the other role |
+| Readers (`magistr roadmap status`, the observer cockpit, the guard) | every query observes the merged file; a reload is the same read, forced | the cockpit re-seeds only when the store cursor moved and stands down while the feed holds the socket; the loop reloads the roadmap and re-seeds signals at each iteration boundary — both keep their cost, since an unchanged store is a `stat` |
 
 ### Workspace consistency
 
@@ -175,10 +216,13 @@ receipt's revision stay three facts (see the
 ## Limits
 
 The audit is of Magistr's own binaries: an older binary, a direct edit of
-a store file or a deleted lock file are outside admission. Cached reads
-across roles are a documented limit, not a defect the audit fixed;
-`workflow-read-through-queries` in the backlog names the follow-up.
-[Projections](projections.md) made what a client reads typed and
-freshness-aware; they did not change when a cached query reloads. The consistency tables describe
-one machine, one user and Unix sockets; off Unix there is no attachment and
-no endpoint.
+a store file or a deleted lock file are outside admission, and an in-place
+rewrite of a store file inside one timestamp tick at the same length is
+invisible to the stamp. Read-through is per family: there is no
+transaction across the roadmap, ship, signal and think files, and a
+mutation is not serialized against a concurrent writer of the same record
+— the merge rule decides. [Projections](projections.md) made what a client
+reads typed and freshness-aware; the stamp decides when the engines behind
+them re-read. The consistency tables describe one machine, one user and
+Unix sockets; off Unix there is no attachment and no endpoint, and the
+stamp carries no inode.

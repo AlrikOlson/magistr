@@ -11,7 +11,7 @@ mod proposal_resolution;
 use chrono::Utc;
 
 use crate::cloud::client::CloudClient;
-use crate::infra::{CrossRef, Persistence};
+use crate::infra::{CrossRef, Persistence, StoreStamp};
 use crate::roadmap::broadcast::{Broadcaster, RoadmapFrame};
 use crate::roadmap::domain::{
     BlockedBy, BlockerKind, Chunk, ChunkStatus, ContainerKind, ContainerLink, Focus, FocusMode,
@@ -23,6 +23,11 @@ pub struct RoadmapEngine {
     roadmap: Roadmap,
     project_id: String,
     persistence: Option<Persistence>,
+    /// The stamp of the store file this memory was last read from or
+    /// written to; `None` while there is no file or after a failed write.
+    /// Compared against the file on every refresh so an unchanged store
+    /// costs a `stat`, never a parse.
+    stamp: Option<StoreStamp>,
     broadcaster: Option<Broadcaster>,
     /// Optional git-native trace mirror, reusing the same mirror core as the
     /// think/ship trace stores. When set, every mutation mirrors into
@@ -106,24 +111,30 @@ impl GroupResolution {
 impl RoadmapEngine {
     pub fn new(project_id: String) -> Self {
         Self {
-            roadmap: Roadmap {
-                project_id: project_id.clone(),
-                preamble: String::new(),
-                chunks: Vec::new(),
-                notes: Vec::new(),
-                refreshes: Vec::new(),
-                links: Vec::new(),
-                tracker_opt_ins: Vec::new(),
-                container_links: Vec::new(),
-                focuses: Vec::new(),
-            },
+            roadmap: Self::empty_roadmap(&project_id),
             project_id,
             persistence: None,
+            stamp: None,
             broadcaster: None,
             mirror: None,
             repo_shared: false,
             cloud: None,
             inherit_opt_in: None,
+        }
+    }
+
+    /// The roadmap of a project nothing has been written to.
+    fn empty_roadmap(project_id: &str) -> Roadmap {
+        Roadmap {
+            project_id: project_id.to_owned(),
+            preamble: String::new(),
+            chunks: Vec::new(),
+            notes: Vec::new(),
+            refreshes: Vec::new(),
+            links: Vec::new(),
+            tracker_opt_ins: Vec::new(),
+            container_links: Vec::new(),
+            focuses: Vec::new(),
         }
     }
 
@@ -289,15 +300,16 @@ impl RoadmapEngine {
     /// `info!` (narration; `RUST_LOG=info` shows it) and the one-time repairs
     /// are `warn!` (stored data that did not hold an invariant).
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
-        match persistence.load::<Roadmap>(&self.project_id) {
-            Ok(Some(loaded)) => {
+        match persistence.load_stamped::<Roadmap>(&self.project_id) {
+            Ok((Some(loaded), stamp)) => {
                 tracing::info!(
                     "think-and-ship: loaded roadmap with {} chunk(s) from disk",
                     loaded.chunks.len()
                 );
                 self.roadmap = loaded;
+                self.stamp = stamp;
             }
-            Ok(None) => {}
+            Ok((None, _)) => {}
             Err(e) => tracing::warn!("think-and-ship: roadmap load failed: {e}"),
         }
         self.persistence = Some(persistence);
@@ -343,17 +355,62 @@ impl RoadmapEngine {
 
     /// Locked merge-on-save (family-stores-merge-on-save): chunks another
     /// live process acked are folded in, never clobbered. Merge policy:
-    /// [`crate::roadmap::domain::merge_roadmaps`].
-    fn persist(&self) {
-        if let Some(p) = &self.persistence
-            && let Err(e) = p.save_merging(
-                &self.project_id,
-                &self.roadmap,
-                crate::roadmap::domain::merge_roadmaps,
-            )
-        {
-            tracing::warn!("think-and-ship: roadmap persist failed: {e}");
+    /// [`crate::roadmap::domain::merge_roadmaps`]. Memory adopts what
+    /// landed — the merge keeps this memory's chunks first, in order, and
+    /// appends the ones another writer acked, so every index a caller
+    /// holds stays valid and now names the merged record — and remembers
+    /// the written file's stamp, so the next refresh is a `stat`.
+    fn persist(&mut self) {
+        let Some(p) = &self.persistence else {
+            return;
+        };
+        match p.save_merging(
+            &self.project_id,
+            &self.roadmap,
+            crate::roadmap::domain::merge_roadmaps,
+        ) {
+            Ok(Some(written)) => {
+                if let Some(merged) = written.merged {
+                    self.roadmap = merged;
+                }
+                self.stamp = written.stamp;
+            }
+            Ok(None) => {}
+            Err(e) => tracing::warn!("think-and-ship: roadmap persist failed: {e}"),
         }
+    }
+
+    /// Observe the store before answering or acting: another process may
+    /// have written since this memory was read. A `stat` compares the
+    /// file's stamp with the one this memory was read from or written to;
+    /// only a moved stamp re-reads the file, which then replaces memory
+    /// whole — every mutation persists at once, so the file is the merged
+    /// truth of everything acknowledged, and a missing file is the empty
+    /// roadmap. Answers whether it re-read.
+    pub fn refresh_if_stale(&mut self) -> Result<bool, String> {
+        let Some(p) = &self.persistence else {
+            return Ok(false);
+        };
+        let on_disk = p.stamp(&self.project_id).map_err(|e| e.to_string())?;
+        if on_disk == self.stamp {
+            return Ok(false);
+        }
+        self.reload_from_store()
+    }
+
+    /// Re-read the store whatever the stamp says; the engine's wiring
+    /// (broadcaster, mirror, cloud, opt-in inheritance) stays. Answers
+    /// `true` when persistence is on.
+    pub fn reload_from_store(&mut self) -> Result<bool, String> {
+        let Some(p) = &self.persistence else {
+            return Ok(false);
+        };
+        let (loaded, stamp) = p
+            .load_stamped::<Roadmap>(&self.project_id)
+            .map_err(|e| e.to_string())?;
+        self.roadmap = loaded.unwrap_or_else(|| Self::empty_roadmap(&self.project_id));
+        self.stamp = stamp;
+        Ok(true)
     }
 
     fn now() -> String {

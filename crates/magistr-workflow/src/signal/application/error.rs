@@ -11,6 +11,11 @@ pub enum SignalError {
     NotWired,
     #[error("signal engine mutex poisoned")]
     Poisoned,
+    /// The store could not be observed before the call: a `stat` or a
+    /// re-read of the signal file failed, so neither a query nor a
+    /// mutation answers from a copy it cannot vouch for.
+    #[error("signal store unavailable: {0}")]
+    Store(String),
 }
 
 impl SignalError {
@@ -22,6 +27,7 @@ impl SignalError {
             Self::InvalidState(_) => "invalid_state",
             Self::NotWired => "not_wired",
             Self::Poisoned => "internal_error",
+            Self::Store(_) => "store_unavailable",
         }
     }
 }

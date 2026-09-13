@@ -15,7 +15,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use crate::cloud::client::CloudClient;
-use crate::infra::Persistence;
+use crate::infra::{Persistence, StoreStamp};
 use crate::signal::broadcast::{Broadcaster, SignalFrame};
 use crate::signal::domain::{Enrichment, Signal, SignalKind, SignalStatus, Signals};
 
@@ -23,6 +23,11 @@ pub struct SignalEngine {
     signals: Signals,
     project_id: String,
     persistence: Option<Persistence>,
+    /// The stamp of the store file this memory was last read from or
+    /// written to; `None` while there is no file or after a failed write.
+    /// Compared against the file on every refresh so an unchanged store
+    /// costs a `stat`, never a parse.
+    stamp: Option<StoreStamp>,
     broadcaster: Option<Broadcaster>,
     /// Optional cloud sync client. When set, every mutation
     /// fire-and-forget pushes the signal envelope to the cloud backend. `None`
@@ -39,6 +44,7 @@ impl SignalEngine {
             },
             project_id,
             persistence: None,
+            stamp: None,
             broadcaster: None,
             cloud: None,
         }
@@ -102,15 +108,16 @@ impl SignalEngine {
     /// Attach a persistence handle, loading any prior signal cache for this
     /// project off disk first (so state accumulates across conversations).
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
-        match persistence.load::<Signals>(&self.project_id) {
-            Ok(Some(loaded)) => {
+        match persistence.load_stamped::<Signals>(&self.project_id) {
+            Ok((Some(loaded), stamp)) => {
                 eprintln!(
                     "think-and-ship: loaded {} signal(s) from disk",
                     loaded.signals.len()
                 );
                 self.signals = loaded;
+                self.stamp = stamp;
             }
-            Ok(None) => {}
+            Ok((None, _)) => {}
             Err(e) => tracing::warn!("think-and-ship: signal load failed: {e}"),
         }
         self.persistence = Some(persistence);
@@ -119,17 +126,64 @@ impl SignalEngine {
 
     /// Locked merge-on-save (family-stores-merge-on-save): signals another
     /// live process acked are folded in, never clobbered. Merge policy:
-    /// [`crate::signal::domain::merge_signal_stores`].
-    fn persist(&self) {
-        if let Some(p) = &self.persistence
-            && let Err(e) = p.save_merging(
-                &self.project_id,
-                &self.signals,
-                crate::signal::domain::merge_signal_stores,
-            )
-        {
-            tracing::warn!("think-and-ship: signal persist failed: {e}");
+    /// [`crate::signal::domain::merge_signal_stores`]. Memory adopts what
+    /// landed — the merge keeps this memory's signals first, in order, and
+    /// appends the ones another writer acked, so every index a caller
+    /// holds stays valid and now names the merged record — and remembers
+    /// the written file's stamp, so the next refresh is a `stat`.
+    fn persist(&mut self) {
+        let Some(p) = &self.persistence else {
+            return;
+        };
+        match p.save_merging(
+            &self.project_id,
+            &self.signals,
+            crate::signal::domain::merge_signal_stores,
+        ) {
+            Ok(Some(written)) => {
+                if let Some(merged) = written.merged {
+                    self.signals = merged;
+                }
+                self.stamp = written.stamp;
+            }
+            Ok(None) => {}
+            Err(e) => tracing::warn!("think-and-ship: signal persist failed: {e}"),
         }
+    }
+
+    /// Observe the store before answering or acting: another process may
+    /// have written since this memory was read. A `stat` compares the
+    /// file's stamp with the one this memory was read from or written to;
+    /// only a moved stamp re-reads the file, which then replaces memory
+    /// whole — every mutation persists at once, so the file is the merged
+    /// truth of everything acknowledged, and a missing file is the empty
+    /// inbox. Answers whether it re-read.
+    pub fn refresh_if_stale(&mut self) -> Result<bool, String> {
+        let Some(p) = &self.persistence else {
+            return Ok(false);
+        };
+        let on_disk = p.stamp(&self.project_id).map_err(|e| e.to_string())?;
+        if on_disk == self.stamp {
+            return Ok(false);
+        }
+        self.reload_from_store()
+    }
+
+    /// Re-read the store whatever the stamp says; the engine's wiring
+    /// (broadcaster, cloud) stays. Answers `true` when persistence is on.
+    pub fn reload_from_store(&mut self) -> Result<bool, String> {
+        let Some(p) = &self.persistence else {
+            return Ok(false);
+        };
+        let (loaded, stamp) = p
+            .load_stamped::<Signals>(&self.project_id)
+            .map_err(|e| e.to_string())?;
+        self.signals = loaded.unwrap_or_else(|| Signals {
+            project_id: self.project_id.clone(),
+            signals: Vec::new(),
+        });
+        self.stamp = stamp;
+        Ok(true)
     }
 
     fn now() -> String {
