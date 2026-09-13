@@ -2530,11 +2530,27 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
     );
     for (kind, target, outcome, external) in &seen {
         assert_eq!(*outcome, OperationOutcome::Completed, "{kind} {target}");
-        assert_eq!(
-            external.as_deref(),
-            None,
-            "an in-process fake spawns no runtime, so no handle is claimed for {kind} {target}"
-        );
+        if *kind == OperationKind::Receipt {
+            // The record names the durable receipt it recorded, and that
+            // receipt is settled and applied on the task the target names.
+            let id = external
+                .as_deref()
+                .and_then(|handle| handle.strip_prefix("receipt:"))
+                .unwrap_or_else(|| panic!("{kind} {target} carries no receipt id: {external:?}"));
+            let receipt = engines
+                .ship_receipt(id)
+                .expect("the ledger reads")
+                .unwrap_or_else(|| panic!("receipt {id} for {target} is in the ledger"));
+            assert_eq!(receipt.target.task_id, "impl");
+            assert!(target.starts_with(&format!("gate:{}@", receipt.gate)));
+            assert!(receipt.is_applied(), "{target}: {:?}", receipt.settlement);
+        } else {
+            assert_eq!(
+                external.as_deref(),
+                None,
+                "an in-process fake spawns no runtime, so no handle is claimed for {kind} {target}"
+            );
+        }
     }
     for record in state.operations.records() {
         assert_eq!(record.attempt.command().run(), &state.run_id);

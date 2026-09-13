@@ -69,23 +69,31 @@ effect:
 | Step | Kind and target | Written when | Settled by |
 | --- | --- | --- | --- |
 | Reserve | `Reservation` `attempt:<n>` | pre-iteration check | the checkpoint itself |
-| Launch | `ProviderDispatch` `dispatch` (or `dispatch:<delivery>` per delegated delivery) | `Accepted` before connect; `Running` with `pid:<pgid>` once the transport spawned | the turn: ended → `Completed`, closed → `Cancelled`, failed → `Failed` |
-| Record | `Receipt` `gate:<name>@task:<task>` | before `ship_record_gate` | the engines' answer |
+| Launch | `ProviderDispatch` `dispatch` (or `dispatch:<delivery>` per delegated delivery) | `Accepted` before connect; `Running` with the runtime's handle `pid:<pgid>@<start>` the moment the transport has spawned, before the session is opened | the turn: ended → `Completed`, closed → `Cancelled`, failed → `Failed`; a session that cannot be opened → `Failed` |
+| Record | `Receipt` `gate:<name>@task:<task>` | `Accepted` before the gate is admitted; `Running` with `receipt:<id>` — the durable receipt's id — once admitted, before the gate runs | the ledger's settlement: applied → `Completed`, stale or refused → `Failed`; an admission that fails → `Failed` |
 | Mutate | `NativeMutation` `start_chunk:<id>`, `complete_chunk:<id>`, `set_blocked_by:<id>`, `set_status:<id>:<status>` | before the handler is called | the handler's answer |
 | Announce | `Publication` `frame:<kind>:<id>` | before the frame is posted | the post |
 
 An intent that cannot be written is not dispatched for a provider launch or a
-native mutation. A gate that already ran is recorded regardless, with a note:
-its evidence is worth more than the record of recording it, and recovery reads
-the trace either way. An `Established` intent performs nothing: a dispatch
-established by recovery runs the gates and the judge over the recovered work
-instead of launching a second runtime; a receipt is not recorded twice; a
-mutation is not reapplied.
+native mutation. A gate whose intent cannot be written is admitted and
+recorded regardless, with a note: its evidence is worth more than the record
+of recording it, and recovery reads the ledger either way. An `Established`
+intent performs nothing: a dispatch established by recovery runs the gates and
+the judge over the recovered work instead of launching a second runtime; a
+receipt already applied for the attempt is not admitted again (a second,
+unsettled receipt in front of the applied one would refuse the completion);
+a mutation is not reapplied.
 
-The headless and plain `next-loop` commands record the reservation and the
-dispatch the same way (the plain drain owns its session, so its record carries
-no runtime handle). The cockpit's `magistr next` and headless `magistr next`
-run one turn with no loop checkpoint and record nothing new.
+The runtime handle is a [`RuntimeHandle`](../../crates/magistr-core/src/workflow/runtime_handle.rs):
+the process (group) id the transport spawned and the start identity the host
+reports for that process ([`process_start`](../../crates/magistr-core/src/workflow/process_start.rs):
+`proc_pidinfo` on macOS, `/proc/<pid>/stat` on Linux), observed while it lives.
+It names that particular process, not whatever holds the id later. Every loop
+records it: the cockpit driver right after the transport connects, the headless
+loop from its supervisor's provider pid, and the plain loop through the
+`launched` callback `cmd_run_workflow` calls as soon as its session is started.
+The cockpit's `magistr next` and headless `magistr next` run one turn with no
+loop checkpoint and record nothing new.
 
 ## Recovery and reconciliation
 
@@ -97,9 +105,9 @@ effect, never against the record:
 | --- | --- | --- |
 | `Reservation` | the checkpoint carrying it | `Completed` |
 | `NativeMutation` | the chunk as the native store holds it now (`roadmap_chunk` after reload) | `Completed` when the verb's effect is visible (`start_chunk`: in progress or done; `complete_chunk`: done; `set_blocked_by`: a blocker; `set_status`: that status), else `Failed`; an unknown verb stays open |
-| `Receipt` | the checks on the named task (`ship_status` after reload) | `Completed` when a check of that name sits on that task, else `Failed` |
+| `Receipt` | the durable receipt the record names (`ship_receipt` by the `receipt:<id>` handle) | `Completed` when that receipt is settled and applied; `Failed` when it is unsettled, settled stale, absent from the ledger, or the record carries no id — nothing was applied, since application needs the live loop's settlement, which always follows the persisted `Running`; a receipt naming another gate or task than the record does stays open. No check of the same name on the task is consulted |
 | `Publication` | none needed | `Cancelled`: attached surfaces reseed from the store, where the announced mutation already is |
-| `ProviderDispatch` | the runtime's liveness (`kill(pid, 0)`), then the attempt's Git baseline | open while the process is alive; once gone (or with no handle), `Completed` when HEAD moved past the baseline, else `Failed` |
+| `ProviderDispatch` | the particular runtime the handle names (`is_live`: the id alive and holding the recorded start identity), then the attempt's Git baseline | open without a handle (nothing says whether a runtime exists or existed: the intent is written before the launch), open while that runtime is alive or the host cannot say; once it is gone — or its id is held by another process — `Completed` when HEAD advanced from the baseline (the baseline is an ancestor of HEAD, `git merge-base --is-ancestor`), else `Failed`. A reset, a rebase or a branch switch is movement, not an advance |
 
 What stays open refuses the next attempt: `pre_iteration_check` answers
 `Unreconciled` with the records, the loop driver ends with
@@ -109,7 +117,9 @@ so the same command retries once the runtime is gone, or the checkpoint is
 explicitly set aside for a new run. A `Failed` dispatch keeps the attempt's
 Git baseline; its retry is attempt number two of the same command. Without
 engines (a yaml project, or an attached reader) a native mutation or receipt
-cannot be asked about and stays open.
+cannot be asked about and stays open. A dispatch recorded before this
+generation (`pid:<pgid>` with no start identity) still parses: its liveness
+is the id's alone.
 
 ## Per-family atomicity
 
@@ -133,8 +143,14 @@ A record, a receipt or an atomic checkpoint does not make an external effect
 exactly-once. A provider may have edited files, run tools or spent tokens
 before it died with nothing committed; that attempt is `Failed` for the loop
 and retried, and the retry's runtime starts on whatever tree it left. A
-process id can be reused, so a live answer is evidence, not proof, and a
-runtime that outlived the loop is never signalled — it is waited for. A native
+runtime that outlived the loop is never signalled — it is waited for. The
+handle pins the runtime to one process on hosts that report a start identity;
+elsewhere a live id is evidence, not proof. Git attributes nothing to a
+process: a commit that descends from the attempt's baseline, made by someone
+else after the runtime died, reads as the runtime's. The window between the
+transport's spawn and the handle's checkpoint is real: a crash inside it leaves
+a dispatch with no handle, which stays open until the checkpoint is set aside
+by hand, and possibly an orphaned runtime nobody is waiting for. A native
 mutation that landed a second before the crash and one that never landed read
 the same way to recovery: by the store's current state, not by the moment. The
 peer journal's stronger permit rules are documented in [peers](peers.md) and
@@ -149,17 +165,24 @@ what a killed process leaves on disk — and recovers
 reservation (a torn temporary beside the checkpoint; the previous checkpoint
 recovers untorn), native mutation (applied → `Completed` and deduplicated; lost
 → `Failed` and retried as attempt two; every verb read back; an unknown verb
-stays open), receipt, publication, and provider dispatch against a real child
-process (open while alive; `Failed` once killed; `Completed` after a commit
-past the baseline). The loop driver's suite checks that a judged iteration
-leaves every kind settled in the checkpoint under one run, and that a
-checkpoint whose dispatch is still owned by a live runtime ends the loop
-`Unreconciled` with no launch and no terminal reason. The domain suite covers
-the transition table and the admission rules.
+stays open), receipt (admitted and never settled → `Failed` even with a
+same-named applied check on the task; applied → `Completed`; settled stale
+after the objective rolled over → `Failed`; no id → `Failed`; a record naming
+another gate's receipt stays open), publication, and provider dispatch against
+a real child process (open while alive, even after a commit; `Completed` once
+gone with HEAD advanced from the baseline, and then `Established` for the
+attempt; a launched runtime that died leaving no advance → `Failed` and
+retried as attempt two; no handle → open whatever HEAD did; the id reused
+under another start identity → gone, and HEAD moved back to an ancestor is no
+advance). The loop driver's suite checks that a judged iteration leaves every
+kind settled in the checkpoint under one run with every receipt record naming
+an applied receipt, and that a checkpoint whose dispatch is still owned by a
+live runtime ends the loop `Unreconciled` with no launch and no terminal
+reason. The domain suite covers the transition table and the admission rules.
 
 ```sh
 cargo nextest run -p magistr-domain -E 'test(operation)'
-cargo nextest run -p magistr-core -E 'test(iteration) | test(durable_write) | test(process_alive)'
+cargo nextest run -p magistr-core -E 'test(iteration) | test(durable_write) | test(process_alive) | test(runtime_handle)'
 cargo nextest run -p magistr-cli -E 'test(a_judged_iteration_leaves) | test(an_unreconciled_dispatch)'
 ```
 

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use magistr_workflow::roadmap::RoadmapEngine;
 use magistr_workflow::roadmap::domain::Chunk;
+use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
 use magistr_workflow::ship::domain::objective::Objective;
 use magistr_workflow::ship::domain::task::Task;
 use magistr_workflow::ship::engine::ShipEngine;
@@ -351,6 +352,19 @@ impl NativeReader {
     #[must_use]
     pub fn ship_active_task_id(&self) -> Option<String> {
         self.current_ship().active_task_id()
+    }
+
+    /// One durable check receipt by its id, as the ship ledger holds it
+    /// now — the exact admission (run, task instance, attempt, gate) and,
+    /// once settled, how the command ended and whether the workflow
+    /// applied the result or kept it stale. `Ok(None)` for an id the
+    /// ledger never saw; `Err` when the ledger cannot be read.
+    ///
+    /// # Errors
+    /// The receipt store cannot be read.
+    pub fn ship_receipt(&self, id: &str) -> Result<Option<CheckReceipt>, String> {
+        let ledger = self.current_ship().receipts().clone();
+        ledger.get(id)
     }
 
     /// Every task in the execution trace, in plan order, with its actions

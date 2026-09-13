@@ -101,9 +101,9 @@ pub async fn cmd_next_loop(
         eprintln!("{} {}", fmt::cyan("→"), summary.status_line());
 
         iter_loop.persist().suggest()?;
-        // Run one /next cycle. The dispatch is written before the run; the
-        // plain drain owns its session, so the record carries no runtime
-        // handle and recovery judges it by the attempt's Git baseline.
+        // Run one /next cycle. The dispatch is written before the run and
+        // carries the runtime's handle as soon as the session is started,
+        // so recovery asks that particular process rather than Git.
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
         let dispatch = iter_loop
             .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
@@ -120,11 +120,24 @@ pub async fn cmd_next_loop(
             iter_loop.persist().suggest()?;
             continue;
         };
-        iter_loop.start_operation(&dispatch, None).suggest()?;
-        iter_loop.persist().suggest()?;
-        let ran =
-            crate::commands::run::cmd_run_workflow(&prompt, &dir, backend, profile, source.clone())
-                .await;
+        let ran = crate::commands::run::cmd_run_workflow(
+            &prompt,
+            &dir,
+            backend,
+            profile,
+            source.clone(),
+            |pid| {
+                iter_loop
+                    .start_operation(
+                        &dispatch,
+                        pid.and_then(workflow::runtime_handle::RuntimeHandle::observe)
+                            .map(|handle| handle.to_string()),
+                    )
+                    .suggest()?;
+                iter_loop.persist().suggest()
+            },
+        )
+        .await;
         iter_loop
             .settle_operation(
                 &dispatch,

@@ -8,10 +8,10 @@ use magistr_domain::workflow::{
 };
 use magistr_engine::NativeEngines;
 
-use super::{IterationLoop, git_head_sha};
+use super::{IterationLoop, git_head_advanced_from, git_head_sha};
 use crate::error::{MagistrError, Result};
-use crate::workflow::process_alive::is_process_alive;
 use crate::workflow::reconciliation::Reconciliation;
+use crate::workflow::runtime_handle::RuntimeHandle;
 
 impl IterationLoop {
     /// Admit `key` for this attempt: the record is `Accepted`. The command is
@@ -44,8 +44,9 @@ impl IterationLoop {
     }
 
     /// The effect was dispatched: `attempt` is `Running`, and `external` is
-    /// the runtime's own handle (`pid:1234`), kept apart from the command.
-    /// Persist after it, so recovery knows what to ask.
+    /// the effect's own identity, kept apart from the command — a
+    /// [`RuntimeHandle`] for a provider dispatch, `receipt:<id>` for a
+    /// receipt. Persist after it, so recovery knows what to ask.
     pub fn start_operation(&mut self, attempt: &AttemptId, external: Option<String>) -> Result<()> {
         self.state
             .operations
@@ -83,12 +84,16 @@ impl IterationLoop {
     ///
     /// - a reservation is established by the checkpoint that carries it;
     /// - a native mutation by the chunk's state in the native store;
-    /// - a receipt by the checks recorded on the named task;
+    /// - a receipt by its own durable receipt, read by the id the record
+    ///   carries: applied → `Completed`; unsettled, stale or never
+    ///   published → `Failed`. No check of the same name stands in for it;
     /// - a publication is cancelled — attached surfaces reseed from the store
     ///   and there is nothing to redo;
-    /// - a provider dispatch stays open while its runtime is still alive;
-    ///   once it is gone, a commit past the attempt's baseline establishes
-    ///   `Completed` and none establishes `Failed`.
+    /// - a provider dispatch stays open while the particular runtime its
+    ///   handle names is still alive, and open for good without a handle
+    ///   (nothing says whether a runtime exists or existed); once that
+    ///   runtime is gone, HEAD having advanced from the attempt's baseline
+    ///   establishes `Completed` and anything else `Failed`.
     ///
     /// Anything the loop cannot ask about stays open, and an open attempt
     /// refuses the next admission.
@@ -106,7 +111,7 @@ impl IterationLoop {
                 OperationKind::Receipt => self
                     .native
                     .as_ref()
-                    .and_then(|engines| receipt_outcome(engines, &record.target)),
+                    .and_then(|engines| receipt_outcome(engines, &record)),
                 OperationKind::ProviderDispatch => {
                     self.dispatch_outcome(record.external.as_deref())
                 }
@@ -129,23 +134,24 @@ impl IterationLoop {
         reconciliation
     }
 
-    /// A runtime still alive is nobody's to judge; a gone one is judged by
-    /// the attempt's Git baseline. Without a handle there is no runtime to
-    /// ask, and the baseline is the only evidence.
+    /// A runtime still alive is nobody's to judge; the particular runtime
+    /// the handle names, gone, is judged by whether HEAD advanced from the
+    /// attempt's Git baseline while it lived. Without a handle there is no
+    /// runtime to ask and nothing that says one never existed — the intent
+    /// was written before the launch, and the process may have died between
+    /// the two — so the dispatch stays open; a commit meanwhile is not its.
     fn dispatch_outcome(&self, external: Option<&str>) -> Option<OperationOutcome> {
-        let pid = external
-            .and_then(|handle| handle.strip_prefix("pid:"))
-            .and_then(|pid| pid.parse::<u32>().ok());
-        if pid.is_some_and(|pid| is_process_alive(pid) == Some(true)) {
+        let handle = RuntimeHandle::parse(external?)?;
+        if handle.is_live()? {
             return None;
         }
-        let head = git_head_sha(&self.project_dir);
-        let committed = match (&self.state.last_commit_sha, &head) {
-            (Some(before), Some(after)) => before != after,
-            (None, Some(_)) => true,
-            _ => false,
+        let advanced = match &self.state.last_commit_sha {
+            Some(baseline) => git_head_advanced_from(&self.project_dir, baseline)?,
+            // No baseline to advance from: the first commit of a repository
+            // is an advance, and no commit at all is none.
+            None => git_head_sha(&self.project_dir).is_some(),
         };
-        Some(if committed {
+        Some(if advanced {
             OperationOutcome::Completed
         } else {
             OperationOutcome::Failed
@@ -185,20 +191,36 @@ fn native_mutation_outcome(engines: &NativeEngines, target: &str) -> Option<Oper
     })
 }
 
-/// `gate:<name>@task:<id>` against the checks the trace holds on that task.
-fn receipt_outcome(engines: &NativeEngines, target: &str) -> Option<OperationOutcome> {
-    let (gate, task) = target.strip_prefix("gate:")?.split_once("@task:")?;
+/// `gate:<name>@task:<id>` against the durable receipt the record names
+/// (`receipt:<id>`), never against a same-named check on the task.
+///
+/// A result is applied only at settlement, and the loop settles only after
+/// it has persisted the record as running under the receipt's id; so a
+/// record with no id, or whose receipt the ledger never saw or never
+/// settled, had nothing applied: `Failed`, and the next set admits a new
+/// attempt. A settlement kept stale was not applied either. A receipt that
+/// names another gate or task than the record does is not this record's,
+/// and the record stays open.
+fn receipt_outcome(engines: &NativeEngines, record: &OperationRecord) -> Option<OperationOutcome> {
+    use magistr_engine::native::ReceiptSettlement;
+    let (gate, task) = record.target.strip_prefix("gate:")?.split_once("@task:")?;
+    let Some(id) = record
+        .external
+        .as_deref()
+        .and_then(|handle| handle.strip_prefix("receipt:"))
+    else {
+        return Some(OperationOutcome::Failed);
+    };
     engines.reload_ship();
-    let status = engines.ship_status();
-    let recorded = status["checks"].as_array().is_some_and(|checks| {
-        checks.iter().any(|check| {
-            check["task_id"].as_str() == Some(task) && check["name"].as_str() == Some(gate)
-        })
-    });
-    Some(if recorded {
-        OperationOutcome::Completed
-    } else {
-        OperationOutcome::Failed
+    let Some(receipt) = engines.ship_receipt(id).ok()? else {
+        return Some(OperationOutcome::Failed);
+    };
+    if receipt.gate != gate || receipt.target.task_id != task {
+        return None;
+    }
+    Some(match receipt.settlement {
+        Some(ReceiptSettlement::Applied) => OperationOutcome::Completed,
+        Some(ReceiptSettlement::Stale { .. }) | None => OperationOutcome::Failed,
     })
 }
 
