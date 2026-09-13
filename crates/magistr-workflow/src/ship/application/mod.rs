@@ -102,7 +102,7 @@ impl ShipUseCases {
             .engine
             .lock()
             .map_err(|_| "engine mutex poisoned".to_owned())?;
-        engine.refresh_current()?;
+        engine.refresh_if_stale()?;
         Ok(engine)
     }
 }

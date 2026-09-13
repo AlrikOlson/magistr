@@ -2,6 +2,7 @@ use chrono::Utc;
 mod admission;
 
 use crate::cloud::client::CloudClient;
+use crate::infra::StoreStamp;
 use crate::ship::broadcast::{BroadcastFrame, Broadcaster};
 use crate::ship::domain::action::{Action, ActionType};
 use crate::ship::domain::artifact::Artifact;
@@ -19,6 +20,11 @@ pub struct ShipEngine {
     pub(crate) execution: ExecutionIdentity,
     next_action_id: u32,
     persistence: Option<Persistence>,
+    /// The stamp of the store file this memory was last read from or
+    /// written to; `None` while there is no file or after a failed write.
+    /// Compared against the file on every refresh so an unchanged store
+    /// costs a `stat`, never a parse.
+    stamp: Option<StoreStamp>,
     /// Durable check receipts for this project, outliving the cycle.
     receipts: ReceiptLedger,
     broadcaster: Option<Broadcaster>,
@@ -46,6 +52,7 @@ impl ShipEngine {
             execution: ExecutionIdentity::fresh(),
             next_action_id: 1,
             persistence: None,
+            stamp: None,
             receipts: ReceiptLedger::in_memory(),
             broadcaster: None,
             mirror: None,
@@ -269,6 +276,9 @@ impl ShipEngine {
     }
 
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
+        // The stamp before the read, so a write landing between the two
+        // costs one spurious re-read later and never a missed one.
+        self.stamp = persistence.stamp(&self.project_id).ok().flatten();
         if let Some((obj, tasks, next_id, execution)) =
             persistence.load_with_identity(&self.project_id)
         {
@@ -297,16 +307,42 @@ impl ShipEngine {
         self.objective.as_ref().map(Objective::acceptance_revision)
     }
 
-    fn persist(&self) {
-        if let Some(p) = &self.persistence {
-            p.save_with_identity(
-                &self.project_id,
-                &self.objective,
-                &self.tasks,
-                self.next_action_id,
-                &self.execution,
-            );
+    /// Persist the cycle under the locked merge-on-save discipline and
+    /// adopt what landed: within one cycle the merged tasks are this
+    /// memory's tasks first, then the ones another writer acked, so every
+    /// index a caller holds stays valid and now names the merged record. A
+    /// newer cycle on disk wins the file outright; memory keeps its copy
+    /// for the caller's reply and forgets the stamp, so the next refresh
+    /// reads the winning cycle.
+    fn persist(&mut self) {
+        let Some(p) = &self.persistence else {
+            return;
+        };
+        let Some(written) = p.save_with_identity(
+            &self.project_id,
+            &self.objective,
+            &self.tasks,
+            self.next_action_id,
+            &self.execution,
+        ) else {
+            return;
+        };
+        match written.merged {
+            Some(merged) if merged.cycle_stamp() == self.cycle_stamp() => {
+                self.adopt_current(Some(merged));
+                self.stamp = written.stamp;
+            }
+            Some(_) => self.stamp = None,
+            None => self.stamp = written.stamp,
         }
+    }
+
+    /// The identity of the cycle this memory holds: the objective's
+    /// `created_at`, as the merge keys cycles.
+    fn cycle_stamp(&self) -> Option<&str> {
+        self.objective
+            .as_ref()
+            .and_then(|objective| objective.created_at.as_deref())
     }
 
     /// Define the objective for a development cycle. Returns the number of
@@ -722,6 +758,7 @@ impl ShipEngine {
         if let Some(p) = &self.persistence {
             p.clear(&self.project_id);
         }
+        self.stamp = None;
         self.objective = None;
         self.tasks.clear();
         self.next_action_id = 1;

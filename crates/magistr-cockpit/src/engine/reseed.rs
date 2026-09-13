@@ -37,9 +37,9 @@ enum Wake {
 /// * It re-reads only when [`NativeReader::snapshot_cursor`] moved. A seed
 ///   posted every wake would mark the runtime's scheduler dirty every
 ///   period, and an idle cockpit that paints nothing is a property the
-///   runtime is built around; the reload is also not silent (it prints a
-///   load banner into the stderr the session holds), so an ungated read
-///   would fill the replay with banners nobody wrote.
+///   runtime is built around. The engines behind the reader observe their
+///   own files on every query anyway; the cursor gate is about when a seed
+///   is *posted*, and it keeps the timer's cost at a few `stat`s.
 ///
 /// The read itself is blocking file I/O, so it runs on the blocking pool
 /// rather than on the runtime's threads.

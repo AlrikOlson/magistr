@@ -13,6 +13,11 @@ pub enum RoadmapError {
     ExportFailed(String),
     #[error("roadmap engine mutex poisoned")]
     Poisoned,
+    /// The store could not be observed before the call: a `stat` or a
+    /// re-read of the roadmap file failed, so neither a query nor a
+    /// mutation answers from a copy it cannot vouch for.
+    #[error("roadmap store unavailable: {0}")]
+    Store(String),
 }
 
 impl RoadmapError {
@@ -23,6 +28,7 @@ impl RoadmapError {
             Self::WorkspaceUnavailable => "workspace_unavailable",
             Self::ExportFailed(_) => "export_failed",
             Self::Poisoned => "internal_error",
+            Self::Store(_) => "store_unavailable",
         }
     }
 }

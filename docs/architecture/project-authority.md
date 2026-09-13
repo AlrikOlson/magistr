@@ -28,7 +28,7 @@ third, holding neither.
 
 | Capability | Type | Admission | Holds |
 | --- | --- | --- | --- |
-| Read | `NativeReader` | None. `NativeReader::open` reads the store's locked merge-on-save files and `reload_*` re-reads them when `store_stamp` moves. | Queries, reloads, the store stamp, the reasoning archive. |
+| Read | `NativeReader` | None. `NativeReader::open` reads the store's locked merge-on-save files; every query observes its family's file and re-reads it when the store stamp moved. | Queries, reloads, the store stamp, the reasoning archive. |
 | Write | `NativeEngines` | Only `ProjectAuthority::open`. Every clone carries the lease; the role's lock is released with the last writer, never with a reader. | Typed verbs over the reader (`Deref`), carried out by native workflow use cases (see [One write path](#one-write-path)); `apply` dispatches the versioned `OwnerCommand` to the same implementation. |
 | Transport | `UnifiedService` | Only `ProjectAuthority::serve`, which hands the same four family services the writer acts through to the wire, and the writer beside them. | The MCP verbs; the service keeps the writer and the authority beside them. |
 | Attached | `OwnerClient` | A welcomed handshake on the owner's endpoint. No lease, no engine. | One connection, one command in flight, the owner's generation. |
@@ -333,26 +333,31 @@ Unix CLI startup requests the project feed by default. Explicit configurations
 can omit broadcasting. Non-Unix startup keeps a no-feed default, and an explicit
 Unix-socket request returns an unsupported error.
 
-## Cached state and reload
+## Cached state and the store stamp
 
-Native engines cache state in memory. A persistence merge can retain another
-writer's additions on disk without refreshing the caller's snapshot. Reload
-methods on the reader update the roadmap, ship and signal views; the cockpit
-reloads when its detached-feed timer observes a changed store stamp, and the
-loop reloads the roadmap at every iteration boundary. An attached mutation is
-carried out on the owner's cached engines, so the owner's own views are
-current; the attached surface sees it through the feed or its next reload.
-Within one process the use cases and reader share the same engines. Ship use
-cases refresh the current persisted state before operating; admitted settlement
-also compares and appends under the file lock. General inherited mutations still
-use whole-task merge behavior; this extraction does not claim a transactional
-multi-writer store. A settled `magistr_gate` record is visible to the same
-server's `ship_status`.
+Native engines hold state in memory and observe the store before they
+answer or act: each family's engine remembers the stamp (inode,
+modification time, length) of the file it last read or wrote, `stat`s the
+file on every query and mutation, and re-reads it only when the stamp
+moved. A persistence merge hands the merged file back to the writer's
+memory with the written stamp, so an own write leaves memory equal to
+disk. Reload methods on the reader force the same read; the cockpit
+re-seeds when its detached-feed timer observes a changed store cursor,
+and the loop reloads the roadmap at every iteration boundary — both keep
+their cost. An attached mutation is carried out on the owner's engines, so
+the owner's own views are current; the attached surface reads it on its
+next query and repaints on the feed or its next seed. Within one process
+the use cases and reader share the same engines. Admitted settlement
+compares and appends under the file lock. Two writers of one record inside
+one family's read-to-save window resolve by the family's merge rule; this
+is not a transactional multi-writer store, and no revision spans the four
+families. A settled `magistr_gate` record is visible to every server's
+`ship_status`.
 
-Reloading is separate from command authority. It neither admits a second writer
-nor authenticates a client. Which family reads through and which answers
-its cache, per surface pair, is stated in the
-[consistency model](clients.md#workflow-consistency-model).
+Observing the store is separate from command authority. It neither admits
+a second writer nor authenticates a client. What each family observes,
+per surface pair, and how a conflicting pair of writes resolves, is stated
+in the [consistency model](clients.md#workflow-consistency-model).
 
 ## Limits
 
@@ -367,9 +372,9 @@ no remote endpoint, no daemon that outlives its invocation, no upgrade path
 across protocol versions (a mismatch is refused), and no shared writer
 routing. The lease must not be described as a distributed authority or a
 governed peer runtime; a `Revision` is still comparable only within one
-authority's history, and admission does not make cached reads coherent across
-the two roles. Off Unix there is no endpoint and no client; both report
-`Unsupported`.
+authority's history, and admission is not what makes reads coherent across
+the two roles — the store stamp is, per family. Off Unix there is no
+endpoint and no client; both report `Unsupported`.
 
 The event publisher can outlive a dropped service inside a running async
 runtime. Admission continues to refuse a still-live endpoint; releasing an

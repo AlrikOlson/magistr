@@ -1,3 +1,5 @@
+use std::sync::{Mutex, MutexGuard};
+
 use crate::roadmap::domain::{Chunk, ChunkStatus};
 use crate::roadmap::engine::RoadmapEngine;
 use crate::signal::domain::{Signal, SignalKind, SignalStatus};
@@ -28,9 +30,7 @@ impl SignalUseCases {
             .find_map(|reference| reference.strip_prefix("chunk:"))
             .map(str::to_owned)
         {
-            let chunk = roadmap
-                .lock()
-                .map_err(|_| SignalError::Poisoned)?
+            let chunk = current_roadmap(roadmap)?
                 .roadmap()
                 .chunks
                 .iter()
@@ -47,7 +47,7 @@ impl SignalUseCases {
 
         let chunk_id = chunk_id_for(id);
         {
-            let mut roadmap = roadmap.lock().map_err(|_| SignalError::Poisoned)?;
+            let mut roadmap = current_roadmap(roadmap)?;
             let recovery = signal.status == SignalStatus::Promoted
                 && roadmap.roadmap().chunks.iter().any(|chunk| {
                     chunk.id == chunk_id && chunk.cross_refs.contains(&format!("signal:{id}"))
@@ -82,6 +82,16 @@ impl SignalUseCases {
             chunk: None,
         })
     }
+}
+
+/// The roadmap engine, observed before promotion reads or writes it: the
+/// chunk another role promoted is seen, never created twice.
+fn current_roadmap(
+    roadmap: &Mutex<RoadmapEngine>,
+) -> Result<MutexGuard<'_, RoadmapEngine>, SignalError> {
+    let mut engine = roadmap.lock().map_err(|_| SignalError::Poisoned)?;
+    engine.refresh_if_stale().map_err(SignalError::Store)?;
+    Ok(engine)
 }
 
 fn ensure_chunk(roadmap: &mut RoadmapEngine, signal: &Signal, id: &str) -> Result<(), SignalError> {

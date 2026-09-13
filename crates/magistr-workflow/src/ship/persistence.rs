@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::infra::{MergedWrite, StoreStamp};
 use crate::ship::domain::execution_identity::ExecutionIdentity;
 use crate::ship::domain::objective::Objective;
 use crate::ship::domain::task::Task;
@@ -21,6 +22,15 @@ pub(crate) struct PersistedState {
     pub(crate) execution: Option<ExecutionIdentity>,
 }
 
+impl PersistedState {
+    /// The identity of the cycle: the objective's `created_at`.
+    pub(crate) fn cycle_stamp(&self) -> Option<&str> {
+        self.objective
+            .as_ref()
+            .and_then(|o| o.created_at.as_deref())
+    }
+}
+
 /// Merge policy for the locked merge-on-save discipline
 /// (family-stores-merge-on-save). Ship state is CYCLE-shaped — one objective
 /// plus its tasks — so the cycle identity (`objective.created_at`) decides:
@@ -34,11 +44,8 @@ pub(crate) struct PersistedState {
 ///   LWW caveat the think merge also accepted) and `next_action_id` takes
 ///   the max so action ids never regress.
 fn merge_states(memory: &PersistedState, disk: PersistedState) -> PersistedState {
-    fn cycle_stamp(s: &PersistedState) -> Option<&str> {
-        s.objective.as_ref().and_then(|o| o.created_at.as_deref())
-    }
-    let mem_stamp = cycle_stamp(memory);
-    let disk_stamp = cycle_stamp(&disk);
+    let mem_stamp = memory.cycle_stamp();
+    let disk_stamp = disk.cycle_stamp();
     if mem_stamp == disk_stamp {
         return merge_same_cycle(memory, disk);
     }
@@ -145,14 +152,18 @@ pub struct Persistence {
 }
 
 impl Persistence {
-    pub(crate) fn current_state(
+    /// The persisted cycle with the stamp of the file it was read from,
+    /// taken before the read so a write landing in between costs one
+    /// spurious re-read later and never a missed one.
+    pub(crate) fn current_stamped(
         &self,
         project_id: &str,
-    ) -> std::io::Result<Option<PersistedState>> {
+    ) -> std::io::Result<(Option<PersistedState>, Option<StoreStamp>)> {
         let path = self.sessions_dir.join(format!("{project_id}.json"));
+        let stamp = StoreStamp::of(&path)?;
         let bytes = match fs::read(path) {
             Ok(bytes) => bytes,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok((None, None)),
             Err(error) => return Err(error),
         };
         let state: PersistedState =
@@ -162,7 +173,16 @@ impl Persistence {
                 "Ship state schema or project identity does not match",
             ));
         }
-        Ok(Some(state))
+        Ok((Some(state), stamp))
+    }
+
+    /// The stamp of the persisted cycle as it stands: `None` when
+    /// persistence is off or there is no file. A `stat`, never a read.
+    pub(crate) fn stamp(&self, project_id: &str) -> std::io::Result<Option<StoreStamp>> {
+        if !self.enabled {
+            return Ok(None);
+        }
+        StoreStamp::of(&self.sessions_dir.join(format!("{project_id}.json")))
     }
 
     fn locked<T>(
@@ -183,14 +203,19 @@ impl Persistence {
         operation()
     }
 
+    /// Append `check` to its admitted task instance under the file lock,
+    /// answering the cycle as it stands afterwards, whether the check
+    /// applied, and the stamp of the file that cycle was read from or
+    /// written to.
     pub(crate) fn settle_check(
         &self,
         target: &crate::ship::application::TaskAdmission,
         check: &crate::ship::domain::check::Check,
-    ) -> std::io::Result<(Option<PersistedState>, bool)> {
+    ) -> std::io::Result<(Option<PersistedState>, bool, Option<StoreStamp>)> {
         self.locked(&target.project_id, || {
-            let Some(mut state) = self.current_state(&target.project_id)? else {
-                return Ok((None, false));
+            let (current, stamp) = self.current_stamped(&target.project_id)?;
+            let Some(mut state) = current else {
+                return Ok((None, false, None));
             };
             let identity = state.execution.clone().unwrap_or_else(|| {
                 ExecutionIdentity::legacy(&target.project_id, &state.objective, &state.tasks)
@@ -208,7 +233,7 @@ impl Persistence {
                 .count()
                 == 1;
             let Some(index) = index.filter(|_| matches && unique) else {
-                return Ok((Some(state), false));
+                return Ok((Some(state), false, stamp));
             };
             state.tasks[index].checks.push(check.clone());
             state.execution = Some(identity);
@@ -220,8 +245,9 @@ impl Persistence {
                 &temporary,
                 serde_json::to_vec(&state).map_err(std::io::Error::other)?,
             )?;
-            fs::rename(temporary, path)?;
-            Ok((Some(state), true))
+            fs::rename(temporary, &path)?;
+            let stamp = StoreStamp::of(&path).ok().flatten();
+            Ok((Some(state), true, stamp))
         })
     }
 
@@ -277,6 +303,9 @@ impl Persistence {
         self.save_state(project_id, objective, tasks, next_action_id, None);
     }
 
+    /// [`Self::save`] with the run identity, answering what landed on disk
+    /// and the stamp of the written file; `None` when persistence is off
+    /// or the write failed (logged).
     pub(crate) fn save_with_identity(
         &self,
         project_id: &str,
@@ -284,14 +313,14 @@ impl Persistence {
         tasks: &[Task],
         next_action_id: u32,
         execution: &ExecutionIdentity,
-    ) {
+    ) -> Option<MergedWrite<PersistedState>> {
         self.save_state(
             project_id,
             objective,
             tasks,
             next_action_id,
             Some(execution.clone()),
-        );
+        )
     }
 
     fn save_state(
@@ -301,9 +330,9 @@ impl Persistence {
         tasks: &[Task],
         next_action_id: u32,
         execution: Option<ExecutionIdentity>,
-    ) {
+    ) -> Option<MergedWrite<PersistedState>> {
         if !self.enabled {
-            return;
+            return None;
         }
         let state = PersistedState {
             schema_version: SCHEMA_VERSION,
@@ -314,8 +343,12 @@ impl Persistence {
             execution,
         };
         let path = self.sessions_dir.join(format!("{project_id}.json"));
-        if let Err(e) = crate::infra::persistence::locked_merge_write(&path, &state, merge_states) {
-            tracing::warn!("ship: failed to persist state: {e}");
+        match crate::infra::persistence::locked_merge_write_stamped(&path, &state, merge_states) {
+            Ok(written) => Some(written),
+            Err(e) => {
+                tracing::warn!("ship: failed to persist state: {e}");
+                None
+            }
         }
     }
 
