@@ -357,6 +357,16 @@ async fn main() -> eyre::Result<()> {
         Command::Roadmap { action } => commands::misc::cmd_roadmap(action, &*renderer, &env).await,
     };
 
+    // An interrupted run has settled on its own terms by now — its cost,
+    // its receipts, its checkpoint, its workspace — and exits as the
+    // interrupt it was, whatever the command answered.
+    if utils::shutdown::Shutdown::is_requested() {
+        if let Err(report) = &result {
+            eprintln!("magistr: {report}");
+        }
+        std::process::exit(utils::shutdown::Shutdown::EXIT_CODE);
+    }
+
     // Attach actionable suggestions from MagistrError to the eyre report.
     result.map_err(|report| {
         use color_eyre::Section;

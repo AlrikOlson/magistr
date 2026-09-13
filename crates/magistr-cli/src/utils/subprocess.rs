@@ -125,13 +125,17 @@ pub(crate) fn shell_spec(command: &str, dir: &Path, timeout_secs: u64) -> Proces
 }
 
 /// Run a spawned process with its group registered in the child guard for
-/// the duration, so a hard exit of this process ends it too.
+/// the duration, so a hard exit of this process ends it too — and under
+/// the process-wide [`Shutdown`](super::shutdown::Shutdown) request, so an
+/// interrupt ends the group the way the caller's own cancel would
+/// (`SIGTERM`, the grace, `SIGKILL`, reap) and the run answers `cancelled`.
 pub(crate) async fn run_guarded(
     process: OwnedProcess,
     cancel: &CancellationToken,
     sink: impl FnMut(&[u8]) + Send,
 ) -> ProcessOutcome {
-    process.run(cancel, sink).await
+    let (cancel, _bound) = super::shutdown::Shutdown::bound(cancel);
+    process.run(&cancel, sink).await
 }
 
 /// The answer for a gate with no command configured: nothing ran.

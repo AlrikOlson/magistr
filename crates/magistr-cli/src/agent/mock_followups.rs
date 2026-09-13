@@ -2,9 +2,8 @@
 
 use std::sync::{Arc, Mutex};
 
-use tokio::sync::mpsc;
-
 use super::message::AgentMessage;
+use super::observation::ObservationSender;
 use super::session::AgentSession;
 use crate::error::Result;
 
@@ -14,7 +13,7 @@ use crate::error::Result;
 #[allow(clippy::type_complexity)]
 pub fn mock_session_with_followups() -> (
     AgentSession,
-    mpsc::UnboundedSender<Result<AgentMessage>>,
+    ObservationSender<Result<AgentMessage>>,
     Arc<Mutex<Vec<String>>>,
 ) {
     AgentSession::from_channel_with_followups()

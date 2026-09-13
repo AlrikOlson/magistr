@@ -532,6 +532,152 @@ fn sigint_exits_with_code_130() {
     );
 }
 
+/// A project whose `check` gate is `gate`, for the interrupt fixtures: the
+/// gate writes its shell's pid to `gate.pid` so the test can wait for it
+/// to be running and prove it is gone afterwards.
+#[cfg(unix)]
+fn interrupt_project(gate: &str) -> TempDir {
+    let dir = TempDir::new().unwrap();
+    let config = serde_json::json!({
+        "project": {"name":"interrupt-fixture"},
+        "stack": {"language":"rust", "framework":"none", "package_manager":"cargo",
+            "test_framework":"cargo-test", "linter":"clippy", "formatter":"rustfmt"},
+        "quality_gate": {"check": gate, "test":"true", "lint":"true"},
+        "format": {"command":"true", "extensions":[]},
+        "testing": {"companion_pattern":"{name}.tests.{ext}", "test_dir":"alongside"},
+        "reference_repos":[], "state_prefix":"interrupt-fixture",
+        "custom_gates": []
+    });
+    std::fs::create_dir_all(dir.path().join(".magistr")).unwrap();
+    std::fs::write(
+        dir.path().join(".magistr/project.json"),
+        serde_json::to_vec_pretty(&config).unwrap(),
+    )
+    .unwrap();
+    dir
+}
+
+/// Spawn `magistr validate --ci` on the project and wait until its gate
+/// child is running; answers the child and the gate's pid.
+#[cfg(unix)]
+fn spawn_validate_until_gate_runs(dir: &TempDir) -> (std::process::Child, i32) {
+    use std::time::{Duration, Instant};
+    let child = magistr_command::magistr_command()
+        .args(["validate", "--ci", &dir.path().display().to_string()])
+        .env("HOME", dir.path())
+        .env("XDG_CONFIG_HOME", dir.path().join("config"))
+        .env("PATH", "/usr/bin:/bin")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn magistr validate");
+    let pid_file = dir.path().join("gate.pid");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let gate_pid = loop {
+        if let Ok(text) = std::fs::read_to_string(&pid_file)
+            && let Ok(pid) = text.trim().parse::<i32>()
+        {
+            break pid;
+        }
+        assert!(Instant::now() < deadline, "the gate never started");
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    (child, gate_pid)
+}
+
+#[cfg(unix)]
+fn signal(pid: u32, signal: &str) {
+    std::process::Command::new("kill")
+        .args([signal, &pid.to_string()])
+        .status()
+        .expect("failed to send the signal");
+}
+
+#[cfg(unix)]
+fn process_is_gone(pid: i32) -> bool {
+    !std::process::Command::new("kill")
+        .args(["-0", &pid.to_string()])
+        .status()
+        .expect("failed to probe the process")
+        .success()
+}
+
+/// The first SIGINT is graceful: the running gate child is ended and
+/// joined, the command finishes its own report, the process exits 130 and
+/// the emergency path is never taken.
+#[cfg(unix)]
+#[test]
+fn first_sigint_settles_the_running_gate_child_and_exits_130_without_the_emergency_exit() {
+    use std::time::{Duration, Instant};
+    let dir = interrupt_project("echo $$ > gate.pid; sleep 30");
+    let (child, gate_pid) = spawn_validate_until_gate_runs(&dir);
+    let interrupted_at = Instant::now();
+    signal(child.id(), "-INT");
+    let output = child
+        .wait_with_output()
+        .expect("failed to wait for the child");
+    let took = interrupted_at.elapsed();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(output.status.code(), Some(130), "stderr: {stderr}");
+    assert!(
+        stderr.contains("interrupted; settling"),
+        "the graceful request is announced: {stderr}"
+    );
+    assert!(
+        !stderr.contains("emergency exit"),
+        "a cooperating child never needs the emergency path: {stderr}"
+    );
+    assert!(
+        stdout.contains("\"all_passed\": false"),
+        "the command finished its own report: {stdout}"
+    );
+    assert!(
+        took < Duration::from_secs(8),
+        "settled well inside the deadline, not on it: {took:?}"
+    );
+    assert!(process_is_gone(gate_pid), "the gate child was joined");
+}
+
+/// A second SIGINT before settlement is the distinct emergency exit: the
+/// registered process groups are killed — a child ignoring TERM included —
+/// and the process exits 130 at once, saying which way out it took.
+#[cfg(unix)]
+#[test]
+fn a_second_sigint_is_the_emergency_exit_and_still_ends_a_term_ignoring_child() {
+    use std::time::{Duration, Instant};
+    let dir = interrupt_project("trap '' TERM HUP; echo $$ > gate.pid; sleep 30");
+    let (child, gate_pid) = spawn_validate_until_gate_runs(&dir);
+    let interrupted_at = Instant::now();
+    signal(child.id(), "-INT");
+    std::thread::sleep(Duration::from_millis(300));
+    signal(child.id(), "-INT");
+    let output = child
+        .wait_with_output()
+        .expect("failed to wait for the child");
+    let took = interrupted_at.elapsed();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(130), "stderr: {stderr}");
+    assert!(
+        stderr.contains("emergency exit (interrupted again)"),
+        "the emergency path names itself: {stderr}"
+    );
+    assert!(
+        took < Duration::from_secs(4),
+        "the emergency exit waits for no grace: {took:?}"
+    );
+    // The registry's kill is TERM then KILL; give the kernel a moment.
+    let gone_by = Instant::now() + Duration::from_secs(3);
+    while !process_is_gone(gate_pid) {
+        assert!(
+            Instant::now() < gone_by,
+            "the TERM-ignoring gate child survived"
+        );
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
 // ── NO_COLOR support ───────────────────────────────────────────────
 
 #[test]

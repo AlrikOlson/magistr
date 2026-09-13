@@ -25,6 +25,7 @@
 pub mod apply;
 pub mod attached_port;
 pub mod client;
+pub mod describe;
 pub mod error;
 pub mod event;
 pub mod feed;
@@ -36,6 +37,7 @@ pub mod reseed;
 pub use apply::apply;
 pub use attached_port::AttachedEnginePort;
 pub use client::EngineClient;
+pub use describe::describe;
 pub use error::EngineError;
 pub use event::EngineEvent;
 pub use feed::spawn_feed;

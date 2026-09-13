@@ -27,6 +27,8 @@ pub async fn cmd_validate_ci(dir: &std::path::Path, emit_annotations: bool) -> e
     let validation = output::ValidationOutput::from(&result);
     let envelope = output::success(&validation);
     println!("{}", serde_json::to_string_pretty(&envelope)?);
+    // A run cut short by an interrupt is reported as one, not as a red gate.
+    crate::utils::shutdown::Shutdown::exit_if_requested();
     if !result.all_passed() {
         std::process::exit(1);
     }

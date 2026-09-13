@@ -6,16 +6,16 @@ use std::pin::Pin;
 use magistr_acp::AcpTransport;
 use magistr_application::sessions::SessionHandle;
 use magistr_cockpit::agent::{AgentEvent, SessionOptions, SessionPolicy};
-use tokio::sync::mpsc;
 
 use super::ResolvedSessionSpec;
+use super::observation::{ObservationCapacity, ObservationReceiver};
 use super::session_supervisor::{SessionControl, SessionSupervisor, SessionSupervisorSnapshot};
 use crate::error::Result;
 
 /// The cockpit's command and observation attachment; owns no transport loop.
 pub struct CockpitSession {
     supervisor: SessionSupervisor,
-    events: mpsc::UnboundedReceiver<AgentEvent>,
+    events: ObservationReceiver<AgentEvent>,
 }
 
 impl CockpitSession {
@@ -40,6 +40,25 @@ impl CockpitSession {
         let (supervisor, events) =
             SessionSupervisor::start_interactive(transport, options, policy)?;
         Ok(Self { supervisor, events })
+    }
+
+    /// [`CockpitSession::start_connected`] under an explicit observation
+    /// bound, for a fixture that floods the owner.
+    pub fn start_connected_bounded(
+        transport: AcpTransport,
+        options: SessionOptions,
+        policy: Box<dyn SessionPolicy>,
+        capacity: ObservationCapacity,
+    ) -> Result<Self> {
+        let (supervisor, events) =
+            SessionSupervisor::start_interactive_bounded(transport, options, policy, capacity)?;
+        Ok(Self { supervisor, events })
+    }
+
+    /// Wind the session down the way an interrupt does; see
+    /// [`SessionSupervisor::interrupt`].
+    pub fn interrupt(&self) -> Result<()> {
+        self.supervisor.interrupt()
     }
 
     /// Consistent lifecycle facts shared with headless observation.
@@ -96,7 +115,6 @@ impl SessionHandle for CockpitSession {
         self.supervisor.detach_client();
         // Detaching ends observation: buffered events belong to no client.
         self.events.close();
-        while self.events.try_recv().is_ok() {}
     }
     fn next_event(&mut self) -> Pin<Box<dyn Future<Output = Option<Self::Event>> + Send + '_>> {
         Box::pin(self.events.recv())

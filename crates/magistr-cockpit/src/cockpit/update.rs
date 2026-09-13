@@ -3379,6 +3379,14 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             picture(model, &block);
         }
         AgentEvent::Error(text) => model.turn.push_error(&format!("error: {text}")),
+        // The hole is said where it is: a transcript the cockpit fell
+        // behind on must not read as continuous.
+        AgentEvent::Lagged { bytes, items } => {
+            model.turn_state = TurnState::Streaming;
+            model.turn.push_note(&format!(
+                "… {bytes} bytes of streamed text ({items} whole updates) not shown: the cockpit fell behind"
+            ));
+        }
         // A new session's handshake: the cost and the clock it reports
         // count from zero, so what the last session spent and ran is
         // settled first and a loop's meter reads the whole run — and

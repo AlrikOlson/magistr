@@ -3,6 +3,7 @@
 use magistr_engine::native::{Chunk, Signal};
 use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
 
+use super::describe::describe;
 use super::event::EngineEvent;
 use super::port::EnginePort;
 use crate::cockpit::EngineCmd;
@@ -20,116 +21,68 @@ use crate::cockpit::EngineCmd;
 /// tab fold it through the one path they already have; the in-process
 /// engines write no socket of their own.
 pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
-    match cmd {
+    let answer = match cmd {
         EngineCmd::Pin {
             step_number,
             pinned,
-        } => match port.pin(*step_number, *pinned) {
-            Ok(()) => EngineEvent::Pinned {
+        } => port
+            .pin(*step_number, *pinned)
+            .map(|()| EngineEvent::Pinned {
                 step_number: *step_number,
                 pinned: *pinned,
-            },
-            Err(error) => EngineEvent::PortFailed {
-                cmd: cmd.clone(),
-                what: format!("pin {step_number}"),
-                error,
-            },
-        },
-        EngineCmd::Checkpoint => match port.checkpoint() {
-            Ok(report) => EngineEvent::Checkpoint {
-                lines: lines(&report),
-            },
-            Err(error) => EngineEvent::PortFailed {
-                cmd: cmd.clone(),
-                what: "checkpoint".to_owned(),
-                error,
-            },
-        },
-        EngineCmd::StartChunk { id } => chunk_event(
-            port.start_chunk(id),
-            |chunk| RoadmapFrame::ChunkChanged { chunk },
-            format!("start {id}"),
-            cmd,
-        ),
-        EngineCmd::CompleteChunk { id } => chunk_event(
-            port.complete_chunk(id),
-            |chunk| RoadmapFrame::ChunkCompleted { chunk },
-            format!("complete {id}"),
-            cmd,
-        ),
+            }),
+        EngineCmd::Checkpoint => port.checkpoint().map(|report| EngineEvent::Checkpoint {
+            lines: lines(&report),
+        }),
+        EngineCmd::StartChunk { id } => chunk_event(port.start_chunk(id), |chunk| {
+            RoadmapFrame::ChunkChanged { chunk }
+        }),
+        EngineCmd::CompleteChunk { id } => chunk_event(port.complete_chunk(id), |chunk| {
+            RoadmapFrame::ChunkCompleted { chunk }
+        }),
         EngineCmd::ResolveProposal {
             chunk,
             kind,
             accept,
-        } => chunk_event(
-            port.resolve_proposal(chunk, *kind, *accept),
-            |chunk| RoadmapFrame::ChunkChanged { chunk },
-            format!(
-                "{} {} proposal on {chunk}",
-                if *accept { "accept" } else { "reject" },
-                kind.label()
-            ),
-            cmd,
-        ),
-        EngineCmd::ClearBlocker { chunk } => chunk_event(
-            port.clear_blocker(chunk),
-            |chunk| RoadmapFrame::ChunkChanged { chunk },
-            format!("clear the blocker on {chunk}"),
-            cmd,
-        ),
-        EngineCmd::PromoteSignal { id } => signal_event(
-            port.promote_signal(id),
-            |signal| SignalFrame::SignalChanged { signal },
-            format!("promote {id}"),
-            cmd,
-        ),
-        EngineCmd::IgnoreSignal { id } => signal_event(
-            port.ignore_signal(id),
-            |signal| SignalFrame::SignalDismissed { signal },
-            format!("ignore {id}"),
-            cmd,
-        ),
-        EngineCmd::SnoozeSignal { id, minutes } => signal_event(
-            port.snooze_signal(id, *minutes),
-            |signal| SignalFrame::SignalChanged { signal },
-            format!("snooze {id}"),
-            cmd,
-        ),
-    }
+        } => chunk_event(port.resolve_proposal(chunk, *kind, *accept), |chunk| {
+            RoadmapFrame::ChunkChanged { chunk }
+        }),
+        EngineCmd::ClearBlocker { chunk } => chunk_event(port.clear_blocker(chunk), |chunk| {
+            RoadmapFrame::ChunkChanged { chunk }
+        }),
+        EngineCmd::PromoteSignal { id } => signal_event(port.promote_signal(id), |signal| {
+            SignalFrame::SignalChanged { signal }
+        }),
+        EngineCmd::IgnoreSignal { id } => signal_event(port.ignore_signal(id), |signal| {
+            SignalFrame::SignalDismissed { signal }
+        }),
+        EngineCmd::SnoozeSignal { id, minutes } => {
+            signal_event(port.snooze_signal(id, *minutes), |signal| {
+                SignalFrame::SignalChanged { signal }
+            })
+        }
+    };
+    answer.unwrap_or_else(|error| EngineEvent::PortFailed {
+        cmd: cmd.clone(),
+        what: describe(cmd),
+        error,
+    })
 }
 
 /// A port's chunk answer as the roadmap event the engines would announce.
 fn chunk_event(
     answer: Result<Chunk, String>,
     frame: impl FnOnce(Chunk) -> RoadmapFrame,
-    what: String,
-    cmd: &EngineCmd,
-) -> EngineEvent {
-    match answer {
-        Ok(chunk) => EngineEvent::local(NativeEvent::Roadmap(frame(chunk))),
-        Err(error) => EngineEvent::PortFailed {
-            cmd: cmd.clone(),
-            what,
-            error,
-        },
-    }
+) -> Result<EngineEvent, String> {
+    answer.map(|chunk| EngineEvent::local(NativeEvent::Roadmap(frame(chunk))))
 }
 
 /// A port's signal answer as the signal event the engines would announce.
 fn signal_event(
     answer: Result<Signal, String>,
     frame: impl FnOnce(Signal) -> SignalFrame,
-    what: String,
-    cmd: &EngineCmd,
-) -> EngineEvent {
-    match answer {
-        Ok(signal) => EngineEvent::local(NativeEvent::Signal(frame(signal))),
-        Err(error) => EngineEvent::PortFailed {
-            cmd: cmd.clone(),
-            what,
-            error,
-        },
-    }
+) -> Result<EngineEvent, String> {
+    answer.map(|signal| EngineEvent::local(NativeEvent::Signal(frame(signal))))
 }
 
 /// The report as readable lines: pretty-printed, since its shape is the

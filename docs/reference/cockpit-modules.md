@@ -81,6 +81,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/agent/permission_kind.rs` | What choosing a permission option means | `magistr-cockpit/src/agent/permission_kind.tests.rs` |
 | `magistr-cockpit/src/agent/policy_decision.rs` | What a policy says about one permission request | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/session.rs` | Relays application session events to the inbox and explicit commands to the shared owner; stamps presentation timing and serves local effect ports | `magistr-cli/tests/session_harness.rs`, `magistr-cockpit/src/agent/session.tests.rs` |
+| `magistr-cockpit/src/agent/session_jobs.rs` | The blocking port calls a session relay owns: a capacity, a fence closed before the session ends so late answers never post, a join grace | `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/agent/session_options.rs` | What a session does once the handshake completes | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/session_policy.rs` | The decision a session asks for before a permission request reaches the cockpit | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/tool_record.rs` | Tool-call metadata and output, bounded by `ToolRecord::CAP` and stored with the source line | `magistr-cockpit/src/agent/tool_record.tests.rs`, `magistr-cockpit/src/turn/stream.tests.rs` |
@@ -112,6 +113,7 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-cockpit/src/checkpoint/mod.rs` | Checkpoint operations for the session ledger | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/checkpoint/apply.rs` | One checkpoint command, carried out on a port | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/checkpoint/describe.rs` | What a checkpoint command asked, in the words a refusal names | `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/checkpoint/detach.rs` | Runs checkpoint operations on a blocking thread and returns results through the inbox | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/checkpoint/port.rs` | Where a checkpoint is actually taken, resumed and forked | `magistr-cli/tests/session_harness.rs` |
 
@@ -259,6 +261,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/engine/apply.rs` | Carrying an engine command out on a port | `magistr-cockpit/src/engine/apply.tests.rs` |
 | `magistr-cockpit/src/engine/attached_port.rs` | The engine port over an owner this process did not open | `magistr-cockpit/src/engine/client.tests.rs` |
 | `magistr-cockpit/src/engine/client.rs` | The engines, opened before the terminal is taken over | `magistr-cockpit/src/engine/client.tests.rs` |
+| `magistr-cockpit/src/engine/describe.rs` | What an engine command asked, in the words a refusal names | `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/engine/error.rs` | Why the engines could not open | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cockpit/src/engine/event.rs` | What the feed — or the cockpit's own engine port — reports | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cockpit/src/engine/feed.rs` | The broadcast socket decoded at the edge into typed events with their delivery, relayed onto the inbox | `magistr-cockpit/src/engine/feed.tests.rs` |
@@ -436,6 +439,7 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-cockpit/src/workbench/mod.rs` | The workbench behind the cockpit's Changes tab, as a port | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/apply.rs` | One workbench command, carried out on a port | `magistr-cockpit/src/workbench/apply.tests.rs` |
+| `magistr-cockpit/src/workbench/describe.rs` | What a workbench command asked, in the words a refusal names | `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/workbench/journal_entry.rs` | One journaled edit, as the workbench recorded it | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/mcp_client.rs` | One MCP server on the other end of a pipe | `magistr-cockpit/src/workbench/mcp_client.tests.rs` |
 | `magistr-cockpit/src/workbench/mcp_workbench.rs` | The workbench port over a real workbench-mcp server | `magistr-cockpit/src/workbench/mcp_workbench.tests.rs` |

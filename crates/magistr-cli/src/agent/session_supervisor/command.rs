@@ -13,6 +13,8 @@ pub(super) enum Command {
         turn_id: Option<u64>,
     },
     Terminate,
+    /// Stop admitting, cancel the active turn, close after its terminal.
+    Interrupt,
     Detach,
     BeginGoal {
         method: String,

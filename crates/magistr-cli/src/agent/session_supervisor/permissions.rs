@@ -12,13 +12,14 @@ use magistr_cockpit::agent::{
 use tokio::sync::mpsc;
 
 use super::{Inner, Policy};
+use crate::agent::observation::ObservationSender;
 use crate::permissions::NoninteractivePolicy;
 
 pub(super) struct Permissions {
     receiver: Option<mpsc::UnboundedReceiver<AcpPermissionRequest>>,
     policy: Option<Box<dyn SessionPolicy>>,
     handling: Option<NoninteractivePolicy>,
-    events: Option<mpsc::UnboundedSender<AgentEvent>>,
+    events: Option<ObservationSender<AgentEvent>>,
     pending: HashMap<u64, AcpPermissionRequest>,
     next_id: u64,
 }
@@ -44,7 +45,7 @@ impl Permissions {
     pub(super) fn interactive(
         receiver: Option<mpsc::UnboundedReceiver<AcpPermissionRequest>>,
         policy: Box<dyn SessionPolicy>,
-        events: mpsc::UnboundedSender<AgentEvent>,
+        events: ObservationSender<AgentEvent>,
     ) -> Self {
         Self {
             receiver,

@@ -14,6 +14,7 @@
 //! [`WorkbenchEvent`]: crate::cockpit::WorkbenchEvent
 
 pub mod apply;
+pub mod describe;
 pub mod journal_entry;
 pub mod mcp_client;
 pub mod mcp_workbench;
@@ -21,6 +22,7 @@ pub mod port;
 pub mod run_row;
 
 pub use apply::apply;
+pub use describe::describe;
 pub use journal_entry::JournalEntry;
 pub use mcp_client::McpClient;
 pub use mcp_workbench::McpWorkbench;

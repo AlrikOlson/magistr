@@ -82,14 +82,30 @@ async fn run_loop(
     let mut session_id = None;
     let mut control: Option<ControlFuture<'_>> = None;
     let mut goal: Option<super::goal::Goal> = None;
+    // The process-wide interrupt is observed once; a caller's own
+    // `interrupt` takes the same path through the command lane.
+    let shutdown = crate::utils::shutdown::Shutdown::token();
+    let mut interrupted = false;
     loop {
         if !start_next(transport, permissions, state) {
             break;
         }
         tokio::select! {
+            () = shutdown.cancelled(), if !interrupted => {
+                interrupted = true;
+                if !drain(transport, permissions, state) {
+                    break;
+                }
+            }
             command = commands.recv() => match command {
                 None | Some(Command::Terminate) => break,
                 Some(Command::Wake) => {},
+                Some(Command::Interrupt) => {
+                    interrupted = true;
+                    if !drain(transport, permissions, state) {
+                        break;
+                    }
+                }
                 Some(Command::Detach) => permissions.drain(),
                 Some(Command::Permission { id, option_id }) => permissions.reply(id, option_id, state),
                 Some(Command::Constraint { id, condition }) => permissions.constrain(id, &condition, state),
@@ -248,6 +264,29 @@ async fn run_loop(
     }
 }
 
+/// Wind down after an interrupt: no further admission, queued input
+/// discarded, the active turn asked to stop. `false` when nothing is
+/// active and the owner can close at once; otherwise the provider's
+/// terminal response ends the loop through [`start_next`].
+fn drain(transport: &AcpTransport, permissions: &mut Permissions, state: &Mutex<Inner>) -> bool {
+    let mut inner = state.lock().expect("supervisor state lock poisoned");
+    inner.draining = true;
+    inner.discard_queue("interrupted");
+    if inner.snapshot.active_turn.is_none() {
+        return false;
+    }
+    if inner.snapshot.cancellation_requested {
+        return true;
+    }
+    inner.snapshot.cancellation_requested = true;
+    permissions.drain();
+    if let Err(error) = transport.cancel() {
+        fail(&mut inner, format!("Provider cancellation failed: {error}"));
+        return false;
+    }
+    true
+}
+
 fn start_next(
     transport: &AcpTransport,
     permissions: &mut Permissions,
@@ -255,6 +294,9 @@ fn start_next(
 ) -> bool {
     let mut inner = state.lock().expect("supervisor state lock poisoned");
     if inner.closing {
+        return false;
+    }
+    if inner.draining && inner.snapshot.active_turn.is_none() {
         return false;
     }
     if inner.snapshot.active_turn.is_some()

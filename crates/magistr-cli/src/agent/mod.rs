@@ -13,6 +13,7 @@ pub mod message;
 pub mod mock;
 #[cfg(test)]
 pub mod mock_followups;
+pub mod observation;
 pub mod probe;
 pub mod probe_model;
 pub mod provider_model_set;

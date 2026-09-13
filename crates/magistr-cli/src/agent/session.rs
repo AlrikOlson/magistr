@@ -3,10 +3,14 @@
 //! Provider residency, turn admission and permission lifecycle belong to the
 //! backend's reusable supervisor; this facade tracks the observed session ID.
 
+#[cfg(test)]
 use tokio::sync::mpsc;
 use tracing::instrument;
 
 use crate::agent::message::{AgentMessage, SessionId};
+use crate::agent::observation::ObservationReceiver;
+#[cfg(test)]
+use crate::agent::observation::{ObservationCapacity, ObservationSender};
 use crate::error::Result;
 
 // Canonical definition lives in magistr-core. Re-export for backward compatibility.
@@ -44,7 +48,7 @@ pub struct AgentSession {
     /// The active backend.
     backend: SessionBackend,
     /// Receiver for messages from the backend.
-    message_rx: mpsc::UnboundedReceiver<Result<AgentMessage>>,
+    message_rx: ObservationReceiver<Result<AgentMessage>>,
     /// The session ID returned from the most recent terminal response.
     session_id: Option<SessionId>,
     /// The frozen initial model selection; None retains the runtime's model.
@@ -81,8 +85,8 @@ impl AgentSession {
     /// No real ACP connection — tests push messages through the returned sender.
     /// Returns `(session, message_sender)`.
     #[cfg(test)]
-    pub fn from_channel() -> (Self, mpsc::UnboundedSender<Result<AgentMessage>>) {
-        let (msg_tx, msg_rx) = mpsc::unbounded_channel();
+    pub fn from_channel() -> (Self, ObservationSender<Result<AgentMessage>>) {
+        let (msg_tx, msg_rx) = crate::agent::observation::channel(ObservationCapacity::DEFAULT);
         let (followup_tx, _followup_rx) = mpsc::unbounded_channel::<String>();
         let session = Self {
             backend: SessionBackend::Channel {
@@ -104,10 +108,10 @@ impl AgentSession {
     #[allow(clippy::type_complexity)]
     pub fn from_channel_with_followups() -> (
         Self,
-        mpsc::UnboundedSender<Result<AgentMessage>>,
+        ObservationSender<Result<AgentMessage>>,
         std::sync::Arc<std::sync::Mutex<Vec<String>>>,
     ) {
-        let (msg_tx, msg_rx) = mpsc::unbounded_channel();
+        let (msg_tx, msg_rx) = crate::agent::observation::channel(ObservationCapacity::DEFAULT);
         let (followup_tx, _followup_rx) = mpsc::unbounded_channel::<String>();
         let follow_ups = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let session = Self {
@@ -219,6 +223,16 @@ impl AgentSession {
         }
     }
 
+    /// Wind the session down the way an interrupt does: no further turn,
+    /// the active one cancelled, the transport closed after its terminal.
+    pub fn interrupt(&self) -> Result<()> {
+        match &self.backend {
+            SessionBackend::Acp(backend) => backend.interrupt(),
+            #[cfg(test)]
+            SessionBackend::Channel { .. } => Ok(()),
+        }
+    }
+
     /// End residency and await the owned transport's cleanup.
     pub async fn terminate_session(&mut self) -> Result<()> {
         #[cfg(test)]
@@ -240,7 +254,6 @@ impl AgentSession {
             SessionBackend::Channel { .. } => {}
         }
         self.message_rx.close();
-        while self.message_rx.try_recv().is_ok() {}
     }
 
     /// Precise cancellation, outcome and residency facts for real sessions.

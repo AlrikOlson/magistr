@@ -13,14 +13,15 @@ use agent_client_protocol::{
 use magistr_cockpit::agent::{AgentEvent, SessionOptions, TurnEnd};
 use magistr_tui::harness::FakeAcpAgent;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
+
+use crate::agent::observation::ObservationReceiver;
 
 use super::{CountingAllow, DEADLINE, SessionResidency, SessionSupervisor};
 
 struct GoalFixture {
     supervisor: SessionSupervisor,
-    events: mpsc::UnboundedReceiver<AgentEvent>,
+    events: ObservationReceiver<AgentEvent>,
     session_id: String,
     server: JoinHandle<Result<(), Error>>,
     _directory: tempfile::TempDir,
