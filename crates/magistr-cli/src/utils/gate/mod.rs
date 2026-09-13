@@ -8,11 +8,13 @@
 //! red gate was one sentence. This module is the single runner both go
 //! through, so the two paths cannot disagree about what a gate did.
 //!
-//! What it deliberately does **not** unify is the *resolver*. The MCP path
-//! resolves its commands through `resolve_gates` (the polyglot,
-//! per-archetype specs); the loop driver reads the top-level `quality_gate`
-//! through `magistr_core::gate_command`. Sharing the runner must not
-//! silently move the loop onto a different set of commands.
+//! The *resolver* is shared too, one step up: the MCP path resolves its
+//! commands through `resolve_gates` (the polyglot, per-archetype specs)
+//! and the loop driver asks the evidence capability's `required_gates`,
+//! which is `resolve_gates("all")` filtered to the required set — the
+//! contracts native completion verifies. The loop used to read the
+//! top-level `quality_gate` on its own, which on a polyglot project or one
+//! with required custom gates left receipts completion could never accept.
 
 mod gate_run;
 mod gate_verdict;

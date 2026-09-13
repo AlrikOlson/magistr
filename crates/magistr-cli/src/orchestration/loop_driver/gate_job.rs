@@ -14,8 +14,10 @@ use tokio_util::sync::CancellationToken;
 use super::gate_outcome::GateOutcome;
 use crate::utils::gate::run_gate;
 
-/// How long one gate may run, as the legacy gate runner allowed.
-const GATE_TIMEOUT_SECS: u64 = 300;
+/// How long one gate may run. The set is the project's whole contract —
+/// its custom gates included, a release smoke among them — not the three
+/// cargo commands the legacy runner's 300 s was sized for.
+const GATE_TIMEOUT_SECS: u64 = 1800;
 
 /// The closure [`Jobs::spawn_job`](magistr_cockpit::job::Jobs::spawn_job)
 /// runs for the gate `name`: `command` under `sh -c` in `dir` through the
@@ -34,7 +36,7 @@ const GATE_TIMEOUT_SECS: u64 = 300;
 /// the job returns promptly instead of keeping the runtime's shutdown
 /// waiting on the child.
 pub(crate) fn gate_job(
-    name: &'static str,
+    name: String,
     command: String,
     dir: PathBuf,
     report: UnboundedSender<GateOutcome>,
@@ -42,19 +44,21 @@ pub(crate) fn gate_job(
     cancel: CancellationToken,
 ) -> impl FnOnce() -> JobOutput + Send + 'static {
     move || {
+        let gate = name.clone();
         let stream = move |bytes: &[u8]| {
             let output = GateOutput {
-                gate: name.to_owned(),
+                gate: gate.clone(),
                 bytes: bytes.to_vec(),
             };
             inbox.send(Msg::Engine(EngineEvent::local(NativeEvent::Magistr(
                 MagistrFrame::GateOutput(output),
             ))));
         };
-        // Every gate the loop runs is one the project requires: they are
-        // the top-level `quality_gate`, not the optional custom set.
+        // Every gate the loop runs is one the project requires: the set is
+        // the required contracts completion verifies, never an optional
+        // custom gate.
         let run = Handle::current().block_on(run_gate(
-            name,
+            &name,
             &command,
             true,
             &dir,

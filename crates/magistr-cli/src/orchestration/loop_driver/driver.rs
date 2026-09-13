@@ -36,11 +36,12 @@ use crate::orchestration::goal::{
 };
 use crate::permissions::PermissionProfile;
 use crate::utils::gate::GateVerdict;
-use crate::validate::{Gate, gate_command};
 use crate::workflow::WorkflowConfig;
 use crate::workflow::iteration::{
     AttemptId, IterationLoop, OperationKind, OperationOutcome, PostCheckResult, PreCheckResult,
 };
+use magistr_core::evidence::WorkspaceEvidence;
+use magistr_engine::native::EvidencePort;
 
 /// How long a session gets to end its agent once its turn is over.
 const SESSION_GRACE: Duration = Duration::from_secs(5);
@@ -121,6 +122,10 @@ pub struct LoopDriver {
     /// judge grants names the task its evidence sits on. `None` when the
     /// trace had no task to record on (the gates then went unrecorded).
     verification_task: Option<String>,
+    /// Why this iteration's gate set could not be resolved, when it could
+    /// not: the iteration then failed, whatever ran. One-shot, read by the
+    /// boundary that settles the set.
+    gates_unresolved: Option<String>,
     /// What the last iteration's red gates left for the next prompt: the
     /// failure rows themselves, not a sentence about them. One-shot —
     /// appended to the next prompt and cleared.
@@ -280,6 +285,7 @@ impl LoopDriver {
             completed: Vec::new(),
             target: None,
             verification_task: None,
+            gates_unresolved: None,
             transcript: String::new(),
             iterations: 0,
             metrics: Vec::new(),
@@ -1531,6 +1537,17 @@ impl LoopDriver {
     /// the cockpit closed meanwhile — cancelling the jobs on the way
     /// out, so no gate's process outlives the quit.
     ///
+    /// The set is the one native completion verifies: the contracts the
+    /// project's evidence capability resolves for its root at this moment
+    /// — one spec per archetype command in the archetype's directory, the
+    /// project's own command once however many archetypes name it, and
+    /// the required custom gates — under the names and commands the
+    /// contracts carry, so a judged completion stands on these receipts.
+    /// A set that cannot be resolved fails the iteration at the boundary:
+    /// completion would refuse the same unreadable configuration, and an
+    /// empty green set would say "nothing configured" about a project
+    /// that configured something.
+    ///
     /// One at a time. `cargo check`, `cargo nextest` and `cargo clippy`
     /// contend for one build lock on one target directory, so racing them
     /// buys no wall clock and costs the ability to say which gate spent
@@ -1562,14 +1579,20 @@ impl LoopDriver {
             .ok()
             .map(|target| target.task_id.clone());
         let mut said_why_not = false;
-        // The loop's gates are the project's top-level `quality_gate`,
-        // deliberately not `resolve_gates`' per-archetype specs: sharing
-        // the *runner* with `magistr_gate` must not silently change which
-        // commands the loop runs.
-        let quality_gate = self.wf.project_config.quality_gate.clone();
+        // The same capability, on the same root, read the same way the
+        // completion reads it: the writer's evidence port is this type on
+        // this directory, and a loop without engines runs the identical
+        // set unrecorded.
+        let contracts = match WorkspaceEvidence::new(&self.wf.project_dir).required_gates() {
+            Ok(contracts) => contracts,
+            Err(why) => {
+                self.gates_unresolved = Some(why);
+                return Some(Vec::new());
+            }
+        };
         let mut outcomes = Vec::new();
-        for gate in Gate::all() {
-            let command = gate_command(&quality_gate, gate);
+        for contract in contracts {
+            let (name, command) = (contract.name, contract.command);
             if command.trim().is_empty() {
                 continue;
             }
@@ -1585,8 +1608,8 @@ impl LoopDriver {
                         engines,
                         &self.wf.project_dir,
                         Some(&target.task_id),
-                        gate.label(),
-                        command.to_owned(),
+                        &name,
+                        command.clone(),
                         true,
                     )
                     .map_err(|why| why.to_string())?;
@@ -1596,7 +1619,7 @@ impl LoopDriver {
                     Ok(admission)
                 });
             let first = match self
-                .one_gate(gate.label(), command, &cancel, started, ticks)
+                .one_gate(&name, &command, &cancel, started, ticks)
                 .await
             {
                 GateStep::Ran(outcome) => outcome,
@@ -1616,7 +1639,7 @@ impl LoopDriver {
                 first.name, first.exit_code
             ));
             match self
-                .one_gate(gate.label(), command, &cancel, started, ticks)
+                .one_gate(&name, &command, &cancel, started, ticks)
                 .await
             {
                 GateStep::Ran(again) if again.passed() => {
@@ -1731,7 +1754,7 @@ impl LoopDriver {
     /// gate, the way one shared channel could only detect it for all.
     async fn one_gate(
         &mut self,
-        name: &'static str,
+        name: &str,
         command: &str,
         cancel: &CancellationToken,
         started: Instant,
@@ -1743,7 +1766,7 @@ impl LoopDriver {
         // timeout would — and the run comes back cancelled.
         let own = cancel.child_token();
         let job = self.jobs.spawn_job(gate_job(
-            name,
+            name.to_owned(),
             command.to_owned(),
             self.wf.project_dir.clone(),
             report,
@@ -1806,7 +1829,17 @@ impl LoopDriver {
             .filter(|gate| !gate.passed())
             .map(|gate| format!("{} {}", gate.name, gate.verdict.label()))
             .collect();
-        if gates.is_empty() {
+        if let Some(why) = self.gates_unresolved.take() {
+            self.post(LoopEvent::Failed(format!(
+                "quality gates not resolved — nothing ran: {why}"
+            )));
+            if self.auto_pause {
+                self.paused = true;
+                self.post(LoopEvent::Paused(format!(
+                    "quality gates not resolved: {why}"
+                )));
+            }
+        } else if gates.is_empty() {
             self.note("no quality gates configured");
         } else if failed.is_empty() {
             let secs: f64 = gates.iter().map(|g| g.duration.as_secs_f64()).sum();

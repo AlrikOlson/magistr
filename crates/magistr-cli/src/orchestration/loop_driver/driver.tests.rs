@@ -248,6 +248,43 @@ fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
     dir
 }
 
+/// A two-archetype project: `api/` and `web/`, each with a test command
+/// that passes only in its own directory (`test -f <marker>` against a
+/// marker that exists there and nowhere else), both naming the project's
+/// own `check` and `lint` (one run each, not one per archetype), a
+/// required custom gate `smoke` and an optional custom gate `never` that
+/// `all` does not run. The top-level `test` is green on purpose: a loop
+/// resolving only the top level would never see `web_test` fail.
+fn polyglot_project(web_test: &str, smoke: &str) -> tempfile::TempDir {
+    let dir = project("true", "true", "true");
+    for arch in ["api", "web"] {
+        let root = dir.path().join(arch);
+        std::fs::create_dir_all(&root).expect("archetype root");
+        std::fs::write(root.join(format!("{arch}.marker")), "").expect("marker");
+    }
+    let archetype = |id: &str, language: &str, role: &str, test: &str| {
+        serde_json::json!({
+            "id": id, "name": id, "language": language, "root": id, "role": role,
+            "quality_gate": {"check": "true", "test": test, "lint": "true"},
+            "format": {"command": "true", "extensions": []},
+            "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"}
+        })
+    };
+    let path = dir.path().join(".magistr/project.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).expect("project.json")).expect("json");
+    config["archetypes"] = serde_json::json!([
+        archetype("api", "rust", "backend", "test -f api.marker"),
+        archetype("web", "typescript", "frontend", web_test),
+    ]);
+    config["custom_gates"] = serde_json::json!([
+        {"name": "smoke", "command": smoke, "required": true},
+        {"name": "never", "command": "exit 99", "required": false},
+    ]);
+    std::fs::write(&path, config.to_string()).expect("project.json");
+    dir
+}
+
 /// The connector that hands every connection to a fresh copy of `agent`
 /// over a duplex channel, and what each of them observed.
 fn fake_connector(agent: FakeAcpAgent) -> (Connector, Arc<Mutex<Vec<Arc<AcpObserved>>>>) {
@@ -1309,6 +1346,190 @@ async fn a_judged_completion_names_the_task_its_gates_were_recorded_on() {
     assert_eq!(done.cross_refs, vec!["task:impl".to_owned()]);
 }
 
+/// On a polyglot project the loop runs the set completion verifies: one
+/// spec per archetype command in the archetype's directory, the project's
+/// own command once however many archetypes name it, and the required
+/// custom gates — under the names and commands the contracts carry, so
+/// the judged completion stands on the loop's own receipts.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_two_archetype_project_completes_through_the_loops_own_receipts() {
+    let dir = polyglot_project("test -f web.marker", "true");
+    let engines = engines_with_active_task(dir.path());
+    let judge = Scripted::new([Verdict::met("both criteria hold")]);
+    let script = Script::new().startup_replies(MS(0)).text(MS(4_000), "\x04");
+    let (model, report, _) = run_with(
+        dir.path(),
+        1,
+        script,
+        FakeAcpAgent::new().reply("did the thing"),
+        false,
+        Some(engines.clone()),
+        Some(judge),
+    )
+    .await;
+    assert_eq!(report.iterations(), 1);
+    engines.reload_ship();
+    let checks = recorded(&engines);
+    let names: Vec<&str> = checks.iter().map(|c| c.name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["check", "test:api", "test:web", "lint", "smoke"],
+        "the contracts, in their order, deduplicated, without the optional gate: {names:?}"
+    );
+    for check in &checks {
+        assert!(check.passed, "{} passed: {}", check.name, check.details);
+        assert!(check.verified && check.required, "{}", check.name);
+    }
+    let api = checks
+        .iter()
+        .find(|c| c.name == "test:api")
+        .expect("test:api");
+    assert_eq!(
+        api.command.as_deref(),
+        Some("cd api && test -f api.marker"),
+        "the archetype's command carries its directory, as the contract spells it"
+    );
+    let jobs_done = model.jobs_done();
+    assert_eq!(jobs_done, 5, "five gates ran, none twice");
+    engines.reload_roadmap();
+    let done = engines.roadmap_chunk("work").expect("the chunk");
+    assert_eq!(
+        done.status,
+        ChunkStatus::Done,
+        "completion accepted the loop's receipts as its contracts"
+    );
+    assert_eq!(done.cross_refs, vec!["task:impl".to_owned()]);
+    assert!(
+        !notes(&model).iter().any(|n| n.contains("not recorded")),
+        "nothing said it could not record"
+    );
+}
+
+/// A required custom gate is part of the loop's set: red, it is a
+/// disagreement with the judge and the chunk stays where it is.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_red_required_custom_gate_refuses_the_judged_completion() {
+    let dir = polyglot_project("test -f web.marker", "exit 3");
+    let engines = engines_with_active_task(dir.path());
+    let judge = Scripted::new([Verdict::met("looks done to me")]);
+    let script = Script::new().startup_replies(MS(0)).text(MS(4_000), "\x04");
+    let (model, _, _) = run_with(
+        dir.path(),
+        1,
+        script,
+        FakeAcpAgent::new().reply("did the thing"),
+        false,
+        Some(engines.clone()),
+        Some(judge),
+    )
+    .await;
+    engines.reload_roadmap();
+    assert_ne!(
+        engines.roadmap_chunk("work").expect("the chunk").status,
+        ChunkStatus::Done,
+        "a red required custom gate cannot be judged green"
+    );
+    let stage = stage_text(&model);
+    assert!(
+        stage.contains("but the gates disagree: smoke failed — the chunk stays in progress"),
+        "{stage}"
+    );
+    engines.reload_ship();
+    let smoke = recorded(&engines)
+        .into_iter()
+        .find(|c| c.name == "smoke")
+        .expect("the custom gate is on the record");
+    assert!(!smoke.passed);
+    assert_eq!(smoke.exit_code, Some(3));
+    assert_eq!(smoke.command.as_deref(), Some("exit 3"));
+}
+
+/// A gate configuration that cannot be resolved when the set is due —
+/// the agent's turn broke project.json — is a failed iteration, not a
+/// green one with "no quality gates configured": completion would refuse
+/// the same configuration, so the loop says so and pauses on it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_set_that_cannot_be_resolved_fails_the_iteration_instead_of_passing_empty() {
+    let dir = project("true", "true", "true");
+    let engines = engines_with_active_task(dir.path());
+    let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("broke the config"));
+    let inner = Arc::new(inner);
+    let config = dir.path().join(".magistr/project.json");
+    let connector = Connector::new(move |cfg| {
+        std::fs::write(&config, "{ not json").expect("break project.json");
+        let inner = Arc::clone(&inner);
+        async move { inner.connect(cfg).await }
+    });
+    let script = Script::new().startup_replies(MS(0)).text(MS(4_000), "\x04");
+    let (model, _, _) = run_over(
+        dir.path(),
+        1,
+        script,
+        connector,
+        seen,
+        true,
+        Some(engines.clone()),
+        None,
+    )
+    .await;
+    let status = model.loop_status().expect("the strip saw the loop");
+    assert!(
+        status.is_paused(),
+        "an unresolved set pauses like a red one"
+    );
+    let stage = stage_text(&model);
+    assert!(
+        stage.contains("quality gates not resolved — nothing ran: parse gate configuration"),
+        "{stage}"
+    );
+    assert!(
+        !stage.contains("no quality gates configured") && !stage.contains("gates passed"),
+        "never read as green or unconfigured: {stage}"
+    );
+    assert_eq!(model.jobs_done(), 0, "nothing ran");
+}
+
+/// A required archetype gate cannot disappear behind a green top-level
+/// command: the top-level `test` is `true`, the web archetype's is red,
+/// and the loop runs the archetype's.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_required_archetype_gate_cannot_disappear_behind_a_green_top_level_command() {
+    let dir = polyglot_project("exit 5", "true");
+    let engines = engines_with_active_task(dir.path());
+    let judge = Scripted::new([Verdict::met("looks done to me")]);
+    let script = Script::new().startup_replies(MS(0)).text(MS(4_000), "\x04");
+    let (model, _, _) = run_with(
+        dir.path(),
+        1,
+        script,
+        FakeAcpAgent::new().reply("did the thing"),
+        false,
+        Some(engines.clone()),
+        Some(judge),
+    )
+    .await;
+    let status = model.loop_status().expect("the strip saw the loop");
+    assert_eq!(status.gates_passed(), Some(false));
+    engines.reload_roadmap();
+    assert_ne!(
+        engines.roadmap_chunk("work").expect("the chunk").status,
+        ChunkStatus::Done
+    );
+    engines.reload_ship();
+    let web = recorded(&engines)
+        .into_iter()
+        .find(|c| c.name == "test:web")
+        .expect("the archetype's gate is on the record under the contract's name");
+    assert!(!web.passed);
+    assert_eq!(web.exit_code, Some(5));
+    assert_eq!(web.command.as_deref(), Some("cd web && exit 5"));
+    assert!(
+        stage_text(&model).contains("the gates disagree: test:web failed"),
+        "{}",
+        stage_text(&model)
+    );
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_ok_verdict_over_a_red_gate_is_a_disagreement_and_the_chunk_stays() {
     let dir = project("true", "true", "false");
@@ -1766,20 +1987,24 @@ async fn a_gate_that_fails_then_passes_is_a_flake_and_does_not_pause_the_loop() 
     );
 }
 
-/// The loop's gates are the project's top-level `quality_gate`. Sharing
-/// the *runner* with `magistr_gate` must not silently move the loop onto
-/// `resolve_gates`' per-archetype specs, which would change which
-/// commands run on a polyglot project.
+/// The loop's gates are the contracts native completion verifies,
+/// resolved through the same evidence capability completion asks —
+/// never the top-level `quality_gate` alone, and never a second
+/// resolution beside the capability's.
 #[test]
-fn the_loop_resolves_its_gates_from_the_top_level_quality_gate() {
+fn the_loop_resolves_its_gates_through_the_evidence_capability() {
     let driver = include_str!("driver.rs");
     assert!(
-        driver.contains("gate_command(&quality_gate, gate)"),
-        "the loop reads the top-level quality_gate"
+        driver.contains("WorkspaceEvidence::new(") && driver.contains(".required_gates()"),
+        "the loop asks the evidence capability for the project's required gates"
+    );
+    assert!(
+        !driver.contains("gate_command("),
+        "the loop does not read the top-level quality_gate on its own"
     );
     assert!(
         !driver.contains("resolve_gates("),
-        "the loop does not call the per-archetype gate resolver"
+        "the loop does not resolve gates beside the capability"
     );
 }
 
