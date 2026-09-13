@@ -19,7 +19,7 @@ async fn a_gates_bytes_reach_the_inbox_as_frames_before_its_outcome() {
     let jobs = Jobs::new(inbox.clone());
     let (report, mut outcomes) = unbounded_channel();
     let id = jobs.spawn_job(gate_job(
-        "check",
+        "check".to_owned(),
         "printf '\\033[32mok\\033[0m\\n'".to_owned(),
         std::env::current_dir().expect("a working directory"),
         report,
