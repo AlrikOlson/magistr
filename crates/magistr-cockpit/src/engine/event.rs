@@ -1,6 +1,6 @@
 //! What the feed — or the cockpit's own engine port — reports.
 
-use magistr_engine::{Delivery, FeedStatus, NativeEvent, NativeSnapshot};
+use magistr_engine::{Delivery, FeedStatus, NativeEvent, NativeSnapshot, SnapshotCursor};
 
 use crate::cockpit::EngineCmd;
 
@@ -32,6 +32,16 @@ pub enum EngineEvent {
     /// start and what the re-seed posts on its timer or when the feed asks
     /// for one, for state recorded while no frame carried it.
     Seed(NativeSnapshot),
+    /// The store, looked at because the feed asked for a snapshot, stands
+    /// where the last seed left it: a bookmark rather than a read, so a
+    /// projection marked stale by a hangup, a gap or a new owner can come
+    /// back to current without a store mutation and without re-seeding a
+    /// view. Only a request earns one — the re-seed's own timer posts
+    /// nothing over an unchanged store.
+    Confirmed {
+        /// Where the store stood, as the seed it confirms named it.
+        cursor: Option<SnapshotCursor>,
+    },
     /// The port marked the step at the cockpit's ask.
     Pinned {
         /// The step that was marked.

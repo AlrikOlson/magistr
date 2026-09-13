@@ -68,8 +68,10 @@ Native persistence merges additions on disk but does not refresh another
 handle's cached reads. The existing two-writer and reload scenarios demonstrate
 this limit. They do not prove serializable application commands or atomic
 cross-family writes. Detached cockpit reseeding reloads roadmap/ship/signal on
-a changed store stamp; socket attachment or a recent timestamp is not proof of
-a coherent global revision.
+a changed store stamp, and a snapshot the feed asked for over an unchanged
+stamp is confirmed rather than re-read; socket attachment or a recent timestamp
+is not proof of a coherent global revision — the projection's freshness is
+restored only by a seed or by that confirmation.
 
 ## Session entry inventory and behavior
 
@@ -365,7 +367,7 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 | Occupied ownership reached through the owner endpoint with no second lease; stale generation refused until reconnect; detach cancels nothing; command deadline on a silent owner; handshake refuses protocol/project/role/kind; owner shutdown leaves the client without a writer; a second cockpit acts through the running host and fails closed without an endpoint; a real second `magistr mcp-serve` attaches, writes through the owner and ends with it | Engine `native::owner_endpoint::tests`, `native::owner_generation::tests`, `native::owner_socket::tests`; cockpit `engine::client::tests`; CLI integration `mcp_project_owner` |
 | Native iteration with real recorded gates and task/think completion references | CLI integration `next_iteration_integration` |
 | Red outer gates reopen self-completion; green evidence retains it | CLI `orchestration::loop_driver::driver::tests` |
-| Cached-writer merge/reload and detached projection reseed | Engine `native::native_engines::tests`; cockpit `engine::reseed::tests` |
+| Cached-writer merge/reload, detached projection reseed and the requested resynchronization that confirms an unchanged store | Engine `native::native_engines::tests`; cockpit `engine::reseed::tests`, `cockpit::projection::tests`, `cockpit::update::tests` (reconnect over an unchanged store, owner change) |
 | One write path: in-process promotion creates and cross-links the backlog chunk as the verb does; the handlers' refusals are the writer's; a green `magistr_gate(all)` leaves one verified check per gate on the named task and opens `done`, running each command once; a judged loop completion names the task its gates were recorded on; no writer escape hatch outside `magistr-engine/src/native` and no transport self-call | Engine `native::native_engines::tests`, `native::handler_call::tests`; CLI integration `mcp_serve_integration`; CLI `orchestration::loop_driver::driver::tests`; the `native-write-path` gate |
 | Durable operations: outcome transitions and admission rules; atomic checkpoint survives a torn temporary; crash injection around reservation, native mutation, receipt, publication and a real provider child process; an open dispatch ends the loop `Unreconciled` without a launch or a terminal reason; a judged iteration leaves every kind settled under one run | [Domain ledger tests](../../crates/magistr-domain/src/workflow/operation_ledger.tests.rs); [core crash-injection tests](../../crates/magistr-core/src/workflow/iteration_operations.tests.rs), `durable_write` and `process_alive` tests; CLI `orchestration::loop_driver::driver::tests` |
 

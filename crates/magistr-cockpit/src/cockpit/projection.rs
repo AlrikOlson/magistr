@@ -10,7 +10,10 @@ use super::freshness::Freshness;
 /// cannot disagree with them.
 ///
 /// It decides one thing for the views: a duplicate is not folded, so a
-/// frame delivered twice counts once. Everything else it only records.
+/// frame delivered twice counts once. Everything else it only records —
+/// including the answer to the snapshot the feed asks for after a
+/// hangup, a gap or a new owner, which is a seed when the store moved
+/// and a confirmation when it did not.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Projection {
     freshness: Freshness,
@@ -33,6 +36,16 @@ impl Projection {
     /// A snapshot landed: the model is the store again.
     pub const fn seeded(&mut self) {
         self.freshness = Freshness::Current;
+    }
+
+    /// The snapshot the feed asked for was not needed: the store stands
+    /// where the last one left it, so what went stale is current after
+    /// all. A view that never read anything has nothing the store could
+    /// confirm and stays unavailable.
+    pub const fn confirmed(&mut self) {
+        if matches!(self.freshness, Freshness::Stale) {
+            self.freshness = Freshness::Current;
+        }
     }
 
     /// An event arrived with `delivery`; whether the views should fold it.

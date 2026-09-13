@@ -42,12 +42,21 @@ fn add_chunk(engines: &NativeEngines, id: &str) {
         .expect("add chunk");
 }
 
+/// The next engine event, or `None` when nothing arrived within `within`.
+async fn next_event(rx: &mut UnboundedReceiver<Msg>, within: Duration) -> Option<EngineEvent> {
+    match tokio::time::timeout(within, rx.recv()).await {
+        Ok(Some(Msg::Engine(event))) => Some(event),
+        Ok(other) => panic!("not an engine event: {other:?}"),
+        Err(_) => None,
+    }
+}
+
 /// The next seed, or `None` when nothing arrived within `within`.
 async fn next_seed(rx: &mut UnboundedReceiver<Msg>, within: Duration) -> Option<NativeSnapshot> {
-    match tokio::time::timeout(within, rx.recv()).await {
-        Ok(Some(Msg::Engine(EngineEvent::Seed(seed)))) => Some(seed),
-        Ok(other) => panic!("not a seed: {other:?}"),
-        Err(_) => None,
+    match next_event(rx, within).await {
+        Some(EngineEvent::Seed(seed)) => Some(seed),
+        Some(other) => panic!("not a seed: {other:?}"),
+        None => None,
     }
 }
 
@@ -58,12 +67,19 @@ async fn a_write_by_another_process_reaches_the_inbox_as_a_seed() {
     add_chunk(&engines, "base");
 
     let (inbox, mut rx) = Inbox::channel();
-    let task = spawn_reseed(engines.reader(), FeedLink::new(), inbox, TICK);
+    let task = spawn_reseed(
+        engines.reader(),
+        FeedLink::new(),
+        inbox,
+        TICK,
+        engines.snapshot_cursor(),
+    );
 
-    // Nothing changed: nothing is posted, and the cockpit stays idle.
+    // Nothing changed: nothing is posted — not a seed, not a
+    // confirmation — and the cockpit stays idle.
     assert!(
-        next_seed(&mut rx, TICK * 4).await.is_none(),
-        "an unchanged store is not re-read"
+        next_event(&mut rx, TICK * 4).await.is_none(),
+        "an unchanged store is neither re-read nor confirmed on the timer"
     );
 
     // A second host on the same store — what `magistr mcp-serve` is.
@@ -91,7 +107,13 @@ async fn an_attached_feed_stands_the_re_seed_down() {
     let (inbox, mut rx) = Inbox::channel();
     let attached = FeedLink::new();
     attached.set(true);
-    let task = spawn_reseed(engines.reader(), attached.clone(), inbox, TICK);
+    let task = spawn_reseed(
+        engines.reader(),
+        attached.clone(),
+        inbox,
+        TICK,
+        engines.snapshot_cursor(),
+    );
     // Let the task take its opening stamp before the store moves under it.
     tokio::time::sleep(TICK).await;
 
@@ -114,7 +136,14 @@ async fn an_attached_feed_stands_the_re_seed_down() {
 async fn it_ends_once_the_loop_is_gone() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (inbox, rx) = Inbox::channel();
-    let task = spawn_reseed(engines(&tmp).reader(), FeedLink::new(), inbox, TICK);
+    let engines = engines(&tmp);
+    let task = spawn_reseed(
+        engines.reader(),
+        FeedLink::new(),
+        inbox,
+        TICK,
+        engines.snapshot_cursor(),
+    );
     tokio::time::sleep(TICK / 2).await;
     drop(rx);
     tokio::time::timeout(Duration::from_secs(2), task)
@@ -130,7 +159,13 @@ async fn a_signal_captured_by_another_process_reaches_the_seed() {
     add_chunk(&engines, "base");
 
     let (inbox, mut rx) = Inbox::channel();
-    let task = spawn_reseed(engines.reader(), FeedLink::new(), inbox, TICK);
+    let task = spawn_reseed(
+        engines.reader(),
+        FeedLink::new(),
+        inbox,
+        TICK,
+        engines.snapshot_cursor(),
+    );
     // Let the task take its opening stamp before the store moves under it.
     tokio::time::sleep(TICK).await;
 
@@ -163,8 +198,9 @@ async fn a_signal_captured_by_another_process_reaches_the_seed() {
 
 /// The feed's request is the other way in: a snapshot is read at once,
 /// attached or not, when the feed says frames may have been missed — and
-/// only when the store moved, so a request over an unchanged store posts
-/// nothing.
+/// only when the store moved; a request over an unchanged store is
+/// answered with a confirmation carrying where the store stands, so the
+/// projection it was asked for can come back to current.
 #[tokio::test]
 async fn a_snapshot_request_from_the_feed_reads_the_store_even_while_attached() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -181,13 +217,17 @@ async fn a_snapshot_request_from_the_feed_reads_the_store_even_while_attached() 
         link.clone(),
         inbox,
         Duration::from_secs(60),
+        engines.snapshot_cursor(),
     );
     tokio::time::sleep(TICK).await;
 
     link.request_snapshot();
-    assert!(
-        next_seed(&mut rx, TICK * 6).await.is_none(),
-        "the store did not move: nothing to re-read"
+    assert_eq!(
+        next_event(&mut rx, Duration::from_secs(5)).await,
+        Some(EngineEvent::Confirmed {
+            cursor: engines.snapshot_cursor(),
+        }),
+        "the store did not move: the request is confirmed, not re-read"
     );
 
     add_chunk(&engines, "missed");
@@ -201,6 +241,48 @@ async fn a_snapshot_request_from_the_feed_reads_the_store_even_while_attached() 
         seed.cursor,
         engines.snapshot_cursor(),
         "the snapshot names where it was read"
+    );
+    task.abort();
+}
+
+/// The re-seed's baseline is the snapshot the model was seeded with, not
+/// a stat of its own: a write landing between that snapshot and the
+/// re-seed's start is a moved store, and the feed's request is answered
+/// with a seed. Only once the store stands where a seed left it is a
+/// request confirmed.
+#[tokio::test]
+async fn a_request_is_answered_against_the_seeded_snapshot_not_a_later_stat() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let engines = engines(&tmp);
+    add_chunk(&engines, "base");
+    let seeded = engines.snapshot_cursor();
+    add_chunk(&engines, "between");
+
+    let (inbox, mut rx) = Inbox::channel();
+    let link = FeedLink::new();
+    link.set(true);
+    let task = spawn_reseed(
+        engines.reader(),
+        link.clone(),
+        inbox,
+        Duration::from_secs(60),
+        seeded,
+    );
+
+    link.request_snapshot();
+    let seed = next_seed(&mut rx, Duration::from_secs(5))
+        .await
+        .expect("the write after the seeded snapshot is re-read");
+    let ids: Vec<&str> = seed.chunks.iter().map(|chunk| chunk.id.as_str()).collect();
+    assert_eq!(ids, vec!["base", "between"]);
+
+    link.request_snapshot();
+    assert_eq!(
+        next_event(&mut rx, Duration::from_secs(5)).await,
+        Some(EngineEvent::Confirmed {
+            cursor: seed.cursor
+        }),
+        "and now the store stands where that seed left it"
     );
     task.abort();
 }
