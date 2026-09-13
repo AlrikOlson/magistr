@@ -491,3 +491,68 @@ fn pre_owner_database_migrates_and_reads_owner_none() {
     let loaded = get_session(&conn, "legacy").unwrap().unwrap();
     assert_eq!(loaded.owner, None);
 }
+
+#[test]
+fn sessions_store_runs_on_a_sqlite_with_the_wal_reset_fix() {
+    // Several processes hold read-write WAL connections on sessions.db at
+    // once (`run`, `sessions`, the home screen), which is exactly the
+    // topology the WAL-reset advisory names; 3.51.3 is the floor.
+    const WAL_RESET_FIX: i32 = 3_051_003;
+    let (_dir, conn) = test_db();
+    let runtime: String = conn
+        .query_row("SELECT sqlite_version()", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(runtime, rusqlite::version());
+    assert!(
+        rusqlite::version_number() >= WAL_RESET_FIX,
+        "linked SQLite {runtime} predates the WAL-reset fix"
+    );
+    let mode: String = conn
+        .pragma_query_value(None, "journal_mode", |row| row.get(0))
+        .unwrap();
+    assert_eq!(mode, "wal");
+}
+
+#[test]
+fn concurrent_wal_writers_and_checkpointers_leave_the_sessions_store_intact() {
+    // The advisory's topology under control: several connections on one WAL
+    // file, each writing and checkpointing while the others do the same.
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("sessions.db");
+    drop(open_db(&path).unwrap());
+    let workers: Vec<_> = (0..4)
+        .map(|worker| {
+            let path = path.clone();
+            std::thread::spawn(move || {
+                let conn = open_db(&path).unwrap();
+                conn.busy_timeout(std::time::Duration::from_secs(10))
+                    .unwrap();
+                for n in 0..50 {
+                    let id = format!("worker-{worker}-{n:03}");
+                    insert_session(&conn, &sample_record(&id, "magistr")).unwrap();
+                    if n % 4 == worker {
+                        // TRUNCATE resets the WAL whenever no reader pins it;
+                        // a busy answer is the honest outcome, never an error.
+                        let busy: i64 = conn
+                            .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |row| row.get(0))
+                            .unwrap();
+                        assert!(matches!(busy, 0 | 1));
+                    }
+                }
+            })
+        })
+        .collect();
+    for worker in workers {
+        worker.join().unwrap();
+    }
+    let conn = open_db(&path).unwrap();
+    assert_eq!(count_sessions(&conn).unwrap(), 200);
+    let integrity: String = conn
+        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(integrity, "ok");
+    assert_eq!(
+        get_session(&conn, "worker-3-049").unwrap().unwrap().project,
+        "magistr"
+    );
+}

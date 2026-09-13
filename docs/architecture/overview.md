@@ -32,6 +32,9 @@ The [permission service](permissions.md) supplies one decision implementation fo
 received agent requests and host effects across cockpit and noninteractive sessions.
 [Durable operations](durability.md) record what a run dispatches before each
 effect and reconcile interrupted attempts against their authorities on recovery.
+The [SQLite stores](stores.md) inventory names every database file, its
+journal mode, its writers, checkpointers and readers, and the bundled runtime
+floor that keeps each topology safe.
 
 ## Workflow and tools
 
