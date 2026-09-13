@@ -16,6 +16,7 @@ fn state() -> Mutex<Inner> {
         next_turn: 2,
         completed_turns: 0,
         closing: false,
+        draining: false,
         legacy_cancel: false,
         control_busy: false,
         goal_turn: None,
@@ -199,10 +200,11 @@ impl magistr_cockpit::agent::SessionPolicy for RecordingPolicy {
 
 fn interactive() -> (
     Permissions,
-    mpsc::UnboundedReceiver<magistr_cockpit::agent::AgentEvent>,
+    crate::agent::observation::ObservationReceiver<magistr_cockpit::agent::AgentEvent>,
     std::sync::Arc<Mutex<Vec<magistr_cockpit::agent::PermissionKind>>>,
 ) {
-    let (events, receiver) = mpsc::unbounded_channel();
+    let (events, receiver) =
+        crate::agent::observation::channel(crate::agent::observation::ObservationCapacity::DEFAULT);
     let answers = std::sync::Arc::new(Mutex::new(Vec::new()));
     let policy = RecordingPolicy {
         decision: magistr_cockpit::agent::PolicyDecision::Ask(
@@ -357,7 +359,9 @@ async fn headless_and_interactive_policy_answers_select_only_the_exact_once_kind
                     decision,
                     answers: Default::default(),
                 });
-                let (events, _receiver) = mpsc::unbounded_channel();
+                let (events, _receiver) = crate::agent::observation::channel(
+                    crate::agent::observation::ObservationCapacity::DEFAULT,
+                );
                 let mut permissions = if is_interactive {
                     Permissions::interactive(None, policy, events)
                 } else {

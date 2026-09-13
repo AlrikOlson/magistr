@@ -127,8 +127,12 @@ fresh-process API restoration experiment passed. Model/default, plain-drain and
 loop-cancellation comparisons are source traces; the executable suites below
 cover their listed boundaries rather than every live provider combination.
 No integrated plain-command permission/signal scenario was run: the shared ACP
-timeout and TUI harness do not prove that complete path. Plain CLI SIGINT uses
-`utils/signal_handler.rs` to exit with 130 rather than requesting session cancellation.
+timeout and TUI harness do not prove that complete path. At the pinned snapshot
+plain CLI SIGINT used `utils/signal_handler.rs` to exit with 130 rather than
+requesting session cancellation; since `audit-260912-11-bounded-session` the
+first SIGINT requests the process-wide shutdown every owner observes and the
+second is the emergency exit — see
+[interrupts and shutdown](sessions.md#interrupts-and-shutdown).
 
 ## Integrated and experimental surfaces
 

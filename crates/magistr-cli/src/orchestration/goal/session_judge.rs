@@ -6,7 +6,6 @@ use std::pin::Pin;
 use std::time::Duration;
 
 use magistr_core::ContentBlock;
-use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::judge::Judge;
 use super::judge_evidence::JudgeEvidence;
@@ -110,7 +109,11 @@ impl SessionJudge {
 /// The turn's text as the owner relays it, gathered until the owner
 /// reports the turn's end — a terminal message, a failure, or the end of
 /// observation. What ended it is the owner's to say, in its snapshot.
-async fn answer(messages: &mut UnboundedReceiver<crate::error::Result<AgentMessage>>) -> String {
+async fn answer(
+    messages: &mut crate::agent::observation::ObservationReceiver<
+        crate::error::Result<AgentMessage>,
+    >,
+) -> String {
     let mut text = String::new();
     while let Some(message) = messages.recv().await {
         match message {

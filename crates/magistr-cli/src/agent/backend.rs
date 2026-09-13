@@ -1,17 +1,17 @@
 //! Compatibility ACP facade backed by the reusable resident session supervisor.
 
-use tokio::sync::mpsc;
 use tracing::instrument;
 
 use super::AgentConfig;
 #[cfg(test)]
 use super::convert_acp_event::convert_acp_event;
+use super::observation::ObservationReceiver;
 use super::session::AcpSessionState;
 use super::session_supervisor::{SessionSupervisor, SessionSupervisorSnapshot};
 use crate::agent::message::AgentMessage;
 use crate::error::Result;
 
-type BackendStart = (AcpBackend, mpsc::UnboundedReceiver<Result<AgentMessage>>);
+type BackendStart = (AcpBackend, ObservationReceiver<Result<AgentMessage>>);
 
 /// ACP facade; the supervisor owns transport, policy, admission and residency.
 pub struct AcpBackend {
@@ -64,6 +64,12 @@ impl AcpBackend {
     /// Request cancellation while retaining the session for subsequent turns.
     pub fn cancel_turn(&self) -> Result<()> {
         self.supervisor.cancel_turn()
+    }
+
+    /// Wind the session down the way an interrupt does; see
+    /// [`SessionSupervisor::interrupt`].
+    pub fn interrupt(&self) -> Result<()> {
+        self.supervisor.interrupt()
     }
 
     /// Stop residency and await transport cleanup.

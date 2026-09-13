@@ -5,7 +5,7 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 
 use super::*;
-use crate::agent::{ToolRecord, TurnEnd};
+use crate::agent::{SessionJobs, ToolRecord, TurnEnd};
 use crate::cockpit::{WorkbenchCmd, WorkbenchEvent};
 use crate::harness::FakeWorkbench;
 
@@ -280,6 +280,204 @@ async fn provider_observation_ending_preserves_local_effects() {
         .expect("session cleanup succeeds");
 }
 
+/// A workbench whose search blocks until released: the slow port the
+/// relay must never wait on.
+struct BlockingWorkbench {
+    release: std::sync::Mutex<std::sync::mpsc::Receiver<()>>,
+    searches: Arc<std::sync::atomic::AtomicUsize>,
+}
+
+impl WorkbenchPort for BlockingWorkbench {
+    fn read(&mut self, path: &str) -> Result<String, String> {
+        Ok(format!("read {path}"))
+    }
+    fn undo(&mut self, _id: &str) -> Result<(), String> {
+        Ok(())
+    }
+    fn journal(&mut self) -> Result<Vec<crate::workbench::JournalEntry>, String> {
+        Ok(Vec::new())
+    }
+    fn search(&mut self, query: &str) -> Result<Vec<String>, String> {
+        self.searches
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.release
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .recv()
+            .map_err(|_| "the gate went away".to_owned())?;
+        Ok(vec![format!("hit for {query}")])
+    }
+    fn map(&mut self) -> Result<Vec<String>, String> {
+        Ok(Vec::new())
+    }
+    fn run(&mut self, _command: &str) -> Result<Vec<crate::workbench::RunRow>, String> {
+        Ok(Vec::new())
+    }
+}
+
+fn blocking() -> (
+    BlockingWorkbench,
+    std::sync::mpsc::Sender<()>,
+    Arc<std::sync::atomic::AtomicUsize>,
+) {
+    let (release, gate) = std::sync::mpsc::channel();
+    let searches = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    (
+        BlockingWorkbench {
+            release: std::sync::Mutex::new(gate),
+            searches: Arc::clone(&searches),
+        },
+        release,
+        searches,
+    )
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_slow_workbench_call_never_blocks_provider_observation_or_cancellation() {
+    let (handle, events, mut calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let (workbench, release, searches) = blocking();
+    let task = spawn_session(
+        Box::new(handle),
+        inbox,
+        commands,
+        Some(Box::new(workbench)),
+        None,
+        None,
+    );
+    commands_tx
+        .send(Cmd::Workbench(WorkbenchCmd::Search {
+            query: "slow".to_owned(),
+        }))
+        .expect("command sent");
+    // The search is running on its own thread, held at the gate …
+    tokio::time::timeout(Duration::from_secs(2), async {
+        while searches.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("the search started");
+    // … while the provider's events and a cancel still flow through the relay.
+    events
+        .send(AgentEvent::Text("still streaming".to_owned()))
+        .expect("event sent");
+    commands_tx.send(Cmd::Cancel).expect("command sent");
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::Agent(AgentEvent::Text(text)) if text == "still streaming"
+    ));
+    assert_eq!(next(&mut calls).await, "cancel");
+    release.send(()).expect("the gate opens");
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::Workbench(WorkbenchEvent::Found { query, hits }) if query == "slow" && hits == ["hit for slow"]
+    ));
+    drop(commands_tx);
+    task.await
+        .expect("relay task joins")
+        .expect("session cleanup succeeds");
+}
+
+#[tokio::test]
+async fn an_absent_port_is_refused_by_name_rather_than_answered_with_silence() {
+    let (handle, _events, _calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    commands_tx
+        .send(Cmd::Workbench(WorkbenchCmd::Map))
+        .expect("command sent");
+    commands_tx
+        .send(Cmd::Engine(crate::cockpit::EngineCmd::Checkpoint))
+        .expect("command sent");
+    commands_tx
+        .send(Cmd::Checkpoint(crate::cockpit::CheckpointCmd::Restore {
+            id: "cp-2".to_owned(),
+        }))
+        .expect("command sent");
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::Workbench(WorkbenchEvent::Failed { what, error }) if what == "map" && error.contains("no workbench")
+    ));
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::Engine(crate::engine::EngineEvent::PortFailed { what, error, .. }) if what == "checkpoint" && error.contains("no engine port")
+    ));
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::Checkpoint(crate::cockpit::CheckpointEvent::Failed { id: Some(id), what, error })
+            if id == "cp-2" && what == "restore cp-2" && error.contains("no checkpoint ledger")
+    ));
+    drop(commands_tx);
+    task.await
+        .expect("relay task joins")
+        .expect("session cleanup succeeds");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn jobs_past_the_capacity_are_refused_and_a_late_answer_is_fenced() {
+    let (handle, _events, mut calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let (workbench, release, searches) = blocking();
+    let task = spawn_session(
+        Box::new(handle),
+        inbox,
+        commands,
+        Some(Box::new(workbench)),
+        None,
+        None,
+    );
+    for index in 0..=SessionJobs::CAPACITY {
+        commands_tx
+            .send(Cmd::Workbench(WorkbenchCmd::Search {
+                query: format!("job {index}"),
+            }))
+            .expect("command sent");
+    }
+    // Only the first job holds the port; the others queue on its mutex
+    // and count as running. The one past the capacity is refused now.
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::Workbench(WorkbenchEvent::Failed { what, error })
+            if what == format!("search job {}", SessionJobs::CAPACITY) && error.contains("already running")
+    ));
+    tokio::time::timeout(Duration::from_secs(2), async {
+        while searches.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("the first search started");
+    // The runtime ends while the jobs are still held at the gate: the
+    // relay fences them, waits its grace, then terminates the session.
+    drop(commands_tx);
+    let ended = tokio::time::timeout(SessionJobs::JOIN_GRACE * 2, task)
+        .await
+        .expect("the relay ends within its grace")
+        .expect("relay task joins");
+    assert!(ended.is_ok(), "{ended:?}");
+    // The owner was asked to end only after the jobs were fenced and waited for.
+    assert_eq!(next(&mut calls).await, "terminating");
+    assert_eq!(next(&mut calls).await, "terminated");
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::Agent(AgentEvent::Error(error)) if error.contains("still running when the session ended")
+    ));
+    // The gate opens after the session ended: every held search now
+    // answers on its thread, and none of the answers reaches the inbox.
+    for _ in 0..SessionJobs::CAPACITY {
+        let _ = release.send(());
+    }
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(
+        messages.try_recv().is_err(),
+        "a late answer never posts on behalf of an ended session"
+    );
+}
+
 #[test]
 fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
     let (handle, _events, _calls) = fake();
@@ -290,6 +488,7 @@ fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
         workbench: None,
         engine: None,
         checkpoints: None,
+        jobs: SessionJobs::new(),
         tool_started: HashMap::from([(
             "tool-1".to_owned(),
             Instant::now() - Duration::from_secs(3),

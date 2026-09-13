@@ -28,6 +28,7 @@ use tokio::task::JoinHandle;
 
 use super::ResolvedSessionSpec;
 use super::message::AgentMessage;
+use super::observation::{ObservationCapacity, ObservationReceiver, ObservationSender};
 use crate::error::{MagistrError, Result};
 use command::Command;
 pub use control::SessionControl;
@@ -36,7 +37,7 @@ pub use residency::SessionResidency;
 pub use snapshot::SessionSupervisorSnapshot;
 pub use turn_outcome::TurnOutcome;
 
-type Messages = mpsc::UnboundedReceiver<Result<AgentMessage>>;
+type Messages = ObservationReceiver<Result<AgentMessage>>;
 type Policy = (
     Box<dyn magistr_cockpit::agent::SessionPolicy>,
     crate::permissions::NoninteractivePolicy,
@@ -48,12 +49,15 @@ struct Inner {
     next_turn: u64,
     completed_turns: u32,
     closing: bool,
+    /// An interrupt was observed: no turn is admitted, the active one was
+    /// asked to stop, and the owner closes once it has ended.
+    draining: bool,
     legacy_cancel: bool,
     control_busy: bool,
     goal_turn: Option<u64>,
     capabilities: Option<AgentCapabilities>,
-    messages: Option<mpsc::UnboundedSender<Result<AgentMessage>>>,
-    cockpit_events: Option<mpsc::UnboundedSender<AgentEvent>>,
+    messages: Option<ObservationSender<Result<AgentMessage>>>,
+    cockpit_events: Option<ObservationSender<AgentEvent>>,
 }
 
 impl Inner {
@@ -115,6 +119,11 @@ impl Inner {
         if self.closing || self.snapshot.residency != SessionResidency::Resident {
             return Err(acp_error("Session is no longer accepting input"));
         }
+        if self.draining {
+            return Err(acp_error(
+                "Session is winding down after an interrupt; no new turn is admitted",
+            ));
+        }
         if self.snapshot.cancellation_requested || self.legacy_cancel {
             return Err(acp_error(
                 "Wait for the current cancellation response before submitting a new turn",
@@ -139,6 +148,10 @@ pub struct SessionSupervisor {
 }
 
 impl SessionSupervisor {
+    /// Follow-ups waiting behind the active turn, at most. The next one is
+    /// refused with the reason rather than queued without bound.
+    pub const QUEUED_TURN_CAPACITY: usize = 8;
+
     /// Connect the frozen runtime and transfer its policy to the sole session owner.
     pub async fn start(spec: ResolvedSessionSpec) -> Result<(Self, Messages)> {
         let transport = spec.connect_transport().await?;
@@ -150,8 +163,19 @@ impl SessionSupervisor {
     /// Adopt an already connected transport without resolving settings again.
     pub(crate) async fn start_connected(
         prompt: &str,
+        transport: AcpTransport,
+        policy: Option<Policy>,
+    ) -> Result<(Self, Messages)> {
+        Self::start_connected_bounded(prompt, transport, policy, ObservationCapacity::DEFAULT).await
+    }
+
+    /// [`SessionSupervisor::start_connected`] under an explicit observation
+    /// bound — the production default, or a fixture's.
+    pub(crate) async fn start_connected_bounded(
+        prompt: &str,
         mut transport: AcpTransport,
         policy: Option<Policy>,
+        capacity: ObservationCapacity,
     ) -> Result<(Self, Messages)> {
         let provider_pid = u32::try_from(transport.child_pgid())
             .ok()
@@ -166,7 +190,7 @@ impl SessionSupervisor {
                 .prompt(prompt)
                 .map_err(|error| acp_error(format!("Failed to send initial prompt: {error}")))?;
         }
-        let (messages, receiver) = mpsc::unbounded_channel();
+        let (messages, receiver) = super::observation::channel(capacity);
         let (commands, command_rx) = mpsc::unbounded_channel();
         let inner = Arc::new(Mutex::new(Inner {
             snapshot: SessionSupervisorSnapshot {
@@ -181,6 +205,7 @@ impl SessionSupervisor {
             next_turn: if opening { 2 } else { 1 },
             completed_turns: 0,
             closing: false,
+            draining: false,
             legacy_cancel: false,
             control_busy: false,
             goal_turn: None,
@@ -211,17 +236,28 @@ impl SessionSupervisor {
     /// Adopt a connected transport for an interactive attachment; the same owner
     /// serializes all provider traffic for interactive and headless clients.
     pub(crate) fn start_interactive(
+        transport: AcpTransport,
+        options: SessionOptions,
+        policy: Box<dyn SessionPolicy>,
+    ) -> Result<(Self, ObservationReceiver<AgentEvent>)> {
+        Self::start_interactive_bounded(transport, options, policy, ObservationCapacity::DEFAULT)
+    }
+
+    /// [`SessionSupervisor::start_interactive`] under an explicit observation
+    /// bound — the production default, or a fixture's.
+    pub(crate) fn start_interactive_bounded(
         mut transport: AcpTransport,
         options: SessionOptions,
         policy: Box<dyn SessionPolicy>,
-    ) -> Result<(Self, mpsc::UnboundedReceiver<AgentEvent>)> {
+        capacity: ObservationCapacity,
+    ) -> Result<(Self, ObservationReceiver<AgentEvent>)> {
         let provider_pid = u32::try_from(transport.child_pgid())
             .ok()
             .filter(|pid| *pid > 0);
         let events = transport
             .read_events()
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
-        let (cockpit_events, receiver) = mpsc::unbounded_channel();
+        let (cockpit_events, receiver) = super::observation::channel(capacity);
         let permissions = Permissions::interactive(
             transport.take_permission_rx(),
             policy,
@@ -248,6 +284,7 @@ impl SessionSupervisor {
             next_turn: if opening.is_some() { 2 } else { 1 },
             completed_turns: 0,
             closing: false,
+            draining: false,
             legacy_cancel: false,
             control_busy: true,
             goal_turn: None,
@@ -306,10 +343,18 @@ impl SessionSupervisor {
         self.send_command(Command::KillTerminal(id.to_owned()))
     }
 
-    /// Admit a follow-up in FIFO order. At most one prompt reaches the provider.
+    /// Admit a follow-up in FIFO order. At most one prompt reaches the
+    /// provider, and at most [`SessionSupervisor::QUEUED_TURN_CAPACITY`]
+    /// wait behind it; one more is refused with the reason.
     pub fn send_followup(&self, content: &str) -> Result<()> {
         let mut inner = self.inner.lock().expect("supervisor state lock poisoned");
         inner.check_admission()?;
+        if inner.queue.len() >= Self::QUEUED_TURN_CAPACITY {
+            return Err(acp_error(format!(
+                "Turn queue is full: {} follow-ups are already waiting behind the active turn; wait for one to end",
+                inner.queue.len()
+            )));
+        }
         let id = inner.next_turn;
         inner.next_turn += 1;
         inner.queue.push_back((id, content.to_owned()));
@@ -342,6 +387,23 @@ impl SessionSupervisor {
         self.commands
             .send(Command::Cancel { turn_id })
             .map_err(|_| acp_error("Session owner is no longer available"))
+    }
+
+    /// Wind the session down the way an interrupt does: admit no further
+    /// turn, discard queued input, ask the provider to stop the active
+    /// turn, and close the transport once its terminal response arrives
+    /// (at once when nothing is active). The process-wide shutdown request
+    /// takes this same path inside the owner; a caller may take it
+    /// directly.
+    pub fn interrupt(&self) -> Result<()> {
+        let mut inner = self.inner.lock().expect("supervisor state lock poisoned");
+        if inner.closing || inner.snapshot.residency != SessionResidency::Resident {
+            return Err(acp_error("Session owner is no longer available"));
+        }
+        inner.draining = true;
+        inner.discard_queue("interrupted");
+        drop(inner);
+        self.send_command(Command::Interrupt)
     }
 
     /// Compatibility cancellation: end observation after a real terminal response.

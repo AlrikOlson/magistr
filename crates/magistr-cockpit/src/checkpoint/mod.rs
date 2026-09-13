@@ -20,9 +20,11 @@
 //! [`CheckpointEvent`]: crate::cockpit::CheckpointEvent
 
 pub mod apply;
+pub mod describe;
 pub mod detach;
 pub mod port;
 
 pub use apply::apply;
+pub use describe::describe;
 pub use detach::detach;
 pub use port::CheckpointPort;

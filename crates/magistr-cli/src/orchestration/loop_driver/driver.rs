@@ -428,6 +428,11 @@ impl LoopDriver {
 
     async fn run(mut self) -> LoopReport {
         let end = loop {
+            // An interrupt admits no further attempt: the one in flight
+            // has already been wound down by its session owner.
+            if crate::utils::shutdown::Shutdown::is_requested() {
+                break LoopEnd::Aborted;
+            }
             let pre = match self.iter_loop.pre_iteration_check() {
                 Ok(pre) => pre,
                 Err(e) => break LoopEnd::Failed(format!("pre-iteration check failed: {e}")),

@@ -3,9 +3,8 @@
 //! Tests push messages through the returned sender and consume them via `AgentSession`.
 //! No trait indirection — the session uses a channel-only backend internally.
 
-use tokio::sync::mpsc;
-
 use super::message::AgentMessage;
+use super::observation::ObservationSender;
 use super::session::AgentSession;
 use crate::error::Result;
 
@@ -21,7 +20,7 @@ pub use super::mock_followups::mock_session_with_followups;
 /// tx.send(Ok(some_message)).unwrap();
 /// let msg = session.next_message().await;
 /// ```
-pub fn mock_session() -> (AgentSession, mpsc::UnboundedSender<Result<AgentMessage>>) {
+pub fn mock_session() -> (AgentSession, ObservationSender<Result<AgentMessage>>) {
     AgentSession::from_channel()
 }
 

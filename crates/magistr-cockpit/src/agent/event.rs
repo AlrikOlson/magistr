@@ -177,6 +177,17 @@ pub enum AgentEvent {
         /// The bytes as written.
         bytes: Vec<u8>,
     },
+    /// Streamed text the cockpit never saw: the session owner's
+    /// observation channel trimmed `bytes` of the oldest pending deltas
+    /// (`items` of them whole) because the cockpit fell that far behind.
+    /// Shown as a note where the gap is, so a transcript with a hole says
+    /// so instead of reading as continuous.
+    Lagged {
+        /// Bytes of text trimmed ahead of the next delta.
+        bytes: usize,
+        /// Whole deltas among them.
+        items: usize,
+    },
     /// Something the transport or the protocol reported by name.
     System {
         /// The event's subtype (`permission_request`, `current_mode`, …).

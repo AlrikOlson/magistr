@@ -137,10 +137,79 @@ capability table above.
 | `terminate_session` | End admission and await transport/task cleanup. Closing an unacknowledged turn does not invent a successful or cancelled provider response. |
 | `detach_client` | Stop message observation while the owning supervisor continues the provider session. Dropping the owner still performs cleanup; this is not a durable/background daemon handoff. |
 
+| `interrupt` | Wind the session down the way a process interrupt does: admit no further turn, discard queued input, cancel the active turn, and close the transport once the provider's terminal response arrives — at once when nothing is active. The process-wide shutdown request takes this path inside every resident owner. |
+
 A later turn may start after the previous turn's terminal response. The legacy
 `cancel` convenience operation ends the usable session after cancellation;
 new callers use the explicit operations above. Headless `run`, `next`, and
 `next-loop` await termination before process exit or the next attempt.
+
+### Bounds
+
+The owner's admission and observation are bounded explicitly
+(`audit-260912-11-bounded-session`). At most
+`SessionSupervisor::QUEUED_TURN_CAPACITY` follow-ups wait behind the active
+turn; the next one is refused with the reason. Both observer streams — the
+headless message stream and the cockpit's event stream — run through the
+[observation channel](../../crates/magistr-cli/src/agent/observation/mod.rs)
+under an `ObservationCapacity`, and the provider's execution never waits on
+an observer:
+
+| Class | Items | Rule under the bound |
+| --- | --- | --- |
+| Lossless | Decisions (permission requests, cancellations, lapses), terminal outcomes, tool calls and updates, user echoes, initialization, images, errors, any multi-block assistant message | Delivered in order, never coalesced. Past `lossless_items` (4096) the channel admits one explicit overflow marker — an `Error` event, an `Err` message — and closes; the owner marks the observer detached and the session stays resident. Nothing is dropped silently. |
+| Text | Assistant text and thought deltas, one terminal's output bytes | Adjacent deltas of the same kind coalesce into one pending item. Past `text_bytes` (256 KiB) the oldest pending text is trimmed on a char boundary and one lag marker (`AgentEvent::Lagged`, the `observation_lagged` system message) stands where the trim happened, counting bytes and whole deltas; the cockpit shows it as a note in the transcript. |
+| Telemetry | Usage, plan, configuration and command sets | The newest value replaces the latest pending one of its kind in place; an observer never drains a backlog of stale meters. |
+
+The supervisor fixtures flood a real in-process provider with two megabytes
+of deltas while the observer reads nothing until the turn has ended: the
+pending text stays under the bound, the lag marker accounts for every
+trimmed byte, and the terminal outcome still arrives. A lossless flood past
+a small bound ends observation behind its marker and leaves a session that
+admits the next turn.
+
+### Owned relay jobs
+
+The cockpit relay ([session](../../crates/magistr-cockpit/src/agent/session.rs))
+carries workbench, engine and checkpoint commands out as its own jobs
+([`SessionJobs`](../../crates/magistr-cockpit/src/agent/session_jobs.rs)):
+each call runs on a blocking thread against the shared port, so a slow
+search or a git read never stalls the task that observes the provider and
+forwards its cancellation. At most `SessionJobs::CAPACITY` (4) run at once;
+one more is refused as a `Failed` / `PortFailed` event naming the ask. A
+command whose port is absent — a session without a workbench, an engine
+port or a checkpoint ledger — is refused by name, never answered with
+silence. When the runtime ends the relay closes its fence before it asks
+the owner to terminate, waits `SessionJobs::JOIN_GRACE` (2 s) for its jobs,
+and reports how many it had to leave running; a fenced job's answer never
+posts on behalf of a session that is gone.
+
+### Interrupts and shutdown
+
+A plain `SIGINT` no longer exits the process from the signal handler. The
+first one requests the process-wide
+[`Shutdown`](../../crates/magistr-cli/src/utils/shutdown.rs): every resident
+session owner takes its `interrupt` path (no further turn, the active one
+cancelled, the transport closed after the provider's terminal response);
+every owned subprocess — a gate on its pty, a workflow check, a workspace
+command — is ended the way a cancel ends it (`SIGTERM`, the grace,
+`SIGKILL`, reaped and its group settled) and answers `cancelled`; the loop
+driver admits no further attempt. The command then finishes its own
+settlement — the cost row, the receipts, the checkpoint, the workspace's
+release, in the order it already runs them — and the process exits 130.
+A second `SIGINT`, or the settle deadline (`Shutdown::SETTLE_DEADLINE`, 8 s)
+passing first, is the distinct emergency exit: the terminal restored, the
+registered process groups killed, exit 130, and a stderr line naming which
+way out was taken. The process fixtures in `tests/cli_integration.rs`
+interrupt a real `magistr validate --ci` over a sleeping gate (settled and
+joined, exit 130, no emergency line) and over a `TERM`-ignoring gate with a
+second interrupt (emergency line, the child gone).
+
+Not covered: an external `SIGINT` to the interactive cockpit drains its
+session and stops its loop but does not close the cockpit runtime itself,
+which ends on its own keys or on the deadline's emergency exit; the
+keyboard's Ctrl-C inside the cockpit is a key, not a signal, and keeps its
+cancel-then-quit contract.
 Transport shutdown retains task handles through timeout/caller cancellation,
 aborts tasks that exceed the deadline, and awaits their release. Explicit
 shutdown errors are returned to callers.

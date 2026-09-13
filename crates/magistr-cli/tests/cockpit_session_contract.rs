@@ -214,29 +214,32 @@ async fn queued_cockpit_turns_reach_the_provider_in_fifo_order_with_ordered_tran
     assert_eq!(fixture.observed.maximum_active.load(Ordering::SeqCst), 1);
     assert_eq!(fixture.session.snapshot().active_turn, None);
     assert_eq!(fixture.session.snapshot().queued_turns, 0);
-    let transcript: Vec<_> = fixture
-        .events
-        .iter()
-        .filter_map(|event| match event {
-            AgentEvent::UserText(text) => Some(format!("you: {}", text.trim_end())),
-            AgentEvent::Text(text) => Some(format!("agent: {text}")),
-            AgentEvent::TurnEnded(reason) => Some(format!("ended: {reason:?}")),
+    // Adjacent text deltas may reach the cockpit coalesced when it was a
+    // step behind the owner (the bounded observation channel merges them),
+    // so the transcript is compared as the text each turn said, not as
+    // the chunks it arrived in.
+    let mut transcript: Vec<String> = Vec::new();
+    for event in &fixture.events {
+        match event {
+            AgentEvent::UserText(text) => transcript.push(format!("you: {}", text.trim_end())),
+            AgentEvent::Text(text) => match transcript.last_mut() {
+                Some(last) if last.starts_with("agent: ") => last.push_str(text),
+                _ => transcript.push(format!("agent: {text}")),
+            },
+            AgentEvent::TurnEnded(reason) => transcript.push(format!("ended: {reason:?}")),
             AgentEvent::Error(error) => panic!("queued turns must not be dropped: {error}"),
-            _ => None,
-        })
-        .collect();
+            _ => {}
+        }
+    }
     assert_eq!(
         transcript,
         [
             "you: hold first",
-            "agent: started: hold first",
-            "agent: finished: hold first",
+            "agent: started: hold firstfinished: hold first",
             "ended: EndTurn",
-            "agent: started: hold second",
-            "agent: finished: hold second",
+            "agent: started: hold secondfinished: hold second",
             "ended: EndTurn",
-            "agent: started: third",
-            "agent: finished: third",
+            "agent: started: thirdfinished: third",
             "ended: EndTurn",
         ]
     );

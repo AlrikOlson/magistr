@@ -91,6 +91,22 @@ impl Provider for ControlledProvider {
             if text == "hold max tokens" {
                 return Ok(StopReason::MaxTokens);
             }
+            if text == "flood text" {
+                // Two megabytes in kilobyte deltas, far past the observer's
+                // text bound, then the terminal the observer must still get.
+                let chunk = "x".repeat(1024);
+                for _ in 0..2048 {
+                    turn.message(chunk.clone())?;
+                }
+            }
+            if text == "flood tools" {
+                for index in 0..64 {
+                    turn.tool_call(agent_client_protocol::schema::v1::ToolCall::new(
+                        format!("flood-{index}"),
+                        "flood",
+                    ))?;
+                }
+            }
             turn.message(format!("finished: {text}"))?;
             Ok(StopReason::EndTurn)
         })
@@ -99,7 +115,7 @@ impl Provider for ControlledProvider {
 
 struct Fixture {
     supervisor: SessionSupervisor,
-    messages: mpsc::UnboundedReceiver<crate::error::Result<AgentMessage>>,
+    messages: crate::agent::observation::ObservationReceiver<crate::error::Result<AgentMessage>>,
     started: mpsc::UnboundedReceiver<(String, Option<String>)>,
     observed: Arc<Observed>,
     server: tokio::task::JoinHandle<()>,
@@ -108,6 +124,17 @@ struct Fixture {
 
 impl Fixture {
     async fn start(prompt: &str) -> Self {
+        Self::start_bounded(
+            prompt,
+            crate::agent::observation::ObservationCapacity::DEFAULT,
+        )
+        .await
+    }
+
+    async fn start_bounded(
+        prompt: &str,
+        capacity: crate::agent::observation::ObservationCapacity,
+    ) -> Self {
         let (client, agent) = agent_client_protocol::Channel::duplex();
         let (started, receiver) = mpsc::unbounded_channel();
         let observed = Arc::new(Observed {
@@ -131,9 +158,10 @@ impl Fixture {
         .expect("transport")
         .session_model(Some(ScriptedProvider::SLOW.into()));
         transport.connect_over(client).await.expect("ACP handshake");
-        let (supervisor, messages) = SessionSupervisor::start_connected(prompt, transport, None)
-            .await
-            .expect("supervisor startup");
+        let (supervisor, messages) =
+            SessionSupervisor::start_connected_bounded(prompt, transport, None, capacity)
+                .await
+                .expect("supervisor startup");
         Self {
             supervisor,
             messages,
@@ -753,6 +781,208 @@ async fn late_permission_gets_cancelled_on_the_wire_and_fresh_turn_can_receive_a
         .expect("permission fixture connection closes")
         .expect("permission fixture task exits")
         .expect("permission fixture serves successfully");
+}
+
+/// Spin until the owner has observed the turn's terminal — the way the
+/// detached-observer tests do — without reading a single message.
+async fn until_outcome(fixture: &Fixture) {
+    tokio::time::timeout(DEADLINE, async {
+        while fixture.supervisor.snapshot().last_outcome.is_none() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("the owner observes the provider's terminal");
+}
+
+#[tokio::test]
+async fn a_flooding_provider_with_a_slow_observer_stays_bounded_and_the_terminal_still_arrives() {
+    let mut fixture = Fixture::start("flood text").await;
+    fixture.next_started().await;
+    // The observer reads nothing until the provider has said everything.
+    until_outcome(&fixture).await;
+    let cap = crate::agent::observation::ObservationCapacity::DEFAULT.text_bytes;
+    assert!(
+        fixture.messages.pending_text_bytes() <= cap,
+        "pending text {} exceeds the bound {cap}",
+        fixture.messages.pending_text_bytes()
+    );
+    assert!(
+        fixture.messages.trimmed_bytes() > 1024 * 1024,
+        "most of the flood was trimmed: {}",
+        fixture.messages.trimmed_bytes()
+    );
+    assert!(
+        fixture.messages.pending_items() < 16,
+        "coalesced deltas, not one item per kilobyte: {}",
+        fixture.messages.pending_items()
+    );
+    let mut lagged = None;
+    let mut text_bytes = 0;
+    let mut terminal = None;
+    while let Some(message) = fixture.messages.recv().await {
+        match message {
+            Ok(AgentMessage::System { subtype, data }) if subtype == "observation_lagged" => {
+                lagged = Some(data["bytes"].as_u64().expect("bytes"));
+            }
+            Ok(AgentMessage::Assistant { message, .. }) => {
+                for block in message.content {
+                    if let crate::agent::message::ContentBlock::Text { text } = block {
+                        text_bytes += text.len();
+                    }
+                }
+            }
+            Ok(AgentMessage::Result { .. }) => {
+                terminal = Some(());
+                break;
+            }
+            Err(error) => panic!("the flood must not fail observation: {error}"),
+            Ok(_) => {}
+        }
+    }
+    assert!(
+        terminal.is_some(),
+        "the terminal outcome reaches the observer"
+    );
+    let lagged = lagged.expect("the gap is visible as a lag marker");
+    assert!(
+        text_bytes <= cap,
+        "delivered text {text_bytes} within the bound"
+    );
+    assert_eq!(
+        lagged as usize + text_bytes,
+        2048 * 1024 + "started: flood text".len() + "finished: flood text".len(),
+        "trimmed plus delivered accounts for every byte the provider sent"
+    );
+    assert!(fixture.supervisor.snapshot().client_attached);
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn a_lossless_backlog_past_its_bound_ends_observation_explicitly_and_keeps_the_session() {
+    let mut fixture = Fixture::start_bounded(
+        "flood tools",
+        crate::agent::observation::ObservationCapacity {
+            lossless_items: 8,
+            text_bytes: 1024,
+        },
+    )
+    .await;
+    fixture.next_started().await;
+    until_outcome(&fixture).await;
+    let snapshot = fixture.supervisor.snapshot();
+    assert_eq!(
+        snapshot.last_outcome.unwrap().stop_reason,
+        Some(StopReason::EndTurn),
+        "the provider's turn completed regardless of the observer"
+    );
+    assert_eq!(snapshot.residency, SessionResidency::Resident);
+    assert!(
+        !snapshot.client_attached,
+        "an overflowed observer is a detached one"
+    );
+    assert!(fixture.messages.has_overflowed());
+    let mut last = None;
+    while let Some(message) = fixture.messages.recv().await {
+        last = Some(message);
+    }
+    assert!(
+        matches!(last, Some(Err(error)) if error.to_string().contains("observation overflowed")),
+        "observation ends behind an explicit marker, never silently"
+    );
+    fixture
+        .supervisor
+        .send_followup("still resident")
+        .expect("the session admits a turn after its observer overflowed");
+    assert_eq!(fixture.next_started().await.0, "still resident");
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn the_turn_queue_has_an_explicit_capacity_and_refuses_the_next_follow_up() {
+    let mut fixture = Fixture::start("hold the line").await;
+    fixture.next_started().await;
+    for index in 0..SessionSupervisor::QUEUED_TURN_CAPACITY {
+        fixture
+            .supervisor
+            .send_followup(&format!("queued {index}"))
+            .expect("within capacity");
+    }
+    let refused = fixture
+        .supervisor
+        .send_followup("one too many")
+        .expect_err("the queue is full");
+    assert!(
+        refused.to_string().contains("Turn queue is full"),
+        "{refused}"
+    );
+    assert_eq!(
+        fixture.supervisor.snapshot().queued_turns,
+        SessionSupervisor::QUEUED_TURN_CAPACITY
+    );
+    fixture.supervisor.cancel_turn().unwrap();
+    fixture.next_terminal().await.unwrap();
+    assert_eq!(fixture.supervisor.snapshot().queued_turns, 0);
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn an_interrupt_stops_admission_cancels_the_turn_and_closes_after_the_provider_acknowledges()
+{
+    let mut fixture = Fixture::start("cancel with delayed ACK").await;
+    fixture.next_started().await;
+    fixture
+        .supervisor
+        .send_followup("queued before the interrupt")
+        .unwrap();
+    fixture.supervisor.interrupt().unwrap();
+    let refused = fixture
+        .supervisor
+        .send_followup("after the interrupt")
+        .expect_err("no turn is admitted while draining");
+    assert!(refused.to_string().contains("winding down"), "{refused}");
+    tokio::time::timeout(DEADLINE, fixture.observed.cancellation_seen.notified())
+        .await
+        .expect("the provider receives the cancellation");
+    let draining = fixture.supervisor.snapshot();
+    assert!(draining.cancellation_requested);
+    assert_eq!(draining.queued_turns, 0);
+    assert_eq!(draining.residency, SessionResidency::Resident);
+    assert!(
+        draining.last_outcome.is_none(),
+        "no outcome is invented before the provider answers"
+    );
+    fixture.observed.acknowledge_cancel.add_permits(1);
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Cancelled { .. })
+    ));
+    tokio::time::timeout(DEADLINE, &mut fixture.server)
+        .await
+        .expect("the owner closes the transport once the turn has ended")
+        .expect("the provider task ends");
+    let ended = fixture.supervisor.snapshot();
+    assert_eq!(ended.residency, SessionResidency::Terminated);
+    assert_eq!(
+        ended.last_outcome.unwrap().stop_reason,
+        Some(StopReason::Cancelled)
+    );
+    fixture.supervisor.terminate_session().await.unwrap();
+}
+
+#[tokio::test]
+async fn an_interrupt_on_an_idle_session_closes_it_at_once() {
+    let mut fixture = Fixture::start("").await;
+    fixture.supervisor.interrupt().unwrap();
+    tokio::time::timeout(DEADLINE, &mut fixture.server)
+        .await
+        .expect("an idle owner closes without waiting for anything")
+        .expect("the provider task ends");
+    assert_eq!(
+        fixture.supervisor.snapshot().residency,
+        SessionResidency::Terminated
+    );
+    assert!(fixture.supervisor.send_followup("too late").is_err());
 }
 
 #[tokio::test]

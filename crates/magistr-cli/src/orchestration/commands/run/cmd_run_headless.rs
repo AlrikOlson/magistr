@@ -94,6 +94,9 @@ pub async fn cmd_run_headless(
     }
     cleanup?;
 
+    // Settled — the ledger row written, the workspace released — an
+    // interrupted run exits as the interrupt it was.
+    crate::utils::shutdown::Shutdown::exit_if_requested();
     let code = outcome.exit_code();
     if code != 0 {
         std::process::exit(code);
