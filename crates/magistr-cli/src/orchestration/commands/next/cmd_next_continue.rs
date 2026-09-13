@@ -72,6 +72,7 @@ pub async fn cmd_next_continue(
         backend,
         profile,
         workspace.source_route(),
+        |_| Ok(()),
     )
     .await;
     if let Err(err) = workspace.shutdown().await {

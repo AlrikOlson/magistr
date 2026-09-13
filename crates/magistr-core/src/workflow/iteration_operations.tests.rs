@@ -194,10 +194,10 @@ fn every_native_mutation_verb_is_read_back_from_the_chunk() {
     assert_eq!(recovered.reconciliation().open.len(), 1);
 }
 
-#[test]
-fn a_receipt_is_reconciled_against_the_checks_on_its_task() {
-    let (dir, spec) = setup_project("- [ ] item\n");
-    let engines = native_engines(&dir);
+/// Engines with an objective and an active `verify` task — the shape the
+/// loop's gates are recorded into.
+fn engines_with_verify_task(dir: &tempfile::TempDir) -> NativeEngines {
+    let engines = native_engines(dir);
     add_native_chunk(&engines, "c1", 100, &[]);
     engines
         .ship_set_objective("obj".into(), vec![], vec![], "chunk:c1".into())
@@ -206,33 +206,132 @@ fn a_receipt_is_reconciled_against_the_checks_on_its_task() {
         .ship_add_task("verify".into(), "verify".into(), TaskType::Review, None)
         .unwrap();
     engines.ship_start_task("verify").unwrap();
-    let mut il = native_loop(dir.path(), &spec, &engines);
-    let landed = il
-        .begin_operation(OperationKind::Receipt, "gate:test", "gate:test@task:verify")
+    engines
+}
+
+/// A receipt intended, admitted and started the way the loop does it:
+/// the record carries the durable receipt id, and the admission is what
+/// settlement needs.
+fn admit_receipt(
+    il: &mut IterationLoop,
+    engines: &NativeEngines,
+    gate: &str,
+) -> (AttemptId, magistr_engine::native::CheckAdmission) {
+    let target = format!("gate:{gate}@task:verify");
+    let attempt = il
+        .begin_operation(OperationKind::Receipt, &target, &target)
         .unwrap()
         .unwrap();
-    let lost = il
-        .begin_operation(OperationKind::Receipt, "gate:lint", "gate:lint@task:verify")
-        .unwrap()
+    let admission = engines
+        .ship_admit_gate(Some("verify"), gate, "true".into(), true)
         .unwrap();
-    il.persist().unwrap();
+    il.start_operation(&attempt, Some(format!("receipt:{}", admission.receipt_id)))
+        .unwrap();
+    (attempt, admission)
+}
+
+#[test]
+fn a_receipt_is_reconciled_against_its_own_receipt_never_a_same_named_check() {
+    use magistr_engine::native::CheckExecution;
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let engines = engines_with_verify_task(&dir);
+    // The agent's own gate run on the same task, before the loop's set: a
+    // same-named check that is not the loop's receipt.
     engines
         .ship_record_gate(
             Some("verify"),
             "test",
             "true".into(),
             0,
-            "ok".into(),
+            "the agent's own run".into(),
             true,
+            None,
+        )
+        .unwrap();
+    let mut il = native_loop(dir.path(), &spec, &engines);
+    let (lost, _) = admit_receipt(&mut il, &engines, "test");
+    let (landed, landed_admission) = admit_receipt(&mut il, &engines, "lint");
+    il.persist().unwrap();
+    engines
+        .ship_settle_gate(
+            landed_admission,
+            CheckExecution::Exited { code: 0 },
+            "ok".into(),
             None,
         )
         .unwrap();
     drop(il);
 
     let recovered = recover(dir.path(), &spec, Some(engines));
-    assert_eq!(outcome_of(&recovered, &landed), OperationOutcome::Completed);
+    // The lost receipt was admitted and never settled: nothing was applied,
+    // whatever same-named check sits on the task.
     assert_eq!(outcome_of(&recovered, &lost), OperationOutcome::Failed);
+    assert_eq!(outcome_of(&recovered, &landed), OperationOutcome::Completed);
     assert!(recovered.reconciliation().is_clean());
+}
+
+#[test]
+fn a_receipt_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_stays_open() {
+    use magistr_engine::native::CheckExecution;
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let engines = engines_with_verify_task(&dir);
+    let mut il = native_loop(dir.path(), &spec, &engines);
+    let (stale, stale_admission) = admit_receipt(&mut il, &engines, "test");
+    // A record that names another receipt than its own: the lint record
+    // wearing the test receipt's id.
+    let foreign = il
+        .begin_operation(
+            OperationKind::Receipt,
+            "gate:lint@task:verify",
+            "gate:lint@task:verify",
+        )
+        .unwrap()
+        .unwrap();
+    il.start_operation(
+        &foreign,
+        Some(format!("receipt:{}", stale_admission.receipt_id)),
+    )
+    .unwrap();
+    let unadmitted = il
+        .begin_operation(
+            OperationKind::Receipt,
+            "gate:check@task:verify",
+            "gate:check@task:verify",
+        )
+        .unwrap()
+        .unwrap();
+    il.persist().unwrap();
+    // The objective rolls over under the admitted test receipt: its
+    // settlement is kept stale, never applied to the new run's task.
+    engines.ship_finalize(vec![], None).unwrap();
+    engines
+        .ship_set_objective("next".into(), vec![], vec![], "chunk:c1".into())
+        .unwrap();
+    let settled = engines
+        .ship_settle_gate(
+            stale_admission,
+            CheckExecution::Exited { code: 0 },
+            "late".into(),
+            None,
+        )
+        .unwrap();
+    assert!(matches!(
+        settled,
+        magistr_engine::native::CheckSettlement::Stale { .. }
+    ));
+    drop(il);
+
+    let recovered = recover(dir.path(), &spec, Some(engines));
+    assert_eq!(outcome_of(&recovered, &stale), OperationOutcome::Failed);
+    assert_eq!(
+        outcome_of(&recovered, &unadmitted),
+        OperationOutcome::Failed
+    );
+    assert_eq!(
+        outcome_of(&recovered, &foreign),
+        OperationOutcome::Indeterminate
+    );
+    assert_eq!(recovered.reconciliation().open.len(), 1);
 }
 
 #[test]
@@ -293,26 +392,54 @@ fn a_publication_is_cancelled_because_surfaces_reseed() {
     );
 }
 
+/// A stand-in provider runtime the loop can be handed a handle for.
+fn runtime() -> std::process::Child {
+    std::process::Command::new("sleep")
+        .arg("30")
+        .spawn()
+        .expect("a stand-in provider runtime")
+}
+
+/// The handle of a runtime that has already exited — a launch the loop
+/// recorded, and a process that is gone by the time recovery asks.
+fn gone_runtime_handle() -> String {
+    let mut child = runtime();
+    let handle = RuntimeHandle::observe(child.id()).expect("a live child");
+    child.kill().unwrap();
+    child.wait().unwrap();
+    handle.to_string()
+}
+
+fn git(dir: &Path, args: &[&str]) {
+    let out = std::process::Command::new("git")
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "git {args:?}");
+}
+
 #[test]
 fn a_provider_dispatch_waits_for_its_runtime_then_settles_by_the_git_baseline() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
     il.pre_iteration_check().unwrap();
-    let mut runtime = std::process::Command::new("sleep")
-        .arg("30")
-        .spawn()
-        .expect("a stand-in provider runtime");
+    let mut runtime = runtime();
+    let handle = RuntimeHandle::observe(runtime.id()).expect("a live runtime");
     let dispatch = il
         .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
         .unwrap()
         .unwrap();
     il.persist().unwrap();
-    il.start_operation(&dispatch, Some(format!("pid:{}", runtime.id())))
+    il.start_operation(&dispatch, Some(handle.to_string()))
         .unwrap();
     il.persist().unwrap();
     drop(il);
 
-    // The runtime outlived the loop: nothing is established, no retry.
+    // The runtime outlived the loop: nothing is established, no retry —
+    // not even once a commit lands meanwhile, since a live runtime is
+    // nobody's to judge.
+    commit(dir.path(), "chore: someone committed while the runtime ran");
     let mut recovered = recover(dir.path(), &spec, None);
     assert_eq!(
         outcome_of(&recovered, &dispatch),
@@ -322,10 +449,7 @@ fn a_provider_dispatch_waits_for_its_runtime_then_settles_by_the_git_baseline() 
     match recovered.pre_iteration_check().unwrap() {
         PreCheckResult::Unreconciled(open) => {
             assert_eq!(open[0].attempt, dispatch);
-            assert_eq!(
-                open[0].external.as_deref(),
-                Some(&*format!("pid:{}", runtime.id()))
-            );
+            assert_eq!(open[0].external.as_deref(), Some(&*handle.to_string()));
         }
         other => panic!("expected an unreconciled stop, got {other:?}"),
     }
@@ -333,10 +457,46 @@ fn a_provider_dispatch_waits_for_its_runtime_then_settles_by_the_git_baseline() 
     recovered.persist().unwrap();
     drop(recovered);
 
-    // The runtime is gone and left no commit: the dispatch failed and the
-    // attempt keeps its baseline for a retry under a new attempt number.
+    // The runtime is gone; HEAD advanced from the attempt's baseline while
+    // it lived: that is the runtime's work, done.
     runtime.kill().unwrap();
     runtime.wait().unwrap();
+    let mut recovered = recover(dir.path(), &spec, None);
+    assert_eq!(
+        outcome_of(&recovered, &dispatch),
+        OperationOutcome::Completed
+    );
+    assert!(recovered.reconciliation().is_clean());
+    assert_eq!(
+        recovered.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    // Established: not launched again this attempt.
+    assert_eq!(
+        recovered
+            .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
+            .unwrap(),
+        None
+    );
+    recovered.post_iteration_check();
+    recovered.advance();
+    recovered.persist().unwrap();
+
+    // The next attempt: a launched runtime that died leaving no commit is
+    // a failed dispatch, retried as attempt two of the same command.
+    assert_eq!(
+        recovered.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    let dispatch = recovered
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
+        .unwrap()
+        .unwrap();
+    recovered
+        .start_operation(&dispatch, Some(gone_runtime_handle()))
+        .unwrap();
+    recovered.persist().unwrap();
+    drop(recovered);
     let mut recovered = recover(dir.path(), &spec, None);
     assert_eq!(outcome_of(&recovered, &dispatch), OperationOutcome::Failed);
     assert_eq!(
@@ -347,18 +507,95 @@ fn a_provider_dispatch_waits_for_its_runtime_then_settles_by_the_git_baseline() 
         .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
         .unwrap()
         .unwrap();
+    assert_eq!(retry.command(), dispatch.command());
     assert_eq!(retry.number().get(), 2);
-    // Accepted, never launched: recovery still has nothing but the baseline.
     assert_eq!(recovered.consecutive_no_commits(), 0);
-    recovered.persist().unwrap();
-    drop(recovered);
+}
 
-    // A commit past the baseline while the loop was absent establishes
-    // that the (now gone) runtime completed its work.
-    commit(dir.path(), "feat: landed while the loop was down");
+#[test]
+fn a_dispatch_without_a_runtime_handle_stays_open_whatever_head_did() {
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    il.pre_iteration_check().unwrap();
+    // Accepted and persisted; the process died between the intent and the
+    // handle — or launched a runtime that offers none. Either way a commit
+    // meanwhile says nothing about this dispatch.
+    let dispatch = il
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
+        .unwrap()
+        .unwrap();
+    il.persist().unwrap();
+    drop(il);
+    commit(dir.path(), "feat: a commit from nobody the loop knows");
+    let mut recovered = recover(dir.path(), &spec, None);
+    assert_eq!(
+        outcome_of(&recovered, &dispatch),
+        OperationOutcome::Indeterminate
+    );
+    match recovered.pre_iteration_check().unwrap() {
+        PreCheckResult::Unreconciled(open) => {
+            assert_eq!(open[0].attempt, dispatch);
+            assert_eq!(open[0].external, None);
+        }
+        other => panic!("expected an unreconciled stop, got {other:?}"),
+    }
+    // A running record with no handle reads the same way.
+    let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    il.pre_iteration_check().unwrap();
+    let dispatch = il
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
+        .unwrap()
+        .unwrap();
+    il.start_operation(&dispatch, None).unwrap();
+    il.persist().unwrap();
+    drop(il);
     let recovered = recover(dir.path(), &spec, None);
-    assert_eq!(outcome_of(&recovered, &retry), OperationOutcome::Completed);
-    assert!(recovered.reconciliation().is_clean());
+    assert_eq!(
+        outcome_of(&recovered, &dispatch),
+        OperationOutcome::Indeterminate
+    );
+}
+
+#[test]
+fn a_reused_pid_is_not_the_runtime_and_a_dead_one_is_judged_only_by_an_advance() {
+    let (dir, spec) = setup_project("- [ ] item\n");
+    commit(dir.path(), "feat: the commit the attempt starts on");
+    let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    il.pre_iteration_check().unwrap();
+    let live = runtime();
+    let live_handle = RuntimeHandle::observe(live.id()).expect("a live runtime");
+    // A handle naming the live process's id under another start identity:
+    // the id was reused by something that is not this dispatch's runtime.
+    let reused = RuntimeHandle::new(live.id(), live_handle.start().map(|start| start ^ 1));
+    let dispatch = il
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
+        .unwrap()
+        .unwrap();
+    il.start_operation(&dispatch, Some(reused.to_string()))
+        .unwrap();
+    il.persist().unwrap();
+    drop(il);
+    // HEAD moves, but not forward from the baseline: back to the initial
+    // commit. Movement that is not an advance from the baseline is not
+    // the runtime's commit.
+    git(dir.path(), &["checkout", "--detach", "HEAD~1"]);
+    let mut recovered = recover(dir.path(), &spec, None);
+    let expected = if live_handle.start().is_some() {
+        OperationOutcome::Failed
+    } else {
+        // A host that cannot tell processes apart cannot call it gone.
+        OperationOutcome::Indeterminate
+    };
+    assert_eq!(outcome_of(&recovered, &dispatch), expected);
+    let mut live = live;
+    live.kill().unwrap();
+    live.wait().unwrap();
+    if expected == OperationOutcome::Failed {
+        assert_eq!(
+            recovered.pre_iteration_check().unwrap(),
+            PreCheckResult::Continue
+        );
+    }
 }
 
 #[test]

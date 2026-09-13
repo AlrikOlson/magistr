@@ -637,6 +637,27 @@ fn loop_state_path(project_dir: &Path) -> PathBuf {
     project_dir.join(".magistr").join("loop-state.json")
 }
 
+/// Whether HEAD has advanced from `baseline`: the baseline is an ancestor
+/// of HEAD and HEAD is not the baseline itself. A reset, a rebase or a
+/// branch switch moves HEAD without advancing it. `None` when git cannot
+/// answer (no repository, an unknown baseline).
+fn git_head_advanced_from(project_dir: &Path, baseline: &str) -> Option<bool> {
+    let head = git_head_sha(project_dir)?;
+    if head == baseline {
+        return Some(false);
+    }
+    let status = std::process::Command::new("git")
+        .args(["merge-base", "--is-ancestor", baseline, "HEAD"])
+        .current_dir(project_dir)
+        .status()
+        .ok()?;
+    match status.code() {
+        Some(0) => Some(true),
+        Some(1) => Some(false),
+        _ => None,
+    }
+}
+
 /// Get the current git HEAD as a short SHA.
 fn git_head_sha(project_dir: &Path) -> Option<String> {
     let output = std::process::Command::new("git")

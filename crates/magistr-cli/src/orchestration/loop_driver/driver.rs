@@ -40,6 +40,7 @@ use crate::workflow::WorkflowConfig;
 use crate::workflow::iteration::{
     AttemptId, IterationLoop, OperationKind, OperationOutcome, PostCheckResult, PreCheckResult,
 };
+use crate::workflow::runtime_handle::RuntimeHandle;
 use magistr_core::evidence::WorkspaceEvidence;
 use magistr_engine::native::EvidencePort;
 
@@ -147,6 +148,13 @@ pub struct LoopDriver {
     checkpoints: Option<Arc<Mutex<Box<dyn CheckpointPort>>>>,
     /// The ledger verb in flight, if one is — what a boundary waits for.
     ledger: Option<JoinHandle<()>>,
+}
+
+/// One gate's admission and the operation record that will settle on it.
+#[derive(Clone)]
+struct Recording {
+    admission: AdmittedCheck,
+    receipt: Option<AttemptId>,
 }
 
 /// What writing an operation's intent came to.
@@ -646,9 +654,18 @@ impl LoopDriver {
                         return Err(format!("failed to start the agent: {e}"));
                     }
                 };
-                let runtime = runtime_handle(&transport);
-                let (session, session_tx, _) = self.open_session(transport, spec, true)?;
-                self.launched(&dispatch, runtime);
+                // The handle is on the record before anything else is
+                // done with the runtime: a crash from here on leaves
+                // recovery the particular process to ask about.
+                self.launched(&dispatch, runtime_handle(&transport));
+                let (session, session_tx, _) = match self.open_session(transport, spec, true) {
+                    Ok(opened) => opened,
+                    Err(why) => {
+                        self.settled(&dispatch, OperationOutcome::Failed);
+                        self.iter_loop.mark_failed();
+                        return Err(why);
+                    }
+                };
                 self.post(LoopEvent::Stage(LoopStage::Agent));
                 let turn = self.turn(&session_tx, started, &mut ticks).await;
                 drop(session_tx);
@@ -939,9 +956,15 @@ impl LoopDriver {
             self.settled(&dispatch, OperationOutcome::Failed);
             return Err("the transport's event stream was already taken".to_owned());
         };
-        let runtime = runtime_handle(&transport);
-        let (session, session_tx, control) = self.open_session(transport, spec, false)?;
-        self.launched(&dispatch, runtime);
+        self.launched(&dispatch, runtime_handle(&transport));
+        let (session, session_tx, control) = match self.open_session(transport, spec, false) {
+            Ok(opened) => opened,
+            Err(why) => {
+                self.settled(&dispatch, OperationOutcome::Failed);
+                self.iter_loop.mark_failed();
+                return Err(why);
+            }
+        };
         self.post(LoopEvent::Stage(LoopStage::Agent));
         let outcome = self
             .deliver(
@@ -1596,28 +1619,19 @@ impl LoopDriver {
             if command.trim().is_empty() {
                 continue;
             }
-            // Admitted before the run: the receipt names the source as it
-            // is now, through the evidence capability the host writer was
-            // admitted with.
-            let admission = verification
-                .as_ref()
-                .map_err(Clone::clone)
-                .and_then(|target| {
-                    let engines = engines.as_ref().expect("verification has an owner");
-                    let admission = AdmittedCheck::admit(
-                        engines,
-                        &self.wf.project_dir,
-                        Some(&target.task_id),
-                        &name,
-                        command.clone(),
-                        true,
-                    )
-                    .map_err(|why| why.to_string())?;
-                    if admission.target() != target {
-                        return Err("the verification run or task was superseded".to_owned());
-                    }
-                    Ok(admission)
-                });
+            // Intended, then admitted, before the run: the record names
+            // the receipt it will settle, and the receipt names the source
+            // as it is now, through the evidence capability the host
+            // writer was admitted with.
+            let admission = match &verification {
+                Ok(target) => self.intend_receipt(
+                    engines.as_ref().expect("verification has an owner"),
+                    target,
+                    &name,
+                    &command,
+                ),
+                Err(why) => Err(why.clone()),
+            };
             let first = match self
                 .one_gate(&name, &command, &cancel, started, ticks)
                 .await
@@ -1666,6 +1680,67 @@ impl LoopDriver {
         Some(outcomes)
     }
 
+    /// The record of one gate's receipt, written before the gate is
+    /// admitted, and the admission itself once it is: `Recording.receipt`
+    /// is the attempt whose handle names the durable receipt, `None` when
+    /// the intent could not be written (the gate is recorded anyway — its
+    /// evidence is worth more than the record of recording it). An
+    /// `Established` intent means this attempt's receipt for the gate is
+    /// already applied — recovery found it settled — and nothing is
+    /// admitted: a second admission would leave an unsettled latest
+    /// receipt in front of the applied one, and completion would refuse
+    /// on it. An admission that fails settles the intent `Failed` so the
+    /// next set admits attempt two.
+    fn intend_receipt(
+        &mut self,
+        engines: &NativeEngines,
+        target: &magistr_engine::native::TaskAdmission,
+        name: &str,
+        command: &str,
+    ) -> Result<Recording, String> {
+        let task = target.task_id.clone();
+        let receipt = match self.intend(OperationKind::Receipt, &format!("gate:{name}@task:{task}"))
+        {
+            Intent::Attempt(attempt) => Some(attempt),
+            Intent::Established => {
+                return Err(format!(
+                    "{name} already recorded on {task} for this attempt — not recorded twice"
+                ));
+            }
+            Intent::Unrecorded(_) => None,
+        };
+        let admitted = AdmittedCheck::admit(
+            engines,
+            &self.wf.project_dir,
+            Some(&task),
+            name,
+            command.to_owned(),
+            true,
+        )
+        .map_err(|why| why.to_string())
+        .and_then(|admission| {
+            if admission.target() == target {
+                Ok(admission)
+            } else {
+                Err("the verification run or task was superseded".to_owned())
+            }
+        });
+        match admitted {
+            Ok(admission) => {
+                if let Some(receipt) = &receipt {
+                    self.launched(receipt, Some(format!("receipt:{}", admission.receipt_id())));
+                }
+                Ok(Recording { admission, receipt })
+            }
+            Err(why) => {
+                if let Some(receipt) = &receipt {
+                    self.settled(receipt, OperationOutcome::Failed);
+                }
+                Err(why)
+            }
+        }
+    }
+
     /// Forward one gate to the execution trace as a verified check, with
     /// its real exit code, its command and its captured output — the same
     /// record `magistr_gate` writes for the agent's own gates, and which
@@ -1680,7 +1755,7 @@ impl LoopDriver {
     fn record_gate(
         &mut self,
         engines: Option<&NativeEngines>,
-        admission: &Result<AdmittedCheck, String>,
+        recording: &Result<Recording, String>,
         gate: &GateOutcome,
         said: &mut bool,
     ) {
@@ -1691,8 +1766,8 @@ impl LoopDriver {
             }
             return;
         };
-        let admission = match admission {
-            Ok(admission) => admission.clone(),
+        let Recording { admission, receipt } = match recording {
+            Ok(recording) => recording.clone(),
             Err(why) => {
                 if !*said {
                     *said = true;
@@ -1700,23 +1775,6 @@ impl LoopDriver {
                 }
                 return;
             }
-        };
-        let task = admission.target().task_id.clone();
-        let receipt = match self.intend(
-            OperationKind::Receipt,
-            &format!("gate:{}@task:{task}", gate.name),
-        ) {
-            Intent::Attempt(attempt) => Some(attempt),
-            Intent::Established => {
-                self.note(format!(
-                    "{} already recorded on {task} for this attempt — not recorded twice",
-                    gate.name
-                ));
-                return;
-            }
-            // The gate ran; its evidence is worth more than the record of
-            // recording it. Recovery reads the trace either way.
-            Intent::Unrecorded(_) => None,
         };
         // The boundary derives the junit report path under the project
         // directory itself; the loop makes no promise about its own
@@ -2049,11 +2107,17 @@ impl LoopDriver {
     }
 }
 
-/// The provider runtime's own handle for the dispatch record: its process
-/// id when the transport spawned one, nothing for an in-process fake.
+/// The provider runtime's own handle for the dispatch record: the process
+/// group the transport spawned, pinned to that process by its start
+/// identity, read while it lives; nothing for an in-process fake, and
+/// nothing for a runtime already gone by the time it is asked (a record
+/// that claims no launch can be judged only once something says what it
+/// launched — the loop settles such a dispatch itself before it returns).
 fn runtime_handle(transport: &magistr_acp::AcpTransport) -> Option<String> {
-    let pgid = transport.child_pgid();
-    (pgid > 0).then(|| format!("pid:{pgid}"))
+    u32::try_from(transport.child_pgid())
+        .ok()
+        .and_then(RuntimeHandle::observe)
+        .map(|handle| handle.to_string())
 }
 
 fn ticker() -> Interval {

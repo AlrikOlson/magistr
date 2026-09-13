@@ -38,12 +38,14 @@ pub async fn cmd_next(
 
     // Delegate to the workflow session with this run's workspace admission.
     let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    // One turn with no loop checkpoint: nothing records the runtime.
     let ran = crate::commands::run::cmd_run_workflow(
         &prompt,
         &dir,
         backend,
         profile,
         workspace.source_route(),
+        |_| Ok(()),
     )
     .await;
     if let Err(err) = workspace.shutdown().await {

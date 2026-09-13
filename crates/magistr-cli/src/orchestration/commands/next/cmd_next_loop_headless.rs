@@ -173,10 +173,15 @@ pub async fn cmd_next_loop_headless(
                 return Err(error);
             }
         };
+        // The runtime's handle, pinned to the particular process by its
+        // start identity: what recovery asks about if this loop dies.
         iter_loop
             .start_operation(
                 &dispatch,
-                session.provider_pid().map(|pid| format!("pid:{pid}")),
+                session
+                    .provider_pid()
+                    .and_then(workflow::runtime_handle::RuntimeHandle::observe)
+                    .map(|handle| handle.to_string()),
             )
             .suggest()?;
         iter_loop.persist().suggest()?;
