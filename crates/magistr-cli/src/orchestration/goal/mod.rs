@@ -12,8 +12,10 @@
 //! exit codes are the authority, on every mode.
 //!
 //! [`SessionJudge`] is the one transport: a fresh, tool-less ACP session
-//! per verdict (goal-judge-session). The driver that acts on the
-//! decision is the next slice.
+//! per verdict on the shared session owner, its permission asks refused
+//! by [`NoTools`], its words read as a verdict only when the owner's
+//! [`JudgeEvidence`] — a confirmed `EndTurn` and a settled cleanup —
+//! admits them. The driver that acts on the decision is the next slice.
 
 pub mod agent_goal;
 pub mod decision;
@@ -23,7 +25,9 @@ pub mod delivery_kind;
 pub mod gate_evidence;
 pub mod goal_mode;
 pub mod judge;
+pub mod judge_evidence;
 pub mod judge_input;
+pub mod no_tools;
 pub mod session_judge;
 pub mod verdict;
 
@@ -35,6 +39,8 @@ pub use delivery_kind::DeliveryKind;
 pub use gate_evidence::GateEvidence;
 pub use goal_mode::GoalMode;
 pub use judge::Judge;
+pub use judge_evidence::JudgeEvidence;
 pub use judge_input::JudgeInput;
+pub use no_tools::NoTools;
 pub use session_judge::SessionJudge;
 pub use verdict::Verdict;

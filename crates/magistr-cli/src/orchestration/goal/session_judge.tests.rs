@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use agent_client_protocol::schema::v1::StopReason;
 use magistr_acp::AcpTransport;
 use magistr_tui::harness::{AcpObserved, FakeAcpAgent};
 
@@ -208,5 +209,96 @@ async fn a_connection_that_fails_is_not_yet_with_the_error() {
         verdict.reason.contains("no agent on PATH"),
         "{}",
         verdict.reason
+    );
+}
+
+// ─── Terminal evidence through the shared owner ─────────────────────────
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_turn_the_agent_ended_as_cancelled_is_not_a_verdict() {
+    // The full verdict text arrives, then the agent's own terminal
+    // response says Cancelled: the text is not evidence of anything.
+    let (judge, seen, _root) = judge(
+        FakeAcpAgent::new()
+            .reply(r#"{"ok": true, "reason": "met"}"#)
+            .ending_with(StopReason::Cancelled),
+    );
+    let verdict = judge.judge(&input()).await;
+    assert!(!verdict.ok && !verdict.impossible, "{verdict:?}");
+    assert!(verdict.reason.contains("cancelled"), "{}", verdict.reason);
+    assert_eq!(observed(&seen)[0].prompts().len(), 1, "it was asked");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_turn_ended_by_a_limit_is_not_a_verdict() {
+    let (judge, _, _root) = judge(
+        FakeAcpAgent::new()
+            .reply(r#"{"ok": true, "reason": "met"}"#)
+            .ending_with(StopReason::MaxTokens),
+    );
+    let verdict = judge.judge(&input()).await;
+    assert!(!verdict.ok && !verdict.impossible, "{verdict:?}");
+    assert!(verdict.reason.contains("MaxTokens"), "{}", verdict.reason);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn stream_loss_after_the_full_answer_cannot_fabricate_a_verdict() {
+    // The agent says the whole verdict and then its side of the
+    // connection is gone before any terminal response: the owner records
+    // a failed stream, and the judge answers not-yet with that reason
+    // rather than reading the text it already has.
+    let (judge, seen, _root) = judge(
+        FakeAcpAgent::new()
+            .reply(r#"{"ok": true, "reason": "met"}"#)
+            .vanishing(),
+    );
+    let started = Instant::now();
+    let verdict = judge.judge(&input()).await;
+    assert!(
+        started.elapsed() < Duration::from_secs(10),
+        "stream loss settles without waiting for the judge's timeout: {:?}",
+        started.elapsed()
+    );
+    assert!(!verdict.ok && !verdict.impossible, "{verdict:?}");
+    assert!(
+        verdict.reason.contains("failed before a terminal response")
+            && (verdict.reason.contains("transport closed")
+                || verdict.reason.contains("stream ended")),
+        "{}",
+        verdict.reason
+    );
+    assert!(
+        verdict.reason.contains(r#"{"ok": true, "reason": "met"}"#),
+        "the complete answer had arrived and is on the record, not read: {}",
+        verdict.reason
+    );
+    assert_eq!(observed(&seen)[0].prompts().len(), 1, "it was asked");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_judge_owns_no_event_or_permission_loop() {
+    // The refusal is the owner's policy path, not a select! in the
+    // judge: the source has no permission receiver, no event receiver
+    // and no transport close of its own.
+    let source = include_str!("session_judge.rs");
+    for forbidden in [
+        "take_permission_rx",
+        "read_events",
+        "tokio::select!",
+        "transport.close()",
+        "AcpPermissionResponse",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "session_judge.rs still carries its own transport loop: {forbidden}"
+        );
+    }
+    assert!(
+        source.contains("SessionSupervisor::start_connected"),
+        "the judge attaches through the shared owner"
+    );
+    assert!(
+        source.contains("terminate_session"),
+        "cleanup settlement is declared by the owner"
     );
 }
