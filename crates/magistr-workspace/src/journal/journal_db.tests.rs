@@ -603,3 +603,75 @@ fn linked_durable_files_are_refused_without_touching_targets() {
         b"unrelated durable bytes"
     );
 }
+
+#[test]
+fn bundled_sqlite_runtime_carries_the_wal_reset_fix() {
+    // SQLite 3.51.3 (2026-03-13) fixed the WAL-reset checkpoint race that
+    // every release from 3.7.0 through 3.51.2 carried; the journal links the
+    // bundled library, so the runtime it reports is the one every store uses.
+    const WAL_RESET_FIX: i32 = 3_051_003;
+    assert!(
+        rusqlite::version_number() >= WAL_RESET_FIX,
+        "linked SQLite {} predates the WAL-reset fix",
+        rusqlite::version()
+    );
+    assert_eq!(
+        rusqlite::version_number(),
+        rusqlite::ffi::SQLITE_VERSION_NUMBER,
+        "runtime library differs from the compiled bundled header"
+    );
+    let dir = tempfile::tempdir().expect("directory");
+    let db = writer(&dir);
+    let runtime: String = db
+        .connection()
+        .query_row("SELECT sqlite_version()", [], |row| row.get(0))
+        .expect("runtime version");
+    assert_eq!(runtime, rusqlite::version());
+    assert_eq!(db.journal_mode().expect("mode"), "wal");
+}
+
+#[test]
+fn read_only_reader_beside_the_sole_writer_reads_across_a_checkpoint() {
+    // The journal's topology: one admitted writer that is also the only
+    // checkpointer, and read-only readers that can neither write nor reset
+    // the WAL. That is what keeps it outside the WAL-reset advisory.
+    let dir = tempfile::tempdir().expect("directory");
+    let path = dir.path().join("journal.db");
+    let mut db = writer(&dir);
+    assert_eq!(db.journal_mode().expect("mode"), "wal");
+    db.append(&change(b"first before", b"first after"))
+        .expect("first append");
+    let reader = JournalReader::open(&path).expect("reader beside the writer");
+    assert_eq!(reader.list(0).expect("committed ops").len(), 1);
+    db.append(&change(b"second before", b"second after"))
+        .expect("append beside an open reader");
+    assert_eq!(reader.list(0).expect("sees the new commit").len(), 2);
+
+    let read_only = Connection::open_with_flags(
+        &path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .expect("read-only connection");
+    let refused = read_only
+        .execute_batch("DELETE FROM ops")
+        .expect_err("a read-only reader cannot write");
+    assert_eq!(
+        refused.sqlite_error_code(),
+        Some(rusqlite::ErrorCode::ReadOnly)
+    );
+
+    let (busy, log, checkpointed): (i64, i64, i64) = db
+        .connection()
+        .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })
+        .expect("the writer checkpoints");
+    assert_eq!(busy, 0, "no reader pins the WAL between reads");
+    assert_eq!(log, checkpointed);
+    assert_eq!(reader.list(0).expect("after checkpoint").len(), 2);
+    assert_eq!(db.list(0).expect("writer view").len(), 2);
+    let integrity: String = read_only
+        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+        .expect("integrity");
+    assert_eq!(integrity, "ok");
+}

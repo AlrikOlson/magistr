@@ -41,7 +41,7 @@ magistr-tui = { path = "../magistr-tui" }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-rusqlite = { version = "0.33", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 similar = "2"
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"

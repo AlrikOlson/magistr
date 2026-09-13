@@ -54,7 +54,7 @@ toml = { version = "1.0.6", features = ["preserve_order"] }
 sha2 = "0.10"
 hmac = "0.12"
 saphyr-parser = "0.0.12"
-rusqlite = { version = "0.33", features = ["bundled", "limits"] }
+rusqlite = { version = "0.40", features = ["bundled", "limits"] }
 zstd = "0.13"
 flate2 = "1"
 notify = "8"

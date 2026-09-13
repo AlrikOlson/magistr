@@ -232,14 +232,12 @@ impl IndexCache {
 
     /// Replace every row of a file atomically, including its aligned FTS row.
     pub fn update(&mut self, file: &IndexedFile) -> Result<(), CacheError> {
-        if file.size > i64::MAX as u64 {
-            return Err(CacheError::InvalidInput(
-                "file size exceeds SQLite integer range".to_owned(),
-            ));
-        }
+        let size = i64::try_from(file.size).map_err(|_| {
+            CacheError::InvalidInput("file size exceeds SQLite integer range".to_owned())
+        })?;
         let transaction = self.db.transaction()?;
         delete_file(&transaction, &file.path)?;
-        transaction.execute("INSERT INTO files (path,language,size,mtime_ms,mode,content_hash,junk,content_indexed) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)", params![file.path,file.language,file.size,file.mtime_ms,file.mode,file.content_hash,file.junk,file.content.is_some()])?;
+        transaction.execute("INSERT INTO files (path,language,size,mtime_ms,mode,content_hash,junk,content_indexed) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)", params![file.path,file.language,size,file.mtime_ms,file.mode,file.content_hash,file.junk,file.content.is_some()])?;
         if let Some(content) = &file.content {
             transaction.execute("INSERT INTO content_fts (rowid,path,content) VALUES ((SELECT rowid FROM files WHERE path=?1),?1,?2)", params![file.path,content])?;
         }
@@ -275,7 +273,7 @@ impl IndexCache {
         Ok(self
             .db
             .query_row("SELECT value FROM meta WHERE key='generation'", [], |row| {
-                row.get(0)
+                unsigned(row, 0)
             })?)
     }
 
@@ -297,8 +295,15 @@ impl IndexCache {
     }
 
     pub fn counts(&self) -> Result<CacheCounts, CacheError> {
-        Ok(self.db.query_row("SELECT (SELECT count(*) FROM files),(SELECT count(*) FROM symbols),(SELECT count(*) FROM imports),(SELECT count(*) FROM test_ranges),(SELECT count(*) FROM content_fts)", [], |row| Ok(CacheCounts { files:row.get(0)?,symbols:row.get(1)?,imports:row.get(2)?,test_ranges:row.get(3)?,content:row.get(4)? }))?)
+        Ok(self.db.query_row("SELECT (SELECT count(*) FROM files),(SELECT count(*) FROM symbols),(SELECT count(*) FROM imports),(SELECT count(*) FROM test_ranges),(SELECT count(*) FROM content_fts)", [], |row| Ok(CacheCounts { files:unsigned(row,0)?,symbols:unsigned(row,1)?,imports:unsigned(row,2)?,test_ranges:unsigned(row,3)?,content:unsigned(row,4)? }))?)
     }
+}
+
+/// Read a column SQLite stores as a signed integer into the unsigned domain the
+/// cache promises, refusing negative values the way rusqlite once did for `u64`.
+fn unsigned(row: &Row<'_>, index: usize) -> rusqlite::Result<u64> {
+    let value: i64 = row.get(index)?;
+    u64::try_from(value).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(index, value))
 }
 
 fn bounded(limit: usize) -> i64 {
@@ -318,7 +323,7 @@ fn metadata_row(row: &Row<'_>) -> rusqlite::Result<IndexedFile> {
     Ok(IndexedFile {
         path: row.get(0)?,
         language: row.get(1)?,
-        size: row.get(2)?,
+        size: unsigned(row, 2)?,
         mtime_ms: row.get(3)?,
         mode: row.get(4)?,
         content_hash: row.get(5)?,
@@ -501,7 +506,7 @@ fn probe(path: &Path) -> Result<Option<String>, CacheError> {
             return Ok(Some(format!("native cache schema mismatch: {name}")));
         }
     }
-    let triggers: u64 = db.query_row(
+    let triggers: i64 = db.query_row(
         "SELECT count(*) FROM sqlite_master WHERE type='trigger'",
         [],
         |row| row.get(0),
@@ -509,7 +514,7 @@ fn probe(path: &Path) -> Result<Option<String>, CacheError> {
     if triggers != 0 {
         return Ok(Some("native cache contains unexpected triggers".to_owned()));
     }
-    let metadata: u64 = db.query_row("SELECT count(*) FROM meta WHERE (key='tier' AND value IN (0,1)) OR (key='generation' AND typeof(value)='integer' AND value>=0)", [], |row| row.get(0))?;
+    let metadata: i64 = db.query_row("SELECT count(*) FROM meta WHERE (key='tier' AND value IN (0,1)) OR (key='generation' AND typeof(value)='integer' AND value>=0)", [], |row| row.get(0))?;
     if metadata != 2 {
         return Ok(Some(
             "native cache lifecycle metadata is invalid".to_owned(),

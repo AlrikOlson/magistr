@@ -67,7 +67,7 @@ fn mutations_keep_fts_rowids_aligned_without_stale_terms() {
         }
     );
     let db = rusqlite::Connection::open(dir.path().join("native-index.db")).unwrap();
-    let mismatches: u64 = db.query_row("SELECT count(*) FROM content_fts c LEFT JOIN files f ON f.rowid=c.rowid WHERE f.path IS NULL OR f.path!=c.path", [], |row| row.get(0)).unwrap();
+    let mismatches: i64 = db.query_row("SELECT count(*) FROM content_fts c LEFT JOIN files f ON f.rowid=c.rowid WHERE f.path IS NULL OR f.path!=c.path", [], |row| row.get(0)).unwrap();
     assert_eq!(mismatches, 0);
 }
 
