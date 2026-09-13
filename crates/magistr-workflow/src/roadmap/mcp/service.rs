@@ -21,6 +21,7 @@ use crate::mcp::cache::catalog;
 use crate::roadmap::application::{RoadmapError, RoadmapUseCases};
 use crate::roadmap::engine::RoadmapEngine;
 use crate::roadmap::output_schemas;
+use crate::ship::ShipUseCases;
 
 const SERVER_INSTRUCTIONS: &str = r#"roadmap-* drives the project roadmap: the long-horizon plan-of-plans that sits above ship_* objectives and links to think_* reasoning.
 
@@ -57,8 +58,13 @@ pub struct RoadmapService {
 }
 
 impl RoadmapService {
-    pub fn new(engine: RoadmapEngine) -> Self {
-        Self::from_use_cases(RoadmapUseCases::new(Arc::new(Mutex::new(engine))))
+    /// Serve `engine` with `completion` — the ship family whose receipts
+    /// govern every route to `done` — as its completion authority.
+    pub fn new(engine: RoadmapEngine, completion: ShipUseCases) -> Self {
+        Self::from_use_cases(RoadmapUseCases::new(
+            Arc::new(Mutex::new(engine)),
+            completion,
+        ))
     }
 
     /// Expose MCP over the same application used by native workflow clients.

@@ -94,9 +94,53 @@ fn engines_with_work(dir: &Path) -> NativeEngines {
     engines
 }
 
-/// The store [`engines_with_work`] opens.
+/// The store [`engines_with_work`] opens — on the writer config production
+/// admits the loop on, carrying the fixture's evidence capability, so a
+/// gate the loop or the agent records certifies the tree and a judged
+/// completion has receipts to stand on.
 fn work_config(dir: &Path) -> NativeConfig {
-    NativeConfig::from_lookup(dir.to_path_buf(), |_| None).with_data_dir(dir.join("tas-data"))
+    magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("tas-data"))
+}
+
+/// The agent's own process completing `work` inside its turn the only way
+/// a chunk completes: an objective scoped to it, a verification task, every
+/// configured gate recorded on that task with the outcome the agent claims,
+/// then `roadmap_complete_chunk` naming the task. The loop's own gates land
+/// on the same task afterwards — it is the one active in the trace.
+fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, &str); 3]) {
+    agent_side.roadmap_start_chunk("work").expect("start");
+    agent_side
+        .ship_set_objective("do the work".into(), vec![], vec![], "chunk:work".into())
+        .expect("objective");
+    agent_side
+        .ship_add_task(
+            "verify".into(),
+            "verify".into(),
+            magistr_workflow::ship::domain::task::TaskType::Test,
+            None,
+        )
+        .expect("task");
+    agent_side.ship_start_task("verify").expect("active");
+    for (gate, command) in gates {
+        crate::application::AdmittedCheck::admit(
+            agent_side,
+            root,
+            Some("verify"),
+            gate,
+            command.into(),
+            true,
+        )
+        .expect("admitted")
+        .settle(
+            agent_side,
+            magistr_engine::native::CheckExecution::Exited { code: 0 },
+            String::new(),
+        )
+        .expect("settled");
+    }
+    agent_side
+        .roadmap_complete_chunk("work", Some("task:verify"))
+        .expect("the agent completes its own chunk on its receipts");
 }
 
 /// The loop's own writer role on `config`.
@@ -197,6 +241,10 @@ fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
     });
     std::fs::write(magistr.join("project.json"), config.to_string()).expect("project.json");
     std::fs::write(dir.path().join("ROADMAP.md"), "- [ ] make it work\n").expect("spec");
+    // The loop's own writings are not source: the evidence capability
+    // hashes the tree under the fixture's ignore file, as it would in a
+    // real repository, and reads project.json as a config input regardless.
+    std::fs::write(dir.path().join(".gitignore"), ".magistr/\ntas-data/\n").expect(".gitignore");
     dir
 }
 
@@ -1167,7 +1215,9 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines() {
     let dir = project("true", "true", "true");
-    let engines = engines_with_work(dir.path());
+    // The objective and its task are the agent's to set; the chunk itself
+    // is never started by anyone but the driver.
+    let engines = engines_with_active_task(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
     let script = Script::new().startup_replies(MS(0)).text(MS(2_500), "\x04");
     let (model, report, _) = run_with(
@@ -1214,15 +1264,11 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
         Some("done"),
         "the Roadmap tab folded the completion"
     );
-    // No task was active for the gates to be recorded on, so the
-    // completion carries no proof-of-ship reference rather than an
-    // invented one.
-    assert!(
-        engines
-            .roadmap_chunk("work")
-            .expect("the chunk")
-            .cross_refs
-            .is_empty()
+    // A completion always names the task its evidence sits on: the one
+    // the loop's gates were recorded on.
+    assert_eq!(
+        engines.roadmap_chunk("work").expect("the chunk").cross_refs,
+        vec!["task:impl".to_owned()]
     );
 }
 
@@ -1958,11 +2004,15 @@ async fn a_red_gate_reopens_the_chunk_the_agent_completed_itself() {
     let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);
+    let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
-        agent_side.roadmap_start_chunk("work").expect("start");
-        agent_side
-            .roadmap_complete_chunk("work", None)
-            .expect("the agent completes its own chunk");
+        // The agent's receipts claim lint green; the loop's own run of it
+        // is what finds it red.
+        agent_completes_work(
+            &agent_side,
+            &root,
+            [("check", "true"), ("test", "true"), ("lint", "exit 3")],
+        );
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
@@ -2004,11 +2054,13 @@ async fn green_gates_leave_a_self_completed_chunk_done() {
     let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);
+    let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
-        agent_side.roadmap_start_chunk("work").expect("start");
-        agent_side
-            .roadmap_complete_chunk("work", None)
-            .expect("complete");
+        agent_completes_work(
+            &agent_side,
+            &root,
+            [("check", "true"), ("test", "true"), ("lint", "true")],
+        );
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
@@ -2046,11 +2098,13 @@ async fn a_flake_never_reopens_a_chunk() {
     let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
     let (inner, seen) = fake_connector(FakeAcpAgent::new());
     let inner = Arc::new(inner);
+    let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
-        agent_side.roadmap_start_chunk("work").expect("start");
-        agent_side
-            .roadmap_complete_chunk("work", None)
-            .expect("complete");
+        agent_completes_work(
+            &agent_side,
+            &root,
+            [("check", "true"), ("test", flake), ("lint", "true")],
+        );
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
@@ -2150,11 +2204,13 @@ async fn a_self_completed_chunk_over_a_red_gate_reaches_the_authority_rule() {
     let judge = Scripted::new([Verdict::met("I shipped it")]);
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);
+    let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
-        agent_side.roadmap_start_chunk("work").expect("start");
-        agent_side
-            .roadmap_complete_chunk("work", None)
-            .expect("complete");
+        agent_completes_work(
+            &agent_side,
+            &root,
+            [("check", "true"), ("test", "true"), ("lint", "exit 3")],
+        );
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });

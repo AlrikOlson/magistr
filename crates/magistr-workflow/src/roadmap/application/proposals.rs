@@ -59,7 +59,7 @@ impl RoadmapUseCases {
                 .and_then(|chunk| chunk.status_proposal.as_ref())
                 .is_some_and(|proposal| proposal.suggested_status == ChunkStatus::Done)
         {
-            self.refuse_done_without_evidence(id)?;
+            return Err(Self::refuse_direct_done(id));
         }
         engine
             .resolve_status_proposal(id, accept)

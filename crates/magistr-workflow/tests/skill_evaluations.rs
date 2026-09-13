@@ -469,10 +469,12 @@ fn documented_tool_counts_match_the_real_registry() {
 
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
+    let ship = ShipService::new(ShipEngine::new("docs".into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new("docs".into()), ship.use_cases());
     let svc = UnifiedService::new(
         ThinkService::new(ReasoningServer::new(cfg)),
-        ShipService::new(ShipEngine::new("docs".into())),
-        RoadmapService::new(RoadmapEngine::new("docs".into())),
+        ship,
+        roadmap,
         SignalService::new(SignalEngine::new("docs".into())),
     );
     let names: Vec<String> = svc

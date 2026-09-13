@@ -18,7 +18,7 @@ fn build_unified() -> UnifiedService {
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
     let ship = ShipService::new(ShipEngine::new("test-abc123".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), ship.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
     UnifiedService::new(think, ship, roadmap, signal)
 }

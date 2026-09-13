@@ -82,10 +82,12 @@ impl ClientHandler for EagerClient {
 fn build_unified(project: &str) -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
+    let ship = ShipService::new(ShipEngine::new(project.into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), ship.use_cases());
     UnifiedService::new(
         ThinkService::new(ReasoningServer::new(cfg)),
-        ShipService::new(ShipEngine::new(project.into())),
-        RoadmapService::new(RoadmapEngine::new(project.into())),
+        ship,
+        roadmap,
         SignalService::new(SignalEngine::new(project.into())),
     )
 }

@@ -671,4 +671,4 @@ fn auto_native(project_dir: &Path) -> Result<Option<NativeEngines>> {
 
 #[cfg(test)]
 #[path = "iteration.tests.rs"]
-mod tests;
+pub(super) mod tests;

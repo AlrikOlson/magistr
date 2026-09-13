@@ -39,10 +39,12 @@ const REPLY_TIMEOUT: Duration = Duration::from_secs(10);
 fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
+    let ship = ShipService::new(ShipEngine::new("test-wire".into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-wire".into()), ship.use_cases());
     UnifiedService::new(
         ThinkService::new(ReasoningServer::new(cfg)),
-        ShipService::new(ShipEngine::new("test-wire".into())),
-        RoadmapService::new(RoadmapEngine::new("test-wire".into())),
+        ship,
+        roadmap,
         SignalService::new(SignalEngine::new("test-wire".into())),
     )
 }

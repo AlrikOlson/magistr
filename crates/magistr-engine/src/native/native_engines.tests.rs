@@ -1,5 +1,8 @@
 use super::*;
-use crate::native::{NativeConfig, NativeReader, NativeSnapshot, ProjectAuthority, WriterRole};
+use crate::native::{
+    EvidencePort, GateContract, NativeConfig, NativeReader, NativeSnapshot, ProjectAuthority,
+    SourceFreshness, SourceObservation, SourceWitness, WriterRole,
+};
 use magistr_workflow::roadmap::domain::{BlockerKind, ChunkStatus};
 use magistr_workflow::ship::domain::action::ActionType;
 use magistr_workflow::ship::domain::check::{Check, CheckType};
@@ -7,9 +10,43 @@ use magistr_workflow::ship::domain::task::TaskType;
 use magistr_workflow::signal::domain::SignalKind;
 use magistr_workflow::think::domain::ThinkStep;
 
+/// A source that never moves and a project that configures no gates: the
+/// evidence capability every writer here is admitted with, so a recorded
+/// gate certifies a source and a chunk can complete on it.
+struct Fixed;
+
+impl SourceWitness for Fixed {
+    fn observation(&self) -> SourceObservation {
+        SourceObservation {
+            workspace_root: "/w".into(),
+            workspace_generation: None,
+            scheme: "fake/1".into(),
+            policy_digest: "p".into(),
+            revision: "r1".into(),
+            consistency: "optimistic".into(),
+            captured_at_ms: 0,
+        }
+    }
+    fn validate(&self) -> Result<SourceFreshness, String> {
+        Ok(SourceFreshness::Unchanged)
+    }
+}
+
+struct Evidence;
+
+impl EvidencePort for Evidence {
+    fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
+        Ok(Box::new(Fixed))
+    }
+    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
+        Ok(Vec::new())
+    }
+}
+
 fn temp_config(tmp: &tempfile::TempDir) -> NativeConfig {
     NativeConfig::from_lookup(tmp.path().join("proj"), |_| None)
         .with_data_dir(tmp.path().join("data"))
+        .with_evidence(Arc::new(Evidence))
 }
 
 /// The host's admitted writer on `cfg`.
@@ -116,14 +153,23 @@ fn round_trip_through_a_temp_store() {
         assert!(check.passed && check.verified);
         assert_eq!(check.exit_code, Some(0));
         let failed = engines
-            .ship_record_gate(None, "lint", "clippy".into(), 1, String::new(), false, None)
+            .ship_record_gate(None, "lint", "clippy".into(), 1, String::new(), true, None)
             .expect("gate");
         assert!(!failed.passed && failed.verified);
+        // The red lint is current evidence against completion until it
+        // is re-run green; then it is a recovered failure, not an
+        // outstanding one.
+        let refused = engines
+            .roadmap_complete_chunk("base", Some("task:t1"))
+            .expect_err("a failed required gate refuses completion");
+        assert!(
+            refused.contains("lint: the latest attempt did not pass (exit 1)"),
+            "{refused}"
+        );
+        engines
+            .ship_record_gate(None, "lint", "clippy".into(), 0, String::new(), true, None)
+            .expect("gate");
         engines.ship_complete_task("t1", vec![]).expect("complete");
-        let report = engines
-            .ship_finalize(vec![], Some("done".into()))
-            .expect("finalize");
-        assert_eq!(report.status, "shipped");
 
         let sig = engines
             .signal_capture(SignalKind::Idea, "alice".into(), "make it faster".into())
@@ -133,6 +179,11 @@ fn round_trip_through_a_temp_store() {
             .roadmap_complete_chunk("base", Some("task:t1"))
             .expect("complete chunk");
         assert_eq!(done.status, ChunkStatus::Done);
+        let report = engines
+            .ship_finalize(vec![], Some("done".into()))
+            .expect("finalize");
+        assert_eq!(report.status, "shipped");
+        assert_eq!(report.recovered_failures, vec!["lint (task: t1)"]);
     }
 
     // A second process on the same store sees everything.
@@ -282,12 +333,10 @@ fn roadmap_mutation_wrappers_round_trip() {
         .roadmap_set_status("auth", ChunkStatus::Backlog)
         .expect("set status");
     assert_eq!(backlogged.status, ChunkStatus::Backlog);
-    assert!(
-        engines
-            .roadmap_set_status("auth", ChunkStatus::Done)
-            .is_err(),
-        "backlog -> done is not a legal transition"
-    );
+    let refused = engines
+        .roadmap_set_status("auth", ChunkStatus::Done)
+        .expect_err("done is never set by name");
+    assert!(refused.contains("roadmap_complete_chunk"), "{refused}");
 
     let gone = engines
         .roadmap_obsolete_chunk("auth", "superseded".into())
@@ -965,9 +1014,9 @@ fn the_handlers_refusals_are_the_writers_refusals() {
     add_chunk(&engines, "c", 100, &[]);
     let done = engines
         .roadmap_complete_chunk("c", None)
-        .expect_err("pending -> done is not a legal transition");
+        .expect_err("no objective certifies the chunk");
     assert!(
-        done.contains("illegal") || done.contains("transition"),
+        done.starts_with("completion refused: no ship objective is set"),
         "{done}"
     );
 

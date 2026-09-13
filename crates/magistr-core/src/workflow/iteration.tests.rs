@@ -1,7 +1,7 @@
 use super::*;
 
 /// Create a temp project with a spec file and git repo.
-pub(super) fn setup_project(spec_content: &str) -> (tempfile::TempDir, PathBuf) {
+pub(in crate::workflow) fn setup_project(spec_content: &str) -> (tempfile::TempDir, PathBuf) {
     let dir = tempfile::TempDir::new().unwrap();
     let spec_path = dir.path().join("ROADMAP.md");
     std::fs::write(&spec_path, spec_content).unwrap();
@@ -618,26 +618,93 @@ fn project_config() -> crate::types::ProjectConfig {
 }
 
 /// The loop's own admitted writer on the fixture store.
-pub(super) fn native_engines(tmp: &tempfile::TempDir) -> NativeEngines {
+pub(in crate::workflow) fn native_engines(tmp: &tempfile::TempDir) -> NativeEngines {
     admitted(tmp, magistr_engine::WriterRole::Host)
 }
 
 /// The other admitted role on the same store — what the agent's own
 /// `magistr mcp-serve` is to the loop.
-pub(super) fn agent_engines(tmp: &tempfile::TempDir) -> NativeEngines {
+pub(in crate::workflow) fn agent_engines(tmp: &tempfile::TempDir) -> NativeEngines {
     admitted(tmp, magistr_engine::WriterRole::Service)
+}
+
+/// A source that never moves and a project that configures no gates: the
+/// evidence capability every writer here is admitted with, so a recorded
+/// gate certifies a source and a chunk can complete on it.
+struct FixedSource;
+
+impl magistr_engine::native::SourceWitness for FixedSource {
+    fn observation(&self) -> magistr_engine::native::SourceObservation {
+        magistr_engine::native::SourceObservation {
+            workspace_root: "/w".into(),
+            workspace_generation: None,
+            scheme: "fake/1".into(),
+            policy_digest: "p".into(),
+            revision: "r1".into(),
+            consistency: "optimistic".into(),
+            captured_at_ms: 0,
+        }
+    }
+    fn validate(&self) -> std::result::Result<magistr_engine::native::SourceFreshness, String> {
+        Ok(magistr_engine::native::SourceFreshness::Unchanged)
+    }
+}
+
+struct FixedEvidence;
+
+impl magistr_engine::native::EvidencePort for FixedEvidence {
+    fn observe(
+        &self,
+    ) -> std::result::Result<Box<dyn magistr_engine::native::SourceWitness>, String> {
+        Ok(Box::new(FixedSource))
+    }
+    fn required_gates(
+        &self,
+    ) -> std::result::Result<Vec<magistr_engine::native::GateContract>, String> {
+        Ok(Vec::new())
+    }
 }
 
 fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> NativeEngines {
     use magistr_engine::{NativeConfig, ProjectAuthority};
-    let cfg =
-        NativeConfig::from_lookup(tmp.path(), |_| None).with_data_dir(tmp.path().join("tas-data"));
+    let cfg = NativeConfig::from_lookup(tmp.path(), |_| None)
+        .with_data_dir(tmp.path().join("tas-data"))
+        .with_evidence(std::sync::Arc::new(FixedEvidence));
     ProjectAuthority::admit_for_project(&cfg, "iteration-native".into(), role)
         .expect("admitted")
         .open()
 }
 
-pub(super) fn add_native_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
+/// Complete `id` the only way a chunk completes: an objective scoped to
+/// it, a verification task, a gate recorded green on that task, then
+/// `roadmap_complete_chunk` naming the task.
+pub(in crate::workflow) fn complete_native_chunk(engines: &NativeEngines, id: &str) {
+    engines
+        .ship_set_objective(format!("do {id}"), vec![], vec![], format!("chunk:{id}"))
+        .expect("objective");
+    engines
+        .ship_add_task(
+            "verify".into(),
+            "verify".into(),
+            magistr_engine::native::TaskType::Test,
+            None,
+        )
+        .expect("task");
+    engines.ship_start_task("verify").expect("active");
+    engines
+        .ship_record_gate(None, "test", "true".into(), 0, String::new(), true, None)
+        .expect("gate");
+    engines
+        .roadmap_complete_chunk(id, Some("task:verify"))
+        .expect("complete on the run's receipts");
+}
+
+pub(in crate::workflow) fn add_native_chunk(
+    engines: &NativeEngines,
+    id: &str,
+    priority: u32,
+    deps: &[&str],
+) {
     use magistr_engine::native::ChunkStatus;
     engines
         .roadmap_add_chunk(
@@ -681,7 +748,7 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
     // Another process (the agent's mcp-serve) completes the chunk.
     let writer = agent_engines(&dir);
     writer.roadmap_start_chunk("first").unwrap();
-    writer.roadmap_complete_chunk("first", None).unwrap();
+    complete_native_chunk(&writer, "first");
 
     // The loop sees it without being re-opened and moves to the next chunk.
     let summary = il.spec_summary().unwrap();

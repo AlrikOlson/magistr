@@ -96,8 +96,14 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
     assert_eq!(owner.ship_status()["active_task"]["id"], "first-verify");
 }
 
+/// A writer admitted on a configuration that carries no evidence capability
+/// (what every test here opens) still composes the ship family as the
+/// roadmap's completion authority: completion is refused with the missing
+/// capability named, and neither the phase guard nor finalization changes
+/// what that refusal decided.
 #[test]
-fn native_completion_phase_admission_and_finalization_have_distinct_evidence_contracts() {
+fn native_completion_refuses_without_evidence_while_phase_admission_and_finalization_keep_their_contracts()
+ {
     let tmp = tempfile::tempdir().expect("tempdir");
     let config = config(&tmp);
     let engines = host(&config, "completion");
@@ -122,13 +128,22 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
     assert!(before.phase_block("verify").is_none());
     assert!(before.phase_block("done").is_some());
 
-    // The native lifecycle accepts completion without consulting ship checks
-    // or requiring the optional proof-of-ship reference.
-    let done = engines
+    // No evidence capability, no completion — on the verb every adapter
+    // lands on, in words that name what is missing.
+    let refused = engines
         .roadmap_complete_chunk("fixture", None)
-        .expect("native lifecycle completion");
-    assert_eq!(done.status, ChunkStatus::Done);
-    assert!(done.cross_refs.is_empty());
+        .expect_err("no capability certifies the gates");
+    assert!(
+        refused.contains("no verification evidence capability is composed"),
+        "{refused}"
+    );
+    let refused = engines
+        .roadmap_set_status("fixture", ChunkStatus::Done)
+        .expect_err("done is never set by name");
+    assert!(refused.contains("roadmap_complete_chunk"), "{refused}");
+    let chunk = engines.roadmap_chunk("fixture").expect("chunk");
+    assert_eq!(chunk.status, ChunkStatus::InProgress);
+    assert!(chunk.cross_refs.is_empty());
     assert!(
         ShipGuardState::from_ship(engines.ship_objective().as_ref(), &engines.ship_tasks())
             .phase_block("done")
@@ -182,6 +197,6 @@ fn native_completion_phase_admission_and_finalization_have_distinct_evidence_con
     assert_eq!(reopened.ship_status()["objective"]["status"], "completed");
     assert_eq!(reopened.ship_status()["checks"][0]["passed"], false);
     let chunk = reopened.roadmap_chunk("fixture").expect("persisted chunk");
-    assert_eq!(chunk.status, ChunkStatus::Done);
+    assert_eq!(chunk.status, ChunkStatus::InProgress);
     assert!(chunk.cross_refs.is_empty());
 }

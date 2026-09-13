@@ -139,9 +139,12 @@ recorded as evidence.
 
 `roadmap_complete_chunk` is the one route to `done`, and every adapter lands
 on it — the MCP tool, the owner command, the loop judge and the cockpit's
-Complete action. With the completion authority composed (the ship family is
-wired into the roadmap use cases whenever the evidence capability is), it
-asks `ShipUseCases::verify_completion` first: the current objective must be
+Complete action. The ship family is the roadmap's completion authority by
+construction: `RoadmapUseCases::new` takes the `ShipUseCases` it completes
+against, `FamilyServices` composes every writer's roadmap over its ship
+family, and there is no permissive branch to compose instead
+(`audit-260912-05`). Completion asks `ShipUseCases::verify_completion`
+first: the current objective must be
 scoped `chunk:<id>`; the verification task is the caller's `task:` reference
 (a task of the current run) or, absent one, the instance the run's latest
 receipt landed on, and the completion is stored with that reference so it
@@ -163,10 +166,14 @@ Limits: an optimistic observation certifies agreement of two reads, never
 isolation (`SourceExport` is the immutable path and is not consumed by
 checks yet); a `Changed` freshness names paths only when the admitting
 process settles the check, otherwise the revisions are compared
-(`Diverged`); receipts are never pruned; engines opened without the
-capability (tests, the retired standalone binary) record source-less checks
-and keep the legacy completion — production admissions are pinned by the
-gate rather than by a refusal in the engine.
+(`Diverged`); receipts are never pruned. Engines opened without the
+capability (tests that never complete a chunk) record source-less checks
+and are refused every completion with `NoEvidenceCapability`; the
+`native-write-path` gate's rule 8 is supplementary — it keeps a production
+writer from being admitted into that refusal rather than being the only
+thing that prevents a permissive completion. A chunk born `done` (an import,
+a tracker pull, a historical record) is a record, not a completion, and is
+preserved.
 
 ## Roles
 
