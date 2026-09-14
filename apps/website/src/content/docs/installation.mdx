@@ -7,9 +7,13 @@ category: getting-started
 
 # Installation
 
-The current tagged release is v0.1.0. Build Magistr from the [source repository](https://github.com/AlrikOlson/magistr).
+The current development release is v0.1.0. Magistr is a source-first project: build it from the [source repository](https://github.com/AlrikOlson/magistr) while the public release pipeline is still being established.
 You need Git and Rust 1.95 or later. The release includes the CLI, terminal
 cockpit, MCP server, and native workspace tools.
+
+> **Permission and privacy boundary**
+>
+> Magistr runs locally and keeps roadmap state in the project workflow store. An agent still has the normal operating-system permissions of the runtime you launch, and provider credentials stay with that runtime. Review generated files and commands before using Magistr on a sensitive checkout.
 
 ## Build from source
 
@@ -29,7 +33,7 @@ For development without installation, run `cargo build -p magistr-cli` and use
 
 ## Release archives
 
-Prebuilt archives are published on the [GitHub releases page](https://github.com/AlrikOlson/magistr/releases) for named host targets. Each archive includes the CLI, shell completions, man pages, the MIT license, and bundled font notices. Verify its matching `.sha256` file before unpacking; see the [release inventory](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md) for the release checklist.
+The package script produces host-targeted archives for the [GitHub releases page](https://github.com/AlrikOlson/magistr/releases) while the public release pipeline is being established. Each archive includes the CLI, shell completions, man pages, the MIT license, and bundled font notices. Verify its matching `.sha256` file before unpacking; see the [release inventory](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md) for the release checklist.
 
 ## Connect an agent
 

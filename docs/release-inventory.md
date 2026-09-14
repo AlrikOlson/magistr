@@ -2,7 +2,7 @@
 
 This page is the source of truth for what the public Magistr release contains. It is
 reviewed with each release so the website, README, and installation guidance describe
-the same product.
+the same product. v0.1.0 is an early, source-first development release; crates.io publication is not available yet.
 
 ## Shipped in v0.1.0
 
@@ -33,6 +33,9 @@ the same product.
   authenticated separately when using an agent integration.
 - API adapters require credentials supplied by the caller. Ollama additionally requires
   a reachable local Ollama service.
+- Magistr does not sandbox an agent's operating-system access. Review generated files,
+  commands, provider configuration, and local workflow state before using it on a
+  sensitive checkout.
 - Supported release archives are host-specific. The package script builds for the
   host target and writes `target/release-dist/magistr-<version>-<target>.tar.gz`
   plus a matching `.sha256` file.
@@ -45,7 +48,7 @@ Before publishing a release:
 2. Run `./scripts/package-release.sh` on each target platform. Confirm the archive contains the binary, completions, man pages, `LICENSE`, and both font notices.
 3. Verify the archive checksum with `sha256sum -c <archive>.sha256` (or `shasum -a 256 -c <archive>.sha256`).
 4. Walk through `magistr init . --agent codex --yes`, `./.codex/run`, and one recorded `magistr validate` or `magistr next` cycle in a disposable project.
-5. Confirm repository, release, issue, and documentation links are publicly reachable.
+5. Run `./scripts/public-link-check.sh` anonymously against the repository, release, issue, and website URLs. A non-2xx/3xx result is an explicit external release gate owned by the repository maintainer or hosting operator.
 6. Update release notes and the website changelog with the same SemVer tag as the CLI; keep unreleased changes in the next release section.
 7. Preserve the MIT license and [bundled font notices](../crates/magistr-cockpit/fonts) in every archive.
 

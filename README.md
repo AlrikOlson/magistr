@@ -14,6 +14,8 @@ You decide what matters. Magistr keeps the roadmap visible, the agent works one 
 
 ```mermaid
 flowchart LR
+    accTitle: Magistr decision loop
+    accDescr: A project moves from a roadmap goal through one planned task, agent work, verification, and the next decision.
     Y[You and your project] -->|choose a goal| R[Roadmap]
     R -->|plan one ready item| W[Workflow]
     W -->|work with project context| A[Your agent]
@@ -24,6 +26,40 @@ flowchart LR
 ![A Blender-rendered 2D illustration of Magistr's roadmap and workflow loop](docs/assets/magistr-roadmap-workflow.png)
 
 *Roadmap → plan → work → verify → choose the next item.*
+
+## How the pieces fit
+
+The roadmap is the shared source of truth. Magistr keeps the boundary between your checkout, the agent runtime, and its own recorded workflow explicit.
+
+```mermaid
+flowchart TB
+    accTitle: Magistr ownership boundary
+    accDescr: Magistr coordinates a local project workflow between a person's checkout, an agent runtime, the Magistr MCP services, and the native workflow store.
+    C[Your checkout] -->|project context| A[Agent runtime]
+    A -->|MCP calls| M[Magistr MCP]
+    M -->|roadmap + tasks| S[Native workflow store]
+    S -->|next ready item| M
+    M -->|changes + checks| C
+```
+
+![Flat 2D diagram showing the ownership boundary between your checkout, agent runtime, Magistr MCP, and native workflow store](docs/assets/magistr-system-map.png)
+
+The evidence chain makes a change reviewable from its reason to its result:
+
+```mermaid
+flowchart LR
+    accTitle: Magistr evidence chain
+    accDescr: A roadmap decision becomes a planned task, an implementation, recorded checks, and a reviewable project record.
+    R[Roadmap decision] --> P[Plan]
+    P --> W[Work]
+    W --> V[Checks]
+    V --> E[Evidence]
+    E --> R
+```
+
+![Flat 2D diagram showing the evidence chain from roadmap decision through plan, work, checks, and evidence](docs/assets/magistr-evidence-chain.png)
+
+Mermaid source stays beside each visual so the model remains readable in a terminal, diff, or screen reader.
 
 ## Why people use it
 
@@ -43,7 +79,9 @@ The agent runs the project's configured formatter, tests, linter, and custom che
 
 ### 1. Install Magistr
 
-You need Git, Rust 1.95 or later, and a supported coding-agent CLI installed and authenticated separately.
+You need Git, Rust 1.95 or later, and a supported coding-agent CLI installed and authenticated separately. v0.1 is source-first; crates.io publication is not available yet.
+
+> **Permission and privacy boundary:** Magistr runs locally and stores roadmap state in the project workflow store. An agent keeps the normal operating-system permissions of the runtime you launch, and provider credentials stay with that runtime. Review generated files and commands before using Magistr on a sensitive checkout.
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -118,6 +156,8 @@ For the detailed surface inventory and package notes, see the [release inventory
 ## Feedback and contributing
 
 Try Magistr on a disposable or well-reviewed project and open a focused [issue](https://github.com/AlrikOlson/magistr/issues) with the command, provider, and project shape involved. The [development guide](docs/development.md) explains the checks used before changes land.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing or reporting.
 
 ## License
 

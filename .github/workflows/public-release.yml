@@ -1,0 +1,99 @@
+name: public release readiness
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Rust and website gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check workspace
+        run: cargo check --workspace --all-targets --locked
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: Run workspace tests
+        run: cargo nextest run --workspace --locked
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/website/package-lock.json
+      - name: Test website
+        working-directory: apps/website
+        run: npm ci && npm test
+      - name: Assert clean-checkout public assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for asset in \
+            apps/website/public/favicon.svg \
+            apps/website/public/diagrams/magistr-roadmap-workflow.png \
+            apps/website/public/diagrams/magistr-system-map.png \
+            apps/website/public/diagrams/magistr-evidence-chain.png; do
+            git ls-files --error-unmatch "$asset" >/dev/null
+            if git check-ignore --no-index -q "$asset"; then
+              echo "Tracked public asset is still ignored: $asset" >&2
+              exit 1
+            fi
+          done
+          ! grep -R -n '/logo\.png' apps/website/src
+
+  package:
+    name: Package and verify (${{ matrix.os }})
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build host archive
+        run: ./scripts/package-release.sh
+      - name: Verify archive checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target/release-dist
+          for checksum in *.sha256; do
+            shasum -a 256 -c "$checksum"
+          done
+
+  public-links:
+    name: Anonymous public endpoint gate
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Probe configured public URLs
+        run: PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh

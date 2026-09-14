@@ -205,6 +205,57 @@ bar("verification icon check short", (-0.72, -0.35), (-0.30, -0.70), 0.15, GREEN
 bar("verification icon check long", (-0.30, -0.70), (0.65, 0.40), 0.15, GREEN, "verification", z=0.25)
 text("verification icon caption", "VERIFY", 0, -1.72, 0.24, GREEN, "verification")
 
+# Flat diagram: explicit ownership boundary between a checkout, runtime, and store.
+cube("system background", 0, 0, 13.6, 7.6, NAVY, "system", z=-0.2)
+text("system eyebrow", "OWNERSHIP BOUNDARY", 0, 3.1, 0.30, MUTED, "system")
+text("system title", "Who owns each part of the loop?", 0, 2.6, 0.46, WHITE, "system")
+system_cards = [
+    (-4.5, 0.75, "YOUR CHECKOUT", "source + files", CYAN),
+    (-1.5, 0.75, "AGENT RUNTIME", "provider session", VIOLET),
+    (1.8, 0.75, "MAGISTR MCP", "roadmap + workflow", ORANGE),
+    (4.7, 0.75, "WORKFLOW STORE", "tasks + evidence", GREEN),
+]
+for x, y, title, caption, accent in system_cards:
+    cube(title.lower() + " system card", x, y, 2.65, 1.45, PANEL, "system", z=0.02, bevel=0.12)
+    cube(title.lower() + " system accent", x - 1.17, y, 0.10, 1.05, accent, "system", z=0.10, bevel=0.03)
+    text(title.lower() + " system title", title, x - 0.92, y + 0.28, 0.22, WHITE, "system", "LEFT")
+    text(title.lower() + " system caption", caption, x - 0.92, y - 0.27, 0.17, MUTED, "system", "LEFT")
+arrow("system checkout arrow", (-3.1, 0.75), (-2.85, 0.75), CYAN, "system")
+arrow("system runtime arrow", (-0.1, 0.75), (0.45, 0.75), VIOLET, "system")
+arrow("system mcp arrow", (3.15, 0.75), (3.35, 0.75), ORANGE, "system")
+bar("system return line", (4.7, -0.08), (4.7, -1.08), 0.08, GREEN, "system", 0.15)
+arrow("system return arrow", (4.7, -1.08), (0.2, -1.08), GREEN, "system")
+text("system return label", "next ready item returns to the project", 0.2, -1.55, 0.22, GREEN, "system")
+cube("system boundary note", 0, -2.55, 8.4, 0.80, PANEL_HI, "system", z=0.02, bevel=0.10)
+text("system boundary note text", "Magistr coordinates locally; the runtime keeps provider credentials and OS permissions.", 0, -2.55, 0.20, WHITE, "system")
+
+# Flat diagram: the evidence chain from decision to a reviewable record.
+cube("evidence background", 0, 0, 15.0, 6.6, NAVY, "evidence", z=-0.2)
+text("evidence eyebrow", "EVIDENCE CHAIN", 0, 2.55, 0.30, MUTED, "evidence")
+text("evidence title", "Every change keeps its reason attached", 0, 2.05, 0.44, WHITE, "evidence")
+evidence_cards = [
+    (-5.0, 0.35, "DECISION", "why this item", CYAN),
+    (-2.5, 0.35, "PLAN", "what done means", ORANGE),
+    (0.0, 0.35, "WORK", "agent changes", VIOLET),
+    (2.5, 0.35, "CHECKS", "gates run", GREEN),
+    (5.0, 0.35, "EVIDENCE", "review record", WHITE),
+]
+for x, y, title, caption, accent in evidence_cards:
+    cube(title.lower() + " evidence card", x, y, 2.05, 1.45, PANEL, "evidence", z=0.02, bevel=0.12)
+    cube(title.lower() + " evidence accent", x - 0.89, y, 0.09, 1.05, accent, "evidence", z=0.10, bevel=0.03)
+    text(title.lower() + " evidence title", title, x - 0.70, y + 0.28, 0.22, WHITE, "evidence", "LEFT")
+    text(title.lower() + " evidence caption", caption, x - 0.70, y - 0.27, 0.17, MUTED, "evidence", "LEFT")
+for i, (start, end, mat) in enumerate([
+    ((-3.95, 0.35), (-3.55, 0.35), CYAN),
+    ((-1.45, 0.35), (-1.05, 0.35), ORANGE),
+    ((1.05, 0.35), (1.45, 0.35), VIOLET),
+    ((3.55, 0.35), (3.95, 0.35), GREEN),
+]):
+    arrow("evidence connector " + str(i), start, end, mat, "evidence")
+text("evidence footer", "roadmap → task → change → checks → review", 0, -1.35, 0.26, WHITE, "evidence")
+cube("evidence loop panel", 0, -2.20, 8.7, 0.72, PANEL_HI, "evidence", z=0.02, bevel=0.10)
+text("evidence loop text", "The next roadmap decision starts with the record you just made.", 0, -2.20, 0.20, GREEN, "evidence")
+
 # Orthographic render settings. No lights are required for emission materials.
 scene = bpy.context.scene
 scene.render.engine = "BLENDER_EEVEE"
@@ -245,5 +296,18 @@ for asset, scale in icons:
         obj.hide_render = obj.get("asset") != asset
     camera.data.ortho_scale = scale
     scene.render.filepath = str(OUTPUT / (asset + ".png"))
+    bpy.ops.render.render(write_still=True)
+
+# Full-width diagrams use the same dark panel treatment and literal labels.
+diagrams = [("system", 16.0), ("evidence", 16.0)]
+scene.render.film_transparent = False
+scene.render.resolution_x = 1200
+scene.render.resolution_y = 700
+for asset, scale in diagrams:
+    for obj in scene.objects:
+        obj.hide_render = obj.get("asset") != asset
+    camera.data.ortho_scale = scale
+    filename = {"system": "magistr-system-map.png", "evidence": "magistr-evidence-chain.png"}[asset]
+    scene.render.filepath = str(OUTPUT / filename)
     bpy.ops.render.render(write_still=True)
 

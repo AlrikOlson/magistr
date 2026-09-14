@@ -56,6 +56,9 @@ vendor/
 !subsystems/workspace/reference/vendor/
 !subsystems/workspace/reference/vendor/**
 *.png
+# Public visual assets are reviewed source material, not disposable build output.
+!docs/assets/**/*.png
+!apps/website/public/**/*.png
 # Versioned screenshots; exclude unreviewed candidates
 !crates/magistr-tui/tests/golden/**/*.png
 crates/magistr-tui/tests/golden/**/*.new.png

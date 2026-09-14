@@ -24,8 +24,8 @@ function assert(condition, message) {
 const indexHtml = readFileSync(resolve(distDir, "index.html"), "utf-8");
 
 console.log("Hero section:");
-assert(indexHtml.includes("AI-powered dev toolkit"), "headline present");
-assert(indexHtml.includes("for the terminal"), "headline accent text present");
+assert(indexHtml.includes("Roadmap and workflow management"), "headline present");
+assert(indexHtml.includes("for coding agents"), "headline accent text present");
 assert(
 	indexHtml.includes("Build from source"),
 	"source installation CTA present",
@@ -43,6 +43,17 @@ assert(indexHtml.includes('href="/docs/installation"'), "Docs link present");
 assert(indexHtml.includes('href="/#community"'), "Community anchor link");
 assert(indexHtml.includes("github.com"), "GitHub link present");
 assert(indexHtml.includes("backdrop-blur"), "nav has backdrop blur");
+
+console.log("\nConcept maps:");
+assert(indexHtml.includes('id="concept-maps"'), "concept maps section present");
+assert(indexHtml.includes("Decision loop"), "decision loop map present");
+assert(indexHtml.includes("Ownership boundary"), "ownership boundary map present");
+assert(indexHtml.includes("Evidence chain"), "evidence chain map present");
+assert(indexHtml.includes("/diagrams/magistr-roadmap-workflow.png"), "decision loop asset present");
+assert(indexHtml.includes("/diagrams/magistr-system-map.png"), "ownership boundary asset present");
+assert(indexHtml.includes("/diagrams/magistr-evidence-chain.png"), "evidence chain asset present");
+assert(indexHtml.includes("Mermaid source"), "Mermaid source disclosures present");
+assert(indexHtml.includes("aria-label"), "navigation accessibility attributes present");
 
 console.log("\nAsciinema player:");
 assert(indexHtml.includes("demo-player"), "player container present");
@@ -155,6 +166,8 @@ assert(
 	"installation page uses pinned dependencies without a private desktop dependency",
 );
 assert(installHtml.includes("docs-sidebar"), "installation page has sidebar");
+assert(installHtml.includes("Permission and privacy boundary"), "installation page states permission boundary");
+assert(installHtml.includes("source-first"), "installation page states source-first release status");
 assert(
 	installHtml.includes("docs-content"),
 	"installation page has content area",
@@ -369,9 +382,12 @@ assert(
 	"Issues link present",
 );
 assert(
-	indexHtml.includes("docs/development.md"),
+	indexHtml.includes("CONTRIBUTING.md"),
 	"Contributing guide link present",
 );
+assert(indexHtml.includes("CONTRIBUTING.md"), "public contributing policy link present");
+assert(indexHtml.includes("SECURITY.md"), "public security policy link present");
+assert(indexHtml.includes("CODE_OF_CONDUCT.md"), "public conduct policy link present");
 
 console.log("\nChangelog section:");
 assert(
