@@ -144,11 +144,12 @@ legacy state directories, after confirmation.
 
 ## Workflow
 
-`$next` completes one ready chunk in the current session. `$next-loop` respects
-the requested bound, defaulting to ten iterations when no bound is supplied.
-Skills recover existing work and preserve unrelated objectives. They run the
-commands in `.magistr/project.json` and record the results on the verification
-task before completing an item.
+`$next` completes one ready chunk in the current session. `$next-loop` carries a
+bounded handoff across fresh Codex sessions: one chunk completes, its handoff is
+written, and the current session stops before another chunk is selected. It
+defaults to ten iterations when no bound is supplied. Native `magistr next-loop`
+is the automatic host-owned loop; it starts a fresh provider session per
+iteration. Skills recover existing work and preserve unrelated objectives.
 
 When `roadmap_exports` is false, setup adds native-only instructions and disables
 the export tool. Codex skills perform each workflow step directly. Reusable

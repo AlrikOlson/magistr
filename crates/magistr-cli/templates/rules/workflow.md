@@ -11,8 +11,9 @@ Use the skill matching the user’s request:
 
 - `/next` or `/roadmap`: exactly one ready chunk through the full native
   research, plan, execute, verify, completion, and commit lifecycle.
-- `/next-loop`: explicitly requested bounded continuation through complete
-  iterations. The host adapter owns chaining mechanics.
+- `/next-loop`: bounded fresh-session handoff; one complete chunk per
+  agent session, then a new session before the next chunk. The native TUI
+  loop owns automatic chaining.
 - `/validate`: configured gates with accurate results and recording status.
 - `/roadmap-refresh` or `/signals`: research and native state updates within
   the requested scope, without implementing the resulting features.

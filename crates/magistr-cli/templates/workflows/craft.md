@@ -32,6 +32,6 @@ start an implementation loop by itself.
   components. Verify meaningful states, keyboard behavior, visual hierarchy,
   and light/dark modes where supported.
 
-`{{invoke}}next` owns one implementation iteration; `{{invoke}}next-loop` owns explicitly
-requested continuation. `{{invoke}}roadmap-refresh` and `{{invoke}}signals` research and
+`{{invoke}}next` owns one implementation iteration; `{{invoke}}next-loop` owns bounded
+fresh-session handoffs, one chunk per agent session. `{{invoke}}roadmap-refresh` and `{{invoke}}signals` research and
 record discoveries without implementing the resulting features.

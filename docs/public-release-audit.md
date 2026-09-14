@@ -127,7 +127,7 @@ The conversation view shows a user describing an outcome, an agent drafting a ro
 
 **Question:** “What changes when I use Codex or Claude instead of the TUI?”
 
-The modes view separates the agent-harness path from the native cockpit. Codex and Claude run skills in the current agent session; `$next-loop` is bounded there and does not clear context or start a fresh session for each chunk. `magistr next-loop` is the host-owned TUI loop: it persists a checkpoint and can recover it. Both paths use the same native project state. Crate-level ownership details remain in docs/architecture/overview.md.
+The modes view separates the agent-harness path from the native cockpit. Codex and Claude run skills one chunk per session; `$next-loop` writes a handoff and requires a fresh agent session before the next chunk. `magistr next-loop` is the host-owned TUI loop: it starts a fresh provider session per iteration, persists a checkpoint, and can recover it. Both paths use the same native project state. Crate-level ownership details remain in docs/architecture/overview.md.
 
 ### View 3: one bounded iteration
 

@@ -39,10 +39,10 @@ The same native project state is available through two different entry points.
 
 - `$next` in Codex or `/next` in Claude runs one ready chunk.
 - `$roadmap-refresh` or `/roadmap-refresh` researches and reshapes the roadmap without implementing code.
-- `$next-loop` chains a bounded number of iterations in the current agent session. It does not clear context or start a fresh agent session for each chunk.
+- `$next-loop` is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex or Claude session. It must not chain chunks in the same context.
 - `$validate` runs the project's configured checks without selecting new work.
 
-The harness path is agent-session driven: the agent remains the conversational operator while Magistr records the workflow around it.
+The harness path is agent-session driven. One chunk belongs to one context; native roadmap and ship receipts carry the work into the next session.
 
 ### Native TUI
 
@@ -50,7 +50,7 @@ Run `magistr` in a project to open the terminal cockpit. The Home view shows the
 
 `magistr next` runs one iteration. `magistr next-loop` starts the host-owned loop, persists its checkpoint between iterations, and can recover after an interruption. The TUI is the interactive mode where Magistr itself owns the live loop; the harness path above remains driven by the agent session.
 
-![Harness and TUI modes: both share native state, while the harness uses skills for one requested iteration and the TUI owns the interactive loop.](docs/assets/magistr-modes.svg)
+![Harness and TUI modes: the harness hands off one chunk per fresh session, while the TUI owns the automatic loop.](docs/assets/magistr-modes.svg)
 
 ## What persists
 
