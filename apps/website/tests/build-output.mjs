@@ -46,15 +46,18 @@ assert(indexHtml.includes("backdrop-blur"), "nav has backdrop blur");
 
 console.log("\nConcept maps:");
 assert(indexHtml.includes('id="concept-maps"'), "concept maps section present");
-assert(indexHtml.includes("Decision loop"), "decision loop map present");
-assert(indexHtml.includes("Ownership boundary"), "ownership boundary map present");
-assert(indexHtml.includes("Evidence chain"), "evidence chain map present");
-assert(indexHtml.includes("/diagrams/magistr-roadmap-workflow.png"), "decision loop asset present");
-assert(indexHtml.includes("/diagrams/magistr-system-map.png"), "ownership boundary asset present");
-assert(indexHtml.includes("/diagrams/magistr-evidence-chain.png"), "evidence chain asset present");
+assert(indexHtml.includes("Steer by conversation"), "conversation map present");
+assert(indexHtml.includes("Choose your loop"), "mode map present");
+assert(indexHtml.includes("Ship one chunk"), "iteration map present");
+assert(indexHtml.includes("Resume from state"), "state map present");
+assert(indexHtml.includes("/diagrams/magistr-conversation.svg"), "conversation asset present");
+assert(indexHtml.includes("/diagrams/magistr-modes.svg"), "mode asset present");
+assert(indexHtml.includes("/diagrams/magistr-next.svg"), "iteration asset present");
+assert(indexHtml.includes("/diagrams/magistr-state.svg"), "state asset present");
+assert(!indexHtml.includes("Blender"), "no visual production disclosures");
 assert(!indexHtml.includes("Mermaid source"), "no Mermaid diagram disclosures");
-assert(indexHtml.includes("Talk through the direction"), "user-directed roadmap copy present");
-assert(indexHtml.includes("These views show the same model"), "concept maps explain the shared model");
+assert(indexHtml.includes("how to steer the roadmap"), "user-directed roadmap copy present");
+assert(indexHtml.includes("Four views answer"), "concept maps explain the shared model");
 assert(indexHtml.includes("aria-label"), "navigation accessibility attributes present");
 
 console.log("\nAsciinema player:");

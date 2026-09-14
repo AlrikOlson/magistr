@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">One bounded Magistr iteration</title>
+  <desc id="desc">A five-stage flow from selecting a ready roadmap chunk through research and planning, workspace changes, verification, and a recorded result.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#8aa4b8"/></marker>
+    <style>
+      .kicker{font:600 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:2.4px;fill:#8aa4b8}.title{font:700 30px Inter,ui-sans-serif,system-ui,sans-serif;fill:#f3f7fb}.head{font:700 12px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1.1px}.body{font:650 17px Inter,ui-sans-serif,system-ui,sans-serif;fill:#f3f7fb}.small{font:500 13px Inter,ui-sans-serif,system-ui,sans-serif;fill:#b9c8d4}.mono{font:600 12px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#d8e4ed}
+    </style>
+  </defs>
+  <rect width="1200" height="520" rx="24" fill="#0d141c"/>
+  <text x="48" y="44" class="kicker">ONE BOUNDED ITERATION</text><text x="48" y="82" class="title">A ready chunk becomes a verified change.</text>
+  <g role="group" aria-label="Iteration stages">
+    <rect x="48" y="132" width="196" height="174" rx="16" fill="#122531" stroke="#65d9ff" stroke-width="2"/><text x="70" y="164" class="head" fill="#65d9ff">1 · SELECT</text><text x="70" y="204" class="body">roadmap_next</text><text x="70" y="233" class="small">urgent + ready</text><text x="70" y="258" class="small">dependencies done</text><rect x="70" y="274" width="112" height="16" rx="8" fill="#1a4657"/><text x="70" y="300" class="mono">chunk: id</text>
+    <rect x="274" y="132" width="196" height="174" rx="16" fill="#211c36" stroke="#b59cff" stroke-width="2"/><text x="296" y="164" class="head" fill="#b59cff">2 · PREPARE</text><text x="296" y="204" class="body">research + plan</text><text x="296" y="233" class="small">read the real code</text><text x="296" y="258" class="small">define acceptance</text><text x="296" y="294" class="mono">think trace</text>
+    <rect x="500" y="132" width="196" height="174" rx="16" fill="#302517" stroke="#ffb86b" stroke-width="2"/><text x="522" y="164" class="head" fill="#ffb86b">3 · WORK</text><text x="522" y="204" class="body">change the repo</text><text x="522" y="233" class="small">Workbench tools</text><text x="522" y="258" class="small">one focused task</text><text x="522" y="294" class="mono">ship actions</text>
+    <rect x="726" y="132" width="196" height="174" rx="16" fill="#252b1b" stroke="#d5e56b" stroke-width="2"/><text x="748" y="164" class="head" fill="#d5e56b">4 · VERIFY</text><text x="748" y="204" class="body">run the gates</text><text x="748" y="233" class="small">format · tests</text><text x="748" y="258" class="small">custom checks</text><text x="748" y="294" class="mono">verified receipts</text>
+    <rect x="952" y="132" width="196" height="174" rx="16" fill="#152a22" stroke="#7be495" stroke-width="2"/><text x="974" y="164" class="head" fill="#7be495">5 · RECORD</text><text x="974" y="204" class="body">ship + resume</text><text x="974" y="233" class="small">commit the scope</text><text x="974" y="258" class="small">return to the plan</text><text x="974" y="294" class="mono">next decision</text>
+  </g>
+  <path d="M250 219H266M476 219H492M702 219H718M928 219H944" stroke="#8aa4b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="48" y="354" width="1100" height="104" rx="16" fill="#111d28" stroke="#314555"/><text x="72" y="385" class="head" fill="#8aa4b8">WHAT PERSISTS</text>
+  <rect x="72" y="404" width="215" height="30" rx="15" fill="#211c36"/><text x="96" y="424" class="mono">think · reasoning</text><rect x="305" y="404" width="215" height="30" rx="15" fill="#302517"/><text x="332" y="424" class="mono">ship · actions</text><rect x="538" y="404" width="215" height="30" rx="15" fill="#252b1b"/><text x="574" y="424" class="mono">checks · results</text><rect x="771" y="404" width="335" height="30" rx="15" fill="#152a22"/><text x="808" y="424" class="mono">commit · next conversation</text>
+</svg>

@@ -52,9 +52,13 @@ jobs:
           set -euo pipefail
           for asset in \
             apps/website/public/favicon.svg \
-            apps/website/public/diagrams/magistr-roadmap-workflow.png \
-            apps/website/public/diagrams/magistr-system-map.png \
-            apps/website/public/diagrams/magistr-evidence-chain.png; do
+            apps/website/public/diagrams/magistr-conversation.svg \
+            apps/website/public/diagrams/magistr-modes.svg \
+            apps/website/public/diagrams/magistr-next.svg \
+            apps/website/public/diagrams/magistr-state.svg \
+            apps/website/public/diagrams/roadmap.svg \
+            apps/website/public/diagrams/workflow.svg \
+            apps/website/public/diagrams/verification.svg; do
             git ls-files --error-unmatch "$asset" >/dev/null
             if git check-ignore --no-index -q "$asset"; then
               echo "Tracked public asset is still ignored: $asset" >&2

@@ -113,44 +113,33 @@ The installation docs now describe v0.1 as source-first and point to the package
 
 ## A better visual language for Magistr
 
-The closure now ships three complementary Blender-rendered views in README and website: the user-directed decision loop, the ownership boundary, and the evidence chain. Each uses the same flat 2D vocabulary and literal labels so conversation, control, and proof remain understandable in text.
+The public surface now uses four hand-authored SVG views with the same visual vocabulary and literal labels. Together they answer how to steer the roadmap, which loop owns the work, what one iteration does, and what remains when you return.
 
-Use three views, each answering one question.
+Use four views, each answering one question.
 
-### View 1: the decision loop
+### View 1: conversation-driven roadmap control
 
 **Question:** “How does an idea become the next safe change?”
 
-The rendered decision-loop view shows you talking through intent with the
-agent, reviewing its draft, accepting one ready task, and carrying recorded
-evidence back to the next roadmap decision.
+The conversation view shows a user describing an outcome, an agent drafting a roadmap change, the user reviewing that proposal, and one ready chunk entering the queue. It makes the steering boundary clear: the user chooses the direction and applies roadmap changes.
 
-Implemented in the README and website as the decision-loop Blender render and its literal caption. The view names what the loop preserves: roadmap context, one focused change, and attached evidence.
+### View 2: harness and TUI loop ownership
 
-### View 2: the ownership boundary
+**Question:** “What changes when I use Codex or Claude instead of the TUI?”
 
-**Question:** “Where does each part of the system run?”
+The modes view separates the agent-harness path from the native cockpit. Codex and Claude run skills in the current agent session; `$next-loop` is bounded there and does not clear context or start a fresh session for each chunk. `magistr next-loop` is the host-owned TUI loop: it persists a checkpoint and can recover it. Both paths use the same native project state. Crate-level ownership details remain in docs/architecture/overview.md.
 
-The rendered ownership view shows you setting direction in conversation and
-reviewing the draft, the agent translating that direction into roadmap edits,
-Magistr ordering the work, and the local record preserving the reason and
-checks. Project files and provider credentials stay in the runtime you control.
+### View 3: one bounded iteration
 
-Implemented as a labeled ownership map on the website and in the README, with the boundary stated in plain language: Magistr is local; it does not host a model or hosted project service; `roadmap_exports=false` keeps native roadmap state in the project store; permission prompts guide actions but do not create an OS sandbox. Crate-level ownership details remain in docs/architecture/overview.md.
+**Question:** “What does one next chunk include?”
 
-### View 3: the evidence chain
+The iteration view follows a ready chunk through selection, preparation, workspace changes, verification, and recorded output. The boundary is concrete: one chunk, its configured checks, and its artifacts.
 
-**Question:** “Why can I trust what the agent says it did?”
+### View 4: resumable native state
 
-The rendered evidence view shows the chain from your roadmap conversation to
-an agent draft, your review, an accepted ready task, changed files, checks,
-recorded reason, and the next ready item. This is the proof that makes a
-roadmap change resumable.
+**Question:** “What will still be there when I return?”
 
-Implemented as a labeled evidence chain on the website and in the README. It gives “recorded workflow” a concrete meaning and explains why a new session can resume without reconstructing the whole chat; the render caption and image alt text carry the accessible text explanation.
-
-The setup path stays in the installation guide. It is a task sequence for
-getting started, while these three visuals explain the product model.
+The state view connects the project checkout, roadmap/reasoning/ship records, and agent/workspace clients through the local service. The README describes the records in plain language so the image is not required to understand the model.
 
 ## Visual rules
 
@@ -164,7 +153,7 @@ getting started, while these three visuals explain the product model.
 
 ## Closure status
 
-The local implementation order is complete: tracked assets, canonical copy, policy pages, installation boundaries, Blender-only flat 2D diagrams, website assertions, CI/package checks, and the anonymous URL probe are all in source. The only remaining release gate is external endpoint availability; the maintainer or hosting operator must make the repository, releases, issues, and magistr.dev reachable and rerun `PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh`.
+The local implementation order is complete: tracked assets, canonical copy, policy pages, installation boundaries, hand-authored SVG diagrams, website assertions, CI/package checks, and the anonymous URL probe are all in source. The only remaining release gate is external endpoint availability; the maintainer or hosting operator must make the repository, releases, issues, and magistr.dev reachable and rerun `PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh`.
 
 ## Definition of “ready to announce”
 

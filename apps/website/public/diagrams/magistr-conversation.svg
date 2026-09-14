@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">Conversation-driven roadmap control</title>
+  <desc id="desc">A four-step diagram showing a user describing a priority, an agent drafting a roadmap change, the user reviewing it, and a ready chunk entering the native roadmap.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#8aa4b8"/></marker>
+    <style>
+      .kicker{font:600 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:2.4px;fill:#8aa4b8}
+      .title{font:700 30px Inter,ui-sans-serif,system-ui,sans-serif;fill:#f3f7fb}
+      .head{font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1.3px}
+      .body{font:600 18px Inter,ui-sans-serif,system-ui,sans-serif;fill:#f3f7fb}
+      .small{font:500 14px Inter,ui-sans-serif,system-ui,sans-serif;fill:#b9c8d4}
+      .mono{font:600 14px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#d8e4ed}
+    </style>
+  </defs>
+  <rect width="1200" height="560" rx="24" fill="#0d141c"/>
+  <text x="48" y="44" class="kicker">ROADMAP CONTROL</text>
+  <text x="48" y="82" class="title">Your conversation sets the direction.</text>
+  <g role="group" aria-label="User prompt">
+    <rect x="48" y="132" width="246" height="190" rx="16" fill="#122531" stroke="#65d9ff" stroke-width="2"/>
+    <text x="72" y="164" class="head" fill="#65d9ff">YOU</text>
+    <text x="72" y="204" class="body">Say what should</text><text x="72" y="230" class="body">matter next.</text>
+    <rect x="72" y="254" width="198" height="44" rx="10" fill="#0d1b24"/>
+    <text x="84" y="273" class="small">“Prioritize onboarding</text><text x="84" y="291" class="small">over performance.”</text>
+  </g>
+  <path d="M302 227H326" stroke="#8aa4b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <g role="group" aria-label="Agent draft">
+    <rect x="334" y="132" width="246" height="190" rx="16" fill="#211c36" stroke="#b59cff" stroke-width="2"/>
+    <text x="358" y="164" class="head" fill="#b59cff">AGENT DRAFT</text>
+    <text x="358" y="204" class="body">Turn intent into</text><text x="358" y="230" class="body">reviewable changes.</text>
+    <text x="358" y="267" class="mono">reorder</text><text x="452" y="267" class="small">priority</text>
+    <text x="358" y="289" class="mono">tighten</text><text x="452" y="289" class="small">acceptance</text>
+  </g>
+  <path d="M588 227H612" stroke="#8aa4b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <g role="group" aria-label="Human review">
+    <rect x="620" y="132" width="246" height="190" rx="16" fill="#302517" stroke="#ffb86b" stroke-width="2"/>
+    <text x="644" y="164" class="head" fill="#ffb86b">REVIEW</text>
+    <text x="644" y="204" class="body">You choose what</text><text x="644" y="230" class="body">to apply.</text>
+    <rect x="644" y="254" width="198" height="36" rx="18" fill="#4b351d"/><text x="661" y="277" class="mono" fill="#ffd7a8" style="font-size:12px">proposal stays pending</text>
+  </g>
+  <path d="M874 227H898" stroke="#8aa4b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <g role="group" aria-label="Ready roadmap chunk">
+    <rect x="906" y="132" width="246" height="190" rx="16" fill="#152a22" stroke="#7be495" stroke-width="2"/>
+    <text x="930" y="164" class="head" fill="#7be495">READY CHUNK</text>
+    <text x="930" y="204" class="body">A selected item</text><text x="930" y="230" class="body">can move to work.</text>
+    <text x="930" y="267" class="mono">priority · deps</text><text x="930" y="289" class="mono">acceptance · context</text>
+  </g>
+  <rect x="48" y="368" width="1104" height="132" rx="16" fill="#111d28" stroke="#314555"/>
+  <text x="72" y="402" class="head" fill="#65d9ff">NATIVE ROADMAP</text>
+  <text x="72" y="435" class="small">The decision becomes project state you can inspect, revise, and resume.</text>
+  <rect x="72" y="454" width="168" height="28" rx="14" fill="#173541"/><text x="94" y="473" class="mono">priorities</text>
+  <rect x="254" y="454" width="168" height="28" rx="14" fill="#173541"/><text x="278" y="473" class="mono">dependencies</text>
+  <rect x="436" y="454" width="168" height="28" rx="14" fill="#173541"/><text x="464" y="473" class="mono">acceptance</text>
+  <path d="M640 468H1054" stroke="#65d9ff" stroke-width="2" stroke-dasharray="6 7" marker-end="url(#arrow)"/>
+  <text x="680" y="459" class="small">next ready item</text>
+</svg>

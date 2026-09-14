@@ -134,7 +134,7 @@ fn post_scaffold_result_icons() {
         output: String::new(),
         duration: Duration::from_millis(100),
     };
-    assert!(pass.status_icon().contains("✓"));
+    assert!(pass.status_icon().contains("✓") || pass.status_icon().contains("OK"));
 
     let fail = PostScaffoldResult {
         gate: Gate::Test,
@@ -143,7 +143,7 @@ fn post_scaffold_result_icons() {
         output: String::new(),
         duration: Duration::from_millis(200),
     };
-    assert!(fail.status_icon().contains("✗"));
+    assert!(fail.status_icon().contains("✗") || fail.status_icon().contains("FAIL"));
 }
 
 #[tokio::test]

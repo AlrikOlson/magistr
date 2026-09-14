@@ -1,52 +1,88 @@
 # Magistr
 
-**Roadmap and workflow management for coding agents.**
+**A roadmap and workflow layer for coding agents.**
 
-Magistr helps you turn a project's ideas into an ordered roadmap by talking with your agent about what should change, then keeps the resulting plan, work, and checks together as the project changes.
+Magistr gives an agent a project roadmap it can read, a workflow that turns one ready item into one verified change, and a local record of the decisions and checks you will want when you return. You steer the direction by talking to the agent. Magistr keeps the plan explicit and the work bounded.
 
 > **Early development release · v0.1.0**
 >
-> Magistr is useful today, but it is still being built in public. Expect changing commands and configuration, and use it on projects where you can review the agent's work.
+> Magistr is being built in public. Commands, configuration, and supported surfaces can change. Use it on a project where you can review the agent's work.
 
-## The loop
+## How you use it
 
-You decide what matters by talking to your agent. In that conversation, the agent can draft a new ordering, sharpen acceptance criteria, or capture follow-up work. You direct and review what gets applied; Magistr keeps the resulting roadmap visible and brings the work back with checks you can inspect.
+You use Magistr in a conversation with your coding agent:
 
-![A 2D illustration of Magistr's roadmap and workflow loop](docs/assets/magistr-roadmap-workflow.png)
+1. **Talk about the next outcome.** Ask for a roadmap refresh, a new priority, sharper acceptance criteria, or a follow-up chunk.
+2. **Review the proposed direction.** The agent can draft the change and explain its dependencies. A re-prioritization is a proposal until you choose to apply it.
+3. **Run one ready chunk.** The workflow selects the most urgent unblocked item and carries it through research, planning, implementation, verification, and a scoped commit.
+4. **Return with context intact.** A later session can read the native roadmap, reasoning, tasks, checks, and artifacts instead of rebuilding the plan from chat history.
 
-*Talk through the direction; the agent drafts the roadmap change, you review it, and one ready item moves through work and verification.*
+![Conversation-driven roadmap control: you describe a priority, the agent drafts a change, you review it, and a ready chunk enters the roadmap.](docs/assets/magistr-conversation.svg)
 
-## How the pieces fit
+For example:
 
-The roadmap is the shared source of truth. You steer it inside the project workflow by talking through intent with your agent; the agent drafts a proposal, you decide what to apply, and Magistr keeps the updated priorities, dependencies, acceptance, and evidence connected. A suggested reorder stays a proposal until you direct the change, so the plan never moves on its own.
+```text
+I want onboarding ahead of performance for the next month. Refresh the roadmap
+around that outcome, show the proposed priority and dependency changes, and
+wait for me to decide what to apply. Then tell me which chunk is ready.
+```
 
-![Flat 2D diagram showing the ownership boundary between your project, agent runtime, Magistr workflow, and recorded evidence](docs/assets/magistr-system-map.png)
+This is the important interaction: your conversation drives the roadmap. The agent helps shape and explain it; it does not silently decide what the project should become.
 
-The evidence chain makes a conversational roadmap change reviewable from its reason to its result:
+## Two modes
 
-![Flat 2D diagram showing the evidence chain from roadmap conversation through agent draft, human review, ready task, checks, and recorded reason](docs/assets/magistr-evidence-chain.png)
+The same native project state is available through two different entry points.
 
-## Why people use it
+### Agent harness: Codex or Claude
 
-### <img src="docs/assets/roadmap.png" alt="" width="52" height="52"> A roadmap an agent can follow
+`magistr init` creates the project instructions, skills, configuration, and local MCP connection. The agent then calls Magistr's roadmap, reasoning, execution, signal, and workspace tools.
 
-Keep goals, priorities, dependencies, and acceptance criteria in one project roadmap. Tell your agent what direction to explore or change; Magistr records the draft proposal, your decision, and the updated plan before selecting a ready item with enough context to implement. You can see what is ready, what is blocked, and why.
+- `$next` in Codex or `/next` in Claude runs one ready chunk.
+- `$roadmap-refresh` or `/roadmap-refresh` researches and reshapes the roadmap without implementing code.
+- `$next-loop` chains a bounded number of iterations in the current agent session. It does not clear context or start a fresh agent session for each chunk.
+- `$validate` runs the project's configured checks without selecting new work.
 
-### <img src="docs/assets/workflow.png" alt="" width="52" height="52"> A workflow you can resume
+The harness path is agent-session driven: the agent remains the conversational operator while Magistr records the workflow around it.
 
-Each iteration has a small plan, a focused task, and recorded checks. The state stays with the project, so a new session can continue from the roadmap instead of reconstructing decisions from chat history.
+### Native TUI
 
-### <img src="docs/assets/verification.png" alt="" width="52" height="52"> Proof attached to the work
+Run `magistr` in a project to open the terminal cockpit. The Home view shows the project and next action; the cockpit shows phases, the live task plan, agent output, permissions, roadmap state, and checks.
 
-The agent runs the project's configured formatter, tests, linter, and custom checks. Magistr records the result against the task, giving you a reviewable trail from roadmap item to change to verification.
+`magistr next` runs one iteration. `magistr next-loop` starts the host-owned loop, persists its checkpoint between iterations, and can recover after an interruption. The TUI is the interactive mode where Magistr itself owns the live loop; the harness path above remains driven by the agent session.
 
-## Try it
+![Harness and TUI modes: both share native state, while the harness uses skills for one requested iteration and the TUI owns the interactive loop.](docs/assets/magistr-modes.svg)
 
-### 1. Install Magistr
+## What persists
 
-You need Git, Rust 1.95 or later, and a supported coding-agent CLI installed and authenticated separately. v0.1 is source-first; crates.io publication is not available yet.
+Magistr keeps four connected records for the project:
 
-> **Permission and privacy boundary:** Magistr runs locally and stores roadmap state in the project workflow store. An agent keeps the normal operating-system permissions of the runtime you launch, and provider credentials stay with that runtime. Review generated files and commands before using Magistr on a sensitive checkout.
+| Record | What it holds |
+| --- | --- |
+| **Roadmap** | Chunks with priorities, dependencies, descriptions, acceptance criteria, blockers, and ready status. |
+| **Think** | Research, decisions, hypotheses, and the reasoning that motivated a roadmap or implementation choice. |
+| **Ship** | The active objective, task plan, actions, quality gates, artifacts, and final status for one chunk. |
+| **Workspace** | The project source accessed through Workbench's `map`, `search`, `read`, `edit`, `files`, `undo`, `script`, and declared-command `run` tools. |
+
+The roadmap is native state, not a markdown file. `roadmap_next` chooses the most urgent pending chunk whose dependencies are done. `roadmap_reprioritize` records a suggested order and reason; it leaves the real priority unchanged until you explicitly apply it.
+
+![Magistr native project state: the checkout, workflow records, and agent/workspace clients connect through one local service.](docs/assets/magistr-state.svg)
+
+## One iteration, end to end
+
+A `/next` or `magistr next` iteration has a clear boundary:
+
+- select one ready roadmap chunk;
+- research the code and plan the work;
+- make the change through the project workspace;
+- run the formatter, tests, linter, and required custom gates;
+- record command-backed results and artifacts;
+- commit the scoped change and return to the roadmap.
+
+![One bounded Magistr iteration: select, prepare, work, verify, and record.](docs/assets/magistr-next.svg)
+
+## Install
+
+Magistr is source-first in v0.1. You need Git, Rust 1.95 or later, and a supported coding-agent runtime installed and authenticated separately.
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -55,11 +91,7 @@ cargo install --locked --path crates/magistr-cli
 magistr --version
 ```
 
-Cargo installs the binary in its usual directory, commonly `~/.cargo/bin`. Add that directory to `PATH` if your shell does not find `magistr`.
-
-### 2. Set up a project
-
-Run this from the project you want an agent to work on:
+Set up a project for an agent harness:
 
 ```sh
 cd ~/src/my-project
@@ -67,9 +99,7 @@ magistr init . --agent codex --yes
 ./.codex/run
 ```
 
-This creates project instructions, a local workflow configuration, and the MCP connection that lets Codex use Magistr's roadmap and workspace tools. Start a new Codex session after setup.
-
-For Claude Code, use the same project setup without the Codex launcher:
+For Claude Code, initialize the project and launch Claude normally:
 
 ```sh
 cd ~/src/my-project
@@ -77,57 +107,41 @@ magistr init . --yes
 claude
 ```
 
-The generated instructions teach the agent how to use the project roadmap and workflow. See the [Codex integration guide](docs/reference/codex.md) for launcher details. Cursor and Copilot scaffolds can be selected with `--agent` when those tools are installed.
+To use the native cockpit:
 
-### 3. Make a first roadmap decision
-
-Ask the agent to create or review a small roadmap for the project, then
-ask it to propose a change when priorities shift. You review the proposal before
-choosing a ready item:
-
-```text
-I want to prioritize onboarding over performance for the next month.
-Update the roadmap direction: explain the reorder, sharpen acceptance criteria,
-and add any follow-up work needed. Show me the draft and wait for my direction
-before applying it.
+```sh
+cd ~/src/my-project
+magistr
 ```
 
-Keep the roadmap conversation going with the skills:
+Initialization detects the stack and writes project instructions, workflow skills, `.magistr/project.json`, and the MCP connection. Read the [Codex integration guide](docs/reference/codex.md) for launcher, configuration, diagnostics, and removal details. Cursor and Copilot setup targets are available when those runtimes are installed.
 
-- `$roadmap-refresh` to research a direction and update the roadmap without implementing it (`/roadmap-refresh` in Claude Code).
-- `$next` to implement one accepted ready item with a plan and recorded verification (`/next` in Claude Code).
-- `$next-loop` to work through a bounded number of ready items.
-- `$validate` to run the project's configured checks without starting new work.
+## Commands you will use
 
-Codex uses the `$` form; Claude Code uses the `/` form.
+| When you want to… | Use |
+| --- | --- |
+| inspect the roadmap | `roadmap_status` or `magistr roadmap` |
+| refresh priorities or discover follow-up work | `$roadmap-refresh` / `/roadmap-refresh` |
+| implement the next ready chunk | `$next` / `/next`, or `magistr next` |
+| run a bounded host-owned loop | `magistr next-loop` |
+| run configured checks only | `$validate` / `/validate`, or `magistr validate` |
+| recover execution state | `ship_status` |
 
-## What Magistr provides
+The generated project skills also include `$next-loop`, `$roadmap`, `$signals`, `$craft`, `$init`, and `$workbench-routing`. Codex uses the `$` form; Claude Code uses the `/` form.
 
-- **Roadmap management:** tell your agent what direction to pursue, then review its proposed ordering, acceptance criteria, and follow-up work in the project's native roadmap before you apply the change.
-- **Workflow management:** plan, execute, verify, and close one focused item while preserving the surrounding roadmap.
-- **Project-aware tools:** search, map, read, edit, move, undo, and run declared project commands through the agent's MCP connection.
-- **A terminal cockpit:** watch phases, task progress, output, and session controls while work is running.
-- **Provider connections:** use Codex, Claude Code, or Copilot as the agent runtime. OpenAI and Gemini API adapters, plus Ollama for local models, are available where configured.
+## Boundaries
 
-Magistr is a local tool. Your agent runtime and provider credentials remain yours; Magistr does not host a model or provide a hosted project service.
+- This is a local, source-first development release. There is no crates.io install path yet.
+- Your agent runtime, provider credentials, checkout, and operating-system permissions remain yours. Magistr's permission prompts guide the workflow; they are not an OS sandbox.
+- Native roadmap state is authoritative. The default project policy keeps `ROADMAP.md` and `ROADMAP.json` out of the workflow.
+- The terminal cockpit is the primary supported interface. The desktop interface is experimental and is not shipped from `main`.
+- Live provider sessions still require the selected runtime or API credentials. Ollama requires a reachable local Ollama service.
 
-## Current boundaries
-
-This release is deliberately honest about its edges:
-
-- The terminal workflow is the primary experience. The desktop interface is experimental and is not shipped as the main binary.
-- Provider credentials and local services are prerequisites for live sessions. Ollama must already be running when you choose it.
-- Permission prompts guide the workflow; they do not sandbox the agent's normal operating-system access.
-- Roadmap state stays in the project workflow store. With the default policy, Magistr does not export `ROADMAP.md` or `ROADMAP.json`.
-- Commands, provider adapters, and generated project files may change during the v0.1 development cycle.
-
-For the detailed surface inventory and package notes, see the [release inventory](docs/release-inventory.md). For architecture and contributor setup, see the [documentation index](docs/index.md), [development guide](docs/development.md), and [architecture overview](docs/architecture/overview.md).
+See the [release inventory](docs/release-inventory.md) for the shipped surface and prerequisites. The [documentation index](docs/index.md), [development guide](docs/development.md), and [architecture overview](docs/architecture/overview.md) cover contributor and implementation details.
 
 ## Feedback and contributing
 
-Try Magistr on a disposable or well-reviewed project and open a focused [issue](https://github.com/AlrikOlson/magistr/issues) with the command, provider, and project shape involved. The [development guide](docs/development.md) explains the checks used before changes land.
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing or reporting.
+Try Magistr on a disposable or well-reviewed project and open a focused [issue](https://github.com/AlrikOlson/magistr/issues) with the command, provider, and project shape involved. Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing or reporting.
 
 ## License
 
