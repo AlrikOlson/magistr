@@ -54,7 +54,7 @@ assert(indexHtml.includes("/diagrams/magistr-system-map.png"), "ownership bounda
 assert(indexHtml.includes("/diagrams/magistr-evidence-chain.png"), "evidence chain asset present");
 assert(!indexHtml.includes("Mermaid source"), "no Mermaid diagram disclosures");
 assert(indexHtml.includes("Talk through the direction"), "user-directed roadmap copy present");
-assert(indexHtml.includes("Blender-rendered"), "Blender-only visual label present");
+assert(indexHtml.includes("These views show the same model"), "concept maps explain the shared model");
 assert(indexHtml.includes("aria-label"), "navigation accessibility attributes present");
 
 console.log("\nAsciinema player:");

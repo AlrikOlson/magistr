@@ -12,7 +12,7 @@ Magistr helps you turn a project's ideas into an ordered roadmap by talking with
 
 You decide what matters by talking to your agent. In that conversation, the agent can draft a new ordering, sharpen acceptance criteria, or capture follow-up work. You direct and review what gets applied; Magistr keeps the resulting roadmap visible and brings the work back with checks you can inspect.
 
-![A Blender-rendered 2D illustration of Magistr's roadmap and workflow loop](docs/assets/magistr-roadmap-workflow.png)
+![A 2D illustration of Magistr's roadmap and workflow loop](docs/assets/magistr-roadmap-workflow.png)
 
 *Talk through the direction; the agent drafts the roadmap change, you review it, and one ready item moves through work and verification.*
 
@@ -25,8 +25,6 @@ The roadmap is the shared source of truth. You steer it inside the project workf
 The evidence chain makes a conversational roadmap change reviewable from its reason to its result:
 
 ![Flat 2D diagram showing the evidence chain from roadmap conversation through agent draft, human review, ready task, checks, and recorded reason](docs/assets/magistr-evidence-chain.png)
-
-Each visual is rendered from the repository's Blender scene and uses literal labels so the model stays understandable in a terminal, diff, or screen reader.
 
 ## Why people use it
 
