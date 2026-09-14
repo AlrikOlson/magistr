@@ -2,6 +2,7 @@
 
 Start with [getting started](getting-started.md) to build Magistr and configure a
 project. For changes to Magistr itself, read the [development guide](development.md).
+For release claims, package contents, and publishing checks, see the [release inventory](release-inventory.md).
 
 ## Architecture
 

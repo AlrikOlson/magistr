@@ -62,18 +62,21 @@ assert(indexHtml.includes("ship faster"), "features section heading present");
 assert(indexHtml.includes("feature-card"), "feature card class present");
 assert(indexHtml.includes("Scaffolding"), "Scaffolding feature card present");
 assert(
-	indexHtml.includes("Autonomous Iteration"),
-	"Autonomous Iteration feature card present",
+	indexHtml.includes("Recorded iteration"),
+	"Recorded iteration feature card present",
 );
 assert(
-	indexHtml.includes("TUI Dashboard"),
-	"TUI Dashboard feature card present",
+	indexHtml.includes("Terminal cockpit"),
+	"Terminal cockpit feature card present",
 );
 assert(
 	indexHtml.includes("Roadmap Tracking"),
 	"Roadmap Tracking feature card present",
 );
-assert(indexHtml.includes("MCP Tools"), "MCP Tools feature card present");
+assert(indexHtml.includes("Source tools &amp; MCP"), "source tools and MCP feature card present");
+assert(indexHtml.includes("Desktop &amp; peer protocol"), "experimental desktop and peer card present");
+assert(!indexHtml.includes("ratatui"), "website does not promise a ratatui theme set");
+assert(!indexHtml.includes("Tokyo Night"), "website does not promise named built-in themes");
 assert(
 	indexHtml.includes("Workbench"),
 	"MCP card names the code navigation tool",
@@ -104,6 +107,8 @@ assert(
 	indexHtml.includes("magistr --version"),
 	"installation verification command present",
 );
+assert(indexHtml.includes("0.1.0"), "website identifies the current release version");
+assert(indexHtml.includes("release-inventory.md"), "website links the release inventory");
 assert(indexHtml.includes('role="tablist"'), "tablist ARIA role present");
 assert(indexHtml.includes('role="tab"'), "tab ARIA role present");
 assert(indexHtml.includes('role="tabpanel"'), "tabpanel ARIA role present");
@@ -137,6 +142,10 @@ const installHtml = readFileSync(
 	"utf-8",
 );
 assert(installHtml.includes("Installation"), "installation page has title");
+assert(installHtml.includes("v0.1.0"), "installation page identifies the current release");
+assert(installHtml.includes("Release archives"), "installation page documents packaged archives");
+assert(installHtml.includes("gui2"), "installation page labels desktop as experimental");
+assert(installHtml.includes("release-inventory.md"), "installation page links the release inventory");
 assert(
 	installHtml.includes("cargo install --locked --path crates/magistr-cli"),
 	"installation page has source installation command",
