@@ -25,6 +25,8 @@ pub(crate) struct LaunchSpec {
     /// `mcp__<server>__<name>` for every server of the session, since the
     /// CLI only matches an MCP tool by its full name.
     pub allowed_tools: Vec<String>,
+    /// Additional provider instructions passed with `--append-system-prompt`.
+    pub system_prompt: Option<String>,
 }
 
 impl LaunchSpec {
@@ -59,6 +61,10 @@ impl LaunchSpec {
         if !allowed.is_empty() {
             args.push("--allowedTools".to_owned());
             args.push(allowed.join(","));
+        }
+        if let Some(system_prompt) = self.system_prompt.as_deref() {
+            args.push("--append-system-prompt".to_owned());
+            args.push(system_prompt.to_owned());
         }
         if let Some(model) = self.model.as_deref().filter(|m| *m != Self::DEFAULT_MODEL) {
             args.push("--model".to_owned());

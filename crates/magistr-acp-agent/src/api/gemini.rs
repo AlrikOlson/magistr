@@ -96,11 +96,18 @@ fn registry() -> Vec<ModelSpec> {
 #[derive(Serialize)]
 struct Request<'a> {
     contents: Vec<Content<'a>>,
+    #[serde(rename = "systemInstruction", skip_serializing_if = "Option::is_none")]
+    system_instruction: Option<SystemInstruction<'a>>,
 }
 
 #[derive(Serialize)]
 struct Content<'a> {
     role: &'static str,
+    parts: Vec<Part<'a>>,
+}
+
+#[derive(Serialize)]
+struct SystemInstruction<'a> {
     parts: Vec<Part<'a>>,
 }
 
@@ -171,6 +178,7 @@ impl ChatApi for Gemini {
         http: &reqwest::Client,
         model: &str,
         history: &[ChatMessage],
+        system_prompt: Option<&str>,
     ) -> reqwest::RequestBuilder {
         let contents = history
             .iter()
@@ -182,12 +190,18 @@ impl ChatApi for Gemini {
                 parts: vec![Part { text: &m.content }],
             })
             .collect();
+        let system_instruction = system_prompt.map(|text| SystemInstruction {
+            parts: vec![Part { text }],
+        });
         http.post(format!(
             "{}/models/{model}:streamGenerateContent?alt=sse",
             self.base_url
         ))
         .header("x-goog-api-key", &self.api_key)
-        .json(&Request { contents })
+        .json(&Request {
+            contents,
+            system_instruction,
+        })
     }
 
     fn decode(&self, line: &str) -> Result<Vec<StreamEvent>, AgentError> {

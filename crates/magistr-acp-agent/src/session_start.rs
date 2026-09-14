@@ -23,6 +23,8 @@ pub struct SessionStart {
     pub model: Option<String>,
     /// Explicit reasoning effort, validated by the chosen provider.
     pub effort: Option<String>,
+    /// Provider-specific system instructions supplied by the host.
+    pub system_prompt: Option<String>,
 }
 
 impl SessionStart {

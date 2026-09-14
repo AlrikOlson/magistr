@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent::AuthMethod;
+use crate::agent::{AuthMethod, PermissionMode};
 use crate::in_env as env_test;
 use magistr_cockpit::agent::{PolicyDecision, SessionPolicy};
 use magistr_engine::policy::GovernancePolicy;
@@ -305,4 +305,33 @@ fn malformed_project_governance_and_charter_refuse_session_resolution() {
                 .contains(file)
         );
     }
+}
+
+#[test]
+fn legacy_provider_options_are_refused_before_runtime_start() {
+    let dir = tempfile::tempdir().expect("project");
+
+    let zero_turns = match ResolvedSessionSpec::resolve_with_runtime(
+        AgentConfig::new("hello", dir.path())
+            .provider("claude")
+            .max_turns(0),
+        &UserConfig::default(),
+        runtime("claude"),
+    ) {
+        Ok(_) => panic!("zero-turn sessions cannot start"),
+        Err(error) => error,
+    };
+    assert!(zero_turns.to_string().contains("max_turns"));
+
+    let legacy_permissions = match ResolvedSessionSpec::resolve_with_runtime(
+        AgentConfig::new("hello", dir.path())
+            .provider("claude")
+            .permission_mode(PermissionMode::AcceptEdits),
+        &UserConfig::default(),
+        runtime("claude"),
+    ) {
+        Ok(_) => panic!("legacy permission mode cannot override host policy"),
+        Err(error) => error,
+    };
+    assert!(legacy_permissions.to_string().contains("permission_mode"));
 }

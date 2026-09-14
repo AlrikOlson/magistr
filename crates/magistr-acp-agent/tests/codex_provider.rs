@@ -682,6 +682,7 @@ async fn resume_replays_history_restores_the_model_and_surfaces_missing_threads(
                     resume: true,
                     model: None,
                     effort: None,
+                    system_prompt: None,
                 })
                 .await
                 .expect_err("missing persisted thread");
@@ -1059,6 +1060,7 @@ async fn quota_failure_and_unavailable_model_are_actionable_errors() {
             resume: false,
             model: None,
             effort: None,
+            system_prompt: None,
         })
         .await
         .expect_err("unavailable runtime model");

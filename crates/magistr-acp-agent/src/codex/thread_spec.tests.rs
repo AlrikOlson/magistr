@@ -9,6 +9,7 @@ fn session(cwd: &std::path::Path) -> SessionStart {
         resume: false,
         model: None,
         effort: None,
+        system_prompt: None,
     }
 }
 
@@ -57,6 +58,18 @@ fn new_thread_forwards_its_cwd_and_both_supported_mcp_transports() {
     assert_eq!(params["approvalsReviewer"], "user");
     assert_eq!(params["sandbox"], "workspace-write");
     assert_eq!(params["modelProvider"], "openai");
+}
+
+#[test]
+fn system_prompt_is_forwarded_as_codex_developer_instructions() {
+    let directory = tempfile::tempdir().expect("session directory");
+    let mut start = session(directory.path());
+    start.system_prompt = Some("Use the project conventions.".to_owned());
+    let params = ThreadSpec::params(&start, "chosen-model").expect("thread params");
+    assert_eq!(
+        params["developerInstructions"],
+        "Use the project conventions."
+    );
 }
 
 #[test]

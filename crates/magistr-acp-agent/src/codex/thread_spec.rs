@@ -64,6 +64,9 @@ impl ThreadSpec {
         if let Some(effort) = &start.effort {
             params["config"]["model_reasoning_effort"] = json!(effort);
         }
+        if let Some(instructions) = &start.system_prompt {
+            params["developerInstructions"] = json!(instructions);
+        }
         Ok(params)
     }
 }

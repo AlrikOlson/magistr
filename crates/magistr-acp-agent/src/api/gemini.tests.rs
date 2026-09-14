@@ -117,7 +117,12 @@ async fn the_request_puts_the_key_in_the_header_and_the_history_in_contents() {
         ChatMessage::new(Role::User, "more"),
     ];
     let request = api()
-        .request(&reqwest::Client::new(), "gemini-2.5-pro", &history)
+        .request(
+            &reqwest::Client::new(),
+            "gemini-2.5-pro",
+            &history,
+            Some("Use the project conventions."),
+        )
         .build()
         .expect("builds");
     assert_eq!(
@@ -135,6 +140,10 @@ async fn the_request_puts_the_key_in_the_header_and_the_history_in_contents() {
     let body: serde_json::Value =
         serde_json::from_slice(request.body().and_then(|b| b.as_bytes()).expect("a body"))
             .expect("json");
+    assert_eq!(
+        body["systemInstruction"]["parts"][0]["text"],
+        "Use the project conventions."
+    );
     assert_eq!(body["contents"][1]["role"], "model");
     assert_eq!(body["contents"][2]["parts"][0]["text"], "more");
 }

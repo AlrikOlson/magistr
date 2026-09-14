@@ -26,6 +26,7 @@ impl CockpitSession {
             opening_prompt: (!spec.prompt().trim().is_empty()).then(|| spec.prompt().to_owned()),
             // Resolved transport setup has already validated model selection.
             model: None,
+            max_turns: spec.max_turns(),
         };
         let (policy, _) = spec.into_permission_policy();
         Self::start_connected(transport, options, Box::new(policy))

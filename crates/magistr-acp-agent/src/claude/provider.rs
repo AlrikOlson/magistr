@@ -128,6 +128,7 @@ impl ClaudeProvider {
             }),
             mcp_servers: start.mcp_servers.clone(),
             allowed_tools: self.allowed_tools.clone(),
+            system_prompt: start.system_prompt.clone(),
         };
         let session = ClaudeSession::open(&self.program, &self.prefix, &spec).await?;
         self.sessions

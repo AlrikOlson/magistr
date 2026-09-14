@@ -170,17 +170,22 @@ impl ChatApi for OpenAi {
         http: &reqwest::Client,
         model: &str,
         history: &[ChatMessage],
+        system_prompt: Option<&str>,
     ) -> reqwest::RequestBuilder {
-        let messages = history
-            .iter()
-            .map(|m| Message {
-                role: match m.role {
-                    Role::User => "user",
-                    Role::Assistant => "assistant",
-                },
-                content: &m.content,
-            })
-            .collect();
+        let mut messages = Vec::with_capacity(history.len() + usize::from(system_prompt.is_some()));
+        if let Some(system_prompt) = system_prompt {
+            messages.push(Message {
+                role: "system",
+                content: system_prompt,
+            });
+        }
+        messages.extend(history.iter().map(|m| Message {
+            role: match m.role {
+                Role::User => "user",
+                Role::Assistant => "assistant",
+            },
+            content: &m.content,
+        }));
         http.post(format!("{}/chat/completions", self.base_url))
             .bearer_auth(&self.api_key)
             .json(&Request {

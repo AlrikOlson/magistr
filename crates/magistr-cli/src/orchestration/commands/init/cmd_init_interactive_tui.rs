@@ -25,7 +25,6 @@ pub async fn cmd_init_interactive_tui(
     let config =
         agent::AgentConfig::new("Set up this project with AI-assisted configuration.", &dir)
             .system_prompt(init_prompt)
-            .permission_mode(crate::agent::PermissionMode::AcceptEdits)
             .backend(backend);
 
     let profile = commands::run::resolve_permission_profile(&dir, None)

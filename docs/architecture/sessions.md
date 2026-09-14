@@ -59,16 +59,23 @@ longer silently chooses a different model after startup.
 
 A request to continue an unspecified last conversation is rejected with guidance
 to provide a runtime-owned resume ID. An unsupported load is an error; it never
-opens a new empty conversation as a fallback. Legacy `AgentConfig` fields
-`system_prompt`, `max_turns`, and `permission_mode` remain outside this resolved
-execution contract; their inherited inert behavior is tracked separately. Shared
-permission profiles and project policy are the enforced permission controls.
+opens a new empty conversation as a fallback. The legacy options now have an
+explicit contract:
+
+| AgentConfig option | Execution contract |
+| --- | --- |
+| `system_prompt` | Transported as `_meta.magistr.session.system_prompt`. Claude appends it with `--append-system-prompt`; Codex sends `developerInstructions`; OpenAI and Ollama send a system message; Gemini sends `systemInstruction`. |
+| `max_turns` | Enforced by the shared host supervisor across headless and cockpit sessions. Admission is refused before provider inference once the budget is scheduled; zero is rejected during resolution. |
+| `permission_mode` | Explicitly unsupported before provider startup. The shared permission profile and host policy remain authoritative; Claude and Codex keep their provider approval defaults behind that authority. |
+
+The ACP agent advertises the supported system prompt session option alongside
+model and effort.
 
 ## Capability guarantees
 
 The in-binary agent publishes its implemented guarantees in
 `initialize._meta.magistr.capabilities`, separate from provider model names.
-`session_options` identifies model/effort startup options. Capabilities describe
+`session_options` identifies model, effort, and system prompt startup options. Capabilities describe
 this adapter, rather than every feature the vendor may offer.
 
 | Adapter | Durable load/replay | Open-session continuation | Steering | Model changes | Cancellation |

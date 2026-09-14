@@ -102,7 +102,12 @@ async fn the_request_carries_the_history_the_stream_flags_and_the_bearer_key() {
         ChatMessage::new(Role::User, "more"),
     ];
     let request = api
-        .request(&reqwest::Client::new(), "gpt-4o-mini", &history)
+        .request(
+            &reqwest::Client::new(),
+            "gpt-4o-mini",
+            &history,
+            Some("Use the project conventions."),
+        )
         .build()
         .expect("builds");
     assert_eq!(
@@ -118,8 +123,15 @@ async fn the_request_carries_the_history_the_stream_flags_and_the_bearer_key() {
         serde_json::from_slice(request.body().and_then(|b| b.as_bytes()).expect("a body"))
             .expect("json");
     assert_eq!(body["model"], "gpt-4o-mini");
+    assert_eq!(
+        body["messages"][0],
+        serde_json::json!({
+            "role": "system",
+            "content": "Use the project conventions."
+        })
+    );
     assert_eq!(body["stream"], true);
     assert_eq!(body["stream_options"]["include_usage"], true);
-    assert_eq!(body["messages"][1]["role"], "assistant");
-    assert_eq!(body["messages"][2]["content"], "more");
+    assert_eq!(body["messages"][2]["role"], "assistant");
+    assert_eq!(body["messages"][3]["content"], "more");
 }

@@ -28,6 +28,7 @@ async fn api_sessions_cannot_be_restored_in_a_fresh_process() {
                     resume: false,
                     model: None,
                     effort: None,
+                    system_prompt: None,
                 })
                 .await
                 .expect("ordinary API session");
@@ -48,6 +49,7 @@ async fn api_sessions_cannot_be_restored_in_a_fresh_process() {
             resume: true,
             model: None,
             effort: None,
+            system_prompt: None,
         })
         .await
         .expect_err("ephemeral history cannot be restored");
@@ -110,6 +112,7 @@ async fn chat_api_refuses_tools_and_effort_without_claiming_an_open_session() {
             true
         );
         assert_eq!(meta["magistr"]["session_options"]["effort"], false);
+        assert_eq!(meta["magistr"]["session_options"]["system_prompt"], true);
         let tools =
             NewSessionRequest::new(std::env::temp_dir()).mcp_servers(vec![McpServer::Stdio(
                 McpServerStdio::new("tools", "/fixture/tool"),

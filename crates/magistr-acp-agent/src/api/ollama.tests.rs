@@ -112,7 +112,12 @@ async fn the_request_streams_the_history_to_api_chat() {
         ChatMessage::new(Role::Assistant, "hello"),
     ];
     let request = api()
-        .request(&reqwest::Client::new(), "llama3.1:latest", &history)
+        .request(
+            &reqwest::Client::new(),
+            "llama3.1:latest",
+            &history,
+            Some("Use the project conventions."),
+        )
         .build()
         .expect("builds");
     assert_eq!(request.url().as_str(), "http://127.0.0.1:11434/api/chat");
@@ -120,8 +125,15 @@ async fn the_request_streams_the_history_to_api_chat() {
         serde_json::from_slice(request.body().and_then(|b| b.as_bytes()).expect("a body"))
             .expect("json");
     assert_eq!(body["model"], "llama3.1:latest");
+    assert_eq!(
+        body["messages"][0],
+        serde_json::json!({
+            "role": "system",
+            "content": "Use the project conventions."
+        })
+    );
     assert_eq!(body["stream"], true);
-    assert_eq!(body["messages"][1]["role"], "assistant");
+    assert_eq!(body["messages"][2]["role"], "assistant");
 }
 
 #[tokio::test]

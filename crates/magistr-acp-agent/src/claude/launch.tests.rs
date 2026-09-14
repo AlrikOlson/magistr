@@ -10,6 +10,7 @@ fn spec() -> LaunchSpec {
         model: None,
         mcp_servers: Vec::new(),
         allowed_tools: Vec::new(),
+        system_prompt: None,
     }
 }
 
@@ -77,6 +78,18 @@ fn the_default_model_id_is_never_passed_but_a_real_one_is() {
     let args = s.args();
     let at = args.iter().position(|a| a == "--model").expect("--model");
     assert_eq!(args[at + 1], "claude-fable-5-1[1m]");
+}
+
+#[test]
+fn system_prompt_is_forwarded_as_claude_append_system_prompt() {
+    let mut s = spec();
+    s.system_prompt = Some("Use the project conventions.".to_owned());
+    let args = s.args();
+    let at = args
+        .iter()
+        .position(|arg| arg == "--append-system-prompt")
+        .expect("system prompt flag");
+    assert_eq!(args[at + 1], "Use the project conventions.");
 }
 
 #[test]
