@@ -9,7 +9,7 @@ repository = "https://github.com/AlrikOlson/magistr"
 homepage = "https://github.com/AlrikOlson/magistr"
 keywords = ["cli", "agent", "scaffold", "workflow", "ai"]
 categories = ["command-line-utilities", "development-tools"]
-rust-version = "1.89"
+rust-version = "1.95"
 
 [lib]
 name = "magistr"
