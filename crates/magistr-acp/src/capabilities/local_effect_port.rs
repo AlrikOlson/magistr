@@ -359,6 +359,7 @@ impl EffectPort for LocalEffectPort {
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .clear();
+        terminal::close(&self.terminals);
         self.terminals
             .lock()
             .unwrap_or_else(|p| p.into_inner())
