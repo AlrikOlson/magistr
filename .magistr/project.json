@@ -79,7 +79,7 @@
 	},
 	"hints": [],
 	"project": {
-		"description": "Project setup, coding-agent sessions, and quality checks for the terminal.",
+		"description": "Roadmap and workflow management for coding agents.",
 		"name": "magistr-cli",
 		"type": "cli"
 	},

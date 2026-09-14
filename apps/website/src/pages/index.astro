@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 import Hero from "../components/Hero.astro";
 import FeatureGrid from "../components/FeatureGrid.astro";
+import ConceptMaps from "../components/ConceptMaps.astro";
 import Quickstart from "../components/Quickstart.astro";
 import Walkthrough from "../components/Walkthrough.astro";
 import AsciinemaPlayer from "../components/AsciinemaPlayer.astro";
@@ -23,7 +24,7 @@ const jsonLd = [
     "@type": "SoftwareApplication",
     "name": "Magistr",
     "softwareVersion": "0.1.0",
-    "description": "AI-powered dev toolkit for the terminal. Auto-detects your stack, scaffolds agent configs, and guides recorded plan-execute-verify iterations with a supported terminal cockpit.",
+    "description": "Roadmap and workflow management for coding agents. Turn project ideas into an ordered roadmap, a clear next task, and a recorded trail of work and checks.",
     "url": "https://magistr.dev",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "macOS, Linux, Windows",
@@ -46,6 +47,9 @@ const jsonLd = [
     <GradientDivider class="my-4" />
     <FadeIn>
       <FeatureGrid />
+    </FadeIn>
+    <FadeIn delay={50}>
+      <ConceptMaps />
     </FadeIn>
     <FadeIn delay={100}>
       <Quickstart />

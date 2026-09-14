@@ -1,0 +1,81 @@
+---
+const maps = [
+  {
+    id: "decision-loop",
+    title: "Decision loop",
+    summary: "Choose a goal, plan one ready item, work with context, verify it, and return to the next decision.",
+    image: "/diagrams/magistr-roadmap-workflow.png",
+    alt: "Flat 2D diagram of the Magistr decision loop: roadmap, plan, work, verify, and the next item.",
+    source: `flowchart LR
+    accTitle: Magistr decision loop
+    accDescr: A project moves from a roadmap goal through one planned task, agent work, verification, and the next decision.
+    Y[You and your project] -->|choose a goal| R[Roadmap]
+    R -->|plan one ready item| W[Workflow]
+    W -->|work with project context| A[Your agent]
+    A -->|changes and checks| P[Project record]
+    P -->|next decision| R`,
+  },
+  {
+    id: "ownership-boundary",
+    title: "Ownership boundary",
+    summary: "Magistr coordinates the local workflow while your checkout, agent runtime, credentials, and operating-system permissions remain explicit.",
+    image: "/diagrams/magistr-system-map.png",
+    alt: "Flat 2D diagram of the ownership boundary between your checkout, agent runtime, Magistr MCP, and workflow store.",
+    source: `flowchart TB
+    accTitle: Magistr ownership boundary
+    accDescr: Magistr coordinates a local project workflow between a person's checkout, an agent runtime, Magistr MCP services, and the native workflow store.
+    C[Your checkout] -->|project context| A[Agent runtime]
+    A -->|MCP calls| M[Magistr MCP]
+    M -->|roadmap + tasks| S[Native workflow store]
+    S -->|next ready item| M
+    M -->|changes + checks| C`,
+  },
+  {
+    id: "evidence-chain",
+    title: "Evidence chain",
+    summary: "A roadmap decision stays attached to its plan, implementation, checks, and reviewable project record.",
+    image: "/diagrams/magistr-evidence-chain.png",
+    alt: "Flat 2D diagram of the Magistr evidence chain: decision, plan, work, checks, and evidence.",
+    source: `flowchart LR
+    accTitle: Magistr evidence chain
+    accDescr: A roadmap decision becomes a planned task, an implementation, recorded checks, and a reviewable project record.
+    R[Roadmap decision] --> P[Plan]
+    P --> W[Work]
+    W --> V[Checks]
+    V --> E[Evidence]
+    E --> R`,
+  },
+];
+---
+
+<section id="concept-maps" class="relative py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="mb-12 text-center sm:mb-16">
+      <p class="font-mono text-xs uppercase tracking-[0.24em] text-text-muted">A shared model</p>
+      <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+        See how the <span class="text-accent">workflow connects</span>
+      </h2>
+      <p class="mx-auto mt-4 max-w-2xl text-text-muted">
+        These diagrams describe the same public model in three views. Open the Mermaid source when you want the text version.
+      </p>
+    </div>
+
+    <div class="grid gap-8 lg:grid-cols-3">
+      {maps.map((map) => (
+        <article class="flex flex-col overflow-hidden rounded-2xl border border-border" style="background-color: var(--color-bg-card);">
+          <figure>
+            <img src={map.image} alt={map.alt} class="h-auto w-full" loading="lazy" />
+          </figure>
+          <div class="flex flex-1 flex-col p-6">
+            <h3 class="text-xl font-semibold text-text">{map.title}</h3>
+            <p class="mt-3 text-sm leading-relaxed text-text-muted">{map.summary}</p>
+            <details class="mt-5 border-t border-border pt-4">
+              <summary class="cursor-pointer text-sm font-medium text-accent">Mermaid source</summary>
+              <pre class="mt-3 overflow-x-auto rounded-lg p-4 text-xs leading-relaxed" style="background-color: var(--color-bg);"><code>{map.source}</code></pre>
+            </details>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
