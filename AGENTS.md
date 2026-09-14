@@ -6,8 +6,16 @@ Magistr is a Rust workspace. See [development](docs/development.md) for setup,
 
 ## Verification
 
-Run formatting and the commands in `.magistr/project.json` before committing.
-Record checks through `magistr_gate` or server-executed `ship_check`.
+Match verification to the change scope before committing.
+For an active `$next`/`/next` roadmap chunk, run formatting and every command in
+`.magistr/project.json` through `magistr_gate(gate: "all")`, with recorded
+receipts. For a direct docs-only or other narrow follow-up outside an active
+chunk, run focused checks for the changed surface (for example, the website
+test plus `cargo fmt --check` and `git diff --check`); do not invoke
+`magistr_gate all` unless the user requests a full suite or the change touches
+code, contracts, or packaging covered by those gates. If scope is unclear,
+identify the intended gate and reason before starting it. Record checks through
+`magistr_gate` or server-executed `ship_check`.
 Scope changes and commits to the requested task; preserve other sessions' work.
 
 Keep the cockpit independent of terminal protocols and the desktop independent

@@ -79,6 +79,8 @@ The plan phase is enforced by magistr's orchestration layer — set the objectiv
 
 > `magistr_set_phase(phase: "verify")` — call this first.
 
+The full-suite rule below applies while a roadmap chunk's verification task is active. A direct docs-only follow-up outside that lifecycle uses focused checks for its changed surface and does not automatically run `magistr_gate all`.
+
 1. **Run quality gates** — all must pass before anything else, each recorded with its real exit code:
    - Use `magistr_format`, then `magistr_gate(gate: "all")` — every gate is forwarded to `ship_check`
    - Or record gates directly: `ship_check(type: "test", name: "...", command: "...")` — always pass `command:`; never a piped or self-reported result
