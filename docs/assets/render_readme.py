@@ -127,134 +127,175 @@ def line_pair(name, x, y, widths, mat, asset):
         bar(name + str(i), (x, y - i * 0.22), (x + width, y - i * 0.22), 0.075, mat, asset, z=0.16)
 
 
-# Overview: a direct four-stage diagram.
+# Visual helpers keep the diagram language flat, literal, and self-explanatory.
+GOLD = material("review gold", (0.96, 0.70, 0.18))
+
+
+def card(asset, key, x, y, width, height, title, caption, accent):
+    cube(key + " card", x, y, width, height, PANEL, asset, z=0.02, bevel=0.12)
+    cube(key + " accent", x - width / 2 + 0.12, y, 0.10, height - 0.36, accent, asset, z=0.10, bevel=0.03)
+    text(key + " title", title, x - width / 2 + 0.38, y + 0.34, 0.22, WHITE, asset, "LEFT")
+    text(key + " caption", caption, x - width / 2 + 0.38, y - 0.34, 0.16, MUTED, asset, "LEFT")
+
+
+def ai_symbol(asset, key, x, y, accent=ORANGE):
+    circle(key + " core", x, y, 0.20, accent, asset, z=0.24)
+    for i, (dx, dy) in enumerate([(-0.34, 0.18), (0.35, 0.20), (-0.34, -0.20), (0.35, -0.22)]):
+        bar(key + " spoke " + str(i), (x, y), (x + dx * 0.72, y + dy * 0.72), 0.045, accent, asset, z=0.22)
+        circle(key + " node " + str(i), x + dx, y + dy, 0.08, WHITE, asset, z=0.25)
+
+
+def review_symbol(asset, key, x, y):
+    circle(key + " ring", x, y, 0.25, GOLD, asset, z=0.22)
+    bar(key + " check short", (x - 0.12, y - 0.01), (x - 0.02, y - 0.11), 0.07, GOLD, asset, z=0.27)
+    bar(key + " check long", (x - 0.02, y - 0.11), (x + 0.16, y + 0.13), 0.07, GOLD, asset, z=0.27)
+
+
+def roadmap_symbol(asset, key, x, y):
+    route = [(x - 0.55, y - 0.18), (x - 0.20, y + 0.20), (x + 0.15, y - 0.06), (x + 0.55, y + 0.28)]
+    for i, (start, end) in enumerate(zip(route, route[1:])):
+        bar(key + " route " + str(i), start, end, 0.09, CYAN, asset, z=0.22)
+    for i, (px, py) in enumerate(route):
+        circle(key + " milestone " + str(i), px, py, 0.12, ORANGE if i == 3 else WHITE, asset, z=0.25)
+
+
+def checklist_symbol(asset, key, x, y):
+    for i, width in enumerate([0.66, 0.48, 0.58]):
+        py = y + 0.24 - i * 0.22
+        cube(key + " box " + str(i), x - 0.37, py, 0.14, 0.14, PANEL_HI, asset, z=0.21, bevel=0.02)
+        if i == 0:
+            bar(key + " tick short", (x - 0.39, py), (x - 0.34, py - 0.05), 0.035, ORANGE, asset, z=0.26)
+            bar(key + " tick long", (x - 0.34, py - 0.05), (x - 0.25, py + 0.08), 0.035, ORANGE, asset, z=0.26)
+        bar(key + " line " + str(i), (x - 0.12, py), (x - 0.12 + width, py), 0.06, WHITE if i == 0 else MUTED, asset, z=0.23)
+
+
+def terminal_symbol(asset, key, x, y):
+    text(key + " prompt", ">_", x - 0.55, y + 0.15, 0.30, VIOLET, asset, "LEFT")
+    line_pair(key + " output ", x - 0.54, y - 0.08, [0.42, 0.62, 0.32], WHITE, asset)
+
+
+def evidence_symbol(asset, key, x, y):
+    cube(key + " page", x, y, 0.75, 0.95, PANEL_HI, asset, z=0.18, bevel=0.04)
+    bar(key + " line 1", (x - 0.25, y + 0.20), (x + 0.24, y + 0.20), 0.045, MUTED, asset, z=0.24)
+    bar(key + " line 2", (x - 0.25, y + 0.02), (x + 0.13, y + 0.02), 0.045, MUTED, asset, z=0.24)
+    bar(key + " check short", (x - 0.24, y - 0.23), (x - 0.08, y - 0.37), 0.075, GREEN, asset, z=0.25)
+    bar(key + " check long", (x - 0.08, y - 0.37), (x + 0.27, y + 0.08), 0.075, GREEN, asset, z=0.25)
+
+
+# Overview: the user steers the roadmap in conversation, with review before execution.
 cube("hero background", 0, 0, 16.9, 9.5, NAVY, "hero", z=-0.2)
 text("hero eyebrow", "MAGISTR  /  ROADMAP + WORKFLOW", 0, 3.75, 0.30, MUTED)
-text("hero title", "From idea to a verified next step", 0, 3.20, 0.50, WHITE)
-text("hero subhead", "A project loop your agent can resume", 0, 2.68, 0.24, MUTED)
+text("hero title", "Talk to the agent, steer the roadmap", 0, 3.20, 0.50, WHITE)
+text("hero subhead", "Talk through the direction, review the draft, then ship the next item", 0, 2.68, 0.24, MUTED)
 
-cards = [
-    (-4.0, 0.75, "ROADMAP", "priorities + dependencies", CYAN),
-    (4.0, 0.75, "PLAN", "one ready item", ORANGE),
+hero_cards = [
+    (-4.0, 0.75, "ROADMAP", "goals + dependencies", CYAN),
+    (4.0, 0.75, "READY ITEM", "one focused change", ORANGE),
     (4.0, -2.20, "WORK", "agent with context", VIOLET),
-    (-4.0, -2.20, "VERIFY", "checks + project record", GREEN),
+    (-4.0, -2.20, "EVIDENCE", "checks + recorded reason", GREEN),
 ]
-for x, y, title, caption, accent in cards:
-    cube(title.lower() + " card", x, y, 4.4, 2.0, PANEL, "hero", z=0.02, bevel=0.14)
-    cube(title.lower() + " accent", x - 1.92, y, 0.12, 1.55, accent, "hero", z=0.10, bevel=0.04)
-    text(title.lower() + " title", title, x - 1.45, y + 0.55, 0.30, WHITE, "hero", "LEFT")
-    text(title.lower() + " caption", caption, x - 1.45, y - 0.60, 0.19, MUTED, "hero", "LEFT")
+for index, (x, y, title, caption, accent) in enumerate(hero_cards):
+    card("hero", "hero card " + str(index), x, y, 4.4, 2.0, title, caption, accent)
 
-# Roadmap card: a literal route with milestones.
-bar("hero route 1", (-5.05, 0.35), (-4.30, 0.85), 0.09, CYAN, "hero", 0.17)
-bar("hero route 2", (-4.30, 0.85), (-3.55, 0.45), 0.09, CYAN, "hero", 0.17)
-bar("hero route 3", (-3.55, 0.45), (-2.95, 1.00), 0.09, CYAN, "hero", 0.17)
-for i, (x, y) in enumerate([(-5.05, 0.35), (-4.30, 0.85), (-3.55, 0.45), (-2.95, 1.00)]):
-    circle("hero milestone " + str(i), x, y, 0.13, WHITE, "hero", 0.22)
+roadmap_symbol("hero", "hero roadmap", -2.85, 0.55)
+checklist_symbol("hero", "hero ready", 5.05, 0.44)
+terminal_symbol("hero", "hero work", 5.00, -2.00)
+evidence_symbol("hero", "hero evidence", -2.60, -2.15)
 
-# Plan card: three task rows and a selected checkbox.
-for i, (y, width) in enumerate([(0.72, 0.98), (0.50, 0.78), (0.28, 0.90)]):
-    cube("hero checkbox " + str(i), 2.58, y, 0.18, 0.18, PANEL_HI, "hero", z=0.17, bevel=0.03)
-    if i < 2:
-        bar("hero check " + str(i), (2.61, y), (2.67, y - 0.06), 0.035, ORANGE, "hero", 0.24)
-        bar("hero check 2 " + str(i), (2.67, y - 0.06), (2.76, y + 0.08), 0.035, ORANGE, "hero", 0.24)
-    bar("hero task line " + str(i), (2.92, y), (2.92 + width, y), 0.07, WHITE if i == 0 else MUTED, "hero", 0.17)
+arrow("hero top arrow", (-1.65, 0.75), (1.65, 0.75), ORANGE, "hero")
+arrow("hero right arrow", (4.0, -0.33), (4.0, -1.20), VIOLET, "hero")
+arrow("hero bottom arrow", (1.65, -2.20), (-1.65, -2.20), GREEN, "hero")
+arrow("hero left arrow", (-4.0, -1.20), (-4.0, -0.33), CYAN, "hero")
+text("hero proposal label", "YOU SET DIRECTION IN CHAT", 0, 1.35, 0.18, ORANGE, "hero")
+cube("hero center panel", 0, -0.70, 4.9, 1.42, PANEL_HI, "hero", z=0.01, bevel=0.12)
+ai_symbol("hero", "hero ai", -1.72, -0.70)
+review_symbol("hero", "hero review", 1.72, -0.70)
+text("hero center label", "AGENT DRAFTS THE PLAN", 0, -0.35, 0.24, WHITE, "hero")
+text("hero center hint", "you choose what to apply", 0, -0.86, 0.18, MUTED, "hero")
 
-# Work card: terminal prompt and three output lines.
-text("hero prompt", ">_", 2.62, -1.92, 0.45, VIOLET, "hero", "LEFT")
-line_pair("hero output ", 2.65, -2.17, [0.72, 1.05, 0.52], WHITE, "hero")
-
-# Verify card: a document outline and a large check.
-cube("hero document", -2.72, -2.15, 1.05, 1.32, PANEL_HI, "hero", z=0.16, bevel=0.05)
-bar("hero document line 1", (-3.10, -1.78), (-2.44, -1.78), 0.06, MUTED, "hero", 0.23)
-bar("hero document line 2", (-3.10, -1.98), (-2.52, -1.98), 0.06, MUTED, "hero", 0.23)
-bar("hero verify short", (-3.08, -2.42), (-2.83, -2.65), 0.10, GREEN, "hero", 0.25)
-bar("hero verify long", (-2.83, -2.65), (-2.35, -2.02), 0.10, GREEN, "hero", 0.25)
-
-# Arrows make the loop direction explicit.
-arrow("top arrow", (-1.65, 0.75), (1.65, 0.75), ORANGE, "hero")
-arrow("right arrow", (4.0, -0.33), (4.0, -1.20), VIOLET, "hero")
-arrow("bottom arrow", (1.65, -2.20), (-1.65, -2.20), GREEN, "hero")
-arrow("left arrow", (-4.0, -1.20), (-4.0, -0.33), CYAN, "hero")
-cube("hero center panel", 0, -0.70, 3.0, 1.35, PANEL, "hero", z=0.01, bevel=0.12)
-text("hero center label", "CHOOSE THE NEXT ITEM", 0, -0.48, 0.22, WHITE)
-text("hero center hint", "the project keeps moving", 0, -0.91, 0.19, MUTED)
-
-# Transparent section icon: roadmap milestones.
+# Transparent section icons use the same symbols at a compact scale.
 cube("roadmap icon page", 0, 0, 3.45, 2.60, PANEL, "roadmap", z=0.02, bevel=0.16)
-cube("roadmap icon fold", 1.21, 0.78, 0.55, 0.42, PANEL_HI, "roadmap", z=0.10, bevel=0.05)
-route = [(-1.18, -0.72), (-0.35, 0.18), (0.38, -0.28), (1.10, 0.62)]
-for i, (start, end) in enumerate(zip(route, route[1:])):
-    bar("roadmap icon route " + str(i), start, end, 0.12, CYAN, "roadmap", z=0.18)
-for i, (x, y) in enumerate(route):
-    circle("roadmap icon milestone " + str(i), x, y, 0.20, ORANGE if i == 3 else WHITE, "roadmap", z=0.24)
-text("roadmap icon caption", "ROADMAP", 0, -1.70, 0.24, CYAN, "roadmap")
+roadmap_symbol("roadmap", "roadmap icon route", 0, 0.15)
+text("roadmap icon caption", "ROADMAP", 0, -1.35, 0.24, CYAN, "roadmap")
 
-# Transparent section icon: task cards.
-for i, y in enumerate([0.72, 0.05, -0.62]):
-    cube("workflow icon card " + str(i), 0.12 * i, y, 3.45, 0.54, PANEL if i else PANEL_HI, "workflow", z=0.03 + i * 0.04, bevel=0.08)
-    cube("workflow icon checkbox " + str(i), -1.20 + 0.12 * i, y, 0.25, 0.25, ORANGE if i == 0 else CYAN, "workflow", z=0.20, bevel=0.04)
-    bar("workflow icon line " + str(i), (-0.78 + 0.12 * i, y), (0.95 + 0.12 * i, y), 0.09, WHITE if i == 0 else MUTED, "workflow", z=0.22)
-text("workflow icon caption", "WORKFLOW", 0, -1.58, 0.24, ORANGE, "workflow")
+cube("workflow icon page", 0, 0, 3.45, 2.60, PANEL, "workflow", z=0.02, bevel=0.16)
+checklist_symbol("workflow", "workflow icon checklist", 0, 0.15)
+ai_symbol("workflow", "workflow icon ai", 0.75, -0.35, ORANGE)
+text("workflow icon caption", "ROADMAP CHAT", 0, -1.35, 0.24, ORANGE, "workflow")
 
-# Transparent section icon: checked document.
-cube("verification icon page", 0, 0.18, 2.45, 3.05, PANEL, "verification", z=0.02, bevel=0.13)
-cube("verification icon fold", 0.76, 1.28, 0.42, 0.38, PANEL_HI, "verification", z=0.10, bevel=0.04)
-line_pair("verification icon lines ", -0.72, 0.72, [0.82, 0.60, 0.74], MUTED, "verification")
-bar("verification icon check short", (-0.72, -0.35), (-0.30, -0.70), 0.15, GREEN, "verification", z=0.25)
-bar("verification icon check long", (-0.30, -0.70), (0.65, 0.40), 0.15, GREEN, "verification", z=0.25)
-text("verification icon caption", "VERIFY", 0, -1.72, 0.24, GREEN, "verification")
+cube("verification icon page", 0, 0, 3.45, 2.60, PANEL, "verification", z=0.02, bevel=0.16)
+evidence_symbol("verification", "verification icon evidence", 0, 0.15)
+review_symbol("verification", "verification icon review", 0.78, -0.30)
+text("verification icon caption", "VERIFY", 0, -1.35, 0.24, GREEN, "verification")
 
-# Flat diagram: explicit ownership boundary between a checkout, runtime, and store.
+# Ownership boundary: you steer the roadmap through a local workflow you still control.
 cube("system background", 0, 0, 13.6, 7.6, NAVY, "system", z=-0.2)
-text("system eyebrow", "OWNERSHIP BOUNDARY", 0, 3.1, 0.30, MUTED, "system")
-text("system title", "Who owns each part of the loop?", 0, 2.6, 0.46, WHITE, "system")
+text("system eyebrow", "OWNERSHIP + CONTROL", 0, 3.1, 0.30, MUTED, "system")
+text("system title", "Talk to the agent; keep control of the plan", 0, 2.6, 0.43, WHITE, "system")
 system_cards = [
-    (-4.5, 0.75, "YOUR CHECKOUT", "source + files", CYAN),
-    (-1.5, 0.75, "AGENT RUNTIME", "provider session", VIOLET),
-    (1.8, 0.75, "MAGISTR MCP", "roadmap + workflow", ORANGE),
-    (4.7, 0.75, "WORKFLOW STORE", "tasks + evidence", GREEN),
+    (-4.75, 0.72, "YOU", "intent + review", CYAN),
+    (-1.60, 0.72, "AGENT", "drafts from your direction", ORANGE),
+    (1.70, 0.72, "MAGISTR", "orders work", VIOLET),
+    (4.85, 0.72, "RECORD", "reason + checks", GREEN),
 ]
-for x, y, title, caption, accent in system_cards:
-    cube(title.lower() + " system card", x, y, 2.65, 1.45, PANEL, "system", z=0.02, bevel=0.12)
-    cube(title.lower() + " system accent", x - 1.17, y, 0.10, 1.05, accent, "system", z=0.10, bevel=0.03)
-    text(title.lower() + " system title", title, x - 0.92, y + 0.28, 0.22, WHITE, "system", "LEFT")
-    text(title.lower() + " system caption", caption, x - 0.92, y - 0.27, 0.17, MUTED, "system", "LEFT")
-arrow("system checkout arrow", (-3.1, 0.75), (-2.85, 0.75), CYAN, "system")
-arrow("system runtime arrow", (-0.1, 0.75), (0.45, 0.75), VIOLET, "system")
-arrow("system mcp arrow", (3.15, 0.75), (3.35, 0.75), ORANGE, "system")
-bar("system return line", (4.7, -0.08), (4.7, -1.08), 0.08, GREEN, "system", 0.15)
-arrow("system return arrow", (4.7, -1.08), (0.2, -1.08), GREEN, "system")
-text("system return label", "next ready item returns to the project", 0.2, -1.55, 0.22, GREEN, "system")
-cube("system boundary note", 0, -2.55, 8.4, 0.80, PANEL_HI, "system", z=0.02, bevel=0.10)
-text("system boundary note text", "Magistr coordinates locally; the runtime keeps provider credentials and OS permissions.", 0, -2.55, 0.20, WHITE, "system")
+for index, (x, y, title, caption, accent) in enumerate(system_cards):
+    card("system", "system card " + str(index), x, y, 2.60, 1.55, title, caption, accent)
+circle("system you head", -5.18, 0.77, 0.13, WHITE, "system", z=0.24)
+bar("system you body", (-5.18, 0.58), (-5.18, 0.36), 0.09, CYAN, "system", z=0.22)
+ai_symbol("system", "system agent ai", -1.00, 0.70)
+circle("system magistr core", 1.70, 0.70, 0.23, VIOLET, "system", z=0.24)
+bar("system magistr spoke 1", (1.70, 0.70), (1.40, 0.97), 0.05, WHITE, "system", z=0.22)
+bar("system magistr spoke 2", (1.70, 0.70), (2.00, 0.97), 0.05, WHITE, "system", z=0.22)
+evidence_symbol("system", "system record evidence", 5.17, 0.70)
+arrow("system intent arrow", (-3.42, 0.72), (-2.93, 0.72), CYAN, "system")
+arrow("system proposal arrow", (-0.30, 0.72), (0.42, 0.72), ORANGE, "system")
+arrow("system record arrow", (3.00, 0.72), (3.52, 0.72), VIOLET, "system")
+text("system intent label", "set direction", -3.17, -0.16, 0.16, CYAN, "system")
+text("system proposal label", "talk, review, apply", 0.06, -0.16, 0.16, ORANGE, "system")
+text("system record label", "record outcome", 3.27, -0.16, 0.16, GREEN, "system")
 
-# Flat diagram: the evidence chain from decision to a reviewable record.
+cube("system checkout panel", -3.35, -1.48, 4.55, 1.22, PANEL, "system", z=0.02, bevel=0.10)
+text("system checkout title", "YOUR PROJECT", -5.25, -1.25, 0.22, WHITE, "system", "LEFT")
+text("system checkout caption", "source + commands", -5.25, -1.70, 0.18, MUTED, "system", "LEFT")
+cube("system workflow panel", 3.25, -1.48, 4.55, 1.22, PANEL, "system", z=0.02, bevel=0.10)
+text("system workflow title", "LOCAL WORKFLOW", 1.00, -1.25, 0.22, WHITE, "system", "LEFT")
+text("system workflow caption", "roadmap + evidence", 1.00, -1.70, 0.18, MUTED, "system", "LEFT")
+arrow("system return arrow", (3.25, -2.12), (-3.35, -2.12), GREEN, "system")
+text("system return label", "updated roadmap is ready for the next decision", 0, -2.52, 0.19, GREEN, "system")
+cube("system boundary note", 0, -3.03, 10.8, 0.72, PANEL_HI, "system", z=0.02, bevel=0.10)
+text("system boundary note text", "Local by design · provider credentials and OS permissions stay with your runtime.", 0, -3.03, 0.19, WHITE, "system")
+
+# Evidence chain: the record shows how a user-directed roadmap conversation becomes shipped work.
 cube("evidence background", 0, 0, 15.0, 6.6, NAVY, "evidence", z=-0.2)
-text("evidence eyebrow", "EVIDENCE CHAIN", 0, 2.55, 0.30, MUTED, "evidence")
-text("evidence title", "Every change keeps its reason attached", 0, 2.05, 0.44, WHITE, "evidence")
+text("evidence eyebrow", "ROADMAP CHANGE → PROOF", 0, 2.55, 0.30, MUTED, "evidence")
+text("evidence title", "Your roadmap conversation keeps the why", 0, 2.05, 0.42, WHITE, "evidence")
 evidence_cards = [
-    (-5.0, 0.35, "DECISION", "why this item", CYAN),
-    (-2.5, 0.35, "PLAN", "what done means", ORANGE),
-    (0.0, 0.35, "WORK", "agent changes", VIOLET),
-    (2.5, 0.35, "CHECKS", "gates run", GREEN),
-    (5.0, 0.35, "EVIDENCE", "review record", WHITE),
+    (-6.10, 0.20, "ROADMAP", "goals + deps", CYAN),
+    (-3.66, 0.20, "AGENT DRAFT", "from your prompt", ORANGE),
+    (-1.22, 0.20, "REVIEW", "you approve", GOLD),
+    (1.22, 0.20, "READY TASK", "acceptance", VIOLET),
+    (3.66, 0.20, "CHECKS", "gates pass", GREEN),
+    (6.10, 0.20, "RECORD", "reason + result", WHITE),
 ]
-for x, y, title, caption, accent in evidence_cards:
-    cube(title.lower() + " evidence card", x, y, 2.05, 1.45, PANEL, "evidence", z=0.02, bevel=0.12)
-    cube(title.lower() + " evidence accent", x - 0.89, y, 0.09, 1.05, accent, "evidence", z=0.10, bevel=0.03)
-    text(title.lower() + " evidence title", title, x - 0.70, y + 0.28, 0.22, WHITE, "evidence", "LEFT")
-    text(title.lower() + " evidence caption", caption, x - 0.70, y - 0.27, 0.17, MUTED, "evidence", "LEFT")
-for i, (start, end, mat) in enumerate([
-    ((-3.95, 0.35), (-3.55, 0.35), CYAN),
-    ((-1.45, 0.35), (-1.05, 0.35), ORANGE),
-    ((1.05, 0.35), (1.45, 0.35), VIOLET),
-    ((3.55, 0.35), (3.95, 0.35), GREEN),
+for index, (x, y, title, caption, accent) in enumerate(evidence_cards):
+    card("evidence", "evidence card " + str(index), x, y, 2.0, 1.55, title, caption, accent)
+roadmap_symbol("evidence", "evidence roadmap", -5.55, 0.02)
+ai_symbol("evidence", "evidence ai", -3.12, 0.00, ORANGE)
+review_symbol("evidence", "evidence review", -0.70, 0.00)
+checklist_symbol("evidence", "evidence ready", 1.82, 0.00)
+review_symbol("evidence", "evidence checks", 4.22, 0.00)
+evidence_symbol("evidence", "evidence record", 6.55, 0.00)
+for i, (start_point, end_point, mat) in enumerate([
+    ((-5.10, 0.20), (-4.66, 0.20), CYAN),
+    ((-2.66, 0.20), (-2.22, 0.20), ORANGE),
+    ((-0.22, 0.20), (0.22, 0.20), GOLD),
+    ((2.22, 0.20), (2.66, 0.20), VIOLET),
+    ((4.66, 0.20), (5.10, 0.20), GREEN),
 ]):
-    arrow("evidence connector " + str(i), start, end, mat, "evidence")
-text("evidence footer", "roadmap → task → change → checks → review", 0, -1.35, 0.26, WHITE, "evidence")
-cube("evidence loop panel", 0, -2.20, 8.7, 0.72, PANEL_HI, "evidence", z=0.02, bevel=0.10)
-text("evidence loop text", "The next roadmap decision starts with the record you just made.", 0, -2.20, 0.20, GREEN, "evidence")
+    arrow("evidence connector " + str(i), start_point, end_point, mat, "evidence")
+text("evidence footer", "your prompt → draft → review → ready work → checks → recorded reason", 0, -1.35, 0.25, WHITE, "evidence")
+cube("evidence loop panel", 0, -2.20, 9.5, 0.72, PANEL_HI, "evidence", z=0.02, bevel=0.10)
+text("evidence loop text", "The next session starts with the updated roadmap and its evidence.", 0, -2.20, 0.20, GREEN, "evidence")
 
 # Orthographic render settings. No lights are required for emission materials.
 scene = bpy.context.scene

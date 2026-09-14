@@ -52,7 +52,9 @@ assert(indexHtml.includes("Evidence chain"), "evidence chain map present");
 assert(indexHtml.includes("/diagrams/magistr-roadmap-workflow.png"), "decision loop asset present");
 assert(indexHtml.includes("/diagrams/magistr-system-map.png"), "ownership boundary asset present");
 assert(indexHtml.includes("/diagrams/magistr-evidence-chain.png"), "evidence chain asset present");
-assert(indexHtml.includes("Mermaid source"), "Mermaid source disclosures present");
+assert(!indexHtml.includes("Mermaid source"), "no Mermaid diagram disclosures");
+assert(indexHtml.includes("Talk through the direction"), "user-directed roadmap copy present");
+assert(indexHtml.includes("Blender-rendered"), "Blender-only visual label present");
 assert(indexHtml.includes("aria-label"), "navigation accessibility attributes present");
 
 console.log("\nAsciinema player:");
@@ -69,7 +71,7 @@ assert(indexHtml.includes("JetBrains+Mono"), "JetBrains Mono font loaded");
 
 console.log("\nFeature grid:");
 assert(indexHtml.includes('id="features"'), "features section anchor present");
-assert(indexHtml.includes("ship faster"), "features section heading present");
+assert(indexHtml.includes("Shape the roadmap"), "features section heading present");
 assert(indexHtml.includes("feature-card"), "feature card class present");
 assert(indexHtml.includes("Scaffolding"), "Scaffolding feature card present");
 assert(
@@ -199,6 +201,9 @@ const skillsHtml = readFileSync(
 );
 assert(skillsHtml.includes(">Skills</h1>"), "skills page has title");
 assert(skillsHtml.includes("/next"), "skills page mentions /next");
+assert(skillsHtml.includes("/roadmap-refresh"), "skills page mentions /roadmap-refresh");
+assert(skillsHtml.includes("$next"), "skills page documents Codex $next");
+assert(skillsHtml.includes("$roadmap-refresh"), "skills page documents Codex $roadmap-refresh");
 assert(skillsHtml.includes("validate"), "skills page documents validation");
 
 console.log("\nDocs - Hooks:");

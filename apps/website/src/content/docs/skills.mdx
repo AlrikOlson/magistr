@@ -9,7 +9,8 @@ category: reference
 
 Magistr installs project skills that guide an agent through planning, execution,
 and verification. Codex discovers them under `.agents/skills` and invokes them
-as `$next`, for example. Claude Code uses `.claude/skills` and `/next`.
+with the `$` form, such as `$next` and `$roadmap-refresh`. Claude Code uses
+`.claude/skills` and the `/` form, such as `/next` and `/roadmap-refresh`.
 
 ## Project skills
 
@@ -38,6 +39,22 @@ current agent session.
 
 Validation uses `.magistr/project.json`, including required custom gates, and
 records each result on the verification task.
+
+## Let the agent change the roadmap
+
+Roadmap work is an active part of the conversation. Tell the agent what
+direction to pursue, what changed in your priorities, or which outcome matters.
+It can draft a new ordering, refine acceptance criteria, or capture follow-up
+work. The `roadmap_reprioritize` tool records a suggested reorder as a proposal;
+it does not reorder the plan. Magistr keeps that draft in native roadmap state
+so you can review and direct what gets applied. Once you accept the direction, `next` selects one
+ready item and carries it through planning, implementation, checks, and a
+recorded result. The roadmap remains the place to make the next decision; chat
+history is not the source of truth.
+
+Use `roadmap-refresh` when you want the agent to explore new evidence without
+implementation, and `signals` when stakeholder feedback should become a
+researched roadmap change.
 
 ## Customize skills
 

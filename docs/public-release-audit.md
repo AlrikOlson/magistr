@@ -113,7 +113,7 @@ The installation docs now describe v0.1 as source-first and point to the package
 
 ## A better visual language for Magistr
 
-The closure now ships three complementary views in README and website: the decision loop, the ownership boundary, and the evidence chain. Each uses the same flat 2D vocabulary, literal labels, and adjacent Mermaid source so sequence, ownership, and proof remain understandable in text.
+The closure now ships three complementary Blender-rendered views in README and website: the user-directed decision loop, the ownership boundary, and the evidence chain. Each uses the same flat 2D vocabulary and literal labels so conversation, control, and proof remain understandable in text.
 
 Use three views, each answering one question.
 
@@ -121,31 +121,20 @@ Use three views, each answering one question.
 
 **Question:** “How does an idea become the next safe change?”
 
-~~~mermaid
-flowchart LR
-    I["Intent<br/>you + project"] --> R["Roadmap<br/>goals · priorities · dependencies"]
-    R --> C["Ready chunk<br/>acceptance + context"]
-    C --> W["Recorded workflow<br/>research → plan → execute → verify"]
-    W --> E["Evidence + commit<br/>checks attached to the change"]
-    E --> R
-~~~
+The rendered decision-loop view shows you talking through intent with the
+agent, reviewing its draft, accepting one ready task, and carrying recorded
+evidence back to the next roadmap decision.
 
-Implemented in the README and website as the decision-loop Mermaid source and its flat 2D visual companion. The caption names what the loop preserves: roadmap context, one focused change, and attached evidence.
+Implemented in the README and website as the decision-loop Blender render and its literal caption. The view names what the loop preserves: roadmap context, one focused change, and attached evidence.
 
 ### View 2: the ownership boundary
 
 **Question:** “Where does each part of the system run?”
 
-~~~mermaid
-flowchart TB
-    Person["You<br/>choose goals · review changes"] --> Agent["Agent runtime<br/>Codex · Claude Code · Copilot"]
-    Agent --> MCP["Magistr MCP<br/>roadmap + workflow tools"]
-    Agent --> WB["Workbench bridge<br/>search · read · edit · run"]
-    MCP --> Store[("Local project state<br/>roadmap · plans · receipts")]
-    WB --> Project["Your checkout<br/>source files + configured commands"]
-    Agent --> Provider["Configured provider<br/>runtime or API credentials"]
-    Provider -. "prompts / responses<br/>per provider config" .-> Agent
-~~~
+The rendered ownership view shows you setting direction in conversation and
+reviewing the draft, the agent translating that direction into roadmap edits,
+Magistr ordering the work, and the local record preserving the reason and
+checks. Project files and provider credentials stay in the runtime you control.
 
 Implemented as a labeled ownership map on the website and in the README, with the boundary stated in plain language: Magistr is local; it does not host a model or hosted project service; `roadmap_exports=false` keeps native roadmap state in the project store; permission prompts guide actions but do not create an OS sandbox. Crate-level ownership details remain in docs/architecture/overview.md.
 
@@ -153,47 +142,29 @@ Implemented as a labeled ownership map on the website and in the README, with th
 
 **Question:** “Why can I trust what the agent says it did?”
 
-~~~mermaid
-flowchart LR
-    A["Roadmap decision"] --> B["Ship objective"]
-    B --> C["Focused task plan"]
-    C --> D["Changed files"]
-    D --> G["Configured gates"]
-    G --> Q["Check receipts"]
-    Q --> K["Atomic commit"]
-    K --> N["Next ready item"]
-~~~
+The rendered evidence view shows the chain from your roadmap conversation to
+an agent draft, your review, an accepted ready task, changed files, checks,
+recorded reason, and the next ready item. This is the proof that makes a
+roadmap change resumable.
 
-Implemented as a labeled evidence chain on the website and in the README. It gives “recorded workflow” a concrete meaning and explains why a new session can resume without reconstructing the whole chat; the adjacent Mermaid source remains the accessible text explanation.
+Implemented as a labeled evidence chain on the website and in the README. It gives “recorded workflow” a concrete meaning and explains why a new session can resume without reconstructing the whole chat; the render caption and image alt text carry the accessible text explanation.
 
-### Optional fourth view: setup path
-
-Use this only on the website or installation guide, where the reader is ready for commands:
-
-~~~mermaid
-flowchart LR
-    A["Install Magistr + agent runtime"] --> B["magistr init ."]
-    B --> C["Agent config + MCP + project.json"]
-    C --> D["Create or review roadmap"]
-    D --> E["$next / $next-loop"]
-    E --> F["$validate or recorded verification"]
-~~~
-
-This is a task sequence, not the product architecture. Keep it separate from the three explanatory views so “how to start” does not replace “how it works.”
+The setup path stays in the installation guide. It is a task sequence for
+getting started, while these three visuals explain the product model.
 
 ## Visual rules
 
 - Use a flat 2D treatment with orthographic geometry, clear labels, and no 3D metaphors.
 - Preserve the existing accents: cyan for roadmap, orange for planning/action, violet for agent/session, and green for verification/evidence.
 - Give every node a noun and a verb-sized caption. Avoid icons that require guessing.
-- Keep Mermaid or text equivalents next to every artwork. Never make color the only encoding.
+- Keep literal labels and text alt descriptions next to every artwork. Never make color the only encoding.
 - Use the same labels in the README, website, and architecture docs so a reader can move between levels without translating vocabulary.
 - Mark experimental surfaces with a small “experimental” label rather than giving them equal visual weight with the supported terminal path.
 - Keep motion optional and honor the existing reduced-motion behavior on the website.
 
 ## Closure status
 
-The local implementation order is complete: tracked assets, canonical copy, policy pages, installation boundaries, Mermaid/flat 2D diagrams, website assertions, CI/package checks, and the anonymous URL probe are all in source. The only remaining release gate is external endpoint availability; the maintainer or hosting operator must make the repository, releases, issues, and magistr.dev reachable and rerun `PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh`.
+The local implementation order is complete: tracked assets, canonical copy, policy pages, installation boundaries, Blender-only flat 2D diagrams, website assertions, CI/package checks, and the anonymous URL probe are all in source. The only remaining release gate is external endpoint availability; the maintainer or hosting operator must make the repository, releases, issues, and magistr.dev reachable and rerun `PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh`.
 
 ## Definition of “ready to announce”
 
