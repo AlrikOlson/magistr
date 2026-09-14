@@ -2,7 +2,7 @@
 
 **Roadmap and workflow management for coding agents.**
 
-Magistr helps you turn a project's ideas into an ordered roadmap, give an agent one clear next task, and keep the plan, work, and checks together as the project changes.
+Magistr helps you turn a project's ideas into an ordered roadmap by talking with your agent about what should change, then keeps the resulting plan, work, and checks together as the project changes.
 
 > **Early development release · v0.1.0**
 >
@@ -10,62 +10,29 @@ Magistr helps you turn a project's ideas into an ordered roadmap, give an agent 
 
 ## The loop
 
-You decide what matters. Magistr keeps the roadmap visible, the agent works one planned item at a time, and the result comes back with checks you can inspect. The next decision is ready when you are.
-
-```mermaid
-flowchart LR
-    accTitle: Magistr decision loop
-    accDescr: A project moves from a roadmap goal through one planned task, agent work, verification, and the next decision.
-    Y[You and your project] -->|choose a goal| R[Roadmap]
-    R -->|plan one ready item| W[Workflow]
-    W -->|work with project context| A[Your agent]
-    A -->|changes and checks| P[Project record]
-    P -->|next decision| R
-```
+You decide what matters by talking to your agent. In that conversation, the agent can draft a new ordering, sharpen acceptance criteria, or capture follow-up work. You direct and review what gets applied; Magistr keeps the resulting roadmap visible and brings the work back with checks you can inspect.
 
 ![A Blender-rendered 2D illustration of Magistr's roadmap and workflow loop](docs/assets/magistr-roadmap-workflow.png)
 
-*Roadmap → plan → work → verify → choose the next item.*
+*Talk through the direction; the agent drafts the roadmap change, you review it, and one ready item moves through work and verification.*
 
 ## How the pieces fit
 
-The roadmap is the shared source of truth. Magistr keeps the boundary between your checkout, the agent runtime, and its own recorded workflow explicit.
+The roadmap is the shared source of truth. You steer it inside the project workflow by talking through intent with your agent; the agent drafts a proposal, you decide what to apply, and Magistr keeps the updated priorities, dependencies, acceptance, and evidence connected. A suggested reorder stays a proposal until you direct the change, so the plan never moves on its own.
 
-```mermaid
-flowchart TB
-    accTitle: Magistr ownership boundary
-    accDescr: Magistr coordinates a local project workflow between a person's checkout, an agent runtime, the Magistr MCP services, and the native workflow store.
-    C[Your checkout] -->|project context| A[Agent runtime]
-    A -->|MCP calls| M[Magistr MCP]
-    M -->|roadmap + tasks| S[Native workflow store]
-    S -->|next ready item| M
-    M -->|changes + checks| C
-```
+![Flat 2D diagram showing the ownership boundary between your project, agent runtime, Magistr workflow, and recorded evidence](docs/assets/magistr-system-map.png)
 
-![Flat 2D diagram showing the ownership boundary between your checkout, agent runtime, Magistr MCP, and native workflow store](docs/assets/magistr-system-map.png)
+The evidence chain makes a conversational roadmap change reviewable from its reason to its result:
 
-The evidence chain makes a change reviewable from its reason to its result:
+![Flat 2D diagram showing the evidence chain from roadmap conversation through agent draft, human review, ready task, checks, and recorded reason](docs/assets/magistr-evidence-chain.png)
 
-```mermaid
-flowchart LR
-    accTitle: Magistr evidence chain
-    accDescr: A roadmap decision becomes a planned task, an implementation, recorded checks, and a reviewable project record.
-    R[Roadmap decision] --> P[Plan]
-    P --> W[Work]
-    W --> V[Checks]
-    V --> E[Evidence]
-    E --> R
-```
-
-![Flat 2D diagram showing the evidence chain from roadmap decision through plan, work, checks, and evidence](docs/assets/magistr-evidence-chain.png)
-
-Mermaid source stays beside each visual so the model remains readable in a terminal, diff, or screen reader.
+Each visual is rendered from the repository's Blender scene and uses literal labels so the model stays understandable in a terminal, diff, or screen reader.
 
 ## Why people use it
 
 ### <img src="docs/assets/roadmap.png" alt="" width="52" height="52"> A roadmap an agent can follow
 
-Keep goals, priorities, dependencies, and acceptance criteria in one project roadmap. Magistr can research and reshape the roadmap, then select a ready item that has enough context to implement. You can see what is ready, what is blocked, and why.
+Keep goals, priorities, dependencies, and acceptance criteria in one project roadmap. Tell your agent what direction to explore or change; Magistr records the draft proposal, your decision, and the updated plan before selecting a ready item with enough context to implement. You can see what is ready, what is blocked, and why.
 
 ### <img src="docs/assets/workflow.png" alt="" width="52" height="52"> A workflow you can resume
 
@@ -116,24 +83,29 @@ The generated instructions teach the agent how to use the project roadmap and wo
 
 ### 3. Make a first roadmap decision
 
-Ask the agent to create or review a small roadmap for the project, with ordered items and clear acceptance criteria. Then choose a ready item:
+Ask the agent to create or review a small roadmap for the project, then
+ask it to propose a change when priorities shift. You review the proposal before
+choosing a ready item:
 
 ```text
-Create a small roadmap for this project. Keep the first three items concrete,
-ordered, and independently verifiable. Then show me which item is ready first.
+I want to prioritize onboarding over performance for the next month.
+Update the roadmap direction: explain the reorder, sharpen acceptance criteria,
+and add any follow-up work needed. Show me the draft and wait for my direction
+before applying it.
 ```
 
-When an item is ready, use:
+Keep the roadmap conversation going with the skills:
 
-- `$next` to implement one item with a plan and recorded verification.
+- `$roadmap-refresh` to research a direction and update the roadmap without implementing it (`/roadmap-refresh` in Claude Code).
+- `$next` to implement one accepted ready item with a plan and recorded verification (`/next` in Claude Code).
 - `$next-loop` to work through a bounded number of ready items.
 - `$validate` to run the project's configured checks without starting new work.
 
-Claude Code uses the same skills with a `/` prefix, such as `/next`.
+Codex uses the `$` form; Claude Code uses the `/` form.
 
 ## What Magistr provides
 
-- **Roadmap management:** capture goals, research decisions, priorities, dependencies, and ready work in the project's native roadmap.
+- **Roadmap management:** tell your agent what direction to pursue, then review its proposed ordering, acceptance criteria, and follow-up work in the project's native roadmap before you apply the change.
 - **Workflow management:** plan, execute, verify, and close one focused item while preserving the surrounding roadmap.
 - **Project-aware tools:** search, map, read, edit, move, undo, and run declared project commands through the agent's MCP connection.
 - **A terminal cockpit:** watch phases, task progress, output, and session controls while work is running.
