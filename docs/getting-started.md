@@ -44,9 +44,10 @@ Magistr's [Codex session provider](architecture/sessions.md#codex) is a separate
 
 ## Work on a project
 
-Use `$next` in Codex to implement one ready roadmap item, or `$next-loop` to work
-through several items with an iteration limit. Use `$validate` to run the
-project's checks. Claude Code uses the same skill names with a `/` prefix.
+Use `$next` in Codex to implement one ready roadmap item. Use `$next-loop` for
+a bounded fresh-session handoff: finish one chunk, then start the next session
+before continuing. Use `$validate` to run the project's checks. Claude Code
+uses the same skill names with a `/` prefix.
 
 The skills read existing work, record an execution plan, and save check results
 in Magistr. The MCP tools `roadmap_status` and `ship_status` report progress.

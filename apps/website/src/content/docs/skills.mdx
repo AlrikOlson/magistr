@@ -19,7 +19,7 @@ with the `$` form, such as `$next` and `$roadmap-refresh`. Claude Code uses
 | `craft` | Loads project conventions and the runtime contract |
 | `init` | Interviews and configures a project |
 | `next` | Completes one ready roadmap chunk |
-| `next-loop` | Repeats complete iterations within the requested limit |
+| `next-loop` | Carries a bounded continuation across fresh sessions, one chunk per session |
 | `roadmap` | Advances one chunk through the next workflow |
 | `roadmap-refresh` | Researches and updates the roadmap without implementation |
 | `signals` | Researches stakeholder feedback and records its disposition |
@@ -33,9 +33,12 @@ reads the code, records a native execution plan, implements the change, verifies
 acceptance and required gates, and commits the scoped result. It stops after
 that chunk and preserves unrelated active objectives.
 
-The next-loop skill repeats those complete iterations within the user's bound;
-without an explicit iteration count its default maximum is ten. It runs in the
-current agent session.
+The next-loop skill uses the user's bound across fresh agent sessions; without
+an explicit iteration count its default maximum is ten. Each session completes
+one chunk, writes a handoff, and stops. Continue in a new Codex or Claude
+session so context does not accumulate. The native `magistr next-loop` command
+is the automatic host-owned loop and starts a fresh provider session per
+iteration.
 
 Validation uses `.magistr/project.json`, including required custom gates, and
 records each result on the verification task.

@@ -80,12 +80,15 @@ its `PreToolUse`/`Stop` guard hooks; inspect their result, but execute and verif
 the explicit shared lifecycle and recorded gates yourself. Hooks do not turn
 a green unrecorded result into proof of ship.
 
-For `/next-loop`, default to the shared bounded loop in this session. If the
-user explicitly chooses the existing Claude stop-hook runner, use its
-documented `state_prefix` markers and iteration limit and let that runner own
-chaining. Never run a second simultaneous chaining loop. Existing autonomous
-runner commands are separate user-selected execution modes; they are not
-needed to perform a skill. Preserve unrelated state in every mode.
+For `/next-loop`, use the shared fresh-session handoff contract. This session
+may complete one `/next` iteration; then write the handoff and stop. Start the
+next iteration only after opening a fresh Claude session, or use `/clear` as
+the host's explicit new-session command before continuing. Do not invoke
+`/next` or `/next-loop` again in the same context, and do not use compaction
+as a substitute. If the user explicitly chooses the existing Claude stop-hook
+runner, use its documented `state_prefix` markers and iteration limit and let
+that runner own fresh-session chaining. Never run a second simultaneous chaining
+loop. Preserve unrelated state in every mode.
 
 During init, preserve Codex project configuration and skills. Verify changed
 configuration syntax, Claude skill discovery, and read-only MCP connectivity;
