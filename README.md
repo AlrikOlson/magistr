@@ -1,32 +1,49 @@
 # Magistr
 
-Magistr gives a coding agent a durable way to work in a real project. It detects
-the project stack, creates the agent setup, serves native workspace and workflow
-tools, and records plans, actions, and quality checks so a session can be
-reviewed instead of disappearing into chat history.
+**Roadmap and workflow management for coding agents.**
 
-## How it fits together
+Magistr helps you turn a project's ideas into an ordered roadmap, give an agent one clear next task, and keep the plan, work, and checks together as the project changes.
+
+> **Early development release · v0.1.0**
+>
+> Magistr is useful today, but it is still being built in public. Expect changing commands and configuration, and use it on projects where you can review the agent's work.
+
+## The loop
+
+You decide what matters. Magistr keeps the roadmap visible, the agent works one planned item at a time, and the result comes back with checks you can inspect. The next decision is ready when you are.
 
 ```mermaid
 flowchart LR
-    P[Your project] -->|magistr init| M[Magistr]
-    A[Codex, Claude Code, or Copilot] -->|MCP or managed launcher| M
-    M -->|plans, actions, checks| S[(Local workflow state)]
-    M -->|workspace tools and terminal cockpit| A
-    M -->|quality gates| P
+    Y[You and your project] -->|choose a goal| R[Roadmap]
+    R -->|plan one ready item| W[Workflow]
+    W -->|work with project context| A[Your agent]
+    A -->|changes and checks| P[Project record]
+    P -->|next decision| R
 ```
 
-You point Magistr at a project, choose an agent integration, and let the agent
-use the admitted tools. Magistr keeps workflow state in the project so you can
-inspect the roadmap, execution plan, recorded evidence, and gate results.
+![A Blender-rendered 2D illustration of Magistr's roadmap and workflow loop](docs/assets/magistr-roadmap-workflow.png)
 
-## Quickstart
+*Roadmap → plan → work → verify → choose the next item.*
 
-You need Git, Rust 1.95 or later, and a supported coding-agent runtime installed
-and authenticated separately. API providers and local services are also your
-responsibility; see [provider prerequisites](docs/getting-started.md#configure-a-project).
+## Why people use it
 
-Install the CLI from source:
+### <img src="docs/assets/roadmap.png" alt="" width="52" height="52"> A roadmap an agent can follow
+
+Keep goals, priorities, dependencies, and acceptance criteria in one project roadmap. Magistr can research and reshape the roadmap, then select a ready item that has enough context to implement. You can see what is ready, what is blocked, and why.
+
+### <img src="docs/assets/workflow.png" alt="" width="52" height="52"> A workflow you can resume
+
+Each iteration has a small plan, a focused task, and recorded checks. The state stays with the project, so a new session can continue from the roadmap instead of reconstructing decisions from chat history.
+
+### <img src="docs/assets/verification.png" alt="" width="52" height="52"> Proof attached to the work
+
+The agent runs the project's configured formatter, tests, linter, and custom checks. Magistr records the result against the task, giving you a reviewable trail from roadmap item to change to verification.
+
+## Try it
+
+### 1. Install Magistr
+
+You need Git, Rust 1.95 or later, and a supported coding-agent CLI installed and authenticated separately.
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -35,108 +52,74 @@ cargo install --locked --path crates/magistr-cli
 magistr --version
 ```
 
-Initialize a disposable project for Codex:
+Cargo installs the binary in its usual directory, commonly `~/.cargo/bin`. Add that directory to `PATH` if your shell does not find `magistr`.
+
+### 2. Set up a project
+
+Run this from the project you want an agent to work on:
 
 ```sh
-mkdir -p "$HOME/src/magistr-demo"
-cd "$HOME/src/magistr-demo"
+cd ~/src/my-project
 magistr init . --agent codex --yes
 ./.codex/run
 ```
 
-The launcher starts the installed Codex CLI. For the default Claude setup, run
-`magistr init . --yes` and open the project with Claude Code. Cursor and Copilot
-scaffold targets can be selected with `--agent` when they are installed.
+This creates project instructions, a local workflow configuration, and the MCP connection that lets Codex use Magistr's roadmap and workspace tools. Start a new Codex session after setup.
 
-From the agent session:
+For Claude Code, use the same project setup without the Codex launcher:
 
-- Use `$next` to implement one ready roadmap item with a recorded plan and
-  verification.
-- Use `$next-loop` only when you want several bounded iterations.
-- Use `$validate` to run the project's standard and required custom gates.
+```sh
+cd ~/src/my-project
+magistr init . --yes
+claude
+```
 
-The [getting started guide](docs/getting-started.md) explains refresh, removal,
-configuration precedence, and provider-specific setup.
+The generated instructions teach the agent how to use the project roadmap and workflow. See the [Codex integration guide](docs/reference/codex.md) for launcher details. Cursor and Copilot scaffolds can be selected with `--agent` when those tools are installed.
 
-## Supported surfaces
+### 3. Make a first roadmap decision
 
-The v0.1.0 CLI provides project setup and detection (`init`, `detect`), workflow
-commands (`validate`, `run`, `next`, and `next-loop`), configuration and
-diagnostics, plugin and preset management, shell completions, and man-page
-generation. It also launches:
+Ask the agent to create or review a small roadmap for the project, with ordered items and clear acceptance criteria. Then choose a ready item:
 
-- **MCP** with `magistr mcp-launch`, including the native workflow and workspace
-  tool families.
-- **Terminal cockpit** for live phases, task progress, output, and session
-  controls.
-- **Workspace tools** for bounded `search`, `map`, `read`, `edit`, `files`,
-  `undo`, `script`, and admitted-command `run` operations.
+```text
+Create a small roadmap for this project. Keep the first three items concrete,
+ordered, and independently verifiable. Then show me which item is ready first.
+```
 
-Agent setup targets include Claude Code, Codex, and Copilot. Codex uses the
-managed `.codex/run` launcher. Provider adapters cover OpenAI, Gemini, and
-Ollama; authentication and credentials remain with the caller.
+When an item is ready, use:
 
-## Current status and boundaries
+- `$next` to implement one item with a plan and recorded verification.
+- `$next-loop` to work through a bounded number of ready items.
+- `$validate` to run the project's configured checks without starting new work.
 
-Magistr v0.1.0 is a **development preview**. It is useful for an informed
-developer who can run Rust tooling and an agent CLI; it is not a hosted service
-or a supported beta release.
+Claude Code uses the same skills with a `/` prefix, such as `/next`.
 
-- The desktop interface is experimental and maintained on the
-  [`gui2` branch](https://github.com/AlrikOlson/magistr/tree/gui2). No desktop
-  binary ships from `main`.
-- The peer protocol is compatibility-only. Runtime authentication, transport,
-  metering, persistence, and dispatch are not wired into the CLI or interfaces.
-- Live provider sessions require the selected runtime or API credentials. Tests
-  and adapters do not imply a hosted provider or a live service.
-- Permission prompts are workflow controls, not an operating-system sandbox.
-  Agent processes retain their normal file, process, and network permissions.
-- Roadmap export is disabled by policy (`roadmap_exports = false`). Native
-  roadmap state is authoritative; Magistr does not generate `ROADMAP.md` or
-  `ROADMAP.json`.
+## What Magistr provides
 
-Release archives are host-specific. The package script builds the current host
-target and emits a `magistr-<version>-<target>.tar.gz` archive with bash, zsh,
-and fish completions, generated man pages, the MIT license, bundled font notices,
-and a matching SHA-256 file. Do not use an archive built for a different host.
+- **Roadmap management:** capture goals, research decisions, priorities, dependencies, and ready work in the project's native roadmap.
+- **Workflow management:** plan, execute, verify, and close one focused item while preserving the surrounding roadmap.
+- **Project-aware tools:** search, map, read, edit, move, undo, and run declared project commands through the agent's MCP connection.
+- **A terminal cockpit:** watch phases, task progress, output, and session controls while work is running.
+- **Provider connections:** use Codex, Claude Code, or Copilot as the agent runtime. OpenAI and Gemini API adapters, plus Ollama for local models, are available where configured.
 
-## Release readiness
+Magistr is a local tool. Your agent runtime and provider credentials remain yours; Magistr does not host a model or provide a hosted project service.
 
-Before announcing a public release, follow the [release inventory and checklist](docs/release-inventory.md):
+## Current boundaries
 
-- [ ] Install from a clean checkout with `cargo install --locked --path crates/magistr-cli`;
-  verify `magistr --version` and `magistr --help`.
-- [ ] Build `./scripts/package-release.sh` on each target platform and inspect the
-  binary, completions, man pages, `LICENSE`, and both font notices.
-- [ ] Verify the archive with `sha256sum -c <archive>.sha256` or
-  `shasum -a 256 -c <archive>.sha256`.
-- [ ] Walk through `magistr init . --agent codex --yes`, `./.codex/run`, and one
-  recorded `magistr validate` or `magistr next` cycle in a disposable project.
-- [ ] Confirm the [repository](https://github.com/AlrikOlson/magistr), [releases](https://github.com/AlrikOlson/magistr/releases),
-  and [issues](https://github.com/AlrikOlson/magistr/issues) links are publicly
-  reachable without authentication before publication. The configured links
-  currently return 404 to anonymous fetches, so the preview remains unpublished.
-- [ ] Publish release notes and website changelog with the same SemVer tag as the
-  CLI, carrying unreleased work into the next version.
+This release is deliberately honest about its edges:
 
-## Contributing and deeper docs
+- The terminal workflow is the primary experience. The desktop interface is experimental and is not shipped as the main binary.
+- Provider credentials and local services are prerequisites for live sessions. Ollama must already be running when you choose it.
+- Permission prompts guide the workflow; they do not sandbox the agent's normal operating-system access.
+- Roadmap state stays in the project workflow store. With the default policy, Magistr does not export `ROADMAP.md` or `ROADMAP.json`.
+- Commands, provider adapters, and generated project files may change during the v0.1 development cycle.
 
-- [Getting started](docs/getting-started.md): build, configure, and run an agent.
-- [Development guide](docs/development.md): checks, tests, agent safety, and release
-  packaging.
-- [Architecture overview](docs/architecture/overview.md): crate boundaries and
-  system contracts.
-- [Documentation index](docs/index.md): terminal, desktop, sessions, authority,
-  peers, and reference guides.
-- [Canonical release inventory](docs/release-inventory.md): shipped surfaces,
-  prerequisites, package contents, notices, and publication checks.
+For the detailed surface inventory and package notes, see the [release inventory](docs/release-inventory.md). For architecture and contributor setup, see the [documentation index](docs/index.md), [development guide](docs/development.md), and [architecture overview](docs/architecture/overview.md).
 
-Please open a focused issue for bugs or support questions once the repository's
-issue tracker is public. Until then, the repository's configured
-[issues URL](https://github.com/AlrikOlson/magistr/issues) is the intended support
-path.
+## Feedback and contributing
+
+Try Magistr on a disposable or well-reviewed project and open a focused [issue](https://github.com/AlrikOlson/magistr/issues) with the command, provider, and project shape involved. The [development guide](docs/development.md) explains the checks used before changes land.
 
 ## License
 
-Magistr is available under the [MIT license](LICENSE). Bundled fonts retain their
-[own notices](crates/magistr-cockpit/fonts).
+Magistr is available under the [MIT license](LICENSE). Bundled fonts retain their [own notices](crates/magistr-cockpit/fonts).
+
