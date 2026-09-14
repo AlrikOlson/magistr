@@ -127,6 +127,72 @@ async fn release_kills_and_forbids_a_later_kill() {
 }
 
 #[tokio::test]
+async fn output_limit_keeps_newest_utf8_suffix_including_zero() {
+    let mgr = new_terminal_manager();
+    let (tx, _rx) = events();
+    let req = CreateTerminalRequest::new("sess", "sh")
+        .args(vec!["-c".into(), "printf 'alphaβgamma'".into()])
+        .output_byte_limit(5);
+    let tid = create_terminal(req, &mgr, &tx)
+        .expect("spawn")
+        .terminal_id
+        .0
+        .to_string();
+    wait_for_terminal_exit(&WaitForTerminalExitRequest::new("sess", tid.clone()), &mgr)
+        .await
+        .expect("wait");
+    let out = terminal_output(&TerminalOutputRequest::new("sess", tid), &mgr).expect("output");
+    assert_eq!(out.output, "gamma");
+    assert!(out.truncated);
+
+    let req = CreateTerminalRequest::new("sess", "sh")
+        .args(vec!["-c".into(), "printf 'nonempty'".into()])
+        .output_byte_limit(0);
+    let tid = create_terminal(req, &mgr, &tx)
+        .expect("spawn")
+        .terminal_id
+        .0
+        .to_string();
+    wait_for_terminal_exit(&WaitForTerminalExitRequest::new("sess", tid.clone()), &mgr)
+        .await
+        .expect("wait");
+    let out = terminal_output(&TerminalOutputRequest::new("sess", tid), &mgr).expect("output");
+    assert_eq!(out.output, "");
+    assert!(out.truncated);
+}
+
+#[tokio::test]
+async fn release_is_idempotent_and_kill_after_release_is_refused() {
+    let mgr = new_terminal_manager();
+    let (tx, mut rx) = events();
+    let tid = create(&mgr, &tx, "sleep", &["30"]);
+    release_terminal(&ReleaseTerminalRequest::new("sess", tid.clone()), &mgr, &tx)
+        .expect("release");
+    release_terminal(&ReleaseTerminalRequest::new("sess", tid.clone()), &mgr, &tx)
+        .expect("second release");
+    let err = kill_terminal(&KillTerminalRequest::new("sess", tid), &mgr).expect_err("released");
+    assert_eq!(i32::from(err.code), INVALID_PARAMS);
+    let releases = std::iter::from_fn(|| rx.try_recv().ok()).filter(|event| matches!(event, Ok(AcpEvent::System { subtype, .. }) if subtype == "terminal_release")).count();
+    assert_eq!(releases, 1);
+}
+
+#[tokio::test]
+async fn close_cancels_running_terminal_and_wait_settles() {
+    let mgr = new_terminal_manager();
+    let (tx, _rx) = events();
+    let tid = create(&mgr, &tx, "sleep", &["30"]);
+    close(&mgr);
+    let exit = tokio::time::timeout(
+        Duration::from_secs(5),
+        wait_for_terminal_exit(&WaitForTerminalExitRequest::new("sess", tid), &mgr),
+    )
+    .await
+    .expect("settles promptly")
+    .expect("wait");
+    assert_eq!(exit.exit_status.exit_code, None);
+}
+
+#[tokio::test]
 async fn unknown_terminal_ids_are_invalid_params() {
     let mgr = new_terminal_manager();
     let err =

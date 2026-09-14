@@ -60,6 +60,9 @@ impl OwnedProcess {
         if let Some(cwd) = &spec.cwd {
             command.current_dir(cwd);
         }
+        for (name, value) in &spec.env {
+            command.env(name, value);
+        }
         command.stdin(Stdio::null()).kill_on_drop(true);
         #[cfg(unix)]
         let pty = match spec.output {

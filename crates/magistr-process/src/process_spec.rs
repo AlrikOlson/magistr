@@ -10,6 +10,8 @@ pub struct ProcessSpec {
     pub launch: Launch,
     /// The working directory; `None` inherits this process's.
     pub cwd: Option<PathBuf>,
+    /// Environment entries applied to the child in order.
+    pub env: Vec<(String, String)>,
     /// The wall-clock cap; when it elapses the group is ended.
     pub timeout: Duration,
     /// Pipes or a pty.
@@ -33,6 +35,7 @@ impl ProcessSpec {
         Self {
             launch,
             cwd: None,
+            env: Vec::new(),
             timeout,
             output: OutputMode::Pipes,
             capture_bytes: Self::CAPTURE_DEFAULT_BYTES,
@@ -46,6 +49,13 @@ impl ProcessSpec {
     #[must_use]
     pub fn in_dir(mut self, cwd: impl Into<PathBuf>) -> Self {
         self.cwd = Some(cwd.into());
+        self
+    }
+
+    /// Set environment entries for the child.
+    #[must_use]
+    pub fn with_env(mut self, env: impl IntoIterator<Item = (String, String)>) -> Self {
+        self.env = env.into_iter().collect();
         self
     }
 
