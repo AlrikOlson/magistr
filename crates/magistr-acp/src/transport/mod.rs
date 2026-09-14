@@ -185,6 +185,13 @@ impl AcpTransport {
         self
     }
 
+    /// Supply provider-specific system instructions for this session.
+    #[must_use]
+    pub fn session_system_prompt(mut self, prompt: Option<String>) -> Self {
+        self.set_session_choice("system_prompt", prompt);
+        self
+    }
+
     fn set_session_choice(&mut self, key: &str, value: Option<String>) {
         let meta = self.session_meta.get_or_insert_with(Meta::new);
         let magistr = meta

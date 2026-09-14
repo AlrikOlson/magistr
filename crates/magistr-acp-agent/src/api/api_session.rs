@@ -7,6 +7,8 @@ use crate::{ChatMessage, Role};
 /// APIs holds a session, so `session/load` starts from nothing.
 #[derive(Debug, Default)]
 pub(crate) struct ApiSession {
+    /// Provider-specific system instructions fixed at session start.
+    pub(crate) system_prompt: Option<String>,
     /// The conversation so far, user and assistant alternating.
     pub(crate) history: Vec<ChatMessage>,
     /// Prompt tokens across every turn.
@@ -18,6 +20,19 @@ pub(crate) struct ApiSession {
 }
 
 impl ApiSession {
+    /// Open a session with provider-specific system instructions.
+    pub(crate) fn new(system_prompt: Option<String>) -> Self {
+        Self {
+            system_prompt,
+            ..Self::default()
+        }
+    }
+
+    /// The fixed system instructions for this session, if any.
+    pub(crate) fn system_prompt(&self) -> Option<&str> {
+        self.system_prompt.as_deref()
+    }
+
     /// Open a turn: the prompt joins the history, and the whole history is
     /// what the request carries.
     pub(crate) fn begin_turn(&mut self, prompt: impl Into<String>) -> Vec<ChatMessage> {

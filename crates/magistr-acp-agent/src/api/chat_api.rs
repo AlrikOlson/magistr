@@ -22,6 +22,7 @@ pub trait ChatApi: Send + Sync + 'static {
         http: &reqwest::Client,
         model: &str,
         history: &[ChatMessage],
+        system_prompt: Option<&str>,
     ) -> reqwest::RequestBuilder;
 
     /// Whether a separate end sentinel must follow the generation finish.

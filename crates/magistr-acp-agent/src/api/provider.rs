@@ -69,8 +69,15 @@ impl<A: ChatApi> ApiProvider<A> {
             .model()
             .ok_or_else(|| AgentError::provider(format!("{name}: no model selected")))?;
         let spec = self.spec(model)?;
-        let history = lock(&session).begin_turn(turn.text());
-        let request = self.api.request(&self.http, model, &history);
+        let (history, system_prompt) = {
+            let mut session = lock(&session);
+            let history = session.begin_turn(turn.text());
+            let system_prompt = session.system_prompt().map(str::to_owned);
+            (history, system_prompt)
+        };
+        let request = self
+            .api
+            .request(&self.http, model, &history, system_prompt.as_deref());
         let mut state = ReplyState::default();
         let result = tokio::select! {
             biased;
@@ -231,7 +238,10 @@ impl<A: ChatApi> Provider for ApiProvider<A> {
             self.sessions
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
-                .insert(session.session_id.clone(), Arc::default());
+                .insert(
+                    session.session_id.clone(),
+                    Arc::new(Mutex::new(ApiSession::new(session.system_prompt))),
+                );
             let mut opened = SessionOpened::new(session.session_id);
             opened.model = session.model;
             Ok(opened)

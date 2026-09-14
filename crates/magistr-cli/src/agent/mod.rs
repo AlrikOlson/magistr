@@ -124,8 +124,9 @@ pub struct AgentConfig {
     pub system_prompt: Option<String>,
     /// Maximum turns before stopping
     pub max_turns: Option<u32>,
-    /// Permission mode
-    pub permission_mode: PermissionMode,
+    /// Legacy provider permission mode. Explicit use is refused; shared
+    /// permission profiles remain the common authority.
+    pub permission_mode: Option<PermissionMode>,
     /// Project permission profile override, normally selected by `--trust`.
     pub permission_profile: Option<crate::permissions::PermissionProfile>,
     /// Whether the shared policy should admit normal workflow operations.
@@ -154,17 +155,16 @@ pub struct AgentConfig {
 impl AgentConfig {
     /// Create a new `AgentConfig` for a prompt in the given project directory.
     ///
-    /// Defaults to `AcceptEdits` permission mode so that Claude CLI's hook
-    /// system (quality gate enforcement, stop hooks, plan enforcement) fires
-    /// correctly. `BypassPermissions` / `--dangerously-skip-permissions`
-    /// skips the entire hook pipeline, breaking workflow enforcement.
+    /// Permission profiles and the host policy are the only enforced authority.
+    /// The legacy provider mode remains unset unless a caller explicitly asks
+    /// for it, in which case resolution refuses before provider startup.
     pub fn new(prompt: impl Into<String>, cwd: impl AsRef<Path>) -> Self {
         Self {
             prompt: prompt.into(),
             cwd: cwd.as_ref().to_path_buf(),
             system_prompt: None,
             max_turns: None,
-            permission_mode: PermissionMode::AcceptEdits,
+            permission_mode: None,
             permission_profile: None,
             workflow_permissions: false,
             continue_conversation: false,
@@ -203,9 +203,12 @@ impl AgentConfig {
         self
     }
 
-    /// Set the permission mode.
+    /// Request the legacy provider permission mode.
+    ///
+    /// Resolution rejects this request before provider startup because common
+    /// host permission policy remains authoritative.
     pub fn permission_mode(mut self, mode: PermissionMode) -> Self {
-        self.permission_mode = mode;
+        self.permission_mode = Some(mode);
         self
     }
 

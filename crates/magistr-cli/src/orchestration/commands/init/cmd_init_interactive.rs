@@ -41,8 +41,7 @@ pub async fn cmd_init_interactive(dir: &std::path::Path, force: bool) -> eyre::R
 
     let config =
         agent::AgentConfig::new("Set up this project with AI-assisted configuration.", &dir)
-            .system_prompt(init_prompt)
-            .permission_mode(crate::agent::PermissionMode::AcceptEdits);
+            .system_prompt(init_prompt);
 
     // The interview's session writes source the way every host's does:
     // through the admitted workspace, or not at all.

@@ -62,7 +62,7 @@ pub async fn serve(
             {
                 let (provider, registry) = (Arc::clone(&provider), registry.clone());
                 async move |req: NewSessionRequest, responder, cx| {
-                    let (model, effort) = match session_options(req.meta.as_ref()) {
+                    let (model, effort, system_prompt) = match session_options(req.meta.as_ref()) {
                         Ok(options) => options,
                         Err(error) => return responder.respond_with_result(Err(error.into())),
                     };
@@ -74,6 +74,7 @@ pub async fn serve(
                         resume: false,
                         model,
                         effort,
+                        system_prompt,
                     };
                     let cx2 = cx.clone();
                     cx.spawn(async move {
@@ -95,7 +96,7 @@ pub async fn serve(
             {
                 let (provider, registry) = (Arc::clone(&provider), registry.clone());
                 async move |req: LoadSessionRequest, responder, cx| {
-                    let (model, effort) = match session_options(req.meta.as_ref()) {
+                    let (model, effort, system_prompt) = match session_options(req.meta.as_ref()) {
                         Ok(options) => options,
                         Err(error) => return responder.respond_with_result(Err(error.into())),
                     };
@@ -107,6 +108,7 @@ pub async fn serve(
                         resume: true,
                         model,
                         effort,
+                        system_prompt,
                     };
                     let cx2 = cx.clone();
                     cx.spawn(async move {
@@ -197,7 +199,7 @@ fn initialize_response(provider: &dyn Provider) -> InitializeResponse {
         "magistr".to_owned(),
         serde_json::json!({"provider": provider.name(), "models": models,
             "capabilities": capabilities,
-            "session_options": {"model": true, "effort": capabilities.effort_selection}}),
+            "session_options": {"model": true, "effort": capabilities.effort_selection, "system_prompt": true}}),
     );
     InitializeResponse::new(ProtocolVersion::V1)
         .agent_capabilities(
@@ -318,12 +320,14 @@ fn set_config_option(
     ))
 }
 
-fn session_options(meta: Option<&Meta>) -> Result<(Option<String>, Option<String>), AgentError> {
+type SessionOptions = (Option<String>, Option<String>, Option<String>);
+
+fn session_options(meta: Option<&Meta>) -> Result<SessionOptions, AgentError> {
     let Some(options) = meta
         .and_then(|meta| meta.get("magistr"))
         .and_then(|value| value.get("session"))
     else {
-        return Ok((None, None));
+        return Ok((None, None, None));
     };
     if !options.is_object() {
         return Err(AgentError::provider(
@@ -342,7 +346,11 @@ fn session_options(meta: Option<&Meta>) -> Result<(Option<String>, Option<String
                 }),
         }
     };
-    Ok((option("model")?, option("effort")?))
+    Ok((
+        option("model")?,
+        option("effort")?,
+        option("system_prompt")?,
+    ))
 }
 
 fn validate_prompt(provider: &dyn Provider, prompt: &[ContentBlock]) -> Result<(), AgentError> {

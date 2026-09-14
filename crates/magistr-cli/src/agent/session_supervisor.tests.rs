@@ -127,6 +127,7 @@ impl Fixture {
         Self::start_bounded(
             prompt,
             crate::agent::observation::ObservationCapacity::DEFAULT,
+            None,
         )
         .await
     }
@@ -134,6 +135,7 @@ impl Fixture {
     async fn start_bounded(
         prompt: &str,
         capacity: crate::agent::observation::ObservationCapacity,
+        max_turns: Option<u32>,
     ) -> Self {
         let (client, agent) = agent_client_protocol::Channel::duplex();
         let (started, receiver) = mpsc::unbounded_channel();
@@ -158,10 +160,11 @@ impl Fixture {
         .expect("transport")
         .session_model(Some(ScriptedProvider::SLOW.into()));
         transport.connect_over(client).await.expect("ACP handshake");
-        let (supervisor, messages) =
-            SessionSupervisor::start_connected_bounded(prompt, transport, None, capacity)
-                .await
-                .expect("supervisor startup");
+        let (supervisor, messages) = SessionSupervisor::start_connected_bounded_with_limit(
+            prompt, transport, None, capacity, max_turns,
+        )
+        .await
+        .expect("supervisor startup");
         Self {
             supervisor,
             messages,
@@ -478,6 +481,38 @@ async fn an_error_terminal_discards_queued_input_and_retains_its_actual_stop_rea
             ..
         })
     ));
+    fixture.close().await;
+}
+
+#[tokio::test]
+async fn max_turns_refuses_followups_before_provider_inference() {
+    let mut fixture = Fixture::start_bounded(
+        "hold limited opening",
+        crate::agent::observation::ObservationCapacity::DEFAULT,
+        Some(1),
+    )
+    .await;
+    fixture.next_started().await;
+    assert!(
+        fixture
+            .supervisor
+            .send_followup("blocked while active")
+            .is_err()
+    );
+    fixture.observed.finish.add_permits(1);
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result {
+            is_error: false,
+            ..
+        })
+    ));
+    assert!(
+        fixture
+            .supervisor
+            .send_followup("blocked after completion")
+            .is_err()
+    );
     fixture.close().await;
 }
 
@@ -866,6 +901,7 @@ async fn a_lossless_backlog_past_its_bound_ends_observation_explicitly_and_keeps
             lossless_items: 8,
             text_bytes: 1024,
         },
+        None,
     )
     .await;
     fixture.next_started().await;

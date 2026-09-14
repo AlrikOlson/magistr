@@ -141,9 +141,7 @@ fn agent_config_defaults() {
     assert_eq!(config.cwd, PathBuf::from("/tmp/project"));
     assert!(config.system_prompt.is_none());
     assert!(config.max_turns.is_none());
-    // Default is AcceptEdits so CLI hooks (quality gates, stop hooks) fire correctly.
-    // BypassPermissions / --dangerously-skip-permissions skips the hook pipeline.
-    assert_eq!(config.permission_mode, PermissionMode::AcceptEdits);
+    assert!(config.permission_mode.is_none());
     assert!(!config.continue_conversation);
     assert!(config.resume.is_none());
 }
@@ -161,7 +159,7 @@ fn agent_config_builder() {
         Some("You are a coding assistant")
     );
     assert_eq!(config.max_turns, Some(10));
-    assert_eq!(config.permission_mode, PermissionMode::AcceptEdits);
+    assert_eq!(config.permission_mode, Some(PermissionMode::AcceptEdits));
 }
 
 #[test]
@@ -195,18 +193,19 @@ fn apply_defaults_is_idempotent() {
 }
 
 #[test]
-fn agent_config_default_enables_hooks() {
-    // AcceptEdits keeps the agent's hook pipeline running; BypassPermissions
-    // would skip it.
+fn agent_config_default_leaves_legacy_mode_unset() {
     let config = AgentConfig::new("test", "/tmp/project");
-    assert_eq!(config.permission_mode, PermissionMode::AcceptEdits);
+    assert!(config.permission_mode.is_none());
 }
 
 #[test]
 fn agent_config_permission_mode_override() {
     let config =
         AgentConfig::new("test", "/tmp/project").permission_mode(PermissionMode::BypassPermissions);
-    assert_eq!(config.permission_mode, PermissionMode::BypassPermissions);
+    assert_eq!(
+        config.permission_mode,
+        Some(PermissionMode::BypassPermissions)
+    );
 }
 
 #[test]

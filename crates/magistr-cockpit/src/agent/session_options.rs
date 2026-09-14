@@ -11,6 +11,8 @@ pub struct SessionOptions {
     /// The model to select through `session/set_config_option` before
     /// the opening prompt, when the agent advertises a model option.
     pub model: Option<String>,
+    /// Host-owned maximum number of admitted turns.
+    pub max_turns: Option<u32>,
 }
 
 impl SessionOptions {
@@ -31,6 +33,13 @@ impl SessionOptions {
     #[must_use]
     pub fn model(mut self, model: impl Into<String>) -> Self {
         self.model = Some(model.into());
+        self
+    }
+
+    /// Stop admitting turns after a fixed number have completed.
+    #[must_use]
+    pub fn max_turns(mut self, turns: u32) -> Self {
+        self.max_turns = Some(turns);
         self
     }
 }

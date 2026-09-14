@@ -48,6 +48,8 @@ struct Inner {
     queue: VecDeque<(u64, String)>,
     next_turn: u64,
     completed_turns: u32,
+    /// Host-owned turn budget; provider inference is never started past it.
+    max_turns: Option<u32>,
     closing: bool,
     /// An interrupt was observed: no turn is admitted, the active one was
     /// asked to stop, and the owner closes once it has ended.
@@ -129,6 +131,16 @@ impl Inner {
                 "Wait for the current cancellation response before submitting a new turn",
             ));
         }
+        if let Some(max_turns) = self.max_turns {
+            let scheduled = self.completed_turns
+                + u32::from(self.snapshot.active_turn.is_some())
+                + u32::try_from(self.queue.len()).unwrap_or(u32::MAX);
+            if scheduled >= max_turns {
+                return Err(acp_error(format!(
+                    "Session reached max_turns limit ({max_turns}); no provider inference was started",
+                )));
+            }
+        }
         Ok(())
     }
 }
@@ -154,10 +166,18 @@ impl SessionSupervisor {
 
     /// Connect the frozen runtime and transfer its policy to the sole session owner.
     pub async fn start(spec: ResolvedSessionSpec) -> Result<(Self, Messages)> {
+        let max_turns = spec.max_turns();
         let transport = spec.connect_transport().await?;
         let prompt = spec.prompt().to_owned();
         let (policy, handling) = spec.into_permission_policy();
-        Self::start_connected(&prompt, transport, Some((Box::new(policy), handling))).await
+        Self::start_connected_bounded_with_limit(
+            &prompt,
+            transport,
+            Some((Box::new(policy), handling)),
+            ObservationCapacity::DEFAULT,
+            max_turns,
+        )
+        .await
     }
 
     /// Adopt an already connected transport without resolving settings again.
@@ -173,9 +193,19 @@ impl SessionSupervisor {
     /// bound — the production default, or a fixture's.
     pub(crate) async fn start_connected_bounded(
         prompt: &str,
+        transport: AcpTransport,
+        policy: Option<Policy>,
+        capacity: ObservationCapacity,
+    ) -> Result<(Self, Messages)> {
+        Self::start_connected_bounded_with_limit(prompt, transport, policy, capacity, None).await
+    }
+
+    async fn start_connected_bounded_with_limit(
+        prompt: &str,
         mut transport: AcpTransport,
         policy: Option<Policy>,
         capacity: ObservationCapacity,
+        max_turns: Option<u32>,
     ) -> Result<(Self, Messages)> {
         let provider_pid = u32::try_from(transport.child_pgid())
             .ok()
@@ -204,6 +234,7 @@ impl SessionSupervisor {
             queue: VecDeque::new(),
             next_turn: if opening { 2 } else { 1 },
             completed_turns: 0,
+            max_turns,
             closing: false,
             draining: false,
             legacy_cancel: false,
@@ -283,6 +314,7 @@ impl SessionSupervisor {
                 .collect(),
             next_turn: if opening.is_some() { 2 } else { 1 },
             completed_turns: 0,
+            max_turns: options.max_turns,
             closing: false,
             draining: false,
             legacy_cancel: false,

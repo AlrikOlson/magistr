@@ -15,6 +15,7 @@ fn state() -> Mutex<Inner> {
         queue: Default::default(),
         next_turn: 2,
         completed_turns: 0,
+        max_turns: None,
         closing: false,
         draining: false,
         legacy_cancel: false,

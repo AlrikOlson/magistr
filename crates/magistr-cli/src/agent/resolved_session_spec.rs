@@ -186,6 +186,12 @@ impl ResolvedSessionSpec {
         self.config.effort.as_deref()
     }
 
+    /// Host-owned maximum number of turns, if configured.
+    #[must_use]
+    pub fn max_turns(&self) -> Option<u32> {
+        self.config.max_turns
+    }
+
     /// Runtime-owned resume selection.
     #[must_use]
     pub fn session_mode(&self) -> AcpSessionMode {
@@ -247,6 +253,7 @@ impl ResolvedSessionSpec {
         .session_model(self.session_model_choice(false))
         .session_model_preferred(self.session_model_choice(true))
         .session_effort(self.config.effort.clone())
+        .session_system_prompt(self.config.system_prompt.clone())
         .local_effects(self.source.clone());
         transport.connect().await.map_err(|error| {
             MagistrError::Acp(format!("Failed to connect ACP transport: {error}"))
@@ -275,6 +282,18 @@ impl ResolvedSessionSpec {
 fn validate_continuation(config: &AgentConfig) -> Result<()> {
     if config.continue_conversation && config.resume.is_none() {
         return Err(MagistrError::Acp("Continuing the last conversation is unsupported; supply an explicit --resume session ID".into()));
+    }
+    if config.max_turns == Some(0) {
+        return Err(MagistrError::Config(
+            "max_turns must be greater than zero; the host refuses a zero-turn session before provider startup"
+                .into(),
+        ));
+    }
+    if config.permission_mode.is_some() {
+        return Err(MagistrError::Config(
+            "permission_mode is unsupported; use the shared permission profile and host policy"
+                .into(),
+        ));
     }
     Ok(())
 }
