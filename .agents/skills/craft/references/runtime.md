@@ -40,9 +40,13 @@ remain the target; legacy search tool names describe a capability.
   step; total step count is not the next number. Use `think_step` to link a
   `ship_record` action to reasoning.
 - `magistr_gate(gate: "all")` includes standard gates and required custom
-  gates from `.magistr/project.json`. An active ship task supplies recording
-  context for real server-executed checks. Inspect `passed`, `recorded`,
-  `note`, exit codes, and native errors; transport success is not evidence.
+  gates from `.magistr/project.json`. Use it for an active roadmap chunk's
+  verification task or when the user explicitly requests full validation. A
+  direct docs-only follow-up outside an active chunk uses focused checks for
+  the changed surface; do not start `all` by habit. An active ship task
+  supplies recording context for real server-executed checks. Inspect `passed`,
+  `recorded`, `note`, exit codes, and native errors; transport success is not
+  evidence.
 - Standalone validation may be green with `recorded: false` because no ship
   task is active. This is a valid command result but not proof of ship.
   During implementation, required checks must pass and be recorded. If task

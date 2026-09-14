@@ -55,8 +55,11 @@ for delegation; the coordinating session owns shared ship state and file scope.
 
 1. Announce `magistr_set_phase(phase: "verify")` and `ship_start` the planned
    verification task. Keep it active while running `magistr_format` and
-   `magistr_gate(gate: "all")`. Add acceptance-specific checks through
-   server-executed `ship_check(command: ...)` or the appropriate real gate.
+   `magistr_gate(gate: "all")`. This full-suite requirement applies to the
+   active roadmap chunk's verification task; it ends when the chunk ships. Do
+   not carry it into a later direct docs-only follow-up. Add acceptance-specific
+   checks through server-executed `ship_check(command: ...)` or the appropriate
+   focused gate.
 2. Require all required gates to pass **and be recorded**. Inspect `recorded`,
    `note`, exit codes, and native errors. Diagnose gate and test failures,
    repair their cause within authorized scope, and rerun affected checks.
