@@ -1,5 +1,6 @@
 use super::*;
 use magistr_workflow::ship::domain::check::{Check, CheckType};
+use magistr_workflow::ship::domain::objective::VerificationMode;
 use magistr_workflow::ship::domain::task::{TaskStatus, TaskType};
 
 fn objective(status: ObjectiveStatus) -> Objective {
@@ -8,6 +9,7 @@ fn objective(status: ObjectiveStatus) -> Objective {
         acceptance_criteria: Vec::new(),
         constraints: Vec::new(),
         scope: String::new(),
+        verification: VerificationMode::Full,
         status,
         project_id: String::new(),
         created_at: None,

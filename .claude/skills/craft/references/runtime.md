@@ -40,13 +40,12 @@ remain the target; legacy search tool names describe a capability.
   step; total step count is not the next number. Use `think_step` to link a
   `ship_record` action to reasoning.
 - `magistr_gate(gate: "all")` includes standard gates and required custom
-  gates from `.magistr/project.json`. Use it for an active roadmap chunk's
-  verification task or when the user explicitly requests full validation. A
-  direct docs-only follow-up outside an active chunk uses focused checks for
-  the changed surface; do not start `all` by habit. An active ship task
-  supplies recording context for real server-executed checks. Inspect `passed`,
-  `recorded`, `note`, exit codes, and native errors; transport success is not
-  evidence.
+  gates from `.magistr/project.json`. It is the default for a `full`
+  objective. For a docs-only cycle, set
+  `ship_set_objective(verification: "focused")` and run server-executed
+  acceptance checks for the changed surface instead. An active ship task
+  supplies recording context. Inspect `passed`, `recorded`, `note`, exit
+  codes, and native errors; transport success is not evidence.
 - Standalone validation may be green with `recorded: false` because no ship
   task is active. This is a valid command result but not proof of ship.
   During implementation, required checks must pass and be recorded. If task
@@ -80,12 +79,12 @@ its `PreToolUse`/`Stop` guard hooks; inspect their result, but execute and verif
 the explicit shared lifecycle and recorded gates yourself. Hooks do not turn
 a green unrecorded result into proof of ship.
 
-For `/next-loop`, use the shared fresh-session handoff contract. This session
-may complete one `/next` iteration; then write the handoff and stop. Start the
-next iteration only after opening a fresh Claude session, or use `/clear` as
-the host's explicit new-session command before continuing. Do not invoke
-`/next` or `/next-loop` again in the same context, and do not use compaction
-as a substitute. If the user explicitly chooses the existing Claude stop-hook
+For `/next-loop`, use the shared single-chunk handoff contract. This
+invocation completes exactly one `/next` iteration; then write the handoff and
+stop. The host may invoke it again only after opening a fresh Claude session,
+or using `/clear` as the explicit new-session command. Do not invoke `/next`
+or `/next-loop` again in the same context, and do not use compaction as a
+substitute. If the user explicitly chooses the existing Claude stop-hook
 runner, use its documented `state_prefix` markers and iteration limit and let
 that runner own fresh-session chaining. Never run a second simultaneous chaining
 loop. Preserve unrelated state in every mode.

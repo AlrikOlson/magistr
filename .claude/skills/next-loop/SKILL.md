@@ -1,6 +1,6 @@
 ---
 name: next-loop
-description: Continue ready Magistr roadmap chunks through a bounded series of fresh-agent-session handoffs. Use for /next-loop or an explicit request to run the roadmap implementation loop.
+description: Run one ready Magistr roadmap chunk, then hand off to a fresh agent session. Use for /next-loop or an explicit request to continue the roadmap implementation loop.
 ---
 
 # Fresh-context Magistr loop
@@ -20,8 +20,9 @@ must hand off explicitly instead of chaining in the current context.
 1. Recover native roadmap and ship state and record the initial Git revision.
    Resume an unfinished iteration belonging to this work before selecting
    another chunk. Preserve unrelated objectives and worktree changes.
-2. Execute one complete `/next` workflow. Its normal stop returns
-   control to this requested loop. A recoverable gate or test failure stays
+2. Invoke exactly one complete `/next` workflow. When its stop rule is
+   reached, end this loop invocation; the return is not permission to select
+   another chunk in the same session. A recoverable gate or test failure stays
    inside this iteration: diagnose the cause, repair it within authorized
    scope, and rerun and record the affected checks. An unfinished commit means
    continue the current iteration, not select another chunk or stop solely
@@ -33,9 +34,9 @@ must hand off explicitly instead of chaining in the current context.
    current agent session.** Do not invoke `/next` or
    `/next-loop` again in this context, and do not use compaction as a
    substitute for a new session.
-5. Start the next iteration only after the host opens a fresh agent session.
-   In that session, re-read live roadmap and ship state before selecting the next
-   ready chunk. Continue only while authorized work and capacity remain.
+5. The host may invoke this skill again only from a fresh agent session. That
+   new session must re-read live roadmap and ship state before selecting the
+   next ready chunk. This invocation ends after the handoff.
 
 Stop when no authorized chunk is ready after the current iteration, an explicit
 iteration/time/usage limit is reached, the user pauses or cancels the work, or

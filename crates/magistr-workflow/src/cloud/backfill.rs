@@ -216,7 +216,7 @@ mod tests {
         }
     }
     use crate::ship::domain::action::{Action, ActionType};
-    use crate::ship::domain::objective::ObjectiveStatus;
+    use crate::ship::domain::objective::{ObjectiveStatus, VerificationMode};
     use crate::ship::domain::task::{TaskStatus, TaskType};
     use crate::signal::domain::{SignalKind, SignalStatus};
     use serde_json::json;
@@ -250,6 +250,7 @@ mod tests {
             acceptance_criteria: vec![],
             constraints: vec![],
             scope: String::new(),
+            verification: VerificationMode::Full,
             status: ObjectiveStatus::Defined,
             project_id: "t".into(),
             created_at: Some("2026-06-09T00:00:00+00:00".into()),

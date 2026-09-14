@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -10,12 +11,36 @@ pub enum ObjectiveStatus {
     Abandoned,
 }
 
+/// How much project-wide verification an objective requires before its
+/// roadmap chunk can complete. Full is the safe default; focused is intended
+/// for docs-only cycles whose acceptance checks are recorded separately.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum VerificationMode {
+    Full,
+    Focused,
+}
+
+impl Default for VerificationMode {
+    fn default() -> Self {
+        Self::Full
+    }
+}
+
+impl VerificationMode {
+    fn is_full(&self) -> bool {
+        matches!(self, Self::Full)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Objective {
     pub description: String,
     pub acceptance_criteria: Vec<String>,
     pub constraints: Vec<String>,
     pub scope: String,
+    #[serde(default, skip_serializing_if = "VerificationMode::is_full")]
+    pub verification: VerificationMode,
     pub status: ObjectiveStatus,
     pub project_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,6 +72,10 @@ impl Objective {
             frame(constraint.as_bytes());
         }
         frame(self.scope.as_bytes());
+        frame(match self.verification {
+            VerificationMode::Full => b"full",
+            VerificationMode::Focused => b"focused",
+        });
         format!("{:x}", digest.finalize())
     }
 }

@@ -10,12 +10,12 @@ its `PreToolUse`/`Stop` guard hooks; inspect their result, but execute and verif
 the explicit shared lifecycle and recorded gates yourself. Hooks do not turn
 a green unrecorded result into proof of ship.
 
-For `/next-loop`, use the shared fresh-session handoff contract. This session
-may complete one `/next` iteration; then write the handoff and stop. Start the
-next iteration only after opening a fresh Claude session, or use `/clear` as
-the host's explicit new-session command before continuing. Do not invoke
-`/next` or `/next-loop` again in the same context, and do not use compaction
-as a substitute. If the user explicitly chooses the existing Claude stop-hook
+For `/next-loop`, use the shared single-chunk handoff contract. This
+invocation completes exactly one `/next` iteration; then write the handoff and
+stop. The host may invoke it again only after opening a fresh Claude session,
+or using `/clear` as the explicit new-session command. Do not invoke `/next`
+or `/next-loop` again in the same context, and do not use compaction as a
+substitute. If the user explicitly chooses the existing Claude stop-hook
 runner, use its documented `state_prefix` markers and iteration limit and let
 that runner own fresh-session chaining. Never run a second simultaneous chaining
 loop. Preserve unrelated state in every mode.

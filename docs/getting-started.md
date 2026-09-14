@@ -45,8 +45,8 @@ Magistr's [Codex session provider](architecture/sessions.md#codex) is a separate
 ## Work on a project
 
 Use `$next` in Codex to implement one ready roadmap item. Use `$next-loop` for
-a bounded fresh-session handoff: finish one chunk, then start the next session
-before continuing. Use `$validate` to run the project's checks. Claude Code
+a single-chunk fresh-session handoff: finish one chunk, end the current
+session, then invoke `$next-loop` again from the next session. Use `$validate` to run the project's checks. Claude Code
 uses the same skill names with a `/` prefix.
 
 The skills read existing work, record an execution plan, and save check results
