@@ -44,7 +44,7 @@ Served by the same `magistr` MCP server. A roadmap chunk is realized by a ship o
 - Use workbench `search`/`map` instead of Glob/find for file discovery.
 - Use workbench `search` (lexical/structural/references) instead of Grep/grep.
 - Use workbench `read` for exploration and `edit` for verified writes; built-in `Read`/`Edit` only when workbench is unavailable.
-- Use workbench `run` for declared commands; `magistr_gate` runs the full gate set.
+- Use workbench `run` for declared commands; `magistr_gate` runs the full gate set for `full` objectives. Explicit `focused` docs-only objectives use targeted recorded `ship_check` commands.
 - Use the `roadmap_*` tools instead of editing `ROADMAP.md` — it is a generated view (`roadmap_export`).
 - Record every gate through `ship_check` (`magistr_gate` forwards to it) — never a piped or self-reported result.
 - Pass `autoApply: true` on a workbench `edit`/`files`/`script` write you intend to make — a confirm-gated write left unanswered is a dangling CONFIRM_REQUIRED, and under `magistr next-loop` there is no human to answer one.

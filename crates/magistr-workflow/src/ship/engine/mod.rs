@@ -8,7 +8,7 @@ use crate::ship::domain::action::{Action, ActionType};
 use crate::ship::domain::artifact::Artifact;
 use crate::ship::domain::check::{Check, CheckType};
 use crate::ship::domain::execution_identity::ExecutionIdentity;
-use crate::ship::domain::objective::{Objective, ObjectiveStatus};
+use crate::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
 use crate::ship::domain::task::{Task, TaskStatus, TaskType};
 use crate::ship::persistence::Persistence;
 use crate::ship::receipt_ledger::ReceiptLedger;
@@ -362,6 +362,23 @@ impl ShipEngine {
         constraints: Vec<String>,
         scope: String,
     ) -> usize {
+        self.set_objective_with_verification(
+            description,
+            acceptance_criteria,
+            constraints,
+            scope,
+            VerificationMode::Full,
+        )
+    }
+
+    pub fn set_objective_with_verification(
+        &mut self,
+        description: String,
+        acceptance_criteria: Vec<String>,
+        constraints: Vec<String>,
+        scope: String,
+        verification: VerificationMode,
+    ) -> usize {
         let prior_finished = matches!(
             self.objective.as_ref().map(|o| &o.status),
             Some(ObjectiveStatus::Completed) | Some(ObjectiveStatus::Abandoned)
@@ -369,8 +386,8 @@ impl ShipEngine {
         let mut cleared = 0;
         if prior_finished {
             cleared = self.tasks.len();
-            self.tasks.clear();
             self.next_action_id = 1;
+            self.tasks.clear();
             self.execution = ExecutionIdentity::fresh();
         }
         let now = Utc::now().to_rfc3339();
@@ -379,6 +396,7 @@ impl ShipEngine {
             acceptance_criteria,
             constraints,
             scope,
+            verification,
             status: ObjectiveStatus::Defined,
             project_id: self.project_id.clone(),
             created_at: Some(now),

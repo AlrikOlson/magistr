@@ -74,7 +74,8 @@ A `/next` or `magistr next` iteration has a clear boundary:
 - select one ready roadmap chunk;
 - research the code and plan the work;
 - make the change through the project workspace;
-- run the formatter, tests, linter, and required custom gates;
+- run the formatter, tests, linter, and required custom gates for a full objective;
+- for an explicitly documented docs-only objective, run focused acceptance checks for the changed surface;
 - record command-backed results and artifacts;
 - commit the scoped change and return to the roadmap.
 

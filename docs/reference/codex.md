@@ -145,9 +145,10 @@ legacy state directories, after confirmation.
 ## Workflow
 
 `$next` completes one ready chunk in the current session. `$next-loop` carries a
-bounded handoff across fresh Codex sessions: one chunk completes, its handoff is
-written, and the current session stops before another chunk is selected. It
-defaults to ten iterations when no bound is supplied. Native `magistr next-loop`
+single-chunk handoff: one chunk completes, its handoff is written, and the
+current session stops before another chunk is selected. Invoke `$next-loop`
+again only from a fresh Codex session; the bound defaults to ten iterations
+when none is supplied. Native `magistr next-loop`
 is the automatic host-owned loop; it starts a fresh provider session per
 iteration. Skills recover existing work and preserve unrelated objectives.
 

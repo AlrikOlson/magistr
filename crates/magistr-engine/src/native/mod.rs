@@ -141,7 +141,7 @@ pub use magistr_workflow::ship::domain::action::{Action, ActionType};
 pub use magistr_workflow::ship::domain::artifact::{Artifact, ArtifactType};
 pub use magistr_workflow::ship::domain::check::{Check, CheckType};
 pub use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
-pub use magistr_workflow::ship::domain::objective::{Objective, ObjectiveStatus};
+pub use magistr_workflow::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
 pub use magistr_workflow::ship::domain::receipt_settlement::ReceiptSettlement;
 pub use magistr_workflow::ship::domain::task::{Task, TaskStatus, TaskType};
 pub use magistr_workflow::ship::report::{ReportRecord, TestResults};

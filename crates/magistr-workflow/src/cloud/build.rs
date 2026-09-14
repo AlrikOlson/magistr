@@ -555,7 +555,7 @@ mod tests {
     fn every_family_stamps_the_source_project_on_the_record() {
         use crate::ship::domain::action::{Action, ActionType};
         use crate::ship::domain::check::{Check, CheckType};
-        use crate::ship::domain::objective::{Objective, ObjectiveStatus};
+        use crate::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
         use crate::ship::domain::task::{Task, TaskStatus, TaskType};
         use crate::signal::domain::{SignalKind, SignalStatus};
         use crate::think::domain::step::ThinkStep;
@@ -670,6 +670,7 @@ mod tests {
             acceptance_criteria: vec![],
             constraints: vec![],
             scope: String::new(),
+            verification: VerificationMode::Full,
             status: ObjectiveStatus::Defined,
             project_id: "some-other-project".into(),
             created_at: Some("2026-06-08T00:00:00Z".into()),
@@ -716,7 +717,7 @@ mod tests {
     #[test]
     fn ship_cycle_builders_emit_schema_valid_cycle_scoped_envelopes() {
         use crate::ship::domain::check::{Check, CheckType};
-        use crate::ship::domain::objective::{Objective, ObjectiveStatus};
+        use crate::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
         use crate::ship::domain::task::{Task, TaskStatus, TaskType};
 
         let objective = Objective {
@@ -724,6 +725,7 @@ mod tests {
             acceptance_criteria: vec!["it works".into()],
             constraints: vec![],
             scope: String::new(),
+            verification: VerificationMode::Full,
             status: ObjectiveStatus::Defined,
             project_id: "think-and-ship-676f38".into(),
             created_at: Some("2026-06-10T02:51:47.620058+00:00".into()),

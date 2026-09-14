@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use crate::ship::domain::check_receipt::CheckReceipt;
+use crate::ship::domain::objective::VerificationMode;
 use crate::ship::domain::receipt_settlement::ReceiptSettlement;
 
 use super::{
@@ -17,8 +18,10 @@ impl ShipUseCases {
     /// instance the run's latest receipt was admitted on. Every gate the
     /// host requires, and every required verified receipt on that
     /// instance, must have a latest receipt that was applied, passed,
-    /// ran the configured command, saw the source unchanged during its run,
-    /// and certifies the source and acceptance revisions current now.
+    /// ran its configured command, saw the source unchanged during its run,
+    /// and certifies the source and acceptance revisions current now. A
+    /// focused objective intentionally omits project-wide gate contracts;
+    /// its required acceptance-specific receipts still govern completion.
     /// Nothing here holds the engine lock while the source is observed.
     ///
     /// # Errors
@@ -71,9 +74,12 @@ impl ShipUseCases {
                     run_id: snapshot.run_id.clone(),
                 })?,
         };
-        let contracts = port
-            .required_gates()
-            .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?;
+        let contracts = match objective.verification {
+            VerificationMode::Full => port
+                .required_gates()
+                .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?,
+            VerificationMode::Focused => Vec::new(),
+        };
         let current_revision = port
             .observe()
             .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?

@@ -13,6 +13,7 @@
 use magistr_engine::native::{
     Action, ActionType, Check, CheckType, Chunk, ChunkStatus, NativeFrame, Objective,
     ObjectiveStatus, Signal, SignalKind, SignalStatus, Task, TaskStatus, TaskType, ThinkStep,
+    VerificationMode,
 };
 use magistr_engine::{NativeEvent, NativeSnapshot};
 use serde_json::{Value, json};
@@ -109,6 +110,7 @@ pub fn objective(description: &str) -> Objective {
         acceptance_criteria: Vec::new(),
         constraints: Vec::new(),
         scope: String::new(),
+        verification: VerificationMode::Full,
         status: ObjectiveStatus::Active,
         project_id: String::new(),
         created_at: None,

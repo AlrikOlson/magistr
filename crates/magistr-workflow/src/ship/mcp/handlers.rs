@@ -8,6 +8,7 @@ use super::service::ShipService;
 use crate::ship::domain::action::ActionType;
 use crate::ship::domain::artifact::{Artifact, ArtifactType};
 use crate::ship::domain::check::CheckType;
+use crate::ship::domain::objective::VerificationMode;
 use crate::ship::domain::task::TaskType;
 
 impl ShipService {
@@ -29,6 +30,11 @@ pub struct SetObjectiveArgs {
     pub constraints: Vec<String>,
     #[serde(default)]
     pub scope: String,
+    /// `full` (default) runs every configured project gate. `focused` skips
+    /// those project-wide gates and requires only recorded acceptance checks;
+    /// use it for docs-only cycles.
+    #[serde(default)]
+    pub verification: VerificationMode,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -232,7 +238,7 @@ use crate::ship::application::command_runner::{CHECK_OUTPUT_TAIL, run_check_comm
 impl ShipService {
     #[tool(
         name = "ship_set_objective",
-        description = "Define what 'done' means for this development cycle. Sets the goal, acceptance criteria, constraints, and scope. Call this before planning any tasks.\n\nInputs: description (required), acceptance_criteria (string[]), constraints (string[]), scope (string). constraints/acceptance_criteria also accept a single string (coerced to a one-element list).\n\nReturns: the objective as set; plus cleared_stale_tasks + note when a fresh cycle was started.\n\nPitfalls: overwriting an IN-FLIGHT objective preserves its tasks. But if the previous objective was already shipped (completed/abandoned), this starts a FRESH cycle and clears the old tasks — so a new chunk never inherits the prior cycle's explore/implement/verify tasks.",
+        description = "Define what 'done' means for this development cycle. Sets the goal, acceptance criteria, constraints, scope, and verification mode. Call this before planning any tasks.\n\nInputs: description (required), acceptance_criteria (string[]), constraints (string[]), scope (string), verification ('full' default or 'focused' for docs-only cycles). constraints/acceptance_criteria also accept a single string (coerced to a one-element list).\n\nReturns: the objective as set; plus cleared_stale_tasks + note when a fresh cycle was started.\n\nPitfalls: focused verification still requires every recorded acceptance check to pass; it only omits unrelated project-wide gates. Overwriting an IN-FLIGHT objective preserves its tasks. But if the previous objective was already shipped (completed/abandoned), this starts a FRESH cycle and clears the old tasks — so a new chunk never inherits the prior cycle's explore/implement/verify tasks.",
         annotations(
             title = "Set objective",
             read_only_hint = false,
@@ -245,11 +251,12 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<SetObjectiveArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(self.use_cases.set_objective(
+        Self::application_result(self.use_cases.set_objective_with_verification(
             args.description,
             args.acceptance_criteria,
             args.constraints,
             args.scope,
+            args.verification,
         ))
     }
 

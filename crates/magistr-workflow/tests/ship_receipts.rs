@@ -10,7 +10,9 @@ use magistr_workflow::ship::application::{
     CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, CompletionRefusal, EvidencePort,
     GateContract, ShipUseCases, SourceFreshness, SourceObservation, SourceWitness,
 };
-use magistr_workflow::ship::domain::{check::CheckType, task::TaskType};
+use magistr_workflow::ship::domain::{
+    check::CheckType, objective::VerificationMode, task::TaskType,
+};
 use magistr_workflow::ship::engine::ShipEngine;
 use magistr_workflow::ship::persistence::{Persistence, PersistenceConfig};
 
@@ -129,6 +131,28 @@ fn planned(cases: &ShipUseCases) {
     cases.start_task("verify").unwrap();
 }
 
+fn planned_focused(cases: &ShipUseCases) {
+    cases
+        .set_objective_with_verification(
+            "Docs-only run".into(),
+            vec!["the docs are accurate".into()],
+            vec![],
+            "chunk:c1".into(),
+            VerificationMode::Focused,
+        )
+        .unwrap();
+    cases
+        .add_task(
+            "verify".into(),
+            "Verify docs".into(),
+            TaskType::Docs,
+            None,
+            None,
+        )
+        .unwrap();
+    cases.start_task("verify").unwrap();
+}
+
 fn request(gate: &str, command: &str) -> CheckRequest {
     CheckRequest {
         task_id: None,
@@ -172,6 +196,32 @@ fn world() -> Arc<World> {
     world.set_revision("r1");
     world.require("test", "cargo test");
     world
+}
+
+#[test]
+fn focused_objective_accepts_recorded_acceptance_checks_without_project_gates() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    planned_focused(&cases);
+
+    run(
+        &cases,
+        "docs",
+        "docs check",
+        CheckExecution::Exited { code: 0 },
+    );
+
+    let evidence = cases.verify_completion("chunk:c1", Some("verify")).unwrap();
+    assert!(evidence.is_complete());
+    assert_eq!(
+        evidence
+            .accepted
+            .iter()
+            .map(|receipt| receipt.gate.as_str())
+            .collect::<Vec<_>>(),
+        vec!["docs"]
+    );
 }
 
 #[test]

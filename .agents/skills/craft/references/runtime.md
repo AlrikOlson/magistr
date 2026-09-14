@@ -40,13 +40,12 @@ remain the target; legacy search tool names describe a capability.
   step; total step count is not the next number. Use `think_step` to link a
   `ship_record` action to reasoning.
 - `magistr_gate(gate: "all")` includes standard gates and required custom
-  gates from `.magistr/project.json`. Use it for an active roadmap chunk's
-  verification task or when the user explicitly requests full validation. A
-  direct docs-only follow-up outside an active chunk uses focused checks for
-  the changed surface; do not start `all` by habit. An active ship task
-  supplies recording context for real server-executed checks. Inspect `passed`,
-  `recorded`, `note`, exit codes, and native errors; transport success is not
-  evidence.
+  gates from `.magistr/project.json`. It is the default for a `full`
+  objective. For a docs-only cycle, set
+  `ship_set_objective(verification: "focused")` and run server-executed
+  acceptance checks for the changed surface instead. An active ship task
+  supplies recording context. Inspect `passed`, `recorded`, `note`, exit
+  codes, and native errors; transport success is not evidence.
 - Standalone validation may be green with `recorded: false` because no ship
   task is active. This is a valid command result but not proof of ship.
   During implementation, required checks must pass and be recorded. If task
@@ -81,10 +80,11 @@ Codex APIs. Use Codex's available question tool for interviews when suitable,
 or ask a concise direct question when that tool is unavailable.
 
 Run `$next` and `$roadmap` in the current Codex session through native Magistr
-MCP tools. `$next-loop` is a bounded fresh-session handoff protocol: this
-session may complete one `$next` iteration, then it must write the handoff and
-stop. Start the next iteration only in a new Codex session, re-read native
-roadmap and ship state, and continue only within the remaining bound. The skill
+MCP tools. `$next-loop` is a single-chunk fresh-session handoff protocol: this
+invocation completes exactly one `$next` iteration, writes the handoff, and
+stops. The host may invoke it again only in a new Codex session. That session
+must re-read native roadmap and ship state before selecting the next chunk and
+continue only within the remaining bound. The skill
 cannot open a new Codex session from inside the current one; do not use context
 compaction as a substitute. Never launch `magistr next`, `magistr run`,
 `magistr next-loop`, `run-autonomous.sh`, or another coding-agent runtime as

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::ship::domain::{
     action::{Action, ActionType},
     artifact::Artifact,
+    objective::VerificationMode,
     task::{Task, TaskType},
 };
 use crate::ship::engine::ShipEngine;
@@ -54,8 +55,31 @@ impl ShipUseCases {
         constraints: Vec<String>,
         scope: String,
     ) -> Result<ObjectiveSet, String> {
+        self.set_objective_with_verification(
+            description,
+            acceptance_criteria,
+            constraints,
+            scope,
+            VerificationMode::Full,
+        )
+    }
+
+    pub fn set_objective_with_verification(
+        &self,
+        description: String,
+        acceptance_criteria: Vec<String>,
+        constraints: Vec<String>,
+        scope: String,
+        verification: VerificationMode,
+    ) -> Result<ObjectiveSet, String> {
         let mut engine = self.lock()?;
-        let cleared = engine.set_objective(description, acceptance_criteria, constraints, scope);
+        let cleared = engine.set_objective_with_verification(
+            description,
+            acceptance_criteria,
+            constraints,
+            scope,
+            verification,
+        );
         let objective = engine.objective.clone().expect("set objective");
         Ok(ObjectiveSet::new(objective, cleared))
     }

@@ -117,6 +117,39 @@ fn workflow_semantics_are_identical_across_hosts() {
 }
 
 #[test]
+fn next_loop_requires_a_fresh_host_session_between_chunks() {
+    for file in WorkflowSkills::codex_files()
+        .into_iter()
+        .chain(WorkflowSkills::claude_files())
+    {
+        if !file.path.ends_with("next-loop/SKILL.md") {
+            continue;
+        }
+        assert!(
+            file.content.contains("one agent session completes one"),
+            "{} must define one chunk per session",
+            file.path
+        );
+        assert!(
+            file.content.contains("Stop the") && file.content.contains("current agent session"),
+            "{} must require a session stop",
+            file.path
+        );
+        assert!(
+            file.content.contains("Do not invoke")
+                && file.content.contains("again in this context"),
+            "{} must forbid same-context chaining",
+            file.path
+        );
+        assert!(
+            file.content.contains("only from a fresh agent session"),
+            "{} must require a fresh host session",
+            file.path
+        );
+    }
+}
+
+#[test]
 fn every_generated_relative_workflow_link_resolves() {
     let temporary = tempfile::tempdir().expect("tempdir");
     for files in [
