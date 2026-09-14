@@ -11,24 +11,24 @@ const steps = [
   ✓ Generated .claude/rules/conventions.md
   ✓ Generated .claude/rules/workflow.md
   ✓ Created .magistr/project.json
-  ✓ Created .magistr-roadmap.yml`,
+  ✓ Native roadmap state stays in the project store (exports disabled)`,
   },
   {
     number: 2,
     title: "Start your first iteration",
-    description: "Magistr reads your roadmap, picks the next chunk, and runs a full research-plan-execute-verify cycle autonomously.",
+    description: "Magistr reads native roadmap state, picks the next ready chunk, and runs one recorded research-plan-execute-verify cycle.",
     command: "magistr next",
     output: `Phase: research → plan → execute → verify
-  ✓ Read ROADMAP.md — found 12 unchecked items
+  ✓ Read native roadmap state — found the next ready chunk
   ✓ Planned 4 tasks for this iteration
   ✓ Implemented with TDD (3 tests green)
   ✓ Quality gates passed (check + test + lint)
-  ✓ Committed: feat: add user authentication`,
+  ✓ Committed: one atomic change for the selected chunk`,
   },
   {
     number: 3,
-    title: "Watch it work in the TUI",
-    description: "A polished terminal dashboard shows real-time streaming output, task progress, file changes, and session stats.",
+    title: "Watch it work in the terminal cockpit",
+    description: "The supported terminal cockpit shows phase changes, task progress, live output, file changes, and session stats while the run is active.",
     command: "magistr next-loop",
     output: `┌─ Magistr ─────────────────────────────┐
 │ Phase: execute  ▓▓▓▓▓▓▓░░░  70%  │

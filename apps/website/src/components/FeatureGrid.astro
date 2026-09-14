@@ -11,31 +11,38 @@ const features = [
   },
   {
     icon: "/icons/feature-iteration.png",
-    title: "Autonomous Iteration",
+    title: "Recorded iteration",
     description:
-      "Plan-execute-verify loops run autonomously. Magistr researches, writes a plan, implements with TDD, runs quality gates, and commits — then starts the next iteration.",
+      "Each selected chunk follows a recorded research-plan-execute-verify cycle. Magistr runs the configured gates and creates one atomic commit before you choose the next iteration.",
     accent: "accent",
   },
   {
     icon: "/icons/feature-tui.png",
-    title: "TUI Dashboard",
+    title: "Terminal cockpit",
     description:
-      "A polished ratatui terminal UI with real-time streaming, sidebar stats, file tree, and 4 built-in themes — Catppuccin Mocha, Latte, Dracula, and Tokyo Night.",
+      "The supported interactive terminal surface shows workflow phases, task progress, live output, and session controls while a run is active.",
     accent: "purple",
   },
   {
     icon: "/icons/feature-roadmap.png",
     title: "Roadmap Tracking",
     description:
-      "A living spec that tracks every task. Items are checked off as they're implemented, new work is discovered and added, and progress is always visible in the TUI sidebar.",
+      "Native roadmap state records dependencies, acceptance, progress, and discovered follow-up work. It stays in Magistr's store; roadmap exports are disabled.",
     accent: "orange",
   },
   {
     icon: "/icons/feature-tools.png",
-    title: "MCP Tools",
+    title: "Source tools & MCP",
     description:
-      "MCP tools for quality gates, roadmap management, and project formatting. Workbench provides code navigation and verified edits.",
+      "Workbench provides verified search, reads, edits, undo, scripts, and declared commands; Magistr MCP exposes the workflow services that record plans and gates.",
     accent: "pink",
+  },
+  {
+    icon: "/icons/feature-roadmap.png",
+    title: "Desktop & peer protocol",
+    description:
+      "Experimental surfaces: the desktop viewer lives on the gui2 branch, and the peer protocol is a compatibility API without production runtime wiring.",
+    accent: "orange",
   },
 ];
 ---
@@ -49,7 +56,7 @@ const features = [
       </h2>
       <p class="mx-auto mt-4 max-w-2xl text-text-muted">
         Magistr handles the orchestration so you can focus on what matters.
-        From scaffolding to autonomous iteration, every feature is designed to keep you in flow.
+        From scaffolding to recorded iteration, every shipped feature is designed to keep you in flow.
       </p>
     </div>
 

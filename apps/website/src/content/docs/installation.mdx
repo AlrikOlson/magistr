@@ -7,9 +7,9 @@ category: getting-started
 
 # Installation
 
-Build Magistr from the [source repository](https://github.com/AlrikOlson/magistr).
-You need Git and Rust 1.95 or later. This release includes the CLI, terminal
-interface, and MCP tools.
+The current tagged release is v0.1.0. Build Magistr from the [source repository](https://github.com/AlrikOlson/magistr).
+You need Git and Rust 1.95 or later. The release includes the CLI, terminal
+cockpit, MCP server, and native workspace tools.
 
 ## Build from source
 
@@ -27,11 +27,17 @@ Make sure that directory is on `PATH`.
 For development without installation, run `cargo build -p magistr-cli` and use
 `target/debug/magistr` from the workspace root.
 
+## Release archives
+
+Prebuilt archives are published on the [GitHub releases page](https://github.com/AlrikOlson/magistr/releases) for named host targets. Each archive includes the CLI, shell completions, man pages, the MIT license, and bundled font notices. Verify its matching `.sha256` file before unpacking; see the [release inventory](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md) for the release checklist.
+
 ## Connect an agent
 
 Magistr includes adapters for Claude Code, Codex, and Copilot. Install the coding
 runtime you want to use and sign in through that runtime's own setup. The runtime
 must be available on `PATH`; Magistr does not log it in during project setup.
+
+The desktop viewer is experimental on the [`gui2` branch](https://github.com/AlrikOlson/magistr/tree/gui2), and the peer protocol is compatibility-only; neither is part of the main-branch release package.
 
 Codex sessions use the built-in `acp-agent --provider codex` adapter and require
 ChatGPT authentication. The `openai`, `gemini`, and `ollama` API adapters provide
