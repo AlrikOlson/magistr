@@ -2,6 +2,8 @@
 
 **A roadmap and workflow layer for coding agents.**
 
+[Website](https://magistr.dev) · [Documentation](https://magistr.dev/docs) · [GitHub repository](https://github.com/AlrikOlson/magistr)
+
 Magistr gives an agent a project roadmap it can read, a workflow that turns one ready item into one verified change, and a local record of the decisions and checks you will want when you return. You steer the direction by talking to the agent. Magistr keeps the plan explicit and the work bounded.
 
 > **Early development release · v0.1.0**
