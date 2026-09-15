@@ -41,7 +41,7 @@ For Claude Code, run `magistr init . --yes`, then launch `claude`.
 
 ## The native cockpit
 
-TUI2's Roadmap tab, rendered from this repository's native state:
+TUI2's Roadmap tab, rendered from a synthetic Harbor project fixture:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/tui2-roadmap-dark.png" />

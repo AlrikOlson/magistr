@@ -2,34 +2,34 @@
   "renderer": "magistr-tui::screenshot::frame",
   "surface": "Terminal",
   "profile": "Kitty",
-  "source_commit": "ad456fbbb6dd5631bdba476bc2bedf678e6b6ff0",
+  "source_commit": "working-tree",
   "captured_on": "2026-09-15",
-  "state": "NativeReader::snapshot of magistr-5a5bc6; read-only",
+  "state": "Synthetic fixture apps/website/fixtures/harbor.json; no native store read",
   "columns": 132,
   "rows": 42,
   "annotations": false,
   "images": [
     {
       "file": "tui2-roadmap-dark.png",
-      "sha256": "3554f6253def588850d2cb1ab29b7ef8606bf0a8634b0d7db3d11289d689c273",
+      "sha256": "e65964b4b54d2de730d00bc938e071a411cf70c84176cb7e7bd7d03a55ab7eee",
       "width": 1320,
       "height": 840
     },
     {
       "file": "tui2-roadmap-light.png",
-      "sha256": "de2bf032379c8a9b774de5a0e5508209959294b6886394a872a496ada4d926f1",
+      "sha256": "b8efdd1ee6fbb3f0dc7447d4b2a0b1fe9ada33a191bc12c06c333217b98bb82b",
       "width": 1320,
       "height": 840
     },
     {
       "file": "tui2-trace-dark.png",
-      "sha256": "3b2e66359fe2cd19d5a74b262f4d3982f6ae0dc173e895e2c342bcb4eb5a4fc3",
+      "sha256": "6c87a029235781c7ca6f944cfc23b8db44c8a6e9c9d0454fac5d4541b112e487",
       "width": 1320,
       "height": 840
     },
     {
       "file": "tui2-trace-light.png",
-      "sha256": "0eea6d7e520f322de239640ba1189ca8a49a351e2b82fd1a131ae693dc18450f",
+      "sha256": "70bdc7db0aed91ab723cb545a147c4c6ad02878e1fd6368908e727e71ad6537f",
       "width": 1320,
       "height": 840
     }

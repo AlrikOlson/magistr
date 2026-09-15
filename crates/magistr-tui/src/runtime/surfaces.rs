@@ -14,7 +14,7 @@
 use crate::render::Screen;
 use magistr_cockpit::cockpit::view::ROADMAP_LEGEND_COLS;
 use magistr_cockpit::cockpit::view::{activity_series, rail_gauge_cols, spark_sweep};
-use magistr_cockpit::cockpit::{DagNode, Model, Motion, Widget};
+use magistr_cockpit::cockpit::{DagNode, DagPath, Model, Motion, Widget};
 use magistr_cockpit::layout::{Rect, Resolved};
 use magistr_cockpit::pixel::{
     BranchGraph, Brand, CellSize, Gauge, Image, PixelSurface, RoadmapDag, Sparkline,
@@ -39,7 +39,14 @@ type GraphKey = (
 /// camera's glide already applied), the dependency edges, the rect it
 /// covers, the cell size and the phase the active chunk's glow was
 /// breathing at.
-type DagKey = (Vec<DagNode>, Vec<(usize, usize)>, Rect, CellSize, f32);
+type DagKey = (
+    Vec<DagNode>,
+    Vec<(usize, usize)>,
+    Vec<DagPath>,
+    Rect,
+    CellSize,
+    f32,
+);
 
 /// What the cached header sparkline was painted from: the series, its
 /// rect, the cell size and the frame of the sweep drawing it in
@@ -449,16 +456,19 @@ impl Surfaces {
         let cell = model.cell_size();
         let roadmap = model.roadmap();
         let nodes = roadmap.dag_nodes_at(model.now());
+        let paths = roadmap.dag_paths_at(model.now());
         let key = (
             nodes,
             roadmap.dag_edges(),
+            paths,
             rect,
             cell,
             Self::glow_phase(model),
         );
         if self.dag_key.as_ref() != Some(&key) {
             let mut dag = RoadmapDag::new(key.0.clone(), key.1.clone(), (cell.width, cell.height))
-                .glow(key.4);
+                .routes(key.2.clone())
+                .glow(key.5);
             if let Some(Color::Rgb(r, g, b)) = model.background() {
                 dag = dag.background(r, g, b);
             }
@@ -520,10 +530,18 @@ impl Surfaces {
         };
         let cell = model.cell_size();
         let (nodes, edges) = model.roadmap().mini_dag(rect.width, rect.height);
-        let key = (nodes, edges, rect, cell, Self::glow_phase(model));
+        let key = (
+            nodes,
+            edges,
+            Vec::new(),
+            rect,
+            cell,
+            Self::glow_phase(model),
+        );
         if self.rail_key.as_ref() != Some(&key) {
             let mut dag = RoadmapDag::new(key.0.clone(), key.1.clone(), (cell.width, cell.height))
-                .glow(key.4);
+                .routes(key.2.clone())
+                .glow(key.5);
             if let Some(Color::Rgb(r, g, b)) = model.background() {
                 dag = dag.background(r, g, b);
             }

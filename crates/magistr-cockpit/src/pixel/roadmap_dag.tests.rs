@@ -48,6 +48,64 @@ fn pixel(surface: &PixelSurface, x: u32, y: u32) -> [u8; 4] {
 }
 
 #[test]
+fn visual_reduction_preserves_reachability_and_removes_only_redundant_lines() {
+    let edges = vec![(0, 1), (1, 2), (0, 2), (2, 3), (0, 3), (1, 3), (4, 3)];
+    let reduced = transitive_reduction(edges.clone(), 5);
+    assert_eq!(reduced, vec![(0, 1), (1, 2), (2, 3), (4, 3)]);
+    let reachable = |edges: &[(usize, usize)], from: usize, to: usize| {
+        let mut seen = [false; 5];
+        let mut stack = vec![from];
+        while let Some(at) = stack.pop() {
+            if at == to {
+                return true;
+            }
+            if !seen[at] {
+                seen[at] = true;
+                stack.extend(edges.iter().filter_map(|&(a, b)| (a == at).then_some(b)));
+            }
+        }
+        false
+    };
+    for from in 0..5 {
+        for to in 0..5 {
+            assert_eq!(reachable(&edges, from, to), reachable(&reduced, from, to));
+        }
+    }
+}
+
+#[test]
+fn visual_reduction_keeps_cyclic_input_and_is_order_independent() {
+    let cycle = vec![(0, 1), (1, 2), (2, 0), (0, 2)];
+    assert_eq!(
+        transitive_reduction(cycle, 3),
+        vec![(0, 1), (0, 2), (1, 2), (2, 0)]
+    );
+    assert_eq!(
+        transitive_reduction(vec![(0, 2), (1, 2), (0, 1), (0, 1), (9, 0)], 3),
+        vec![(0, 1), (1, 2)]
+    );
+}
+
+#[test]
+fn selection_reveals_the_exact_direct_relationships() {
+    let nodes = vec![
+        node(1.5, 1.5, "done", 0),
+        node(7.5, 1.5, "done", 0),
+        node(13.5, 1.5, "pending", 0),
+    ];
+    let edges = vec![(0, 1), (1, 2), (0, 2)];
+    assert_eq!(
+        RoadmapDag::new(nodes.clone(), edges.clone(), (10, 20))
+            .edges
+            .len(),
+        2
+    );
+    let mut selected = nodes;
+    selected[2].selected = true;
+    assert_eq!(RoadmapDag::new(selected, edges, (10, 20)).edges.len(), 3);
+}
+
+#[test]
 fn dots_wear_their_status_colours() {
     let surface = render(&scene(), 16, 6);
     // Done dot at cell (1.5, 1.5) -> pixel (15, 30): green.
@@ -95,9 +153,8 @@ fn an_empty_tree_is_background_only() {
     assert_eq!((r, g, b), (26, 27, 38));
 }
 
-/// The pixel-diff gate: the scene must render byte-identical to the
-/// checked-in golden PNG. A missing golden is written (bless on first
-/// run) and the test fails so the blessing commit is deliberate.
+/// The pixel-diff gate uses the shared golden review flow. A mismatch
+/// writes a candidate; an intended change is blessed explicitly.
 #[test]
 fn the_scene_matches_the_golden_png() {
     let surface = render(&scene(), 16, 6);
@@ -107,24 +164,10 @@ fn the_scene_matches_the_golden_png() {
             .expect("size"),
     )
     .expect("pixmap");
-    let golden = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("golden")
-        .join("roadmap_dag.png");
-    if !golden.exists() {
-        std::fs::create_dir_all(golden.parent().expect("parent")).expect("mkdir");
-        pixmap.save_png(&golden).expect("write golden");
-        panic!(
-            "golden was missing — wrote {}; commit it and re-run",
-            golden.display()
-        );
-    }
-    let expected = tiny_skia::Pixmap::load_png(&golden).expect("read golden");
-    assert_eq!(
-        expected.data(),
-        pixmap.data(),
-        "the tech-tree diverged from tests/golden/roadmap_dag.png — delete it to re-bless"
-    );
+    crate::golden::Golden::new(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden"),
+    )
+    .assert_matches("roadmap_dag", &pixmap);
 }
 
 /// the chunk in progress carries a soft halo — bright near the

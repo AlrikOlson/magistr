@@ -148,7 +148,9 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/completion.rs` | The completion popup over the prompt | `magistr-cockpit/src/cockpit/completion.tests.rs` |
 | `magistr-cockpit/src/cockpit/completion_kind.rs` | What a completion popup completes | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/copy.rs` | Shared quantity formatting and copy vocabulary: `2.07 USD`, `1.84 / 12.00`, `04:12`, and `12 min` / `4 h` / `2 d` | `magistr-cockpit/src/cockpit/copy.tests.rs`
+| `magistr-cockpit/src/cockpit/dag_layout.rs` | Deterministic layered DAG layout with virtual routing vertices and crossing reduction | `magistr-cockpit/src/cockpit/dag_layout.tests.rs` |
 | `magistr-cockpit/src/cockpit/dag_node.rs` | One node of the roadmap's tech-tree, placed on the cell grid | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
+| `magistr-cockpit/src/cockpit/dag_path.rs` | A routed dependency edge through the layered roadmap layout | `magistr-cockpit/src/cockpit/dag_layout.tests.rs` |
 | `magistr-cockpit/src/cockpit/diff_layout.rs` | Width thresholds for diff display modes | `magistr-cockpit/src/cockpit/diff_layout.tests.rs` |
 | `magistr-cockpit/src/cockpit/density.rs` | Row height and padding for comfortable and compact density | `magistr-cockpit/src/cockpit/settings.tests.rs` |
 | `magistr-cockpit/src/cockpit/dock.rs` | State for pending user actions in the dock | `magistr-cockpit/src/cockpit/dock.tests.rs` |
@@ -202,7 +204,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/proposed_chunk.rs` | Proposed roadmap item passed to `roadmap_add_chunk` on acceptance | `magistr-cockpit/src/cockpit/proposed_chunk.tests.rs` |
 | `magistr-cockpit/src/cockpit/rail.rs` | Navigation and execution-plan rail state | `magistr-cockpit/src/cockpit/rail.tests.rs` |
 | `magistr-cockpit/src/cockpit/rail_mark.rs` | Terminal output timing markers derived from arrival ticks: second boundaries, pauses, and elapsed timestamps | `magistr-cockpit/src/cockpit/rail_mark.tests.rs` |
-| `magistr-cockpit/src/cockpit/roadmap.rs` | The Roadmap tab's state | `magistr-cockpit/src/cockpit/roadmap.tests.rs` |
+| `magistr-cockpit/src/cockpit/roadmap.rs` | Roadmap state and deterministic dependency-layer layout with connected-node alignment | `magistr-cockpit/src/cockpit/roadmap.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_chunk.rs` | One roadmap chunk as the Roadmap tab holds it | `magistr-cockpit/src/cockpit/roadmap_chunk.tests.rs` |
 | `magistr-cockpit/src/cockpit/rule_mode.rs` | How a charter rule answers — the ASK / AUTO / OFF badge vocabulary | `magistr-cockpit/src/cockpit/rule_mode.tests.rs` |
 | `magistr-cockpit/src/cockpit/scaffold_kind.rs` | Project setup artifact types and their displayed completion status | `magistr-cockpit/src/cockpit/scaffold_kind.tests.rs` |
@@ -366,7 +368,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/pixel/image.rs` | An agent's image, scaled into the cells the stream gave it | `magistr-cockpit/src/pixel/image.tests.rs` |
 | `magistr-cockpit/src/pixel/painter.rs` | What paints a surface | `magistr-tui/tests/graphics_harness.rs` |
 | `magistr-cockpit/src/pixel/pixel_format.rs` | How the bytes of a packed pixel surface are laid out | `magistr-cockpit/src/pixel/pixel_format.tests.rs` |
-| `magistr-cockpit/src/pixel/roadmap_dag.rs` | The roadmap's tech-tree as pixels | `magistr-cockpit/src/pixel/roadmap_dag.tests.rs` |
+| `magistr-cockpit/src/pixel/roadmap_dag.rs` | Roadmap pixels with cycle-safe visual transitive reduction; stored dependencies remain intact | `magistr-cockpit/src/pixel/roadmap_dag.tests.rs` |
 | `magistr-cockpit/src/pixel/sparkline.rs` | A series of values as a line over a filled area | `magistr-cockpit/src/pixel/sparkline.tests.rs` |
 | `magistr-cockpit/src/pixel/surface.rs` | A rectangle of cells that a widget paints in pixels | `magistr-cockpit/src/pixel/surface.tests.rs` |
 

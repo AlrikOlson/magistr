@@ -211,19 +211,73 @@ fn row_toggle_opens_one_detail_at_a_time() {
 }
 
 #[test]
-fn the_tech_tree_layers_by_deps_and_bands_by_group() {
+fn the_tech_tree_layers_by_deps_and_retains_group_identity() {
     let roadmap = seeded();
     let nodes = roadmap.dag_nodes();
     assert_eq!(nodes.len(), 3, "active chunks only");
     // Store order: base, mid, ui. Deps make columns: base 0, mid 1, ui 2.
     assert!(nodes[0].x < nodes[1].x && nodes[1].x < nodes[2].x);
-    // Core (best priority 100) bands above Views (200).
-    assert!(nodes[0].y < nodes[2].y && nodes[1].y < nodes[2].y);
+    // One dependency chain stays in one lane even across workstreams.
+    assert_eq!(nodes[0].y, nodes[1].y);
+    assert_eq!(nodes[1].y, nodes[2].y);
     assert_eq!(nodes[0].region, nodes[1].region);
     assert_ne!(nodes[0].region, nodes[2].region);
     assert!(nodes[1].here, "in_progress is you-are-here");
     let edges = roadmap.dag_edges();
     assert_eq!(edges, vec![(0, 1), (1, 2)]);
+}
+
+#[test]
+fn connected_lanes_remove_a_priority_order_crossing() {
+    let mut roadmap = Roadmap::default();
+    roadmap.seed(
+        &[
+            chunk("a", "pending", 100, "One", &[]),
+            chunk("b", "pending", 200, "Two", &[]),
+            chunk("c", "pending", 100, "One", &["b"]),
+            chunk("d", "pending", 200, "Two", &["a"]),
+        ],
+        &[],
+    );
+    let nodes = roadmap.dag_nodes();
+    assert_eq!(nodes[0].y, nodes[3].y, "a -> d shares a lane");
+    assert_eq!(nodes[1].y, nodes[2].y, "b -> c shares a lane");
+    assert!((nodes[0].y - nodes[1].y).abs() >= ROW_STEP);
+    assert_eq!(roadmap.dag_edges(), vec![(1, 2), (0, 3)]);
+}
+
+#[test]
+fn layered_placement_is_stable_under_store_reordering() {
+    let chunks = vec![
+        chunk("a", "done", 100, "One", &[]),
+        chunk("b", "pending", 200, "Two", &[]),
+        chunk("c", "pending", 100, "One", &["a", "b"]),
+        chunk("d", "pending", 200, "Two", &["b"]),
+        chunk("e", "pending", 200, "Two", &["c", "d"]),
+    ];
+    let mut first = Roadmap::default();
+    first.seed(&chunks, &[]);
+    let mut reversed = chunks.clone();
+    reversed.reverse();
+    let mut second = Roadmap::default();
+    second.seed(&reversed, &[]);
+    let first_nodes = first.dag_nodes();
+    let second_nodes = second.dag_nodes();
+    for (at, id) in first.graph_ids().iter().enumerate() {
+        let other = second
+            .graph_ids()
+            .iter()
+            .position(|candidate| candidate == id)
+            .expect("same id");
+        assert_eq!(first_nodes[at], second_nodes[other]);
+    }
+    for (a, left) in first_nodes.iter().enumerate() {
+        for right in &first_nodes[a + 1..] {
+            if left.x == right.x {
+                assert!((left.y - right.y).abs() >= ROW_STEP - 0.001);
+            }
+        }
+    }
 }
 
 #[test]
