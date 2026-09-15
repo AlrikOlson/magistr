@@ -1,0 +1,15 @@
+# Pages that no longer exist on the site: send readers to the nearest live page.
+/docs/architecture   https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md  301
+/docs/architecture/  https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md  301
+/docs/development    https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
+/docs/development/   https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
+/docs/deployment     https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
+/docs/deployment/    https://github.com/AlrikOlson/magistr/blob/main/docs/development.md            301
+/docs/configuration  /docs/installation  301
+/docs/configuration/ /docs/installation  301
+/docs/skills         /docs/installation  301
+/docs/skills/        /docs/installation  301
+/docs/hooks          /docs/installation  301
+/docs/hooks/         /docs/installation  301
+/docs                /docs/installation  301
+/docs/               /docs/installation  301

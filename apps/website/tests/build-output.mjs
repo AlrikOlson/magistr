@@ -138,6 +138,11 @@ assert(robotsTxt.includes("User-agent: *") && robotsTxt.includes("Allow: /") && 
 const headersFile = readFileSync(resolve(distDir, "_headers"), "utf-8");
 assert(headersFile.includes("immutable") && headersFile.includes("must-revalidate") && headersFile.includes("/_astro/*"), "caching rules present");
 assert(headersFile.includes("X-Content-Type-Options") && headersFile.includes("X-Frame-Options"), "security headers present");
+assert(headersFile.includes("/docs/*") && headersFile.split("/docs/*")[1].includes("must-revalidate"), "page routes revalidate at the edge");
+const redirects = readFileSync(resolve(distDir, "_redirects"), "utf-8");
+for (const gone of ["/docs/architecture", "/docs/development", "/docs/deployment", "/docs/configuration", "/docs/skills", "/docs/hooks", "/docs"]) {
+  assert(new RegExp(`^${gone}/?\\s+\\S+\\s+301`, "m").test(redirects), `${gone} redirects permanently`);
+}
 
 console.log("\n404:");
 assert(notFoundHtml.includes("Page not found") && notFoundHtml.includes('href="/docs/installation"') && notFoundHtml.includes('href="/"'), "404 page links home and to the docs");
