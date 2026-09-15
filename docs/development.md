@@ -98,6 +98,19 @@ local project configuration and workflow state, including legacy state
 directories. `codex-remove` removes only the Codex integration, as
 documented in the [Codex reference](reference/codex.md#removal).
 
+## Website development and deployment
+
+The Astro site lives in `apps/website` and builds to `apps/website/dist`. Its focused checks are:
+
+```sh
+cd apps/website
+npm ci
+npm run build
+node tests/build-output.mjs
+```
+
+The Cloudflare Pages project is `magistr`, with [magistr.dev](https://magistr.dev) as the canonical host and `magistr.pages.dev` as the project URL. Verify the homepage, `/docs/installation`, and `/robots.txt` after a deployment. Keep website copy aligned with [release-inventory.md](release-inventory.md) and link detailed contracts back to the repository architecture docs.
+
 ## Release packages
 
 Run `./scripts/package-release.sh` to build the pinned release binary and package
