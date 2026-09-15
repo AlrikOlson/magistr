@@ -96,7 +96,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     eprintln!(
-        "Synthetic Harbor project: {} chunks, {edges} dependencies, {done} completed; four TUI2 captures.",
+        "Synthetic Harbor project: {} chunks, {edges} dependencies, {done} completed; four terminal captures.",
         snapshot.chunks.len()
     );
     Ok(())

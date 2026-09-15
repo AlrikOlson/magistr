@@ -11,25 +11,25 @@
   "images": [
     {
       "file": "tui2-roadmap-dark.png",
-      "sha256": "081ef60a0231982eb9e74b955a150852a8ef53cabe1d039e7bd05664660a0613",
+      "sha256": "7a178656d097e1fe0c33a7ae48d4c040a81b503a3e1d2eb6367c785c4a4dadad",
       "width": 1320,
       "height": 840
     },
     {
       "file": "tui2-roadmap-light.png",
-      "sha256": "d133eed187c67cc453733c242986333b3965c78c5972076b0af04a1465a2628c",
+      "sha256": "6d7b767a8fb5550c949e36a6fb29b5a0e3c8a24e054a835d2898ed8eb7e03978",
       "width": 1320,
       "height": 840
     },
     {
       "file": "tui2-trace-dark.png",
-      "sha256": "d9974f2058268979f357b8efa8d51eeca392dd2852ebf5ee2f2f576799fc0a3e",
+      "sha256": "6414e2f6382af4906f69e8f56f8b5fe8a34ca6f67fed72a704be1371299659c0",
       "width": 1320,
       "height": 840
     },
     {
       "file": "tui2-trace-light.png",
-      "sha256": "914988fa176e6745813e19276e0aeefd5e06daf1113567d6b874d93fd263a651",
+      "sha256": "4637d7a2da387603dbbdbee2bc00759e33bde6eb8f35914c042fcaace7f93351",
       "width": 1320,
       "height": 840
     }

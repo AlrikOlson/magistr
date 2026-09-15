@@ -3672,13 +3672,13 @@ mod pixel_chrome {
         );
         let pixels = row_with(&with_pixels(model()), "magistr");
         assert!(
-            pixels.starts_with("  magistr"),
-            "and the cell is blank for the mark: {pixels:?}"
+            pixels.contains("  magistr"),
+            "the pixel mark keeps a blank cell before the product name: {pixels:?}"
         );
         assert_eq!(
             cells.chars().count(),
-            pixels.chars().count(),
-            "the slot is the same width either way"
+            pixels.chars().count() + 1,
+            "pixel mode adds one outer gutter cell while preserving the brand slot"
         );
     }
 
@@ -3776,7 +3776,11 @@ mod pixel_chrome {
                 .any(|c| Icons::SPARK.contains(&c.to_string().as_str())),
             "the cells stand down for the surface: {pixels:?}"
         );
-        assert_eq!(cells.chars().count(), pixels.chars().count());
+        assert_eq!(
+            cells.chars().count(),
+            pixels.chars().count() + 1,
+            "the graphics gutter adds one visible cell without changing the monitor slot"
+        );
     }
 
     /// the monitor plots what the session spends.
