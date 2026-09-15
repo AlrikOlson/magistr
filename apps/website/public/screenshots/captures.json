@@ -10,6 +10,18 @@
   "annotations": false,
   "images": [
     {
+      "file": "terminal-overview-dark.png",
+      "sha256": "fe75fec01b5ef7873450bd4bd61ecc56034944995bc456d849191453e5a135be",
+      "width": 1320,
+      "height": 840
+    },
+    {
+      "file": "terminal-overview-light.png",
+      "sha256": "bb7b504da47c38a77db0d74e5c91ab1b53cdfcb8910059db5b89a69db4b2eb98",
+      "width": 1320,
+      "height": 840
+    },
+    {
       "file": "terminal-roadmap-dark.png",
       "sha256": "a12a461915061bdaaf38db410422c97a5b8677d6f472422173a4e4d0297179b8",
       "width": 1320,

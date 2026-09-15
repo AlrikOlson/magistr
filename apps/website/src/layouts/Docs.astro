@@ -7,11 +7,7 @@ interface Props { title: string; description: string; currentSlug: string; }
 const { title, description, currentSlug } = Astro.props;
 const allDocs = await getCollection("docs");
 const sorted = allDocs.sort((a,b)=>a.data.order-b.data.order);
-const categories = [
-  {id:"getting-started",label:"Getting Started"},
-  {id:"understand",label:"Understand Magistr"},
-  {id:"reference",label:"Reference"},
-] as const;
+// The docs are a short flat list; the order comes from each page.
 const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
   {"@type":"ListItem","position":1,"name":"Home","item":"https://magistr.dev"},
   {"@type":"ListItem","position":2,"name":"Docs","item":"https://magistr.dev/docs"},
@@ -24,15 +20,11 @@ const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","
     <aside class="docs-sidebar" aria-label="Documentation navigation">
       <a class="docs-back" href="/">← Magistr home</a>
       <div id="docs-search"></div>
-      {categories.map(({id,label}) => {
-        const items = sorted.filter((doc)=>doc.data.category===id);
-        if (!items.length) return null;
-        return <section class="docs-nav-group"><h2>{label}</h2><ul>{items.map((doc)=>{
-          const active=doc.id===currentSlug;
-          return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
-        })}</ul></section>;
-      })}
-      <div class="docs-repo-links"><a href="https://github.com/AlrikOlson/magistr/tree/main/docs" target="_blank" rel="noopener noreferrer">Repository docs ↗</a><a href="/docs/installation">Start at installation →</a></div>
+      <nav class="docs-nav-group" aria-label="Documentation pages"><ul>{sorted.map((doc)=>{
+        const active=doc.id===currentSlug;
+        return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
+      })}</ul></nav>
+      <div class="docs-repo-links"><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer">Architecture ↗</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/development.md" target="_blank" rel="noopener noreferrer">Development ↗</a></div>
     </aside>
     <main id="main-content" class="docs-main" data-pagefind-body>
       <div class="docs-breadcrumb"><a href="/">Magistr</a><span aria-hidden="true">/</span><a href="/docs/installation">Docs</a><span aria-hidden="true">/</span><span>{title}</span></div>

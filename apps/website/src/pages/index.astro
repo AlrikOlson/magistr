@@ -8,20 +8,17 @@ const jsonLd = [
 ];
 
 /** The terminal interface in both themes. */
-const captures = {
-  roadmap: {
-    alt: "The Roadmap tab: a dependency graph of work items with the item in progress selected, its dependency chain lit, and its detail card open below the graph.",
-  },
-  trace: {
-    alt: "The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card with its confidence and dependencies, and the recorded actions and checks below.",
-  },
+const alt = {
+  overview: "The Roadmap tab: a dependency graph of a project's work items, with the item in progress ringed and the list of items below.",
+  roadmap: "The Roadmap tab with the item in progress selected: its dependency chain stays lit, the rest fades, and its detail card is open below the graph.",
+  trace: "The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card, and the recorded actions and checks below.",
 };
 
 const docs = [
-  {title:"Installation",text:"Build the source release, initialize a project and connect an agent.",href:"/docs/installation"},
+  {title:"Installation",text:"Install, initialize a project and connect an agent.",href:"/docs/installation"},
   {title:"Concepts",text:"Roadmap, sessions, recorded work, verification and project state.",href:"/docs/concepts"},
-  {title:"Architecture",text:"Which crate owns what, and the client and host boundaries.",href:"/docs/architecture"},
-  {title:"Development",text:"The contributor commands and checks.",href:"/docs/development"},
+  {title:"Architecture",text:"Crate ownership and boundaries, in the repository.",href:"https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md",external:true},
+  {title:"Development",text:"Contributor commands and checks, in the repository.",href:"https://github.com/AlrikOlson/magistr/blob/main/docs/development.md",external:true},
 ];
 ---
 <Base title="Magistr — roadmap and workflow for coding agents" description="Keep a roadmap, run one focused work item at a time, and keep the reasoning, changes and checks that explain how a project moved." jsonLd={jsonLd}>
@@ -33,32 +30,32 @@ const docs = [
         <h1>Roadmap and workflow management <span>for coding agents.</span></h1>
         <p class="hero-lede">Magistr keeps a project's roadmap, runs one focused work item at a time, and records the reasoning, the changes and the checks along the way — in the project, not in a chat transcript.</p>
         <div class="hero-actions">
-          <a id="install-btn" class="button button-primary" href="#install">Install from source <span aria-hidden="true">→</span></a>
+          <a id="install-btn" class="button button-primary" href="#install">Install <span aria-hidden="true">→</span></a>
           <a class="button button-quiet" href="/docs/installation">Read the docs</a>
         </div>
-        <p class="hero-note">Rust workspace · cargo · runs locally · no account</p>
+        <p class="hero-note">Runs locally · open source · no account</p>
       </div>
       <figure class="capture hero-capture">
-        <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={captures.roadmap.alt} width="1320" height="840" fetchpriority="high" /></a>
-        <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={captures.roadmap.alt} width="1320" height="840" fetchpriority="high" /></a>
-        <figcaption>The Roadmap tab: work items, their dependencies, and the item in progress.</figcaption>
+        <a class="capture-light" href="/screenshots/terminal-overview-light.png"><img src="/screenshots/terminal-overview-light.png" alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
+        <a class="capture-dark" href="/screenshots/terminal-overview-dark.png"><img src="/screenshots/terminal-overview-dark.png" alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
+        <figcaption>The Roadmap tab: a project's work items, their dependencies, and the item in progress.</figcaption>
       </figure>
     </section>
 
-    <section id="terminal" class="section-shell section-block story" aria-labelledby="roadmap-title">
+    <section id="roadmap" class="section-shell section-block story" aria-labelledby="roadmap-title">
       <div class="story-copy">
         <p class="eyebrow">The roadmap</p>
         <h2 id="roadmap-title">Work items, their dependencies, and what is ready next.</h2>
         <ul class="facts">
-          <li><strong>A graph, not a list.</strong> Each work item sits one column after the last thing it depends on; shipped work is green, waiting work hollow, ready work filled.</li>
-          <li><strong>Selection lights the chain.</strong> Pick an item and everything it stands on, and everything that stands on it, stays lit while the rest fades.</li>
-          <li><strong>One item at a time.</strong> The item in progress carries its acceptance criteria and its dependencies into the session that works it.</li>
+          <li><strong>A graph, not a list.</strong> Each item is placed after the items it depends on. Done, ready and waiting items are drawn differently, so what can start next is visible at a glance.</li>
+          <li><strong>Select an item to see its context.</strong> Everything it depends on, and everything that depends on it, stays lit while the rest fades.</li>
+          <li><strong>One item at a time.</strong> The item in progress carries its acceptance criteria and its dependencies into the session that works on it.</li>
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={captures.roadmap.alt} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={captures.roadmap.alt} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The Roadmap tab with an item selected: its chain stays lit while the rest fades.</figcaption>
+        <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
+        <figcaption>The item in progress selected: its dependency chain stays lit and its details open below.</figcaption>
       </figure>
     </section>
 
@@ -67,20 +64,20 @@ const docs = [
         <p class="eyebrow">Reasoning and recorded work</p>
         <h2 id="trace-title">Every decision, and the checks behind it, stay with the project.</h2>
         <ul class="facts">
-          <li><strong>Reasoning steps as a graph.</strong> Steps run on a main line; a branch that was explored and merged shows as a lane that rejoins it.</li>
-          <li><strong>Pinned and checkpointed.</strong> A pinned step is kept in view for later sessions. A checkpoint is a saved, recoverable session state. They wear different marks.</li>
-          <li><strong>Recorded actions and checks.</strong> What was done and what passed or failed, with exit codes and durations, sits under the steps that motivated it.</li>
+          <li><strong>Reasoning as a graph.</strong> Steps run along a main line. A branch that was explored and merged shows as a lane that rejoins it.</li>
+          <li><strong>Pins and checkpoints.</strong> A pinned step is kept in view for later sessions. A checkpoint is a saved session state a later session can resume from.</li>
+          <li><strong>Actions and checks.</strong> What was done, and what passed or failed with its exit code and duration, is recorded under the steps that led to it.</li>
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href="/screenshots/terminal-trace-light.png"><img src="/screenshots/terminal-trace-light.png" alt={captures.trace.alt} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href="/screenshots/terminal-trace-dark.png"><img src="/screenshots/terminal-trace-dark.png" alt={captures.trace.alt} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The Trace tab: a selected step with its card, and the recorded work below.</figcaption>
+        <a class="capture-light" href="/screenshots/terminal-trace-light.png"><img src="/screenshots/terminal-trace-light.png" alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href="/screenshots/terminal-trace-dark.png"><img src="/screenshots/terminal-trace-dark.png" alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
+        <figcaption>The Trace tab: a selected step with its details, and the recorded work below.</figcaption>
       </figure>
     </section>
 
     <section id="install" class="section-shell section-block install" aria-labelledby="install-title">
-      <div class="section-heading"><p class="eyebrow">Install</p><h2 id="install-title">Build the source release.</h2><p>v0.1.0 is an early development release. It builds from the repository with Rust 1.95 or later; there is no registry package yet.</p></div>
+      <div class="section-heading"><p class="eyebrow">Install</p><h2 id="install-title">Install from the repository.</h2><p>v0.1.0 is an early development release. It builds with Rust 1.95 or later; there is no registry package yet.</p></div>
       <div class="install-grid">
         <div class="code-panel">
           <pre><code>git clone https://github.com/AlrikOlson/magistr.git
@@ -91,7 +88,7 @@ magistr --version</code></pre>
         <aside class="callout">
           <p class="card-eyebrow">Then, in your project</p>
           <ol>
-            <li><code>magistr init .</code> detects the stack and writes the project file and agent setup.</li>
+            <li><code>magistr init .</code> detects the stack and writes the project file and the agent setup.</li>
             <li><code>magistr</code> opens the terminal interface.</li>
             <li><code>magistr next</code> runs one ready work item; <code>magistr next-loop</code> continues through fresh sessions.</li>
           </ol>
@@ -102,7 +99,9 @@ magistr --version</code></pre>
 
     <section class="section-shell docs-index" aria-labelledby="docs-title">
       <div><p class="eyebrow">Keep reading</p><h2 id="docs-title">Documentation</h2></div>
-      <div class="doc-links">{docs.map((doc) => <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">→</span></a>)}</div>
+      <div class="doc-links">{docs.map((doc) => doc.external
+        ? <a href={doc.href} target="_blank" rel="noopener noreferrer"><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a>
+        : <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">→</span></a>)}</div>
     </section>
   </main>
   <footer class="site-footer"><div class="section-shell"><span>Magistr · roadmap and workflow management for coding agents</span><a href="/docs/installation">Documentation</a><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a><a href="https://github.com/AlrikOlson/magistr/issues" target="_blank" rel="noopener noreferrer">Issues <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a></div></footer>

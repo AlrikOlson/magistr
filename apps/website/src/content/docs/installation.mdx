@@ -1,19 +1,18 @@
 ---
 title: Installation
-description: Build Magistr from source, initialize a project and connect an agent.
+description: Install Magistr, initialize a project and connect an agent.
 order: 1
-category: getting-started
 ---
 
 # Installation
 
-Magistr is an early development release (v0.1.0). It builds from the [repository](https://github.com/AlrikOlson/magistr); there is no registry package yet.
+Magistr is an early development release (v0.1.0). It builds from the [repository](https://github.com/AlrikOlson/magistr); there is no registry package yet. The terminal interface and the command line are the supported way to use it; the desktop interface is experimental and not part of the release.
 
 > **Permission and privacy boundary**
 >
 > Magistr runs locally and keeps its state in the project. Your agent runtime keeps its own credentials and operating-system permissions; Magistr does not sandbox it. Review commands and generated files before using it on a sensitive checkout.
 
-## Build from source
+## Install
 
 Requires Git and Rust 1.95 or later.
 
@@ -40,20 +39,18 @@ magistr
 
 ## The project file
 
-`magistr init` creates `.magistr/project.json`. It records the commands Magistr runs as quality gates, any required custom gates, the test conventions and the roadmap settings. Change only the values your project needs.
-
-The roadmap itself is native state kept by Magistr. Keep `roadmap_exports` set to `false` so no `ROADMAP.md` or `ROADMAP.json` file competes with it.
+`magistr init` creates `.magistr/project.json`. It records the commands Magistr runs as quality gates, any required custom gates, the test conventions and the roadmap settings. Change only the values your project needs. The roadmap itself is stored by Magistr inside `.magistr/`.
 
 ## Connect an agent
 
-For Codex, select it at initialization; the generated launcher starts Codex with the project's setup:
+Claude Code setup is always written. Add other agents with `--agent`, which accepts `codex`, `copilot`, `cursor`, `cline`, `windsurf` and `aider`, separately or combined:
 
 ```sh
 magistr init . --agent codex --yes
 ./.codex/run
 ```
 
-For Claude Code, run `magistr init . --yes`, then launch `claude` in the project. Targets can be combined, such as `--agent codex,cursor`.
+For Claude Code, run `magistr init . --yes`, then launch `claude` in the project.
 
 The setup installs the workflow commands the agent uses: `/next` (Codex: `$next`) carries one ready work item through the workflow and stops; `/roadmap-refresh` reshapes the roadmap without implementing anything; `/validate` runs the configured checks.
 
@@ -63,10 +60,6 @@ The setup installs the workflow commands the agent uses: `/next` (Codex: `$next`
 magistr next
 ```
 
-Runs the next ready work item in a session and records what happened. `magistr next-loop` continues through fresh agent sessions, one work item per session, until the bound you give it.
-
-## Release archives
-
-Release archives and checksums are tracked in the [release inventory](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md). The desktop interface is experimental and is not part of the release.
+Runs the next ready work item in a session and records what happened. `magistr next-loop` continues through fresh agent sessions, one work item per session, up to `--max-iterations` (default 10).
 
 Continue with [concepts](/docs/concepts).

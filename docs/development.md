@@ -25,7 +25,15 @@ npm ci
 npm test
 ```
 
-The site deploys to the existing Cloudflare Pages project `magistr`. Verify [magistr.dev](https://magistr.dev), `/docs/installation`, and `/robots.txt` after a deploy.
+`npm test` builds the site and checks the built output. The site deploys to the Cloudflare Pages project `magistr`, whose production alias is [magistr.dev](https://magistr.dev):
+
+```sh
+cd apps/website
+npm test
+wrangler pages deploy dist --project-name magistr --branch main
+```
+
+Verify [magistr.dev](https://magistr.dev), `/docs/installation` and `/robots.txt` after a deploy.
 
 ## Contributions
 
