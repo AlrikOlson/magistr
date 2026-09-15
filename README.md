@@ -41,13 +41,12 @@ For Claude Code, run `magistr init . --yes`, then launch `claude`.
 
 ## The native cockpit
 
-These are current TUI2 cockpit captures from the workspace:
+TUI2's Roadmap tab, rendered from this repository's native state:
 
-![Magistr TUI2 workbench view](apps/website/public/screenshots/magistr-tui2-workbench-clean.png)
-
-![Magistr TUI2 receipt view](apps/website/public/screenshots/magistr-tui2-receipt-clean.png)
-
-![Magistr TUI2 session view](apps/website/public/screenshots/magistr-tui2-session-clean.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/tui2-roadmap-dark.png" />
+  <img alt="TUI2 terminal cockpit showing the roadmap and its dependencies." src="apps/website/public/screenshots/tui2-roadmap-light.png" width="1320" height="840" />
+</picture>
 
 The native cockpit is the primary supported interface. `magistr next` runs one ready roadmap chunk; `magistr next-loop` continues through fresh provider sessions. Agent skills use `$next` or `/next`, and `$validate` or `/validate`.
 

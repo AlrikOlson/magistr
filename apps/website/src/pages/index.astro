@@ -31,15 +31,9 @@ const docs = [
         </div>
         <p class="hero-note">Rust workspace · cargo · no hosted account required</p>
       </div>
-      <div class="hero-card" aria-label="Magistr workflow preview">
-        <div class="window-bar"><span></span><span></span><span></span><code>magistr / project</code></div>
-        <div class="workflow-preview">
-          <div class="preview-label">CURRENT CHUNK</div>
-          <strong>Capture project inputs</strong>
-          <div class="preview-row"><span class="check">✓</span><span>Dependencies resolved</span><code>ready</code></div>
-          <div class="preview-row"><span class="check">✓</span><span>Acceptance written</span><code>3/3</code></div>
-          <div class="preview-row active"><span class="play">▶</span><span>Next action</span><code>ship_start</code></div>
-        </div>
+      <div class="hero-card terminal-preview">
+        <a class="capture-light" href="/screenshots/tui2-roadmap-light.png" title="Open full-size TUI2 roadmap capture"><img src="/screenshots/tui2-roadmap-light.png" alt="TUI2 terminal cockpit showing Magistr's roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
+        <a class="capture-dark" href="/screenshots/tui2-roadmap-dark.png" title="Open full-size TUI2 roadmap capture"><img src="/screenshots/tui2-roadmap-dark.png" alt="TUI2 terminal cockpit showing Magistr's roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
       </div>
     </section>
 
@@ -56,12 +50,19 @@ const docs = [
       </div>
     </section>
 
-    <section id="concept-maps" class="section-shell section-block">
-      <div class="section-heading"><p class="eyebrow">The native cockpit</p><h2>See the TUI2 cockpit in context</h2><p>These captures show the current TUI2 surface: a live workbench, a receipt detail view, and the session overview that connects them.</p></div>
+    <section id="screenshots" class="section-shell section-block">
+      <div class="section-heading"><p class="eyebrow">The terminal cockpit</p><h2>TUI2 terminal cockpit</h2><p>Roadmap and Trace views rendered by Magistr's terminal renderer from this repository's native state. Open a capture to see it at full size.</p></div>
       <div class="screenshot-grid">
-        <article class="map-card screenshot-card"><img src="/screenshots/magistr-tui2-workbench-clean.png" alt="Magistr TUI2 workbench showing a live run, source cards, checkpoints, and an agent session." loading="lazy" width="1132" height="605" /><div><h3>Workbench view</h3><p>One surface for the active run, source work, checkpoints, and session controls.</p></div></article>
-        <article class="map-card screenshot-card"><img src="/screenshots/magistr-tui2-receipt-clean.png" alt="Magistr TUI2 receipt view showing an edited Rust file, rollback controls, and linked project references." loading="lazy" width="1132" height="607" /><div><h3>Receipt view</h3><p>A completed action keeps its diff, rollback path, and project references together.</p></div></article>
-        <article class="map-card screenshot-card"><img src="/screenshots/magistr-tui2-session-clean.png" alt="Magistr TUI2 session view showing the identity band, ledger, checkpoint row, action cards, and verification status." loading="lazy" width="1132" height="606" /><div><h3>Session view</h3><p>The identity band and ledger keep the current iteration legible while work moves.</p></div></article>
+        {[
+          {name:"roadmap",title:"Roadmap",alt:"TUI2 terminal Roadmap tab with a dependency graph, chunk status, and pending work.",text:"Dependencies, status, and the next work in the project."},
+          {name:"trace",title:"Trace",alt:"TUI2 terminal Trace tab showing stored reasoning and an expanded decision alongside the current plan.",text:"Recorded reasoning and ship actions stay with the project."},
+        ].map((capture) => (
+          <article class="map-card screenshot-card">
+            <a class="capture-light" href={`/screenshots/tui2-${capture.name}-light.png`} title={`Open full-size ${capture.title} capture`}><img src={`/screenshots/tui2-${capture.name}-light.png`} alt={capture.alt} loading="lazy" width="1320" height="840" /></a>
+            <a class="capture-dark" href={`/screenshots/tui2-${capture.name}-dark.png`} title={`Open full-size ${capture.title} capture`}><img src={`/screenshots/tui2-${capture.name}-dark.png`} alt={capture.alt} loading="lazy" width="1320" height="840" /></a>
+            <div><h3>{capture.title}</h3><p>{capture.text}</p></div>
+          </article>
+        ))}
       </div>
     </section>
 

@@ -3,6 +3,7 @@
  * Run with: node tests/build-output.mjs (after `npm run build`)
  */
 import { readFileSync, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -45,15 +46,22 @@ assert(indexHtml.includes("github.com"), "GitHub link present");
 assert(indexHtml.includes("backdrop-blur"), "nav has backdrop blur");
 
 console.log("\nTUI2 screenshots:");
-assert(indexHtml.includes('id="concept-maps"'), "TUI2 section present");
-assert(indexHtml.includes("See the TUI2 cockpit in context"), "TUI2 section heading present");
-assert(indexHtml.includes("Workbench view"), "workbench screenshot caption present");
-assert(indexHtml.includes("Receipt view"), "receipt screenshot caption present");
-assert(indexHtml.includes("Session view"), "session screenshot caption present");
-assert(indexHtml.includes("/screenshots/magistr-tui2-workbench-clean.png"), "workbench screenshot asset present");
-assert(indexHtml.includes("/screenshots/magistr-tui2-receipt-clean.png"), "receipt screenshot asset present");
-assert(indexHtml.includes("/screenshots/magistr-tui2-session-clean.png"), "session screenshot asset present");
-assert(!indexHtml.includes("demo.cast"), "legacy cast removed");
+assert(indexHtml.includes('id="screenshots"'), "terminal screenshots section present");
+assert(indexHtml.includes("TUI2 terminal cockpit"), "terminal section heading present");
+assert(!indexHtml.includes("workflow-preview"), "handmade workflow preview removed");
+const captures = JSON.parse(readFileSync(resolve(distDir, "screenshots/captures.json"), "utf-8"));
+assert(captures.renderer === "magistr-tui::screenshot::frame" && captures.surface === "Terminal", "capture provenance names the terminal renderer");
+assert(captures.images.length === 4, "roadmap and trace captures have both themes");
+for (const capture of captures.images) {
+  assert(indexHtml.includes("/screenshots/" + capture.file), capture.file + " referenced");
+  const png = readFileSync(resolve(distDir, "screenshots", capture.file));
+  assert(png.readUInt32BE(16) === capture.width && png.readUInt32BE(20) === capture.height, capture.file + " keeps its full viewport");
+  assert(createHash("sha256").update(png).digest("hex") === capture.sha256, capture.file + " matches the captured bytes");
+}
+for (const oldView of ["workbench", "receipt", "session"]) {
+  const oldAsset = "magistr-tui2-" + oldView + "-clean.png";
+  assert(!indexHtml.includes(oldAsset) && !existsSync(resolve(distDir, "screenshots", oldAsset)), "mislabeled GUI2 " + oldView + " asset removed");
+}
 assert(!indexHtml.includes("AsciinemaPlayer"), "legacy player removed");
 assert(!indexHtml.includes("illustrative"), "placeholder copy removed");
 assert(!indexHtml.includes("Mermaid source"), "no Mermaid diagram disclosures");
