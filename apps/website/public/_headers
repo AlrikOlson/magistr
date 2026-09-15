@@ -10,6 +10,13 @@
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 
+# Pages serves a page's index.html at its directory route; those routes
+# revalidate too, so a removed page never lingers at the edge for a week.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/docs/*
+  Cache-Control: public, max-age=0, must-revalidate
+
 # Hashed assets (JS, CSS) — immutable, long cache
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
