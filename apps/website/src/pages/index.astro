@@ -37,16 +37,23 @@ const docs = [
       </div>
     </section>
 
-    <section id="features" class="section-shell section-block">
-      <div class="section-heading"><p class="eyebrow">The product model</p><h2>Shape the roadmap. Make the change. Leave evidence.</h2><p>Magistr is a local workspace around your repository. It keeps workflow state in the project and lets different clients share the same semantic model.</p></div>
-      <div class="pillar-grid sm:grid-cols-2 lg:grid-cols-3">
-        {pillars.map((pillar) => <article class="feature-card"><p class="card-eyebrow">{pillar.eyebrow}</p><h3>{pillar.title}</h3><p>{pillar.text}</p></article>)}
-        <article class="feature-card"><p class="card-eyebrow">04 / Scaffold</p><h3>Scaffolding</h3><p>Generate project guidance and agent files that match the detected stack.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">05 / Review</p><h3>Recorded iteration</h3><p>Every work item keeps a readable record of changes and checks.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">06 / Clients</p><h3>Terminal interface</h3><p>Shared interface state stays independent from terminal transport details.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">07 / Project state</p><h3>Roadmap Tracking</h3><p>Project-local roadmap state makes the next item and its dependencies visible.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">08 / Tools</p><h3>Repository tools</h3><p>Verified source navigation and workflow tools keep work grounded in the repository.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">09 / Experimental</p><h3>Desktop &amp; peer protocol</h3><p>The desktop viewer and peer protocol remain clearly marked experimental or compatibility-only.</p></article>
+    <section id="features" class="section-shell section-block product-section">
+      <div class="section-heading"><p class="eyebrow">The product model</p><h2>One loop, with a clear owner at every step.</h2><p>Magistr gives a project a durable loop: shape the work, make one bounded change, then keep the proof close to the decision.</p></div>
+      <div class="product-flow pillar-grid sm:grid-cols-2 lg:grid-cols-3">
+        <div class="flow-steps">
+          {pillars.map((pillar, index) => <article class="flow-step"><span class="flow-step-number">0{index + 1}</span><div><p class="card-eyebrow">{pillar.eyebrow}</p><h3>{pillar.title}</h3><p>{pillar.text}</p></div></article>)}
+        </div>
+        <aside class="capability-panel">
+          <div class="capability-panel-head"><div><p class="card-eyebrow">In every project</p><h3>Useful surfaces, one shared record.</h3></div><span class="capability-version">v0.1.0</span></div>
+          <div class="capability-list">
+            <article class="feature-card"><p class="card-eyebrow">Scaffold</p><h3>Scaffolding</h3><p>Generate project guidance and agent files that match the detected stack.</p></article>
+            <article class="feature-card"><p class="card-eyebrow">Record</p><h3>Recorded iteration</h3><p>Keep the decisions, actions, checks, and artifacts from each work item.</p></article>
+            <article class="feature-card"><p class="card-eyebrow">Navigate</p><h3>Terminal interface</h3><p>Inspect the roadmap and current work through the supported local client.</p></article>
+            <article class="feature-card"><p class="card-eyebrow">Track</p><h3>Roadmap Tracking</h3><p>See the next item, its dependencies, and what is ready to move.</p></article>
+            <article class="feature-card"><p class="card-eyebrow">Ground</p><h3>Repository tools</h3><p>Verified source navigation and workflow tools keep work grounded in the repository.</p></article>
+            <article class="feature-card feature-card-muted"><p class="card-eyebrow">Experimental</p><h3>Desktop &amp; peer protocol</h3><p>The desktop viewer remains available for evaluation while the terminal path stays primary.</p></article>
+          </div>
+        </aside>
       </div>
     </section>
 
