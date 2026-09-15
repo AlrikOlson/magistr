@@ -41,20 +41,22 @@ For Claude Code, run `magistr init . --yes`, then launch `claude`.
 
 ## The terminal interface
 
-The terminal Roadmap view, rendered from a realistic sample Harbor project:
+Magistr’s terminal interface keeps the roadmap, current work, and verification in one view. This capture uses a realistic sample project:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/tui2-roadmap-dark.png" />
-  <img alt="Magistr terminal interface showing the roadmap and its dependencies." src="apps/website/public/screenshots/tui2-roadmap-light.png" width="1320" height="840" />
+  <img alt="Magistr terminal interface showing a project roadmap and its dependencies." src="apps/website/public/screenshots/tui2-roadmap-light.png" width="1320" />
 </picture>
 
-The terminal interface is the primary supported surface. `magistr next` runs one ready work item; `magistr next-loop` continues through fresh agent sessions. Agent skills use `$next` or `/next`, and `$validate` or `/validate`.
+Run `magistr next` for one ready work item or `magistr next-loop` to continue through fresh agent sessions.
 
 ## Status
 
-- Project-local roadmap state is authoritative; `roadmap_exports: false` keeps generated roadmap files out of the project.
-- The desktop interface is experimental and the peer protocol is compatibility-only.
-- There is no crates.io install path yet. Provider credentials and operating-system permissions remain with your runtime.
+Magistr v0.1.0 is an early, source-first release.
+
+- The terminal interface and local CLI are the supported path.
+- The desktop interface is experimental.
+- There is no crates.io package yet.
 
 ## Development
 
