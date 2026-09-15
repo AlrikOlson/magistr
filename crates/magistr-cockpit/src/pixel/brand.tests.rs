@@ -26,8 +26,11 @@ fn the_route_mark_is_drawn_on_transparency_in_its_colour() {
         0,
         "bottom-right corner is clear"
     );
-    let node_y = ((h as f32) / 2.0 + 0.16 * (w as f32)) as u32;
-    let at = usize::try_from((node_y * w + w / 2) * 4).expect("index");
+    let side = (w.min(h) as f32) * 0.68;
+    let cx = w as f32 / 2.0 + side * 0.04;
+    let node_x = cx.round() as u32;
+    let node_y = (h as f32 / 2.0 + 0.16 * side).round() as u32;
+    let at = usize::try_from((node_y * w + node_x) * 4).expect("index");
     let px = &surface.pixels()[at..at + 4];
     assert!(px[3] > 200, "the centre node is opaque: {}", px[3]);
     assert!(px[2] > px[0], "and wears the mark's blue: {px:?}");
@@ -37,14 +40,15 @@ fn the_route_mark_is_drawn_on_transparency_in_its_colour() {
 fn the_route_has_three_visible_nodes() {
     let surface = render(Brand::new(255, 255, 255));
     let (w, h) = (u32::from(surface.width()), u32::from(surface.height()));
-    let side = w as f32 * 0.78;
+    let side = w.min(h) as f32 * 0.68;
+    let cx = w as f32 / 2.0 + side * 0.04;
     let cy = h as f32 / 2.0;
     for (label, x, y) in [
         ("left", -0.42_f32, -0.40_f32),
         ("centre", 0.0, 0.16),
         ("right", 0.42, -0.40),
     ] {
-        let px = (x.mul_add(side, side / 2.0).round() as u32).min(w - 1);
+        let px = (x.mul_add(side, cx).round() as u32).min(w - 1);
         let py = (y.mul_add(side, cy).round() as u32).min(h - 1);
         assert!(alpha_at(&surface, px, py) > 40, "{label} node");
     }

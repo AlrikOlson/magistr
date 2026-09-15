@@ -142,7 +142,15 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
             .child(undock(model, tab, &pen));
     }
 
+    // Graphics terminals get a one-cell gutter around the whole cockpit.
+    // It keeps panels and raster surfaces off the frame edge, which is
+    // especially important for screenshots where there is no window chrome
+    // to provide that visual boundary. Text-only terminals retain their
+    // dense full-width layout.
     let mut root = Node::column().style(pen.base.clone());
+    if model.has_pixels() {
+        root = root.padding(Space::PAD);
+    }
     root = root.child(header);
     root = root.child(status_strip(model, &pen));
     // The plain-text session's one-line banner: which terminal would
@@ -2701,6 +2709,12 @@ fn header_bar(model: &Model, clock: &FrameClock, pen: &Pen) -> Node {
         .style(pen.footer.clone())
         .gap(Space::GAP)
         .height(Length::Cells(1));
+    // Give the vector mark a deliberate breathing cell in pixel mode. The
+    // raster surface occupies the brand slot itself, so this keeps captures
+    // and narrow terminals from pressing the mark against the frame edge.
+    if model.has_pixels() {
+        bar = bar.child(Node::text(" ").shrink(0.0).width(Length::Cells(1)));
+    }
     bar = bar.child(brand_slot(model, pen));
     if let Some(title) = model.title() {
         bar = bar.child(segment(title, pen.permission.clone()));

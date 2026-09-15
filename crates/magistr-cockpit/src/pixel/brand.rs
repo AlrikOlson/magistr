@@ -52,8 +52,8 @@ impl Painter for Brand {
     fn paint(&self, pixmap: &mut PixmapMut<'_>) {
         pixmap.fill(Color::TRANSPARENT);
         let (width, height) = (pixmap.width() as f32, pixmap.height() as f32);
-        let side = width.min(height) * 0.78;
-        let (cx, cy) = (width / 2.0, height / 2.0);
+        let side = width.min(height) * 0.68;
+        let (cx, cy) = (width / 2.0 + side * 0.04, height / 2.0);
         let at = |(x, y): (f32, f32)| (x.mul_add(side, cx), y.mul_add(side, cy));
 
         let mut path = PathBuilder::new();
