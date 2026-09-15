@@ -8,12 +8,6 @@ import pagefind from "astro-pagefind";
 
 export default defineConfig({
   site: "https://magistr.dev",
-  image: {
-    remotePatterns: [
-      { protocol: "https", hostname: "**.githubusercontent.com" },
-      { protocol: "https", hostname: "**.gravatar.com" },
-    ],
-  },
   integrations: [
     expressiveCode({
       themes: ["tokyo-night"],

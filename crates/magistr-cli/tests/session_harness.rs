@@ -257,8 +257,21 @@ async fn two_turns_on_one_session_without_reconnecting() {
 
 /// Where the strip's `button` lands at [`SIZE`] while a request for
 /// `title` is pending — the layout is pure, so the test can ask it.
+/// The mode the kitty probe settles on: pixels and pointer shapes, the
+/// arrangement every locator in this harness must lay out.
+fn pixel_mode() -> Msg {
+    Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+        pointer_shapes: true,
+    })
+}
+
 fn button_cell(title: &str, button: Widget) -> (u16, u16) {
+    // The harness terminal answers the kitty probe, so the live cockpit
+    // is on its pixel arrangement — one gutter cell around everything.
+    // The locator lays out the same arrangement, or the click lands a
+    // cell off the button and the ask is never answered.
     let mut model = Model::new(SIZE);
+    update(&mut model, pixel_mode());
     update(
         &mut model,
         Msg::Agent(AgentEvent::Text("Hello there".to_owned())),
@@ -683,10 +696,15 @@ async fn the_ledger_palette_round_trips_through_the_checkpoint_port() {
     );
     assert!(screen.contains("forked cp-1 · try/other-way"), "{screen}");
     assert!(screen.contains("restored cp-1 · iteration 7"), "{screen}");
-    // Wrapped across two rows on an 80-column stage, so the assertion
-    // is on the phrase rather than on where the wrap put it.
+    // Wrapped across rows on an 80-column stage, so the assertion is on
+    // the phrase with the whitespace squashed rather than on where the
+    // wrap put it.
+    let squashed: String = screen
+        .chars()
+        .filter(|c| !c.is_whitespace() && !matches!(c, '│' | '▎'))
+        .collect();
     assert!(
-        screen.contains("left behind: the"),
+        squashed.contains("leftbehind:the"),
         "what the resume could not bring is on screen, not dropped: {screen}"
     );
 }
@@ -727,14 +745,24 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
     // from its second frame on; heights must match for the coordinates
     // to land.
     let rect_of = |m: &Model, id: magistr_cockpit::widget_id::WidgetId| -> Rect {
+        // On the pixel arrangement the live run paints, gutters and all.
+        let mut m = m.clone();
+        magistr_cockpit::cockpit::update(&mut m, pixel_mode());
         let resolved = LayoutTree::new()
-            .compute(&view(m, &FrameClock::new(0, MS(0))), SIZE.cols, SIZE.rows)
+            .compute(&view(&m, &FrameClock::new(0, MS(0))), SIZE.cols, SIZE.rows)
             .expect("layout succeeds");
         resolved
             .placed()
             .iter()
             .find_map(|p| (p.id == Some(id)).then_some(p.rect))
-            .expect("the widget is on screen")
+            .unwrap_or_else(|| {
+                let placed: Vec<String> = resolved
+                    .placed()
+                    .iter()
+                    .filter_map(|p| p.id.map(|id| format!("{id:?}@{:?}", p.rect)))
+                    .collect();
+                panic!("{id:?} is not on screen; placed: {placed:#?}")
+            })
     };
     let mut preview = model.clone();
     preview.set_roadmap_graph_rect(Some(Rect::new(0, 0, 40, 8)));

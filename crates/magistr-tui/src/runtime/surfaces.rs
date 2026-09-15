@@ -25,11 +25,16 @@ use magistr_cockpit::turn::{Accent, RowKind};
 use magistr_cockpit::widget_id::WidgetId;
 
 /// What the cached branch graph was painted from: the steps' lanes, the
-/// fork links, the rect it covers, the cell size it was scaled by and
-/// the frame of the sweep drawing it in (`None` once it is settled).
+/// fork and merge links, the selection's focus and index, the pins, the
+/// rect it covers, the cell size it was scaled by and the frame of the
+/// sweep drawing it in (`None` once it is settled).
 type GraphKey = (
     Vec<(u32, u8)>,
     Vec<(usize, usize)>,
+    Vec<(usize, usize)>,
+    Option<Vec<bool>>,
+    Option<usize>,
+    Vec<bool>,
     Rect,
     CellSize,
     Option<u32>,
@@ -384,7 +389,12 @@ impl Surfaces {
         }));
         let mut shown = Vec::with_capacity(targets.len());
         for (id, icon) in targets {
-            let Some(rect) = placed_id(resolved, id) else {
+            // The glyph takes the label's first two cells — the blanks
+            // the view leaves ahead of the word — so the word stays
+            // readable beside it.
+            let Some(rect) =
+                placed_id(resolved, id).map(|slot| Rect::new(slot.x, slot.y, slot.width.min(2), 1))
+            else {
                 continue;
             };
             let key = (id, rect, cell, icon);
@@ -423,7 +433,6 @@ impl Surfaces {
     /// the left over [`Motion::SWEEP_STEPS`](magistr_cockpit::cockpit::Motion::SWEEP_STEPS)
     /// — one repaint per animation step, and none once the sweep is
     /// over, so a settled Trace tab is the frame it always was.
-
     fn show_trace_graph(&mut self, model: &Model, resolved: &Resolved, screen: &mut Screen) {
         if !screen.has_graphics() {
             return;
@@ -444,16 +453,25 @@ impl Surfaces {
         // finer than any graph is wide, and coarse enough that a settled
         // graph — sweep gone, `None` — stops repainting for good.
         let sweep = model.motion().trace_sweep(trace.steps().len(), model.now());
+        let focus = trace.focus();
         let key = (
             trace.lanes(),
             trace.links(),
+            trace.merges(),
+            focus.as_ref().map(|focus| focus.lit.clone()),
+            focus.as_ref().map(|focus| focus.selected),
+            trace.pins(),
             rect,
             cell,
             sweep.map(|t| (t * 1000.0) as u32),
         );
         if self.graph_key.as_ref() != Some(&key) {
             let lanes: Vec<u8> = key.0.iter().map(|&(_, lane)| lane).collect();
-            let mut graph = BranchGraph::new(lanes, key.1.clone()).sweep(sweep);
+            let mut graph = BranchGraph::new(lanes, key.1.clone())
+                .merges(key.2.clone())
+                .focus(key.3.clone(), key.4)
+                .pins(key.5.clone())
+                .sweep(sweep);
             if let Color::Rgb(r, g, b) = Pen::for_theme(&model.theme()).stage.bg {
                 graph = graph.background(r, g, b);
             }
@@ -600,7 +618,8 @@ impl Surfaces {
         if self.rail_key.as_ref() != Some(&key) {
             let mut dag = RoadmapDag::new(key.0.clone(), key.1.clone(), (cell.width, cell.height))
                 .routes(key.2.clone())
-                .glow(key.5);
+                .glow(key.5)
+                .bands(false);
             if let Color::Rgb(r, g, b) = Pen::for_theme(&model.theme()).stage.bg {
                 dag = dag.background(r, g, b);
             }

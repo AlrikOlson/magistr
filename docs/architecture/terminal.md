@@ -96,6 +96,18 @@ priority over ambient effects. The checked
 [motion registry](../reference/cockpit-modules.md#motion-registry) lists the names, meanings,
 and day/night forms used by the code.
 
+The two graphs are pure geometry before they are pixels. The roadmap's
+dependency graph comes from the cockpit's layered layout engine: ranks are
+compacted toward each item's earliest dependent, long edges are routed
+through free rows on every rank they cross, crossings are reduced by
+barycentre sweeps, and the same input always yields the same placement;
+the painter draws only the transitive reduction and lights the whole
+chain to a selection instead of drawing implied edges through nodes. The
+Trace tab's step graph is the reasoning's lanes — the main line and each
+branch — with fork and merge links read off the recorded branch statuses,
+and the selection's ancestors and descendants lit. Both keep a text form
+on a plain terminal: the workstream legend and the lane list.
+
 Theme pens enforce contrast floors. Color and icons communicate status through
 a shared vocabulary; terminal protocol details stay in the renderer. Desktop
 color, typography, icon, and interaction rules are documented

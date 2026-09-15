@@ -149,8 +149,8 @@ fn every_named_widget_is_either_a_control_or_chrome() {
         "the docked screen is the wheel's target, not a control"
     );
     assert_eq!(
-        lifting, 44,
-        "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four and the meter's Raise among them"
+        lifting, 45,
+        "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four, the meter's Raise and the trace card's More among them"
     );
     assert_eq!(
         linking,

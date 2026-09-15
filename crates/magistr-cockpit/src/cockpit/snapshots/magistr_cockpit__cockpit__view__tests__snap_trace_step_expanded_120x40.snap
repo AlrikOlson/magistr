@@ -1,32 +1,32 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen
 ---
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
-│no objective yet          │ │think trace  [Checkpoint]                                                                │
+│no objective yet          │ │reasoning  5 steps · 1 branch · 1 pinned  [✱ Checkpoint]                                 │
 │roadmap 0/0 done          │ │main · 3 steps                                                                           │
 │signals 0                 │ │└─ alt path (merged) from 2 · 2 steps                                                    │
-│                          │ │▾ ✦ think 1 · hypothesis · 0.62 ★                                                        │
-│                          │ │  [Unpin]                                                                                │
-│                          │ │  purpose · hypothesis                                                                   │
-│                          │ │  context · the trace tab                                                                │
-│                          │ │  thought · the feed can drive the whole surface                                         │
-│                          │ │  outcome · it can                                                                       │
-│                          │ │  next action · wire the view                                                            │
-│                          │ │  rationale · one fold path for feed and port                                            │
-│                          │ │  confidence · 0.62                                                                      │
-│                          │ │  uncertainty · no branch case yet                                                       │
-│                          │ │  estimated total · 4                                                                    │
-│                          │ │  depends on · 7, 9                                                                      │
-│                          │ │  execution ref · task:trace-state                                                       │
-│                          │ │▸ ✦ think 2 · analysis · 0.70 · revised by 5                                             │
-│                          │ │▸ ✦ think 3 · hypothesis (alt path)                                                      │
-│                          │ │▸ ✦ think 4 · validation (b-alt)                                                         │
-│                          │ │▸ ✦ think 5 · correction                                                                 │
-│                          │ │ship                                                                                     │
+│                          │ │▾  1  hypothesis  0.62 ★                                                                 │
+│                          │ │                                                                                         │
+│                          │ │  ▎ step 1 · hypothesis                                                                  │
+│                          │ │  ▎ confidence 0.62 · depends on 7, 9 · estimate 4 · pinned                              │
+│                          │ │  ▎ [★ Unpin]  [Less]                                                                    │
+│                          │ │  ▎ context      the trace tab                                                           │
+│                          │ │  ▎ thought      the feed can drive the whole surface                                    │
+│                          │ │  ▎ outcome      it can                                                                  │
+│                          │ │  ▎ next action  wire the view                                                           │
+│                          │ │  ▎ rationale    one fold path for feed and port                                         │
+│                          │ │  ▎ uncertainty  no branch case yet                                                      │
+│                          │ │  ▎ execution ref task:trace-state                                                       │
+│                          │ │                                                                                         │
+│                          │ │▸  2  analysis · revised by 5  0.70                                                      │
+│                          │ │▸  3  hypothesis (alt path)                                                              │
+│                          │ │▸  4  validation (b-alt)                                                                 │
+│                          │ │▸  5  correction                                                                         │
+│                          │ │recorded work                                                                            │
 │                          │ │▸ code · wired the trace tab (trace-state)                                               │
 │                          │ │✓ test · exit 0 · 5.4s                                                                   │
 │                          │ │✗ lint · exit 101 · 900ms                                                                │
@@ -41,4 +41,4 @@ Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- enter  send   ↑↓  history   ctrl-d  quit
+ ↑↓  select   enter  detail   ctrl-d  quit

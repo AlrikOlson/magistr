@@ -1,7 +1,7 @@
 {
   "project": "harbor",
   "synthetic": true,
-  "description": "Fictional multi-tenant event delivery service. All roadmap, reasoning, task, and signal records are sample data.",
+  "description": "Fictional multi-tenant event delivery service. All roadmap, reasoning, task, signal and branch records are sample data.",
   "chunks": [
     {
       "id": "schema",
@@ -1161,25 +1161,116 @@
       "id": "retry-research",
       "title": "Inspect lease and attempt storage",
       "task_type": "research",
-      "status": "completed"
+      "status": "completed",
+      "actions": [
+        {
+          "id": 1,
+          "description": "Read the lease table and the attempt log schema",
+          "timestamp": "2026-08-18T13:50:00Z",
+          "files_touched": [
+            "migrations/0042_leases.sql"
+          ],
+          "type": "research"
+        }
+      ]
     },
     {
       "id": "retry-plan",
       "title": "Define restart invariants",
       "task_type": "research",
-      "status": "completed"
+      "status": "completed",
+      "actions": [
+        {
+          "id": 2,
+          "description": "Listed the six restart orderings and the receipt each resumes from",
+          "timestamp": "2026-08-18T14:03:00Z",
+          "type": "research"
+        }
+      ]
     },
     {
       "id": "retry-implementation",
       "title": "Persist the retry schedule",
       "task_type": "implement",
-      "status": "completed"
+      "status": "completed",
+      "actions": [
+        {
+          "id": 3,
+          "description": "Persisted the retry schedule beside the lease in one transaction",
+          "timestamp": "2026-08-18T14:09:00Z",
+          "files_touched": [
+            "delivery/src/retry/schedule.rs",
+            "delivery/src/retry/lease.rs"
+          ],
+          "type": "code"
+        },
+        {
+          "id": 4,
+          "description": "Added the per-tenant budget counter to the lease table",
+          "timestamp": "2026-08-18T14:17:00Z",
+          "files_touched": [
+            "migrations/0043_tenant_budgets.sql"
+          ],
+          "type": "code"
+        }
+      ],
+      "checks": [
+        {
+          "name": "cargo test -p delivery",
+          "passed": true,
+          "exit_code": 0,
+          "required": true,
+          "verified": true,
+          "timestamp": "2026-08-18T14:17:30Z",
+          "results": {
+            "duration_ms": 41200
+          },
+          "type": "test"
+        }
+      ]
     },
     {
       "id": "retry-tests",
       "title": "Exercise worker restart recovery",
       "task_type": "test",
-      "status": "active"
+      "status": "active",
+      "actions": [
+        {
+          "id": 5,
+          "description": "Drove the clock to the window's last second and asserted one attempt",
+          "timestamp": "2026-08-18T14:19:30Z",
+          "files_touched": [
+            "delivery/tests/expiry.rs"
+          ],
+          "type": "test"
+        }
+      ],
+      "checks": [
+        {
+          "name": "restart recovery",
+          "passed": true,
+          "exit_code": 0,
+          "required": true,
+          "verified": true,
+          "timestamp": "2026-08-18T14:21:00Z",
+          "results": {
+            "duration_ms": 9800
+          },
+          "type": "test"
+        },
+        {
+          "name": "cargo clippy",
+          "passed": false,
+          "exit_code": 101,
+          "required": true,
+          "verified": true,
+          "timestamp": "2026-08-18T14:21:40Z",
+          "results": {
+            "duration_ms": 2600
+          },
+          "type": "lint"
+        }
+      ]
     },
     {
       "id": "retry-review",
@@ -1191,115 +1282,117 @@
   "steps": [
     {
       "step_number": 1,
-      "estimated_total": 10,
+      "estimated_total": 12,
       "purpose": "Define retry ownership",
-      "context": "Workers may stop between sending a request and recording its result.",
-      "thought": "Keep retry state with the delivery record; process memory cannot own the attempt count.",
-      "outcome": "Persist attempt number and next-attempt time.",
+      "context": "Retries are scheduled by whichever worker last touched the delivery.",
+      "thought": "One worker owns a delivery's retry budget at a time; ownership is a lease in the database, not a process-local timer.",
+      "outcome": "Retry state moves out of the worker into the lease row.",
       "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "next_action": "Choose where the claim boundary sits.",
       "timestamp": "2026-08-18T14:00:00Z",
-      "confidence": 0.94,
-      "execution_ref": "task:retry-implementation",
+      "confidence": 0.91,
+      "execution_ref": "task:retry-plan",
       "dependencies": []
     },
     {
       "step_number": 2,
-      "estimated_total": 10,
+      "estimated_total": 12,
       "purpose": "Choose the claim boundary",
-      "context": "Two workers can observe the same due delivery after a lease expires.",
-      "thought": "Use a lease token in the update predicate so a stale worker cannot commit a new attempt.",
-      "outcome": "Fence writes with the lease token.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "context": "A claim can be taken per attempt or per delivery.",
+      "thought": "Per-delivery claims are simpler to reason about on restart; per-attempt claims recover faster but double-book under clock skew.",
+      "outcome": "Claim per delivery, with a short renewal window.",
+      "rationale": "Simplicity wins while the restart drill is still failing.",
+      "next_action": "Classify the responses an attempt can end with.",
       "timestamp": "2026-08-18T14:02:00Z",
-      "confidence": 0.94,
-      "execution_ref": "task:retry-implementation",
+      "confidence": 0.88,
+      "execution_ref": "task:retry-plan",
       "dependencies": [
         1
       ]
     },
     {
       "step_number": 3,
-      "estimated_total": 10,
+      "estimated_total": 12,
       "purpose": "Classify response outcomes",
-      "context": "Partner endpoints return 2xx, 429, 5xx, and permanent 4xx responses.",
-      "thought": "Retry transport failures, 429, and 5xx. Mark other 4xx responses terminal.",
-      "outcome": "Keep outcome classification separate from scheduling.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
-      "timestamp": "2026-08-18T14:04:00Z",
+      "context": "Partner endpoints answer with 2xx, 4xx, 429, 5xx and timeouts.",
+      "thought": "Only 429, 5xx and timeouts are retryable; a 4xx ends the delivery with a receipt.",
+      "outcome": "Three outcome classes: settled, retry, dead.",
+      "rationale": "Retrying a 4xx burns budget on an answer that will not change.",
+      "next_action": "Handle upstream throttling before scheduling.",
+      "timestamp": "2026-08-18T14:05:00Z",
       "confidence": 0.94,
       "execution_ref": "task:retry-implementation",
       "dependencies": [
         2
-      ]
+      ],
+      "pinned": true
     },
     {
       "step_number": 4,
-      "branch_id": "throttle-policy",
-      "branch_name": "Throttle policy",
-      "branch_from": 3,
-      "estimated_total": 10,
+      "estimated_total": 12,
       "purpose": "Honor upstream throttling",
       "context": "Retry-After may carry seconds or an HTTP date.",
       "thought": "Parse both forms and clamp the result to the remaining delivery budget.",
       "outcome": "Add table tests for malformed and past values.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "rationale": "A partner's own pacing beats a fixed backoff.",
+      "next_action": "Bound the schedule the header produces.",
       "timestamp": "2026-08-18T14:06:00Z",
-      "confidence": 0.94,
+      "confidence": 0.72,
       "execution_ref": "task:retry-implementation",
       "dependencies": [
         3
-      ]
+      ],
+      "branch_id": "throttle-policy",
+      "branch_name": "Throttle policy",
+      "branch_from": 3
     },
     {
       "step_number": 5,
-      "branch_id": "throttle-policy",
-      "branch_name": "Throttle policy",
-      "branch_from": 3,
-      "estimated_total": 10,
+      "estimated_total": 12,
       "purpose": "Bound the retry schedule",
-      "context": "A fixed delay makes tenants retry at the same instant.",
-      "thought": "Use capped exponential backoff with jitter; persist the chosen timestamp once.",
-      "outcome": "Never resample a delay after a restart.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "context": "Jittered exponential backoff can exceed the tenant's delivery window.",
+      "thought": "Cap every wait at the window's remaining time and let the last attempt land before expiry.",
+      "outcome": "The schedule never outlives the delivery window.",
+      "rationale": "An attempt after expiry is a duplicate the tenant never asked for.",
+      "next_action": "Persist an attempt receipt with the schedule.",
       "timestamp": "2026-08-18T14:08:00Z",
-      "confidence": 0.94,
+      "confidence": 0.81,
       "execution_ref": "task:retry-implementation",
       "dependencies": [
         4
-      ]
+      ],
+      "branch_id": "throttle-policy",
+      "branch_name": "Throttle policy",
+      "branch_from": 3
     },
     {
       "step_number": 6,
-      "estimated_total": 10,
+      "estimated_total": 12,
       "purpose": "Preserve an attempt receipt",
-      "context": "A timeout does not prove that the endpoint rejected the request.",
-      "thought": "Record the timeout and reuse the event id so consumers can deduplicate.",
-      "outcome": "Expose delivery uncertainty in the attempt timeline.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "context": "The lease fence and the schedule now share one transaction.",
+      "thought": "Write the attempt outcome and the next due time together, so a crash between them cannot lose either.",
+      "outcome": "Receipt and schedule commit atomically.",
+      "rationale": "A receipt without its schedule is a delivery nobody will retry.",
+      "next_action": "Review the interleavings a restart can produce.",
       "timestamp": "2026-08-18T14:10:00Z",
-      "confidence": 0.94,
+      "confidence": 0.9,
       "execution_ref": "task:retry-implementation",
       "dependencies": [
+        3,
         5
       ]
     },
     {
       "step_number": 7,
-      "estimated_total": 10,
+      "estimated_total": 12,
       "purpose": "Review restart interleavings",
-      "context": "The database commit can succeed even when the worker loses its connection.",
-      "thought": "Reload the delivery before claiming another attempt; the committed attempt counter is authoritative.",
-      "outcome": "Exercise commit-success / client-timeout recovery.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "context": "A worker can die between claim, attempt and receipt.",
+      "thought": "Enumerate the six orderings and check each resumes from the receipt, never from the in-memory attempt.",
+      "outcome": "Two orderings needed a lease renewal on resume.",
+      "rationale": "The restart drill is the acceptance test for the whole chunk.",
+      "next_action": "Isolate the budgets tenants share.",
       "timestamp": "2026-08-18T14:12:00Z",
-      "confidence": 0.94,
+      "confidence": 0.77,
       "execution_ref": "task:retry-implementation",
       "dependencies": [
         6
@@ -1307,51 +1400,93 @@
     },
     {
       "step_number": 8,
-      "estimated_total": 10,
-      "purpose": "Keep tenant budgets separate",
-      "context": "A slow endpoint must not monopolize every worker lease.",
-      "thought": "Limit concurrency per tenant and release capacity while an attempt waits.",
-      "outcome": "Cover mixed fast and slow endpoints in the load fixture.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "estimated_total": 12,
+      "purpose": "Isolate tenant budgets",
+      "context": "Tenants on one shard share a worker pool.",
+      "thought": "A shared retry pool lets one loud tenant starve the others; try a per-tenant counter in the lease table.",
+      "outcome": "A counter per tenant per shard.",
+      "rationale": "Fairness across tenants is a product promise, not an optimisation.",
+      "next_action": "Check whether a shared pool can be kept.",
       "timestamp": "2026-08-18T14:14:00Z",
-      "confidence": 0.94,
+      "confidence": 0.68,
       "execution_ref": "task:retry-implementation",
       "dependencies": [
         7
-      ]
+      ],
+      "branch_id": "tenant-budgets",
+      "branch_name": "Tenant budgets",
+      "branch_from": 7
     },
     {
       "step_number": 9,
-      "estimated_total": 10,
-      "purpose": "Test the expiry boundary",
-      "context": "An attempt may become due exactly when the 24-hour budget expires.",
-      "thought": "Check the absolute deadline before claiming, including after a process restart.",
-      "outcome": "Add deterministic clock tests at the deadline.",
-      "rationale": "A delivery must have one durable retry budget across all worker processes.",
-      "next_action": "Implement the next retry invariant.",
+      "estimated_total": 12,
+      "purpose": "Reject shared budget pools",
+      "context": "The shared-pool variant was cheaper to implement.",
+      "thought": "Even with weighting, a shared pool leaks one tenant's failure rate into another's latency; drop it.",
+      "outcome": "Shared pools are out; the per-tenant counter stands.",
+      "rationale": "One measurable regression outweighs the saved table.",
+      "next_action": "Keep tenant budgets separate in the schema.",
       "timestamp": "2026-08-18T14:16:00Z",
-      "confidence": 0.94,
-      "execution_ref": "task:retry-tests",
+      "confidence": 0.85,
+      "execution_ref": "task:retry-implementation",
       "dependencies": [
         8
-      ]
+      ],
+      "revises_step": 8,
+      "branch_id": "tenant-budgets",
+      "branch_name": "Tenant budgets",
+      "branch_from": 7
     },
     {
       "step_number": 10,
-      "estimated_total": 10,
+      "estimated_total": 12,
+      "purpose": "Keep tenant budgets separate",
+      "context": "Per-tenant counters live beside the lease.",
+      "thought": "Merge the tenant branch: the counter is decremented in the same transaction as the receipt.",
+      "outcome": "Budgets are per tenant and durable.",
+      "rationale": "A tenant's budget must survive both a worker restart and a neighbour's outage.",
+      "next_action": "Test the expiry boundary.",
+      "timestamp": "2026-08-18T14:18:00Z",
+      "confidence": 0.93,
+      "execution_ref": "task:retry-implementation",
+      "dependencies": [
+        7,
+        9
+      ],
+      "pinned": true
+    },
+    {
+      "step_number": 11,
+      "estimated_total": 12,
+      "purpose": "Test the expiry boundary",
+      "context": "Attempts near the window's end are the risky ones.",
+      "thought": "Drive the clock to the last second of the window and assert exactly one attempt lands.",
+      "outcome": "One attempt, one receipt, at the boundary.",
+      "rationale": "The boundary is where duplicates were observed in the pilot.",
+      "next_action": "Verify scheduling across a restart.",
+      "timestamp": "2026-08-18T14:19:00Z",
+      "confidence": 0.9,
+      "execution_ref": "task:retry-tests",
+      "dependencies": [
+        10
+      ]
+    },
+    {
+      "step_number": 12,
+      "estimated_total": 12,
       "purpose": "Verify restart-safe scheduling",
       "context": "The lease fence and persisted schedule now share one transaction.",
-      "thought": "Run the restart interleavings against Postgres, then inspect attempt history for gaps or duplicates.",
+      "thought": "Run the restart interleavings against Postgres, then inspect attempt history for gaps or duplicate deliveries before recording the receipt.",
       "outcome": "Finish the integration checks before recording the receipt.",
       "rationale": "A delivery must have one durable retry budget across all worker processes.",
       "next_action": "Run retry recovery integration tests.",
-      "timestamp": "2026-08-18T14:18:00Z",
+      "timestamp": "2026-08-18T14:20:00Z",
       "confidence": 0.94,
       "execution_ref": "task:retry-tests",
       "dependencies": [
-        9
-      ]
+        11
+      ],
+      "is_final_step": true
     }
   ],
   "signals": [
@@ -1375,6 +1510,16 @@
       "from": "Pilot feedback",
       "body": "Allow a seven-day event history for staging tenants.",
       "status": "new"
+    }
+  ],
+  "branches": [
+    {
+      "branch_id": "throttle-policy",
+      "status": "merged"
+    },
+    {
+      "branch_id": "tenant-budgets",
+      "status": "merged"
     }
   ]
 }

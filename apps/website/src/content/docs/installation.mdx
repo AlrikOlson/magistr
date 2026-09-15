@@ -1,19 +1,21 @@
 ---
 title: Installation
-description: Build Magistr from source and initialize a project.
+description: Build Magistr from source, initialize a project and connect an agent.
 order: 1
 category: getting-started
 ---
 
 # Installation
 
-Magistr is an early development release (v0.1.0). Build it from the [repository](https://github.com/AlrikOlson/magistr) while the package release process is being completed.
+Magistr is an early development release (v0.1.0). It builds from the [repository](https://github.com/AlrikOlson/magistr); there is no registry package yet.
 
 > **Permission and privacy boundary**
 >
-> Magistr runs locally. Your agent runtime keeps its own credentials and operating-system permissions; review commands and generated files before using it on a sensitive checkout.
+> Magistr runs locally and keeps its state in the project. Your agent runtime keeps its own credentials and operating-system permissions; Magistr does not sandbox it. Review commands and generated files before using it on a sensitive checkout.
 
 ## Build from source
+
+Requires Git and Rust 1.95 or later.
 
 ```sh
 git clone https://github.com/AlrikOlson/magistr.git
@@ -22,7 +24,11 @@ cargo install --locked --path crates/magistr-cli
 magistr --version
 ```
 
-## Configure a project
+Cargo installs `magistr` into its binary directory, usually `~/.cargo/bin`.
+
+## Initialize a project
+
+Run initialization in the project you want to work on. It detects the stack and writes the project file and the agent setup.
 
 ```sh
 cd ~/src/my-project
@@ -30,16 +36,37 @@ magistr init .
 magistr
 ```
 
-For Codex:
+`magistr` with no arguments opens the terminal interface: the roadmap, the current work item, and the recorded reasoning and checks.
+
+## The project file
+
+`magistr init` creates `.magistr/project.json`. It records the commands Magistr runs as quality gates, any required custom gates, the test conventions and the roadmap settings. Change only the values your project needs.
+
+The roadmap itself is native state kept by Magistr. Keep `roadmap_exports` set to `false` so no `ROADMAP.md` or `ROADMAP.json` file competes with it.
+
+## Connect an agent
+
+For Codex, select it at initialization; the generated launcher starts Codex with the project's setup:
 
 ```sh
 magistr init . --agent codex --yes
 ./.codex/run
 ```
 
+For Claude Code, run `magistr init . --yes`, then launch `claude` in the project. Targets can be combined, such as `--agent codex,cursor`.
+
+The setup installs the workflow commands the agent uses: `/next` (Codex: `$next`) carries one ready work item through the workflow and stops; `/roadmap-refresh` reshapes the roadmap without implementing anything; `/validate` runs the configured checks.
+
+## Run one work item
+
+```sh
+magistr next
+```
+
+Runs the next ready work item in a session and records what happened. `magistr next-loop` continues through fresh agent sessions, one work item per session, until the bound you give it.
+
 ## Release archives
 
-Release archives and checksums are tracked in the [release-inventory.md](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md). The desktop viewer is experimental and is not part of the main-branch package.
+Release archives and checksums are tracked in the [release inventory](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md). The desktop interface is experimental and is not part of the release.
 
-Continue with [configuration](/docs/configuration) or [skills](/docs/skills).
-
+Continue with [concepts](/docs/concepts).

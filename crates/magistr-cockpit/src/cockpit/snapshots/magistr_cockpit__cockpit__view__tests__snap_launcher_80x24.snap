@@ -7,7 +7,7 @@ tabs  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
 │no objective yet          │ │╭─ project ─────────────────────────────────────╮│
-│▲ tabs · 2/4 done         │ ││magistr · Rust / Cargo                         ││
+│▲ tabs · 2/4              │ ││magistr · Rust / Cargo                         ││
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ ││master, clean · ACP (available)                ││
 │▲ Tabs                    │ │╰───────────────────────────────────────────────╯│
 │0 before · 1 after        │ │╭─ roadmap ─────────────────────────────────────╮│

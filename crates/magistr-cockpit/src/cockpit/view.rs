@@ -27,6 +27,7 @@ use super::stage_tab::StageTab;
 use super::summary::Summary;
 use super::task_state::TaskState;
 use super::tooltip::Tooltip;
+use super::trace::TRACE_GRAPH_ROWS;
 use super::turn_state::TurnState;
 use super::widget::Widget;
 use crate::agent::{PermissionKind, ToolStatus};
@@ -67,11 +68,6 @@ const CHUNK_COLUMNS: usize = 20;
 /// fixed, since the sheet's rows clip in the stage's viewport rather
 /// than measure it.
 const SHEET_DIVIDER_COLS: usize = 24;
-
-/// The label [`TraceStep::fields`](crate::cockpit::TraceStep::fields)
-/// gives the step's `execution_ref` — the one field row that can become
-/// a chunk jump.
-const EXECUTION_REF: &str = "execution ref";
 
 /// The cockpit: a header naming the turn's state and where the window
 /// is, the phase rail (the roadmap chunk in progress, the loop's
@@ -324,10 +320,16 @@ fn collapsed_rail(model: &Model, pen: &Pen) -> Node {
 fn rail(model: &Model, pen: &Pen) -> Node {
     let state = model.rail();
     let fade = rail_fade(model);
+    // Rigid: the rail keeps the width the user gave it whatever the
+    // stage's rows measure, and the stage — a viewport — clips instead.
+    // Otherwise a long roadmap row narrowed the rail by several columns
+    // on one tab and not the next, and cut the row the progress count
+    // sits on.
     let mut column = Node::column()
         .id(Widget::Rail.id())
         .style(pen.stage.clone())
         .width(Length::Cells(state.content_cols(model.size().cols)))
+        .shrink(0.0)
         .viewport()
         .frame(
             Frame::new(pen.panel(false).clone())
@@ -370,7 +372,7 @@ fn rail(model: &Model, pen: &Pen) -> Node {
         None => pen.rail.clone(),
     };
     column = column.child(
-        Node::text(progress_text(state, pen.icons))
+        Node::text(progress_text(state, pen.icons, rail_inner_cols(model)))
             .style(arriving(pen, &progress, fade))
             .height(Length::Cells(1)),
     );
@@ -485,11 +487,34 @@ const fn task_status(state: TaskState) -> ToolStatus {
     }
 }
 
+/// Columns the rail's rows have for text: its content width less the
+/// panel ring and, with the pixel layer live, its padding.
+fn rail_inner_cols(model: &Model) -> usize {
+    let frame = 2 + if model.has_pixels() {
+        2 * Space::PAD
+    } else {
+        0
+    };
+    usize::from(
+        model
+            .rail()
+            .content_cols(model.size().cols)
+            .saturating_sub(frame),
+    )
+}
+
 /// Where the roadmap stands: the chunk in progress and done/total.
-fn progress_text(state: &Rail, icons: &Icons) -> String {
+fn progress_text(state: &Rail, icons: &Icons, columns: usize) -> String {
     let (done, total) = state.progress();
     match state.chunk() {
-        Some(chunk) => format!("{} {chunk} · {done}/{total} done", icons.here),
+        Some(chunk) => {
+            // The count is the news; a long chunk name gives way to it
+            // rather than pushing it off the rail. The gauge under this
+            // row says "done".
+            let suffix = format!(" · {done}/{total}");
+            let room = columns.saturating_sub(width(&suffix) as usize + 2).max(4);
+            format!("{} {}{suffix}", icons.here, shorten(chunk, room))
+        }
         None => format!("roadmap {done}/{total} done"),
     }
 }
@@ -926,12 +951,13 @@ fn diff_rows(diff: &str, pen: &Pen) -> Vec<Node> {
         .collect()
 }
 
-/// The Trace tab: the checkpoint pane while one is open; else the think
-/// feed under a heading with its \[Checkpoint\] button — the branch
-/// block when steps branched, one head row per step, the expanded one
-/// showing its buttons, its revision links and every field — then the
-/// ship timeline of actions and checks; a quiet note while nothing has
-/// landed.
+/// The Trace tab: the checkpoint pane while one is open; else the
+/// heading — `reasoning`, its accounting, the checkpoint button — over
+/// the step graph (pixels whenever there are steps; the lane list once
+/// a branch forked on a plain terminal), then the scrolling body: one
+/// compact row per step, the selected step's card under its row, and
+/// the recorded work — actions and checks — after the steps; a quiet
+/// note while nothing has landed.
 fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let trace = model.trace();
     let mut rows = Vec::new();
@@ -946,34 +972,30 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
             .height(Length::Cells(1)),
         );
     } else {
-        let checkpoint_pixels = model.has_pixels();
-        let checkpoint_label = if checkpoint_pixels {
-            "     "
-        } else {
-            "[Checkpoint]"
-        };
-        let checkpoint_style = if checkpoint_pixels {
-            pen.stage.clone()
-        } else {
-            pen.allow.clone()
-        };
+        let (label, style) = checkpoint_button(model, pen);
         rows.push(
             Node::row()
                 .height(Length::Cells(1))
-                .child(segment("think trace", pen.heading.clone()))
+                .child(segment("reasoning", pen.heading.clone()))
                 .child(segment("  ", pen.stage.clone()))
-                .child(segment(checkpoint_label, checkpoint_style).id(Widget::Checkpoint.id())),
+                .child(segment(&trace.heading_line(), pen.note.clone()))
+                .child(segment("  ", pen.stage.clone()))
+                .child(segment(&label, style).id(Widget::Checkpoint.id())),
         );
-        if trace.has_branches() {
+        if model.has_pixels() && !trace.steps().is_empty() {
+            // The block the pixel graph covers: empty cells, rigid, so
+            // the surface's anchor never moves under it.
+            rows.push(
+                Node::column()
+                    .id(Widget::TraceGraph.id())
+                    .height(Length::Cells(TRACE_GRAPH_ROWS as u16))
+                    .shrink(0.0),
+            );
+        } else if trace.has_branches() {
             let mut graph = Node::column().id(Widget::TraceGraph.id());
             for line in trace.branch_rows() {
-                let display = if model.has_pixels() {
-                    " ".repeat(line.chars().count())
-                } else {
-                    line
-                };
                 graph = graph.child(
-                    Node::text(display)
+                    Node::text(line)
                         .style(pen.note.clone())
                         .height(Length::Cells(1)),
                 );
@@ -981,17 +1003,41 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
             rows.push(graph);
         }
     }
-    // Everything below the heading (and the branch graph, which anchors
-    // the pixel surface and so stays whole) scrolls: a long trace runs
-    // past the stage otherwise. The window is the model's, so the keys
-    // and the wheel move exactly these rows.
+    // Everything below the heading (and the graph, which anchors the
+    // pixel surface and so stays whole) scrolls: a long trace runs past
+    // the stage otherwise. The window is the model's, so the keys and
+    // the wheel move exactly these rows.
     let (total, height) = model.trace_window();
     let top = model.trace_top().min(total);
     let bottom = top.saturating_add(height).min(total);
     let mut body = trace_body(model, pen);
     body.truncate(bottom);
     rows.extend(body.drain(top..));
-    rows
+    rows.into_iter().map(|row| row.shrink(0.0)).collect()
+}
+
+/// The checkpoint button's label and pen: amber, its own glyph, and the
+/// word in both modes — on a pixel terminal the glyph's two cells are
+/// left blank for the vector ring the driver paints over them.
+fn checkpoint_button(model: &Model, pen: &Pen) -> (String, Style) {
+    let label = if model.has_pixels() {
+        "   Checkpoint".to_owned()
+    } else {
+        format!("[{} Checkpoint]", pen.icons.checkpoint)
+    };
+    (label, pen.warn.clone())
+}
+
+/// The pin button's label and pen: violet, the star, and `Pin` or
+/// `Unpin` — nothing a checkpoint shares.
+fn pin_button(step: &crate::cockpit::TraceStep, model: &Model, pen: &Pen) -> (String, Style) {
+    let verb = if step.pinned { "Unpin" } else { "Pin" };
+    let label = if model.has_pixels() {
+        format!("   {verb}")
+    } else {
+        format!("[{} {verb}]", pen.icons.pinned)
+    };
+    (label, pen.always.clone())
 }
 
 /// The Trace tab's scrolling rows, in order — counted by
@@ -1010,27 +1056,34 @@ fn trace_body(model: &Model, pen: &Pen) -> Vec<Node> {
     }
     if trace.is_empty() {
         return vec![
-            Node::text("no trace yet — the think feed is quiet")
+            Node::text("no reasoning yet — the trace is quiet")
                 .style(pen.note.clone())
                 .height(Length::Cells(1)),
         ];
     }
+    let focus = trace.focus();
+    let width = model.trace_width();
     let mut rows = Vec::new();
     for (index, step) in trace.steps().iter().enumerate() {
-        let expanded = trace.is_expanded(step.number);
-        rows.push(trace_head(step, index, expanded, pen));
-        if expanded {
-            rows.push(trace_buttons(step, pen, model.has_pixels()));
+        let selected = trace.selected_index() == Some(index);
+        let lit = focus.as_ref().is_none_or(|focus| focus.is_lit(index));
+        rows.push(trace_head(step, index, selected, lit, pen));
+        if selected {
             let jump = step
                 .execution_ref
                 .as_deref()
                 .is_some_and(|reference| model.roadmap().chunk_for_ref(reference).is_some());
-            rows.extend(trace_fields(step, jump, pen));
+            rows.extend(
+                trace
+                    .card_rows(width, jump)
+                    .into_iter()
+                    .map(|row| trace_card_row(row, step, jump, model, pen)),
+            );
         }
     }
     if !trace.moments().is_empty() {
         rows.push(
-            Node::text("ship")
+            Node::text("recorded work")
                 .style(pen.heading.clone())
                 .height(Length::Cells(1)),
         );
@@ -1158,7 +1211,7 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
             .style(pen.stage.clone())
             .height(Length::Cells(1)),
         );
-        rows.extend(roadmap_detail(open, pen));
+        rows.extend(roadmap_detail(open, model.stage_width(), pen));
     }
     let mut section: Option<&str> = None;
     for (index, chunk) in list.iter().enumerate() {
@@ -1172,7 +1225,7 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
         rows.push(roadmap_head(chunk, index, selected, glow, pen));
         if selected {
             rows.push(roadmap_buttons(chunk, pen));
-            rows.extend(roadmap_detail(chunk, pen));
+            rows.extend(roadmap_detail(chunk, model.stage_width(), pen));
         }
     }
     if roadmap.done_count() > 0 {
@@ -1352,61 +1405,49 @@ fn roadmap_buttons(chunk: &crate::cockpit::RoadmapChunk, pen: &Pen) -> Node {
     node
 }
 
-/// The selected chunk's detail rows: the full title, the description,
-/// the acceptance bullets, the deps and the cross-refs — the non-empty
-/// ones, indented under the head row and dimmed where they are context
-/// rather than the claim.
-fn roadmap_detail(chunk: &crate::cockpit::RoadmapChunk, pen: &Pen) -> Vec<Node> {
-    let mut rows = vec![
-        Node::text(format!("    {}", chunk.title))
-            .style(pen.stage.clone())
-            .height(Length::Cells(1)),
-    ];
-    for line in chunk.description.lines().filter(|l| !l.is_empty()) {
-        rows.push(
-            Node::text(format!("    {line}"))
-                .style(pen.note.clone())
-                .height(Length::Cells(1)),
-        );
-    }
-    for bullet in &chunk.acceptance {
-        rows.push(
-            Node::text(format!("    {} {bullet}", pen.icons.bullet))
-                .style(pen.bullet.clone())
-                .height(Length::Cells(1)),
-        );
-    }
-    if !chunk.deps.is_empty() {
-        rows.push(
-            Node::text(format!("    deps: {}", chunk.deps.join(", ")))
-                .style(pen.note.clone())
-                .height(Length::Cells(1)),
-        );
-    }
-    if !chunk.cross_refs.is_empty() {
-        rows.push(
-            Node::text(format!("    refs: {}", chunk.cross_refs.join(", ")))
-                .style(pen.note.clone())
-                .height(Length::Cells(1)),
-        );
-    }
-    rows
+/// The selected chunk's detail card, wrapped to the stage's width: the
+/// title, the description, the acceptance bullets (continuation rows
+/// indented under their text), then the deps and refs — exactly the
+/// rows [`RoadmapChunk::detail_lines`] hands over, so the scroll counts
+/// what is painted.
+fn roadmap_detail(chunk: &crate::cockpit::RoadmapChunk, width: u16, pen: &Pen) -> Vec<Node> {
+    use crate::cockpit::roadmap_chunk::DetailLine;
+    let indent = " ".repeat(usize::from(crate::cockpit::RoadmapChunk::DETAIL_INDENT));
+    chunk
+        .detail_lines(width)
+        .into_iter()
+        .map(|(kind, line)| {
+            let (text, style) = match kind {
+                DetailLine::Title => (format!("{indent}{line}"), pen.stage.clone()),
+                DetailLine::Description | DetailLine::Note => {
+                    (format!("{indent}{line}"), pen.note.clone())
+                }
+                DetailLine::Bullet => (
+                    format!("{indent}{} {line}", pen.icons.bullet),
+                    pen.bullet.clone(),
+                ),
+                DetailLine::BulletContinued => (format!("{indent}  {line}"), pen.bullet.clone()),
+            };
+            Node::text(text).style(style).height(Length::Cells(1))
+        })
+        .collect()
 }
 
-/// One step's head row: the fold marker, the number, the purpose, the
-/// confidence, the pin star, the branch and the revised-by hint —
-/// hittable to expand or fold the step.
-fn trace_head(step: &crate::cockpit::TraceStep, index: usize, expanded: bool, pen: &Pen) -> Node {
-    let marker = pen.icons.fold(expanded);
-    let mut text = format!("{marker} {} think {}", pen.icons.think, step.number);
+/// One step's compact row: the fold marker, the number, the purpose,
+/// the branch, the revision hint, the confidence and the pin star —
+/// raised while selected, dimmed while a selection elsewhere leaves it
+/// unrelated — hittable to select or fold the step.
+fn trace_head(
+    step: &crate::cockpit::TraceStep,
+    index: usize,
+    selected: bool,
+    lit: bool,
+    pen: &Pen,
+) -> Node {
+    let marker = pen.icons.fold(selected);
+    let mut text = format!("{marker} {:>2}", step.number);
     if !step.purpose.is_empty() {
-        text.push_str(&format!(" · {}", step.purpose));
-    }
-    if let Some(confidence) = step.confidence {
-        text.push_str(&format!(" · {confidence:.2}"));
-    }
-    if step.pinned {
-        text.push_str(&format!(" {}", pen.icons.pinned));
+        text.push_str(&format!("  {}", step.purpose));
     }
     if let Some(branch) = step.branch_name.as_deref().or(step.branch_id.as_deref()) {
         text.push_str(&format!(" ({branch})"));
@@ -1414,77 +1455,100 @@ fn trace_head(step: &crate::cockpit::TraceStep, index: usize, expanded: bool, pe
     if let Some(by) = step.revised_by {
         text.push_str(&format!(" · revised by {by}"));
     }
+    if let Some(confidence) = step.confidence {
+        text.push_str(&format!("  {confidence:.2}"));
+    }
+    if step.pinned {
+        text.push_str(&format!(" {}", pen.icons.pinned));
+    }
+    let base = pen.row(RowKind::Event);
+    let style = if selected {
+        pen.raise(base)
+    } else if lit {
+        base.clone()
+    } else {
+        pen.note.clone()
+    };
     Node::text(text)
         .id(Widget::trace_row(index))
-        .style(pen.row(RowKind::Event).clone())
+        .style(style)
         .height(Length::Cells(1))
 }
 
-/// An expanded step's button row: \[Pin\] or \[Unpin\] asks the engine
-/// port, and each revision link navigates to the step it names.
-fn trace_buttons(step: &crate::cockpit::TraceStep, pen: &Pen, pixels: bool) -> Node {
-    let label = if pixels {
-        "      "
-    } else if step.pinned {
-        "[Unpin]"
-    } else {
-        "[Pin]"
-    };
-    let pin_style = if pixels {
-        pen.stage.clone()
-    } else {
-        pen.allow.clone()
-    };
-    let mut node = Node::row()
-        .height(Length::Cells(1))
-        .child(segment("  ", pen.stage.clone()))
-        .child(segment(label, pin_style).id(Widget::trace_pin(step.number)));
-    if let Some(revises) = step.revises {
-        node = node.child(segment("  ", pen.stage.clone())).child(
-            segment(&format!("[revises {revises}]"), pen.link.clone())
-                .id(Widget::trace_link(revises)),
-        );
-    }
-    if let Some(by) = step.revised_by {
-        node = node.child(segment("  ", pen.stage.clone())).child(
-            segment(&format!("[revised by {by}]"), pen.link.clone()).id(Widget::trace_link(by)),
-        );
-    }
-    node
-}
+/// The card's left accent and gutter, [`TraceCardRow::INDENT`] wide.
+const CARD_GUTTER: &str = "  ▎ ";
 
-/// An expanded step's fields, one labelled row per non-empty field (a
-/// multi-line value continues on indented rows). The list itself is the
-/// step's ([`TraceStep::fields`](crate::cockpit::TraceStep::fields)), so
-/// the scroll counts exactly these rows.
-///
-/// With `jump`, the execution-ref row is the chunk link: the row it
-/// always was, painted in the link pen and carrying
-/// [`Widget::trace_chunk`]. It is the same row either way — a ref no
-/// chunk answers stays plain text, and neither case moves a row, which
-/// is what keeps [`Trace::body_rows`](crate::cockpit::Trace::body_rows)
-/// right without knowing anything about the roadmap.
-fn trace_fields(step: &crate::cockpit::TraceStep, jump: bool, pen: &Pen) -> Vec<Node> {
-    step.fields()
-        .iter()
-        .flat_map(|(label, value)| {
-            let linked = jump && *label == EXECUTION_REF;
-            value.lines().enumerate().map(move |(line_index, line)| {
-                let text = if line_index == 0 {
-                    format!("  {label} · {line}")
-                } else {
-                    format!("    {line}")
-                };
-                let row = Node::text(text).height(Length::Cells(1));
-                if linked && line_index == 0 {
-                    row.style(pen.link.clone())
-                        .id(Widget::trace_chunk(step.number))
-                } else {
-                    row.style(pen.stage.clone())
-                }
-            })
-        })
-        .collect()
+/// One row of the selected step's card: the title in the heading pen,
+/// the metadata as a note, the verbs as buttons — pin, the chunk jump
+/// while the card is brief, the revision links, more or less — and the
+/// fields with their label on the first row, the execution ref painted
+/// as the chunk link when it resolves.
+fn trace_card_row(
+    row: crate::cockpit::TraceCardRow,
+    step: &crate::cockpit::TraceStep,
+    jump: bool,
+    model: &Model,
+    pen: &Pen,
+) -> Node {
+    use crate::cockpit::TraceCardRow;
+    // The label column less the space that separates it from the value.
+    let label_cols = usize::from(TraceCardRow::LABEL_COLS) - 1;
+    match row {
+        TraceCardRow::Blank => Node::text("").height(Length::Cells(1)),
+        TraceCardRow::Title(title) => Node::text(format!("{CARD_GUTTER}{title}"))
+            .style(pen.heading.clone())
+            .height(Length::Cells(1)),
+        TraceCardRow::Meta(meta) => Node::text(format!("{CARD_GUTTER}{meta}"))
+            .style(pen.note.clone())
+            .height(Length::Cells(1)),
+        TraceCardRow::Buttons => {
+            let (label, style) = pin_button(step, model, pen);
+            let mut node = Node::row()
+                .height(Length::Cells(1))
+                .child(segment(CARD_GUTTER, pen.stage.clone()))
+                .child(segment(&label, style).id(Widget::trace_pin(step.number)));
+            if jump && !model.trace().is_full() {
+                node = node.child(segment("  ", pen.stage.clone())).child(
+                    segment("[Open chunk]", pen.link.clone()).id(Widget::trace_chunk(step.number)),
+                );
+            }
+            if let Some(revises) = step.revises {
+                node = node.child(segment("  ", pen.stage.clone())).child(
+                    segment(&format!("[revises {revises}]"), pen.link.clone())
+                        .id(Widget::trace_link(revises)),
+                );
+            }
+            if let Some(by) = step.revised_by {
+                node = node.child(segment("  ", pen.stage.clone())).child(
+                    segment(&format!("[revised by {by}]"), pen.link.clone())
+                        .id(Widget::trace_link(by)),
+                );
+            }
+            let detail = if model.trace().is_full() {
+                "[Less]"
+            } else {
+                "[More]"
+            };
+            node.child(segment("  ", pen.stage.clone()))
+                .child(segment(detail, pen.permission.clone()).id(Widget::TraceDetail.id()))
+        }
+        TraceCardRow::Field {
+            label,
+            text,
+            first,
+            linked,
+        } => {
+            let shown = if first { label } else { "" };
+            let node = Node::text(format!("{CARD_GUTTER}{shown:<label_cols$} {text}"))
+                .height(Length::Cells(1));
+            if linked && first {
+                node.style(pen.link.clone())
+                    .id(Widget::trace_chunk(step.number))
+            } else {
+                node.style(pen.stage.clone())
+            }
+        }
+    }
 }
 
 /// One ship-timeline row: an action with its kind, description and
@@ -2938,6 +3002,8 @@ fn hint_context(model: &Model) -> &'static [Binding] {
         }
     } else if model.turn_state() == TurnState::Streaming {
         Binding::HINT_STREAMING
+    } else if model.tab() == StageTab::Trace && !model.trace().steps().is_empty() {
+        Binding::HINT_TRACE
     } else if model.tab() == StageTab::Home {
         Binding::HINT_HOME
     } else {

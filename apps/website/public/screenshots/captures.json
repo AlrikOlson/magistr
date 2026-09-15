@@ -10,26 +10,26 @@
   "annotations": false,
   "images": [
     {
-      "file": "tui2-roadmap-dark.png",
-      "sha256": "819659c739139a9aa82377a1dce11dd3e28ae490764ac6ac55374928fc4b362c",
+      "file": "terminal-roadmap-dark.png",
+      "sha256": "a12a461915061bdaaf38db410422c97a5b8677d6f472422173a4e4d0297179b8",
       "width": 1320,
       "height": 840
     },
     {
-      "file": "tui2-roadmap-light.png",
-      "sha256": "6609a0cc1b17cb6efefb299db8a765eefa53993f0f2988240cf982b8d9117b86",
+      "file": "terminal-roadmap-light.png",
+      "sha256": "b08aeb5c915a1e00028974c5bf85b81b09a654aa3e851dbfeb37d43d1c837610",
       "width": 1320,
       "height": 840
     },
     {
-      "file": "tui2-trace-dark.png",
-      "sha256": "a31e8b5e00ad27d16a17846fa484cf180f4da60d4c46481ff1d96ca86cf4e5d3",
+      "file": "terminal-trace-dark.png",
+      "sha256": "501e02cb7a2681bb033c045d57a68175bd9e9cbac4ecf1f9d5c0a9039611cf5c",
       "width": 1320,
       "height": 840
     },
     {
-      "file": "tui2-trace-light.png",
-      "sha256": "3e3afd05ec17e90d6c9ed948ac072b6802544d2059d9d230bbefcf629042cdb7",
+      "file": "terminal-trace-light.png",
+      "sha256": "31a833cc96c32f59ee229ef6c7f3ed0f812e83d9af247bfdb7a4d22627e7fba8",
       "width": 1320,
       "height": 840
     }

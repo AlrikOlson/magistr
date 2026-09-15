@@ -209,6 +209,7 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
         matches!(
             w,
             Widget::Checkpoint
+                | Widget::TraceDetail
                 | Widget::TraceGraph
                 | Widget::RoadmapGraph
                 | Widget::RoadmapStart
@@ -1849,12 +1850,15 @@ fn snap_trace_tail_80x24() {
     );
     let screen = screen(&m);
     assert!(
-        screen.contains("think trace"),
+        screen.contains("reasoning"),
         "the heading is pinned: {screen}"
     );
-    assert!(screen.contains("think 20"), "the tail follows: {screen}");
     assert!(
-        !screen.contains("think 1 ·"),
+        screen.contains("▸ 20  step 20"),
+        "the tail follows: {screen}"
+    );
+    assert!(
+        !screen.contains("▸  1  step 1 "),
         "the head scrolled off: {screen}"
     );
     insta::assert_snapshot!(screen);
@@ -1868,12 +1872,12 @@ fn snap_trace_scrolled_home_80x24() {
     assert_eq!(m.trace_top(), 0, "Home pins the body's first row");
     let screen = screen(&m);
     assert!(
-        screen.contains("think trace"),
+        screen.contains("reasoning"),
         "the heading is still pinned: {screen}"
     );
-    assert!(screen.contains("think 1 ·"), "the head shows: {screen}");
+    assert!(screen.contains("▸  1  step 1 "), "the head shows: {screen}");
     assert!(
-        !screen.contains("think 20"),
+        !screen.contains("▸ 20  step 20"),
         "the tail scrolled off: {screen}"
     );
     insta::assert_snapshot!(screen);
@@ -1910,8 +1914,11 @@ fn snap_trace_feed_120x40() {
     let m = Scenes::traced(Size::new(120, 40));
     assert_eq!(m.tab(), StageTab::Trace);
     let screen = screen(&m);
-    assert!(screen.contains("think trace"), "{screen}");
-    assert!(screen.contains("[Checkpoint]"), "{screen}");
+    assert!(
+        screen.contains("reasoning  5 steps · 1 branch · 1 pinned"),
+        "{screen}"
+    );
+    assert!(screen.contains("[✱ Checkpoint]"), "{screen}");
     assert!(
         screen.contains("revised by 5"),
         "the revision hint shows: {screen}"
@@ -1935,20 +1942,39 @@ fn snap_trace_step_expanded_120x40() {
         },
     );
     assert!(m.trace().is_expanded(1));
+    let brief = screen(&m);
+    for field in [
+        "▾  1  hypothesis  0.62 ★",
+        "▎ step 1 · hypothesis",
+        "▎ confidence 0.62 · depends on 7, 9 · estimate 4 · pinned",
+        "[★ Unpin]",
+        "[More]",
+        "thought      the feed can drive the whole surface",
+        "outcome      it can",
+        "next action  wire the view",
+    ] {
+        assert!(brief.contains(field), "{field} missing:\n{brief}");
+    }
+    for hidden in ["context", "rationale", "uncertainty", "task:trace-state"] {
+        assert!(
+            !brief.contains(hidden),
+            "the brief card hides {hidden}:\n{brief}"
+        );
+    }
+    update(
+        &mut m,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 9),
+            target: Some(Widget::TraceDetail.id()),
+        },
+    );
     let screen = screen(&m);
     for field in [
-        "purpose · hypothesis",
-        "context · the trace tab",
-        "thought · the feed can drive the whole surface",
-        "outcome · it can",
-        "next action · wire the view",
-        "rationale · one fold path for feed and port",
-        "confidence · 0.62",
-        "uncertainty · no branch case yet",
-        "estimated total · 4",
-        "depends on · 7, 9",
-        "execution ref · task:trace-state",
-        "[Unpin]",
+        "[Less]",
+        "context      the trace tab",
+        "rationale    one fold path for feed and port",
+        "uncertainty  no branch case yet",
+        "execution ref task:trace-state",
     ] {
         assert!(screen.contains(field), "{field} missing:\n{screen}");
     }
@@ -2180,7 +2206,7 @@ fn snap_undocked_trace_180x50() {
     think_step_frame(&mut m, 7);
     let screen = screen(&m);
     assert!(screen.contains("⇱ Trace"), "{screen}");
-    assert!(screen.contains("✦ think 7"), "{screen}");
+    assert!(screen.contains("▸  7  hypothesis  0.70"), "{screen}");
     assert!(
         screen.contains("▲ Rail and dock"),
         "the rail's summary shows beside it: {screen}"
@@ -2577,12 +2603,13 @@ fn the_sheet_says_where_it_stands_only_when_it_overflows() {
 
     // The registry grew past 62 rows with the loop's step and
     // checkpoint verbs, past 64 with the
-    // pane's follow key and past 66 with the pane's
-    // kill and copy keys; 68 holds all 58.
-    let mut tall = Scenes::launcher(Size::new(120, 68));
+    // pane's follow key, past 66 with the pane's
+    // kill and copy keys and past 68 with the trace's two; 80 holds
+    // all 60 and their group dividers.
+    let mut tall = Scenes::launcher(Size::new(120, 80));
     update(&mut tall, Msg::Key(KeyEvent::new(KeyCode::Char('?'))));
     let (total, height) = tall.sheet_window();
-    assert!(height >= total, "the whole registry fits 120x68");
+    assert!(height >= total, "the whole registry fits 120x80");
     assert!(
         !screen(&tall).contains(" of "),
         "a sheet that fits says nothing about its position: {}",
@@ -2594,7 +2621,7 @@ fn the_sheet_says_where_it_stands_only_when_it_overflows() {
 fn the_sheet_lists_every_registered_binding() {
     // The sheet is generated from the registry: at a tall enough size
     // every binding's keys and description are on the screen.
-    let mut m = Scenes::launcher(Size::new(120, 68));
+    let mut m = Scenes::launcher(Size::new(120, 80));
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Char('?'))));
     let s = screen(&m);
     for binding in crate::cockpit::Binding::ALL {
@@ -4363,7 +4390,7 @@ fn the_undock_column_windows_by_the_same_rows_as_the_stage() {
         let chrome = 1 + 2 * usize::from(Space::PAD);
         assert_eq!(m.undocked_tab(), Some(StageTab::Trace));
         assert_eq!(
-            m.trace_window().1 + m.trace().pinned_rows() + chrome,
+            m.trace_window().1 + m.trace().pinned_rows(m.has_pixels()) + chrome,
             usize::from(undock.height),
             "the trace feed fills the column exactly at {size:?}"
         );
@@ -4425,12 +4452,27 @@ fn an_execution_ref_that_names_a_chunk_is_a_link_and_one_that_names_none_is_not(
     );
 
     // The same fixture with no roadmap at all: the ref names nothing the
-    // tab knows, so the row stays exactly the plain text it always was.
+    // tab knows, so the brief card offers no jump and the full card's
+    // ref row stays plain text.
     let mut plain = Scenes::traced(Size::new(120, 40));
     expand_first_step(&mut plain);
     assert!(!placed_ids(&plain).contains(&Widget::trace_chunk(1)));
     assert!(
-        screen(&plain).contains("execution ref · task:trace-state"),
+        !screen(&plain).contains("task:trace-state"),
+        "the brief card keeps the ref out of the way: {}",
+        screen(&plain)
+    );
+    update(
+        &mut plain,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 9),
+            target: Some(Widget::TraceDetail.id()),
+        },
+    );
+    assert!(plain.trace().is_full(), "More opened the full card");
+    assert!(!placed_ids(&plain).contains(&Widget::trace_chunk(1)));
+    assert!(
+        screen(&plain).contains("execution ref task:trace-state"),
         "{}",
         screen(&plain)
     );
@@ -4444,7 +4486,7 @@ fn the_chunk_link_does_not_move_a_row() {
     let mut plain = Scenes::traced(Size::new(120, 40));
     expand_first_step(&mut linked);
     expand_first_step(&mut plain);
-    assert_eq!(linked.trace().body_rows(), plain.trace().body_rows());
+    assert_eq!(linked.trace_window().0, plain.trace_window().0);
 }
 
 #[test]
@@ -4744,4 +4786,73 @@ fn the_terminal_dock_is_laid_out_over_the_stage_above_the_prompt() {
         prompt.y >= dock.y + dock.height,
         "and above the prompt: {prompt:?} vs {dock:?}"
     );
+}
+
+// ── Geometry across terminal sizes ────────────────────────────────────
+
+/// The sizes the geometry audit walks: the small terminal, a laptop
+/// window, the capture size.
+const AUDIT_SIZES: [(u16, u16); 3] = [(80, 24), (100, 30), (132, 42)];
+
+/// Every placed rect stays inside the screen, and every trace row's
+/// text fits the stage it is painted into — on both surfaces' tabs, in
+/// cells and with the pixel layer live.
+#[test]
+fn every_surface_fits_its_screen_at_every_audited_size() {
+    for (cols, rows) in AUDIT_SIZES {
+        let size = Size::new(cols, rows);
+        let scenes: [(&str, Model); 3] = [
+            ("trace", {
+                let mut m = Scenes::traced(size);
+                expand_first_step(&mut m);
+                m.trace.toggle_detail();
+                m
+            }),
+            ("roadmap", Scenes::roadmapped(size)),
+            ("launcher", Scenes::launcher(size)),
+        ];
+        for (name, model) in scenes {
+            for pixels in [false, true] {
+                let mut m = model.clone();
+                if pixels {
+                    update(
+                        &mut m,
+                        Msg::Mode(crate::capability::Mode::Graphics {
+                            pointer_shapes: true,
+                        }),
+                    );
+                }
+                let resolved = layout(&view(&m, &clock()), size);
+                for placed in resolved.placed() {
+                    let rect = placed.rect;
+                    assert!(
+                        rect.x + rect.width <= cols && rect.y + rect.height <= rows,
+                        "{name} {cols}x{rows} pixels={pixels}: {:?} at {rect:?} leaves the screen",
+                        placed.id
+                    );
+                }
+                if name == "trace" {
+                    let width = m.trace_width();
+                    for row in m.trace().card_rows(width, true) {
+                        let text = match row {
+                            crate::cockpit::TraceCardRow::Field { text, .. }
+                            | crate::cockpit::TraceCardRow::Meta(text)
+                            | crate::cockpit::TraceCardRow::Title(text) => text,
+                            _ => continue,
+                        };
+                        assert!(
+                            usize::from(crate::render::width(&text))
+                                + usize::from(crate::cockpit::TraceCardRow::INDENT)
+                                <= usize::from(width)
+                                    + usize::from(crate::cockpit::TraceCardRow::LABEL_COLS),
+                            "{cols}x{rows}: card text wider than the stage: {text:?}"
+                        );
+                    }
+                    let (total, height) = m.trace_window();
+                    assert!(height > 0, "{cols}x{rows}: the trace body has room");
+                    assert!(total >= m.trace().steps().len(), "every step has a row");
+                }
+            }
+        }
+    }
 }

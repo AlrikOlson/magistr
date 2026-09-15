@@ -87,22 +87,62 @@ fn visual_reduction_keeps_cyclic_input_and_is_order_independent() {
 }
 
 #[test]
-fn selection_reveals_the_exact_direct_relationships() {
-    let nodes = vec![
+fn a_selection_lights_the_chain_to_its_relations_and_dims_the_rest() {
+    let mut nodes = vec![
         node(1.5, 1.5, "done", 0),
         node(7.5, 1.5, "done", 0),
         node(13.5, 1.5, "pending", 0),
+        node(7.5, 4.5, "pending", 1),
     ];
     let edges = vec![(0, 1), (1, 2), (0, 2)];
+    let plain = RoadmapDag::new(nodes.clone(), edges.clone(), (10, 20));
+    assert_eq!(plain.edges.len(), 2, "the overview keeps the reduction");
+    assert_eq!(plain.focus, None);
+    nodes[2].selected = true;
+    let focused = RoadmapDag::new(nodes, edges, (10, 20));
     assert_eq!(
-        RoadmapDag::new(nodes.clone(), edges.clone(), (10, 20))
-            .edges
-            .len(),
-        2
+        focused.edges.len(),
+        2,
+        "a selection adds no line through the chain"
     );
-    let mut selected = nodes;
-    selected[2].selected = true;
-    assert_eq!(RoadmapDag::new(selected, edges, (10, 20)).edges.len(), 3);
+    assert_eq!(
+        focused.focus,
+        Some(vec![true, true, true, false]),
+        "the chain to the selection is the focus; the stray node is not"
+    );
+    let surface = render(&focused, 16, 6);
+    let stray = pixel(&surface, 75, 90);
+    let lit = pixel(&surface, 75, 30);
+    let brightness = |[r, g, b, _]: [u8; 4]| u16::from(r) + u16::from(g) + u16::from(b);
+    assert!(
+        brightness(stray) < brightness(lit),
+        "the unrelated dot fades back: {stray:?} vs {lit:?}"
+    );
+}
+
+#[test]
+fn a_waiting_chunk_is_hollow_and_a_ready_one_is_filled() {
+    let mut ready = node(7.5, 1.5, "pending", 0);
+    ready.state = StarState::of("pending", true);
+    let waiting = node(1.5, 1.5, "pending", 0);
+    let dag = RoadmapDag::new(vec![waiting, ready], Vec::new(), (10, 20)).bands(false);
+    let surface = render(&dag, 12, 3);
+    let [r, g, b, _] = pixel(&surface, 15, 30);
+    assert_eq!(
+        (r, g, b),
+        (26, 27, 38),
+        "the waiting dot's centre is ground"
+    );
+    let [r, g, b, _] = pixel(&surface, 75, 30);
+    assert!(b > r && b > g, "the ready dot is filled blue: {r},{g},{b}");
+}
+
+#[test]
+fn the_rail_can_paint_without_bands() {
+    let surface = render(&scene().bands(false), 16, 6);
+    assert_eq!(pixel(&surface, 155, 30), pixel(&surface, 155, 90));
+    let [r, g, b, _] = pixel(&surface, 155, 30);
+    assert_eq!((r, g, b), (26, 27, 38), "no band, only ground");
 }
 
 #[test]

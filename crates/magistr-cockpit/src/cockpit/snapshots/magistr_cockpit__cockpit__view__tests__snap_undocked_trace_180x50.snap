@@ -1,13 +1,13 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen
 ---
 ▲ magistr  idle                                                                                                                                                                00:01
 tui2-2-rail  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                                 │  ⇱ Trace
-│no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlog · 1 proposals · 1 signals                       │  think trace  [Checkpoint]
-│▲ tui2-2-rail · 1/3 done  │ │«Engine» 1/1                                                                                        │  ▸ ✦ think 7 · hypothesis · 0.70
+│no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlog · 1 proposals · 1 signals                       │  reasoning  1 step  [✱ Checkpoint]
+│▲ tui2-2-rail · 1/3       │ │«Engine» 1/1                                                                                        │  ▸  7  hypothesis  0.70
 │▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«TUI rewrite» 0/2                                                                                   │
 │▲ Rail and dock           │ │                                                                                                    │
 │1 before · 1 after        │ │                                                                                                    │

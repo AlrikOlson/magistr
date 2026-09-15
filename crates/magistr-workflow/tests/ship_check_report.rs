@@ -210,6 +210,7 @@ async fn active_task(svc: &ShipService) {
         acceptance_criteria: vec![],
         constraints: vec![],
         scope: String::new(),
+        verification: Default::default(),
     }))
     .await
     .unwrap();

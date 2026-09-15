@@ -6,103 +6,104 @@ const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev"},
   {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":"0.1.0","description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
 ];
-const pillars = [
-  {eyebrow:"01 / Shape",title:"Shape the roadmap",text:"Turn a conversation into ordered work with dependencies, acceptance criteria, and a next step you can inspect before it runs."},
-  {eyebrow:"02 / Act",title:"Run one bounded iteration",text:"Use the CLI, Codex, or Claude workflow to implement one focused work item. The terminal interface and desktop stay independent clients of shared semantics."},
-  {eyebrow:"03 / Prove",title:"Keep the trail",text:"Record decisions, actions, checks, and artifacts in project-local Magistr state. A future session can resume from evidence instead of a fragile summary."},
-];
+
+/** One real terminal capture, in both themes, with the alt text it earns. */
+const captures = {
+  roadmap: {
+    alt: "Magistr's terminal interface on the Roadmap tab: a dependency graph of the sample Harbor project with the work item in progress selected, its dependency chain lit, and its detail card open below the graph.",
+  },
+  trace: {
+    alt: "Magistr's terminal interface on the Trace tab: twelve reasoning steps on a main line with two merged branches, a selected step's card with its confidence and dependencies, and the recorded actions and checks below.",
+  },
+};
+
 const docs = [
-  {title:"Installation",text:"Build the v0.1.0 source release and verify the CLI.",href:"/docs/installation"},
-  {title:"Concepts",text:"Understand roadmap, project areas, sessions, and records.",href:"/docs/architecture"},
-  {title:"Development",text:"Run focused checks and contribute with the repository workflow.",href:"/docs/development"},
+  {title:"Installation",text:"Build the source release, initialize a project and connect an agent.",href:"/docs/installation"},
+  {title:"Concepts",text:"Roadmap, sessions, recorded work, verification and project state.",href:"/docs/concepts"},
+  {title:"Architecture",text:"Which crate owns what, and the client and host boundaries.",href:"/docs/architecture"},
+  {title:"Development",text:"The contributor commands and checks.",href:"/docs/development"},
 ];
 ---
-<Base title="Magistr — roadmap and workflow for coding agents" description="Shape a roadmap, run one focused work item, and keep the decisions, changes, and checks that explain how a project moved." jsonLd={jsonLd}>
+<Base title="Magistr — roadmap and workflow for coding agents" description="Keep a roadmap, run one focused work item at a time, and keep the reasoning, changes and checks that explain how a project moved." jsonLd={jsonLd}>
   <Nav />
-  <main id="main-content"><span class="sr-only" aria-hidden="true">--color-bg · fade-in · prefers-reduced-motion</span>
-    <section class="hero section-shell fade-in">
+  <main id="main-content">
+    <section class="hero section-shell">
       <div class="hero-copy">
         <p class="eyebrow"><span class="status-dot"></span> Open source · v0.1.0 · early release</p>
         <h1>Roadmap and workflow management <span>for coding agents.</span></h1>
-        <p class="hero-lede">Magistr gives an agent a durable place to plan, work, and report. Keep the user's intent, the next task, and the proof of what changed in one project record.</p>
+        <p class="hero-lede">Magistr keeps a project's roadmap, runs one focused work item at a time, and records the reasoning, the changes and the checks along the way — in the project, not in a chat transcript.</p>
         <div class="hero-actions">
-          <a id="install-btn" class="button button-primary shimmer-cta" href="#quickstart">Build from source <span aria-hidden="true">→</span></a>
+          <a id="install-btn" class="button button-primary" href="#install">Install from source <span aria-hidden="true">→</span></a>
           <a class="button button-quiet" href="/docs/installation">Read the docs</a>
         </div>
-        <p class="hero-note">Rust workspace · cargo · no hosted account required</p>
+        <p class="hero-note">Rust workspace · cargo · runs locally · no account</p>
       </div>
-      <div class="hero-card terminal-preview">
-        <a class="capture-light" href="/screenshots/tui2-roadmap-light.png" title="Open full-size roadmap capture"><img src="/screenshots/tui2-roadmap-light.png" alt="Magistr terminal interface showing a roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
-        <a class="capture-dark" href="/screenshots/tui2-roadmap-dark.png" title="Open full-size roadmap capture"><img src="/screenshots/tui2-roadmap-dark.png" alt="Magistr terminal interface showing a roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
-      </div>
+      <figure class="capture hero-capture">
+        <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={captures.roadmap.alt} width="1320" height="840" fetchpriority="high" /></a>
+        <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={captures.roadmap.alt} width="1320" height="840" fetchpriority="high" /></a>
+        <figcaption>The Roadmap tab of a sample project, captured from the terminal interface. Open for full size.</figcaption>
+      </figure>
     </section>
 
-    <section id="features" class="section-shell section-block product-section">
-      <div class="section-heading"><p class="eyebrow">The product model</p><h2>One loop, with a clear owner at every step.</h2><p>Magistr gives a project a durable loop: shape the work, make one bounded change, then keep the proof close to the decision.</p></div>
-      <div class="product-flow pillar-grid sm:grid-cols-2 lg:grid-cols-3">
-        <div class="flow-steps">
-          {pillars.map((pillar, index) => <article class="flow-step"><span class="flow-step-number">0{index + 1}</span><div><p class="card-eyebrow">{pillar.eyebrow}</p><h3>{pillar.title}</h3><p>{pillar.text}</p></div></article>)}
+    <section id="terminal" class="section-shell section-block story" aria-labelledby="roadmap-title">
+      <div class="story-copy">
+        <p class="eyebrow">The roadmap</p>
+        <h2 id="roadmap-title">Work items, their dependencies, and what is ready next.</h2>
+        <ul class="facts">
+          <li><strong>A graph, not a list.</strong> Each work item sits one column after the last thing it depends on; shipped work is green, waiting work hollow, ready work filled.</li>
+          <li><strong>Selection lights the chain.</strong> Pick an item and everything it stands on, and everything that stands on it, stays lit while the rest fades.</li>
+          <li><strong>One item at a time.</strong> The item in progress carries its acceptance criteria and its dependencies into the session that works it.</li>
+        </ul>
+      </div>
+      <figure class="capture">
+        <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={captures.roadmap.alt} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={captures.roadmap.alt} loading="lazy" width="1320" height="840" /></a>
+        <figcaption>Roadmap tab: 66 work items and 146 dependencies from the sample Harbor project.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-shell section-block story story-flip" aria-labelledby="trace-title">
+      <div class="story-copy">
+        <p class="eyebrow">Reasoning and recorded work</p>
+        <h2 id="trace-title">Every decision, and the checks behind it, stay with the project.</h2>
+        <ul class="facts">
+          <li><strong>Reasoning steps as a graph.</strong> Steps run on a main line; a branch that was explored and merged shows as a lane that rejoins it.</li>
+          <li><strong>Pinned and checkpointed.</strong> A pinned step is kept in view for later sessions. A checkpoint is a saved, recoverable session state. They wear different marks.</li>
+          <li><strong>Recorded actions and checks.</strong> What was done and what passed or failed, with exit codes and durations, sits under the steps that motivated it.</li>
+        </ul>
+      </div>
+      <figure class="capture">
+        <a class="capture-light" href="/screenshots/terminal-trace-light.png"><img src="/screenshots/terminal-trace-light.png" alt={captures.trace.alt} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href="/screenshots/terminal-trace-dark.png"><img src="/screenshots/terminal-trace-dark.png" alt={captures.trace.alt} loading="lazy" width="1320" height="840" /></a>
+        <figcaption>Trace tab: a selected step with its card, and the recorded work below.</figcaption>
+      </figure>
+    </section>
+
+    <section id="install" class="section-shell section-block install" aria-labelledby="install-title">
+      <div class="section-heading"><p class="eyebrow">Install</p><h2 id="install-title">Build the source release.</h2><p>v0.1.0 is an early development release. It builds from the repository with Rust 1.95 or later; there is no registry package yet.</p></div>
+      <div class="install-grid">
+        <div class="code-panel">
+          <pre><code>git clone https://github.com/AlrikOlson/magistr.git
+cd magistr
+cargo install --locked --path crates/magistr-cli
+magistr --version</code></pre>
         </div>
-        <aside class="capability-panel">
-          <div class="capability-panel-head"><div><p class="card-eyebrow">In every project</p><h3>Useful surfaces, one shared record.</h3></div><span class="capability-version">v0.1.0</span></div>
-          <div class="capability-list">
-            <article class="feature-card"><p class="card-eyebrow">Scaffold</p><h3>Scaffolding</h3><p>Generate project guidance and agent files that match the detected stack.</p></article>
-            <article class="feature-card"><p class="card-eyebrow">Record</p><h3>Recorded iteration</h3><p>Keep the decisions, actions, checks, and artifacts from each work item.</p></article>
-            <article class="feature-card"><p class="card-eyebrow">Navigate</p><h3>Terminal interface</h3><p>Inspect the roadmap and current work through the supported local client.</p></article>
-            <article class="feature-card"><p class="card-eyebrow">Track</p><h3>Roadmap Tracking</h3><p>See the next item, its dependencies, and what is ready to move.</p></article>
-            <article class="feature-card"><p class="card-eyebrow">Ground</p><h3>Repository tools</h3><p>Verified source navigation and workflow tools keep work grounded in the repository.</p></article>
-            <article class="feature-card feature-card-muted"><p class="card-eyebrow">Experimental</p><h3>Desktop &amp; peer protocol</h3><p>The desktop viewer remains available for evaluation while the terminal path stays primary.</p></article>
-          </div>
+        <aside class="callout">
+          <p class="card-eyebrow">Then, in your project</p>
+          <ol>
+            <li><code>magistr init .</code> detects the stack and writes the project file and agent setup.</li>
+            <li><code>magistr</code> opens the terminal interface.</li>
+            <li><code>magistr next</code> runs one ready work item; <code>magistr next-loop</code> continues through fresh sessions.</li>
+          </ol>
+          <a href="/docs/installation">Full installation guide →</a>
         </aside>
       </div>
     </section>
 
-    <section id="screenshots" class="section-shell section-block">
-      <div class="section-heading"><p class="eyebrow">The terminal interface</p><h2>See Magistr in the terminal</h2><p>Roadmap and Trace views rendered by Magistr's terminal interface from a realistic sample Harbor project. Open a capture to see the full working surface.</p></div>
-      <div class="screenshot-grid">
-        {[
-          {name:"roadmap",title:"Roadmap",alt:"Terminal Roadmap view with a dependency graph, work item status, and pending work.",text:"Dependencies, status, and the next work in the project."},
-          {name:"trace",title:"Trace",alt:"Terminal Trace view showing recorded reasoning and an expanded decision alongside the current plan.",text:"Recorded reasoning and ship actions stay with the project."},
-        ].map((capture) => (
-          <article class="map-card screenshot-card">
-            <a class="capture-light" href={`/screenshots/tui2-${capture.name}-light.png`} title={`Open full-size ${capture.title} capture`}><img src={`/screenshots/tui2-${capture.name}-light.png`} alt={capture.alt} loading="lazy" width="1320" height="840" /></a>
-            <a class="capture-dark" href={`/screenshots/tui2-${capture.name}-dark.png`} title={`Open full-size ${capture.title} capture`}><img src={`/screenshots/tui2-${capture.name}-dark.png`} alt={capture.alt} loading="lazy" width="1320" height="840" /></a>
-            <div><h3>{capture.title}</h3><p>{capture.text}</p></div>
-          </article>
-        ))}
-      </div>
+    <section class="section-shell docs-index" aria-labelledby="docs-title">
+      <div><p class="eyebrow">Keep reading</p><h2 id="docs-title">The documentation is short on purpose.</h2></div>
+      <div class="doc-links">{docs.map((doc) => <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">→</span></a>)}</div>
     </section>
-
-    <section id="quickstart" class="section-shell section-block quickstart">
-      <div class="section-heading"><p class="eyebrow">Quickstart</p><h2>Install the source release in a minute.</h2><p>v0.1.0 is a development release. Builds come from the repository while registry packages are not published.</p></div>
-      <div class="quickstart-grid">
-        <div class="code-panel"><div class="code-tabs quickstart-tabs" role="tablist" aria-label="Installation steps"><button class="quickstart-tab active" role="tab" aria-selected="true">macOS / Linux</button><button class="quickstart-tab" role="tab" aria-selected="false">Windows</button></div><div class="code-body" role="tabpanel"><pre><code>git clone https://github.com/AlrikOlson/magistr magistr
-cd magistr
-cargo install --locked --path magistr/crates/magistr-cli
-magistr --version</code></pre><button class="quickstart-copy" type="button">Copy command</button></div></div>
-        <aside class="callout"><p class="card-eyebrow">After install</p><ol><li><code>magistr init</code> creates project settings.</li><li><code>magistr next</code> runs the next ready work item.</li><li><code>magistr next-loop</code> hands the next work item to a fresh session.</li></ol><a href="/docs/installation">Full installation guide →</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md">Release inventory →</a></aside>
-      </div>
-    </section>
-
-    <section class="section-shell section-block walkthrough" aria-labelledby="walkthrough-title">
-      <div class="section-heading"><p class="eyebrow">A repeatable loop</p><h2 id="walkthrough-title">From zero to a recorded change.</h2></div>
-      <div class="walkthrough-grid">
-        <article class="walkthrough-step"><span>01</span><h3>Initialize</h3><p>Define the project and inspect its roadmap.</p><code>magistr init</code></article>
-        <article class="walkthrough-step"><span>02</span><h3>Choose</h3><p>Pick the next ready work item and make the acceptance testable.</p><code>magistr next</code></article>
-        <article class="walkthrough-step"><span>03</span><h3>Continue</h3><p>Hand off one work item with fresh context and recorded results.</p><code>magistr next-loop</code></article>
-      </div>
-    </section>
-
-    <section id="community" class="section-shell section-block community-section">
-      <div class="section-heading"><p class="eyebrow">Open by default</p><h2>Join the workflow in public.</h2><p>Read the architecture, challenge the contracts, or contribute a focused change.</p></div>
-      <div class="community-links"><a class="community-link" href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer"><strong>GitHub</strong><span>Source, issues, and releases →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/issues" target="_blank" rel="noopener noreferrer"><strong>Issues</strong><span>Report a problem or propose a change →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer"><strong>Contributing</strong><span>Development setup and expectations →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer"><strong>Security</strong><span>Responsible disclosure policy →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer"><strong>Code of Conduct</strong><span>Community expectations →</span></a><a class="community-link" href="/docs/deployment"><strong>Deployment</strong><span>Pages configuration and verification →</span></a></div>
-    </section>
-
-    <section id="changelog" class="section-shell section-block changelog-section"><div class="section-heading"><p class="eyebrow">Release notes</p><h2>What changed in v0.1.0?</h2><p class="changelog-empty">This early release ships the CLI, terminal interface, tool server, and project workspace tools. See the <a href="https://github.com/AlrikOlson/magistr/releases">release timeline</a> for updates.</p></div></section>
-
-    <section class="section-shell docs-index"><div><p class="eyebrow">Keep reading</p><h2>Specific answers for specific work.</h2></div><div class="doc-links">{docs.map((doc) => <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">↗</span></a>)}</div></section>
   </main>
-  <hr role="separator" class="sr-only" />
-  <footer class="site-footer"><div class="section-shell"><span>Magistr · roadmap and workflow management for coding agents</span><a href="/docs/installation">Documentation</a><a href="https://github.com/AlrikOlson/magistr">Repository</a></div></footer>
+  <footer class="site-footer"><div class="section-shell"><span>Magistr · roadmap and workflow management for coding agents</span><a href="/docs/installation">Documentation</a><a href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer">Repository <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a><a href="https://github.com/AlrikOlson/magistr/issues" target="_blank" rel="noopener noreferrer">Issues <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a></div></footer>
 </Base>
-

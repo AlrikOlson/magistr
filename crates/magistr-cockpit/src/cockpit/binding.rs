@@ -45,6 +45,13 @@ impl Binding {
         }
     }
 
+    // ── trace ───────────────────────────────────────────────────────
+    /// Walk the reasoning steps on the Trace tab.
+    pub const TRACE_STEP: Self = Self::new("↑↓", "select", "trace", KeyCode::Up, Modifiers::NONE);
+    /// Show every field of the selected step, or the brief cut again.
+    pub const TRACE_DETAIL: Self =
+        Self::new("enter", "detail", "trace", KeyCode::Enter, Modifiers::NONE);
+
     // ── global ──────────────────────────────────────────────────────
     /// Cycle the stage tabs.
     pub const TAB: Self = Self::new(
@@ -422,6 +429,8 @@ impl Binding {
         Self::ESC_CLOSE,
         Self::SCROLL,
         Self::HOME_END,
+        Self::TRACE_STEP,
+        Self::TRACE_DETAIL,
         Self::FOLD,
         Self::FOLLOW,
         Self::DOCK,
@@ -467,6 +476,9 @@ impl Binding {
     pub const HINT_STREAMING: &'static [Self] = &[Self::CANCEL, Self::QUIT];
     /// The footer at rest.
     pub const HINT_IDLE: &'static [Self] = &[Self::SEND, Self::HISTORY, Self::QUIT];
+    /// The footer on a Trace tab with steps: the selection walks and
+    /// Enter opens the full card.
+    pub const HINT_TRACE: &'static [Self] = &[Self::TRACE_STEP, Self::TRACE_DETAIL, Self::QUIT];
     /// The footer on the Home tab.
     pub const HINT_HOME: &'static [Self] = &[
         Self::NEXT,

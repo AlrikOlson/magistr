@@ -21,7 +21,7 @@ fn ascii(surface: &PixelSurface) -> String {
         })
         .collect::<Vec<char>>()
         .chunks(width)
-        .map(|row| row.iter().collect::<String>())
+        .map(|row| row.iter().collect::<String>().trim_end().to_owned())
         .collect::<Vec<String>>()
         .join("\n")
 }
@@ -128,4 +128,76 @@ fn a_fork_edge_waits_for_the_step_it_lands_on() {
     let rows: Vec<&str> = art.lines().collect();
     let lower = rows[rows.len() / 2..].join("");
     assert!(lower.trim().is_empty(), "the branch drew too early: {art}");
+}
+
+fn brightness(surface: &PixelSurface, x: u32, y: u32) -> u32 {
+    let width = u32::from(surface.width());
+    let at = usize::try_from((y * width + x) * 4).expect("index");
+    let px = &surface.pixels()[at..at + 4];
+    u32::from(px[0]) + u32::from(px[1]) + u32::from(px[2])
+}
+
+#[test]
+fn a_focus_dims_the_steps_outside_it_and_rings_the_selection() {
+    let plain = render(&BranchGraph::new(vec![0, 0, 0], Vec::new()), 24, 3);
+    let focused = render(
+        &BranchGraph::new(vec![0, 0, 0], Vec::new()).focus(Some(vec![true, false, true]), Some(2)),
+        24,
+        3,
+    );
+    // The dots sit on the middle row at x = side + index * step across
+    // a 96-pixel surface: 10.8, 48 and 85.2.
+    let (unrelated, lit) = (48, 85);
+    let y = 12;
+    assert!(
+        brightness(&focused, unrelated, y) < brightness(&plain, unrelated, y),
+        "the unrelated dot faded"
+    );
+    assert!(
+        brightness(&focused, lit, y) >= brightness(&plain, lit, y),
+        "the lit dot did not"
+    );
+    let ring = (68..=84).any(|x| brightness(&focused, x, y) > 600);
+    assert!(
+        ring,
+        "the selection wears a white ring:\n{}",
+        ascii(&focused)
+    );
+}
+
+#[test]
+fn a_pinned_step_wears_a_violet_ring_and_a_merge_links_back() {
+    let bare = render(&BranchGraph::new(vec![0, 1, 0], vec![(0, 1)]), 24, 4);
+    let marked = render(
+        &BranchGraph::new(vec![0, 1, 0], vec![(0, 1)])
+            .pins(vec![true, false, false])
+            .merges(vec![(1, 2)]),
+        24,
+        4,
+    );
+    assert_ne!(ascii(&bare), ascii(&marked));
+    // The pin ring: violet pixels around the first dot, which the blue
+    // lane never paints (blue has less red than green; violet more).
+    let violet = marked
+        .pixels()
+        .chunks(4)
+        .any(|px| px[2] > px[1] + 40 && px[0] > px[1] + 20);
+    assert!(
+        violet,
+        "a violet ring around the pinned dot:\n{}",
+        ascii(&marked)
+    );
+    // The merge: the same graph with only the pins differs from the one
+    // with the way back drawn.
+    let pinned_only = render(
+        &BranchGraph::new(vec![0, 1, 0], vec![(0, 1)]).pins(vec![true, false, false]),
+        24,
+        4,
+    );
+    assert_ne!(
+        ascii(&pinned_only),
+        ascii(&marked),
+        "the merge link is drawn:\n{}",
+        ascii(&marked)
+    );
 }

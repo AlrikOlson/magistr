@@ -44,6 +44,7 @@ use super::settings::Settings;
 use super::settings_data::SettingsData;
 use super::shelf::Shelf;
 use super::size::Size;
+use super::space::Space;
 use super::stage_tab::StageTab;
 use super::star_state::StarState;
 use super::surface::Surface;
@@ -96,6 +97,10 @@ const STAGE_FRAME_COLS: u16 = 2;
 const UNDOCK_MIN_COLS: u16 = 160;
 /// Columns the undocked column takes (its divider adds one).
 pub(super) const UNDOCK_COLS: u16 = 48;
+
+/// Stage heights at or under this are short: the tech-tree takes a
+/// third of them rather than half, so the roadmap's list stays usable.
+const SHORT_STAGE_ROWS: usize = 14;
 /// Rows the prompt box grows to before it scrolls.
 pub(super) const PROMPT_MAX_ROWS: usize = 5;
 
@@ -1664,7 +1669,9 @@ impl Model {
     /// padding, the rail's columns and the undocked column.
     #[must_use]
     pub const fn stage_width(&self) -> u16 {
-        stage_width(self.size, self.rail.cols(self.size.cols)).saturating_sub(self.undock_cols())
+        stage_width(self.size, self.rail.cols(self.size.cols))
+            .saturating_sub(self.undock_cols())
+            .saturating_sub(self.gutter_cells())
     }
 
     /// Text wrapping width in columns: stage width minus the accent gutter.
@@ -1711,7 +1718,21 @@ impl Model {
         if self.surface.is_native() {
             NATIVE_CHROME_ROWS
         } else {
-            CHROME_ROWS
+            CHROME_ROWS + self.gutter_cells()
+        }
+    }
+
+    /// Cells the pixel arrangement adds on each axis: the one-cell
+    /// gutter around the whole cockpit and the padding inside the stage
+    /// panel, top and bottom (or left and right) — four in all, and
+    /// none on a plain terminal or a window. Every row and column count
+    /// the stage is measured by comes through here, so what the model
+    /// believes fits is what the layout actually shows.
+    const fn gutter_cells(&self) -> u16 {
+        if self.pixels && !self.surface.is_native() {
+            4 * Space::PAD
+        } else {
+            0
         }
     }
 
@@ -1798,8 +1819,21 @@ impl Model {
     /// same pair.
     #[must_use]
     pub fn trace_window(&self) -> (usize, usize) {
-        let height = self.stage_rows().saturating_sub(self.trace.pinned_rows());
-        (self.trace.body_rows(), height)
+        let height = self
+            .stage_rows()
+            .saturating_sub(self.trace.pinned_rows(self.pixels));
+        (self.trace.body_rows(self.trace_width()), height)
+    }
+
+    /// Columns the Trace tab wraps a step's card to: the undocked
+    /// column's inner width while the trace sits there, else the stage's
+    /// width (which already gives up the pixel arrangement's gutters).
+    #[must_use]
+    pub fn trace_width(&self) -> u16 {
+        if self.undocked_tab() == Some(StageTab::Trace) {
+            return UNDOCK_COLS.saturating_sub(2 * Space::PAD);
+        }
+        self.stage_width()
     }
 
     /// The first visible row of the Trace tab's body.
@@ -1864,9 +1898,16 @@ impl Model {
             return 0;
         }
         if self.roadmap_graph_rect.is_some() {
-            return u16::try_from(self.stage_rows() / 2)
-                .unwrap_or(u16::MAX)
-                .clamp(8, 16);
+            // Half the stage on a tall one; a third on a short one —
+            // twelve stage rows at 80x24 on the pixel arrangement — so
+            // the list under the tree keeps its sections and the inbox.
+            let rows = self.stage_rows();
+            let share = if rows <= SHORT_STAGE_ROWS {
+                rows / 3
+            } else {
+                rows / 2
+            };
+            return u16::try_from(share).unwrap_or(u16::MAX).clamp(4, 16);
         }
         u16::try_from(self.roadmap.band_rows().len())
             .unwrap_or(u16::MAX)
@@ -1882,7 +1923,7 @@ impl Model {
     pub fn roadmap_window(&self) -> (usize, usize) {
         let pinned = 1 + usize::from(self.roadmap_graph_rows());
         let height = self.stage_rows().saturating_sub(pinned);
-        (self.roadmap.body_rows(), height)
+        (self.roadmap.body_rows(self.stage_width()), height)
     }
 
     /// The first visible row of the Roadmap tab's body.

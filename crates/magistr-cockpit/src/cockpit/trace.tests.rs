@@ -2,6 +2,7 @@ use magistr_engine::{NativeEvent, NativeSnapshot};
 use serde_json::json;
 
 use super::*;
+use crate::cockpit::trace::TRACE_GRAPH_ROWS;
 use crate::harness::fixtures;
 
 fn frame(family: &str, kind: &str, payload: serde_json::Value) -> NativeEvent {
@@ -256,33 +257,103 @@ fn a_seed_replaces_both_halves_and_keeps_what_only_the_feed_knows() {
 #[test]
 fn the_body_counts_every_row_the_tab_paints() {
     let mut trace = Trace::default();
-    assert_eq!(trace.pinned_rows(), 1, "the heading");
-    assert_eq!(trace.body_rows(), 1, "the empty note");
+    assert_eq!(trace.pinned_rows(false), 1, "the heading");
+    assert_eq!(trace.body_rows(80), 1, "the empty note");
 
     trace.apply(&step(1));
     trace.apply(&step(2));
-    assert_eq!((trace.pinned_rows(), trace.body_rows()), (1, 2));
+    assert_eq!((trace.pinned_rows(false), trace.body_rows(80)), (1, 2));
+    assert_eq!(
+        trace.pinned_rows(true),
+        1 + TRACE_GRAPH_ROWS,
+        "with pixels the graph block sits under the heading"
+    );
 
-    // Expanding adds the button row and one row per field line.
+    // Selecting adds the card: its rows at the width the body is asked
+    // for — the same rows the view paints.
     trace.toggle(0);
-    let fields = trace.step(1).expect("step 1").field_rows();
-    assert!(fields > 0, "a step with a purpose has a field");
-    assert_eq!(trace.body_rows(), 2 + 1 + fields);
+    let card = trace.card_rows(80, false).len();
+    assert!(
+        card >= 5,
+        "blank, title, meta, buttons, blank at least: {card}"
+    );
+    assert_eq!(trace.body_rows(80), 2 + card);
+    // Every field whole is never fewer rows than the brief cut.
+    trace.toggle_detail();
+    assert!(trace.body_rows(80) >= 2 + card);
+    // A narrower stage wraps to more rows, never fewer.
+    assert!(trace.body_rows(40) >= trace.body_rows(80));
+    trace.toggle_detail();
 
-    // A branch pins the graph block above the scroll.
+    // A branch pins the lane list above the scroll on a plain terminal.
     trace.apply(&branch_step(3, "alt", 1));
-    assert_eq!(trace.pinned_rows(), 1 + trace.branch_rows().len());
+    assert_eq!(trace.pinned_rows(false), 1 + trace.branch_rows().len());
 
-    // The ship half adds its heading and one row per moment.
-    let before = trace.body_rows();
+    // The recorded work adds its heading and one row per moment.
+    let before = trace.body_rows(80);
     trace.apply(&frame(
         "ship",
         "check_recorded",
         json!({"task_id": "t1", "check": {"name": "lint", "passed": true}}),
     ));
-    assert_eq!(trace.body_rows(), before + 2);
+    assert_eq!(trace.body_rows(80), before + 2);
 
     // The checkpoint pane takes the body whole.
     trace.open_viewer(vec!["{".to_owned(), "}".to_owned()]);
-    assert_eq!((trace.pinned_rows(), trace.body_rows()), (1, 2));
+    assert_eq!((trace.pinned_rows(false), trace.body_rows(80)), (1, 2));
+}
+
+#[test]
+fn the_selection_walks_the_feed_and_the_focus_lights_relations() {
+    let mut trace = Trace::default();
+    assert!(!trace.select_step(true), "nothing to select");
+    trace.apply(&step(1));
+    trace.apply(&step(2));
+    trace.apply(&branch_step(3, "alt", 1));
+    assert_eq!(trace.selected_index(), None);
+    assert!(trace.select_step(false), "up from nothing takes the newest");
+    assert_eq!(trace.selected_index(), Some(2));
+    assert!(trace.select_step(false));
+    assert_eq!(trace.selected_index(), Some(1));
+    assert!(trace.select_step(true));
+    assert_eq!(trace.selected_index(), Some(2));
+    assert!(!trace.select_step(true), "the newest is the end");
+    trace.deselect();
+    assert!(
+        trace.select_step(true),
+        "down from nothing takes the newest too"
+    );
+    assert_eq!(trace.selected(), trace.step(3));
+    let focus = trace.focus().expect("a selection has a focus");
+    assert_eq!(focus.selected, 2);
+    assert!(focus.is_lit(0), "the fork point is an ancestor");
+    assert!(!focus.is_lit(1), "step 2 is unrelated to the branch");
+    assert!(trace.deselect());
+    assert!(!trace.deselect());
+    assert_eq!(trace.focus(), None);
+}
+
+#[test]
+fn a_merged_branch_rejoins_the_main_line_and_the_heading_counts() {
+    let mut trace = Trace::default();
+    trace.apply(&step(1));
+    trace.apply(&branch_step(2, "alt", 1));
+    trace.apply(&branch_step(3, "alt", 1));
+    trace.apply(&step(4));
+    assert_eq!(trace.merges(), vec![], "an active branch has not rejoined");
+    trace.apply(&frame(
+        "think",
+        "branch_status_changed",
+        json!({"branch_id": "alt", "status": "merged"}),
+    ));
+    assert_eq!(
+        trace.merges(),
+        vec![(2, 3)],
+        "its last step links to the next main step"
+    );
+    assert_eq!(trace.heading_line(), "4 steps · 1 branch");
+    trace.set_pinned(4, true);
+    assert_eq!(trace.heading_line(), "4 steps · 1 branch · 1 pinned");
+    assert_eq!(trace.pins(), vec![false, false, false, true]);
+    assert_eq!(Trace::default().heading_line(), "0 steps");
 }

@@ -78,7 +78,17 @@ const POINTER_RESET: &[u8] = b"\x1b]22;\x1b\\";
 
 /// The rect of `id` in the placeholder cockpit laid out at [`SIZE`].
 fn widget_rect(id: magistr_cockpit::widget_id::WidgetId) -> magistr_cockpit::layout::Rect {
-    let root = view(&Model::new(SIZE), &FrameClock::new(0, Duration::ZERO));
+    // The kitty probe puts the cockpit on its pixel arrangement — one
+    // gutter cell around everything — so the rect is read off that
+    // arrangement, where the pointer will actually find the widget.
+    let mut model = Model::new(SIZE);
+    update(
+        &mut model,
+        Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    let root = view(&model, &FrameClock::new(0, Duration::ZERO));
     let rect = LayoutTree::new()
         .compute(&root, SIZE.cols, SIZE.rows)
         .expect("layout")
@@ -702,9 +712,11 @@ async fn a_wheel_over_the_undocked_column_moves_its_feed_and_not_the_turn() {
         .await
         .expect("the run succeeds");
 
+    // One gutter cell in from the screen's edge on every side, the
+    // pixel arrangement's frame.
     assert_eq!(
         model.undock_rect(),
-        Some(magistr_cockpit::layout::Rect::new(132, 2, 48, 45)),
+        Some(magistr_cockpit::layout::Rect::new(131, 3, 48, 43)),
         "the driver reported where the column landed"
     );
     assert_eq!(

@@ -492,17 +492,17 @@ fn the_body_rows_count_the_sections_the_rows_the_done_line_and_the_inboxes() {
     let roadmap = seeded();
     // in progress: spacer + header + mid; pending: spacer + header + ui;
     // done: spacer + the count line; signals: spacer + heading + s1.
-    assert_eq!(roadmap.body_rows(), 11);
+    assert_eq!(roadmap.body_rows(80), 11);
 }
 
 #[test]
 fn selecting_a_row_grows_the_body_by_its_buttons_and_its_detail() {
     let mut roadmap = seeded();
-    let plain = roadmap.body_rows();
+    let plain = roadmap.body_rows(80);
     assert!(roadmap.select("mid", 0.0, false));
-    let open = roadmap.chunk("mid").expect("mid").detail_rows();
+    let open = roadmap.chunk("mid").expect("mid").detail_rows(120);
     assert_eq!(
-        roadmap.body_rows(),
+        roadmap.body_rows(80),
         plain + 1 + open,
         "the button row and the card"
     );
@@ -511,14 +511,14 @@ fn selecting_a_row_grows_the_body_by_its_buttons_and_its_detail() {
 #[test]
 fn a_chunk_selected_off_the_list_takes_its_own_card_under_the_graph() {
     let mut roadmap = seeded();
-    let plain = roadmap.body_rows();
+    let plain = roadmap.body_rows(80);
     assert!(
         roadmap.select("base", 0.0, false),
         "done chunks are still selectable"
     );
-    let card = roadmap.chunk("base").expect("base").detail_rows();
+    let card = roadmap.chunk("base").expect("base").detail_rows(120);
     assert_eq!(
-        roadmap.body_rows(),
+        roadmap.body_rows(80),
         plain + 2 + card,
         "the spacer and the head line"
     );
@@ -528,19 +528,19 @@ fn a_chunk_selected_off_the_list_takes_its_own_card_under_the_graph() {
 fn a_hover_takes_the_tooltip_row() {
     let mut roadmap = seeded();
     roadmap.set_viewport(Some((40, 20)));
-    let plain = roadmap.body_rows();
+    let plain = roadmap.body_rows(80);
     let (x, y) = {
         let nodes = roadmap.dag_nodes();
         (nodes[1].x, nodes[1].y)
     };
     roadmap.hover_at(x, y, 0.0);
     assert!(roadmap.hovered_title().is_some(), "the hover took a node");
-    assert_eq!(roadmap.body_rows(), plain + 1);
+    assert_eq!(roadmap.body_rows(80), plain + 1);
 }
 
 #[test]
 fn an_empty_roadmap_bodies_to_its_one_note() {
-    assert_eq!(Roadmap::default().body_rows(), 1);
+    assert_eq!(Roadmap::default().body_rows(80), 1);
 }
 
 #[test]
@@ -548,7 +548,7 @@ fn the_signals_inbox_takes_a_heading_and_a_row_each() {
     let mut roadmap = Roadmap::default();
     roadmap.seed(&[], &[signal("s1", "researched")]);
     assert_eq!(
-        roadmap.body_rows(),
+        roadmap.body_rows(80),
         3,
         "the spacer, the heading and the one open signal"
     );

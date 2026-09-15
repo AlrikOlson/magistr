@@ -1767,7 +1767,7 @@ impl LoopDriver {
         let Some(engines) = engines else {
             if !*said {
                 *said = true;
-                self.note("gates not recorded: no think-and-ship engines");
+                self.note("gates not recorded: no workflow engines");
             }
             return;
         };
