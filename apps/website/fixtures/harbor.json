@@ -1237,6 +1237,9 @@
     },
     {
       "step_number": 4,
+      "branch_id": "throttle-policy",
+      "branch_name": "Throttle policy",
+      "branch_from": 3,
       "estimated_total": 10,
       "purpose": "Honor upstream throttling",
       "context": "Retry-After may carry seconds or an HTTP date.",
@@ -1253,6 +1256,9 @@
     },
     {
       "step_number": 5,
+      "branch_id": "throttle-policy",
+      "branch_name": "Throttle policy",
+      "branch_from": 3,
       "estimated_total": 10,
       "purpose": "Bound the retry schedule",
       "context": "A fixed delay makes tenants retry at the same instant.",

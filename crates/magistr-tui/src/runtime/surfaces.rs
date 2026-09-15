@@ -17,7 +17,7 @@ use magistr_cockpit::cockpit::view::{activity_series, rail_gauge_cols, spark_swe
 use magistr_cockpit::cockpit::{DagNode, DagPath, Model, Motion, Widget};
 use magistr_cockpit::layout::{Rect, Resolved};
 use magistr_cockpit::pixel::{
-    BranchGraph, Brand, CellSize, Gauge, Image, PixelSurface, RoadmapDag, Sparkline,
+    BranchGraph, Brand, CellSize, Gauge, Icon, Image, PixelSurface, RoadmapDag, Sparkline,
 };
 use magistr_cockpit::render::Color;
 use magistr_cockpit::theme::Pen;
@@ -63,6 +63,11 @@ type ImageKey = (usize, u16, u16, Rect, CellSize);
 /// (the gauge's fill; the brand's is always zero), its rect, the cell
 /// size and the pen colour it wears.
 type ChromeKey = (u32, Rect, CellSize, (u8, u8, u8));
+
+/// What a trace action icon was painted from: its widget id, slot, cell
+/// size and icon state. The slot stays hittable through the normal widget
+/// registry while the graphics surface supplies the visual affordance.
+type ActionKey = (WidgetId, Rect, CellSize, Icon);
 
 /// One run of an image's rows on the stage: the turn row its placement
 /// starts at, the visible index the run starts at, which rows of the
@@ -113,6 +118,8 @@ pub(crate) struct Surfaces {
     /// The stream's images, one surface per placement visible on the
     /// stage, keyed by the widget id of its first visible row.
     images: Vec<(WidgetId, PixelSurface, ImageKey)>,
+    /// Trace checkpoint and pin affordances, drawn as compact vector icons.
+    actions: Vec<(WidgetId, PixelSurface, ActionKey)>,
 }
 
 impl Surfaces {
@@ -128,6 +135,7 @@ impl Surfaces {
         screen: &mut Screen,
     ) -> bool {
         self.show_trace_graph(model, resolved, screen);
+        self.show_trace_controls(model, resolved, screen);
         self.show_chrome(model, resolved, screen);
         self.show_stage_images(model, resolved, screen);
         self.show_roadmap_graph(model, resolved, screen)
@@ -351,6 +359,55 @@ impl Surfaces {
         bands
     }
 
+    /// Trace actions are intentionally graphical in compositing mode: the
+    /// same hit targets remain in the cell layout, while these transparent
+    /// surfaces replace bracketed labels with a checkpoint ring and pin
+    /// markers. Plain terminals keep the accessible labels from the view.
+    fn show_trace_controls(&mut self, model: &Model, resolved: &Resolved, screen: &mut Screen) {
+        if !screen.has_graphics() {
+            self.actions.clear();
+            return;
+        }
+        let cell = model.cell_size();
+        let trace = model.trace();
+        let mut targets: Vec<(WidgetId, Icon)> = Vec::new();
+        targets.push((Widget::Checkpoint.id(), Icon::Checkpoint));
+        targets.extend(trace.steps().iter().map(|step| {
+            (
+                Widget::trace_pin(step.number),
+                if step.pinned {
+                    Icon::PinFilled
+                } else {
+                    Icon::Pin
+                },
+            )
+        }));
+        let mut shown = Vec::with_capacity(targets.len());
+        for (id, icon) in targets {
+            let Some(rect) = placed_id(resolved, id) else {
+                continue;
+            };
+            let key = (id, rect, cell, icon);
+            let cached = self
+                .actions
+                .iter()
+                .position(|(known, _, known_key)| *known == id && *known_key == key);
+            let mut surface = match cached {
+                Some(at) => self.actions.remove(at).1,
+                None => {
+                    let mut surface = PixelSurface::with_alpha(rect, cell);
+                    surface.paint(&icon);
+                    surface
+                }
+            };
+            surface.set_rect(rect);
+            surface.set_cell_size(cell);
+            screen.surface(id, &mut surface);
+            shown.push((id, surface, key));
+        }
+        self.actions = shown;
+    }
+
     /// The Trace tab's branch graph in pixels, over the cells of its
     /// block — only when the terminal composites graphics; the cell view
     /// keeps the indented list otherwise. The cell size is the model's
@@ -366,6 +423,7 @@ impl Surfaces {
     /// the left over [`Motion::SWEEP_STEPS`](magistr_cockpit::cockpit::Motion::SWEEP_STEPS)
     /// — one repaint per animation step, and none once the sweep is
     /// over, so a settled Trace tab is the frame it always was.
+
     fn show_trace_graph(&mut self, model: &Model, resolved: &Resolved, screen: &mut Screen) {
         if !screen.has_graphics() {
             return;
@@ -396,7 +454,7 @@ impl Surfaces {
         if self.graph_key.as_ref() != Some(&key) {
             let lanes: Vec<u8> = key.0.iter().map(|&(_, lane)| lane).collect();
             let mut graph = BranchGraph::new(lanes, key.1.clone()).sweep(sweep);
-            if let Some(Color::Rgb(r, g, b)) = model.background() {
+            if let Color::Rgb(r, g, b) = Pen::for_theme(&model.theme()).stage.bg {
                 graph = graph.background(r, g, b);
             }
             let surface = self
@@ -470,7 +528,7 @@ impl Surfaces {
             let mut dag = RoadmapDag::new(key.0.clone(), key.1.clone(), (cell.width, cell.height))
                 .routes(key.2.clone())
                 .glow(key.5);
-            if let Some(Color::Rgb(r, g, b)) = model.background() {
+            if let Color::Rgb(r, g, b) = Pen::for_theme(&model.theme()).stage.bg {
                 dag = dag.background(r, g, b);
             }
             let surface = self
@@ -543,7 +601,7 @@ impl Surfaces {
             let mut dag = RoadmapDag::new(key.0.clone(), key.1.clone(), (cell.width, cell.height))
                 .routes(key.2.clone())
                 .glow(key.5);
-            if let Some(Color::Rgb(r, g, b)) = model.background() {
+            if let Color::Rgb(r, g, b) = Pen::for_theme(&model.theme()).stage.bg {
                 dag = dag.background(r, g, b);
             }
             let surface = self
