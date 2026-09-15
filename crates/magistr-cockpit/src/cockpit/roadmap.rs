@@ -4,7 +4,9 @@ use magistr_engine::native::{Chunk, Signal};
 use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::camera::Camera;
+use super::dag_layout::DagLayout;
 use super::dag_node::DagNode;
+use super::dag_path::DagPath;
 use super::edge_kind::EdgeKind;
 use super::proposal_kind::ProposalKind;
 use super::roadmap_chunk::RoadmapChunk;
@@ -24,10 +26,8 @@ use crate::theme::Icons;
 const SKY_RECENT_SHIPS: usize = 12;
 /// Cells between dependency layers on the raw (unscaled) grid.
 const COL_STEP: f32 = 6.0;
-/// Cells between rows inside a workstream band on the raw grid.
+/// Minimum cells between nodes in one dependency layer on the raw grid.
 const ROW_STEP: f32 = 2.0;
-/// Empty rows between workstream bands — what makes the regions read.
-const BAND_GAP: f32 = 1.0;
 /// The grid's padding from the block's edge.
 const MARGIN: f32 = 1.5;
 /// How close (in cells) a click or hover must land to take a node.
@@ -65,8 +65,8 @@ const FOCUS_ZOOM: f32 = 1.0;
 /// Pure state: the store's snapshot arrives through [`Roadmap::seed`],
 /// events through [`Roadmap::apply`]; nothing here talks to an engine. The
 /// tech-tree layout is derived, not stored: dependency depth is the
-/// column, workstreams are horizontal bands ordered by their best
-/// priority (the tiers), and edges are the `deps`.
+/// column, connected nodes are aligned by alternating barycentre sweeps,
+/// and workstream identity remains node metadata.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Roadmap {
     chunks: Vec<RoadmapChunk>,
@@ -702,6 +702,27 @@ impl Roadmap {
             .collect()
     }
 
+    /// Routed dependency paths, transformed by the same fit and camera as nodes.
+    #[must_use]
+    pub fn dag_paths_at(&self, now: f32) -> Vec<DagPath> {
+        let graph = self.graph_chunks();
+        let layout = graph_layout(&graph);
+        let placed: Vec<_> = layout.points.iter().map(|&(x, y)| (x, y, 0)).collect();
+        let (sx, sy) = self.scale_with(&placed, self.camera.zoom_at(now));
+        let (pan_x, pan_y) = self.camera.pan_at(now);
+        layout
+            .paths
+            .into_iter()
+            .map(|mut path| {
+                for (x, y) in &mut path.points {
+                    *x = MARGIN + *x * sx - pan_x;
+                    *y = MARGIN + *y * sy - pan_y;
+                }
+                path
+            })
+            .collect()
+    }
+
     /// The chunk ids in the order [`Roadmap::dag_nodes_at`] places
     /// them — how a reading that names chunks (the bad day's ringed
     /// stars) finds its node.
@@ -1057,12 +1078,10 @@ fn status_rank(chunk: &RoadmapChunk) -> usize {
 
 /// Place every chunk on the grid: `(x, y, region)` per chunk, parallel
 /// to `graph`. The column is the chunk's dependency depth (longest path
-/// over deps inside the set). The workstreams are horizontal bands
-/// ordered by their best (lowest) priority — the tiers — and inside a
-/// band the chunks of a column stack by priority.
+/// over deps inside the set). Alternating barycentre sweeps order each
+/// layer by its neighbours and align connected nodes while maintaining
+/// a minimum row gap. Workstreams identify regions without fixing rows.
 fn place(graph: &[&RoadmapChunk]) -> Vec<(f32, f32, usize)> {
-    let depths = depths(graph);
-    // The bands, best priority first; ungrouped chunks band together last.
     let mut bands: Vec<(&str, u32)> = Vec::new();
     for chunk in graph {
         let group = chunk.group.as_deref().unwrap_or("");
@@ -1072,61 +1091,53 @@ fn place(graph: &[&RoadmapChunk]) -> Vec<(f32, f32, usize)> {
         }
     }
     bands.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(b.0)));
-    let band_of = |chunk: &RoadmapChunk| {
-        let group = chunk.group.as_deref().unwrap_or("");
-        bands
-            .iter()
-            .position(|(name, _)| *name == group)
-            .unwrap_or(0)
-    };
-    // Inside a band, a column's chunks stack in priority order; the
-    // band's height is its tallest column.
-    let mut offsets = vec![0_usize; graph.len()];
-    let mut heights = vec![1_usize; bands.len()];
-    for (band, height) in heights.iter_mut().enumerate() {
-        let columns: std::collections::BTreeSet<usize> = graph
-            .iter()
-            .enumerate()
-            .filter(|(_, chunk)| band_of(chunk) == band)
-            .map(|(index, _)| depths[index])
-            .collect();
-        for column in columns {
-            let mut stack: Vec<usize> = graph
-                .iter()
-                .enumerate()
-                .filter(|(index, chunk)| band_of(chunk) == band && depths[*index] == column)
-                .map(|(index, _)| index)
-                .collect();
-            stack.sort_by(|&a, &b| {
-                graph[a]
-                    .priority
-                    .cmp(&graph[b].priority)
-                    .then(graph[a].id.cmp(&graph[b].id))
-            });
-            for (offset, index) in stack.iter().enumerate() {
-                offsets[*index] = offset;
-            }
-            *height = (*height).max(stack.len());
-        }
-    }
-    let mut starts = vec![0.0_f32; bands.len()];
-    let mut cursor = 0.0_f32;
-    for (band, height) in heights.iter().enumerate() {
-        starts[band] = cursor;
-        cursor += *height as f32 * ROW_STEP + BAND_GAP;
-    }
-    graph
-        .iter()
+    graph_layout(graph)
+        .points
+        .into_iter()
         .enumerate()
-        .map(|(index, chunk)| {
-            let band = band_of(chunk);
-            (
-                depths[index] as f32 * COL_STEP,
-                starts[band] + offsets[index] as f32 * ROW_STEP,
-                band,
-            )
+        .map(|(at, (x, y))| {
+            let group = graph.get(at).and_then(|c| c.group.as_deref()).unwrap_or("");
+            let region = bands
+                .iter()
+                .position(|(name, _)| *name == group)
+                .unwrap_or(0);
+            (x, y, region)
         })
         .collect()
+}
+
+fn graph_layout(graph: &[&RoadmapChunk]) -> DagLayout {
+    let mut order: Vec<_> = (0..graph.len()).collect();
+    order.sort_by(|&a, &b| {
+        graph[a]
+            .priority
+            .cmp(&graph[b].priority)
+            .then(graph[a].id.cmp(&graph[b].id))
+    });
+    let edges: Vec<_> = graph
+        .iter()
+        .enumerate()
+        .flat_map(|(to, chunk)| {
+            chunk.deps.iter().filter_map(move |dep| {
+                graph
+                    .iter()
+                    .position(|c| &c.id == dep)
+                    .map(|from| (from, to))
+            })
+        })
+        .collect();
+    let mut layout = DagLayout::new(&depths(graph), &edges, &order);
+    for (x, y) in &mut layout.points {
+        *x *= COL_STEP;
+        *y *= ROW_STEP;
+    }
+    for path in &mut layout.paths {
+        for (x, y) in &mut path.points {
+            *x *= COL_STEP;
+            *y *= ROW_STEP;
+        }
+    }
+    layout
 }
 
 /// Each chunk's dependency depth: 0 with no in-set deps, else one past

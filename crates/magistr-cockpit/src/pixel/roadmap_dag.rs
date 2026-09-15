@@ -5,7 +5,8 @@ use tiny_skia::{
     RadialGradient, Rect as SkiaRect, Shader, SpreadMode, Stroke, Transform,
 };
 
-use crate::cockpit::DagNode;
+use crate::cockpit::dag_layout::DagLayout;
+use crate::cockpit::{DagNode, DagPath};
 
 /// The widest a node dot gets, as a fraction of one cell's height;
 /// dense trees shrink below it ([`dot_radius`]).
@@ -33,6 +34,14 @@ const REGION_TINTS: [[u8; 3]; 4] = [
     [255, 158, 100],
 ];
 
+/// Remove dependency edges whose reachability is already represented by
+/// another path. The roadmap keeps every dependency in its model; the pixel
+/// renderer draws the transitive reduction so long chains do not become a
+/// hairball. Ordering is stable, and cyclic input is left intact.
+fn transitive_reduction(edges: Vec<(usize, usize)>, node_count: usize) -> Vec<(usize, usize)> {
+    DagLayout::reduce_edges(edges, node_count)
+}
+
 /// The tech-tree the driver paints over the Roadmap tab's graph block:
 /// the chunks as status-coloured dots on their dependency grid, the
 /// `deps` as edges, a faint tint band per workstream (the regions), a
@@ -46,6 +55,7 @@ const REGION_TINTS: [[u8; 3]; 4] = [
 pub struct RoadmapDag {
     nodes: Vec<DagNode>,
     edges: Vec<(usize, usize)>,
+    paths: Vec<DagPath>,
     cell: (f32, f32),
     background: Color,
     /// Where the active chunk's glow is in its breath, `0..1` around one
@@ -63,13 +73,31 @@ impl RoadmapDag {
         edges: impl Into<Vec<(usize, usize)>>,
         cell: (u16, u16),
     ) -> Self {
+        let nodes = nodes.into();
+        let all_edges = edges.into();
+        let mut edges = transitive_reduction(all_edges.clone(), nodes.len());
+        // Selecting a chunk reveals its exact direct dependencies, including
+        // relationships collapsed into longer paths in the overview.
+        edges.extend(all_edges.into_iter().filter(|&(from, to)| {
+            from < nodes.len() && to < nodes.len() && (nodes[from].selected || nodes[to].selected)
+        }));
+        edges.sort_unstable();
+        edges.dedup();
         Self {
-            nodes: nodes.into(),
-            edges: edges.into(),
+            nodes,
+            edges,
+            paths: Vec::new(),
             cell: (f32::from(cell.0), f32::from(cell.1)),
             background: Color::from_rgba8(26, 27, 38, 255),
             glow: 0.0,
         }
+    }
+
+    /// Attach routed paths produced by the shared cockpit layout.
+    #[must_use]
+    pub fn routes(mut self, paths: impl Into<Vec<DagPath>>) -> Self {
+        self.paths = paths.into();
+        self
     }
 
     /// The phase the active chunk's glow breathes at, `0..1` around one
@@ -190,6 +218,13 @@ impl super::painter::Painter for RoadmapDag {
             }
         }
         for (region, top, bottom) in &regions {
+            // Connection-based placement can interleave workstreams. Do not
+            // stack translucent bands over the same rows and wash out nodes.
+            if regions.iter().any(|(other, other_top, other_bottom)| {
+                other != region && other_top <= bottom && other_bottom >= top
+            }) {
+                continue;
+            }
             let pad = radius + ring_gap + 2.0;
             if let Some(rect) = SkiaRect::from_ltrb(0.0, top - pad, width, bottom + pad) {
                 paint.set_color(region_tint(*region));
@@ -223,9 +258,9 @@ impl super::painter::Painter for RoadmapDag {
                 None,
             );
         }
-        // The dependency edges under the dots: faint curves easing out of
-        // one dot and into the next with horizontal tangents, so a dense
-        // tree reads as flows instead of crossing spokes.
+        // The overview uses the transitive reduction; a selected chunk
+        // also reveals every direct relationship. Longer chains stay
+        // readable through their intermediate nodes.
         let stroke = Stroke {
             width: (self.cell.1 * STROKE_FRACTION).clamp(1.0, 2.0),
             line_cap: LineCap::Round,
@@ -234,14 +269,34 @@ impl super::painter::Painter for RoadmapDag {
         };
         paint.set_color(Color::from_rgba8(125, 135, 175, 95));
         for &(from, to) in &self.edges {
-            let (Some(&(x1, y1)), Some(&(x2, y2))) = (points.get(from), points.get(to)) else {
+            let route = self
+                .paths
+                .iter()
+                .find(|path| path.from == from && path.to == to)
+                .map(|path| {
+                    path.points
+                        .iter()
+                        .map(|&(x, y)| (x * self.cell.0, y * self.cell.1))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| match (points.get(from), points.get(to)) {
+                    (Some(&from), Some(&to)) => vec![from, to],
+                    _ => Vec::new(),
+                });
+            if route.len() < 2 {
                 continue;
-            };
-            let (sx, ex) = (x1 + radius, x2 - radius);
-            let mid = f32::midpoint(sx, ex);
+            }
             let mut path = PathBuilder::new();
-            path.move_to(sx, y1);
-            path.cubic_to(mid, y1, mid, y2, ex, y2);
+            for (index, &(x1, y1)) in route.iter().enumerate() {
+                if index == 0 {
+                    path.move_to(x1, y1);
+                    continue;
+                }
+                let (x2, y2) = route[index];
+                let previous = route[index - 1];
+                let mid = f32::midpoint(previous.0, x2);
+                path.cubic_to(mid, previous.1, mid, y2, x2, y2);
+            }
             if let Some(path) = path.finish() {
                 pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
             }
