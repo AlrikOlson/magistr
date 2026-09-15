@@ -35,7 +35,7 @@ manifest = {
     "profile": "Kitty",
     "source_commit": "working-tree",
     "captured_on": datetime.date.today().isoformat(),
-    "state": f"Sample Harbor project at {fixture.relative_to(out.parents[3])}; no project store read",
+    "state": f"Rendered from {fixture.relative_to(out.parents[3])}",
     "columns": 132,
     "rows": 42,
     "annotations": False,

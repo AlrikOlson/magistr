@@ -18,7 +18,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 The configured project gates — the three commands above plus the required custom gates — are listed in `.magistr/project.json`. Run `just gate` or the `/validate` workflow command for the complete set.
 
-## Terminal goldens and captures
+## Terminal goldens and screenshots
 
 The terminal interface is checked against golden images under `crates/magistr-tui/tests/golden`. After an intended visual change, review the candidates and re-bless them:
 
@@ -26,7 +26,7 @@ The terminal interface is checked against golden images under `crates/magistr-tu
 MAGISTR_GOLDEN_UPDATE=1 cargo nextest run -p magistr-tui -E 'test(shot_)'
 ```
 
-The website's captures come from a sample project, never from Magistr's own roadmap. Regenerate them and their manifest with:
+The website's terminal screenshots are rendered from the fixture project in `apps/website/fixtures/harbor.json`. Regenerate them and their manifest with:
 
 ```sh
 ./scripts/website-captures.sh

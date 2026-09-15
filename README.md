@@ -12,10 +12,10 @@ Magistr keeps a project's roadmap, runs one focused work item at a time, and rec
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-roadmap-dark.png" />
-  <img alt="Magistr's terminal interface on the Roadmap tab: a dependency graph of a sample project with the work item in progress selected, its dependency chain lit, and its detail card open below the graph." src="apps/website/public/screenshots/terminal-roadmap-light.png" width="1320" height="840" />
+  <img alt="The Roadmap tab: a dependency graph of work items with the item in progress selected, its dependency chain lit, and its detail card open below the graph." src="apps/website/public/screenshots/terminal-roadmap-light.png" width="1320" height="840" />
 </picture>
 
-*The Roadmap tab of a sample project, captured from the terminal interface ([full size, dark](apps/website/public/screenshots/terminal-roadmap-dark.png) · [light](apps/website/public/screenshots/terminal-roadmap-light.png)).*
+*The Roadmap tab: work items, their dependencies, and the item in progress ([dark](apps/website/public/screenshots/terminal-roadmap-dark.png) · [light](apps/website/public/screenshots/terminal-roadmap-light.png)).*
 
 ## Install
 
@@ -62,10 +62,10 @@ Runs the next ready work item — the most urgent pending item whose dependencie
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-trace-dark.png" />
-  <img alt="Magistr's terminal interface on the Trace tab: reasoning steps on a main line with two merged branches, a selected step's card with its confidence and dependencies, and the recorded actions and checks below." src="apps/website/public/screenshots/terminal-trace-light.png" width="1320" height="840" />
+  <img alt="The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card with its confidence and dependencies, and the recorded actions and checks below." src="apps/website/public/screenshots/terminal-trace-light.png" width="1320" height="840" />
 </picture>
 
-*The Trace tab: the session's reasoning steps as a graph, the selected step's card, and the recorded actions and checks ([full size, dark](apps/website/public/screenshots/terminal-trace-dark.png) · [light](apps/website/public/screenshots/terminal-trace-light.png)).*
+*The Trace tab: the session's reasoning steps as a graph, the selected step's card, and the recorded actions and checks ([dark](apps/website/public/screenshots/terminal-trace-dark.png) · [light](apps/website/public/screenshots/terminal-trace-light.png)).*
 
 ## Verification
 

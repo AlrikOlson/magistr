@@ -4,7 +4,7 @@
   "profile": "Kitty",
   "source_commit": "working-tree",
   "captured_on": "2026-09-15",
-  "state": "Sample Harbor project at apps/website/fixtures/harbor.json; no project store read",
+  "state": "Rendered from apps/website/fixtures/harbor.json",
   "columns": 132,
   "rows": 42,
   "annotations": false,

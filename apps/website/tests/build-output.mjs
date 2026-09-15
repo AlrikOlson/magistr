@@ -68,7 +68,7 @@ assert(indexHtml.includes("viewport"), "viewport meta tag");
 console.log("\nTerminal captures:");
 const manifest = JSON.parse(readFileSync(resolve(distDir, "screenshots/captures.json"), "utf-8"));
 assert(manifest.renderer === "magistr-tui::screenshot::frame" && manifest.surface === "Terminal", "capture provenance names the terminal renderer");
-assert(manifest.state.includes("harbor.json") && manifest.state.includes("no project store read"), "captures come from the sample project");
+assert(manifest.state.includes("fixtures/harbor.json"), "the manifest names the fixture it was rendered from");
 assert(manifest.annotations === false, "captures carry no annotations");
 assert(manifest.images.length === 4, "roadmap and trace captures in both themes");
 for (const capture of manifest.images) {
@@ -86,9 +86,14 @@ assert(!indexHtml.includes("/diagrams/") && !indexHtml.includes("/icons/"), "no 
 
 console.log("\nPublic language:");
 const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|workflow server/;
+const meta = /\bsample\b|\bHarbor\b|\bcaptured\b|\bcapture\b|\bfixture\b|on purpose|\bsynthetic\b|\bwe\b|\bour\b/i;
 for (const [name, html] of [["home", indexHtml], ["installation", installHtml], ["concepts", conceptsHtml], ["architecture", architectureHtml], ["development", developmentHtml], ["deployment", deploymentHtml]]) {
   const body = html.split("<main")[1]?.split("</main>")[0] ?? html;
   assert(!jargon.test(body), `${name} page carries no internal jargon`);
+  const prose = body.replace(/<code[\s\S]*?<\/code>/g, "").replace(/<pre[\s\S]*?<\/pre>/g, "");
+  if (name !== "development" && name !== "deployment") {
+    assert(!meta.test(prose.replace(/<[^>]+>/g, " ")), `${name} page carries no production commentary`);
+  }
 }
 assert(!indexHtml.includes("illustrative") && !indexHtml.includes("Mermaid"), "no placeholder or diagram-source copy");
 

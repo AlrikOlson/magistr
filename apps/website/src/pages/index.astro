@@ -7,13 +7,13 @@ const jsonLd = [
   {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":"0.1.0","description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
 ];
 
-/** One real terminal capture, in both themes, with the alt text it earns. */
+/** The terminal interface in both themes. */
 const captures = {
   roadmap: {
-    alt: "Magistr's terminal interface on the Roadmap tab: a dependency graph of the sample Harbor project with the work item in progress selected, its dependency chain lit, and its detail card open below the graph.",
+    alt: "The Roadmap tab: a dependency graph of work items with the item in progress selected, its dependency chain lit, and its detail card open below the graph.",
   },
   trace: {
-    alt: "Magistr's terminal interface on the Trace tab: twelve reasoning steps on a main line with two merged branches, a selected step's card with its confidence and dependencies, and the recorded actions and checks below.",
+    alt: "The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card with its confidence and dependencies, and the recorded actions and checks below.",
   },
 };
 
@@ -41,7 +41,7 @@ const docs = [
       <figure class="capture hero-capture">
         <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={captures.roadmap.alt} width="1320" height="840" fetchpriority="high" /></a>
         <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={captures.roadmap.alt} width="1320" height="840" fetchpriority="high" /></a>
-        <figcaption>The Roadmap tab of a sample project, captured from the terminal interface. Open for full size.</figcaption>
+        <figcaption>The Roadmap tab: work items, their dependencies, and the item in progress.</figcaption>
       </figure>
     </section>
 
@@ -58,7 +58,7 @@ const docs = [
       <figure class="capture">
         <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={captures.roadmap.alt} loading="lazy" width="1320" height="840" /></a>
         <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={captures.roadmap.alt} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>Roadmap tab: 66 work items and 146 dependencies from the sample Harbor project.</figcaption>
+        <figcaption>The Roadmap tab with an item selected: its chain stays lit while the rest fades.</figcaption>
       </figure>
     </section>
 
@@ -75,7 +75,7 @@ const docs = [
       <figure class="capture">
         <a class="capture-light" href="/screenshots/terminal-trace-light.png"><img src="/screenshots/terminal-trace-light.png" alt={captures.trace.alt} loading="lazy" width="1320" height="840" /></a>
         <a class="capture-dark" href="/screenshots/terminal-trace-dark.png"><img src="/screenshots/terminal-trace-dark.png" alt={captures.trace.alt} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>Trace tab: a selected step with its card, and the recorded work below.</figcaption>
+        <figcaption>The Trace tab: a selected step with its card, and the recorded work below.</figcaption>
       </figure>
     </section>
 
@@ -101,7 +101,7 @@ magistr --version</code></pre>
     </section>
 
     <section class="section-shell docs-index" aria-labelledby="docs-title">
-      <div><p class="eyebrow">Keep reading</p><h2 id="docs-title">The documentation is short on purpose.</h2></div>
+      <div><p class="eyebrow">Keep reading</p><h2 id="docs-title">Documentation</h2></div>
       <div class="doc-links">{docs.map((doc) => <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">→</span></a>)}</div>
     </section>
   </main>
