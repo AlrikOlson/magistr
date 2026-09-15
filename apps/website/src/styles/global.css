@@ -51,7 +51,7 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .button-quiet:hover { border-color:var(--color-border-hover); color:var(--color-text); }
 .hero-note { margin-top:1rem; color:var(--color-text-muted); font:500 .75rem var(--font-mono); }
 .hero-card, .code-panel, .callout { border:1px solid var(--color-border); border-radius:1rem; background:var(--color-bg-card); box-shadow:0 1.5rem 4rem rgba(20,40,80,.09); }
-.hero-card { overflow:hidden; transform:rotate(1.5deg); }
+.hero-card { overflow:hidden; }
 .window-bar { display:flex; align-items:center; gap:.4rem; padding:.8rem 1rem; border-bottom:1px solid var(--color-border); color:var(--color-text-muted); font:.7rem var(--font-mono); }
 .window-bar span { width:.55rem; height:.55rem; border-radius:50%; background:var(--color-border-hover); }
 .window-bar code { margin-left:auto; }
@@ -71,6 +71,12 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .feature-card p:last-child, .map-card p, .walkthrough-step p { margin:0; color:var(--color-text-muted); }
 .map-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:2.5rem; }
 .screenshot-grid { display:grid; gap:1rem; margin-top:2.5rem; }
+.capture-light { display:block; }
+.capture-dark { display:none; }
+.dark .capture-light { display:none; }
+.dark .capture-dark { display:block; }
+.terminal-preview img { display:block; width:100%; height:auto; }
+.screenshot-card a:focus-visible { outline-offset:-4px; }
 .map-card { overflow:hidden; border:1px solid var(--color-border); border-radius:.8rem; background:var(--color-bg-card); }
 .map-card img { display:block; width:100%; height:auto; aspect-ratio:auto; object-fit:contain; background:var(--color-surface); border-bottom:1px solid var(--color-border); }
 .map-card div { padding:1.25rem; }
