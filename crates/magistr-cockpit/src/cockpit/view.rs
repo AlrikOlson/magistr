@@ -100,19 +100,21 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
     // The stage: a framed panel with the tab bar inside the frame's
     // first row, so the tabs attach to the pane they switch instead of
     // floating.
+    let mut stage_content = Node::column()
+        .id(Widget::Stage.id())
+        .style(pen.stage.clone())
+        .grow(1.0)
+        .viewport()
+        .children(stage_rows(model, &pen));
+    if model.has_pixels() {
+        stage_content = stage_content.padding(Space::PAD);
+    }
     let stage = Node::column()
         .grow(1.0)
         .min_width(Length::Cells(0))
         .frame(Frame::new(pen.panel(false).clone()))
         .child(tab_bar(model, &pen))
-        .child(
-            Node::column()
-                .id(Widget::Stage.id())
-                .style(pen.stage.clone())
-                .grow(1.0)
-                .viewport()
-                .children(stage_rows(model, &pen)),
-        );
+        .child(stage_content);
 
     // The rail and its divider, in the order they stand beside the
     // stage: rail, then divider.
@@ -228,25 +230,28 @@ fn hover_card(card: &Tooltip, size: Size, pen: &Pen) -> Node {
 /// pulsing once when it was just switched to. A viewport, so its labels clip on a narrow screen instead of squeezing
 /// the rail's divider out of the row.
 fn tab_bar(model: &Model, pen: &Pen) -> Node {
-    Node::row()
+    let mut bar = Node::row()
         .style(pen.rail.clone())
         .gap(Space::GAP)
         .viewport()
         .min_width(Length::Cells(0))
-        .height(Length::Cells(1))
-        .children(StageTab::ALL.into_iter().map(|tab| {
-            let active = model.tab() == tab;
-            // The tab just switched to pulses once on the tick.
-            let style = match in_motion(model).and_then(|(m, now)| m.tab_transition(now)) {
-                Some(t) if active => pen.pulse(pen.tab(true), t),
-                _ => pen.tab(active).clone(),
-            };
-            Node::text(tab.label())
-                .id(Widget::tab(tab).id())
-                .style(style)
-                .shrink(0.0)
-                .height(Length::Cells(1))
-        }))
+        .height(Length::Cells(1));
+    if model.has_pixels() {
+        bar = bar.child(Node::text(" ").shrink(0.0));
+    }
+    bar.children(StageTab::ALL.into_iter().map(|tab| {
+        let active = model.tab() == tab;
+        // The tab just switched to pulses once on the tick.
+        let style = match in_motion(model).and_then(|(m, now)| m.tab_transition(now)) {
+            Some(t) if active => pen.pulse(pen.tab(true), t),
+            _ => pen.tab(active).clone(),
+        };
+        Node::text(tab.label())
+            .id(Widget::tab(tab).id())
+            .style(style)
+            .shrink(0.0)
+            .height(Length::Cells(1))
+    }))
 }
 
 /// The undocked tab's third column at ≥160 columns: its name as a
@@ -319,7 +324,7 @@ fn collapsed_rail(model: &Model, pen: &Pen) -> Node {
 fn rail(model: &Model, pen: &Pen) -> Node {
     let state = model.rail();
     let fade = rail_fade(model);
-    let column = Node::column()
+    let mut column = Node::column()
         .id(Widget::Rail.id())
         .style(pen.stage.clone())
         .width(Length::Cells(state.content_cols(model.size().cols)))
@@ -329,6 +334,9 @@ fn rail(model: &Model, pen: &Pen) -> Node {
                 .title("plan")
                 .title_style(pen.heading.clone()),
         );
+    if model.has_pixels() {
+        column = column.padding(Space::PAD);
+    }
     let mut column = column
         .child(
             Node::text(pen.icons.collapse)
