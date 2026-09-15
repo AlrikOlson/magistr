@@ -1,12 +1,13 @@
 //! Reproducible website captures from a synthetic project; never reads a native store.
 //!
 //! `cargo run -p magistr-tui --example website_capture -- <fixture.json> <out-dir>`
-//! renders the Roadmap and Trace tabs of the fixture's project at the
-//! capture size, in both themes, through the real terminal renderer:
-//! `terminal-roadmap-{dark,light}.png` and `terminal-trace-{dark,light}.png`.
-//! The Roadmap capture selects the chunk in progress so the focus chain
-//! lights; the Trace capture selects a mid-trace step so its card and
-//! relations show. `scripts/website-captures.sh` runs this and rewrites
+//! renders three states of the fixture's project at the capture size, in
+//! both themes, through the real terminal renderer: the Roadmap tab as
+//! an overview (`terminal-overview-{dark,light}.png`), the Roadmap tab
+//! with the chunk in progress selected so the focus chain lights
+//! (`terminal-roadmap-{dark,light}.png`), and the Trace tab with a
+//! mid-trace step selected so its card and relations show
+//! (`terminal-trace-{dark,light}.png`). `scripts/website-captures.sh` runs this and rewrites
 //! the manifest beside the images.
 
 use std::error::Error;
@@ -88,7 +89,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let branches = data["branches"].as_array().cloned().unwrap_or_default();
     std::fs::create_dir_all(&output)?;
     for (mode, theme) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
-        for (name, tab) in [("roadmap", StageTab::Roadmap), ("trace", StageTab::Trace)] {
+        for (name, tab) in [
+            ("overview", StageTab::Roadmap),
+            ("roadmap", StageTab::Roadmap),
+            ("trace", StageTab::Trace),
+        ] {
             let mut model = Model::new(CAPTURE)
                 .with_surface(Surface::Terminal)
                 .with_title(data["project"].as_str().ok_or("missing project name")?)
@@ -105,18 +110,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                     )),
                 );
             }
-            match tab {
-                StageTab::Trace => {
+            match (name, tab) {
+                (_, StageTab::Trace) => {
                     // The step two before the newest: its card, its
                     // relations and the branch it stands on all show.
                     let index = snapshot.steps.len().saturating_sub(3);
                     click(&mut model, Widget::trace_row(index));
                 }
-                _ => {
+                ("roadmap", _) => {
                     // The chunk in progress heads the list: selecting it
                     // opens its card and lights its dependency chain.
                     click(&mut model, Widget::roadmap_row(0));
                 }
+                // The overview: the whole tree, nothing selected.
+                _ => {}
             }
             for _ in 0..8 {
                 update(&mut model, Msg::Tick);
@@ -130,7 +137,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     eprintln!(
-        "Synthetic Harbor project: {} chunks, {edges} dependencies, {done} completed, {} reasoning steps; four terminal captures.",
+        "Synthetic Harbor project: {} chunks, {edges} dependencies, {done} completed, {} reasoning steps; six terminal captures.",
         snapshot.chunks.len(),
         snapshot.steps.len()
     );

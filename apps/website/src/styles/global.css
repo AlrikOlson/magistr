@@ -139,6 +139,11 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .docs-content th { color:var(--color-text); font-weight:700; }
 .docs-content .capture { margin:1.5rem 0; }
 
+/* Not found */
+.not-found { padding-top:9rem; padding-bottom:6rem; max-width:40rem; }
+.not-found h1 { margin:0 0 .6rem; font-size:clamp(2rem,4.5vw,3rem); letter-spacing:-.03em; }
+.not-found p:last-of-type { color:var(--color-text-muted); }
+
 /* Responsive */
 @media (max-width: 800px) {
   .nav-links { display:none; }

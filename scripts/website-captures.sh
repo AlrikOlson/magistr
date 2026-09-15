@@ -23,7 +23,8 @@ python3 - "$OUT" "$FIXTURE" <<'PY'
 import hashlib, json, struct, sys, datetime, pathlib
 out, fixture = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 images = []
-for name in ["terminal-roadmap-dark.png", "terminal-roadmap-light.png",
+for name in ["terminal-overview-dark.png", "terminal-overview-light.png",
+             "terminal-roadmap-dark.png", "terminal-roadmap-light.png",
              "terminal-trace-dark.png", "terminal-trace-light.png"]:
     data = (out / name).read_bytes()
     width, height = struct.unpack(">II", data[16:24])

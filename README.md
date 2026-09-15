@@ -11,11 +11,11 @@
 Magistr keeps a project's roadmap, runs one focused work item at a time, and records the reasoning, the changes and the checks along the way — in the project, not in a chat transcript.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-roadmap-dark.png" />
-  <img alt="The Roadmap tab: a dependency graph of work items with the item in progress selected, its dependency chain lit, and its detail card open below the graph." src="apps/website/public/screenshots/terminal-roadmap-light.png" width="1320" height="840" />
+  <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-overview-dark.png" />
+  <img alt="The Roadmap tab: a dependency graph of a project's work items, with the item in progress ringed and the list of items below." src="apps/website/public/screenshots/terminal-overview-light.png" width="1320" height="840" />
 </picture>
 
-*The Roadmap tab: work items, their dependencies, and the item in progress ([dark](apps/website/public/screenshots/terminal-roadmap-dark.png) · [light](apps/website/public/screenshots/terminal-roadmap-light.png)).*
+*The Roadmap tab: a project's work items, their dependencies, and the item in progress ([dark](apps/website/public/screenshots/terminal-overview-dark.png) · [light](apps/website/public/screenshots/terminal-overview-light.png)).*
 
 ## Install
 
@@ -41,6 +41,8 @@ magistr
 
 ## Connect an agent
 
+Claude Code setup is always written. Add other agents with `--agent`, which accepts `codex`, `copilot`, `cursor`, `cline`, `windsurf` and `aider`:
+
 ```sh
 magistr init . --agent codex --yes
 ./.codex/run
@@ -50,7 +52,14 @@ For Claude Code, run `magistr init . --yes`, then launch `claude` in the project
 
 ## Inspect the roadmap
 
-The Roadmap tab draws the work items as a dependency graph: shipped work in green, work that still waits on something hollow, work that is ready to claim filled, and the item in progress ringed. Selecting an item lights everything it stands on and everything that stands on it, and opens its acceptance criteria and dependencies.
+The Roadmap tab draws the work items as a dependency graph. Done, ready and waiting items are drawn differently and the item in progress is ringed. Selecting an item shows everything it depends on and everything that depends on it, with its acceptance criteria and dependencies.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-roadmap-dark.png" />
+  <img alt="The Roadmap tab with the item in progress selected: its dependency chain stays lit, the rest fades, and its detail card is open below the graph." src="apps/website/public/screenshots/terminal-roadmap-light.png" width="1320" height="840" />
+</picture>
+
+*The item in progress selected: its dependency chain stays lit and its details open below ([dark](apps/website/public/screenshots/terminal-roadmap-dark.png) · [light](apps/website/public/screenshots/terminal-roadmap-light.png)).*
 
 ## Run one work item
 
@@ -58,14 +67,14 @@ The Roadmap tab draws the work items as a dependency graph: shipped work in gree
 magistr next
 ```
 
-Runs the next ready work item — the most urgent pending item whose dependencies are done — in one session and records what happened. `magistr next-loop` continues through fresh agent sessions, one item per session.
+Runs the next ready work item — the most urgent pending item whose dependencies are done — in one session and records what happened. `magistr next-loop` continues through fresh agent sessions, one item per session, up to `--max-iterations` (default 10).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-trace-dark.png" />
-  <img alt="The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card with its confidence and dependencies, and the recorded actions and checks below." src="apps/website/public/screenshots/terminal-trace-light.png" width="1320" height="840" />
+  <img alt="The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card, and the recorded actions and checks below." src="apps/website/public/screenshots/terminal-trace-light.png" width="1320" height="840" />
 </picture>
 
-*The Trace tab: the session's reasoning steps as a graph, the selected step's card, and the recorded actions and checks ([dark](apps/website/public/screenshots/terminal-trace-dark.png) · [light](apps/website/public/screenshots/terminal-trace-light.png)).*
+*The Trace tab: the session's reasoning steps as a graph, the selected step's details, and the recorded actions and checks ([dark](apps/website/public/screenshots/terminal-trace-dark.png) · [light](apps/website/public/screenshots/terminal-trace-light.png)).*
 
 ## Verification
 
@@ -73,9 +82,9 @@ An item is done when its acceptance criteria hold and the configured checks pass
 
 ## Current limitations
 
-- The terminal interface and the local CLI are the supported path; the desktop interface is experimental and is not part of the release.
-- Agent runtimes (Claude Code, Codex, Copilot) and API providers are installed and authenticated separately; Magistr does not sandbox them.
-- No crates.io package yet; install from source.
+- The terminal interface and the command line are the supported path; the desktop interface is experimental and not part of the release.
+- Agent runtimes and API providers are installed and authenticated separately; Magistr does not sandbox them.
+- No crates.io package yet; install from the repository.
 
 ## Development
 

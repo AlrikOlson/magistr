@@ -3,43 +3,15 @@ import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 ---
 
-<Base title="404 — page not found | Magistr">
+<Base title="Page not found — Magistr" noindex={true}>
   <Nav />
-  <main class="mx-auto flex min-h-[80vh] max-w-2xl flex-col items-center justify-center px-4 pt-20 text-center">
-    <p class="mb-4 font-mono text-6xl font-bold text-accent">404</p>
-    <h1 class="mb-2 text-2xl font-semibold text-text">Page not found</h1>
-    <p class="mb-8 text-text-muted">
-      The page you're looking for doesn't exist or has been moved.
-    </p>
-
-    <div class="mb-10 w-full max-w-md rounded-xl border border-border bg-bg-card p-4 font-mono text-sm">
-      <p class="text-text-muted">
-        <span class="text-green">$</span> curl -I magistr.dev<span class="text-text-muted">/???</span>
-      </p>
-      <p class="mt-1 text-error">HTTP/1.1 404 Not Found</p>
-    </div>
-
-    <nav class="flex flex-wrap items-center justify-center gap-4" aria-label="404 navigation">
-      <a
-        href="/"
-        class="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
-      >
-        Back to Home
-      </a>
-      <a
-        href="/docs/installation"
-        class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-muted transition-colors hover:border-border-hover hover:text-text"
-      >
-        Read the Docs
-      </a>
-      <a
-        href="https://github.com/AlrikOlson/magistr"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-muted transition-colors hover:border-border-hover hover:text-text"
-      >
-        GitHub
-      </a>
+  <main id="main-content" class="section-shell not-found">
+    <p class="eyebrow">404</p>
+    <h1>Page not found</h1>
+    <p>There is nothing at this address.</p>
+    <nav class="hero-actions" aria-label="Where to go instead">
+      <a class="button button-primary" href="/">Home</a>
+      <a class="button button-quiet" href="/docs/installation">Documentation</a>
     </nav>
   </main>
 </Base>
