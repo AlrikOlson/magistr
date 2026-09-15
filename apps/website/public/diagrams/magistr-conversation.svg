@@ -35,13 +35,13 @@
     <rect x="620" y="132" width="246" height="190" rx="16" fill="#302517" stroke="#ffb86b" stroke-width="2"/>
     <text x="644" y="164" class="head" fill="#ffb86b">REVIEW</text>
     <text x="644" y="204" class="body">You choose what</text><text x="644" y="230" class="body">to apply.</text>
-    <rect x="644" y="254" width="198" height="36" rx="18" fill="#4b351d"/><text x="661" y="277" class="mono" fill="#ffd7a8" style="font-size:12px">proposal stays pending</text>
+    <rect x="644" y="254" width="198" height="36" rx="18" fill="#4b351d"/><text x="661" y="277" class="mono" fill="#ffd7a8" style="font-size:12px">apply accepted proposal</text>
   </g>
   <path d="M874 227H898" stroke="#8aa4b8" stroke-width="2" marker-end="url(#arrow)"/>
   <g role="group" aria-label="Ready roadmap chunk">
     <rect x="906" y="132" width="246" height="190" rx="16" fill="#152a22" stroke="#7be495" stroke-width="2"/>
     <text x="930" y="164" class="head" fill="#7be495">READY CHUNK</text>
-    <text x="930" y="204" class="body">A selected item</text><text x="930" y="230" class="body">can move to work.</text>
+    <text x="930" y="204" class="body">After you apply,</text><text x="930" y="230" class="body">the item can move.</text>
     <text x="930" y="267" class="mono">priority · deps</text><text x="930" y="289" class="mono">acceptance · context</text>
   </g>
   <rect x="48" y="368" width="1104" height="132" rx="16" fill="#111d28" stroke="#314555"/>
