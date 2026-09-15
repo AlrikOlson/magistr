@@ -31,7 +31,7 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .nav-actions { display:flex; align-items:center; gap:.6rem; }
 .github-link { display:flex; align-items:center; gap:.4rem; padding:.45rem .7rem; border:1px solid var(--color-border); border-radius:.5rem; color:var(--color-text-muted); font-size:.85rem; font-weight:600; }
 .github-link:hover { border-color:var(--color-border-hover); color:var(--color-text); }
-.github-link svg { width:1rem; height:1rem; fill:currentColor; }
+.github-link svg { display:block; flex:0 0 1.15rem; width:1.15rem; height:1.15rem; color:var(--color-text); fill:currentColor; }
 .menu-toggle { display:none; border:1px solid var(--color-border); background:transparent; color:var(--color-text); border-radius:.5rem; padding:.42rem .58rem; font-size:1.1rem; }
 .mobile-menu { max-width:1180px; margin:auto; padding:.4rem 1.25rem 1rem; flex-direction:column; gap:.1rem; }
 .mobile-menu:not([hidden]) { display:flex; }
