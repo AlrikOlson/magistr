@@ -20,6 +20,12 @@ pub enum Icon {
     Dot,
     /// A white right-pointing triangle.
     Play,
+    /// A violet map pin for a saved reasoning step.
+    Pin,
+    /// A filled violet map pin for a pinned reasoning step.
+    PinFilled,
+    /// An amber checkpoint marker.
+    Checkpoint,
 }
 
 impl Icon {
@@ -31,6 +37,8 @@ impl Icon {
             Self::Cross => (247, 118, 142),
             Self::Dot => (122, 162, 247),
             Self::Play => (242, 242, 242),
+            Self::Pin | Self::PinFilled => (187, 154, 247),
+            Self::Checkpoint => (255, 190, 92),
         };
         Color::from_rgba8(r, g, b, 255)
     }
@@ -92,6 +100,33 @@ impl Painter for Icon {
                 path.close();
                 if let Some(path) = path.finish() {
                     pixmap.fill_path(&path, &paint, FillRule::Winding, transform, None);
+                }
+                return;
+            }
+            Self::Pin | Self::PinFilled => {
+                let (x, y) = at(0.0, -0.16);
+                if let Some(circle) = PathBuilder::from_circle(x, y, side * 0.22) {
+                    if matches!(self, Self::PinFilled) {
+                        pixmap.fill_path(&circle, &paint, FillRule::Winding, transform, None);
+                    } else {
+                        pixmap.stroke_path(&circle, &paint, &stroke, transform, None);
+                    }
+                }
+                let (x, y) = at(0.0, 0.08);
+                path.move_to(x, y);
+                let (x, y) = at(0.0, 0.42);
+                path.line_to(x, y);
+                if let Some(path) = path.finish() {
+                    pixmap.stroke_path(&path, &paint, &stroke, transform, None);
+                }
+                return;
+            }
+            Self::Checkpoint => {
+                if let Some(outer) = PathBuilder::from_circle(cx, cy, side * 0.34) {
+                    pixmap.stroke_path(&outer, &paint, &stroke, transform, None);
+                }
+                if let Some(inner) = PathBuilder::from_circle(cx, cy, side * 0.12) {
+                    pixmap.fill_path(&inner, &paint, FillRule::Winding, transform, None);
                 }
                 return;
             }

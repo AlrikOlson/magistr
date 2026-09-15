@@ -946,18 +946,34 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
             .height(Length::Cells(1)),
         );
     } else {
+        let checkpoint_pixels = model.has_pixels();
+        let checkpoint_label = if checkpoint_pixels {
+            "     "
+        } else {
+            "[Checkpoint]"
+        };
+        let checkpoint_style = if checkpoint_pixels {
+            pen.stage.clone()
+        } else {
+            pen.allow.clone()
+        };
         rows.push(
             Node::row()
                 .height(Length::Cells(1))
                 .child(segment("think trace", pen.heading.clone()))
                 .child(segment("  ", pen.stage.clone()))
-                .child(segment("[Checkpoint]", pen.allow.clone()).id(Widget::Checkpoint.id())),
+                .child(segment(checkpoint_label, checkpoint_style).id(Widget::Checkpoint.id())),
         );
         if trace.has_branches() {
             let mut graph = Node::column().id(Widget::TraceGraph.id());
             for line in trace.branch_rows() {
+                let display = if model.has_pixels() {
+                    " ".repeat(line.chars().count())
+                } else {
+                    line
+                };
                 graph = graph.child(
-                    Node::text(line)
+                    Node::text(display)
                         .style(pen.note.clone())
                         .height(Length::Cells(1)),
                 );
@@ -1004,7 +1020,7 @@ fn trace_body(model: &Model, pen: &Pen) -> Vec<Node> {
         let expanded = trace.is_expanded(step.number);
         rows.push(trace_head(step, index, expanded, pen));
         if expanded {
-            rows.push(trace_buttons(step, pen));
+            rows.push(trace_buttons(step, pen, model.has_pixels()));
             let jump = step
                 .execution_ref
                 .as_deref()
@@ -1406,12 +1422,23 @@ fn trace_head(step: &crate::cockpit::TraceStep, index: usize, expanded: bool, pe
 
 /// An expanded step's button row: \[Pin\] or \[Unpin\] asks the engine
 /// port, and each revision link navigates to the step it names.
-fn trace_buttons(step: &crate::cockpit::TraceStep, pen: &Pen) -> Node {
-    let label = if step.pinned { "[Unpin]" } else { "[Pin]" };
+fn trace_buttons(step: &crate::cockpit::TraceStep, pen: &Pen, pixels: bool) -> Node {
+    let label = if pixels {
+        "      "
+    } else if step.pinned {
+        "[Unpin]"
+    } else {
+        "[Pin]"
+    };
+    let pin_style = if pixels {
+        pen.stage.clone()
+    } else {
+        pen.allow.clone()
+    };
     let mut node = Node::row()
         .height(Length::Cells(1))
         .child(segment("  ", pen.stage.clone()))
-        .child(segment(label, pen.allow.clone()).id(Widget::trace_pin(step.number)));
+        .child(segment(label, pin_style).id(Widget::trace_pin(step.number)));
     if let Some(revises) = step.revises {
         node = node.child(segment("  ", pen.stage.clone())).child(
             segment(&format!("[revises {revises}]"), pen.link.clone())
@@ -1453,7 +1480,7 @@ fn trace_fields(step: &crate::cockpit::TraceStep, jump: bool, pen: &Pen) -> Vec<
                     row.style(pen.link.clone())
                         .id(Widget::trace_chunk(step.number))
                 } else {
-                    row.style(pen.code.clone())
+                    row.style(pen.stage.clone())
                 }
             })
         })
@@ -2974,11 +3001,19 @@ fn footer_bar(model: &Model, pen: &Pen) -> Node {
         .min_width(Length::Cells(0))
         .shrink(0.0)
         .height(Length::Cells(1));
-    if model.has_pixels() {
-        bar = bar.child(Node::text(" ").shrink(0.0).width(Length::Cells(1)));
+    let pad = if model.has_pixels() { 2 } else { 0 };
+    if pad > 0 {
+        bar = bar.child(
+            Node::text(" ".repeat(pad))
+                .shrink(0.0)
+                .width(Length::Cells(u16::try_from(pad).unwrap_or(u16::MAX))),
+        );
     }
     let context = hint_context(model);
-    let fits = footer_chips(context, usize::from(model.size().cols));
+    let fits = footer_chips(
+        context,
+        usize::from(model.size().cols).saturating_sub(pad * 2),
+    );
     for (index, binding) in context.iter().take(fits).enumerate() {
         bar = bar.child(
             Node::row()
@@ -2996,6 +3031,13 @@ fn footer_bar(model: &Model, pen: &Pen) -> Node {
         );
     }
     if !model.is_debug() {
+        if pad > 0 {
+            return bar.child(
+                Node::text(" ".repeat(pad))
+                    .shrink(0.0)
+                    .width(Length::Cells(u16::try_from(pad).unwrap_or(u16::MAX))),
+            );
+        }
         return bar;
     }
     let summary = Summary::of(model);
