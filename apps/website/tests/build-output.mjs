@@ -45,9 +45,9 @@ assert(indexHtml.includes('href="/#community"'), "Community anchor link");
 assert(indexHtml.includes("github.com"), "GitHub link present");
 assert(indexHtml.includes("backdrop-blur"), "nav has backdrop blur");
 
-console.log("\nTUI2 screenshots:");
+console.log("\nTerminal screenshots:");
 assert(indexHtml.includes('id="screenshots"'), "terminal screenshots section present");
-assert(indexHtml.includes("TUI2 terminal cockpit"), "terminal section heading present");
+assert(indexHtml.includes("See Magistr in the terminal"), "terminal section heading present");
 assert(!indexHtml.includes("workflow-preview"), "handmade workflow preview removed");
 const captures = JSON.parse(readFileSync(resolve(distDir, "screenshots/captures.json"), "utf-8"));
 assert(captures.renderer === "magistr-tui::screenshot::frame" && captures.surface === "Terminal", "capture provenance names the terminal renderer");
@@ -84,20 +84,20 @@ assert(
 	"Recorded iteration feature card present",
 );
 assert(
-	indexHtml.includes("Terminal cockpit"),
-	"Terminal cockpit feature card present",
+	indexHtml.includes("Terminal interface"),
+	"Terminal interface feature card present",
 );
 assert(
 	indexHtml.includes("Roadmap Tracking"),
 	"Roadmap Tracking feature card present",
 );
-assert(indexHtml.includes("Source tools &amp; MCP"), "source tools and MCP feature card present");
+assert(indexHtml.includes("Repository tools"), "repository tools feature card present");
 assert(indexHtml.includes("Desktop &amp; peer protocol"), "experimental desktop and peer card present");
 assert(!indexHtml.includes("ratatui"), "website does not promise a ratatui theme set");
 assert(!indexHtml.includes("Tokyo Night"), "website does not promise named built-in themes");
 assert(
-	indexHtml.includes("Workbench"),
-	"MCP card names the code navigation tool",
+	indexHtml.includes("Verified source navigation"),
+	"repository tools card names verified navigation",
 );
 
 console.log("\nQuickstart section:");
@@ -162,7 +162,7 @@ const installHtml = readFileSync(
 assert(installHtml.includes("Installation"), "installation page has title");
 assert(installHtml.includes("v0.1.0"), "installation page identifies the current release");
 assert(installHtml.includes("Release archives"), "installation page documents packaged archives");
-assert(installHtml.includes("gui2"), "installation page labels desktop as experimental");
+assert(installHtml.includes("desktop viewer") && installHtml.includes("experimental"), "installation page labels desktop as experimental");
 assert(installHtml.includes("release-inventory.md"), "installation page links the release inventory");
 assert(
 	installHtml.includes("cargo install --locked --path crates/magistr-cli"),
@@ -174,7 +174,7 @@ assert(
 );
 assert(installHtml.includes("docs-sidebar"), "installation page has sidebar");
 assert(installHtml.includes("Permission and privacy boundary"), "installation page states permission boundary");
-assert(installHtml.includes("source-first"), "installation page states source-first release status");
+assert(installHtml.includes("early development release"), "installation page states early release status");
 assert(
 	installHtml.includes("docs-content"),
 	"installation page has content area",
