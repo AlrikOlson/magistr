@@ -39,6 +39,16 @@ magistr init . --agent codex --yes
 
 For Claude Code, run `magistr init . --yes`, then launch `claude`.
 
+## The native cockpit
+
+These are real TUI captures from the workspace's `magistr-tui` golden screens:
+
+![Magistr TUI roadmap view](apps/website/public/screenshots/magistr-roadmap-mocha.png)
+
+![Magistr TUI trace view](apps/website/public/screenshots/magistr-trace-mocha.png)
+
+The trace capture includes a failed lint check because it is a test screen, not a polished demo.
+
 The native cockpit is the primary supported interface. `magistr next` runs one ready roadmap chunk; `magistr next-loop` continues through fresh provider sessions. Agent skills use `$next` or `/next`, and `$validate` or `/validate`.
 
 ## Status
