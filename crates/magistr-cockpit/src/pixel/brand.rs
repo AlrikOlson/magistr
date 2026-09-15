@@ -28,15 +28,22 @@ const NODE_RADIUS_FRACTION: f32 = 0.105;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Brand {
     color: Color,
+    node_colors: [Color; 3],
 }
 
 impl Brand {
     /// The mark in `(r, g, b)` — the pen the header's brand text would
-    /// have worn.
+    /// have worn. The route follows that colour while its nodes use the
+    /// product palette so the mark stays recognizable in the terminal.
     #[must_use]
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self {
             color: Color::from_rgba8(r, g, b, 255),
+            node_colors: [
+                Color::from_rgba8(103, 232, 249, 255),
+                Color::from_rgba8(167, 139, 250, 255),
+                Color::from_rgba8(251, 191, 36, 255),
+            ],
         }
     }
 }
@@ -45,7 +52,7 @@ impl Painter for Brand {
     fn paint(&self, pixmap: &mut PixmapMut<'_>) {
         pixmap.fill(Color::TRANSPARENT);
         let (width, height) = (pixmap.width() as f32, pixmap.height() as f32);
-        let side = width.min(height);
+        let side = width.min(height) * 0.78;
         let (cx, cy) = (width / 2.0, height / 2.0);
         let at = |(x, y): (f32, f32)| (x.mul_add(side, cx), y.mul_add(side, cy));
 
@@ -75,12 +82,13 @@ impl Painter for Brand {
         pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
 
         let node_radius = side * NODE_RADIUS_FRACTION;
-        for (x, y) in NODES {
+        for (index, (x, y)) in NODES.into_iter().enumerate() {
             let Some(circle) =
                 PathBuilder::from_circle(x.mul_add(side, cx), y.mul_add(side, cy), node_radius)
             else {
                 continue;
             };
+            paint.set_color(self.node_colors[index]);
             pixmap.fill_path(
                 &circle,
                 &paint,
