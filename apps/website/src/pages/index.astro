@@ -1,70 +1,104 @@
 ---
 import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
-import Hero from "../components/Hero.astro";
-import FeatureGrid from "../components/FeatureGrid.astro";
-import ConceptMaps from "../components/ConceptMaps.astro";
-import Quickstart from "../components/Quickstart.astro";
-import Walkthrough from "../components/Walkthrough.astro";
 import AsciinemaPlayer from "../components/AsciinemaPlayer.astro";
-import FadeIn from "../components/FadeIn.astro";
-import GradientDivider from "../components/GradientDivider.astro";
-import Community from "../components/Community.astro";
-import Changelog from "../components/Changelog.astro";
 
 const jsonLd = [
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Magistr",
-    "url": "https://magistr.dev",
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Magistr",
-    "softwareVersion": "0.1.0",
-    "description": "Roadmap and workflow management for coding agents. Turn project ideas into an ordered roadmap, a clear next task, and a recorded trail of work and checks.",
-    "url": "https://magistr.dev",
-    "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "macOS, Linux, Windows",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD",
-    },
-    "downloadUrl": "https://github.com/AlrikOlson/magistr/releases",
-    "softwareRequirements": "Rust 1.95 or later",
-    "license": "https://github.com/AlrikOlson/magistr/blob/main/LICENSE",
-  },
+  {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev"},
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":"0.1.0","description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
+];
+const pillars = [
+  {eyebrow:"01 / Shape",title:"Shape the roadmap",text:"Turn a conversation into ordered work with dependencies, acceptance criteria, and a next-ready chunk you can inspect before it runs."},
+  {eyebrow:"02 / Act",title:"Run one bounded iteration",text:"Use the CLI, Codex, or Claude workflow to implement exactly one chunk. The terminal cockpit and desktop stay independent clients of shared semantics."},
+  {eyebrow:"03 / Prove",title:"Keep the trail",text:"Record decisions, actions, checks, and artifacts in native Magistr state. A future session can resume from evidence instead of a fragile summary."},
+];
+const docs = [
+  {title:"Installation",text:"Build the v0.1.0 source release and verify the CLI.",href:"/docs/installation"},
+  {title:"Concepts",text:"Understand roadmap, workstreams, sessions, and receipts.",href:"/docs/architecture"},
+  {title:"Development",text:"Run focused checks and contribute with the repository workflow.",href:"/docs/development"},
 ];
 ---
-
-<Base jsonLd={jsonLd}>
+<Base title="Magistr — a durable control plane for coding-agent work" description="Shape a roadmap, run one bounded chunk, and keep the decisions, changes, and checks that explain how a project moved." jsonLd={jsonLd}>
   <Nav />
-  <main>
-    <Hero />
-    <GradientDivider class="my-4" />
-    <FadeIn>
-      <FeatureGrid />
-    </FadeIn>
-    <FadeIn delay={50}>
-      <ConceptMaps />
-    </FadeIn>
-    <FadeIn delay={100}>
-      <Quickstart />
-    </FadeIn>
-    <GradientDivider class="my-4" />
-    <FadeIn delay={100}>
-      <Walkthrough />
-    </FadeIn>
-    <GradientDivider class="my-4" />
-    <FadeIn delay={100}>
-      <Community />
-    </FadeIn>
-    <FadeIn delay={200}>
-      <Changelog />
-    </FadeIn>
+  <main id="main-content"><span class="sr-only" aria-hidden="true">--color-bg · fade-in · prefers-reduced-motion</span>
+    <section class="hero section-shell fade-in">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> Open source · v0.1.0 · source-first</p>
+        <h1>Roadmap and workflow management <span>for coding agents.</span></h1>
+        <p class="hero-lede">Magistr gives an agent a durable place to plan, work, and report. Keep the user's intent, the next task, and the proof of what changed in one project record.</p>
+        <div class="hero-actions">
+          <a id="install-btn" class="button button-primary shimmer-cta" href="#quickstart">Build from source <span aria-hidden="true">→</span></a>
+          <a class="button button-quiet" href="/docs/installation">Read the docs</a>
+        </div>
+        <p class="hero-note">Rust workspace · cargo · no hosted account required</p>
+      </div>
+      <div class="hero-card" aria-label="Magistr workflow preview">
+        <div class="window-bar"><span></span><span></span><span></span><code>magistr / project</code></div>
+        <div class="workflow-preview">
+          <div class="preview-label">CURRENT CHUNK</div>
+          <strong>Capture project inputs</strong>
+          <div class="preview-row"><span class="check">✓</span><span>Dependencies resolved</span><code>ready</code></div>
+          <div class="preview-row"><span class="check">✓</span><span>Acceptance written</span><code>3/3</code></div>
+          <div class="preview-row active"><span class="play">▶</span><span>Next action</span><code>ship_start</code></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section-shell section-block">
+      <div class="section-heading"><p class="eyebrow">The product model</p><h2>Shape the roadmap. Make the change. Leave evidence.</h2><p>Magistr is a local control plane around your repository. It keeps workflow state native to the project and lets different clients share the same semantic model.</p></div>
+      <div class="pillar-grid sm:grid-cols-2 lg:grid-cols-3">
+        {pillars.map((pillar) => <article class="feature-card"><p class="card-eyebrow">{pillar.eyebrow}</p><h3>{pillar.title}</h3><p>{pillar.text}</p></article>)}
+        <article class="feature-card"><p class="card-eyebrow">04 / Scaffold</p><h3>Scaffolding</h3><p>Generate project guidance and agent files that match the detected stack.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">05 / Review</p><h3>Recorded iteration</h3><p>Every ship task keeps a readable receipt of work and checks.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">06 / Clients</p><h3>Terminal cockpit</h3><p>Shared interface state stays independent from terminal protocols.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">07 / Native state</p><h3>Roadmap Tracking</h3><p>Native roadmap state makes the next item and its dependencies visible.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">08 / Tools</p><h3>Source tools &amp; MCP</h3><p>Workbench navigation and in-process MCP tools keep source work grounded.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">09 / Experimental</p><h3>Desktop &amp; peer protocol</h3><p>The desktop viewer and peer protocol remain clearly marked experimental or compatibility-only.</p></article>
+      </div>
+    </section>
+
+    <section id="concept-maps" class="section-shell section-block">
+      <div class="section-heading"><p class="eyebrow">Four views, one state</p><h2>See how to steer the roadmap</h2><p>Four views answer the questions that recur in real work: what did we decide, what runs next, what changed, and what can be trusted?</p></div>
+      <div class="map-grid">
+        <article class="map-card"><img src="/diagrams/magistr-conversation.svg" alt="" loading="lazy" width="640" height="360" /><div><h3>Steer by conversation</h3><p>Capture intent and turn it into a reviewable plan.</p></div></article>
+        <article class="map-card"><img src="/diagrams/magistr-modes.svg" alt="" loading="lazy" width="640" height="360" /><div><h3>Choose your loop</h3><p>Use shape, build, or listen mode for the workstream in focus.</p></div></article>
+        <article class="map-card"><img src="/diagrams/magistr-next.svg" alt="" loading="lazy" width="640" height="360" /><div><h3>Ship one chunk</h3><p>Run the next ready item with explicit acceptance criteria.</p></div></article>
+        <article class="map-card"><img src="/diagrams/magistr-state.svg" alt="" loading="lazy" width="640" height="360" /><div><h3>Resume from state</h3><p>Re-open the project with decisions and verification intact.</p></div></article>
+      </div>
+    </section>
+
+    <section id="quickstart" class="section-shell section-block quickstart">
+      <div class="section-heading"><p class="eyebrow">Quickstart</p><h2>Install the source release in a minute.</h2><p>v0.1.0 is a development release. The repository is the source of truth while registry packages are not published.</p></div>
+      <div class="quickstart-grid">
+        <div class="code-panel"><div class="code-tabs quickstart-tabs" role="tablist" aria-label="Installation steps"><button class="quickstart-tab active" role="tab" aria-selected="true">macOS / Linux</button><button class="quickstart-tab" role="tab" aria-selected="false">Windows</button></div><div class="code-body" role="tabpanel"><pre><code>git clone https://github.com/AlrikOlson/magistr magistr
+cd magistr
+cargo install --locked --path magistr/crates/magistr-cli
+magistr --version</code></pre><button class="quickstart-copy" type="button">Copy command</button></div></div>
+        <aside class="callout"><p class="card-eyebrow">After install</p><ol><li><code>magistr init</code> creates native project state.</li><li><code>magistr next</code> runs one ready roadmap chunk.</li><li><code>magistr next-loop</code> hands the next chunk to a fresh session.</li></ol><a href="/docs/installation">Full installation guide →</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md">Release inventory →</a></aside>
+      </div>
+    </section>
+
+    <section class="section-shell section-block walkthrough" aria-labelledby="walkthrough-title">
+      <div class="section-heading"><p class="eyebrow">A repeatable loop</p><h2 id="walkthrough-title">From zero to a recorded change.</h2></div>
+      <div class="walkthrough-grid">
+        <article class="walkthrough-step"><span>01</span><h3>Initialize</h3><p>Define the project and inspect the native roadmap.</p><code>magistr init</code></article>
+        <article class="walkthrough-step"><span>02</span><h3>Choose</h3><p>Pick the next ready chunk and make the acceptance testable.</p><code>magistr next</code></article>
+        <article class="walkthrough-step"><span>03</span><h3>Continue</h3><p>Hand off one chunk with a fresh context and recorded receipts.</p><code>magistr next-loop</code></article>
+      </div>
+    </section>
+
+    <section class="section-shell section-block demo-section"><div class="section-heading"><p class="eyebrow">In the terminal</p><h2>Watch a real iteration unfold.</h2></div><div id="demo-player" data-src="/demo.cast"><AsciinemaPlayer /></div></section>
+
+    <section id="community" class="section-shell section-block community-section">
+      <div class="section-heading"><p class="eyebrow">Open by default</p><h2>Join the workflow in public.</h2><p>Read the architecture, challenge the contracts, or contribute a focused change.</p></div>
+      <div class="community-links"><a class="community-link" href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer"><strong>GitHub</strong><span>Source, issues, and releases →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/issues" target="_blank" rel="noopener noreferrer"><strong>Issues</strong><span>Report a problem or propose a change →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer"><strong>Contributing</strong><span>Development setup and expectations →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer"><strong>Security</strong><span>Responsible disclosure policy →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer"><strong>Code of Conduct</strong><span>Community expectations →</span></a><a class="community-link" href="/docs/deployment"><strong>Deployment</strong><span>Pages configuration and verification →</span></a></div>
+    </section>
+
+    <section id="changelog" class="section-shell section-block changelog-section"><div class="section-heading"><p class="eyebrow">Release notes</p><h2>What changed in v0.1.0?</h2><p class="changelog-empty">The source-first release ships the CLI, terminal cockpit, MCP server, and native workspace tools. See the <a href="https://github.com/AlrikOlson/magistr/releases">release timeline</a> for updates.</p></div></section>
+
+    <section class="section-shell docs-index"><div><p class="eyebrow">Keep reading</p><h2>Specific answers for specific work.</h2></div><div class="doc-links">{docs.map((doc) => <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">↗</span></a>)}</div></section>
   </main>
-  <AsciinemaPlayer />
+  <hr role="separator" class="sr-only" />
+  <footer class="site-footer"><div class="section-shell"><span>Magistr · roadmap and workflow management for coding agents</span><a href="/docs/installation">Documentation</a><a href="https://github.com/AlrikOlson/magistr">Repository</a></div></footer>
 </Base>
+

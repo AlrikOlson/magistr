@@ -3,152 +3,52 @@ import Base from "./Base.astro";
 import Nav from "../components/Nav.astro";
 import { getCollection } from "astro:content";
 
-interface Props {
-  title: string;
-  description: string;
-  currentSlug: string;
-}
-
+interface Props { title: string; description: string; currentSlug: string; }
 const { title, description, currentSlug } = Astro.props;
-
 const allDocs = await getCollection("docs");
-const sorted = allDocs.sort((a, b) => a.data.order - b.data.order);
-
+const sorted = allDocs.sort((a,b)=>a.data.order-b.data.order);
 const categories = [
-  { id: "getting-started", label: "Getting Started" },
-  { id: "reference", label: "Reference" },
+  {id:"getting-started",label:"Getting Started"},
+  {id:"understand",label:"Understand Magistr"},
+  {id:"reference",label:"Reference"},
 ] as const;
-
-const breadcrumbLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "https://magistr.dev",
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "Docs",
-      "item": "https://magistr.dev/docs",
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": title,
-      "item": `https://magistr.dev/docs/${currentSlug}`,
-    },
-  ],
-};
+const breadcrumbLd = {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Home","item":"https://magistr.dev"},
+  {"@type":"ListItem","position":2,"name":"Docs","item":"https://magistr.dev/docs"},
+  {"@type":"ListItem","position":3,"name":title,"item":`https://magistr.dev/docs/${currentSlug}`}
+]};
 ---
-
 <Base title={`${title} — Magistr docs`} description={description} jsonLd={breadcrumbLd}>
   <Nav />
-  <div class="mx-auto flex max-w-6xl pt-20">
-    <!-- Sidebar -->
-    <aside class="docs-sidebar sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-border px-4 py-8 lg:block">
-      <!-- Search -->
-      <div class="mb-6" id="docs-search"></div>
-
-      <!-- Navigation -->
-      <nav aria-label="Documentation">
-        {categories.map(({ id, label }) => {
-          const items = sorted.filter((d) => d.data.category === id);
-          if (items.length === 0) return null;
-          return (
-            <div class="mb-6">
-              <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
-                {label}
-              </h4>
-              <ul class="space-y-1">
-                {items.map((doc) => {
-                  const isActive = doc.id === currentSlug;
-                  return (
-                    <li>
-                      <a
-                        href={`/docs/${doc.id}`}
-                        class:list={[
-                          "block rounded-md px-3 py-1.5 text-sm transition-colors",
-                          isActive
-                            ? "bg-accent/10 text-accent font-medium"
-                            : "text-text-muted hover:text-text hover:bg-surface",
-                        ]}
-                        aria-current={isActive ? "page" : undefined}
-                      >
-                        {doc.data.title}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
-      </nav>
+  <div class="docs-layout section-shell">
+    <aside class="docs-sidebar" aria-label="Documentation navigation">
+      <a class="docs-back" href="/">← Magistr home</a>
+      <div id="docs-search"></div>
+      {categories.map(({id,label}) => {
+        const items = sorted.filter((doc)=>doc.data.category===id);
+        if (!items.length) return null;
+        return <section class="docs-nav-group"><h2>{label}</h2><ul>{items.map((doc)=>{
+          const active=doc.id===currentSlug;
+          return <li><a href={`/docs/${doc.id}`} aria-current={active?"page":undefined} class:list={{active}}>{doc.data.title}</a></li>;
+        })}</ul></section>;
+      })}
+      <div class="docs-repo-links"><a href="https://github.com/AlrikOlson/magistr/tree/main/docs" target="_blank" rel="noopener noreferrer">Repository docs ↗</a><a href="/docs/installation">Start at installation →</a></div>
     </aside>
-
-    <!-- Content -->
-    <main class="min-w-0 flex-1 px-6 py-8 sm:px-10" data-pagefind-body>
-      <article class="docs-content prose prose-invert max-w-none">
-        <slot />
-      </article>
+    <main id="main-content" class="docs-main" data-pagefind-body>
+      <div class="docs-breadcrumb"><a href="/">Magistr</a><span aria-hidden="true">/</span><a href="/docs/installation">Docs</a><span aria-hidden="true">/</span><span>{title}</span></div>
+      <article class="docs-content"><slot /></article>
     </main>
   </div>
 </Base>
-
 <script is:inline>
-  async function initSearch() {
-    var container = document.getElementById("docs-search");
-    if (!container) return;
-
-    try {
-      var pagefind = await import("/pagefind/pagefind.js");
-      await pagefind.init();
-
-      const input = document.createElement("input");
-      input.type = "search";
-      input.placeholder = "Search docs...";
-      input.className =
-        "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted outline-none transition-colors focus:border-accent";
-      input.setAttribute("aria-label", "Search documentation");
-      container.appendChild(input);
-
-      const results = document.createElement("div");
-      results.className = "mt-2 space-y-1";
-      container.appendChild(results);
-
-      var debounce;
-      input.addEventListener("input", () => {
-        clearTimeout(debounce);
-        debounce = setTimeout(async () => {
-          const query = input.value.trim();
-          results.innerHTML = "";
-          if (!query) return;
-
-          const search = await pagefind.search(query);
-          const top = search.results.slice(0, 5);
-          for (const r of top) {
-            const data = await r.data();
-            const a = document.createElement("a");
-            a.href = data.url;
-            a.className =
-              "block rounded-md px-3 py-2 text-sm text-text-muted hover:bg-surface hover:text-text transition-colors";
-            a.textContent = data.meta?.title || data.url;
-            results.appendChild(a);
-          }
-        }, 200);
-      });
-    } catch {
-      // Pagefind not available in dev mode — fail silently
-    }
+  async function initSearch(){
+    const container=document.getElementById("docs-search"); if(!container) return;
+    try{
+      const pagefind=await import("/pagefind/pagefind.js"); await pagefind.init();
+      const input=document.createElement("input"); input.type="search"; input.placeholder="Search docs"; input.className="docs-search-input"; input.setAttribute("aria-label","Search documentation"); container.appendChild(input);
+      const results=document.createElement("div"); results.className="docs-search-results"; container.appendChild(results);
+      let timer; input.addEventListener("input",()=>{clearTimeout(timer); timer=setTimeout(async()=>{results.innerHTML=""; const q=input.value.trim(); if(!q)return; const search=await pagefind.search(q); for(const result of search.results.slice(0,5)){const data=await result.data(); const link=document.createElement("a"); link.href=data.url; link.textContent=data.meta?.title||data.url; results.appendChild(link);}},180);});
+    }catch{ /* Pagefind is generated for production builds. */ }
   }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initSearch);
-  } else {
-    initSearch();
-  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",initSearch); else initSearch();
 </script>

@@ -1,20 +1,24 @@
-# Documentation
+# Magistr documentation
 
-Start with [getting started](getting-started.md) to build Magistr and configure a
-project. For changes to Magistr itself, read the [development guide](development.md).
-For release claims, package contents, and publishing checks, see the [release inventory](release-inventory.md).
+Magistr is a local control plane for coding-agent work: shape a roadmap, run one bounded chunk, and keep the decisions, changes, and checks that explain how a project moved.
 
-## Architecture
+## Start here
 
-- [Overview](architecture/overview.md): crates, applications, and dependency boundaries
-- [Terminal](architecture/terminal.md): model updates, rendering, input, and testing
-- [Desktop](architecture/desktop.md): native components and interaction rules
-- [Sessions](architecture/sessions.md): provider selection and agent lifecycle
-- [Project authority](architecture/project-authority.md): ownership, locks, and native state
-- [Peer protocol](architecture/peers.md): plan agreement and worker admission APIs
+- [Installation](https://magistr.dev/docs/installation) — build the v0.1.0 source release and initialize a project.
+- [Configuration](https://magistr.dev/docs/configuration) — understand `.magistr/project.json`, native roadmap state, and generated agent files.
+- [Skills and workflows](https://magistr.dev/docs/skills) — use `$next`, `$next-loop`, `$validate`, and their Claude `/` equivalents.
+- [Development](https://magistr.dev/docs/development) — run the Rust and website checks from a clean checkout.
+- [Architecture](https://magistr.dev/docs/architecture) — see crate ownership and client boundaries.
+- [Deployment](https://magistr.dev/docs/deployment) — verify the Astro site and Cloudflare Pages routes.
 
-## Reference
+## Source of truth
 
-- [Codex integration](reference/codex.md): generated files, launcher behavior, and removal
-- [Authentication](reference/authentication.md): device login, token validation, and identity caches
-- [Cockpit module index](reference/cockpit-modules.md): source modules, test references, and motion registry
+The website at [magistr.dev](https://magistr.dev) presents the product model and links back to these repository docs. The repository remains authoritative for detailed contracts:
+
+- [Architecture overview](architecture/overview.md) maps the 15 Rust workspace members and their boundaries.
+- [Release inventory](release-inventory.md) lists what v0.1.0 ships and what remains experimental.
+- [Development guide](development.md) defines formatting, gates, and packaging commands.
+- [Public release audit](public-release-audit.md) records the external verification work.
+
+Magistr keeps roadmap state in the native `think-and-ship` backend. With `roadmap_exports: false`, do not create `ROADMAP.md` or `ROADMAP.json`; use the native roadmap and ship tools instead.
+
