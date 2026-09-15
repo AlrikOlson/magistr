@@ -184,8 +184,8 @@ fn the_launcher_places_the_brand_and_the_roadmap_gauge() {
     assert!(
         rects
             .iter()
-            .any(|(_, _, cols, rows)| *cols == 1 && *rows == 1),
-        "the brand mark's one cell is not among {rects:?}"
+            .any(|(_, _, cols, rows)| *cols == 2 && *rows == 1),
+        "the brand mark's two-cell surface is not among {rects:?}"
     );
     assert!(
         rects

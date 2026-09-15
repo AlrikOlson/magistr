@@ -154,10 +154,11 @@ impl Surfaces {
         };
         let ground = rgb(pen.base.bg, (26, 27, 38));
 
-        // The brand's surface covers the slot's first cell — the mark's
-        // cell; the product name beside it stays text.
+        // Give the mark a two-cell drawing surface so its route remains
+        // legible at terminal cell resolution; the product name follows
+        // the reserved two-cell brand slot.
         if let Some(rect) =
-            placed(resolved, Widget::HeaderBrand).map(|slot| Rect::new(slot.x, slot.y, 1, 1))
+            placed(resolved, Widget::HeaderBrand).map(|slot| Rect::new(slot.x, slot.y, 2, 1))
         {
             let (r, g, b) = rgb(pen.header.fg, (205, 214, 244));
             let key = (0, rect, cell, (r, g, b));
