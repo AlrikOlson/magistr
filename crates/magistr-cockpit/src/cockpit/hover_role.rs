@@ -118,6 +118,7 @@ impl HoverRole {
             | Widget::Reject
             | Widget::Clear
             | Widget::Checkpoint
+            | Widget::TraceDetail
             | Widget::RoadmapStart
             | Widget::RoadmapComplete
             | Widget::LaunchNext

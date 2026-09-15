@@ -85,6 +85,8 @@ pub enum Widget {
     Clear,
     /// The Trace tab's \[Checkpoint\] button.
     Checkpoint,
+    /// The selected step's card: `More` / `Less`, the card's disclosure.
+    TraceDetail,
     /// The Trace tab's branch-graph block — the rect the pixel graph
     /// covers in Graphics mode, an indented list otherwise.
     TraceGraph,
@@ -268,7 +270,7 @@ pub enum Widget {
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 91] = [
+    pub const ALL: [Self; 92] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -303,6 +305,7 @@ impl Widget {
         Self::Reject,
         Self::Clear,
         Self::Checkpoint,
+        Self::TraceDetail,
         Self::TraceGraph,
         Self::RoadmapGraph,
         Self::RoadmapStart,
@@ -1170,6 +1173,7 @@ impl Widget {
             Self::Reject => "Reject",
             Self::Clear => "Clear",
             Self::Checkpoint => "Checkpoint",
+            Self::TraceDetail => "More",
             Self::TraceGraph => "trace graph",
             Self::RoadmapGraph => "tech tree",
             Self::RoadmapStart => "Start",

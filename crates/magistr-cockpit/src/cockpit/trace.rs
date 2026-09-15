@@ -5,12 +5,19 @@ use std::collections::BTreeMap;
 use magistr_engine::{NativeEvent, NativeSnapshot, ShipFrame, ThinkFrame};
 
 use super::ship_moment::ShipMoment;
+use super::trace_card::TraceCardRow;
+use super::trace_focus::TraceFocus;
 use super::trace_step::TraceStep;
 
-/// What the Trace tab shows: the think trace as the feed delivered it
-/// (steps in arrival order, one expanded at a time), the branches'
-/// statuses, the ship timeline of actions and checks, and the
-/// checkpoint report pane while one is open.
+/// Rows the step graph takes above the list once the pixel layer
+/// covers it: room for the main line and up to three branch lanes.
+pub const TRACE_GRAPH_ROWS: usize = 4;
+
+/// What the Trace tab shows: the reasoning steps as the feed delivered
+/// them (in arrival order), one of them selected with its detail card
+/// open, the branches' statuses, the recorded work — the ship timeline
+/// of actions and checks — and the checkpoint report pane while one is
+/// open.
 ///
 /// Pure state: typed events arrive through [`Trace::apply`], the store's
 /// snapshot through [`Trace::seed`], the port's answers through
@@ -20,7 +27,10 @@ use super::trace_step::TraceStep;
 pub struct Trace {
     steps: Vec<TraceStep>,
     branch_status: BTreeMap<String, String>,
-    expanded: Option<u32>,
+    /// The selected step's number — the one whose card is open.
+    selected: Option<u32>,
+    /// Whether the card shows every field or the brief cut.
+    full: bool,
     moments: Vec<ShipMoment>,
     viewer: Option<Vec<String>>,
 }
@@ -61,7 +71,7 @@ impl Trace {
             ThinkFrame::Cleared => {
                 self.steps.clear();
                 self.branch_status.clear();
-                self.expanded = None;
+                self.selected = None;
             }
             ThinkFrame::EstimateRevised { .. } => {}
         }
@@ -102,7 +112,7 @@ impl Trace {
     /// Replaces both halves rather than appending, so a re-seed mid-run
     /// never doubles a moment the feed already delivered — the store is
     /// the superset. What the feed alone knows survives: the branch
-    /// statuses, which step is expanded, and an open checkpoint pane.
+    /// statuses, which step is selected, and an open checkpoint pane.
     pub fn seed(&mut self, snapshot: &NativeSnapshot) {
         self.steps.clear();
         self.moments.clear();
@@ -139,33 +149,100 @@ impl Trace {
         self.steps.iter().find(|step| step.number == number)
     }
 
-    /// A click on the step at feed `index`: it expands to every field,
-    /// or folds when it already shows — one step expands at a time.
+    /// A click on the step at feed `index`: it becomes the selection
+    /// and its card opens, or the selection folds when it already was —
+    /// one step selected at a time.
     pub fn toggle(&mut self, index: usize) {
         let Some(step) = self.steps.get(index) else {
             return;
         };
-        self.expanded = if self.expanded == Some(step.number) {
+        self.selected = if self.selected == Some(step.number) {
             None
         } else {
             Some(step.number)
         };
     }
 
-    /// A revision link was followed: the step it names expands, when the
-    /// feed has it; whether it did.
+    /// Select the step at feed `index`; whether the feed has one.
+    pub fn select_index(&mut self, index: usize) -> bool {
+        match self.steps.get(index) {
+            Some(step) => {
+                self.selected = Some(step.number);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// A revision link was followed, or a search landed: the step it
+    /// names becomes the selection, when the feed has it; whether it did.
     pub fn expand_step(&mut self, number: u32) -> bool {
         if self.step(number).is_some() {
-            self.expanded = Some(number);
+            self.selected = Some(number);
             return true;
         }
         false
     }
 
-    /// Whether the step shows every field.
+    /// Move the selection one step down the feed (`forward`) or up it —
+    /// from the newest step when nothing is selected, stopping at either
+    /// end; whether it moved.
+    pub fn select_step(&mut self, forward: bool) -> bool {
+        if self.steps.is_empty() {
+            return false;
+        }
+        let at = match self.selected_index() {
+            Some(at) if forward => at.saturating_add(1),
+            Some(at) => at.saturating_sub(1),
+            None => self.steps.len() - 1,
+        };
+        let at = at.min(self.steps.len() - 1);
+        let moved = self.selected_index() != Some(at);
+        self.selected = Some(self.steps[at].number);
+        moved
+    }
+
+    /// Fold the card; whether one was open.
+    pub fn deselect(&mut self) -> bool {
+        self.selected.take().is_some()
+    }
+
+    /// The selected step's feed index.
+    #[must_use]
+    pub fn selected_index(&self) -> Option<usize> {
+        let number = self.selected?;
+        self.steps.iter().position(|step| step.number == number)
+    }
+
+    /// The selected step.
+    #[must_use]
+    pub fn selected(&self) -> Option<&TraceStep> {
+        self.selected_index().map(|at| &self.steps[at])
+    }
+
+    /// Whether the step is the selection, with its card open.
     #[must_use]
     pub fn is_expanded(&self, number: u32) -> bool {
-        self.expanded == Some(number)
+        self.selected == Some(number)
+    }
+
+    /// Whether the card shows every field rather than the brief cut.
+    #[must_use]
+    pub const fn is_full(&self) -> bool {
+        self.full
+    }
+
+    /// `[More]` / `[Less]` on the card, or Enter on the selection.
+    pub fn toggle_detail(&mut self) {
+        self.full = !self.full;
+    }
+
+    /// The selection's neighbourhood — what the graph lights and the
+    /// list marks — or `None` while nothing is selected.
+    #[must_use]
+    pub fn focus(&self) -> Option<TraceFocus> {
+        self.selected_index()
+            .map(|selected| TraceFocus::of(&self.steps, selected))
     }
 
     /// The engine pinned or unpinned the step — the `pin_changed` frame,
@@ -174,6 +251,12 @@ impl Trace {
         if let Some(step) = self.steps.iter_mut().find(|step| step.number == number) {
             step.pinned = pinned;
         }
+    }
+
+    /// Per step in feed order, whether it is pinned.
+    #[must_use]
+    pub fn pins(&self) -> Vec<bool> {
+        self.steps.iter().map(|step| step.pinned).collect()
     }
 
     /// The ship timeline, oldest first.
@@ -230,7 +313,40 @@ impl Trace {
         links
     }
 
-    /// The branches as an indented list — the main line first, then each
+    /// The merge edges, as feed-index pairs: a branch whose status is
+    /// `merged` rejoins the main line at the first main-line step after
+    /// its last step, when the feed has one. Read off the branch's
+    /// recorded status, never invented.
+    #[must_use]
+    pub fn merges(&self) -> Vec<(usize, usize)> {
+        let mut merges = Vec::new();
+        let mut seen: Vec<&str> = Vec::new();
+        for step in &self.steps {
+            let Some(branch) = step.branch_id.as_deref() else {
+                continue;
+            };
+            if seen.contains(&branch) || self.branch_status(branch) != "merged" {
+                continue;
+            }
+            seen.push(branch);
+            let last = self
+                .steps
+                .iter()
+                .rposition(|s| s.branch_id.as_deref() == Some(branch));
+            let Some(last) = last else {
+                continue;
+            };
+            if let Some(next) = self.steps[last + 1..]
+                .iter()
+                .position(|s| s.branch_id.is_none())
+            {
+                merges.push((last, last + 1 + next));
+            }
+        }
+        merges
+    }
+
+    /// The lanes as an indented list — the main line first, then each
     /// branch with its name, status and fork point — what the stage
     /// shows where the pixel graph would sit.
     #[must_use]
@@ -266,7 +382,7 @@ impl Trace {
     }
 
     /// A branch's status by id — `active` until a `branch_status_changed`
-    /// frame says otherwise (`kept`, `abandoned`, …). The same word
+    /// frame says otherwise (`merged`, `abandoned`). The same word
     /// [`Trace::branch_rows`] prints, readable on its own.
     #[must_use]
     pub fn branch_status(&self, branch: &str) -> &str {
@@ -275,11 +391,45 @@ impl Trace {
             .map_or("active", String::as_str)
     }
 
-    /// Whether any step sits on a branch — whether a graph is worth
-    /// drawing at all.
+    /// Whether any step sits on a branch.
     #[must_use]
     pub fn has_branches(&self) -> bool {
         self.steps.iter().any(|step| step.branch_id.is_some())
+    }
+
+    /// How many branches the feed holds.
+    #[must_use]
+    pub fn branch_count(&self) -> usize {
+        self.branch_rows().len() - 1
+    }
+
+    /// How many steps are pinned.
+    #[must_use]
+    pub fn pinned_count(&self) -> usize {
+        self.steps.iter().filter(|step| step.pinned).count()
+    }
+
+    /// The heading's accounting: `10 steps · 1 branch · 2 pinned`, with
+    /// the parts that are zero left out.
+    #[must_use]
+    pub fn heading_line(&self) -> String {
+        let plural = |n: usize, one: &str, many: &str| {
+            if n == 1 {
+                format!("{n} {one}")
+            } else {
+                format!("{n} {many}")
+            }
+        };
+        let mut parts = vec![plural(self.steps.len(), "step", "steps")];
+        let branches = self.branch_count();
+        if branches > 0 {
+            parts.push(plural(branches, "branch", "branches"));
+        }
+        let pinned = self.pinned_count();
+        if pinned > 0 {
+            parts.push(format!("{pinned} pinned"));
+        }
+        parts.join(" · ")
     }
 
     /// Open the checkpoint pane on the report's lines.
@@ -299,15 +449,19 @@ impl Trace {
     }
 
     /// Rows the tab keeps above the scrolling body: the heading (with
-    /// its \[Checkpoint\] button, or the checkpoint pane's own line) and,
-    /// when a branch forked, the graph block — that one carries the
-    /// pixel surface's anchor, so it must stay whole.
+    /// its checkpoint button, or the checkpoint pane's own line) and the
+    /// graph block — [`TRACE_GRAPH_ROWS`] of pixels whenever there are
+    /// steps and the pixel layer is live, else the lane list once a
+    /// branch forked. The block carries the pixel surface's anchor, so
+    /// it must stay whole.
     #[must_use]
-    pub fn pinned_rows(&self) -> usize {
+    pub fn pinned_rows(&self, pixels: bool) -> usize {
         if self.viewer.is_some() {
             return 1;
         }
-        let graph = if self.has_branches() {
+        let graph = if pixels && !self.steps.is_empty() {
+            TRACE_GRAPH_ROWS
+        } else if self.has_branches() {
             self.branch_rows().len()
         } else {
             0
@@ -315,14 +469,22 @@ impl Trace {
         1 + graph
     }
 
-    /// Rows the scrolling body takes: the checkpoint report's lines
-    /// while the pane is open, else one per step plus the expanded
-    /// step's button row and fields, plus the ship heading and its
-    /// moments. Counted from the same
-    /// [`TraceStep::fields`](super::TraceStep::fields) the view paints,
-    /// so the window and the rows never drift.
+    /// The selected step's card, wrapped to `width` columns, with the
+    /// execution ref linked when `jump`; empty while nothing is selected.
     #[must_use]
-    pub fn body_rows(&self) -> usize {
+    pub fn card_rows(&self, width: u16, jump: bool) -> Vec<TraceCardRow> {
+        self.selected()
+            .map(|step| TraceCardRow::rows(step, width, self.full, jump))
+            .unwrap_or_default()
+    }
+
+    /// Rows the scrolling body takes at `width` columns: the checkpoint
+    /// report's lines while the pane is open, else one per step plus the
+    /// selected step's card, plus the recorded-work heading and its
+    /// moments. Counted from the same [`TraceCardRow::rows`] the view
+    /// paints, so the window and the rows never drift.
+    #[must_use]
+    pub fn body_rows(&self, width: u16) -> usize {
         if let Some(lines) = &self.viewer {
             return lines.len();
         }
@@ -330,17 +492,7 @@ impl Trace {
             // The "no trace yet" note.
             return 1;
         }
-        let steps: usize = self
-            .steps
-            .iter()
-            .map(|step| {
-                if self.is_expanded(step.number) {
-                    1 + 1 + step.field_rows()
-                } else {
-                    1
-                }
-            })
-            .sum();
+        let steps = self.steps.len() + self.card_rows(width, false).len();
         let ship = if self.moments.is_empty() {
             0
         } else {
@@ -362,8 +514,8 @@ impl Trace {
     }
 }
 
-/// The branch status in the store's spelling — the word the window's
-/// `branches · 1 · merged` row shows.
+/// The branch status in the store's spelling — the word the lane list
+/// prints after the branch's name.
 fn branch_status_name(status: magistr_engine::native::BranchStatus) -> &'static str {
     use magistr_engine::native::BranchStatus;
     match status {

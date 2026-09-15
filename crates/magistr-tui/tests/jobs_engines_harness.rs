@@ -240,8 +240,8 @@ async fn a_think_step_lands_on_the_trace_tab_and_its_next_paint() {
     assert_eq!(model.trace().steps().len(), 1, "the step landed");
     assert_eq!(model.trace().steps()[0].number, 7);
     assert!(
-        capture.count("\u{2726} think 7".as_bytes()) >= 1,
-        "the step's card was painted ({} bytes captured)",
+        capture.count("\u{25b8}  7  hypothesis".as_bytes()) >= 1,
+        "the step's row was painted ({} bytes captured)",
         capture.bytes().len()
     );
 }

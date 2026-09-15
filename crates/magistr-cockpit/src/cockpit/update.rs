@@ -203,6 +203,12 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.banner = mode.banner();
             model.pixels = mode.has_pixels();
             model.pointer_shapes = mode.has_pointer_shapes();
+            // The pixel arrangement gives the stage up a gutter on each
+            // side, so the turn wraps to the width it actually has —
+            // the same rewrap a resize does. Without it a word that fit
+            // the wider measure sits in a column the panel no longer
+            // shows, and is never painted.
+            model.turn.rewrap(model.turn_width());
         }
         Msg::TextSizing(sizing) => model.text_sizing = sizing,
         Msg::Reply(Reply::KeyboardFlags(flags)) => model.keyboard_flags = Some(flags),
@@ -590,6 +596,9 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
         return cmds;
     }
     if let Some(cmds) = launcher_key(model, key) {
+        return cmds;
+    }
+    if let Some(cmds) = trace_key(model, key) {
         return cmds;
     }
     if let Some(cmds) = roadmap_key(model, key) {
@@ -1115,6 +1124,60 @@ fn sheet_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         return Some(Vec::new());
     }
     None
+}
+
+/// A step accelerator on the Trace tab with an empty prompt, while the
+/// feed has steps and no checkpoint pane covers them: the arrows walk
+/// the selection (from the newest step when nothing is selected) and
+/// bring its row into the window, Enter turns the selected step's card
+/// between its brief cut and every field. Nothing else is taken, so the
+/// prompt keeps its letters and its history keys the moment something
+/// is typed.
+fn trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    if model.shown_tab() != StageTab::Trace
+        || !model.prompt.is_empty()
+        || !key.mods.is_empty()
+        || model.trace.viewer().is_some()
+        || model.trace.steps().is_empty()
+    {
+        return None;
+    }
+    match key.code {
+        KeyCode::Up | KeyCode::Down => {
+            model.trace.select_step(key.code == KeyCode::Down);
+            reveal_trace_selection(model);
+            Some(Vec::new())
+        }
+        KeyCode::Enter if model.trace.selected().is_some() => {
+            model.trace.toggle_detail();
+            reveal_trace_selection(model);
+            Some(Vec::new())
+        }
+        _ => None,
+    }
+}
+
+/// Scroll the Trace body so the selected step's row is inside the
+/// window — the row above its card, which opens below it.
+fn reveal_trace_selection(model: &mut Model) {
+    let Some(row) = model.trace.selected_index() else {
+        return;
+    };
+    let (total, height) = model.trace_window();
+    let (now, animate) = glide(model);
+    let top = model.trace_top();
+    let delta = if row < top {
+        row as isize - top as isize
+    } else if height > 0 && row >= top + height {
+        (row + 1 - height) as isize - top as isize
+    } else {
+        0
+    };
+    if delta != 0 {
+        model
+            .trace_viewport
+            .scroll_by(delta, total, height, now, animate);
+    }
 }
 
 /// A zoom accelerator on the Roadmap tab with an empty prompt: `+`
@@ -2263,6 +2326,10 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 Some(Widget::Reject) => return proposal_click(model, false),
                 Some(Widget::Clear) => return blocker_click(model),
                 Some(Widget::Checkpoint) => return vec![Cmd::Engine(EngineCmd::Checkpoint)],
+                Some(Widget::TraceDetail) => {
+                    model.trace.toggle_detail();
+                    return Vec::new();
+                }
                 Some(Widget::RoadmapStart) => return roadmap_chunk_click(model, false),
                 Some(Widget::RoadmapComplete) => return roadmap_chunk_click(model, true),
                 Some(Widget::ShelfExport) => return shelf_export(model),

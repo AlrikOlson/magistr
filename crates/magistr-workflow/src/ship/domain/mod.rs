@@ -6,3 +6,4 @@ pub(crate) mod execution_identity;
 pub mod objective;
 pub mod receipt_settlement;
 pub mod task;
+pub mod verification_mode;

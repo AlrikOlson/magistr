@@ -1,5 +1,6 @@
 //! One roadmap chunk as the Roadmap tab holds it.
 
+use crate::layout::TextMetrics;
 use magistr_engine::native::{Chunk, ChunkStatus};
 
 use super::proposal_kind::ProposalKind;
@@ -93,12 +94,62 @@ impl RoadmapChunk {
     /// the same fields the view paints, so the Roadmap tab's scroll
     /// window and its rows never drift.
     #[must_use]
-    pub fn detail_rows(&self) -> usize {
-        1 + self.description.lines().filter(|l| !l.is_empty()).count()
-            + self.acceptance.len()
-            + usize::from(!self.deps.is_empty())
-            + usize::from(!self.cross_refs.is_empty())
+    pub fn detail_rows(&self, width: u16) -> usize {
+        self.detail_lines(width).len()
     }
+
+    /// The card's rows at `width` columns, each with its kind: the
+    /// title, the description wrapped, one wrapped run per acceptance
+    /// bullet, then the deps and cross-refs lines when it has any. The
+    /// view paints exactly these rows and [`detail_rows`](Self::detail_rows)
+    /// counts them, so a long description wraps inside the stage instead
+    /// of running off its edge.
+    #[must_use]
+    pub fn detail_lines(&self, width: u16) -> Vec<(DetailLine, String)> {
+        let room = width.saturating_sub(Self::DETAIL_INDENT).max(12);
+        let wrap = |text: &str, cols: u16| -> Vec<String> {
+            TextMetrics::new(text)
+                .wrap(cols)
+                .into_iter()
+                .filter(|line| !line.trim().is_empty())
+                .map(str::to_owned)
+                .collect()
+        };
+        let mut lines = vec![(DetailLine::Title, self.title.clone())];
+        lines.extend(
+            wrap(&self.description, room)
+                .into_iter()
+                .map(|line| (DetailLine::Description, line)),
+        );
+        for bullet in &self.acceptance {
+            // The bullet glyph and its space take two columns; the
+            // continuation rows indent under the text.
+            for (index, line) in wrap(bullet, room.saturating_sub(2).max(10))
+                .into_iter()
+                .enumerate()
+            {
+                let kind = if index == 0 {
+                    DetailLine::Bullet
+                } else {
+                    DetailLine::BulletContinued
+                };
+                lines.push((kind, line));
+            }
+        }
+        if !self.deps.is_empty() {
+            lines.push((DetailLine::Note, format!("deps: {}", self.deps.join(", "))));
+        }
+        if !self.cross_refs.is_empty() {
+            lines.push((
+                DetailLine::Note,
+                format!("refs: {}", self.cross_refs.join(", ")),
+            ));
+        }
+        lines
+    }
+
+    /// Columns the detail card indents under its row.
+    pub const DETAIL_INDENT: u16 = 4;
 
     /// The band the priority falls in, as the roadmap spells it.
     #[must_use]
@@ -110,6 +161,21 @@ impl RoadmapChunk {
             _ => "low",
         }
     }
+}
+
+/// What a row of a chunk's detail card is, so the view picks its pen.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DetailLine {
+    /// The chunk's title.
+    Title,
+    /// One wrapped row of the description.
+    Description,
+    /// The first row of an acceptance bullet.
+    Bullet,
+    /// A later row of a wrapped acceptance bullet.
+    BulletContinued,
+    /// The deps or refs line.
+    Note,
 }
 
 /// The state word for a record: its status as the roadmap spells it, or

@@ -1,0 +1,38 @@
+---
+title: Concepts
+description: Roadmap, sessions, recorded work, verification and project state.
+order: 2
+category: understand
+---
+
+# Concepts
+
+Magistr is a small set of objects a project keeps beside its code. Every surface — the terminal interface, the workflow commands an agent runs, the tools it calls — reads and writes the same objects.
+
+## Roadmap
+
+The roadmap is the plan of work items. Each item has a title, a status, a priority, acceptance criteria, and the items it depends on. Statuses move from backlog to pending, in progress and done; an item can also be blocked or obsoleted.
+
+The next ready item is the most urgent pending item whose dependencies are all done. The terminal interface draws the roadmap as a dependency graph: shipped work in green, work that still waits on something hollow, work that is ready to claim filled, and the item in progress ringed. Selecting an item lights everything it stands on and everything that stands on it.
+
+An agent proposes changes to the roadmap — a new item, a different priority, a rewritten acceptance criterion — and the person directing the work decides what is applied.
+
+## Sessions
+
+A session is one agent run against one work item. `magistr next` starts a session for the next ready item; `magistr next-loop` runs one item per fresh session, so context does not accumulate across items. The terminal interface shows the session's phases, its plan as a checklist, the agent's output, and any decision it is waiting on.
+
+## Recorded work
+
+While a session runs, the workflow records what was done: the objective, the tasks planned, each action taken with the files it touched, and each check with its command, exit code and duration. The reasoning behind those actions is recorded as steps — each with its purpose, thought, outcome, next action and confidence — and steps can branch and merge, depend on earlier steps, and revise them.
+
+The Trace tab shows the steps as a graph, the selected step's card, and the recorded actions and checks. A **pinned** step is kept in view for later sessions. A **checkpoint** is a saved session state a later session can resume from. They are different things and wear different marks.
+
+## Verification
+
+An item is done when its acceptance criteria hold and the configured checks pass. The checks are the commands in the project file — formatting, compilation, tests, lint, and any required custom gates — and each result is recorded with its real exit code. A failed required check keeps the item from completing.
+
+## Project state
+
+Everything above lives in the project: the roadmap, the sessions' recorded work, and the reasoning. `magistr init` writes the project file and the agent setup; the rest is kept by Magistr as the project moves. A new session, or a new person, starts from the recorded state rather than from a summary of it.
+
+See the [architecture](/docs/architecture) for which crate owns what.

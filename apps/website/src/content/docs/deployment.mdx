@@ -1,20 +1,21 @@
 ---
 title: Deployment
-description: Build and verify the Astro site.
+description: Build and verify the website, then deploy it to Cloudflare Pages.
 order: 5
 category: reference
 ---
 
 # Deployment
 
-The Astro site lives in `apps/website` and deploys to the existing Cloudflare Pages project `magistr`.
+The website lives in `apps/website` and deploys to the Cloudflare Pages project `magistr`, whose production alias is [magistr.dev](https://magistr.dev).
 
 ```sh
 cd apps/website
 npm ci
-npm run build
+npm test
 wrangler pages deploy dist --project-name magistr --branch main
 ```
 
-Verify [magistr.dev](https://magistr.dev), [/docs/installation](https://magistr.dev/docs/installation), and [/robots.txt](https://magistr.dev/robots.txt) after a deploy.
+`npm test` builds the site and checks the built output: the pages, the capture manifest and its image hashes, the metadata and the caching headers.
 
+After a deploy, verify [magistr.dev](https://magistr.dev), [/docs/installation](https://magistr.dev/docs/installation) and [/robots.txt](https://magistr.dev/robots.txt) respond, and that the captures render at their full size on a phone and a desktop in both themes.

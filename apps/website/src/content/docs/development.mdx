@@ -1,13 +1,13 @@
 ---
 title: Development
-description: The few commands needed to work on Magistr.
+description: The contributor commands and checks.
 order: 4
-category: getting-started
+category: reference
 ---
 
 # Development
 
-Magistr is a Rust workspace. Use the [repository development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md) for the current contributor notes.
+Magistr is a Rust workspace; use Rust 1.95 or later from the workspace root.
 
 ```sh
 cargo fmt
@@ -16,7 +16,23 @@ cargo nextest run --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-For the website:
+The configured project gates — the three commands above plus the required custom gates — are listed in `.magistr/project.json`. Run `just gate` or the `/validate` workflow command for the complete set.
+
+## Terminal goldens and captures
+
+The terminal interface is checked against golden images under `crates/magistr-tui/tests/golden`. After an intended visual change, review the candidates and re-bless them:
+
+```sh
+MAGISTR_GOLDEN_UPDATE=1 cargo nextest run -p magistr-tui -E 'test(shot_)'
+```
+
+The website's captures come from a sample project, never from Magistr's own roadmap. Regenerate them and their manifest with:
+
+```sh
+./scripts/website-captures.sh
+```
+
+## Website
 
 ```sh
 cd apps/website
@@ -24,5 +40,4 @@ npm ci
 npm test
 ```
 
-Keep the shared interface independent of terminal transport details and the desktop independent of `magistr-tui`.
-
+Keep the shared interface model independent of terminal protocols and the desktop independent of the terminal crate. See the [repository development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md) and [CONTRIBUTING.md](https://github.com/AlrikOlson/magistr/blob/main/CONTRIBUTING.md).

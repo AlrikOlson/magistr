@@ -73,13 +73,13 @@ fn the_detail_rows_count_the_title_the_prose_the_bullets_and_the_links() {
         "cross_refs": ["think:1"],
     })));
     // title + two prose lines (the empty one drops) + two bullets + deps + refs
-    assert_eq!(chunk.detail_rows(), 7);
+    assert_eq!(chunk.detail_rows(120), 7);
 }
 
 #[test]
 fn a_bare_chunk_details_to_its_title_alone() {
     let chunk = RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({ "id": "c1" })));
-    assert_eq!(chunk.detail_rows(), 1);
+    assert_eq!(chunk.detail_rows(120), 1);
 }
 
 /// The store spells "stuck" as two fields: a chunk in progress that carries
@@ -117,4 +117,41 @@ fn the_updated_stamp_is_read_as_seconds_and_a_blank_one_as_none() {
         RoadmapChunk::from_chunk(&fixtures::chunk("u")).updated_secs,
         None
     );
+}
+
+#[test]
+fn a_long_description_and_bullet_wrap_to_the_width_and_never_past_it() {
+    use super::DetailLine;
+    let chunk = RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({
+        "id": "c1",
+        "title": "a claim",
+        "description": "Persist the retry budget with each delivery. A worker restart must not reset attempts or send the same event twice.",
+        "acceptance": ["Resume from the stored next-attempt timestamp after any worker restart, however long it was down."],
+    })));
+    let wide = chunk.detail_lines(200);
+    assert_eq!(
+        wide.len(),
+        3,
+        "title, one description row, one bullet at 200 columns"
+    );
+    let narrow = chunk.detail_lines(48);
+    assert!(narrow.len() > 3, "a narrow stage wraps: {narrow:?}");
+    let room = 48 - RoadmapChunk::DETAIL_INDENT;
+    for (kind, line) in &narrow {
+        let allowed = match kind {
+            DetailLine::Bullet | DetailLine::BulletContinued => room - 2,
+            _ => room,
+        };
+        assert!(
+            crate::render::width(line) <= allowed,
+            "{line:?} is wider than {allowed} columns"
+        );
+    }
+    assert!(
+        narrow
+            .iter()
+            .any(|(kind, _)| *kind == DetailLine::BulletContinued),
+        "the long bullet continues on an indented row"
+    );
+    assert_eq!(chunk.detail_rows(48), narrow.len());
 }

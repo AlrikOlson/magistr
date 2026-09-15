@@ -246,7 +246,9 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/terminals.rs` | Terminal screen models indexed by ACP terminal ID or gate name | `magistr-cockpit/src/cockpit/terminals.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/theme_choice.rs` | Dark, light, and system theme selection | `magistr-cockpit/src/cockpit/settings.tests.rs` |
 | `magistr-cockpit/src/cockpit/tooltip.rs` | Tooltip content, timing, and placement | `magistr-cockpit/src/cockpit/tooltip.tests.rs` |
-| `magistr-cockpit/src/cockpit/trace.rs` | The Trace tab's state | `magistr-cockpit/src/cockpit/trace.tests.rs` |
+| `magistr-cockpit/src/cockpit/trace.rs` | The Trace tab's state: the steps, the selection and its card, the recorded work, the checkpoint pane | `magistr-cockpit/src/cockpit/trace.tests.rs` |
+| `magistr-cockpit/src/cockpit/trace_card.rs` | The rows a selected step's card takes — brief or full, wrapped to the width the scroll counts | `magistr-cockpit/src/cockpit/trace_card.tests.rs` |
+| `magistr-cockpit/src/cockpit/trace_focus.rs` | A selected step's ancestors and descendants — what the graph lights | `magistr-cockpit/src/cockpit/trace_focus.tests.rs` |
 | `magistr-cockpit/src/cockpit/trace_step.rs` | One reasoning step as the think feed carries it | `magistr-cockpit/src/cockpit/trace_step.tests.rs` |
 | `magistr-cockpit/src/cockpit/turn_state.rs` | Where the turn stands | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/update.rs` | Folding one message into the model | `magistr-cockpit/src/cockpit/update.tests.rs` |

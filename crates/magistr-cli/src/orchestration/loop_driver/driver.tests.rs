@@ -15,7 +15,7 @@ use magistr_cockpit::checkpoint::CheckpointPort;
 use magistr_cockpit::cockpit::{DockItem, Model, Msg, Size};
 use magistr_cockpit::input::{KeyCode, KeyEvent, Modifiers};
 use magistr_cockpit::theme::Icons;
-use magistr_cockpit::turn::RowKind;
+use magistr_cockpit::turn::LineKind;
 use magistr_engine::native::BlockerKind;
 use magistr_engine::{
     ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, SignalKind, WriterRole,
@@ -442,13 +442,16 @@ fn stage_text(model: &Model) -> String {
     notes(model).join(" ")
 }
 
+/// The turn's notes and errors as the stream received them — source
+/// lines, not the rows they wrap to, so a claim about what the loop
+/// said does not depend on the stage's width.
 fn notes(model: &Model) -> Vec<String> {
     model
         .turn()
-        .rows()
+        .lines()
         .iter()
-        .filter(|r| matches!(r.kind, RowKind::Note | RowKind::Error))
-        .map(|r| r.text.clone())
+        .filter(|l| matches!(l.kind(), LineKind::Note | LineKind::Error))
+        .map(|l| l.text().to_owned())
         .collect()
 }
 
@@ -2179,7 +2182,7 @@ async fn a_loop_without_the_engines_says_the_gates_were_not_recorded() {
         "once for the set, not once per gate: {said:?}"
     );
     assert!(
-        said[0].contains("no think-and-ship engines"),
+        said[0].contains("no workflow engines"),
         "the whole reason fits on one row: {said:?}"
     );
 }
@@ -2211,7 +2214,7 @@ async fn a_store_with_no_active_task_says_why_the_gates_were_not_recorded() {
         .collect();
     assert_eq!(said.len(), 1, "once for the set: {said:?}");
     assert!(
-        !said[0].contains("no think-and-ship engines"),
+        !said[0].contains("no workflow engines"),
         "it carries the engine's own reason, not the no-engines one: {said:?}"
     );
 }

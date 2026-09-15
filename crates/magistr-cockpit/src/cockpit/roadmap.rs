@@ -465,13 +465,13 @@ impl Roadmap {
     /// Rows the scrolling body takes — everything the tab paints below
     /// the heading and the tech-tree block: the hover tooltip, the card
     /// of a chunk selected off the list, the status sections and their
-    /// rows (the selected one with its buttons and detail card), the
-    /// done count, and the proposals and signals inboxes with their
-    /// headings. Counted from the same rows, sections and
-    /// [`RoadmapChunk::detail_rows`] the view paints, so the window and
-    /// the rows never drift.
+    /// rows (the selected one with its buttons and detail card, wrapped
+    /// to `width`), the done count, and the proposals and signals
+    /// inboxes with their headings. Counted from the same rows, sections
+    /// and [`RoadmapChunk::detail_rows`] the view paints, so the window
+    /// and the rows never drift.
     #[must_use]
-    pub fn body_rows(&self) -> usize {
+    pub fn body_rows(&self, width: u16) -> usize {
         if self.is_empty() {
             // The "no roadmap yet" note.
             return 1;
@@ -482,7 +482,7 @@ impl Roadmap {
             && !list.iter().any(|chunk| chunk.id == open.id)
         {
             // The spacer, the head line, then the card.
-            rows += 2 + open.detail_rows();
+            rows += 2 + open.detail_rows(width);
         }
         let mut section: Option<&str> = None;
         for chunk in &list {
@@ -494,7 +494,7 @@ impl Roadmap {
             rows += 1;
             if self.selected().is_some_and(|open| open.id == chunk.id) {
                 // The button row, then the card.
-                rows += 1 + chunk.detail_rows();
+                rows += 1 + chunk.detail_rows(width);
             }
         }
         if self.done_count() > 0 {
@@ -1126,7 +1126,12 @@ fn graph_layout(graph: &[&RoadmapChunk]) -> DagLayout {
             })
         })
         .collect();
-    let mut layout = DagLayout::new(&depths(graph), &edges, &order);
+    // Longest-path depth is a chunk's earliest column; the compaction
+    // pulls it to the column just before what first needs it, so an
+    // early chunk with one late dependent does not trail an edge across
+    // every column between.
+    let ranks = DagLayout::compact_ranks(&depths(graph), &edges);
+    let mut layout = DagLayout::new(&ranks, &edges, &order);
     for (x, y) in &mut layout.points {
         *x *= COL_STEP;
         *y *= ROW_STEP;

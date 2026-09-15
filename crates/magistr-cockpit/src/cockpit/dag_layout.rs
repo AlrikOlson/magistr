@@ -1,15 +1,134 @@
 //! Deterministic layered DAG layout with virtual vertices for long edges.
+//!
+//! The engine is pure geometry: it takes each real vertex's rank (its
+//! column), the edges, and a stable tie-break order, and answers with a
+//! point per vertex — real vertices first, then the routing vertices
+//! long edges pass through — and one routed path per edge. Nothing here
+//! paints; the painters scale the unit grid to cells and pixels.
+//!
+//! Invariants the layout keeps, and the tests pin:
+//!
+//! * **Ranks are honoured.** A real vertex sits at `x == rank`, and every
+//!   routing vertex at one integer rank strictly between its edge's ends,
+//!   so a path is monotone in `x` and steps exactly one rank at a time.
+//! * **No overlap.** Two vertices on one rank — real or routing — are at
+//!   least [`DagLayout::MIN_GAP`] apart in `y`; a routing vertex is what
+//!   keeps a long edge out of every real vertex's body on the ranks it
+//!   crosses, and between ranks there is nothing to hit.
+//! * **Crossings are reduced**, never arbitrarily: alternating barycentre
+//!   sweeps plus adjacent swaps, and the best ordering seen is the one
+//!   kept ([`DagLayout::crossings`] reports it).
+//! * **Determinism.** The same input yields the same output, and ties
+//!   break on the caller's `order`, so a re-seed that changes nothing
+//!   moves nothing.
+//! * **In bounds.** Every `y` is at or above zero and the whole drawing
+//!   starts at the top; the caller fits the span to its canvas.
 
 use super::dag_path::DagPath;
 
 /// Pure graph geometry. Real vertices come first; routing vertices follow.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct DagLayout {
+    /// One `(x, y)` per vertex on the unit grid: `x` is the rank, `y` the
+    /// row. The first `real` entries are the caller's vertices.
     pub points: Vec<(f32, f32)>,
+    /// One routed path per edge the transitive reduction kept, in the
+    /// caller's stable order; an implied edge is the chain between its
+    /// ends and gets no path of its own.
     pub paths: Vec<DagPath>,
+    /// How many of `points` are the caller's own vertices.
+    pub real: usize,
 }
 
 impl DagLayout {
+    /// The closest two vertices on one rank may sit, in rows.
+    pub const MIN_GAP: f32 = 1.0;
+
+    /// Pull every vertex that has dependents toward them: a vertex's rank
+    /// becomes the rank just before its earliest dependent when that is
+    /// later than the longest path put it. Sinks and isolated vertices
+    /// keep their rank, so the drawing is no wider — but a chunk that
+    /// nothing needs for five columns no longer trails a five-column
+    /// edge across everything between. Every edge still runs strictly
+    /// left to right; a cycle, which no rank can honour, is left alone.
+    pub fn compact_ranks(ranks: &[usize], edges: &[(usize, usize)]) -> Vec<usize> {
+        let count = ranks.len();
+        let mut ranks = ranks.to_vec();
+        let edges: Vec<_> = edges
+            .iter()
+            .copied()
+            .filter(|&(from, to)| from < count && to < count && from != to)
+            .collect();
+        // Only edges the ranks already honour can pull; a cycle's edges
+        // run backwards somewhere and are not a reading of "before".
+        let forward = |ranks: &[usize], from: usize, to: usize| ranks[from] < ranks[to];
+        let mut moved = true;
+        while moved {
+            moved = false;
+            for at in 0..count {
+                let earliest = edges
+                    .iter()
+                    .filter(|&&(from, to)| from == at && forward(&ranks, from, to))
+                    .map(|&(_, to)| ranks[to])
+                    .min();
+                if let Some(earliest) = earliest
+                    && earliest > ranks[at] + 1
+                {
+                    ranks[at] = earliest - 1;
+                    moved = true;
+                }
+            }
+        }
+        ranks
+    }
+
+    /// The rank of the vertex at `at`, real or routing.
+    #[cfg(test)]
+    pub fn rank(&self, at: usize) -> usize {
+        self.points[at].0 as usize
+    }
+
+    /// The smallest vertical distance between two vertices that share a
+    /// rank — `MIN_GAP` or more on any layout with two such vertices,
+    /// `f32::INFINITY` when no rank holds two.
+    #[cfg(test)]
+    pub fn min_gap(&self) -> f32 {
+        let mut closest = f32::INFINITY;
+        for (i, &(ax, ay)) in self.points.iter().enumerate() {
+            for &(bx, by) in &self.points[i + 1..] {
+                if (ax - bx).abs() < 0.5 {
+                    closest = closest.min((ay - by).abs());
+                }
+            }
+        }
+        closest
+    }
+
+    /// How many pairs of path segments cross between adjacent ranks —
+    /// what the sweeps minimised.
+    #[cfg(test)]
+    pub fn crossings(&self) -> usize {
+        let mut segments: Vec<((f32, f32), (f32, f32))> = Vec::new();
+        for path in &self.paths {
+            for pair in path.points.windows(2) {
+                segments.push((pair[0], pair[1]));
+            }
+        }
+        segments.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        segments.dedup();
+        let mut crossings = 0;
+        for (i, &(a1, a2)) in segments.iter().enumerate() {
+            for &(b1, b2) in &segments[i + 1..] {
+                let same_rank = (a1.0 - b1.0).abs() < 0.5 && (a2.0 - b2.0).abs() < 0.5;
+                let distinct = (a1.1 - b1.1).abs() > 0.5 && (a2.1 - b2.1).abs() > 0.5;
+                if same_rank && distinct && (a1.1 - b1.1) * (a2.1 - b2.1) < 0.0 {
+                    crossings += 1;
+                }
+            }
+        }
+        crossings
+    }
+
     /// Lay out dependency ranks, using `order` as the stable tie-break order.
     pub fn new(ranks: &[usize], edges: &[(usize, usize)], order: &[usize]) -> Self {
         let count = ranks.len();
@@ -30,10 +149,15 @@ impl DagLayout {
         for (from, to) in ordered_edges {
             let mut route = vec![from];
             if ranks[from] < ranks[to] {
-                for rank in ranks[from] + 1..ranks[to] {
+                for (rank, layer) in layers
+                    .iter_mut()
+                    .enumerate()
+                    .take(ranks[to])
+                    .skip(ranks[from] + 1)
+                {
                     let at = vertex_ranks.len();
                     vertex_ranks.push(rank);
-                    layers[rank].push(at);
+                    layer.push(at);
                     route.push(at);
                 }
             }
@@ -103,18 +227,22 @@ impl DagLayout {
             .zip(positions)
             .map(|(&rank, y)| (rank as f32, y - top))
             .collect();
-        let paths = edges
-            .iter()
-            .map(|&(from, to)| {
-                let route = routes.iter().find(|(a, b, _)| *a == from && *b == to);
-                let points = route.map_or_else(
-                    || vec![points[from], points[to]],
-                    |(_, _, route)| route.iter().map(|&at| points[at]).collect(),
-                );
-                DagPath { from, to, points }
+        // One path per edge the reduction kept, in stable order. An
+        // implied edge has no path of its own: it is the chain of paths
+        // between its ends, which is what a selection lights.
+        let paths = routes
+            .into_iter()
+            .map(|(from, to, route)| DagPath {
+                from,
+                to,
+                points: route.iter().map(|&at| points[at]).collect(),
             })
             .collect();
-        Self { points, paths }
+        Self {
+            points,
+            paths,
+            real: count,
+        }
     }
 
     /// Cycle-safe transitive reduction for the overview. Selection can reveal
@@ -252,7 +380,7 @@ fn align(layer: &[usize], neighbours: &[Vec<usize>], positions: &mut [f32]) {
     let mut previous = f32::NEG_INFINITY;
     let mut displacement = 0.0;
     for (&at, &want) in layer.iter().zip(&desired) {
-        positions[at] = want.max(previous + 1.0);
+        positions[at] = want.max(previous + DagLayout::MIN_GAP);
         displacement += positions[at] - want;
         previous = positions[at];
     }

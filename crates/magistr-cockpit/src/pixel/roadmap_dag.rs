@@ -6,7 +6,7 @@ use tiny_skia::{
 };
 
 use crate::cockpit::dag_layout::DagLayout;
-use crate::cockpit::{DagNode, DagPath};
+use crate::cockpit::{DagNode, DagPath, StarState};
 
 /// The widest a node dot gets, as a fraction of one cell's height;
 /// dense trees shrink below it ([`dot_radius`]).
@@ -26,6 +26,8 @@ const GLOW_SWELL: f32 = 0.35;
 /// [`GLOW_ALPHA`]. Under the swell, so the halo reads as spreading
 /// rather than flashing.
 const GLOW_LIFT: f32 = 0.25;
+/// The alpha a dot outside the selection's focus fades to.
+const DIM_ALPHA: f32 = 0.35;
 /// The workstream tints cycle through these, faint over the background.
 const REGION_TINTS: [[u8; 3]; 4] = [
     [122, 162, 247],
@@ -44,9 +46,16 @@ fn transitive_reduction(edges: Vec<(usize, usize)>, node_count: usize) -> Vec<(u
 
 /// The tech-tree the driver paints over the Roadmap tab's graph block:
 /// the chunks as status-coloured dots on their dependency grid, the
-/// `deps` as edges, a faint tint band per workstream (the regions), a
-/// soft radial glow and a double ring on the chunk in progress — "you
-/// are here" — and a bright ring on the selection.
+/// `deps` as routed edges, a faint tint band per workstream (the
+/// regions), a soft radial glow and a double ring on the chunk in
+/// progress — "you are here" — and a bright ring on the selection.
+///
+/// A selection is a *focus*: the selected chunk, everything it stands
+/// on and everything that stands on it stay lit, the edges along those
+/// chains brighten, and every unrelated dot and edge dims. An implied
+/// dependency (one the overview's transitive reduction folded into a
+/// longer chain) shows as that chain lighting up, never as an extra
+/// line drawn through the dots between.
 ///
 /// The inputs are what [`Roadmap`](crate::cockpit::Roadmap) derives:
 /// nodes in cell coordinates (pan applied) and edges as index pairs;
@@ -62,6 +71,14 @@ pub struct RoadmapDag {
     /// raised cosine — [`Motion::glow_phase`](crate::cockpit::Motion::glow_phase).
     /// Zero is the foot of the wave, matching the static frame.
     glow: f32,
+    /// Whether the workstream tint bands are painted. The rail's glance
+    /// turns them off: a translucent band across a six-row block reads
+    /// as a box, not a region.
+    bands: bool,
+    /// Per node, whether it is in the selection's focus — the selected
+    /// chunk and everything reachable from it along dependencies in
+    /// either direction. `None` while nothing is selected.
+    focus: Option<Vec<bool>>,
 }
 
 impl RoadmapDag {
@@ -75,14 +92,11 @@ impl RoadmapDag {
     ) -> Self {
         let nodes = nodes.into();
         let all_edges = edges.into();
-        let mut edges = transitive_reduction(all_edges.clone(), nodes.len());
-        // Selecting a chunk reveals its exact direct dependencies, including
-        // relationships collapsed into longer paths in the overview.
-        edges.extend(all_edges.into_iter().filter(|&(from, to)| {
-            from < nodes.len() && to < nodes.len() && (nodes[from].selected || nodes[to].selected)
-        }));
-        edges.sort_unstable();
-        edges.dedup();
+        let focus = nodes
+            .iter()
+            .position(|node| node.selected)
+            .map(|selected| reach(selected, &all_edges, nodes.len()));
+        let edges = transitive_reduction(all_edges, nodes.len());
         Self {
             nodes,
             edges,
@@ -90,6 +104,8 @@ impl RoadmapDag {
             cell: (f32::from(cell.0), f32::from(cell.1)),
             background: Color::from_rgba8(26, 27, 38, 255),
             glow: 0.0,
+            bands: true,
+            focus,
         }
     }
 
@@ -110,6 +126,13 @@ impl RoadmapDag {
         self
     }
 
+    /// Whether the workstream tint bands are painted.
+    #[must_use]
+    pub fn bands(mut self, bands: bool) -> Self {
+        self.bands = bands;
+        self
+    }
+
     /// The background colour.
     #[must_use]
     pub fn background(mut self, r: u8, g: u8, b: u8) -> Self {
@@ -120,6 +143,33 @@ impl RoadmapDag {
     fn point(&self, node: &DagNode) -> (f32, f32) {
         (node.x * self.cell.0, node.y * self.cell.1)
     }
+
+    /// Whether the node at `at` is lit: every node while nothing is
+    /// selected, the focus set otherwise.
+    fn is_lit(&self, at: usize) -> bool {
+        self.focus.as_ref().is_none_or(|focus| focus[at])
+    }
+}
+
+/// Every node reachable from `start` along `edges` in either direction,
+/// `start` included — the selection's focus.
+fn reach(start: usize, edges: &[(usize, usize)], count: usize) -> Vec<bool> {
+    let mut seen = vec![false; count];
+    let mut stack = vec![start];
+    while let Some(at) = stack.pop() {
+        if at >= count || seen[at] {
+            continue;
+        }
+        seen[at] = true;
+        for &(from, to) in edges {
+            if from == at {
+                stack.push(to);
+            } else if to == at {
+                stack.push(from);
+            }
+        }
+    }
+    seen
 }
 
 /// A raised cosine over one period: `0` at `t == 0` and `t == 1`, `1`
@@ -139,6 +189,17 @@ fn status_color(status: &str) -> Color {
         "backlog" => Color::from_rgba8(86, 95, 137, 255),
         // Pending, and anything the wire grows later.
         _ => Color::from_rgba8(122, 162, 247, 255),
+    }
+}
+
+/// The colour of an edge: a road walked (out of a shipped chunk) or one
+/// ahead, lit or faded under a selection.
+fn edge_color(walked: bool, focused: bool, lit: bool) -> Color {
+    match (focused, lit, walked) {
+        (true, true, _) => Color::from_rgba8(190, 200, 235, 150),
+        (true, false, _) => Color::from_rgba8(125, 135, 175, 38),
+        (false, _, true) => Color::from_rgba8(158, 206, 106, 105),
+        (false, _, false) => Color::from_rgba8(125, 135, 175, 95),
     }
 }
 
@@ -220,9 +281,11 @@ impl super::painter::Painter for RoadmapDag {
         for (region, top, bottom) in &regions {
             // Connection-based placement can interleave workstreams. Do not
             // stack translucent bands over the same rows and wash out nodes.
-            if regions.iter().any(|(other, other_top, other_bottom)| {
-                other != region && other_top <= bottom && other_bottom >= top
-            }) {
+            if !self.bands
+                || regions.iter().any(|(other, other_top, other_bottom)| {
+                    other != region && other_top <= bottom && other_bottom >= top
+                })
+            {
                 continue;
             }
             let pad = radius + ring_gap + 2.0;
@@ -258,16 +321,17 @@ impl super::painter::Painter for RoadmapDag {
                 None,
             );
         }
-        // The overview uses the transitive reduction; a selected chunk
-        // also reveals every direct relationship. Longer chains stay
-        // readable through their intermediate nodes.
+        // The overview draws the transitive reduction, each edge along
+        // its routed path. An edge out of a shipped chunk is a road
+        // walked and wears a green cast; one still ahead is blue-grey.
+        // Under a selection the chains through the focus brighten and
+        // every other edge fades back.
         let stroke = Stroke {
             width: (self.cell.1 * STROKE_FRACTION).clamp(1.0, 2.0),
             line_cap: LineCap::Round,
             line_join: LineJoin::Round,
             ..Stroke::default()
         };
-        paint.set_color(Color::from_rgba8(125, 135, 175, 95));
         for &(from, to) in &self.edges {
             let route = self
                 .paths
@@ -286,6 +350,12 @@ impl super::painter::Painter for RoadmapDag {
             if route.len() < 2 {
                 continue;
             }
+            let walked = self
+                .nodes
+                .get(from)
+                .is_some_and(|node| node.status == "done");
+            let lit = self.is_lit(from) && self.is_lit(to);
+            paint.set_color(edge_color(walked, self.focus.is_some(), lit));
             let mut path = PathBuilder::new();
             for (index, &(x1, y1)) in route.iter().enumerate() {
                 if index == 0 {
@@ -301,19 +371,58 @@ impl super::painter::Painter for RoadmapDag {
                 pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
             }
         }
-        // A dot per chunk, ringed when it needs the eye.
-        for (node, &(x, y)) in self.nodes.iter().zip(&points) {
+        // A dot per chunk, in its state's own shape: shipped and ready
+        // work filled, planned work that still waits on something
+        // hollow, backlog small, blocked wearing an alert ring; ringed
+        // twice when it needs the eye. Everything outside the focus
+        // fades back.
+        for (at, (node, &(x, y))) in self.nodes.iter().zip(&points).enumerate() {
+            let mut color = status_color(&node.status);
+            if !self.is_lit(at) {
+                color.set_alpha(DIM_ALPHA);
+            }
+            paint.set_color(color);
+            let radius = match node.state {
+                StarState::Ghost => radius * 0.5,
+                _ if node.status == "backlog" => radius * 0.7,
+                _ => radius,
+            };
+            let hollow = matches!(node.state, StarState::Pending);
             if let Some(circle) = PathBuilder::from_circle(x, y, radius) {
-                paint.set_color(status_color(&node.status));
-                pixmap.fill_path(
-                    &circle,
-                    &paint,
-                    FillRule::Winding,
-                    Transform::identity(),
-                    None,
-                );
+                if hollow {
+                    let mut ground = Paint {
+                        anti_alias: true,
+                        ..Paint::default()
+                    };
+                    ground.set_color(self.background);
+                    pixmap.fill_path(
+                        &circle,
+                        &ground,
+                        FillRule::Winding,
+                        Transform::identity(),
+                        None,
+                    );
+                    if let Some(inner) =
+                        PathBuilder::from_circle(x, y, (radius - stroke.width / 2.0).max(1.0))
+                    {
+                        pixmap.stroke_path(&inner, &paint, &stroke, Transform::identity(), None);
+                    }
+                } else {
+                    pixmap.fill_path(
+                        &circle,
+                        &paint,
+                        FillRule::Winding,
+                        Transform::identity(),
+                        None,
+                    );
+                }
             }
             let ring = |offset: f32| PathBuilder::from_circle(x, y, radius + offset);
+            if matches!(node.state, StarState::Blocked | StarState::Stuck)
+                && let Some(circle) = ring(ring_gap)
+            {
+                pixmap.stroke_path(&circle, &paint, &stroke, Transform::identity(), None);
+            }
             if node.here
                 && let Some(circle) = ring(ring_gap)
             {

@@ -1,6 +1,5 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
-assertion_line: 2119
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: placement(&resolved)
 ---
 header   depth=1 x=0 y=0 w=180 h=1
@@ -24,7 +23,7 @@ Roadmap  depth=4 x=58 y=3 w=7 h=1
 stage    depth=3 x=30 y=4 w=100 h=42
 tech tree depth=4 x=30 y=5 w=100 h=3
 undock   depth=2 x=132 y=2 w=48 h=45
-Checkpoint depth=4 x=146 y=4 w=12 h=1
+Checkpoint depth=4 x=153 y=4 w=14 h=1
 dock     depth=1 x=0 y=47 w=180 h=1
 prompt   depth=1 x=0 y=48 w=180 h=1
 footer   depth=1 x=0 y=49 w=180 h=1

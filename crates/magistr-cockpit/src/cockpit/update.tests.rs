@@ -8759,3 +8759,77 @@ fn folding_the_same_seed_and_events_rebuilds_the_same_projection_and_a_duplicate
         "the projection records the duplicate it saw and stays current"
     );
 }
+
+#[test]
+fn the_arrows_walk_the_trace_selection_and_enter_turns_the_card() {
+    let mut m = model().with_tab(StageTab::Trace);
+    for number in 1..=3u32 {
+        update(&mut m, think_step_frame(number, serde_json::json!({})));
+    }
+    assert_eq!(m.trace().selected_index(), None);
+    assert_eq!(update(&mut m, key(KeyCode::Down)), vec![]);
+    assert_eq!(
+        m.trace().selected_index(),
+        Some(2),
+        "the first press takes the newest step"
+    );
+    update(&mut m, key(KeyCode::Up));
+    assert_eq!(m.trace().selected_index(), Some(1));
+    assert!(!m.trace().is_full());
+    update(&mut m, key(KeyCode::Enter));
+    assert!(m.trace().is_full(), "Enter opens the full card");
+    update(&mut m, key(KeyCode::Enter));
+    assert!(!m.trace().is_full(), "and folds it back to the brief cut");
+    assert!(m.prompt().is_empty(), "no Enter reached the prompt");
+
+    // A letter in the prompt gives the keys back: Up is history again.
+    update(&mut m, key(KeyCode::Char('h')));
+    update(&mut m, key(KeyCode::Up));
+    assert_eq!(m.trace().selected_index(), Some(1), "the selection held");
+
+    // Another tab leaves the arrows alone too.
+    let mut turn = model();
+    update(&mut turn, think_step_frame(1, serde_json::json!({})));
+    update(&mut turn, key(KeyCode::Down));
+    assert_eq!(turn.trace().selected_index(), None);
+}
+
+#[test]
+fn a_keyboard_selection_scrolls_its_row_into_the_window() {
+    use crate::harness::Scenes;
+    let mut m = Scenes::long_trace(Size::new(80, 24));
+    update(&mut m, key(KeyCode::Home));
+    Scenes::settle(&mut m);
+    assert_eq!(m.trace_top(), 0);
+    update(&mut m, key(KeyCode::Down));
+    Scenes::settle(&mut m);
+    let (_, height) = m.trace_window();
+    let row = m.trace().selected_index().expect("the newest step");
+    assert!(
+        row >= m.trace_top() && row < m.trace_top() + height,
+        "row {row} sits in the window starting at {}",
+        m.trace_top()
+    );
+    for _ in 0..25 {
+        update(&mut m, key(KeyCode::Up));
+    }
+    Scenes::settle(&mut m);
+    assert_eq!(m.trace().selected_index(), Some(0), "Up stops at the head");
+    assert_eq!(m.trace_top(), 0, "and the window followed it back up");
+}
+
+#[test]
+fn the_more_button_turns_the_card_and_a_row_click_folds_it() {
+    let mut m = model().with_tab(StageTab::Trace);
+    update(&mut m, think_step_frame(4, serde_json::json!({})));
+    trace_click(&mut m, Widget::trace_row(0));
+    assert!(m.trace().is_expanded(4));
+    assert_eq!(trace_click(&mut m, Widget::TraceDetail.id()), vec![]);
+    assert!(m.trace().is_full());
+    trace_click(&mut m, Widget::trace_row(0));
+    assert!(!m.trace().is_expanded(4), "the row folds its own card");
+    assert!(
+        m.trace().is_full(),
+        "the disclosure is a preference, not part of the selection"
+    );
+}

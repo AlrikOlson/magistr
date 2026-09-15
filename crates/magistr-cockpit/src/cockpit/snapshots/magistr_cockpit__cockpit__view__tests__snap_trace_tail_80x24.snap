@@ -1,28 +1,28 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen
 ---
 ▲ magistr  idle                                                            00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
-│no objective yet          │ │think trace  [Checkpoint]                        │
-│roadmap 0/0 done          │ │▸ ✦ think 8 · step 8                             │
-│signals 0                 │ │▸ ✦ think 9 · step 9                             │
-│                          │ │▸ ✦ think 10 · step 10                           │
-│                          │ │▸ ✦ think 11 · step 11                           │
-│                          │ │▸ ✦ think 12 · step 12                           │
-│                          │ │▸ ✦ think 13 · step 13                           │
-│                          │ │▸ ✦ think 14 · step 14                           │
-│                          │ │▸ ✦ think 15 · step 15                           │
-│                          │ │▸ ✦ think 16 · step 16                           │
-│                          │ │▸ ✦ think 17 · step 17                           │
-│                          │ │▸ ✦ think 18 · step 18                           │
-│                          │ │▸ ✦ think 19 · step 19                           │
-│                          │ │▸ ✦ think 20 · step 20                           │
-│                          │ │ship                                             │
+│no objective yet          │ │reasoning  20 steps  [✱ Checkpoint]              │
+│roadmap 0/0 done          │ │▸  8  step 8                                     │
+│signals 0                 │ │▸  9  step 9                                     │
+│                          │ │▸ 10  step 10                                    │
+│                          │ │▸ 11  step 11                                    │
+│                          │ │▸ 12  step 12                                    │
+│                          │ │▸ 13  step 13                                    │
+│                          │ │▸ 14  step 14                                    │
+│                          │ │▸ 15  step 15                                    │
+│                          │ │▸ 16  step 16                                    │
+│                          │ │▸ 17  step 17                                    │
+│                          │ │▸ 18  step 18                                    │
+│                          │ │▸ 19  step 19                                    │
+│                          │ │▸ 20  step 20                                    │
+│                          │ │recorded work                                    │
 │                          │ │✓ test · exit 0                                  │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────
 ›
- enter  send   ↑↓  history   ctrl-d  quit
+ ↑↓  select   enter  detail   ctrl-d  quit

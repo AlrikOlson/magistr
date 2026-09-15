@@ -79,12 +79,19 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
     assert_eq!(model.turn_state(), TurnState::Streaming);
     assert_eq!(model.inputs(), 5, "PageUp, three wheel notches, q");
     let height = model.stage_rows();
-    assert_eq!(height, 16);
-    // Tail 9984, a page (15) up, two notches (6) up, one notch (3) down.
-    assert_eq!(model.top_row(), 10_000 - height - 15 - 3);
+    assert_eq!(
+        height, 12,
+        "24 rows less the chrome and the pixel arrangement's gutters"
+    );
+    // Tail 9988, a page (11) up, two notches (6) up, one notch (3) down.
+    let top = 10_000 - height - (height - 1) - 3;
+    assert_eq!(model.top_row(), top);
     assert!(!model.viewport().is_following());
-    assert_eq!(model.visible_rows()[0].text, "line 9966");
-    assert_eq!(model.visible_rows()[height - 1].text, "line 9981");
+    assert_eq!(model.visible_rows()[0].text, format!("line {top}"));
+    assert_eq!(
+        model.visible_rows()[height - 1].text,
+        format!("line {}", top + height - 1)
+    );
     // What a terminal showed: the tail before PageUp was delivered, the
     // scrolled window and its range at the end.
     let page_up = deliveries.instants()[1];
@@ -120,10 +127,19 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
         windows.len()
     );
     let after = screen_before(&capture, quit);
-    assert!(after.contains("line 9966"), "at the end:\n{after}");
-    assert!(after.contains("line 9981"), "{after}");
+    assert!(
+        after.contains(&format!("line {top}")),
+        "at the end:\n{after}"
+    );
+    assert!(
+        after.contains(&format!("line {}", top + height - 1)),
+        "{after}"
+    );
     assert!(!after.contains("line 9999"), "{after}");
-    assert!(after.contains("rows 9967–9982/10000"), "{after}");
+    assert!(
+        after.contains(&format!("rows {}–{}/10000", top + 1, top + height)),
+        "{after}"
+    );
     // The header's spinner paints a frame per tick of its own while the
     // turn streams; the frames the events cost are the coalescing bound.
     let frames = model.frames() - model.ticks();
@@ -257,13 +273,14 @@ async fn two_hundred_lines_a_second_keep_input_to_paint_under_the_bound() {
 async fn a_tool_row_expands_by_click_and_collapses_by_enter() {
     const TITLE: &str = "cargo nextest run --workspace --exclude magistr-gui --all-targets \
                          -E 'test(turn_stage)'";
-    // Rows: header 0, strip 1, tab bar 2, stage padding 3, turn rows
-    // from 4 — the tool call is the turn's second row, on screen row 5.
-    // Columns: the rail and its divider take 29, so the stage's rows
-    // start at 30 — the click lands well inside the row's text.
+    // Rows on the kitty arrangement: gutter 0, header 1, strip 2, the
+    // panel frame 3, tab bar 4, stage padding 5, turn rows from 6 — the
+    // tool call is the turn's second row, on screen row 7. Columns: the
+    // gutter, the rail and its divider take 30, so the stage's rows
+    // start at 31 — the click lands well inside the row's text.
     let script = Script::new()
         .startup_replies(MS(0))
-        .click(MS(120), 35, 5)
+        .click(MS(120), 36, 7)
         .text(MS(200), "\r")
         .bytes(MS(280), b"\x04".as_slice());
     let (model, capture, deliveries) = run(script, |inbox| {
@@ -276,19 +293,29 @@ async fn a_tool_row_expands_by_click_and_collapses_by_enter() {
     .await;
     let instants = deliveries.instants();
     assert_eq!(instants.len(), 4, "startup, click, enter, ctrl-D");
+    // The expanded title is broken by columns over several rows, so the
+    // tail is looked for with the row breaks and the gutters squashed
+    // out — where the break falls depends on the stage's width, and
+    // the claim is about the words, not the fold.
+    let squashed = |screen: &str| {
+        screen
+            .chars()
+            .filter(|c| !c.is_whitespace() && !matches!(c, '│' | '▎'))
+            .collect::<String>()
+    };
     let before_click = screen_before(&capture, instants[1]);
     assert!(
-        !before_click.contains("urn_stage"),
+        !squashed(&before_click).contains("turn_stage"),
         "collapsed: the cut title ends before its tail:\n{before_click}"
     );
     let expanded = screen_before(&capture, instants[2]);
     assert!(
-        expanded.contains("urn_stage"),
+        squashed(&expanded).contains("turn_stage"),
         "the click expanded the call to its full title:\n{expanded}"
     );
     let collapsed = screen_before(&capture, instants[3]);
     assert!(
-        !collapsed.contains("urn_stage"),
+        !squashed(&collapsed).contains("turn_stage"),
         "enter collapsed it again:\n{collapsed}"
     );
     assert_eq!(model.turn().len(), 3, "back to one row per line");
@@ -384,7 +411,10 @@ async fn a_wheel_notch_is_on_screen_the_frame_it_was_turned_and_never_strobes() 
     })
     .await;
     let height = model.stage_rows();
-    assert_eq!(height, 16);
+    assert_eq!(
+        height, 12,
+        "24 rows less the chrome and the pixel arrangement's gutters"
+    );
     // The window the page left the stage on, and the notch's own.
     let from = 10_000 - height - (height - 1);
     let to = from - Viewport::WHEEL;
