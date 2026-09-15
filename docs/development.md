@@ -1,22 +1,10 @@
 # Development
 
-The repository root is a Cargo workspace. The command-line package is
-`crates/magistr-cli`; it embeds its own templates, while `magistr-core` embeds
-the presets. See the [architecture overview](architecture/overview.md) for
-the other components.
+Magistr is a Rust workspace. The CLI package is `crates/magistr-cli`; see the [architecture overview](architecture/overview.md) for crate ownership.
 
-## Build and check
+## Rust checks
 
-Use Rust 1.95 or later. The root `Cargo.lock` pins the release dependencies.
-The documentation website has its own package manifest under `apps/website`.
-The native `magistr-workspace` library participates in the root Rust gates.
-Its pinned Workbench compatibility reference also requires Bun 1.4.1 or later
-and Rust 1.95.0 for `workspace-reference`; see the
-[workspace provenance](../subsystems/workspace/PROVENANCE.md) for the separate
-native and reference matrices. Reference tests create disposable workspaces.
-They do not start an owner over this checkout.
-
-The standard Rust checks run from the workspace root:
+Use Rust 1.95 or later from the workspace root:
 
 ```sh
 cargo fmt
@@ -25,103 +13,19 @@ cargo nextest run --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-`.magistr/project.json` defines the complete gate set, including structure,
-dependency, rendering, latency, and native-write-path checks (the last pins
-that every native mutation runs through `magistr-engine`'s admitted writer;
-see the [project authority guide](architecture/project-authority.md#one-write-path)).
-Use `just gate` from the workspace root, or `$validate` in an agent session, to
-run all required checks.
+The configured project gates are in `.magistr/project.json`. Run `just gate` or `$validate` when you need the complete set.
 
-## Declared workspace commands
-
-Workbench `run` executes the admitted argument vector without a shell. Declared
-lines split on whitespace; extra request arguments retain their literal boundaries.
-The admission guard supports option-free wrapper chains (`env`, `nice`, `time`,
-`xargs`, `npx`, `bunx`) and `NAME=value` prefixes after `env`, for example
-`env RUST_BACKTRACE=1 nice cargo test`. Names use shell identifier syntax
-(letters, digits and underscores, with no leading digit). Each chain must name
-a final program.
-Wrapper options and separators, including `env -u NAME`, `nice -n N`, `env -S`
-and wrapper-level `--`, are refused with `RUN_REDIRECTED`; their operands are
-never guessed to be program names. Options after the final program remain normal
-arguments, as in `cargo test -- --nocapture`. Shells, file-munging programs and
-standalone shell operators remain refused. This guard is not a process sandbox.
-
-Workflow MCP consumers follow the [tool input and recovery contract](reference/tool-recovery.md).
-
-## Tests
-
-Rust unit tests usually live beside their implementation as `{name}.tests.rs`.
-CLI integration tests and examples live under `crates/magistr-cli`. Interface
-crates also have integration harnesses and image goldens. Rendering checks are
-described in the [terminal architecture](architecture/terminal.md#verification).
-
-Quality gates inherit the caller's environment. Tests must isolate the settings
-their assertions depend on, rather than clearing settings in the production gate
-runner. Prefer explicit lookup inputs and disposable directories. For a real
-environment boundary, use child-process `env`/`env_remove`; the CLI's
-`tests/support/in_env.rs` helper re-executes one test and checks that it ran.
-Do not mutate the parent process environment in parallel Rust tests.
-
-CLI fixtures clear inherited `MAGISTR_*` values on their child commands and set
-the values under test. Production parsing still reads the environment. Provider
-credentials, proxy settings, and tool discovery remain the caller's inputs.
-
-Live provider switches such as `MAGISTR_ACP_LIVE` and `MAGISTR_CODEX_LIVE`, golden
-updates, and diagnostic dumps are explicit opt-ins. Routine verification must
-not enable them. Review new rendering artifacts before updating reference images.
-Run timing tests in the release profile; debug timings do not establish the
-release latency limits.
-
-## Running agents
-
-Agent sessions can read and write files, run commands, and contact external
-services with their process permissions. Magistr's permission prompts do not
-create an operating-system sandbox or confine file access to the project.
-Use a disposable project or a separate checkout for experiments, and keep
-independent backups.
-
-External agent CLIs use their own authentication and configuration. API adapters
-send prompts and conversation history to the configured provider. Child
-processes inherit environment settings, and local session records can contain
-prompts, paths, and outputs. Choose credentials, endpoints, and spending limits
-accordingly.
-
-## Project state
-
-Project configuration lives in `.magistr/project.json`. Roadmaps, execution
-plans, and session records are stored locally and are excluded from Git.
-
-Initialization preserves recorded ownership and customized files, but it is not
-a transaction against concurrent filesystem changes. `magistr reset` removes
-local project configuration and workflow state, including legacy state
-directories. `codex-remove` removes only the Codex integration, as
-documented in the [Codex reference](reference/codex.md#removal).
-
-## Website development and deployment
-
-The Astro site lives in `apps/website` and builds to `apps/website/dist`. Its focused checks are:
+## Website
 
 ```sh
 cd apps/website
 npm ci
-npm run build
-node tests/build-output.mjs
+npm test
 ```
 
-The Cloudflare Pages project is `magistr`, with [magistr.dev](https://magistr.dev) as the canonical host and `magistr.pages.dev` as the project URL. Verify the homepage, `/docs/installation`, and `/robots.txt` after a deployment. Keep website copy aligned with [release-inventory.md](release-inventory.md) and link detailed contracts back to the repository architecture docs.
-
-## Release packages
-
-Run `./scripts/package-release.sh` to build the pinned release binary and package
-it for the host platform. The archive and SHA-256 checksum are written to
-`target/release-dist/`, with shell completions, manual pages, and license notices.
-Run the required gates before publishing. Each binary must be built and tested
-on its named platform.
+The site deploys to the existing Cloudflare Pages project `magistr`. Verify [magistr.dev](https://magistr.dev), `/docs/installation`, and `/robots.txt` after a deploy.
 
 ## Contributions
 
-Keep behavior changes focused, test the relevant public boundary, and run the
-configured gates. Update these docs when a contract changes. Templates under
-`crates/magistr-cli/templates` are product inputs: reusable workflow changes
-belong there as well as in the generated project files that exercise them.
+Keep changes focused, preserve crate and client boundaries, and update the short public docs when a command or supported surface changes. See [CONTRIBUTING.md](../CONTRIBUTING.md).
+

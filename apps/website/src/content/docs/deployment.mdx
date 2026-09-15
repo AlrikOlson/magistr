@@ -1,32 +1,20 @@
 ---
-title: "Deployment"
-description: "Deploy the Astro site to Cloudflare Pages and verify the public routes."
+title: Deployment
+description: Build and verify the Astro site.
 order: 5
-category: "reference"
+category: reference
 ---
 
 # Deployment
 
-The public site is built from `apps/website` and served by Cloudflare Pages.
-
-## Local preview
+The Astro site lives in `apps/website` and deploys to the existing Cloudflare Pages project `magistr`.
 
 ```sh
 cd apps/website
 npm ci
-npm run dev
 npm run build
-npm run preview
+wrangler pages deploy dist --project-name magistr --branch main
 ```
 
-The production project is **magistr**. The canonical host is [magistr.dev](https://magistr.dev); `magistr.pages.dev` remains the Pages project URL.
+Verify [magistr.dev](https://magistr.dev), [/docs/installation](https://magistr.dev/docs/installation), and [/robots.txt](https://magistr.dev/robots.txt) after a deploy.
 
-## Verify a deploy
-
-Check the homepage, an installation page, and the crawler policy after each release:
-
-- [https://magistr.dev/](https://magistr.dev/)
-- [https://magistr.dev/docs/installation](https://magistr.dev/docs/installation)
-- [https://magistr.dev/robots.txt](https://magistr.dev/robots.txt)
-
-The site emits canonical URLs, Open Graph metadata, a sitemap, and a `robots.txt` reference to that sitemap. Deployment credentials and DNS belong to the existing Pages project; do not add a second hosting system.

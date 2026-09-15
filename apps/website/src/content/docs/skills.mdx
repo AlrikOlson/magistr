@@ -1,78 +1,18 @@
 ---
 title: Skills
-description: Project workflows for Codex and Claude Code.
+description: The small set of agent workflows Magistr installs.
 order: 3
 category: reference
 ---
 
 # Skills
 
-Magistr installs project skills that guide an agent through planning, execution,
-and verification. Codex discovers them under `.agents/skills` and invokes them
-with the `$` form, such as `$next` and `$roadmap-refresh`. Claude Code uses
-`.claude/skills` and the `/` form, such as `/next` and `/roadmap-refresh`.
+Magistr installs project skills for planning, implementation, and verification.
 
-## Project skills
+- Codex uses `$next`, `$roadmap-refresh`, and `$validate`.
+- Claude Code uses `/next`, `/roadmap-refresh`, and `/validate`.
 
-| Skill | Work it performs |
-| --- | --- |
-| `craft` | Loads project conventions and the runtime contract |
-| `init` | Interviews and configures a project |
-| `next` | Completes one ready roadmap chunk |
-| `next-loop` | Carries a bounded continuation across fresh sessions, one chunk per session |
-| `roadmap` | Advances one chunk through the next workflow |
-| `roadmap-refresh` | Researches and updates the roadmap without implementation |
-| `signals` | Researches stakeholder feedback and records its disposition |
-| `validate` | Runs standard and required custom gates |
-| `workbench-routing` | Routes workspace navigation and edits through Workbench |
+`$next` (or `/next`) carries one ready roadmap chunk through the project workflow and stops. `$roadmap-refresh` reshapes the roadmap without implementing a chunk. `$validate` runs the configured checks.
 
-## One iteration
+The generated skills live in the agent configuration directory created by `magistr init`. See the [repository skill templates](https://github.com/AlrikOlson/magistr/tree/main/crates/magistr-cli/templates/workflows) when you need implementation details.
 
-The next skill recovers an existing objective or selects one ready chunk. It
-reads the code, records a native execution plan, implements the change, verifies
-acceptance and required gates, and commits the scoped result. It stops after
-that chunk and preserves unrelated active objectives.
-
-The next-loop skill uses the user's bound across fresh agent sessions; without
-an explicit iteration count its default maximum is ten. Each session completes
-one chunk, writes a handoff, and stops. Continue in a new Codex or Claude
-session so context does not accumulate. The native `magistr next-loop` command
-is the automatic host-owned loop and starts a fresh provider session per
-iteration.
-
-Validation uses `.magistr/project.json`, including required custom gates, and
-records each result on the verification task.
-
-## Let the agent change the roadmap
-
-Roadmap work is an active part of the conversation. Tell the agent what
-direction to pursue, what changed in your priorities, or which outcome matters.
-It can draft a new ordering, refine acceptance criteria, or capture follow-up
-work. The `roadmap_reprioritize` tool records a suggested reorder as a proposal;
-it does not reorder the plan. Magistr keeps that draft in native roadmap state
-so you can review and direct what gets applied. Once you accept the direction, `next` selects one
-ready item and carries it through planning, implementation, checks, and a
-recorded result. The roadmap remains the place to make the next decision; chat
-history is not the source of truth.
-
-Use `roadmap-refresh` when you want the agent to explore new evidence without
-implementation, and `signals` when stakeholder feedback should become a
-researched roadmap change.
-
-## Customize skills
-
-A skill is a directory with a `SKILL.md`, for example:
-
-```text
-.agents/skills/review/SKILL.md
-.claude/skills/review/SKILL.md
-```
-
-Give it a name, description, and focused instructions. Keep project-specific
-rules in project instructions or customized skills. Reinitialization preserves
-customized and unrecorded skill files.
-
-Reusable Magistr workflows are maintained in
-`crates/magistr-cli/templates/workflows`, with separate host adapters. The
-Codex launcher selects Magistr's project skills over personal skills with the
-same metadata names without editing the personal files.

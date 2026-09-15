@@ -1,34 +1,28 @@
 ---
-title: "Development"
-description: "Build Magistr, run focused checks, and contribute changes that respect the workspace contracts."
+title: Development
+description: The few commands needed to work on Magistr.
 order: 4
-category: "getting-started"
+category: getting-started
 ---
 
 # Development
 
-Magistr is developed as a Rust workspace. Start with the repository's [development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md), then use the commands below from the checkout.
-
-## Build and test
+Magistr is a Rust workspace. Use the [repository development guide](https://github.com/AlrikOlson/magistr/blob/main/docs/development.md) for the current contributor notes.
 
 ```sh
-cargo fmt --all
+cargo fmt
 cargo check --workspace --all-targets
 cargo nextest run --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-For website-only changes:
+For the website:
 
 ```sh
 cd apps/website
 npm ci
-npm run build
-node tests/build-output.mjs
+npm test
 ```
 
-The native `magistr_gate` command records checks in the project's ship lifecycle. A docs-only cycle can use focused verification; a code or packaging change uses the full configured gates.
+Keep the cockpit independent of terminal protocols and the desktop independent of `magistr-tui`.
 
-## Contribution boundaries
-
-Keep the cockpit independent of terminal protocols and keep the desktop independent of `magistr-tui`. Update architecture docs when a boundary or ownership decision changes. Use the [contributing guide](https://github.com/AlrikOlson/magistr/blob/main/CONTRIBUTING.md) for review expectations.
