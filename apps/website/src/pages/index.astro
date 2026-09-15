@@ -7,22 +7,22 @@ const jsonLd = [
   {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":"0.1.0","description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
 ];
 const pillars = [
-  {eyebrow:"01 / Shape",title:"Shape the roadmap",text:"Turn a conversation into ordered work with dependencies, acceptance criteria, and a next-ready chunk you can inspect before it runs."},
-  {eyebrow:"02 / Act",title:"Run one bounded iteration",text:"Use the CLI, Codex, or Claude workflow to implement exactly one chunk. The terminal cockpit and desktop stay independent clients of shared semantics."},
-  {eyebrow:"03 / Prove",title:"Keep the trail",text:"Record decisions, actions, checks, and artifacts in native Magistr state. A future session can resume from evidence instead of a fragile summary."},
+  {eyebrow:"01 / Shape",title:"Shape the roadmap",text:"Turn a conversation into ordered work with dependencies, acceptance criteria, and a next step you can inspect before it runs."},
+  {eyebrow:"02 / Act",title:"Run one bounded iteration",text:"Use the CLI, Codex, or Claude workflow to implement one focused work item. The terminal interface and desktop stay independent clients of shared semantics."},
+  {eyebrow:"03 / Prove",title:"Keep the trail",text:"Record decisions, actions, checks, and artifacts in project-local Magistr state. A future session can resume from evidence instead of a fragile summary."},
 ];
 const docs = [
   {title:"Installation",text:"Build the v0.1.0 source release and verify the CLI.",href:"/docs/installation"},
-  {title:"Concepts",text:"Understand roadmap, workstreams, sessions, and receipts.",href:"/docs/architecture"},
+  {title:"Concepts",text:"Understand roadmap, project areas, sessions, and records.",href:"/docs/architecture"},
   {title:"Development",text:"Run focused checks and contribute with the repository workflow.",href:"/docs/development"},
 ];
 ---
-<Base title="Magistr — a durable control plane for coding-agent work" description="Shape a roadmap, run one bounded chunk, and keep the decisions, changes, and checks that explain how a project moved." jsonLd={jsonLd}>
+<Base title="Magistr — roadmap and workflow for coding agents" description="Shape a roadmap, run one focused work item, and keep the decisions, changes, and checks that explain how a project moved." jsonLd={jsonLd}>
   <Nav />
   <main id="main-content"><span class="sr-only" aria-hidden="true">--color-bg · fade-in · prefers-reduced-motion</span>
     <section class="hero section-shell fade-in">
       <div class="hero-copy">
-        <p class="eyebrow"><span class="status-dot"></span> Open source · v0.1.0 · source-first</p>
+        <p class="eyebrow"><span class="status-dot"></span> Open source · v0.1.0 · early release</p>
         <h1>Roadmap and workflow management <span>for coding agents.</span></h1>
         <p class="hero-lede">Magistr gives an agent a durable place to plan, work, and report. Keep the user's intent, the next task, and the proof of what changed in one project record.</p>
         <div class="hero-actions">
@@ -32,30 +32,30 @@ const docs = [
         <p class="hero-note">Rust workspace · cargo · no hosted account required</p>
       </div>
       <div class="hero-card terminal-preview">
-        <a class="capture-light" href="/screenshots/tui2-roadmap-light.png" title="Open full-size TUI2 roadmap capture"><img src="/screenshots/tui2-roadmap-light.png" alt="TUI2 terminal cockpit showing Magistr's roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
-        <a class="capture-dark" href="/screenshots/tui2-roadmap-dark.png" title="Open full-size TUI2 roadmap capture"><img src="/screenshots/tui2-roadmap-dark.png" alt="TUI2 terminal cockpit showing Magistr's roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
+        <a class="capture-light" href="/screenshots/tui2-roadmap-light.png" title="Open full-size roadmap capture"><img src="/screenshots/tui2-roadmap-light.png" alt="Magistr terminal interface showing a roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
+        <a class="capture-dark" href="/screenshots/tui2-roadmap-dark.png" title="Open full-size roadmap capture"><img src="/screenshots/tui2-roadmap-dark.png" alt="Magistr terminal interface showing a roadmap, dependency graph, and pending work." width="1320" height="840" /></a>
       </div>
     </section>
 
     <section id="features" class="section-shell section-block">
-      <div class="section-heading"><p class="eyebrow">The product model</p><h2>Shape the roadmap. Make the change. Leave evidence.</h2><p>Magistr is a local control plane around your repository. It keeps workflow state native to the project and lets different clients share the same semantic model.</p></div>
+      <div class="section-heading"><p class="eyebrow">The product model</p><h2>Shape the roadmap. Make the change. Leave evidence.</h2><p>Magistr is a local workspace around your repository. It keeps workflow state in the project and lets different clients share the same semantic model.</p></div>
       <div class="pillar-grid sm:grid-cols-2 lg:grid-cols-3">
         {pillars.map((pillar) => <article class="feature-card"><p class="card-eyebrow">{pillar.eyebrow}</p><h3>{pillar.title}</h3><p>{pillar.text}</p></article>)}
         <article class="feature-card"><p class="card-eyebrow">04 / Scaffold</p><h3>Scaffolding</h3><p>Generate project guidance and agent files that match the detected stack.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">05 / Review</p><h3>Recorded iteration</h3><p>Every ship task keeps a readable receipt of work and checks.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">06 / Clients</p><h3>Terminal cockpit</h3><p>Shared interface state stays independent from terminal protocols.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">07 / Native state</p><h3>Roadmap Tracking</h3><p>Native roadmap state makes the next item and its dependencies visible.</p></article>
-        <article class="feature-card"><p class="card-eyebrow">08 / Tools</p><h3>Source tools &amp; MCP</h3><p>Workbench navigation and in-process MCP tools keep source work grounded.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">05 / Review</p><h3>Recorded iteration</h3><p>Every work item keeps a readable record of changes and checks.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">06 / Clients</p><h3>Terminal interface</h3><p>Shared interface state stays independent from terminal transport details.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">07 / Project state</p><h3>Roadmap Tracking</h3><p>Project-local roadmap state makes the next item and its dependencies visible.</p></article>
+        <article class="feature-card"><p class="card-eyebrow">08 / Tools</p><h3>Repository tools</h3><p>Verified source navigation and workflow tools keep work grounded in the repository.</p></article>
         <article class="feature-card"><p class="card-eyebrow">09 / Experimental</p><h3>Desktop &amp; peer protocol</h3><p>The desktop viewer and peer protocol remain clearly marked experimental or compatibility-only.</p></article>
       </div>
     </section>
 
     <section id="screenshots" class="section-shell section-block">
-      <div class="section-heading"><p class="eyebrow">The terminal cockpit</p><h2>TUI2 terminal cockpit</h2><p>Roadmap and Trace views rendered by Magistr's terminal renderer from a synthetic Harbor project fixture. Open a capture to see the real TUI2 at full size.</p></div>
+      <div class="section-heading"><p class="eyebrow">The terminal interface</p><h2>See Magistr in the terminal</h2><p>Roadmap and Trace views rendered by Magistr's terminal interface from a realistic sample Harbor project. Open a capture to see the full working surface.</p></div>
       <div class="screenshot-grid">
         {[
-          {name:"roadmap",title:"Roadmap",alt:"TUI2 terminal Roadmap tab with a dependency graph, chunk status, and pending work.",text:"Dependencies, status, and the next work in the project."},
-          {name:"trace",title:"Trace",alt:"TUI2 terminal Trace tab showing stored reasoning and an expanded decision alongside the current plan.",text:"Recorded reasoning and ship actions stay with the project."},
+          {name:"roadmap",title:"Roadmap",alt:"Terminal Roadmap view with a dependency graph, work item status, and pending work.",text:"Dependencies, status, and the next work in the project."},
+          {name:"trace",title:"Trace",alt:"Terminal Trace view showing recorded reasoning and an expanded decision alongside the current plan.",text:"Recorded reasoning and ship actions stay with the project."},
         ].map((capture) => (
           <article class="map-card screenshot-card">
             <a class="capture-light" href={`/screenshots/tui2-${capture.name}-light.png`} title={`Open full-size ${capture.title} capture`}><img src={`/screenshots/tui2-${capture.name}-light.png`} alt={capture.alt} loading="lazy" width="1320" height="840" /></a>
@@ -67,22 +67,22 @@ const docs = [
     </section>
 
     <section id="quickstart" class="section-shell section-block quickstart">
-      <div class="section-heading"><p class="eyebrow">Quickstart</p><h2>Install the source release in a minute.</h2><p>v0.1.0 is a development release. The repository is the source of truth while registry packages are not published.</p></div>
+      <div class="section-heading"><p class="eyebrow">Quickstart</p><h2>Install the source release in a minute.</h2><p>v0.1.0 is a development release. Builds come from the repository while registry packages are not published.</p></div>
       <div class="quickstart-grid">
         <div class="code-panel"><div class="code-tabs quickstart-tabs" role="tablist" aria-label="Installation steps"><button class="quickstart-tab active" role="tab" aria-selected="true">macOS / Linux</button><button class="quickstart-tab" role="tab" aria-selected="false">Windows</button></div><div class="code-body" role="tabpanel"><pre><code>git clone https://github.com/AlrikOlson/magistr magistr
 cd magistr
 cargo install --locked --path magistr/crates/magistr-cli
 magistr --version</code></pre><button class="quickstart-copy" type="button">Copy command</button></div></div>
-        <aside class="callout"><p class="card-eyebrow">After install</p><ol><li><code>magistr init</code> creates native project state.</li><li><code>magistr next</code> runs one ready roadmap chunk.</li><li><code>magistr next-loop</code> hands the next chunk to a fresh session.</li></ol><a href="/docs/installation">Full installation guide →</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md">Release inventory →</a></aside>
+        <aside class="callout"><p class="card-eyebrow">After install</p><ol><li><code>magistr init</code> creates project settings.</li><li><code>magistr next</code> runs the next ready work item.</li><li><code>magistr next-loop</code> hands the next work item to a fresh session.</li></ol><a href="/docs/installation">Full installation guide →</a><a href="https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md">Release inventory →</a></aside>
       </div>
     </section>
 
     <section class="section-shell section-block walkthrough" aria-labelledby="walkthrough-title">
       <div class="section-heading"><p class="eyebrow">A repeatable loop</p><h2 id="walkthrough-title">From zero to a recorded change.</h2></div>
       <div class="walkthrough-grid">
-        <article class="walkthrough-step"><span>01</span><h3>Initialize</h3><p>Define the project and inspect the native roadmap.</p><code>magistr init</code></article>
-        <article class="walkthrough-step"><span>02</span><h3>Choose</h3><p>Pick the next ready chunk and make the acceptance testable.</p><code>magistr next</code></article>
-        <article class="walkthrough-step"><span>03</span><h3>Continue</h3><p>Hand off one chunk with a fresh context and recorded receipts.</p><code>magistr next-loop</code></article>
+        <article class="walkthrough-step"><span>01</span><h3>Initialize</h3><p>Define the project and inspect its roadmap.</p><code>magistr init</code></article>
+        <article class="walkthrough-step"><span>02</span><h3>Choose</h3><p>Pick the next ready work item and make the acceptance testable.</p><code>magistr next</code></article>
+        <article class="walkthrough-step"><span>03</span><h3>Continue</h3><p>Hand off one work item with fresh context and recorded results.</p><code>magistr next-loop</code></article>
       </div>
     </section>
 
@@ -91,7 +91,7 @@ magistr --version</code></pre><button class="quickstart-copy" type="button">Copy
       <div class="community-links"><a class="community-link" href="https://github.com/AlrikOlson/magistr" target="_blank" rel="noopener noreferrer"><strong>GitHub</strong><span>Source, issues, and releases →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/issues" target="_blank" rel="noopener noreferrer"><strong>Issues</strong><span>Report a problem or propose a change →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer"><strong>Contributing</strong><span>Development setup and expectations →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer"><strong>Security</strong><span>Responsible disclosure policy →</span></a><a class="community-link" href="https://github.com/AlrikOlson/magistr/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer"><strong>Code of Conduct</strong><span>Community expectations →</span></a><a class="community-link" href="/docs/deployment"><strong>Deployment</strong><span>Pages configuration and verification →</span></a></div>
     </section>
 
-    <section id="changelog" class="section-shell section-block changelog-section"><div class="section-heading"><p class="eyebrow">Release notes</p><h2>What changed in v0.1.0?</h2><p class="changelog-empty">The source-first release ships the CLI, terminal cockpit, MCP server, and native workspace tools. See the <a href="https://github.com/AlrikOlson/magistr/releases">release timeline</a> for updates.</p></div></section>
+    <section id="changelog" class="section-shell section-block changelog-section"><div class="section-heading"><p class="eyebrow">Release notes</p><h2>What changed in v0.1.0?</h2><p class="changelog-empty">This early release ships the CLI, terminal interface, tool server, and project workspace tools. See the <a href="https://github.com/AlrikOlson/magistr/releases">release timeline</a> for updates.</p></div></section>
 
     <section class="section-shell docs-index"><div><p class="eyebrow">Keep reading</p><h2>Specific answers for specific work.</h2></div><div class="doc-links">{docs.map((doc) => <a href={doc.href}><strong>{doc.title}</strong><span>{doc.text}</span><span aria-hidden="true">↗</span></a>)}</div></section>
   </main>
