@@ -52,6 +52,10 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .hero-note { margin-top:1rem; color:var(--color-text-muted); font:500 .75rem var(--font-mono); }
 .hero-card, .code-panel, .callout { border:1px solid var(--color-border); border-radius:1rem; background:var(--color-bg-card); box-shadow:0 1.5rem 4rem rgba(20,40,80,.09); }
 .hero-card { overflow:hidden; }
+.hero-card.terminal-preview { padding:clamp(.65rem,1.5vw,1rem); }
+.hero-card.terminal-preview img { border:1px solid var(--color-border); border-radius:.65rem; }
+.screenshot-card > a { margin:clamp(.65rem,1.5vw,1rem); border:1px solid var(--color-border); border-radius:.65rem; overflow:hidden; }
+.screenshot-card img { border-bottom:0; }
 .window-bar { display:flex; align-items:center; gap:.4rem; padding:.8rem 1rem; border-bottom:1px solid var(--color-border); color:var(--color-text-muted); font:.7rem var(--font-mono); }
 .window-bar span { width:.55rem; height:.55rem; border-radius:50%; background:var(--color-border-hover); }
 .window-bar code { margin-left:auto; }

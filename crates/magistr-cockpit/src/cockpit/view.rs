@@ -522,6 +522,9 @@ fn status_strip(model: &Model, pen: &Pen) -> Node {
         .style(pen.footer.clone())
         .gap(Space::GAP)
         .height(Length::Cells(1));
+    if model.has_pixels() {
+        strip = strip.child(Node::text(" ").shrink(0.0).width(Length::Cells(1)));
+    }
     if let Some(chunk) = model.rail().chunk() {
         strip = strip.child(
             Node::text(shorten(chunk, CHUNK_COLUMNS))
@@ -2659,9 +2662,11 @@ fn prompt_box(model: &Model, pen: &Pen) -> Node {
         } else {
             PROMPT_GUTTER.to_owned()
         };
-        let mut line = Node::row()
-            .height(Length::Cells(1))
-            .child(Node::text(mark).style(pen.prompt_mark.clone()).shrink(0.0));
+        let mut line = Node::row().height(Length::Cells(1));
+        if model.has_pixels() {
+            line = line.child(Node::text(" ").shrink(0.0).width(Length::Cells(1)));
+        }
+        line = line.child(Node::text(mark).style(pen.prompt_mark.clone()).shrink(0.0));
         if !before.is_empty() {
             line = line.child(Node::text(before).shrink(0.0));
         }
@@ -2774,7 +2779,7 @@ pub const SPARK_COLS: u16 = 8;
 /// bar's layout does not move when the probe answers.
 fn brand_slot(model: &Model, pen: &Pen) -> Node {
     let mark = if model.has_pixels() {
-        " "
+        "  "
     } else {
         pen.icons.brand
     };
@@ -2969,6 +2974,9 @@ fn footer_bar(model: &Model, pen: &Pen) -> Node {
         .min_width(Length::Cells(0))
         .shrink(0.0)
         .height(Length::Cells(1));
+    if model.has_pixels() {
+        bar = bar.child(Node::text(" ").shrink(0.0).width(Length::Cells(1)));
+    }
     let context = hint_context(model);
     let fits = footer_chips(context, usize::from(model.size().cols));
     for (index, binding) in context.iter().take(fits).enumerate() {
