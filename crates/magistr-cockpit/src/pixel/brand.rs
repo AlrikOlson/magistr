@@ -1,21 +1,27 @@
 //! The product mark as a vector.
 
-use tiny_skia::{Color, FillRule, Paint, PathBuilder, PixmapMut, Transform};
+use tiny_skia::{
+    Color, FillRule, LineCap, LineJoin, Paint, PathBuilder, PixmapMut, Stroke, Transform,
+};
 
 use super::painter::Painter;
 
-/// The mark's outline in a unit square centred on the pixmap: an
-/// ascending peak, cut by the crossbar slot below.
-const PEAK: [(f32, f32); 3] = [(0.0, -0.44), (0.42, 0.40), (-0.42, 0.40)];
-/// The slot through the peak — an `A`'s crossbar, drawn as a hole by
-/// the even-odd rule.
-const SLOT: [(f32, f32); 4] = [(-0.19, 0.09), (0.19, 0.09), (0.19, 0.21), (-0.19, 0.21)];
+/// The connected route that forms Magistr's `M` mark in unit-square
+/// coordinates. It matches the website mark and remains legible in a
+/// single terminal cell.
+const ROUTE: [(f32, f32); 5] = [
+    (-0.42, 0.40),
+    (-0.42, -0.40),
+    (0.0, 0.16),
+    (0.42, -0.40),
+    (0.42, 0.40),
+];
+const NODES: [(f32, f32); 3] = [(-0.42, -0.40), (0.0, 0.16), (0.42, -0.40)];
+const STROKE_FRACTION: f32 = 0.14;
+const NODE_RADIUS_FRACTION: f32 = 0.105;
 
-/// The magistr mark for the header's brand slot: the same ascending peak
-/// the `▲` glyph stands for, drawn as a vector on a transparent
-/// background — paint it into a
-/// [`PixelSurface::with_alpha`](super::PixelSurface::with_alpha) surface
-/// so the header's own colour shows around it.
+/// Magistr's route mark for the header brand slot, drawn as a vector on a
+/// transparent background so the header's own colour shows around it.
 ///
 /// The mark scales to the shorter side of its pixmap, so a one-cell slot
 /// gets a one-cell mark whatever the terminal's cell size is.
@@ -42,25 +48,16 @@ impl Painter for Brand {
         let side = width.min(height);
         let (cx, cy) = (width / 2.0, height / 2.0);
         let at = |(x, y): (f32, f32)| (x.mul_add(side, cx), y.mul_add(side, cy));
+
         let mut path = PathBuilder::new();
-        for (i, point) in PEAK.into_iter().enumerate() {
+        for (index, point) in ROUTE.into_iter().enumerate() {
             let (x, y) = at(point);
-            if i == 0 {
+            if index == 0 {
                 path.move_to(x, y);
             } else {
                 path.line_to(x, y);
             }
         }
-        path.close();
-        for (i, point) in SLOT.into_iter().enumerate() {
-            let (x, y) = at(point);
-            if i == 0 {
-                path.move_to(x, y);
-            } else {
-                path.line_to(x, y);
-            }
-        }
-        path.close();
         let Some(path) = path.finish() else {
             return;
         };
@@ -69,13 +66,29 @@ impl Painter for Brand {
             ..Paint::default()
         };
         paint.set_color(self.color);
-        pixmap.fill_path(
-            &path,
-            &paint,
-            FillRule::EvenOdd,
-            Transform::identity(),
-            None,
-        );
+        let stroke = Stroke {
+            width: side * STROKE_FRACTION,
+            line_cap: LineCap::Round,
+            line_join: LineJoin::Round,
+            ..Stroke::default()
+        };
+        pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
+
+        let node_radius = side * NODE_RADIUS_FRACTION;
+        for (x, y) in NODES {
+            let Some(circle) =
+                PathBuilder::from_circle(x.mul_add(side, cx), y.mul_add(side, cy), node_radius)
+            else {
+                continue;
+            };
+            pixmap.fill_path(
+                &circle,
+                &paint,
+                FillRule::Winding,
+                Transform::identity(),
+                None,
+            );
+        }
     }
 }
 
