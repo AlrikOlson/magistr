@@ -1,33 +1,23 @@
 ---
-title: "Architecture"
-description: "The boundaries that keep Magistr's workflow state, clients, and terminal protocols understandable."
+title: Architecture
+description: The small set of boundaries behind Magistr.
 order: 3
-category: "understand"
+category: understand
 ---
 
 # Architecture
 
-Magistr is a Rust workspace with one project authority and several clients. The public product model is deliberately small:
+Magistr is a Rust workspace with native project state and several clients.
 
-1. **Native state** stores roadmap chunks, ship tasks, reasoning steps, checks, and artifacts.
-2. **Application services** coordinate a use case and own completion semantics.
-3. **Clients** present the shared model. The terminal cockpit owns terminal input and rendering; the desktop client has its own renderer.
-4. **Protocols** stay at their boundary. Terminal byte protocols belong to `magistr-tui`; the cockpit remains independent of them.
-
-## Workspace map
-
-| Crate | Responsibility |
+| Crate | Owns |
 | --- | --- |
-| `magistr-domain` | Project concepts and invariants |
+| `magistr-domain` | Domain concepts and invariants |
 | `magistr-application` | Use cases and ports |
-| `magistr-engine` | Native persistence and workflow execution |
-| `magistr-cockpit` | Shared interface model and updates |
-| `magistr-tui` | Terminal input, graphics, and runtime |
-| `magistr-mcp` | In-process MCP tool definitions |
+| `magistr-engine` | Persistence and workflow execution |
+| `magistr-cockpit` | Shared interface model |
+| `magistr-tui` | Terminal client |
+| `magistr-mcp` | MCP tools |
 | `magistr-cli` | The `magistr` command |
 
-Read the [architecture overview](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md) and [owned subsystems](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/owned-subsystems.md) in the repository for the complete boundary map.
+The cockpit stays independent of terminal protocols. The desktop client stays independent of `magistr-tui`. For the full map, read the [repository architecture overview](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md).
 
-## A useful mental model
-
-The user steers a roadmap. A ready chunk becomes a ship objective. The active client records actions and checks against that objective. A later session reads the same native state and can continue without guessing what happened.

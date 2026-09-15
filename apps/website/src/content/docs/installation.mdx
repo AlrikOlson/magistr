@@ -1,19 +1,17 @@
 ---
 title: Installation
-description: Build Magistr from source and connect a coding agent.
+description: Build Magistr from source and initialize a project.
 order: 1
 category: getting-started
 ---
 
 # Installation
 
-The current development release is v0.1.0. Magistr is a source-first project: build it from the [source repository](https://github.com/AlrikOlson/magistr) while the public release pipeline is still being established.
-You need Git and Rust 1.95 or later. The release includes the CLI, terminal
-cockpit, MCP server, and native workspace tools.
+Magistr is an early development release (v0.1.0) and is **source-first**. Build it from the [repository](https://github.com/AlrikOlson/magistr) while the release process is still being completed.
 
 > **Permission and privacy boundary**
 >
-> Magistr runs locally and keeps roadmap state in the project workflow store. An agent still has the normal operating-system permissions of the runtime you launch, and provider credentials stay with that runtime. Review generated files and commands before using Magistr on a sensitive checkout.
+> Magistr runs locally. Your agent runtime keeps its own credentials and operating-system permissions; review commands and generated files before using it on a sensitive checkout.
 
 ## Build from source
 
@@ -22,45 +20,26 @@ git clone https://github.com/AlrikOlson/magistr.git
 cd magistr
 cargo install --locked --path crates/magistr-cli
 magistr --version
-magistr --help
 ```
-
-Cargo installs the executable into its binary directory, usually `~/.cargo/bin`.
-Make sure that directory is on `PATH`.
-
-For development without installation, run `cargo build -p magistr-cli` and use
-`target/debug/magistr` from the workspace root.
-
-## Release archives
-
-The package script produces host-targeted archives for the [GitHub releases page](https://github.com/AlrikOlson/magistr/releases) while the public release pipeline is being established. Each archive includes the CLI, shell completions, man pages, the MIT license, and bundled font notices. Verify its matching `.sha256` file before unpacking; see the [release inventory](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md) for the release checklist.
-
-## Connect an agent
-
-Magistr includes adapters for Claude Code, Codex, and Copilot. Install the coding
-runtime you want to use and sign in through that runtime's own setup. The runtime
-must be available on `PATH`; Magistr does not log it in during project setup.
-
-The desktop viewer is experimental on the [`gui2` branch](https://github.com/AlrikOlson/magistr/tree/gui2), and the peer protocol is compatibility-only; neither is part of the main-branch release package.
-
-Codex sessions use the built-in `acp-agent --provider codex` adapter and require
-ChatGPT authentication. The `openai`, `gemini`, and `ollama` API adapters provide
-chat sessions rather than external coding-runtime sessions.
 
 ## Configure a project
 
-In the project you want to work on:
-
 ```sh
+cd ~/src/my-project
 magistr init .
+magistr
 ```
 
-For Codex project skills and MCP configuration:
+For Codex:
 
 ```sh
 magistr init . --agent codex --yes
 ./.codex/run
 ```
 
-The launcher starts Codex with the project's skills and MCP configuration.
-Continue with [configuration](/docs/configuration) and [skills](/docs/skills).
+## Release archives
+
+Release archives and checksums are tracked in the [release-inventory.md](https://github.com/AlrikOlson/magistr/blob/main/docs/release-inventory.md). The desktop viewer on the [gui2 branch](https://github.com/AlrikOlson/magistr/tree/gui2) is experimental and is not part of the main-branch package.
+
+Continue with [configuration](/docs/configuration) or [skills](/docs/skills).
+

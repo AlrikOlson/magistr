@@ -1,75 +1,15 @@
 ---
 title: Hooks
-description: Workflow lifecycle hooks and generated agent guards.
+description: Optional lifecycle hooks for a project workflow.
 order: 4
 category: reference
 ---
 
 # Hooks
 
-Magistr workflow hooks are stored in `lifecycle_hooks` inside
-`.magistr/project.json`. Each hook matches a lifecycle event and runs a shell
-command or a supported tool action. The executor preserves declaration order.
+Optional hooks live in the `lifecycle_hooks` field of `.magistr/project.json`.
 
-## Configure a lifecycle hook
+A hook runs a command or Magistr tool at a lifecycle event such as `on_enter` or `on_exit`. Keep hooks small and review them like any other project automation.
 
-Add a hook to the existing project configuration:
+The repository source is the authority for the complete hook contract.
 
-```json
-{
-  "lifecycle_hooks": [
-    {
-      "event": { "type": "on_enter", "phase": "verify" },
-      "command": "cargo fmt --check",
-      "timeout_secs": 30,
-      "on_failure": "fail_fast",
-      "description": "Check formatting before verification"
-    }
-  ]
-}
-```
-
-The MCP tools `magistr_hooks_list`, `magistr_hooks_add`, and
-`magistr_hooks_remove` manage these entries. The add tool accepts event strings
-such as `on_enter(verify)` and validates duplicate event/action pairs.
-
-## Events and failure behavior
-
-| Event type | Additional value |
-| --- | --- |
-| `on_enter`, `on_exit` | `phase`: research, plan, execute, verify, or done |
-| `on_iteration_start`, `on_iteration_end` | None |
-| `on_gate_pass`, `on_gate_fail` | None |
-
-| `on_failure` | Executor behavior |
-| --- | --- |
-| `continue` | Record failure and continue with later hooks; the default |
-| `warn` | Surface a warning and continue |
-| `fail_fast` | Stop the remaining hooks in the batch |
-
-The caller decides how the report affects its workflow. A failed hook is not a
-universal Git commit guard. Put mandatory verification in required project gates.
-
-## Execution
-
-Shell hooks run through `sh -c` in the project directory with the inherited
-process environment. `timeout_secs` bounds the wait and defaults to 30; a timeout
-report does not establish that every descendant process has terminated.
-No lifecycle-specific environment variables are injected.
-
-A tool hook uses `tool` and optional `arguments` instead of `command`. The local
-process dispatcher maps known formatting/check/test/lint tools to configured
-commands. It is not a general MCP client: unknown tools are skipped with a
-message, and its `magistr_gate` mapping runs the check command rather than the
-complete gate set.
-
-## Agent guards
-
-Claude's generated guard is a separate integration. `.claude/settings.json`
-registers `Stop` and `PreToolUse` command hooks that call
-`.claude/hooks/magistr-guard.sh`. They inspect native workflow state around
-stopping, commits, and writes.
-
-Codex does not run Claude hooks. Its project skills perform the native planning,
-verification, and completion steps explicitly. Hook configuration and command
-validation do not create a process sandbox.
