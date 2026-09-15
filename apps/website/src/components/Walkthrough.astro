@@ -16,19 +16,19 @@ const steps = [
   {
     number: 2,
     title: "Start your first iteration",
-    description: "Magistr reads native roadmap state, picks the next ready chunk, and runs one recorded research-plan-execute-verify cycle.",
+    description: "Magistr reads the project roadmap, picks the next ready work item, and runs one recorded research-plan-execute-verify cycle.",
     command: "magistr next",
     output: `Phase: research → plan → execute → verify
-  ✓ Read native roadmap state — found the next ready chunk
+  ✓ Read the project roadmap — found the next ready work item
   ✓ Planned 4 tasks for this iteration
   ✓ Implemented with TDD (3 tests green)
   ✓ Quality gates passed (check + test + lint)
-  ✓ Committed: one atomic change for the selected chunk`,
+  ✓ Committed: one atomic change for the selected work item`,
   },
   {
     number: 3,
-    title: "Watch it work in the terminal cockpit",
-    description: "The supported terminal cockpit shows phase changes, task progress, live output, file changes, and session stats while the run is active.",
+    title: "Watch it work in the terminal",
+    description: "The supported terminal interface shows phase changes, task progress, live output, file changes, and session stats while the run is active.",
     command: "magistr next-loop",
     output: `┌─ Magistr ─────────────────────────────┐
 │ Phase: execute  ▓▓▓▓▓▓▓░░░  70%  │

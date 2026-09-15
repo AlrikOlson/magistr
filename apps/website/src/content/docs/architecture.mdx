@@ -7,7 +7,7 @@ category: understand
 
 # Architecture
 
-Magistr is a Rust workspace with native project state and several clients.
+Magistr is a Rust workspace with project-local state and several clients.
 
 | Crate | Owns |
 | --- | --- |
@@ -16,8 +16,8 @@ Magistr is a Rust workspace with native project state and several clients.
 | `magistr-engine` | Persistence and workflow execution |
 | `magistr-cockpit` | Shared interface model |
 | `magistr-tui` | Terminal client |
-| `magistr-mcp` | MCP tools |
+| `magistr-mcp` | Model Context Protocol tools |
 | `magistr-cli` | The `magistr` command |
 
-The cockpit stays independent of terminal protocols. The desktop client stays independent of `magistr-tui`. For the full map, read the [repository architecture overview](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md).
+The shared interface stays independent of terminal transport details. The desktop client stays independent of `magistr-tui`. For the full map, read the [repository architecture overview](https://github.com/AlrikOlson/magistr/blob/main/docs/architecture/overview.md).
 
