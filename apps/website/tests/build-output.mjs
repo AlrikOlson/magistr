@@ -50,9 +50,9 @@ assert(indexHtml.includes("See the TUI2 cockpit in context"), "TUI2 section head
 assert(indexHtml.includes("Workbench view"), "workbench screenshot caption present");
 assert(indexHtml.includes("Receipt view"), "receipt screenshot caption present");
 assert(indexHtml.includes("Session view"), "session screenshot caption present");
-assert(indexHtml.includes("/screenshots/magistr-tui2-workbench.png"), "workbench screenshot asset present");
-assert(indexHtml.includes("/screenshots/magistr-tui2-receipt.png"), "receipt screenshot asset present");
-assert(indexHtml.includes("/screenshots/magistr-tui2-session.png"), "session screenshot asset present");
+assert(indexHtml.includes("/screenshots/magistr-tui2-workbench-clean.png"), "workbench screenshot asset present");
+assert(indexHtml.includes("/screenshots/magistr-tui2-receipt-clean.png"), "receipt screenshot asset present");
+assert(indexHtml.includes("/screenshots/magistr-tui2-session-clean.png"), "session screenshot asset present");
 assert(!indexHtml.includes("demo.cast"), "legacy cast removed");
 assert(!indexHtml.includes("AsciinemaPlayer"), "legacy player removed");
 assert(!indexHtml.includes("illustrative"), "placeholder copy removed");
