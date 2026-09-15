@@ -70,6 +70,7 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .feature-card h3, .map-card h3, .walkthrough-step h3 { margin:.2rem 0 .7rem; font-size:1.25rem; }
 .feature-card p:last-child, .map-card p, .walkthrough-step p { margin:0; color:var(--color-text-muted); }
 .map-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:2.5rem; }
+.screenshot-grid { display:grid; gap:1rem; margin-top:2.5rem; }
 .map-card { overflow:hidden; border:1px solid var(--color-border); border-radius:.8rem; background:var(--color-bg-card); }
 .map-card img { display:block; width:100%; height:auto; aspect-ratio:auto; object-fit:contain; background:var(--color-surface); border-bottom:1px solid var(--color-border); }
 .map-card div { padding:1.25rem; }
