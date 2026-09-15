@@ -12,7 +12,6 @@
   "dependencies": {
     "@astrojs/mdx": "^4.3.14",
     "@astrojs/sitemap": "^3.2.0",
-    "asciinema-player": "^3.8.0",
     "astro": "^5.2.0",
     "astro-expressive-code": "^0.41.7",
     "astro-pagefind": "^1.8.5"

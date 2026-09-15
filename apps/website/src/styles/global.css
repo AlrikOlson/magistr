@@ -90,8 +90,6 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .walkthrough-step { padding:1.5rem; border-top:3px solid var(--color-accent); background:var(--color-surface); border-radius:.2rem .2rem .7rem .7rem; }
 .walkthrough-step > span { color:var(--color-accent); font:700 .8rem var(--font-mono); }
 .walkthrough-step code { display:inline-block; margin-top:1.25rem; color:var(--color-text); font:.78rem var(--font-mono); }
-.demo-section { border-top:1px solid var(--color-border); }
-#demo-player { margin-top:2rem; border:1px solid var(--color-border); border-radius:.8rem; overflow:hidden; background:#0d1726; }
 .community-section { border-top:1px solid var(--color-border); }
 .community-links, .doc-links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem; margin-top:2rem; }
 .community-link { display:flex; flex-direction:column; gap:.35rem; padding:1.2rem; border:1px solid var(--color-border); border-radius:.7rem; background:var(--color-bg-card); }

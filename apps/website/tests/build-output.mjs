@@ -44,23 +44,20 @@ assert(indexHtml.includes('href="/#community"'), "Community anchor link");
 assert(indexHtml.includes("github.com"), "GitHub link present");
 assert(indexHtml.includes("backdrop-blur"), "nav has backdrop blur");
 
-console.log("\nTUI screenshots:");
-assert(indexHtml.includes('id="concept-maps"'), "TUI section present");
-assert(indexHtml.includes("The native cockpit"), "TUI section heading present");
-assert(indexHtml.includes("Roadmap view"), "roadmap screenshot caption present");
-assert(indexHtml.includes("Trace view"), "trace screenshot caption present");
-assert(indexHtml.includes("/screenshots/magistr-roadmap-mocha.png"), "roadmap screenshot asset present");
-assert(indexHtml.includes("/screenshots/magistr-trace-mocha.png"), "trace screenshot asset present");
-assert(!indexHtml.includes("/diagrams/magistr-conversation.svg"), "concept diagram removed from homepage");
-assert(!indexHtml.includes("/diagrams/magistr-modes.svg"), "mode diagram removed from homepage");
+console.log("\nTUI2 screenshots:");
+assert(indexHtml.includes('id="concept-maps"'), "TUI2 section present");
+assert(indexHtml.includes("See the TUI2 cockpit in context"), "TUI2 section heading present");
+assert(indexHtml.includes("Workbench view"), "workbench screenshot caption present");
+assert(indexHtml.includes("Receipt view"), "receipt screenshot caption present");
+assert(indexHtml.includes("Session view"), "session screenshot caption present");
+assert(indexHtml.includes("/screenshots/magistr-tui2-workbench.png"), "workbench screenshot asset present");
+assert(indexHtml.includes("/screenshots/magistr-tui2-receipt.png"), "receipt screenshot asset present");
+assert(indexHtml.includes("/screenshots/magistr-tui2-session.png"), "session screenshot asset present");
+assert(!indexHtml.includes("demo.cast"), "legacy cast removed");
+assert(!indexHtml.includes("AsciinemaPlayer"), "legacy player removed");
+assert(!indexHtml.includes("illustrative"), "placeholder copy removed");
 assert(!indexHtml.includes("Mermaid source"), "no Mermaid diagram disclosures");
-assert(indexHtml.includes("magistr-tui"), "TUI source is identified");
 assert(indexHtml.includes("aria-label"), "navigation accessibility attributes present");
-
-console.log("\nAsciinema player:");
-assert(indexHtml.includes("demo-player"), "player container present");
-assert(indexHtml.includes("demo.cast"), "cast file reference present");
-assert(indexHtml.includes("AsciinemaPlayer"), "player script bundle loaded");
 
 console.log("\nLayout & meta:");
 assert(indexHtml.includes('lang="en"'), "html lang attribute");
