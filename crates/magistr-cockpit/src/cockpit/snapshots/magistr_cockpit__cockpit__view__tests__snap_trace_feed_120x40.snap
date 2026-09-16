@@ -5,7 +5,7 @@ expression: screen
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
 │no objective yet          │ │session · 5 steps · 1 branch · 1 pinned · 0 changes│  │                                  │
 │roadmap 0/0 done          │ │main · 3 steps                                     │  │                                  │
 │signals 0                 │ │└─ alt path (merged) from 2 · 2 steps              │  │                                  │

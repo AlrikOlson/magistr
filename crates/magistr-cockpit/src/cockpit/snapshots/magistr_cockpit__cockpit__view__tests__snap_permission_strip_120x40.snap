@@ -5,7 +5,7 @@ expression: "screen(&Scenes::permission(Size::new(120, 40)))"
 ▲ magistr  ▘ streaming                                                                                             00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
 │no objective yet          │ │▎ Let me run the tests.                            │  │                                  │
 │roadmap 0/0 done          │ │▎ ○ run    cargo nextest run -p magistr-tui        │  │                                  │
 │signals 0                 │ │                                                   │  │                                  │

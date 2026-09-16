@@ -5,6 +5,8 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Selected {
     Chunk(String),
+    /// Agent tool call or edit, keyed by its stable call ID.
+    Tool(String),
     Step(u32),
     Change(String),
     Signal(String),

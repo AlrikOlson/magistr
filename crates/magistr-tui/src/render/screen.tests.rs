@@ -17,6 +17,43 @@ fn count(haystack: &[u8], needle: &[u8]) -> usize {
         .count()
 }
 
+#[test]
+fn an_overlay_masks_pixels_caches_them_and_restores_them_on_both_protocols() {
+    for mut screen in [kitty_screen(), sixel_screen()] {
+        let id = WidgetId::new(3);
+        let mut surface = painted(Rect::new(0, 0, 4, 2));
+        screen.surface(id, &mut surface);
+        screen.present(&mut Vec::new());
+        let original = surface.pixels().to_vec();
+        screen.occlude(Some(Rect::new(1, 0, 2, 2)));
+        screen.surface(id, &mut surface);
+        assert_eq!(
+            surface.pixels(),
+            original,
+            "masking preserves source pixels"
+        );
+        let masked = &screen.masked[&id].1;
+        assert!(masked.pixels().chunks_exact(4).any(|p| p[3] == 0));
+        assert!(masked.pixels().chunks_exact(4).any(|p| p[3] == 255));
+        let mut first = Vec::new();
+        screen.present(&mut first);
+        assert_eq!(count(&first, b"\x1b[2J"), 1, "retained sixels are cleared");
+
+        screen.surface(id, &mut surface);
+        let mut still = Vec::new();
+        screen.present(&mut still);
+        assert_eq!(still, [BSU, ESU].concat(), "a steady overlay costs nothing");
+
+        screen.occlude(None);
+        screen.surface(id, &mut surface);
+        assert!(!screen.masked.contains_key(&id));
+        let mut restored = Vec::new();
+        screen.present(&mut restored);
+        assert_eq!(count(&restored, b"\x1b[2J"), 1);
+        assert!(restored.len() > still.len(), "original pixels are restored");
+    }
+}
+
 fn draw_page(screen: &mut Screen, marker: &str) {
     let (w, h) = screen.size();
     let buffer = screen.buffer();

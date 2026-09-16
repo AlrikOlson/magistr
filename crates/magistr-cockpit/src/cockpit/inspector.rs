@@ -53,7 +53,7 @@ impl Inspector {
             let text = if model.selected().is_some() {
                 "Object no longer available"
             } else {
-                "Select a work item, step or change"
+                "Select a work item, tool, step or change"
             };
             return panel.child(line(text, &pen.note));
         };
@@ -145,6 +145,8 @@ impl Inspector {
                     | Widget::InspectorActions
                     | Widget::InspectorFields
                     | Widget::InspectorDetail
+                    | Widget::ToolOpen
+                    | Widget::ToolUndo
                     | Widget::Checkpoint
                     | Widget::RoadmapStart
                     | Widget::RoadmapComplete
@@ -220,6 +222,9 @@ impl Card {
             return Some(card);
         }
         match model.selected()? {
+            Selected::Tool(id) => {
+                card.tool(model.turn().tool(id)?, id);
+            }
             Selected::Chunk(id) => {
                 let chunk = model.roadmap().chunk(id)?;
                 card.title = chunk.name.clone();
@@ -449,6 +454,87 @@ impl Card {
             }
         }
         Some(card)
+    }
+
+    fn tool(&mut self, line: &crate::turn::Line, id: &str) {
+        use crate::agent::ToolStatus;
+        use crate::turn::LineKind;
+        let status = match line.kind() {
+            LineKind::Tool {
+                status,
+                verb,
+                duration_ms,
+                ..
+            } => {
+                self.title = line.text().into();
+                self.metadata = format!("{} · {id}", verb.label());
+                if let Some(ms) = duration_ms {
+                    self.metadata.push_str(&format!(" · {ms} ms"));
+                }
+                *status
+            }
+            LineKind::Edit {
+                path,
+                status,
+                undone,
+                ..
+            } => {
+                self.title = path.clone();
+                self.metadata = format!("edit · {id}");
+                if *undone {
+                    self.metadata.push_str(" · undone");
+                }
+                self.actions.push(("Open", Widget::ToolOpen.id()));
+                if !undone {
+                    self.actions.push(("Undo", Widget::ToolUndo.id()));
+                }
+                self.diff = Some(line.text().into());
+                *status
+            }
+            _ => return,
+        };
+        let (label, icon) = match status {
+            ToolStatus::Pending => ("pending", Icon::Pending),
+            ToolStatus::InProgress => ("running", Icon::Running),
+            ToolStatus::Completed => ("completed", Icon::Done),
+            ToolStatus::Failed => ("failed", Icon::Failed),
+        };
+        self.status = label.into();
+        self.icon = icon;
+        let record = line.record();
+        if let Some(size) = record.truncated_from {
+            self.fields
+                .push(("record".into(), format!("truncated from {size} bytes")));
+        }
+        for (label, value) in [("input", &record.input), ("output", &record.output)] {
+            if let Some(value) = value {
+                self.fields.push((
+                    label.into(),
+                    value
+                        .as_str()
+                        .map_or_else(|| value.to_string(), str::to_owned),
+                ));
+            }
+        }
+        self.fields.extend(
+            record
+                .text
+                .iter()
+                .map(|text| ("content".into(), text.clone())),
+        );
+        self.fields
+            .extend(record.locations.iter().map(|(path, line)| {
+                (
+                    "location".into(),
+                    line.map_or_else(
+                        || path.display().to_string(),
+                        |line| format!("{}:{line}", path.display()),
+                    ),
+                )
+            }));
+        if let Some(terminal) = &record.terminal {
+            self.fields.push(("terminal".into(), terminal.clone()));
+        }
     }
 
     fn rows(&self, width: u16, full: bool, pen: &Pen) -> Vec<Node> {

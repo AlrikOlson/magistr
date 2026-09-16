@@ -23,7 +23,7 @@ const fn items(rows: usize, gates: usize, tasks: (usize, usize)) -> MotionKey {
         rows,
         gates,
         tasks,
-        ..key(StageTab::Home, 0, (0, 0), (0, 0))
+        ..key(StageTab::Roadmap, 0, (0, 0), (0, 0))
     }
 }
 
@@ -31,10 +31,10 @@ const fn items(rows: usize, gates: usize, tasks: (usize, usize)) -> MotionKey {
 fn a_fresh_cockpit_settles_the_first_progress_it_sees() {
     let mut motion = Motion::default();
     assert!(!motion.is_settling(0.0));
-    let empty = key(StageTab::Home, 0, (0, 0), (0, 0));
+    let empty = key(StageTab::Roadmap, 0, (0, 0), (0, 0));
     motion.observe(empty, empty, 0.0, true);
     assert!(!motion.is_settling(0.0), "0/0 is not a target");
-    let seeded = key(StageTab::Home, 0, (3, 4), (134, 183));
+    let seeded = key(StageTab::Roadmap, 0, (3, 4), (134, 183));
     motion.observe(empty, seeded, 0.0, true);
     assert_eq!(motion.rail_fill(0.0), 0.75, "the first fill lands at once");
     assert!((motion.roadmap_fill(0.0) - 134.0 / 183.0).abs() < 1e-6);
@@ -44,8 +44,8 @@ fn a_fresh_cockpit_settles_the_first_progress_it_sees() {
 #[test]
 fn progress_then_eases_to_its_next_value() {
     let mut motion = Motion::default();
-    let a = key(StageTab::Home, 0, (2, 4), (0, 0));
-    let b = key(StageTab::Home, 0, (3, 4), (0, 0));
+    let a = key(StageTab::Roadmap, 0, (2, 4), (0, 0));
+    let b = key(StageTab::Roadmap, 0, (3, 4), (0, 0));
     motion.observe(a, a, 0.0, true);
     motion.observe(a, b, 10.0, true);
     assert!(motion.is_settling(10.0));
@@ -59,7 +59,7 @@ fn progress_then_eases_to_its_next_value() {
 #[test]
 fn a_tab_switch_and_a_dock_arrival_transition_briefly() {
     let mut motion = Motion::default();
-    let before = key(StageTab::Home, 0, (0, 0), (0, 0));
+    let before = key(StageTab::Roadmap, 0, (0, 0), (0, 0));
     motion.observe(before, key(StageTab::Session, 0, (0, 0), (0, 0)), 5.0, true);
     assert_eq!(motion.tab_transition(5.0), Some(0.0));
     assert_eq!(motion.tab_transition(7.0), Some(0.5));
@@ -93,7 +93,7 @@ fn a_tab_switch_and_a_dock_arrival_transition_briefly() {
 #[test]
 fn reduced_motion_lands_fills_and_starts_no_transition() {
     let mut motion = Motion::default();
-    let a = key(StageTab::Home, 0, (2, 4), (0, 0));
+    let a = key(StageTab::Roadmap, 0, (2, 4), (0, 0));
     motion.observe(a, a, 0.0, false);
     motion.observe(a, key(StageTab::Session, 1, (3, 4), (0, 0)), 1.0, false);
     assert_eq!(motion.rail_fill(1.0), 0.75, "landed, no glide");
@@ -203,7 +203,7 @@ fn reduced_motion_starts_no_arrival_and_no_pop() {
 #[test]
 fn every_transient_stops_ticking_inside_eight_steps() {
     let mut motion = Motion::default();
-    let before = key(StageTab::Home, 0, (0, 4), (0, 4));
+    let before = key(StageTab::Roadmap, 0, (0, 4), (0, 4));
     motion.observe(before, before, 0.0, true);
     let after = MotionKey {
         tab: StageTab::Session,
@@ -300,7 +300,7 @@ fn the_trace_sweep_starts_where_the_graph_already_reached_and_ends_whole() {
 fn the_activity_sweep_starts_where_the_ribbon_already_reached_and_ends_whole() {
     let spark = |samples: usize| MotionKey {
         activity: samples,
-        ..key(StageTab::Home, 0, (0, 0), (0, 0))
+        ..key(StageTab::Roadmap, 0, (0, 0), (0, 0))
     };
 
     // The monitor arriving with a burst of busy frames behind it: the
@@ -345,7 +345,7 @@ fn the_activity_sweep_starts_where_the_ribbon_already_reached_and_ends_whole() {
 fn a_saturated_activity_ribbon_stops_sweeping_and_holds_no_tick() {
     let spark = |samples: usize| MotionKey {
         activity: samples,
-        ..key(StageTab::Home, 0, (0, 0), (0, 0))
+        ..key(StageTab::Roadmap, 0, (0, 0), (0, 0))
     };
     let mut motion = Motion::default();
     // The count the view reports is capped at the slot width, so a
@@ -361,7 +361,7 @@ fn a_saturated_activity_ribbon_stops_sweeping_and_holds_no_tick() {
 fn reduced_motion_never_sweeps_the_activity_monitor() {
     let spark = |samples: usize| MotionKey {
         activity: samples,
-        ..key(StageTab::Home, 0, (0, 0), (0, 0))
+        ..key(StageTab::Roadmap, 0, (0, 0), (0, 0))
     };
     let mut motion = Motion::default();
     motion.observe(spark(0), spark(8), 0.0, false);
@@ -421,7 +421,7 @@ fn a_transient_is_read_between_two_ticks_and_ends_at_the_same_step_it_always_did
     // are, so a tab pulse on a 120 Hz window has as many positions as the
     // display can show rather than four.
     let mut motion = Motion::default();
-    let home = key(StageTab::Home, 0, (0, 0), (0, 0));
+    let home = key(StageTab::Roadmap, 0, (0, 0), (0, 0));
     let trace = key(StageTab::Session, 0, (0, 0), (0, 0));
     motion.observe(home, trace, 0.0, true);
     let quarter = motion.tab_transition(0.5).expect("still running");
@@ -527,7 +527,7 @@ fn every_transient_carries_one_of_the_sixteen_names() {
     );
     let before = MotionKey {
         rail_open: Some(true),
-        ..key(StageTab::Home, 0, (0, 4), (0, 4))
+        ..key(StageTab::Roadmap, 0, (0, 4), (0, 4))
     };
     motion.observe(before, before, 0.0, true);
     let after = MotionKey {

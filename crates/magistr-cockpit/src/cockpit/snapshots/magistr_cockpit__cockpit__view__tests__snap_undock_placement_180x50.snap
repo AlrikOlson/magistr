@@ -15,10 +15,9 @@ rail toggle depth=3 x=1 y=3 w=26 h=1
 rail gauge depth=3 x=1 y=6 w=26 h=1
 rail graph depth=3 x=1 y=7 w=26 h=2
 rail divider depth=2 x=28 y=2 w=1 h=45
-Home     depth=5 x=30 y=3 w=4 h=1
-Turn     depth=5 x=36 y=3 w=4 h=1
-Session  depth=5 x=42 y=3 w=7 h=1
-Roadmap  depth=5 x=51 y=3 w=7 h=1
+Turn     depth=5 x=30 y=3 w=4 h=1
+Session  depth=5 x=36 y=3 w=7 h=1
+Roadmap  depth=5 x=45 y=3 w=7 h=1
 stage    depth=4 x=30 y=4 w=62 h=42
 tech tree depth=6 x=30 y=5 w=20 h=41
 work items depth=6 x=52 y=5 w=40 h=41

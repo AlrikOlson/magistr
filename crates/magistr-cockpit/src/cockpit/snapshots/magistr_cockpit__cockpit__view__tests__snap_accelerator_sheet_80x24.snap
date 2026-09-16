@@ -5,8 +5,8 @@ expression: screen(&m)
 ▲ magistr  idle                                                            00:01
 tabs  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                     │
-│no objective yet          │ │⌨ keys · esc closes · 1–8 of 71                  │
+│◂                         │ │Turn  Session  Roadmap                           │
+│no objective yet          │ │⌨ keys · esc closes · 1–8 of 74                  │
 │▲ tabs · 2/4              │ │                                                 │
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │── global ────────────────────────               │
 │▲ Tabs                    │ │ tab / shift-tab   switch pane                   │
@@ -17,7 +17,7 @@ tabs  Research▸Plan▸Execute▸Verify
 │                          │ │ ctrl-c            cancel                        │
 │                          │ ╰─────────────────────────────────────────────────╯
 │                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, step or change               │
+│                          │ │Select a work item, tool, step or change         │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

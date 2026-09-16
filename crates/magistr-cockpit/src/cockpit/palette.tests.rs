@@ -144,7 +144,7 @@ fn every_binding_is_reachable_and_a_verb_row_dispatches_its_key() {
         if *binding == Binding::KILL {
             continue;
         }
-        let mut model = native();
+        let mut model = seeded();
         chord(&mut model);
         typed(&mut model, binding.does);
         let rows = Palette::rows(&model);
@@ -152,6 +152,8 @@ fn every_binding_is_reachable_and_a_verb_row_dispatches_its_key() {
         // window's, where `esc` climbs.
         let keys = if *binding == Binding::ABORT {
             Binding::ABORT_CHORD.keys
+        } else if *binding == Binding::PALETTE {
+            Binding::PALETTE_CHORD.keys
         } else if *binding == Binding::DOCK {
             Binding::DOCK_CHORD.keys
         } else {

@@ -37,7 +37,7 @@ magistr init .
 magistr
 ```
 
-`magistr init` detects the stack and writes `.magistr/project.json` — the commands Magistr runs as quality gates and the roadmap settings — plus the agent setup. `magistr` opens the terminal interface.
+`magistr init` detects the stack and writes `.magistr/project.json` — the commands Magistr runs as quality gates and the roadmap settings — plus the agent setup. `magistr` opens Roadmap. The three tabs are **Turn · Session · Roadmap**; `Ctrl+Tab` switches views. Start next, loop or gates from the footer chips or the `Ctrl+P` command palette (`Alt+N`, `Alt+L`, `Alt+G`). Turn shows agent output and tool calls; selecting a tool opens its live record or edit diff in the shared inspector.
 
 ## Connect an agent
 
@@ -56,10 +56,10 @@ The Roadmap tab draws the work items as a dependency graph. Done, ready and wait
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-roadmap-dark.png" />
-  <img alt="The Roadmap tab with the item in progress selected: its dependency chain stays lit, the rest fades, and its detail card is open below the graph." src="apps/website/public/screenshots/terminal-roadmap-light.png" width="1320" height="840" />
+  <img alt="The Roadmap tab with the item in progress selected: its dependency chain stays lit, the rest fades, and its status, actions and details appear in the inspector at right." src="apps/website/public/screenshots/terminal-roadmap-light.png" width="1320" height="840" />
 </picture>
 
-*The item in progress selected: its dependency chain stays lit and its details open below ([dark](apps/website/public/screenshots/terminal-roadmap-dark.png) · [light](apps/website/public/screenshots/terminal-roadmap-light.png)).*
+*The item in progress selected: its dependency chain stays lit and its details open in the inspector ([dark](apps/website/public/screenshots/terminal-roadmap-dark.png) · [light](apps/website/public/screenshots/terminal-roadmap-light.png)).*
 
 ## Run one work item
 

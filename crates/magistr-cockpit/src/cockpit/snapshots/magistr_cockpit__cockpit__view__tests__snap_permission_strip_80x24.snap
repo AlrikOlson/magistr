@@ -5,7 +5,7 @@ expression: screen(&m)
 ▲ magistr  ▘ streaming                                                     00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                     │
+│◂                         │ │Turn  Session  Roadmap                           │
 │no objective yet          │ │▎ Let me run the tests.                          │
 │roadmap 0/0 done          │ │▎ ○ run    cargo nextest run -p magistr-tui      │
 │signals 0                 │ │                                                 │
@@ -15,7 +15,7 @@ Research▸Plan▸Execute▸Verify
 │                          │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
 │                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, step or change               │
+│                          │ │Select a work item, tool, step or change         │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

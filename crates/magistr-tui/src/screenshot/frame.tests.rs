@@ -15,8 +15,54 @@ fn clock() -> FrameClock {
 /// Kitty, unwrapped — the protocol a pixel profile composites through.
 const KITTY: Protocol = Protocol::Kitty(Passthrough::Direct);
 
-/// A launcher-sized cockpit in Mocha: the header carries the brand mark
-/// and, once there is news, the activity sparkline.
+/// Pixel layers cannot bleed through the palette's opaque cell background.
+#[test]
+fn the_palette_masks_underlying_graphs_and_panel_rings() {
+    use magistr_cockpit::harness::Scenes;
+    use magistr_cockpit::layout::{Mark, Rect, marks};
+    let mut model = Scenes::command_palette(Size::new(80, 24));
+    update(&mut model, Msg::Mode(Decision::Graphics(KITTY).mode()));
+    let root = view(&model, &clock());
+    let resolved = LayoutTree::new().compute(&root, 80, 24).expect("layout");
+    let panel = marks(&root, &resolved)
+        .into_iter()
+        .rev()
+        .find_map(|(rect, mark)| matches!(mark, Mark::Panel { .. }).then_some(rect))
+        .expect("palette panel");
+    let (_, images) = compose(&model, &clock(), KITTY).expect("frame");
+    let mut checked = 0;
+    for image in images {
+        let rect = Rect::new(image.col, image.row, image.cols, image.rows);
+        if rect == panel {
+            continue;
+        }
+        let overlap = rect.intersection(panel);
+        if overlap.is_empty() {
+            continue;
+        }
+        for y in (overlap.y - rect.y)..(overlap.bottom() - rect.y) {
+            for x in (overlap.x - rect.x)..(overlap.right() - rect.x) {
+                for py in 0..20 {
+                    for px in 0..10 {
+                        let at = (((u32::from(y) * 20 + py) * image.width + u32::from(x) * 10 + px)
+                            * 4
+                            + 3) as usize;
+                        assert_eq!(
+                            image.rgba[at], 0,
+                            "underlying pixels cross the palette at {rect:?}"
+                        );
+                        checked += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        checked > 0,
+        "the fixture exercises overlapping pixel surfaces"
+    );
+}
+
 fn model() -> Model {
     Model::new(Size::new(120, 40)).with_theme(Theme::forced(ThemeMode::Dark))
 }

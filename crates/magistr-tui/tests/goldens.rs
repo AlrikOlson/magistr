@@ -136,7 +136,9 @@ fn shot_inspector_objects() {
     use magistr_cockpit::cockpit::Widget;
     use magistr_tui::screenshot::Profile;
     type Scene = (&'static str, fn(Size) -> Model);
-    let scenes: [Scene; 4] = [
+    let scenes: [Scene; 6] = [
+        ("inspector-tool", Scenes::terminal_pane),
+        ("inspector-edit", Scenes::inspected_edit),
         ("inspector-chunk", |size| {
             inspected(Scenes::roadmapped(size), Widget::roadmap_row(1))
         }),
@@ -154,6 +156,18 @@ fn shot_inspector_objects() {
         for profile in [Profile::Cells, Profile::Kitty] {
             shots_on(name, make, profile, true);
         }
+    }
+}
+
+#[test]
+fn shot_turn_and_palette_in_both_profiles() {
+    use magistr_tui::screenshot::Profile;
+    // Cell-profile Turn scenes have their own tests above.
+    shots_on("streaming", Scenes::streaming, Profile::Kitty, true);
+    shots_on("terminal-pane", Scenes::terminal_pane, Profile::Kitty, true);
+    shots_on("permission", Scenes::permission, Profile::Kitty, true);
+    for profile in [Profile::Cells, Profile::Kitty] {
+        shots_on("command-palette", Scenes::command_palette, profile, true);
     }
 }
 

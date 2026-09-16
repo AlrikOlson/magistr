@@ -895,9 +895,14 @@ fn checkpoint_row_verb(model: &Model, index: usize, fork: bool) -> Vec<Cmd> {
 /// ⌘K opens only on a native surface, the Brief's rule: the palette is
 /// one of the window's floats, and a terminal never reports `SUPER`.
 fn palette_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    let chord = key.code == KeyCode::Char('k') && key.mods == Modifiers::SUPER;
+    let chord = (model.surface().is_native()
+        && key.code == KeyCode::Char('k')
+        && key.mods == Modifiers::SUPER)
+        || (key.code == KeyCode::Char('p')
+            && key.mods == Modifiers::CTRL
+            && !model.surface().is_native());
     if model.palette.is_none() {
-        if chord && model.surface().is_native() {
+        if chord && model.moment().is_none() {
             model.palette = Some(Palette::default());
             return Some(Vec::new());
         }
@@ -944,6 +949,11 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
         return Vec::new();
     }
     match row.go {
+        PaletteGo::Launch(action) => launch(model, action),
+        PaletteGo::Tab(tab) => {
+            model.show(tab);
+            Vec::new()
+        }
         PaletteGo::Place(place) => {
             model.place = place;
             Vec::new()
@@ -953,9 +963,13 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
             shelf_collect(model)
         }
         PaletteGo::Session(index) => {
-            model.show(StageTab::Home);
-            model.session_sel = Some(index);
-            Vec::new()
+            if model.surface().is_native() {
+                model.place = Place::Sky;
+                model.session_sel = Some(index);
+                Vec::new()
+            } else {
+                resume_session(model, index)
+            }
         }
         PaletteGo::Key(code, mods) => fold(model, Msg::Key(KeyEvent::new(code).with(mods))),
         // The loop's verbs are the verb, not a keystroke: a row that
@@ -1143,7 +1157,7 @@ fn search_confirm(model: &mut Model, hit: SearchHit) -> Vec<Cmd> {
         }
         SearchGo::Receipt => model.place = Place::Trace,
         SearchGo::Session(index) => {
-            model.show(StageTab::Home);
+            model.place = Place::Sky;
             model.session_sel = Some(index);
         }
     }
@@ -1197,7 +1211,8 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             if model.selected.is_some()
                 && (model.pane == Pane::Inspector
                     || model.pane == Pane::Stage
-                        && matches!(model.tab, StageTab::Roadmap | StageTab::Session)) =>
+                        && (matches!(model.tab, StageTab::Roadmap | StageTab::Session)
+                            || matches!(model.selected, Some(Selected::Tool(_))))) =>
         {
             model.inspector_open = !model.inspector_open;
             model.inspector_scroll = 0;
@@ -1248,6 +1263,27 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
                 row.saturating_add(1).saturating_sub(height),
                 total,
                 height,
+            );
+        }
+        KeyCode::Up | KeyCode::Down
+            if model.tab == StageTab::Turn && matches!(model.selected, Some(Selected::Tool(_))) =>
+        {
+            let calls: Vec<_> = model
+                .turn
+                .lines()
+                .iter()
+                .filter_map(|line| tool_identity(line).map(|id| (id.to_owned(), line.row_start())))
+                .collect();
+            let current = calls
+                .iter()
+                .position(|(id, _)| model.selected() == Some(&Selected::Tool(id.clone())));
+            let index = selection_index(current, calls.len(), key.code == KeyCode::Down)?;
+            let (id, row) = &calls[index];
+            model.inspect(Selected::Tool(id.clone()));
+            model.viewport.hold(
+                row.saturating_add(1).saturating_sub(model.stage_rows()),
+                model.turn.len(),
+                model.stage_rows(),
             );
         }
         KeyCode::Up | KeyCode::Down if model.tab == StageTab::Session => {
@@ -1392,7 +1428,7 @@ fn galaxy_dive(model: &mut Model, index: usize) -> Vec<Cmd> {
     Vec::new()
 }
 
-/// A launcher accelerator on the Home tab with an empty prompt: `n`
+/// Host command chords on the terminal, or native launcher accelerators: `n`
 /// starts one iteration, `l` the loop, `g` the gates — each recorded
 /// as the model's launch ask beside a quit, for the entry point to
 /// dispatch — `m` turns the stage to the Roadmap tab, and the arrows
@@ -1400,6 +1436,14 @@ fn galaxy_dive(model: &mut Model, index: usize) -> Vec<Cmd> {
 /// `None` anywhere else; with text in the prompt the letters stay the
 /// prompt's.
 fn launcher_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    if model.launcher().is_some() && key.mods == Modifiers::ALT && model.moment().is_none() {
+        return match key.code {
+            KeyCode::Char('n') => Some(launch(model, LaunchAction::Next)),
+            KeyCode::Char('l') => Some(launch(model, LaunchAction::Loop)),
+            KeyCode::Char('g') => Some(launch(model, LaunchAction::Gates)),
+            _ => None,
+        };
+    }
     if !model.is_launcher() || !model.prompt.is_empty() || !key.mods.is_empty() {
         return None;
     }
@@ -1811,6 +1855,26 @@ fn detailed(what: &str, detail: &str) -> String {
 fn send(model: &mut Model) -> Vec<Cmd> {
     if model.prompt.is_empty() {
         model.turn.toggle_last();
+        if !model.surface().is_native() && model.tab == StageTab::Turn {
+            let id = model
+                .turn
+                .lines()
+                .iter()
+                .rev()
+                .find(|line| {
+                    matches!(
+                        line.kind(),
+                        crate::turn::LineKind::Tool { .. }
+                            | crate::turn::LineKind::Edit { .. }
+                            | crate::turn::LineKind::Check { .. }
+                    )
+                })
+                .and_then(tool_identity)
+                .map(str::to_owned);
+            if let Some(id) = id {
+                model.inspect(Selected::Tool(id));
+            }
+        }
         return Vec::new();
     }
     if let Some(cmd) = palette(model.prompt.text()) {
@@ -2431,6 +2495,15 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 }
                 return Vec::new();
             }
+            if let Some(binding) = target
+                .and_then(Widget::footer_chip_index)
+                .and_then(|index| super::view::hint_context(model).get(index).copied())
+            {
+                return fold(
+                    model,
+                    Msg::Key(KeyEvent::new(binding.code).with(binding.mods)),
+                );
+            }
             match target.and_then(Widget::from_id) {
                 Some(Widget::RailToggle) => {
                     model.rail.toggle();
@@ -2478,6 +2551,8 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 Some(Widget::Reject) => return proposal_click(model, false),
                 Some(Widget::Clear) => return blocker_click(model),
                 Some(Widget::Checkpoint) => return vec![Cmd::Engine(EngineCmd::Checkpoint)],
+                Some(Widget::ToolOpen) => return selected_edit_click(model, false),
+                Some(Widget::ToolUndo) => return selected_edit_click(model, true),
                 Some(Widget::InspectorDetail) => {
                     if model.trace.viewer().is_some() || model.changes.viewer().is_some() {
                         model.trace.close_viewer();
@@ -2754,6 +2829,16 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 // folds the card also starts the held kill, which a click's release cancels inside the
                 // dead zone before it shows.
                 arm_cap_hold(model, row);
+                if !model.surface().is_native() {
+                    let id = model
+                        .turn
+                        .card_at_row(row)
+                        .and_then(|(line, _)| tool_identity(line))
+                        .map(str::to_owned);
+                    if let Some(id) = id {
+                        model.inspect(Selected::Tool(id));
+                    }
+                }
                 model.turn.toggle_at_row(row);
                 return Vec::new();
             }
@@ -3167,9 +3252,35 @@ fn signal_click(model: &mut Model, index: usize, act: SignalAct) -> Vec<Cmd> {
     vec![Cmd::Engine(cmd)]
 }
 
-/// A click on an expanded edit card's \[Open\] or \[Undo\] button, by
-/// the visible index of its button row: the card under that row names
-/// the edit. \[Undo\] on an already-undone card answers nothing.
+/// The tool identity is independent of its visible row or wrapping.
+fn tool_identity(line: &crate::turn::Line) -> Option<&str> {
+    match line.kind() {
+        crate::turn::LineKind::Tool { id, .. } | crate::turn::LineKind::Edit { id, .. } => Some(id),
+        _ => None,
+    }
+}
+
+fn selected_edit_click(model: &Model, undo: bool) -> Vec<Cmd> {
+    let Some(Selected::Tool(id)) = model.selected() else {
+        return Vec::new();
+    };
+    let Some(line) = model.turn().tool(id) else {
+        return Vec::new();
+    };
+    let crate::turn::LineKind::Edit { path, undone, .. } = line.kind() else {
+        return Vec::new();
+    };
+    if undo && *undone {
+        return Vec::new();
+    }
+    vec![Cmd::Workbench(if undo {
+        WorkbenchCmd::Undo { id: id.clone() }
+    } else {
+        WorkbenchCmd::Open { path: path.clone() }
+    })]
+}
+
+/// Open or undo the edit identified by its visible inline button row.
 fn edit_click(model: &mut Model, index: usize, undo: bool) -> Vec<Cmd> {
     let row = model.top_row().saturating_add(index);
     let Some((id, path, undone)) = model.turn.edit_at_row(row) else {

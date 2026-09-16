@@ -329,7 +329,11 @@ impl Model {
             Selected::Step(number) => {
                 self.trace.expand_step(*number);
             }
-            Selected::Change(_) | Selected::Signal(_) | Selected::Receipt(_) | Selected::Run(_) => {
+            Selected::Tool(_)
+            | Selected::Change(_)
+            | Selected::Signal(_)
+            | Selected::Receipt(_)
+            | Selected::Run(_) => {
                 self.trace.deselect();
             }
         }
@@ -398,7 +402,7 @@ impl Model {
             hovered: None,
             pressed: None,
             pointer: None,
-            tab: StageTab::Turn,
+            tab: StageTab::Roadmap,
             selected: None,
             pane: Pane::Stage,
             inspector_open: false,
@@ -1637,16 +1641,10 @@ impl Model {
         stops
     }
 
-    /// Whether the stage is the launcher's: the Home tab on a terminal,
-    /// the Sky on a window — bare `magistr --native` opens the Sky
-    /// agent-less, and its keys are the launcher's there.
+    /// Whether the native Sky owns launcher keyboard navigation.
     #[must_use]
     pub const fn is_launcher(&self) -> bool {
-        if self.surface.is_native() {
-            matches!(self.place, Place::Sky)
-        } else {
-            matches!(self.tab, StageTab::Home)
-        }
+        self.surface.is_native() && matches!(self.place, Place::Sky)
     }
 
     /// Open the journal's desktop place or the terminal's unified session.
@@ -2607,23 +2605,6 @@ impl Model {
     #[must_use]
     pub const fn has_text_sizing(&self) -> bool {
         self.text_sizing
-    }
-
-    /// The launcher's headline: the project's name, on a terminal that
-    /// renders a scaled run and for a project that has a config.
-    ///
-    /// One derivation, two consumers — [`view`](crate::cockpit::view)
-    /// reserves the two rows it needs and the runtime writes the run
-    /// into them — so the rows on screen and the text in them cannot
-    /// disagree about whether there is a headline at all.
-    #[must_use]
-    pub fn headline(&self) -> Option<&str> {
-        if !self.text_sizing {
-            return None;
-        }
-        self.launcher()
-            .filter(|data| data.has_config && !data.project.is_empty())
-            .map(|data| data.project.as_str())
     }
 
     /// Whether the terminal answers kitty's pointer-shape protocol: the

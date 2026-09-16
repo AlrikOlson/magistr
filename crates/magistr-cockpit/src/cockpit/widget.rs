@@ -49,8 +49,6 @@ pub enum Widget {
     /// The rail's roadmap gauge — the sub-cell pixel bar in Graphics
     /// mode, the `▰▱` cells otherwise. Laid out once a chunk exists.
     RailGauge,
-    /// The stage's tab bar: Home.
-    TabHome,
     /// The stage's tab bar: Turn.
     TabTurn,
     /// The stage's tab bar: Session.
@@ -127,19 +125,6 @@ pub enum Widget {
     Prompt,
     /// The one-line footer.
     Footer,
-    /// The launcher's project card.
-    CardProject,
-    /// The launcher's roadmap card.
-    CardRoadmap,
-    /// The launcher's sessions card.
-    CardSessions,
-    /// The launcher's actions card.
-    CardActions,
-    /// The two rows the project card reserves for its headline — blank
-    /// cells the runtime writes an `OSC 66` run over
-    /// ([`Headline`](crate::render::Headline)). Laid out only on a
-    /// terminal whose probe found text sizing.
-    CardHeadline,
     /// The native header's `^` crumb — one altitude up. Laid out only
     /// on [`Surface::Native`](super::Surface::Native), like every
     /// crumb: the terminal's header has no altitude path.
@@ -272,6 +257,10 @@ pub enum Widget {
     InspectorActions,
     InspectorFields,
     InspectorDetail,
+    /// Open the selected agent edit's file.
+    ToolOpen,
+    /// Undo the selected agent edit through its existing command path.
+    ToolUndo,
     /// Roadmap table and its filter and sortable column headers.
     RoadmapTable,
     RoadmapFilter,
@@ -283,7 +272,7 @@ pub enum Widget {
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 104] = [
+    pub const ALL: [Self; 100] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -301,7 +290,6 @@ impl Widget {
         Self::RailDivider,
         Self::RailGraph,
         Self::RailGauge,
-        Self::TabHome,
         Self::TabTurn,
         Self::TabSession,
         Self::TabRoadmap,
@@ -334,11 +322,6 @@ impl Widget {
         Self::LaunchRoadmap,
         Self::Prompt,
         Self::Footer,
-        Self::CardProject,
-        Self::CardRoadmap,
-        Self::CardSessions,
-        Self::CardActions,
-        Self::CardHeadline,
         Self::CrumbUp,
         Self::CrumbProjects,
         Self::CrumbProject,
@@ -382,6 +365,8 @@ impl Widget {
         Self::InspectorActions,
         Self::InspectorFields,
         Self::InspectorDetail,
+        Self::ToolOpen,
+        Self::ToolUndo,
         Self::RoadmapTable,
         Self::RoadmapFilter,
         Self::RoadmapSortName,
@@ -1141,7 +1126,6 @@ impl Widget {
     #[must_use]
     pub const fn tab(tab: StageTab) -> Self {
         match tab {
-            StageTab::Home => Self::TabHome,
             StageTab::Turn => Self::TabTurn,
             StageTab::Session => Self::TabSession,
             StageTab::Roadmap => Self::TabRoadmap,
@@ -1154,7 +1138,6 @@ impl Widget {
     #[must_use]
     pub const fn tab_target(self) -> Option<StageTab> {
         match self {
-            Self::TabHome => Some(StageTab::Home),
             Self::TabTurn => Some(StageTab::Turn),
             Self::TabSession => Some(StageTab::Session),
             Self::TabRoadmap | Self::LaunchRoadmap => Some(StageTab::Roadmap),
@@ -1203,7 +1186,6 @@ impl Widget {
             Self::Plan => "Plan",
             Self::Execute => "Execute",
             Self::Verify => "Verify",
-            Self::TabHome => "Home",
             Self::TabTurn => "Turn",
             Self::TabSession => "Session",
             Self::TabRoadmap => "Roadmap",
@@ -1226,6 +1208,8 @@ impl Widget {
             Self::InspectorActions => "object actions",
             Self::InspectorFields => "object fields",
             Self::InspectorDetail => "Details",
+            Self::ToolOpen => "Open",
+            Self::ToolUndo => "Undo",
             Self::TraceDetail => "More",
             Self::TraceGraph => "trace graph",
             Self::RoadmapGraph => "tech tree",
@@ -1249,11 +1233,6 @@ impl Widget {
             Self::LaunchRoadmap => "roadmap",
             Self::Prompt => "prompt",
             Self::Footer => "footer",
-            Self::CardProject => "project",
-            Self::CardRoadmap => "roadmap",
-            Self::CardSessions => "sessions",
-            Self::CardActions => "actions",
-            Self::CardHeadline => "headline",
             Self::CrumbUp => "up",
             Self::CrumbProjects => "projects",
             Self::CrumbProject => "project",

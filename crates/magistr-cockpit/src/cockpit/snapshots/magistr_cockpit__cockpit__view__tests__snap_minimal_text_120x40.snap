@@ -6,7 +6,7 @@ expression: "screen(&minimal_text(Size::new(120, 40)))"
 Research▸Plan▸Execute▸Verify
 Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough on` (tmux 3.3+) inside ghostty, kitty,
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
 │ship the plain-text       │ │▎ Let me run the tests.                            │  │                                  │
 │cockpit                   │ │▎ ○ run    cargo nextest run -p magistr-tui        │  │                                  │
 │▸ wire the banner         │ │  ▸ objective set · ship the plain-text cockpit    │  │                                  │

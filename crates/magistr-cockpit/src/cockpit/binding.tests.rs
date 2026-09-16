@@ -16,7 +16,7 @@ fn every_footer_context_is_a_subset_of_the_registry() {
         Binding::HINT_IDLE,
         Binding::HINT_SESSION,
         Binding::HINT_INSPECTOR,
-        Binding::HINT_HOME,
+        Binding::HINT_COMMANDS,
         Binding::HINT_SHEET,
     ] {
         for binding in context {

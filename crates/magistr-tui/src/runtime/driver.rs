@@ -9,7 +9,7 @@ use super::activity::Activity;
 use super::error::RuntimeError;
 use super::osc52;
 use super::scheduler::FrameScheduler;
-use super::surfaces::{Surfaces, placed};
+use super::surfaces::Surfaces;
 use crate::flat::echo::Echo;
 use crate::flat::{FlatLine, Role, Transcript, plain};
 use crate::render::Screen;
@@ -20,9 +20,7 @@ use magistr_cockpit::cockpit::{
 use magistr_cockpit::hit::HitRegistry;
 use magistr_cockpit::input::Event;
 use magistr_cockpit::layout::{LayoutTree, Resolved};
-use magistr_cockpit::render::Headline;
 use magistr_cockpit::render::paint;
-use magistr_cockpit::theme::Pen;
 
 /// Everything the loop owns between the startup window and the shutdown.
 pub(crate) struct Driver {
@@ -214,7 +212,6 @@ impl Driver {
             self.surfaces
                 .show(&root, &mut self.model, &resolved, &mut self.screen);
         self.report_undock(&resolved);
-        self.show_headline(&resolved);
         self.show_progress();
         self.out.clear();
         self.screen.present(&mut self.out);
@@ -311,28 +308,6 @@ impl Driver {
             .iter()
             .find_map(|placed| (placed.id == Some(Widget::Undock.id())).then_some(placed.rect));
         self.model.set_undock_rect(rect);
-    }
-
-    /// The launcher's headline as one scaled `OSC 66` run,
-    /// over the two blank rows the project card reserved for it
-    /// ([`Widget::CardHeadline`]) — on the terminals whose startup probe
-    /// answered kitty's text sizing handshake, and nowhere else.
-    ///
-    /// Both halves ask [`Model::headline`], so the rows the view left
-    /// blank and the text written into them cannot disagree; and because
-    /// the rect has to be *placed*, a headline the accelerator sheet or
-    /// another tab covered is simply not declared, which is what takes
-    /// the redraw those cells need.
-    fn show_headline(&mut self, resolved: &Resolved) {
-        let headline = self
-            .model
-            .headline()
-            .zip(placed(resolved, Widget::CardHeadline))
-            .and_then(|(text, rect)| {
-                let pen = Pen::for_theme(&self.model.theme());
-                Headline::fill(text, rect, pen.heading.clone())
-            });
-        self.screen.headline(headline);
     }
 
     /// The mouse-pointer shape for what the pointer is over, beside the

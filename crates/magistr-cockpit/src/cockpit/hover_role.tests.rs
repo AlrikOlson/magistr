@@ -7,11 +7,11 @@ use crate::cockpit::StageTab;
 #[test]
 fn every_named_control_lifts() {
     let controls = [
-        Widget::TabHome,
         Widget::TabTurn,
         Widget::TabSession,
-        Widget::TabSession,
         Widget::TabRoadmap,
+        Widget::ToolOpen,
+        Widget::ToolUndo,
         Widget::RailToggle,
         Widget::Allow,
         Widget::Always,
@@ -103,10 +103,6 @@ fn the_panels_bars_and_graph_blocks_are_inert() {
         Widget::RoadmapGraph,
         Widget::Prompt,
         Widget::Footer,
-        Widget::CardProject,
-        Widget::CardRoadmap,
-        Widget::CardSessions,
-        Widget::CardActions,
     ];
     for widget in structure {
         assert_eq!(
@@ -149,7 +145,7 @@ fn every_named_widget_is_either_a_control_or_chrome() {
         "the docked screen is the wheel's target, not a control"
     );
     assert_eq!(
-        lifting, 50,
+        lifting, 51,
         "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four, the meter's Raise and the trace card's More among them"
     );
     assert_eq!(

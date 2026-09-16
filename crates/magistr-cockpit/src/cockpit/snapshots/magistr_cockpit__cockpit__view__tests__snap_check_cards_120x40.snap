@@ -5,7 +5,7 @@ expression: "screen(&gated(Size::new(120, 40)))"
 ▲ magistr  ▘ streaming                                                                                             00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
 │no objective yet          │ │▎ Running the gates.                               │  │                                  │
 │roadmap 0/0 done          │ │  ▸ task started · verify                          │  │                                  │
 │signals 0                 │ │  ✦ think 7 · verify the slice                     │  │                                  │

@@ -32,7 +32,7 @@ fn agent(m: &mut Model, event: AgentEvent) {
 
 impl Scenes {
     pub fn streaming(size: Size) -> Model {
-        let mut m = Model::new(size);
+        let mut m = Model::new(size).with_tab(StageTab::Turn);
         agent(
             &mut m,
             AgentEvent::Thought("I should read the roadmap chunk first, then plan.".to_owned()),
@@ -58,6 +58,47 @@ impl Scenes {
         m
     }
 
+    /// A completed edit selected by its call identity in the shared inspector.
+    pub fn inspected_edit(size: Size) -> Model {
+        let mut model = Model::new(size).with_tab(StageTab::Turn);
+        agent(
+            &mut model,
+            AgentEvent::Text("Updating the retry limit.\n".into()),
+        );
+        agent(
+            &mut model,
+            AgentEvent::ToolCall {
+                id: "retry-limit".into(),
+                title: "edit src/retry.rs".into(),
+                verb: ToolVerb::Edit,
+                status: ToolStatus::Completed,
+                diff: Some(crate::agent::EditDiff {
+                    path: "src/retry.rs".into(),
+                    old_text: "const RETRIES: usize = 2;\n".into(),
+                    new_text: "const RETRIES: usize = 3;\n".into(),
+                }),
+                images: Vec::new(),
+                record: Default::default(),
+            },
+        );
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        model
+    }
+
+    /// The terminal command palette over the Roadmap landing view.
+    pub fn command_palette(size: Size) -> Model {
+        let mut model = Self::launcher(size);
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('p')).with(crate::input::Modifiers::CTRL)),
+        );
+        for c in "gates".chars() {
+            update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
+        }
+        model
+    }
+
     /// A run card open on the stage while its command streams: the
     /// pane's last eight rows in the program's own colours — cargo's
     /// bold green verbs, a yellow warning, a red failure, a dim note, a
@@ -65,7 +106,7 @@ impl Scenes {
     /// cursor at the tail.
     pub fn terminal_pane(size: Size) -> Model {
         use crate::agent::ToolRecord;
-        let mut m = Model::new(size);
+        let mut m = Model::new(size).with_tab(StageTab::Turn);
         agent(&mut m, AgentEvent::Text("Running the gates.\n".to_owned()));
         agent(
             &mut m,
@@ -251,7 +292,7 @@ impl Scenes {
     /// The turn the permission surface is about, without the request yet —
     /// so a caller can settle the stage before the card arrives.
     pub fn permission_turn(size: Size) -> Model {
-        let mut m = Model::new(size);
+        let mut m = Model::new(size).with_tab(StageTab::Turn);
         agent(&mut m, AgentEvent::Text("Let me run the tests.".to_owned()));
         agent(
             &mut m,
@@ -293,7 +334,7 @@ impl Scenes {
     pub fn looping(size: Size) -> Model {
         use crate::cockpit::LoopEvent;
         use crate::job::{JobId, JobOutput};
-        let mut m = Model::new(size);
+        let mut m = Model::new(size).with_tab(StageTab::Turn);
         update(
             &mut m,
             Msg::Loop(LoopEvent::Started {
@@ -360,7 +401,7 @@ impl Scenes {
     /// The Changes tab over a journal of two edits — one parse-failed.
     pub fn changed(size: Size) -> Model {
         use crate::workbench::JournalEntry;
-        let mut m = Model::new(size);
+        let mut m = Model::new(size).with_tab(StageTab::Turn);
         update(
             &mut m,
             Msg::Key(KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
@@ -411,7 +452,7 @@ impl Scenes {
     /// merged, and a ship timeline of an action, a passed check and a
     /// failed one.
     pub fn traced(size: Size) -> Model {
-        let mut m = Model::new(size);
+        let mut m = Model::new(size).with_tab(StageTab::Turn);
         Self::engine_frame(
             &mut m,
             "think",
@@ -507,7 +548,7 @@ impl Scenes {
     /// A trace long enough to outgrow the stage: twenty main-line steps and
     /// a ship timeline, on the Trace tab at 80x24.
     pub fn long_trace(size: Size) -> Model {
-        let mut m = Model::new(size);
+        let mut m = Model::new(size).with_tab(StageTab::Turn);
         for number in 1..=20u32 {
             Self::engine_frame(
                 &mut m,
@@ -672,7 +713,7 @@ impl Scenes {
     /// A configured project on the Home tab: the launcher job delivered,
     /// the roadmap seeded — every card populated.
     pub fn launcher(size: Size) -> Model {
-        let mut m = Model::new(size).with_tab(StageTab::Home);
+        let mut m = Model::new(size).with_tab(StageTab::Roadmap);
         update(
             &mut m,
             Msg::Engine(crate::engine::EngineEvent::Seed(

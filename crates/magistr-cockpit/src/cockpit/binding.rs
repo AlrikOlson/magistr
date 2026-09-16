@@ -140,24 +140,46 @@ impl Binding {
         Modifiers::CTRL,
     );
 
-    // ── launcher (Home tab) ─────────────────────────────────────────
+    // ── host commands ───────────────────────────────────────────────
+    /// Open the terminal command palette without consuming prompt editing keys.
+    pub const PALETTE: Self = Self::new(
+        "ctrl-p",
+        "commands",
+        "commands",
+        KeyCode::Char('p'),
+        Modifiers::CTRL,
+    );
+    /// The native palette chord; the terminal registry keeps Ctrl-P.
+    pub const PALETTE_CHORD: Self = Self::new(
+        "⌘K",
+        "commands",
+        "commands",
+        KeyCode::Char('k'),
+        Modifiers::SUPER,
+    );
     /// Start one iteration.
     pub const NEXT: Self = Self::new(
-        "n",
-        "next iteration",
-        "launcher",
+        "alt-n",
+        "next",
+        "commands",
         KeyCode::Char('n'),
-        Modifiers::NONE,
+        Modifiers::ALT,
     );
     /// Start the autonomous loop.
-    pub const LOOP: Self = Self::new("l", "loop", "launcher", KeyCode::Char('l'), Modifiers::NONE);
+    pub const LOOP: Self = Self::new(
+        "alt-l",
+        "loop",
+        "commands",
+        KeyCode::Char('l'),
+        Modifiers::ALT,
+    );
     /// Run the quality gates.
     pub const GATES: Self = Self::new(
-        "g",
+        "alt-g",
         "gates",
-        "launcher",
+        "commands",
         KeyCode::Char('g'),
-        Modifiers::NONE,
+        Modifiers::ALT,
     );
     /// Open the Roadmap tab.
     pub const ROADMAP: Self = Self::new(
@@ -265,10 +287,10 @@ impl Binding {
         KeyCode::Home,
         Modifiers::NONE,
     );
-    /// Fold or unfold the most recent card (on an empty prompt).
+    /// Inspect the most recent tool card (on an empty prompt).
     pub const FOLD: Self = Self::new(
         "enter",
-        "fold last card",
+        "inspect last card",
         "stage",
         KeyCode::Enter,
         Modifiers::NONE,
@@ -463,6 +485,7 @@ impl Binding {
         Self::ESC_SHEET,
         Self::QUIT,
         Self::CANCEL,
+        Self::PALETTE,
         Self::NEXT,
         Self::LOOP,
         Self::GATES,
@@ -551,13 +574,12 @@ impl Binding {
         Self::INSPECTOR_CLOSE,
         Self::TAB,
     ];
-    /// The footer on the Home tab.
-    pub const HINT_HOME: &'static [Self] = &[
+    /// The footer offers host commands while idle.
+    pub const HINT_COMMANDS: &'static [Self] = &[
         Self::NEXT,
         Self::LOOP,
         Self::GATES,
-        Self::ROADMAP,
-        Self::SHEET,
+        Self::PALETTE,
         Self::QUIT,
     ];
     /// The footer while the sheet is open. It names the scroll keys

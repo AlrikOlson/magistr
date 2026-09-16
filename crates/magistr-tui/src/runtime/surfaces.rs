@@ -137,6 +137,17 @@ impl Surfaces {
         resolved: &Resolved,
         screen: &mut Screen,
     ) -> bool {
+        // The palette is the last framed overlay in the view. Mask every
+        // underlying pixel surface to the same opaque rectangle as its cells.
+        let cover = model.palette().and_then(|_| {
+            magistr_cockpit::layout::marks(root, resolved)
+                .into_iter()
+                .rev()
+                .find_map(|(rect, mark)| {
+                    matches!(mark, magistr_cockpit::layout::Mark::Panel { .. }).then_some(rect)
+                })
+        });
+        screen.occlude(cover);
         self.show_marks(root, model, resolved, screen);
         self.show_trace_graph(model, resolved, screen);
         self.show_chrome(model, resolved, screen);

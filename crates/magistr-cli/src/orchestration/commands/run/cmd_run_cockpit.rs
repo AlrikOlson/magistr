@@ -125,6 +125,7 @@ pub async fn cmd_run_cockpit(
     let model = runtime
         .run(super::seed_supervision(
             Model::new(size)
+                .with_tab(magistr_cockpit::cockpit::StageTab::Turn)
                 .with_theme(theme)
                 .with_title(title)
                 .with_debug(debug)

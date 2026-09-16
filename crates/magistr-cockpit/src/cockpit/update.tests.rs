@@ -182,8 +182,85 @@ fn settle(model: &mut Model) {
     }
 }
 
+#[test]
+fn turn_tool_selection_opens_a_live_record_in_the_inspector() {
+    let mut m = model();
+    agent(
+        &mut m,
+        AgentEvent::ToolCall {
+            id: "inspect-call".into(),
+            title: "read settings".into(),
+            verb: crate::agent::ToolVerb::Read,
+            status: ToolStatus::InProgress,
+            diff: None,
+            images: Vec::new(),
+            record: Box::new(crate::agent::ToolRecord {
+                input: Some(serde_json::json!({"path":"settings.toml"})),
+                ..Default::default()
+            }),
+        },
+    );
+    change_click(&mut m, Widget::stage_row(0));
+    assert_eq!(
+        m.selected(),
+        Some(&crate::cockpit::Selected::Tool("inspect-call".into()))
+    );
+    agent(
+        &mut m,
+        AgentEvent::ToolCallUpdate {
+            id: "inspect-call".into(),
+            title: Some("settings loaded".into()),
+            status: Some(ToolStatus::Completed),
+            diff: None,
+            duration_ms: Some(19),
+            images: Vec::new(),
+            record: Box::new(crate::agent::ToolRecord {
+                text: vec!["loaded configuration".into()],
+                ..Default::default()
+            }),
+        },
+    );
+    update(&mut m, Msg::Resize(Size::new(132, 42)));
+    assert_eq!(
+        m.selected(),
+        Some(&crate::cockpit::Selected::Tool("inspect-call".into()))
+    );
+    update(&mut m, key(KeyCode::Enter));
+    assert!(m.inspector_open());
+}
+
+#[test]
+fn selected_tool_actions_follow_the_identity_after_resize_and_scrolling() {
+    use crate::cockpit::{Pane, Selected};
+    let mut m = model();
+    agent(&mut m, edit_call("first"));
+    agent(&mut m, edit_call("second"));
+    update(&mut m, key(KeyCode::Enter));
+    assert_eq!(m.selected(), Some(&Selected::Tool("second".into())));
+    update(&mut m, key(KeyCode::Up));
+    assert_eq!(m.selected(), Some(&Selected::Tool("first".into())));
+    update(&mut m, key(KeyCode::Enter));
+    update(&mut m, Msg::Resize(Size::new(120, 40)));
+    for _ in 0..40 {
+        agent(&mut m, AgentEvent::Text("streaming text\n".into()));
+    }
+    update(&mut m, key(KeyCode::End));
+    assert_eq!(m.selected(), Some(&Selected::Tool("first".into())));
+    assert_eq!(
+        change_click(&mut m, Widget::ToolOpen.id()),
+        vec![Cmd::Workbench(WorkbenchCmd::Open {
+            path: "src/main.rs".into()
+        })]
+    );
+    assert_eq!(m.pane(), Pane::Inspector);
+    assert_eq!(
+        change_click(&mut m, Widget::ToolUndo.id()),
+        vec![Cmd::Workbench(WorkbenchCmd::Undo { id: "first".into() })]
+    );
+}
+
 fn model() -> Model {
-    Model::new(Size::new(80, 24))
+    Model::new(Size::new(80, 24)).with_tab(StageTab::Turn)
 }
 
 fn key(code: KeyCode) -> Msg {
@@ -2257,13 +2334,13 @@ fn tab_cycles_the_stage_and_a_click_jumps_to_one() {
     };
     assert_eq!(update(&mut m, click), vec![]);
     assert_eq!(m.tab(), StageTab::Roadmap);
-    // Tab still cycles while a permission waits — Roadmap wraps to Home.
+    // Tab still cycles while a permission waits — Roadmap wraps to Turn.
     agent(&mut m, request(30, "Bash"));
     update(
         &mut m,
         Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL)),
     );
-    assert_eq!(m.tab(), StageTab::Home);
+    assert_eq!(m.tab(), StageTab::Turn);
     assert_eq!(m.permissions_pending(), 1);
 }
 
@@ -2602,7 +2679,10 @@ fn an_edit_tool_call_is_a_foldable_diff_card() {
     assert!(kinds.contains(&RowKind::DiffAdd), "{kinds:?}");
     assert!(kinds.contains(&RowKind::DiffRemove), "{kinds:?}");
     update(&mut m, key(KeyCode::Enter));
-    assert_eq!(m.turn().len(), 1, "Enter folds it back");
+    assert!(
+        m.inspector_open(),
+        "Enter opens the selected edit in detail"
+    );
 }
 
 #[test]
@@ -4207,7 +4287,7 @@ fn reduced_motion_never_starts_the_tick() {
     assert_eq!(m.ticks(), 0);
 }
 
-// ── The launcher (Home tab) and the accelerator sheet ───────────────
+// ── Native launcher, terminal host commands and keyboard help ───────────────
 
 #[test]
 fn a_launcher_job_populates_the_cards() {
@@ -4238,43 +4318,49 @@ fn a_launcher_job_populates_the_cards() {
 }
 
 #[test]
-fn launcher_accelerators_launch_only_on_home_with_an_empty_prompt() {
-    // On the Home tab with an empty prompt, n asks for one iteration
-    // beside a quit.
-    let mut m = model().with_tab(StageTab::Home);
-    assert_eq!(update(&mut m, key(KeyCode::Char('n'))), vec![Cmd::Quit]);
-    assert_eq!(m.launch(), Some(&LaunchAction::Next));
-    assert!(m.quit_requested());
+fn terminal_launch_actions_dispatch_from_footer_palette_and_chords() {
+    for (index, c, query, action) in [
+        (0, 'n', "next", LaunchAction::Next),
+        (1, 'l', "loop", LaunchAction::Loop),
+        (2, 'g', "gates", LaunchAction::Gates),
+    ] {
+        for tab in StageTab::ALL {
+            let mut m = crate::harness::Scenes::launcher(Size::new(120, 40)).with_tab(tab);
+            let commands = change_click(&mut m, Widget::footer_chip(index));
+            assert_eq!(commands, vec![Cmd::Quit]);
+            assert_eq!(m.launch(), Some(&action));
 
-    // l and g ask for the loop and the gates.
-    let mut m = model().with_tab(StageTab::Home);
-    assert_eq!(update(&mut m, key(KeyCode::Char('l'))), vec![Cmd::Quit]);
-    assert_eq!(m.launch(), Some(&LaunchAction::Loop));
-    let mut m = model().with_tab(StageTab::Home);
-    assert_eq!(update(&mut m, key(KeyCode::Char('g'))), vec![Cmd::Quit]);
-    assert_eq!(m.launch(), Some(&LaunchAction::Gates));
+            let mut m = crate::harness::Scenes::launcher(Size::new(120, 40)).with_tab(tab);
+            type_text(&mut m, "keep this draft");
+            update(&mut m, ctrl('p'));
+            type_text(&mut m, query);
+            assert_eq!(update(&mut m, key(KeyCode::Enter)), vec![Cmd::Quit]);
+            assert_eq!(m.launch(), Some(&action));
+            assert_eq!(m.prompt().text(), "keep this draft");
 
-    // m turns the stage to the Roadmap tab without quitting.
-    let mut m = model().with_tab(StageTab::Home);
-    assert_eq!(
-        update(&mut m, key(KeyCode::Char('m'))),
-        vec![Cmd::Animate(Model::TICK_PERIOD)]
-    );
+            let mut m = crate::harness::Scenes::launcher(Size::new(120, 40)).with_tab(tab);
+            assert_eq!(
+                update(
+                    &mut m,
+                    Msg::Key(KeyEvent::new(KeyCode::Char(c)).with(Modifiers::ALT))
+                ),
+                vec![Cmd::Quit]
+            );
+            assert_eq!(m.launch(), Some(&action));
+        }
+    }
+}
+
+#[test]
+fn terminal_palette_closes_without_mutating_draft_or_view() {
+    let mut m = model().with_tab(StageTab::Roadmap);
+    type_text(&mut m, "draft");
+    update(&mut m, ctrl('p'));
+    type_text(&mut m, "turn");
+    update(&mut m, key(KeyCode::Esc));
+    assert!(m.palette().is_none());
+    assert_eq!(m.prompt().text(), "draft");
     assert_eq!(m.tab(), StageTab::Roadmap);
-    assert_eq!(m.launch(), None);
-
-    // With text in the prompt the letters stay the prompt's.
-    let mut m = model().with_tab(StageTab::Home);
-    update(&mut m, key(KeyCode::Char('x')));
-    assert_eq!(update(&mut m, key(KeyCode::Char('n'))), vec![]);
-    assert_eq!(m.prompt().text(), "xn");
-    assert_eq!(m.launch(), None);
-
-    // On any other tab n types into the prompt.
-    let mut m = model();
-    assert_eq!(update(&mut m, key(KeyCode::Char('n'))), vec![]);
-    assert_eq!(m.prompt().text(), "n");
-    assert_eq!(m.launch(), None);
 }
 
 #[test]
@@ -4283,24 +4369,21 @@ fn launcher_buttons_click() {
         event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 10),
         target: Some(widget.id()),
     };
-    let mut m = model().with_tab(StageTab::Home);
+    let mut m = model().with_tab(StageTab::Roadmap);
     assert_eq!(update(&mut m, click(Widget::LaunchNext)), vec![Cmd::Quit]);
     assert_eq!(m.launch(), Some(&LaunchAction::Next));
 
-    let mut m = model().with_tab(StageTab::Home);
+    let mut m = model().with_tab(StageTab::Roadmap);
     assert_eq!(update(&mut m, click(Widget::LaunchLoop)), vec![Cmd::Quit]);
     assert_eq!(m.launch(), Some(&LaunchAction::Loop));
 
-    let mut m = model().with_tab(StageTab::Home);
+    let mut m = model().with_tab(StageTab::Roadmap);
     assert_eq!(update(&mut m, click(Widget::LaunchGates)), vec![Cmd::Quit]);
     assert_eq!(m.launch(), Some(&LaunchAction::Gates));
 
     // The roadmap button is a tab switch, not an exit.
-    let mut m = model().with_tab(StageTab::Home);
-    assert_eq!(
-        update(&mut m, click(Widget::LaunchRoadmap)),
-        vec![Cmd::Animate(Model::TICK_PERIOD)]
-    );
+    let mut m = model().with_tab(StageTab::Roadmap);
+    assert_eq!(update(&mut m, click(Widget::LaunchRoadmap)), vec![]);
     assert_eq!(m.tab(), StageTab::Roadmap);
     assert_eq!(m.launch(), None);
 }
@@ -4369,9 +4452,9 @@ fn a_session_row_with_no_id_reports_on_the_card_instead_of_quitting() {
 
 #[test]
 fn the_arrows_stay_the_prompts_while_the_card_lists_no_sessions() {
-    // With no launcher data at all the Home tab's arrows are the
+    // With no launcher data at all the native launcher's arrows are the
     // prompt's history, exactly as before.
-    let mut m = model().with_tab(StageTab::Home);
+    let mut m = model().with_tab(StageTab::Roadmap);
     update(&mut m, key(KeyCode::Down));
     assert_eq!(m.session_selected(), None);
     assert_eq!(update(&mut m, key(KeyCode::Enter)), vec![]);
@@ -4406,7 +4489,9 @@ fn launcher_model() -> Model {
 
 /// The same, with the rows named.
 fn launcher_model_with(sessions: Vec<crate::cockpit::LauncherSession>) -> Model {
-    let mut m = model().with_tab(StageTab::Home);
+    let mut m = model()
+        .with_surface(Surface::Native)
+        .with_tab(StageTab::Roadmap);
     update(
         &mut m,
         Msg::Job {
@@ -5336,7 +5421,7 @@ fn the_zoom_keys_belong_to_the_roadmap_tab_alone() {
 /// the geometry `snap_undock_placement_180x50`
 /// pins.
 fn undocked(steps: u32, lines: usize) -> Model {
-    let mut m = Model::new(Size::new(180, 50));
+    let mut m = Model::new(Size::new(180, 50)).with_tab(StageTab::Turn);
     let steps = (1..=steps)
         .map(|n| {
             crate::harness::fixtures::step_from(
@@ -6753,7 +6838,7 @@ fn a_galaxy_job_seeds_the_clusters_and_enter_dives_home_and_esc_returns() {
     assert_eq!(w.galaxy().home(), Some(1));
     assert_eq!(
         w.shown_tab(),
-        StageTab::Home,
+        StageTab::Roadmap,
         "the Galaxy stands in the launcher's slot"
     );
     let _ = update(&mut w, key(KeyCode::Enter));

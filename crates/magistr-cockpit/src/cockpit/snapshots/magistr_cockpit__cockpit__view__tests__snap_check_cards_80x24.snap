@@ -5,7 +5,7 @@ expression: screen(&m)
 ▲ magistr  ▘ streaming                                                     00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                     │
+│◂                         │ │Turn  Session  Roadmap                           │
 │no objective yet          │ │▎ Running the gates.                             │
 │roadmap 0/0 done          │ │  ▸ task started · verify                        │
 │signals 0                 │ │  ✦ think 7 · verify the slice                   │
@@ -17,7 +17,7 @@ Research▸Plan▸Execute▸Verify
 │                          │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
 │                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, step or change               │
+│                          │ │Select a work item, tool, step or change         │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

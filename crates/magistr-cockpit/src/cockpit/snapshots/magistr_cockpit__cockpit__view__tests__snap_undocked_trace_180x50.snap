@@ -5,7 +5,7 @@ expression: screen
 ▲ magistr  idle                                                                                                                                                                00:01
 tui2-2-rail  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭──────────────────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                                  │  │Select a work item, step or change│  ⇱ Session
+│◂                         │ │Turn  Session  Roadmap                                        │  │Select a work item, tool, step or │  ⇱ Session
 │no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlog · 1 propo…│  │                                  │  session · 1 step · 0 changes · UTC
 │▲ tui2-2-rail · 1/3       │ │«Engine» 1/1          Status: Active ▾ · 2                    │  │                                  │  ▸  7  hypothesis  0.70
 │▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«TUI rewrite» 0/2     Name          Status↑    Pri   Stream   │  │                                  │

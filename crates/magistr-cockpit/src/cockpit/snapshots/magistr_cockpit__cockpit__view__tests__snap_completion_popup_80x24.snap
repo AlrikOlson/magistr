@@ -5,15 +5,15 @@ expression: "screen(&completing(Size::new(80, 24)))"
 ▲ magistr  awaiting input                                                  00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                     │
-│no objective yet          │ │▎ All done here.                                 │
-│roadmap 0/0 done          │ │                                                 │
+│◂                         │ │Turn  Session  Roadmap                           │
+│no objective yet          │ │roadmap   0 done · 0 active · 0 pending · 0 back…│
+│roadmap 0/0 done          │ │no roadmap yet — the store is empty              │
 │signals 0                 │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
 │                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, step or change               │
+│                          │ │Select a work item, tool, step or change         │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

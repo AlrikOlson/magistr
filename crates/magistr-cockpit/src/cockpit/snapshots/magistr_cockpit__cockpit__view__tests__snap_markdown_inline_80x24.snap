@@ -5,7 +5,7 @@ expression: "screen(&markdown(Size::new(80, 24)))"
 ▲ magistr  ▘ streaming                                                     00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                     │
+│◂                         │ │Turn  Session  Roadmap                           │
 │no objective yet          │ │▎ Some bold, emphasis, inline code and a link.   │
 │roadmap 0/0 done          │ │▎ ── rust ───────────────────────────────────────│
 │signals 0                 │ │▎ fn main() {                                    │
@@ -17,7 +17,7 @@ Research▸Plan▸Execute▸Verify
 │                          │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
 │                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, step or change               │
+│                          │ │Select a work item, tool, step or change         │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
