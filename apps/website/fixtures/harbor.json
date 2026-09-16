@@ -1299,6 +1299,17 @@
       "diff": "@@ tenant budget @@\n-shared_pool.take();\n+tenant_budget.decrement();"
     }
   ],
+  "turn": {
+    "prompt": "Make webhook retries safe across worker restarts.",
+    "response": "The lease and retry budget must survive the worker. I will persist the retry schedule with the delivery receipt, then run the restart checks.",
+    "read_title": "Read retry lease and budget",
+    "edit_path": "src/retry/lease.rs",
+    "old_text": "renew_in_memory();\n",
+    "new_text": "receipt_and_schedule.commit()?;\n",
+    "edit_summary": "The receipt and next attempt now commit together. A restarted worker resumes from the saved schedule.",
+    "command": "cargo test -p harbor-delivery retry",
+    "terminal": "   Compiling harbor-delivery v0.1.0\r\n    Finished test profile in 1.8s\r\n     Running retry checks\r\n\r\ntest retry::lease_survives_restart ... ok\r\ntest retry::budget_is_durable ... ok\r\ntest retry::no_duplicate_attempt ... ok\r\n\r\ntest result: ok. 3 passed; 0 failed\r\n"
+  },
   "steps": [
     {
       "step_number": 1,

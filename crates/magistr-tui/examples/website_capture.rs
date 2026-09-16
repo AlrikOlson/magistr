@@ -1,22 +1,24 @@
 //! Reproducible website captures from a synthetic project; never reads a native store.
 //!
 //! `cargo run -p magistr-tui --example website_capture -- <fixture.json> <out-dir>`
-//! renders three states of the fixture's project at the capture size, in
+//! renders four states of the fixture's project at the capture size, in
 //! both themes, through the real terminal renderer: the Roadmap tab as
 //! an overview (`terminal-overview-{dark,light}.png`), the Roadmap tab
 //! with the chunk in progress selected so the focus chain lights
 //! (`terminal-roadmap-{dark,light}.png`), and the Session view with a
 //! mid-trace step selected so its card and relations show
-//! (`terminal-session-{dark,light}.png`). `scripts/website-captures.sh` runs this and rewrites
-//! the manifest beside the images.
+//! (`terminal-session-{dark,light}.png`), and Turn with its conversation, test
+//! terminal and selected edit diff (`terminal-turn-{dark,light}.png`).
+//! `scripts/website-captures.sh` runs this and rewrites the manifest beside them.
 
 use std::error::Error;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use magistr_cockpit::agent::{AgentEvent, EditDiff, ToolRecord, ToolStatus, ToolVerb};
 use magistr_cockpit::cockpit::{FrameClock, Model, Msg, Size, StageTab, Surface, Widget, update};
 use magistr_cockpit::harness::fixtures;
-use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+use magistr_cockpit::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use magistr_cockpit::theme::{Theme, ThemeMode};
 use magistr_engine::NativeSnapshot;
 use magistr_engine::native::ChunkStatus;
@@ -107,6 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             ("overview", StageTab::Roadmap),
             ("roadmap", StageTab::Roadmap),
             ("session", StageTab::Session),
+            ("turn", StageTab::Turn),
         ] {
             let mut model = Model::new(CAPTURE)
                 .with_surface(Surface::Terminal)
@@ -131,6 +134,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
             }
             match (name, tab) {
+                (_, StageTab::Turn) => turn(&mut model, &data["turn"])?,
                 (_, StageTab::Session) => {
                     // The step two before the newest: its card, its
                     // relations and the branch it stands on all show.
@@ -157,10 +161,72 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     eprintln!(
-        "Synthetic Harbor project: {} chunks, {edges} dependencies, {done} completed, {} reasoning steps; six terminal captures.",
+        "Synthetic Harbor project: {} chunks, {edges} dependencies, {done} completed, {} reasoning steps; eight terminal captures.",
         snapshot.chunks.len(),
         snapshot.steps.len()
     );
+    Ok(())
+}
+
+/// Public conversation events use the same Harbor scenario as the roadmap.
+fn turn(model: &mut Model, data: &Value) -> Result<(), Box<dyn Error>> {
+    let text = |key: &str| -> Result<&str, Box<dyn Error>> {
+        data[key]
+            .as_str()
+            .ok_or_else(|| format!("missing Turn field: {key}").into())
+    };
+    for event in [
+        AgentEvent::UserText(text("prompt")?.into()),
+        AgentEvent::Text(text("response")?.into()),
+        AgentEvent::ToolCall {
+            id: "harbor-read".into(),
+            title: text("read_title")?.into(),
+            verb: ToolVerb::Read,
+            status: ToolStatus::Completed,
+            diff: None,
+            images: Vec::new(),
+            record: Default::default(),
+        },
+        AgentEvent::ToolCall {
+            id: "harbor-edit".into(),
+            title: format!("Edit {}", text("edit_path")?),
+            verb: ToolVerb::Edit,
+            status: ToolStatus::Completed,
+            diff: Some(EditDiff {
+                path: text("edit_path")?.into(),
+                old_text: text("old_text")?.into(),
+                new_text: text("new_text")?.into(),
+            }),
+            images: Vec::new(),
+            record: Default::default(),
+        },
+        AgentEvent::Text(text("edit_summary")?.into()),
+        AgentEvent::ToolCall {
+            id: "harbor-test".into(),
+            title: text("command")?.into(),
+            verb: ToolVerb::Run,
+            status: ToolStatus::Completed,
+            diff: None,
+            images: Vec::new(),
+            record: Box::new(ToolRecord {
+                input: Some(serde_json::json!({"command": text("command")?})),
+                output: Some(serde_json::json!({"passed": 3, "failed": 0})),
+                terminal: Some("harbor-test-terminal".into()),
+                ..ToolRecord::default()
+            }),
+        },
+        AgentEvent::Terminal {
+            terminal_id: "harbor-test-terminal".into(),
+            bytes: text("terminal")?.as_bytes().to_vec(),
+        },
+    ] {
+        update(model, Msg::Agent(event));
+    }
+    // Open the test terminal, then select the edit immediately before it.
+    // The test output stays in Turn while the shared inspector shows the diff.
+    for key in [KeyCode::Enter, KeyCode::Up, KeyCode::Enter] {
+        update(model, Msg::Key(KeyEvent::new(key)));
+    }
     Ok(())
 }
 

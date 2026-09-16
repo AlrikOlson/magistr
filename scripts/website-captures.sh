@@ -5,7 +5,7 @@
 # The captures are the real terminal renderer's frames of a sample project
 # (apps/website/fixtures/harbor.json); the project's own roadmap is never
 # read. Run this after an intentional change to the terminal interface, then
-# review the six images and commit them with the manifest.
+# review the eight images and commit them with the manifest.
 #
 # Usage:
 #   ./scripts/website-captures.sh
@@ -25,7 +25,8 @@ out, fixture = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 images = []
 for name in ["terminal-overview-dark.png", "terminal-overview-light.png",
              "terminal-roadmap-dark.png", "terminal-roadmap-light.png",
-             "terminal-session-dark.png", "terminal-session-light.png"]:
+             "terminal-session-dark.png", "terminal-session-light.png",
+             "terminal-turn-dark.png", "terminal-turn-light.png"]:
     data = (out / name).read_bytes()
     width, height = struct.unpack(">II", data[16:24])
     images.append({"file": name, "sha256": hashlib.sha256(data).hexdigest(),

@@ -70,6 +70,13 @@ magistr next
 Runs the next ready work item — the most urgent pending item whose dependencies are done — in one session and records what happened. `magistr next-loop` continues through fresh agent sessions, one item per session, up to `--max-iterations` (default 10).
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-turn-dark.png" />
+  <img alt="The Turn tab: conversation and tool calls, an expanded terminal with passing retry tests, and the selected edit diff in the inspector." src="apps/website/public/screenshots/terminal-turn-light.png" width="1320" height="840" />
+</picture>
+
+*The Turn view: conversation and command output with the selected edit's diff in the inspector ([dark](apps/website/public/screenshots/terminal-turn-dark.png) · [light](apps/website/public/screenshots/terminal-turn-light.png)).*
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-session-dark.png" />
   <img alt="The Session view: reasoning steps on a main line with two merged branches, a selected step's card, and reasoning, actions, checks and file changes in timestamp order below." src="apps/website/public/screenshots/terminal-session-light.png" width="1320" height="840" />
 </picture>
