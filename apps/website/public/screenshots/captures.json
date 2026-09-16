@@ -12,14 +12,14 @@
     {
       "file": "terminal-overview-dark.png",
       "screen": "conversation",
-      "sha256": "0befe3834410d4bcebc39a3f5ea4189b44d40749aa95d3b03d8ae80e2e13835b",
+      "sha256": "b20a79f93160450c75baec2f5b893de369f7c4ec82147da2e0d4c6885bceca2a",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-overview-light.png",
       "screen": "conversation",
-      "sha256": "5d6349d4df2c4f1618dca432b76c2ff2dd134b96e54c99c7e9110fa24856d4f3",
+      "sha256": "02b8f1cf88f9c6e58907c875b7e8ce3ef1d49488dc984bd4229d917223a402e8",
       "width": 1440,
       "height": 1000
     },
@@ -40,28 +40,28 @@
     {
       "file": "terminal-session-dark.png",
       "screen": "conversation",
-      "sha256": "820d628883dc8d482a4b83107c80d712171453fc3418e8009294ee32954b2d02",
+      "sha256": "475a2134a61aaaade9ee3cb970f348a123c47c1fe0183b9e18002e10cf93336e",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-session-light.png",
       "screen": "conversation",
-      "sha256": "f820779ce7a2626f75407390d44d6f0a2e424bc1bcf07917f29388e791c88d3a",
+      "sha256": "be62860c97b16a1daeff47d654db7b925333948aab1dbedaa5b9f5ce02b34ba6",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-dark.png",
       "screen": "conversation",
-      "sha256": "b8d4fdf6848e4b791cdd133c73007b68bb5781764336377e9cc59a79d692d73f",
+      "sha256": "c3e1b8eea2728fbc82fd307f9899826086b2e1e5ccc8d70d241027dc25fd162d",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-light.png",
       "screen": "conversation",
-      "sha256": "501a3a3ec35f7262c8ffc4fd5954ed7728619c2414b5296466cfdb20afb646df",
+      "sha256": "180a5592c0fd5bbee30fa88d82f2edb701ff2dd777eeef63d0cac977fc814da0",
       "width": 1440,
       "height": 1000
     }
