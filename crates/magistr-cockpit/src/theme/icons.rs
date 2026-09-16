@@ -1,5 +1,7 @@
 //! The cockpit's glyph vocabulary, in two sets.
 
+use crate::pixel::Icon;
+
 /// Every glyph the cockpit draws that means something — one field per
 /// idea, never a literal at the call site — so a surface asks for
 /// "blocked" rather than for `⊘`, and the whole screen changes
@@ -271,6 +273,41 @@ impl Icons {
             ("spark 6", self.spark[6]),
             ("spark 7", self.spark[7]),
         ]
+    }
+
+    /// The glyph that spells `icon` in this set — the text form of the
+    /// vector vocabulary, so a line built for a plain terminal and the
+    /// mark drawn on a graphics one name the same idea.
+    #[must_use]
+    pub const fn of(&self, icon: Icon) -> &'static str {
+        match icon {
+            Icon::FoldClosed => self.collapsed,
+            Icon::FoldOpen => self.expanded,
+            Icon::Done => self.done,
+            Icon::Failed => self.failed,
+            Icon::Pending => self.pending,
+            Icon::Ready | Icon::InProgress => self.active,
+            Icon::Blocked => self.blocked,
+            Icon::Pinned | Icon::Pin => self.pinned,
+            Icon::Checkpoint => self.checkpoint,
+            Icon::Signal => self.signal,
+            Icon::Proposal => self.proposal,
+            Icon::Here => self.here,
+            Icon::Bullet => self.bullet,
+            Icon::Warning => self.warning,
+            Icon::Blocker => self.blocker,
+            Icon::Stopped => self.stopped,
+            Icon::Waiting => self.waiting,
+            Icon::Skipped => self.skipped,
+            Icon::Planned => self.planned,
+            Icon::Collapse => self.collapse,
+            Icon::Running => self.running,
+            Icon::Spinner(step) => self.spin(step as u64),
+            Icon::Undock => self.undock,
+            Icon::File => self.file,
+            Icon::Edit => self.edit,
+            Icon::Keys => self.keys,
+        }
     }
 
     /// The glyph for a check's outcome.

@@ -1,6 +1,7 @@
 ---
-source: crates/magistr-tui/src/pixel/icon.tests.rs
-expression: "ascii(&render(Icon::Dot))"
+source: crates/magistr-cockpit/src/pixel/icon.tests.rs
+assertion_line: 47
+expression: "ascii(&render(Icon::Ready))"
 ---
                 
                 

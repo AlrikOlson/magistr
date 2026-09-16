@@ -210,9 +210,9 @@ impl Driver {
         paint(&root, &resolved, self.screen.buffer());
         self.hits.clear();
         self.hits.register_layout(&resolved, 0);
-        let report_changed = self
-            .surfaces
-            .show(&mut self.model, &resolved, &mut self.screen);
+        let report_changed =
+            self.surfaces
+                .show(&root, &mut self.model, &resolved, &mut self.screen);
         self.report_undock(&resolved);
         self.show_headline(&resolved);
         self.show_progress();

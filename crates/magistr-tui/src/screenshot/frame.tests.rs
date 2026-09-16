@@ -86,22 +86,9 @@ fn every_placement_is_under_the_text_at_the_protocols_own_z() {
 /// the assumption the module's own doc rests on.
 #[test]
 fn every_surface_the_frame_shows_is_decoded() {
-    let (_, images) = compose(&roadmapped(), &clock(), KITTY).expect("layout succeeds");
-    let mut wire = Vec::new();
-    let size = roadmapped().size();
-    let mut model = roadmapped();
-    update(&mut model, Msg::Mode(Decision::Graphics(KITTY).mode()));
-    let mut screen = screen(size, KITTY);
-    let root = view(&model, &clock());
-    let resolved = LayoutTree::new()
-        .compute(&root, size.cols, size.rows)
-        .expect("layout succeeds");
-    let mut buffer = Buffer::new(size.cols, size.rows);
-    paint(&root, &resolved, &mut buffer);
-    *screen.buffer() = buffer;
-    Surfaces::default().show(&mut model, &resolved, &mut screen);
-    screen.present(&mut wire);
-    let placed = wire.windows(6).filter(|w| *w == b"\x1b_Ga=p").count();
+    let (_, bytes) = wire(&roadmapped(), &clock(), KITTY).expect("layout succeeds");
+    let images = kitty::decode(&bytes);
+    let placed = bytes.windows(6).filter(|w| *w == b"\x1b_Ga=p").count();
     assert!(placed > 0, "the frame placed nothing to count");
     assert_eq!(
         images.len(),

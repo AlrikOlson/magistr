@@ -512,10 +512,21 @@ impl Roadmap {
     /// shows where the pixel DAG would sit: `«group» done/total`.
     #[must_use]
     pub fn band_rows(&self) -> Vec<String> {
+        self.bands()
+            .into_iter()
+            .map(|(group, done, total)| format!("«{group}» {done}/{total}"))
+            .collect()
+    }
+
+    /// The workstreams in tier order — `(group, done, total)` each —
+    /// the order the tech-tree numbers its regions in, so the legend's
+    /// n-th band wears the painter's n-th tint.
+    #[must_use]
+    pub fn bands(&self) -> Vec<(String, usize, usize)> {
         let graph = self.graph_chunks();
         let mut bands: Vec<(&str, u32, usize, usize)> = Vec::new();
         for chunk in &graph {
-            let group = chunk.group.as_deref().unwrap_or("ungrouped");
+            let group = chunk.group.as_deref().unwrap_or("");
             let done = usize::from(chunk.status == "done");
             match bands.iter_mut().find(|(name, ..)| *name == group) {
                 Some((_, best, done_count, total)) => {
@@ -529,7 +540,10 @@ impl Roadmap {
         bands.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(b.0)));
         bands
             .into_iter()
-            .map(|(group, _, done, total)| format!("«{group}» {done}/{total}"))
+            .map(|(group, _, done, total)| {
+                let name = if group.is_empty() { "ungrouped" } else { group };
+                (name.to_owned(), done, total)
+            })
             .collect()
     }
 
@@ -916,11 +930,20 @@ impl Roadmap {
     /// neighbourhood.
     #[must_use]
     pub fn mini_summary(&self, icons: &Icons) -> [String; 2] {
+        let [here, neighbours] = self.mini_glance();
+        [format!("{} {here}", icons.here), neighbours]
+    }
+
+    /// The glance's two lines without the `here` mark: what stands
+    /// after it — the chunk in progress, or `nothing in progress` —
+    /// and its neighbours' count, or the pending count.
+    #[must_use]
+    pub fn mini_glance(&self) -> [String; 2] {
         let graph = self.graph_chunks();
         let Some(here) = graph.iter().find(|c| c.is_in_progress()) else {
             let pending = graph.iter().filter(|c| c.status == "pending").count();
             return [
-                format!("{} nothing in progress", icons.here),
+                "nothing in progress".to_owned(),
                 format!("{pending} pending"),
             ];
         };
@@ -931,7 +954,7 @@ impl Roadmap {
             .count();
         let after = graph.iter().filter(|c| c.deps.contains(&here.id)).count();
         [
-            format!("{} {}", icons.here, here.name),
+            here.name.clone(),
             format!("{before} before · {after} after"),
         ]
     }

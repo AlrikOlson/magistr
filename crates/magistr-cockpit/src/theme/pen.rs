@@ -7,6 +7,7 @@ use super::decision::Theme;
 use super::icons::Icons;
 use super::severity::Severity;
 use crate::agent::{PermissionKind, ToolStatus};
+use crate::pixel::Icon;
 use crate::render::{Attrs, Color, Style};
 use crate::turn::{Accent, RowKind, SpanStyle, Voice};
 
@@ -344,6 +345,33 @@ impl Pen {
             &self.panel_focus
         } else {
             &self.panel_border
+        }
+    }
+
+    /// The colour a vector glyph is drawn in: keyed to what the glyph
+    /// means, so a tick is the success colour whatever line it sits on,
+    /// a pin is violet and a checkpoint amber — the status vocabulary
+    /// the text pens already grade, read off them.
+    #[must_use]
+    pub const fn ink(&self, icon: Icon) -> Color {
+        match icon {
+            Icon::FoldClosed
+            | Icon::FoldOpen
+            | Icon::Collapse
+            | Icon::Pending
+            | Icon::Planned
+            | Icon::Waiting
+            | Icon::Skipped => self.note.fg,
+            Icon::Done => self.diff_add.fg,
+            Icon::Failed | Icon::Blocker | Icon::Stopped => self.error.fg,
+            Icon::Ready | Icon::Signal | Icon::Undock | Icon::File | Icon::Edit | Icon::Keys => {
+                self.heading.fg
+            }
+            Icon::Blocked | Icon::Warning | Icon::Checkpoint => self.warn.fg,
+            Icon::InProgress | Icon::Here | Icon::Running | Icon::Spinner(_) => self.rail.fg,
+            Icon::Pinned | Icon::Pin => self.always.fg,
+            Icon::Proposal => self.accent_tool.fg,
+            Icon::Bullet => self.bullet.fg,
         }
     }
 

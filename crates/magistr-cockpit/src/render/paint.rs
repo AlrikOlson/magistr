@@ -77,7 +77,9 @@ fn fill_rect(rect: Rect, buffer: &mut Buffer, style: &Style) {
 /// The rounded ring on `rect`: corners, edges, the title embedded after
 /// the top-left corner, the meta right-aligned before the top-right one.
 /// A rect under 2×2 has no ring to draw and is left alone; a title or
-/// meta that does not fit is clipped, the ring never is.
+/// meta that does not fit is clipped, the ring never is. A
+/// [`drawn`](Frame::is_drawn) frame leaves the ring's cells blank for
+/// the pixel layer and writes only its title and meta.
 fn paint_frame(frame: &Frame, rect: Rect, buffer: &mut Buffer) {
     if rect.width < 2 || rect.height < 2 {
         return;
@@ -85,21 +87,28 @@ fn paint_frame(frame: &Frame, rect: Rect, buffer: &mut Buffer) {
     let style = frame.border_style();
     let right = rect.right() - 1;
     let bottom = rect.bottom() - 1;
-    let run = "─".repeat(usize::from(rect.width) - 2);
-    buffer.put_str(rect.x, rect.y, &format!("╭{run}╮"), style);
-    buffer.put_str(rect.x, bottom, &format!("╰{run}╯"), style);
-    for row in rect.y + 1..bottom {
-        buffer.put_str(rect.x, row, "│", style);
-        buffer.put_str(right, row, "│", style);
+    if !frame.is_drawn() {
+        let run = "─".repeat(usize::from(rect.width) - 2);
+        buffer.put_str(rect.x, rect.y, &format!("╭{run}╮"), style);
+        buffer.put_str(rect.x, bottom, &format!("╰{run}╯"), style);
+        for row in rect.y + 1..bottom {
+            buffer.put_str(rect.x, row, "│", style);
+            buffer.put_str(right, row, "│", style);
+        }
     }
     // The slot between `╭─` and `─╮`: the title from the left, the meta
     // from the right, each wrapped in one space and cut to what fits.
     let slot = usize::from(rect.width).saturating_sub(4);
     let mut used = 0;
-    if let Some(title) = frame.title_text().filter(|t| !t.is_empty() && slot > 2) {
-        let text: String = title.chars().take(slot - 2).collect();
+    if let Some((col, cols)) = frame.title_span(rect.width) {
+        let text: String = frame
+            .title_text()
+            .unwrap_or_default()
+            .chars()
+            .take(usize::from(cols) - 2)
+            .collect();
         used = 2 + buffer.put_str(
-            rect.x + 2,
+            rect.x + col,
             rect.y,
             &format!(" {text} "),
             frame.heading_style(),

@@ -1,5 +1,6 @@
 //! How a recorded session ended.
 
+use crate::pixel::Icon;
 use crate::theme::Icons;
 
 /// The outcome of a past session, as the launcher's sessions card shows
@@ -18,13 +19,19 @@ pub enum SessionOutcome {
 }
 
 impl SessionOutcome {
+    /// The mark for this outcome.
+    #[must_use]
+    pub const fn icon(self) -> Icon {
+        match self {
+            Self::Success => Icon::Done,
+            Self::Error => Icon::Failed,
+            Self::Cancelled => Icon::Waiting,
+        }
+    }
+
     /// The one-cell mark for this outcome in `icons`' vocabulary.
     #[must_use]
     pub const fn glyph(self, icons: &Icons) -> &'static str {
-        match self {
-            Self::Success => icons.done,
-            Self::Error => icons.failed,
-            Self::Cancelled => icons.waiting,
-        }
+        icons.of(self.icon())
     }
 }

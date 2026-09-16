@@ -14,6 +14,7 @@
 pub mod activity;
 mod driver;
 pub mod error;
+mod marks;
 pub mod options;
 mod osc52;
 pub mod runner;

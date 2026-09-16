@@ -71,11 +71,14 @@ fn sparkline(frame: u32) -> Box<dyn Painter> {
 }
 
 fn icon(frame: u32) -> Box<dyn Painter> {
-    Box::new(match frame % 4 {
-        0 => Icon::Check,
-        1 => Icon::Cross,
-        2 => Icon::Dot,
-        _ => Icon::Play,
+    let icon = match frame % 4 {
+        0 => Icon::Done,
+        1 => Icon::Failed,
+        2 => Icon::Ready,
+        _ => Icon::InProgress,
+    };
+    Box::new(move |pixmap: &mut tiny_skia::PixmapMut<'_>| {
+        icon.draw(pixmap, tiny_skia::Color::WHITE);
     })
 }
 

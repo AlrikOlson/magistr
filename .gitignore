@@ -62,6 +62,8 @@ vendor/
 # Versioned screenshots; exclude unreviewed candidates
 !crates/magistr-tui/tests/golden/**/*.png
 crates/magistr-tui/tests/golden/**/*.new.png
+!crates/magistr-cockpit/tests/golden/**/*.png
+crates/magistr-cockpit/tests/golden/**/*.new.png
 .magistr-roadmap.yml.lock
 
 

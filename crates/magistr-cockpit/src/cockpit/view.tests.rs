@@ -2513,7 +2513,7 @@ fn the_registrys_row_count_is_what_the_sheet_body_paints() {
     // Binding::ALL separately, so pin them to each other.
     let pen = Pen::for_theme(&Theme::default());
     assert_eq!(
-        sheet_body(&pen).len(),
+        sheet_body(&model(), &pen).len(),
         crate::cockpit::Binding::sheet_rows()
     );
 }
@@ -4855,4 +4855,94 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
             }
         }
     }
+}
+
+/// The glyphs a graphics terminal must never spell: the whole icon
+/// vocabulary — every one is a mark there — less the typography that
+/// stays text on purpose (the prompt's mark, the jump pill's arrow, the
+/// pane's time rail, a diff's plus and minus, and the `planned` dot,
+/// which is also the separator between every pair of facts), and the
+/// box characters of a spelled ring.
+fn spelled_glyphs() -> Vec<&'static str> {
+    let text = [
+        Icons::UNICODE.prompt,
+        Icons::UNICODE.latest,
+        Icons::UNICODE.rail_tick,
+        Icons::UNICODE.rail_break,
+        Icons::UNICODE.added,
+        Icons::UNICODE.removed,
+        Icons::UNICODE.planned,
+    ];
+    let mut glyphs: Vec<&'static str> = Icons::UNICODE
+        .entries()
+        .into_iter()
+        .map(|(_, glyph)| glyph)
+        .filter(|glyph| !text.contains(glyph))
+        .collect();
+    glyphs.extend(["─", "│", "╭", "╮", "╰", "╯"]);
+    glyphs
+}
+
+/// On a graphics terminal no cell of any surface spells a panel edge,
+/// a list marker, a status glyph, a progress bar, a legend, a key cap
+/// or a phase separator: each is a mark the compositor draws, and the
+/// cell it would have taken is blank. Swept at every audited size, on
+/// every scene, with the pixel layer live — and the same scenes on a
+/// plain terminal still spell them, so the fallback is proven by the
+/// same walk.
+#[test]
+fn a_graphics_terminal_spells_no_glyph_a_mark_draws() {
+    let glyphs = spelled_glyphs();
+    let scenes: [(&str, Surface); 12] = [
+        ("launcher", Scenes::launcher),
+        ("streaming", Scenes::streaming),
+        ("permission", Scenes::permission),
+        ("roadmap", Scenes::roadmapped),
+        ("changes", Scenes::changed),
+        ("trace", Scenes::traced),
+        ("looping", Scenes::looping),
+        ("sheet", Scenes::sheeted),
+        ("terminal-dock", Scenes::terminal_dock),
+        ("terminal-killed", Scenes::terminal_killed),
+        ("briefed", Scenes::briefed),
+        ("sky-working", Scenes::sky_working),
+    ];
+    let mut spelled = Vec::new();
+    let mut plain_spelled = 0;
+    for (cols, rows) in AUDIT_SIZES {
+        let size = Size::new(cols, rows);
+        for (name, make) in scenes {
+            let plain = make(size);
+            let mut pixels = plain.clone();
+            update(
+                &mut pixels,
+                Msg::Mode(crate::capability::Mode::Graphics {
+                    pointer_shapes: true,
+                }),
+            );
+            for (row, line) in screen(&pixels).lines().enumerate() {
+                for glyph in &glyphs {
+                    if line.contains(glyph) {
+                        spelled.push(format!(
+                            "{name} {cols}x{rows} row {row}: {glyph} in {line:?}"
+                        ));
+                    }
+                }
+            }
+            plain_spelled += screen(&plain)
+                .lines()
+                .filter(|line| glyphs.iter().any(|glyph| line.contains(glyph)))
+                .count();
+        }
+    }
+    assert!(
+        spelled.is_empty(),
+        "{} cells spelled on a graphics terminal:\n{}",
+        spelled.len(),
+        spelled.join("\n")
+    );
+    assert!(
+        plain_spelled > 0,
+        "a plain terminal still spells its glyphs"
+    );
 }

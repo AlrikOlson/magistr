@@ -180,6 +180,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/loop_stage.rs` | Where the loop driver stands within an iteration | `magistr-cockpit/src/cockpit/loop_stage.tests.rs` · `magistr-cockpit/src/cockpit/bad_day.tests.rs` |
 | `magistr-cockpit/src/cockpit/loop_status.rs` | Where the iteration loop stands | `magistr-cockpit/src/cockpit/loop_status.tests.rs` |
 | `magistr-cockpit/src/cockpit/loop_verdict.rs` | Iteration review outcome | `magistr-cockpit/src/cockpit/loop_verdict.tests.rs` |
+| `magistr-cockpit/src/cockpit/marked.rs` | A line of text with vocabulary glyphs in it, built once for both kinds of terminal | `magistr-cockpit/src/cockpit/marked.tests.rs` |
 | `magistr-cockpit/src/cockpit/model.rs` | The cockpit's state | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/motion.rs` | Everything on the cockpit that moves, as state the tick advances | `magistr-cockpit/src/cockpit/motion.tests.rs` |
 | `magistr-cockpit/src/cockpit/motion_key.rs` | Model values used to detect changes that trigger animations | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
@@ -347,6 +348,8 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/layout/inset.rs` | How far an overlay sits from its parent's edges | `magistr-cockpit/src/layout/inset.tests.rs` |
 | `magistr-cockpit/src/layout/justify.rs` | How a container distributes its children along the main axis | `magistr-cockpit/src/layout/justify.tests.rs` |
 | `magistr-cockpit/src/layout/length.rs` | How a node sizes itself along one axis | `magistr-cockpit/src/layout/length.tests.rs` |
+| `magistr-cockpit/src/layout/mark.rs` | What a node asks the pixel layer to draw over its cells | `magistr-cockpit/src/layout/mark.tests.rs` |
+| `magistr-cockpit/src/layout/marks.rs` | Every mark on a laid-out tree, with the rect layout gave its node | `magistr-cockpit/src/layout/marks.tests.rs` |
 | `magistr-cockpit/src/layout/measure.rs` | Text measurement interface | `magistr-cockpit/src/layout/cell_measure.tests.rs` |
 | `magistr-cockpit/src/layout/node.rs` | A declarative description of one node in the layout tree | `magistr-cockpit/src/layout/node.tests.rs` |
 | `magistr-cockpit/src/layout/placed.rs` | One node's place on screen after layout | `magistr-cockpit/src/layout/tree.tests.rs` |
@@ -365,12 +368,17 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/pixel/branch_graph.rs` | The think trace's branches as a small commit-style graph | `magistr-cockpit/src/pixel/branch_graph.tests.rs` |
 | `magistr-cockpit/src/pixel/brand.rs` | The product mark as a vector | `magistr-cockpit/src/pixel/brand.tests.rs` |
 | `magistr-cockpit/src/pixel/cell_size.rs` | One terminal cell in pixels: what a surface's size in cells scales by | `magistr-cockpit/src/pixel/cell_size.tests.rs` |
+| `magistr-cockpit/src/pixel/chip.rs` | A key cap as a drawn chip | `magistr-cockpit/src/pixel/chip.tests.rs` |
 | `magistr-cockpit/src/pixel/gauge.rs` | A fraction as a smooth bar | `magistr-cockpit/src/pixel/gauge.tests.rs` |
-| `magistr-cockpit/src/pixel/icon.rs` | Small vector glyphs painted with transparency | `magistr-cockpit/src/pixel/icon.tests.rs` |
+| `magistr-cockpit/src/pixel/icon.rs` | The vocabulary as vector glyphs, painted with transparency | `magistr-cockpit/src/pixel/icon.tests.rs` |
 | `magistr-cockpit/src/pixel/image.rs` | An agent's image, scaled into the cells the stream gave it | `magistr-cockpit/src/pixel/image.tests.rs` |
 | `magistr-cockpit/src/pixel/painter.rs` | What paints a surface | `magistr-tui/tests/graphics_harness.rs` |
+| `magistr-cockpit/src/pixel/panel.rs` | A framed node's ring as a drawn panel | `magistr-cockpit/src/pixel/panel.tests.rs` |
 | `magistr-cockpit/src/pixel/pixel_format.rs` | How the bytes of a packed pixel surface are laid out | `magistr-cockpit/src/pixel/pixel_format.tests.rs` |
 | `magistr-cockpit/src/pixel/roadmap_dag.rs` | Roadmap pixels with cycle-safe visual transitive reduction; stored dependencies remain intact | `magistr-cockpit/src/pixel/roadmap_dag.tests.rs` |
+| `magistr-cockpit/src/pixel/rounded.rs` | The rounded rectangle every drawn chip, segment and label is made of | `magistr-cockpit/src/pixel/rounded.tests.rs` |
+| `magistr-cockpit/src/pixel/rule.rs` | A soft horizontal rule | `magistr-cockpit/src/pixel/rule.tests.rs` |
+| `magistr-cockpit/src/pixel/segment.rs` | One segment of a drawn segmented control | `magistr-cockpit/src/pixel/segment.tests.rs` |
 | `magistr-cockpit/src/pixel/sparkline.rs` | A series of values as a line over a filled area | `magistr-cockpit/src/pixel/sparkline.tests.rs` |
 | `magistr-cockpit/src/pixel/surface.rs` | A rectangle of cells that a widget paints in pixels | `magistr-cockpit/src/pixel/surface.tests.rs` |
 
@@ -538,6 +546,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-tui/src/runtime/error.rs` | What can stop the runtime | `magistr-tui/src/runtime/error.tests.rs` |
 | `magistr-tui/src/runtime/options.rs` | How the runtime is configured | `magistr-tui/tests/runtime_harness.rs` |
 | `magistr-tui/src/runtime/runner.rs` | Taking the terminal over, running the loop, handing it back | `magistr-tui/tests/runtime_harness.rs` |
+| `magistr-tui/src/runtime/marks.rs` | The frame's marks as pixel surfaces, cached by what each was painted from | `magistr-tui/src/runtime/marks.tests.rs` |
 | `magistr-tui/src/runtime/osc52.rs` | The terminal's clipboard: `Cmd::Clipboard` written as OSC 52 over base64 beside the frame, the way an announcement is | `magistr-tui/src/runtime/osc52.tests.rs` |
 | `magistr-tui/src/runtime/scheduler.rs` | Deciding when the next frame may be painted | `magistr-tui/src/runtime/scheduler.tests.rs` |
 | `magistr-tui/src/runtime/surfaces.rs` | The frame's pixel surfaces: what the cockpit draws with pixels rather than with cells, and the caches that keep an unchanged one from costing a byte | `magistr-tui/tests/runtime_harness.rs` |

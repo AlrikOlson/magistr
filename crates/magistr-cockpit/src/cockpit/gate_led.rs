@@ -1,6 +1,7 @@
 //! One quality gate on the status strip.
 
 use crate::job::JobId;
+use crate::pixel::Icon;
 use crate::theme::Icons;
 
 /// A gate the loop driver started as a job: its name, the job's id — the
@@ -53,6 +54,12 @@ impl GateLed {
     pub(super) fn restart(&mut self, job: JobId) {
         self.job = job;
         self.passed = None;
+    }
+
+    /// Waiting, passed or failed, as a mark.
+    #[must_use]
+    pub const fn icon(&self) -> Icon {
+        Icon::gate(self.passed)
     }
 
     /// Waiting, passed or failed, in `icons`' vocabulary.

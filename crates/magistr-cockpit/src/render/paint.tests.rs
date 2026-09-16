@@ -174,3 +174,32 @@ fn a_rect_too_small_for_a_ring_paints_none() {
     paint(&root, &resolved, &mut buffer);
     assert!(buffer.cells().iter().all(|c| c.symbol.as_str() == " "));
 }
+
+#[test]
+fn a_drawn_frame_leaves_its_ring_blank_and_still_writes_the_title_and_meta() {
+    let border = Style::new().fg(Color::Rgb(1, 1, 1));
+    let heading = Style::new().fg(Color::Rgb(2, 2, 2)).attrs(Attrs::BOLD);
+    let root = Node::column()
+        .frame(
+            Frame::new(border.clone())
+                .title("plan")
+                .meta("3/7")
+                .title_style(heading.clone())
+                .drawn(true),
+        )
+        .child(Node::text("hi").height(Length::Cells(1)));
+    let mut buffer = Buffer::new(20, 3);
+    let resolved = LayoutTree::new().compute(&root, 20, 3).expect("layout");
+    paint(&root, &resolved, &mut buffer);
+    assert_eq!(text_at(&buffer, 0), "   plan       3/7");
+    assert_eq!(text_at(&buffer, 1), " hi");
+    assert_eq!(text_at(&buffer, 2), "");
+    assert_eq!(buffer.get(3, 0).map(|c| &c.style), Some(&heading));
+    assert!(
+        buffer
+            .cells()
+            .iter()
+            .all(|c| !"─│╭╮╰╯".contains(c.symbol.as_str())),
+        "no box character anywhere"
+    );
+}
