@@ -10,11 +10,13 @@ Magistr keeps five things about a project: its roadmap, the sessions that work o
 
 ## Terminal interface
 
-The conversation stays in view while you inspect work. The recorded reasoning sits beneath it, with the roadmap and selected item beside it. The message area stays at the bottom. Bare `magistr` opens this workspace, ready for your next message.
+Bare `magistr` opens the conversation, ready for your next message. The recorded reasoning sits beneath it, with a roadmap summary and selected item beside it. The message area stays at the bottom. You can inspect reasoning, tool calls and related work while keeping the conversation in view.
 
 Select a step in **Reasoning** to read what Magistr considered, its conclusion, what comes next and any linked work. Select a question to follow its investigation. **Return to latest** selects the newest step without changing your conversation or draft.
 
-Open **Roadmap** to filter and sort work items, or **Records** to browse reasoning, actions, checks and changes in time order. Details scroll independently. Use **Commands** or `Ctrl+P` to start work, run checks, open saved sessions and find other actions. `Alt+N`, `Alt+L` and `Alt+G` start the next item, continue through items and run checks.
+Open **Roadmap** for a separate screen with the full plan, filters, dependencies and item details. Return to the conversation to pick up at the same place with your message draft intact. Open **Records** to browse reasoning, actions, checks and changes in time order. Details scroll independently.
+
+Use **Commands** or `Ctrl+P` to start work, run checks, open saved sessions and find other actions. `Alt+N`, `Alt+L` and `Alt+G` start the next item, continue through items and run checks.
 
 Click a tool call to inspect its input, output, status and duration. Select an edit to read its changes and use its Open or Undo action. Expand a command to follow its output.
 
@@ -26,7 +28,11 @@ On small windows, details open over the workspace and close with `Esc`. Plain te
 
 The roadmap is the plan of work items. Each item has a title, a status, a priority, acceptance criteria and the items it depends on. Statuses move from backlog to pending, in progress and done; an item can also be blocked or obsoleted.
 
-The next ready item is the most urgent pending item whose dependencies are all done. The terminal interface draws the roadmap as a dependency graph: done, ready and waiting items are drawn differently, and the item in progress is ringed. Selecting an item shows everything it depends on and everything that depends on it.
+The next ready item is the most urgent pending item whose dependencies are all done. The Roadmap screen gives the plan its own space. Filter and sort work items, then select one to read its acceptance criteria, dependencies and available actions. Follow its relationships to see what must finish first and what it makes possible.
+
+With an empty draft, **Request a change** starts a message with the selected item’s name; edit your request and **Send**, or use **Stop** to end current work while keeping your draft.
+
+The roadmap summary beside the conversation keeps the current work in view. Opening the full Roadmap screen and returning preserves your message draft and place in the conversation.
 
 An agent proposes changes to the roadmap — a new item, a different priority, a rewritten acceptance criterion — and the person directing the work decides what is applied.
 
