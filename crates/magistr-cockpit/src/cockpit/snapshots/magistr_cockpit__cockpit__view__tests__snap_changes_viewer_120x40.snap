@@ -5,12 +5,12 @@ expression: screen(&m)
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
-│no objective yet          │ │▤ src/lib.rs · esc closes                          │  │                                  │
-│roadmap 0/0 done          │ │fn renamed() {}                                    │  │                                  │
-│signals 0                 │ │pub use renamed as old;                            │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
+│◂                         │ │Home  Turn  Session  Roadmap                       │  │ src/lib.rs                       │
+│no objective yet          │ │session · 0 steps · 2 changes · UTC                │  │ ○ read only                      │
+│roadmap 0/0 done          │ │time unknown ▸ src/lib.rs · +2 −1 · parse ok       │  │ 2 lines · Esc closes             │
+│signals 0                 │ │time unknown ▸ src/parser.rs · +4 −0 · parse failed│  │ Close                            │
+│                          │ │                                                   │  │ fn renamed() {}                  │
+│                          │ │                                                   │  │ pub use renamed as old;          │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │

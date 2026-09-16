@@ -46,6 +46,7 @@ fn journal(model: &mut Model, ids: &[&str]) {
             entries: ids
                 .iter()
                 .map(|id| JournalEntry {
+                    at_ms: None,
                     id: (*id).to_owned(),
                     path: format!("src/{id}.rs"),
                     added: 3,

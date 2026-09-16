@@ -447,7 +447,7 @@ fn increase_limit_opens_settings_at_budget_and_receipts_climb_to_the_journal() {
     );
     let mut model = sky();
     click(&mut model, Widget::FaultReceipts.id());
-    assert_eq!(model.shown_tab(), StageTab::Changes);
+    assert_eq!(model.shown_tab(), StageTab::Session);
 }
 
 #[test]

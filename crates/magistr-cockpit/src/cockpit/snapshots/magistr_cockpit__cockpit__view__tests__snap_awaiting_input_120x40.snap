@@ -5,7 +5,7 @@ expression: "screen(&awaiting(Size::new(120, 40)))"
 ▲ magistr  awaiting input                                                                                          00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
+│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
 │no objective yet          │ │▎ All done here.                                   │  │                                  │
 │roadmap 0/0 done          │ │  turn ended early: the token limit was hit        │  │                                  │
 │signals 0                 │ │                                                   │  │                                  │

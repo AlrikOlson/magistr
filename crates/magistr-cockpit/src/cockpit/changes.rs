@@ -1,10 +1,10 @@
-//! The Changes tab's state.
+//! The journal model's state.
 
 use std::collections::HashSet;
 
 use crate::workbench::{JournalEntry, RunRow};
 
-/// What the Changes tab shows: the write journal as the workbench last
+/// What the journal model shows: the write journal as the workbench last
 /// answered it (the authoritative list of edits), which entry is
 /// expanded to its diff, which entries the human approved, the last
 /// run's rows (failing first), and the read-only viewer pane while one

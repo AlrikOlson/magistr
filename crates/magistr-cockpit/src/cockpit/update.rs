@@ -313,8 +313,12 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             pinned,
         }) => model.trace.set_pinned(step_number, pinned),
         Msg::Engine(EngineEvent::Checkpoint { lines }) => {
+            model.changes.close_viewer();
             model.trace.open_viewer(lines);
-            model.show(StageTab::Trace);
+            model.show(StageTab::Session);
+            model.pane = Pane::Inspector;
+            model.inspector_open = true;
+            model.inspector_scroll = 0;
         }
         Msg::Engine(EngineEvent::PortFailed { cmd, what, error }) => {
             model.dock.restore_answer(&cmd);
@@ -345,12 +349,9 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
     Vec::new()
 }
 
-/// Fold a workbench answer into the model. The journal replaces the
-/// Changes list; a rewound edit leaves the list and marks its turn card
-/// undone; an opened file, a search's hits and the map land in the
-/// Changes tab's viewer pane; a run's rows land on the tab failing
-/// first — each of those turns the stage to Changes so the answer
-/// shows. A refusal is an error line on the stage.
+/// Fold Workbench answers into the journal model. File, search and map
+/// results open the inspector; run results join the Session timeline.
+/// Undo removes the operation and marks its turn card undone.
 fn workbench(model: &mut Model, event: WorkbenchEvent) {
     match event {
         WorkbenchEvent::Opened { path, content } => {
@@ -359,8 +360,12 @@ fn workbench(model: &mut Model, event: WorkbenchEvent) {
                 content.lines().count()
             ));
             let lines = content.lines().map(str::to_owned).collect();
+            model.trace.close_viewer();
             model.changes.open_viewer(&path, lines);
-            model.show(StageTab::Changes);
+            model.pane = Pane::Inspector;
+            model.inspector_open = true;
+            model.inspector_scroll = 0;
+            model.show_changes();
         }
         WorkbenchEvent::Undone { id } => {
             model.turn.undo_edit(&id);
@@ -369,20 +374,31 @@ fn workbench(model: &mut Model, event: WorkbenchEvent) {
         WorkbenchEvent::Journal { entries } => model.changes.set_entries(entries),
         WorkbenchEvent::Found { query, hits } => {
             let title = format!("search {query} · {} hits", hits.len());
+            model.trace.close_viewer();
             model.changes.open_viewer(&title, hits);
-            model.show(StageTab::Changes);
+            model.pane = Pane::Inspector;
+            model.inspector_open = true;
+            model.inspector_scroll = 0;
+            model.show_changes();
         }
         WorkbenchEvent::Mapped { lines } => {
+            model.trace.close_viewer();
             model.changes.open_viewer("map", lines);
-            model.show(StageTab::Changes);
+            model.pane = Pane::Inspector;
+            model.inspector_open = true;
+            model.inspector_scroll = 0;
+            model.show_changes();
         }
         WorkbenchEvent::Ran { command, rows } => {
             model.changes.set_runs(&command, rows);
-            model.show(StageTab::Changes);
+            model.show_changes();
         }
         WorkbenchEvent::Failed { what, error } => {
             model.turn.push_error(&format!("workbench {what}: {error}"));
         }
+    }
+    if model.changes.viewer().is_some() {
+        model.pane = Pane::Inspector;
     }
 }
 
@@ -634,7 +650,7 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     if let Some(cmds) = launcher_key(model, key) {
         return cmds;
     }
-    if let Some(cmds) = trace_key(model, key) {
+    if let Some(cmds) = native_trace_key(model, key) {
         return cmds;
     }
     if let Some(cmds) = roadmap_key(model, key) {
@@ -642,10 +658,10 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     }
     // A terminal's Esc closes the viewer pane on the Changes or Trace
     // tab (a window's took the fold above).
-    if key.code == KeyCode::Esc && model.tab == StageTab::Changes && model.changes.close_viewer() {
+    if key.code == KeyCode::Esc && model.tab == StageTab::Session && model.changes.close_viewer() {
         return Vec::new();
     }
-    if key.code == KeyCode::Esc && model.tab == StageTab::Trace && model.trace.close_viewer() {
+    if key.code == KeyCode::Esc && model.tab == StageTab::Session && model.trace.close_viewer() {
         return Vec::new();
     }
     let ctrl = key.mods == Modifiers::CTRL;
@@ -792,7 +808,7 @@ fn brief_click(model: &mut Model, widget: Widget) -> Vec<Cmd> {
     };
     model.dismiss_brief();
     if widget == Widget::BriefReview {
-        model.show(StageTab::Changes);
+        model.show_changes();
         return Vec::new();
     }
     if let Some(id) = target {
@@ -838,7 +854,7 @@ fn fault_click(model: &mut Model, widget: Widget) -> Vec<Cmd> {
             Vec::new()
         }
         Widget::FaultReceipts => {
-            model.show(StageTab::Changes);
+            model.show_changes();
             Vec::new()
         }
         Widget::FaultReconnect => vec![Cmd::Reconnect],
@@ -1167,21 +1183,21 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     if model.surface().is_native() || !model.prompt.is_empty() || !key.mods.is_empty() {
         return None;
     }
-    if model.pane != Pane::Inspector
-        && (model.changes.viewer().is_some() && model.tab == StageTab::Changes
-            || model.trace.viewer().is_some() && model.tab == StageTab::Trace)
+    if key.code == KeyCode::Esc
+        && (model.trace.viewer().is_some() || model.changes.viewer().is_some())
     {
-        return None;
+        model.trace.close_viewer();
+        model.changes.close_viewer();
+        model.inspector_scroll = 0;
+        model.inspector_open = false;
+        return Some(Vec::new());
     }
     match key.code {
         KeyCode::Enter
             if model.selected.is_some()
                 && (model.pane == Pane::Inspector
                     || model.pane == Pane::Stage
-                        && matches!(
-                            model.tab,
-                            StageTab::Roadmap | StageTab::Trace | StageTab::Changes
-                        )) =>
+                        && matches!(model.tab, StageTab::Roadmap | StageTab::Session)) =>
         {
             model.inspector_open = !model.inspector_open;
             model.inspector_scroll = 0;
@@ -1234,19 +1250,15 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
                 height,
             );
         }
-        KeyCode::Up | KeyCode::Down if model.tab == StageTab::Changes => {
-            let entries = model.changes.entries();
-            let current = match model.selected() {
-                Some(Selected::Change(id)) => entries.iter().position(|entry| entry.id == *id),
-                _ => None,
-            };
-            let at = selection_index(current, entries.len(), key.code == KeyCode::Down)?;
-            let selected = Selected::Change(entries[at].id.clone());
+        KeyCode::Up | KeyCode::Down if model.tab == StageTab::Session => {
+            let rows = super::session_item::SessionItem::collect(&model.trace, &model.changes);
+            let current = rows
+                .iter()
+                .position(|row| Some(&row.selection()) == model.selected());
+            let at = selection_index(current, rows.len(), key.code == KeyCode::Down)?;
+            let selected = rows[at].selection();
             model.inspect(selected);
-            let (total, height) = model.changes_window();
-            model
-                .changes_viewport
-                .hold(at.saturating_add(1).saturating_sub(height), total, height);
+            reveal_session_selection(model);
         }
         _ => return None,
     }
@@ -1263,15 +1275,9 @@ fn selection_index(current: Option<usize>, len: usize, forward: bool) -> Option<
         None => 0,
     })
 }
-/// A step accelerator on the Trace tab with an empty prompt, while the
-/// feed has steps and no checkpoint pane covers them: the arrows walk
-/// the selection (from the newest step when nothing is selected) and
-/// bring its row into the window, Enter turns the selected step's card
-/// between its brief cut and every field. Nothing else is taken, so the
-/// prompt keeps its letters and its history keys the moment something
-/// is typed.
-fn trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if model.shown_tab() != StageTab::Trace
+/// Native step navigation keeps the desktop trace reading independent of terminal tabs.
+fn native_trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    if model.place() != Some(Place::Trace)
         || !model.prompt.is_empty()
         || !key.mods.is_empty()
         || model.trace.viewer().is_some()
@@ -1285,27 +1291,27 @@ fn trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             if let Some(step) = model.trace.selected() {
                 model.inspect(Selected::Step(step.number));
             }
-            reveal_trace_selection(model);
             Some(Vec::new())
         }
         KeyCode::Enter if model.trace.selected().is_some() => {
             model.trace.toggle_detail();
-            reveal_trace_selection(model);
             Some(Vec::new())
         }
         _ => None,
     }
 }
 
-/// Scroll the Trace body so the selected step's row is inside the
-/// window — the row above its card, which opens below it.
-fn reveal_trace_selection(model: &mut Model) {
-    let Some(row) = model.trace.selected_index() else {
+/// Scroll the timeline so its selected item remains visible.
+fn reveal_session_selection(model: &mut Model) {
+    let Some(row) = super::session_item::SessionItem::collect(&model.trace, &model.changes)
+        .iter()
+        .position(|row| Some(&row.selection()) == model.selected())
+    else {
         return;
     };
-    let (total, height) = model.trace_window();
+    let (total, height) = model.session_window();
     let (now, animate) = glide(model);
-    let top = model.trace_top();
+    let top = model.session_top();
     let delta = if row < top {
         row as isize - top as isize
     } else if height > 0 && row >= top + height {
@@ -1315,7 +1321,7 @@ fn reveal_trace_selection(model: &mut Model) {
     };
     if delta != 0 {
         model
-            .trace_viewport
+            .session_viewport
             .scroll_by(delta, total, height, now, animate);
     }
 }
@@ -2210,7 +2216,7 @@ fn glide(model: &Model) -> (f32, bool) {
 }
 
 /// What the stage scrolls right now: the accelerator sheet while it
-/// covers everything, else the Trace, Roadmap and Changes tabs move
+/// covers everything, else the Session and Roadmap tabs move
 /// their own bodies under their pinned headings and every other tab
 /// moves the turn.
 fn scroll_extent(model: &Model) -> (usize, usize) {
@@ -2218,9 +2224,8 @@ fn scroll_extent(model: &Model) -> (usize, usize) {
         return model.sheet_window();
     }
     match scrolled_tab(model) {
-        Some(StageTab::Trace) => model.trace_window(),
+        Some(StageTab::Session) => model.session_window(),
         Some(StageTab::Roadmap) => model.roadmap_window(),
-        Some(StageTab::Changes) => model.changes_window(),
         _ => (model.turn.len(), model.stage_rows()),
     }
 }
@@ -2231,26 +2236,20 @@ fn scrolled_viewport(model: &mut Model) -> &mut Viewport {
         return &mut model.sheet_viewport;
     }
     match scrolled_tab(model) {
-        Some(StageTab::Trace) => &mut model.trace_viewport,
+        Some(StageTab::Session) => &mut model.session_viewport,
         Some(StageTab::Roadmap) => &mut model.roadmap_viewport,
-        Some(StageTab::Changes) => &mut model.changes_viewport,
         _ => &mut model.viewport,
     }
 }
 
-/// The tab whose own body scrolls, while one shows and the sheet does
-/// not cover it. The Changes tab is one of them: a long journal, an
-/// expanded diff or a run's rows all run past the stage. The sheet
-/// answers `None` here because it is not a tab — it takes the scroll
-/// ahead of this, in [`scroll_extent`] and [`scrolled_viewport`].
+/// The tab whose list scrolls. The accelerator sheet takes precedence.
 const fn scrolled_tab(model: &Model) -> Option<StageTab> {
     if model.is_sheet_open() {
         return None;
     }
     match model.shown_tab() {
-        StageTab::Trace => Some(StageTab::Trace),
+        StageTab::Session => Some(StageTab::Session),
         StageTab::Roadmap => Some(StageTab::Roadmap),
-        StageTab::Changes => Some(StageTab::Changes),
         _ => None,
     }
 }
@@ -2282,8 +2281,7 @@ fn wheeled_undock(model: &Model, event: &MouseEvent) -> Option<StageTab> {
 /// `the_undock_column_windows_by_the_same_rows_as_the_stage`).
 fn wheel_extent(model: &Model, undocked: Option<StageTab>) -> (usize, usize) {
     match undocked {
-        Some(StageTab::Changes) => model.changes_window(),
-        Some(_) => model.trace_window(),
+        Some(_) => model.session_window(),
         None => scroll_extent(model),
     }
 }
@@ -2292,12 +2290,10 @@ fn wheel_extent(model: &Model, undocked: Option<StageTab>) -> (usize, usize) {
 /// *tab's* own viewport rather than one minted for the column: one
 /// viewport per surface, not per placement, so a feed scrolled beside
 /// the stage is still where it was left when its tab comes back on
-/// stage — and there is no reset rule to get wrong when the undocked tab
-/// swaps between the Trace feed and the Changes journal.
+/// stage. Session uses the same viewport in both placements.
 fn wheeled_viewport(model: &mut Model, undocked: Option<StageTab>) -> &mut Viewport {
     match undocked {
-        Some(StageTab::Changes) => &mut model.changes_viewport,
-        Some(_) => &mut model.trace_viewport,
+        Some(_) => &mut model.session_viewport,
         None => scrolled_viewport(model),
     }
 }
@@ -2483,7 +2479,13 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 Some(Widget::Clear) => return blocker_click(model),
                 Some(Widget::Checkpoint) => return vec![Cmd::Engine(EngineCmd::Checkpoint)],
                 Some(Widget::InspectorDetail) => {
-                    model.inspector_open = !model.inspector_open;
+                    if model.trace.viewer().is_some() || model.changes.viewer().is_some() {
+                        model.trace.close_viewer();
+                        model.changes.close_viewer();
+                        model.inspector_open = false;
+                    } else {
+                        model.inspector_open = !model.inspector_open;
+                    }
                     model.inspector_scroll = 0;
                     model.pane = Pane::Inspector;
                     return Vec::new();
@@ -2511,7 +2513,13 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     if model.surface().is_native() {
                         model.trace.toggle_detail();
                     } else {
-                        model.inspector_open = !model.inspector_open;
+                        if model.trace.viewer().is_some() || model.changes.viewer().is_some() {
+                            model.trace.close_viewer();
+                            model.changes.close_viewer();
+                            model.inspector_open = false;
+                        } else {
+                            model.inspector_open = !model.inspector_open;
+                        }
                         model.inspector_scroll = 0;
                     }
                     return Vec::new();
@@ -2607,7 +2615,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 let spine = model.rail.spine_mut();
                 spine.preview(index);
                 if spine.selected() == Some(index) && model.surface().is_native() {
-                    model.show(StageTab::Changes);
+                    model.show_changes();
                 }
                 return Vec::new();
             }
@@ -2629,9 +2637,10 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 if model.surface().is_native() {
                     model.changes.toggle(index);
                 } else if let Some(entry) = model.changes.entries().get(index) {
-                    let selected = Selected::Change(entry.id.clone());
+                    let selected = Selected::Change(entry.identity());
                     model.inspect(selected);
                     model.pane = Pane::Stage;
+                    reveal_session_selection(model);
                 }
                 return Vec::new();
             }
@@ -2644,6 +2653,18 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             if let Some(index) = target.and_then(Widget::change_approve_index) {
                 return change_approve(model, index);
             }
+            if let Some(index) = target.and_then(Widget::session_row_index) {
+                let selected =
+                    super::session_item::SessionItem::collect(&model.trace, &model.changes)
+                        .get(index)
+                        .map(|row| row.selection());
+                if let Some(selected) = selected {
+                    model.inspect(selected);
+                    model.pane = Pane::Stage;
+                    reveal_session_selection(model);
+                }
+                return Vec::new();
+            }
             if let Some(index) = target.and_then(Widget::trace_row_index) {
                 if model.surface().is_native() {
                     model.trace.toggle(index);
@@ -2651,6 +2672,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     let selected = Selected::Step(step.number);
                     model.inspect(selected);
                     model.pane = Pane::Stage;
+                    reveal_session_selection(model);
                 }
                 return Vec::new();
             }
@@ -2660,6 +2682,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             if let Some(number) = target.and_then(Widget::trace_link_step) {
                 model.trace.expand_step(number);
                 model.inspect(Selected::Step(number));
+                reveal_session_selection(model);
                 return Vec::new();
             }
             if let Some(number) = target.and_then(Widget::trace_chunk_step) {
@@ -3485,7 +3508,7 @@ fn tool_pictures(model: &mut Model, id: &str, blocks: &[ImageBlock]) {
 
 /// Fold one agent event into the model. An edit — a tool call or an
 /// update carrying a diff — also asks the workbench for the journal, so
-/// the Changes tab lists the entry within the same frame; the journal,
+/// the journal model lists the entry within the same frame; the journal,
 /// not the ACP event, is the authoritative record.
 fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
     let edited = matches!(

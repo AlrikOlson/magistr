@@ -11,6 +11,7 @@ fn an_action_keeps_its_task_kind_description_ordinal_and_files() {
         ShipMoment::action("wire-port", &action),
         ShipMoment::Action {
             task_id: "wire-port".to_owned(),
+            timestamp: String::new(),
             kind: "code".to_owned(),
             description: "wired the port".to_owned(),
             id: 198,
@@ -28,8 +29,10 @@ fn a_check_keeps_its_exit_code_and_the_reports_duration() {
         "results": {"duration_ms": 5400},
     }));
     assert_eq!(
-        ShipMoment::check(&check),
+        ShipMoment::check("", &check),
         ShipMoment::Check {
+            task_id: String::new(),
+            timestamp: String::new(),
             name: "test".to_owned(),
             passed: false,
             exit_code: Some(101),
@@ -44,7 +47,7 @@ fn a_check_without_a_report_has_no_duration() {
         exit_code,
         duration_ms,
         ..
-    } = ShipMoment::check(&fixtures::check("lint", true))
+    } = ShipMoment::check("", &fixtures::check("lint", true))
     else {
         panic!("a check is a check");
     };

@@ -41,6 +41,7 @@ fn undo_rewinds_through_the_port() {
 #[test]
 fn journal_lists_the_entries_through_the_port() {
     let entry = JournalEntry {
+        at_ms: None,
         id: "e1".to_owned(),
         path: "src/lib.rs".to_owned(),
         added: 2,

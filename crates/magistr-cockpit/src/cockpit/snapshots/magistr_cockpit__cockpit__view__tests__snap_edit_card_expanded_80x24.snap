@@ -5,7 +5,7 @@ expression: screen(&m)
 ▲ magistr  ▘ streaming                                                     00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│◂                         │ │Home  Turn  Session  Roadmap                     │
 │no objective yet          │ │▎ ✓ edit   src/main.rs · +1 −1                   │
 │roadmap 0/0 done          │ │▎   [Open]  [Undo]                               │
 │signals 0                 │ │▎   @@ -1,4 +1,4 @@                              │

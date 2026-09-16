@@ -365,12 +365,13 @@ impl Scenes {
             &mut m,
             Msg::Key(KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
         );
-        assert_eq!(m.tab(), StageTab::Changes);
+        assert_eq!(m.tab(), StageTab::Session);
         update(
             &mut m,
             Msg::Workbench(WorkbenchEvent::Journal {
                 entries: vec![
                     JournalEntry {
+                        at_ms: None,
                         id: "e1".to_owned(),
                         path: "src/lib.rs".to_owned(),
                         added: 2,
@@ -381,6 +382,7 @@ impl Scenes {
                                 .to_owned(),
                     },
                     JournalEntry {
+                        at_ms: None,
                         id: "e2".to_owned(),
                         path: "src/parser.rs".to_owned(),
                         added: 4,
@@ -496,7 +498,7 @@ impl Scenes {
             &mut m,
             Msg::Mouse {
                 event: MouseEvent::new(MouseKind::Down(Button::Left), 40, 2),
-                target: Some(Widget::TabTrace.id()),
+                target: Some(Widget::TabSession.id()),
             },
         );
         m
@@ -527,7 +529,7 @@ impl Scenes {
             &mut m,
             Msg::Mouse {
                 event: MouseEvent::new(MouseKind::Down(Button::Left), 40, 2),
-                target: Some(Widget::TabTrace.id()),
+                target: Some(Widget::TabSession.id()),
             },
         );
         m
@@ -597,6 +599,7 @@ impl Scenes {
             Msg::Workbench(crate::cockpit::WorkbenchEvent::Journal {
                 entries: (0..3)
                     .map(|n| crate::workbench::JournalEntry {
+                        at_ms: None,
                         id: format!("e{n}"),
                         path: format!("crates/magistr-gui2/src/f{n}.rs"),
                         added: 12,

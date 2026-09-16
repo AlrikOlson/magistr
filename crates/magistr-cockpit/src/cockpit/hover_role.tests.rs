@@ -9,8 +9,8 @@ fn every_named_control_lifts() {
     let controls = [
         Widget::TabHome,
         Widget::TabTurn,
-        Widget::TabChanges,
-        Widget::TabTrace,
+        Widget::TabSession,
+        Widget::TabSession,
         Widget::TabRoadmap,
         Widget::RailToggle,
         Widget::Allow,
@@ -149,7 +149,7 @@ fn every_named_widget_is_either_a_control_or_chrome() {
         "the docked screen is the wheel's target, not a control"
     );
     assert_eq!(
-        lifting, 51,
+        lifting, 50,
         "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four, the meter's Raise and the trace card's More among them"
     );
     assert_eq!(

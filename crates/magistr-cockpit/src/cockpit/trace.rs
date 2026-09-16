@@ -1,4 +1,4 @@
-//! The Trace tab's state.
+//! The reasoning model's state.
 
 use std::collections::BTreeMap;
 
@@ -13,7 +13,7 @@ use super::trace_step::TraceStep;
 /// covers it: room for the main line and up to three branch lanes.
 pub const TRACE_GRAPH_ROWS: usize = 4;
 
-/// What the Trace tab shows: the reasoning steps as the feed delivered
+/// What the reasoning model shows: the reasoning steps as the feed delivered
 /// them (in arrival order), one of them selected with its detail card
 /// open, the branches' statuses, the recorded work — the ship timeline
 /// of actions and checks — and the checkpoint report pane while one is
@@ -82,7 +82,9 @@ impl Trace {
             ShipFrame::ActionRecorded { task_id, action } => {
                 self.moments.push(ShipMoment::action(task_id, action));
             }
-            ShipFrame::CheckRecorded { check, .. } => self.moments.push(ShipMoment::check(check)),
+            ShipFrame::CheckRecorded { task_id, check } => {
+                self.moments.push(ShipMoment::check(task_id, check))
+            }
             ShipFrame::Cleared => self.moments.clear(),
             ShipFrame::ObjectiveSet { .. }
             | ShipFrame::TaskAdded { .. }
@@ -129,7 +131,7 @@ impl Trace {
                 ));
             }
             for check in &task.checks {
-                moments.push((check.timestamp.as_str(), ShipMoment::check(check)));
+                moments.push((check.timestamp.as_str(), ShipMoment::check(&task.id, check)));
             }
         }
         moments.sort_by_key(|(timestamp, _)| *timestamp);
@@ -456,9 +458,6 @@ impl Trace {
     /// it must stay whole.
     #[must_use]
     pub fn pinned_rows(&self, pixels: bool) -> usize {
-        if self.viewer.is_some() {
-            return 1;
-        }
         let graph = if pixels && !self.steps.is_empty() {
             TRACE_GRAPH_ROWS
         } else if self.has_branches() {

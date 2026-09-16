@@ -47,10 +47,10 @@ impl Binding {
 
     // ── trace ───────────────────────────────────────────────────────
     /// Walk work items, reasoning steps or changes in the stage.
-    pub const TRACE_STEP: Self =
+    pub const OBJECT_SELECT: Self =
         Self::new("↑↓", "select", "inspector", KeyCode::Up, Modifiers::NONE);
     /// Show every field of the selected step, or the brief cut again.
-    pub const TRACE_DETAIL: Self = Self::new(
+    pub const OBJECT_DETAIL: Self = Self::new(
         "enter",
         "detail",
         "inspector",
@@ -334,7 +334,7 @@ impl Binding {
         KeyCode::Enter,
         Modifiers::SUPER.union(Modifiers::SHIFT),
     );
-    /// Close the Changes or Trace viewer pane.
+    /// Close the inspector's file viewer or checkpoint report.
     pub const ESC_VIEWER: Self = Self::new(
         "esc",
         "close viewer",
@@ -484,8 +484,8 @@ impl Binding {
         Self::ESC_CLOSE,
         Self::SCROLL,
         Self::HOME_END,
-        Self::TRACE_STEP,
-        Self::TRACE_DETAIL,
+        Self::OBJECT_SELECT,
+        Self::OBJECT_DETAIL,
         Self::INSPECTOR_SCROLL,
         Self::INSPECTOR_CLOSE,
         Self::FOLD,
@@ -533,20 +533,21 @@ impl Binding {
     pub const HINT_STREAMING: &'static [Self] = &[Self::CANCEL, Self::QUIT];
     /// The footer at rest.
     pub const HINT_IDLE: &'static [Self] = &[Self::SEND, Self::HISTORY, Self::QUIT];
-    /// The footer on a Trace tab with steps: the selection walks and
+    /// The footer on the Session view: the selection walks and
     /// Enter opens the full card.
-    pub const HINT_TRACE: &'static [Self] = &[Self::TRACE_STEP, Self::TRACE_DETAIL, Self::TAB];
+    pub const HINT_SESSION: &'static [Self] =
+        &[Self::OBJECT_SELECT, Self::OBJECT_DETAIL, Self::TAB];
     /// The roadmap's table controls, also listed in keyboard help.
     pub const HINT_ROADMAP: &'static [Self] = &[
-        Self::TRACE_STEP,
+        Self::OBJECT_SELECT,
         Self::ROADMAP_FILTER,
         Self::ROADMAP_SORT,
-        Self::TRACE_DETAIL,
+        Self::OBJECT_DETAIL,
     ];
     /// The footer while the inspector has keyboard focus.
     pub const HINT_INSPECTOR: &'static [Self] = &[
         Self::INSPECTOR_SCROLL,
-        Self::TRACE_DETAIL,
+        Self::OBJECT_DETAIL,
         Self::INSPECTOR_CLOSE,
         Self::TAB,
     ];

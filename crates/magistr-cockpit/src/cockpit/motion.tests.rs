@@ -60,7 +60,7 @@ fn progress_then_eases_to_its_next_value() {
 fn a_tab_switch_and_a_dock_arrival_transition_briefly() {
     let mut motion = Motion::default();
     let before = key(StageTab::Home, 0, (0, 0), (0, 0));
-    motion.observe(before, key(StageTab::Changes, 0, (0, 0), (0, 0)), 5.0, true);
+    motion.observe(before, key(StageTab::Session, 0, (0, 0), (0, 0)), 5.0, true);
     assert_eq!(motion.tab_transition(5.0), Some(0.0));
     assert_eq!(motion.tab_transition(7.0), Some(0.5));
     assert_eq!(
@@ -72,8 +72,8 @@ fn a_tab_switch_and_a_dock_arrival_transition_briefly() {
     assert_eq!(motion.dock_transition(5.0), None, "the dock did not change");
 
     motion.observe(
-        key(StageTab::Changes, 0, (0, 0), (0, 0)),
-        key(StageTab::Changes, 1, (0, 0), (0, 0)),
+        key(StageTab::Session, 0, (0, 0), (0, 0)),
+        key(StageTab::Session, 1, (0, 0), (0, 0)),
         20.0,
         true,
     );
@@ -82,8 +82,8 @@ fn a_tab_switch_and_a_dock_arrival_transition_briefly() {
     assert_eq!(motion.dock_transition(24.0), None);
     // A card leaving is not an arrival.
     motion.observe(
-        key(StageTab::Changes, 1, (0, 0), (0, 0)),
-        key(StageTab::Changes, 0, (0, 0), (0, 0)),
+        key(StageTab::Session, 1, (0, 0), (0, 0)),
+        key(StageTab::Session, 0, (0, 0), (0, 0)),
         30.0,
         true,
     );
@@ -95,7 +95,7 @@ fn reduced_motion_lands_fills_and_starts_no_transition() {
     let mut motion = Motion::default();
     let a = key(StageTab::Home, 0, (2, 4), (0, 0));
     motion.observe(a, a, 0.0, false);
-    motion.observe(a, key(StageTab::Trace, 1, (3, 4), (0, 0)), 1.0, false);
+    motion.observe(a, key(StageTab::Session, 1, (3, 4), (0, 0)), 1.0, false);
     assert_eq!(motion.rail_fill(1.0), 0.75, "landed, no glide");
     assert_eq!(motion.tab_transition(1.0), None);
     assert_eq!(motion.dock_transition(1.0), None);
@@ -206,7 +206,7 @@ fn every_transient_stops_ticking_inside_eight_steps() {
     let before = key(StageTab::Home, 0, (0, 4), (0, 4));
     motion.observe(before, before, 0.0, true);
     let after = MotionKey {
-        tab: StageTab::Trace,
+        tab: StageTab::Session,
         dock: 1,
         rail: (4, 4),
         roadmap: (4, 0),
@@ -260,7 +260,7 @@ fn folds_that_share_a_tick_share_one_arrival() {
 fn the_trace_sweep_starts_where_the_graph_already_reached_and_ends_whole() {
     let trace = |steps: usize| MotionKey {
         trace: steps,
-        ..key(StageTab::Trace, 0, (0, 0), (0, 0))
+        ..key(StageTab::Session, 0, (0, 0), (0, 0))
     };
 
     // A trace arriving whole: the sweep starts at nothing.
@@ -375,7 +375,7 @@ fn reduced_motion_never_sweeps_the_activity_monitor() {
 fn reduced_motion_never_sweeps_the_trace() {
     let trace = |steps: usize| MotionKey {
         trace: steps,
-        ..key(StageTab::Trace, 0, (0, 0), (0, 0))
+        ..key(StageTab::Session, 0, (0, 0), (0, 0))
     };
     let mut motion = Motion::default();
     motion.observe(trace(0), trace(40), 0.0, false);
@@ -422,7 +422,7 @@ fn a_transient_is_read_between_two_ticks_and_ends_at_the_same_step_it_always_did
     // display can show rather than four.
     let mut motion = Motion::default();
     let home = key(StageTab::Home, 0, (0, 0), (0, 0));
-    let trace = key(StageTab::Trace, 0, (0, 0), (0, 0));
+    let trace = key(StageTab::Session, 0, (0, 0), (0, 0));
     motion.observe(home, trace, 0.0, true);
     let quarter = motion.tab_transition(0.5).expect("still running");
     assert!(
@@ -531,7 +531,7 @@ fn every_transient_carries_one_of_the_sixteen_names() {
     };
     motion.observe(before, before, 0.0, true);
     let after = MotionKey {
-        tab: StageTab::Trace,
+        tab: StageTab::Session,
         dock: 1,
         rail: (4, 4),
         roadmap: (4, 0),

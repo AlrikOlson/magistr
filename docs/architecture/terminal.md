@@ -90,12 +90,20 @@ inspector sits to the right when the stage retains at least 40 content columns;
 otherwise it stacks below the stage. Plain terminals use the same panes. The
 dock and prompt remain below the body.
 
-One `Selected` identity names a chunk, reasoning step, change, or signal. Lists stay
+One `Selected` identity names a chunk, reasoning step, change, receipt, run, or signal. Lists stay
 compact; the shared inspector renders title, status, metadata, actions, and
 scrollable fields in that order. Selection survives view changes and resizing.
 Tab and Shift-Tab cycle pane focus; Ctrl-Tab cycles views. With an empty prompt,
 stage arrows select objects, Enter toggles inspector detail, and Esc closes it.
 Inspector arrows, page keys, and the wheel scroll its fields independently.
+
+The terminal tabs are Home · Turn · Session · Roadmap. Session keeps the step
+graph above one timeline of reasoning, recorded actions, checks, and file changes.
+Source timestamps determine order in UTC; equal instants retain source order,
+and legacy rows without usable timestamps follow with an explicit unknown label.
+The reasoning and journal models remain independent. Selecting an item opens the
+shared inspector; file viewers and checkpoint reports scroll there without replacing
+the timeline. A wide terminal can undock Session beside another view.
 
 Roadmap places the graph beside a status-filtered table at 132 columns when the
 stage has room, and stacks them on narrower terminals. The table carries name,
@@ -119,7 +127,7 @@ through free rows on every rank they cross, crossings are reduced by
 barycentre sweeps, and the same input always yields the same placement;
 the painter draws only the transitive reduction and lights the whole
 chain to a selection instead of drawing implied edges through nodes. The
-Trace tab's step graph is the reasoning's lanes — the main line and each
+Session view's step graph is the reasoning's lanes — the main line and each
 branch — with fork and merge links read off the recorded branch statuses,
 and the selection's ancestors and descendants lit. Both keep a text form
 on a plain terminal: the workstream legend and the lane list.

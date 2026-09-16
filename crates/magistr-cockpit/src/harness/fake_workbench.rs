@@ -39,6 +39,7 @@ impl FakeWorkbench {
     #[must_use]
     pub fn with_edit(mut self, id: &str) -> Self {
         self.journal.push(JournalEntry {
+            at_ms: None,
             id: id.to_owned(),
             ..JournalEntry::default()
         });

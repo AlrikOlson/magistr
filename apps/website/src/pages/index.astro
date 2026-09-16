@@ -18,7 +18,7 @@ const jsonLd = [
 const alt = {
   overview: "The Roadmap tab: the objective and task checklist at left, a dependency graph in the centre, and the shared inspector at right.",
   roadmap: "The Roadmap tab with a work item selected: its dependency chain stays lit, and its status, actions and details appear in the inspector at right.",
-  trace: "The Trace tab: reasoning steps and merged branches in the centre, the selected step in the inspector at right, and recorded actions and checks below the graph.",
+  session: "The Session view: reasoning steps and merged branches in the centre, the selected step in the inspector at right, and reasoning, actions, checks and file changes in timestamp order below the graph.",
 };
 
 const docs = [
@@ -77,9 +77,9 @@ const docs = [
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href={screenshot("terminal-trace-light.png")}><img src={screenshot("terminal-trace-light.png")} alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href={screenshot("terminal-trace-dark.png")}><img src={screenshot("terminal-trace-dark.png")} alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The Trace tab uses the same inspector for a selected step, with recorded work below the graph.</figcaption>
+        <a class="capture-light" href={screenshot("terminal-session-light.png")}><img src={screenshot("terminal-session-light.png")} alt={alt.session} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href={screenshot("terminal-session-dark.png")}><img src={screenshot("terminal-session-dark.png")} alt={alt.session} loading="lazy" width="1320" height="840" /></a>
+        <figcaption>The Session view uses the same inspector for a selected step, with reasoning, actions, checks and file changes in timestamp order below the graph.</figcaption>
       </figure>
     </section>
 

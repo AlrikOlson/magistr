@@ -123,9 +123,8 @@ pub struct Model {
     pub(super) debug: bool,
     pub(super) turn: Turn,
     pub(super) viewport: Viewport,
-    pub(super) trace_viewport: Viewport,
+    pub(super) session_viewport: Viewport,
     pub(super) roadmap_viewport: Viewport,
-    pub(super) changes_viewport: Viewport,
     pub(super) sheet_viewport: Viewport,
     pub(super) turn_state: TurnState,
     pub(super) phase: Option<Phase>,
@@ -330,8 +329,12 @@ impl Model {
             Selected::Step(number) => {
                 self.trace.expand_step(*number);
             }
-            Selected::Change(_) | Selected::Signal(_) => {}
+            Selected::Change(_) | Selected::Signal(_) | Selected::Receipt(_) | Selected::Run(_) => {
+                self.trace.deselect();
+            }
         }
+        self.trace.close_viewer();
+        self.changes.close_viewer();
         self.selected = Some(selected);
     }
 
@@ -358,9 +361,8 @@ impl Model {
                     .saturating_sub(Accent::GUTTER_COLS),
             ),
             viewport: Viewport::new(),
-            trace_viewport: Viewport::new(),
+            session_viewport: Viewport::new(),
             roadmap_viewport: Viewport::at_top(),
-            changes_viewport: Viewport::at_top(),
             sheet_viewport: Viewport::at_top(),
             turn_state: TurnState::Idle,
             phase: None,
@@ -516,7 +518,7 @@ impl Model {
         self.session_started.as_deref()
     }
 
-    /// Start the rail, the Roadmap tab and the Trace tab on `snapshot` —
+    /// Start the rail, the Roadmap tab and the reasoning model on `snapshot` —
     /// what the entry point read off the engines before taking the
     /// terminal over, so an objective recorded before the feed connected
     /// shows its plan (and the roadmap its chunks, and the trace its
@@ -528,7 +530,7 @@ impl Model {
     }
 
     /// Take the store's snapshot as the rail's, the Roadmap tab's and the
-    /// Trace tab's state, and mark the projection current.
+    /// reasoning model's state, and mark the projection current.
     pub(super) fn seed(&mut self, snapshot: &NativeSnapshot) {
         self.rail.seed(snapshot);
         self.roadmap.seed(&snapshot.chunks, &snapshot.signals);
@@ -1075,7 +1077,7 @@ impl Model {
     /// what makes the decision a review rather than an ask: a plan
     /// approval is [`Model::moment`]'s card, and an edit is a diff
     /// somebody has to read. *Native* is what leaves the terminal alone
-    /// — a cell cockpit has a Changes tab, a tab bar and the Needs-you
+    /// — a cell cockpit has a Session view, a tab bar and the Needs-you
     /// strip, so it is already steered at this altitude and its cell
     /// diff is untouched; a window has none of those and the review is
     /// the surface. Because the predicate itself is surface-gated,
@@ -1154,7 +1156,7 @@ impl Model {
     ///
     /// One list, not a second one taken at review time: the journal is
     /// already the authoritative record of what the session wrote, so a
-    /// review reading anything else could show a file the Changes tab
+    /// review reading anything else could show a file the journal model
     /// does not.
     #[must_use]
     pub fn review_files(&self) -> &[JournalEntry] {
@@ -1214,13 +1216,13 @@ impl Model {
         self.condition_open
     }
 
-    /// The Changes tab's state: the journal, the last run, the viewer.
+    /// The journal model's state: the journal, the last run, the viewer.
     #[must_use]
     pub const fn changes(&self) -> &Changes {
         &self.changes
     }
 
-    /// The Trace tab's state: the think feed, the ship timeline, the
+    /// The reasoning model's state: the think feed, the ship timeline, the
     /// checkpoint pane.
     #[must_use]
     pub const fn trace(&self) -> &Trace {
@@ -1647,9 +1649,16 @@ impl Model {
         }
     }
 
-    /// Turn the stage to `tab`: a terminal turns its tab, a window
-    /// moves its camera to the place the tab names. The one seam every
-    /// navigation write takes, so the two surfaces cannot route apart.
+    /// Open the journal's desktop place or the terminal's unified session.
+    pub(super) const fn show_changes(&mut self) {
+        if self.surface.is_native() {
+            self.place = Place::Changes;
+        } else {
+            self.tab = StageTab::Session;
+        }
+    }
+
+    /// Open a terminal tab or its corresponding desktop place.
     pub(super) const fn show(&mut self, tab: StageTab) {
         if self.surface.is_native() {
             self.place = Place::of_tab(tab);
@@ -1723,19 +1732,14 @@ impl Model {
         self.permissions_seen
     }
 
-    /// The stage tab undocked into a third column, once the screen is
-    /// wide enough: the Trace feed — or the Changes journal while the
-    /// Trace tab itself is on stage. Never the active tab, so the two
-    /// surfaces' widget ids cannot collide.
+    /// Show Session beside other views on wide terminals, without duplicating it.
     #[must_use]
     pub const fn undocked_tab(&self) -> Option<StageTab> {
-        if self.size.cols < UNDOCK_MIN_COLS {
-            return None;
+        if self.size.cols < UNDOCK_MIN_COLS || matches!(self.tab, StageTab::Session) {
+            None
+        } else {
+            Some(StageTab::Session)
         }
-        Some(match self.tab {
-            StageTab::Trace => StageTab::Changes,
-            _ => StageTab::Trace,
-        })
     }
 
     /// Columns the undocked column and its divider take off the stage.
@@ -1912,51 +1916,39 @@ impl Model {
         rows.min(self.stage_rows().saturating_sub(3)) as u16
     }
 
-    /// The Trace tab's scrolling body: how many rows it has and how many
+    /// The Session timeline's scrolling body: how many rows it has and how many
     /// of them fit under the pinned heading (and branch graph). The
     /// window the view paints and the one the scroll keys move are this
     /// same pair.
     #[must_use]
-    pub fn trace_window(&self) -> (usize, usize) {
+    pub fn session_window(&self) -> (usize, usize) {
         let height = self
             .stage_rows()
             .saturating_sub(1 + usize::from(self.trace_graph_rows()));
-        (self.trace.body_rows(self.trace_width()), height)
+        (
+            super::session_item::SessionItem::collect(&self.trace, &self.changes)
+                .len()
+                .max(1),
+            height,
+        )
     }
 
-    /// Columns the Trace tab wraps a step's card to: the undocked
+    /// Columns available to the Session timeline: the undocked
     /// column's inner width while the trace sits there, else the stage's
     /// width (which already gives up the pixel arrangement's gutters).
     #[must_use]
     pub fn trace_width(&self) -> u16 {
-        if self.undocked_tab() == Some(StageTab::Trace) {
+        if self.undocked_tab() == Some(StageTab::Session) {
             return UNDOCK_COLS.saturating_sub(2 * Space::PAD);
         }
         self.stage_width()
     }
 
-    /// The first visible row of the Trace tab's body.
+    /// The first visible row of the Session timeline.
     #[must_use]
-    pub fn trace_top(&self) -> usize {
-        let (total, height) = self.trace_window();
-        self.trace_viewport.top_at(total, height, self.now())
-    }
-
-    /// The Changes tab's scrolling body: how many rows it has and how
-    /// many of them fit under its pinned heading (and the run verdict
-    /// strip, once a run has landed). The window the view paints and
-    /// the one the scroll keys and the wheel move are this same pair.
-    #[must_use]
-    pub fn changes_window(&self) -> (usize, usize) {
-        let height = self.stage_rows().saturating_sub(self.changes.pinned_rows());
-        (self.changes.body_rows(), height)
-    }
-
-    /// The first visible row of the Changes tab's body.
-    #[must_use]
-    pub fn changes_top(&self) -> usize {
-        let (total, height) = self.changes_window();
-        self.changes_viewport.top_at(total, height, self.now())
+    pub fn session_top(&self) -> usize {
+        let (total, height) = self.session_window();
+        self.session_viewport.top_at(total, height, self.now())
     }
 
     /// The accelerator sheet's scrolling body: how many rows the
@@ -2362,8 +2354,7 @@ impl Model {
     fn is_scrolling(&self) -> bool {
         [
             self.viewport,
-            self.trace_viewport,
-            self.changes_viewport,
+            self.session_viewport,
             self.roadmap_viewport,
             self.sheet_viewport,
         ]

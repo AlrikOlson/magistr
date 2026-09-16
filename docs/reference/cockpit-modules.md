@@ -136,7 +136,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/brief_card.rs` | Activity summary card with severity, heading, and body | `magistr-cockpit/src/cockpit/brief_card.tests.rs` |
 | `magistr-cockpit/src/cockpit/budget.rs` | Session spend, budget limit, and breaker threshold in cents | `magistr-cockpit/src/cockpit/budget.tests.rs` |
 | `magistr-cockpit/src/cockpit/camera.rs` | Roadmap graph viewport and camera transitions | `magistr-cockpit/src/cockpit/camera.tests.rs` |
-| `magistr-cockpit/src/cockpit/changes.rs` | The Changes tab's state | `magistr-cockpit/src/cockpit/changes.tests.rs` |
+| `magistr-cockpit/src/cockpit/changes.rs` | The journal model's state | `magistr-cockpit/src/cockpit/changes.tests.rs` |
 | `magistr-cockpit/src/cockpit/chapter.rs` | Completed roadmap item details for reports and exports | `magistr-cockpit/src/cockpit/chapter.tests.rs` |
 | `magistr-cockpit/src/cockpit/charter_offer.rs` | A proposed scope expansion, its allowed/total count, and the key sent when the user delegates | `magistr-cockpit/src/cockpit/charter_offer.tests.rs` · `magistr-cockpit/src/cockpit/rail.tests.rs` |
 | `magistr-cockpit/src/cockpit/charter_rule.rs` | Session permission rule displayed in the rail | `magistr-cockpit/src/cockpit/charter_rule.tests.rs` |
@@ -227,6 +227,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/shelf.rs` | Completed item artifacts: commit, checks, cost, reasoning, execution records, and images | `magistr-cockpit/src/cockpit/shelf.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/shelf_cmd.rs` | Artifact collection, export, and report-sharing requests | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/shelf_still.rs` | Artifact image metadata and decoded pixels | `magistr-cockpit/src/shelf/load_still.tests.rs` |
+| `magistr-cockpit/src/cockpit/session_item.rs` | Timestamp-ordered session items and stable inspector selection | `magistr-cockpit/src/cockpit/session_item.tests.rs` |
 | `magistr-cockpit/src/cockpit/ship_moment.rs` | One entry of the ship timeline | `magistr-cockpit/src/cockpit/ship_moment.tests.rs` |
 | `magistr-cockpit/src/cockpit/ship_run.rs` | The ship moment in flight | `magistr-cockpit/src/cockpit/ship_run.tests.rs` |
 | `magistr-cockpit/src/cockpit/ship_view.rs` | The ship objective and its plan, as the rail shows them | `magistr-cockpit/src/cockpit/ship_view.tests.rs` |
@@ -251,7 +252,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/terminals.rs` | Terminal screen models indexed by ACP terminal ID or gate name | `magistr-cockpit/src/cockpit/terminals.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/theme_choice.rs` | Dark, light, and system theme selection | `magistr-cockpit/src/cockpit/settings.tests.rs` |
 | `magistr-cockpit/src/cockpit/tooltip.rs` | Tooltip content, timing, and placement | `magistr-cockpit/src/cockpit/tooltip.tests.rs` |
-| `magistr-cockpit/src/cockpit/trace.rs` | The Trace tab's state: the steps, the selection and its card, the recorded work, the checkpoint pane | `magistr-cockpit/src/cockpit/trace.tests.rs` |
+| `magistr-cockpit/src/cockpit/trace.rs` | The reasoning model's state: the steps, the selection and its card, the recorded work, the checkpoint pane | `magistr-cockpit/src/cockpit/trace.tests.rs` |
 | `magistr-cockpit/src/cockpit/trace_card.rs` | The rows a selected step's card takes — brief or full, wrapped to the width the scroll counts | `magistr-cockpit/src/cockpit/trace_card.tests.rs` |
 | `magistr-cockpit/src/cockpit/trace_focus.rs` | A selected step's ancestors and descendants — what the graph lights | `magistr-cockpit/src/cockpit/trace_focus.tests.rs` |
 | `magistr-cockpit/src/cockpit/trace_step.rs` | One reasoning step as the think feed carries it | `magistr-cockpit/src/cockpit/trace_step.tests.rs` |
@@ -449,11 +450,11 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/wire/mod.rs` | Escape-sequence parsing shared by graphics probes and input decoding | `magistr-cockpit/src/wire/sequence.tests.rs` |
 | `magistr-cockpit/src/wire/sequence.rs` | Finding one complete escape sequence at the head of a byte buffer | `magistr-cockpit/src/wire/sequence.tests.rs` |
 
-### `workbench` — the Changes tab's port
+### `workbench` — the journal model's port
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit/src/workbench/mod.rs` | The workbench behind the cockpit's Changes tab, as a port | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/workbench/mod.rs` | The workbench behind the cockpit's journal model, as a port | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/apply.rs` | One workbench command, carried out on a port | `magistr-cockpit/src/workbench/apply.tests.rs` |
 | `magistr-cockpit/src/workbench/describe.rs` | What a workbench command asked, in the words a refusal names | `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/workbench/journal_entry.rs` | One journaled edit, as the workbench recorded it | `magistr-cli/tests/session_harness.rs` |

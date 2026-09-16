@@ -2,7 +2,7 @@
 
 use magistr_engine::native::{Action, Check};
 
-/// One moment on the ship half of the Trace tab: an action the agent
+/// One moment on the ship half of the reasoning model: an action the agent
 /// recorded, or a quality-gate check with its exit code and duration —
 /// read off the store's own [`Action`] and [`Check`] records, from a
 /// snapshot's tasks or the ship family's `action_recorded` and
@@ -13,6 +13,8 @@ pub enum ShipMoment {
     Action {
         /// The task the action was recorded under.
         task_id: String,
+        /// Source RFC 3339 timestamp.
+        timestamp: String,
         /// The action's type, in the store's spelling (`code`, `test`,
         /// `research`, …).
         kind: String,
@@ -26,6 +28,9 @@ pub enum ShipMoment {
     },
     /// One quality gate and how it went.
     Check {
+        /// Task and timestamp identify the recorded check across reseeds.
+        task_id: String,
+        timestamp: String,
         /// The gate's name.
         name: String,
         /// Whether it passed.
@@ -44,6 +49,7 @@ impl ShipMoment {
     pub fn action(task_id: &str, action: &Action) -> Self {
         Self::Action {
             task_id: task_id.to_owned(),
+            timestamp: action.timestamp.clone(),
             kind: action.action_type.as_wire().to_owned(),
             description: action.description.clone(),
             id: u64::from(action.id),
@@ -53,8 +59,10 @@ impl ShipMoment {
 
     /// The moment for a recorded check.
     #[must_use]
-    pub fn check(check: &Check) -> Self {
+    pub fn check(task_id: &str, check: &Check) -> Self {
         Self::Check {
+            task_id: task_id.to_owned(),
+            timestamp: check.timestamp.clone(),
             name: check.name.clone(),
             passed: check.passed,
             exit_code: check.exit_code.map(i64::from),

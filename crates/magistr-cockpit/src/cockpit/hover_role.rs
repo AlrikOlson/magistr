@@ -53,6 +53,7 @@ impl HoverRole {
         if Widget::stage_row_index(id).is_some()
             || Widget::change_row_index(id).is_some()
             || Widget::trace_row_index(id).is_some()
+            || Widget::session_row_index(id).is_some()
             || Widget::roadmap_row_index(id).is_some()
             || Widget::signal_row_index(id).is_some()
             || Widget::completion_index(id).is_some()
@@ -106,8 +107,7 @@ impl HoverRole {
             // card: the pointer lifts them.
             Widget::TabHome
             | Widget::TabTurn
-            | Widget::TabChanges
-            | Widget::TabTrace
+            | Widget::TabSession
             | Widget::TabRoadmap
             | Widget::RailToggle
             | Widget::Allow

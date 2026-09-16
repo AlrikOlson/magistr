@@ -59,8 +59,7 @@ fn every_tab_has_a_widget_and_only_tabs_target() {
                 widget,
                 Widget::TabHome
                     | Widget::TabTurn
-                    | Widget::TabChanges
-                    | Widget::TabTrace
+                    | Widget::TabSession
                     | Widget::TabRoadmap
                     | Widget::LaunchRoadmap
             ),

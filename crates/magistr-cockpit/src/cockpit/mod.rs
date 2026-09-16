@@ -105,6 +105,7 @@ pub mod search_results;
 pub mod search_scope;
 pub mod selected;
 pub mod session_agent;
+pub mod session_item;
 pub mod session_outcome;
 pub mod settings;
 pub mod settings_data;

@@ -25,7 +25,7 @@ out, fixture = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 images = []
 for name in ["terminal-overview-dark.png", "terminal-overview-light.png",
              "terminal-roadmap-dark.png", "terminal-roadmap-light.png",
-             "terminal-trace-dark.png", "terminal-trace-light.png"]:
+             "terminal-session-dark.png", "terminal-session-light.png"]:
     data = (out / name).read_bytes()
     width, height = struct.unpack(">II", data[16:24])
     images.append({"file": name, "sha256": hashlib.sha256(data).hexdigest(),

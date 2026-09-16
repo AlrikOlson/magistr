@@ -70,11 +70,11 @@ magistr next
 Runs the next ready work item — the most urgent pending item whose dependencies are done — in one session and records what happened. `magistr next-loop` continues through fresh agent sessions, one item per session, up to `--max-iterations` (default 10).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-trace-dark.png" />
-  <img alt="The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card, and the recorded actions and checks below." src="apps/website/public/screenshots/terminal-trace-light.png" width="1320" height="840" />
+  <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/screenshots/terminal-session-dark.png" />
+  <img alt="The Session view: reasoning steps on a main line with two merged branches, a selected step's card, and reasoning, actions, checks and file changes in timestamp order below." src="apps/website/public/screenshots/terminal-session-light.png" width="1320" height="840" />
 </picture>
 
-*The Trace tab: the session's reasoning steps as a graph, the selected step's details, and the recorded actions and checks ([dark](apps/website/public/screenshots/terminal-trace-dark.png) · [light](apps/website/public/screenshots/terminal-trace-light.png)).*
+*The Session view: the session's reasoning steps as a graph, the selected step's details, and the timeline of reasoning, actions, checks and file changes ([dark](apps/website/public/screenshots/terminal-session-dark.png) · [light](apps/website/public/screenshots/terminal-session-light.png)).*
 
 ## Verification
 

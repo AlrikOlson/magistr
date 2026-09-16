@@ -5,9 +5,9 @@
 //! both themes, through the real terminal renderer: the Roadmap tab as
 //! an overview (`terminal-overview-{dark,light}.png`), the Roadmap tab
 //! with the chunk in progress selected so the focus chain lights
-//! (`terminal-roadmap-{dark,light}.png`), and the Trace tab with a
+//! (`terminal-roadmap-{dark,light}.png`), and the Session view with a
 //! mid-trace step selected so its card and relations show
-//! (`terminal-trace-{dark,light}.png`). `scripts/website-captures.sh` runs this and rewrites
+//! (`terminal-session-{dark,light}.png`). `scripts/website-captures.sh` runs this and rewrites
 //! the manifest beside the images.
 
 use std::error::Error;
@@ -84,6 +84,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         objective: Some(fixtures::objective_from(data["objective"].clone())),
         ..NativeSnapshot::default()
     };
+    let journal = records("changes")?
+        .into_iter()
+        .map(|row| {
+            Ok(magistr_cockpit::workbench::JournalEntry {
+                id: row["id"].as_str().ok_or("missing change id")?.into(),
+                path: row["path"].as_str().ok_or("missing change path")?.into(),
+                at_ms: row["at_ms"].as_i64(),
+                added: row["added"].as_u64().unwrap_or(0) as u32,
+                removed: row["removed"].as_u64().unwrap_or(0) as u32,
+                parse_ok: row["parse_ok"].as_bool().unwrap_or(false),
+                diff: row["diff"].as_str().unwrap_or_default().into(),
+            })
+        })
+        .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
     // The branch statuses arrive as the engine events that carry them —
     // a merged branch draws its way back to the main line.
     let branches = data["branches"].as_array().cloned().unwrap_or_default();
@@ -92,7 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         for (name, tab) in [
             ("overview", StageTab::Roadmap),
             ("roadmap", StageTab::Roadmap),
-            ("trace", StageTab::Trace),
+            ("session", StageTab::Session),
         ] {
             let mut model = Model::new(CAPTURE)
                 .with_surface(Surface::Terminal)
@@ -100,6 +114,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_snapshot(&snapshot)
                 .with_theme(Theme::forced(theme))
                 .with_tab(tab);
+            update(
+                &mut model,
+                Msg::Workbench(magistr_cockpit::cockpit::WorkbenchEvent::Journal {
+                    entries: journal.clone(),
+                }),
+            );
             for branch in &branches {
                 update(
                     &mut model,
@@ -111,7 +131,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
             }
             match (name, tab) {
-                (_, StageTab::Trace) => {
+                (_, StageTab::Session) => {
                     // The step two before the newest: its card, its
                     // relations and the branch it stands on all show.
                     let index = snapshot.steps.len().saturating_sub(3);

@@ -5,12 +5,12 @@ expression: screen
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
-│no objective yet          │ │reasoning  0 steps                   [✱ Checkpoint]│  │                                  │
-│roadmap 0/0 done          │ │recorded work                                      │  │                                  │
-│signals 0                 │ │▸ test · red first (wire)                          │  │                                  │
-│                          │ │✓ check · exit 0 · 800ms                           │  │                                  │
-│                          │ │✗ test · exit 101 · 5.4s                           │  │                                  │
+│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│no objective yet          │ │session · 0 steps · 0 changes · UTC                │  │                                  │
+│roadmap 0/0 done          │ │time unknown ▸ test · red first (wire)             │  │                                  │
+│signals 0                 │ │time unknown ✓ check · exit 0 · 800ms              │  │                                  │
+│                          │ │time unknown ✗ test · exit 101 · 5.4s              │  │                                  │
+│                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
@@ -41,4 +41,4 @@ Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- enter  send   ↑↓  history   ctrl-d  quit
+ ↑↓  select   enter  detail   tab / shift-tab  switch pane

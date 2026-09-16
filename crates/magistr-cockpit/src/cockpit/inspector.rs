@@ -21,6 +21,7 @@ struct Card {
     actions: Vec<(&'static str, WidgetId)>,
     fields: Vec<(String, String)>,
     diff: Option<String>,
+    viewer: Option<Vec<String>>,
     proposals: Vec<(usize, String)>,
 }
 
@@ -75,7 +76,9 @@ impl Inspector {
             })
             .child(
                 line(
-                    if model.inspector_open() {
+                    if card.viewer.is_some() {
+                        "Close"
+                    } else if model.inspector_open() {
                         "Less"
                     } else {
                         "More"
@@ -142,6 +145,7 @@ impl Inspector {
                     | Widget::InspectorActions
                     | Widget::InspectorFields
                     | Widget::InspectorDetail
+                    | Widget::Checkpoint
                     | Widget::RoadmapStart
                     | Widget::RoadmapComplete
             )
@@ -198,8 +202,23 @@ impl Card {
             actions: Vec::new(),
             fields: Vec::new(),
             diff: None,
+            viewer: None,
             proposals: Vec::new(),
         };
+        if let Some(lines) = model.trace().viewer() {
+            card.title = "Checkpoint".into();
+            card.status = "reasoning report".into();
+            card.metadata = format!("{} lines · Esc closes", lines.len());
+            card.viewer = Some(lines.to_vec());
+            return Some(card);
+        }
+        if let Some((title, lines)) = model.changes().viewer() {
+            card.title = title.into();
+            card.status = "read only".into();
+            card.metadata = format!("{} lines · Esc closes", lines.len());
+            card.viewer = Some(lines.to_vec());
+            return Some(card);
+        }
         match model.selected()? {
             Selected::Chunk(id) => {
                 let chunk = model.roadmap().chunk(id)?;
@@ -309,13 +328,13 @@ impl Card {
                     if step.pinned { "Unpin" } else { "Pin" },
                     Widget::trace_pin(*number),
                 ));
+                card.actions.push(("Checkpoint", Widget::Checkpoint.id()));
                 if step
                     .execution_ref
                     .as_deref()
                     .is_some_and(|r| model.roadmap().chunk_for_ref(r).is_some())
                 {
-                    card.actions
-                        .push(("Open chunk", Widget::trace_chunk(*number)));
+                    card.actions.push(("Chunk", Widget::trace_chunk(*number)));
                 }
                 card.fields = step
                     .fields()
@@ -326,6 +345,11 @@ impl Card {
                     })
                     .map(|(label, value)| (label.into(), value))
                     .collect();
+                if model.inspector_open()
+                    && let Some(timestamp) = &step.timestamp
+                {
+                    card.fields.push(("recorded".into(), timestamp.clone()));
+                }
                 if let Some(n) = step.revises {
                     card.fields.push(("revises".into(), n.to_string()));
                 }
@@ -333,13 +357,69 @@ impl Card {
                     card.fields.push(("revised by".into(), n.to_string()));
                 }
             }
+            Selected::Receipt(_) => {
+                let item =
+                    super::session_item::SessionItem::collect(model.trace(), model.changes())
+                        .into_iter()
+                        .find(|item| Some(&item.selection()) == model.selected())?;
+                let super::session_item::SessionItem::Moment(_, moment) = item else {
+                    return None;
+                };
+                match moment {
+                    super::ShipMoment::Action {
+                        task_id,
+                        timestamp,
+                        kind,
+                        description,
+                        id,
+                        files,
+                    } => {
+                        card.title = description.clone();
+                        card.status = kind.clone();
+                        card.icon = Icon::InProgress;
+                        card.metadata = format!("action #{id} · {task_id}");
+                        card.fields = vec![
+                            ("recorded".into(), timestamp.clone()),
+                            ("files".into(), files.join("\n")),
+                        ];
+                    }
+                    super::ShipMoment::Check {
+                        task_id,
+                        timestamp,
+                        name,
+                        passed,
+                        exit_code,
+                        duration_ms,
+                    } => {
+                        card.title = name.clone();
+                        card.status = if *passed { "passed" } else { "failed" }.into();
+                        card.icon = Icon::check(*passed);
+                        card.metadata = task_id.clone();
+                        card.fields.push(("recorded".into(), timestamp.clone()));
+                        if let Some(code) = exit_code {
+                            card.fields.push(("exit code".into(), code.to_string()));
+                        }
+                        if let Some(ms) = duration_ms {
+                            card.fields.push(("duration".into(), format!("{ms} ms")));
+                        }
+                    }
+                }
+            }
+            Selected::Run(index) => {
+                let run = model.changes().runs()?.1.get(*index)?;
+                card.title = run.name.clone();
+                card.status = if run.passed { "passed" } else { "failed" }.into();
+                card.icon = Icon::check(run.passed);
+                card.metadata = "latest Workbench run · time unknown".into();
+                card.fields.push(("detail".into(), run.detail.clone()));
+            }
             Selected::Change(id) => {
                 let (index, entry) = model
                     .changes()
                     .entries()
                     .iter()
                     .enumerate()
-                    .find(|(_, entry)| entry.id == *id)?;
+                    .find(|(_, entry)| entry.identity() == *id)?;
                 card.title = entry.path.clone();
                 card.status = if entry.parse_ok {
                     "parse ok"
@@ -347,7 +427,7 @@ impl Card {
                     "parse failed"
                 }
                 .into();
-                if model.changes().is_approved(id) {
+                if model.changes().is_approved(&entry.id) {
                     card.status.push_str(" · approved");
                 }
                 card.icon = Icon::check(entry.parse_ok);
@@ -358,6 +438,13 @@ impl Card {
                     ("Approve", Widget::change_approve(index)),
                 ];
                 card.fields = vec![("path".into(), entry.path.clone())];
+                if model.inspector_open()
+                    && let Some(at) = entry
+                        .at_ms
+                        .and_then(chrono::DateTime::from_timestamp_millis)
+                {
+                    card.fields.push(("recorded".into(), at.to_rfc3339()));
+                }
                 card.diff = Some(entry.diff.clone());
             }
         }
@@ -365,6 +452,22 @@ impl Card {
     }
 
     fn rows(&self, width: u16, full: bool, pen: &Pen) -> Vec<Node> {
+        if let Some(lines) = &self.viewer {
+            return lines
+                .iter()
+                .flat_map(|text| {
+                    if text.is_empty() {
+                        vec![line("", &pen.code)]
+                    } else {
+                        TextMetrics::new(text)
+                            .wrap(width.max(1))
+                            .into_iter()
+                            .map(|wrapped| line(wrapped, &pen.code))
+                            .collect()
+                    }
+                })
+                .collect();
+        }
         let mut rows = Vec::new();
         for (index, proposal) in &self.proposals {
             rows.extend(

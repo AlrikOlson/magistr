@@ -299,7 +299,7 @@ fn the_body_counts_every_row_the_tab_paints() {
 
     // The checkpoint pane takes the body whole.
     trace.open_viewer(vec!["{".to_owned(), "}".to_owned()]);
-    assert_eq!((trace.pinned_rows(false), trace.body_rows(80)), (1, 2));
+    assert_eq!((trace.pinned_rows(false), trace.body_rows(80)), (3, 2));
 }
 
 #[test]

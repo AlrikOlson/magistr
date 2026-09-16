@@ -53,10 +53,8 @@ pub enum Widget {
     TabHome,
     /// The stage's tab bar: Turn.
     TabTurn,
-    /// The stage's tab bar: Changes.
-    TabChanges,
-    /// The stage's tab bar: Trace.
-    TabTrace,
+    /// The stage's tab bar: Session.
+    TabSession,
     /// The stage's tab bar: Roadmap.
     TabRoadmap,
     /// The stage filling the middle.
@@ -285,7 +283,7 @@ pub enum Widget {
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 105] = [
+    pub const ALL: [Self; 104] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -305,8 +303,7 @@ impl Widget {
         Self::RailGauge,
         Self::TabHome,
         Self::TabTurn,
-        Self::TabChanges,
-        Self::TabTrace,
+        Self::TabSession,
         Self::TabRoadmap,
         Self::Stage,
         Self::Undock,
@@ -584,6 +581,18 @@ impl Widget {
     const INDEX_SPAN: u32 = 0x1_0000;
     /// A compact signal row selecting the shared inspector.
     const SIGNAL_ROW_BASE: u32 = 0x27_0000;
+    /// An action/check/run row in the unified Session timeline.
+    const SESSION_ROW_BASE: u32 = 0x28_0000;
+
+    #[must_use]
+    pub const fn session_row(index: usize) -> WidgetId {
+        Self::indexed(Self::SESSION_ROW_BASE, index)
+    }
+
+    #[must_use]
+    pub const fn session_row_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(Self::SESSION_ROW_BASE, id)
+    }
 
     #[must_use]
     pub const fn signal_row(index: usize) -> WidgetId {
@@ -1134,8 +1143,7 @@ impl Widget {
         match tab {
             StageTab::Home => Self::TabHome,
             StageTab::Turn => Self::TabTurn,
-            StageTab::Changes => Self::TabChanges,
-            StageTab::Trace => Self::TabTrace,
+            StageTab::Session => Self::TabSession,
             StageTab::Roadmap => Self::TabRoadmap,
         }
     }
@@ -1148,8 +1156,7 @@ impl Widget {
         match self {
             Self::TabHome => Some(StageTab::Home),
             Self::TabTurn => Some(StageTab::Turn),
-            Self::TabChanges => Some(StageTab::Changes),
-            Self::TabTrace => Some(StageTab::Trace),
+            Self::TabSession => Some(StageTab::Session),
             Self::TabRoadmap | Self::LaunchRoadmap => Some(StageTab::Roadmap),
             _ => None,
         }
@@ -1198,8 +1205,7 @@ impl Widget {
             Self::Verify => "Verify",
             Self::TabHome => "Home",
             Self::TabTurn => "Turn",
-            Self::TabChanges => "Changes",
-            Self::TabTrace => "Trace",
+            Self::TabSession => "Session",
             Self::TabRoadmap => "Roadmap",
             Self::Stage => "stage",
             Self::Undock => "undock",
