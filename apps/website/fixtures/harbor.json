@@ -121,7 +121,7 @@
       "id": "leases",
       "name": "Worker leases",
       "title": "Worker leases",
-      "group": "Delivery",
+      "group": "Storage",
       "status": "done",
       "deps": [
         "outbox"
@@ -336,7 +336,7 @@
     },
     {
       "id": "retry-budget",
-      "name": "Bounded retry budget",
+      "name": "Retry limits",
       "title": "Bound retries across worker restarts",
       "group": "Delivery",
       "status": "in_progress",
@@ -363,7 +363,7 @@
       "id": "retry-after",
       "name": "Respect Retry-After",
       "title": "Respect Retry-After",
-      "group": "Delivery",
+      "group": "Retry timing",
       "status": "pending",
       "deps": [
         "retry-budget"
@@ -379,7 +379,7 @@
       "id": "backoff",
       "name": "Jittered backoff",
       "title": "Jittered backoff",
-      "group": "Delivery",
+      "group": "Retry timing",
       "status": "pending",
       "deps": [
         "retry-budget"
@@ -1300,15 +1300,16 @@
     }
   ],
   "turn": {
-    "prompt": "Make webhook retries safe across worker restarts.",
-    "response": "The lease and retry budget must survive the worker. I will persist the retry schedule with the delivery receipt, then run the restart checks.",
+    "prompt": "Make the retry budget survive worker restarts. Keep tenant budgets isolated and show me the recovery checks.",
+    "response": "The budget now lives beside the lease and resumes from the saved retry time after a restart. Each customer keeps a separate allowance; the shared pool was rejected after the latency check.",
     "read_title": "Read retry lease and budget",
-    "edit_path": "src/retry/lease.rs",
+    "edit_path": "src/delivery/retry.rs",
     "old_text": "renew_in_memory();\n",
     "new_text": "receipt_and_schedule.commit()?;\n",
-    "edit_summary": "The receipt and next attempt now commit together. A restarted worker resumes from the saved schedule.",
+    "edit_summary": "The receipt, next due time and tenant counter commit in one transaction.",
     "command": "cargo test -p harbor-delivery retry",
-    "terminal": "   Compiling harbor-delivery v0.1.0\r\n    Finished test profile in 1.8s\r\n     Running retry checks\r\n\r\ntest retry::lease_survives_restart ... ok\r\ntest retry::budget_is_durable ... ok\r\ntest retry::no_duplicate_attempt ... ok\r\n\r\ntest result: ok. 3 passed; 0 failed\r\n"
+    "terminal": "   Compiling harbor-delivery v0.1.0\r\n    Finished test profile in 1.8s\r\n     Running retry checks\r\n\r\ntest retry::lease_survives_restart ... ok\r\ntest retry::budget_is_durable ... ok\r\ntest retry::no_duplicate_attempt ... ok\r\n\r\ntest result: ok. 3 passed; 0 failed\r\n",
+    "followup": "The focused retry checks pass. I am checking the restart interleavings before recording the final receipt."
   },
   "steps": [
     {
@@ -1374,7 +1375,7 @@
         3
       ],
       "branch_id": "throttle-policy",
-      "branch_name": "Throttle policy",
+      "branch_name": "Wait when the server asks?",
       "branch_from": 3
     },
     {
@@ -1383,7 +1384,7 @@
       "purpose": "Bound the retry schedule",
       "context": "Jittered exponential backoff can exceed the tenant's delivery window.",
       "thought": "Cap every wait at the window's remaining time and let the last attempt land before expiry.",
-      "outcome": "The schedule never outlives the delivery window.",
+      "outcome": "Honor waits within the deadline.",
       "rationale": "An attempt after expiry is a duplicate the tenant never asked for.",
       "next_action": "Persist an attempt receipt with the schedule.",
       "timestamp": "2026-08-18T14:08:00Z",
@@ -1393,7 +1394,7 @@
         4
       ],
       "branch_id": "throttle-policy",
-      "branch_name": "Throttle policy",
+      "branch_name": "Wait when the server asks?",
       "branch_from": 3
     },
     {
@@ -1420,7 +1421,7 @@
       "context": "A worker can die between claim, attempt and receipt.",
       "thought": "Enumerate the six orderings and check each resumes from the receipt, never from the in-memory attempt.",
       "outcome": "Two orderings needed a lease renewal on resume.",
-      "rationale": "The restart drill is the acceptance test for the whole chunk.",
+      "rationale": "The restart drill checks that the recovery work is complete.",
       "next_action": "Isolate the budgets tenants share.",
       "timestamp": "2026-08-18T14:12:00Z",
       "confidence": 0.77,
@@ -1445,7 +1446,7 @@
         7
       ],
       "branch_id": "tenant-budgets",
-      "branch_name": "Tenant budgets",
+      "branch_name": "Share customer limits?",
       "branch_from": 7
     },
     {
@@ -1454,7 +1455,7 @@
       "purpose": "Reject shared budget pools",
       "context": "The shared-pool variant was cheaper to implement.",
       "thought": "Even with weighting, a shared pool leaks one tenant's failure rate into another's latency; drop it.",
-      "outcome": "Shared pools are out; the per-tenant counter stands.",
+      "outcome": "Shared limits rejected; separate limits kept.",
       "rationale": "One measurable regression outweighs the saved table.",
       "next_action": "Keep tenant budgets separate in the schema.",
       "timestamp": "2026-08-18T14:16:00Z",
@@ -1465,7 +1466,7 @@
       ],
       "revises_step": 8,
       "branch_id": "tenant-budgets",
-      "branch_name": "Tenant budgets",
+      "branch_name": "Share customer limits?",
       "branch_from": 7
     },
     {
@@ -1473,7 +1474,7 @@
       "estimated_total": 12,
       "purpose": "Keep tenant budgets separate",
       "context": "Per-tenant counters live beside the lease.",
-      "thought": "Merge the tenant branch: the counter is decremented in the same transaction as the receipt.",
+      "thought": "Keep a counter for each tenant and decrement it in the same transaction as the receipt.",
       "outcome": "Budgets are per tenant and durable.",
       "rationale": "A tenant's budget must survive both a worker restart and a neighbour's outage.",
       "next_action": "Test the expiry boundary.",

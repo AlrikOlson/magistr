@@ -1,61 +1,61 @@
 {
-  "renderer": "magistr-tui::screenshot::frame",
+  "renderer": "magistr-tui::screenshot::Preview::frame",
   "surface": "Terminal",
   "profile": "Kitty",
   "source_commit": "working-tree",
   "captured_on": "2026-09-16",
   "state": "Rendered from apps/website/fixtures/harbor.json",
-  "columns": 132,
-  "rows": 42,
+  "columns": 144,
+  "rows": 50,
   "annotations": false,
   "images": [
     {
       "file": "terminal-overview-dark.png",
-      "sha256": "869096c54bc61b30563990a2eb107f653a54c9d28849e89805d1a72278108adb",
-      "width": 1320,
-      "height": 840
+      "sha256": "0befe3834410d4bcebc39a3f5ea4189b44d40749aa95d3b03d8ae80e2e13835b",
+      "width": 1440,
+      "height": 1000
     },
     {
       "file": "terminal-overview-light.png",
-      "sha256": "d72ceebd0ff9942c8dcd5415a77b8cb6ffffeaa2555aef498de89180bbf6fcf3",
-      "width": 1320,
-      "height": 840
+      "sha256": "5d6349d4df2c4f1618dca432b76c2ff2dd134b96e54c99c7e9110fa24856d4f3",
+      "width": 1440,
+      "height": 1000
     },
     {
       "file": "terminal-roadmap-dark.png",
-      "sha256": "13e9a611c7d3019155640bb3c5ccfd61581030ac705e132f2af0ec787092de4b",
-      "width": 1320,
-      "height": 840
+      "sha256": "d2a1b70eb8884679e08c2098213636ee4a7c498b9ab32e8ca087d38353818063",
+      "width": 1440,
+      "height": 1000
     },
     {
       "file": "terminal-roadmap-light.png",
-      "sha256": "05fca2b88e05bdd8d5ea5e2d2cb73c9ad86aba6641823ec62334bfa6c99e36fe",
-      "width": 1320,
-      "height": 840
+      "sha256": "0071d7cf386904a561c1a0fc8c2a654e1e205d5bf734ef61f243aa25d2b32c52",
+      "width": 1440,
+      "height": 1000
     },
     {
       "file": "terminal-session-dark.png",
-      "sha256": "28c3248596fb33bdb6d0f41c1690fee59706f0c87b932410d2bb8876fbc5c153",
-      "width": 1320,
-      "height": 840
+      "sha256": "820d628883dc8d482a4b83107c80d712171453fc3418e8009294ee32954b2d02",
+      "width": 1440,
+      "height": 1000
     },
     {
       "file": "terminal-session-light.png",
-      "sha256": "e9ae12e7ab7ca1db3dccaea820265f4db49806140d8c7761a6e3077178854f14",
-      "width": 1320,
-      "height": 840
+      "sha256": "f820779ce7a2626f75407390d44d6f0a2e424bc1bcf07917f29388e791c88d3a",
+      "width": 1440,
+      "height": 1000
     },
     {
       "file": "terminal-turn-dark.png",
-      "sha256": "55227ebf71f4633b04d7a39ff4514bd06e75428696512b935130b2758fcbe6ba",
-      "width": 1320,
-      "height": 840
+      "sha256": "611c8ebf4b58ea472eb96b6c3459f313d8a477555c3a19b0d01617fc418d626d",
+      "width": 1440,
+      "height": 1000
     },
     {
       "file": "terminal-turn-light.png",
-      "sha256": "8f42efb2a304044b3f1c0575770031dba296c271304465e5f33e4b87bf4afd5d",
-      "width": 1320,
-      "height": 840
+      "sha256": "6b43770dcea5ae766f96d105076250878303fa7495e7fbb031af36603e30a59f",
+      "width": 1440,
+      "height": 1000
     }
   ]
 }
