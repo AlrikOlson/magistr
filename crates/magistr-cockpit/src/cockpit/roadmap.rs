@@ -1,6 +1,7 @@
 //! The Roadmap tab's state.
 
-use magistr_engine::native::{Chunk, Signal};
+use super::RoadmapSort;
+use magistr_engine::native::{Chunk, ChunkStatus, Signal};
 use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::camera::Camera;
@@ -73,6 +74,9 @@ pub struct Roadmap {
     signals: Vec<SignalRow>,
     selected: Option<String>,
     hovered: Option<String>,
+    filter: Option<ChunkStatus>,
+    sort: RoadmapSort,
+    descending: bool,
     camera: Camera,
     viewport: Option<(u16, u16)>,
     /// The ship moment in flight, if one is — recorded by
@@ -102,6 +106,47 @@ struct Shipped {
 }
 
 impl Roadmap {
+    /// Restrict table rows by status without changing the graph or selection.
+    pub fn cycle_filter(&mut self) {
+        self.filter = match self.filter {
+            None => Some(ChunkStatus::InProgress),
+            Some(ChunkStatus::InProgress) => Some(ChunkStatus::Pending),
+            Some(ChunkStatus::Pending) => Some(ChunkStatus::Blocked),
+            Some(ChunkStatus::Blocked) => Some(ChunkStatus::Backlog),
+            Some(ChunkStatus::Backlog) => Some(ChunkStatus::Done),
+            _ => None,
+        };
+    }
+
+    #[must_use]
+    pub const fn filter_label(&self) -> &'static str {
+        match self.filter {
+            None => "Active",
+            Some(ChunkStatus::InProgress) => "In progress",
+            Some(ChunkStatus::Pending) => "Pending",
+            Some(ChunkStatus::Blocked) => "Blocked",
+            Some(ChunkStatus::Backlog) => "Backlog",
+            Some(ChunkStatus::Done) => "Done",
+            Some(ChunkStatus::Obsoleted) => "Obsoleted",
+        }
+    }
+
+    /// Repeating a column reverses it; another column starts ascending.
+    pub fn sort_by(&mut self, column: RoadmapSort) {
+        self.descending = self.sort == column && !self.descending;
+        self.sort = column;
+    }
+
+    #[must_use]
+    pub const fn sort(&self) -> RoadmapSort {
+        self.sort
+    }
+
+    #[must_use]
+    pub const fn descending(&self) -> bool {
+        self.descending
+    }
+
     /// Take the store's state whole — what the entry point read before
     /// the terminal was taken over, and what the loop driver (or the
     /// periodic re-read of an unattached cockpit) re-reads later.
@@ -191,22 +236,35 @@ impl Roadmap {
         }
     }
 
-    /// The actionable chunks of the list, working set first: in
-    /// progress, then pending by priority, blocked, backlog. Done
-    /// chunks collapse into [`Roadmap::done_count`] and obsoleted ones
-    /// are history — neither takes a row.
+    /// Visible table rows, filtered and sorted independently of selection.
+    /// Active work is the default; the Done filter exposes shipped items.
     #[must_use]
     pub fn rows(&self) -> Vec<&RoadmapChunk> {
-        let mut rows: Vec<&RoadmapChunk> = self
+        let mut rows: Vec<_> = self
             .chunks
             .iter()
-            .filter(|c| c.is_active() && c.status != "done")
+            .filter(|c| match self.filter {
+                None => c.is_active() && c.status != "done",
+                Some(ChunkStatus::InProgress) => {
+                    matches!(c.status.as_str(), "in_progress" | "stuck")
+                }
+                Some(status) => c.status == status.as_wire(),
+            })
             .collect();
         rows.sort_by(|a, b| {
-            status_rank(a)
-                .cmp(&status_rank(b))
-                .then(a.priority.cmp(&b.priority))
-                .then(a.id.cmp(&b.id))
+            let order = match self.sort {
+                RoadmapSort::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+                RoadmapSort::Status => status_rank(a).cmp(&status_rank(b)),
+                RoadmapSort::Priority => a.priority.cmp(&b.priority),
+                RoadmapSort::Workstream => a.group.cmp(&b.group),
+            }
+            .then(a.priority.cmp(&b.priority))
+            .then(a.id.cmp(&b.id));
+            if self.descending {
+                order.reverse()
+            } else {
+                order
+            }
         });
         rows
     }
@@ -423,8 +481,9 @@ impl Roadmap {
     /// suggested value and the reason, in list order.
     #[must_use]
     pub fn proposals(&self) -> Vec<(&RoadmapChunk, ProposalKind, &str, &str)> {
-        self.rows()
-            .into_iter()
+        self.chunks
+            .iter()
+            .filter(|chunk| chunk.is_active() && chunk.status != "done")
             .flat_map(|chunk| {
                 chunk
                     .proposals
@@ -462,40 +521,11 @@ impl Roadmap {
         self.chunks.is_empty() && self.signals.is_empty()
     }
 
-    /// Rows the scrolling body takes — everything the tab paints below
-    /// the heading and the tech-tree block: the hover tooltip, the card
-    /// of a chunk selected off the list, the status sections and their
-    /// rows (the selected one with its buttons and detail card, wrapped
-    /// to `width`), the done count, and the proposals and signals
-    /// inboxes with their headings. Counted from the same rows, sections
-    /// and [`RoadmapChunk::detail_rows`] the view paints, so the window
-    /// and the rows never drift.
+    /// Table items and signal rows. Empty filters retain a note; headers are
+    /// pinned, and selected object fields/actions occupy the inspector.
     #[must_use]
     pub fn body_rows(&self, _width: u16) -> usize {
-        if self.is_empty() {
-            // The "no roadmap yet" note.
-            return 1;
-        }
-        let mut rows = usize::from(self.hovered_title().is_some());
-        let list = self.rows();
-        let mut section: Option<&str> = None;
-        for chunk in &list {
-            if section != Some(chunk.status.as_str()) {
-                section = Some(chunk.status.as_str());
-                // The spacer and the section header.
-                rows += 2;
-            }
-            rows += 1;
-        }
-        if self.done_count() > 0 {
-            rows += 2;
-        }
-        for inbox in [self.proposals().len(), self.signals().len()] {
-            if inbox > 0 {
-                rows += 2 + 2 * inbox;
-            }
-        }
-        rows
+        self.rows().len().max(1) + self.signals().len()
     }
 
     /// One line per workstream in tier order — what the tech-tree block
@@ -542,8 +572,16 @@ impl Roadmap {
     /// floored), so the pan only matters when the floor overflows; the
     /// pan re-clamps to the new limits.
     pub fn set_viewport(&mut self, viewport: Option<(u16, u16)>) {
+        if self.viewport == viewport {
+            return;
+        }
         self.viewport = viewport;
         self.pan_by(0.0, 0.0);
+        // Selection can arrive before the first layout or survive a resize.
+        // Place it immediately: the previous viewport is no longer drawable.
+        if let Some(id) = self.selected.clone() {
+            self.focus(&id, 0.0, false);
+        }
     }
 
     /// Drag on the tech-tree: the view under the pan moves with the

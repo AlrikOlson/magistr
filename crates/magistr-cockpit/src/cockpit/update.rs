@@ -602,6 +602,32 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     if let Some(cmds) = galaxy_key(model, key) {
         return cmds;
     }
+    if !model.surface().is_native()
+        && model.tab == StageTab::Roadmap
+        && model.prompt.is_empty()
+        && key.mods == Modifiers::ALT
+    {
+        let handled = match key.code {
+            KeyCode::Char('f') => {
+                model.roadmap.cycle_filter();
+                true
+            }
+            KeyCode::Char('s') => {
+                model.roadmap.sort_by(model.roadmap.sort().next());
+                true
+            }
+            KeyCode::Char('r') => {
+                model.roadmap.sort_by(model.roadmap.sort());
+                true
+            }
+            _ => false,
+        };
+        if handled {
+            model.roadmap_viewport = Viewport::at_top();
+            model.pane = Pane::Stage;
+            return Vec::new();
+        }
+    }
     if let Some(cmds) = inspector_key(model, key) {
         return cmds;
     }
@@ -1180,29 +1206,33 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             Inspector::scroll(model, if key.code == KeyCode::Down { 1 } else { -1 });
         }
         KeyCode::Up | KeyCode::Down if model.tab == StageTab::Roadmap => {
-            let rows = model.roadmap.rows();
-            let current = match model.selected() {
-                Some(Selected::Chunk(id)) => rows.iter().position(|chunk| chunk.id == *id),
-                _ => None,
-            };
-            let at = selection_index(current, rows.len(), key.code == KeyCode::Down)?;
-            let selected = Selected::Chunk(rows[at].id.clone());
+            let chunks = model.roadmap.rows();
+            let offset = chunks.len().max(1);
+            let mut selections: Vec<_> = chunks
+                .iter()
+                .enumerate()
+                .map(|(i, chunk)| (Selected::Chunk(chunk.id.clone()), i))
+                .collect();
+            selections.extend(
+                model
+                    .roadmap
+                    .signals()
+                    .iter()
+                    .enumerate()
+                    .map(|(i, signal)| (Selected::Signal(signal.id.clone()), offset + i)),
+            );
+            let current = selections
+                .iter()
+                .position(|(selected, _)| Some(selected) == model.selected());
+            let at = selection_index(current, selections.len(), key.code == KeyCode::Down)?;
+            let (selected, row) = selections.swap_remove(at);
             model.inspect(selected);
-            // The compact list has a spacer and heading before each status group.
-            let rows = model.roadmap.rows();
-            let mut row = usize::from(model.roadmap.hovered_title().is_some());
-            let mut previous = None;
-            for chunk in rows.iter().take(at + 1) {
-                if previous != Some(chunk.status.as_str()) {
-                    row += 2;
-                    previous = Some(chunk.status.as_str());
-                }
-                row += 1;
-            }
             let (total, height) = model.roadmap_window();
-            model
-                .roadmap_viewport
-                .hold(row.saturating_sub(height), total, height);
+            model.roadmap_viewport.hold(
+                row.saturating_add(1).saturating_sub(height),
+                total,
+                height,
+            );
         }
         KeyCode::Up | KeyCode::Down if model.tab == StageTab::Changes => {
             let entries = model.changes.entries();
@@ -2486,6 +2516,27 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     }
                     return Vec::new();
                 }
+                Some(Widget::RoadmapFilter) => {
+                    model.roadmap.cycle_filter();
+                    model.roadmap_viewport = Viewport::at_top();
+                    model.pane = Pane::Stage;
+                    return Vec::new();
+                }
+                Some(widget)
+                    if super::RoadmapSort::ALL
+                        .iter()
+                        .any(|column| column.widget() == widget) =>
+                {
+                    if let Some(column) = super::RoadmapSort::ALL
+                        .into_iter()
+                        .find(|column| column.widget() == widget)
+                    {
+                        model.roadmap.sort_by(column);
+                        model.roadmap_viewport = Viewport::at_top();
+                        model.pane = Pane::Stage;
+                    }
+                    return Vec::new();
+                }
                 Some(Widget::RoadmapStart) => return roadmap_chunk_click(model, false),
                 Some(Widget::RoadmapComplete) => return roadmap_chunk_click(model, true),
                 Some(Widget::ShelfExport) => return shelf_export(model),
@@ -2636,6 +2687,14 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     model.roadmap.toggle_row(index, model.now(), animate);
                 } else if let Some(chunk) = model.roadmap.rows().get(index) {
                     let selected = Selected::Chunk(chunk.id.clone());
+                    model.inspect(selected);
+                    model.pane = Pane::Stage;
+                }
+                return Vec::new();
+            }
+            if let Some(index) = target.and_then(Widget::signal_row_index) {
+                if let Some(signal) = model.roadmap.signals().get(index) {
+                    let selected = Selected::Signal(signal.id.clone());
                     model.inspect(selected);
                     model.pane = Pane::Stage;
                 }

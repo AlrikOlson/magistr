@@ -13,7 +13,6 @@
 
 use super::marks::{Fallback, Marks};
 use crate::render::Screen;
-use magistr_cockpit::cockpit::view::ROADMAP_LEGEND_COLS;
 use magistr_cockpit::cockpit::view::{activity_series, rail_gauge_cols, spark_sweep};
 use magistr_cockpit::cockpit::{DagNode, DagPath, Model, Motion, Widget};
 use magistr_cockpit::layout::{Node, Rect, Resolved};
@@ -453,15 +452,10 @@ impl Surfaces {
         }
     }
 
-    /// The Roadmap tab's tech-tree in pixels, beside the cells of its
-    /// block — the same caching discipline as
-    /// [`Surfaces::show_trace_graph`]. The surface covers only the block
-    /// right of the legend gutter, so the workstream names stay text and
-    /// pixels never sit over glyphs; that sub-rect is what the model
-    /// gets ([`Model::set_roadmap_graph_rect`], `None` while another tab
-    /// shows or graphics are off), so mouse events and the fit share the
-    /// painter's geometry. Says whether the report changed — the caller
-    /// schedules a follow-up frame, since the tab's layout depends on it.
+    /// The Roadmap graph's own stage block, using the trace graph's cache
+    /// discipline. Report that exact rectangle to the model so the camera,
+    /// painting and hit testing agree; plain terminals keep the text legend.
+    /// A changed report schedules the follow-up frame.
     fn show_roadmap_graph(
         &mut self,
         model: &mut Model,
@@ -474,16 +468,7 @@ impl Surfaces {
             .find_map(|placed| {
                 (placed.id == Some(Widget::RoadmapGraph.id())).then_some(placed.rect)
             })
-            .and_then(|block| {
-                (block.width > ROADMAP_LEGEND_COLS + 8 && block.height > 0).then(|| {
-                    Rect::new(
-                        block.x + ROADMAP_LEGEND_COLS,
-                        block.y,
-                        block.width - ROADMAP_LEGEND_COLS,
-                        block.height,
-                    )
-                })
-            });
+            .filter(|block| block.width > 8 && block.height > 0);
         let report = rect.filter(|_| screen.has_graphics());
         let report_changed = model.roadmap_graph_rect() != report;
         if report_changed {

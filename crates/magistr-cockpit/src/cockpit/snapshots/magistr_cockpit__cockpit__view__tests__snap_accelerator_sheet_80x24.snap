@@ -6,7 +6,7 @@ expression: screen(&m)
 tabs  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
-│no objective yet          │ │⌨ keys · esc closes · 1–8 of 68                  │
+│no objective yet          │ │⌨ keys · esc closes · 1–8 of 71                  │
 │▲ tabs · 2/4              │ │                                                 │
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │── global ────────────────────────               │
 │▲ Tabs                    │ │ tab / shift-tab   switch pane                   │

@@ -3,6 +3,100 @@ use std::fmt::Write as _;
 use std::time::Duration;
 
 use super::*;
+
+#[test]
+fn roadmap_proposal_actions_live_inside_shared_inspector() {
+    for pixels in [false, true] {
+        let mut m = Scenes::roadmapped(Size::new(132, 42));
+        if pixels {
+            update(
+                &mut m,
+                Msg::Mode(crate::capability::Mode::Graphics {
+                    pointer_shapes: true,
+                }),
+            );
+        }
+        update(
+            &mut m,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::roadmap_row(1)),
+            },
+        );
+        let resolved = layout(&view(&m, &clock()), m.size());
+        let rect = |id| {
+            resolved
+                .placed()
+                .iter()
+                .find(|p| p.id == Some(id))
+                .expect("card target exists")
+                .rect
+        };
+        let inspector = rect(Widget::Inspector.id());
+        for id in [
+            Widget::RoadmapStart.id(),
+            Widget::proposal_accept(0),
+            Widget::proposal_reject(0),
+        ] {
+            let action = rect(id);
+            assert!(
+                action.x >= inspector.x && action.x + action.width <= inspector.x + inspector.width
+            );
+            assert!(
+                action.y >= inspector.y
+                    && action.y + action.height <= inspector.y + inspector.height
+            );
+            assert!(action.width > 0 && action.height > 0);
+        }
+    }
+}
+
+#[test]
+fn roadmap_graph_and_table_share_a_wide_stage_and_stack_on_a_narrow_one() {
+    for (cols, rows) in [(80, 24), (132, 42)] {
+        for pixels in [false, true] {
+            let mut m = Scenes::roadmapped(Size::new(cols, rows));
+            if pixels {
+                update(
+                    &mut m,
+                    Msg::Mode(crate::capability::Mode::Graphics {
+                        pointer_shapes: true,
+                    }),
+                );
+            }
+            let resolved = layout(&view(&m, &clock()), m.size());
+            let rect = |id| {
+                resolved
+                    .placed()
+                    .iter()
+                    .find(|p| p.id == Some(id))
+                    .expect("visible target")
+                    .rect
+            };
+            let graph = rect(Widget::RoadmapGraph.id());
+            let first = rect(Widget::roadmap_row(0));
+            assert!(
+                graph.width > 0 && graph.height > 0,
+                "{cols}x{rows} pixels={pixels}, stage rows={} graph={graph:?} first={first:?}",
+                m.stage_rows()
+            );
+            assert!(first.width > 0 && first.height > 0);
+            if cols == 132 {
+                assert!(
+                    first.x >= graph.x + graph.width,
+                    "wide graph {graph:?}, row {first:?}"
+                );
+                assert!(first.y < graph.y + graph.height, "table beside graph");
+            } else {
+                assert!(
+                    first.y >= graph.y + graph.height,
+                    "narrow graph {graph:?}, row {first:?}"
+                );
+            }
+        }
+    }
+}
+
 use crate::agent::{AgentEvent, ImageBlock, ToolStatus, ToolVerb, TurnEnd};
 use crate::cockpit::{
     Eased, HoverRole, Motion, Msg, ShipRun, Size, TurnState, WorkbenchEvent, update,
@@ -218,6 +312,12 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::InspectorDetail
                 | Widget::TraceGraph
                 | Widget::RoadmapGraph
+                | Widget::RoadmapTable
+                | Widget::RoadmapFilter
+                | Widget::RoadmapSortName
+                | Widget::RoadmapSortStatus
+                | Widget::RoadmapSortPriority
+                | Widget::RoadmapSortWorkstream
                 | Widget::RoadmapStart
                 | Widget::RoadmapComplete
                 | Widget::LaunchNext
@@ -2068,34 +2168,27 @@ fn snap_roadmap_list_120x40() {
     let m = Scenes::roadmapped(Size::new(120, 40));
     assert_eq!(m.tab(), StageTab::Roadmap);
     let screen = screen(&m);
-    assert!(
-        screen.contains("roadmap   1 done · 1 active · 1 pending · 0 backlog"),
-        "the heading carries the accounting: {screen}"
-    );
-    assert!(screen.contains("«Engine» 1/1"), "{screen}");
-    assert!(screen.contains("«TUI rewrite» 0/2"), "{screen}");
-    assert!(screen.contains("▸ in progress · 1"), "{screen}");
-    assert!(screen.contains("○ pending · 1"), "{screen}");
-    assert!(screen.contains("▸ Rail and dock"), "{screen}");
-    assert!(screen.contains("▸ Roadmap view"), "{screen}");
-    assert!(
-        !screen.contains("· pending ·"),
-        "the status word left the rows for the section header: {screen}"
-    );
-    assert!(
-        screen.contains("✓ done · 1") && !screen.contains("ACP transport"),
-        "done collapsed to a count: {screen}"
-    );
-    assert!(
-        screen.contains("priority → 100 · sooner"),
-        "the proposal row shows: {screen}"
-    );
-    assert!(screen.contains("[Accept]"), "{screen}");
-    assert!(
-        screen.contains("idea · alice — make startup faster"),
-        "the signal row shows: {screen}"
-    );
-    assert!(screen.contains("[Promote]"), "{screen}");
+    for text in [
+        "roadmap   1 done",
+        "«Engine» 1/1",
+        "«TUI rewrite» 0/2",
+        "Status: Active",
+        "Name",
+        "Status↑",
+        "Pri",
+        "Stream",
+        "▸ Rail and dock",
+        "○ Roadmap view",
+        "◆ make startup faster",
+    ] {
+        assert!(screen.contains(text), "{text} missing: {screen}");
+    }
+    for retired in ["in progress · 1", "pending · 1", "[Accept]", "[Promote]"] {
+        assert!(
+            !screen.contains(retired),
+            "{retired} belongs off the table: {screen}"
+        );
+    }
     insta::assert_snapshot!(screen);
 }
 
@@ -2113,7 +2206,10 @@ fn snap_roadmap_detail_120x40() {
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
     let screen = screen(&m);
     for needle in [
-        "▾ Roadmap view",
+        "○ Roadmap view",
+        "priority → 100 · sooner",
+        "Accept",
+        "Reject",
         "Start",
         "title · The Roadmap tab of the",
         "cockpit",
@@ -2151,7 +2247,7 @@ fn the_in_progress_detail_offers_complete_and_the_empty_tab_says_so() {
 }
 
 #[test]
-fn a_hover_line_shows_under_the_tech_tree() {
+fn a_hover_line_uses_the_pinned_roadmap_heading() {
     let mut m = Scenes::roadmapped(Size::new(120, 40));
     m.set_roadmap_graph_rect(Some(crate::layout::Rect::new(2, 4, 100, 12)));
     let nodes = m.roadmap().dag_nodes();
@@ -2619,15 +2715,11 @@ fn the_sheet_says_where_it_stands_only_when_it_overflows() {
         screen(&small)
     );
 
-    // The registry grew past 62 rows with the loop's step and
-    // checkpoint verbs, past 64 with the
-    // pane's follow key, past 66 with the pane's
-    // kill and copy keys and past 68 with the trace's two; 80 holds
-    // all 60 and their group dividers.
-    let mut tall = Scenes::launcher(Size::new(120, 80));
+    // Leave room for the registry and its group dividers as controls grow.
+    let mut tall = Scenes::launcher(Size::new(120, 96));
     update(&mut tall, Msg::Key(KeyEvent::new(KeyCode::Char('?'))));
     let (total, height) = tall.sheet_window();
-    assert!(height >= total, "the whole registry fits 120x80");
+    assert!(height >= total, "the whole registry fits 120x96");
     assert!(
         !screen(&tall).contains(" of "),
         "a sheet that fits says nothing about its position: {}",
@@ -2639,7 +2731,7 @@ fn the_sheet_says_where_it_stands_only_when_it_overflows() {
 fn the_sheet_lists_every_registered_binding() {
     // The sheet is generated from the registry: at a tall enough size
     // every binding's keys and description are on the screen.
-    let mut m = Scenes::launcher(Size::new(120, 80));
+    let mut m = Scenes::launcher(Size::new(120, 96));
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Char('?'))));
     let s = screen(&m);
     for binding in crate::cockpit::Binding::ALL {
@@ -2867,7 +2959,7 @@ fn buffer_of(model: &Model) -> Buffer {
 /// padding would be noise rather than feedback. Written down rather than
 /// derived, so a widget that becomes registered without a hover decision
 /// turns up as a diff here.
-const CHROME: [&str; 23] = [
+const CHROME: [&str; 24] = [
     "CardActions",
     "CardProject",
     "CardRoadmap",
@@ -2887,6 +2979,7 @@ const CHROME: [&str; 23] = [
     "RailGraph",
     "Research",
     "RoadmapGraph",
+    "RoadmapTable",
     "Stage",
     "Status",
     "TraceGraph",
@@ -3989,7 +4082,10 @@ fn a_detail_card_opened_at_the_far_end_paints_once_the_window_reaches_it() {
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::End)));
     Scenes::settle(&mut m);
     let screen = screen(&m);
-    assert!(screen.contains("▾ chunk-109"), "the card is open: {screen}");
+    assert!(
+        screen.contains("○ chunk-109"),
+        "the selected item's row remains visible: {screen}"
+    );
     assert!(screen.contains("the 109th claim"), "and painted: {screen}");
 }
 
@@ -4825,6 +4921,10 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
                 (
                     Scenes::roadmapped(Size::new(cols, rows)),
                     Widget::roadmap_row(0),
+                ),
+                (
+                    Scenes::roadmapped(Size::new(cols, rows)),
+                    Widget::signal_row(0),
                 ),
                 (Scenes::traced(Size::new(cols, rows)), Widget::trace_row(0)),
                 (

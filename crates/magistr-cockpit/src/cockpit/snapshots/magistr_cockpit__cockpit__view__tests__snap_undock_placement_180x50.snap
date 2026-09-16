@@ -21,7 +21,13 @@ Changes  depth=5 x=42 y=3 w=7 h=1
 Trace    depth=5 x=51 y=3 w=5 h=1
 Roadmap  depth=5 x=58 y=3 w=7 h=1
 stage    depth=4 x=30 y=4 w=62 h=42
-tech tree depth=5 x=30 y=5 w=62 h=3
+tech tree depth=6 x=30 y=5 w=20 h=41
+work items depth=6 x=52 y=5 w=40 h=41
+filter status depth=8 x=52 y=5 w=16 h=1
+sort name depth=8 x=52 y=6 w=13 h=1
+sort status depth=8 x=66 y=6 w=10 h=1
+sort priority depth=8 x=77 y=6 w=5 h=1
+sort workstream depth=8 x=83 y=6 w=9 h=1
 inspector depth=3 x=95 y=2 w=36 h=45
 undock   depth=2 x=132 y=2 w=48 h=45
 Checkpoint depth=4 x=165 y=4 w=14 h=1
