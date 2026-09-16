@@ -9,9 +9,9 @@ const jsonLd = [
 
 /** The terminal interface in both themes. */
 const alt = {
-  overview: "The Roadmap tab: a dependency graph of a project's work items, with the item in progress ringed and the list of items below.",
-  roadmap: "The Roadmap tab with the item in progress selected: its dependency chain stays lit, the rest fades, and its detail card is open below the graph.",
-  trace: "The Trace tab: reasoning steps on a main line with two merged branches, a selected step's card, and the recorded actions and checks below.",
+  overview: "The Roadmap tab: the objective and task checklist at left, a dependency graph in the centre, and the shared inspector at right.",
+  roadmap: "The Roadmap tab with a work item selected: its dependency chain stays lit, and its status, actions and details appear in the inspector at right.",
+  trace: "The Trace tab: reasoning steps and merged branches in the centre, the selected step in the inspector at right, and recorded actions and checks below the graph.",
 };
 
 const docs = [
@@ -38,7 +38,7 @@ const docs = [
       <figure class="capture hero-capture">
         <a class="capture-light" href="/screenshots/terminal-overview-light.png"><img src="/screenshots/terminal-overview-light.png" alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
         <a class="capture-dark" href="/screenshots/terminal-overview-dark.png"><img src="/screenshots/terminal-overview-dark.png" alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
-        <figcaption>The Roadmap tab: a project's work items, their dependencies, and the item in progress.</figcaption>
+        <figcaption>The objective and plan at left, the roadmap in the centre, and one inspector for selected items at right.</figcaption>
       </figure>
     </section>
 
@@ -48,14 +48,14 @@ const docs = [
         <h2 id="roadmap-title">Work items, their dependencies, and what is ready next.</h2>
         <ul class="facts">
           <li><strong>A graph, not a list.</strong> Each item is placed after the items it depends on. Done, ready and waiting items are drawn differently, so what can start next is visible at a glance.</li>
-          <li><strong>Select an item to see its context.</strong> Everything it depends on, and everything that depends on it, stays lit while the rest fades.</li>
+          <li><strong>Select an item to see its context.</strong> Its dependency chain stays lit, and the inspector shows its status, actions and details in one place.</li>
           <li><strong>One item at a time.</strong> The item in progress carries its acceptance criteria and its dependencies into the session that works on it.</li>
         </ul>
       </div>
       <figure class="capture">
         <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
         <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The item in progress selected: its dependency chain stays lit and its details open below.</figcaption>
+        <figcaption>The selected item's dependency chain stays lit while its details open in the inspector.</figcaption>
       </figure>
     </section>
 
@@ -64,7 +64,7 @@ const docs = [
         <p class="eyebrow">Reasoning and recorded work</p>
         <h2 id="trace-title">Every decision, and the checks behind it, stay with the project.</h2>
         <ul class="facts">
-          <li><strong>Reasoning as a graph.</strong> Steps run along a main line. A branch that was explored and merged shows as a lane that rejoins it.</li>
+          <li><strong>Reasoning as a graph.</strong> Steps run along a main line, with branches that rejoin it when merged. Select a step to read its reasoning in the inspector.</li>
           <li><strong>Pins and checkpoints.</strong> A pinned step is kept in view for later sessions. A checkpoint is a saved session state a later session can resume from.</li>
           <li><strong>Actions and checks.</strong> What was done, and what passed or failed with its exit code and duration, is recorded under the steps that led to it.</li>
         </ul>
@@ -72,7 +72,7 @@ const docs = [
       <figure class="capture">
         <a class="capture-light" href="/screenshots/terminal-trace-light.png"><img src="/screenshots/terminal-trace-light.png" alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
         <a class="capture-dark" href="/screenshots/terminal-trace-dark.png"><img src="/screenshots/terminal-trace-dark.png" alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The Trace tab: a selected step with its details, and the recorded work below.</figcaption>
+        <figcaption>The Trace tab uses the same inspector for a selected step, with recorded work below the graph.</figcaption>
       </figure>
     </section>
 
