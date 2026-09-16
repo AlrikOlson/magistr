@@ -43,7 +43,7 @@ assert(indexHtml.includes("magistr --version") && indexHtml.includes("magistr in
 assert(indexHtml.includes("0.1.0"), "the current release version is named");
 assert(!indexHtml.includes("cargo install magistr"), "no registry installation command");
 assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
-const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png"/g)].map((m) => m[1]);
+const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 6 && homeImages.length === 6, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 
 console.log("\nNavigation and accessibility:");
@@ -72,7 +72,8 @@ assert(manifest.annotations === false, "screenshots carry no annotations");
 assert(manifest.images.length === 6, "overview, roadmap and trace screenshots in both themes");
 for (const capture of manifest.images) {
   assert(/^terminal-(overview|roadmap|trace)-(dark|light)\.png$/.test(capture.file), `${capture.file} carries a public name`);
-  assert(indexHtml.includes("/screenshots/" + capture.file), capture.file + " referenced on the home page");
+  const url = `/screenshots/${capture.file}?v=${capture.sha256.slice(0, 12)}`;
+  assert(indexHtml.includes(`src="${url}"`) && indexHtml.includes(`href="${url}"`), capture.file + " image and full-size link use the current content hash");
   const png = readFileSync(resolve(distDir, "screenshots", capture.file));
   assert(png.readUInt32BE(16) === capture.width && png.readUInt32BE(20) === capture.height, capture.file + " keeps its full viewport");
   assert(capture.width === manifest.columns * 10 && capture.height === manifest.rows * 20, capture.file + " is the whole terminal at its cell size");

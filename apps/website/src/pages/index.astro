@@ -1,6 +1,13 @@
 ---
 import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
+import captures from "../../public/screenshots/captures.json";
+
+const screenshot = (name: string) => {
+  const capture = captures.images.find(({ file }) => file === name);
+  if (!capture) throw new Error(`Missing terminal capture: ${name}`);
+  return `/screenshots/${name}?v=${capture.sha256.slice(0, 12)}`;
+};
 
 const jsonLd = [
   {"@context":"https://schema.org","@type":"WebSite","name":"Magistr","url":"https://magistr.dev"},
@@ -36,8 +43,8 @@ const docs = [
         <p class="hero-note">Runs locally · open source · no account</p>
       </div>
       <figure class="capture hero-capture">
-        <a class="capture-light" href="/screenshots/terminal-overview-light.png"><img src="/screenshots/terminal-overview-light.png" alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
-        <a class="capture-dark" href="/screenshots/terminal-overview-dark.png"><img src="/screenshots/terminal-overview-dark.png" alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
+        <a class="capture-light" href={screenshot("terminal-overview-light.png")}><img src={screenshot("terminal-overview-light.png")} alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
+        <a class="capture-dark" href={screenshot("terminal-overview-dark.png")}><img src={screenshot("terminal-overview-dark.png")} alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
         <figcaption>The objective and plan at left, the roadmap in the centre, and one inspector for selected items at right.</figcaption>
       </figure>
     </section>
@@ -53,8 +60,8 @@ const docs = [
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href="/screenshots/terminal-roadmap-light.png"><img src="/screenshots/terminal-roadmap-light.png" alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href="/screenshots/terminal-roadmap-dark.png"><img src="/screenshots/terminal-roadmap-dark.png" alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-light" href={screenshot("terminal-roadmap-light.png")}><img src={screenshot("terminal-roadmap-light.png")} alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href={screenshot("terminal-roadmap-dark.png")}><img src={screenshot("terminal-roadmap-dark.png")} alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
         <figcaption>The selected item's dependency chain stays lit while its details open in the inspector.</figcaption>
       </figure>
     </section>
@@ -70,8 +77,8 @@ const docs = [
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href="/screenshots/terminal-trace-light.png"><img src="/screenshots/terminal-trace-light.png" alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href="/screenshots/terminal-trace-dark.png"><img src="/screenshots/terminal-trace-dark.png" alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-light" href={screenshot("terminal-trace-light.png")}><img src={screenshot("terminal-trace-light.png")} alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href={screenshot("terminal-trace-dark.png")}><img src={screenshot("terminal-trace-dark.png")} alt={alt.trace} loading="lazy" width="1320" height="840" /></a>
         <figcaption>The Trace tab uses the same inspector for a selected step, with recorded work below the graph.</figcaption>
       </figure>
     </section>
