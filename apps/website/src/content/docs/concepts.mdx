@@ -8,6 +8,14 @@ order: 2
 
 Magistr keeps five things about a project: its roadmap, the sessions that work on it, the work those sessions record, the checks that verify it, and the state all of this lives in. The terminal interface, the commands an agent runs and the tools it calls all read and write the same things.
 
+## Terminal interface
+
+The terminal has three panes. The left sidebar keeps the objective, plan and progress in view. The centre shows the active view, such as Roadmap, Trace or Changes. The inspector shows the selected work item, reasoning step or change, with its title, status, metadata, actions and details in a consistent order.
+
+Select an item with the pointer or the arrow keys in the centre pane. `Tab` and `Shift+Tab` cycle between panes; `Ctrl+Tab` changes views. `Enter` expands the inspector's details and `Esc` collapses them. The inspector scrolls independently, keeping its title and actions visible.
+
+On narrow terminals, the inspector stacks below the active view. Plain terminals use the same layout and controls with text rendering.
+
 ## Roadmap
 
 The roadmap is the plan of work items. Each item has a title, a status, a priority, acceptance criteria and the items it depends on. Statuses move from backlog to pending, in progress and done; an item can also be blocked or obsoleted.
@@ -24,11 +32,13 @@ A session is one agent run against one work item. `magistr next` starts a sessio
 
 While a session runs, Magistr records what was done: the objective, the tasks planned, each action taken with the files it touched, and each check with its command, exit code and duration. The reasoning behind those actions is recorded as steps, each with its purpose, thought, outcome, next action and confidence. Steps can branch and merge, depend on earlier steps, and revise them.
 
-The Trace tab shows the steps as a graph, the selected step's details, and the recorded actions and checks. A pinned step is kept in view for later sessions. A checkpoint is a saved session state a later session can resume from.
+The Trace tab shows the steps as a graph, the selected step's details in the shared inspector, and the recorded actions and checks below the graph. A pinned step is kept in view for later sessions. A checkpoint is a saved session state a later session can resume from.
 
 ## Verification
 
-An item is done when its acceptance criteria hold and the configured checks pass. The checks are the commands in the project file — formatting, compilation, tests, lint, and any required custom gates — and each result is recorded with its real exit code. A failed required check keeps the item from completing.
+An item is done when its acceptance criteria hold and the checks selected for the change pass. Verification covers the changed behaviour and affected dependencies: formatting and the relevant compilation, tests, lint and custom checks. Bounded changes use focused checks; the full project suite runs when explicitly requested or when the change needs coverage across the project.
+
+Each result is recorded with its command and real exit code. A failed required check keeps the item from completing. After a failure, diagnose the cause and rerun the affected checks.
 
 ## Project state
 
