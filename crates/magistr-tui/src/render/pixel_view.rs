@@ -72,11 +72,20 @@ impl PixelView {
         };
         let cell = self.face.cell();
         let rect = place.px;
+        let bounds = place.bounds;
         let style = node.cell_style().unwrap_or(inherited);
         let (_, bg) = colors(style, palette);
         if node.cell_style().is_some() && node.text_metrics().is_none() {
             fill(ground, rect, bg, BlendMode::Source);
-            fill(ink, rect, [0, 0, 0, 0], BlendMode::Source);
+            // Pure pixel overlays bring their own opaque ground into the final
+            // ink layer, above every graph/image surface composed between layers.
+            // Framed terminal panels retain the mark compositor's border mask.
+            let cover = if place.layer > 0 && node.frame_spec().is_none() {
+                bg
+            } else {
+                [0, 0, 0, 0]
+            };
+            fill(ink, rect, cover, BlendMode::Source);
         }
         if let Some(frame) = node.frame_spec() {
             let title = frame.title_text().unwrap_or_default();
@@ -126,15 +135,16 @@ impl PixelView {
                 if value.is_continuation() {
                     continue;
                 }
-                let x = rect.x + offset as f32 * f32::from(cell.width);
+                let x = bounds.x + offset as f32 * f32::from(cell.width);
                 let span = f32::from(value.width().max(1)) * f32::from(cell.width);
-                let box_rect =
-                    PxRect::new(x, rect.y, span, f32::from(cell.height)).intersection(rect);
+                let box_bounds = PxRect::new(x, bounds.y, span, f32::from(cell.height));
+                let box_rect = box_bounds.intersection(rect);
                 let (_, bg) = colors(&value.style, palette);
                 fill(ground, box_rect, bg, BlendMode::Source);
-                self.text(
+                self.text_clipped(
                     ink,
                     &value.symbol,
+                    box_bounds,
                     box_rect,
                     &value.style,
                     TextRole::Code,
@@ -149,24 +159,32 @@ impl PixelView {
             } else {
                 for (row, line) in self
                     .face
-                    .wrap(text, rect.width + 0.01)
+                    .wrap(text, bounds.width + 0.01)
                     .into_iter()
                     .enumerate()
                 {
-                    let line_rect = PxRect::new(
-                        rect.x,
-                        rect.y + row as f32 * line_height,
-                        rect.width,
+                    let line_bounds = PxRect::new(
+                        bounds.x,
+                        bounds.y + row as f32 * line_height,
+                        bounds.width,
                         line_height,
-                    )
-                    .intersection(rect);
+                    );
+                    let line_rect = line_bounds.intersection(rect);
                     if line_rect.is_empty() {
-                        break;
+                        continue;
                     }
                     if node.cell_style().is_some() {
                         fill(ground, line_rect, bg, BlendMode::SourceOver);
                     }
-                    self.text(ink, line, line_rect, style, text.role(), palette);
+                    self.text_clipped(
+                        ink,
+                        line,
+                        line_bounds,
+                        line_rect,
+                        style,
+                        text.role(),
+                        palette,
+                    );
                 }
             }
         }
@@ -265,7 +283,21 @@ impl PixelView {
         role: TextRole,
         palette: &Palette,
     ) {
-        if rect.is_empty() {
+        self.text_clipped(canvas, text, rect, rect, style, role, palette);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn text_clipped(
+        &mut self,
+        canvas: &mut Pixmap,
+        text: &str,
+        rect: PxRect,
+        clip: PxRect,
+        style: &Style,
+        role: TextRole,
+        palette: &Palette,
+    ) {
+        if clip.is_empty() {
             return;
         }
         let (fg, _) = colors(style, palette);
@@ -291,7 +323,7 @@ impl PixelView {
                         || py < 0
                         || px >= canvas.width() as i32
                         || py >= canvas.height() as i32
-                        || !rect.contains(f64::from(px), f64::from(py))
+                        || !clip.contains(f64::from(px), f64::from(py))
                     {
                         continue;
                     }
@@ -335,7 +367,7 @@ impl PixelView {
                 for y in ys {
                     fill(
                         canvas,
-                        PxRect::new(rect.x + offset as f32, mid + y, 1.0, 1.0).intersection(rect),
+                        PxRect::new(rect.x + offset as f32, mid + y, 1.0, 1.0).intersection(clip),
                         color,
                         BlendMode::SourceOver,
                     );

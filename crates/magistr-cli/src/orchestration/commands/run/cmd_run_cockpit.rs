@@ -57,22 +57,22 @@ pub async fn cmd_run_cockpit(
         Ok(engines) => engines,
         Err(err) => {
             println!(
-                "magistr: cannot open the think-and-ship store for {}: {err}",
+                "magistr: cannot open saved project data for {}: {err}",
                 root.display()
             );
-            return Err(eyre::eyre!("the cockpit did not start"));
+            return Err(eyre::eyre!("Magistr could not start this session"));
         }
     };
     let engine_port = engines
         .port()
-        .ok_or_else(|| eyre::eyre!("the cockpit run was opened without a host or an owner"))?;
+        .ok_or_else(|| eyre::eyre!("Magistr could not connect to the project"))?;
     // Dropped after the runtime and before the engines: the endpoint stops
     // taking clients before this host releases the project.
     let owner_endpoint = match engines.serve_owner().await {
         Ok(endpoint) => endpoint,
         Err(err) => {
             println!("magistr: {err}");
-            return Err(eyre::eyre!("the cockpit did not start"));
+            return Err(eyre::eyre!("Magistr could not start this session"));
         }
     };
     let workspace = admit_workspace(&root, |line| println!("{line}")).await;
@@ -89,17 +89,16 @@ pub async fn cmd_run_cockpit(
         Ok(session) => session,
         Err(err) => {
             println!("magistr: cannot start the agent: {err}");
-            return Err(eyre::eyre!("the cockpit did not start"));
+            return Err(eyre::eyre!("Magistr could not start this session"));
         }
     };
     let theme = Theme::from_os();
-    let terminal =
-        RealTerminal::stdio().context("the cockpit needs a terminal on stdin and stdout")?;
+    let terminal = RealTerminal::stdio().context("open Magistr in a terminal to use this view")?;
     let size = terminal.size()?;
     let mut runtime = Runtime::new(terminal, Options::from_os());
     let commands = runtime
         .commands()
-        .ok_or_else(|| eyre::eyre!("the runtime's commands were already taken"))?;
+        .ok_or_else(|| eyre::eyre!("Magistr could not connect the session controls"))?;
     let feed = engines.subscribe(runtime.inbox());
     // The store as the model first sees it; the re-seed measures every
     // later read against it.
@@ -145,20 +144,20 @@ pub async fn cmd_run_cockpit(
     // deadline and await an aborted relay so its supervisor is released.
     match tokio::time::timeout(SESSION_GRACE, &mut session).await {
         Ok(result) => result
-            .context("the session relay failed")?
-            .map_err(|error| eyre::eyre!("session cleanup failed: {error}"))?,
+            .context("the agent connection ended unexpectedly")?
+            .map_err(|error| eyre::eyre!("the agent session could not close cleanly: {error}"))?,
         Err(_) => {
             session.abort();
             let _ = session.await;
             return Err(eyre::eyre!(
-                "session cleanup exceeded its deadline; the owner was aborted"
+                "the agent took too long to close and was stopped"
             ));
         }
     }
     if let Err(err) = workspace.shutdown().await {
-        println!("magistr: workspace shutdown: {err}");
+        println!("magistr: the project connection could not close cleanly: {err}");
     }
-    let model = model.context("the cockpit failed")?;
+    let model = model.context("the session ended unexpectedly")?;
     println!("{}", Summary::of(&model));
     Ok(())
 }

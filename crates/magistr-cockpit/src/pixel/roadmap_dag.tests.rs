@@ -48,6 +48,73 @@ fn pixel(surface: &PixelSurface, x: u32, y: u32) -> [u8; 4] {
 }
 
 #[test]
+fn full_plan_highlights_only_recorded_edges_touching_the_selected_work() {
+    let mut selected = node(4.0, 2.0, "pending", 0);
+    selected.selected = true;
+    let graph = RoadmapDag::new(
+        vec![
+            node(1.0, 2.0, "done", 0),
+            selected,
+            node(7.0, 2.0, "pending", 0),
+            node(10.0, 2.0, "pending", 0),
+        ],
+        vec![(0, 1), (1, 2), (2, 3)],
+        (10, 20),
+    )
+    .highlight_incident(151, 191, 255);
+    let accent = Color::from_rgba8(151, 191, 255, 255);
+    assert_eq!(graph.link_ink(0, 1), accent);
+    assert_eq!(graph.link_ink(1, 2), accent);
+    assert_ne!(
+        graph.link_ink(2, 3),
+        accent,
+        "connected work is not automatically a direct dependency"
+    );
+    let rendered = render(&graph, 12, 5);
+    assert!(pixel(&rendered, 25, 40)[2] > pixel(&rendered, 85, 40)[2]);
+}
+
+#[test]
+fn light_roadmap_marks_retain_contrast_without_a_white_halo() {
+    use magistr_theme::{ThemeColor, math::contrast_ratio};
+    let graph = scene().light(true).background(248, 249, 255).bands(false);
+    let paper = ThemeColor::new(248, 249, 255);
+    for status in ["in_progress", "done", "blocked", "backlog", "pending"] {
+        let color = graph.status_ink(status).to_color_u8();
+        assert!(
+            contrast_ratio(
+                ThemeColor::new(color.red(), color.green(), color.blue()),
+                paper
+            ) >= 3.0
+        );
+    }
+    for walked in [false, true] {
+        let color = graph.edge_ink(walked, true).to_color_u8();
+        let alpha = f32::from(color.alpha()) / 255.0;
+        let blend = |ink: u8, ground: u8| {
+            (f32::from(ink) * alpha + f32::from(ground) * (1.0 - alpha)).round() as u8
+        };
+        assert!(
+            contrast_ratio(
+                ThemeColor::new(
+                    blend(color.red(), 248),
+                    blend(color.green(), 249),
+                    blend(color.blue(), 255)
+                ),
+                paper
+            ) >= 3.0
+        );
+    }
+    let a = render(&graph.clone().glow(0.0), 16, 6);
+    let b = render(&graph.glow(0.5), 16, 6);
+    assert_eq!(
+        a.pixels(),
+        b.pixels(),
+        "light mode uses ink instead of a light halo"
+    );
+}
+
+#[test]
 fn visual_reduction_preserves_reachability_and_removes_only_redundant_lines() {
     let edges = vec![(0, 1), (1, 2), (0, 2), (2, 3), (0, 3), (1, 3), (4, 3)];
     let reduced = transitive_reduction(edges.clone(), 5);

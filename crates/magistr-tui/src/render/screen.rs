@@ -6,7 +6,7 @@ use super::diff::diff;
 use super::encode::Encoder;
 use crate::graphics::Protocol;
 use crate::pixel::{Backend, Compression, IdSpace};
-use magistr_cockpit::layout::Rect;
+use magistr_cockpit::layout::{PxRect, Rect};
 use magistr_cockpit::pixel::PixelSurface;
 use magistr_cockpit::render::Buffer;
 use magistr_cockpit::render::Headline;
@@ -39,6 +39,7 @@ pub struct Screen {
     headline: Option<Headline>,
     shown: Option<Headline>,
     occlusion: Option<Rect>,
+    pixel_occlusion: Option<PxRect>,
     masked: HashMap<WidgetId, (Rect, PixelSurface)>,
     pixels: super::pixel_frame::PixelFrame,
 }
@@ -57,6 +58,7 @@ impl Screen {
             headline: None,
             shown: None,
             occlusion: None,
+            pixel_occlusion: None,
             masked: HashMap::new(),
             pixels: super::pixel_frame::PixelFrame::default(),
         }
@@ -190,6 +192,31 @@ impl Screen {
         } else if let Some(graphics) = &mut self.graphics {
             graphics.show(id, surface);
         }
+    }
+
+    /// Whether the frame is composed at physical pixel resolution.
+    pub(crate) fn pixel_frame_active(&self) -> bool {
+        self.pixels.is_active()
+    }
+
+    /// The overlay mask uses the same bounds as its background and text.
+    pub(crate) fn occlude_pixels(&mut self, rect: Option<PxRect>) {
+        self.pixel_occlusion = rect;
+    }
+
+    /// Blend native chrome at the bounds used by labels and pointer hits.
+    pub(crate) fn surface_at_px(
+        &mut self,
+        surface: &mut PixelSurface,
+        rect: PxRect,
+        foreground: bool,
+    ) {
+        let cover = if foreground {
+            None
+        } else {
+            self.pixel_occlusion
+        };
+        self.pixels.blend_at(surface, rect, cover);
     }
 
     /// Start a graphics frame. All following surfaces are composed into it.

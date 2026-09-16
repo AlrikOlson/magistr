@@ -7,6 +7,8 @@ license = "MIT"
 rust-version = "1.89"
 
 [dependencies]
+# One embedded font ruler for model wrapping, pixel layout and painting.
+fontdue = "0.9"
 # Transcendental math (sin, cos, cbrt, powf, hypot…) in pure Rust: the
 # painters' pixels come out the same on every platform, where the C
 # runtime's versions differ in the last bit and flip anti-aliased edges
@@ -65,6 +67,9 @@ similar = { version = "2", default-features = false, features = ["text"] }
 vt100 = "0.16"
 
 [dev-dependencies]
+# Parse source paths in the purity guard without treating interface labels as handles.
+syn = { version = "2", features = ["full", "visit"] }
+proc-macro2 = "1"
 insta = "1"
 proptest = "1"
 # A temporary project root and store for the engine client tests.

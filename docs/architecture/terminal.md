@@ -86,49 +86,56 @@ rectangles. The same glyph metrics drive layout, wrapping and painting. Code and
 terminal output retain column alignment; labels and prose use proportional type.
 The renderer composes backgrounds, vector marks, images and text into opaque
 four-row strips, transmitting only strips whose pixels changed through Kitty or
-Sixel. No interface glyphs are painted by the terminal in this mode. Cell
-coordinates remain the transport and mouse-report boundary. Plain terminals
-retain the cell damage renderer and screen-reader sessions retain flat output.
+Sixel. No interface glyphs are painted by the terminal in this mode. The terminal
+driver negotiates physical mouse reports where supported and
+registers the same pixel rectangles used for drawing. A terminal that reports
+only cells resolves the cell center against that registry. Window input carries
+physical positions directly. Plain terminals retain the cell damage renderer
+and screen-reader sessions retain flat output.
 
-The terminal body has a labelled rail, an active stage, and an inspector. The
-inspector sits to the right when the stage retains at least 40 content columns;
-otherwise it stacks below the stage. Plain terminals use the same panes. The
-decision dock and composer remain below the body. The graphics composer has a
-complete framed boundary, soft-wrapped text, a pixel insertion caret, bounded
-growth and a visible Send/Stop button. While a turn runs, Stop preserves the draft;
-when it settles, Send starts the next turn. Shift-Enter and Alt-Enter insert a
-newline. The empty needs-you strip is omitted.
+Graphics terminals keep conversation and recorded reasoning together. Conversation
+stays in the main left area, with the reasoning graph and recorded questions below.
+The roadmap neighborhood sits upper right and the selected step or work item
+below it. The complete message area spans the bottom. The shared `FlightLayout`
+allocates physical space for the view, conversation wrapping, and scrolling;
+the recorder and details compact as the viewport shrinks. Narrow windows retain
+the conversation and open details without introducing another permanent column.
+The old rail/stage composition remains a plain-terminal fallback.
 
-One `Selected` identity names a chunk, tool call, reasoning step, change, receipt, run, or signal. Lists stay
-compact; the shared inspector renders title, status, metadata, actions, and
-scrollable fields in that order. Selection survives view changes and resizing.
-Tab and Shift-Tab cycle pane focus; Ctrl-Tab cycles views. With an empty prompt,
-stage arrows select objects, Enter toggles inspector detail, and Esc closes it.
-Inspector arrows, page keys, and the wheel scroll its fields independently.
+The composer uses the real draft and submission path, with proportional text,
+a pixel caret, bounded multiline growth, attachments, and Send/Stop. Stop preserves
+the draft. Shift-Enter and Alt-Enter insert a newline. Add files opens the workspace
+file chooser; selected attachments travel with the submitted message. Saved sessions
+and command-palette navigation retain the draft.
 
-The terminal tabs are Turn · Session · Roadmap. Bare `magistr` starts on Roadmap;
-agent runs open Turn. The landing host offers next, loop and gates through footer
-chips, Alt-N/L/G and the Ctrl-P command palette. The palette preserves prompt drafts
-and also opens views, work items and saved sessions. Turn selects tools by call ID;
-live records and edit diffs use the same inspector, including Open and Undo.
-Graphics profiles draw row accents, status icons and panel frames; plain terminals
-keep the same geometry with text fallbacks.
+One `Selected` identity names a chunk, tool call, decision, change, receipt, run,
+or signal. Selecting recorded work updates the detail area while conversation and
+draft stay in place. Long details scroll independently. Step details show
+the recorded result, Why, Next, revisions, and linked work; missing confidence
+stays absent. Linked work navigates to its resolved item. Return to latest changes
+the reasoning selection and never creates a checkpoint.
 
-Session keeps the step
-graph above one timeline of reasoning, recorded actions, checks, and file changes.
-Source timestamps determine order in UTC; equal instants retain source order,
-and legacy rows without usable timestamps follow with an explicit unknown label.
-The reasoning and journal models remain independent. Selecting an item opens the
-shared inspector; file viewers and checkpoint reports scroll there without replacing
-the timeline. A wide terminal can undock Session beside another view.
+Turn remains the underlying conversation state. Session contains the recorded-work
+timeline; its user-facing access is Recorded work beside the conversation. Roadmap
+opens a dedicated page with the complete dependency graph, work list, and selected
+work details. The conversation keeps its scroll position and continues receiving
+updates while that page is open; the message draft stays in the shared composer.
+Returning to Conversation restores the conversation and reasoning arrangement.
+Source timestamps order timeline items in UTC; equal instants retain source order,
+and legacy rows without usable timestamps show an unknown time. These views retain
+their independent scroll positions, and selecting an item opens its details.
+The command palette also provides saved sessions, checkpoints, undo, runs, and the
+host's next, loop, and gate operations. Permission cards, menus, and hover help use
+the same pixel text, backgrounds, and boundaries as the workspace.
 
-Roadmap places the graph beside a status-filtered table at 132 columns when the
-stage has room, and stacks them on narrower terminals. The table carries name,
-status, numeric priority and workstream columns. Click a column to sort, then
-again to reverse it; Alt-F cycles the status filter, Alt-S cycles columns and
-Alt-R reverses the current column. Filter and sort changes preserve selected
-identity. Work-item proposals and signal triage actions live in the shared
-inspector; the graph and table select into that same card.
+The compact roadmap shows readable nearby dependencies around current work.
+Its points, labels, and hit targets use the same physical geometry and global
+work-item identities. Open Roadmap provides the complete graph and list on its own
+page. Graph labels and pointer targets share the physical camera coordinates.
+Alt-F cycles its status filter, Alt-S cycles sort columns, and Alt-R reverses
+sorting; selection survives filtering and sorting. At small sizes the list uses
+the available space and selected details open within the same page. Plain terminals
+keep their graph/table navigation and text fallbacks.
 
 Motion is a function of model ticks. The model reports its active animations;
 an empty set removes the timer. Reduced motion and decision screens suppress
@@ -144,10 +151,16 @@ through free rows on every rank they cross, crossings are reduced by
 barycentre sweeps, and the same input always yields the same placement;
 the painter draws only the transitive reduction and lights the whole
 chain to a selection instead of drawing implied edges through nodes. The
-Session view's step graph is the reasoning's lanes — the main line and each
-branch — with fork and merge links read off the recorded branch statuses,
-and the selection's ancestors and descendants lit. Both keep a text form
-on a plain terminal: the workstream legend and the lane list.
+Reasoning graph uses the main line and exact recorded branch membership,
+including sparse global step numbers, nested origins, revisions, and
+interleaved investigations. A bounded selection window keeps labels and points
+readable in large traces; previous/next controls retain access to the whole trace.
+Drawing, number placement, highlighting, and picking share `BranchGraph::points`.
+Question summaries come from recorded metadata and outcomes. Explicit dependencies
+identify where findings were used; a merged branch without that evidence is only
+described as joining near the first later main-line step, preserving the
+existing inference rule. Rejecting an idea does not abandon its investigation.
+Both graphs keep text forms on a plain terminal.
 
 Theme pens enforce contrast floors. Color and icons communicate status through
 a shared vocabulary; terminal protocol details stay in the renderer. Desktop

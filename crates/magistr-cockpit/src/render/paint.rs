@@ -45,7 +45,13 @@ fn paint_node(
     if let Some(cells) = node.cell_row() {
         let rect = place.rect;
         for (offset, cell) in (0..rect.width).zip(cells) {
-            buffer.set(rect.x + offset, rect.y, cell.clone());
+            if !cell.is_continuation() {
+                buffer.put_str_in(
+                    Rect::new(rect.x + offset, rect.y, rect.width - offset, 1),
+                    &cell.symbol,
+                    &cell.style,
+                );
+            }
         }
     }
     if let Some(text) = node.text_metrics() {
@@ -55,7 +61,11 @@ fn paint_node(
             .into_iter()
             .take(usize::from(rect.height));
         for (offset, line) in (0..).zip(rows) {
-            buffer.put_str(rect.x, rect.y + offset, line, style);
+            buffer.put_str_in(
+                Rect::new(rect.x, rect.y + offset, rect.width, 1),
+                line,
+                style,
+            );
         }
     }
     for child in node.child_nodes() {

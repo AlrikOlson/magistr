@@ -123,7 +123,6 @@ fn the_core_never_names_an_effectful_producer_handle() {
         "NativeConfig",
         "spawn_feed",
         "spawn_session",
-        "Commands",
         "AcpTransport",
         "AcpEvent",
         "Jobs",
@@ -141,12 +140,166 @@ fn the_core_never_names_an_effectful_producer_handle() {
         "connect_transport",
         "run_command",
     ];
-    let offenders = offenders(&files, &forbidden);
+    let mut offenders = offenders(&files, &forbidden);
+    for file in &files {
+        let source = std::fs::read_to_string(file).expect("read source");
+        if names_command_handle(&source) {
+            offenders.push(format!("{}: Commands producer handle", file.display()));
+        }
+    }
     assert!(
         offenders.is_empty(),
         "producer handles in the core:\n{}",
         offenders.join("\n")
     );
+}
+
+/// `Commands` also names a visible menu and a Widget variant. Inspect Rust
+/// paths, imports and macro identifiers so copy and variant declarations remain
+/// legal while every direct or renamed producer import is still rejected.
+fn names_command_handle(source: &str) -> bool {
+    use syn::visit::Visit;
+
+    #[derive(Default)]
+    struct Handles {
+        found: bool,
+        widget_impl: bool,
+    }
+
+    impl Handles {
+        fn path(&mut self, names: &[String]) {
+            self.found |= names.iter().enumerate().any(|(index, name)| {
+                name == "Commands"
+                    && !index.checked_sub(1).is_some_and(|previous| {
+                        names[previous] == "Widget"
+                            || (self.widget_impl && names[previous] == "Self")
+                    })
+            });
+        }
+
+        fn imports(&mut self, tree: &syn::UseTree, prefix: &mut Vec<String>) {
+            match tree {
+                syn::UseTree::Path(path) => {
+                    prefix.push(path.ident.to_string());
+                    self.imports(&path.tree, prefix);
+                    prefix.pop();
+                }
+                syn::UseTree::Name(name) => {
+                    prefix.push(name.ident.to_string());
+                    self.path(prefix);
+                    prefix.pop();
+                }
+                syn::UseTree::Rename(rename) => {
+                    prefix.push(rename.ident.to_string());
+                    self.path(prefix);
+                    prefix.pop();
+                }
+                syn::UseTree::Group(group) => {
+                    for item in &group.items {
+                        self.imports(item, prefix);
+                    }
+                }
+                syn::UseTree::Glob(_) => {}
+            }
+        }
+
+        fn tokens(&mut self, stream: proc_macro2::TokenStream) {
+            use proc_macro2::TokenTree;
+            let tokens: Vec<_> = stream.into_iter().collect();
+            for (index, token) in tokens.iter().enumerate() {
+                match token {
+                    TokenTree::Group(group) => self.tokens(group.stream()),
+                    TokenTree::Ident(ident) if ident == "Commands" => {
+                        let qualifier = index.checked_sub(3).and_then(|start| {
+                            match (&tokens[start], &tokens[start + 1], &tokens[start + 2]) {
+                                (
+                                    TokenTree::Ident(name),
+                                    TokenTree::Punct(a),
+                                    TokenTree::Punct(b),
+                                ) if a.as_char() == ':' && b.as_char() == ':' => Some(name),
+                                _ => None,
+                            }
+                        });
+                        if !qualifier.is_some_and(|name| {
+                            name == "Widget" || (self.widget_impl && name == "Self")
+                        }) {
+                            self.found = true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    impl<'ast> Visit<'ast> for Handles {
+        fn visit_path(&mut self, path: &'ast syn::Path) {
+            self.path(
+                &path
+                    .segments
+                    .iter()
+                    .map(|segment| segment.ident.to_string())
+                    .collect::<Vec<_>>(),
+            );
+            syn::visit::visit_path(self, path);
+        }
+
+        fn visit_item_use(&mut self, item: &'ast syn::ItemUse) {
+            self.imports(&item.tree, &mut Vec::new());
+        }
+
+        fn visit_item_impl(&mut self, item: &'ast syn::ItemImpl) {
+            let previous = self.widget_impl;
+            self.widget_impl = matches!(item.self_ty.as_ref(), syn::Type::Path(path)
+                if path.path.segments.last().is_some_and(|segment| segment.ident == "Widget"));
+            syn::visit::visit_item_impl(self, item);
+            self.widget_impl = previous;
+        }
+
+        fn visit_macro(&mut self, node: &'ast syn::Macro) {
+            self.tokens(node.tokens.clone());
+            syn::visit::visit_macro(self, node);
+        }
+    }
+
+    let syntax = syn::parse_file(source).expect("core source must parse for purity verification");
+    let mut handles = Handles::default();
+    handles.visit_file(&syntax);
+    handles.found
+}
+
+#[test]
+fn command_copy_and_widget_variants_are_not_producer_handles() {
+    for source in [
+        r#"const LABEL: &str = "Commands"; // Commands menu"#,
+        "enum Widget { Commands } impl Widget { fn menu() -> Self { Self::Commands } }",
+        "fn menu() { let _ = crate::cockpit::Widget::Commands; }",
+        "use crate::cockpit::Widget::{Commands as Menu};",
+        r#"fn menu() { format!("Commands {:?}", Widget::Commands); }"#,
+    ] {
+        assert!(!names_command_handle(source), "{source}");
+    }
+}
+
+#[test]
+fn command_producer_paths_and_renamed_imports_remain_forbidden() {
+    for source in [
+        "fn run(commands: Commands) {}",
+        "fn run(commands: crate::channel::Commands) {}",
+        "type Handle = Option<Commands>;",
+        "fn run() { Commands::new(); }",
+        "fn run() { crate::channel::Commands::new(); }",
+        "use crate::channel::Commands;",
+        "use crate::channel::{Commands, Msg};",
+        "use crate::channel::{self, Commands as Producer};",
+        "use crate::{channel::{Commands as Producer}}; fn run(commands: Producer) {}",
+        "use crate::channel as producer; fn run(commands: producer::Commands) {}",
+        "struct Other; impl Other { fn run() { Self::Commands(); } }",
+        "fn run() { invoke!(Commands::new()); }",
+        "fn run() { invoke!({ crate::channel::Commands::new() }); }",
+    ] {
+        assert!(names_command_handle(source), "{source}");
+    }
 }
 
 /// The theme is a value: its one read of the process environment is

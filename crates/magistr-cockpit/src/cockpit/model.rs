@@ -141,6 +141,7 @@ pub struct Model {
     pub(super) prompt: Prompt,
     pub(super) condition: Prompt,
     pub(super) condition_open: bool,
+    pub(super) permission_scroll: usize,
     pub(super) completion: Option<Completion>,
     pub(super) workspace_files: Vec<String>,
     pub(super) dock: Dock,
@@ -164,6 +165,7 @@ pub struct Model {
     pub(super) session_note: Option<String>,
     pub(super) sheet: bool,
     pub(super) roadmap_graph_rect: Option<crate::layout::Rect>,
+    pub(super) roadmap_graph_px: Option<crate::layout::PxRect>,
     /// Columns the surface holds mono turn content to — see
     /// [`Model::set_mono_cols`]. `None` on every cell surface.
     mono_cols: Option<u16>,
@@ -180,6 +182,7 @@ pub struct Model {
     /// hangs from.
     pub(super) pointer: Option<(u16, u16)>,
     pub(super) tab: StageTab,
+    pub(super) tab_explicit: bool,
     pub(super) selected: Option<Selected>,
     pub(super) pane: Pane,
     pub(super) inspector_open: bool,
@@ -255,16 +258,41 @@ pub struct Model {
     pub(super) agent_missing: Option<AgentMissing>,
     pub(super) server: Option<String>,
     pub(super) refused: bool,
+    pub(super) turn_notice: Option<&'static str>,
     pub(super) jobs_done: u64,
     pub(super) last_job: Option<(JobId, JobOutput)>,
     pub(super) last_job_frame: Option<u64>,
 }
 
 impl Model {
+    /// The graphics terminal uses the approved conversation-centered workspace.
+    #[must_use]
+    pub const fn uses_flight_recorder(&self) -> bool {
+        self.pixels && !self.surface.is_native()
+    }
+
+    #[must_use]
+    pub fn flight_layout(&self) -> super::FlightLayout {
+        super::FlightLayout::of(self)
+    }
+
+    /// Keep row storage measured by the same fonts and allocation as the pixel painter.
+    pub(super) fn sync_flight_wrap(&mut self) {
+        let cell = self.cell_size();
+        let width = self
+            .uses_flight_recorder()
+            .then(|| (self.flight_layout().left_width - 42.0).max(1.0).floor() as u32);
+        self.turn.set_conversation_compact(
+            self.uses_flight_recorder() && self.flight_layout().conversation_height < 380.0,
+        );
+        self.turn.set_pixel_wrap(width, cell);
+    }
+
     /// Whether the inspector fits beside the stage at its minimum readable width.
     #[must_use]
     pub const fn inspector_stacked(&self) -> bool {
-        !self.surface.is_native()
+        !self.uses_flight_recorder()
+            && !self.surface.is_native()
             && stage_width(self.size, self.rail.cols(self.size.cols))
                 .saturating_sub(self.gutter_cells())
                 .saturating_sub(self.undock_cols())
@@ -329,7 +357,8 @@ impl Model {
             Selected::Step(number) => {
                 self.trace.expand_step(*number);
             }
-            Selected::Tool(_)
+            Selected::Task(_)
+            | Selected::Tool(_)
             | Selected::Change(_)
             | Selected::Signal(_)
             | Selected::Receipt(_)
@@ -340,6 +369,9 @@ impl Model {
         self.trace.close_viewer();
         self.changes.close_viewer();
         self.selected = Some(selected);
+        if self.uses_flight_recorder() {
+            self.pane = Pane::Inspector;
+        }
     }
 
     /// A fresh cockpit at `size`, focused, nothing received yet, in the
@@ -378,6 +410,7 @@ impl Model {
             prompt: Prompt::new(),
             condition: Prompt::new(),
             condition_open: false,
+            permission_scroll: 0,
             completion: None,
             workspace_files: Vec::new(),
             dock: Dock::default(),
@@ -395,6 +428,7 @@ impl Model {
             launch: None,
             sheet: false,
             roadmap_graph_rect: None,
+            roadmap_graph_px: None,
             mono_cols: None,
             rail_graph_rect: None,
             undock_rect: None,
@@ -403,6 +437,7 @@ impl Model {
             pressed: None,
             pointer: None,
             tab: StageTab::Roadmap,
+            tab_explicit: false,
             selected: None,
             pane: Pane::Stage,
             inspector_open: false,
@@ -420,6 +455,7 @@ impl Model {
             agent_missing: None,
             server: None,
             refused: false,
+            turn_notice: None,
             palette: None,
             search: None,
             settings: None,
@@ -1356,6 +1392,21 @@ impl Model {
         self.roadmap.set_viewport(rect.map(|r| (r.width, r.height)));
     }
 
+    /// Exact physical bounds shared by roadmap drawing and pointer input.
+    #[must_use]
+    pub const fn roadmap_graph_px(&self) -> Option<crate::layout::PxRect> {
+        self.roadmap_graph_px
+    }
+
+    /// Report the physical graph allocation without rounding to terminal cells.
+    pub fn set_roadmap_graph_px(&mut self, rect: Option<crate::layout::PxRect>) {
+        self.roadmap_graph_px = rect;
+        self.roadmap.set_pixel_viewport(
+            rect.map(|r| (r.width, r.height)),
+            f32::from(self.cell_size().height),
+        );
+    }
+
     /// Where the rail's mini-DAG block landed this frame — `None` while
     /// the rail is collapsed, another mode paints, or graphics are off.
     /// While `None` the block keeps its two-line text summary.
@@ -1456,7 +1507,9 @@ impl Model {
     /// anything to, and naming it would be describing the scaffolding.
     #[must_use]
     pub fn tooltip(&self) -> Option<Tooltip> {
-        if self.surface != Surface::Native || !self.theme.motion().is_full() {
+        if (!self.surface.is_native() && !self.uses_flight_recorder())
+            || !self.theme.motion().is_full()
+        {
             return None;
         }
         if !self.motion.hover_dwelt(self.now()) {
@@ -1466,7 +1519,7 @@ impl Model {
         if HoverRole::of(id) == HoverRole::Inert {
             return None;
         }
-        let text = Widget::from_id(id)?.label();
+        let text = Tooltip::label(id)?;
         let (col, row) = self.pointer?;
         (!text.is_empty()).then_some(Tooltip { text, col, row })
     }
@@ -1495,6 +1548,7 @@ impl Model {
     #[must_use]
     pub const fn with_tab(mut self, tab: StageTab) -> Self {
         self.tab = tab;
+        self.tab_explicit = true;
         self.place = Place::of_tab(tab);
         self
     }
@@ -1664,11 +1718,31 @@ impl Model {
     }
 
     /// Open a terminal tab or its corresponding desktop place.
-    pub(super) const fn show(&mut self, tab: StageTab) {
+    pub(super) fn show(&mut self, tab: StageTab) {
         if self.surface.is_native() {
             self.place = Place::of_tab(tab);
         } else {
             self.tab = tab;
+            self.tab_explicit = true;
+            if self.uses_flight_recorder() {
+                self.pane = Pane::Stage;
+                if tab == StageTab::Roadmap
+                    && !matches!(
+                        self.selected,
+                        Some(Selected::Chunk(_) | Selected::Signal(_))
+                    )
+                {
+                    let selected = self
+                        .roadmap
+                        .selected()
+                        .or_else(|| self.roadmap.rows().first().copied())
+                        .map(|item| Selected::Chunk(item.id.clone()));
+                    if let Some(selected) = selected {
+                        self.inspect(selected);
+                    }
+                }
+                self.pane = Pane::Stage;
+            }
         }
     }
 
@@ -1740,7 +1814,10 @@ impl Model {
     /// Show Session beside other views on wide terminals, without duplicating it.
     #[must_use]
     pub const fn undocked_tab(&self) -> Option<StageTab> {
-        if self.size.cols < UNDOCK_MIN_COLS || matches!(self.tab, StageTab::Session) {
+        if !self.surface.is_native()
+            || self.size.cols < UNDOCK_MIN_COLS
+            || matches!(self.tab, StageTab::Session)
+        {
             None
         } else {
             Some(StageTab::Session)
@@ -1759,7 +1836,12 @@ impl Model {
     /// Columns the stage wraps text to: the width less the stage's
     /// padding, the rail's columns and the undocked column.
     #[must_use]
-    pub const fn stage_width(&self) -> u16 {
+    pub fn stage_width(&self) -> u16 {
+        if self.uses_flight_recorder() {
+            return ((self.flight_layout().left_width - 42.0).max(0.0)
+                / f32::from(self.cell_size().width))
+            .floor() as u16;
+        }
         stage_width(self.size, self.rail.cols(self.size.cols))
             .saturating_sub(self.undock_cols())
             .saturating_sub(self.gutter_cells())
@@ -1770,13 +1852,16 @@ impl Model {
             })
     }
 
-    /// Text wrapping width in columns: stage width minus the accent gutter.
-    ///
-    /// Both renderers currently wrap at monospaced column boundaries. Native
-    /// paragraphs therefore do not use proportional glyph widths for line breaks.
+    /// Monospaced content width; the pixel conversation has no terminal accent gutter.
+    /// Paragraphs in the Flight Recorder use the separate shared glyph measure.
     #[must_use]
-    pub const fn turn_width(&self) -> u16 {
-        self.stage_width().saturating_sub(Accent::GUTTER_COLS)
+    pub fn turn_width(&self) -> u16 {
+        self.stage_width()
+            .saturating_sub(if self.uses_flight_recorder() {
+                0
+            } else {
+                Accent::GUTTER_COLS
+            })
     }
 
     /// Columns the surface holds MONO turn content to, when its own box
@@ -1847,6 +1932,9 @@ impl Model {
     /// the feed keeps its tail above the raised screen.
     #[must_use]
     pub fn stage_rows(&self) -> usize {
+        if self.uses_flight_recorder() {
+            return self.flight_layout().conversation_rows(self);
+        }
         self.body_stage_rows()
             .saturating_sub(usize::from(self.inspector_stack_rows()))
     }
@@ -1877,6 +1965,109 @@ impl Model {
             .saturating_sub(self.chrome_rows().saturating_add(taken)) as usize
     }
 
+    /// The scroll range uses physical pixels in the graphics conversation.
+    #[must_use]
+    pub fn conversation_window(&self) -> (usize, usize) {
+        if self.uses_flight_recorder() {
+            (
+                self.turn.conversation().height(),
+                self.conversation_height(),
+            )
+        } else {
+            (self.turn.len(), self.stage_rows())
+        }
+    }
+
+    /// Physical height of the conversation beneath its objective and panel heading.
+    #[must_use]
+    pub fn conversation_height(&self) -> usize {
+        let layout = self.flight_layout();
+        let line = f32::from(self.cell_size().height);
+        let heading = (line + 14.0).max(34.0)
+            + 26.0
+            + line
+            + 8.0
+            + if layout.conversation_height >= 380.0 {
+                line + 4.0
+            } else {
+                0.0
+            };
+        (layout.conversation_height - heading).max(0.0).floor() as usize
+    }
+
+    /// Position of one source row in the current scroll coordinate system.
+    #[must_use]
+    pub fn conversation_row_offset(&self, row: usize) -> usize {
+        if self.uses_flight_recorder() {
+            self.turn.conversation().offset(row)
+        } else {
+            row
+        }
+    }
+
+    /// Bring a source row to the top of the conversation, clamped at the tail.
+    /// Keeps selection and the message draft intact; later appends preserve this
+    /// source anchor through the same viewport used by mouse and keyboard scrolling.
+    pub fn reveal_conversation(&mut self, row: usize) -> bool {
+        if row >= self.turn.len() {
+            return false;
+        }
+        let (total, height) = self.conversation_window();
+        let destination = self.conversation_row_offset(row);
+        let origin = self.viewport.top(total, height);
+        let delta = isize::try_from(destination)
+            .unwrap_or(isize::MAX)
+            .saturating_sub(isize::try_from(origin).unwrap_or(isize::MAX));
+        self.viewport
+            .scroll_by(delta, total, height, self.now(), false);
+        true
+    }
+
+    /// Distance covered by a wheel notch in the current scroll coordinate system.
+    #[must_use]
+    pub fn conversation_wheel(&self) -> isize {
+        let scale = if self.uses_flight_recorder() {
+            usize::from(self.cell_size().height)
+        } else {
+            1
+        };
+        (Viewport::WHEEL * scale) as isize
+    }
+
+    /// Where the next scroll begins after an automatically aligned tail.
+    #[must_use]
+    pub(super) fn conversation_scroll_origin(&self) -> usize {
+        let (total, height) = self.conversation_window();
+        if self.viewport.is_following() && !self.viewport.is_gliding(self.now()) {
+            self.conversation_top() as usize
+        } else {
+            self.viewport.top(total, height)
+        }
+    }
+
+    /// Physical top, interpolated only by model motion ticks.
+    #[must_use]
+    pub fn conversation_top(&self) -> f32 {
+        let (total, height) = self.conversation_window();
+        let top = self.viewport.top_between(total, height, self.now());
+        if self.uses_flight_recorder()
+            && self.viewport.is_following()
+            && !self.viewport.is_gliding(self.now())
+        {
+            let geometry = self.turn.conversation();
+            if let Some(row) = geometry.rows().get(geometry.row_at(top.floor() as usize))
+                && (row.top as f32) < top
+                && row.height < height
+            {
+                // A settled tail starts with a complete line or card. Keep
+                // fractional clipping while the user scrolls, and retain the
+                // unmodified source anchors when the viewport is pinned.
+                return (row.top + row.height) as f32;
+            }
+        }
+        top
+    }
+
     /// The first visible row of the turn — the row the *paint* starts
     /// at, so a scroll still gliding shows where it came from. A cell
     /// surface reads the row held for its tick ([`Viewport::top_at`]);
@@ -1885,6 +2076,12 @@ impl Model {
     /// [`Model::stage_scroll_fraction`].
     #[must_use]
     pub fn top_row(&self) -> usize {
+        if self.uses_flight_recorder() {
+            return self
+                .turn
+                .conversation()
+                .row_at(self.conversation_top().floor() as usize);
+        }
         let (total, height) = (self.turn.len(), self.stage_rows());
         if self.surface.is_native() {
             let between = self.viewport.top_between(total, height, self.now());
@@ -1915,18 +2112,36 @@ impl Model {
     /// tail. Read before a fold, so the window can be held there after
     /// the fold moved the rows ([`Model::hold_stage_anchor`]).
     #[must_use]
-    pub(super) fn stage_anchor(&self) -> Option<Anchor> {
+    pub(super) fn stage_anchor(&self) -> Option<(Anchor, usize)> {
         if self.viewport.is_following() {
             return None;
         }
-        self.turn
-            .anchor_at(self.viewport.top(self.turn.len(), self.stage_rows()))
+        let (total, height) = self.conversation_window();
+        let top = self.viewport.top(total, height);
+        let row = if self.uses_flight_recorder() {
+            self.turn.conversation().row_at(top)
+        } else {
+            top
+        };
+        let within = top.saturating_sub(self.conversation_row_offset(row));
+        self.turn.anchor_at(row).map(|anchor| (anchor, within))
     }
 
-    /// Re-pin the window on the row `anchor`'s content moved to.
-    pub(super) fn hold_stage_anchor(&mut self, anchor: Anchor) {
+    /// Re-pin to the same source row and the same pixel within it after wrapping.
+    pub(super) fn hold_stage_anchor(&mut self, (anchor, within): (Anchor, usize)) {
         let row = self.turn.row_of(anchor);
-        self.viewport.hold(row, self.turn.len(), self.stage_rows());
+        let within = if self.uses_flight_recorder() {
+            self.turn
+                .conversation()
+                .rows()
+                .get(row)
+                .map_or(0, |row| within.min(row.height.saturating_sub(1)))
+        } else {
+            0
+        };
+        let position = self.conversation_row_offset(row).saturating_add(within);
+        let (total, height) = self.conversation_window();
+        self.viewport.hold(position, total, height);
     }
 
     /// The graph leaves at least two selectable rows on short stages.
@@ -1942,6 +2157,20 @@ impl Model {
     /// same pair.
     #[must_use]
     pub fn session_window(&self) -> (usize, usize) {
+        if self.uses_flight_recorder() {
+            let layout = self.flight_layout();
+            let height = if layout.compact {
+                layout.body_height
+            } else {
+                layout.detail_height
+            };
+            return (
+                super::session_item::SessionItem::collect(&self.trace, &self.changes)
+                    .len()
+                    .max(1),
+                super::FlightRecords::shown(self, height, false),
+            );
+        }
         let height = self
             .stage_rows()
             .saturating_sub(1 + usize::from(self.trace_graph_rows()));
@@ -2026,13 +2255,21 @@ impl Model {
 
     /// Room for a useful graph beside all four table columns.
     #[must_use]
-    pub const fn roadmap_side_by_side(&self) -> bool {
-        !self.surface.is_native() && self.size.cols >= 132 && self.stage_width() >= 58
+    pub fn roadmap_side_by_side(&self) -> bool {
+        !self.uses_flight_recorder()
+            && !self.surface.is_native()
+            && self.size.cols >= 132
+            && self.stage_width() >= 58
     }
 
     /// The list owns two thirds of a wide stage; both allocations share this value.
     #[must_use]
-    pub const fn roadmap_table_width(&self) -> u16 {
+    pub fn roadmap_table_width(&self) -> u16 {
+        if self.uses_flight_recorder() {
+            let l = self.flight_layout();
+            let width = l.left_width;
+            return ((width - 34.0).max(0.0) / f32::from(self.cell_size().width)).floor() as u16;
+        }
         if self.roadmap_side_by_side() {
             self.stage_width().saturating_sub(Space::GAP) * 2 / 3
         } else {
@@ -2046,6 +2283,13 @@ impl Model {
     /// wheel move are this same pair.
     #[must_use]
     pub fn roadmap_window(&self) -> (usize, usize) {
+        if self.uses_flight_recorder() {
+            let height = super::FlightRoadmapPage::list_height(self);
+            return (
+                self.roadmap.rows().len() + self.roadmap.signals().len(),
+                super::FlightRecords::shown(self, height, true),
+            );
+        }
         let graph = if self.roadmap_side_by_side() {
             0
         } else {
@@ -2073,6 +2317,16 @@ impl Model {
     pub fn visible_rows(&self) -> &[Row] {
         let rows = self.turn.rows();
         let top = self.top_row().min(rows.len());
+        if self.uses_flight_recorder() {
+            let end = self.conversation_top().ceil() as usize + self.conversation_height();
+            let bottom = self
+                .turn
+                .conversation()
+                .rows()
+                .partition_point(|row| row.top < end)
+                .min(rows.len());
+            return &rows[top..bottom.max(top)];
+        }
         let between = usize::from(self.stage_scroll_fraction() > 0.0);
         let bottom = top
             .saturating_add(self.stage_rows())

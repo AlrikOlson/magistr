@@ -14,15 +14,15 @@ Research▸Plan▸Execute▸Verify
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
-│                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, tool, step or change         │
+│                          │ ╭─ Details ───────────────────────────────────────╮
+│                          │ │Select a record to see details.                  │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ╭─ needs you ────────────────────────────────────────────────────────────── 1 ─╮
-│⚠ Bash needs permission [A] Allow [⇧A] Always [D] Deny                        │
+│⚠ Run cargo nextest run -p magistr-tui needs    [A] Allow [⇧A] Always [D] Deny│
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ›
  A  allow   ⇧A  always   D  deny

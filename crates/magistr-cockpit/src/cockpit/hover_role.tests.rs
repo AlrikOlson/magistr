@@ -23,10 +23,18 @@ fn every_named_control_lifts() {
         Widget::Checkpoint,
         Widget::RoadmapStart,
         Widget::RoadmapComplete,
+        Widget::RoadmapRequest,
         Widget::LaunchNext,
         Widget::LaunchLoop,
         Widget::LaunchGates,
         Widget::LaunchRoadmap,
+        Widget::LatestDecision,
+        Widget::TracePrevious,
+        Widget::TraceNext,
+        Widget::PromptFiles,
+        Widget::Commands,
+        Widget::SettingsClose,
+        Widget::SettingsOpenFile,
     ];
     for widget in controls {
         assert_eq!(
@@ -73,6 +81,10 @@ fn the_indexed_spaces_split_into_rows_buttons_and_one_link() {
         assert_eq!(HoverRole::of(id), HoverRole::Lift, "{id:?} is a button");
     }
     assert_eq!(HoverRole::of(Widget::trace_link(12)), HoverRole::Link);
+    assert_eq!(
+        HoverRole::of(Widget::roadmap_dependency(12)),
+        HoverRole::Link
+    );
 }
 
 /// Structure stays quiet: tinting a whole panel because the pointer
@@ -145,13 +157,13 @@ fn every_named_widget_is_either_a_control_or_chrome() {
         "the docked screen is the wheel's target, not a control"
     );
     assert_eq!(
-        lifting, 52,
-        "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four, the meter's Raise and the trace card's More among them"
+        lifting, 61,
+        "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four, the meter's Raise, recorder navigation, Add files, Commands, Settings, Request a change and Reset view controls"
     );
     assert_eq!(
         linking,
-        Widget::CRUMBS.len() + 2,
-        "the altitude path's crumbs (gui2-2b3b), the Brief's dismiss and the identity band's chunk chip"
+        Widget::CRUMBS.len() + 3,
+        "the altitude path's crumbs (gui2-2b3b), the Brief's dismiss, the identity band's work chip and Linked work"
     );
     assert_eq!(
         HoverRole::of(Widget::RailDivider.id()),

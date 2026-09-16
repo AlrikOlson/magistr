@@ -16,6 +16,9 @@
 
 pub mod accent;
 pub mod anchor;
+pub mod conversation_card;
+pub mod conversation_layout;
+pub mod conversation_row;
 pub mod diff;
 pub mod diff_kind;
 pub mod highlight;
@@ -26,6 +29,7 @@ pub mod image;
 pub mod inline;
 pub mod line;
 pub mod line_kind;
+pub mod pixel_wrap;
 pub mod receipt;
 pub mod row;
 pub mod row_kind;
@@ -38,6 +42,9 @@ pub mod wrap;
 
 pub use accent::Accent;
 pub use anchor::Anchor;
+pub use conversation_card::ConversationCard;
+pub use conversation_layout::ConversationLayout;
+pub use conversation_row::ConversationRow;
 pub use diff_kind::diff_kind;
 pub use highlight::Highlight;
 pub use hunk::Hunk;

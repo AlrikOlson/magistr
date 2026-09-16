@@ -1,16 +1,18 @@
 //! The turn's lines and rows, kept current as the agent streams.
 
+use super::ConversationLayout;
 use super::accent::Accent;
 use super::anchor::Anchor;
 use super::highlight::Highlight;
 use super::image::{MAX_IMAGE_ROWS, StreamImage};
 use super::line::Line;
 use super::line_kind::LineKind;
+use super::pixel_wrap::PixelWrap;
 use super::receipt::Receipt;
 use super::row::Row;
 use super::row_kind::RowKind;
 use super::voice::Voice;
-use super::wrap::{opens_fence, wrap_line};
+use super::wrap::opens_fence;
 use crate::agent::{ToolRecord, ToolStatus, ToolVerb};
 use crate::pixel::CellSize;
 use crate::theme::{Icons, ThemeMode};
@@ -32,6 +34,9 @@ pub struct Turn {
     lines: Vec<Line>,
     rows: Vec<Row>,
     width: u16,
+    pixel_wrap: Option<PixelWrap>,
+    conversation: ConversationLayout,
+    conversation_compact: bool,
     /// Columns a MONO line is cut or broken to, when the surface holds
     /// its mono content to a narrower measure than its prose — see
     /// [`Turn::set_mono_width`]. `None` means one width for everything,
@@ -78,6 +83,9 @@ impl Turn {
             lines: Vec::new(),
             rows: Vec::new(),
             width,
+            pixel_wrap: None,
+            conversation: ConversationLayout::new(),
+            conversation_compact: false,
             mono: None,
             fence: None,
             open: false,
@@ -89,6 +97,37 @@ impl Turn {
             layout: 0,
             rebuilt: 0,
         }
+    }
+
+    /// The smaller conversation uses the same source rows with shorter work summaries.
+    pub fn set_conversation_compact(&mut self, compact: bool) {
+        self.conversation_compact = compact;
+    }
+
+    /// Change the paragraph measure without changing source identities or terminal alignment.
+    pub fn set_pixel_wrap(&mut self, width: Option<u32>, cell: CellSize) {
+        let policy = width.map(|width| PixelWrap {
+            width,
+            cell,
+            inline_user: self.conversation_compact,
+        });
+        if self.pixel_wrap != policy {
+            self.pixel_wrap = policy;
+            self.rewrap(self.width);
+        }
+        let next = policy.map_or_else(ConversationLayout::new, |policy| {
+            ConversationLayout::of(self, policy.width as f32, cell, self.conversation_compact)
+        });
+        if self.conversation != next {
+            self.conversation = next;
+            self.layout = self.layout.wrapping_add(1);
+        }
+    }
+
+    /// Cached physical positions, refreshed with the pixel wrap policy after each model fold.
+    #[must_use]
+    pub const fn conversation(&self) -> &ConversationLayout {
+        &self.conversation
     }
 
     /// How many times rows before the tail have moved: a re-wrap of the
@@ -721,6 +760,27 @@ impl Turn {
             .find_map(|line| line.record.terminal.as_deref())
     }
 
+    /// Whether the newest record naming this terminal says its work ended.
+    #[must_use]
+    pub fn terminal_finished(&self, id: &str) -> bool {
+        self.lines
+            .iter()
+            .rev()
+            .find(|line| line.record.terminal.as_deref() == Some(id))
+            .is_some_and(|line| {
+                matches!(
+                    line.kind,
+                    LineKind::Tool {
+                        status: ToolStatus::Completed | ToolStatus::Failed,
+                        ..
+                    } | LineKind::Edit {
+                        status: ToolStatus::Completed | ToolStatus::Failed,
+                        ..
+                    } | LineKind::Check { .. }
+                )
+            })
+    }
+
     /// The title of the newest card that ran on terminal `id` — the
     /// command, as the dock's grip names it.
     #[must_use]
@@ -785,6 +845,13 @@ impl Turn {
         );
     }
 
+    /// Preserve the provider's title independently of an edit's diff body.
+    pub fn set_tool_title(&mut self, id: &str, title: &str) {
+        if let Some(index) = self.tool_line(id) {
+            self.lines[index].title = Some(title.to_owned());
+        }
+    }
+
     /// A diff landed for a call: the plain tool row it was announced as
     /// becomes the edit card (an existing card takes the new body and
     /// path); an unknown id pushes a fresh card. Without a status the
@@ -794,6 +861,9 @@ impl Turn {
             return self.push_edit(id, path, status.unwrap_or(ToolStatus::Pending), body);
         };
         let line = &mut self.lines[index];
+        if line.title.is_none() && matches!(line.kind, LineKind::Tool { .. }) {
+            line.title = Some(line.text.clone());
+        }
         let (prior, expanded, undone) = match &line.kind {
             LineKind::Tool {
                 status, expanded, ..
@@ -863,7 +933,15 @@ impl Turn {
             return;
         }
         let columns = self.columns_for(&line.kind, false);
-        let rows = wrap_line(&line.kind, &line.text, false, None, self.icons, columns);
+        let rows = PixelWrap::wrap(
+            self.pixel_wrap,
+            &line.kind,
+            &line.text,
+            false,
+            None,
+            self.icons,
+            columns,
+        );
         if let (Some(slot), Some(row)) =
             (self.rows.get_mut(line.row_start), rows.into_iter().next())
         {
@@ -934,8 +1012,14 @@ impl Turn {
             let columns = self.columns_for(&self.lines[i].kind, in_fence);
             let highlight = if tail_open { None } else { self.fence.as_mut() };
             let line = &self.lines[i];
-            self.rows.extend(wrap_line(
-                &line.kind, &line.text, in_fence, highlight, icons, columns,
+            self.rows.extend(PixelWrap::wrap(
+                self.pixel_wrap,
+                &line.kind,
+                &line.text,
+                in_fence,
+                highlight,
+                icons,
+                columns,
             ));
             self.rows.extend(
                 std::iter::repeat_with(|| Row::new(RowKind::Pane, "")).take(pane_rows(line)),
@@ -969,7 +1053,15 @@ impl Turn {
             .get(index + 1)
             .map_or(self.rows.len(), |next| next.row_start);
         let columns = self.columns_for(&line.kind, false);
-        let mut fresh = wrap_line(&line.kind, &line.text, false, None, self.icons, columns);
+        let mut fresh = PixelWrap::wrap(
+            self.pixel_wrap,
+            &line.kind,
+            &line.text,
+            false,
+            None,
+            self.icons,
+            columns,
+        );
         fresh.extend(std::iter::repeat_with(|| Row::new(RowKind::Pane, "")).take(pane_rows(line)));
         let (had, rebuilt) = (end.saturating_sub(start), fresh.len());
         self.rows.splice(start..end, fresh);
@@ -999,7 +1091,8 @@ impl Turn {
             // In a fence: code, held to the mono measure.
             let columns = self.mono_width();
             let line = &self.lines[index];
-            let rows = wrap_line(
+            let rows = PixelWrap::wrap(
+                self.pixel_wrap,
                 &line.kind,
                 &line.text,
                 true,
@@ -1044,8 +1137,14 @@ impl Turn {
             line.text.push_str(piece);
             self.rows.truncate(line.row_start);
             let icons = self.icons;
-            self.rows.extend(wrap_line(
-                &line.kind, &line.text, in_fence, None, icons, columns,
+            self.rows.extend(PixelWrap::wrap(
+                self.pixel_wrap,
+                &line.kind,
+                &line.text,
+                in_fence,
+                None,
+                icons,
+                columns,
             ));
         } else {
             self.close();
@@ -1062,7 +1161,8 @@ impl Turn {
     fn push_sourced_line(&mut self, kind: LineKind, text: &str, source: Option<(String, usize)>) {
         let row_start = self.rows.len();
         let columns = self.columns_for(&kind, self.fence.is_some());
-        self.rows.extend(wrap_line(
+        self.rows.extend(PixelWrap::wrap(
+            self.pixel_wrap,
             &kind,
             text,
             self.fence.is_some(),
@@ -1073,6 +1173,7 @@ impl Turn {
         self.lines.push(Line {
             kind,
             text: text.to_owned(),
+            title: None,
             row_start,
             source,
             record: ToolRecord::default(),

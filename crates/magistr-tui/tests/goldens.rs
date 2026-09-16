@@ -16,7 +16,9 @@ use std::time::Duration;
 
 use magistr_cockpit::agent::AgentEvent;
 use magistr_cockpit::cockpit::view::SPARK_COLS;
-use magistr_cockpit::cockpit::{Eased, FrameClock, Model, Motion, Msg, Size, update, view};
+use magistr_cockpit::cockpit::{
+    Eased, FrameClock, Model, Motion, Msg, Size, StageTab, update, view,
+};
 use magistr_cockpit::golden::Golden;
 use magistr_cockpit::harness::Scenes;
 use magistr_cockpit::input::{KeyCode, KeyEvent};
@@ -49,10 +51,10 @@ fn motion() -> Golden {
 #[test]
 fn shot_pixel_composer() {
     use magistr_tui::screenshot::Profile;
-    shots_on("composer-empty", Model::new, Profile::Kitty, true);
-    shots_on(
-        "composer-draft",
-        |size| {
+    type Scene = (&'static str, fn(Size) -> Model);
+    let scenes: [Scene; 4] = [
+        ("composer-empty", Model::new),
+        ("composer-draft", |size| {
             let mut model = Model::new(size);
             update(
                 &mut model,
@@ -62,29 +64,22 @@ fn shot_pixel_composer() {
                 ),
             );
             model
-        },
-        Profile::Kitty,
-        true,
-    );
-    shots_on(
-        "composer-long",
-        |size| {
+        }),
+        ("composer-long", |size| {
             let mut model = Model::new(size);
             update(
                 &mut model,
-                Msg::Paste("A long direction with café, 漢字 and e\u{301}. ".repeat(30)),
+                Msg::Paste("A long message with café, 漢字 and e\u{301}. ".repeat(30)),
             );
             model
-        },
-        Profile::Kitty,
-        true,
-    );
-    shots_on(
-        "composer-streaming",
-        Scenes::streaming,
-        Profile::Kitty,
-        true,
-    );
+        }),
+        ("composer-streaming", Scenes::streaming),
+    ];
+    let failures: Vec<_> = scenes
+        .into_iter()
+        .flat_map(|(name, make)| render_shots(name, make, Profile::Kitty, true))
+        .collect();
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 fn clock() -> FrameClock {
@@ -130,6 +125,17 @@ fn shots_on(
     profile: magistr_tui::screenshot::Profile,
     settle: bool,
 ) {
+    let failures = render_shots(surface, make, profile, settle);
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// Collect every candidate in a related group before reporting failures.
+fn render_shots(
+    surface: &str,
+    make: fn(Size) -> Model,
+    profile: magistr_tui::screenshot::Profile,
+    settle: bool,
+) -> Vec<String> {
     use magistr_tui::screenshot::frame;
     let golden = screens();
     let mut failures = Vec::new();
@@ -141,6 +147,46 @@ fn shots_on(
         };
         for &(cols, rows) in sizes {
             let mut model = make(Size::new(cols, rows)).with_theme(Theme::forced(theme));
+            if profile == magistr_tui::screenshot::Profile::Kitty {
+                use magistr_cockpit::cockpit::Widget;
+                use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+                if matches!(surface, "launcher" | "command-palette")
+                    || surface.starts_with("inspector-")
+                {
+                    // These scenes exercise startup and shared conversation details.
+                    // The separate roadmap scene exercises the complete plan page.
+                    model = model.with_tab(StageTab::Turn);
+                }
+                update(
+                    &mut model,
+                    Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+                        pointer_shapes: true,
+                    }),
+                );
+                // Selecting a view or details happens after capability detection in the app.
+                let target = match surface {
+                    "roadmap" => Some(Widget::TabRoadmap.id()),
+                    "trace" => Some(Widget::TabSession.id()),
+                    name if name.starts_with("inspector-") => Some(Widget::InspectorFields.id()),
+                    _ => None,
+                };
+                if let Some(target) = target {
+                    update(
+                        &mut model,
+                        Msg::Mouse {
+                            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                            target: Some(target),
+                        },
+                    );
+                    update(
+                        &mut model,
+                        Msg::Mouse {
+                            event: MouseEvent::new(MouseKind::Up(Button::Left), 0, 0),
+                            target: Some(target),
+                        },
+                    );
+                }
+            }
             if settle {
                 Scenes::settle(&mut model);
             }
@@ -156,7 +202,7 @@ fn shots_on(
             }
         }
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    failures
 }
 
 fn inspected(mut model: Model, target: magistr_cockpit::WidgetId) -> Model {
@@ -193,23 +239,41 @@ fn shot_inspector_objects() {
             inspected(Scenes::changed(size), Widget::change_row(0))
         }),
     ];
+    let mut failures = Vec::new();
     for (name, make) in scenes {
         for profile in [Profile::Cells, Profile::Kitty] {
-            shots_on(name, make, profile, true);
+            failures.extend(render_shots(name, make, profile, true));
         }
     }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 #[test]
 fn shot_turn_and_palette_in_both_profiles() {
     use magistr_tui::screenshot::Profile;
     // Cell-profile Turn scenes have their own tests above.
-    shots_on("streaming", Scenes::streaming, Profile::Kitty, true);
-    shots_on("terminal-pane", Scenes::terminal_pane, Profile::Kitty, true);
-    shots_on("permission", Scenes::permission, Profile::Kitty, true);
+    let mut failures = render_shots("streaming", Scenes::streaming, Profile::Kitty, true);
+    failures.extend(render_shots(
+        "terminal-pane",
+        Scenes::terminal_pane,
+        Profile::Kitty,
+        true,
+    ));
+    failures.extend(render_shots(
+        "permission",
+        Scenes::permission,
+        Profile::Kitty,
+        true,
+    ));
     for profile in [Profile::Cells, Profile::Kitty] {
-        shots_on("command-palette", Scenes::command_palette, profile, true);
+        failures.extend(render_shots(
+            "command-palette",
+            Scenes::command_palette,
+            profile,
+            true,
+        ));
     }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 #[test]
@@ -473,13 +537,13 @@ fn rows_arriving() -> Model {
     // Past the slot's width the ribbon stops asking for a sweep at all,
     // which is the saturation guard doing its job.
     for _ in 0..usize::from(SPARK_COLS) {
-        agent(&mut m, AgentEvent::Text(".".to_owned()));
+        agent(&mut m, AgentEvent::Text(" ".to_owned()));
         update(&mut m, Msg::FrameDue);
     }
     Scenes::settle(&mut m);
     agent(
         &mut m,
-        AgentEvent::Text("\nand one more row arriving".to_owned()),
+        AgentEvent::Text("\nRecovery checks passed.".to_owned()),
     );
     m
 }
@@ -521,7 +585,7 @@ fn activity_sweeping() -> Model {
     // single new column.
     for n in 1..=usize::from(SPARK_COLS) {
         for _ in 0..n {
-            update(&mut m, Msg::Agent(AgentEvent::Text("chunk".to_owned())));
+            update(&mut m, Msg::Agent(AgentEvent::Text(" ".to_owned())));
         }
         update(&mut m, Msg::FrameDue);
     }

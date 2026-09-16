@@ -10,6 +10,99 @@ use crate::theme::Pen;
 use crate::turn::diff_kind;
 use crate::widget_id::WidgetId;
 
+#[path = "flight_inspector.rs"]
+mod flight;
+
+fn task_name(model: &Model, id: &str) -> String {
+    model
+        .rail()
+        .ship()
+        .task(id)
+        .map_or_else(|| "Recorded work".to_owned(), |task| task.title.clone())
+}
+
+fn state_label(value: &str) -> String {
+    match value {
+        "done" => "Completed".into(),
+        "in_progress" => "In progress".into(),
+        "pending" => "Waiting".into(),
+        "stuck" => "Needs attention".into(),
+        _ => {
+            let text = value.replace('_', " ");
+            let mut letters = text.chars();
+            letters.next().map_or_else(String::new, |first| {
+                first.to_uppercase().collect::<String>() + letters.as_str()
+            })
+        }
+    }
+}
+
+fn work_name(chunk: &super::RoadmapChunk) -> &str {
+    if !chunk.title.trim().is_empty() {
+        &chunk.title
+    } else if !chunk.name.trim().is_empty() && chunk.name != chunk.id {
+        &chunk.name
+    } else {
+        "Untitled work item"
+    }
+}
+
+fn work_reference_name(model: &Model, reference: &str) -> Option<String> {
+    let unavailable = || "Unavailable work item".to_owned();
+    if let Some(id) = reference.strip_prefix("task:") {
+        return Some(
+            model
+                .rail()
+                .ship()
+                .task(id)
+                .map_or_else(unavailable, |task| {
+                    if task.title.trim().is_empty() {
+                        "Untitled task".to_owned()
+                    } else {
+                        task.title.clone()
+                    }
+                }),
+        );
+    }
+    if let Some(number) = reference
+        .strip_prefix("think:")
+        .or_else(|| reference.strip_prefix("step:"))
+    {
+        return Some(
+            number
+                .parse::<u32>()
+                .ok()
+                .and_then(|number| model.trace().step(number))
+                .map_or_else(unavailable, |step| {
+                    if step.purpose.trim().is_empty() {
+                        format!("Step {}", step.number)
+                    } else {
+                        format!("Step {} — {}", step.number, step.purpose)
+                    }
+                }),
+        );
+    }
+    // Related records name their target directly. The reverse cross-reference
+    // lookup belongs to step-to-roadmap navigation and would return this owner.
+    let id = reference.strip_prefix("chunk:").unwrap_or(reference);
+    let Some(chunk) = model.roadmap().chunk(id) else {
+        return Some(unavailable());
+    };
+    if model.selected() == Some(&Selected::Chunk(chunk.id.clone())) {
+        return None;
+    }
+    Some(work_name(chunk).to_owned())
+}
+
+fn work_names(model: &Model, refs: &[String]) -> String {
+    let mut seen = std::collections::HashSet::new();
+    refs.iter()
+        .filter_map(|reference| work_reference_name(model, reference))
+        .filter(|name| seen.insert(name.clone()))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Inspector rendering and its scroll extent share the same card rows.
 pub struct Inspector;
 
@@ -26,6 +119,25 @@ struct Card {
 }
 
 impl Inspector {
+    fn full_roadmap_details(model: &Model) -> bool {
+        model.uses_flight_recorder()
+            && model.tab() == super::StageTab::Roadmap
+            && matches!(model.selected(), Some(Selected::Chunk(_)))
+    }
+
+    /// Resolve the displayed dependency against the current selected work item.
+    pub(super) fn roadmap_dependency(model: &Model, index: usize) -> Option<Selected> {
+        if !Self::full_roadmap_details(model) {
+            return None;
+        }
+        let Selected::Chunk(id) = model.selected()? else {
+            return None;
+        };
+        let reference = model.roadmap().chunk(id)?.deps.get(index)?;
+        let dependency = model.roadmap().chunk_for_ref(reference)?;
+        Some(Selected::Chunk(dependency.id.clone()))
+    }
+
     /// Render the selected object with a fixed header and scrolling fields.
     #[must_use]
     pub fn view(model: &Model, pen: &Pen) -> Node {
@@ -36,7 +148,7 @@ impl Inspector {
             .min_width(Length::Cells(0))
             .frame(
                 Frame::new(pen.panel(model.pane() == Pane::Inspector).clone())
-                    .title("inspector")
+                    .title("Details")
                     .title_style(pen.heading.clone())
                     .drawn(model.has_pixels()),
             );
@@ -51,9 +163,9 @@ impl Inspector {
         }
         let Some(card) = Card::of(model) else {
             let text = if model.selected().is_some() {
-                "Object no longer available"
+                "This record is unavailable."
             } else {
-                "Select a work item, tool, step or change"
+                "Select a record to see details."
             };
             return panel.child(line(text, &pen.note));
         };
@@ -145,13 +257,16 @@ impl Inspector {
                     | Widget::InspectorActions
                     | Widget::InspectorFields
                     | Widget::InspectorDetail
+                    | Widget::LinkedWork
                     | Widget::ToolOpen
                     | Widget::ToolUndo
                     | Widget::Checkpoint
                     | Widget::RoadmapStart
                     | Widget::RoadmapComplete
+                    | Widget::RoadmapRequest
             )
-        ) || Widget::trace_pin_step(id).is_some()
+        ) || Widget::roadmap_dependency_index(id).is_some()
+            || Widget::trace_pin_step(id).is_some()
             || Widget::trace_link_step(id).is_some()
             || Widget::trace_chunk_step(id).is_some()
             || Widget::change_open_index(id).is_some()
@@ -166,6 +281,10 @@ impl Inspector {
 
     /// Scroll within the current field set, clamped to its visible extent.
     pub fn scroll(model: &mut Model, delta: isize) {
+        if model.has_pixels() && !model.surface().is_native() {
+            Self::flight_scroll(model, delta);
+            return;
+        }
         let pen = Pen::for_theme(&model.theme());
         let total = Card::of(model).map_or(0, |card| {
             card.rows(model.inspector_width(), model.inspector_open(), &pen)
@@ -209,26 +328,93 @@ impl Card {
         };
         if let Some(lines) = model.trace().viewer() {
             card.title = "Checkpoint".into();
-            card.status = "reasoning report".into();
+            card.status = "Saved reasoning".into();
             card.metadata = format!("{} lines · Esc closes", lines.len());
             card.viewer = Some(lines.to_vec());
             return Some(card);
         }
         if let Some((title, lines)) = model.changes().viewer() {
             card.title = title.into();
-            card.status = "read only".into();
+            card.status = "Read only".into();
             card.metadata = format!("{} lines · Esc closes", lines.len());
             card.viewer = Some(lines.to_vec());
             return Some(card);
         }
         match model.selected()? {
+            Selected::Task(id) => {
+                let task = model.rail().ship().task(id)?;
+                card.title = task.title.clone();
+                card.status = match task.state {
+                    super::TaskState::Planned => "Planned",
+                    super::TaskState::Active => "In progress",
+                    super::TaskState::Completed => "Completed",
+                    super::TaskState::Blocked => "Blocked",
+                    super::TaskState::Skipped => "Skipped",
+                }
+                .into();
+                card.metadata = format!(
+                    "{} {} passed · {} failed",
+                    task.checks_passed,
+                    if task.checks_passed == 1 {
+                        "check"
+                    } else {
+                        "checks"
+                    },
+                    task.checks_failed
+                );
+                for item in
+                    super::session_item::SessionItem::collect(model.trace(), model.changes())
+                {
+                    let super::session_item::SessionItem::Moment(_, moment) = item else {
+                        continue;
+                    };
+                    match moment {
+                        super::ShipMoment::Action {
+                            task_id,
+                            description,
+                            ..
+                        } if task_id == id => {
+                            card.fields.push(("Action".into(), description.clone()));
+                        }
+                        super::ShipMoment::Check {
+                            task_id,
+                            name,
+                            passed,
+                            ..
+                        } if task_id == id => {
+                            card.fields.push((
+                                "Check".into(),
+                                format!("{} · {name}", if *passed { "Passed" } else { "Failed" }),
+                            ));
+                        }
+                        _ => {}
+                    }
+                }
+                if card.fields.is_empty() {
+                    card.fields.push((
+                        "Updates".into(),
+                        "No actions or checks recorded yet.".into(),
+                    ));
+                }
+            }
             Selected::Tool(id) => {
-                card.tool(model.turn().tool(id)?, id);
+                let tool = model.turn().tool(id)?;
+                card.tool(tool, id);
+                if tool
+                    .record()
+                    .terminal
+                    .as_deref()
+                    .and_then(|terminal| model.term(terminal))
+                    .is_some_and(super::Term::is_killed)
+                {
+                    card.status = "Stopped by you".into();
+                    card.icon = Icon::Stopped;
+                }
             }
             Selected::Chunk(id) => {
                 let chunk = model.roadmap().chunk(id)?;
-                card.title = chunk.name.clone();
-                card.status = chunk.status.replace('_', " ");
+                card.title = work_name(chunk).to_owned();
+                card.status = state_label(&chunk.status);
                 card.icon = match chunk.status.as_str() {
                     "done" => Icon::Done,
                     "in_progress" => Icon::InProgress,
@@ -240,23 +426,24 @@ impl Card {
                     chunk.band(),
                     chunk.group.as_deref().unwrap_or("work item")
                 );
-                card.fields = vec![
-                    ("title".into(), chunk.title.clone()),
-                    ("description".into(), chunk.description.clone()),
-                ];
-                if model.inspector_open() {
-                    card.fields.push(("id".into(), chunk.id.clone()));
+                let full = Inspector::full_roadmap_details(model);
+                if !full {
+                    card.fields.push(("Title".into(), chunk.title.clone()));
+                }
+                card.fields
+                    .push(("Description".into(), chunk.description.clone()));
+                if full || model.inspector_open() {
                     card.fields.extend(
-                        chunk
-                            .acceptance
-                            .iter()
-                            .enumerate()
-                            .map(|(i, text)| (format!("acceptance {}", i + 1), text.clone())),
+                        chunk.acceptance.iter().enumerate().map(|(i, text)| {
+                            (format!("Success condition {}", i + 1), text.clone())
+                        }),
                     );
+                    if !full {
+                        card.fields
+                            .push(("Depends on".into(), work_names(model, &chunk.deps)));
+                    }
                     card.fields
-                        .push(("depends on".into(), chunk.deps.join(", ")));
-                    card.fields
-                        .push(("references".into(), chunk.cross_refs.join(", ")));
+                        .push(("Related work".into(), work_names(model, &chunk.cross_refs)));
                 }
                 card.proposals = model
                     .roadmap()
@@ -282,7 +469,7 @@ impl Card {
                     .enumerate()
                     .find(|(_, signal)| signal.id == *id)?;
                 card.title = signal.title().to_owned();
-                card.status = signal.status.clone();
+                card.status = state_label(&signal.status);
                 card.icon = Icon::Signal;
                 card.metadata = format!("{} · {}", signal.kind, signal.from);
                 card.actions = vec![
@@ -290,16 +477,15 @@ impl Card {
                     ("Ignore", Widget::signal_ignore(index)),
                     ("Snooze", Widget::signal_snooze(index)),
                 ];
-                card.fields = vec![("body".into(), signal.body.clone())];
+                card.fields = vec![("Details".into(), signal.body.clone())];
                 if let Some(findings) = &signal.findings {
-                    card.fields.push(("findings".into(), findings.clone()));
+                    card.fields.push(("Findings".into(), findings.clone()));
                 }
-                if model.inspector_open() {
-                    card.fields.push(("id".into(), signal.id.clone()));
-                    if let Some(confidence) = signal.confidence {
-                        card.fields
-                            .push(("confidence".into(), format!("{confidence:.1}")));
-                    }
+                if model.inspector_open()
+                    && let Some(confidence) = signal.confidence
+                {
+                    card.fields
+                        .push(("Confidence".into(), format!("{confidence:.1}")));
                 }
             }
             Selected::Step(number) => {
@@ -310,11 +496,11 @@ impl Card {
                     step.purpose.clone()
                 };
                 card.status = if step.revised_by.is_some() {
-                    "revised"
+                    "Updated"
                 } else if step.is_final {
-                    "final"
+                    "Complete"
                 } else {
-                    "recorded"
+                    "Recorded"
                 }
                 .into();
                 card.icon = if step.pinned {
@@ -323,14 +509,11 @@ impl Card {
                     Icon::Done
                 };
                 card.metadata = format!(
-                    "step {number} · {}",
-                    step.branch_name
-                        .as_deref()
-                        .or(step.branch_id.as_deref())
-                        .unwrap_or("main")
+                    "Step {number} · {}",
+                    step.branch_name.as_deref().unwrap_or("Main investigation")
                 );
                 card.actions.push((
-                    if step.pinned { "Unpin" } else { "Pin" },
+                    if step.pinned { "Unsave" } else { "Save" },
                     Widget::trace_pin(*number),
                 ));
                 card.actions.push(("Checkpoint", Widget::Checkpoint.id()));
@@ -339,27 +522,28 @@ impl Card {
                     .as_deref()
                     .is_some_and(|r| model.roadmap().chunk_for_ref(r).is_some())
                 {
-                    card.actions.push(("Chunk", Widget::trace_chunk(*number)));
+                    card.actions
+                        .push(("Related work", Widget::trace_chunk(*number)));
                 }
                 card.fields = step
                     .fields()
                     .into_iter()
                     .filter(|(label, _)| {
                         model.inspector_open()
-                            || matches!(*label, "thought" | "outcome" | "next action")
+                            || matches!(*label, "Reasoning" | "Result" | "Why" | "Next")
                     })
                     .map(|(label, value)| (label.into(), value))
                     .collect();
                 if model.inspector_open()
                     && let Some(timestamp) = &step.timestamp
                 {
-                    card.fields.push(("recorded".into(), timestamp.clone()));
+                    card.fields.push(("Recorded".into(), timestamp.clone()));
                 }
                 if let Some(n) = step.revises {
-                    card.fields.push(("revises".into(), n.to_string()));
+                    card.fields.push(("Updates step".into(), n.to_string()));
                 }
                 if let Some(n) = step.revised_by {
-                    card.fields.push(("revised by".into(), n.to_string()));
+                    card.fields.push(("Updated by step".into(), n.to_string()));
                 }
             }
             Selected::Receipt(_) => {
@@ -376,16 +560,16 @@ impl Card {
                         timestamp,
                         kind,
                         description,
-                        id,
+                        id: _,
                         files,
                     } => {
                         card.title = description.clone();
-                        card.status = kind.clone();
+                        card.status = state_label(kind);
                         card.icon = Icon::InProgress;
-                        card.metadata = format!("action #{id} · {task_id}");
+                        card.metadata = task_name(model, task_id);
                         card.fields = vec![
-                            ("recorded".into(), timestamp.clone()),
-                            ("files".into(), files.join("\n")),
+                            ("Recorded".into(), timestamp.clone()),
+                            ("Files".into(), files.join("\n")),
                         ];
                     }
                     super::ShipMoment::Check {
@@ -397,15 +581,15 @@ impl Card {
                         duration_ms,
                     } => {
                         card.title = name.clone();
-                        card.status = if *passed { "passed" } else { "failed" }.into();
+                        card.status = if *passed { "Passed" } else { "Failed" }.into();
                         card.icon = Icon::check(*passed);
-                        card.metadata = task_id.clone();
-                        card.fields.push(("recorded".into(), timestamp.clone()));
+                        card.metadata = task_name(model, task_id);
+                        card.fields.push(("Recorded".into(), timestamp.clone()));
                         if let Some(code) = exit_code {
-                            card.fields.push(("exit code".into(), code.to_string()));
+                            card.fields.push(("Exit code".into(), code.to_string()));
                         }
                         if let Some(ms) = duration_ms {
-                            card.fields.push(("duration".into(), format!("{ms} ms")));
+                            card.fields.push(("Duration".into(), format!("{ms} ms")));
                         }
                     }
                 }
@@ -413,10 +597,10 @@ impl Card {
             Selected::Run(index) => {
                 let run = model.changes().runs()?.1.get(*index)?;
                 card.title = run.name.clone();
-                card.status = if run.passed { "passed" } else { "failed" }.into();
+                card.status = if run.passed { "Passed" } else { "Failed" }.into();
                 card.icon = Icon::check(run.passed);
-                card.metadata = "latest Workbench run · time unknown".into();
-                card.fields.push(("detail".into(), run.detail.clone()));
+                card.metadata = "Latest check · time not recorded".into();
+                card.fields.push(("Details".into(), run.detail.clone()));
             }
             Selected::Change(id) => {
                 let (index, entry) = model
@@ -427,28 +611,28 @@ impl Card {
                     .find(|(_, entry)| entry.identity() == *id)?;
                 card.title = entry.path.clone();
                 card.status = if entry.parse_ok {
-                    "parse ok"
+                    "Syntax checked"
                 } else {
-                    "parse failed"
+                    "Syntax needs attention"
                 }
                 .into();
                 if model.changes().is_approved(&entry.id) {
                     card.status.push_str(" · approved");
                 }
                 card.icon = Icon::check(entry.parse_ok);
-                card.metadata = format!("+{} −{} · {}", entry.added, entry.removed, entry.id);
+                card.metadata = format!("{} lines added · {} removed", entry.added, entry.removed);
                 card.actions = vec![
                     ("Open", Widget::change_open(index)),
                     ("Undo", Widget::change_undo(index)),
                     ("Approve", Widget::change_approve(index)),
                 ];
-                card.fields = vec![("path".into(), entry.path.clone())];
+                card.fields = vec![("File".into(), entry.path.clone())];
                 if model.inspector_open()
                     && let Some(at) = entry
                         .at_ms
                         .and_then(chrono::DateTime::from_timestamp_millis)
                 {
-                    card.fields.push(("recorded".into(), at.to_rfc3339()));
+                    card.fields.push(("Recorded".into(), at.to_rfc3339()));
                 }
                 card.diff = Some(entry.diff.clone());
             }
@@ -456,7 +640,7 @@ impl Card {
         Some(card)
     }
 
-    fn tool(&mut self, line: &crate::turn::Line, id: &str) {
+    fn tool(&mut self, line: &crate::turn::Line, _id: &str) {
         use crate::agent::ToolStatus;
         use crate::turn::LineKind;
         let status = match line.kind() {
@@ -467,7 +651,7 @@ impl Card {
                 ..
             } => {
                 self.title = line.text().into();
-                self.metadata = format!("{} · {id}", verb.label());
+                self.metadata = verb.label().to_owned();
                 if let Some(ms) = duration_ms {
                     self.metadata.push_str(&format!(" · {ms} ms"));
                 }
@@ -480,7 +664,7 @@ impl Card {
                 ..
             } => {
                 self.title = path.clone();
-                self.metadata = format!("edit · {id}");
+                self.metadata = "File change".to_owned();
                 if *undone {
                     self.metadata.push_str(" · undone");
                 }
@@ -494,19 +678,21 @@ impl Card {
             _ => return,
         };
         let (label, icon) = match status {
-            ToolStatus::Pending => ("pending", Icon::Pending),
-            ToolStatus::InProgress => ("running", Icon::Running),
-            ToolStatus::Completed => ("completed", Icon::Done),
-            ToolStatus::Failed => ("failed", Icon::Failed),
+            ToolStatus::Pending => ("Waiting", Icon::Pending),
+            ToolStatus::InProgress => ("Running", Icon::Running),
+            ToolStatus::Completed => ("Completed", Icon::Done),
+            ToolStatus::Failed => ("Failed", Icon::Failed),
         };
         self.status = label.into();
         self.icon = icon;
         let record = line.record();
         if let Some(size) = record.truncated_from {
-            self.fields
-                .push(("record".into(), format!("truncated from {size} bytes")));
+            self.fields.push((
+                "Saved output".into(),
+                format!("Showing the beginning of {size} bytes."),
+            ));
         }
-        for (label, value) in [("input", &record.input), ("output", &record.output)] {
+        for (label, value) in [("Input", &record.input), ("Output", &record.output)] {
             if let Some(value) = value {
                 self.fields.push((
                     label.into(),
@@ -520,20 +706,23 @@ impl Card {
             record
                 .text
                 .iter()
-                .map(|text| ("content".into(), text.clone())),
+                .map(|text| ("Contents".into(), text.clone())),
         );
         self.fields
             .extend(record.locations.iter().map(|(path, line)| {
                 (
-                    "location".into(),
+                    "File".into(),
                     line.map_or_else(
                         || path.display().to_string(),
                         |line| format!("{}:{line}", path.display()),
                     ),
                 )
             }));
-        if let Some(terminal) = &record.terminal {
-            self.fields.push(("terminal".into(), terminal.clone()));
+        if record.terminal.is_some() {
+            self.fields.push((
+                "Terminal output".into(),
+                "Available in the conversation.".into(),
+            ));
         }
     }
 
@@ -583,7 +772,7 @@ impl Card {
             let limit = if full { wrapped.len() } else { 2 };
             rows.extend(wrapped.into_iter().take(limit).map(|text| {
                 let row = line(text, &pen.stage);
-                if matches!(label.as_str(), "revises" | "revised by") {
+                if matches!(label.as_str(), "Updates step" | "Updated by step") {
                     value.parse().map_or(row.clone(), |number| {
                         row.id(Widget::trace_link(number)).style(pen.link.clone())
                     })

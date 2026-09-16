@@ -11,7 +11,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use super::input::TerminalInput;
 use super::input_event::InputEvent;
 use magistr_cockpit::cockpit::Size;
-use magistr_cockpit::input::Decoder;
+use magistr_cockpit::input::{Decoder, Event};
 
 /// A thread that reads a [`TerminalInput`] with a short timeout, decodes
 /// what arrives and sends [`InputEvent`]s down a channel.
@@ -41,16 +41,27 @@ impl InputThread {
     ///
     /// The thread could not be spawned.
     pub fn spawn<I: TerminalInput>(
+        input: I,
+        decoder: Decoder,
+        size: Size,
+        tx: UnboundedSender<InputEvent>,
+    ) -> io::Result<Self> {
+        Self::spawn_with_mouse(input, decoder, size, tx, false)
+    }
+
+    /// The runtime enables pixel reports only after a successful terminal probe.
+    pub(crate) fn spawn_with_mouse<I: TerminalInput>(
         mut input: I,
         mut decoder: Decoder,
         size: Size,
         tx: UnboundedSender<InputEvent>,
+        pixel_mouse: bool,
     ) -> io::Result<Self> {
         let stop = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&stop);
         let handle = std::thread::Builder::new()
             .name("magistr-tui-input".to_owned())
-            .spawn(move || run(&mut input, &mut decoder, size, &tx, &flag))?;
+            .spawn(move || run(&mut input, &mut decoder, size, &tx, &flag, pixel_mouse))?;
         Ok(Self {
             stop,
             handle: Some(handle),
@@ -93,6 +104,7 @@ fn run<I: TerminalInput>(
     mut size: Size,
     tx: &UnboundedSender<InputEvent>,
     stop: &AtomicBool,
+    pixel_mouse: bool,
 ) {
     let mut buf = [0u8; 4096];
     let mut events = Vec::new();
@@ -103,19 +115,25 @@ fn run<I: TerminalInput>(
                 return;
             }
             Ok(Some(n)) => decoder.feed(&buf[..n], &mut events),
-            Ok(None) => {
-                decoder.flush(&mut events);
-                if let Ok(now) = input.size()
-                    && now != size
-                {
-                    size = now;
-                    if tx.send(InputEvent::Resize(now)).is_err() {
-                        return;
-                    }
-                }
+            Ok(None) => decoder.flush(&mut events),
+        }
+        // Poll even during continuous mouse motion or streaming input. A quiet
+        // read is not guaranteed, and stale dimensions misroute pixel clicks.
+        if let Ok(now) = input.size()
+            && now != size
+        {
+            size = now;
+            if tx.send(InputEvent::Resize(now)).is_err() {
+                return;
             }
         }
-        for event in events.drain(..) {
+        for mut event in events.drain(..) {
+            if pixel_mouse && let Event::Mouse(mouse) = &mut event {
+                // SGR 1016 uses the same one-based wire format as 1006.
+                // The shared decoder has already subtracted one. Physical
+                // pixels stay exact; the driver derives cells from live metrics.
+                mouse.px = Some((u32::from(mouse.col), u32::from(mouse.row)));
+            }
             if tx.send(InputEvent::Event(event)).is_err() {
                 return;
             }

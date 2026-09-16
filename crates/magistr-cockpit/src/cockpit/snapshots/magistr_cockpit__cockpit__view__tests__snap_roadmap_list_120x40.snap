@@ -3,16 +3,16 @@ source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen
 ---
 ▲ magistr  idle                                                                                                    00:01
-tui2-2-rail  Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
+Saved retry limits  Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a record to see details.   │
 │no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlo…│  │                                  │
-│▲ tui2-2-rail · 1/3       │ │«Engine» 1/1                                       │  │                                  │
-│▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«TUI rewrite» 0/2                                  │  │                                  │
-│▲ Rail and dock           │ │Status: Active ▾ · 2                               │  │                                  │
+│▲ Saved retry limits · 1/3│ │«Retry recovery» 0/2                               │  │                                  │
+│▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«Storage» 1/1                                      │  │                                  │
+│▲ Saved retry limits      │ │Status: Active ▾ · 2                               │  │                                  │
 │1 before · 1 after        │ │Name                Status↑    Pri   Stream        │  │                                  │
-│signals 1                 │ │▸ Rail and dock     working    100   TUI rewrite   │  │                                  │
-│                          │ │○ Roadmap view      pending    200   TUI rewrite   │  │                                  │
+│signals 1                 │ │▸ Saved retry limi… working    100   Retry recovery│  │                                  │
+│                          │ │○ Recovery checks   pending    200   Retry recovery│  │                                  │
 │                          │ │◆ make startup faster                              │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │

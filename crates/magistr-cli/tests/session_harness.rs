@@ -17,7 +17,9 @@ use magistr_cockpit::agent::{
     AgentEvent, AskEverything, PolicyDecision, SessionOptions, SessionPolicy, spawn_session,
 };
 use magistr_cockpit::channel::Arrivals;
-use magistr_cockpit::cockpit::{FrameClock, Model, Msg, Size, TurnState, Widget, update, view};
+use magistr_cockpit::cockpit::{
+    FrameClock, Model, Msg, Size, StageTab, TurnState, Widget, update, view,
+};
 use magistr_cockpit::engine::{EngineEvent, EnginePort};
 use magistr_cockpit::harness::FakeWorkbench;
 use magistr_cockpit::layout::LayoutTree;
@@ -29,6 +31,9 @@ use magistr_tui::runtime::{Options, Runtime};
 
 const MS: fn(u64) -> Duration = Duration::from_millis;
 const SIZE: Size = Size::new(80, 24);
+
+#[path = "session_harness/graphics.rs"]
+mod graphics;
 
 /// The screen a VT emulator shows after replaying every write that
 /// happened before `until`.
@@ -82,7 +87,13 @@ fn assert_strip_in_next_frame(capture: &Capture, arrivals: &Arrivals, strip: &st
     assert!(frame.contains(strip), "{frame}");
 }
 
+// VT text assertions explicitly exercise the supported plain terminal. Graphics
+// round trips below decode native placements and use their physical hit positions.
 fn options() -> Options {
+    Options::new(Env::new("xterm-kitty", false, Some("text"))).probe_timeout(MS(500))
+}
+
+fn graphics_options() -> Options {
     Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500))
 }
 
@@ -154,7 +165,7 @@ async fn run_full(
         workbench,
         engine,
         checkpoints,
-        Model::new(SIZE),
+        Model::new(SIZE).with_tab(StageTab::Turn),
     )
     .await
 }
@@ -185,7 +196,7 @@ async fn run_seeded(
         .connect_over(client_end)
         .await
         .expect("the handshake with the fake agent");
-    let terminal = FakeTerminal::new(SIZE, script);
+    let terminal = FakeTerminal::new(model.size(), script);
     let capture = terminal.capture();
     let deliveries = terminal.deliveries();
     let arrivals = Arrivals::new();
@@ -263,23 +274,17 @@ async fn two_turns_on_one_session_without_reconnecting() {
     assert!(screen.contains(" enter  send"), "{screen}");
 }
 
-/// Where the strip's `button` lands at [`SIZE`] while a request for
-/// `title` is pending — the layout is pure, so the test can ask it.
-/// The mode the kitty probe settles on: pixels and pointer shapes, the
-/// arrangement every locator in this harness must lay out.
-fn pixel_mode() -> Msg {
-    Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
-        pointer_shapes: true,
-    })
+fn plain_mode() -> Msg {
+    Msg::Mode(magistr_cockpit::capability::Mode::MinimalText(
+        magistr_cockpit::capability::TextReason::Forced,
+    ))
 }
 
 fn button_cell(title: &str, button: Widget) -> (u16, u16) {
-    // The harness terminal answers the kitty probe, so the live cockpit
-    // is on its pixel arrangement — one gutter cell around everything.
-    // The locator lays out the same arrangement, or the click lands a
-    // cell off the button and the ask is never answered.
+    // This VT assertion uses the explicitly requested plain arrangement;
+    // its locator must resolve that same surface.
     let mut model = Model::new(SIZE);
-    update(&mut model, pixel_mode());
+    update(&mut model, plain_mode());
     update(
         &mut model,
         Msg::Agent(AgentEvent::Text("Hello there".to_owned())),
@@ -494,7 +499,7 @@ async fn ctrl_c_cancels_the_turn_in_flight_and_the_second_ctrl_c_quits() {
         .filter(|r| r.kind == RowKind::Note)
         .map(|r| r.text.as_str())
         .collect();
-    assert_eq!(notes, ["cancelling…", "turn ended early: cancelled"]);
+    assert_eq!(notes, ["cancelling…", "Stopped."]);
 }
 
 #[tokio::test]
@@ -585,13 +590,26 @@ async fn a_palette_read_round_trips_through_the_session_workbench() {
     let quit = *deliveries.instants().last().expect("the quit");
     let screen = screen_before(&capture, quit);
     assert!(screen.contains("# Magistr"), "{screen}");
-    let heading = marked(&model, "▤", "README.md · esc closes");
-    assert!(screen.contains(&heading), "{screen}");
+    assert!(screen.contains("README.md"), "{screen}");
+    assert!(
+        screen.contains("Read only") && screen.contains("2 lines · Esc closes"),
+        "{screen}"
+    );
 }
 
 #[tokio::test]
 async fn palette_pin_and_checkpoint_round_trip_through_the_session_engine() {
     use magistr_tui::harness::FakeEnginePort;
+    let mut locator = Model::new(SIZE).with_tab(StageTab::Session);
+    update(&mut locator, plain_mode());
+    let placed = LayoutTree::new()
+        .compute(
+            &view(&locator, &FrameClock::new(0, MS(0))),
+            SIZE.cols,
+            SIZE.rows,
+        )
+        .unwrap();
+    let details = placed.rect(Widget::Inspector.id()).unwrap();
     let script = Script::new()
         .startup_replies(MS(0))
         .text(MS(300), "/pin 7\r")
@@ -600,7 +618,8 @@ async fn palette_pin_and_checkpoint_round_trip_through_the_session_engine() {
         // "/checkpoint" keeps it open and Enter would accept the
         // candidate instead of sending.
         .text(MS(600), "/checkpoint \r")
-        .text(MS(750), "\x1b[H")
+        .click(MS(750), details.x + 2, details.y + details.height - 2)
+        .text(MS(800), "\x1b[B")
         .text(MS(1000), "\x04");
     let port = FakeEnginePort::new()
         .with_report(serde_json::json!({"open_hypotheses": [{"step_number": 7}]}));
@@ -632,8 +651,11 @@ async fn palette_pin_and_checkpoint_round_trip_through_the_session_engine() {
     // The report stood on the Trace tab before the quit.
     let quit = *deliveries.instants().last().expect("the quit");
     let screen = screen_before(&capture, quit);
-    let heading = marked(&model, "✱", "checkpoint · esc closes");
-    assert!(screen.contains(&heading), "{screen}");
+    assert!(
+        screen.contains("Checkpoint") && screen.contains("Saved reasoning"),
+        "{screen}"
+    );
+    assert!(screen.contains("7 lines · Esc closes"), "{screen}");
     assert!(screen.contains("open_hypotheses"), "{screen}");
 }
 
@@ -748,17 +770,13 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
         })),
     );
 
-    // The click coordinates, from the same deterministic layout the
-    // cockpit will compute: the pending row, then — on a preview with
-    // its detail open — the [Start] button and the signal's [Promote].
-    // The preview carries a reported graph rect because the live run's
-    // graphics (kitty, from startup_replies) grow the tech-tree block
-    // from its second frame on; heights must match for the coordinates
-    // to land.
+    // Coordinates come from the same plain layout used by the live run:
+    // select the work item, start it, select the signal, then promote it
+    // through its detail actions.
     let rect_of = |m: &Model, id: magistr_cockpit::widget_id::WidgetId| -> Rect {
-        // On the pixel arrangement the live run paints, gutters and all.
+        // The same explicitly requested plain arrangement as the live run.
         let mut m = m.clone();
-        magistr_cockpit::cockpit::update(&mut m, pixel_mode());
+        magistr_cockpit::cockpit::update(&mut m, plain_mode());
         let resolved = LayoutTree::new()
             .compute(&view(&m, &FrameClock::new(0, MS(0))), SIZE.cols, SIZE.rows)
             .expect("layout succeeds");
@@ -790,12 +808,20 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
     // The inspector stays open while the stage scrolls to its signal inbox.
     let tab = rect_of(&preview, Widget::TabRoadmap.id());
     let mut triage = preview.clone();
-    update(&mut triage, pixel_mode());
+    update(&mut triage, plain_mode());
     update(
         &mut triage,
         Msg::Key(magistr_cockpit::input::KeyEvent::new(
             magistr_cockpit::input::KeyCode::End,
         )),
+    );
+    let signal_row = rect_of(&triage, Widget::signal_row(0));
+    update(
+        &mut triage,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), signal_row.x, signal_row.y),
+            target: Some(Widget::signal_row(0)),
+        },
     );
     let promote = rect_of(&triage, Widget::signal_promote(0));
     let script = Script::new()
@@ -804,8 +830,11 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
         .click(MS(500), start.x + 1, start.y)
         .click(MS(700), tab.x, tab.y)
         .text(MS(800), "\x1b[F")
-        .click(MS(1000), promote.x + 1, promote.y)
-        .text(MS(1200), "\x04");
+        .click(MS(900), signal_row.x, signal_row.y)
+        .click(MS(1050), promote.x + 1, promote.y)
+        .click(MS(1150), tab.x, tab.y)
+        .text(MS(1200), "\x1b[H")
+        .text(MS(1400), "\x04");
     let port = FakeEnginePort::new()
         .with_chunk(magistr_cockpit::harness::fixtures::chunk_from(ui))
         .with_signal(magistr_cockpit::harness::fixtures::signal_from(signal));
@@ -849,14 +878,16 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
     // The started chunk stood in its section before the quit.
     let quit = *deliveries.instants().last().expect("the quit");
     let screen = screen_before(&capture, quit);
-    let section = marked(&model, "▸", "in progress · 1");
-    assert!(screen.contains(&section), "{screen}");
+    assert!(
+        screen.contains("Status: Active") && screen.contains("working"),
+        "{screen}"
+    );
 }
 
 /// A model with the ship plan already on the rail, as the engine feed
 /// would have seeded it before the terminal is scripted.
 fn planned_model() -> Model {
-    let mut m = Model::new(SIZE);
+    let mut m = Model::new(SIZE).with_tab(StageTab::Turn);
     for (kind, payload) in [
         (
             "objective_set",
@@ -1195,16 +1226,47 @@ async fn flat_prompt_echo_accepts_completion_and_restores_the_unsent_draft() {
         .text(MS(1050), "\x1b[A")
         .text(MS(1200), "\x1b[B")
         .close(MS(1350));
-    let (model, observed, capture, deliveries, _arrivals) = run_flat(
-        script,
-        Model::new(SIZE).with_workspace_files(vec!["src/café.rs".to_owned()]),
-        "completion received",
+    let project = tempfile::tempdir().expect("temporary project");
+    std::fs::create_dir(project.path().join("src")).unwrap();
+    std::fs::write(project.path().join("src/café.rs"), "// café\n").unwrap();
+    let (client_end, observed, agent_task) =
+        FakeAcpAgent::new().reply("completion received").spawn();
+    let mut transport = AcpTransport::new_with_args(
+        PathBuf::from("fake-acp-agent"),
+        Vec::new(),
+        Some(project.path().to_owned()),
     )
-    .await;
+    .unwrap();
+    transport.connect_over(client_end).await.unwrap();
+    let terminal = FakeTerminal::new(SIZE, script);
+    let capture = terminal.capture();
+    let deliveries = terminal.deliveries();
+    let mut runtime = Runtime::new(terminal, flat_options());
+    let commands = runtime.commands().unwrap();
+    let session =
+        CockpitSession::start_connected(transport, SessionOptions::new(), Box::new(AskEverything))
+            .unwrap();
+    let session = spawn_session(
+        Box::new(session),
+        runtime.inbox(),
+        commands,
+        None,
+        None,
+        None,
+    );
+    let model = runtime
+        .run(Model::new(SIZE).with_workspace_files(vec!["src/café.rs".to_owned()]))
+        .await
+        .unwrap();
+    session.await.unwrap().unwrap();
+    agent_task.abort();
     let instants = deliveries.instants();
     let accepted = screen_before(&capture, instants[3]);
     assert!(accepted.contains("input: read @src/café.rs"), "{accepted}");
-    assert_eq!(observed.prompts(), ["read @src/café.rs "]);
+    assert_eq!(
+        observed.prompts(),
+        ["read @src/café.rs Attached file: src/café.rs\n\n// café\n"]
+    );
     let recalled = screen_before(&capture, instants[6]);
     assert!(recalled.contains("input: read @src/café.rs"), "{recalled}");
     assert_eq!(model.prompt().text(), "draft");

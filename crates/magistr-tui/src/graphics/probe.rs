@@ -69,6 +69,9 @@ impl Probe {
         out.extend_from_slice(b"\x1b]66;s=2; \x07");
         out.extend_from_slice(CPR);
         out.push(b'\r');
+        // Ask the terminal that owns mouse reports, never the outer terminal
+        // through passthrough: graphics support does not imply pixel input.
+        out.extend_from_slice(b"\x1b[?1016$p");
         out.extend_from_slice(b"\x1b[c");
     }
 
@@ -103,6 +106,13 @@ fn recognise(reply: &mut ProbeReply, columns: &mut Vec<u16>, sequence: &[u8]) {
         if keys.split(|&b| b == b',').any(|k| k == b"i=31") && payload == b"OK" {
             reply.kitty = true;
         }
+    } else if let Some(status) = sequence
+        .strip_prefix(b"\x1b[?1016;")
+        .and_then(|rest| rest.strip_suffix(b"$y"))
+    {
+        // 1/2 mean set/reset and writable. Unknown or permanently reset
+        // modes must retain cell reporting.
+        reply.pixel_mouse = matches!(status, b"1" | b"2" | b"3");
     } else if let Some(params) = sequence
         .strip_prefix(b"\x1b[?")
         .and_then(|rest| rest.strip_suffix(b"c"))

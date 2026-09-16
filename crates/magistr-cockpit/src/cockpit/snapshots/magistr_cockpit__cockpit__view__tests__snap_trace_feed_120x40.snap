@@ -4,17 +4,17 @@ expression: screen
 ---
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a record to see details.   │
 │no objective yet          │ │session · 5 steps · 1 branch · 1 pinned · 0 changes│  │                                  │
-│roadmap 0/0 done          │ │main · 3 steps                                     │  │                                  │
-│signals 0                 │ │└─ alt path (merged) from 2 · 2 steps              │  │                                  │
+│roadmap 0/0 done          │ │Main reasoning · 3 steps                           │  │                                  │
+│signals 0                 │ │└─ Share retry budgets? (Findings used) after 2 · 2│  │                                  │
 │                          │ │time unknown ▸  1  hypothesis  0.62 ★              │  │                                  │
 │                          │ │time unknown ▸  2  analysis · revised by 5  0.70   │  │                                  │
-│                          │ │time unknown ▸  3  hypothesis (alt path)           │  │                                  │
-│                          │ │time unknown ▸  4  validation (b-alt)              │  │                                  │
+│                          │ │time unknown ▸  3  hypothesis (Share retry         │  │                                  │
+│                          │ │time unknown ▸  4  validation (Share retry         │  │                                  │
 │                          │ │time unknown ▸  5  correction                      │  │                                  │
-│                          │ │time unknown ▸ code · wired the trace tab          │  │                                  │
+│                          │ │time unknown ▸ code · Saved retry budgets with     │  │                                  │
 │                          │ │time unknown ✓ test · exit 0 · 5.4s                │  │                                  │
 │                          │ │time unknown ✗ lint · exit 101 · 900ms             │  │                                  │
 │                          │ │                                                   │  │                                  │
@@ -41,4 +41,4 @@ Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  select   enter  detail   tab / shift-tab  switch pane
+ ↑↓  select   enter  detail   tab / shift-tab  move focus

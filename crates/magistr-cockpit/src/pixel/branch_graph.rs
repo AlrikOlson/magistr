@@ -49,6 +49,9 @@ pub struct BranchGraph {
     /// Per step, whether it is pinned — ringed violet.
     pins: Vec<bool>,
     background: Color,
+    colors: Vec<[u8; 3]>,
+    selection_color: Color,
+    geometry: Option<(f32, f32)>,
     sweep: Option<f32>,
 }
 
@@ -65,6 +68,9 @@ impl BranchGraph {
             selected: None,
             pins: Vec::new(),
             background: Color::from_rgba8(26, 27, 38, 255),
+            colors: Vec::new(),
+            selection_color: Color::from_rgba8(255, 255, 255, 255),
+            geometry: None,
             sweep: None,
         }
     }
@@ -124,6 +130,42 @@ impl BranchGraph {
         self
     }
 
+    /// Logical bounds shared with labels and hit targets when raster dimensions round up.
+    #[must_use]
+    pub fn geometry(mut self, width: f32, height: f32) -> Self {
+        self.geometry = Some((width.max(0.0), height.max(0.0)));
+        self
+    }
+
+    /// Stable branch colors when a viewport compacts its visible lanes.
+    #[must_use]
+    pub fn colors(mut self, colors: Vec<[u8; 3]>) -> Self {
+        self.colors = colors;
+        self
+    }
+
+    /// Selection ink on the current surface, including light themes.
+    #[must_use]
+    pub fn selection_color(mut self, r: u8, g: u8, b: u8) -> Self {
+        self.selection_color = Color::from_rgba8(r, g, b, 255);
+        self
+    }
+
+    fn lane_color(&self, lane: u8) -> Color {
+        let [r, g, b] = self
+            .colors
+            .get(usize::from(lane))
+            .copied()
+            .unwrap_or_else(|| Self::lane_rgb(lane));
+        Color::from_rgba8(r, g, b, 255)
+    }
+
+    /// The shared color for a branch's path and its question.
+    #[must_use]
+    pub fn lane_rgb(lane: u8) -> [u8; 3] {
+        LANE_COLORS[usize::from(lane) % LANE_COLORS.len()]
+    }
+
     /// The steps' lanes.
     #[must_use]
     pub fn lanes(&self) -> &[u8] {
@@ -132,7 +174,8 @@ impl BranchGraph {
 
     /// Each step's pixel position: x spread over the width in feed
     /// order, y at the middle of its lane.
-    fn points(&self, width: f32, height: f32) -> Vec<(f32, f32)> {
+    #[must_use]
+    pub fn points(&self, width: f32, height: f32) -> Vec<(f32, f32)> {
         let lane_count = f32::from(self.lanes.iter().copied().max().unwrap_or(0)) + 1.0;
         let padding = (height * PADDING_FRACTION).max(1.0);
         let side = (height * SIDE_FRACTION).max(1.0).min(width / 4.0);
@@ -175,16 +218,12 @@ impl BranchGraph {
     }
 }
 
-/// The colour of a lane, wrapping past the palette.
-fn lane_color(lane: u8) -> Color {
-    let [r, g, b] = LANE_COLORS[usize::from(lane) % LANE_COLORS.len()];
-    Color::from_rgba8(r, g, b, 255)
-}
-
 impl Painter for BranchGraph {
     fn paint(&self, pixmap: &mut PixmapMut<'_>) {
         pixmap.fill(self.background);
-        let (width, height) = (pixmap.width() as f32, pixmap.height() as f32);
+        let (width, height) = self
+            .geometry
+            .unwrap_or((pixmap.width() as f32, pixmap.height() as f32));
         let points = self.swept(self.points(width, height), width);
         if points.is_empty() {
             return;
@@ -221,7 +260,7 @@ impl Painter for BranchGraph {
                 path.line_to(x, y);
             }
             if let Some(path) = path.finish() {
-                paint.set_color(lane_color(lane));
+                paint.set_color(self.lane_color(lane));
                 pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
             }
         }
@@ -238,17 +277,17 @@ impl Painter for BranchGraph {
             path.move_to(x1, y1);
             path.line_to(x2, y2);
             if let (Some(path), Some(&lane)) = (path.finish(), self.lanes.get(coloured_by)) {
-                paint.set_color(lane_color(lane));
+                paint.set_color(self.lane_color(lane));
                 pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
             }
         }
         // A dot per step over the lines — faded outside the focus, the
         // newest a little larger, a pinned one ringed violet and the
         // selected one ringed white.
-        let radius = (self.lane_height(height) * DOT_FRACTION).max(1.5);
+        let radius = (self.lane_height(height) * DOT_FRACTION).clamp(1.5, 4.5);
         let newest = points.len().saturating_sub(1);
         for (index, (&lane, &(x, y))) in self.lanes.iter().zip(&points).enumerate() {
-            let mut colour = lane_color(lane);
+            let mut colour = self.lane_color(lane);
             if !self.is_lit(index) {
                 colour.set_alpha(DIM_ALPHA);
             }
@@ -283,7 +322,7 @@ impl Painter for BranchGraph {
                 && let Some(ring) =
                     PathBuilder::from_circle(x, y, dot + ring_gap + stroke.width + 1.0)
             {
-                paint.set_color(Color::from_rgba8(255, 255, 255, 255));
+                paint.set_color(self.selection_color);
                 pixmap.stroke_path(&ring, &paint, &stroke, Transform::identity(), None);
             }
         }

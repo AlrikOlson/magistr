@@ -35,22 +35,22 @@ impl Scenes {
         let mut m = Model::new(size).with_tab(StageTab::Turn);
         agent(
             &mut m,
-            AgentEvent::Thought("I should read the roadmap chunk first, then plan.".to_owned()),
+            AgentEvent::Thought("I will check how retries survive a worker restart.".to_owned()),
         );
         // A streaming session is a busy one: the frames between the chunks
         // are what the header's activity monitor draws.
         update(&mut m, Msg::FrameDue);
         agent(
             &mut m,
-            AgentEvent::UserText("implement the turn stage".to_owned()),
+            AgentEvent::UserText("Make retry budgets survive worker restarts.".to_owned()),
         );
         agent(
             &mut m,
             AgentEvent::Text(
-                "# Plan\nFirst, read the file and record a think step. The wrap keeps every row \
-                 inside the stage whatever the terminal width happens to be.\n\n- one item\n\
-                 - a second item long enough to wrap onto a continuation row at eighty columns\n\
-                 1. numbered\n\n```rust\nfn main() {\n    println!(\"hi\");\n}\n```\nStill streaming"
+                "# Plan\nI will save retry limits with each delivery receipt. Workers can recover \
+                 the remaining budget after a restart without borrowing another tenant's retries.\n\n- Keep each tenant's budget separate\n\
+                 - Check that a stopped worker resumes the saved schedule after recovery\n\
+                 1. Run the recovery checks\n\n```rust\nfn retry_limit() -> usize {\n    3\n}\n```\nChecking the saved retry schedule"
                     .to_owned(),
             ),
         );
@@ -93,7 +93,7 @@ impl Scenes {
             &mut model,
             Msg::Key(KeyEvent::new(KeyCode::Char('p')).with(crate::input::Modifiers::CTRL)),
         );
-        for c in "gates".chars() {
+        for c in "checks".chars() {
             update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
         }
         model
@@ -107,7 +107,7 @@ impl Scenes {
     pub fn terminal_pane(size: Size) -> Model {
         use crate::agent::ToolRecord;
         let mut m = Model::new(size).with_tab(StageTab::Turn);
-        agent(&mut m, AgentEvent::Text("Running the gates.\n".to_owned()));
+        agent(&mut m, AgentEvent::Text("Running the checks.\n".to_owned()));
         agent(
             &mut m,
             AgentEvent::ToolCall {
@@ -316,7 +316,7 @@ impl Scenes {
             m,
             AgentEvent::PermissionRequest {
                 id: 1,
-                title: "Bash".to_owned(),
+                title: "Run cargo nextest run -p magistr-tui".to_owned(),
                 choices: vec![
                     PermissionChoice::new("allow", PermissionKind::AllowOnce),
                     PermissionChoice::new("allow_always", PermissionKind::AllowAlways),
@@ -345,19 +345,24 @@ impl Scenes {
         update(
             &mut m,
             Msg::Loop(LoopEvent::Note(
-                "starting iteration 2 — 3/10 chunks done".to_owned(),
+                "Continuing recovery work — 3 of 10 items complete".to_owned(),
             )),
         );
         for (family, kind, payload) in [
             (
                 "roadmap",
                 "chunk_changed",
-                serde_json::json!({"chunk": {"id": "a", "status": "in_progress"}}),
+                serde_json::json!({"chunk": {"id": "a", "name": "Recovery checks", "status": "in_progress"}}),
             ),
             (
                 "ship",
                 "objective_set",
                 serde_json::json!({"objective": {}}),
+            ),
+            (
+                "ship",
+                "task_added",
+                serde_json::json!({"task_id": "t1", "title": "Add recovery checks"}),
             ),
             ("ship", "task_started", serde_json::json!({"task_id": "t1"})),
         ] {
@@ -365,7 +370,7 @@ impl Scenes {
         }
         agent(
             &mut m,
-            AgentEvent::UserText("implement the next chunk".to_owned()),
+            AgentEvent::UserText("Add the worker recovery checks.".to_owned()),
         );
         agent(&mut m, AgentEvent::Text("Reading the plan.".to_owned()));
         for (i, name) in ["check", "test", "lint"].into_iter().enumerate() {
@@ -461,13 +466,13 @@ impl Scenes {
                 "step_number": 1,
                 "estimated_total": 4,
                 "purpose": "hypothesis",
-                "context": "the trace tab",
-                "thought": "the feed can drive the whole surface",
-                "outcome": "it can",
-                "next_action": "wire the view",
-                "rationale": "one fold path for feed and port",
+                "context": "worker recovery",
+                "thought": "Saved receipts can preserve retry budgets after restart.",
+                "outcome": "The remaining budget survives a restart.",
+                "next_action": "Save each retry with its receipt.",
+                "rationale": "The receipt and budget commit in the same transaction.",
                 "confidence": 0.62,
-                "uncertainty_notes": "no branch case yet",
+                "uncertainty_notes": "The tenant isolation check is still pending.",
                 "dependencies": [7, 9],
                 "execution_ref": "task:trace-state",
             }}),
@@ -486,7 +491,7 @@ impl Scenes {
                 "step_number": 3,
                 "purpose": "hypothesis",
                 "branch_id": "b-alt",
-                "branch_name": "alt path",
+                "branch_name": "Share retry budgets?",
                 "branch_from": 2,
             }}),
         );
@@ -519,7 +524,7 @@ impl Scenes {
             "ship",
             "action_recorded",
             serde_json::json!({"task_id": "trace-state", "action": {
-                "type": "code", "description": "wired the trace tab"}}),
+                "type": "code", "description": "Saved retry budgets with delivery receipts"}}),
         );
         Self::engine_frame(
             &mut m,
@@ -581,10 +586,10 @@ impl Scenes {
     pub fn roadmapped(size: Size) -> Model {
         let mut m = Model::new(size).with_tab(StageTab::Roadmap);
         let mut proposed = serde_json::json!({
-            "id": "tui2-3-roadmap", "name": "Roadmap view", "title": "The Roadmap tab of the cockpit",
-            "status": "pending", "priority": 200, "group": "TUI rewrite", "deps": ["tui2-2-rail"],
-            "description": "The tech-tree, the list and the actions.",
-            "acceptance": ["the DAG renders", "clicks select"],
+            "id": "tui2-3-roadmap", "name": "Recovery checks", "title": "Recover delivery retries after restart",
+            "status": "pending", "priority": 200, "group": "Retry recovery", "deps": ["tui2-2-rail"],
+            "description": "Resume saved retries and check that each tenant keeps its own budget.",
+            "acceptance": ["saved retries resume after restart", "tenant budgets stay separate"],
             "cross_refs": ["think:190"],
         });
         proposed["reprioritize"] =
@@ -600,12 +605,12 @@ impl Scenes {
                     },
                     chunks: vec![
                         fixtures::chunk_from(
-                            serde_json::json!({"id": "acp-2", "name": "ACP transport",
-                        "status": "done", "priority": 100, "group": "Engine"}),
+                            serde_json::json!({"id": "acp-2", "name": "Receipt storage",
+                        "status": "done", "priority": 100, "group": "Storage"}),
                         ),
                         fixtures::chunk_from(
-                            serde_json::json!({"id": "tui2-2-rail", "name": "Rail and dock",
-                        "status": "in_progress", "priority": 100, "group": "TUI rewrite",
+                            serde_json::json!({"id": "tui2-2-rail", "name": "Saved retry limits",
+                        "status": "in_progress", "priority": 100, "group": "Retry recovery",
                         "deps": ["acp-2"]}),
                         ),
                         fixtures::chunk_from(proposed),
@@ -725,16 +730,16 @@ impl Scenes {
                     },
                     chunks: vec![
                         fixtures::chunk_from(
-                            serde_json::json!({"id": "core", "name": "Core", "status": "done", "priority": 100}),
+                            serde_json::json!({"id": "core", "name": "Receipts", "status": "done", "priority": 100}),
                         ),
                         fixtures::chunk_from(
-                            serde_json::json!({"id": "rail", "name": "Rail", "status": "done", "priority": 200}),
+                            serde_json::json!({"id": "rail", "name": "Retry budgets", "status": "done", "priority": 200}),
                         ),
                         fixtures::chunk_from(
-                            serde_json::json!({"id": "tabs", "name": "Tabs", "status": "in_progress", "priority": 200}),
+                            serde_json::json!({"id": "tabs", "name": "Worker recovery", "status": "in_progress", "priority": 200}),
                         ),
                         fixtures::chunk_from(
-                            serde_json::json!({"id": "launcher", "name": "Launcher", "title": "The launcher page", "status": "pending", "priority": 300, "deps": ["tabs", "rail"]}),
+                            serde_json::json!({"id": "launcher", "name": "Recovery checks", "title": "Check resumed deliveries", "status": "pending", "priority": 300, "deps": ["tabs", "rail"]}),
                         ),
                     ],
                     ..magistr_engine::NativeSnapshot::default()
@@ -746,18 +751,18 @@ impl Scenes {
             Msg::Job {
                 id: crate::job::JobId::new(0),
                 output: crate::job::JobOutput::Launcher(Box::new(crate::cockpit::LauncherData {
-                    project: "magistr".to_owned(),
+                    project: "harbor".to_owned(),
                     has_config: true,
                     stack: "Rust / Cargo".to_owned(),
                     git: "master, clean".to_owned(),
-                    backend: "ACP (available)".to_owned(),
+                    backend: "Ready".to_owned(),
                     sessions: vec![
                         crate::cockpit::LauncherSession {
                             id: Some("sess-1".to_owned()),
                             when: "Aug 28 14:02".to_owned(),
                             duration: "12m 30s".to_owned(),
                             outcome: crate::cockpit::SessionOutcome::Success,
-                            preview: "shipped the roadmap tab".to_owned(),
+                            preview: "Added saved retry budgets".to_owned(),
                         },
                         crate::cockpit::LauncherSession {
                             // Gone from disk: the entry point could give
@@ -766,7 +771,7 @@ impl Scenes {
                             when: "Aug 27 19:41".to_owned(),
                             duration: "3m 05s".to_owned(),
                             outcome: crate::cockpit::SessionOutcome::Error,
-                            preview: "gates failed on lint".to_owned(),
+                            preview: "Checks found style issues".to_owned(),
                         },
                     ],
                 })),

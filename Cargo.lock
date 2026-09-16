@@ -3087,6 +3087,7 @@ name = "magistr-acp"
 version = "0.1.0"
 dependencies = [
  "agent-client-protocol",
+ "base64 0.22.1",
  "futures",
  "libc",
  "magistr-application",
@@ -3185,6 +3186,7 @@ dependencies = [
  "agent-client-protocol",
  "chrono",
  "compact_str",
+ "fontdue",
  "image-webp",
  "insta",
  "libm",
@@ -3192,9 +3194,11 @@ dependencies = [
  "magistr-application",
  "magistr-engine",
  "magistr-theme",
+ "proc-macro2",
  "proptest",
  "serde_json",
  "similar",
+ "syn 2.0.117",
  "syntect",
  "taffy",
  "tempfile",

@@ -103,7 +103,7 @@ fn typing_filters_to_the_project_place_with_its_live_badge_and_act() {
     assert_eq!(first.name.as_deref(), Some("think-and-ship"));
     assert!(first.sigil);
     assert_eq!(first.badge.as_deref(), Some("1 action required"));
-    assert_eq!(first.act.as_deref(), Some("Answer pending decision"));
+    assert_eq!(first.act.as_deref(), Some("Answer permission request"));
     assert_eq!(model.palette().expect("open").query(), "thi");
 }
 
@@ -240,10 +240,10 @@ fn a_chunk_place_opens_the_sky_on_that_star() {
         &[],
     );
     chord(&mut model);
-    typed(&mut model, "gui2-2d5");
+    typed(&mut model, "the palette");
     let rows = Palette::rows(&model);
     let first = rows.first().expect("the chunk place");
-    assert_eq!(first.name.as_deref(), Some("gui2-2d5"));
+    assert_eq!(first.name.as_deref(), Some("the palette"));
     assert_eq!(first.badge.as_deref(), Some("in progress"));
     key(&mut model, KeyCode::Enter, Modifiers::NONE);
     assert_eq!(model.place(), Some(Place::Sky));
@@ -276,7 +276,7 @@ fn enter_on_a_chunk_row_takes_the_fold_and_cmd_enter_holds_the_camera() {
     let mut model = native().with_place(Place::Sky);
     seed(&mut model);
     chord(&mut model);
-    typed(&mut model, "gui2-2d5");
+    typed(&mut model, "the palette");
     key(&mut model, KeyCode::Enter, Modifiers::NONE);
     assert_eq!(
         model.place(),
@@ -291,7 +291,7 @@ fn enter_on_a_chunk_row_takes_the_fold_and_cmd_enter_holds_the_camera() {
     let mut model = native().with_place(Place::Sky);
     seed(&mut model);
     chord(&mut model);
-    typed(&mut model, "gui2-2d5");
+    typed(&mut model, "the palette");
     key(&mut model, KeyCode::Enter, Modifiers::SUPER);
     assert!(model.palette().is_none());
     assert_eq!(model.place(), Some(Place::Sky), "⌘↵ holds the camera");
@@ -370,7 +370,7 @@ fn the_previewed_checkpoints_verbs_are_palette_rows() {
         .open(CheckpointReason::Manual, "before golden update");
     model.rail_mut().spine_mut().saved(&id, None, true);
     chord(&mut model);
-    typed(&mut model, "restore cp-1");
+    typed(&mut model, "restore before golden update");
     assert!(
         Palette::rows(&model).is_empty(),
         "nothing previewed, nothing offered"
@@ -378,11 +378,11 @@ fn the_previewed_checkpoints_verbs_are_palette_rows() {
     key(&mut model, KeyCode::Esc, Modifiers::NONE);
     model.rail_mut().spine_mut().preview(0);
     chord(&mut model);
-    typed(&mut model, "restore cp-1");
+    typed(&mut model, "restore before golden update");
     let rows = Palette::rows(&model);
     let first = rows.first().expect("the restore row");
     assert_eq!(first.verb, "Restore");
-    assert_eq!(first.name.as_deref(), Some("cp-1 · before golden update"));
+    assert_eq!(first.name.as_deref(), Some("before golden update"));
     assert_eq!(first.keys, None, "a verb of the rail's, not a key's");
     let cmds = update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
     assert_eq!(
@@ -392,7 +392,7 @@ fn the_previewed_checkpoints_verbs_are_palette_rows() {
         })]
     );
     chord(&mut model);
-    typed(&mut model, "fork cp-1");
+    typed(&mut model, "fork before golden update");
     let cmds = update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
     assert_eq!(
         cmds,
@@ -410,7 +410,7 @@ fn the_previewed_checkpoints_verbs_are_palette_rows() {
 fn the_dock_row_wears_the_windows_chord_and_raises_the_dock() {
     let mut model = native();
     chord(&mut model);
-    typed(&mut model, "dock terminal");
+    typed(&mut model, "show terminal output");
     let rows = Palette::rows(&model);
     assert_eq!(
         rows.first().and_then(|row| row.keys),

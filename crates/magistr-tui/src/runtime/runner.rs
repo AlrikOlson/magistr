@@ -114,8 +114,10 @@ impl<T: Terminal> Runtime<T> {
         let mut out = Vec::new();
         session.enter(&mut out);
         let mut probe = Probe::new(options.env().passthrough());
-        probe.request(&mut out);
         session.queries(&mut out);
+        // DA1 is the probe's final request: its reply closes the startup window
+        // only after the terminal has answered the size and background queries.
+        probe.request(&mut out);
         terminal.write(&out)?;
 
         let mut decoder = Decoder::new();
@@ -140,8 +142,12 @@ impl<T: Terminal> Runtime<T> {
             screen.enable_graphics(protocol, Compression::DEFAULT, IdSpace::for_process());
         }
 
+        let pixel_mouse = matches!(decision, Decision::Graphics(_)) && probe.reply().pixel_mouse;
+        if pixel_mouse {
+            terminal.write(b"\x1b[?1016h")?;
+        }
         let (tx, mut rx) = unbounded_channel();
-        let thread = InputThread::spawn(input, decoder, size, tx)?;
+        let thread = InputThread::spawn_with_mouse(input, decoder, size, tx, pixel_mouse)?;
         let mut driver = Driver::new(
             model,
             screen,

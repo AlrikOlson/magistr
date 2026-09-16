@@ -74,7 +74,7 @@ impl DockItem {
 /// did, which is what keeps every card that is not risky unmoved.
 fn saved(text: String, permission: &Permission) -> String {
     match permission.checkpoint() {
-        Some(id) => format!("{text} · {id} saved"),
+        Some(_) => format!("{text} · checkpoint requested"),
         None => text,
     }
 }

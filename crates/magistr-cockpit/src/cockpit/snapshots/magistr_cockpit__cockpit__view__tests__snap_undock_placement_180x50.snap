@@ -5,11 +5,11 @@ expression: placement(&resolved)
 header   depth=1 x=0 y=0 w=180 h=1
 brand    depth=2 x=0 y=0 w=9 h=1
 status   depth=1 x=0 y=1 w=180 h=1
-chunk    depth=2 x=0 y=1 w=11 h=1
-Research depth=3 x=13 y=1 w=8 h=1
-Plan     depth=3 x=22 y=1 w=4 h=1
-Execute  depth=3 x=27 y=1 w=7 h=1
-Verify   depth=3 x=35 y=1 w=6 h=1
+chunk    depth=2 x=0 y=1 w=18 h=1
+Research depth=3 x=20 y=1 w=8 h=1
+Plan     depth=3 x=29 y=1 w=4 h=1
+Execute  depth=3 x=34 y=1 w=7 h=1
+Verify   depth=3 x=42 y=1 w=6 h=1
 rail     depth=2 x=0 y=2 w=28 h=45
 rail toggle depth=3 x=1 y=3 w=26 h=1
 rail gauge depth=3 x=1 y=6 w=26 h=1
@@ -18,16 +18,15 @@ rail divider depth=2 x=28 y=2 w=1 h=45
 Turn     depth=5 x=30 y=3 w=4 h=1
 Session  depth=5 x=36 y=3 w=7 h=1
 Roadmap  depth=5 x=45 y=3 w=7 h=1
-stage    depth=4 x=30 y=4 w=62 h=42
-tech tree depth=6 x=30 y=5 w=20 h=41
-work items depth=6 x=52 y=5 w=40 h=41
-filter status depth=8 x=52 y=5 w=16 h=1
-sort name depth=8 x=52 y=6 w=13 h=1
-sort status depth=8 x=66 y=6 w=10 h=1
-sort priority depth=8 x=77 y=6 w=5 h=1
-sort workstream depth=8 x=83 y=6 w=9 h=1
-inspector depth=3 x=95 y=2 w=36 h=45
-undock   depth=2 x=132 y=2 w=48 h=45
+stage    depth=4 x=30 y=4 w=111 h=42
+Dependencies depth=6 x=30 y=5 w=37 h=41
+work items depth=6 x=69 y=5 w=72 h=41
+filter status depth=8 x=69 y=5 w=16 h=1
+sort name depth=8 x=69 y=6 w=32 h=1
+sort status depth=8 x=102 y=6 w=10 h=1
+sort priority depth=8 x=113 y=6 w=5 h=1
+Sort by group depth=8 x=119 y=6 w=22 h=1
+inspector depth=3 x=144 y=2 w=36 h=45
 dock     depth=1 x=0 y=47 w=180 h=1
 prompt   depth=1 x=0 y=48 w=180 h=1
 footer   depth=1 x=0 y=49 w=180 h=1

@@ -6,7 +6,7 @@ fn enter_is_pinned() {
     Session::cockpit().enter(&mut out);
     assert_eq!(
         out,
-        b"\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?2004h\x1b[?1004h\x1b[>3u"
+        b"\x1b[?1049h\x1b[?25l\x1b[?1016l\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?2004h\x1b[?1004h\x1b[>3u"
     );
 }
 
@@ -16,7 +16,7 @@ fn leave_is_the_reverse_after_a_pen_reset() {
     Session::cockpit().leave(&mut out);
     assert_eq!(
         out,
-        b"\x1b[0m\x1b[<u\x1b[?1004l\x1b[?2004l\x1b[?1006l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?25h\x1b[?1049l"
+        b"\x1b[0m\x1b[<u\x1b[?1004l\x1b[?2004l\x1b[?1016l\x1b[?1006l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?25h\x1b[?1049l"
     );
 }
 

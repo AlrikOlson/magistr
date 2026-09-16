@@ -1,4 +1,6 @@
 use super::*;
+use magistr_cockpit::layout::{Measure, TextMetrics, TextRole};
+use magistr_cockpit::pixel::CellSize;
 
 #[test]
 fn ui_text_has_proportional_pixel_advances_and_code_keeps_columns() {
@@ -24,6 +26,24 @@ fn measured_labels_fit_both_weights_without_a_rounded_off_last_letter() {
             .sum();
         assert!(drawn < width, "{word}: {drawn} / {width}");
     }
+}
+
+#[test]
+fn missing_cjk_glyphs_have_real_distinct_outlines_and_counted_columns() {
+    let mut face = PixelType::default();
+    let missing = face.glyph('\u{10ffff}', TextRole::Prose, false).1.clone();
+    let mut seen = Vec::new();
+    for ch in "中文漢字かなカナ한국".chars() {
+        let (metrics, bitmap) = face.glyph(ch, TextRole::Prose, false);
+        assert!(metrics.width > 0 && metrics.height > 0, "{ch}");
+        assert!(bitmap.iter().any(|coverage| *coverage > 0), "{ch}");
+        assert_ne!(bitmap, &missing, "{ch} must not use the missing-glyph box");
+        assert!(!seen.contains(bitmap), "{ch} must have its own outline");
+        seen.push(bitmap.clone());
+    }
+    face.set_cell(CellSize::new(13, 29));
+    assert_eq!(face.advance("中文", TextRole::Data), 52.0);
+    assert_eq!(face.advance("a中b", TextRole::Data), 52.0);
 }
 
 #[test]

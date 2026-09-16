@@ -65,6 +65,12 @@ impl Completion {
         }
     }
 
+    /// Whether the candidates attach project files.
+    #[must_use]
+    pub const fn is_file(&self) -> bool {
+        matches!(self.kind, CompletionKind::File)
+    }
+
     /// Where the trigger character sits in the prompt.
     #[must_use]
     pub const fn anchor(&self) -> usize {
@@ -150,6 +156,16 @@ impl Completion {
     pub fn replacement(&self) -> Option<String> {
         let item = self.items.get(self.selected)?;
         Some(match self.kind {
+            CompletionKind::File
+                if item
+                    .chars()
+                    .any(|c| c.is_whitespace() || c == '"' || c == '\\') =>
+            {
+                format!(
+                    "@{} ",
+                    serde_json::to_string(item).expect("a file name is valid JSON")
+                )
+            }
             CompletionKind::File => format!("@{item} "),
             CompletionKind::Command => format!("{item} "),
         })

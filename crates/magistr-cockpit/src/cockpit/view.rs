@@ -88,6 +88,9 @@ const SHEET_DIVIDER_COLS: usize = 24;
 /// Pure: everything on screen comes from `model` and `clock`.
 #[must_use]
 pub fn view(model: &Model, clock: &FrameClock) -> Node {
+    if model.uses_flight_recorder() {
+        return super::FlightShell::view(model, clock);
+    }
     let pen = Pen::for_theme(&model.theme());
     let header = header_bar(model, clock, &pen);
 
@@ -196,6 +199,22 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
         root = root.child(popup);
     }
     root = root.child(prompt_box(model, &pen));
+    finish(root, model, &pen, true)
+}
+
+#[path = "flight_overlays.rs"]
+mod flight_overlays;
+
+/// Scroll the measured permission content without moving the workspace.
+pub(super) fn scroll_permission(model: &mut Model, delta: isize) {
+    flight_overlays::FlightOverlays::scroll_permission(model, delta);
+}
+
+/// Apply shared permissions, menus and pointer feedback above either terminal arrangement.
+pub(super) fn finish(mut root: Node, model: &Model, pen: &Pen, footer: bool) -> Node {
+    if model.uses_flight_recorder() {
+        return flight_overlays::FlightOverlays::finish(root, model, pen);
+    }
     // The Moment: a decision the agent is
     // blocked on takes the screen. The session behind it *dims* — one
     // pass over the finished tree through `Pen::fade`, which moves
@@ -206,16 +225,18 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
     // is the one thing at full ink.
     if let Some(permission) = model.moment() {
         root.restyle_all(&|style| pen.fade(style, MOMENT_DIM));
-        root = root.child(Node::centered_overlay(moment_card(model, permission, &pen)));
+        root = root.child(Node::centered_overlay(moment_card(model, permission, pen)));
     }
     // The hover card is declared *after* everything it can cover, which
     // is what `Node::overlay`'s own contract asks for: the layer decides
     // hit order, declaration order decides paint order
     // (``).
     if let Some(card) = model.tooltip() {
-        root = root.child(hover_card(&card, model.size(), &pen));
+        root = root.child(hover_card(&card, model.size(), pen));
     }
-    let mut root = root.child(footer_bar(model, &pen));
+    if footer {
+        root = root.child(footer_bar(model, pen));
+    }
     if let Some(palette) = model.palette() {
         let rows = super::palette::Palette::rows(model);
         let panel = Node::column()
@@ -252,7 +273,7 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
     // The pointer's answer, last: one pass over the finished tree, so
     // every id the hit registry will register is covered by the same
     // walk rather than by each surface remembering to ask.
-    hover::answer(&mut root, model.hovered(), model.pressed(), &pen);
+    hover::answer(&mut root, model.hovered(), model.pressed(), pen);
     root
 }
 
@@ -591,12 +612,27 @@ fn progress_line<'a>(model: &Model, state: &Rail, pen: &'a Pen, columns: usize) 
             // row says "done".
             let suffix = format!(" · {done}/{total}");
             let room = columns.saturating_sub(width(&suffix) as usize + 2).max(4);
-            Marked::new(model, pen)
-                .icon(Icon::Here)
-                .text(&format!(" {}{suffix}", shorten(chunk, room)))
+            Marked::new(model, pen).icon(Icon::Here).text(&format!(
+                " {}{suffix}",
+                shorten(work_name(model, chunk), room)
+            ))
         }
         None => Marked::new(model, pen).text(&format!("roadmap {done}/{total} done")),
     }
+}
+
+/// Resolve the recorded work name without exposing an internal reference.
+fn work_name<'a>(model: &'a Model, reference: &str) -> &'a str {
+    model
+        .roadmap()
+        .chunk_for_ref(reference)
+        .map_or("Work in progress", |item| {
+            if item.title.is_empty() {
+                item.name.as_str()
+            } else {
+                item.title.as_str()
+            }
+        })
 }
 
 /// `text` cut to `columns` characters, with an ellipsis when it was
@@ -632,10 +668,14 @@ fn status_strip(model: &Model, pen: &Pen) -> Node {
     }
     if let Some(chunk) = model.rail().chunk() {
         strip = strip.child(
-            Node::text(shorten(chunk, CHUNK_COLUMNS))
+            // The work name yields space before the check results or clock do.
+            Node::text(shorten(work_name(model, chunk), CHUNK_COLUMNS))
                 .id(Widget::Chunk.id())
                 .style(pen.permission.clone())
-                .shrink(0.0),
+                .min_width(Length::Cells(0))
+                .height(Length::Cells(1))
+                .viewport()
+                .shrink(1.0),
         );
     }
     if let Some(status) = model.loop_status() {
@@ -767,14 +807,14 @@ fn iteration_text(status: &LoopStatus) -> String {
 /// or Roadmap tab's rows on those tabs. Dispatches on
 /// [`Model::shown_tab`], which maps native places to their closest
 /// terminal view and uses [`Model::tab`] on the terminal.
-fn stage_rows(model: &Model, pen: &Pen) -> Vec<Node> {
-    if model.is_sheet_open() {
+pub(super) fn stage_rows(model: &Model, pen: &Pen) -> Vec<Node> {
+    if model.is_sheet_open() && !model.uses_flight_recorder() {
         return sheet_rows(model, pen);
     }
-    if model.shown_tab() == StageTab::Session {
+    if !model.uses_flight_recorder() && model.shown_tab() == StageTab::Session {
         return timeline_rows(model, pen);
     }
-    if model.shown_tab() == StageTab::Roadmap {
+    if !model.uses_flight_recorder() && model.shown_tab() == StageTab::Roadmap {
         return roadmap_rows(model, pen);
     }
     if model.turn().is_empty() {
@@ -992,7 +1032,7 @@ fn timeline_rows(model: &Model, pen: &Pen) -> Vec<Node> {
 }
 
 /// One compact row per recorded event; detail lives in the inspector.
-fn session_body(model: &Model, pen: &Pen) -> Vec<Node> {
+pub(super) fn session_body(model: &Model, pen: &Pen) -> Vec<Node> {
     use super::session_item::SessionItem;
     let items = SessionItem::collect(model.trace(), model.changes());
     if items.is_empty() {
@@ -1054,6 +1094,8 @@ fn session_body(model: &Model, pen: &Pen) -> Vec<Node> {
             let mut line = Node::row()
                 .id(id)
                 .style(style.clone())
+                .width(Length::Cells(model.trace_width()))
+                .min_width(Length::Cells(0))
                 .height(Length::Cells(1))
                 .shrink(0.0)
                 .viewport();
@@ -1070,6 +1112,7 @@ fn session_body(model: &Model, pen: &Pen) -> Vec<Node> {
                 content
                     .style(style)
                     .grow(1.0)
+                    .basis(Length::Cells(0))
                     .min_width(Length::Cells(0))
                     .viewport(),
             )
@@ -1094,7 +1137,7 @@ fn clip(text: &str, max: usize) -> String {
 }
 
 /// The graph and table share one stage allocation. Both stay beside the inspector.
-fn roadmap_rows(model: &Model, pen: &Pen) -> Vec<Node> {
+pub(super) fn roadmap_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let roadmap = model.roadmap();
     let heading = match roadmap.hovered_title() {
         Some(title) => Marked::new(model, pen)
@@ -1170,7 +1213,7 @@ fn roadmap_columns(model: &Model) -> [u16; 4] {
     [name, 10, 5, flexible.saturating_sub(name)]
 }
 
-fn roadmap_table(model: &Model, pen: &Pen) -> Node {
+pub(super) fn roadmap_table(model: &Model, pen: &Pen) -> Node {
     use super::RoadmapSort;
     let roadmap = model.roadmap();
     let widths = roadmap_columns(model);
@@ -1358,7 +1401,16 @@ fn trace_head(
     if !step.purpose.is_empty() {
         text.push_str(&format!("  {}", step.purpose));
     }
-    if let Some(branch) = step.branch_name.as_deref().or(step.branch_id.as_deref()) {
+    if let Some(branch) = step.branch_name.as_deref().or_else(|| {
+        step.branch_id.as_deref().and_then(|id| {
+            model
+                .trace()
+                .investigations()
+                .into_iter()
+                .find(|q| q.id == id)
+                .map(|q| q.question)
+        })
+    }) {
         text.push_str(&format!(" ({branch})"));
     }
     if let Some(by) = step.revised_by {
@@ -1381,7 +1433,11 @@ fn trace_head(
     } else {
         pen.note.clone()
     };
-    line.node().style(style).height(Length::Cells(1))
+    line.node()
+        .style(style)
+        .height(Length::Cells(1))
+        .min_width(Length::Px(0.0))
+        .viewport()
 }
 
 /// One ship-timeline row: an action with its kind, description and
@@ -1402,8 +1458,8 @@ fn moment_row(moment: &crate::cockpit::ShipMoment, model: &Model, pen: &Pen) -> 
             if !description.is_empty() {
                 text.push_str(&format!(" · {description}"));
             }
-            if !task_id.is_empty() {
-                text.push_str(&format!(" ({task_id})"));
+            if let Some(task) = model.rail().ship().task(task_id) {
+                text.push_str(&format!(" ({})", task.title));
             }
             Marked::new(model, pen)
                 .icon(Icon::InProgress)
@@ -1449,7 +1505,7 @@ fn duration(ms: u64) -> String {
 /// hittable segment — \[Undo\] in the deny pen, \[Open\] in the allow
 /// pen — addressed by the row's visible index; the gutter wrapper keeps
 /// the stage-row id, so a click beside the buttons still folds the card.
-fn edit_buttons(row: &crate::turn::Row, index: usize, pen: &Pen) -> Node {
+pub(super) fn edit_buttons(row: &crate::turn::Row, index: usize, pen: &Pen) -> Node {
     let text = row.text.as_str();
     let mut node = Node::row().height(Length::Cells(1));
     let mut at = 0;
@@ -1482,9 +1538,15 @@ fn edit_buttons(row: &crate::turn::Row, index: usize, pen: &Pen) -> Node {
 /// The caller ids it so a click can find it. `fade` is how far the row's
 /// arrival has come, when it is still arriving: every pen the row wears,
 /// its inline spans included, comes in on the same curve.
-fn stage_row(row: &crate::turn::Row, model: &Model, pen: &Pen, fade: Option<f32>) -> Node {
+pub(super) fn stage_row(
+    row: &crate::turn::Row,
+    model: &Model,
+    pen: &Pen,
+    fade: Option<f32>,
+) -> Node {
     if row.kind == RowKind::Fence && model.has_pixels() {
-        return fence_row(row.text.as_str(), &arriving(pen, pen.row(row.kind), fade));
+        return fence_row(row.text.as_str(), &arriving(pen, pen.row(row.kind), fade))
+            .text_role(row.kind.text_role());
     }
     if row.spans.is_empty() {
         return marked_prefix(row.text.as_str(), model, pen)
@@ -1699,7 +1761,7 @@ fn strip_row(progress: Progress, columns: u16, ground: &Style, model: &Model, pe
 /// rows of what the program wrote at the reader's place in it, cut to
 /// the stage's mono measure — under the strip row while the program
 /// reports its progress.
-fn pane_row(model: &Model, at: usize, pen: &Pen) -> Node {
+pub(super) fn pane_row(model: &Model, at: usize, pen: &Pen) -> Node {
     use crate::cockpit::Term;
     let ground = pen.row(RowKind::Pane);
     let Some((id, offset)) = model.turn().pane_at_row(at) else {
@@ -1831,7 +1893,7 @@ fn cells_row(
 /// on the last while the reader holds it. The rows it takes come off
 /// the stage ([`Model::stage_rows`]) so the feed keeps its tail above
 /// it; while it rises or lowers the row count is the glide's.
-fn term_dock(model: &Model, pen: &Pen) -> Option<Node> {
+pub(super) fn term_dock(model: &Model, pen: &Pen) -> Option<Node> {
     let (term, height) = model.docked_term()?;
     if height == 0 {
         return None;
@@ -1887,7 +1949,7 @@ fn term_dock(model: &Model, pen: &Pen) -> Option<Node> {
 /// halfblocks — `▀` per cell, the image's upper pixel as the
 /// foreground over its lower one as the background — which is two image
 /// rows per terminal row and costs one node either way.
-fn image_row(model: &Model, row: usize, pen: &Pen) -> Node {
+pub(super) fn image_row(model: &Model, row: usize, pen: &Pen) -> Node {
     let Some((image, offset, (cols, rows))) = model.turn().image_at_row(row) else {
         return Node::text("").height(Length::Cells(1));
     };
@@ -1948,7 +2010,7 @@ fn key_cap(text: &str, bar: &Style, model: &Model, pen: &Pen) -> Node {
 /// no help at all. The heading says where the window stands — but only
 /// while the body overflows, so a sheet that fits is exactly the sheet
 /// it always was.
-fn sheet_rows(model: &Model, pen: &Pen) -> Vec<Node> {
+pub(super) fn sheet_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let mut body = sheet_body(model, pen);
     let (total, height) = model.sheet_window();
     let top = model.sheet_top().min(body.len());
@@ -2208,7 +2270,7 @@ fn condition_row(model: &Model, inner: usize, pen: &Pen) -> Node {
 /// the focus accent, a row per card; the front card carries its
 /// buttons, the cards behind it wait as text until they reach the
 /// front.
-fn dock(model: &Model, pen: &Pen) -> Node {
+pub(super) fn dock(model: &Model, pen: &Pen) -> Node {
     if model.dock().is_empty() {
         let label = "nothing needs you";
         let fill = usize::from(model.size().cols).saturating_sub(label.chars().count() + 4);
@@ -2257,7 +2319,11 @@ fn card_row(card: &DockItem, front: bool, pulse: Option<f32>, model: &Model, pen
         Some(t) => pen.pulse(&pen.permission, t),
         None => pen.permission.clone(),
     };
-    let (icon, words) = card.line();
+    let (icon, mut words) = card.line();
+    if let DockItem::Proposal { chunk, .. } | DockItem::Blocker { chunk, .. } = card {
+        let name = work_name(model, chunk);
+        words = words.replacen(chunk, name, 1);
+    }
     let mut row = Node::row()
         .gap(Space::TIGHT)
         .height(Length::Cells(1))

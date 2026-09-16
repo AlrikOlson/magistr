@@ -33,6 +33,8 @@ pub struct Placed {
     /// the accessibility bounds read; [`rect`](Self::rect) is what the
     /// cell renderer reads.
     pub px: PxRect,
+    /// Original physical box before viewport clipping; text keeps its baseline and wrap width here.
+    pub bounds: PxRect,
     /// The cells the node's content covers, overflow included.
     pub content: Extent,
 }

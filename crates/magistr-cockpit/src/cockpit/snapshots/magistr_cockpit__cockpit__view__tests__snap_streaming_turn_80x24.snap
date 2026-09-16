@@ -6,18 +6,18 @@ expression: screen(&m)
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                           │
-│no objective yet          │ │▎   continuation row at eighty columns           │
-│roadmap 0/0 done          │ │▎ 1. numbered                                    │
+│no objective yet          │ │▎   schedule after recovery                      │
+│roadmap 0/0 done          │ │▎ 1. Run the recovery checks                     │
 │signals 0                 │ │▎                                                │
 │                          │ │▎ ── rust ───────────────────────────────────────│
-│                          │ │▎ fn main() {                                    │
-│                          │ │▎     println!("hi");                            │
+│                          │ │▎ fn retry_limit() -> usize {                    │
+│                          │ │▎     3                                          │
 │                          │ │▎ }                                              │
 │                          │ │▎ ───────────────────────────────────────────────│
-│                          │ │▎ Still streaming                                │
+│                          │ │▎ Checking the saved retry schedule              │
 │                          │ ╰─────────────────────────────────────────────────╯
-│                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, tool, step or change         │
+│                          │ ╭─ Details ───────────────────────────────────────╮
+│                          │ │Select a record to see details.                  │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

@@ -23,6 +23,9 @@ impl Faces {
     pub const SANS: &'static [u8] = include_bytes!("../fonts/SourceSans3-Regular.ttf");
     /// Source Sans 3 Semibold, used for interface emphasis.
     pub const SANS_BOLD: &'static [u8] = include_bytes!("../fonts/SourceSans3-Semibold.ttf");
+    /// Noto Sans CJK SC Regular, the final Unicode fallback (SIL OFL 1.1).
+    /// Original upstream font and licence: `fonts/NotoSansCJK-LICENSE.md`.
+    pub const CJK: &'static [u8] = include_bytes!("../fonts/NotoSansCJKsc-Regular.otf");
     /// Almagest Mono Regular.
     pub const REGULAR: &'static [u8] = include_bytes!("../fonts/AlmagestMono-Regular.ttf");
     /// Almagest Mono Bold, the same licence.

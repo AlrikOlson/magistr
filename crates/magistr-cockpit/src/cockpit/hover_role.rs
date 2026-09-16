@@ -47,7 +47,10 @@ impl HoverRole {
         if let Some(widget) = Widget::from_id(id) {
             return Self::of_widget(widget);
         }
-        if Widget::trace_link_step(id).is_some() || Widget::trace_chunk_step(id).is_some() {
+        if Widget::trace_link_step(id).is_some()
+            || Widget::trace_chunk_step(id).is_some()
+            || Widget::roadmap_dependency_index(id).is_some()
+        {
             return Self::Link;
         }
         if Widget::stage_row_index(id).is_some()
@@ -57,6 +60,9 @@ impl HoverRole {
             || Widget::roadmap_row_index(id).is_some()
             || Widget::signal_row_index(id).is_some()
             || Widget::completion_index(id).is_some()
+            || Widget::palette_row_index(id).is_some()
+            || Widget::search_row_index(id).is_some()
+            || Widget::settings_nav_index(id).is_some()
             || Widget::launch_session_index(id).is_some()
             || Widget::spine_row_index(id).is_some()
             // A charter row raises like the checkpoint row beside it:
@@ -78,6 +84,10 @@ impl HoverRole {
             || Widget::signal_snooze_index(id).is_some()
             || Widget::signal_research_index(id).is_some()
             || Widget::footer_chip_index(id).is_some()
+            || Widget::search_scope_index(id).is_some()
+            || Widget::settings_theme_index(id).is_some()
+            || Widget::settings_switch_index(id).is_some()
+            || Widget::settings_density_index(id).is_some()
             // A checkpoint row's revealed verbs, and
             // the charter offer's Delegate.
             || Widget::spine_restore_index(id).is_some()
@@ -106,6 +116,11 @@ impl HoverRole {
             // The tab bar, the rail's toggle and every `[Button]` on a
             // card: the pointer lifts them.
             Widget::PromptAction
+            | Widget::LatestDecision
+            | Widget::TracePrevious
+            | Widget::TraceNext
+            | Widget::PromptFiles
+            | Widget::Commands
             | Widget::TabTurn
             | Widget::TabSession
             | Widget::TabRoadmap
@@ -128,6 +143,8 @@ impl HoverRole {
             | Widget::RoadmapSortStatus
             | Widget::RoadmapSortPriority
             | Widget::RoadmapSortWorkstream
+            | Widget::RoadmapRequest
+            | Widget::RoadmapReset
             | Widget::RoadmapStart
             | Widget::RoadmapComplete
             | Widget::LaunchNext
@@ -165,11 +182,14 @@ impl HoverRole {
             | Widget::LoopAbort
             // The meter's Raise is the rail's one accent verb on the
             // budget.
-            | Widget::BudgetRaise => Self::Lift,
+            | Widget::BudgetRaise
+            | Widget::SettingsClose
+            | Widget::SettingsOpenFile => Self::Lift,
             // The native header's altitude path: each crumb
             // navigates, so it answers as a link — lifted and
             // underlined, like other navigation chips.
             Widget::CrumbUp
+            | Widget::LinkedWork
             | Widget::CrumbProjects
             | Widget::CrumbProject
             | Widget::CrumbSession

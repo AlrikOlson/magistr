@@ -144,8 +144,27 @@ impl Viewport {
         now: f32,
         animate: bool,
     ) {
+        self.scroll_from(
+            self.top(total, height),
+            delta,
+            total,
+            height,
+            (now, animate),
+        );
+    }
+
+    /// Scroll from a measured visual origin, including a tail aligned to a complete
+    /// source line. Ordinary row viewports use their settled top through `scroll_by`.
+    pub fn scroll_from(
+        &mut self,
+        was: usize,
+        delta: isize,
+        total: usize,
+        height: usize,
+        motion: (f32, bool),
+    ) {
+        let (now, animate) = motion;
         let max = total.saturating_sub(height);
-        let was = self.top(total, height);
         let next = was.saturating_add_signed(delta).min(max);
         self.top = (next < max).then_some(next);
         // What the paint has to catch up on: the rows just travelled,

@@ -1,7 +1,7 @@
 //! Compose once, then send only the changed opaque strips.
 
 use crate::pixel::Backend;
-use magistr_cockpit::layout::Rect;
+use magistr_cockpit::layout::{PxRect, Rect};
 use magistr_cockpit::pixel::{CellSize, PixelSurface};
 use magistr_cockpit::widget_id::WidgetId;
 use tiny_skia::{Pixmap, PixmapPaint, PixmapRef, Transform};
@@ -46,6 +46,53 @@ impl PixelFrame {
             &PixmapPaint::default(),
             Transform::identity(),
             None,
+        );
+        surface.clean();
+    }
+
+    /// Place a raster at its physical bounds, independently of terminal cells.
+    pub(crate) fn blend_at(
+        &mut self,
+        surface: &mut PixelSurface,
+        rect: PxRect,
+        cover: Option<PxRect>,
+    ) {
+        let Some(canvas) = &mut self.canvas else {
+            return;
+        };
+        let Some(pixels) = PixmapRef::from_bytes(
+            surface.pixels(),
+            u32::from(surface.width()),
+            u32::from(surface.height()),
+        ) else {
+            return;
+        };
+        let mask = cover
+            .filter(|cover| !cover.intersection(rect).is_empty())
+            .map(|cover| {
+                let mut mask = tiny_skia::Mask::new(canvas.width(), canvas.height())
+                    .expect("bounded frame mask");
+                mask.data_mut().fill(255);
+                let stride = canvas.width() as usize;
+                for y in cover.y.floor().max(0.0) as u32
+                    ..(cover.bottom().ceil() as u32).min(canvas.height())
+                {
+                    let left = cover.x.floor().max(0.0) as usize;
+                    let right = (cover.right().ceil() as usize).min(stride);
+                    if left < right {
+                        mask.data_mut()[y as usize * stride + left..y as usize * stride + right]
+                            .fill(0);
+                    }
+                }
+                mask
+            });
+        canvas.draw_pixmap(
+            0,
+            0,
+            pixels,
+            &PixmapPaint::default(),
+            Transform::from_translate(rect.x, rect.y),
+            mask.as_ref(),
         );
         surface.clean();
     }

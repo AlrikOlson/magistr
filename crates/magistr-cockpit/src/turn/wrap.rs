@@ -266,9 +266,10 @@ fn fence_rule(text: &str, closes: bool, columns: u16) -> String {
     } else {
         format!("── {lang} ")
     };
-    while width(&rule) < columns {
-        rule.push('─');
-    }
+    rule.extend(std::iter::repeat_n(
+        '─',
+        usize::from(columns.saturating_sub(width(&rule))),
+    ));
     cut(&rule, columns)
 }
 
@@ -318,6 +319,27 @@ fn prose(
     words(RowKind::Prose(voice), &display, &spans, columns)
 }
 
+/// The unwrapped paragraph shared by proportional wrapping. Aligned markdown
+/// stays on the ordinary path without first drawing an artificial wide rule.
+pub(super) fn paragraph(kind: &LineKind, text: &str, icons: &Icons) -> Option<Row> {
+    let text = text.trim_end_matches('\r');
+    match kind {
+        LineKind::Prose(voice) => {
+            if opens_fence(text) || list_item(text, icons).is_some() {
+                return None;
+            }
+            let (kind, text) = heading(text).map_or((RowKind::Prose(*voice), text), |title| {
+                (RowKind::Heading, title)
+            });
+            let (display, spans) = parse_inline(text);
+            Some(Row::styled(kind, display, spans))
+        }
+        LineKind::Note => Some(Row::new(RowKind::Note, text)),
+        LineKind::Error => Some(Row::new(RowKind::Error, text)),
+        _ => None,
+    }
+}
+
 /// `# Title` through `###### Title` → `Title`.
 fn heading(text: &str) -> Option<&str> {
     let hashes = text.len() - text.trim_start_matches('#').len();
@@ -333,7 +355,7 @@ fn heading(text: &str) -> Option<&str> {
 }
 
 /// A list item's marker (as shown) and its text.
-fn list_item<'a>(text: &'a str, icons: &Icons) -> Option<(String, &'a str)> {
+pub(super) fn list_item<'a>(text: &'a str, icons: &Icons) -> Option<(String, &'a str)> {
     let trimmed = text.trim_start();
     for marker in ["- ", "* ", "+ "] {
         if let Some(rest) = trimmed.strip_prefix(marker) {

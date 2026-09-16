@@ -2,7 +2,7 @@
 
 use tiny_skia::Pixmap;
 
-use super::{Typeface, kitty, rasterize};
+use super::{kitty, placement::Placement};
 use crate::graphics::{Decision, Passthrough, Protocol};
 use crate::pixel::{Compression, IdSpace};
 use crate::render::Screen;
@@ -26,13 +26,35 @@ impl Preview {
         clock: &FrameClock,
         view: impl Fn(&Model, &FrameClock) -> Node,
     ) -> Result<Pixmap, LayoutError> {
-        let (buffer, bytes) = Self::wire(model, clock, Protocol::Kitty(Passthrough::Direct), view)?;
-        Ok(rasterize(
-            &buffer,
-            &model.theme().palette(),
-            &mut Typeface::new(),
-            &kitty::decode(&bytes),
-        ))
+        let (_, bytes) = Self::wire(model, clock, Protocol::Kitty(Passthrough::Direct), view)?;
+        Ok(Self::raster(model, &kitty::decode(&bytes)))
+    }
+
+    /// Reconstruct exactly the opaque strips placed by the production renderer.
+    /// The plain-terminal rasterizer has fixed font metrics; graphics captures
+    /// instead use the terminal metrics that generated their actual pixels.
+    pub(super) fn raster(model: &Model, images: &[Placement]) -> Pixmap {
+        let cell = model.cell_size();
+        let size = model.size();
+        let (width, height) = cell.pixels(size.cols, size.rows);
+        let mut canvas =
+            Pixmap::new(u32::from(width.max(1)), u32::from(height.max(1))).expect("bounded frame");
+        for image in images {
+            let Some(pixels) =
+                tiny_skia::PixmapRef::from_bytes(&image.rgba, image.width, image.height)
+            else {
+                continue;
+            };
+            canvas.draw_pixmap(
+                i32::from(image.col) * i32::from(cell.width),
+                i32::from(image.row) * i32::from(cell.height),
+                pixels,
+                &tiny_skia::PixmapPaint::default(),
+                tiny_skia::Transform::identity(),
+                None,
+            );
+        }
+        canvas
     }
 
     /// Resolve physical rectangles for capture inspection and hit testing.

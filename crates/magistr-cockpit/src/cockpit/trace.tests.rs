@@ -132,8 +132,8 @@ fn lanes_links_and_branch_rows_describe_the_fork() {
     assert_eq!(
         trace.branch_rows(),
         vec![
-            "main · 3 steps".to_owned(),
-            "└─ b-alt name (merged) from 2 · 2 steps".to_owned(),
+            "Main reasoning · 3 steps".to_owned(),
+            "└─ b-alt name (Findings used) after 2 · 2 steps".to_owned(),
         ]
     );
 }
@@ -248,7 +248,7 @@ fn a_seed_replaces_both_halves_and_keeps_what_only_the_feed_knows() {
         trace
             .branch_rows()
             .iter()
-            .any(|row| row.contains("abandoned")),
+            .any(|row| row.contains("Investigation stopped")),
         "the branch status survives a re-seed: {:?}",
         trace.branch_rows()
     );

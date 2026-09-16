@@ -19,7 +19,7 @@ const LOOP_ITERATIONS: u32 = 10;
 pub async fn cmd_home(env: &crate::env::MagistrEnv) -> eyre::Result<()> {
     let root = std::env::current_dir()?;
     let dir = root.clone();
-    let model = super::cockpit::cockpit_model_on(&root, StageTab::Roadmap, move |runtime| {
+    let model = super::cockpit::cockpit_model_on(&root, StageTab::Turn, move |runtime| {
         let jobs = Jobs::new(runtime.inbox());
         jobs.spawn_job(move || JobOutput::Launcher(Box::new(super::home_data::collect(&dir))));
     })

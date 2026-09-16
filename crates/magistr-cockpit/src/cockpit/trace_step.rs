@@ -31,6 +31,8 @@ pub struct TraceStep {
     pub uncertainty: String,
     /// The earlier step this one revises, when it does.
     pub revises: Option<u32>,
+    /// The recorded explanation for a revision.
+    pub revision_reason: String,
     /// The later step that revised this one, once one did.
     pub revised_by: Option<u32>,
     /// Whether the step closed its line of reasoning.
@@ -43,6 +45,8 @@ pub struct TraceStep {
     pub branch_from: Option<u32>,
     /// Steps this one leans on.
     pub dependencies: Vec<u32>,
+    /// Dependencies explicitly marked as refuted, retained separately from support.
+    pub refutes: Vec<u32>,
     /// The `ship_*` entity the step points at (`task:…`, `check:…`).
     pub execution_ref: Option<String>,
     /// Whether the step is pinned.
@@ -66,6 +70,7 @@ impl TraceStep {
             confidence: step.confidence,
             uncertainty: step.uncertainty_notes.clone().unwrap_or_default(),
             revises: step.revises_step,
+            revision_reason: step.revision_reason.clone().unwrap_or_default(),
             revised_by: step.revised_by,
             is_final: step.is_final_step.unwrap_or(false),
             branch_id: step.branch_id.clone(),
@@ -78,6 +83,20 @@ impl TraceStep {
                 .iter()
                 .map(|edge| match edge {
                     DepEdge::Bare(n) | DepEdge::Tagged { step: n, .. } => *n,
+                })
+                .collect(),
+            refutes: step
+                .dependencies
+                .as_deref()
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|edge| match edge {
+                    DepEdge::Tagged { step, relation }
+                        if relation.as_deref() == Some("refutes") =>
+                    {
+                        Some(*step)
+                    }
+                    _ => None,
                 })
                 .collect(),
             execution_ref: step.execution_ref.clone(),
@@ -98,21 +117,22 @@ impl TraceStep {
                 fields.push((label, value));
             }
         };
-        push("purpose", self.purpose.clone());
-        push("context", self.context.clone());
-        push("thought", self.thought.clone());
-        push("outcome", self.outcome.clone());
-        push("next action", self.next_action.clone());
-        push("rationale", self.rationale.clone());
+        push("Step", self.purpose.clone());
+        push("Context", self.context.clone());
+        push("Reasoning", self.thought.clone());
+        push("Result", self.outcome.clone());
+        push("Next", self.next_action.clone());
+        push("Why", self.rationale.clone());
+        push("Why this changed", self.revision_reason.clone());
         push(
-            "confidence",
+            "Confidence",
             self.confidence
-                .map(|confidence| format!("{confidence:.2}"))
+                .map(|confidence| format!("{:.0}%", confidence * 100.0))
                 .unwrap_or_default(),
         );
-        push("uncertainty", self.uncertainty.clone());
+        push("Still uncertain", self.uncertainty.clone());
         push(
-            "estimated total",
+            "Expected steps",
             if self.estimated_total == 0 {
                 String::new()
             } else {
@@ -120,27 +140,26 @@ impl TraceStep {
             },
         );
         push(
-            "depends on",
+            "Related steps",
             self.dependencies
                 .iter()
                 .map(u32::to_string)
                 .collect::<Vec<_>>()
                 .join(", "),
         );
-        push(
-            "execution ref",
-            self.execution_ref.clone().unwrap_or_default(),
-        );
-        if let Some(branch) = &self.branch_id {
-            let name = self.branch_name.as_deref().unwrap_or(branch);
+        if self.branch_id.is_some() {
+            let name = self
+                .branch_name
+                .as_deref()
+                .unwrap_or("Question not recorded");
             let from = self
                 .branch_from
                 .map(|number| format!(" from {number}"))
                 .unwrap_or_default();
-            push("branch", format!("{name}{from}"));
+            push("Question", format!("{name}{from}"));
         }
         push(
-            "final",
+            "Concluded",
             if self.is_final {
                 "yes".to_owned()
             } else {

@@ -29,17 +29,19 @@ for name in ["terminal-overview-dark.png", "terminal-overview-light.png",
              "terminal-turn-dark.png", "terminal-turn-light.png"]:
     data = (out / name).read_bytes()
     width, height = struct.unpack(">II", data[16:24])
-    images.append({"file": name, "sha256": hashlib.sha256(data).hexdigest(),
+    screen = "roadmap" if name.startswith("terminal-roadmap-") else "conversation"
+    images.append({"file": name, "screen": screen,
+                   "sha256": hashlib.sha256(data).hexdigest(),
                    "width": width, "height": height})
 manifest = {
-    "renderer": "magistr-tui::screenshot::frame",
+    "renderer": "magistr-tui::screenshot::Preview::frame",
     "surface": "Terminal",
     "profile": "Kitty",
     "source_commit": "working-tree",
     "captured_on": datetime.date.today().isoformat(),
     "state": f"Rendered from {fixture.relative_to(out.parents[3])}",
-    "columns": 132,
-    "rows": 42,
+    "columns": 144,
+    "rows": 50,
     "annotations": False,
     "images": images,
 }

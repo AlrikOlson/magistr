@@ -160,6 +160,21 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/engine_cmd.rs` | What the cockpit asks of the think-and-ship engines | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/fault.rs` | Failure card content, severity, actions, related history, and blocking state | `magistr-cockpit/src/cockpit/fault.tests.rs` |
 | `magistr-cockpit/src/cockpit/fault_verb.rs` | Failure card action label, widget ID, and emphasis | `magistr-cockpit/src/cockpit/fault.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_composer.rs` | Bounded pixel message editor with attachments, submission state, and complete border | `magistr-cockpit/src/cockpit/flight_composer.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_conversation.rs` | Proportional conversation, grouped speakers, and actionable work cards | `magistr-cockpit/src/cockpit/flight_conversation.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_dock.rs` | Pixel permission requests and pinned command output above the message area | `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_inspector.rs` | Selected reasoning steps and related work with independent pixel detail scrolling | `magistr-cockpit/src/cockpit/flight_inspector.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_layout.rs` | Shared physical allocations for the workspace, wrapping, and viewport calculations | `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_overlays.rs` | Pixel permission cards, command palette, and hover help | `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_recorder.rs` | Bounded dynamic reasoning graph, recorded question summaries, and selection controls | `magistr-cockpit/src/cockpit/flight_recorder.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_records.rs` | Recorded-work and roadmap lists with shared physical row geometry | `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_roadmap.rs` | Readable roadmap neighborhood with shared physical points, labels, and hit targets | `magistr-cockpit/src/cockpit/flight_roadmap.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_roadmap_graph.rs` | Complete dependency graph with measured labels, physical pointer targets, and camera navigation | `magistr-cockpit/src/cockpit/flight_roadmap_graph.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_roadmap_page.rs` | Dedicated roadmap page with work list, selected details, and preserved conversation state | `magistr-cockpit/src/cockpit/view.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_secondary.rs` | Settings, search, and keyboard-help overlays above the live workspace | `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_shell.rs` | Production conversation and reasoning workspace | `magistr-cockpit/src/cockpit/flight_shell.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_style.rs` | Day/night colors and pixel panel, text, and spacing helpers | `magistr-cockpit/src/cockpit/flight_style.tests.rs` |
+| `magistr-cockpit/src/cockpit/investigation.rs` | Recorded question membership, outcomes, dependencies, and honest merge inference | `magistr-cockpit/src/cockpit/investigation.tests.rs` |
 | `magistr-cockpit/src/cockpit/frame_clock.rs` | The only clock `view` ever sees | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/freshness.rs` | Whether the projection is current, stale after a gap or a new owner, or unavailable | `magistr-cockpit/src/cockpit/projection.tests.rs` |
 | `magistr-cockpit/src/cockpit/galaxy.rs` | Native project overview state: projects, selection, and zoom | `magistr-cockpit/src/cockpit/galaxy.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
@@ -385,6 +400,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/pixel/rule.rs` | A soft horizontal rule | `magistr-cockpit/src/pixel/rule.tests.rs` |
 | `magistr-cockpit/src/pixel/segment.rs` | One segment of a drawn segmented control | `magistr-cockpit/src/pixel/segment.tests.rs` |
 | `magistr-cockpit/src/pixel/sparkline.rs` | A series of values as a line over a filled area | `magistr-cockpit/src/pixel/sparkline.tests.rs` |
+| `magistr-cockpit/src/pixel/typography.rs` | Shared embedded proportional and monospace font metrics for wrapping, layout, and painting | `magistr-cockpit/src/turn/stream.tests.rs` |
 | `magistr-cockpit/src/pixel/surface.rs` | A rectangle of cells that a widget paints in pixels | `magistr-cockpit/src/pixel/surface.tests.rs` |
 
 ### `render` — the cell vocabulary and painter
@@ -441,6 +457,10 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/turn/stream.rs` | The turn's lines and rows, kept current as the agent streams | `magistr-cockpit/src/turn/stream.tests.rs` |
 | `magistr-cockpit/src/turn/viewport.rs` | Which rows of the turn the stage shows | `magistr-cockpit/src/turn/viewport.tests.rs` |
 | `magistr-cockpit/src/turn/voice.rs` | Who a prose line is from | `magistr-tui/tests/turn_harness.rs` |
+| `magistr-cockpit/src/turn/conversation_card.rs` | Readable tool, edit, and check summaries from source records | `magistr-cockpit/src/turn/stream.tests.rs` |
+| `magistr-cockpit/src/turn/conversation_layout.rs` | Measured conversation rows preserving source identities and scroll anchors | `magistr-cockpit/src/turn/stream.tests.rs` |
+| `magistr-cockpit/src/turn/conversation_row.rs` | Source row identity and physical bounds for conversation painting and picking | `magistr-cockpit/src/turn/stream.tests.rs` |
+| `magistr-cockpit/src/turn/pixel_wrap.rs` | Proportional paragraph wrapping with aligned code and output fallback | `magistr-cockpit/src/turn/stream.tests.rs` |
 | `magistr-cockpit/src/turn/wrap.rs` | From one source line to the rows it takes at a width | `magistr-cockpit/src/turn/wrap.tests.rs` |
 
 ### `wire` — the escape-sequence walker

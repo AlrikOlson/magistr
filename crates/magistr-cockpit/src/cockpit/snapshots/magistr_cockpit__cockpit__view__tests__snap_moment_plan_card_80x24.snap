@@ -11,18 +11,18 @@ Research▸Plan▸Execute▸Verify
 │signals │                                                            │        │
 │        │ ⚑ PLAN · APPROVAL REQUIRED           Checkpoint cp-1 saved │        │
 │        │                                                            │        │
-│        │ Re-bless 12 golden screenshots                             │────────│
-│        │ 1. Render the 6 surfaces in both themes                    │        │
-│        │ 2. Compare with goldens. Only status-bar rows may change   │────────╯
-│        │ 3. Update matching goldens. Reject all others              │────────╮
+│        │ Run the recovery checks                                    │────────│
+│        │ 1. Save the retry schedule                                 │        │
+│        │ 2. Restart a worker after the receipt commits              │────────╯
+│        │ 3. Check that every tenant keeps its own retry budget      │────────╮
 │        │                                                            │        │
-│        │ Allow A Deny D                 ⇧A · ALWAYS ALLOW (GOLDENS) │        │
+│        │ Allow A Deny D         ⇧A · ALWAYS ALLOW (RECOVERY CHECKS) │        │
 │        │                                                            │        │
 │        │ › Add a condition. Example: allow, stop if other rows cha… │        │
 │        │                                                            │        │
 ╰────────╰────────────────────────────────────────────────────────────╯────────╯
 ╭─ needs you ────────────────────────────────────────────────────────────── 1 ─╮
-│⚠ Re-bless 12 golden screenshots needs permission · cp-1 saved                │
+│⚠ Run the recovery checks needs permission · checkpoint requested             │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ›
  A  allow   ⇧A  always   D  deny

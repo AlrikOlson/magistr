@@ -74,10 +74,20 @@ fn zero_columns_yield_no_rows() {
 }
 
 #[test]
-fn repeated_spaces_collapse() {
+fn repeated_spaces_are_measured_as_the_original_text() {
     let text = TextMetrics::new("a  b");
     assert_eq!(text.wrap(10), vec!["a  b"]);
+    assert_eq!(text.wrap(3), vec!["a", "b"]);
     assert_eq!(text.wrap(1), vec!["a", "b"]);
+    let title = TextMetrics::new("  4  Compare limits (Share retry budgets?)");
+    for width in 1..40 {
+        assert!(
+            title
+                .wrap(width)
+                .iter()
+                .all(|row| crate::render::width(row) <= width || row.trim().is_empty())
+        );
+    }
 }
 
 #[test]

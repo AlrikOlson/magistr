@@ -5,6 +5,37 @@ use magistr_cockpit::render::{Color, Style};
 use std::time::Duration;
 
 #[test]
+fn captures_use_reported_terminal_pixels_instead_of_default_cells() {
+    let mut model = Model::new(Size::new(20, 8));
+    update(
+        &mut model,
+        Msg::Reply(magistr_cockpit::input::Reply::CellPixels {
+            width: 13,
+            height: 29,
+        }),
+    );
+    let shot = Preview::frame(&model, &FrameClock::new(0, Duration::ZERO), |_, _| {
+        Node::column()
+            .style(Style::new().bg(Color::Rgb(31, 42, 53)))
+            .child(Node::leaf().grow(1.0))
+            .child(
+                Node::text("Complete bottom edge")
+                    .height(Length::Px(29.0))
+                    .style(
+                        Style::new()
+                            .fg(Color::Rgb(250, 250, 250))
+                            .bg(Color::Rgb(80, 90, 100)),
+                    ),
+            )
+    })
+    .expect("capture");
+    assert_eq!((shot.width(), shot.height()), (260, 232));
+    assert_eq!(shot.pixel(0, 0).expect("top").alpha(), 255);
+    assert_eq!(shot.pixel(259, 231).expect("bottom").alpha(), 255);
+    assert_eq!(shot.pixel(259, 231).expect("bottom").red(), 80);
+}
+
+#[test]
 fn custom_compositions_keep_fractional_pixels_and_use_the_real_graphics_wire() {
     let model = Model::new(Size::new(80, 24));
     let clock = FrameClock::new(0, Duration::ZERO);

@@ -1,33 +1,28 @@
-//! Flight Recorder design study, rendered by TUI2; synthetic Harbor data only.
-//!
+//! Production Flight Recorder captures from fictional Harbor records.
 //! cargo run -p magistr-tui --example flight_recorder -- <output-directory>
 
+#[path = "support/harbor.rs"]
+mod harbor;
+
+use magistr_cockpit::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind, TurnEnd};
 use magistr_cockpit::cockpit::{
-    FrameClock, Model, Msg, Selected, Size, StageTab, Surface, Widget, update,
+    FrameClock, Model, Msg, Selected, Size, StageTab, Surface, Widget, update, view,
 };
 use magistr_cockpit::harness::fixtures;
-use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
-use magistr_cockpit::layout::{Align, Inset, Justify, Length, Node, TextRole};
-use magistr_cockpit::render::{Attrs, Color, Style};
+use magistr_cockpit::hit::HitRegistry;
+use magistr_cockpit::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind, Reply};
 use magistr_cockpit::theme::{Theme, ThemeMode};
+use magistr_cockpit::widget_id::WidgetId;
 use magistr_engine::NativeSnapshot;
+use magistr_engine::policy::RiskTier;
+use magistr_tui::graphics::{Decision, Passthrough, Protocol};
 use magistr_tui::screenshot::Preview;
 use serde_json::{Value, json};
-use std::{error::Error, path::PathBuf, time::Duration};
-
-const INK: Color = Color::Rgb(224, 231, 241);
-const MUTED: Color = Color::Rgb(158, 174, 193);
-const ACCENT: Color = Color::Rgb(151, 191, 255);
-const GOOD: Color = Color::Rgb(127, 217, 177);
-const LINE: Color = Color::Rgb(76, 76, 98);
-const ROOT: Color = Color::Rgb(17, 17, 27);
-const PANEL: Color = Color::Rgb(30, 30, 46);
-const HEADER: Color = Color::Rgb(39, 39, 57);
-const RAISED: Color = Color::Rgb(45, 45, 65);
-const SELECTED: Color = Color::Rgb(49, 65, 92);
-// Match BranchGraph’s two investigation colors.
-const WAITS: Color = Color::Rgb(255, 158, 100);
-const LIMITS: Color = Color::Rgb(158, 206, 106);
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let output = PathBuf::from(
@@ -38,91 +33,266 @@ fn main() -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(&output)?;
     let data: Value =
         serde_json::from_str(include_str!("../../../apps/website/fixtures/harbor.json"))?;
+    if data["synthetic"] != true {
+        return Err("captures require fictional records".into());
+    }
     let mut manifest = Vec::new();
+    let roadmap_only = std::env::args()
+        .nth(2)
+        .is_some_and(|arg| arg == "--roadmap-only");
     for size in [Size::new(144, 50), Size::new(128, 40)] {
-        let mut model = model(size, &data)?;
+        if roadmap_only {
+            continue;
+        }
+        let mut model = model(size, &data, ThemeMode::Dark)?;
         for number in 1..=12 {
             let index = model
                 .trace()
                 .steps()
                 .iter()
                 .position(|s| s.number == number)
-                .ok_or("missing step")?;
+                .ok_or("missing decision")?;
+            let top = model.top_row();
+            click(&mut model, Widget::trace_row(index))?;
+            if model.selected() != Some(&Selected::Step(number)) || model.top_row() != top {
+                return Err(
+                    format!("decision {number} did not preserve conversation position").into(),
+                );
+            }
+            capture(
+                &model,
+                &output,
+                &format!("flight-{}-step-{number}", size.cols * 10),
+                &mut manifest,
+            )?;
+        }
+    }
+    for (name, size, theme) in [
+        ("light", Size::new(144, 50), ThemeMode::Light),
+        ("small", Size::new(96, 34), ThemeMode::Dark),
+        ("narrow", Size::new(64, 36), ThemeMode::Dark),
+        ("active", Size::new(144, 50), ThemeMode::Dark),
+        ("failed", Size::new(144, 50), ThemeMode::Dark),
+        ("permission", Size::new(144, 50), ThemeMode::Dark),
+        ("stopped", Size::new(144, 50), ThemeMode::Dark),
+        ("large-font", Size::new(110, 34), ThemeMode::Dark),
+        ("large-trace", Size::new(144, 50), ThemeMode::Dark),
+        ("long-content", Size::new(128, 40), ThemeMode::Dark),
+    ] {
+        if roadmap_only {
+            continue;
+        }
+        let mut model = model(size, &data, theme)?;
+        match name {
+            "failed" => {
+                update(
+                    &mut model,
+                    Msg::Agent(AgentEvent::Error(
+                        "The connection closed during the restart check. Your message is saved."
+                            .into(),
+                    )),
+                );
+            }
+            "permission" => {
+                update(
+                    &mut model,
+                    Msg::Agent(AgentEvent::PermissionRequest {
+                        id: 1,
+                        title: "Run the restart recovery checks".into(),
+                        choices: vec![
+                            PermissionChoice::new("allow", PermissionKind::AllowOnce),
+                            PermissionChoice::new("deny", PermissionKind::RejectOnce),
+                        ],
+                        edit: false,
+                        risk: RiskTier::Medium,
+                        plan: None,
+                    }),
+                );
+            }
+            "stopped" => {
+                update(
+                    &mut model,
+                    Msg::Agent(AgentEvent::TurnEnded(TurnEnd::Cancelled)),
+                );
+            }
+            "large-font" => {
+                update(
+                    &mut model,
+                    Msg::Reply(Reply::CellPixels {
+                        width: 12,
+                        height: 28,
+                    }),
+                );
+            }
+            "large-trace" => {
+                for i in 0..100 {
+                    update(
+                        &mut model,
+                        Msg::Engine(fixtures::event(
+                            "think",
+                            "step_appended",
+                            json!({"step":{
+                                "step_number":100+i*13,"purpose":format!("Check restart case {}",i+1),
+                                "thought":"Check the recorded receipt before retrying.",
+                                "outcome":"The receipt preserves the next attempt.",
+                                "branch_id":format!("restart-{}",i%8),"branch_name":format!("Restart question {}",i%8+1),
+                                "branch_from":if i>0 {100+(i-1)*13} else {12}
+                            }}),
+                        )),
+                    );
+                }
+            }
+            "long-content" => {
+                update(&mut model,Msg::Agent(AgentEvent::Text("A restarted worker must keep the recorded receipt, delivery deadline and tenant allowance together. ".repeat(30))));
+                update(&mut model,Msg::Paste("\nAlso cover the worker stopping between each write.\nKeep the expected result in the test name.".into()));
+            }
+            _ => {}
+        }
+        capture(&model, &output, name, &mut manifest)?;
+    }
+    for (name, size, large_text) in [
+        ("commands", Size::new(144, 50), false),
+        ("settings", Size::new(144, 50), false),
+        ("settings-small", Size::new(64, 24), false),
+        ("settings-large-font", Size::new(110, 34), true),
+        ("search", Size::new(144, 50), false),
+        ("help", Size::new(144, 50), false),
+        ("add-files", Size::new(144, 50), false),
+        ("linked-work", Size::new(144, 50), false),
+        ("plan-permission", Size::new(144, 50), false),
+        ("plan-permission-small", Size::new(64, 24), false),
+        ("plan-permission-large-font", Size::new(110, 34), true),
+    ] {
+        if roadmap_only {
+            continue;
+        }
+        let mut model = model(size, &data, ThemeMode::Dark)?;
+        if large_text {
             update(
                 &mut model,
-                Msg::Mouse {
-                    event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
-                    target: Some(Widget::trace_row(index)),
-                },
+                Msg::Reply(Reply::CellPixels {
+                    width: 12,
+                    height: 28,
+                }),
             );
-            if model.selected() != Some(&Selected::Step(number)) {
-                return Err("native selection did not resolve to the requested record".into());
-            }
-            let clock = FrameClock::new(8, Duration::from_millis(1600));
-            let pixels = Preview::frame(&model, &clock, view)?;
-            let name = format!("flight-{}-step-{number}.png", size.cols * 10);
-            pixels.save_png(output.join(&name))?;
-            let resolved = Preview::layout(&model, &clock, view)?;
-            let mut areas = Vec::new();
-            for (key, id) in [
-                ("turn", Widget::Stage.id()),
-                ("roadmap", Widget::RailGraph.id()),
-                ("record", Widget::Inspector.id()),
-                ("reasoning", Widget::TraceGraph.id()),
-                ("composer", Widget::Prompt.id()),
-                ("record-reference", Widget::InspectorFields.id()),
-                ("send", Widget::PromptAction.id()),
-                ("latest", Widget::Checkpoint.id()),
-                ("step1", Widget::trace_row(0)),
-                ("step2", Widget::trace_row(1)),
-                ("step3", Widget::trace_row(2)),
-                ("step4", Widget::trace_row(3)),
-                ("step5", Widget::trace_row(4)),
-                ("step6", Widget::trace_row(5)),
-                ("step7", Widget::trace_row(6)),
-                ("step8", Widget::trace_row(7)),
-                ("step9", Widget::trace_row(8)),
-                ("step10", Widget::trace_row(9)),
-                ("step11", Widget::trace_row(10)),
-                ("step12", Widget::trace_row(11)),
-                ("conversation-panel", Widget::Stage.id()),
-                ("roadmap-panel", area_id(1)),
-                ("decision-panel", Widget::Inspector.id()),
-                ("recorder-panel", area_id(3)),
-                ("message-panel", area_id(4)),
-                ("wait-explanation", area_id(5)),
-                ("limits-explanation", area_id(6)),
-                ("conversation-checks", area_id(7)),
-            ] {
-                let rect = resolved
-                    .placed()
-                    .iter()
-                    .find(|p| p.id == Some(id))
-                    .ok_or("missing study region")?
-                    .px;
-                if rect.width <= 0.0
-                    || rect.height <= 0.0
-                    || rect.right() > pixels.width() as f32 + 0.1
-                    || rect.bottom() > pixels.height() as f32 + 0.1
-                {
-                    return Err(format!("out-of-bounds {key}: {rect:?}").into());
-                }
-                areas.push(json!({"key":key,"x":rect.x,"y":rect.y,"width":rect.width,"height":rect.height}));
-            }
-            manifest.push(json!({"file":name,"width":pixels.width(),"height":pixels.height(),"step":number,"title":model.trace().step(number).map(|s| &s.purpose),"areas":areas}));
         }
+        match name {
+            "commands" => click(&mut model, Widget::Commands.id())?,
+            "settings" | "settings-small" | "settings-large-font" => {
+                command(&mut model, "Settings")?
+            }
+            "search" => {
+                command(&mut model, "Search recorded work")?;
+                for c in "retry".chars() {
+                    update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
+                }
+            }
+            "help" => command(&mut model, "Keyboard help")?,
+            "add-files" => {
+                click(&mut model, Widget::PromptFiles.id())?;
+                if model.completion().is_none() {
+                    return Err("file chooser did not open".into());
+                }
+            }
+            "linked-work" => {
+                click(&mut model, Widget::LatestDecision.id())?;
+                click(&mut model, Widget::LinkedWork.id())?;
+                if !matches!(model.selected(), Some(Selected::Task(_))) {
+                    return Err("linked work did not open its recorded task".into());
+                }
+            }
+            _ => {
+                update(
+                    &mut model,
+                    Msg::Agent(AgentEvent::PermissionRequest {
+                        id: 2,
+                        title: "Check recovery after a worker restart".into(),
+                        choices: vec![
+                            PermissionChoice::new("allow", PermissionKind::AllowOnce),
+                            PermissionChoice::new("deny", PermissionKind::RejectOnce),
+                        ],
+                        edit: false,
+                        risk: RiskTier::Medium,
+                        plan: Some(AskPlan::new([
+                            "Save the delivery receipt before scheduling the next attempt.",
+                            "Restart the worker and confirm that it reads the saved schedule.",
+                            "Run the retry checks for two customers with separate limits.",
+                        ])),
+                    }),
+                );
+            }
+        }
+        capture(&model, &output, name, &mut manifest)?;
+    }
+    for (theme_name, theme) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
+        for (size_name, size, large_text) in [
+            ("full", Size::new(144, 50), false),
+            ("small", Size::new(64, 36), false),
+            ("large-font", Size::new(110, 34), true),
+        ] {
+            let mut model = model_with_roadmap(size, &data, theme, true)?;
+            if large_text {
+                update(
+                    &mut model,
+                    Msg::Reply(Reply::CellPixels {
+                        width: 12,
+                        height: 28,
+                    }),
+                );
+            }
+            let conversation = model.top_row();
+            let draft = model.prompt().text().to_owned();
+            click(&mut model, Widget::TabRoadmap.id())?;
+            capture(
+                &model,
+                &output,
+                &format!("roadmap-{size_name}-{theme_name}"),
+                &mut manifest,
+            )?;
+            click(&mut model, Widget::roadmap_row(0))?;
+            if model.tab() != StageTab::Roadmap
+                || !matches!(model.selected(), Some(Selected::Chunk(_)))
+                || model.top_row() != conversation
+                || model.prompt().text() != draft
+            {
+                return Err("opening roadmap work changed the conversation or message".into());
+            }
+            capture(
+                &model,
+                &output,
+                &format!("roadmap-{size_name}-{theme_name}-details"),
+                &mut manifest,
+            )?;
+        }
+    }
+    let empty = Model::new(Size::new(128, 40))
+        .with_surface(Surface::Terminal)
+        .with_title("Harbor")
+        .with_theme(Theme::forced(ThemeMode::Dark))
+        .with_tab(StageTab::Turn);
+    if !roadmap_only {
+        capture(&empty, &output, "empty", &mut manifest)?;
     }
     std::fs::write(
         output.join("native-captures.json"),
         serde_json::to_vec_pretty(&json!({
-            "renderer":"TUI2 runtime Surfaces → Screen → Kitty wire → decoded PNG",
-            "synthetic":true,"production_shell":false,"captures":manifest
+            "renderer":"Production cockpit view → runtime Surfaces → terminal graphics → decoded PNG",
+            "synthetic":true,"production_shell":true,"captures":manifest
         }))?,
     )?;
     Ok(())
 }
 
-fn model(size: Size, data: &Value) -> Result<Model, Box<dyn Error>> {
+fn model(size: Size, data: &Value, theme: ThemeMode) -> Result<Model, Box<dyn Error>> {
+    model_with_roadmap(size, data, theme, false)
+}
+
+fn model_with_roadmap(
+    size: Size,
+    data: &Value,
+    theme: ThemeMode,
+    complete: bool,
+) -> Result<Model, Box<dyn Error>> {
     let records = |key: &str| {
         data[key]
             .as_array()
@@ -130,7 +300,6 @@ fn model(size: Size, data: &Value) -> Result<Model, Box<dyn Error>> {
             .ok_or("missing fixture records")
     };
     let mut chunks = records("chunks")?;
-    // A local roadmap neighbourhood, preserving each edge between visible chunks.
     let ids = [
         "attempts",
         "leases",
@@ -138,17 +307,12 @@ fn model(size: Size, data: &Value) -> Result<Model, Box<dyn Error>> {
         "retry-after",
         "backoff",
     ];
-    chunks.retain(|c| ids.iter().any(|id| c["id"] == *id));
-    let included: Vec<_> = chunks
-        .iter()
-        .filter_map(|c| c["id"].as_str().map(str::to_owned))
-        .collect();
-    for chunk in &mut chunks {
-        if let Some(deps) = chunk["deps"].as_array_mut() {
-            deps.retain(|d| {
-                d.as_str()
-                    .is_some_and(|id| included.iter().any(|s| s == id))
-            });
+    if !complete {
+        chunks.retain(|c| ids.iter().any(|id| c["id"] == *id));
+        for chunk in &mut chunks {
+            if let Some(deps) = chunk["deps"].as_array_mut() {
+                deps.retain(|d| ids.iter().any(|id| d == *id));
+            }
         }
     }
     let snapshot = NativeSnapshot {
@@ -163,556 +327,103 @@ fn model(size: Size, data: &Value) -> Result<Model, Box<dyn Error>> {
     };
     let mut model = Model::new(size)
         .with_surface(Surface::Terminal)
-        .with_title("harbor")
+        .with_title("Harbor / Reliable retries")
+        .with_session_started("14:00")
         .with_snapshot(&snapshot)
-        .with_theme(Theme::forced(ThemeMode::Dark))
-        .with_tab(StageTab::Session);
+        .with_theme(Theme::forced(theme))
+        .with_tab(StageTab::Turn)
+        .with_workspace_files(vec![
+            "src/retry/lease.rs".into(),
+            "src/retry/budget.rs".into(),
+        ]);
+    update(
+        &mut model,
+        Msg::Mode(Decision::Graphics(Protocol::Kitty(Passthrough::Direct)).mode()),
+    );
     for branch in records("branches")? {
         update(
             &mut model,
             Msg::Engine(fixtures::event("think", "branch_status_changed", branch)),
         );
     }
+    harbor::conversation(&mut model, &data["turn"])?;
+    update(
+        &mut model,
+        Msg::Paste("Also test a restart immediately after the receipt commits.".into()),
+    );
     for _ in 0..8 {
         update(&mut model, Msg::Tick);
     }
     Ok(model)
 }
 
-fn view(model: &Model, _: &FrameClock) -> Node {
-    let number = match model.selected() {
-        Some(Selected::Step(n)) => *n,
-        _ => 12,
-    };
-    let right_width = if model.size().cols >= 140 {
-        440.0
-    } else {
-        400.0
-    };
-    let left_width = f32::from(model.size().cols) * 10.0 - right_width - 60.0;
-    let header = on_ground(
-        Node::row()
-            .height(px(28.0))
-            .shrink(0.0)
-            .align_items(Align::Center)
-            .child(heading("MAGISTR"))
-            .child(hspace(24.0))
-            .child(label("Harbor  /  Reliable retries", MUTED))
-            .child(flex())
-            .child(label("Checking", GOOD))
-            .child(hspace(20.0))
-            .child(label("Today  ·  14:00", MUTED)),
-        ROOT,
-    );
-    let right = Node::column()
-        .width(px(right_width))
-        .shrink(0.0)
-        .child(roadmap())
-        .child(vspace(16.0))
-        .child(record(model, number).grow(1.0));
-    let left = Node::column()
-        .min_height(px(0.0))
-        .child(
-            session(model.size().rows < 45)
-                .grow(1.0)
-                .min_height(px(0.0)),
-        )
-        .child(vspace(16.0))
-        .child(recorder(model, number, left_width));
-    let content = Node::column()
-        .style(style(INK).bg(ROOT))
-        .child(header)
-        .child(vspace(12.0))
-        .child(
-            Node::row()
-                .grow(1.0)
-                .min_height(px(0.0))
-                .child(left.grow(1.0).min_width(px(0.0)))
-                .child(hspace(20.0))
-                .child(right),
-        )
-        .child(vspace(12.0))
-        .child(composer());
-    inset(content, 20.0, 12.0).style(style(INK).bg(ROOT))
-}
-
-fn session(compact: bool) -> Node {
-    let background = PANEL;
-    let mut conversation = Node::column().viewport().grow(1.0)
-        .child(label("You  ·  14:00", MUTED)).child(vspace(8.0))
-        .child(prose("Make the retry budget survive worker restarts. Keep tenant budgets isolated and show me the recovery checks."))
-        .child(vspace(24.0))
-        .child(label("Magistr  ·  14:18", ACCENT)).child(vspace(8.0))
-        .child(prose("The budget now lives beside the lease and resumes from the saved retry time after a restart. Each customer keeps a separate allowance; the shared pool was rejected after the latency check."))
-        .child(vspace(12.0))
-        .child(Node::row().child(chip("Decision 10 · saved", ACCENT, background))
-            .child(hspace(8.0)).child(chip("Decision 9 updated decision 8", MUTED, background)))
-        .child(vspace(24.0))
-        .child(on_ground(inset(Node::column()
-            .child(Node::row().child(heading("Save the retry schedule")).child(flex()).child(label("+34  −11", GOOD)))
-            .child(vspace(6.0)).child(label("src/delivery/retry.rs", MUTED))
-            .child(vspace(8.0)).child(prose("The receipt, next due time and tenant counter commit in one transaction.")), 20.0, 14.0), RAISED).height(px(100.0)).shrink(0.0))
-        .child(vspace(20.0))
-        .child(label("Magistr  ·  14:20", ACCENT)).child(vspace(8.0))
-        .child(prose("The focused retry checks pass. I am checking the restart interleavings before recording the final receipt."))
-        .child(vspace(12.0))
-        .child(Node::row().child(chip("3 checks passed", GOOD, background).id(area_id(7)))
-            .child(hspace(8.0)).child(chip("Restart checks · next", MUTED, background)));
-    if compact {
-        conversation = Node::column().viewport().grow(1.0)
-            .child(label("You · Make retries durable and keep tenant budgets isolated.", MUTED))
-            .child(vspace(8.0))
-            .child(label("Magistr · 14:18", ACCENT)).child(vspace(6.0))
-            .child(prose("The budget, receipt and next due time now commit together. A restart resumes the existing allowance; each tenant keeps its own counter."))
-            .child(vspace(8.0))
-            .child(Node::row().child(chip("Decision 10 · saved", ACCENT, background)).child(hspace(8.0)).child(label("src/delivery/retry.rs  +34 −11", GOOD)))
-            .child(vspace(16.0))
-            .child(label("Magistr · 14:20", ACCENT)).child(vspace(6.0))
-            .child(prose("The focused checks pass. I am checking the restart interleavings before recording the final receipt."))
-            .child(vspace(8.0))
-            .child(Node::row().child(chip("3 checks passed", GOOD, background).id(area_id(7))).child(hspace(8.0)).child(label("Restart checks · next", MUTED)));
+fn command(model: &mut Model, query: &str) -> Result<(), Box<dyn Error>> {
+    click(model, Widget::Commands.id())?;
+    for c in query.chars() {
+        update(model, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
     }
-
-    let cap = section_heading("Conversation", label("Working", GOOD));
-    let contents = Node::column().min_height(px(0.0)).child(cap).child(
-        inset(
-            Node::column()
-                .min_height(px(0.0))
-                .child(heading("Bound retries across worker restarts"))
-                .child(if compact {
-                    Node::leaf()
-                } else {
-                    Node::column().child(vspace(4.0)).child(label(
-                        "Checking restart recovery  ·  12 decisions recorded",
-                        MUTED,
-                    ))
-                })
-                .child(vspace(8.0))
-                .child(conversation),
-            20.0,
-            12.0,
-        )
-        .grow(1.0),
-    );
-    outlined(contents, PANEL, LINE).id(Widget::Stage.id())
+    click(model, Widget::palette_row(0))?;
+    let opened = match query {
+        "Settings" => model.settings().is_some(),
+        "Search recorded work" => model.search().is_some(),
+        "Keyboard help" => model.is_sheet_open(),
+        _ => false,
+    };
+    if !opened {
+        return Err(format!("command did not open {query}").into());
+    }
+    Ok(())
 }
 
-fn roadmap() -> Node {
-    let graph = Node::leaf()
-        .id(Widget::RailGraph.id())
-        .height(px(60.0))
-        .shrink(0.0)
-        .style(style(INK).bg(PANEL));
-    let labels = Node::row()
-        .justify_content(Justify::SpaceBetween)
-        .child(label("Storage", GOOD))
-        .child(label("Retry limits", ACCENT))
-        .child(label("Retry timing", MUTED));
-    outlined(
-        Node::column()
-            .child(section_heading("Roadmap", label("Delivery", MUTED)))
-            .child(
-                inset(
-                    Node::column()
-                        .child(vspace(5.0))
-                        .child(graph)
-                        .child(vspace(4.0))
-                        .child(labels),
-                    19.0,
-                    8.0,
+fn clock() -> FrameClock {
+    FrameClock::new(8, Duration::from_millis(1600))
+}
+
+fn click(model: &mut Model, id: WidgetId) -> Result<(), Box<dyn Error>> {
+    let resolved = Preview::layout(model, &clock(), view)?;
+    let placed = resolved
+        .placed()
+        .iter()
+        .find(|p| p.id == Some(id))
+        .ok_or("missing decision label")?;
+    let x = placed.px.x + placed.px.width / 2.0;
+    let y = placed.px.y + placed.px.height / 2.0;
+    let mut hits = HitRegistry::new();
+    hits.register_layout_px(&resolved, 0);
+    let target = hits.hit_at(f64::from(x), f64::from(y));
+    if target != Some(id) {
+        return Err(format!("visible label resolves to {target:?}, expected {id:?}").into());
+    }
+    let cell = model.cell_size();
+    for kind in [MouseKind::Down(Button::Left), MouseKind::Up(Button::Left)] {
+        update(
+            model,
+            Msg::Mouse {
+                event: MouseEvent::new(
+                    kind,
+                    (x / f32::from(cell.width)) as u16,
+                    (y / f32::from(cell.height)) as u16,
                 )
-                .grow(1.0),
-            ),
-        PANEL,
-        LINE,
-    )
-    .id(area_id(1))
-    .height(px(148.0))
-    .shrink(0.0)
-}
-
-fn record(model: &Model, number: u32) -> Node {
-    let Some(step) = model.trace().step(number) else {
-        return label("No recorded decision", MUTED);
-    };
-    let relation = match step.revises {
-        Some(n) => format!(
-            "Updates decision {n}  ·  {}",
-            step.branch_name.as_deref().unwrap_or("Main")
-        ),
-        None => format!(
-            "{:.0}% confidence{}",
-            step.confidence.unwrap_or(0.0) * 100.0,
-            if step.pinned { "  ·  Saved" } else { "" }
-        ),
-    };
-    let linked_work = match step.execution_ref.as_deref() {
-        Some("task:retry-implementation") => "Save the retry schedule",
-        Some("task:retry-tests") => "Check restart recovery",
-        Some("task:retry-plan") => "Set the restart rules",
-        _ => "No linked work",
-    };
-    let mut body = Node::column()
-        .viewport()
-        .child(heading(&step.purpose))
-        .child(vspace(4.0))
-        .child(label(relation, MUTED))
-        .child(vspace(8.0))
-        .child(prose(&step.thought))
-        .child(vspace(8.0))
-        .child(prose(format!("Outcome: {}", step.outcome)));
-    body = body
-        .child(vspace(18.0))
-        .child(heading("Why"))
-        .child(vspace(4.0))
-        .child(prose(&step.rationale))
-        .child(vspace(16.0))
-        .child(heading("Next"))
-        .child(vspace(4.0))
-        .child(prose(&step.next_action));
-    let body = body.child(flex()).child(vspace(8.0)).child(
-        Node::row()
-            .child(
-                chip(format!("Work: {linked_work}  →"), ACCENT, PANEL)
-                    .id(Widget::InspectorFields.id()),
-            )
-            .child(flex()),
-    );
-    outlined(
-        Node::column()
-            .min_height(px(0.0))
-            .child(section_heading(
-                format!("Decision {number:02}"),
-                label(if number == 12 { "Latest" } else { "Selected" }, ACCENT),
-            ))
-            .child(inset(body, 16.0, 10.0).grow(1.0)),
-        PANEL,
-        LINE,
-    )
-    .id(Widget::Inspector.id())
-    .min_height(px(0.0))
-}
-
-fn recorder(model: &Model, number: u32, width: f32) -> Node {
-    let contents = Node::column().child(recorder_heading(number)).child(
-        inset(
-            Node::column()
-                .child(vspace(21.0))
-                .child(numbered_graph(model, number, width - 40.0))
-                .child(vspace(12.0))
-                .child(branch_notes(model, number))
-                .child(vspace(15.0)),
-            19.0,
-            0.0,
-        )
-        .grow(1.0),
-    );
-    outlined(contents, PANEL, LINE)
-        .id(area_id(3))
-        .height(px(280.0))
-        .shrink(0.0)
-}
-
-fn numbered_graph(model: &Model, selected: u32, width: f32) -> Node {
-    let lanes = model.trace().lanes();
-    let lane_count = f32::from(lanes.iter().map(|(_, lane)| *lane).max().unwrap_or(0)) + 1.0;
-    let gap = (width - 72.0) / lanes.len().saturating_sub(1).max(1) as f32;
-    let mut graph = Node::column().height(px(100.0)).shrink(0.0).child(
-        Node::leaf()
-            .id(Widget::TraceGraph.id())
-            .height(px(80.0))
-            .style(style(INK)),
-    );
-    for (index, (number, lane)) in lanes.iter().enumerate() {
-        // Match BranchGraph's 80px surface: 36px sides, 8px above/below.
-        // Overlay text is painted after the graph by the native pixel runtime.
-        let x = 36.0 + index as f32 * gap;
-        let y = 8.0 + (f32::from(*lane) + 0.5) * 64.0 / lane_count;
-        let color = if *number == selected {
-            INK
-        } else {
-            match lane {
-                1 => WAITS,
-                2 => LIMITS,
-                _ => MUTED,
-            }
-        };
-        let text = label(format!("{number:02}"), color);
-        let text = if *number == selected {
-            text.style(style(color).attrs(Attrs::BOLD))
-        } else {
-            text
-        };
-        graph = graph.child(
-            Node::column()
-                .align_items(Align::Center)
-                .child(vspace(20.0))
-                .child(text)
-                .width(px(32.0))
-                .height(px(46.0))
-                .overlay(Inset::none().left(px(x - 16.0)).top(px(y - 10.0)))
-                .id(Widget::trace_row(index)),
+                .at_px(x as u32, y as u32),
+                target,
+            },
         );
     }
-    graph
+    Ok(())
 }
 
-fn recorder_heading(number: u32) -> Node {
-    on_ground(
-        inset(
-            Node::row()
-                .align_items(Align::Center)
-                .child(heading("Flight recorder"))
-                .child(hspace(16.0))
-                .child(label("12 decisions · 2 questions explored", MUTED))
-                .child(flex())
-                .child(
-                    chip(
-                        if number == 12 {
-                            "Latest decision"
-                        } else {
-                            "Return to latest →"
-                        },
-                        ACCENT,
-                        HEADER,
-                    )
-                    .id(Widget::Checkpoint.id()),
-                ),
-            16.0,
-            0.0,
-        ),
-        HEADER,
-    )
-    .height(px(34.0))
-    .shrink(0.0)
-}
-
-fn branch_notes(model: &Model, selected: u32) -> Node {
-    Node::row()
-        .height(px(96.0))
-        .shrink(0.0)
-        .child(
-            branch_note(
-                model,
-                selected,
-                4,
-                "Wait when the server asks?",
-                "Honor waits within the deadline.",
-                WAITS,
-            )
-            .grow(1.0)
-            .basis(px(0.0))
-            .id(area_id(5)),
-        )
-        .child(hspace(12.0))
-        .child(
-            branch_note(
-                model,
-                selected,
-                8,
-                "Share customer limits?",
-                "Shared limits rejected; separate limits kept.",
-                LIMITS,
-            )
-            .grow(1.0)
-            .basis(px(0.0))
-            .id(area_id(6)),
-        )
-}
-
-fn branch_note(
+fn capture(
     model: &Model,
-    selected: u32,
-    first: u32,
-    question: &str,
-    answer: &str,
-    ink: Color,
-) -> Node {
-    let trace = model.trace();
-    let Some(step) = trace.step(first) else {
-        return Node::leaf();
-    };
-    let last = trace
-        .steps()
-        .iter()
-        .rposition(|s| s.branch_id == step.branch_id);
-    let returned = trace
-        .merges()
-        .into_iter()
-        .find(|(from, _)| Some(*from) == last);
-    let Some((last, returned)) = returned else {
-        return Node::leaf();
-    };
-    let last = trace.steps()[last].number;
-    let returned = trace.steps()[returned].number;
-    let from = step.branch_from.unwrap_or(first);
-    let active = (from..=returned).contains(&selected);
-    let content = Node::column()
-        .child(
-            Node::row()
-                .child(label(question, ink))
-                .child(flex())
-                .child(hspace(8.0))
-                .child(label(format!("{first:02}–{last:02}"), MUTED)),
-        )
-        .child(vspace(6.0))
-        .child(heading(answer))
-        .child(vspace(6.0))
-        .child(label(
-            format!("Explored after {from:02} · answer used in {returned:02}"),
-            MUTED,
-        ));
-    outlined(
-        on_ground(inset(content, 14.0, 11.0), RAISED),
-        RAISED,
-        if active { ink } else { RAISED },
-    )
-}
-
-fn composer() -> Node {
-    let draft = "Also test a restart immediately after the receipt commits.";
-    let mut entry = on_ground(
-        inset(
-            Node::row()
-                .align_items(Align::Center)
-                .child(
-                    Node::editor(draft, draft.len())
-                        .id(Widget::Prompt.id())
-                        .text_role(TextRole::Steer)
-                        .grow(1.0)
-                        .min_width(px(0.0)),
-                )
-                .child(hspace(16.0))
-                .child(
-                    on_ground(chip("Send  ↑", INK, SELECTED), SELECTED)
-                        .id(Widget::PromptAction.id()),
-                ),
-            12.0,
-            5.0,
-        ),
-        RAISED,
-    );
-    entry.restyle_at(Widget::PromptAction.id(), &|s| s.clone().bg(SELECTED));
-    let body = Node::column()
-        .child(outlined(entry, RAISED, LINE).height(px(36.0)).shrink(0.0))
-        .child(vspace(6.0))
-        .child(label(
-            "Enter to send  ·  Shift + Enter for a new line  ·  Add files",
-            MUTED,
-        ));
-    outlined(
-        Node::column()
-            .child(section_heading(
-                "Message Magistr",
-                label("Reliable retries  ·  Draft", MUTED),
-            ))
-            .child(inset(body, 16.0, 6.0).grow(1.0)),
-        PANEL,
-        LINE,
-    )
-    .id(area_id(4))
-    .height(px(112.0))
-    .shrink(0.0)
-}
-
-fn area_id(index: u32) -> magistr_cockpit::widget_id::WidgetId {
-    magistr_cockpit::widget_id::WidgetId::new(900_000 + index)
-}
-fn px(value: f32) -> Length {
-    Length::Px(value)
-}
-fn style(ink: Color) -> Style {
-    Style::new().fg(ink).bg(PANEL)
-}
-fn label(text: impl Into<String>, ink: Color) -> Node {
-    Node::text(text)
-        .text_role(TextRole::Label)
-        .style(style(ink))
-        .min_height(px(20.0))
-        .shrink(0.0)
-}
-fn heading(text: impl Into<String>) -> Node {
-    label(text, INK)
-        .text_role(TextRole::Heading)
-        .style(style(INK).attrs(Attrs::BOLD))
-}
-fn prose(text: impl Into<String>) -> Node {
-    Node::text(text)
-        .text_role(TextRole::Prose)
-        .style(style(INK))
-        .min_width(px(0.0))
-        .shrink(0.0)
-}
-fn chip(text: impl Into<String>, ink: Color, background: Color) -> Node {
-    on_ground(
-        inset(label(text, ink), 10.0, 2.0),
-        if background == HEADER { HEADER } else { RAISED },
-    )
-}
-fn on_ground(mut node: Node, color: Color) -> Node {
-    node.restyle_all(&|s| s.clone().bg(color));
-    node
-}
-fn flex() -> Node {
-    Node::leaf().grow(1.0).basis(px(0.0))
-}
-fn hspace(width: f32) -> Node {
-    Node::leaf().width(px(width)).shrink(0.0)
-}
-fn vspace(height: f32) -> Node {
-    Node::leaf().height(px(height)).shrink(0.0)
-}
-fn inset(content: Node, x: f32, y: f32) -> Node {
-    Node::column()
-        .min_width(px(0.0))
-        .min_height(px(0.0))
-        .style(style(INK))
-        .child(vspace(y))
-        .child(
-            Node::row()
-                .grow(1.0)
-                .min_height(px(0.0))
-                .child(hspace(x))
-                .child(content.grow(1.0).min_width(px(0.0)).min_height(px(0.0)))
-                .child(hspace(x)),
-        )
-        .child(vspace(y))
-}
-fn outlined(content: Node, fill: Color, border: Color) -> Node {
-    Node::column()
-        .min_width(px(0.0))
-        .min_height(px(0.0))
-        .style(style(INK).bg(border))
-        .child(vspace(1.0))
-        .child(
-            Node::row()
-                .grow(1.0)
-                .min_height(px(0.0))
-                .child(hspace(1.0))
-                .child(
-                    content
-                        .grow(1.0)
-                        .min_width(px(0.0))
-                        .min_height(px(0.0))
-                        .style(style(INK).bg(fill)),
-                )
-                .child(hspace(1.0)),
-        )
-        .child(vspace(1.0))
-}
-fn section_heading(title: impl Into<String>, aside: Node) -> Node {
-    on_ground(
-        inset(
-            Node::row()
-                .align_items(Align::Center)
-                .child(heading(title))
-                .child(flex())
-                .child(aside),
-            16.0,
-            0.0,
-        ),
-        HEADER,
-    )
-    .height(px(34.0))
-    .shrink(0.0)
+    output: &Path,
+    name: &str,
+    manifest: &mut Vec<Value>,
+) -> Result<(), Box<dyn Error>> {
+    let pixels = Preview::frame(model, &clock(), view)?;
+    pixels.save_png(output.join(format!("{name}.png")))?;
+    let resolved = Preview::layout(model, &clock(), view)?;
+    let areas:Vec<_> = resolved.placed().iter().filter_map(|placed| {
+        placed.id.map(|id|json!({"id":format!("{id:?}"),"x":placed.px.x,"y":placed.px.y,"width":placed.px.width,"height":placed.px.height}))
+    }).collect();
+    manifest.push(json!({"file":format!("{name}.png"),"width":pixels.width(),"height":pixels.height(),"selected":format!("{:?}",model.selected()),"areas":areas}));
+    Ok(())
 }

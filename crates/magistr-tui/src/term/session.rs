@@ -88,7 +88,7 @@ impl Session {
         if !self.flat {
             out.extend_from_slice(b"\x1b[?1049h");
             out.extend_from_slice(b"\x1b[?25l");
-            out.extend_from_slice(b"\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h");
+            out.extend_from_slice(b"\x1b[?1016l\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h");
         }
         out.extend_from_slice(b"\x1b[?2004h");
         if !self.flat {
@@ -110,7 +110,9 @@ impl Session {
         }
         out.extend_from_slice(b"\x1b[?2004l");
         if !self.flat {
-            out.extend_from_slice(b"\x1b[?1006l\x1b[?1003l\x1b[?1002l\x1b[?1000l");
+            // Also undo the optional mode enabled after the graphics probe.
+            // Keeping this in Session makes panic cleanup restore it too.
+            out.extend_from_slice(b"\x1b[?1016l\x1b[?1006l\x1b[?1003l\x1b[?1002l\x1b[?1000l");
             out.extend_from_slice(b"\x1b[?25h");
             out.extend_from_slice(b"\x1b[?1049l");
         }
