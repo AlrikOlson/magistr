@@ -71,6 +71,16 @@ impl Marks {
                 Some(((mark, rect, cell), rect))
             })
             .collect();
+        let foreground: Vec<MarkKey> = screen
+            .occlusion()
+            .and_then(|cover| {
+                wanted.iter().rposition(|((mark, rect, _), _)| {
+                    *rect == cover && matches!(mark, Mark::Panel { .. })
+                })
+            })
+            .map_or_else(Vec::new, |start| {
+                wanted[start..].iter().map(|(key, _)| key.clone()).collect()
+            });
         let mut next = Vec::with_capacity(wanted.len());
         // Two passes, so a mark that kept its key is never robbed of its
         // slot by a changed neighbour over the same cells.
@@ -97,7 +107,7 @@ impl Marks {
         }
         self.free.extend(self.shown.drain(..).map(|(_, id, _)| id));
         for ((mark, rect, _), id, surface) in &mut next {
-            if screen.occlusion() == Some(*rect) && matches!(mark, Mark::Panel { .. }) {
+            if foreground.contains(&(mark.clone(), *rect, cell)) {
                 screen.surface_unmasked(*id, surface);
             } else {
                 screen.surface(*id, surface);
@@ -187,10 +197,11 @@ fn paint(mark: &Mark, rect: Rect, cell: CellSize, fallback: Fallback) -> PixelSu
             surface.paint(&Rule::new(r, g, b));
             surface
         }
-        Mark::Panel { border, title } => {
+        Mark::Panel { border, .. } => {
             let (r, g, b) = rgb(*border, fallback.ink);
             let mut surface = PixelSurface::with_alpha(rect, cell);
-            surface.paint(&Panel::new(r, g, b, cell).title(*title));
+            // Pixel typography cuts its own accurately measured title gap.
+            surface.paint(&Panel::new(r, g, b, cell));
             surface
         }
     }

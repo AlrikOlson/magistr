@@ -105,7 +105,8 @@ impl HoverRole {
         match widget {
             // The tab bar, the rail's toggle and every `[Button]` on a
             // card: the pointer lifts them.
-            Widget::TabTurn
+            Widget::PromptAction
+            | Widget::TabTurn
             | Widget::TabSession
             | Widget::TabRoadmap
             | Widget::RailToggle

@@ -80,6 +80,9 @@ pub(crate) fn decode(bytes: &[u8]) -> Vec<Placement> {
             if let Some(position) = moved {
                 cursor = Some(position);
             }
+            if bytes[at..at + len] == *b"\x1b[2J" {
+                placements.clear();
+            }
             at += len;
             continue;
         }

@@ -2505,6 +2505,21 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 );
             }
             match target.and_then(Widget::from_id) {
+                Some(Widget::Prompt) => {
+                    model.pane = Pane::Stage;
+                    return Vec::new();
+                }
+                Some(Widget::PromptAction) if model.moment().is_none() => {
+                    if model.turn_state == TurnState::Streaming {
+                        model.turn.push_note("cancelling… draft kept");
+                        return vec![Cmd::Cancel];
+                    }
+                    if !model.prompt.text().trim().is_empty() {
+                        model.completion = None;
+                        return send(model);
+                    }
+                    return Vec::new();
+                }
                 Some(Widget::RailToggle) => {
                     model.rail.toggle();
                     model.turn.rewrap(model.turn_width());

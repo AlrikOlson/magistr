@@ -95,6 +95,11 @@ impl LayoutTree {
         measure: &mut dyn Measure,
     ) -> Result<Resolved, LayoutError> {
         self.taffy.clear();
+        if basis.is_cells() {
+            self.taffy.enable_rounding();
+        } else {
+            self.taffy.disable_rounding();
+        }
         let mut texts: Vec<&TextMetrics> = Vec::new();
         let root_id = self.build(root, basis, measure, &mut texts)?;
 

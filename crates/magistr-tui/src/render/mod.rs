@@ -10,6 +10,9 @@
 pub mod change;
 pub mod diff;
 pub mod encode;
+mod pixel_frame;
+pub(crate) mod pixel_type;
+pub(crate) mod pixel_view;
 pub mod screen;
 
 pub use change::Change;

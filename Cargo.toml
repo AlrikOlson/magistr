@@ -32,3 +32,18 @@ split-debuginfo = "unpacked"
 debug = "line-tables-only"
 split-debuginfo = "unpacked"
 
+# Graphics terminals rasterize type and compose pixels on every changed frame.
+# Keep development builds interactive; retain line tables for debugging.
+[profile.dev.package.magistr-tui]
+opt-level = 2
+[profile.dev.package.magistr-cockpit]
+opt-level = 2
+[profile.dev.package.fontdue]
+opt-level = 3
+[profile.dev.package.ttf-parser]
+opt-level = 3
+[profile.dev.package.tiny-skia]
+opt-level = 3
+[profile.dev.package.tiny-skia-path]
+opt-level = 3
+

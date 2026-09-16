@@ -18,7 +18,7 @@ workbench ─────┘                         v
                                          |
                                   paint + hit registry
                                          |
-                                cell diff + pixel compositor
+                                pixel composition or cell damage
                                          |
                                       terminal
 ```
@@ -80,15 +80,24 @@ in fixtures, as described in [development](../development.md#tests).
 
 ## Rendering, layout, and motion
 
-The view produces a cell tree. Layout resolves rectangles for both paint and hit
-testing, keeping clickable areas tied to their displayed objects. The terminal
-renderer computes cell damage and encodes the changed output. The graphics layer
-selects Kitty, Sixel, or plain text according to the terminal's capabilities.
+The view produces a semantic layout tree. Graphics terminals measure its text
+with embedded Source Sans 3 and Almagest Mono faces and resolve fractional pixel
+rectangles. The same glyph metrics drive layout, wrapping and painting. Code and
+terminal output retain column alignment; labels and prose use proportional type.
+The renderer composes backgrounds, vector marks, images and text into opaque
+four-row strips, transmitting only strips whose pixels changed through Kitty or
+Sixel. No interface glyphs are painted by the terminal in this mode. Cell
+coordinates remain the transport and mouse-report boundary. Plain terminals
+retain the cell damage renderer and screen-reader sessions retain flat output.
 
 The terminal body has a labelled rail, an active stage, and an inspector. The
 inspector sits to the right when the stage retains at least 40 content columns;
 otherwise it stacks below the stage. Plain terminals use the same panes. The
-dock and prompt remain below the body.
+decision dock and composer remain below the body. The graphics composer has a
+complete framed boundary, soft-wrapped text, a pixel insertion caret, bounded
+growth and a visible Send/Stop button. While a turn runs, Stop preserves the draft;
+when it settles, Send starts the next turn. Shift-Enter and Alt-Enter insert a
+newline. The empty needs-you strip is omitted.
 
 One `Selected` identity names a chunk, tool call, reasoning step, change, receipt, run, or signal. Lists stay
 compact; the shared inspector renders title, status, metadata, actions, and

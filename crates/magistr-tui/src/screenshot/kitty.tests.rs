@@ -2,8 +2,27 @@ use super::*;
 
 use crate::graphics::{ImageId, Kitty, Passthrough, PlacementId};
 
-/// An encoder writing straight to the terminal, the way the
-/// screenshot's `Screen` does.
+/// Clear-screen semantics keep captured resize frames faithful to Kitty.
+#[test]
+fn clearing_the_display_removes_old_placements_but_keeps_image_data() {
+    let terminal = kitty();
+    let pixels = rgba(4, 3);
+    let mut out = Vec::new();
+    terminal
+        .transmit(&mut out, image(1), PixelFormat::Rgba, 4, 3, &pixels)
+        .expect("pixels");
+    out.extend_from_slice(&cup(0, 0));
+    terminal.place(&mut out, image(1), slot(), 2, 1, -1);
+    out.extend_from_slice(b"\x1b[2J");
+    assert!(decode(&out).is_empty());
+    out.extend_from_slice(&cup(5, 6));
+    terminal.place(&mut out, image(1), slot(), 2, 1, -1);
+    let decoded = decode(&out);
+    assert_eq!(decoded.len(), 1);
+    assert_eq!((decoded[0].col, decoded[0].row), (5, 6));
+    assert_eq!(decoded[0].rgba, pixels);
+}
+
 fn kitty() -> Kitty {
     Kitty::new(Passthrough::Direct)
 }

@@ -1043,7 +1043,14 @@ impl Model {
     /// [`PROMPT_MAX_ROWS`].
     #[must_use]
     pub fn prompt_rows(&self) -> usize {
-        self.prompt.rows().min(PROMPT_MAX_ROWS)
+        if self.pixels && !self.surface.is_native() {
+            self.prompt
+                .wrapped_rows(self.size.cols.saturating_sub(8))
+                .max(if self.size.rows >= 30 { 2 } else { 1 })
+                .min(PROMPT_MAX_ROWS.min(usize::from(self.size.rows / 5)).max(1))
+        } else {
+            self.prompt.rows().min(PROMPT_MAX_ROWS)
+        }
     }
 
     /// The Needs-you dock: the typed cards waiting for the human.
@@ -1807,7 +1814,12 @@ impl Model {
         if self.surface.is_native() {
             NATIVE_CHROME_ROWS
         } else {
-            CHROME_ROWS + self.gutter_cells()
+            CHROME_ROWS + self.gutter_cells() + if self.banner.is_some() { 1 } else { 0 }
+                - if self.pixels && self.size.rows < 30 {
+                    2 * Space::PAD
+                } else {
+                    0
+                }
         }
     }
 
@@ -1843,7 +1855,17 @@ impl Model {
         let (dock, grown) = if self.surface.is_native() {
             (0, 0)
         } else {
-            (self.dock.rows(), self.prompt_rows() - 1)
+            let dock = if self.pixels && self.dock.is_empty() {
+                0
+            } else {
+                self.dock.rows()
+            };
+            let composer = if self.pixels {
+                if self.size.rows >= 30 { 6 } else { 3 }
+            } else {
+                0
+            };
+            (dock, self.prompt_rows() - 1 + composer)
         };
         let taken = dock
             .saturating_add(grown)

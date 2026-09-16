@@ -46,6 +46,47 @@ fn motion() -> Golden {
     golden("motion")
 }
 
+#[test]
+fn shot_pixel_composer() {
+    use magistr_tui::screenshot::Profile;
+    shots_on("composer-empty", Model::new, Profile::Kitty, true);
+    shots_on(
+        "composer-draft",
+        |size| {
+            let mut model = Model::new(size);
+            update(
+                &mut model,
+                Msg::Paste(
+                    "Please simplify the retry flow.\nKeep the existing worker recovery tests."
+                        .into(),
+                ),
+            );
+            model
+        },
+        Profile::Kitty,
+        true,
+    );
+    shots_on(
+        "composer-long",
+        |size| {
+            let mut model = Model::new(size);
+            update(
+                &mut model,
+                Msg::Paste("A long direction with café, 漢字 and e\u{301}. ".repeat(30)),
+            );
+            model
+        },
+        Profile::Kitty,
+        true,
+    );
+    shots_on(
+        "composer-streaming",
+        Scenes::streaming,
+        Profile::Kitty,
+        true,
+    );
+}
+
 fn clock() -> FrameClock {
     FrameClock::new(0, Duration::ZERO)
 }

@@ -203,8 +203,7 @@ impl Driver {
             self.model.frames()
         );
         let root = view(&self.model, &clock);
-        let (width, height) = self.screen.size();
-        let resolved = self.tree.compute(&root, width, height)?;
+        let resolved = self.surfaces.layout(&root, &self.model, &mut self.tree)?;
         paint(&root, &resolved, self.screen.buffer());
         self.hits.clear();
         self.hits.register_layout(&resolved, 0);

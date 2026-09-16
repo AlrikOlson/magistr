@@ -17,6 +17,8 @@ pub struct TextMetrics {
     text: String,
     max_content: u16,
     min_content: u16,
+    role: super::TextRole,
+    cursor: Option<usize>,
 }
 
 impl TextMetrics {
@@ -36,7 +38,36 @@ impl TextMetrics {
             text,
             max_content,
             min_content,
+            role: super::TextRole::Label,
+            cursor: None,
         }
+    }
+
+    /// Insertion position for a pixel editor, as a byte boundary.
+    #[must_use]
+    pub const fn cursor(&self) -> Option<usize> {
+        self.cursor
+    }
+
+    /// Mark this leaf as an editor. Invalid byte offsets are clamped backward.
+    pub fn set_cursor(&mut self, cursor: usize) {
+        let mut at = cursor.min(self.text.len());
+        while !self.text.is_char_boundary(at) {
+            at -= 1;
+        }
+        self.cursor = Some(at);
+        self.role = super::TextRole::Steer;
+    }
+
+    /// The semantic voice used by pixel measurement and painting.
+    #[must_use]
+    pub const fn role(&self) -> super::TextRole {
+        self.role
+    }
+
+    /// Select a voice without changing the cell fallback's metrics.
+    pub fn set_role(&mut self, role: super::TextRole) {
+        self.role = role;
     }
 
     /// The text being measured.
