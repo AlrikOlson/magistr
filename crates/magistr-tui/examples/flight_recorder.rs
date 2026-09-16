@@ -25,6 +25,9 @@ const PANEL: Color = Color::Rgb(30, 30, 46);
 const HEADER: Color = Color::Rgb(39, 39, 57);
 const RAISED: Color = Color::Rgb(45, 45, 65);
 const SELECTED: Color = Color::Rgb(49, 65, 92);
+// Match BranchGraph’s two investigation colors.
+const WAITS: Color = Color::Rgb(255, 158, 100);
+const LIMITS: Color = Color::Rgb(158, 206, 106);
 
 fn main() -> Result<(), Box<dyn Error>> {
     let output = PathBuf::from(
@@ -87,6 +90,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ("decision-panel", Widget::Inspector.id()),
                 ("recorder-panel", area_id(3)),
                 ("message-panel", area_id(4)),
+                ("wait-explanation", area_id(5)),
+                ("limits-explanation", area_id(6)),
             ] {
                 let rect = resolved
                     .placed()
@@ -412,43 +417,127 @@ fn recorder(model: &Model, number: u32) -> Node {
         .child(numbers.grow(1.0))
         .child(hspace(11.0));
     outlined(
-        Node::column()
-            .child(section_heading(
-                "Flight recorder",
-                chip(
-                    if number == 12 {
-                        "Latest decision"
-                    } else {
-                        "Return to latest →"
-                    },
-                    ACCENT,
-                    HEADER,
-                )
-                .id(Widget::Checkpoint.id()),
-            ))
-            .child(
-                inset(
-                    Node::column()
-                        .child(vspace(13.0))
-                        .child(
-                            Node::leaf()
-                                .id(Widget::TraceGraph.id())
-                                .height(px(60.0))
-                                .shrink(0.0)
-                                .style(style(INK).bg(PANEL)),
-                        )
-                        .child(numbered),
-                    19.0,
-                    4.0,
-                )
-                .grow(1.0),
-            ),
+        Node::column().child(recorder_heading(number)).child(
+            inset(
+                Node::column()
+                    .child(vspace(13.0))
+                    .child(
+                        Node::leaf()
+                            .id(Widget::TraceGraph.id())
+                            .height(px(60.0))
+                            .shrink(0.0)
+                            .style(style(INK).bg(PANEL)),
+                    )
+                    .child(numbered)
+                    .child(branch_notes(model)),
+                19.0,
+                4.0,
+            )
+            .grow(1.0),
+        ),
         PANEL,
         LINE,
     )
     .id(area_id(3))
-    .height(px(148.0))
+    .height(px(188.0))
     .shrink(0.0)
+}
+
+fn recorder_heading(number: u32) -> Node {
+    on_ground(
+        inset(
+            Node::row()
+                .align_items(Align::Center)
+                .child(heading("Flight recorder"))
+                .child(hspace(24.0))
+                .child(label(
+                    "Side paths explore a question; they rejoin where the answer is used.",
+                    MUTED,
+                ))
+                .child(flex())
+                .child(
+                    chip(
+                        if number == 12 {
+                            "Latest decision"
+                        } else {
+                            "Return to latest →"
+                        },
+                        ACCENT,
+                        HEADER,
+                    )
+                    .id(Widget::Checkpoint.id()),
+                ),
+            16.0,
+            0.0,
+        ),
+        HEADER,
+    )
+    .height(px(34.0))
+    .shrink(0.0)
+}
+
+fn branch_notes(model: &Model) -> Node {
+    // Use the graph's pixel spacing, so each explanation spans its own
+    // departure and return rather than sitting under an unrelated decision.
+    let graph_width = f32::from(model.size().cols) * 10.0 - 80.0;
+    let gap = (graph_width - 54.0) / (model.trace().steps().len() - 1) as f32;
+    Node::row()
+        .height(px(42.0))
+        .shrink(0.0)
+        .child(hspace(27.0 + 2.0 * gap))
+        .child(
+            branch_note(
+                model,
+                4,
+                "Wait when the server asks?",
+                "yes, within deadline",
+                WAITS,
+            )
+            .width(px(3.0 * gap))
+            .id(area_id(5)),
+        )
+        .child(hspace(gap))
+        .child(
+            branch_note(
+                model,
+                8,
+                "Share customer limits?",
+                "no, kept separate",
+                LIMITS,
+            )
+            .width(px(3.0 * gap))
+            .id(area_id(6)),
+        )
+        .child(flex())
+}
+
+fn branch_note(model: &Model, first: u32, question: &str, answer: &str, ink: Color) -> Node {
+    let trace = model.trace();
+    let Some(step) = trace.step(first) else {
+        return Node::leaf();
+    };
+    let last = trace
+        .steps()
+        .iter()
+        .rposition(|s| s.branch_id == step.branch_id);
+    let returned = trace
+        .merges()
+        .into_iter()
+        .find(|(from, _)| Some(*from) == last);
+    let Some((last, returned)) = returned else {
+        return Node::leaf();
+    };
+    let last = trace.steps()[last].number;
+    let returned = trace.steps()[returned].number;
+    let from = step.branch_from.unwrap_or(first);
+    Node::column()
+        .child(vspace(1.0))
+        .child(vspace(1.0).style(style(ink).bg(ink)))
+        .child(label(format!("{first:02}–{last:02} · {question}"), ink))
+        .child(label(
+            format!("From {from:02} · used in {returned:02}: {answer}"),
+            MUTED,
+        ))
 }
 
 fn composer() -> Node {
