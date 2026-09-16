@@ -49,6 +49,7 @@ pub struct Node {
     align: Align,
     justify: Justify,
     overlay: Option<Inset>,
+    offset_y: f32,
     viewport: bool,
     wrap: bool,
     gap: u16,
@@ -77,6 +78,7 @@ impl Node {
             align: Align::default(),
             justify: Justify::default(),
             overlay: None,
+            offset_y: 0.0,
             viewport: false,
             wrap: false,
             gap: 0,
@@ -287,6 +289,13 @@ impl Node {
             .justify_content(Justify::Center)
             .align_items(Align::Center)
             .child(child)
+    }
+
+    /// Translate an in-flow subtree vertically while keeping its inherited clip and hit layer.
+    #[must_use]
+    pub const fn offset_y(mut self, pixels: f32) -> Self {
+        self.offset_y = pixels;
+        self
     }
 
     /// Whether this node is out of flow.
@@ -519,7 +528,16 @@ impl Node {
             } else {
                 Position::Relative
             },
-            inset: self.overlay.unwrap_or_default().taffy(basis),
+            inset: self
+                .overlay
+                .unwrap_or_else(|| {
+                    if self.offset_y == 0.0 {
+                        Inset::none()
+                    } else {
+                        Inset::none().top(Length::Px(self.offset_y))
+                    }
+                })
+                .taffy(basis),
             size: Size {
                 width: self.width.dimension(basis.x()),
                 height: self.height.dimension(basis.y()),

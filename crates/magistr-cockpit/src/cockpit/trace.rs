@@ -2,6 +2,10 @@
 
 use std::collections::BTreeMap;
 
+#[path = "investigation.rs"]
+mod investigation;
+pub use investigation::Investigation;
+
 use magistr_engine::{NativeEvent, NativeSnapshot, ShipFrame, ThinkFrame};
 
 use super::ship_moment::ShipMoment;
@@ -291,6 +295,12 @@ impl Trace {
             .collect()
     }
 
+    /// Questions explored, their exact member decisions, outcomes and recorded links.
+    #[must_use]
+    pub fn investigations(&self) -> Vec<Investigation<'_>> {
+        Investigation::all(self)
+    }
+
     /// The fork edges, as feed-index pairs: each branch's first step
     /// linked from the step it forked off, when the feed has both.
     #[must_use]
@@ -305,8 +315,11 @@ impl Trace {
                 continue;
             }
             seen.push(branch);
-            if let Some(from) = step
-                .branch_from
+            if let Some(from) = self
+                .steps
+                .iter()
+                .filter(|candidate| candidate.branch_id.as_deref() == Some(branch))
+                .find_map(|candidate| candidate.branch_from)
                 .and_then(|number| self.steps.iter().position(|s| s.number == number))
             {
                 links.push((from, index));
@@ -358,26 +371,14 @@ impl Trace {
             .iter()
             .filter(|step| step.branch_id.is_none())
             .count();
-        let mut rows = vec![format!("main · {main} steps")];
-        let mut seen: Vec<&str> = Vec::new();
-        for step in &self.steps {
-            let Some(branch) = step.branch_id.as_deref() else {
-                continue;
-            };
-            if seen.contains(&branch) {
-                continue;
-            }
-            seen.push(branch);
-            let count = self
-                .steps
-                .iter()
-                .filter(|s| s.branch_id.as_deref() == Some(branch))
-                .count();
-            let name = step.branch_name.as_deref().unwrap_or(branch);
-            let status = self.branch_status(branch);
-            let from = step
-                .branch_from
-                .map_or_else(String::new, |n| format!(" from {n}"));
+        let mut rows = vec![format!("Main reasoning · {main} steps")];
+        for question in self.investigations() {
+            let name = question.question;
+            let count = question.members.len();
+            let status = question.status_label();
+            let from = question
+                .from
+                .map_or_else(String::new, |n| format!(" after {n}"));
             rows.push(format!("└─ {name} ({status}){from} · {count} steps"));
         }
         rows

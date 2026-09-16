@@ -4,6 +4,7 @@ use crate::graphics::Passthrough;
 fn reply(kitty: bool, sixel: bool) -> ProbeReply {
     ProbeReply {
         text_sizing: false,
+        pixel_mouse: false,
         kitty,
         sixel,
         complete: true,
@@ -102,7 +103,7 @@ fn banners_name_a_capable_terminal_and_the_tmux_option() {
         TextReason::NoGraphics,
     ] {
         let banner = Mode::MinimalText(reason).banner().expect("a banner");
-        for terminal in ["ghostty", "kitty", "WezTerm", "iTerm2"] {
+        for terminal in ["Ghostty", "kitty", "WezTerm", "iTerm2"] {
             assert!(banner.contains(terminal), "{reason:?}: {banner}");
         }
         assert!(!banner.contains('\n'));

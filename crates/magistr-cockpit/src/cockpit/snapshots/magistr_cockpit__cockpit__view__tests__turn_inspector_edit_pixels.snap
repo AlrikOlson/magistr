@@ -3,17 +3,30 @@ source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen(&edit)
 ---
 
-       magistr    streaming                                                                                                   00:01
-    Research Plan Execute Verify
-    plan                                                                                          inspector
-                                  Turn  Session  Roadmap                                         src/retry.rs
-                                                                                                   completed
-   no objective yet               Updating the retry limit.                                      edit · retry-limit
-   roadmap 0/0 done                 edit   src/retry.rs · +1 −1                                  Open Undo Less
-   signals 0                        [Open]  [Undo]                                               @@ -1 +1 @@
-                                    @@ -1 +1 @@                                                  -const RETRIES: usize = 2;
-                                    -const RETRIES: usize = 2;                                   +const RETRIES: usize = 3;
-                                    +const RETRIES: usize = 3;
+  MAGISTR  Your                                                                                        Workin   Record   Commands
+
+    Conversat                                                                  Workin      Roadmap                         Open
+
+    What would you like to work on?                                                        No work items yet. Open Roadmap to
+    Magistr
+
+    Updating the retry limit.
+      edit src/retry.rs                                                        +1
+      Open  Undo
+      @@ -1 +1 @@                                                                          Detai                             Les
+      -const RETRIES: usize = 2;
+      +const RETRIES: usize = 3;                                                           src/retry.rs
+                                                                                           Completed
+                                                                                           File change
+
+                                                                                           @@ -1 +1 @@
+                                                                                           -const RETRIES: usize = 2;
+                                                                                           +const RETRIES: usize = 3;
+
+
+    Reasoni  0 steps · 0 questions
+
+    Reasoning and explored questions will appear here as work progresses.
 
 
 
@@ -23,23 +36,10 @@ expression: screen(&edit)
 
 
 
+                                                                                             Ope   Undo
 
+    Message                                                                                                 Current conversation
 
+     Write your next message…                                                                                            Stop
 
-
-
-
-
-
-
-
-
-
-
-   Your next direction
-   Draft your next direction…
-
-
-   Agent is working · stop to send a new direction                                                                         Stop
-
-      ctrl-c  cancel   ctrl-d  quit
+    Your draft is kept while    Add

@@ -4,12 +4,12 @@ expression: screen(&m)
 ---
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                             │  │ src/lib.rs                       │
-│no objective yet          │ │session · 0 steps · 2 changes · UTC                │  │ ✓ parse ok                       │
-│roadmap 0/0 done          │ │time unknown ▾ src/lib.rs · +2 −1 · parse ok       │  │ +2 −1 · e1                       │
+│no objective yet          │ │session · 0 steps · 2 changes · UTC                │  │ ✓ Syntax checked                 │
+│roadmap 0/0 done          │ │time unknown ▾ src/lib.rs · +2 −1 · parse ok       │  │ 2 lines added · 1 removed        │
 │signals 0                 │ │time unknown ▸ src/parser.rs · +4 −0 · parse failed│  │ Open Undo Approve More           │
-│                          │ │                                                   │  │ path · src/lib.rs                │
+│                          │ │                                                   │  │ File · src/lib.rs                │
 │                          │ │                                                   │  │ @@ -1,1 +1,2 @@                  │
 │                          │ │                                                   │  │ -fn old() {}                     │
 │                          │ │                                                   │  │                                  │
@@ -41,4 +41,4 @@ Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  select   enter  detail   tab / shift-tab  switch pane
+ ↑↓  select   enter  detail   tab / shift-tab  move focus

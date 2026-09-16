@@ -23,7 +23,7 @@ fn roadmap_proposal_actions_live_inside_shared_inspector() {
                 target: Some(Widget::roadmap_row(1)),
             },
         );
-        let resolved = layout(&view(&m, &clock()), m.size());
+        let resolved = layout_for(&m);
         let rect = |id| {
             resolved
                 .placed()
@@ -64,15 +64,32 @@ fn roadmap_graph_and_table_share_a_wide_stage_and_stack_on_a_narrow_one() {
                     }),
                 );
             }
-            let resolved = layout(&view(&m, &clock()), m.size());
+            if pixels {
+                update(
+                    &mut m,
+                    Msg::Mouse {
+                        event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                        target: Some(Widget::TabRoadmap.id()),
+                    },
+                );
+            }
+            let resolved = layout_for(&m);
             let rect = |id| {
                 resolved
                     .placed()
                     .iter()
                     .find(|p| p.id == Some(id))
-                    .expect("visible target")
+                    .unwrap_or_else(|| {
+                        panic!("visible target {id:?}, {cols}x{rows}, pixels={pixels}")
+                    })
                     .rect
             };
+            if pixels && crate::cockpit::FlightRoadmapPage::graph_height(&m) == 0.0 {
+                assert!(resolved.rect(Widget::RailGraph.id()).is_none());
+                assert!(rect(Widget::roadmap_row(0)).width > 0);
+                assert!(resolved.rect(Widget::Stage.id()).is_none());
+                continue;
+            }
             let graph = rect(Widget::RoadmapGraph.id());
             let first = rect(Widget::roadmap_row(0));
             assert!(
@@ -81,7 +98,13 @@ fn roadmap_graph_and_table_share_a_wide_stage_and_stack_on_a_narrow_one() {
                 m.stage_rows()
             );
             assert!(first.width > 0 && first.height > 0);
-            if cols == 132 {
+            if pixels {
+                assert!(resolved.rect(Widget::Stage.id()).is_none());
+                assert!(
+                    first.y >= graph.y + graph.height,
+                    "work items sit beneath the roadmap"
+                );
+            } else if cols == 132 {
                 assert!(
                     first.x >= graph.x + graph.width,
                     "wide graph {graph:?}, row {first:?}"
@@ -148,12 +171,12 @@ fn turn_inspector_renders_live_records_diffs_and_scrolling_in_both_profiles() {
         let joined = content.join("\n");
         for expected in [
             "focused checks passed",
-            "completed",
+            "Completed",
             "128 ms",
-            "input",
-            "output",
+            "Input",
+            "Output",
             "17",
-            "truncated",
+            "16000 bytes",
         ] {
             assert!(joined.contains(expected), "{expected}: {joined}");
         }
@@ -162,11 +185,20 @@ fn turn_inspector_renders_live_records_diffs_and_scrolling_in_both_profiles() {
         let mut tail = Vec::new();
         texts(&Inspector::view(&model, &pen), &mut tail);
         assert!(tail.join("\n").contains("src/runtime.rs:8"));
-        assert!(tail.join("\n").contains("term-1"));
+        assert!(
+            !tail.join("\n").contains("term-1"),
+            "internal terminal IDs stay out of details"
+        );
         let selected = model.selected().cloned();
         update(&mut model, Msg::Resize(Size::new(80, 24)));
         assert_eq!(model.selected(), selected.as_ref());
-        assert!(model.inspector_stacked());
+        if pixels {
+            let physical = layout_for(&model);
+            assert!(physical.rect(Widget::Stage.id()).is_some());
+            assert!(physical.rect(Widget::InspectorFields.id()).is_some());
+        } else {
+            assert!(model.inspector_stacked());
+        }
 
         let mut edit = Scenes::inspected_edit(Size::new(132, 42));
         if pixels {
@@ -212,6 +244,211 @@ fn layout(root: &Node, size: Size) -> Resolved {
     LayoutTree::new()
         .compute(root, size.cols, size.rows)
         .expect("layout succeeds")
+}
+
+/// Graphics tests use the same physical ruler as the production terminal.
+fn layout_for(model: &Model) -> Resolved {
+    layout_root_for(model, &view(model, &clock()))
+}
+
+fn layout_root_for(model: &Model, root: &Node) -> Resolved {
+    if model.uses_flight_recorder() {
+        let cell = model.cell_size();
+        let mut face = crate::pixel::Typography::default();
+        face.set_cell(cell);
+        LayoutTree::new()
+            .compute_on(
+                root,
+                f32::from(model.size().cols) * f32::from(cell.width),
+                f32::from(model.size().rows) * f32::from(cell.height),
+                crate::layout::Basis::new(f32::from(cell.width), f32::from(cell.height)),
+                &mut face,
+            )
+            .expect("physical layout")
+    } else {
+        layout(root, model.size())
+    }
+}
+
+fn page_pointer(model: &mut Model, id: WidgetId, kind: MouseKind) {
+    let resolved = layout_for(model);
+    let placed = resolved
+        .placed()
+        .iter()
+        .find(|p| p.id == Some(id))
+        .unwrap_or_else(|| panic!("visible page control {id:?}"))
+        .px;
+    let (x, y) = (
+        placed.x + placed.width / 2.0,
+        placed.y + placed.height / 2.0,
+    );
+    let mut hits = crate::hit::HitRegistry::new();
+    hits.register_layout_px(&resolved, 0);
+    let target = hits.hit_at(f64::from(x), f64::from(y));
+    if matches!(kind, MouseKind::Down(_)) {
+        assert_eq!(target, Some(id), "page control answers its drawn center");
+    }
+    update(
+        model,
+        Msg::Mouse {
+            event: MouseEvent::new(kind, 0, 0).at_px(x as u32, y as u32),
+            target,
+        },
+    );
+    if matches!(kind, MouseKind::Down(_)) {
+        update(
+            model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Up(Button::Left), 0, 0).at_px(x as u32, y as u32),
+                target,
+            },
+        );
+    }
+}
+fn page_model(size: Size, cell_width: u16, cell_height: u16) -> Model {
+    let chunks = (0..30).map(|i| crate::harness::fixtures::chunk_from(serde_json::json!({
+        "id": format!("work-{i}"), "name": format!("Recovery check {i:02}"),
+        "status": if i < 20 { "pending" } else { "done" },
+        "description": "Check the saved receipt and keep each customer retry allowance separate. ".repeat(80)
+    }))).collect();
+    let mut model = Model::new(size)
+        .with_surface(crate::cockpit::Surface::Terminal)
+        .with_snapshot(&magistr_engine::NativeSnapshot {
+            chunks,
+            ..Default::default()
+        });
+    update(
+        &mut model,
+        Msg::Mode(crate::capability::Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    update(
+        &mut model,
+        Msg::Reply(Reply::CellPixels {
+            width: cell_width,
+            height: cell_height,
+        }),
+    );
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text("Recorded recovery progress. ".repeat(200))),
+    );
+    update(
+        &mut model,
+        Msg::Paste("Keep this message\nand attached work.".into()),
+    );
+    assert!(model.reveal_conversation(0));
+    model
+}
+#[test]
+fn roadmap_has_its_own_page_and_preserves_the_conversation_on_return() {
+    for (cols, rows, cw, ch) in [(144, 50, 10, 20), (64, 36, 10, 20), (110, 34, 12, 28)] {
+        let mut model = page_model(Size::new(cols, rows), cw, ch);
+        let top = model.top_row();
+        let draft = model.prompt().text().to_owned();
+        page_pointer(
+            &mut model,
+            Widget::TabRoadmap.id(),
+            MouseKind::Down(Button::Left),
+        );
+        assert_eq!(model.tab(), StageTab::Roadmap);
+        let opened = layout_for(&model);
+        assert!(
+            opened.rect(Widget::Stage.id()).is_none(),
+            "the roadmap owns the page body"
+        );
+        assert!(opened.rect(Widget::RoadmapTable.id()).is_some());
+        let has_graph = crate::cockpit::FlightRoadmapPage::graph_height(&model) > 0.0;
+        assert_eq!(opened.rect(Widget::RoadmapGraph.id()).is_some(), has_graph);
+        let shown = opened
+            .placed()
+            .iter()
+            .filter(|p| p.id.and_then(Widget::roadmap_row_index).is_some())
+            .count();
+        assert_eq!(
+            shown,
+            model.roadmap_window().1.min(model.roadmap().rows().len())
+        );
+        page_pointer(
+            &mut model,
+            Widget::roadmap_row(0),
+            MouseKind::Down(Button::Left),
+        );
+        assert!(matches!(model.selected(), Some(Selected::Chunk(_))));
+        assert_eq!(model.tab(), StageTab::Roadmap);
+        let selected = model.selected().cloned();
+        let detailed = layout_for(&model);
+        assert!(detailed.rect(Widget::InspectorFields.id()).is_some());
+        if !model.flight_layout().compact {
+            assert!(detailed.rect(Widget::RoadmapTable.id()).is_some());
+        } else {
+            page_pointer(
+                &mut model,
+                Widget::TabRoadmap.id(),
+                MouseKind::Down(Button::Left),
+            );
+        }
+        page_pointer(
+            &mut model,
+            Widget::RoadmapSortName.id(),
+            MouseKind::Down(Button::Left),
+        );
+        assert_eq!(model.selected(), selected.as_ref());
+        page_pointer(
+            &mut model,
+            Widget::RoadmapFilter.id(),
+            MouseKind::Down(Button::Left),
+        );
+        assert_eq!(model.selected(), selected.as_ref());
+        assert_eq!(model.roadmap_window().0, model.roadmap().rows().len());
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::Text(" The worker resumed safely.".into())),
+        );
+        page_pointer(
+            &mut model,
+            Widget::TabTurn.id(),
+            MouseKind::Down(Button::Left),
+        );
+        assert_eq!(model.tab(), StageTab::Turn);
+        assert!(layout_for(&model).rect(Widget::Stage.id()).is_some());
+        assert_eq!(model.top_row(), top);
+        assert_eq!(model.prompt().text(), draft);
+    }
+}
+#[test]
+fn roadmap_work_list_and_details_scroll_independently_after_selection() {
+    let mut model = page_model(Size::new(144, 50), 10, 20);
+    let conversation = model.top_row();
+    page_pointer(
+        &mut model,
+        Widget::TabRoadmap.id(),
+        MouseKind::Down(Button::Left),
+    );
+    page_pointer(
+        &mut model,
+        Widget::roadmap_row(0),
+        MouseKind::Down(Button::Left),
+    );
+    let selection = model.selected().cloned();
+    let detail_top = model.inspector_scroll;
+    for _ in 0..4 {
+        page_pointer(&mut model, Widget::RoadmapTable.id(), MouseKind::ScrollDown);
+    }
+    Scenes::settle(&mut model);
+    assert!(model.roadmap_top() > 0);
+    assert_eq!(model.inspector_scroll, detail_top);
+    let list_top = model.roadmap_top();
+    page_pointer(
+        &mut model,
+        Widget::InspectorFields.id(),
+        MouseKind::ScrollDown,
+    );
+    assert!(model.inspector_scroll > detail_top);
+    assert_eq!(model.roadmap_top(), list_top);
+    assert_eq!(model.selected(), selection.as_ref());
+    assert_eq!(model.top_row(), conversation);
 }
 
 /// Every id-carrying rect, named.
@@ -264,7 +501,7 @@ fn styles(node: &Node, out: &mut Vec<Style>) {
 fn screen(model: &Model) -> String {
     let size = model.size();
     let root = view(model, &FrameClock::new(7, Duration::from_millis(1500)));
-    let resolved = layout(&root, size);
+    let resolved = layout_root_for(model, &root);
     let mut buffer = Buffer::new(size.cols, size.rows);
     paint(&root, &resolved, &mut buffer);
     let mut out = String::new();
@@ -411,6 +648,8 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::RoadmapSortWorkstream
                 | Widget::RoadmapStart
                 | Widget::RoadmapComplete
+                | Widget::RoadmapRequest
+                | Widget::RoadmapReset
                 | Widget::LaunchNext
                 | Widget::LaunchLoop
                 | Widget::LaunchGates
@@ -419,6 +658,13 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::RailGauge
                 | Widget::HeaderSpark
                 | Widget::Undock
+                | Widget::LatestDecision
+                | Widget::TracePrevious
+                | Widget::TraceNext
+                | Widget::PromptFiles
+                | Widget::Commands
+                | Widget::LinkedWork
+                | Widget::OverlayQuery
                 // The Moment's own button, laid out only on a plan ask
                 // that still has pictures to show.
                 | Widget::ShowImages
@@ -753,7 +999,7 @@ fn the_permission_strip_names_the_tool_and_offers_its_buttons_in_their_pens() {
     let mut lines = Vec::new();
     texts(&root, &mut lines);
     assert!(
-        lines.contains(&"⚠ Bash needs permission".to_owned()),
+        lines.contains(&"⚠ Run cargo nextest run -p magistr-tui needs permission".to_owned()),
         "{lines:?}"
     );
     assert!(lines.contains(&"[A] Allow".to_owned()));
@@ -786,7 +1032,8 @@ fn the_permission_strip_names_the_tool_and_offers_its_buttons_in_their_pens() {
     assert!(buttons.windows(2).all(|w| w[0].1 < w[1].1), "{buttons:?}");
     let screen = screen(&m);
     assert!(
-        screen.contains("⚠ Bash needs permission [A] Allow [\u{21e7}A] Always [D] Deny"),
+        screen.contains("⚠ Run cargo nextest run -p magistr-tui")
+            && screen.contains("[A] Allow [\u{21e7}A] Always [D] Deny"),
         "{screen}"
     );
 }
@@ -1131,7 +1378,7 @@ fn plan_ask_on(mut m: Model) -> Model {
         &mut m,
         AgentEvent::PermissionRequest {
             id: 1,
-            title: "Re-bless 12 golden screenshots".to_owned(),
+            title: "Run the recovery checks".to_owned(),
             choices: vec![
                 PermissionChoice::new("allow", PermissionKind::AllowOnce),
                 PermissionChoice::new("allow_always", PermissionKind::AllowAlways),
@@ -1141,11 +1388,11 @@ fn plan_ask_on(mut m: Model) -> Model {
             risk: RiskTier::High,
             plan: Some(
                 AskPlan::new([
-                    "Render the 6 surfaces in both themes",
-                    "Compare with goldens. Only status-bar rows may change",
-                    "Update matching goldens. Reject all others",
+                    "Save the retry schedule",
+                    "Restart a worker after the receipt commits",
+                    "Check that every tenant keeps its own retry budget",
                 ])
-                .scoped("goldens"),
+                .scoped("recovery checks"),
             ),
         },
     );
@@ -1170,12 +1417,12 @@ fn the_moment_shows_the_plan_the_checkpoint_and_the_scope() {
     let text = screen(&m);
     assert!(text.contains("PLAN · APPROVAL REQUIRED"), "{text}");
     assert!(text.contains("Checkpoint cp-1 saved"), "{text}");
+    assert!(text.contains("1. Save the retry schedule"), "{text}");
+    assert!(text.contains("3. Check that every tenant"), "{text}");
     assert!(
-        text.contains("1. Render the 6 surfaces in both themes"),
+        text.contains("⇧A · ALWAYS ALLOW (RECOVERY CHECKS)"),
         "{text}"
     );
-    assert!(text.contains("3. Update matching goldens"), "{text}");
-    assert!(text.contains("⇧A · ALWAYS ALLOW (GOLDENS)"), "{text}");
     assert!(text.contains("Add a condition."), "{text}");
 }
 
@@ -1187,7 +1434,7 @@ fn a_moment_with_no_checkpoint_names_none_rather_than_a_placeholder() {
         &mut m,
         AgentEvent::PermissionRequest {
             id: 1,
-            title: "Re-bless the goldens".to_owned(),
+            title: "Run the recovery checks".to_owned(),
             choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)],
             edit: false,
             // Not High: the spine mints nothing, so the card has no
@@ -1213,7 +1460,7 @@ fn show_images_is_offered_only_while_the_ask_still_has_pictures() {
         &mut m,
         AgentEvent::PermissionRequest {
             id: 1,
-            title: "Re-bless the goldens".to_owned(),
+            title: "Run the recovery checks".to_owned(),
             choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)],
             edit: false,
             risk: RiskTier::Medium,
@@ -1240,15 +1487,18 @@ fn show_images_is_offered_only_while_the_ask_still_has_pictures() {
 fn the_session_dims_behind_the_moment_and_never_blanks() {
     let after = screen(&plan_ask(Size::new(120, 40)));
     assert!(
-        after.contains("Re-bless 12 golden screenshots"),
+        after.contains("Run the recovery checks"),
         "the card is on screen: {after}"
     );
     // Whatever the stage was showing is still there — the dim moves
     // foregrounds and never grounds, so the session behind the decision
     // is quieter and not gone.
-    assert!(after.contains("implement the turn stage"), "{after}");
     assert!(
-        after.contains("I should read the roadmap chunk first"),
+        after.contains("Make retry budgets survive worker restarts."),
+        "{after}"
+    );
+    assert!(
+        after.contains("I will check how retries survive a worker"),
         "{after}"
     );
 }
@@ -1338,7 +1588,7 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
     assert_eq!(
         &lines[4..17],
         [
-            "a",
+            "Recovery checks",
             "iteration 2/5",
             "Research",
             "▸",
@@ -1372,7 +1622,7 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
     let mut found = Vec::new();
     styles(&root, &mut found);
     assert_eq!(
-        &found[2..28],
+        &found[2..29],
         &[
             pen.header.clone(),
             pen.always.clone(),
@@ -1391,6 +1641,7 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
             pen.gate_running.clone(),
             pen.stage.clone(),
             pen.note.clone(),
+            pen.rail.clone(),
             pen.rail.clone(),
             // The mini-DAG block's two summary lines, then the signals.
             pen.note.clone(),
@@ -1428,13 +1679,18 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
     );
     let screen = screen(&m);
     assert!(
-        screen.contains(
-            "a  iteration 2/5  Research▸Plan▸Execute▸Verify  ✓ check ✗ test ▘ lint  1m 23s"
-        ),
+        screen
+            .contains("iteration 2/5  Research▸Plan▸Execute▸Verify  ✓ check ✗ test ▘ lint  1m 23s"),
         "{screen}"
     );
     assert!(
-        screen.contains("starting iteration 2 — 3/10 chunks done"),
+        screen
+            .lines()
+            .nth(1)
+            .is_some_and(|line| line.starts_with("Reco"))
+    );
+    assert!(
+        screen.contains("Continuing recovery work — 3 of 10 items") && screen.contains("complete"),
         "{screen}"
     );
     // Paused and ended read on the strip and in the footer.
@@ -1584,12 +1840,12 @@ fn docked(size: Size) -> Model {
     let mut m = model_at(size);
     for chunk in [
         serde_json::json!({"chunk": {
-            "id": "tui2-3", "status": "backlog",
+            "id": "tui2-3", "name": "Saved retry limits", "status": "backlog",
             "reprioritize": {"suggested_priority": 300, "reason": "later"},
         }}),
         serde_json::json!({"chunk": {
-            "id": "tui2-4", "status": "blocked",
-            "blocked_by": {"kind": "awaiting_human", "reason": "needs a decision"},
+            "id": "tui2-4", "name": "Recovery checks", "status": "blocked",
+            "blocked_by": {"kind": "awaiting_human", "reason": "needs your answer"},
         }}),
     ] {
         update(
@@ -1615,13 +1871,13 @@ fn the_dock_grows_a_row_per_card_and_buttons_sit_on_the_front_card_only() {
     let root = view(&m, &clock());
     texts(&root, &mut lines);
     assert!(
-        lines.contains(&"◆ tui2-3: priority → 300 (later)".to_owned()),
+        lines.contains(&"◆ Saved retry limits: priority → 300 (later)".to_owned()),
         "{lines:?}"
     );
     assert!(lines.contains(&"[y] accept".to_owned()));
     assert!(lines.contains(&"[n] reject".to_owned()));
     assert!(
-        lines.contains(&"⊗ tui2-4 blocked: needs a decision".to_owned()),
+        lines.contains(&"⊗ Recovery checks blocked: needs your answer".to_owned()),
         "the queued card shows as text"
     );
     assert!(
@@ -1771,7 +2027,7 @@ fn a_switched_tab_shows_its_placeholder_and_the_bar_marks_it() {
         lines.contains(&"No session activity yet".to_owned()),
         "{lines:?}"
     );
-    assert!(!lines.contains(&"Still streaming".to_owned()));
+    assert!(!lines.contains(&"Checking the saved retry schedule".to_owned()));
     let pen = Pen::of(&m.theme().palette());
     let mut found = Vec::new();
     styles(&root, &mut found);
@@ -1782,7 +2038,11 @@ fn a_switched_tab_shows_its_placeholder_and_the_bar_marks_it() {
     );
     let mut lines = Vec::new();
     texts(&view(&m, &clock()), &mut lines);
-    assert!(lines.iter().any(|l| l.contains("Still streaming")));
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("Checking the saved retry schedule"))
+    );
 }
 
 #[test]
@@ -2129,11 +2389,35 @@ fn snap_trace_feed_120x40() {
         "the revision hint shows: {screen}"
     );
     assert!(
-        screen.contains("alt path (merged) from 2"),
+        screen.contains("Share retry budgets? (Findings used) after 2"),
         "the branch list shows: {screen}"
     );
     assert!(screen.contains("★"), "the pin star shows: {screen}");
     insta::assert_snapshot!(screen);
+}
+
+#[test]
+fn long_reasoning_questions_keep_the_plain_stage_boundary() {
+    for size in [Size::new(80, 24), Size::new(120, 40), Size::new(132, 42)] {
+        for model in [Scenes::traced(size), Scenes::roadmapped(size)] {
+            let root = view(&model, &clock());
+            let resolved = layout(&root, size);
+            let stage = resolved
+                .rect(Widget::Stage.id())
+                .expect("conversation area");
+            let mut buffer = Buffer::new(size.cols, size.rows);
+            paint(&root, &resolved, &mut buffer);
+            let edge = stage.x + stage.width;
+            for row in stage.y..stage.y + stage.height {
+                assert_eq!(
+                    buffer.get(edge, row).map(|cell| cell.symbol.as_ref()),
+                    Some("│"),
+                    "text crossed the stage boundary at ({edge}, {row}), stage={stage:?}, tab={:?}",
+                    model.tab()
+                );
+            }
+        }
+    }
 }
 
 #[test]
@@ -2151,12 +2435,12 @@ fn snap_trace_step_expanded_120x40() {
     for field in [
         "▾  1  hypothesis  0.62 ★",
         "hypothesis",
-        "step 1 · main",
-        "Unpin",
+        "Step 1 · Main investigation",
+        "Unsave",
         "More",
-        "thought · the feed can drive the",
-        "outcome · it can",
-        "next action · wire the view",
+        "Reasoning · Saved receipts",
+        "Result · The remaining budget",
+        "Next · Save each retry",
     ] {
         assert!(brief.contains(field), "{field} missing:\n{brief}");
     }
@@ -2176,10 +2460,10 @@ fn snap_trace_step_expanded_120x40() {
     let screen = screen(&m);
     for field in [
         "Less",
-        "context · the trace tab",
-        "rationale · one fold path for",
-        "uncertainty · no branch case yet",
-        "execution ref · task:trace-state",
+        "Context · worker recovery",
+        "Why · The receipt and budget",
+        "Still uncertain · The tenant",
+        "Confidence · 62%",
     ] {
         assert!(screen.contains(field), "{field} missing:\n{screen}");
     }
@@ -2230,8 +2514,8 @@ fn session_receipts_and_reports_share_the_inspector() {
         assert!(card(&m).contains(expected));
     }
     let detail = card(&m);
-    assert!(detail.contains("exit code · 101"), "{detail}");
-    assert!(detail.contains("duration · 800 ms"), "{detail}");
+    assert!(detail.contains("Exit code · 101"), "{detail}");
+    assert!(detail.contains("Duration · 800 ms"), "{detail}");
     assert!(detail.contains("2026-09-15T12:01:00Z"), "{detail}");
     let timeline = m.session_window();
     update(
@@ -2291,7 +2575,7 @@ fn the_trace_graph_block_is_laid_out_only_with_branches() {
     let m = Scenes::traced(Size::new(120, 40));
     let resolved = layout(&view(&m, &clock()), Size::new(120, 40));
     assert!(
-        placement(&resolved).contains("trace graph"),
+        resolved.rect(Widget::TraceGraph.id()).is_some(),
         "the graph block is placed"
     );
     let mut plain = Model::new(Size::new(120, 40));
@@ -2310,7 +2594,7 @@ fn the_trace_graph_block_is_laid_out_only_with_branches() {
     );
     let resolved = layout(&view(&plain, &clock()), Size::new(120, 40));
     assert!(
-        !placement(&resolved).contains("trace graph"),
+        resolved.rect(Widget::TraceGraph.id()).is_none(),
         "no branches, no block"
     );
 }
@@ -2322,15 +2606,15 @@ fn snap_roadmap_list_120x40() {
     let screen = screen(&m);
     for text in [
         "roadmap   1 done",
-        "«Engine» 1/1",
-        "«TUI rewrite» 0/2",
+        "«Storage» 1/1",
+        "«Retry recovery» 0/2",
         "Status: Active",
         "Name",
         "Status↑",
         "Pri",
         "Stream",
-        "▸ Rail and dock",
-        "○ Roadmap view",
+        "▸ Saved retry limi…",
+        "○ Recovery checks",
         "◆ make startup faster",
     ] {
         assert!(screen.contains(text), "{text} missing: {screen}");
@@ -2358,18 +2642,17 @@ fn snap_roadmap_detail_120x40() {
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
     let screen = screen(&m);
     for needle in [
-        "○ Roadmap view",
+        "○ Recovery checks",
         "priority → 100 · sooner",
         "Accept",
         "Reject",
         "Start",
-        "title · The Roadmap tab of the",
-        "cockpit",
-        "The tech-tree, the",
-        "acceptance 1 · the DAG renders",
-        "acceptance 2 · clicks select",
-        "depends on · tui2-2-rail",
-        "references · think:190",
+        "Title · Recover delivery",
+        "Description · Resume saved",
+        "Success condition 1 · saved",
+        "Success condition 2 · tenant",
+        "Depends on · Saved retry limits",
+        "Related work · Unavailable work",
     ] {
         assert!(screen.contains(needle), "{needle} missing:\n{screen}");
     }
@@ -2416,7 +2699,7 @@ fn a_hover_line_uses_the_pinned_roadmap_heading() {
     );
     let screen = screen(&m);
     assert!(
-        screen.contains("▲ Rail and dock —"),
+        screen.contains("▲ Saved retry limits —"),
         "the hover line shows: {screen}"
     );
 }
@@ -2445,7 +2728,7 @@ fn a_tree_selected_done_chunk_shows_its_card_in_the_inspector() {
     assert_eq!(m.roadmap().selected().map(|c| c.id.as_str()), Some("acp-2"));
     let screen = screen(&m);
     assert!(
-        screen.contains("ACP transport") && screen.contains("✓ done"),
+        screen.contains("Receipt storage") && screen.contains("✓ Completed"),
         "the card shows in the inspector: {screen}"
     );
 }
@@ -2468,13 +2751,20 @@ fn think_step_frame(m: &mut Model, number: u32) {
 #[test]
 fn snap_undocked_trace_180x50() {
     let mut m = Scenes::roadmapped(Size::new(180, 50));
-    assert_eq!(m.undocked_tab(), Some(StageTab::Session));
+    assert_eq!(m.undocked_tab(), None);
     think_step_frame(&mut m, 7);
+    update(
+        &mut m,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::TabSession.id()),
+        },
+    );
     let screen = screen(&m);
-    assert!(screen.contains("⇱ Session"), "{screen}");
+    assert!(!screen.contains("⇱ Session"), "{screen}");
     assert!(screen.contains("▸  7  hypothesis  0.70"), "{screen}");
     assert!(
-        screen.contains("▲ Rail and dock"),
+        screen.contains("▲ Saved retry limits"),
         "the rail's summary shows beside it: {screen}"
     );
     insta::assert_snapshot!(screen);
@@ -2507,46 +2797,50 @@ fn the_undock_needs_width_and_never_doubles_the_active_tab() {
 }
 
 #[test]
-fn mouse_hits_resolve_across_all_three_columns() {
-    let mut m = Scenes::roadmapped(Size::new(180, 50));
-    think_step_frame(&mut m, 7);
-    let resolved = layout(&view(&m, &clock()), m.size());
+fn plain_roadmap_hits_open_the_selected_work_without_an_extra_session_column() {
+    let mut model = Scenes::roadmapped(Size::new(180, 50));
+    let resolved = layout_for(&model);
     let mut hits = crate::hit::HitRegistry::new();
     hits.register_layout(&resolved, 0);
-    let rect_of = |id: crate::WidgetId| {
+    let rect = |id| {
         resolved
             .placed()
             .iter()
             .find(|p| p.id == Some(id))
-            .map(|p| p.rect)
             .expect("placed")
+            .rect
     };
-    // The left column: the rail's toggle.
-    let rail = rect_of(Widget::RailToggle.id());
+    let rail = rect(Widget::RailToggle.id());
     assert_eq!(hits.hit(rail.x, rail.y), Some(Widget::RailToggle.id()));
-    // The middle: the roadmap list's first row.
-    let row = rect_of(Widget::roadmap_row(0));
-    assert_eq!(hits.hit(row.x + 2, row.y), Some(Widget::roadmap_row(0)));
-    // The right column: the undocked trace step — and the click lands.
-    let step = rect_of(Widget::trace_row(0));
-    let target = hits.hit(step.x + 2, step.y);
-    assert_eq!(target, Some(Widget::trace_row(0)));
-    assert!(!m.trace().is_expanded(7));
+    let row = rect(Widget::roadmap_row(0));
+    let target = hits.hit(row.x + 2, row.y);
+    assert_eq!(target, Some(Widget::roadmap_row(0)));
+    let work = model.roadmap().rows()[0].id.clone();
     update(
-        &mut m,
+        &mut model,
         Msg::Mouse {
-            event: MouseEvent::new(MouseKind::Down(Button::Left), step.x + 2, step.y),
+            event: MouseEvent::new(MouseKind::Down(Button::Left), row.x + 2, row.y),
             target,
         },
     );
-    assert!(m.trace().is_expanded(7), "the undocked row took the click");
+    assert_eq!(
+        model.selected(),
+        Some(&crate::cockpit::Selected::Chunk(work))
+    );
+    assert_eq!(model.undocked_tab(), None);
+    assert!(
+        layout_for(&model)
+            .placed()
+            .iter()
+            .any(|p| p.id == Some(Widget::InspectorFields.id()))
+    );
 }
 
 #[test]
 fn the_rail_swaps_its_two_line_summary_for_the_pixel_block() {
     let mut m = Scenes::roadmapped(Size::new(120, 40));
     let cells = screen(&m);
-    assert!(cells.contains("▲ Rail and dock"), "{cells}");
+    assert!(cells.contains("▲ Saved retry limits"), "{cells}");
     assert!(cells.contains("1 before · 1 after"), "{cells}");
     assert!(cells.contains("▰"), "the progress bar renders: {cells}");
     assert!(cells.contains("1/3"), "the bar carries the count: {cells}");
@@ -3194,11 +3488,11 @@ fn the_streaming_block_shimmers_on_its_gutter_and_only_there() {
     let mut m = Scenes::streaming(Size::new(120, 40));
     assert!(m.is_animating());
     let pen = Pen::for_theme(&m.theme());
-    let tail = row_of(&m, "Still streaming");
+    let tail = row_of(&m, "Checking the saved retry schedule");
     // The row above the tail: one step apart on the wave, so the two
     // never share a phase (the wave is symmetric, the offsets are not).
     let head = tail - 1;
-    let thought = row_of(&m, "I should read the roadmap");
+    let thought = row_of(&m, "I will check how retries");
     let col = gutter_col(&m, usize::from(tail)).expect("the tail row has a gutter");
     assert_eq!(gutter_col(&m, usize::from(thought)), Some(col));
 
@@ -3275,7 +3569,7 @@ fn a_dock_arrival_pulses_the_card_and_settles() {
     let mut m = Scenes::permission(Size::new(120, 40));
     let pen = Pen::for_theme(&m.theme());
     assert_eq!(m.motion().dock_transition((m.ticks()) as f32), Some(0.0));
-    let row = row_of(&m, "Bash needs permission");
+    let row = row_of(&m, "Run cargo nextest run -p magistr-tui needs permission");
     let line = screen(&m)
         .lines()
         .nth(usize::from(row))
@@ -3676,16 +3970,13 @@ mod pixel_chrome {
             cells.starts_with(&format!("{} magistr", Icons::UNICODE.brand)),
             "the glyph leads the bar in cells: {cells:?}"
         );
-        let pixels = row_with(&with_pixels(model()), "magistr");
+        let native = with_pixels(model());
+        let pixels = row_with(&native, "MAGISTR");
         assert!(
-            pixels.contains("  magistr"),
-            "the pixel mark keeps a blank cell before the product name: {pixels:?}"
+            !pixels.contains(Icons::UNICODE.brand),
+            "the proportional wordmark has no terminal-cell brand glyph: {pixels:?}"
         );
-        assert_eq!(
-            cells.chars().count(),
-            pixels.chars().count() + 1,
-            "pixel mode adds one outer gutter cell while preserving the brand slot"
-        );
+        assert!(layout_for(&native).rect(Widget::TabTurn.id()).is_some());
     }
 
     /// the monitor draws itself in from the
@@ -3774,19 +4065,19 @@ mod pixel_chrome {
             "the quiet frames before the session pad the left, then one \
              event and two: half the ramp, then its top"
         );
-        // With pixels the same slot is blank for the sparkline.
-        let pixels = row_with(&with_pixels(busy()), "magistr");
+        // The graphics header names the current activity directly.
+        let native = with_pixels(busy());
+        let pixels = row_with(&native, "MAGISTR");
         assert!(
             !pixels
                 .chars()
                 .any(|c| Icons::SPARK.contains(&c.to_string().as_str())),
             "the cells stand down for the surface: {pixels:?}"
         );
-        assert_eq!(
-            cells.chars().count(),
-            pixels.chars().count() + 1,
-            "the graphics gutter adds one visible cell without changing the monitor slot"
-        );
+        let mut labels = Vec::new();
+        texts(&view(&native, &clock()), &mut labels);
+        assert!(labels.iter().any(|label| label == "Working"));
+        assert!(layout_for(&native).rect(Widget::HeaderSpark.id()).is_none());
     }
 
     /// the monitor plots what the session spends.
@@ -3886,7 +4177,7 @@ mod pixel_chrome {
         );
         // And the driver's slice of that row covers the bar, not the
         // label: the four cells of " 1/4" are left to the text.
-        let row = layout(&view(&m, &clock()), m.size())
+        let row = layout_for(&m)
             .placed()
             .iter()
             .find_map(|p| (p.id == Some(Widget::RailGauge.id())).then_some(p.rect))
@@ -3992,7 +4283,7 @@ fn pictured(size: Size) -> Model {
 fn image_cells(model: &Model) -> Vec<(String, Color, Color)> {
     let size = model.size();
     let root = view(model, &clock());
-    let resolved = layout(&root, size);
+    let resolved = layout_root_for(model, &root);
     let mut buffer = Buffer::new(size.cols, size.rows);
     paint(&root, &resolved, &mut buffer);
     let mut rows = Vec::new();
@@ -4357,42 +4648,45 @@ fn the_scale_reads_beside_the_workstream_legend_once_the_tree_is_zoomed() {
 }
 
 #[test]
-fn the_undock_column_windows_by_the_same_rows_as_the_stage() {
+fn large_terminals_keep_one_recorded_work_view() {
     for size in [Size::new(160, 24), Size::new(180, 50), Size::new(200, 40)] {
-        let mut m = Scenes::roadmapped(size);
-        think_step_frame(&mut m, 7);
-        let resolved = layout(&view(&m, &clock()), size);
-        let rect_of = |id: crate::WidgetId| {
-            resolved
-                .placed()
-                .iter()
-                .find(|p| p.id == Some(id))
-                .map(|p| p.rect)
-                .expect("placed")
-        };
-        let undock = rect_of(Widget::Undock.id());
-        // The third column sits in the same body row as the stage, so it
-        // is always the stage's height plus the panel ring and the tab
-        // bar — and its own chrome, a cell of padding at each edge plus
-        // the ⇱ heading, comes to exactly those three rows. The two
-        // cancel: what the column can show is the stage's own window for
-        // the tab it holds, row for row. That identity is what lets the
-        // undocked tab share the tab's viewport instead of minting one
-        //  — break it and the column starts clipping.
-        assert_eq!(
-            rect_of(Widget::Stage.id()).height + 3,
-            undock.height,
-            "{size:?}"
-        );
-        let chrome = 1 + 2 * usize::from(Space::PAD);
-        assert_eq!(m.undocked_tab(), Some(StageTab::Session));
-        assert_eq!(
-            m.session_window().1 + m.trace().pinned_rows(m.has_pixels()) + chrome,
-            usize::from(undock.height),
-            "the trace feed fills the column exactly at {size:?}"
-        );
-        let on_session = m.with_tab(StageTab::Session);
-        assert_eq!(on_session.undocked_tab(), None);
+        for pixels in [false, true] {
+            let mut model = Scenes::roadmapped(size);
+            think_step_frame(&mut model, 7);
+            if pixels {
+                model = model.with_tab(StageTab::Turn);
+                update(
+                    &mut model,
+                    Msg::Mode(crate::capability::Mode::Graphics {
+                        pointer_shapes: true,
+                    }),
+                );
+            }
+            assert_eq!(model.undocked_tab(), None);
+            let resolved = layout_for(&model);
+            assert!(
+                !resolved
+                    .placed()
+                    .iter()
+                    .any(|placed| placed.id == Some(Widget::Undock.id()))
+            );
+            assert_eq!(
+                resolved
+                    .placed()
+                    .iter()
+                    .filter(|placed| placed.id == Some(Widget::Stage.id()))
+                    .count(),
+                1
+            );
+            let session = model.with_tab(StageTab::Session);
+            assert_eq!(session.undocked_tab(), None);
+            assert!(
+                layout_for(&session)
+                    .placed()
+                    .iter()
+                    .any(|placed| placed.id == Some(Widget::trace_row(0)))
+            );
+        }
     }
 }
 
@@ -4464,8 +4758,8 @@ fn an_execution_ref_that_names_a_chunk_is_a_link_and_one_that_names_none_is_not(
     assert!(plain.inspector_open(), "More opened the full card");
     assert!(!placed_ids(&plain).contains(&Widget::trace_chunk(1)));
     assert!(
-        screen(&plain).contains("execution ref · task:trace-state"),
-        "{}",
+        !screen(&plain).contains("task:trace-state"),
+        "Missing linked work never exposes an internal reference: {}",
         screen(&plain)
     );
 }
@@ -4518,7 +4812,7 @@ fn the_strip_shows_the_judge_led_only_once_a_verdict_exists() {
 fn pane_cells(model: &Model) -> Vec<Vec<(String, Color, Color, crate::render::Attrs)>> {
     let size = model.size();
     let root = view(model, &clock());
-    let resolved = layout(&root, size);
+    let resolved = layout_root_for(model, &root);
     let mut buffer = Buffer::new(size.cols, size.rows);
     paint(&root, &resolved, &mut buffer);
     let mut rows = Vec::new();
@@ -4807,14 +5101,8 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
                     Widget::change_row(0),
                 ),
             ] {
-                update(
-                    &mut m,
-                    Msg::Mouse {
-                        event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
-                        target: Some(target),
-                    },
-                );
                 if pixels {
+                    m = m.with_tab(StageTab::Turn);
                     update(
                         &mut m,
                         Msg::Mode(crate::capability::Mode::Graphics {
@@ -4822,8 +5110,49 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
                         }),
                     );
                 }
-                let root = view(&m, &clock());
-                let resolved = layout(&root, m.size());
+                update(
+                    &mut m,
+                    Msg::Mouse {
+                        event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                        target: Some(target),
+                    },
+                );
+                let resolved = layout_for(&m);
+                if pixels {
+                    let physical = |widget: Widget| {
+                        resolved
+                            .placed()
+                            .iter()
+                            .find(|p| p.id == Some(widget.id()))
+                            .expect("pixel panel")
+                            .px
+                    };
+                    let conversation = physical(Widget::Stage);
+                    let inspector = physical(Widget::Inspector);
+                    let fields = physical(Widget::InspectorFields);
+                    assert!(conversation.width > 0.0 && conversation.height > 0.0);
+                    if !m.flight_layout().compact {
+                        assert!(inspector.x >= conversation.x + conversation.width);
+                    } else {
+                        assert!(inspector.width > conversation.width);
+                        assert!(
+                            inspector.y + inspector.height
+                                <= f32::from(rows) * f32::from(m.cell_size().height)
+                        );
+                    }
+                    assert!(fields.width > 0.0 && fields.height > 0.0);
+                    assert!(fields.x >= inspector.x && fields.y >= inspector.y);
+                    assert!(fields.x + fields.width <= inspector.x + inspector.width + 0.01);
+                    assert!(fields.y + fields.height <= inspector.y + inspector.height + 0.01);
+                    let before = (m.turn().len(), m.top_row(), m.prompt().text().to_owned());
+                    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+                    assert_eq!(
+                        before,
+                        (m.turn().len(), m.top_row(), m.prompt().text().to_owned()),
+                        "disclosure preserves the conversation and draft"
+                    );
+                    continue;
+                }
                 let rect = |widget: Widget| {
                     resolved
                         .placed()
@@ -4912,6 +5241,9 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
             for pixels in [false, true] {
                 let mut m = model.clone();
                 if pixels {
+                    if matches!(name, "launcher" | "palette") {
+                        m = m.with_tab(StageTab::Turn);
+                    }
                     update(
                         &mut m,
                         Msg::Mode(crate::capability::Mode::Graphics {
@@ -4919,17 +5251,57 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
                         }),
                     );
                 }
-                let resolved = layout(&view(&m, &clock()), size);
+                let resolved = layout_for(&m);
                 let inspector = resolved
                     .placed()
                     .iter()
                     .find(|p| p.id == Some(Widget::Inspector.id()))
-                    .expect("inspector is registered")
-                    .rect;
-                assert!(
-                    inspector.height >= 7 && inspector.width > 0,
-                    "{name} {cols}x{rows} pixels={pixels}: inspector remains visible: {inspector:?}"
-                );
+                    .or_else(|| {
+                        pixels
+                            .then(|| {
+                                resolved
+                                    .placed()
+                                    .iter()
+                                    .find(|p| p.id == Some(Widget::InspectorFields.id()))
+                            })
+                            .flatten()
+                    });
+                if let Some(inspector) = inspector {
+                    let inspector = inspector.rect;
+                    assert!(
+                        inspector.height >= if pixels { 1 } else { 7 } && inspector.width > 0,
+                        "{name} {cols}x{rows} pixels={pixels}: inspector remains visible: {inspector:?}"
+                    );
+                } else {
+                    assert!(
+                        pixels && m.flight_layout().compact && m.pane() == Pane::Stage,
+                        "{name}: only a compact main view may have closed details"
+                    );
+                    let main = match m.tab() {
+                        StageTab::Turn => Widget::Stage,
+                        StageTab::Roadmap => Widget::RoadmapTable,
+                        other => panic!("{name}: unexpected main view {other:?}"),
+                    };
+                    let main = resolved
+                        .placed()
+                        .iter()
+                        .find(|p| p.id == Some(main.id()))
+                        .expect("the compact main view remains present")
+                        .px;
+                    let prompt = resolved
+                        .placed()
+                        .iter()
+                        .find(|p| p.id == Some(Widget::Prompt.id()))
+                        .expect("the composer remains present")
+                        .px;
+                    assert!(main.width > 0.0 && main.height > 0.0);
+                    assert!(main.y + main.height <= prompt.y);
+                    assert!(main.x >= 0.0 && main.x + main.width <= m.flight_layout().screen_width);
+                    if m.tab() == StageTab::Roadmap {
+                        assert!(resolved.rect(Widget::roadmap_row(0)).is_some());
+                        assert!(resolved.rect(Widget::TabTurn.id()).is_some());
+                    }
+                }
                 for placed in resolved.placed() {
                     let rect = placed.rect;
                     assert!(

@@ -3,15 +3,15 @@ source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen
 ---
 ▲ magistr  idle                                                                                                    00:01
-tabs  Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
+Worker recovery  Research▸Plan▸Execute▸Verify
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a record to see details.   │
 │no objective yet          │ │roadmap   2 done · 1 active · 1 pending · 0 backlog│  │                                  │
-│▲ tabs · 2/4              │ │«ungrouped» 2/4                                    │  │                                  │
+│▲ Worker recovery · 2/4   │ │«ungrouped» 2/4                                    │  │                                  │
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │Status: Active ▾ · 2                               │  │                                  │
-│▲ Tabs                    │ │Name                Status↑    Pri   Stream        │  │                                  │
-│0 before · 1 after        │ │▸ Tabs              working    200                 │  │                                  │
-│signals 0                 │ │○ Launcher          pending    300                 │  │                                  │
+│▲ Worker recovery         │ │Name                Status↑    Pri   Stream        │  │                                  │
+│0 before · 1 after        │ │▸ Worker recovery   working    200                 │  │                                  │
+│signals 0                 │ │○ Recovery checks   pending    300                 │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
@@ -22,10 +22,10 @@ tabs  Research▸Plan▸Execute▸Verify
 │                          │╭─ commands ───────────────────────────────────────────────────╮                           │
 │                          ││                                                              │                           │
 │                          ││ Search · gates                                               │                           │
-│                          ││ gates                                                        │                           │
-│                          ││ Resume Aug 27 19:41 · gates failed on lint                   │                           │
+│                          ││ Resume Aug 28 14:02 · Added saved retry budgets              │                           │
 │                          ││                                                              │                           │
 │                          │╰──────────────────────────────────────────────────────────────╯                           │
+│                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
@@ -41,4 +41,4 @@ tabs  Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- alt-n  next   alt-l  loop   alt-g  gates   ctrl-p  commands   ctrl-d  quit
+ alt-n  start next item   alt-l  continue work   alt-g  run checks   ctrl-p  commands   ctrl-d  quit

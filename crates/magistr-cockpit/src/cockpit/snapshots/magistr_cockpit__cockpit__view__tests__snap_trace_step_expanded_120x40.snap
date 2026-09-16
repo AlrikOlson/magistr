@@ -4,28 +4,28 @@ expression: screen
 ---
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                             │  │ hypothesis                       │
-│no objective yet          │ │session · 5 steps · 1 branch · 1 pinned · 0 changes│  │ ★ recorded                       │
-│roadmap 0/0 done          │ │main · 3 steps                                     │  │ step 1 · main                    │
-│signals 0                 │ │└─ alt path (merged) from 2 · 2 steps              │  │ Unpin Checkpoint Less            │
-│                          │ │time unknown ▾  1  hypothesis  0.62 ★              │  │ purpose · hypothesis             │
-│                          │ │time unknown ▸  2  analysis · revised by 5  0.70   │  │ context · the trace tab          │
-│                          │ │time unknown ▸  3  hypothesis (alt path)           │  │ thought · the feed can drive the │
-│                          │ │time unknown ▸  4  validation (b-alt)              │  │ whole surface                    │
-│                          │ │time unknown ▸  5  correction                      │  │ outcome · it can                 │
-│                          │ │time unknown ▸ code · wired the trace tab          │  │ next action · wire the view      │
-│                          │ │time unknown ✓ test · exit 0 · 5.4s                │  │ rationale · one fold path for    │
-│                          │ │time unknown ✗ lint · exit 101 · 900ms             │  │ feed and port                    │
-│                          │ │                                                   │  │ confidence · 0.62                │
-│                          │ │                                                   │  │ uncertainty · no branch case yet │
-│                          │ │                                                   │  │ estimated total · 4              │
-│                          │ │                                                   │  │ depends on · 7, 9                │
-│                          │ │                                                   │  │ execution ref · task:trace-state │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
+│no objective yet          │ │session · 5 steps · 1 branch · 1 pinned · 0 changes│  │ ★ Recorded                       │
+│roadmap 0/0 done          │ │Main reasoning · 3 steps                           │  │ Step 1 · Main investigation      │
+│signals 0                 │ │└─ Share retry budgets? (Findings used) after 2 · 2│  │ Unsave Checkpoint Less           │
+│                          │ │time unknown ▾  1  hypothesis  0.62 ★              │  │ Step · hypothesis                │
+│                          │ │time unknown ▸  2  analysis · revised by 5  0.70   │  │ Context · worker recovery        │
+│                          │ │time unknown ▸  3  hypothesis (Share retry         │  │ Reasoning · Saved receipts can   │
+│                          │ │time unknown ▸  4  validation (Share retry         │  │ preserve retry budgets after     │
+│                          │ │time unknown ▸  5  correction                      │  │ restart.                         │
+│                          │ │time unknown ▸ code · Saved retry budgets with     │  │ Result · The remaining budget    │
+│                          │ │time unknown ✓ test · exit 0 · 5.4s                │  │ survives a restart.              │
+│                          │ │time unknown ✗ lint · exit 101 · 900ms             │  │ Next · Save each retry with its  │
+│                          │ │                                                   │  │ receipt.                         │
+│                          │ │                                                   │  │ Why · The receipt and budget     │
+│                          │ │                                                   │  │ commit in the same transaction.  │
+│                          │ │                                                   │  │ Confidence · 62%                 │
+│                          │ │                                                   │  │ Still uncertain · The tenant     │
+│                          │ │                                                   │  │ isolation check is still         │
+│                          │ │                                                   │  │ pending.                         │
+│                          │ │                                                   │  │ Expected steps · 4               │
+│                          │ │                                                   │  │ Related steps · 7, 9             │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
@@ -41,4 +41,4 @@ Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  scroll   enter  detail   esc  less detail   tab / shift-tab  switch pane
+ ↑↓  scroll   enter  detail   esc  less detail   tab / shift-tab  move focus

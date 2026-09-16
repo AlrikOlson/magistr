@@ -183,8 +183,8 @@ fn results_group_by_kind_cut_each_kind_and_count_every_hit() {
     chord(&mut model);
     typed(&mut model, "contrast floor");
     let results = Search::results(&model);
-    assert_eq!(results.total, 6, "4 chapters + 1 step + 1 receipt");
-    assert_eq!(results.count_text(), "6 results");
+    assert_eq!(results.total, 7, "4 reports + 1 step + 1 action + 1 check");
+    assert_eq!(results.count_text(), "7 results");
     let kinds: Vec<SearchKind> = results.rows.iter().map(|hit| hit.kind).collect();
     assert_eq!(
         kinds,
@@ -192,6 +192,7 @@ fn results_group_by_kind_cut_each_kind_and_count_every_hit() {
             SearchKind::Report,
             SearchKind::Report,
             SearchKind::Trace,
+            SearchKind::Receipt,
             SearchKind::Receipt
         ]
     );
@@ -205,7 +206,7 @@ fn results_group_by_kind_cut_each_kind_and_count_every_hit() {
     let step = &results.rows[2];
     assert!(
         step.line
-            .starts_with("think:387 \u{b7} \u{201c}\u{2026}the pen"),
+            .starts_with("Step 387 \u{b7} \u{201c}\u{2026}the pen"),
         "{}",
         step.line
     );
@@ -218,7 +219,7 @@ fn results_group_by_kind_cut_each_kind_and_count_every_hit() {
     let receipt = &results.rows[3];
     assert_eq!(
         receipt.line,
-        "#198 \u{b7} code \u{b7} theme/ink.rs \u{b7} ensure_contrast at the consumer"
+        "ensure_contrast at the consumer \u{b7} code \u{b7} theme/ink.rs"
     );
     assert_eq!(
         &receipt.line[receipt.marks[0].0..receipt.marks[0].1],

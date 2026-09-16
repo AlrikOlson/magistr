@@ -38,6 +38,7 @@ fn every_field_is_read_off_a_full_step() {
     assert_eq!(step.confidence, Some(0.7));
     assert_eq!(step.uncertainty, "no repro yet");
     assert_eq!(step.revises, Some(4));
+    assert_eq!(step.revision_reason, "wrong layer");
     assert_eq!(step.revised_by, Some(9));
     assert!(step.is_final);
     assert_eq!(step.branch_id.as_deref(), Some("b-cache"));
@@ -58,6 +59,12 @@ fn a_bare_step_has_empty_text_and_every_flag_off() {
     assert!(!step.is_final);
     assert!(step.dependencies.is_empty());
     assert_eq!(step.branch_id, None);
+    assert!(
+        !step
+            .fields()
+            .iter()
+            .any(|(label, _)| *label == "Confidence")
+    );
 }
 
 #[test]

@@ -845,7 +845,7 @@ fn agent_events_fold_into_the_turn_and_move_its_state() {
         },
     );
     agent(&mut m, AgentEvent::Error("pipe closed".to_owned()));
-    assert_eq!(m.turn_state(), TurnState::Streaming);
+    assert_eq!(m.turn_state(), TurnState::AwaitingInput);
     assert_eq!(
         stage(&m),
         [
@@ -854,7 +854,7 @@ fn agent_events_fold_into_the_turn_and_move_its_state() {
             "Sure.",
             "Step one.",
             "✓ run    cargo test · 842ms",
-            "error: pipe closed"
+            "pipe closed"
         ]
     );
     let kinds: Vec<RowKind> = m.turn().rows().iter().map(|r| r.kind).collect();
@@ -874,11 +874,11 @@ fn a_turn_that_ends_early_leaves_a_note() {
     use crate::agent::TurnEnd;
     use crate::turn::RowKind;
     for (end, why) in [
-        (TurnEnd::MaxTokens, "the token limit was hit"),
-        (TurnEnd::MaxTurnRequests, "the turn-request limit was hit"),
-        (TurnEnd::Refusal, "the model refused"),
-        (TurnEnd::Cancelled, "cancelled"),
-        (TurnEnd::Other, "the agent stopped"),
+        (TurnEnd::MaxTokens, "The response reached its length limit."),
+        (TurnEnd::MaxTurnRequests, "The request limit was reached."),
+        (TurnEnd::Refusal, "The agent declined this request."),
+        (TurnEnd::Cancelled, "Stopped."),
+        (TurnEnd::Other, "The agent stopped."),
     ] {
         let mut m = model();
         agent(&mut m, AgentEvent::Text("partial".to_owned()));
@@ -891,7 +891,7 @@ fn a_turn_that_ends_early_leaves_a_note() {
             .map(|r| r.text.as_str())
             .collect();
         assert!(!note.is_empty(), "a note");
-        assert_eq!(note.join(" "), format!("turn ended early: {why}"));
+        assert_eq!(note.join(" "), why);
     }
 }
 
@@ -1070,7 +1070,7 @@ fn ship_and_think_frames_land_as_cards_in_the_turn() {
         [
             "▸ objective set · goal",
             "▸ task started · wire the cards",
-            "✦ think 42 · open the iteration",
+            "✦ Step 42 · open the iteration",
             "✗ gate   cargo test · exit 101 · 2.3s",
             "▸ objective shipped",
         ],
@@ -3497,7 +3497,7 @@ fn roadmap_model() -> Model {
             progress: crate::harness::fixtures::progress(1, 3),
             chunks: crate::harness::fixtures::chunks_from(vec![
                 serde_json::json!({"id": "base", "status": "done", "priority": 100, "group": "Core"}),
-                serde_json::json!({"id": "mid", "status": "in_progress", "priority": 100, "group": "Core", "deps": ["base"]}),
+                serde_json::json!({"id": "mid", "name": "Run the work", "status": "in_progress", "priority": 100, "group": "Core", "deps": ["base"]}),
                 proposed,
             ]),
             signals: crate::harness::fixtures::signals_from(vec![serde_json::json!({
@@ -4357,8 +4357,8 @@ fn a_launcher_job_populates_the_cards() {
 fn terminal_launch_actions_dispatch_from_footer_palette_and_chords() {
     for (index, c, query, action) in [
         (0, 'n', "next", LaunchAction::Next),
-        (1, 'l', "loop", LaunchAction::Loop),
-        (2, 'g', "gates", LaunchAction::Gates),
+        (1, 'l', "continue work", LaunchAction::Loop),
+        (2, 'g', "run checks", LaunchAction::Gates),
     ] {
         for tab in StageTab::ALL {
             let mut m = crate::harness::Scenes::launcher(Size::new(120, 40)).with_tab(tab);
@@ -5488,73 +5488,76 @@ fn notch(kind: MouseKind, col: u16, row: u16) -> Msg {
     }
 }
 
+fn recorded_workspace() -> Model {
+    let mut model = undocked(60, 200);
+    model.pixels = true;
+    model.sync_flight_wrap();
+    model.show(StageTab::Session);
+    model
+}
+fn area_notch(kind: MouseKind, widget: Widget) -> Msg {
+    Msg::Mouse {
+        event: MouseEvent::new(kind, 0, 0),
+        target: Some(widget.id()),
+    }
+}
 #[test]
-fn a_notch_over_the_undocked_column_moves_that_column_and_not_the_turn() {
-    let mut m = undocked(60, 200);
-    assert_eq!(m.undocked_tab(), Some(StageTab::Session));
+fn recorded_work_and_conversation_scroll_independently_without_an_extra_column() {
+    let mut m = recorded_workspace();
+    assert_eq!(m.undocked_tab(), None);
     let (total, height) = m.session_window();
-    assert!(total > height, "the feed is longer than the column");
-    let turn_before = m.top_row();
+    assert!(total > height);
+    let turn_before = m.conversation_top();
     let tail = m.session_top();
-    assert_eq!(tail, total - height, "a fresh feed follows its tail");
-
-    // Over the third column: the feed moves, the turn stays put.
-    update(&mut m, notch(MouseKind::ScrollUp, 150, 20));
+    update(
+        &mut m,
+        area_notch(MouseKind::ScrollUp, Widget::InspectorFields),
+    );
     settle(&mut m);
     assert_eq!(m.session_top(), tail - Viewport::WHEEL);
-    assert_eq!(m.top_row(), turn_before, "the turn did not move");
-
-    // Over the stage, one column short of the divider: the turn moves
-    // and the feed stays where the last notch left it.
+    assert_eq!(m.conversation_top(), turn_before);
     let feed = m.session_top();
-    update(&mut m, notch(MouseKind::ScrollUp, 60, 20));
+    update(&mut m, area_notch(MouseKind::ScrollUp, Widget::Stage));
     settle(&mut m);
-    assert_eq!(m.top_row(), turn_before - Viewport::WHEEL);
-    assert_eq!(m.session_top(), feed, "the feed did not move");
     assert_eq!(
-        wheeled_undock(&m, &MouseEvent::new(MouseKind::ScrollUp, 131, 20)),
-        None,
-        "the divider column is still the stage's"
+        m.conversation_top(),
+        turn_before - m.conversation_wheel() as f32
     );
+    assert_eq!(m.session_top(), feed);
 }
-
 #[test]
-fn a_trace_feed_longer_than_the_column_reaches_both_its_head_and_its_tail() {
-    let mut m = undocked(60, 200);
+fn the_recorded_work_list_reaches_its_head_and_tail() {
+    let mut m = recorded_workspace();
     let (total, height) = m.session_window();
+    let conversation = m.top_row();
     for _ in 0..total.div_ceil(Viewport::WHEEL) {
-        update(&mut m, notch(MouseKind::ScrollUp, 150, 20));
+        update(
+            &mut m,
+            area_notch(MouseKind::ScrollUp, Widget::InspectorFields),
+        );
     }
     settle(&mut m);
-    assert_eq!(m.session_top(), 0, "the first step is reachable");
+    assert_eq!(m.session_top(), 0);
     for _ in 0..total.div_ceil(Viewport::WHEEL) {
-        update(&mut m, notch(MouseKind::ScrollDown, 150, 20));
+        update(
+            &mut m,
+            area_notch(MouseKind::ScrollDown, Widget::InspectorFields),
+        );
     }
     settle(&mut m);
-    assert_eq!(m.session_top(), total - height, "and so is the last");
-    assert!(
-        m.session_viewport.is_following(),
-        "reaching the bottom follows the tail again"
-    );
+    assert_eq!(m.session_top(), total - height);
+    assert!(m.session_viewport.is_following());
+    assert_eq!(m.top_row(), conversation);
 }
-
 #[test]
-fn the_column_measures_the_undocked_tab_and_the_stage_the_active_one() {
-    let m = undocked(60, 200);
+fn records_use_their_own_extent_and_a_stale_column_rect_is_ignored() {
+    let mut m = recorded_workspace();
     let over = MouseEvent::new(MouseKind::ScrollUp, 150, 20);
-    assert_eq!(wheeled_undock(&m, &over), Some(StageTab::Session));
-    assert_eq!(
-        wheel_extent(&m, Some(StageTab::Session)),
-        m.session_window()
-    );
-    // Session occupies the stage itself, so there is no duplicate column.
-    let m = m.with_tab(StageTab::Session);
     assert_eq!(wheeled_undock(&m, &over), None);
-    assert_eq!(
-        wheel_extent(&m, Some(StageTab::Session)),
-        m.session_window()
-    );
-    assert_eq!(wheel_extent(&m, None), m.session_window());
+    assert_eq!(scroll_extent(&m), m.session_window());
+    m.show(StageTab::Turn);
+    assert_eq!(scroll_extent(&m), m.conversation_window());
+    assert_eq!(m.undocked_tab(), None);
 }
 
 #[test]
@@ -5910,7 +5913,7 @@ fn spine_rows(m: &Model) -> Vec<String> {
 }
 
 #[test]
-fn a_risky_permission_saves_a_checkpoint_and_the_card_names_it() {
+fn a_risky_permission_requests_a_checkpoint_and_keeps_its_identity_internal() {
     let mut m = model();
     let cmds = update(&mut m, Msg::Agent(risky(1, "rm -rf build")));
 
@@ -5929,7 +5932,7 @@ fn a_risky_permission_saves_a_checkpoint_and_the_card_names_it() {
         "the announcement first, then the state to fall back to"
     );
     assert!(
-        card_text(&m).ends_with("· cp-1 saved"),
+        card_text(&m).ends_with("· checkpoint requested"),
         "the card names it: {}",
         card_text(&m)
     );

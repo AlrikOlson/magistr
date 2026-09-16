@@ -101,10 +101,9 @@ fn nothing_the_transcript_has_said_is_ever_said_differently() {
 }
 
 #[test]
-fn a_line_behind_an_unsettled_one_waits_its_turn() {
-    // The emitter takes the settled PREFIX, not every settled line: a
-    // note pushed while a call is still running is read after it,
-    // because that is the order it happened in.
+fn a_transport_error_settles_the_interrupted_call_before_the_error() {
+    // A failed transport settles its running call so the screen reader can
+    // announce both the interruption and its reason in source order.
     let mut model = Model::new(SIZE);
     let mut transcript = Transcript::new();
     transcript.advance(&model);
@@ -124,9 +123,12 @@ fn a_line_behind_an_unsettled_one_waits_its_turn() {
         &mut model,
         AgentEvent::Error("the feed hiccuped".to_owned()),
     );
-    assert!(
-        transcript.advance(&model).is_empty(),
-        "the error is behind a call that has not reported"
+    assert_eq!(
+        transcript.advance(&model),
+        [
+            "tool: run cargo test - no result reported",
+            "error: the feed hiccuped"
+        ]
     );
     agent(
         &mut model,
@@ -140,8 +142,8 @@ fn a_line_behind_an_unsettled_one_waits_its_turn() {
             record: Default::default(),
         },
     );
-    assert_eq!(
-        transcript.advance(&model),
-        ["tool: run cargo test - done", "error: the feed hiccuped",]
+    assert!(
+        transcript.advance(&model).is_empty(),
+        "a late status does not replay announced lines"
     );
 }

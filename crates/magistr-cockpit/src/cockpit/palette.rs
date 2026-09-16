@@ -85,9 +85,23 @@ impl Palette {
                 order += 1;
             }
         };
+        if model.uses_flight_recorder() {
+            push(PaletteRow::place("Settings", PaletteGo::Settings));
+            push(PaletteRow::place("Search recorded work", PaletteGo::Search));
+            push(PaletteRow::place("Keyboard help", PaletteGo::Help));
+        }
         if !model.surface().is_native() {
             for tab in super::stage_tab::StageTab::ALL {
-                push(PaletteRow::place(tab.label(), PaletteGo::Tab(tab)));
+                let label = if model.uses_flight_recorder() {
+                    match tab {
+                        super::StageTab::Turn => "Conversation",
+                        super::StageTab::Session => "Records",
+                        super::StageTab::Roadmap => "Roadmap",
+                    }
+                } else {
+                    tab.label()
+                };
+                push(PaletteRow::place(label, PaletteGo::Tab(tab)));
             }
         }
         if let Some(project) = model.launcher().filter(|data| !data.project.is_empty()) {
@@ -106,7 +120,7 @@ impl Palette {
                 row.badge = Some(format!("{pending} action{plural} required"));
             }
             if matches!(model.dock().front(), Some(DockItem::Permission(_))) {
-                row.act = Some("Answer pending decision".to_owned());
+                row.act = Some("Answer permission request".to_owned());
             }
             push(row);
         }
@@ -133,7 +147,12 @@ impl Palette {
             }
         }
         for chunk in model.roadmap().rows() {
-            let mut row = PaletteRow::place(chunk.id.clone(), PaletteGo::Chunk(chunk.id.clone()));
+            let name = if chunk.title.is_empty() {
+                &chunk.name
+            } else {
+                &chunk.title
+            };
+            let mut row = PaletteRow::place(name.clone(), PaletteGo::Chunk(chunk.id.clone()));
             if chunk.is_in_progress() {
                 row.badge = Some("in progress".to_owned());
             }
@@ -142,8 +161,20 @@ impl Palette {
         // The previewed checkpoint's verbs:
         // the rail reveals Restore · Fork on the row under the pointer;
         // a keyboard previews the row and finds the same two here.
-        if let Some(cp) = model.rail().spine().previewed() {
-            let name = format!("{} \u{b7} {}", cp.id(), cp.label());
+        let checkpoints: Vec<_> = if model.uses_flight_recorder() {
+            model
+                .rail()
+                .spine()
+                .entries()
+                .iter()
+                .rev()
+                .filter(|cp| matches!(cp.state(), super::CheckpointState::Saved { .. }))
+                .collect()
+        } else {
+            model.rail().spine().previewed().into_iter().collect()
+        };
+        for cp in checkpoints {
+            let name = cp.label().to_owned();
             for (verb, cmd) in [
                 (
                     "Restore",
@@ -182,6 +213,7 @@ impl Palette {
             // complete on the timer — so the sheet lists it and the
             // palette never dispatches it.
             if *binding == Binding::KILL
+                || (model.uses_flight_recorder() && *binding == Binding::SHEET)
                 || (!model.surface().is_native()
                     && matches!(
                         *binding,

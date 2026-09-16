@@ -10,6 +10,7 @@ use crate::agent::ToolRecord;
 pub struct Line {
     pub(super) kind: LineKind,
     pub(super) text: String,
+    pub(super) title: Option<String>,
     pub(super) row_start: usize,
     /// The tool call this line came from and the position of the block
     /// inside that call's content — how a call re-sending the same
@@ -39,6 +40,12 @@ impl Line {
     #[must_use]
     pub const fn record(&self) -> &ToolRecord {
         &self.record
+    }
+
+    /// The tool's recorded human-readable title, retained when a diff replaces its body.
+    #[must_use]
+    pub fn title(&self) -> Option<&str> {
+        self.title.as_deref()
     }
 
     /// The line's text.

@@ -49,8 +49,8 @@ fn assert_pixel_region_changed(
         !before.is_empty() && !after.is_empty(),
         "graphics decoded from both paints"
     );
-    assert_ne!(
-        before, after,
+    assert!(
+        before != after,
         "the engine update changed the requested screen region"
     );
 }
@@ -253,12 +253,8 @@ async fn producers_learn_the_loop_is_gone_after_the_run() {
 }
 
 #[tokio::test]
-async fn a_think_step_lands_on_the_trace_tab_and_its_next_paint() {
-    // Ctrl-Tab twice turns the stage to Trace before the step lands.
-    let script = Script::new()
-        .startup_replies(MS(0))
-        .text(MS(20), "\x1b[9;5u")
-        .text(MS(200), "\x04");
+async fn a_think_step_updates_the_recorder_without_replacing_the_conversation() {
+    let script = Script::new().startup_replies(MS(0)).text(MS(200), "\x04");
     let (model, capture) = run(script, |inbox| {
         FakeEngines::new()
             .connected(MS(5))
@@ -274,7 +270,25 @@ async fn a_think_step_lands_on_the_trace_tab_and_its_next_paint() {
     .await;
     assert_eq!(model.trace().steps().len(), 1, "the step landed");
     assert_eq!(model.trace().steps()[0].number, 7);
-    assert_pixel_region_changed(&capture, 310..780, 100..200);
+    use magistr_cockpit::cockpit::{FrameClock, Widget};
+    let layout = magistr_tui::screenshot::layout(
+        &model,
+        &FrameClock::new(0, Duration::ZERO),
+        magistr_tui::screenshot::Profile::Kitty,
+    )
+    .unwrap();
+    let graph = layout
+        .px(Widget::TraceGraph.id())
+        .expect("recorder stays visible");
+    assert!(
+        layout.px(Widget::Stage.id()).is_some(),
+        "conversation stays visible"
+    );
+    assert_pixel_region_changed(
+        &capture,
+        graph.x.floor() as u32..graph.right().ceil() as u32,
+        graph.y.floor() as u32..graph.bottom().ceil() as u32,
+    );
 }
 
 #[tokio::test]

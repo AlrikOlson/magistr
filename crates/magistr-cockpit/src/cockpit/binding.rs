@@ -99,7 +99,7 @@ impl Binding {
     /// Cycle focus across the rail, stage and inspector.
     pub const TAB: Self = Self::new(
         "tab / shift-tab",
-        "switch pane",
+        "move focus",
         "global",
         KeyCode::Tab,
         Modifiers::NONE,
@@ -160,7 +160,7 @@ impl Binding {
     /// Start one iteration.
     pub const NEXT: Self = Self::new(
         "alt-n",
-        "next",
+        "start next item",
         "commands",
         KeyCode::Char('n'),
         Modifiers::ALT,
@@ -168,7 +168,7 @@ impl Binding {
     /// Start the autonomous loop.
     pub const LOOP: Self = Self::new(
         "alt-l",
-        "loop",
+        "continue work",
         "commands",
         KeyCode::Char('l'),
         Modifiers::ALT,
@@ -176,7 +176,7 @@ impl Binding {
     /// Run the quality gates.
     pub const GATES: Self = Self::new(
         "alt-g",
-        "gates",
+        "run checks",
         "commands",
         KeyCode::Char('g'),
         Modifiers::ALT,
@@ -203,7 +203,7 @@ impl Binding {
     /// the terminal draws it as a picture rather than a legend).
     pub const ZOOM: Self = Self::new(
         "+ / -",
-        "zoom tech-tree",
+        "zoom roadmap",
         "roadmap",
         KeyCode::Char('+'),
         Modifiers::NONE,
@@ -211,7 +211,7 @@ impl Binding {
     /// Put the zoom and the pan back to the fit.
     pub const ZOOM_FIT: Self = Self::new(
         "0",
-        "fit tech-tree",
+        "fit roadmap",
         "roadmap",
         KeyCode::Char('0'),
         Modifiers::NONE,
@@ -233,7 +233,7 @@ impl Binding {
     /// Open file completion.
     pub const AT_FILES: Self = Self::new(
         "@",
-        "file completion",
+        "add files",
         "prompt",
         KeyCode::Char('@'),
         Modifiers::NONE,
@@ -282,7 +282,7 @@ impl Binding {
     /// Jump to the top or the tail (on an empty prompt).
     pub const HOME_END: Self = Self::new(
         "home/end",
-        "top / tail",
+        "first / latest message",
         "stage",
         KeyCode::Home,
         Modifiers::NONE,
@@ -290,7 +290,7 @@ impl Binding {
     /// Inspect the most recent tool card (on an empty prompt).
     pub const FOLD: Self = Self::new(
         "enter",
-        "inspect last card",
+        "show latest action",
         "stage",
         KeyCode::Enter,
         Modifiers::NONE,
@@ -299,7 +299,7 @@ impl Binding {
     /// empty prompt, while one is scrolled up) — the jump pill's key.
     pub const FOLLOW: Self = Self::new(
         "f",
-        "follow pane tail",
+        "show latest output",
         "stage",
         KeyCode::Char('f'),
         Modifiers::NONE,
@@ -309,7 +309,7 @@ impl Binding {
     /// key; a window takes [`Binding::DOCK_CHORD`].
     pub const DOCK: Self = Self::new(
         "ctrl-t",
-        "dock terminal",
+        "show terminal output",
         "stage",
         KeyCode::Char('t'),
         Modifiers::CTRL,
@@ -321,7 +321,7 @@ impl Binding {
     /// Never a ⌘K row: a row is a press with no release.
     pub const KILL: Self = Self::new(
         "k",
-        "kill \u{b7} hold",
+        "stop program · hold",
         "stage",
         KeyCode::Char('k'),
         Modifiers::NONE,
@@ -341,7 +341,7 @@ impl Binding {
     /// row wears it instead of [`Binding::DOCK`]'s `ctrl-t`.
     pub const DOCK_CHORD: Self = Self::new(
         "\u{2318}\u{21b5}",
-        "dock terminal",
+        "show terminal output",
         "stage",
         KeyCode::Enter,
         Modifiers::SUPER,

@@ -4,7 +4,7 @@ expression: s
 ---
 ▲ magistr  ▘ streaming                                                     00:01
 Research▸Plan▸Execute▸Verify
-Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough
+Plain-text mode: to show graphics, enable `allow-passthrough on` in tmux 3.3 or
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                           │
 │ship the plain-text       │ │▎ Let me run the tests.                          │
@@ -14,15 +14,15 @@ Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough
 │roadmap 0/0 done          │ │                                                 │
 │signals 0                 │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
-│                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, tool, step or change         │
+│                          │ ╭─ Details ───────────────────────────────────────╮
+│                          │ │Select a record to see details.                  │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ╭─ needs you ────────────────────────────────────────────────────────────── 1 ─╮
-│⚠ Bash needs permission [A] Allow [⇧A] Always [D] Deny                        │
+│⚠ Run cargo nextest run -p magistr-tui needs    [A] Allow [⇧A] Always [D] Deny│
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ›
  A  allow   ⇧A  always   D  deny

@@ -22,7 +22,7 @@ use magistr_tui::term::{RealTerminal, Terminal as _};
 /// input thread; the session's summary is printed once the terminal is
 /// handed back, so it lands in the scrollback.
 pub async fn cmd_cockpit(root: &Path) -> eyre::Result<()> {
-    cmd_cockpit_on(root, StageTab::Roadmap).await
+    cmd_cockpit_on(root, StageTab::Turn).await
 }
 
 /// Run the agent-less cockpit on `tab` and hand back the final model —
@@ -39,16 +39,15 @@ pub(crate) async fn cockpit_model_on(
         Ok(engines) => engines,
         Err(err) => {
             println!(
-                "magistr: cannot open the think-and-ship store for {}: {err}",
+                "magistr: cannot open saved project data for {}: {err}",
                 root.display()
             );
-            return Err(eyre::eyre!("the cockpit did not start"));
+            return Err(eyre::eyre!("Magistr could not start this session"));
         }
     };
     let theme = Theme::from_os();
     let (title, debug) = super::chrome::chrome(root, None, None);
-    let terminal =
-        RealTerminal::stdio().context("the cockpit needs a terminal on stdin and stdout")?;
+    let terminal = RealTerminal::stdio().context("open Magistr in a terminal to use this view")?;
     let size = terminal.size()?;
     let runtime = Runtime::new(terminal, Options::from_os());
     let feed = engines.subscribe(runtime.inbox());
@@ -72,7 +71,7 @@ pub(crate) async fn cockpit_model_on(
         .await;
     feed.abort();
     reseed.abort();
-    model.context("the cockpit failed")
+    model.context("the session ended unexpectedly")
 }
 
 /// The cockpit without an agent session, starting on `tab` — what

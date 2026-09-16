@@ -16,6 +16,9 @@ use super::signal_row::SignalRow;
 use super::star_state::StarState;
 use crate::theme::Icons;
 
+/// A bounded roadmap projection and edges between its local node indices.
+pub type MiniPixels = (Vec<(usize, DagNode)>, Vec<(usize, usize)>);
+
 /// How many of the newest shipped chunks the sky keeps beside the
 /// frontier. The fixture has seven shipped stars
 /// and the working chunk — is that *recent* work is the constellation;
@@ -78,7 +81,9 @@ pub struct Roadmap {
     sort: RoadmapSort,
     descending: bool,
     camera: Camera,
-    viewport: Option<(u16, u16)>,
+    viewport: Option<(f32, f32)>,
+    /// A physical graph uses pixel camera units and font-sized spacing.
+    pixel_line: Option<f32>,
     /// The ship moment in flight, if one is — recorded by
     /// [`Roadmap::apply`] and read back through [`Roadmap::ship_run`].
     shipped: Option<Shipped>,
@@ -453,18 +458,20 @@ impl Roadmap {
         let zoom = self.camera.zoom().max(FOCUS_ZOOM);
         let (sx, sy) = self.scale_with(&placed, self.camera.zoom());
         let (pan_x, pan_y) = self.camera.pan();
-        let (x, y) = (MARGIN + gx * sx - pan_x, MARGIN + gy * sy - pan_y);
-        let inside = |v: f32, span: u16| v >= FOCUS_PAD && v <= f32::from(span) - FOCUS_PAD;
+        let margin = self.margin();
+        let (x, y) = (margin + gx * sx - pan_x, margin + gy * sy - pan_y);
+        let pad = self.pixel_line.map_or(FOCUS_PAD, |line| line + 12.0);
+        let inside = |v: f32, span: f32| v >= pad && v <= span - pad;
         if inside(x, cols) && inside(y, rows) && zoom <= self.camera.zoom() {
             return None;
         }
         let (sx, sy) = self.scale_with(&placed, zoom);
-        let (cx, cy) = (f32::from(cols) / 2.0, f32::from(rows) / 2.0);
+        let (cx, cy) = (cols / 2.0, rows / 2.0);
         let (max_x, max_y) = self.pan_limits_with(zoom);
         Some((
             (
-                (MARGIN + gx * sx - cx).clamp(0.0, max_x),
-                (MARGIN + gy * sy - cy).clamp(0.0, max_y),
+                (margin + gx * sx - cx).clamp(0.0, max_x),
+                (margin + gy * sy - cy).clamp(0.0, max_y),
             ),
             zoom,
         ))
@@ -572,10 +579,23 @@ impl Roadmap {
     /// floored), so the pan only matters when the floor overflows; the
     /// pan re-clamps to the new limits.
     pub fn set_viewport(&mut self, viewport: Option<(u16, u16)>) {
-        if self.viewport == viewport {
+        self.set_graph_viewport(viewport.map(|(w, h)| (f32::from(w), f32::from(h))), None);
+    }
+
+    /// Exact physical graph size. The camera, routes and picking share pixels.
+    pub fn set_pixel_viewport(&mut self, viewport: Option<(f32, f32)>, line_height: f32) {
+        self.set_graph_viewport(viewport, Some(line_height.max(1.0)));
+    }
+
+    fn set_graph_viewport(&mut self, viewport: Option<(f32, f32)>, pixel_line: Option<f32>) {
+        if self.viewport == viewport && self.pixel_line == pixel_line {
             return;
         }
+        if self.pixel_line != pixel_line {
+            self.camera = Camera::new();
+        }
         self.viewport = viewport;
+        self.pixel_line = pixel_line;
         self.pan_by(0.0, 0.0);
         // Selection can arrive before the first layout or survive a resize.
         // Place it immediately: the previous viewport is no longer drawable.
@@ -592,7 +612,7 @@ impl Roadmap {
         self.camera.drag(dx, dy, limits);
     }
 
-    /// The pan as it stands, in cells — where the camera has *settled*,
+    /// The settled pan in the graph's units: pixels on the full plan, cells otherwise —
     /// which is where it already is unless a focus is still gliding.
     #[must_use]
     pub const fn pan(&self) -> (f32, f32) {
@@ -632,13 +652,13 @@ impl Roadmap {
     /// the scale multiplies by `factor` (clamped to [`MIN_ZOOM`] ..
     /// [`MAX_ZOOM`]) about that point, so whatever sits under the
     /// pointer stays under it. Every placement — the nodes, the pan
-    /// limits and the hit test — goes through [`Roadmap::scale`], so
+    /// limits and the hit test — shares the same viewport scale, so
     /// they all follow.
     pub fn zoom_at(&mut self, factor: f32, x: f32, y: f32) {
         // The pan's room depends on the zoom the notch is about to set,
         // so the notch runs unclamped and the re-clamp follows it.
         self.camera
-            .wheel(factor, x, y, MARGIN, (f32::INFINITY, f32::INFINITY));
+            .wheel(factor, x, y, self.margin(), (f32::INFINITY, f32::INFINITY));
         self.pan_by(0.0, 0.0);
     }
 
@@ -662,8 +682,9 @@ impl Roadmap {
         let Some((cols, rows)) = self.viewport else {
             return false;
         };
-        let (cx, cy) = (f32::from(cols) / 2.0, f32::from(rows) / 2.0);
-        self.camera.zoom_step(factor, cx, cy, MARGIN, now, animate);
+        let (cx, cy) = (cols / 2.0, rows / 2.0);
+        self.camera
+            .zoom_step(factor, cx, cy, self.margin(), now, animate);
         self.pan_by(0.0, 0.0);
         true
     }
@@ -695,13 +716,13 @@ impl Roadmap {
         ((percent - 100.0).abs() >= 0.5).then(|| format!("zoom {percent:.0}%"))
     }
 
-    /// A hover at block-relative cell `(x, y)`: the nearest node within
+    /// A hover at graph-relative `(x, y)` in its camera units: the nearest node within
     /// reach becomes the tooltip's chunk; past every node it clears.
     pub fn hover_at(&mut self, x: f32, y: f32, now: f32) {
         self.hovered = self.node_at(x, y, now).map(|(_, chunk)| chunk.id.clone());
     }
 
-    /// A click at block-relative cell `(x, y)`: the nearest node within
+    /// A click at graph-relative `(x, y)` in its camera units: the nearest node within
     /// reach is selected; whether one was.
     pub fn click_at(&mut self, x: f32, y: f32, now: f32) -> bool {
         if let Some((_, chunk)) = self.node_at(x, y, now) {
@@ -713,7 +734,7 @@ impl Roadmap {
 
     /// The tech-tree's nodes in graph order (parallel to
     /// [`Roadmap::dag_edges`] indices), scaled to the viewport and
-    /// placed on the cell grid with the pan applied.
+    /// placed in the graph's camera units with the pan applied.
     #[must_use]
     pub fn dag_nodes(&self) -> Vec<DagNode> {
         self.dag_nodes_at(f32::INFINITY)
@@ -733,8 +754,8 @@ impl Roadmap {
             .iter()
             .zip(placed)
             .map(|(chunk, (x, y, region))| DagNode {
-                x: MARGIN + x * sx - pan_x,
-                y: MARGIN + y * sy - pan_y,
+                x: self.margin() + x * sx - pan_x,
+                y: self.margin() + y * sy - pan_y,
                 state: StarState::of(&chunk.status, is_ready(&graph, chunk)),
                 status: chunk.status.clone(),
                 region,
@@ -757,8 +778,8 @@ impl Roadmap {
             .into_iter()
             .map(|mut path| {
                 for (x, y) in &mut path.points {
-                    *x = MARGIN + *x * sx - pan_x;
-                    *y = MARGIN + *y * sy - pan_y;
+                    *x = self.margin() + *x * sx - pan_x;
+                    *y = self.margin() + *y * sy - pan_y;
                 }
                 path
             })
@@ -882,7 +903,7 @@ impl Roadmap {
     fn graph_chunks(&self) -> Vec<&RoadmapChunk> {
         let active: Vec<&RoadmapChunk> = self.chunks.iter().filter(|c| c.is_active()).collect();
         let ships = active.iter().filter(|c| c.status == "done").count();
-        if ships <= SKY_RECENT_SHIPS {
+        if self.pixel_line.is_some() || ships <= SKY_RECENT_SHIPS {
             return active;
         }
         // What the living set stands on rides as context, however old.
@@ -953,6 +974,94 @@ impl Roadmap {
         (nodes, edges)
     }
 
+    /// The recorder's roadmap neighborhood in physical pixels. Global graph
+    /// indices accompany nodes so labels and pointer targets keep the same identity.
+    #[must_use]
+    pub fn mini_pixels(&self, width: f32, height: f32) -> MiniPixels {
+        let graph = self.graph_chunks();
+        let mut indices = mini_set(&graph);
+        // A compact map shows the nearby work that can remain individually
+        // readable. The full list retains every item through Open Roadmap.
+        let original: Vec<_> = indices.iter().map(|&index| graph[index]).collect();
+        let original_positions = place(&original);
+        let focus = original
+            .iter()
+            .position(|chunk| chunk.is_in_progress())
+            .unwrap_or(0);
+        let focus_x = original_positions.get(focus).map_or(0.0, |point| point.0);
+        let mut ranks: Vec<f32> = original_positions.iter().map(|point| point.0).collect();
+        ranks.sort_by(f32::total_cmp);
+        ranks.dedup();
+        ranks.sort_by(|a, b| (a - focus_x).abs().total_cmp(&(b - focus_x).abs()));
+        ranks.truncate(((width / 90.0) as usize).clamp(1, 3));
+        let per_rank = (((height - 20.0).max(0.0) / 20.0) as usize + 1).clamp(1, 3);
+        let mut selected = Vec::new();
+        for rank in ranks {
+            let mut members: Vec<_> = indices
+                .iter()
+                .copied()
+                .zip(&original_positions)
+                .filter(|(_, point)| point.0 == rank)
+                .map(|(index, _)| index)
+                .collect();
+            members.sort_by_key(|&index| (status_rank(graph[index]), graph[index].priority, index));
+            members.truncate(per_rank);
+            selected.extend(members);
+        }
+        indices.retain(|index| selected.contains(index));
+        let kept: Vec<_> = indices.iter().map(|&index| graph[index]).collect();
+        let placed = place(&kept);
+        let (span_x, span_y) = raw_span(&placed);
+        let side = 15.0_f32.min(width / 4.0);
+        let sx = if span_x > 0.0 {
+            ((width - side * 2.0).max(0.0) / span_x).min(150.0 / COL_STEP)
+        } else {
+            1.0
+        };
+        let top = (height * 0.5).min(if span_y > ROW_STEP { 10.0 } else { 30.0 });
+        let sy = if span_y > 0.0 {
+            ((height - top - 10.0).max(0.0) / span_y).min(20.0 / ROW_STEP)
+        } else {
+            1.0
+        };
+        let nodes = kept
+            .iter()
+            .zip(&placed)
+            .zip(&indices)
+            .map(|((chunk, &(x, y, region)), &index)| {
+                (
+                    index,
+                    DagNode {
+                        x: if span_x > 0.0 {
+                            side + x * sx
+                        } else {
+                            width / 2.0
+                        },
+                        y: if span_y > 0.0 {
+                            top + y * sy
+                        } else {
+                            height * 0.5
+                        },
+                        state: StarState::of(&chunk.status, is_ready(&graph, chunk)),
+                        status: chunk.status.clone(),
+                        region,
+                        here: chunk.is_in_progress(),
+                        selected: self.selected.as_deref() == Some(chunk.id.as_str()),
+                    },
+                )
+            })
+            .collect();
+        let mut edges = Vec::new();
+        for (to, chunk) in kept.iter().enumerate() {
+            for dep in &chunk.deps {
+                if let Some(from) = kept.iter().position(|candidate| &candidate.id == dep) {
+                    edges.push((from, to));
+                }
+            }
+        }
+        (nodes, edges)
+    }
+
     /// The mini-DAG as two text lines for the cell-only rail:
     /// you-are-here (or the wait for one) and its immediate dependency
     /// neighbourhood.
@@ -998,9 +1107,18 @@ impl Roadmap {
                 let (dx, dy) = (node.x - x, node.y - y);
                 (index, dx.mul_add(dx, dy * dy))
             })
-            .filter(|(_, distance)| *distance <= HIT_RADIUS * HIT_RADIUS)
+            .filter(|(_, distance)| {
+                let radius = self
+                    .pixel_line
+                    .map_or(HIT_RADIUS, |line| (line * 0.6).max(12.0));
+                *distance <= radius * radius
+            })
             .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(index, _)| (index, graph[index]))
+    }
+
+    fn margin(&self) -> f32 {
+        self.pixel_line.map_or(MARGIN, |line| line + 12.0)
     }
 
     /// The per-axis scale that fits the raw grid to the viewport:
@@ -1012,7 +1130,23 @@ impl Roadmap {
         let Some((cols, rows)) = self.viewport else {
             return (zoom, zoom);
         };
-        let (sx, sy) = fit_scale(placed, cols, rows);
+        let (sx, sy) = if let Some(line) = self.pixel_line {
+            let (span_x, span_y) = raw_span(placed);
+            let margin = self.margin();
+            let fit = |span: f32, size: f32, min: f32, max: f32| {
+                if span > 0.0 {
+                    ((size - 2.0 * margin) / span).clamp(min, max)
+                } else {
+                    max
+                }
+            };
+            (
+                fit(span_x, cols, 0.0, (line * 9.0 + 20.0) / COL_STEP),
+                fit(span_y, rows, 0.0, (line * 3.0 + 24.0) / ROW_STEP),
+            )
+        } else {
+            fit_scale(placed, cols, rows)
+        };
         (sx * zoom, sy * zoom)
     }
 
@@ -1033,8 +1167,8 @@ impl Roadmap {
         let (span_x, span_y) = raw_span(&placed);
         match self.viewport {
             Some((cols, rows)) => (
-                (span_x * sx - (f32::from(cols) - 2.0 * MARGIN)).max(0.0),
-                (span_y * sy - (f32::from(rows) - 2.0 * MARGIN)).max(0.0),
+                (span_x * sx - (cols - 2.0 * self.margin())).max(0.0),
+                (span_y * sy - (rows - 2.0 * self.margin())).max(0.0),
             ),
             None => (span_x * zoom, span_y * zoom),
         }
@@ -1051,10 +1185,10 @@ fn raw_span(placed: &[(f32, f32, usize)]) -> (f32, f32) {
 /// The per-axis scale that fits the raw grid to a `(cols, rows)` block:
 /// the fit ratio, capped so a small tree does not stretch across the
 /// block and floored so a dense one stays distinct.
-fn fit_scale(placed: &[(f32, f32, usize)], cols: u16, rows: u16) -> (f32, f32) {
+fn fit_scale(placed: &[(f32, f32, usize)], cols: f32, rows: f32) -> (f32, f32) {
     let (span_x, span_y) = raw_span(placed);
-    let usable_w = (f32::from(cols) - 2.0 * MARGIN).max(1.0);
-    let usable_h = (f32::from(rows) - 2.0 * MARGIN).max(1.0);
+    let usable_w = (cols - 2.0 * MARGIN).max(1.0);
+    let usable_h = (rows - 2.0 * MARGIN).max(1.0);
     let fit = |usable: f32, span: f32| if span > 0.0 { usable / span } else { 1.0 };
     (
         fit(usable_w, span_x).clamp(MIN_COL_PITCH / COL_STEP, MAX_COL_PITCH / COL_STEP),

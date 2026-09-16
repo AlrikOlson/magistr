@@ -42,7 +42,7 @@ pub fn lines(model: &Model) -> Vec<FlatLine> {
     let last = turn.lines().len().checked_sub(1);
     for (index, line) in turn.lines().iter().enumerate() {
         let settled = !streaming || is_settled(line.kind(), Some(index) == last);
-        push(&mut out, line, settled);
+        push(&mut out, line, settled, streaming);
     }
     out
 }
@@ -72,7 +72,7 @@ const fn is_final(status: ToolStatus) -> bool {
 }
 
 /// One source line, as the one or more flat lines it reads as.
-fn push(out: &mut Vec<FlatLine>, line: &Line, settled: bool) {
+fn push(out: &mut Vec<FlatLine>, line: &Line, settled: bool, streaming: bool) {
     match line.kind() {
         LineKind::Prose(voice) if line.text().is_empty() => {
             out.push(FlatLine::new(None, "", settled));
@@ -91,7 +91,11 @@ fn push(out: &mut Vec<FlatLine>, line: &Line, settled: bool) {
             ..
         } => out.push(FlatLine::new(
             Some(Role::Tool),
-            tool_head(line.text(), *verb, *status, *duration_ms),
+            if !streaming && !is_final(*status) {
+                format!("{} {} - no result reported", verb.label(), line.text())
+            } else {
+                tool_head(line.text(), *verb, *status, *duration_ms)
+            },
             settled,
         )),
         LineKind::Check {
@@ -116,7 +120,11 @@ fn push(out: &mut Vec<FlatLine>, line: &Line, settled: bool) {
         } => {
             out.push(FlatLine::new(
                 Some(Role::Edit),
-                edit_head(path, *status, *undone),
+                if !streaming && !is_final(*status) {
+                    format!("{path} - no result reported")
+                } else {
+                    edit_head(path, *status, *undone)
+                },
                 settled,
             ));
             body(out, line.text(), settled);

@@ -270,11 +270,28 @@ pub enum Widget {
     RoadmapSortWorkstream,
     /// The terminal composer's Send or Stop action.
     PromptAction,
+    /// Select the newest recorded decision without creating a checkpoint.
+    LatestDecision,
+    /// Walk the recorder when its history exceeds the available width.
+    TracePrevious,
+    TraceNext,
+    /// Choose workspace files to include in the next message.
+    PromptFiles,
+    /// Open the work named by the selected decision.
+    LinkedWork,
+    /// Open the command menu.
+    Commands,
+    /// The query field in a command or search overlay.
+    OverlayQuery,
+    /// Prepare an editable request about the selected roadmap item.
+    RoadmapRequest,
+    /// Restore the full dependency graph without changing the message draft.
+    RoadmapReset,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 101] = [
+    pub const ALL: [Self; 110] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -376,6 +393,15 @@ impl Widget {
         Self::RoadmapSortPriority,
         Self::RoadmapSortWorkstream,
         Self::PromptAction,
+        Self::LatestDecision,
+        Self::TracePrevious,
+        Self::TraceNext,
+        Self::PromptFiles,
+        Self::LinkedWork,
+        Self::Commands,
+        Self::OverlayQuery,
+        Self::RoadmapRequest,
+        Self::RoadmapReset,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -571,6 +597,18 @@ impl Widget {
     const SIGNAL_ROW_BASE: u32 = 0x27_0000;
     /// An action/check/run row in the unified Session timeline.
     const SESSION_ROW_BASE: u32 = 0x28_0000;
+    /// A dependency of the work item currently shown in the inspector.
+    const ROADMAP_DEPENDENCY_BASE: u32 = 0x29_0000;
+
+    #[must_use]
+    pub const fn roadmap_dependency(index: usize) -> WidgetId {
+        Self::indexed(Self::ROADMAP_DEPENDENCY_BASE, index)
+    }
+
+    #[must_use]
+    pub const fn roadmap_dependency_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(Self::ROADMAP_DEPENDENCY_BASE, id)
+    }
 
     #[must_use]
     pub const fn session_row(index: usize) -> WidgetId {
@@ -1214,14 +1252,14 @@ impl Widget {
             Self::ToolOpen => "Open",
             Self::ToolUndo => "Undo",
             Self::TraceDetail => "More",
-            Self::TraceGraph => "trace graph",
-            Self::RoadmapGraph => "tech tree",
+            Self::TraceGraph => "Reasoning",
+            Self::RoadmapGraph => "Dependencies",
             Self::RoadmapTable => "work items",
             Self::RoadmapFilter => "filter status",
             Self::RoadmapSortName => "sort name",
             Self::RoadmapSortStatus => "sort status",
             Self::RoadmapSortPriority => "sort priority",
-            Self::RoadmapSortWorkstream => "sort workstream",
+            Self::RoadmapSortWorkstream => "Sort by group",
             Self::RoadmapStart => "Start",
             Self::RoadmapComplete => "Complete",
             Self::ShelfExport => "Export",
@@ -1272,7 +1310,16 @@ impl Widget {
             Self::TermDockGrip => "dock grip",
             Self::TermDock => "terminal dock",
             Self::SessionChunk => "chunk",
-            Self::PromptAction => "send or stop",
+            Self::PromptAction => "Send or stop",
+            Self::LatestDecision => "Return to latest",
+            Self::TracePrevious => "Previous step",
+            Self::TraceNext => "Next step",
+            Self::PromptFiles => "Add files",
+            Self::LinkedWork => "Linked work",
+            Self::Commands => "Commands",
+            Self::OverlayQuery => "Search",
+            Self::RoadmapRequest => "Request a change",
+            Self::RoadmapReset => "Reset view",
         }
     }
 

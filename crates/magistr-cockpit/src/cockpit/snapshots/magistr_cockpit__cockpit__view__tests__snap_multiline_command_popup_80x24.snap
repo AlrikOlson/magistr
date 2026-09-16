@@ -7,14 +7,14 @@ Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                           │
 │no objective yet          │ │▎ All done here.                                 │
-│roadmap 0/0 done          │ │  turn ended early: the token limit was hit      │
+│roadmap 0/0 done          │ │  The response reached its length limit.         │
 │signals 0                 │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
-│                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, tool, step or change         │
+│                          │ ╭─ Details ───────────────────────────────────────╮
+│                          │ │Select a record to see details.                  │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

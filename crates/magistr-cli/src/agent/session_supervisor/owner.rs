@@ -208,6 +208,30 @@ async fn run_loop(
                             permissions.lapse(data);
                             continue;
                         }
+                        if let AcpEvent::System { subtype, data } = &event
+                            && subtype == "prompt_rejected"
+                        {
+                            let error = data.get("error").and_then(serde_json::Value::as_str)
+                                .unwrap_or("Your message could not be sent.").to_owned();
+                            if let Some(turn_id) = inner.snapshot.active_turn.take() {
+                                inner.snapshot.last_outcome = Some(TurnOutcome {
+                                    turn_id, stop_reason: None, error: Some(error.clone()),
+                                });
+                            }
+                            inner.snapshot.cancellation_requested = false;
+                            inner.discard_queue(&error);
+                            inner.emit(Ok(AgentMessage::Result {
+                                subtype: "message_not_sent".into(),
+                                duration_ms: 0,
+                                duration_api_ms: 0,
+                                is_error: true,
+                                num_turns: 0,
+                                session_id: crate::agent::message::SessionId::new(session_id.as_deref().unwrap_or_default()),
+                                total_cost_usd: None,
+                                usage: None,
+                                result: Some(error),
+                            }));
+                        }
                         if let AcpEvent::PromptResponse { response, .. } = &event {
                             permissions.drain();
                             if inner.goal_turn.is_some() {

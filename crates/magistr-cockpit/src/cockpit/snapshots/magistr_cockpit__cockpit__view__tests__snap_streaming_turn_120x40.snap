@@ -4,28 +4,28 @@ expression: screen(&m)
 ---
 ▲ magistr  ▘ streaming                                                                                   ▁▁▁▁▁▁▅█  00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
-│no objective yet          │ │▎ I should read the roadmap chunk first, then plan.│  │                                  │
-│roadmap 0/0 done          │ │▎ implement the turn stage                         │  │                                  │
-│signals 0                 │ │▎ Plan                                             │  │                                  │
-│                          │ │▎ First, read the file and record a think step. The│  │                                  │
-│                          │ │▎ wrap keeps every row inside the stage whatever   │  │                                  │
-│                          │ │▎ the terminal width happens to be.                │  │                                  │
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a record to see details.   │
+│no objective yet          │ │▎ I will check how retries survive a worker        │  │                                  │
+│roadmap 0/0 done          │ │▎ restart.                                         │  │                                  │
+│signals 0                 │ │▎ Make retry budgets survive worker restarts.      │  │                                  │
+│                          │ │▎ Plan                                             │  │                                  │
+│                          │ │▎ I will save retry limits with each delivery      │  │                                  │
+│                          │ │▎ receipt. Workers can recover the remaining budget│  │                                  │
+│                          │ │▎ after a restart without borrowing another        │  │                                  │
+│                          │ │▎ tenant's retries.                                │  │                                  │
 │                          │ │▎                                                  │  │                                  │
-│                          │ │▎ • one item                                       │  │                                  │
-│                          │ │▎ • a second item long enough to wrap onto a       │  │                                  │
-│                          │ │▎   continuation row at eighty columns             │  │                                  │
-│                          │ │▎ 1. numbered                                      │  │                                  │
+│                          │ │▎ • Keep each tenant's budget separate             │  │                                  │
+│                          │ │▎ • Check that a stopped worker resumes the saved  │  │                                  │
+│                          │ │▎   schedule after recovery                        │  │                                  │
+│                          │ │▎ 1. Run the recovery checks                       │  │                                  │
 │                          │ │▎                                                  │  │                                  │
 │                          │ │▎ ── rust ─────────────────────────────────────────│  │                                  │
-│                          │ │▎ fn main() {                                      │  │                                  │
-│                          │ │▎     println!("hi");                              │  │                                  │
+│                          │ │▎ fn retry_limit() -> usize {                      │  │                                  │
+│                          │ │▎     3                                            │  │                                  │
 │                          │ │▎ }                                                │  │                                  │
 │                          │ │▎ ─────────────────────────────────────────────────│  │                                  │
-│                          │ │▎ Still streaming                                  │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
+│                          │ │▎ Checking the saved retry schedule                │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │

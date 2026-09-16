@@ -231,6 +231,7 @@ impl LayoutTree {
             layer: walk.layer,
             rect,
             px,
+            bounds: PxRect::new(x, y, layout.size.width, layout.size.height),
             content,
         });
         for (index, child) in node.child_nodes().iter().enumerate() {

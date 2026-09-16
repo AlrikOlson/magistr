@@ -7,7 +7,7 @@ use crate::render::width;
 /// Text as the layout engine sees it: intrinsic widths and the number of
 /// rows it needs at a given width.
 ///
-/// Wrapping is greedy by word (single spaces separate words, `\n` forces a
+/// Wrapping is greedy by word (source spacing is preserved, `\n` forces a
 /// line, a line's leading spaces stay on its first row); a word wider than the available columns breaks at grapheme
 /// boundaries; a lone grapheme wider than the columns still takes a line
 /// rather than vanishing. Widths are measured per grapheme cluster through
@@ -113,8 +113,8 @@ impl TextMetrics {
     /// are the rows the layout measured rather than two greedy loops
     /// that happen to agree.
     ///
-    /// `measure` is asked about whole words, about the single space
-    /// that joins them and about individual graphemes when a word has
+    /// `measure` is asked about whole words, about the original spaces
+    /// that join them and about individual graphemes when a word has
     /// to be broken, so a shaper's advances are summed per run: kerning
     /// *across* a join is not counted, which costs a fraction of a
     /// pixel a row and buys a wrap that can be computed without
@@ -125,9 +125,8 @@ impl TextMetrics {
         if limit <= 0.0 {
             return lines;
         }
-        let space = measure(" ");
         for paragraph in self.text.lines() {
-            wrap_paragraph(paragraph, limit, space, measure, &mut |line| {
+            wrap_paragraph(paragraph, limit, measure, &mut |line| {
                 lines.push(line);
             });
         }
@@ -145,20 +144,16 @@ struct Row {
 fn wrap_paragraph<'a>(
     paragraph: &'a str,
     limit: f32,
-    space: f32,
     measure: &mut dyn FnMut(&str) -> f32,
     emit: &mut impl FnMut(&'a str),
 ) {
-    // A paragraph's leading spaces are content — an indented code line, a
-    // list item's continuation — and open the first row; the first word
-    // then joins them through the separator the loop counts.
+    // Leading spaces are content, as in an indented code line. Their full
+    // width opens the first row; every later join measures its original gap.
     let lead = paragraph.len() - paragraph.trim_start_matches(' ').len();
     let mut row: Option<Row> = (lead > 0).then(|| Row {
         start: 0,
         end: lead,
-        // Less one separator, which the loop adds back when the first
-        // word joins these spaces.
-        units: measure(&paragraph[..lead]) - space,
+        units: measure(&paragraph[..lead]),
     });
     let mut emitted = false;
     let mut offset = 0usize;
@@ -178,9 +173,11 @@ fn wrap_paragraph<'a>(
             continue;
         }
         match row.as_mut() {
-            Some(open) if open.units + space + word_units <= limit => {
+            Some(open)
+                if open.units + measure(&paragraph[open.end..start]) + word_units <= limit =>
+            {
+                open.units += measure(&paragraph[open.end..start]) + word_units;
                 open.end = start + word.len();
-                open.units += space + word_units;
             }
             Some(open) => {
                 emit(&paragraph[open.start..open.end]);

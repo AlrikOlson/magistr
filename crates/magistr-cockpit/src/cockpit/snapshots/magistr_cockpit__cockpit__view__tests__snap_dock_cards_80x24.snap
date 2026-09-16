@@ -13,16 +13,16 @@ Research▸Plan▸Execute▸Verify
 │signals 0                 │ │                                                 │
 │                          │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
-│                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, tool, step or change         │
+│                          │ ╭─ Details ───────────────────────────────────────╮
+│                          │ │Select a record to see details.                  │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ╭─ needs you ────────────────────────────────────────────────────────────── 2 ─╮
-│◆ tui2-3: priority → 300 (later) [y] accept [n] reject                        │
-│⊗ tui2-4 blocked: needs a decision                                            │
+│◆ Saved retry limits: priority → 300 (later) [y] accept [n] reject            │
+│⊗ Recovery checks blocked: needs your answer                                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ›
  y  accept   n  reject

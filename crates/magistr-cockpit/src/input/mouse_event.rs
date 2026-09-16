@@ -9,13 +9,11 @@ use super::mouse_kind::MouseKind;
 /// shifts them so they index the cell buffer and the hit registry
 /// directly).
 ///
-/// A report from a window also carries the pointer's physical pixel
-/// ([`MouseEvent::px`]): on a surface whose rows are not all one cell
-/// tall the uniform cell division is only approximately where the
-/// pointer is, and a drag or a pan that read it would be off by up to
-/// a row. The terminal decoder never sets it — a terminal has no pixel
-/// to report — so everything that reads the cell reads it unchanged
-/// there (see [`Model::pointer_at`](crate::cockpit::Model::pointer_at)).
+/// Surfaces with physical pointer reports also carry the exact pixel
+/// ([`MouseEvent::px`]). The runtime translates physical reports into the
+/// current cell coordinates before dispatch, keeping both representations.
+/// A surface that reports only cells leaves `px` absent (see
+/// [`Model::pointer_at`](crate::cockpit::Model::pointer_at)).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct MouseEvent {
     /// What happened.

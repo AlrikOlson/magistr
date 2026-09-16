@@ -1,6 +1,26 @@
 use super::*;
 
 #[test]
+fn flight_controls_explain_the_action_in_plain_language() {
+    use crate::cockpit::{HoverRole, Widget};
+    for widget in [
+        Widget::LatestDecision,
+        Widget::TracePrevious,
+        Widget::TraceNext,
+        Widget::PromptFiles,
+        Widget::LinkedWork,
+        Widget::Commands,
+    ] {
+        assert!(HoverRole::of(widget.id()).is_clickable());
+        assert!(!Tooltip::label(widget.id()).expect("hint").is_empty());
+    }
+    assert_eq!(
+        Tooltip::label(Widget::LatestDecision.id()),
+        Some("Show the latest recorded step")
+    );
+}
+
+#[test]
 fn a_card_is_its_text_and_a_cell_of_padding_either_side() {
     let card = Tooltip {
         text: "rail toggle",

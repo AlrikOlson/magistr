@@ -14,8 +14,10 @@
 use super::marks::{Fallback, Marks};
 use crate::render::Screen;
 use magistr_cockpit::cockpit::view::{activity_series, rail_gauge_cols, spark_sweep};
-use magistr_cockpit::cockpit::{DagNode, DagPath, Model, Motion, Widget};
-use magistr_cockpit::layout::{Node, Rect, Resolved};
+use magistr_cockpit::cockpit::{
+    DagNode, DagPath, FlightRecorder, FlightRoadmap, FlightRoadmapGraph, Model, Motion, Widget,
+};
+use magistr_cockpit::layout::{Node, PxRect, Rect, Resolved};
 use magistr_cockpit::pixel::{
     BranchGraph, Brand, CellSize, Gauge, Image, PixelSurface, RoadmapDag, Sparkline,
 };
@@ -28,17 +30,7 @@ use magistr_cockpit::widget_id::WidgetId;
 /// fork and merge links, the selection's focus and index, the pins, the
 /// rect it covers, the cell size it was scaled by and the frame of the
 /// sweep drawing it in (`None` once it is settled).
-type GraphKey = (
-    Vec<(u32, u8)>,
-    Vec<(usize, usize)>,
-    Vec<(usize, usize)>,
-    Option<Vec<bool>>,
-    Option<usize>,
-    Vec<bool>,
-    Rect,
-    CellSize,
-    Option<u32>,
-);
+type GraphKey = (BranchGraph, PxRect);
 
 /// What the cached tech-tree was painted from: the placed nodes (the
 /// camera's glide already applied), the dependency edges, the rect it
@@ -101,10 +93,12 @@ pub(crate) struct Surfaces {
     dag: Option<PixelSurface>,
     /// What the cached tech-tree was painted from.
     dag_key: Option<DagKey>,
+    /// Full-page roadmap paths, painted in physical pixels.
+    pixel_dag_key: Option<(RoadmapDag, PxRect)>,
     /// The rail's mini-DAG as a pixel surface, likewise cached.
     rail: Option<PixelSurface>,
     /// What the cached mini-DAG was painted from.
-    rail_key: Option<DagKey>,
+    rail_key: Option<(RoadmapDag, PxRect)>,
     /// The header's brand mark, an alpha surface over its one cell.
     brand: Option<PixelSurface>,
     /// What the cached brand mark was painted from.
@@ -120,6 +114,7 @@ pub(crate) struct Surfaces {
     /// The stream's images, one surface per placement visible on the
     /// stage, keyed by the widget id of its first visible row.
     images: Vec<(WidgetId, PixelSurface, ImageKey)>,
+    physical_images: Vec<(usize, u16, PxRect, CellSize, PixelSurface)>,
     /// The view's marks, each a surface keyed by what it was painted from.
     marks: Marks,
     /// Loaded only on graphics terminals; measures the same glyphs we paint.
@@ -321,6 +316,10 @@ impl Surfaces {
     /// a placement that scrolled out of the window is dropped and the
     /// compositor deletes its placement.
     fn show_stage_images(&mut self, model: &Model, resolved: &Resolved, screen: &mut Screen) {
+        if model.uses_flight_recorder() && screen.pixel_frame_active() {
+            self.show_flight_images(model, resolved, screen);
+            return;
+        }
         if !screen.has_graphics() {
             self.images.clear();
             return;
@@ -362,6 +361,74 @@ impl Surfaces {
             shown.push((id, surface, key));
         }
         self.images = shown;
+    }
+
+    /// Images share the same physical row origin and viewport clip as conversation text.
+    fn show_flight_images(&mut self, model: &Model, resolved: &Resolved, screen: &mut Screen) {
+        use magistr_cockpit::pixel::Painter as _;
+        let cell = model.cell_size();
+        let top = model.top_row();
+        let mut shown = Vec::new();
+        for (index, row) in model.visible_rows().iter().enumerate() {
+            if row.kind != RowKind::Image {
+                continue;
+            }
+            let Some((image, offset, (_, total))) = model.turn().image_at_row(top + index) else {
+                continue;
+            };
+            let Some(place) = resolved
+                .placed()
+                .iter()
+                .find(|place| place.id == Some(Widget::stage_row(index)))
+            else {
+                continue;
+            };
+            let rect = place.px;
+            if rect.is_empty() {
+                continue;
+            }
+            let start = top + index - usize::from(offset);
+            let cached = self.physical_images.iter().position(|entry| {
+                entry.0 == start && entry.1 == offset && entry.2 == rect && entry.3 == cell
+            });
+            let mut surface = if let Some(at) = cached {
+                self.physical_images.remove(at).4
+            } else {
+                let width = place.bounds.width.ceil().max(1.0) as u32;
+                let mut full = tiny_skia::Pixmap::new(width, u32::from(cell.height))
+                    .expect("bounded image row");
+                Image::new(image.rgba(), image.width(), image.height())
+                    .rows(offset, 1, total)
+                    .paint(&mut full.as_mut());
+                let mut surface = PixelSurface::new(
+                    Rect::new(
+                        0,
+                        0,
+                        rect.width.ceil().max(1.0) as u16,
+                        rect.height.ceil().max(1.0) as u16,
+                    ),
+                    CellSize::new(1, 1),
+                );
+                let shift = tiny_skia::Transform::from_translate(
+                    place.bounds.x - rect.x,
+                    place.bounds.y - rect.y,
+                );
+                surface.paint(&|pixels: &mut tiny_skia::PixmapMut<'_>| {
+                    pixels.draw_pixmap(
+                        0,
+                        0,
+                        full.as_ref(),
+                        &tiny_skia::PixmapPaint::default(),
+                        shift,
+                        None,
+                    );
+                });
+                surface
+            };
+            screen.surface_at_px(&mut surface, rect, false);
+            shown.push((start, offset, rect, cell, surface));
+        }
+        self.physical_images = shown;
     }
 
     /// The stage's image placements this frame.
@@ -456,54 +523,25 @@ impl Surfaces {
         if !screen.has_graphics() {
             return;
         }
-        let rect = resolved
-            .placed()
-            .iter()
-            .find_map(|placed| (placed.id == Some(Widget::TraceGraph.id())).then_some(placed.rect));
-        let Some(rect) = rect else {
+        let Some(rect) = resolved
+            .px(Widget::TraceGraph.id())
+            .filter(|rect| !rect.is_empty())
+        else {
             return;
         };
-        if rect.is_empty() {
-            return;
-        }
-        let cell = model.cell_size();
-        let trace = model.trace();
-        // The sweep is keyed by its thousandth, like the gauge's fill:
-        // finer than any graph is wide, and coarse enough that a settled
-        // graph — sweep gone, `None` — stops repainting for good.
-        let sweep = model.motion().trace_sweep(trace.steps().len(), model.now());
-        let focus = trace.focus();
-        let key = (
-            trace.lanes(),
-            trace.links(),
-            trace.merges(),
-            focus.as_ref().map(|focus| focus.lit.clone()),
-            focus.as_ref().map(|focus| focus.selected),
-            trace.pins(),
-            rect,
-            cell,
-            sweep.map(|t| (t * 1000.0) as u32),
-        );
+        let graph = FlightRecorder::graph(model, rect.width);
+        let key = (graph, rect);
         if self.graph_key.as_ref() != Some(&key) {
-            let lanes: Vec<u8> = key.0.iter().map(|&(_, lane)| lane).collect();
-            let mut graph = BranchGraph::new(lanes, key.1.clone())
-                .merges(key.2.clone())
-                .focus(key.3.clone(), key.4)
-                .pins(key.5.clone())
-                .sweep(sweep);
-            if let Color::Rgb(r, g, b) = Pen::for_theme(&model.theme()).stage.bg {
-                graph = graph.background(r, g, b);
-            }
+            let pixels = Rect::new(0, 0, rect.width.ceil() as u16, rect.height.ceil() as u16);
             let surface = self
                 .graph
-                .get_or_insert_with(|| PixelSurface::new(rect, cell));
-            surface.set_rect(rect);
-            surface.set_cell_size(cell);
-            surface.paint(&graph);
+                .get_or_insert_with(|| PixelSurface::new(pixels, CellSize::new(1, 1)));
+            surface.set_rect(pixels);
+            surface.paint(&key.0);
             self.graph_key = Some(key);
         }
         if let Some(surface) = &mut self.graph {
-            screen.surface(Widget::TraceGraph.id(), surface);
+            screen.surface_at_px(surface, rect, false);
         }
     }
 
@@ -517,6 +555,46 @@ impl Surfaces {
         resolved: &Resolved,
         screen: &mut Screen,
     ) -> bool {
+        if model.uses_flight_recorder() && screen.has_graphics() {
+            let rect = resolved
+                .placed()
+                .iter()
+                .find_map(|placed| {
+                    (placed.id == Some(Widget::RoadmapGraph.id())).then_some(placed.px)
+                })
+                .filter(|rect| rect.width > 0.0 && rect.height > 0.0);
+            let changed = model.roadmap_graph_px() != rect;
+            // Font metrics may change even when the physical allocation does not.
+            // A session that has never opened this page keeps its existing mini-graph indices.
+            if rect.is_some() || changed {
+                model.set_roadmap_graph_px(rect);
+            }
+            if let Some(rect) = rect {
+                let graph = FlightRoadmapGraph::graph(model, rect.width, rect.height);
+                let key = (graph, rect);
+                if self.pixel_dag_key.as_ref() != Some(&key) {
+                    let bounds =
+                        Rect::new(0, 0, rect.width.ceil() as u16, rect.height.ceil() as u16);
+                    let cell = CellSize::new(1, 1);
+                    let surface = self
+                        .dag
+                        .get_or_insert_with(|| PixelSurface::new(bounds, cell));
+                    surface.set_rect(bounds);
+                    surface.set_cell_size(cell);
+                    surface.paint(&key.0);
+                    self.pixel_dag_key = Some(key);
+                    self.dag_key = None;
+                }
+                if let Some(surface) = &mut self.dag {
+                    screen.surface_at_px(surface, rect, false);
+                }
+            }
+            return changed;
+        }
+        if model.roadmap_graph_px().is_some() {
+            model.set_roadmap_graph_px(None);
+        }
+        self.pixel_dag_key = None;
         let rect = resolved
             .placed()
             .iter()
@@ -597,47 +675,35 @@ impl Surfaces {
         resolved: &Resolved,
         screen: &mut Screen,
     ) -> bool {
-        let rect = resolved
+        let placement = resolved
             .placed()
             .iter()
-            .find_map(|placed| (placed.id == Some(Widget::RailGraph.id())).then_some(placed.rect))
-            .filter(|rect| rect.width >= 8 && rect.height > 0);
-        let report = rect.filter(|_| screen.has_graphics());
+            .find(|placed| placed.id == Some(Widget::RailGraph.id()));
+        let report = placement
+            .map(|placed| placed.rect)
+            .filter(|_| screen.has_graphics());
         let report_changed = model.rail_graph_rect() != report;
         if report_changed {
             model.set_rail_graph_rect(report);
         }
-        let Some(rect) = report else {
+        let Some(rect) = placement
+            .map(|placed| placed.px)
+            .filter(|rect| screen.has_graphics() && !rect.is_empty())
+        else {
             return report_changed;
         };
-        let cell = model.cell_size();
-        let (nodes, edges) = model.roadmap().mini_dag(rect.width, rect.height);
-        let key = (
-            nodes,
-            edges,
-            Vec::new(),
-            rect,
-            cell,
-            Self::glow_phase(model),
-        );
+        let key = (FlightRoadmap::graph(model, rect.width, rect.height), rect);
         if self.rail_key.as_ref() != Some(&key) {
-            let mut dag = RoadmapDag::new(key.0.clone(), key.1.clone(), (cell.width, cell.height))
-                .routes(key.2.clone())
-                .glow(key.5)
-                .bands(false);
-            if let Color::Rgb(r, g, b) = Pen::for_theme(&model.theme()).stage.bg {
-                dag = dag.background(r, g, b);
-            }
+            let pixels = Rect::new(0, 0, rect.width.ceil() as u16, rect.height.ceil() as u16);
             let surface = self
                 .rail
-                .get_or_insert_with(|| PixelSurface::new(rect, cell));
-            surface.set_rect(rect);
-            surface.set_cell_size(cell);
-            surface.paint(&dag);
+                .get_or_insert_with(|| PixelSurface::new(pixels, CellSize::new(1, 1)));
+            surface.set_rect(pixels);
+            surface.paint(&key.0);
             self.rail_key = Some(key);
         }
         if let Some(surface) = &mut self.rail {
-            screen.surface(Widget::RailGraph.id(), surface);
+            screen.surface_at_px(surface, rect, false);
         }
         report_changed
     }

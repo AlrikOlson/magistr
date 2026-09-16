@@ -4,8 +4,8 @@ expression: "screen(&Scenes::changed(Size::new(120, 40)))"
 ---
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a record to see details.   │
 │no objective yet          │ │session · 0 steps · 2 changes · UTC                │  │                                  │
 │roadmap 0/0 done          │ │time unknown ▸ src/lib.rs · +2 −1 · parse ok       │  │                                  │
 │signals 0                 │ │time unknown ▸ src/parser.rs · +4 −0 · parse failed│  │                                  │
@@ -41,4 +41,4 @@ Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  select   enter  detail   tab / shift-tab  switch pane
+ ↑↓  select   enter  detail   tab / shift-tab  move focus

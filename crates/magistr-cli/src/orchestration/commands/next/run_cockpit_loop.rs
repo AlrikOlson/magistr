@@ -65,13 +65,12 @@ pub(crate) async fn run_cockpit_loop(
     let theme = Theme::from_os();
     let (title, debug) =
         crate::orchestration::commands::chrome::chrome(dir, Some(backend.label()), None);
-    let terminal =
-        RealTerminal::stdio().context("the cockpit needs a terminal on stdin and stdout")?;
+    let terminal = RealTerminal::stdio().context("open Magistr in a terminal to use this view")?;
     let size = terminal.size()?;
     let mut runtime = Runtime::new(terminal, Options::from_os());
     let commands = runtime
         .commands()
-        .ok_or_else(|| eyre::eyre!("the runtime's commands were already taken"))?;
+        .ok_or_else(|| eyre::eyre!("Magistr could not connect the session controls"))?;
     let driver = LoopDriver::new(
         iter_loop,
         wf,
@@ -134,9 +133,9 @@ pub(crate) async fn run_cockpit_loop(
     // it a moment, never wait forever on a stuck child.
     let report = tokio::time::timeout(LOOP_GRACE, looping).await;
     if let Err(err) = workspace.shutdown().await {
-        println!("magistr: workspace shutdown: {err}");
+        println!("magistr: the project connection could not close cleanly: {err}");
     }
-    let model = model.context("the cockpit failed")?;
+    let model = model.context("the session ended unexpectedly")?;
     println!("{}", Summary::of(&model));
     if let Ok(Ok(report)) = report {
         println!("{report}");

@@ -34,6 +34,12 @@ pub struct PaletteRow {
 /// binding's canonical key as the `Msg` the terminal sends.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum PaletteGo {
+    /// Open application preferences.
+    Settings,
+    /// Search recorded project work.
+    Search,
+    /// Open keyboard help without changing the draft.
+    Help,
     /// Start an existing host command.
     Launch(super::launch_action::LaunchAction),
     /// Open a terminal tab.

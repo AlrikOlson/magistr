@@ -40,9 +40,14 @@ fn a_full_record_reads_every_field() {
 }
 
 #[test]
-fn a_bare_record_names_itself_by_its_id() {
-    let chunk = RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({"id": "x"})));
-    assert_eq!(chunk.name, "x", "the name falls back to the id");
+fn a_bare_record_uses_a_readable_name_without_exposing_its_id() {
+    let chunk = RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({"id": "internal-work-784"})));
+    assert_eq!(chunk.name, "Untitled work item");
+    assert_eq!(chunk.detail_lines(120)[0].1, "Untitled work item");
+    let titled = RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({
+        "id": "internal-work-784", "name": "  ", "title": "Restore saved retries"
+    })));
+    assert_eq!(titled.name, "Restore saved retries");
     assert!(chunk.is_active());
     assert!(!chunk.is_in_progress());
     assert!(chunk.proposals.is_empty());
@@ -74,6 +79,15 @@ fn the_detail_rows_count_the_title_the_prose_the_bullets_and_the_links() {
     })));
     // title + two prose lines (the empty one drops) + two bullets + deps + refs
     assert_eq!(chunk.detail_rows(120), 7);
+    let detail = chunk
+        .detail_lines(120)
+        .into_iter()
+        .map(|(_, text)| text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(detail.contains("Depends on 1 work item"));
+    assert!(detail.contains("1 linked record"));
+    assert!(!detail.contains("d1") && !detail.contains("think:1"));
 }
 
 #[test]

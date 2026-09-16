@@ -1,33 +1,25 @@
-//! Reproducible website captures from a synthetic project; never reads a native store.
-//!
-//! `cargo run -p magistr-tui --example website_capture -- <fixture.json> <out-dir>`
-//! renders four states of the fixture's project at the capture size, in
-//! both themes, through the real terminal renderer: the Roadmap tab as
-//! an overview (`terminal-overview-{dark,light}.png`), the Roadmap tab
-//! with the chunk in progress selected so the focus chain lights
-//! (`terminal-roadmap-{dark,light}.png`), and the Session view with a
-//! mid-trace step selected so its card and relations show
-//! (`terminal-session-{dark,light}.png`), and Turn with its conversation, test
-//! terminal and selected edit diff (`terminal-turn-{dark,light}.png`).
-//! `scripts/website-captures.sh` runs this and rewrites the manifest beside them.
+//! Website images rendered from fictional records through the production view.
+//! cargo run -p magistr-tui --example website_capture -- <fixture.json> <out-dir>
+//! scripts/website-captures.sh writes the accompanying image manifest.
 
 use std::error::Error;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use magistr_cockpit::agent::{AgentEvent, EditDiff, ToolRecord, ToolStatus, ToolVerb};
+#[path = "support/harbor.rs"]
+mod harbor;
 use magistr_cockpit::cockpit::{FrameClock, Model, Msg, Size, StageTab, Surface, Widget, update};
 use magistr_cockpit::harness::fixtures;
-use magistr_cockpit::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
+use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
 use magistr_cockpit::theme::{Theme, ThemeMode};
 use magistr_engine::NativeSnapshot;
 use magistr_engine::native::ChunkStatus;
-use magistr_tui::screenshot::{Profile, frame};
+use magistr_tui::graphics::{Decision, Passthrough, Protocol};
+use magistr_tui::screenshot::Preview;
 use serde_json::Value;
 
-/// The capture's terminal size: wide enough for the graph and a card
-/// side by side with the rail, short enough to read on a page.
-const CAPTURE: Size = Size::new(132, 42);
+/// The approved large viewport, including every area and the complete message boundary.
+const CAPTURE: Size = Size::new(144, 50);
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args_os().skip(1);
@@ -116,7 +108,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_title(data["project"].as_str().ok_or("missing project name")?)
                 .with_snapshot(&snapshot)
                 .with_theme(Theme::forced(theme))
-                .with_tab(tab);
+                .with_tab(StageTab::Turn);
+            update(
+                &mut model,
+                Msg::Mode(Decision::Graphics(Protocol::Kitty(Passthrough::Direct)).mode()),
+            );
+            turn(&mut model, &data["turn"], name == "turn")?;
+            update(
+                &mut model,
+                Msg::Paste("Also test a restart immediately after the receipt commits.".into()),
+            );
             update(
                 &mut model,
                 Msg::Workbench(magistr_cockpit::cockpit::WorkbenchEvent::Journal {
@@ -134,7 +135,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
             }
             match (name, tab) {
-                (_, StageTab::Turn) => turn(&mut model, &data["turn"])?,
+                (_, StageTab::Turn) => {}
                 (_, StageTab::Session) => {
                     // The step two before the newest: its card, its
                     // relations and the branch it stands on all show.
@@ -144,18 +145,29 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ("roadmap", _) => {
                     // The chunk in progress heads the list: selecting it
                     // opens its card and lights its dependency chain.
+                    click(&mut model, Widget::TabRoadmap.id());
                     click(&mut model, Widget::roadmap_row(0));
+                    if model.tab() != StageTab::Roadmap
+                        || !matches!(
+                            model.selected(),
+                            Some(magistr_cockpit::cockpit::Selected::Chunk(_))
+                        )
+                    {
+                        return Err("roadmap work did not remain on the Roadmap page".into());
+                    }
                 }
-                // The overview: the whole tree, nothing selected.
-                _ => {}
+                // The overview follows the newest recorded decision.
+                _ => {
+                    click(&mut model, Widget::LatestDecision.id());
+                }
             }
             for _ in 0..8 {
                 update(&mut model, Msg::Tick);
             }
-            let pixels = frame(
+            let pixels = Preview::frame(
                 &model,
                 &FrameClock::new(8, Duration::from_millis(1600)),
-                Profile::Kitty,
+                magistr_cockpit::cockpit::view,
             )?;
             pixels.save_png(output.join(format!("terminal-{name}-{mode}.png")))?;
         }
@@ -169,74 +181,119 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Public conversation events use the same Harbor scenario as the roadmap.
-fn turn(model: &mut Model, data: &Value) -> Result<(), Box<dyn Error>> {
-    let text = |key: &str| -> Result<&str, Box<dyn Error>> {
-        data[key]
-            .as_str()
-            .ok_or_else(|| format!("missing Turn field: {key}").into())
-    };
-    for event in [
-        AgentEvent::UserText(text("prompt")?.into()),
-        AgentEvent::Text(text("response")?.into()),
-        AgentEvent::ToolCall {
-            id: "harbor-read".into(),
-            title: text("read_title")?.into(),
-            verb: ToolVerb::Read,
-            status: ToolStatus::Completed,
-            diff: None,
-            images: Vec::new(),
-            record: Default::default(),
-        },
-        AgentEvent::ToolCall {
-            id: "harbor-edit".into(),
-            title: format!("Edit {}", text("edit_path")?),
-            verb: ToolVerb::Edit,
-            status: ToolStatus::Completed,
-            diff: Some(EditDiff {
-                path: text("edit_path")?.into(),
-                old_text: text("old_text")?.into(),
-                new_text: text("new_text")?.into(),
-            }),
-            images: Vec::new(),
-            record: Default::default(),
-        },
-        AgentEvent::Text(text("edit_summary")?.into()),
-        AgentEvent::ToolCall {
-            id: "harbor-test".into(),
-            title: text("command")?.into(),
-            verb: ToolVerb::Run,
-            status: ToolStatus::Completed,
-            diff: None,
-            images: Vec::new(),
-            record: Box::new(ToolRecord {
-                input: Some(serde_json::json!({"command": text("command")?})),
-                output: Some(serde_json::json!({"passed": 3, "failed": 0})),
-                terminal: Some("harbor-test-terminal".into()),
-                ..ToolRecord::default()
-            }),
-        },
-        AgentEvent::Terminal {
-            terminal_id: "harbor-test-terminal".into(),
-            bytes: text("terminal")?.as_bytes().to_vec(),
-        },
-    ] {
-        update(model, Msg::Agent(event));
-    }
-    // Open the test terminal, then select the edit immediately before it.
-    // The test output stays in Turn while the shared inspector shows the diff.
-    for key in [KeyCode::Enter, KeyCode::Up, KeyCode::Enter] {
-        update(model, Msg::Key(KeyEvent::new(key)));
+fn turn(model: &mut Model, data: &Value, detailed: bool) -> Result<(), Box<dyn Error>> {
+    harbor::conversation(model, data)?;
+    if detailed {
+        // Open the real terminal and edit through the visible conversation cards.
+        for call in ["harbor-test", "harbor-edit"] {
+            let source = model
+                .turn()
+                .lines()
+                .iter()
+                .find_map(|line| match line.kind() {
+                    magistr_cockpit::turn::LineKind::Tool { id, .. }
+                    | magistr_cockpit::turn::LineKind::Edit { id, .. }
+                        if id == call =>
+                    {
+                        Some(line.row_start())
+                    }
+                    _ => None,
+                })
+                .ok_or("missing Harbor tool card")?;
+            let visible = source
+                .checked_sub(model.top_row())
+                .ok_or("Harbor card above viewport")?;
+            click(model, Widget::stage_row(visible));
+        }
+        // Scroll the actual conversation until the expanded edit's heading is visible.
+        // The capture retains the real wheel distance and scroll anchoring.
+        let source = model
+            .turn()
+            .lines()
+            .iter()
+            .find_map(|line| match line.kind() {
+                magistr_cockpit::turn::LineKind::Edit { id, .. } if id == "harbor-edit" => {
+                    Some(line.row_start())
+                }
+                _ => None,
+            })
+            .ok_or("missing Harbor edit")?;
+        let heading = model.turn().conversation().offset(source) as f32;
+        for _ in 0..30 {
+            if model.conversation_top() <= heading {
+                break;
+            }
+            let resolved = Preview::layout(
+                model,
+                &FrameClock::new(8, Duration::from_millis(1600)),
+                magistr_cockpit::cockpit::view,
+            )?;
+            let stage = resolved
+                .placed()
+                .iter()
+                .find(|placed| placed.id == Some(Widget::Stage.id()))
+                .ok_or("missing conversation")?
+                .px;
+            let x = stage.x + 3.0;
+            let y = stage.y + 1.0;
+            let mut hits = magistr_cockpit::hit::HitRegistry::new();
+            hits.register_layout_px(&resolved, 0);
+            let target = hits.hit_at(f64::from(x), f64::from(y));
+            update(
+                model,
+                Msg::Mouse {
+                    event: MouseEvent::new(MouseKind::ScrollUp, 0, 0).at_px(x as u32, y as u32),
+                    target,
+                },
+            );
+            for _ in 0..8 {
+                update(model, Msg::Tick);
+            }
+        }
+        if model.conversation_top() > heading {
+            return Err("expanded edit heading stayed above the conversation".into());
+        }
+        if !model.reveal_conversation(source) {
+            return Err("expanded edit is no longer in the conversation".into());
+        }
     }
     Ok(())
 }
 
-/// A left click on the widget — the same message the runtime posts.
-fn click(model: &mut Model, target: magistr_cockpit::widget_id::WidgetId) {
+/// Click a visible control through the same physical hit geometry as the runtime.
+fn click(model: &mut Model, id: magistr_cockpit::widget_id::WidgetId) {
+    let clock = FrameClock::new(8, Duration::from_millis(1600));
+    let resolved =
+        Preview::layout(model, &clock, magistr_cockpit::cockpit::view).expect("capture layout");
+    let placed = resolved
+        .placed()
+        .iter()
+        .find(|p| p.id == Some(id))
+        .expect("capture control must be visible");
+    let x = placed.px.x + placed.px.width / 2.0;
+    let y = placed.px.y + placed.px.height / 2.0;
+    let mut hits = magistr_cockpit::hit::HitRegistry::new();
+    hits.register_layout_px(&resolved, 0);
+    let target = hits.hit_at(f64::from(x), f64::from(y));
+    assert_eq!(target, Some(id), "capture control is reachable");
+    let cell = model.cell_size();
     update(
         model,
         Msg::Mouse {
-            event: MouseEvent::new(MouseKind::Down(Button::Left), 40, 20),
-            target: Some(target),
+            event: MouseEvent::new(
+                MouseKind::Down(Button::Left),
+                (x / f32::from(cell.width)) as u16,
+                (y / f32::from(cell.height)) as u16,
+            )
+            .at_px(x as u32, y as u32),
+            target,
+        },
+    );
+    update(
+        model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Up(Button::Left), 0, 0).at_px(x as u32, y as u32),
+            target,
         },
     );
 }

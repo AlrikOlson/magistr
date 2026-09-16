@@ -33,7 +33,7 @@ pub(crate) enum SearchGo {
     /// The Trace with the step expanded.
     Step(u32),
     /// The Trace, where the ship timeline is.
-    Receipt,
+    Receipt(String),
     /// The launcher's session row.
     Session(usize),
 }

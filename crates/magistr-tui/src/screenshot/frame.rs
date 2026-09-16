@@ -27,15 +27,16 @@ use magistr_cockpit::render::paint;
 /// ([`kitty::decode`]) — so a still shows the pixels the cockpit would
 /// really put on screen rather than a second drawing of them.
 pub fn frame(model: &Model, clock: &FrameClock, profile: Profile) -> Result<Pixmap, LayoutError> {
-    let (buffer, images) = match profile.protocol() {
-        Some(protocol) => compose(model, clock, protocol)?,
-        None => (cells(model, clock)?, Vec::new()),
-    };
+    if let Some(protocol) = profile.protocol() {
+        let (_, images) = compose(model, clock, protocol)?;
+        return Ok(super::Preview::raster(model, &images));
+    }
+    let buffer = cells(model, clock)?;
     Ok(rasterize(
         &buffer,
         &model.theme().palette(),
         &mut Typeface::new(),
-        &images,
+        &[],
     ))
 }
 

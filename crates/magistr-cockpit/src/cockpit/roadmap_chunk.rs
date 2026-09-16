@@ -13,7 +13,7 @@ use super::proposal_kind::ProposalKind;
 pub struct RoadmapChunk {
     /// The chunk's stable id.
     pub id: String,
-    /// The short node label (falls back to the id).
+    /// The short node label, with the full title or a readable missing-name fallback.
     pub name: String,
     /// The full claim.
     pub title: String,
@@ -47,10 +47,12 @@ impl RoadmapChunk {
     /// The row for the store's record.
     #[must_use]
     pub fn from_chunk(chunk: &Chunk) -> Self {
-        let name = if chunk.name.is_empty() {
-            chunk.id.clone()
-        } else {
+        let name = if !chunk.name.trim().is_empty() {
             chunk.name.clone()
+        } else if !chunk.title.trim().is_empty() {
+            chunk.title.clone()
+        } else {
+            "Untitled work item".to_owned()
         };
         Self {
             id: chunk.id.clone(),
@@ -115,7 +117,12 @@ impl RoadmapChunk {
                 .map(str::to_owned)
                 .collect()
         };
-        let mut lines = vec![(DetailLine::Title, self.title.clone())];
+        let title = if self.title.trim().is_empty() {
+            &self.name
+        } else {
+            &self.title
+        };
+        let mut lines = vec![(DetailLine::Title, title.clone())];
         lines.extend(
             wrap(&self.description, room)
                 .into_iter()
@@ -137,12 +144,27 @@ impl RoadmapChunk {
             }
         }
         if !self.deps.is_empty() {
-            lines.push((DetailLine::Note, format!("deps: {}", self.deps.join(", "))));
+            let count = self.deps.len();
+            lines.push((
+                DetailLine::Note,
+                format!(
+                    "Depends on {count} work {}",
+                    if count == 1 { "item" } else { "items" }
+                ),
+            ));
         }
         if !self.cross_refs.is_empty() {
             lines.push((
                 DetailLine::Note,
-                format!("refs: {}", self.cross_refs.join(", ")),
+                format!(
+                    "{} linked {}",
+                    self.cross_refs.len(),
+                    if self.cross_refs.len() == 1 {
+                        "record"
+                    } else {
+                        "records"
+                    }
+                ),
             ));
         }
         lines

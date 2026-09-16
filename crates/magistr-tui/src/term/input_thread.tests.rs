@@ -25,6 +25,34 @@ fn key(c: char) -> InputEvent {
 }
 
 #[test]
+fn negotiated_pixel_reports_preserve_subcell_positions() {
+    let mut terminal = FakeTerminal::new(
+        Size::new(80, 24),
+        Script::new()
+            .bytes(MS(0), b"\x1b[<0;138;264M".as_slice())
+            .close(MS(10)),
+    );
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let thread = InputThread::spawn_with_mouse(
+        terminal.input().expect("input"),
+        Decoder::new(),
+        Size::new(80, 24),
+        tx,
+        true,
+    )
+    .expect("spawn");
+    let InputEvent::Event(Event::Mouse(mouse)) = rx.blocking_recv().expect("report") else {
+        panic!("mouse report");
+    };
+    assert_eq!(mouse.px, Some((137, 263)));
+    assert_eq!(
+        mouse.kind,
+        magistr_cockpit::input::MouseKind::Down(magistr_cockpit::input::Button::Left)
+    );
+    thread.stop();
+}
+
+#[test]
 fn keys_a_resize_and_the_close_arrive_in_order_then_the_thread_is_done() {
     let (thread, mut rx) = spawn(
         Script::new()

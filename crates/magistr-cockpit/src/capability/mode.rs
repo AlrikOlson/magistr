@@ -49,16 +49,16 @@ impl Mode {
         match self {
             Self::Graphics { .. } => None,
             Self::MinimalText(TextReason::Forced) => Some(
-                "Plain-text mode (MAGISTR_TUI_MODE=text): pixel widgets are off. Unset it in ghostty, kitty, WezTerm or iTerm2 for the pixel cockpit.",
+                "Plain-text mode (MAGISTR_TUI_MODE=text). Unset this option in Ghostty, kitty, WezTerm or iTerm2 to show graphics.",
             ),
             Self::MinimalText(TextReason::ScreenReader) => Some(
-                "Screen-reader mode: the cockpit is linear text — box drawing, spinners, motion and pixel widgets are off, and settled transcript lines are never redrawn.",
+                "Screen-reader mode: the conversation is shown as a transcript without animation.",
             ),
             Self::MinimalText(TextReason::TmuxNoPassthrough) => Some(
-                "Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough on` (tmux 3.3+) inside ghostty, kitty, WezTerm or iTerm2 for the pixel cockpit.",
+                "Plain-text mode: to show graphics, enable `allow-passthrough on` in tmux 3.3 or later inside Ghostty, kitty, WezTerm or iTerm2.",
             ),
             Self::MinimalText(TextReason::NoGraphics) => Some(
-                "Plain-text mode: this terminal has no graphics protocol. Use ghostty, kitty, WezTerm or iTerm2 (3.5+) for the pixel cockpit.",
+                "Plain-text mode: this terminal shows text only. Use Ghostty, kitty, WezTerm or iTerm2 3.5 or later to show graphics.",
             ),
         }
     }

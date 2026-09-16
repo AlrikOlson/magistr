@@ -59,10 +59,9 @@ impl HitRegistry {
         self.entries.push(Entry { rect, z, id });
     }
 
-    /// Register every id-carrying rect of a layout at `base_z`, ordered
-    /// by `(layer, depth)`: children answer before their parents, and
-    /// every node on an overlay layer answers before every node below
-    /// it, however deep that one is.
+    /// Register every id-carrying rect by overlay layer, preserving paint
+    /// order within each layer. Descendants follow their parents, and a
+    /// later modal covers earlier graph labels even when those are deeper.
     ///
     /// The stride between layers is the layout's own
     /// [`max_depth`](Resolved::max_depth) plus one — derived from the
@@ -91,9 +90,7 @@ impl HitRegistry {
         let stride = resolved.max_depth().saturating_add(1);
         for placed in resolved.placed() {
             if let Some(id) = placed.id {
-                let z = base_z
-                    .saturating_add(placed.layer.saturating_mul(stride))
-                    .saturating_add(placed.depth);
+                let z = base_z.saturating_add(placed.layer.saturating_mul(stride));
                 self.register_px(box_of(placed), z, id);
             }
         }

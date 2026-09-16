@@ -6,6 +6,7 @@ mod connection;
 mod extension_reply;
 mod handshake;
 mod lines;
+mod prompt_content;
 mod sender;
 mod session_choices;
 mod spawn;

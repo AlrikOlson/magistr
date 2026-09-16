@@ -3,21 +3,21 @@ source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen(&m)
 ---
 ▲ magistr  idle                                                            00:01
-tabs  Research▸Plan▸Execute▸Verify
+Worker recovery  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                           │
 │no objective yet          │ │⌨ keys · esc closes · 1–8 of 74                  │
-│▲ tabs · 2/4              │ │                                                 │
+│▲ Worker recovery · 2/4   │ │                                                 │
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │── global ────────────────────────               │
-│▲ Tabs                    │ │ tab / shift-tab   switch pane                   │
+│▲ Worker recovery         │ │ tab / shift-tab   move focus                    │
 │0 before · 1 after        │ │ ctrl-tab          switch view                   │
 │signals 0                 │ │ ?                 keyboard help                 │
 │                          │ │ esc               close help                    │
 │                          │ │ ctrl-d            quit                          │
 │                          │ │ ctrl-c            cancel                        │
 │                          │ ╰─────────────────────────────────────────────────╯
-│                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, tool, step or change         │
+│                          │ ╭─ Details ───────────────────────────────────────╮
+│                          │ │Select a record to see details.                  │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

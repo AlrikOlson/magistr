@@ -3,7 +3,7 @@
 //! and shown under the text until the mark, its rect or the cell size
 //! changes.
 
-use magistr_cockpit::layout::{Mark, Node, Rect, Resolved, marks};
+use magistr_cockpit::layout::{Mark, Node, Placed, PxRect, Rect, Resolved, marks};
 use magistr_cockpit::pixel::{CellSize, Chip, Gauge, Panel, PixelSurface, Rule, Segment};
 use magistr_cockpit::render::Color;
 use magistr_cockpit::widget_id::WidgetId;
@@ -44,6 +44,7 @@ pub(crate) struct Fallback {
 #[derive(Debug, Default)]
 pub(crate) struct Marks {
     shown: Vec<(MarkKey, WidgetId, PixelSurface)>,
+    measured: Vec<(Mark, PxRect, CellSize, PixelSurface)>,
     free: Vec<WidgetId>,
     minted: u32,
 }
@@ -62,6 +63,10 @@ impl Marks {
     ) {
         if !screen.has_graphics() {
             self.shown.clear();
+            return;
+        }
+        if screen.pixel_frame_active() {
+            self.show_measured(root, resolved, cell, fallback, screen);
             return;
         }
         let wanted: Vec<(MarkKey, Rect)> = marks(root, resolved)
@@ -116,6 +121,56 @@ impl Marks {
         self.shown = next;
     }
 
+    fn show_measured(
+        &mut self,
+        root: &Node,
+        resolved: &Resolved,
+        cell: CellSize,
+        fallback: Fallback,
+        screen: &mut Screen,
+    ) {
+        let mut wanted = Vec::new();
+        collect_measured(root, &mut resolved.placed().iter(), cell, &mut wanted);
+        let foreground = screen.occlusion().and_then(|_| {
+            wanted
+                .iter()
+                .rposition(|(_, mark)| matches!(mark, Mark::Panel { .. }))
+        });
+        screen.occlude_pixels(foreground.map(|index| wanted[index].0));
+        let mut next = Vec::with_capacity(wanted.len());
+        for (index, (rect, mark)) in wanted.into_iter().enumerate() {
+            if rect.is_empty() {
+                continue;
+            }
+            let cached = self.measured.iter().position(|(known, bounds, size, _)| {
+                *known == mark && *bounds == rect && *size == cell
+            });
+            let mut surface = match cached {
+                Some(at) => self.measured.remove(at).3,
+                None => {
+                    let pixels =
+                        Rect::new(0, 0, rect.width.ceil() as u16, rect.height.ceil() as u16);
+                    let mut surface = paint(&mark, pixels, CellSize::new(1, 1), fallback);
+                    if let Mark::Panel { border, .. } = &mark {
+                        let (r, g, b) = match *border {
+                            Color::Rgb(r, g, b) => (r, g, b),
+                            _ => fallback.ink,
+                        };
+                        surface.paint(&Panel::new(r, g, b, cell));
+                    }
+                    surface
+                }
+            };
+            screen.surface_at_px(
+                &mut surface,
+                rect,
+                foreground.is_some_and(|start| index >= start),
+            );
+            next.push((mark, rect, cell, surface));
+        }
+        self.measured = next;
+    }
+
     /// A compositor slot for a new surface: a freed one, else a fresh one.
     fn slot(&mut self) -> WidgetId {
         self.free.pop().unwrap_or_else(|| {
@@ -123,6 +178,46 @@ impl Marks {
             self.minted += 1;
             id
         })
+    }
+}
+
+/// Traverse the identical node/placement pairs used by pixel typography.
+fn collect_measured(
+    node: &Node,
+    placed: &mut std::slice::Iter<'_, Placed>,
+    cell: CellSize,
+    out: &mut Vec<(PxRect, Mark)>,
+) {
+    let Some(place) = placed.next() else {
+        return;
+    };
+    if !place.px.is_empty() {
+        if let Some(frame) = node.frame_spec().filter(|frame| frame.is_drawn()) {
+            out.push((
+                place.px,
+                Mark::Panel {
+                    border: frame.border_style().fg,
+                    title: None,
+                },
+            ));
+        }
+        for mark in node.marks() {
+            let rect = if let Mark::Icon { col, cols, .. } = mark {
+                PxRect::new(
+                    place.px.x + f32::from(*col) * f32::from(cell.width),
+                    place.px.y,
+                    f32::from(*cols) * f32::from(cell.width),
+                    f32::from(cell.height),
+                )
+                .intersection(place.px)
+            } else {
+                place.px
+            };
+            out.push((rect, mark.clone()));
+        }
+    }
+    for child in node.child_nodes() {
+        collect_measured(child, placed, cell, out);
     }
 }
 

@@ -16,6 +16,21 @@ pub struct Tooltip {
 }
 
 impl Tooltip {
+    /// Plain descriptions for controls whose short label needs context.
+    #[must_use]
+    pub fn label(id: crate::widget_id::WidgetId) -> Option<&'static str> {
+        use super::Widget;
+        Some(match Widget::from_id(id)? {
+            Widget::LatestDecision => "Show the latest recorded step",
+            Widget::TracePrevious => "Show the previous step",
+            Widget::TraceNext => "Show the next step",
+            Widget::PromptFiles => "Add a file from this project to your message",
+            Widget::LinkedWork => "Open the work connected to this step",
+            Widget::Commands => "Find commands, work items and saved sessions",
+            widget => widget.label(),
+        })
+    }
+
     /// Cells of padding either side of the text inside the card.
     pub const PAD: u16 = 1;
 

@@ -138,6 +138,7 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Cmd> {
     let anchor = model.stage_anchor();
     let layout = model.turn.layout();
     let mut cmds = fold(model, msg);
+    model.sync_flight_wrap();
     if let Some(anchor) = anchor
         && model.turn.layout() != layout
     {
@@ -203,8 +204,22 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.turn.set_mode(model.theme.mode());
         }
         Msg::Mode(mode) => {
+            let entering_pixels = !model.pixels && mode.has_pixels();
             model.banner = mode.banner();
             model.pixels = mode.has_pixels();
+            if entering_pixels && model.uses_flight_recorder() {
+                if !model.tab_explicit {
+                    model.tab = StageTab::Turn;
+                }
+                if model.tab == StageTab::Roadmap {
+                    model.show(StageTab::Roadmap);
+                } else if model.selected.is_none()
+                    && let Some(step) = model.trace.steps().last()
+                {
+                    model.inspect(Selected::Step(step.number));
+                    model.pane = Pane::Stage;
+                }
+            }
             model.pointer_shapes = mode.has_pointer_shapes();
             // The pixel arrangement gives the stage up a gutter on each
             // side, so the turn wraps to the width it actually has —
@@ -949,6 +964,19 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
         return Vec::new();
     }
     match row.go {
+        PaletteGo::Settings => {
+            model.settings = Some(Settings::default());
+            Vec::new()
+        }
+        PaletteGo::Search => {
+            model.search = Some(Search::default());
+            Vec::new()
+        }
+        PaletteGo::Help => {
+            model.sheet = true;
+            model.sheet_viewport = Viewport::at_top();
+            Vec::new()
+        }
         PaletteGo::Launch(action) => launch(model, action),
         PaletteGo::Tab(tab) => {
             model.show(tab);
@@ -1152,11 +1180,24 @@ fn search_confirm(model: &mut Model, hit: SearchHit) -> Vec<Cmd> {
             return shelf_collect(model);
         }
         SearchGo::Step(number) => {
-            model.place = Place::Trace;
-            model.trace.expand_step(number);
+            if model.uses_flight_recorder() {
+                model.inspect(Selected::Step(number));
+            } else {
+                model.place = Place::Trace;
+                model.trace.expand_step(number);
+            }
         }
-        SearchGo::Receipt => model.place = Place::Trace,
+        SearchGo::Receipt(identity) => {
+            if model.uses_flight_recorder() {
+                model.inspect(Selected::Receipt(identity));
+            } else {
+                model.place = Place::Trace;
+            }
+        }
         SearchGo::Session(index) => {
+            if model.uses_flight_recorder() {
+                return resume_session(model, index);
+            }
             model.place = Place::Sky;
             model.session_sel = Some(index);
         }
@@ -1205,6 +1246,42 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         model.inspector_scroll = 0;
         model.inspector_open = false;
         return Some(Vec::new());
+    }
+    if model.uses_flight_recorder() {
+        if key.code == KeyCode::Esc && model.pane() != Pane::Stage && !model.inspector_open {
+            model.pane = Pane::Stage;
+            return Some(Vec::new());
+        }
+        if model.pane() == Pane::Rail
+            && matches!(
+                key.code,
+                KeyCode::Left
+                    | KeyCode::Right
+                    | KeyCode::Up
+                    | KeyCode::Down
+                    | KeyCode::Home
+                    | KeyCode::End
+            )
+        {
+            let count = model.trace.steps().len();
+            if count > 0 {
+                let index = model
+                    .trace
+                    .steps()
+                    .iter()
+                    .position(|s| model.selected() == Some(&Selected::Step(s.number)))
+                    .unwrap_or(count - 1);
+                let next = match key.code {
+                    KeyCode::Home => 0,
+                    KeyCode::End => count - 1,
+                    KeyCode::Right | KeyCode::Down => (index + 1).min(count - 1),
+                    _ => index.saturating_sub(1),
+                };
+                model.inspect(Selected::Step(model.trace.steps()[next].number));
+                model.pane = Pane::Rail;
+            }
+            return Some(Vec::new());
+        }
     }
     match key.code {
         KeyCode::Enter
@@ -1280,11 +1357,11 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             let index = selection_index(current, calls.len(), key.code == KeyCode::Down)?;
             let (id, row) = &calls[index];
             model.inspect(Selected::Tool(id.clone()));
-            model.viewport.hold(
-                row.saturating_add(1).saturating_sub(model.stage_rows()),
-                model.turn.len(),
-                model.stage_rows(),
-            );
+            let (total, height) = model.conversation_window();
+            let position = model.conversation_row_offset(row.saturating_add(1));
+            model
+                .viewport
+                .hold(position.saturating_sub(height), total, height);
         }
         KeyCode::Up | KeyCode::Down if model.tab == StageTab::Session => {
             let rows = super::session_item::SessionItem::collect(&model.trace, &model.changes);
@@ -1752,6 +1829,10 @@ fn finish_terminal(model: &mut Model, id: &str) {
 /// it while the term reports one and gives the row back when the
 /// report clears or the program ends.
 fn sync_strip(model: &mut Model, id: &str) {
+    // Output or terminal association can arrive after the completed tool record.
+    if model.turn.terminal_finished(id) {
+        model.terminals.finish(id);
+    }
     // A killed program keeps its strip: the row is where the pane says
     // it was the human.
     let on = model
@@ -1804,8 +1885,10 @@ fn turn_event(model: &mut Model, native: &NativeEvent) {
                 .turn
                 .push_event(&event(model, "objective shipped", ""));
         }
-        NativeEvent::Think(ThinkFrame::StepAppended { step, .. }) => {
-            let head = format!("think {}", step.step_number);
+        NativeEvent::Think(ThinkFrame::StepAppended { step, .. })
+            if !model.uses_flight_recorder() =>
+        {
+            let head = format!("Step {}", step.step_number);
             model.turn.push_event(&format!(
                 "{} {}",
                 model.theme().icons().think,
@@ -1898,6 +1981,7 @@ fn send(model: &mut Model) -> Vec<Cmd> {
     }
     let text = model.prompt.take();
     model.turn.push_text(Voice::User, &format!("{text}\n"));
+    model.turn_notice = None;
     model.turn_state = TurnState::Streaming;
     // A new turn answers the refusal card: the thing to do was to send
     // another, and it has been sent.
@@ -1906,7 +1990,7 @@ fn send(model: &mut Model) -> Vec<Cmd> {
     // that just landed is already fading in, and a glide under
     // it would be a second move on the same event — so the window simply
     // is at the bottom.
-    let (total, height) = (model.turn.len(), model.stage_rows());
+    let (total, height) = model.conversation_window();
     model.viewport.end(total, height, model.now(), false);
     vec![Cmd::Prompt(text)]
 }
@@ -2040,6 +2124,14 @@ fn moment_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     let typing = model.condition_open;
     let plain = key.mods.is_empty() || key.mods == Modifiers::SHIFT;
     let cmds = match key.code {
+        KeyCode::PageDown if model.uses_flight_recorder() => {
+            super::view::scroll_permission(model, 8);
+            Vec::new()
+        }
+        KeyCode::PageUp if model.uses_flight_recorder() => {
+            super::view::scroll_permission(model, -8);
+            Vec::new()
+        }
         // `⇥` is the way in for a sentence that *starts* with one of
         // the answers, which the documented example does.
         KeyCode::Tab if !typing => {
@@ -2149,6 +2241,7 @@ fn moment_answer(model: &mut Model, kind: PermissionKind) -> Vec<Cmd> {
         });
     }
     cmds.extend(answer(model, Some(option)));
+    model.permission_scroll = 0;
     if let Some((subject, mode)) = constraint(&condition, kind, scope.as_deref()) {
         model.rail.note_charter(CharterRule::new(&subject, mode));
     }
@@ -2262,6 +2355,20 @@ fn answer(model: &mut Model, option_id: Option<String>) -> Vec<Cmd> {
 fn scroll_key(model: &mut Model, code: KeyCode) {
     let (total, height) = scroll_extent(model);
     let (now, animate) = glide(model);
+    if model.uses_flight_recorder() && !model.is_sheet_open() && scrolled_tab(model).is_none() {
+        let delta = match code {
+            KeyCode::PageUp => -(height.saturating_sub(1).max(1) as isize),
+            KeyCode::PageDown => height.saturating_sub(1).max(1) as isize,
+            KeyCode::Home => isize::MIN,
+            KeyCode::End => isize::MAX,
+            _ => return,
+        };
+        let origin = model.conversation_scroll_origin();
+        model
+            .viewport
+            .scroll_from(origin, delta, total, height, (now, animate));
+        return;
+    }
     let viewport = scrolled_viewport(model);
     match code {
         KeyCode::PageUp => viewport.page_up(total, height, now, animate),
@@ -2290,7 +2397,7 @@ fn scroll_extent(model: &Model) -> (usize, usize) {
     match scrolled_tab(model) {
         Some(StageTab::Session) => model.session_window(),
         Some(StageTab::Roadmap) => model.roadmap_window(),
-        _ => (model.turn.len(), model.stage_rows()),
+        _ => model.conversation_window(),
     }
 }
 
@@ -2375,7 +2482,10 @@ fn pane_under(
     if target == Some(Widget::TermDock.id()) {
         return model.term_dock.id().map(str::to_owned);
     }
-    if undocked.is_some() || model.shown_tab() != StageTab::Turn || model.is_sheet_open() {
+    if undocked.is_some()
+        || (!model.uses_flight_recorder() && model.shown_tab() != StageTab::Turn)
+        || model.is_sheet_open()
+    {
         return None;
     }
     let index = target.and_then(Widget::stage_row_index)?;
@@ -2386,6 +2496,121 @@ fn pane_under(
 }
 
 fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<Cmd> {
+    if model.uses_flight_recorder() && model.is_sheet_open() {
+        if matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown) {
+            let (total, height) = model.sheet_window();
+            let (now, animate) = glide(model);
+            if event.kind == MouseKind::ScrollDown {
+                model.sheet_viewport.wheel_down(total, height, now, animate);
+            } else {
+                model.sheet_viewport.wheel_up(total, height, now, animate);
+            }
+        }
+        return Vec::new();
+    }
+    if model.uses_flight_recorder()
+        && matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown)
+    {
+        let down = event.kind == MouseKind::ScrollDown;
+        if model.settings.is_some() {
+            return Vec::new();
+        }
+        if model.search.is_some() {
+            let count = Search::results(model).rows.len();
+            if let Some(search) = model.search.as_mut() {
+                if down {
+                    search.down(count);
+                } else {
+                    search.up();
+                }
+            }
+            return Vec::new();
+        }
+        if model.palette.is_some() {
+            let count = Palette::rows(model).len();
+            if let Some(palette) = model.palette.as_mut() {
+                if down {
+                    palette.down(count);
+                } else {
+                    palette.up();
+                }
+            }
+            return Vec::new();
+        }
+    }
+    if model.uses_flight_recorder() && model.moment().is_some() {
+        match event.kind {
+            MouseKind::ScrollUp => {
+                super::view::scroll_permission(model, -(Viewport::WHEEL as isize));
+                return Vec::new();
+            }
+            MouseKind::ScrollDown => {
+                super::view::scroll_permission(model, Viewport::WHEEL as isize);
+                return Vec::new();
+            }
+            MouseKind::Down(Button::Left) => {
+                model.pressed = target;
+                if target == Some(Widget::ShowImages.id()) {
+                    return moment_images(model);
+                }
+                if let Some(kind) = target.and_then(Widget::from_id).and_then(Widget::answers) {
+                    return moment_answer(model, kind);
+                }
+                model.condition_open = true;
+                return Vec::new();
+            }
+            _ => {}
+        }
+    }
+    if model.uses_flight_recorder()
+        && matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown)
+    {
+        let down = event.kind == MouseKind::ScrollDown;
+        let conversation = target == Some(Widget::Stage.id())
+            || target.and_then(Widget::stage_row_index).is_some();
+        if conversation && pane_under(model, target, None).is_none() {
+            let (total, height) = model.conversation_window();
+            let (now, animate) = glide(model);
+            let distance = model.conversation_wheel();
+            let origin = model.conversation_scroll_origin();
+            model.viewport.scroll_from(
+                origin,
+                if down { distance } else { -distance },
+                total,
+                height,
+                (now, animate),
+            );
+            return Vec::new();
+        }
+        if target == Some(Widget::Dock.id()) {
+            model.permission_scroll = if down {
+                model.permission_scroll.saturating_add(1)
+            } else {
+                model.permission_scroll.saturating_sub(1)
+            };
+            return Vec::new();
+        }
+        let list = (model.tab() == StageTab::Roadmap
+            && (target == Some(Widget::RoadmapTable.id())
+                || target.and_then(Widget::roadmap_row_index).is_some()
+                || target.and_then(Widget::signal_row_index).is_some()))
+            || (model.pane() == Pane::Stage
+                && model.tab() == StageTab::Session
+                && (target.is_some_and(Inspector::contains_target)
+                    || target.and_then(Widget::session_row_index).is_some()
+                    || target.and_then(Widget::change_row_index).is_some()));
+        if list {
+            let (total, height) = scroll_extent(model);
+            let (now, animate) = glide(model);
+            let viewport = scrolled_viewport(model);
+            if down {
+                viewport.wheel_down(total, height, now, animate);
+            } else {
+                viewport.wheel_up(total, height, now, animate);
+            }
+            return Vec::new();
+        }
+    }
     if !model.surface().is_native() && target.is_some_and(Inspector::contains_target) {
         if matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown) {
             Inspector::scroll(
@@ -2465,6 +2690,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             // query and keeps the float, a row opens the hit, a click
             // anywhere else puts it away and spends the press.
             if model.search.is_some() {
+                if target == Some(Widget::OverlayQuery.id()) {
+                    return Vec::new();
+                }
                 if let Some(scope) = target
                     .and_then(Widget::search_scope_index)
                     .and_then(SearchScope::at)
@@ -2487,6 +2715,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             // and spends the press — the room behind a float is not
             // clickable through it.
             if model.palette.is_some() {
+                if target == Some(Widget::OverlayQuery.id()) {
+                    return Vec::new();
+                }
                 let index = target.and_then(Widget::palette_row_index);
                 let rows = Palette::rows(model);
                 model.palette = None;
@@ -2505,6 +2736,47 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 );
             }
             match target.and_then(Widget::from_id) {
+                Some(Widget::LatestDecision) => {
+                    if let Some(step) = model.trace.steps().last() {
+                        model.inspect(Selected::Step(step.number));
+                    }
+                    return Vec::new();
+                }
+                Some(Widget::TracePrevious | Widget::TraceNext) => {
+                    let next = target == Some(Widget::TraceNext.id());
+                    let current =
+                        model.trace.steps().iter().position(|step| {
+                            model.selected() == Some(&Selected::Step(step.number))
+                        });
+                    let count = model.trace.steps().len();
+                    if count > 0 {
+                        let index = current.map_or(count - 1, |i| {
+                            if next {
+                                (i + 1).min(count - 1)
+                            } else {
+                                i.saturating_sub(1)
+                            }
+                        });
+                        model.inspect(Selected::Step(model.trace.steps()[index].number));
+                    }
+                    return Vec::new();
+                }
+                Some(Widget::LinkedWork) => {
+                    if let Some(Selected::Step(number)) = model.selected()
+                        && let Some((_, selected)) = Inspector::linked_work(model, *number)
+                    {
+                        model.inspect(selected);
+                    }
+                    return Vec::new();
+                }
+                Some(Widget::Commands) => {
+                    model.palette = Some(Palette::default());
+                    return Vec::new();
+                }
+                Some(Widget::PromptFiles) if model.moment().is_none() => {
+                    super::FlightComposer::add_files(model);
+                    return Vec::new();
+                }
                 Some(Widget::Prompt) => {
                     model.pane = Pane::Stage;
                     return Vec::new();
@@ -2635,6 +2907,16 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     }
                     return Vec::new();
                 }
+                Some(Widget::RoadmapReset) => {
+                    let now = model.now();
+                    let animate = model.theme.motion().is_full();
+                    model.roadmap.reset_view(now, animate);
+                    return Vec::new();
+                }
+                Some(Widget::RoadmapRequest) => {
+                    super::FlightComposer::request_change(model);
+                    return Vec::new();
+                }
                 Some(Widget::RoadmapStart) => return roadmap_chunk_click(model, false),
                 Some(Widget::RoadmapComplete) => return roadmap_chunk_click(model, true),
                 Some(Widget::ShelfExport) => return shelf_export(model),
@@ -2665,7 +2947,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                             model.inspect(Selected::Chunk(chunk.id.clone()));
                             model.pane = Pane::Stage;
                         }
-                        model.roadmap_drag = Some(model.pointer_at(&event));
+                        model.roadmap_drag = Some(graph_pointer(model, &event));
                     }
                     return Vec::new();
                 }
@@ -2729,7 +3011,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 } else if let Some(entry) = model.changes.entries().get(index) {
                     let selected = Selected::Change(entry.identity());
                     model.inspect(selected);
-                    model.pane = Pane::Stage;
+                    if !model.uses_flight_recorder() {
+                        model.pane = Pane::Stage;
+                    }
                     reveal_session_selection(model);
                 }
                 return Vec::new();
@@ -2750,7 +3034,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                         .map(|row| row.selection());
                 if let Some(selected) = selected {
                     model.inspect(selected);
-                    model.pane = Pane::Stage;
+                    if !model.uses_flight_recorder() {
+                        model.pane = Pane::Stage;
+                    }
                     reveal_session_selection(model);
                 }
                 return Vec::new();
@@ -2761,7 +3047,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 } else if let Some(step) = model.trace.steps().get(index) {
                     let selected = Selected::Step(step.number);
                     model.inspect(selected);
-                    model.pane = Pane::Stage;
+                    if !model.uses_flight_recorder() {
+                        model.pane = Pane::Stage;
+                    }
                     reveal_session_selection(model);
                 }
                 return Vec::new();
@@ -2777,6 +3065,12 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             }
             if let Some(number) = target.and_then(Widget::trace_chunk_step) {
                 return chunk_jump(model, number);
+            }
+            if let Some(index) = target.and_then(Widget::roadmap_dependency_index) {
+                if let Some(selected) = Inspector::roadmap_dependency(model, index) {
+                    model.inspect(selected);
+                }
+                return Vec::new();
             }
             if let Some(index) = target.and_then(Widget::sky_star_index) {
                 return sky_star_click(model, index);
@@ -2801,7 +3095,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 } else if let Some(chunk) = model.roadmap.rows().get(index) {
                     let selected = Selected::Chunk(chunk.id.clone());
                     model.inspect(selected);
-                    model.pane = Pane::Stage;
+                    if !model.uses_flight_recorder() {
+                        model.pane = Pane::Stage;
+                    }
                 }
                 return Vec::new();
             }
@@ -2809,7 +3105,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 if let Some(signal) = model.roadmap.signals().get(index) {
                     let selected = Selected::Signal(signal.id.clone());
                     model.inspect(selected);
-                    model.pane = Pane::Stage;
+                    if !model.uses_flight_recorder() {
+                        model.pane = Pane::Stage;
+                    }
                 }
                 return Vec::new();
             }
@@ -2909,7 +3207,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
         // terminal, fractional ones on a window (`Model::pointer_at`).
         MouseKind::Drag(Button::Left) if model.roadmap_drag.is_some() => {
             if let Some((last_x, last_y)) = model.roadmap_drag {
-                let (x, y) = model.pointer_at(&event);
+                let (x, y) = graph_pointer(model, &event);
                 model.roadmap.pan_by(x - last_x, y - last_y);
                 model.roadmap_drag = Some((x, y));
             }
@@ -2938,7 +3236,8 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
         MouseKind::Move => {
             model.hovered = target;
             model.pointer = Some((event.col, event.row));
-            if target == Some(Widget::RoadmapGraph.id())
+            if (target == Some(Widget::RoadmapGraph.id())
+                || target.and_then(Widget::sky_star_index).is_some())
                 && let Some((x, y)) = graph_cell(model, &event)
             {
                 model.roadmap.hover_at(x, y, model.now());
@@ -3159,7 +3458,22 @@ fn birth_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 /// legend gutter beside the graph must never take a node. The position
 /// inside the block is [`Model::pointer_at`]'s: the cell's centre on a
 /// terminal, the exact pixel's cell on a window.
+fn graph_pointer(model: &Model, event: &MouseEvent) -> (f32, f32) {
+    let (x, y) = model.pointer_at(event);
+    if model.roadmap_graph_px().is_some() {
+        let cell = model.cell_size();
+        (x * f32::from(cell.width), y * f32::from(cell.height))
+    } else {
+        (x, y)
+    }
+}
+
 fn graph_cell(model: &Model, event: &MouseEvent) -> Option<(f32, f32)> {
+    if let Some(rect) = model.roadmap_graph_px() {
+        let (x, y) = graph_pointer(model, event);
+        return (x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height)
+            .then_some((x - rect.x, y - rect.y));
+    }
     let rect = model.roadmap_graph_rect?;
     let inside = event.col >= rect.x
         && event.col < rect.x.saturating_add(rect.width)
@@ -3258,8 +3572,9 @@ fn signal_click(model: &mut Model, index: usize, act: SignalAct) -> Vec<Cmd> {
                  research the world, and record the findings with signal_research."
             );
             model.turn.push_text(Voice::User, &format!("{text}\n"));
+            model.turn_notice = None;
             model.turn_state = TurnState::Streaming;
-            let (total, height) = (model.turn.len(), model.stage_rows());
+            let (total, height) = model.conversation_window();
             model.viewport.end(total, height, model.now(), false);
             return vec![Cmd::Prompt(text)];
         }
@@ -3331,6 +3646,9 @@ fn sky_star_click(model: &mut Model, index: usize) -> Vec<Cmd> {
         return Vec::new();
     };
     open_chunk(model, &id);
+    if model.uses_flight_recorder() {
+        model.pane = Pane::Inspector;
+    }
     shelf_collect(model)
 }
 
@@ -3356,6 +3674,9 @@ fn chunk_jump(model: &mut Model, number: u32) -> Vec<Cmd> {
         return Vec::new();
     };
     open_chunk(model, &id);
+    if model.uses_flight_recorder() {
+        model.pane = Pane::Inspector;
+    }
     shelf_collect(model)
 }
 
@@ -3644,14 +3965,17 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
     );
     match event {
         AgentEvent::Text(text) => {
+            model.turn_notice = None;
             model.turn_state = TurnState::Streaming;
             model.turn.push_text(Voice::Agent, &text);
         }
         AgentEvent::Thought(text) => {
+            model.turn_notice = None;
             model.turn_state = TurnState::Streaming;
             model.turn.push_text(Voice::Thought, &text);
         }
         AgentEvent::UserText(text) => {
+            model.turn_notice = None;
             model.turn_state = TurnState::Streaming;
             model.turn.push_text(Voice::User, &text);
         }
@@ -3664,6 +3988,7 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             images,
             record,
         } => {
+            model.turn_notice = None;
             model.turn_state = TurnState::Streaming;
             match diff {
                 Some(diff) => model.turn.push_edit(
@@ -3674,6 +3999,7 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
                 ),
                 None => model.turn.push_tool(&id, &title, verb, status),
             }
+            model.turn.set_tool_title(&id, &title);
             // What the call said past its row stays beside it, for
             // the card to open into.
             if !record.is_empty() {
@@ -3714,6 +4040,9 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
                     .turn
                     .update_tool(&id, title.as_deref(), status, duration_ms);
             }
+            if let Some(title) = title.as_deref() {
+                model.turn.set_tool_title(&id, title);
+            }
             if !record.is_empty() {
                 let terminal = record.terminal.clone();
                 model.turn.set_tool_record(&id, *record);
@@ -3751,6 +4080,13 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             }
         }
         AgentEvent::TurnEnded(end) => {
+            model.turn_notice = Some(match end {
+                TurnEnd::EndTurn => "Ready",
+                TurnEnd::Cancelled => "Stopped",
+                TurnEnd::Refusal => "Request declined",
+                TurnEnd::MaxTokens | TurnEnd::MaxTurnRequests => "Limit reached",
+                TurnEnd::Other => "Stopped",
+            });
             model.turn_state = TurnState::AwaitingInput;
             // A turn is a request on the agent block's ledger.
             model.rail.note_turn();
@@ -3761,7 +4097,7 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             model.roll_tokens();
             model.refused = end == TurnEnd::Refusal;
             if let Some(why) = ended_early(end) {
-                model.turn.push_note(&format!("turn ended early: {why}"));
+                model.turn.push_note(why);
             }
         }
         AgentEvent::PermissionRequest {
@@ -3773,6 +4109,9 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             plan,
         } => {
             model.permissions_seen += 1;
+            if model.moment().is_none() {
+                model.permission_scroll = 0;
+            }
             let announce = Cmd::Announce(format!("needs you: {title}"));
             let mut permission = Permission::new(id, title, choices);
             if let Some(plan) = plan {
@@ -3831,13 +4170,31 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             }
         }
         AgentEvent::Image(block) => {
+            model.turn_notice = None;
             model.turn_state = TurnState::Streaming;
             picture(model, &block);
         }
-        AgentEvent::Error(text) => model.turn.push_error(&format!("error: {text}")),
+        AgentEvent::PromptRejected { text, error } => {
+            model.turn_state = TurnState::AwaitingInput;
+            model.turn.push_error(&error);
+            if model.prompt.is_empty() {
+                model.prompt.insert(&text);
+                model
+                    .turn
+                    .push_note("Your message was not sent. Your draft is ready to edit.");
+            } else {
+                model.turn.push_note("Your message was not sent. Your newer draft is kept; the earlier message is in history.");
+            }
+        }
+        AgentEvent::Error(text) => {
+            model.turn_state = TurnState::AwaitingInput;
+            model.turn_notice = Some("Connection error");
+            model.turn.push_error(&text);
+        }
         // The hole is said where it is: a transcript the cockpit fell
         // behind on must not read as continuous.
         AgentEvent::Lagged { bytes, items } => {
+            model.turn_notice = None;
             model.turn_state = TurnState::Streaming;
             model.turn.push_note(&format!(
                 "… {bytes} bytes of streamed text ({items} whole updates) not shown: the cockpit fell behind"
@@ -3870,11 +4227,11 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
 const fn ended_early(end: TurnEnd) -> Option<&'static str> {
     match end {
         TurnEnd::EndTurn => None,
-        TurnEnd::MaxTokens => Some("the token limit was hit"),
-        TurnEnd::MaxTurnRequests => Some("the turn-request limit was hit"),
-        TurnEnd::Refusal => Some("the model refused"),
-        TurnEnd::Cancelled => Some("cancelled"),
-        TurnEnd::Other => Some("the agent stopped"),
+        TurnEnd::MaxTokens => Some("The response reached its length limit."),
+        TurnEnd::MaxTurnRequests => Some("The request limit was reached."),
+        TurnEnd::Refusal => Some("The agent declined this request."),
+        TurnEnd::Cancelled => Some("Stopped."),
+        TurnEnd::Other => Some("The agent stopped."),
     }
 }
 

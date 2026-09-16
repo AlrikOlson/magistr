@@ -48,7 +48,7 @@ impl TraceCardRow {
     /// The narrowest a value column gets, however narrow the stage.
     const MIN_VALUE_COLS: u16 = 12;
     /// The label of the execution-ref row — the one the chunk jump rides.
-    pub const EXECUTION_REF: &'static str = "execution ref";
+    pub const EXECUTION_REF: &'static str = "Linked work";
 
     /// The card for `step` at `width` columns: every field when `full`,
     /// the brief cut otherwise; `jump` marks the execution ref as a
@@ -64,23 +64,29 @@ impl TraceCardRow {
         rows.push(Self::Buttons);
         let fields: Vec<(&'static str, &str, bool)> = if full {
             vec![
-                ("context", step.context.as_str(), false),
-                ("thought", step.thought.as_str(), false),
-                ("outcome", step.outcome.as_str(), false),
-                ("next action", step.next_action.as_str(), false),
-                ("rationale", step.rationale.as_str(), false),
-                ("uncertainty", step.uncertainty.as_str(), false),
+                ("Context", step.context.as_str(), false),
+                ("Reasoning", step.thought.as_str(), false),
+                ("Result", step.outcome.as_str(), false),
+                ("Next", step.next_action.as_str(), false),
+                ("Why", step.rationale.as_str(), false),
+                ("Still uncertain", step.uncertainty.as_str(), false),
                 (
                     Self::EXECUTION_REF,
-                    step.execution_ref.as_deref().unwrap_or(""),
+                    if jump {
+                        "Open related work"
+                    } else if step.execution_ref.is_some() {
+                        "Linked work is unavailable."
+                    } else {
+                        ""
+                    },
                     jump,
                 ),
             ]
         } else {
             vec![
-                ("thought", step.thought.as_str(), false),
-                ("outcome", step.outcome.as_str(), false),
-                ("next action", step.next_action.as_str(), false),
+                ("Reasoning", step.thought.as_str(), false),
+                ("Result", step.outcome.as_str(), false),
+                ("Next", step.next_action.as_str(), false),
             ]
         };
         for (label, text, linked) in fields {
@@ -115,9 +121,9 @@ impl TraceCardRow {
 /// `step 10 · <purpose>`, or just the number when the step has none.
 fn title(step: &TraceStep) -> String {
     if step.purpose.is_empty() {
-        format!("step {}", step.number)
+        format!("Step {}", step.number)
     } else {
-        format!("step {} · {}", step.number, step.purpose)
+        format!("Step {} · {}", step.number, step.purpose)
     }
 }
 
@@ -127,7 +133,7 @@ fn title(step: &TraceStep) -> String {
 fn meta(step: &TraceStep) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let Some(confidence) = step.confidence {
-        parts.push(format!("confidence {confidence:.2}"));
+        parts.push(format!("{:.0}% confidence", confidence * 100.0));
     }
     if !step.dependencies.is_empty() {
         parts.push(format!(
@@ -142,11 +148,14 @@ fn meta(step: &TraceStep) -> String {
     if step.estimated_total > 0 {
         parts.push(format!("estimate {}", step.estimated_total));
     }
-    if let Some(branch) = &step.branch_id {
-        let name = step.branch_name.as_deref().unwrap_or(branch);
+    if step.branch_id.is_some() {
+        let name = step
+            .branch_name
+            .as_deref()
+            .unwrap_or("Question not recorded");
         match step.branch_from {
-            Some(from) => parts.push(format!("branch {name} from {from}")),
-            None => parts.push(format!("branch {name}")),
+            Some(from) => parts.push(format!("{name} · began after step {from}")),
+            None => parts.push(name.to_owned()),
         }
     }
     if let Some(revises) = step.revises {
@@ -156,13 +165,13 @@ fn meta(step: &TraceStep) -> String {
         parts.push(format!("revised by {by}"));
     }
     if step.pinned {
-        parts.push("pinned".to_owned());
+        parts.push("Saved".to_owned());
     }
     if step.is_final {
         parts.push("final".to_owned());
     }
     if parts.is_empty() {
-        "no metadata".to_owned()
+        "No further details recorded.".to_owned()
     } else {
         parts.join(" · ")
     }

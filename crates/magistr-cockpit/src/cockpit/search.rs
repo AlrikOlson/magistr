@@ -232,10 +232,14 @@ fn candidates(model: &Model, kind: SearchKind) -> Vec<Candidate> {
                 };
                 Candidate {
                     kind,
-                    title: None,
+                    title: Some(if step.purpose.is_empty() {
+                        format!("Step {}", step.number)
+                    } else {
+                        format!("Step {} · {}", step.number, step.purpose)
+                    }),
                     text,
                     windowed: true,
-                    prefix: format!("think:{} \u{b7} \u{201c}", step.number),
+                    prefix: format!("Step {} · “", step.number),
                     suffix: "\u{201d}".to_owned(),
                     when: None,
                     go: SearchGo::Step(step.number),
@@ -246,36 +250,43 @@ fn candidates(model: &Model, kind: SearchKind) -> Vec<Candidate> {
             .trace()
             .moments()
             .iter()
-            .filter_map(|moment| match moment {
-                ShipMoment::Action {
-                    kind: verb,
-                    description,
-                    id,
-                    files,
-                    ..
-                } => {
-                    let mut parts: Vec<String> = vec![format!("#{id}")];
-                    if !verb.is_empty() {
-                        parts.push(verb.clone());
-                    }
-                    if let Some(file) = files.first() {
-                        parts.push(file.clone());
-                    }
-                    if !description.is_empty() {
-                        parts.push(description.clone());
-                    }
-                    Some(Candidate {
+            .enumerate()
+            .map(|(index, moment)| {
+                let super::Selected::Receipt(identity) =
+                    super::session_item::SessionItem::Moment(index, moment).selection()
+                else {
+                    unreachable!("moments have stable receipt identities");
+                };
+                let text = match moment {
+                    ShipMoment::Action {
                         kind,
-                        title: None,
-                        text: parts.join(" \u{b7} "),
-                        windowed: false,
-                        prefix: String::new(),
-                        suffix: String::new(),
-                        when: None,
-                        go: SearchGo::Receipt,
-                    })
+                        description,
+                        files,
+                        ..
+                    } => {
+                        let mut parts = vec![description.clone()];
+                        if !kind.is_empty() {
+                            parts.push(kind.clone());
+                        }
+                        if let Some(file) = files.first() {
+                            parts.push(file.clone());
+                        }
+                        parts.join(" · ")
+                    }
+                    ShipMoment::Check { name, passed, .. } => {
+                        format!("{} · {name}", if *passed { "Passed" } else { "Failed" })
+                    }
+                };
+                Candidate {
+                    kind,
+                    title: None,
+                    text,
+                    windowed: false,
+                    prefix: String::new(),
+                    suffix: String::new(),
+                    when: None,
+                    go: SearchGo::Receipt(identity),
                 }
-                ShipMoment::Check { .. } => None,
             })
             .collect(),
         SearchKind::Session => model

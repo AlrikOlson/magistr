@@ -16,8 +16,8 @@ Research▸Plan▸Execute▸Verify
 │                          │ │time unknown ▸  7  step 7                        │
 │                          │ │time unknown ▸  8  step 8                        │
 │                          │ ╰─────────────────────────────────────────────────╯
-│                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, tool, step or change         │
+│                          │ ╭─ Details ───────────────────────────────────────╮
+│                          │ │Select a record to see details.                  │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
@@ -25,4 +25,4 @@ Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────
 ›
- ↑↓  select   enter  detail   tab / shift-tab  switch pane
+ ↑↓  select   enter  detail   tab / shift-tab  move focus

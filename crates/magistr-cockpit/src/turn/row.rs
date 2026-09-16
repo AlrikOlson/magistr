@@ -14,6 +14,10 @@ pub struct Row {
     pub text: String,
     /// Styled runs over `text`, ordered and non-overlapping.
     pub spans: Vec<Span>,
+    /// Measured list-marker gutter in the graphics conversation, zero for other rows.
+    pub indent_px: u16,
+    /// The marker appears only on the first visual row; continuations keep its gutter.
+    pub marker: Option<String>,
 }
 
 impl Row {
@@ -24,6 +28,8 @@ impl Row {
             kind,
             text: text.into(),
             spans: Vec::new(),
+            indent_px: 0,
+            marker: None,
         }
     }
 
@@ -34,6 +40,8 @@ impl Row {
             kind,
             text: text.into(),
             spans,
+            indent_px: 0,
+            marker: None,
         }
     }
 }

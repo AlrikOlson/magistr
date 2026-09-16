@@ -15,78 +15,68 @@ fn clock() -> FrameClock {
 /// Kitty, unwrapped — the protocol a pixel profile composites through.
 const KITTY: Protocol = Protocol::Kitty(Passthrough::Direct);
 
-/// Pixel layers cannot bleed through the palette's opaque cell background.
+/// Pixel layers cannot bleed through the palette's opaque background.
 #[test]
 fn the_palette_masks_underlying_graphs_and_panel_rings() {
     use magistr_cockpit::harness::Scenes;
-    use magistr_cockpit::layout::{Mark, marks};
     let mut model = Scenes::command_palette(Size::new(80, 24));
     update(&mut model, Msg::Mode(Decision::Graphics(KITTY).mode()));
-    let root = view(&model, &clock());
     let resolved = layout(&model, &clock(), Profile::Kitty).expect("layout");
-    let panel = marks(&root, &resolved)
-        .into_iter()
-        .rev()
-        .find_map(|(rect, mark)| matches!(mark, Mark::Panel { .. }).then_some(rect))
-        .expect("palette panel");
-    let (_, images) = compose(&model, &clock(), KITTY).expect("frame");
-    // The background in the panel's unused bottom padding must be solid. Old
-    // graphs/rings crossing this rectangle would add a second colour.
+    let panel = resolved
+        .placed()
+        .iter()
+        .find(|place| place.layer == 1 && place.depth == 2)
+        .expect("palette panel")
+        .px;
+    let shot = frame(&model, &clock(), Profile::Kitty).expect("frame");
     let [r, g, b] = magistr_cockpit::render::resolve(
-        magistr_cockpit::theme::Pen::for_theme(&model.theme())
-            .stage
-            .bg,
+        magistr_cockpit::cockpit::FlightStyle::for_model(&model).panel,
         &model.theme().palette(),
         false,
     );
-    let y = u32::from(panel.bottom() - 2) * 20 + 15;
-    let image = images
-        .iter()
-        .find(|p| u32::from(p.row) * 20 <= y && y < u32::from(p.row + p.rows) * 20)
-        .expect("strip");
-    let local_y = y - u32::from(image.row) * 20;
-    for x in u32::from(panel.x + 2) * 10..u32::from(panel.right() - 2) * 10 {
-        let at = ((local_y * image.width + x) * 4) as usize;
+    // Padding is deliberately tested across the complete modal. Neither the
+    // roadmap nor recorder nor native images may show through this area.
+    let y = (panel.bottom() - 5.0).floor() as u32;
+    for x in (panel.x + 4.0).ceil() as u32..(panel.right() - 4.0).floor() as u32 {
         assert_eq!(
-            &image.rgba[at..at + 4],
-            &[r, g, b, 255],
+            shot.pixel(x, y)
+                .map(|pixel| [pixel.red(), pixel.green(), pixel.blue(), pixel.alpha()]),
+            Some([r, g, b, 255]),
             "opaque palette ground at {x},{y}"
         );
     }
 }
 
 #[test]
-fn a_proportional_gauge_label_has_space_beside_its_bar() {
-    let model = roadmapped();
-    let resolved = layout(&model, &clock(), Profile::Kitty).expect("pixel layout");
-    let placed = resolved.placed();
-    let at = placed
-        .iter()
-        .position(|p| p.id == Some(magistr_cockpit::cockpit::Widget::RailGauge.id()))
-        .expect("gauge");
-    let bar = placed[at + 1].px;
-    let label = placed[at + 2].px;
-    assert!(
-        placed[at].px.height >= label.height,
-        "{:?}",
-        &placed[at..at + 3]
+fn a_proportional_send_label_has_space_beside_the_message() {
+    use magistr_cockpit::cockpit::Widget;
+    let mut model = roadmapped();
+    update(
+        &mut model,
+        Msg::Paste("Check the current Harbor work".into()),
     );
-    assert!(label.width >= 25.0, "{:?}", &placed[at..at + 3]);
-    assert!(label.x >= bar.right(), "the label clears the bar");
-    assert!(label.height >= 20.0, "{:?}", &placed[at..at + 3]);
+    let resolved = layout(&model, &clock(), Profile::Kitty).expect("pixel layout");
+    let editor = resolved.px(Widget::Prompt.id()).expect("editor");
+    let button = resolved.px(Widget::PromptAction.id()).expect("send");
+    assert!(
+        button.x - editor.right() >= 15.0,
+        "the label clears the draft: {editor:?}, {button:?}"
+    );
+    assert!(
+        button.height >= 20.0 && button.width >= 50.0,
+        "complete button label"
+    );
     let shot = frame(&model, &clock(), Profile::Kitty).expect("frame");
     let background = shot
-        .pixel(label.x as u32, label.y as u32)
+        .pixel(button.x as u32, button.y as u32)
         .expect("background");
     assert!(
-        (label.y as u32..label.bottom() as u32).any(|y| {
-            (label.x as u32..label.right() as u32).any(|x| shot.pixel(x, y) != Some(background))
+        (button.y as u32..button.bottom() as u32).any(|y| {
+            (button.x as u32..button.right() as u32).any(|x| shot.pixel(x, y) != Some(background))
         }),
-        "visible label: {:?}",
-        &placed[at..at + 3]
+        "the button paints a visible label"
     );
 }
-
 fn model() -> Model {
     Model::new(Size::new(120, 40)).with_theme(Theme::forced(ThemeMode::Dark))
 }

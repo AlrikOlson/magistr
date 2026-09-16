@@ -35,6 +35,52 @@ fn text_leaves_land_in_their_rects_wrapped_and_clipped() {
 }
 
 #[test]
+fn clipped_text_never_replaces_a_neighboring_frame_edge() {
+    for text in ["a  b", "        x", "界", "e\u{301}  b"] {
+        let root = Node::row()
+            .child(
+                Node::column()
+                    .width(Length::Cells(3))
+                    .shrink(0.0)
+                    .frame(Frame::new(Style::new()))
+                    .child(
+                        Node::text(text)
+                            .height(Length::Cells(1))
+                            .min_width(Length::Cells(0)),
+                    ),
+            )
+            .child(Node::text("Neighbor").width(Length::Cells(8)).shrink(0.0));
+        let resolved = LayoutTree::new().compute(&root, 11, 3).expect("layout");
+        let mut buffer = Buffer::new(11, 3);
+        paint(&root, &resolved, &mut buffer);
+        assert_eq!(buffer.get(2, 1).unwrap().symbol, "│", "{text}");
+        assert!(text_at(&buffer, 0).ends_with("Neighbor"));
+    }
+}
+
+#[test]
+fn clipped_cell_bands_keep_wide_graphemes_inside_their_rect() {
+    for columns in [1, 2] {
+        let root = Node::column().child(
+            Node::cells(vec![Cell::new("界", Style::new()), Cell::continuation()])
+                .width(Length::Cells(columns))
+                .shrink(0.0),
+        );
+        let resolved = LayoutTree::new().compute(&root, 4, 1).expect("layout");
+        let mut buffer = Buffer::new(4, 1);
+        buffer.fill(&Cell::new("#", Style::new()));
+        paint(&root, &resolved, &mut buffer);
+        assert_eq!(buffer.get(columns, 0).unwrap().symbol, "#");
+        if columns == 1 {
+            assert_eq!(buffer.get(0, 0).unwrap().symbol, " ");
+        } else {
+            assert_eq!(buffer.get(0, 0).unwrap().symbol, "界");
+            assert!(buffer.get(1, 0).unwrap().is_continuation());
+        }
+    }
+}
+
+#[test]
 fn a_styled_container_fills_its_rect_as_a_band() {
     let bar = Style::new().fg(Color::Rgb(5, 5, 5)).bg(Color::Rgb(8, 8, 8));
     let chip = Style::new().fg(Color::Rgb(1, 1, 1)).bg(Color::Rgb(2, 2, 2));

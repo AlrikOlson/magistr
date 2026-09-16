@@ -12,6 +12,12 @@ fn placed(id: Option<u32>, depth: u16, rect: Rect) -> Placed {
             f32::from(rect.width),
             f32::from(rect.height),
         ),
+        bounds: PxRect::new(
+            f32::from(rect.x),
+            f32::from(rect.y),
+            f32::from(rect.width),
+            f32::from(rect.height),
+        ),
         content: Extent {
             width: rect.width,
             height: rect.height,

@@ -729,11 +729,12 @@ impl LoopDriver {
         mut session: JoinHandle<Result<(), String>>,
     ) -> Result<(), String> {
         let cleanup = match tokio::time::timeout(SESSION_GRACE, &mut session).await {
-            Ok(result) => result.map_err(|error| format!("session relay failed: {error}"))?,
+            Ok(result) => result
+                .map_err(|error| format!("the agent connection ended unexpectedly: {error}"))?,
             Err(_) => {
                 session.abort();
                 let _ = session.await;
-                Err("session cleanup exceeded its deadline; the owner was aborted".to_owned())
+                Err("the agent took too long to close and was stopped".to_owned())
             }
         };
         while let Ok(msg) = self.tap_rx.try_recv() {

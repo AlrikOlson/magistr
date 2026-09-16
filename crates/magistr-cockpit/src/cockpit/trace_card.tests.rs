@@ -36,20 +36,20 @@ fn a_brief_card_shows_the_three_working_fields_cut_to_two_rows() {
     assert_eq!(rows.last(), Some(&TraceCardRow::Blank));
     assert_eq!(
         rows[1],
-        TraceCardRow::Title("step 10 · Verify restart-safe scheduling".into())
+        TraceCardRow::Title("Step 10 · Verify restart-safe scheduling".into())
     );
     assert!(matches!(&rows[2], TraceCardRow::Meta(meta)
-        if meta.contains("confidence 0.94") && meta.contains("depends on 9") && meta.contains("pinned")));
+        if meta.contains("94% confidence") && meta.contains("depends on 9") && meta.contains("Saved")));
     assert!(rows.contains(&TraceCardRow::Buttons));
     let labels: Vec<&str> = fields(&rows)
         .iter()
         .filter(|(_, first)| *first)
         .map(|(l, _)| *l)
         .collect();
-    assert_eq!(labels, vec!["thought", "outcome", "next action"]);
+    assert_eq!(labels, vec!["Reasoning", "Result", "Next"]);
     let thought_rows = fields(&rows)
         .iter()
-        .filter(|(l, _)| *l == "thought")
+        .filter(|(l, _)| *l == "Reasoning")
         .count();
     assert_eq!(
         thought_rows,
@@ -58,7 +58,7 @@ fn a_brief_card_shows_the_three_working_fields_cut_to_two_rows() {
     );
     let cut = rows.iter().find_map(|row| match row {
         TraceCardRow::Field {
-            label: "thought",
+            label: "Reasoning",
             text,
             first: false,
             ..
@@ -82,17 +82,17 @@ fn a_full_card_shows_every_field_whole_and_links_the_execution_ref() {
     assert_eq!(
         labels,
         vec![
-            "context",
-            "thought",
-            "outcome",
-            "next action",
-            "rationale",
+            "Context",
+            "Reasoning",
+            "Result",
+            "Next",
+            "Why",
             TraceCardRow::EXECUTION_REF
         ]
     );
     let thought_rows = fields(&rows)
         .iter()
-        .filter(|(l, _)| *l == "thought")
+        .filter(|(l, _)| *l == "Reasoning")
         .count();
     assert!(thought_rows > TraceCardRow::BRIEF_LINES, "nothing is cut");
     assert!(
@@ -145,8 +145,8 @@ fn a_bare_step_has_a_number_title_no_metadata_and_no_fields() {
         rows,
         vec![
             TraceCardRow::Blank,
-            TraceCardRow::Title("step 3".into()),
-            TraceCardRow::Meta("no metadata".into()),
+            TraceCardRow::Title("Step 3".into()),
+            TraceCardRow::Meta("No further details recorded.".into()),
             TraceCardRow::Buttons,
             TraceCardRow::Blank,
         ]

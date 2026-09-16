@@ -12,7 +12,7 @@ fn the_request_is_the_kitty_query_the_sizing_handshake_then_da1() {
     assert_eq!(
         out,
         b"\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\\
-          \r\x1b[6n\x1b]66;w=2; \x07\x1b[6n\x1b]66;s=2; \x07\x1b[6n\r\x1b[c"
+          \r\x1b[6n\x1b]66;w=2; \x07\x1b[6n\x1b]66;s=2; \x07\x1b[6n\r\x1b[?1016$p\x1b[c"
     );
 }
 
@@ -22,7 +22,7 @@ fn under_tmux_only_the_kitty_query_is_wrapped() {
     Probe::new(Passthrough::Tmux).request(&mut out);
     assert!(out.starts_with(b"\x1bPtmux;\x1b\x1b_G"));
     assert!(
-        out.ends_with(b"\x1b[6n\r\x1b[c"),
+        out.ends_with(b"\x1b[6n\r\x1b[?1016$p\x1b[c"),
         "{:?}",
         String::from_utf8_lossy(&out)
     );
@@ -88,6 +88,7 @@ fn the_handshake_survives_being_split_and_interleaved() {
             kitty: true,
             sixel: false,
             text_sizing: true,
+            pixel_mouse: false,
             complete: true
         }
     );
@@ -114,6 +115,7 @@ fn kitty_ok_then_da1_is_complete_with_kitty() {
             kitty: true,
             sixel: false,
             text_sizing: false,
+            pixel_mouse: false,
             complete: false
         }
     );
@@ -124,6 +126,7 @@ fn kitty_ok_then_da1_is_complete_with_kitty() {
             kitty: true,
             sixel: false,
             text_sizing: false,
+            pixel_mouse: false,
             complete: true
         }
     );
@@ -139,6 +142,7 @@ fn da1_with_parameter_4_is_sixel() {
             kitty: false,
             sixel: true,
             text_sizing: false,
+            pixel_mouse: false,
             complete: true
         }
     );
@@ -162,6 +166,7 @@ fn a_kitty_error_reply_is_not_support() {
             kitty: false,
             sixel: false,
             text_sizing: false,
+            pixel_mouse: false,
             complete: true
         }
     );
@@ -196,6 +201,7 @@ fn an_interleaved_osc_11_reply_is_skipped() {
             kitty: true,
             sixel: true,
             text_sizing: false,
+            pixel_mouse: false,
             complete: true
         }
     );
@@ -227,6 +233,7 @@ fn bytes_may_arrive_one_at_a_time() {
             kitty: true,
             sixel: true,
             text_sizing: false,
+            pixel_mouse: false,
             complete: true
         }
     );
@@ -244,8 +251,27 @@ fn stray_text_and_a_lone_escape_are_harmless() {
             kitty: false,
             sixel: false,
             text_sizing: false,
+            pixel_mouse: false,
             complete: true
         }
+    );
+}
+
+#[test]
+fn pixel_mouse_requires_a_positive_mode_report_and_survives_fragmentation() {
+    for (status, supported) in [(0, false), (1, true), (2, true), (3, true), (4, false)] {
+        let mut probe = Probe::new(Passthrough::Direct);
+        for byte in format!("\x1b[?1016;{status}$y").bytes() {
+            probe.feed(&[byte]);
+        }
+        assert_eq!(probe.reply().pixel_mouse, supported);
+        assert!(!probe.reply().complete);
+    }
+    let mut probe = Probe::new(Passthrough::Tmux);
+    probe.feed(b"\x1b[?1006;2$y");
+    assert!(
+        !probe.reply().pixel_mouse,
+        "cell reporting support proves nothing about pixels"
     );
 }
 

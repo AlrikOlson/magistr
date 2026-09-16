@@ -66,6 +66,7 @@ pub struct RoadmapDag {
     edges: Vec<(usize, usize)>,
     paths: Vec<DagPath>,
     cell: (f32, f32),
+    marker_height: f32,
     background: Color,
     /// Where the active chunk's glow is in its breath, `0..1` around one
     /// raised cosine — [`Motion::glow_phase`](crate::cockpit::Motion::glow_phase).
@@ -75,10 +76,13 @@ pub struct RoadmapDag {
     /// turns them off: a translucent band across a six-row block reads
     /// as a box, not a region.
     bands: bool,
+    light: bool,
     /// Per node, whether it is in the selection's focus — the selected
     /// chunk and everything reachable from it along dependencies in
     /// either direction. `None` while nothing is selected.
     focus: Option<Vec<bool>>,
+    /// Direct recorded relationships of the selection, when a full plan asks for them.
+    incident_ink: Option<Color>,
 }
 
 impl RoadmapDag {
@@ -102,11 +106,27 @@ impl RoadmapDag {
             edges,
             paths: Vec::new(),
             cell: (f32::from(cell.0), f32::from(cell.1)),
+            marker_height: f32::from(cell.1),
             background: Color::from_rgba8(26, 27, 38, 255),
             glow: 0.0,
             bands: true,
+            light: false,
             focus,
+            incident_ink: None,
         }
+    }
+
+    /// Nodes already placed in physical pixels; marker size remains independent
+    /// of the coordinate ruler and therefore does not round with terminal cells.
+    #[must_use]
+    pub fn pixels(
+        nodes: impl Into<Vec<DagNode>>,
+        edges: impl Into<Vec<(usize, usize)>>,
+        marker_height: f32,
+    ) -> Self {
+        let mut graph = Self::new(nodes, edges, (1, 1));
+        graph.marker_height = marker_height.max(4.0);
+        graph
     }
 
     /// Attach routed paths produced by the shared cockpit layout.
@@ -146,6 +166,70 @@ impl RoadmapDag {
     pub fn background(mut self, r: u8, g: u8, b: u8) -> Self {
         self.background = Color::from_rgba8(r, g, b, 255);
         self
+    }
+
+    /// Ink and rings on a pale surface; day mode does not draw a light halo.
+    #[must_use]
+    pub fn light(mut self, light: bool) -> Self {
+        self.light = light;
+        self
+    }
+
+    fn status_ink(&self, status: &str) -> Color {
+        if !self.light {
+            return status_color(status);
+        }
+        match status {
+            "in_progress" => Color::from_rgba8(167, 72, 19, 255),
+            "done" => Color::from_rgba8(76, 110, 34, 255),
+            "blocked" => Color::from_rgba8(157, 34, 67, 255),
+            "backlog" => Color::from_rgba8(102, 109, 132, 255),
+            _ => Color::from_rgba8(53, 91, 157, 255),
+        }
+    }
+
+    /// Emphasize the selected work item's direct dependencies and dependents.
+    #[must_use]
+    pub fn highlight_incident(mut self, r: u8, g: u8, b: u8) -> Self {
+        self.incident_ink = Some(Color::from_rgba8(r, g, b, 255));
+        self
+    }
+
+    fn incident(&self, from: usize, to: usize) -> bool {
+        self.incident_ink.is_some()
+            && [from, to]
+                .iter()
+                .any(|&at| self.nodes.get(at).is_some_and(|node| node.selected))
+    }
+
+    fn link_ink(&self, from: usize, to: usize) -> Color {
+        if self.incident(from, to) {
+            return self.incident_ink.expect("incident edges have an accent");
+        }
+        let walked = self
+            .nodes
+            .get(from)
+            .is_some_and(|node| node.status == "done");
+        let lit = self.is_lit(from)
+            && self.is_lit(to)
+            && !(self.incident_ink.is_some() && self.focus.is_some());
+        self.edge_ink(walked, lit)
+    }
+
+    fn edge_ink(&self, walked: bool, lit: bool) -> Color {
+        if !self.light {
+            return edge_color(walked, self.focus.is_some(), lit);
+        }
+        let alpha = if self.focus.is_some() && !lit {
+            100
+        } else {
+            220
+        };
+        if walked {
+            Color::from_rgba8(76, 110, 34, alpha)
+        } else {
+            Color::from_rgba8(80, 92, 125, alpha)
+        }
     }
 
     fn point(&self, node: &DagNode) -> (f32, f32) {
@@ -268,7 +352,7 @@ impl super::painter::Painter for RoadmapDag {
             ..Paint::default()
         };
         let points: Vec<(f32, f32)> = self.nodes.iter().map(|node| self.point(node)).collect();
-        let radius = dot_radius(&points, self.cell.1);
+        let radius = dot_radius(&points, self.marker_height);
         let ring_gap = (radius * 0.5).max(1.5);
         // The workstream bands: one faint tint across the width, spanning
         // the region's nodes.
@@ -305,7 +389,7 @@ impl super::painter::Painter for RoadmapDag {
         // The active chunk's glow, under everything the eye then lands
         // on: the halo says "here" before the ring spells it.
         for (node, &(x, y)) in self.nodes.iter().zip(&points) {
-            if !node.here {
+            if !node.here || self.light {
                 continue;
             }
             let swell = wave(self.glow);
@@ -335,12 +419,14 @@ impl super::painter::Painter for RoadmapDag {
         // Under a selection the chains through the focus brighten and
         // every other edge fades back.
         let stroke = Stroke {
-            width: (self.cell.1 * STROKE_FRACTION).clamp(1.0, 2.0),
+            width: (self.marker_height * STROKE_FRACTION).clamp(1.0, 2.0),
             line_cap: LineCap::Round,
             line_join: LineJoin::Round,
             ..Stroke::default()
         };
-        for &(from, to) in &self.edges {
+        let mut edges = self.edges.clone();
+        edges.sort_by_key(|&(from, to)| self.incident(from, to));
+        for (from, to) in edges {
             let route = self
                 .paths
                 .iter()
@@ -358,12 +444,15 @@ impl super::painter::Painter for RoadmapDag {
             if route.len() < 2 {
                 continue;
             }
-            let walked = self
-                .nodes
-                .get(from)
-                .is_some_and(|node| node.status == "done");
-            let lit = self.is_lit(from) && self.is_lit(to);
-            paint.set_color(edge_color(walked, self.focus.is_some(), lit));
+            paint.set_color(self.link_ink(from, to));
+            let stroke = Stroke {
+                width: if self.incident(from, to) {
+                    stroke.width + 0.7
+                } else {
+                    stroke.width
+                },
+                ..stroke.clone()
+            };
             let mut path = PathBuilder::new();
             for (index, &(x1, y1)) in route.iter().enumerate() {
                 if index == 0 {
@@ -385,7 +474,7 @@ impl super::painter::Painter for RoadmapDag {
         // twice when it needs the eye. Everything outside the focus
         // fades back.
         for (at, (node, &(x, y))) in self.nodes.iter().zip(&points).enumerate() {
-            let mut color = status_color(&node.status);
+            let mut color = self.status_ink(&node.status);
             if !self.is_lit(at) {
                 color.set_alpha(DIM_ALPHA);
             }
@@ -434,13 +523,17 @@ impl super::painter::Painter for RoadmapDag {
             if node.here
                 && let Some(circle) = ring(ring_gap)
             {
-                paint.set_color(Color::from_rgba8(255, 158, 100, 255));
+                paint.set_color(self.status_ink("in_progress"));
                 pixmap.stroke_path(&circle, &paint, &stroke, Transform::identity(), None);
             }
             if node.selected
                 && let Some(circle) = ring(ring_gap + stroke.width + 1.0)
             {
-                paint.set_color(Color::from_rgba8(255, 255, 255, 255));
+                paint.set_color(if self.light {
+                    Color::from_rgba8(48, 55, 75, 255)
+                } else {
+                    Color::from_rgba8(255, 255, 255, 255)
+                });
                 pixmap.stroke_path(&circle, &paint, &stroke, Transform::identity(), None);
             }
         }

@@ -4,10 +4,10 @@ expression: screen(&edit)
 ---
 ▲ magistr  ▘ streaming                                                                                                         00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                                         │  │ src/retry.rs                     │
-│no objective yet          │ │▎ Updating the retry limit.                                    │  │ ✓ completed                      │
-│roadmap 0/0 done          │ │▎ ✓ edit   src/retry.rs · +1 −1                                │  │ edit · retry-limit               │
+│no objective yet          │ │▎ Updating the retry limit.                                    │  │ ✓ Completed                      │
+│roadmap 0/0 done          │ │▎ ✓ edit   src/retry.rs · +1 −1                                │  │ File change                      │
 │signals 0                 │ │▎   [Open]  [Undo]                                             │  │ Open Undo Less                   │
 │                          │ │▎   @@ -1 +1 @@                                                │  │ @@ -1 +1 @@                      │
 │                          │ │▎   -const RETRIES: usize = 2;                                 │  │ -const RETRIES: usize = 2;       │

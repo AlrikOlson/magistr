@@ -158,6 +158,33 @@ fn a_click_inside_a_modal_resolves_to_the_modal_not_to_what_it_covers() {
 }
 
 #[test]
+fn a_later_modal_covers_deeper_graph_label_overlays_in_the_same_layer() {
+    let label = Node::leaf()
+        .id(id(1))
+        .overlay(Inset::none().left(Length::Cells(10)).top(Length::Cells(3)))
+        .width(Length::Cells(20))
+        .height(Length::Cells(6));
+    let mut graph = Node::column().grow(1.0).child(label);
+    for _ in 0..8 {
+        graph = Node::column().grow(1.0).child(graph);
+    }
+    let modal = Node::centered_overlay(
+        Node::leaf()
+            .id(id(2))
+            .width(Length::Cells(20))
+            .height(Length::Cells(6)),
+    );
+    let root = Node::column().child(graph).child(modal);
+    let resolved = LayoutTree::new().compute(&root, 40, 12).unwrap();
+    let mut registry = HitRegistry::new();
+    registry.register_layout(&resolved, 0);
+    assert_eq!(registry.hit(20, 6), Some(id(2)));
+    registry.clear();
+    registry.register_layout_px(&resolved, 0);
+    assert_eq!(registry.hit_at(20.5, 6.5), Some(id(2)));
+}
+
+#[test]
 fn an_overlay_layer_outranks_every_in_flow_node_however_deep() {
     let mut deep = Node::leaf().id(id(9)).grow(1.0);
     for raw in (1..9).rev() {

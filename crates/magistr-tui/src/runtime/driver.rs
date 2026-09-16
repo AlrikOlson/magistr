@@ -15,7 +15,7 @@ use crate::flat::{FlatLine, Role, Transcript, plain};
 use crate::render::Screen;
 use crate::term::{InputEvent, Terminal};
 use magistr_cockpit::cockpit::{
-    Cmd, FrameClock, Model, Msg, PointerShape, Progress, Widget, update, view,
+    Cmd, FlightRecorder, FrameClock, Model, Msg, PointerShape, Progress, Widget, update, view,
 };
 use magistr_cockpit::hit::HitRegistry;
 use magistr_cockpit::input::Event;
@@ -28,6 +28,7 @@ pub(crate) struct Driver {
     pub(crate) screen: Screen,
     tree: LayoutTree,
     hits: HitRegistry,
+    geometry_dirty: bool,
     scheduler: FrameScheduler,
     started: Instant,
     out: Vec<u8>,
@@ -79,6 +80,7 @@ impl Driver {
             screen,
             tree: LayoutTree::new(),
             hits: HitRegistry::new(),
+            geometry_dirty: true,
             scheduler: FrameScheduler::new(),
             started: Instant::now(),
             out: Vec::new(),
@@ -105,8 +107,27 @@ impl Driver {
     pub(crate) fn event(&mut self, event: InputEvent) {
         match event {
             InputEvent::Event(Event::Key(key)) => self.apply(Msg::Key(key), Activity::Input),
-            InputEvent::Event(Event::Mouse(event)) => {
-                let target = self.hits.hit(event.col, event.row);
+            InputEvent::Event(Event::Mouse(mut event)) => {
+                self.refresh_hits();
+                let target = if self.model.has_pixels() {
+                    let cell = self.model.cell_size();
+                    let (x, y) = match event.px {
+                        Some((x, y)) => {
+                            event.col =
+                                (x / u32::from(cell.width.max(1))).min(u32::from(u16::MAX)) as u16;
+                            event.row =
+                                (y / u32::from(cell.height.max(1))).min(u32::from(u16::MAX)) as u16;
+                            (f64::from(x), f64::from(y))
+                        }
+                        None => (
+                            (f64::from(event.col) + 0.5) * f64::from(cell.width),
+                            (f64::from(event.row) + 0.5) * f64::from(cell.height),
+                        ),
+                    };
+                    self.hits.hit_at(x, y)
+                } else {
+                    self.hits.hit(event.col, event.row)
+                };
                 self.apply(Msg::Mouse { event, target }, Activity::Input);
             }
             InputEvent::Event(Event::Paste(text)) => self.apply(Msg::Paste(text), Activity::Input),
@@ -119,6 +140,11 @@ impl Driver {
             InputEvent::Resize(size) => {
                 self.screen.resize(size.cols, size.rows);
                 self.apply(Msg::Resize(size), Activity::Message);
+                if self.model.has_pixels() {
+                    // Font changes can alter both cells and physical pixels.
+                    // Refresh the ruler used by layout and pointer conversion.
+                    self.screen.enclose(b"\x1b[16t\x1b[14t");
+                }
             }
             InputEvent::Closed => self.quit = true,
         }
@@ -133,6 +159,7 @@ impl Driver {
     /// and the animation declaration are the runtime's own; everything
     /// else goes to whoever took the commands.
     fn fold(&mut self, msg: Msg) {
+        self.geometry_dirty = true;
         for cmd in update(&mut self.model, msg) {
             match cmd {
                 Cmd::Quit => self.quit = true,
@@ -205,8 +232,7 @@ impl Driver {
         let root = view(&self.model, &clock);
         let resolved = self.surfaces.layout(&root, &self.model, &mut self.tree)?;
         paint(&root, &resolved, self.screen.buffer());
-        self.hits.clear();
-        self.hits.register_layout(&resolved, 0);
+        self.register_hits(&resolved);
         let report_changed =
             self.surfaces
                 .show(&root, &mut self.model, &resolved, &mut self.screen);
@@ -229,6 +255,56 @@ impl Driver {
             self.scheduler.note(Activity::Message, Instant::now());
         }
         Ok(())
+    }
+
+    /// Input may arrive after resize or new content but before the next paint.
+    /// Resolve the new bounds first instead of dispatching against yesterday's frame.
+    fn refresh_hits(&mut self) {
+        if !self.geometry_dirty || self.flat.is_some() {
+            return;
+        }
+        let clock = FrameClock::new(self.model.frames(), self.started.elapsed());
+        let root = view(&self.model, &clock);
+        self.hits.clear();
+        if let Ok(resolved) = self.surfaces.layout(&root, &self.model, &mut self.tree) {
+            self.register_hits(&resolved);
+        }
+    }
+
+    fn register_hits(&mut self, resolved: &Resolved) {
+        self.hits.clear();
+        if self.model.has_pixels() {
+            self.hits.register_layout_px(resolved, 0);
+            if let Some(graph) = resolved
+                .placed()
+                .iter()
+                .find(|place| place.id == Some(Widget::TraceGraph.id()))
+            {
+                let rect = graph.px;
+                let points =
+                    FlightRecorder::graph(&self.model, rect.width).points(rect.width, rect.height);
+                let indices = FlightRecorder::step_indices(&self.model, rect.width);
+                // One graph geometry drives pixels, labels and activation. Its
+                // layer remains below modal overlays; points outrank the graph.
+                let z = graph
+                    .layer
+                    .saturating_mul(resolved.max_depth().saturating_add(1))
+                    .saturating_add(graph.depth);
+                for ((x, y), index) in points.into_iter().zip(indices) {
+                    let hit = magistr_cockpit::layout::PxRect::new(
+                        rect.x + x - 12.0,
+                        rect.y + y - 12.0,
+                        24.0,
+                        24.0,
+                    )
+                    .intersection(rect);
+                    self.hits.register_px(hit, z, Widget::trace_row(index));
+                }
+            }
+        } else {
+            self.hits.register_layout(resolved, 0);
+        }
+        self.geometry_dirty = false;
     }
 
     /// A flat frame appends settled transcript once per batch. Prompt

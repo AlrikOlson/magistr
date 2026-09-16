@@ -26,6 +26,7 @@ pub mod rule;
 pub mod segment;
 pub mod sparkline;
 pub mod surface;
+pub mod typography;
 
 pub use branch_graph::BranchGraph;
 pub use brand::Brand;
@@ -42,3 +43,4 @@ pub use rule::Rule;
 pub use segment::Segment;
 pub use sparkline::Sparkline;
 pub use surface::PixelSurface;
+pub use typography::Typography;

@@ -24,6 +24,356 @@ const SIZE: Size = Size::new(80, 24);
 const BSU: &[u8] = b"\x1b[?2026h";
 const CLEAR: &[u8] = b"\x1b[2J";
 
+/// The exact production layout supplies only coordinates: raw terminal bytes
+/// still pass through capability negotiation, decoding, hit testing and update.
+#[tokio::test]
+async fn pixel_mouse_submits_at_drawn_bounds_for_varied_metrics_and_resize() {
+    use magistr_cockpit::cockpit::Cmd;
+    use magistr_cockpit::input::Reply;
+    use magistr_tui::screenshot::{Profile, layout};
+    for (width, height) in [(7, 17), (13, 29), (20, 40)] {
+        let initial = Size::new(100, 40);
+        let resized = Size::new(110, 44);
+        let mut expected = Model::new(resized);
+        update(
+            &mut expected,
+            Msg::Reply(Reply::CellPixels { width, height }),
+        );
+        update(&mut expected, Msg::Paste("Check Harbor".into()));
+        let resolved = layout(
+            &expected,
+            &FrameClock::new(0, Duration::ZERO),
+            Profile::Kitty,
+        )
+        .expect("production layout");
+        let button = resolved.px(Widget::PromptAction.id()).expect("send button");
+        let x = (button.x + button.width * 0.55).floor() as u32;
+        let y = (button.y + button.height * 0.5).floor() as u32;
+        let startup =
+            format!("\x1b_Gi=31;OK\x1b\\\x1b[6;{height};{width}t\x1b[?1016;2$y\x1b[?62;4c");
+        let click = format!("\x1b[<0;{};{}M\x1b[<0;{};{}m", x + 1, y + 1, x + 1, y + 1);
+        let terminal = FakeTerminal::new(
+            initial,
+            Script::new()
+                .bytes(MS(0), startup)
+                .resize(MS(80), resized)
+                .bytes(MS(80), format!("\x1b[6;{height};{width}t"))
+                .bytes(MS(180), click)
+                .close(MS(300)),
+        );
+        let capture = terminal.capture();
+        let mut runtime = Runtime::new(terminal, options());
+        let mut commands = runtime.commands().expect("commands");
+        let mut model = Model::new(initial);
+        update(&mut model, Msg::Paste("Check Harbor".into()));
+        let model = runtime.run(model).await.expect("run");
+        let mut submitted = Vec::new();
+        while let Some(command) = commands.try_next() {
+            if let Cmd::Prompt(text) = command {
+                submitted.push(text);
+            }
+        }
+        assert_eq!(
+            submitted,
+            ["Check Harbor"],
+            "{width}×{height} pointer at {x},{y}"
+        );
+        assert!(model.prompt().is_empty());
+        assert_eq!(model.size(), resized);
+        assert_eq!(capture.count(b"\x1b[?1016h"), 1);
+        assert!(
+            capture.count(b"\x1b[16t") >= 2,
+            "resize refreshes pixel metrics"
+        );
+        assert!(
+            capture.bytes().ends_with(&leave_sequence()),
+            "pixel mouse mode restored on exit"
+        );
+        let click = model
+            .recent()
+            .find_map(|message| match message {
+                Msg::Mouse { event, target } if event.px == Some((x, y)) => Some((event, target)),
+                _ => None,
+            })
+            .expect("physical report reached the model");
+        assert_eq!(*click.1, Some(Widget::PromptAction.id()));
+        assert_eq!(
+            (click.0.col, click.0.row),
+            (
+                (x / u32::from(width)) as u16,
+                (y / u32::from(height)) as u16
+            )
+        );
+    }
+}
+
+#[tokio::test]
+async fn graphics_startup_preserves_an_explicit_roadmap_entrypoint() {
+    use magistr_cockpit::cockpit::{Pane, Selected, StageTab};
+    use magistr_cockpit::engine::EngineEvent;
+    use magistr_cockpit::harness::fixtures;
+    let size = Size::new(144, 50);
+    for status in [None, Some("in_progress"), Some("pending")] {
+        for explicit in [false, true] {
+            let terminal =
+                FakeTerminal::new(size, Script::new().startup_replies(MS(0)).close(MS(120)));
+            let mut model = Model::new(size);
+            if let Some(status) = status {
+                update(
+                    &mut model,
+                    Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+                        chunks: vec![
+                            fixtures::chunk_from(serde_json::json!({
+                                "id": "recovery", "name": "Recovery checks",
+                                "title": "Check delivery recovery", "status": "pending", "priority": 200
+                            })),
+                            fixtures::chunk_from(serde_json::json!({
+                                "id": "retry", "name": "Saved retry limits",
+                                "title": "Save retry budgets with receipts", "status": status, "priority": 100
+                            })),
+                        ],
+                        steps: [3, 18, 144].into_iter().map(fixtures::step).collect(),
+                        ..Default::default()
+                    })),
+                );
+            }
+            if explicit {
+                model = model.with_tab(StageTab::Roadmap);
+            }
+            assert!(model.selected().is_none());
+            let model = Runtime::new(terminal, options()).run(model).await.unwrap();
+            assert!(model.has_pixels());
+            assert_eq!(
+                model.tab(),
+                if explicit {
+                    StageTab::Roadmap
+                } else {
+                    StageTab::Turn
+                }
+            );
+            assert_eq!(model.roadmap_graph_px().is_some(), explicit);
+            if status.is_some() {
+                assert_eq!(model.pane(), Pane::Stage);
+                if explicit {
+                    assert_eq!(model.selected(), Some(&Selected::Chunk("retry".into())));
+                    assert_eq!(
+                        model.roadmap().selected().unwrap().title,
+                        "Save retry budgets with receipts"
+                    );
+                } else {
+                    assert_eq!(model.selected(), Some(&Selected::Step(144)));
+                }
+            } else {
+                assert!(model.selected().is_none());
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn physical_roadmap_click_and_zoom_reach_the_live_graph_after_resize() {
+    use magistr_cockpit::cockpit::{FlightRoadmapGraph, Selected, StageTab};
+    use magistr_cockpit::harness::Scenes;
+    use magistr_cockpit::input::Reply;
+    use magistr_tui::screenshot::{Profile, layout};
+    for (width, height) in [(10, 20), (13, 29)] {
+        let initial = Size::new(120, 40);
+        let resized = Size::new(144, 50);
+        let mut expected = Scenes::roadmapped(resized).with_tab(StageTab::Turn);
+        update(
+            &mut expected,
+            Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+                pointer_shapes: true,
+            }),
+        );
+        update(
+            &mut expected,
+            Msg::Reply(Reply::CellPixels { width, height }),
+        );
+        let placed = layout(
+            &expected,
+            &FrameClock::new(0, Duration::ZERO),
+            Profile::Kitty,
+        )
+        .unwrap();
+        let open = placed.px(Widget::TabRoadmap.id()).unwrap();
+        let open_x = (open.x + open.width / 2.0) as u32;
+        let open_y = (open.y + open.height / 2.0) as u32;
+        update(
+            &mut expected,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::TabRoadmap.id()),
+            },
+        );
+        let placed = layout(
+            &expected,
+            &FrameClock::new(0, Duration::ZERO),
+            Profile::Kitty,
+        )
+        .unwrap();
+        let rect = placed.px(Widget::RoadmapGraph.id()).unwrap();
+        let nodes = FlightRoadmapGraph::nodes(&expected, rect.width, rect.height);
+        let point = &nodes[1];
+        let x = (rect.x + point.x).round() as u32;
+        let y = (rect.y + point.y).round() as u32;
+        let startup =
+            format!("\x1b_Gi=31;OK\x1b\\\x1b[6;{height};{width}t\x1b[?1016;2$y\x1b[?62;4c");
+        let click = format!("\x1b[<0;{};{}M\x1b[<0;{};{}m", x + 1, y + 1, x + 1, y + 1);
+        let wheel = format!("\x1b[<64;{};{}M", x + 1, y + 1);
+        let open = format!(
+            "\x1b[<0;{};{}M\x1b[<0;{};{}m",
+            open_x + 1,
+            open_y + 1,
+            open_x + 1,
+            open_y + 1
+        );
+        let terminal = FakeTerminal::new(
+            initial,
+            Script::new()
+                .bytes(MS(0), startup)
+                .resize(MS(80), resized)
+                .bytes(MS(80), format!("\x1b[6;{height};{width}t"))
+                .bytes(MS(180), open)
+                .bytes(MS(260), click)
+                .bytes(MS(320), wheel)
+                .close(MS(480)),
+        );
+        let capture = terminal.capture();
+        let runtime = Runtime::new(terminal, options());
+        let model = runtime
+            .run(Scenes::roadmapped(initial).with_tab(StageTab::Turn))
+            .await
+            .unwrap();
+        assert_eq!(model.tab(), StageTab::Roadmap);
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Chunk("tui2-2-rail".into()))
+        );
+        assert!(
+            model.roadmap().zoom() > 1.0,
+            "wheel at the drawn node zooms the graph"
+        );
+        let actual = model
+            .roadmap_graph_px()
+            .expect("runtime reported physical graph bounds");
+        assert_eq!(actual, rect);
+        assert_eq!(capture.count(b"\x1b[?1016h"), 1);
+        assert!(model.recent().any(|message| matches!(message,
+            Msg::Mouse { event, target } if event.px == Some((x, y)) && *target == Some(Widget::sky_star(1)))));
+    }
+}
+
+#[tokio::test]
+async fn unsupported_pixel_mouse_keeps_cell_reports_and_flat_sessions_never_enable_it() {
+    let (model, capture) = run(Script::new().startup_replies(MS(0)).close(MS(80))).await;
+    assert!(model.has_pixels());
+    assert_eq!(
+        capture.count(b"\x1b[?1016h"),
+        0,
+        "graphics alone cannot enable pixel reports"
+    );
+    let terminal = FakeTerminal::new(
+        SIZE,
+        Script::new()
+            .bytes(MS(0), b"\x1b[?1016;2$y\x1b[?62;4c".as_slice())
+            .close(MS(80)),
+    );
+    let capture = terminal.capture();
+    Runtime::new(
+        terminal,
+        Options::new(Env::new("xterm-kitty", false, Some("text"))).probe_timeout(MS(500)),
+    )
+    .run(Model::new(SIZE))
+    .await
+    .expect("plain run");
+    assert_eq!(capture.count(b"\x1b[?1016h"), 0);
+}
+
+#[tokio::test]
+async fn graph_points_and_latest_use_real_terminal_actions_with_sparse_decisions() {
+    use magistr_cockpit::cockpit::{Cmd, EngineCmd, FlightRecorder, Selected};
+    use magistr_cockpit::engine::EngineEvent;
+    use magistr_cockpit::harness::fixtures;
+    use magistr_tui::screenshot::{Profile, layout};
+    let size = Size::new(144, 50);
+    let mut base = Model::new(size);
+    update(
+        &mut base,
+        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+            steps: [3, 18, 144].into_iter().map(fixtures::step).collect(),
+            ..Default::default()
+        })),
+    );
+    update(&mut base, Msg::Paste("Keep this draft".into()));
+    let mut selected = base.clone();
+    update(
+        &mut selected,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::trace_row(1)),
+        },
+    );
+    update(
+        &mut selected,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Up(Button::Left), 0, 0),
+            target: Some(Widget::trace_row(1)),
+        },
+    );
+    let resolved = layout(
+        &selected,
+        &FrameClock::new(0, Duration::ZERO),
+        Profile::Kitty,
+    )
+    .expect("layout");
+    let graph = resolved.px(Widget::TraceGraph.id()).expect("graph");
+    let point = FlightRecorder::graph(&selected, graph.width).points(graph.width, graph.height)[1];
+    let point = (
+        (graph.x + point.0).round() as u16,
+        (graph.y + point.1).round() as u16,
+    );
+    let latest = resolved.px(Widget::LatestDecision.id()).expect("latest");
+    let latest = (
+        (latest.x + latest.width / 2.0) as u16,
+        (latest.y + latest.height / 2.0) as u16,
+    );
+    for return_latest in [false, true] {
+        let mut script = Script::new()
+            .bytes(
+                MS(0),
+                b"\x1b_Gi=31;OK\x1b\\\x1b[6;20;10t\x1b[?1016;2$y\x1b[?62;4c".as_slice(),
+            )
+            .click(MS(100), point.0, point.1);
+        if return_latest {
+            script = script.click(MS(360), latest.0, latest.1);
+        }
+        let terminal = FakeTerminal::new(size, script.close(MS(500)));
+        let mut runtime = Runtime::new(terminal, options());
+        let mut commands = runtime.commands().expect("commands");
+        magistr_tui::harness::FakeEngines::new().frame(MS(220), "think", "step_appended", serde_json::json!({"step":{"step_number":901,"purpose":"verify","thought":"Harbor checks passed"}})).play(runtime.inbox());
+        let model = runtime.run(base.clone()).await.expect("run");
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Step(if return_latest { 901 } else { 18 }))
+        );
+        assert_eq!(model.prompt().text(), "Keep this draft");
+        assert!(
+            model.viewport().is_following(),
+            "record selection keeps conversation position"
+        );
+        while let Some(command) = commands.try_next() {
+            assert!(
+                !matches!(
+                    command,
+                    Cmd::Engine(EngineCmd::Checkpoint) | Cmd::Checkpoint(_)
+                ),
+                "return to latest cannot save a checkpoint: {command:?}"
+            );
+        }
+    }
+}
+
 /// Where the 20 clicks land: two on the header, three per phase, three on
 /// the stage, three on the footer (rects from the 80×24 layout snapshot).
 const CLICKS: [(u16, u16); 20] = [
@@ -104,12 +454,12 @@ fn widget_rect(id: magistr_cockpit::widget_id::WidgetId) -> magistr_cockpit::lay
 /// stays one while it moves *within* the tab (one sequence, not one per
 /// frame), and is handed back when it leaves for the header.
 #[tokio::test]
-async fn the_pointer_is_a_hand_over_a_tab_and_is_handed_back_when_it_leaves() {
-    let tab = widget_rect(Widget::TabRoadmap.id());
+async fn the_pointer_is_a_hand_over_commands_and_is_handed_back_when_it_leaves() {
+    let tab = widget_rect(Widget::Commands.id());
     let script = Script::new()
         .startup_replies(MS(0))
-        .mouse_move(MS(20), tab.x, tab.y)
-        .mouse_move(MS(60), tab.x + tab.width - 1, tab.y)
+        .mouse_move(MS(20), tab.x + 1, tab.y + tab.height / 2)
+        .mouse_move(MS(60), tab.x + tab.width - 2, tab.y + tab.height / 2)
         .mouse_move(MS(100), 0, 0)
         .text(MS(140), "\x04");
     let (model, capture) = run(script).await;
@@ -130,10 +480,10 @@ async fn the_pointer_is_a_hand_over_a_tab_and_is_handed_back_when_it_leaves() {
 /// the way out, so the terminal is never left drawing a hand.
 #[tokio::test]
 async fn the_pointer_is_handed_back_at_the_exit() {
-    let tab = widget_rect(Widget::TabRoadmap.id());
+    let tab = widget_rect(Widget::Commands.id());
     let script = Script::new()
         .startup_replies(MS(0))
-        .mouse_move(MS(20), tab.x, tab.y)
+        .mouse_move(MS(20), tab.x + 1, tab.y + tab.height / 2)
         .text(MS(60), "\x04");
     let (model, capture) = run(script).await;
     assert!(model.quit_requested());
@@ -145,10 +495,10 @@ async fn the_pointer_is_handed_back_at_the_exit() {
 /// pointer-shape string — it would print it.
 #[tokio::test]
 async fn a_plain_terminal_is_never_sent_a_pointer_shape() {
-    let tab = widget_rect(Widget::TabRoadmap.id());
+    let tab = widget_rect(Widget::Commands.id());
     let script = Script::new()
         .plain_replies(MS(0))
-        .mouse_move(MS(20), tab.x, tab.y)
+        .mouse_move(MS(20), tab.x + 1, tab.y + tab.height / 2)
         .mouse_move(MS(60), 0, 0)
         .text(MS(100), "\x04");
     let (model, capture) = run(script).await;
@@ -675,17 +1025,22 @@ fn leave_sequence_with_progress() -> Vec<u8> {
     out
 }
 
-/// The screen the third column needs, and where it lands there — the
-/// geometry `snap_undock_placement_180x50` pins.
+/// A wide graphics screen keeps recorded work beside the conversation.
 const WIDE: Size = Size::new(180, 50);
 
-/// a wheel over the undocked third column moves that
-/// column's own rows and leaves the turn where it was. End to end,
-/// because the routing depends on the driver reporting the column's
-/// placed rect after layout — the model alone cannot know where the
-/// column went.
+/// Actual terminal clicks open Records; scrolling there leaves the conversation anchored.
 #[tokio::test]
-async fn a_wheel_over_the_undocked_column_moves_its_feed_and_not_the_turn() {
+async fn opening_and_scrolling_records_keeps_the_conversation_in_place() {
+    let baseline = Model::new(WIDE);
+    let layout = magistr_tui::screenshot::layout(
+        &baseline,
+        &FrameClock::new(0, Duration::ZERO),
+        magistr_tui::screenshot::Profile::Kitty,
+    )
+    .unwrap();
+    let records = layout.px(Widget::TabSession.id()).expect("Records control");
+    let col = ((records.x + records.width * 0.5) / 10.0) as u16;
+    let row = ((records.y + records.height * 0.5) / 20.0) as u16;
     let script = Script::new()
         .startup_replies(MS(0))
         // Well past the arrival transients the seed sets off, so the
@@ -693,7 +1048,8 @@ async fn a_wheel_over_the_undocked_column_moves_its_feed_and_not_the_turn() {
         // notch's own glide before the quit, so the model ends on the
         // window the scroll landed on rather than a frame still easing
         // towards it.
-        .scroll_up(MS(400), 150, 20)
+        .click(MS(300), col, row)
+        .scroll_up(MS(500), 150, 20)
         .text(MS(1000), "\x04");
     let terminal = FakeTerminal::new(WIDE, script);
     let runtime = Runtime::new(terminal, options());
@@ -721,18 +1077,14 @@ async fn a_wheel_over_the_undocked_column_moves_its_feed_and_not_the_turn() {
         .await
         .expect("the run succeeds");
 
-    // One gutter cell in from the screen's edge on every side, the
-    // pixel arrangement's frame.
     assert_eq!(
         model.undock_rect(),
-        Some(magistr_cockpit::layout::Rect::new(131, 3, 48, 37)),
-        "the driver reported where the column landed"
+        None,
+        "no extra permanent Session column"
     );
-    assert_eq!(
-        model.undocked_tab(),
-        Some(magistr_cockpit::cockpit::StageTab::Session)
-    );
-    assert_eq!(model.inputs(), 2, "the notch and the quit");
+    assert_eq!(model.undocked_tab(), None);
+    assert_eq!(model.tab(), magistr_cockpit::cockpit::StageTab::Session);
+    assert_eq!(model.inputs(), 4, "the click press/release, wheel and quit");
     let (total, height) = model.session_window();
     assert!(total > height, "the feed is longer than the column");
     assert_eq!(

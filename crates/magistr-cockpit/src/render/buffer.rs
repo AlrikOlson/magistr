@@ -2,6 +2,8 @@
 
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::layout::Rect;
+
 use super::cell::Cell;
 use super::style::Style;
 use super::width::width;
@@ -90,7 +92,19 @@ impl Buffer {
     /// becomes a blank. Zero-width graphemes (controls, lone combining
     /// marks) are skipped.
     pub fn put_str(&mut self, col: u16, row: u16, text: &str, style: &Style) -> u16 {
-        if row >= self.height {
+        self.put_str_in(
+            Rect::new(col, row, self.width.saturating_sub(col), 1),
+            text,
+            style,
+        )
+    }
+
+    /// Write on the first row of `rect`, preserving the cells outside it.
+    /// A grapheme straddling its right edge becomes a blank inside the clip.
+    pub fn put_str_in(&mut self, rect: Rect, text: &str, style: &Style) -> u16 {
+        let (col, row) = (rect.x, rect.y);
+        let right = rect.right().min(self.width);
+        if rect.is_empty() || col >= right || row >= self.height {
             return 0;
         }
         let mut cursor = col;
@@ -99,12 +113,12 @@ impl Buffer {
             if columns == 0 {
                 continue;
             }
-            if cursor >= self.width {
+            if cursor >= right {
                 break;
             }
-            if usize::from(cursor) + usize::from(columns) > usize::from(self.width) {
+            if usize::from(cursor) + usize::from(columns) > usize::from(right) {
                 self.set(cursor, row, Cell::new(" ", style.clone()));
-                cursor = self.width;
+                cursor = right;
                 break;
             }
             self.set(cursor, row, Cell::new(grapheme, style.clone()));

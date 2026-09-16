@@ -186,7 +186,7 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
 async fn two_hundred_lines_a_second_keep_input_to_paint_under_the_bound() {
     const LINES: u32 = 200;
     const KEYS: u64 = 40;
-    const CARDS: usize = 4;
+    const CARDS: usize = 3;
     let mut script = Script::new().startup_replies(MS(0));
     for i in 0..KEYS {
         script = script.text(MS(100 + 20 * i), "k");
@@ -253,7 +253,11 @@ async fn two_hundred_lines_a_second_keep_input_to_paint_under_the_bound() {
     assert_eq!(
         model.turn().len(),
         LINES as usize + CARDS,
-        "every line and card arrived"
+        "every conversation line, action and check arrived"
+    );
+    assert!(
+        model.trace().steps().iter().any(|step| step.number == 9),
+        "the decision arrived in the recorder without duplicating it in the conversation"
     );
     assert!(
         model

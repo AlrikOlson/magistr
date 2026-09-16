@@ -3,13 +3,14 @@
 //! Runs inside `connect_with`'s closure — outside the dispatch loop — so it
 //! may `block_task()` on responses while handlers keep being served.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
 use agent_client_protocol::schema::v1::{
-    CancelNotification, ContentBlock, ListSessionsRequest, PromptRequest, SessionConfigId,
-    SessionId, SetSessionConfigOptionRequest, TextContent,
+    CancelNotification, ListSessionsRequest, PromptRequest, SessionConfigId, SessionId,
+    SetSessionConfigOptionRequest,
 };
 use agent_client_protocol::{Agent, ConnectionTo};
 use magistr_process::ReapingChild as Child;
@@ -18,6 +19,7 @@ use tokio::sync::{mpsc, oneshot};
 use super::command::AcpCommand;
 use super::connection::ConnectionInputs;
 use super::handshake::{AcpHandshake, HandshakeInputs, acp_handshake};
+use super::prompt_content::PromptContent;
 use super::wait_child::wait_child;
 use crate::handlers::effects::EffectBridge;
 use crate::stderr_tail::StderrTail;
@@ -81,6 +83,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         }
     };
 
+    let images = agent_capabilities.prompt_capabilities.image;
     effects.bind_session(session_id.to_string());
     let _ = event_tx.send(Ok(AcpEvent::Initialized {
         agent_capabilities: Box::new(agent_capabilities),
@@ -92,6 +95,8 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
     let _ = handshake_tx.send(Ok(()));
 
     let mut session = Session {
+        images,
+        cwd,
         cx,
         session_id,
         child,
@@ -127,6 +132,8 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
 
 /// Everything the loop needs once the session exists.
 struct Session {
+    images: bool,
+    cwd: PathBuf,
     cx: ConnectionTo<Agent>,
     session_id: SessionId,
     child: Option<Child>,
@@ -196,11 +203,18 @@ impl Session {
         text: String,
         cmd_rx: &mut mpsc::UnboundedReceiver<AcpCommand>,
     ) -> std::result::Result<(), Stop> {
+        let content = match PromptContent::resolve(&text, &self.cwd, self.images).await {
+            Ok(content) => content,
+            Err(message) => {
+                let _ = self.event_tx.send(Ok(AcpEvent::System {
+                    subtype: "prompt_rejected".into(),
+                    data: serde_json::json!({"text":text,"error":message}),
+                }));
+                return Ok(());
+            }
+        };
         self.effects.begin_turn();
-        let request = PromptRequest::new(
-            self.session_id.clone(),
-            vec![ContentBlock::Text(TextContent::new(text))],
-        );
+        let request = PromptRequest::new(self.session_id.clone(), content);
         let response = self.cx.send_request(request).block_task();
         tokio::pin!(response);
 

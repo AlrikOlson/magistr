@@ -14,6 +14,37 @@ mod goals;
 
 const DEADLINE: Duration = Duration::from_secs(3);
 
+#[tokio::test]
+async fn rejected_attachment_keeps_session_available_and_reaches_no_provider() {
+    let mut fixture = Fixture::start("first").await;
+    fixture.next_started().await;
+    fixture.next_terminal().await.expect("first done");
+    fixture
+        .supervisor
+        .send_followup("Read @missing.rs")
+        .expect("message admitted");
+    assert!(matches!(
+        fixture.next_terminal().await,
+        Ok(AgentMessage::Result { is_error: true, .. })
+    ));
+    assert_eq!(
+        fixture.supervisor.snapshot().residency,
+        SessionResidency::Resident
+    );
+    assert_eq!(fixture.supervisor.snapshot().active_turn, None);
+    assert!(
+        fixture.started.try_recv().is_err(),
+        "invalid attachment never reached provider"
+    );
+    fixture
+        .supervisor
+        .send_followup("try again")
+        .expect("same session admits another turn");
+    assert_eq!(fixture.next_started().await.0, "try again");
+    fixture.next_terminal().await.expect("second done");
+    fixture.close().await;
+}
+
 struct Observed {
     started: mpsc::UnboundedSender<(String, Option<String>)>,
     active: AtomicUsize,
