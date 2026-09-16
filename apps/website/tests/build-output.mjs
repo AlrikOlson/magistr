@@ -66,7 +66,7 @@ assert(mainOf(indexHtml).split('target="_blank"').length - 1 === (mainOf(indexHt
 
 console.log("\nTerminal screenshots:");
 const manifest = JSON.parse(readFileSync(resolve(distDir, "screenshots/captures.json"), "utf-8"));
-assert(manifest.renderer === "magistr-tui::screenshot::frame" && manifest.surface === "Terminal", "manifest names the terminal renderer");
+assert(manifest.renderer === "magistr-tui::screenshot::Preview::frame" && manifest.surface === "Terminal", "manifest names the terminal renderer");
 assert(manifest.state.includes("fixtures/harbor.json"), "manifest names the fixture it was rendered from");
 assert(manifest.annotations === false, "screenshots carry no annotations");
 assert(manifest.images.length === 8, "overview, roadmap, turn and session screenshots in both themes");
@@ -85,12 +85,12 @@ for (const capture of manifest.images) {
   assert(createHash("sha256").update(png).digest("hex") === capture.sha256, capture.file + " matches the built bytes");
 }
 assert(!readdirSync(resolve(distDir, "screenshots")).some((name) => name.startsWith("tui2-")), "no stale screenshot files ship");
-assert((indexHtml.match(/width="1320" height="840"/g) || []).length === 8, "every screenshot declares its native dimensions");
+assert((indexHtml.match(/width="1440" height="1000"/g) || []).length === 8, "every screenshot declares its native dimensions");
 assert((indexHtml.match(/<figcaption>/g) || []).length === 4, "four captioned figures");
 assert(!indexHtml.includes("/diagrams/") && !indexHtml.includes("/icons/"), "no decorative diagrams or icons");
 
 console.log("\nPublic language:");
-const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|chunk\b|workflow server|native state|admitted|typed command/;
+const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|chunk\b|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder|\b[Dd]ecisions?\b/;
 const commentary = /\bsample\b|\bHarbor\b|\bcaptured\b|\bcapture\b|\bfixture\b|on purpose|\bsynthetic\b|\bwe\b|\bour\b|\bgolden|wrangler|Cloudflare|wear/i;
 for (const [name, html] of productPages) {
   const text = textOf(html);
@@ -134,7 +134,7 @@ assert(existsSync(resolve(distDir, "favicon.svg")) && existsSync(resolve(distDir
 assert(indexHtml.includes("prefers-color-scheme") && indexHtml.includes("theme-toggle"), "theme detection and toggle");
 const css = readdirSync(resolve(distDir, "_astro")).filter((f) => f.endsWith(".css")).map((f) => readFileSync(resolve(distDir, "_astro", f), "utf-8")).join("\n");
 assert(css.includes("prefers-reduced-motion"), "reduced motion respected in the stylesheet");
-assert(css.includes("aspect-ratio:1320/840") || css.includes("aspect-ratio: 1320 / 840"), "screenshots reserve their aspect ratio");
+assert(css.includes("aspect-ratio:1440/1000") || css.includes("aspect-ratio: 1440 / 1000"), "screenshots reserve their aspect ratio");
 
 console.log("\nSitemap, robots and headers:");
 const sitemap = readFileSync(resolve(distDir, "sitemap-0.xml"), "utf-8");

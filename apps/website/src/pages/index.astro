@@ -16,10 +16,10 @@ const jsonLd = [
 
 /** The terminal interface in both themes. */
 const alt = {
-  overview: "The Roadmap tab: the objective and task checklist at left, a dependency graph in the centre, and the shared inspector at right.",
-  roadmap: "The Roadmap tab with a work item selected: its dependency chain stays lit, and its status, actions and details appear in the inspector at right.",
-  turn: "The Turn tab with proportional pixel typography: the conversation, expanded retry tests, the selected edit diff, and a full-width message composer with a visible Stop action.",
-  session: "The Session view: reasoning steps and merged branches in the centre, the selected step in the inspector at right, and reasoning, actions, checks and file changes in timestamp order below the graph.",
+  overview: "The conversation above the recorded reasoning, with the roadmap and selected step beside it and the message area below.",
+  roadmap: "The conversation stays visible while a selected roadmap item shows its progress, dependencies and available actions.",
+  turn: "The conversation, retry test output and selected file changes, with a message draft and Stop button below.",
+  session: "The reasoning shows two explored questions, numbered steps and the selected step’s result, explanation and next action.",
 };
 
 const docs = [
@@ -44,9 +44,9 @@ const docs = [
         <p class="hero-note">Runs locally · open source · no account</p>
       </div>
       <figure class="capture hero-capture">
-        <a class="capture-light" href={screenshot("terminal-overview-light.png")}><img src={screenshot("terminal-overview-light.png")} alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
-        <a class="capture-dark" href={screenshot("terminal-overview-dark.png")}><img src={screenshot("terminal-overview-dark.png")} alt={alt.overview} width="1320" height="840" fetchpriority="high" /></a>
-        <figcaption>The objective and plan at left, the roadmap in the centre, and one inspector for selected items at right.</figcaption>
+        <a class="capture-light" href={screenshot("terminal-overview-light.png")}><img src={screenshot("terminal-overview-light.png")} alt={alt.overview} width="1440" height="1000" fetchpriority="high" /></a>
+        <a class="capture-dark" href={screenshot("terminal-overview-dark.png")}><img src={screenshot("terminal-overview-dark.png")} alt={alt.overview} width="1440" height="1000" fetchpriority="high" /></a>
+        <figcaption>Keep the conversation, roadmap and reasoning together while work progresses.</figcaption>
       </figure>
     </section>
 
@@ -55,50 +55,50 @@ const docs = [
         <p class="eyebrow">The roadmap</p>
         <h2 id="roadmap-title">Work items, their dependencies, and what is ready next.</h2>
         <ul class="facts">
-          <li><strong>A graph, not a list.</strong> Each item is placed after the items it depends on. Done, ready and waiting items are drawn differently, so what can start next is visible at a glance.</li>
-          <li><strong>Select an item to see its context.</strong> Its dependency chain stays lit, and the inspector shows its status, actions and details in one place.</li>
+          <li><strong>See what comes next.</strong> Follow the work in progress and the items that depend on it. Open the roadmap to filter and sort the full list.</li>
+          <li><strong>Select an item to see its context.</strong> Read its status, dependencies and next actions beside the conversation.</li>
           <li><strong>One item at a time.</strong> The item in progress carries its acceptance criteria and its dependencies into the session that works on it.</li>
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href={screenshot("terminal-roadmap-light.png")}><img src={screenshot("terminal-roadmap-light.png")} alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href={screenshot("terminal-roadmap-dark.png")}><img src={screenshot("terminal-roadmap-dark.png")} alt={alt.roadmap} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The selected item's dependency chain stays lit while its details open in the inspector.</figcaption>
+        <a class="capture-light" href={screenshot("terminal-roadmap-light.png")}><img src={screenshot("terminal-roadmap-light.png")} alt={alt.roadmap} loading="lazy" width="1440" height="1000" /></a>
+        <a class="capture-dark" href={screenshot("terminal-roadmap-dark.png")}><img src={screenshot("terminal-roadmap-dark.png")} alt={alt.roadmap} loading="lazy" width="1440" height="1000" /></a>
+        <figcaption>Select work on the roadmap to see its details without leaving the conversation.</figcaption>
       </figure>
     </section>
 
     <section id="turn" class="section-shell section-block story story-flip" aria-labelledby="turn-title">
       <div class="story-copy">
-        <p class="eyebrow">The current turn</p>
+        <p class="eyebrow">The conversation</p>
         <h2 id="turn-title">Follow the agent's work and inspect each tool call.</h2>
         <ul class="facts">
-          <li><strong>The conversation in context.</strong> Read the prompt, response and tool calls while the objective and plan stay in view.</li>
+          <li><strong>The conversation in context.</strong> Read messages and tool calls while the roadmap and reasoning stay in view.</li>
           <li><strong>Command output where it happens.</strong> Expand a run to see its terminal output alongside the conversation.</li>
-          <li><strong>Inspect a change.</strong> Select an edit to read its diff in the inspector, open the file or undo that edit.</li>
-          <li><strong>Give the next direction.</strong> Write in a spacious multiline composer, send when ready, or stop the current turn while keeping your draft.</li>
+          <li><strong>Inspect a change.</strong> Select an edit to read the changes, open the file or undo that edit.</li>
+          <li><strong>Give the next direction.</strong> Write a message, add files and send when ready. Stop the current work while keeping your draft.</li>
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href={screenshot("terminal-turn-light.png")}><img src={screenshot("terminal-turn-light.png")} alt={alt.turn} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href={screenshot("terminal-turn-dark.png")}><img src={screenshot("terminal-turn-dark.png")} alt={alt.turn} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The Turn view keeps the conversation and command output together, with the selected edit's diff in the inspector.</figcaption>
+        <a class="capture-light" href={screenshot("terminal-turn-light.png")}><img src={screenshot("terminal-turn-light.png")} alt={alt.turn} loading="lazy" width="1440" height="1000" /></a>
+        <a class="capture-dark" href={screenshot("terminal-turn-dark.png")}><img src={screenshot("terminal-turn-dark.png")} alt={alt.turn} loading="lazy" width="1440" height="1000" /></a>
+        <figcaption>Read command output and file changes alongside your conversation.</figcaption>
       </figure>
     </section>
 
     <section class="section-shell section-block story" aria-labelledby="trace-title">
       <div class="story-copy">
         <p class="eyebrow">Reasoning and recorded work</p>
-        <h2 id="trace-title">Every decision, and the checks behind it, stay with the project.</h2>
+        <h2 id="trace-title">The reasoning and checks stay with the project.</h2>
         <ul class="facts">
-          <li><strong>Reasoning as a graph.</strong> Steps run along a main line, with branches that rejoin it when merged. Select a step to read its reasoning in the inspector.</li>
-          <li><strong>Pins and checkpoints.</strong> A pinned step is kept in view for later sessions. A checkpoint is a saved session state a later session can resume from.</li>
-          <li><strong>Actions and checks.</strong> What was done, and what passed or failed with its exit code and duration, is recorded under the steps that led to it.</li>
+          <li><strong>Follow each question.</strong> See where an investigation began, the steps it contains and where its findings were used.</li>
+          <li><strong>Understand the reasoning.</strong> Select a step to read what Magistr considered, its conclusion, what comes next and the work linked to it. Return to the latest step whenever you’re ready.</li>
+          <li><strong>Actions and checks.</strong> Open Records to review reasoning, actions, checks and file changes in time order.</li>
         </ul>
       </div>
       <figure class="capture">
-        <a class="capture-light" href={screenshot("terminal-session-light.png")}><img src={screenshot("terminal-session-light.png")} alt={alt.session} loading="lazy" width="1320" height="840" /></a>
-        <a class="capture-dark" href={screenshot("terminal-session-dark.png")}><img src={screenshot("terminal-session-dark.png")} alt={alt.session} loading="lazy" width="1320" height="840" /></a>
-        <figcaption>The Session view uses the same inspector for a selected step, with reasoning, actions, checks and file changes in timestamp order below the graph.</figcaption>
+        <a class="capture-light" href={screenshot("terminal-session-light.png")}><img src={screenshot("terminal-session-light.png")} alt={alt.session} loading="lazy" width="1440" height="1000" /></a>
+        <a class="capture-dark" href={screenshot("terminal-session-dark.png")}><img src={screenshot("terminal-session-dark.png")} alt={alt.session} loading="lazy" width="1440" height="1000" /></a>
+        <figcaption>Select a step to follow its explanation and related work. Your conversation and draft stay in place.</figcaption>
       </figure>
     </section>
 
