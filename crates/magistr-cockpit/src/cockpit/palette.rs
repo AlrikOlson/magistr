@@ -1,4 +1,4 @@
-//! The ⌘K palette: one searchable overlay over every verb and place.
+//! The command palette: searchable verbs and destinations on each surface.
 
 use super::binding::Binding;
 use super::checkpoint_cmd::CheckpointCmd;
@@ -9,10 +9,10 @@ use super::model::Model;
 use super::palette_row::{PaletteGo, PaletteRow};
 use super::place::Place;
 
-/// The native command palette's query and selected result.
+/// The command palette's query and selected result.
 ///
 /// [`Palette::rows`] derives results from the current model so badges and
-/// actions stay current. Terminal surfaces do not open this overlay.
+/// actions stay current on both terminal and native surfaces.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Palette {
     query: String,
@@ -85,8 +85,20 @@ impl Palette {
                 order += 1;
             }
         };
+        if !model.surface().is_native() {
+            for tab in super::stage_tab::StageTab::ALL {
+                push(PaletteRow::place(tab.label(), PaletteGo::Tab(tab)));
+            }
+        }
         if let Some(project) = model.launcher().filter(|data| !data.project.is_empty()) {
-            let mut row = PaletteRow::place(project.project.clone(), PaletteGo::Place(Place::Sky));
+            let mut row = PaletteRow::place(
+                project.project.clone(),
+                if model.surface().is_native() {
+                    PaletteGo::Place(Place::Sky)
+                } else {
+                    PaletteGo::Tab(super::stage_tab::StageTab::Roadmap)
+                },
+            );
             row.sigil = true;
             let pending = model.dock().len();
             if pending > 0 {
@@ -106,7 +118,9 @@ impl Palette {
             ("changes", Place::Changes),
             ("trace", Place::Trace),
         ] {
-            push(PaletteRow::place(name, PaletteGo::Place(place)));
+            if model.surface().is_native() {
+                push(PaletteRow::place(name, PaletteGo::Place(place)));
+            }
         }
         if let Some(data) = model.launcher() {
             for (index, session) in data.sessions.iter().enumerate() {
@@ -167,10 +181,34 @@ impl Palette {
             // with no release, and a hold nobody lets go of would
             // complete on the timer — so the sheet lists it and the
             // palette never dispatches it.
-            if *binding == Binding::KILL {
+            if *binding == Binding::KILL
+                || (!model.surface().is_native()
+                    && matches!(
+                        *binding,
+                        Binding::ROADMAP | Binding::RESUME | Binding::ZOOM | Binding::ZOOM_FIT
+                    ))
+            {
                 continue;
             }
-            let mut row = PaletteRow::binding(*binding);
+            if matches!(*binding, Binding::NEXT | Binding::LOOP | Binding::GATES)
+                && model.launcher().is_none()
+            {
+                continue;
+            }
+            let mut row = PaletteRow::binding(
+                if *binding == Binding::PALETTE && model.surface().is_native() {
+                    Binding::PALETTE_CHORD
+                } else {
+                    *binding
+                },
+            );
+            if *binding == Binding::NEXT {
+                row.go = PaletteGo::Launch(super::launch_action::LaunchAction::Next);
+            } else if *binding == Binding::LOOP {
+                row.go = PaletteGo::Launch(super::launch_action::LaunchAction::Loop);
+            } else if *binding == Binding::GATES {
+                row.go = PaletteGo::Launch(super::launch_action::LaunchAction::Gates);
+            }
             // The loop's verbs go as verbs, never as their keys: `s`
             // dispatched while the loop runs would be the prompt's
             // letter, and a row that types is not a row that steps.
@@ -187,11 +225,13 @@ impl Palette {
             } else if *binding == Binding::ABORT {
                 // A window's Esc climbs: the row wears
                 // the chord the window really takes.
-                row = PaletteRow::binding(Binding::ABORT_CHORD);
+                if model.surface().is_native() {
+                    row = PaletteRow::binding(Binding::ABORT_CHORD);
+                }
                 row.go = PaletteGo::Loop(LoopCmd::Abort);
             } else if *binding == Binding::CHECKPOINT_NOW {
                 row.go = PaletteGo::CheckpointNow;
-            } else if *binding == Binding::DOCK {
+            } else if *binding == Binding::DOCK && model.surface().is_native() {
                 // The window's dock verb is the chord:
                 // the row wears ⌘↵ and dispatches it.
                 row = PaletteRow::binding(Binding::DOCK_CHORD);

@@ -1,20 +1,24 @@
 use super::*;
 
 #[test]
-fn the_default_tab_is_the_turn() {
-    assert_eq!(StageTab::default(), StageTab::Turn);
+fn the_default_tab_is_the_roadmap() {
+    assert_eq!(StageTab::default(), StageTab::Roadmap);
+    assert_eq!(
+        StageTab::ALL,
+        [StageTab::Turn, StageTab::Session, StageTab::Roadmap]
+    );
 }
 
 #[test]
 fn next_cycles_through_every_tab_and_wraps() {
-    let mut tab = StageTab::Home;
+    let mut tab = StageTab::Turn;
     let mut seen = Vec::new();
     for _ in 0..StageTab::ALL.len() {
         seen.push(tab);
         tab = tab.next();
     }
     assert_eq!(seen, StageTab::ALL);
-    assert_eq!(tab, StageTab::Home, "wraps back to the start");
+    assert_eq!(tab, StageTab::Turn, "wraps back to the start");
 }
 
 #[test]

@@ -83,7 +83,7 @@ fn an_unknown_chunk_moves_nothing() {
     assert_eq!(selected(&w), None);
     assert_eq!(
         w.tab(),
-        StageTab::Turn,
+        StageTab::Roadmap,
         "and the terminal's tab is untouched"
     );
 }

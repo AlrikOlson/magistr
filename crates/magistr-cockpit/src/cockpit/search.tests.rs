@@ -363,7 +363,7 @@ fn enter_opens_a_session_on_the_launchers_row() {
     key(&mut model, KeyCode::Enter, Modifiers::NONE);
     // The launcher's slot on a window is the Sky (`Place::of_tab`), the
     // row selected — exactly where the palette's Resume lands.
-    assert_eq!(model.place(), Some(Place::of_tab(StageTab::Home)));
+    assert_eq!(model.place(), Some(Place::of_tab(StageTab::Roadmap)));
     assert_eq!(model.session_selected(), Some(0));
 }
 

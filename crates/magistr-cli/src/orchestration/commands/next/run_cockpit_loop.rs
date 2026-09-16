@@ -107,6 +107,7 @@ pub(crate) async fn run_cockpit_loop(
     };
     let looping = driver.spawn();
     let mut model = Model::new(size)
+        .with_tab(magistr_cockpit::cockpit::StageTab::Turn)
         .with_theme(theme)
         .with_title(title)
         .with_debug(debug)

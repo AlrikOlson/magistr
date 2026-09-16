@@ -5,7 +5,7 @@ expression: "screen(&Scenes::changed(Size::new(120, 40)))"
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
 │no objective yet          │ │session · 0 steps · 2 changes · UTC                │  │                                  │
 │roadmap 0/0 done          │ │time unknown ▸ src/lib.rs · +2 −1 · parse ok       │  │                                  │
 │signals 0                 │ │time unknown ▸ src/parser.rs · +4 −0 · parse failed│  │                                  │

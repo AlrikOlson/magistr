@@ -135,7 +135,7 @@ fn a_held_widget_is_its_hovered_self_filled_in() {
     // and it swaps the pair the pen already cleared the floor with
     // rather than inventing a third colour.
     let pen = pen();
-    let id = Widget::TabHome.id();
+    let id = Widget::TabRoadmap.id();
     let build = || {
         Node::row().child(
             Node::text("Home")

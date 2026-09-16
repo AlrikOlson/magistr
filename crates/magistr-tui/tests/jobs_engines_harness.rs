@@ -30,7 +30,7 @@ async fn run(script: Script, producers: impl FnOnce(Inbox)) -> (Model, Capture) 
     let runtime = Runtime::new(terminal, options());
     producers(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn))
         .await
         .expect("the run succeeds");
     (model, capture)
@@ -197,7 +197,9 @@ async fn engine_frames_reach_the_rail_and_its_next_paint() {
 
 #[tokio::test]
 async fn producers_learn_the_loop_is_gone_after_the_run() {
-    let script = Script::new().startup_replies(MS(0)).text(MS(30), "\x04");
+    // Allow the initial raster frame to finish before quitting, as in the other
+    // runtime cases. The producer events must precede shutdown, not race it.
+    let script = Script::new().startup_replies(MS(0)).text(MS(200), "\x04");
     let mut kept = None;
     let (model, _) = run(script, |inbox| {
         FakeAgent::new()

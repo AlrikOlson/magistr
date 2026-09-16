@@ -64,13 +64,13 @@ fn next_and_prev_walk_every_place_and_wrap() {
 /// Every place draws a stage surface; every altitude below the Galaxy
 /// round-trips through the tab it draws. The Galaxy stands in the
 /// launcher's slot, and that slot does not round-trip on purpose: a
-/// window *opened* on the Home tab opens the Sky, the room you open
+/// window *opened* on the Roadmap tab opens the Sky, the room you open
 /// into, not the top of the world.
 #[test]
 fn every_place_draws_a_surface_and_the_tabs_round_trip() {
     for place in Place::ALL {
         match place {
-            Place::Galaxy => assert_eq!(place.tab(), StageTab::Home, "the launcher's slot"),
+            Place::Galaxy => assert_eq!(place.tab(), StageTab::Roadmap, "the launcher's slot"),
             // The inbox and the Report share the Roadmap tab's surface
             // (a terminal's inbox is a section of that tab, a shipped
             // chunk its row) and do not round-trip on purpose: a
@@ -88,14 +88,14 @@ fn every_place_draws_a_surface_and_the_tabs_round_trip() {
         }
     }
     assert_eq!(
-        Place::of_tab(StageTab::Home),
+        Place::of_tab(StageTab::Roadmap),
         Place::Sky,
-        "a window opened on Home opens the Sky"
+        "a window opened on Roadmap opens the Sky"
     );
     assert_ne!(
-        Place::Galaxy.tab(),
-        Place::Sky.tab(),
-        "the Galaxy no longer draws the Sky's surface"
+        Place::Galaxy,
+        Place::Sky,
+        "native places retain their identity"
     );
     for tab in StageTab::ALL {
         let _ = Place::of_tab(tab);

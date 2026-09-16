@@ -65,7 +65,7 @@ async fn run_with(script: Script, producers: impl FnOnce(Inbox)) -> (Model, Capt
     let runtime = Runtime::new(terminal, options());
     producers(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn))
         .await
         .expect("the run succeeds");
     (model, capture)
@@ -81,7 +81,7 @@ fn widget_rect(id: magistr_cockpit::widget_id::WidgetId) -> magistr_cockpit::lay
     // The kitty probe puts the cockpit on its pixel arrangement — one
     // gutter cell around everything — so the rect is read off that
     // arrangement, where the pointer will actually find the widget.
-    let mut model = Model::new(SIZE);
+    let mut model = Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn);
     update(
         &mut model,
         Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
@@ -103,7 +103,7 @@ fn widget_rect(id: magistr_cockpit::widget_id::WidgetId) -> magistr_cockpit::lay
 /// frame), and is handed back when it leaves for the header.
 #[tokio::test]
 async fn the_pointer_is_a_hand_over_a_tab_and_is_handed_back_when_it_leaves() {
-    let tab = widget_rect(Widget::TabHome.id());
+    let tab = widget_rect(Widget::TabRoadmap.id());
     let script = Script::new()
         .startup_replies(MS(0))
         .mouse_move(MS(20), tab.x, tab.y)
@@ -128,7 +128,7 @@ async fn the_pointer_is_a_hand_over_a_tab_and_is_handed_back_when_it_leaves() {
 /// the way out, so the terminal is never left drawing a hand.
 #[tokio::test]
 async fn the_pointer_is_handed_back_at_the_exit() {
-    let tab = widget_rect(Widget::TabHome.id());
+    let tab = widget_rect(Widget::TabRoadmap.id());
     let script = Script::new()
         .startup_replies(MS(0))
         .mouse_move(MS(20), tab.x, tab.y)
@@ -143,7 +143,7 @@ async fn the_pointer_is_handed_back_at_the_exit() {
 /// pointer-shape string — it would print it.
 #[tokio::test]
 async fn a_plain_terminal_is_never_sent_a_pointer_shape() {
-    let tab = widget_rect(Widget::TabHome.id());
+    let tab = widget_rect(Widget::TabRoadmap.id());
     let script = Script::new()
         .plain_replies(MS(0))
         .mouse_move(MS(20), tab.x, tab.y)
@@ -162,7 +162,10 @@ fn leave_sequence() -> Vec<u8> {
 
 /// The hit registry of the placeholder laid out at `SIZE`.
 fn registry() -> HitRegistry {
-    let root = view(&Model::new(SIZE), &FrameClock::new(0, Duration::ZERO));
+    let root = view(
+        &Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn),
+        &FrameClock::new(0, Duration::ZERO),
+    );
     let resolved = LayoutTree::new()
         .compute(&root, SIZE.cols, SIZE.rows)
         .expect("layout");
@@ -193,7 +196,7 @@ async fn fifty_keys_and_twenty_clicks_reach_the_model_in_order_with_the_right_ta
     // The ribbon holds the last inputs exactly as a replay through
     // `update` with the hit registry's own targets would.
     let hits = registry();
-    let mut expected = Model::new(SIZE);
+    let mut expected = Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn);
     for c in keys[..25].chars() {
         update(&mut expected, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
     }
@@ -397,7 +400,7 @@ async fn a_message_already_in_the_inbox_is_in_the_frame_the_tick_paints() {
     }
     agent.play(runtime.inbox().stamped(arrivals.clone()));
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn))
         .await
         .expect("the run succeeds");
     assert_eq!(model.agent_events(), 41);
@@ -572,7 +575,7 @@ async fn run_reporting_progress(script: Script, producers: impl FnOnce(Inbox)) -
     let runtime = Runtime::new(terminal, options);
     producers(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn))
         .await
         .expect("the run succeeds");
     (model, capture)

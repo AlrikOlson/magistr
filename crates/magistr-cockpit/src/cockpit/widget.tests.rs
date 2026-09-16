@@ -57,11 +57,7 @@ fn every_tab_has_a_widget_and_only_tabs_target() {
             widget.tab_target().is_some(),
             matches!(
                 widget,
-                Widget::TabHome
-                    | Widget::TabTurn
-                    | Widget::TabSession
-                    | Widget::TabRoadmap
-                    | Widget::LaunchRoadmap
+                Widget::TabTurn | Widget::TabSession | Widget::TabRoadmap | Widget::LaunchRoadmap
             ),
             "{widget:?}"
         );

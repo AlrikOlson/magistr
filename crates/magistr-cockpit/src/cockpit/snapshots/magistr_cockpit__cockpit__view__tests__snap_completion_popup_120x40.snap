@@ -5,9 +5,9 @@ expression: "screen(&completing(Size::new(120, 40)))"
 ▲ magistr  awaiting input                                                                                          00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
-│no objective yet          │ │▎ All done here.                                   │  │                                  │
-│roadmap 0/0 done          │ │                                                   │  │                                  │
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
+│no objective yet          │ │roadmap   0 done · 0 active · 0 pending · 0 backlog│  │                                  │
+│roadmap 0/0 done          │ │no roadmap yet — the store is empty                │  │                                  │
 │signals 0                 │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │

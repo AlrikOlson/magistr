@@ -38,7 +38,12 @@ fn options() -> Options {
 }
 
 async fn run(script: Script, producers: impl FnOnce(Inbox)) -> (Model, Capture, Deliveries) {
-    run_model(Model::new(SIZE), script, producers).await
+    run_model(
+        Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn),
+        script,
+        producers,
+    )
+    .await
 }
 
 async fn run_model(
@@ -287,9 +292,9 @@ async fn two_hundred_lines_a_second_keep_input_to_paint_under_the_bound() {
 }
 
 /// A click on a tool row expands it to the full title; Enter on the
-/// empty prompt collapses it again.
+/// empty prompt opens its shared inspector detail.
 #[tokio::test]
-async fn a_tool_row_expands_by_click_and_collapses_by_enter() {
+async fn a_tool_row_expands_by_click_and_enter_opens_its_inspector() {
     const TITLE: &str = "cargo nextest run --workspace --exclude magistr-gui --all-targets \
                          -E 'test(turn_stage)'";
     // Rows on the kitty arrangement: gutter 0, header 1, strip 2, the
@@ -332,12 +337,16 @@ async fn a_tool_row_expands_by_click_and_collapses_by_enter() {
         squashed(&expanded).contains("turn_stage"),
         "the click expanded the call to its full title:\n{expanded}"
     );
-    let collapsed = screen_before(&capture, instants[3]);
+    let detail = screen_before(&capture, instants[3]);
     assert!(
-        !squashed(&collapsed).contains("turn_stage"),
-        "enter collapsed it again:\n{collapsed}"
+        detail.contains("Less"),
+        "the inspector opened its detail:\n{detail}"
     );
-    assert_eq!(model.turn().len(), 3, "back to one row per line");
+    assert!(model.inspector_open());
+    assert_eq!(
+        model.selected(),
+        Some(&magistr_cockpit::cockpit::Selected::Tool("c1".to_owned()))
+    );
 }
 
 /// The prompt editor end to end: `@` opens the file popup on
@@ -357,7 +366,9 @@ async fn the_file_popup_completes_and_a_paste_grows_the_prompt_without_sending()
         .text(MS(300), "\x15\x7f\x15\x04");
     let files = vec!["src/cockpit/prompt.rs".to_owned(), "src/main.rs".to_owned()];
     let (model, capture, deliveries) = run_model(
-        Model::new(SIZE).with_workspace_files(files),
+        Model::new(SIZE)
+            .with_tab(magistr_cockpit::cockpit::StageTab::Turn)
+            .with_workspace_files(files),
         script,
         |_inbox| {},
     )

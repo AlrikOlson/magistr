@@ -6,7 +6,7 @@ expression: s
 Research▸Plan▸Execute▸Verify
 Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                     │
+│◂                         │ │Turn  Session  Roadmap                           │
 │ship the plain-text       │ │▎ Let me run the tests.                          │
 │cockpit                   │ │▎ ○ run    cargo nextest run -p magistr-tui      │
 │▸ wire the banner         │ │  ▸ objective set · ship the plain-text cockpit  │
@@ -15,7 +15,7 @@ Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough
 │signals 0                 │ │                                                 │
 │                          │ ╰─────────────────────────────────────────────────╯
 │                          │ ╭─ inspector ─────────────────────────────────────╮
-│                          │ │Select a work item, step or change               │
+│                          │ │Select a work item, tool, step or change         │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

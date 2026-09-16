@@ -143,7 +143,7 @@ async fn run(script: Script, engines: FakeEngines) -> (Model, Capture) {
     let runtime = Runtime::new(terminal, options());
     engines.play(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(StageTab::Turn))
         .await
         .expect("the run succeeds");
     (model, capture)
@@ -315,7 +315,7 @@ async fn the_header_chrome_is_pixels_with_kitty_and_cells_without() {
     );
     busy().play(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(StageTab::Turn))
         .await
         .expect("the run succeeds");
     assert!(!model.has_pixels(), "no protocol, no pixel layer");
@@ -367,7 +367,7 @@ async fn a_stream_image_is_a_pixel_surface_with_kitty_and_halfblocks_without() {
     let runtime = Runtime::new(terminal, options());
     sender().play(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(StageTab::Turn))
         .await
         .expect("the run succeeds");
 
@@ -395,7 +395,7 @@ async fn a_stream_image_is_a_pixel_surface_with_kitty_and_halfblocks_without() {
     );
     sender().play(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(StageTab::Turn))
         .await
         .expect("the run succeeds");
 
@@ -463,7 +463,7 @@ async fn an_image_a_tool_call_returned_is_the_same_pixel_surface() {
         )
         .play(runtime.inbox());
     let model = runtime
-        .run(Model::new(SIZE))
+        .run(Model::new(SIZE).with_tab(StageTab::Turn))
         .await
         .expect("the run succeeds");
 
@@ -532,114 +532,5 @@ async fn an_idle_sixel_cockpit_re_emits_nothing() {
         sixels_after(&capture, MS(650)),
         0,
         "{images} images in all — an idle frame costs nothing"
-    );
-}
-
-/// the launcher's headline as one `OSC 66` run, over the two
-/// rows the project card reserves, on a terminal that answered kitty's
-/// text sizing handshake — and nothing at all on one that did not.
-#[tokio::test]
-async fn the_launcher_headline_is_one_osc_66_run_on_a_terminal_that_scales_text() {
-    /// The opening of a scaled run.
-    const SCALED: &[u8] = b"\x1b]66;s=2;";
-    /// The probe's own scaled run: a single space, the handshake's
-    /// second query. Every session writes it, whatever the answer.
-    const QUERY: &[u8] = b"\x1b]66;s=2; \x07";
-    /// The headline's run: the same opening, the project's name.
-    const RUN: &[u8] = b"\x1b]66;s=2;magistr";
-    /// The launcher grid needs ≥100 columns; below that the cards stack
-    /// compact and carry no headline.
-    const WIDE: Size = Size::new(120, 40);
-
-    let launcher = || magistr_cockpit::cockpit::Msg::Job {
-        id: magistr_cockpit::job::JobId::new(0),
-        output: magistr_cockpit::job::JobOutput::Launcher(Box::new(
-            magistr_cockpit::cockpit::LauncherData {
-                project: "magistr".to_owned(),
-                has_config: true,
-                stack: "Rust / Cargo".to_owned(),
-                git: "master, clean".to_owned(),
-                backend: "ACP (available)".to_owned(),
-                sessions: Vec::new(),
-            },
-        )),
-    };
-    let session = async |script: Script| {
-        let terminal = FakeTerminal::new(WIDE, script);
-        let capture = terminal.capture();
-        let runtime = Runtime::new(terminal, options());
-        runtime.inbox().send(launcher());
-        let model = runtime
-            .run(Model::new(WIDE).with_tab(StageTab::Home))
-            .await
-            .expect("the run succeeds");
-        (model, capture)
-    };
-
-    let (model, capture) = session(
-        // The handshake lands before DA1, which rides in
-        // `startup_replies` and closes the probe's read window.
-        Script::new()
-            .text_sizing_replies(MS(0))
-            .startup_replies(MS(1))
-            .text(MS(200), "\x15\x04"),
-    )
-    .await;
-    assert!(model.has_text_sizing(), "the handshake was answered");
-    assert_eq!(model.headline(), Some("magistr"));
-    assert_eq!(capture.count(QUERY), 1, "the handshake asked once");
-    assert_eq!(
-        capture.count(RUN),
-        1,
-        "one headline run, and it does not repeat across frames"
-    );
-    let bytes = capture.bytes();
-    let at = bytes
-        .windows(RUN.len())
-        .position(|w| w == RUN)
-        .expect("the run is on the wire");
-    let tail = &bytes[at + SCALED.len()..];
-    let end = tail
-        .windows(2)
-        .position(|w| w == b"\x1b\\")
-        .expect("the run is terminated");
-    assert!(
-        std::str::from_utf8(&tail[..end])
-            .expect("the payload is text")
-            .starts_with("magistr"),
-        "the project's name is the payload"
-    );
-    // The scale is off by the time the frame closes: the pen is reset
-    // before ESU, so nothing after the run inherits it.
-    let esu: &[u8] = b"\x1b[?2026l";
-    let closes = tail[end..]
-        .windows(esu.len())
-        .position(|w| w == esu)
-        .expect("the frame closes");
-    assert!(
-        tail[end..end + closes].windows(4).any(|w| w == b"\x1b[0m"),
-        "the pen is reset between the run and ESU"
-    );
-
-    // The same session on a kitty terminal that swallowed the two runs:
-    // the cards are the cells they always were.
-    let (model, capture) = session(
-        Script::new()
-            .startup_replies(MS(0))
-            .text(MS(200), "\x15\x04"),
-    )
-    .await;
-    assert!(model.has_pixels(), "still kitty for graphics");
-    assert!(!model.has_text_sizing(), "but no scaled text");
-    assert!(model.headline().is_none());
-    assert_eq!(capture.count(QUERY), 1, "the handshake still asked");
-    assert_eq!(
-        capture.count(SCALED) - capture.count(QUERY),
-        0,
-        "and nothing but the query is a scaled run"
-    );
-    assert!(
-        capture.count(b"magistr") > 0,
-        "the name is a cell row instead"
     );
 }

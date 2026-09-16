@@ -96,8 +96,12 @@ impl Marks {
             next.push((key.clone(), id, paint(&key.0, rect, cell, fallback)));
         }
         self.free.extend(self.shown.drain(..).map(|(_, id, _)| id));
-        for (_, id, surface) in &mut next {
-            screen.surface(*id, surface);
+        for ((mark, rect, _), id, surface) in &mut next {
+            if screen.occlusion() == Some(*rect) && matches!(mark, Mark::Panel { .. }) {
+                screen.surface_unmasked(*id, surface);
+            } else {
+                screen.surface(*id, surface);
+            }
         }
         self.shown = next;
     }

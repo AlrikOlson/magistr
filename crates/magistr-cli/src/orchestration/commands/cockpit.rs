@@ -22,7 +22,7 @@ use magistr_tui::term::{RealTerminal, Terminal as _};
 /// input thread; the session's summary is printed once the terminal is
 /// handed back, so it lands in the scrollback.
 pub async fn cmd_cockpit(root: &Path) -> eyre::Result<()> {
-    cmd_cockpit_on(root, StageTab::Turn).await
+    cmd_cockpit_on(root, StageTab::Roadmap).await
 }
 
 /// Run the agent-less cockpit on `tab` and hand back the final model —

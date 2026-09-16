@@ -1,4 +1,4 @@
-//! `magistr` with no subcommand: the cockpit's launcher (Home tab).
+//! Bare `magistr`: Roadmap with host actions in the footer and palette.
 
 use std::path::Path;
 
@@ -11,18 +11,15 @@ use crate::agent;
 /// Iterations `l` starts the loop with — the `next-loop` CLI default.
 const LOOP_ITERATIONS: u32 = 10;
 
-/// Bare `magistr` (TTY) opens the cockpit on the Home tab — the
-/// launcher. The card data (project config, git, the backend PATH scan,
-/// the session database) is gathered by one job spawned on the runtime's
-/// inbox before the terminal is taken over, so every card populates
-/// after a single round-trip. An action button quits the cockpit with a
-/// launch ask on the model; it is dispatched here, on the restored
-/// terminal — `n` one iteration, `l` the loop, `g` the gates, a session
-/// row the cockpit again on that session, continued.
+/// Bare `magistr` opens Roadmap. One background job supplies project and
+/// session data to the palette and enables the host command footer.
+/// A launch action quits the cockpit and is dispatched on the restored
+/// terminal: Alt-N starts one iteration, Alt-L a loop, Alt-G the gates.
+/// Palette session rows resume the selected conversation.
 pub async fn cmd_home(env: &crate::env::MagistrEnv) -> eyre::Result<()> {
     let root = std::env::current_dir()?;
     let dir = root.clone();
-    let model = super::cockpit::cockpit_model_on(&root, StageTab::Home, move |runtime| {
+    let model = super::cockpit::cockpit_model_on(&root, StageTab::Roadmap, move |runtime| {
         let jobs = Jobs::new(runtime.inbox());
         jobs.spawn_job(move || JobOutput::Launcher(Box::new(super::home_data::collect(&dir))));
     })

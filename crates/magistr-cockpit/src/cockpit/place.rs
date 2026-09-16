@@ -124,20 +124,11 @@ impl Place {
         }
     }
 
-    /// The stage surface this place draws. The Galaxy takes the
-    /// launcher's slot — the window has no launcher, and altitude 0 is
-    /// what stands where a terminal's Home does — which also keeps the
-    /// Roadmap tab's zoom keys off it: the Galaxy zooms its own field.
-    /// The Signals inbox draws the Roadmap tab's surface too: on a
-    /// terminal the inbox is a section of that tab, and the window's
-    /// composition root routes the place itself. So does the Report:
-    /// on a terminal a shipped chunk is its row on the Roadmap tab.
-    /// And so does Birth: first light is a sky, and the moments before
-    /// it are the window's own.
+    /// The closest terminal surface; native navigation still uses the place itself.
     #[must_use]
     pub const fn tab(self) -> StageTab {
         match self {
-            Self::Galaxy => StageTab::Home,
+            Self::Galaxy => StageTab::Roadmap,
             Self::Sky | Self::Signals | Self::Report | Self::Birth => StageTab::Roadmap,
             Self::Session => StageTab::Turn,
             Self::Changes | Self::Trace => StageTab::Session,
@@ -153,7 +144,7 @@ impl Place {
     #[must_use]
     pub const fn of_tab(tab: StageTab) -> Self {
         match tab {
-            StageTab::Home | StageTab::Roadmap => Self::Sky,
+            StageTab::Roadmap => Self::Sky,
             StageTab::Turn => Self::Session,
             StageTab::Session => Self::Trace,
         }

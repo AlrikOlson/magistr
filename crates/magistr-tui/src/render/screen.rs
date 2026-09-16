@@ -1,9 +1,12 @@
 //! The double-buffered screen: draw into the back buffer, present the diff.
 
+use std::collections::HashMap;
+
 use super::diff::diff;
 use super::encode::Encoder;
 use crate::graphics::Protocol;
 use crate::pixel::{Backend, Compression, IdSpace};
+use magistr_cockpit::layout::Rect;
 use magistr_cockpit::pixel::PixelSurface;
 use magistr_cockpit::render::Buffer;
 use magistr_cockpit::render::Headline;
@@ -35,6 +38,8 @@ pub struct Screen {
     enclosed: Vec<u8>,
     headline: Option<Headline>,
     shown: Option<Headline>,
+    occlusion: Option<Rect>,
+    masked: HashMap<WidgetId, (Rect, PixelSurface)>,
 }
 
 impl Screen {
@@ -50,6 +55,8 @@ impl Screen {
             enclosed: Vec::new(),
             headline: None,
             shown: None,
+            occlusion: None,
+            masked: HashMap::new(),
         }
     }
 
@@ -115,6 +122,63 @@ impl Screen {
     /// graphics this does nothing — the widget draws its text fallback
     /// into the buffer instead.
     pub fn surface(&mut self, id: WidgetId, surface: &mut PixelSurface) {
+        let covered = self
+            .occlusion
+            .map(|rect| surface.rect().intersection(rect))
+            .filter(|rect| !rect.is_empty());
+        if let Some(covered) = covered {
+            let repaint = surface.is_dirty()
+                || self.masked.get(&id).is_none_or(|(known, masked)| {
+                    *known != covered
+                        || masked.rect() != surface.rect()
+                        || masked.cell_size() != surface.cell_size()
+                });
+            if repaint {
+                let rect = surface.rect();
+                let cell = surface.cell_size();
+                let mut masked = PixelSurface::with_alpha(rect, cell);
+                masked.paint(&|pixels: &mut tiny_skia::PixmapMut<'_>| {
+                    let width = pixels.width() as usize;
+                    pixels.data_mut().copy_from_slice(surface.pixels());
+                    let x = usize::from(covered.x - rect.x) * usize::from(cell.width);
+                    let y = usize::from(covered.y - rect.y) * usize::from(cell.height);
+                    let w = usize::from(covered.width) * usize::from(cell.width);
+                    let h = usize::from(covered.height) * usize::from(cell.height);
+                    for row in y..y + h {
+                        pixels.data_mut()[(row * width + x) * 4..(row * width + x + w) * 4].fill(0);
+                    }
+                });
+                self.masked.insert(id, (covered, masked));
+                surface.clean();
+            }
+            if let (Some(graphics), Some((_, masked))) =
+                (&mut self.graphics, self.masked.get_mut(&id))
+            {
+                graphics.show(id, masked);
+            }
+        } else {
+            if self.masked.remove(&id).is_some() {
+                // The terminal holds the masked copy; restore the original pixels once.
+                surface.paint(&|_: &mut tiny_skia::PixmapMut<'_>| {});
+            }
+            self.surface_unmasked(id, surface);
+        }
+    }
+
+    /// Opaque cell overlay bounds. A changed cover redraws sixel's retained pixels.
+    pub(crate) fn occlude(&mut self, rect: Option<Rect>) {
+        if self.occlusion != rect {
+            self.redraw = true;
+            self.occlusion = rect;
+        }
+    }
+
+    pub(crate) const fn occlusion(&self) -> Option<Rect> {
+        self.occlusion
+    }
+
+    /// The overlay's own border remains visible over its cell background.
+    pub(crate) fn surface_unmasked(&mut self, id: WidgetId, surface: &mut PixelSurface) {
         if let Some(graphics) = &mut self.graphics {
             graphics.show(id, surface);
         }

@@ -612,6 +612,12 @@ impl Turn {
         })
     }
 
+    /// The current source line for a stable tool-call identity.
+    #[must_use]
+    pub fn tool(&self, id: &str) -> Option<&Line> {
+        self.tool_line(id).map(|index| &self.lines[index])
+    }
+
     /// The record tool call `id` keeps — what it said past its row.
     /// `None` when no call of that id is on the turn.
     #[must_use]

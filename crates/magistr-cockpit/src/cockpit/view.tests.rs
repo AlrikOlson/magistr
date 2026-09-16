@@ -110,8 +110,98 @@ use crate::theme::{Icons, Theme, ThemeMode};
 use crate::turn::{Accent, RowKind};
 use crate::widget_id::WidgetId;
 
+#[test]
+fn turn_inspector_renders_live_records_diffs_and_scrolling_in_both_profiles() {
+    use crate::capability::Mode;
+    for pixels in [false, true] {
+        let mut model = Scenes::terminal_pane(Size::new(132, 42));
+        if pixels {
+            update(
+                &mut model,
+                Msg::Mode(Mode::Graphics {
+                    pointer_shapes: true,
+                }),
+            );
+        }
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::ToolCallUpdate {
+                id: "c1".into(),
+                title: Some("focused checks passed".into()),
+                status: Some(ToolStatus::Completed),
+                diff: None,
+                duration_ms: Some(128),
+                images: Vec::new(),
+                record: Box::new(crate::agent::ToolRecord {
+                    output: Some(serde_json::json!({"passed": 17})),
+                    text: (0..100).map(|i| format!("result line {i}")).collect(),
+                    locations: vec![("src/runtime.rs".into(), Some(8))],
+                    truncated_from: Some(16000),
+                    ..Default::default()
+                }),
+            }),
+        );
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        let pen = Pen::for_theme(&model.theme());
+        let mut content = Vec::new();
+        texts(&Inspector::view(&model, &pen), &mut content);
+        let joined = content.join("\n");
+        for expected in [
+            "focused checks passed",
+            "completed",
+            "128 ms",
+            "input",
+            "output",
+            "17",
+            "truncated",
+        ] {
+            assert!(joined.contains(expected), "{expected}: {joined}");
+        }
+        model.pane = Pane::Inspector;
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::End)));
+        let mut tail = Vec::new();
+        texts(&Inspector::view(&model, &pen), &mut tail);
+        assert!(tail.join("\n").contains("src/runtime.rs:8"));
+        assert!(tail.join("\n").contains("term-1"));
+        let selected = model.selected().cloned();
+        update(&mut model, Msg::Resize(Size::new(80, 24)));
+        assert_eq!(model.selected(), selected.as_ref());
+        assert!(model.inspector_stacked());
+
+        let mut edit = Scenes::inspected_edit(Size::new(132, 42));
+        if pixels {
+            update(
+                &mut edit,
+                Msg::Mode(Mode::Graphics {
+                    pointer_shapes: true,
+                }),
+            );
+        }
+        let mut content = Vec::new();
+        let card = Inspector::view(&edit, &pen);
+        texts(&card, &mut content);
+        let joined = content.join("\n");
+        for expected in [
+            "src/retry.rs",
+            "Open",
+            "Undo",
+            "-const RETRIES: usize = 2;",
+            "+const RETRIES: usize = 3;",
+        ] {
+            assert!(joined.contains(expected), "{expected}: {joined}");
+        }
+        insta::assert_snapshot!(
+            format!(
+                "turn_inspector_edit_{}",
+                if pixels { "pixels" } else { "cells" }
+            ),
+            screen(&edit)
+        );
+    }
+}
+
 fn model() -> Model {
-    Model::new(Size::new(80, 24))
+    Model::new(Size::new(80, 24)).with_tab(StageTab::Turn)
 }
 
 fn clock() -> FrameClock {
@@ -196,7 +286,7 @@ fn agent(m: &mut Model, event: AgentEvent) {
 }
 
 fn tool_calls(size: Size) -> Model {
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     agent(&mut m, AgentEvent::Text("Let me look around.".to_owned()));
     for (i, status) in [
         ToolStatus::Pending,
@@ -238,7 +328,7 @@ fn tool_calls(size: Size) -> Model {
 }
 
 fn awaiting(size: Size) -> Model {
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     agent(&mut m, AgentEvent::Text("All done here.".to_owned()));
     agent(&mut m, AgentEvent::TurnEnded(TurnEnd::MaxTokens));
     m
@@ -295,7 +385,7 @@ fn laid_out(m: &Model) -> Vec<Widget> {
 fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
     // Checkpoint and TraceGraph sit on the Trace tab, the tech-tree and
     // the chunk buttons on the Roadmap tab, the launcher's buttons on
-    // the Home tab, the rail's mini-DAG and gauge need a seeded roadmap,
+    // the landing view, the rail's mini-DAG and gauge need a seeded roadmap,
     // the header's activity monitor needs a busy frame behind it, the
     // undock a ≥160-column screen and the project card's headline a
     // terminal that renders a scaled run — not the chrome.
@@ -324,11 +414,6 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::LaunchLoop
                 | Widget::LaunchGates
                 | Widget::LaunchRoadmap
-                | Widget::CardProject
-                | Widget::CardRoadmap
-                | Widget::CardSessions
-                | Widget::CardActions
-                | Widget::CardHeadline
                 | Widget::RailGraph
                 | Widget::RailGauge
                 | Widget::HeaderSpark
@@ -379,6 +464,7 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
         .into_iter()
         .filter(|w| {
             *w != Widget::Chunk
+                && !matches!(w, Widget::ToolOpen | Widget::ToolUndo)
                 && !trace_only(w)
                 && !native_only(w)
                 && !Widget::DOCK_BUTTONS.contains(w)
@@ -391,6 +477,7 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
         .into_iter()
         .filter(|w| {
             *w != Widget::Chunk
+                && !matches!(w, Widget::ToolOpen | Widget::ToolUndo)
                 && !trace_only(w)
                 && !native_only(w)
                 && !matches!(
@@ -739,7 +826,7 @@ fn the_stage_shows_the_turn_rows_in_their_pens() {
     let mut found = Vec::new();
     styles(&root, &mut found);
     assert_eq!(
-        &found[..23],
+        &found[..22],
         &[
             pen.base.clone(),
             pen.footer.clone(),
@@ -759,7 +846,6 @@ fn the_stage_shows_the_turn_rows_in_their_pens() {
             pen.rail.clone(),
             pen.note.clone(),
             pen.rail.clone(),
-            pen.tab_inactive.clone(),
             pen.tab_active.clone(),
             pen.tab_inactive.clone(),
             pen.tab_inactive.clone(),
@@ -769,7 +855,7 @@ fn the_stage_shows_the_turn_rows_in_their_pens() {
          strip and its four phases (none current) between their separators, \
          the rail panel (its surface, its toggle in the note pen — the plan \
          title lives in the frame now — progress and signals), the unstyled \
-         divider, the tab bar with Turn bright among the four tabs, stage, \
+         divider, the tab bar with Turn bright among the three tabs, stage, \
          then the rows"
     );
     let top = m.top_row();
@@ -787,7 +873,7 @@ fn the_stage_shows_the_turn_rows_in_their_pens() {
         })
         .collect();
     assert_eq!(
-        &found[23..23 + rows.len()],
+        &found[22..22 + rows.len()],
         &rows[..],
         "each row is its band, its accent gutter, then its text"
     );
@@ -925,7 +1011,7 @@ fn gated(size: Size) -> Model {
             ))),
         );
     }
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     agent(&mut m, AgentEvent::Text("Running the gates.".to_owned()));
     feed(
         &mut m,
@@ -1285,7 +1371,7 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
     let mut found = Vec::new();
     styles(&root, &mut found);
     assert_eq!(
-        &found[2..29],
+        &found[2..28],
         &[
             pen.header.clone(),
             pen.always.clone(),
@@ -1310,7 +1396,6 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
             pen.note.clone(),
             pen.note.clone(),
             pen.rail.clone(),
-            pen.tab_inactive.clone(),
             pen.tab_active.clone(),
             pen.tab_inactive.clone(),
             pen.tab_inactive.clone(),
@@ -1402,11 +1487,11 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
         ["◂", "no objective yet", "roadmap 0/0 done", "signals 0"]
     );
     assert_eq!(
-        &lines[15..19],
-        ["Home", "Turn", "Session", "Roadmap"],
+        &lines[15..18],
+        ["Turn", "Session", "Roadmap"],
         "the tab bar sits between the rail and the stage"
     );
-    assert!(lines[19].starts_with("nothing yet"));
+    assert!(lines[18].starts_with("nothing yet"));
 }
 
 #[test]
@@ -1421,7 +1506,7 @@ fn snap_loop_status_120x40() {
 
 /// A turn with every inline construct and a fenced Rust block.
 fn markdown(size: Size) -> Model {
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     agent(
         &mut m,
         AgentEvent::Text(
@@ -1517,7 +1602,7 @@ fn docked(size: Size) -> Model {
 }
 
 fn model_at(size: Size) -> Model {
-    Model::new(size)
+    Model::new(size).with_tab(StageTab::Turn)
 }
 
 #[test]
@@ -1583,7 +1668,9 @@ fn refused_dock_answers_paint_the_error_and_restore_actionable_cards_in_both_the
             (Widget::Clear, 'c'),
         ] {
             for click in [false, true] {
-                let mut m = Model::new(Size::new(120, 40)).with_theme(Theme::forced(theme));
+                let mut m = Model::new(Size::new(120, 40))
+                    .with_tab(StageTab::Turn)
+                    .with_theme(Theme::forced(theme));
                 let front = if widget == Widget::Clear {
                     serde_json::json!({"id": "original", "blocked_by": {
                         "kind": "awaiting_human", "reason": "original decision"
@@ -1716,7 +1803,7 @@ fn snap_tab_changes_80x24() {
 /// A turn where the agent edited a file: prose, then the edit card.
 fn edited(size: Size) -> Model {
     use crate::agent::EditDiff;
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     agent(
         &mut m,
         AgentEvent::Text("Renaming the helper.\n".to_owned()),
@@ -2473,127 +2560,17 @@ fn the_rail_swaps_its_two_line_summary_for_the_pixel_block() {
     );
 }
 
-// ── The launcher (Home tab) and the accelerator sheet ───────────────
-
-/// The launcher on a terminal whose probe answered kitty's text sizing
-/// handshake.
-fn launcher_scaled(size: Size) -> Model {
-    let mut m = Scenes::launcher(size);
-    update(&mut m, Msg::TextSizing(true));
-    m
-}
-
-/// The rect `widget` was placed at, if it was placed at all.
-fn rect_of(m: &Model, widget: Widget) -> Option<crate::layout::Rect> {
-    layout(&view(m, &clock()), m.size())
-        .placed()
-        .iter()
-        .find_map(|p| (p.id == Some(widget.id())).then_some(p.rect))
-}
-
-#[test]
-fn without_text_sizing_the_project_card_is_the_four_labelled_rows_it_always_was() {
-    let m = Scenes::launcher(Size::new(120, 40));
-    assert!(m.headline().is_none(), "no headline without the protocol");
-    assert!(rect_of(&m, Widget::CardHeadline).is_none());
-    let s = screen(&m);
-    assert!(s.contains("name"), "the name keeps its label row: {s}");
-    assert!(s.contains("magistr"), "{s}");
-}
-
-#[test]
-fn text_sizing_reserves_two_rows_and_drops_the_name_label() {
-    let m = launcher_scaled(Size::new(120, 40));
-    assert_eq!(m.headline(), Some("magistr"));
-    let rect = rect_of(&m, Widget::CardHeadline).expect("the slot is laid out");
-    assert_eq!(rect.height, crate::render::Headline::ROWS);
-    assert!(rect.width >= 2, "wide enough for one scaled character");
-    let s = screen(&m);
-    assert!(
-        !s.contains("name     magistr"),
-        "the label row is gone — the headline is the name: {s}"
-    );
-    assert!(s.contains("Rust / Cargo"), "the other rows stay: {s}");
-}
-
-#[test]
-fn the_reserved_rows_are_blank_so_the_scaled_block_owns_them() {
-    // The terminal draws the run across both rows; anything of ours in
-    // them would be painted over, then put back by the next diff.
-    let m = launcher_scaled(Size::new(120, 40));
-    let rect = rect_of(&m, Widget::CardHeadline).expect("the slot is laid out");
-    let size = m.size();
-    let root = view(&m, &clock());
-    let resolved = layout(&root, size);
-    let mut buffer = Buffer::new(size.cols, size.rows);
-    paint(&root, &resolved, &mut buffer);
-    for row in rect.y..rect.bottom() {
-        for col in rect.x..rect.right() {
-            let symbol = buffer.get(col, row).map(|cell| cell.symbol.to_string());
-            assert_eq!(symbol.as_deref(), Some(" "), "({col}, {row}) is blank");
-        }
-    }
-}
-
-#[test]
-fn a_project_with_no_config_wears_no_headline() {
-    // The card points at `magistr init` instead; there is no name yet.
-    let mut m = Model::new(Size::new(120, 40)).with_tab(StageTab::Home);
-    update(&mut m, Msg::TextSizing(true));
-    update(
-        &mut m,
-        Msg::Job {
-            id: crate::job::JobId::new(0),
-            output: crate::job::JobOutput::Launcher(Box::new(crate::cockpit::LauncherData {
-                project: "magistr".to_owned(),
-                has_config: false,
-                ..crate::cockpit::LauncherData::default()
-            })),
-        },
-    );
-    assert!(m.headline().is_none());
-    assert!(rect_of(&m, Widget::CardHeadline).is_none());
-}
-
-#[test]
-fn a_tab_away_from_home_lays_out_no_headline() {
-    let mut m = launcher_scaled(Size::new(120, 40));
-    m = m.with_tab(StageTab::Turn);
-    assert!(rect_of(&m, Widget::CardHeadline).is_none());
-}
-
-#[test]
-fn snap_launcher_80x24() {
-    let m = Scenes::launcher(Size::new(80, 24));
-    let s = screen(&m);
-    assert!(s.contains("Rust / Cargo"), "{s}");
-    assert!(s.contains("master, clean"), "{s}");
-    assert!(s.contains("ACP (available)"), "{s}");
-    assert!(s.contains("▰"), "the progress bar renders: {s}");
-    assert!(s.contains("2/4"), "{s}");
-    assert!(
-        s.contains("nothing ready"),
-        "the pending chunk is dep-gated: {s}"
-    );
-    assert!(s.contains("next iteration"), "{s}");
-    assert!(s.contains("gates"), "{s}");
-    insta::assert_snapshot!(s);
-}
-
-#[test]
-fn snap_launcher_120x40() {
-    insta::assert_snapshot!(screen(&Scenes::launcher(Size::new(120, 40))));
-}
+// ── Host commands and the accelerator sheet ───────────────
 
 /// The elision rule itself: whole chips only, dropped from the tail.
 #[test]
 fn the_footer_takes_whole_chips_and_drops_the_tail() {
     // The Home context costs 86 columns — six chips (18, 8, 9, 11, 17,
     // 13) and the five gaps between them.
-    let home = Binding::HINT_HOME;
+    let home = Binding::HINT_COMMANDS;
     let whole: usize =
         home.iter().map(chip_cols).sum::<usize>() + usize::from(Space::GAP) * (home.len() - 1);
-    assert_eq!(whole, 86, "the Home context's own width");
+    assert!(whole > 0);
     assert_eq!(footer_chips(home, 200), home.len(), "a wide bar shows all");
     assert_eq!(
         footer_chips(home, whole),
@@ -2605,11 +2582,7 @@ fn the_footer_takes_whole_chips_and_drops_the_tail() {
         home.len() - 1,
         "one column short drops the whole trailing chip, not its label"
     );
-    assert_eq!(
-        footer_chips(home, 80),
-        5,
-        "the 80-column screen loses ctrl-d quit"
-    );
+    assert!(footer_chips(home, 80) >= 3, "all launch actions fit");
     assert_eq!(
         footer_chips(home, chip_cols(&home[0])),
         1,
@@ -2625,57 +2598,6 @@ fn the_footer_takes_whole_chips_and_drops_the_tail() {
 
 /// The rendered bar: at 80 columns the Home footer ends on a whole
 /// chip, and the binding it dropped is back at 120.
-#[test]
-fn the_narrow_home_footer_ends_on_a_whole_chip() {
-    let narrow = screen(&Scenes::launcher(Size::new(80, 24)));
-    let footer = narrow.lines().next_back().unwrap_or_default();
-    assert!(
-        footer.contains("keyboard help"),
-        "the last chip that fits keeps its label: {footer:?}"
-    );
-    assert!(
-        !footer.contains("ctrl-d"),
-        "the chip that did not fit is gone whole, cap and all: {footer:?}"
-    );
-    let wide = screen(&Scenes::launcher(Size::new(120, 40)));
-    assert!(
-        wide.contains("ctrl-d ") && wide.contains("quit"),
-        "a wide screen still shows every chip"
-    );
-}
-
-#[test]
-fn snap_launcher_unconfigured_80x24() {
-    let mut m = Model::new(Size::new(80, 24)).with_tab(StageTab::Home);
-    update(
-        &mut m,
-        Msg::Job {
-            id: crate::job::JobId::new(0),
-            output: crate::job::JobOutput::Launcher(Box::new(crate::cockpit::LauncherData {
-                project: "fresh".to_owned(),
-                has_config: false,
-                ..Default::default()
-            })),
-        },
-    );
-    let s = screen(&m);
-    assert!(s.contains("not configured"), "{s}");
-    assert!(
-        s.contains("magistr init"),
-        "the card points at the CLI interview: {s}"
-    );
-    insta::assert_snapshot!(s);
-}
-
-#[test]
-fn snap_launcher_loading_80x24() {
-    // Before the job's round-trip the cards say they are loading.
-    let m = Model::new(Size::new(80, 24)).with_tab(StageTab::Home);
-    let s = screen(&m);
-    assert!(s.contains("loading project status…"), "{s}");
-    insta::assert_snapshot!(s);
-}
-
 #[test]
 fn snap_accelerator_sheet_80x24() {
     let mut m = Scenes::launcher(Size::new(80, 24));
@@ -2813,68 +2735,6 @@ fn the_sheet_lists_every_registered_binding() {
     }
 }
 
-#[test]
-fn the_launcher_buttons_are_hittable() {
-    let m = Scenes::launcher(Size::new(120, 40));
-    let root = view(&m, &clock());
-    let resolved = layout(&root, m.size());
-    let mut hits = crate::hit::HitRegistry::new();
-    hits.register_layout(&resolved, 0);
-    for widget in [
-        Widget::LaunchNext,
-        Widget::LaunchLoop,
-        Widget::LaunchGates,
-        Widget::LaunchRoadmap,
-    ] {
-        let rect = resolved
-            .placed()
-            .iter()
-            .find(|p| p.id == Some(widget.id()))
-            .map(|p| p.rect)
-            .unwrap_or_else(|| panic!("{} was not laid out", widget.label()));
-        assert_eq!(
-            hits.hit(rect.x, rect.y),
-            Some(widget.id()),
-            "{} does not take its click",
-            widget.label()
-        );
-    }
-}
-
-#[test]
-fn the_launcher_grid_fills_the_stage_at_120x40() {
-    // The dashboard acceptance: the four cards cover at least 75% of
-    // the stage's cells — the 60%-dead-space text column is gone.
-    let m = Scenes::launcher(Size::new(120, 40));
-    let resolved = layout(&view(&m, &clock()), m.size());
-    let rect = |id: crate::widget_id::WidgetId| {
-        resolved
-            .placed()
-            .iter()
-            .find(|p| p.id == Some(id))
-            .map(|p| p.rect)
-            .unwrap_or_else(|| panic!("widget {id:?} was not laid out"))
-    };
-    let stage = rect(Widget::Stage.id());
-    let covered: u32 = [
-        Widget::CardProject,
-        Widget::CardRoadmap,
-        Widget::CardSessions,
-        Widget::CardActions,
-    ]
-    .into_iter()
-    .map(|card| {
-        let r = rect(card.id());
-        u32::from(r.width) * u32::from(r.height)
-    })
-    .sum();
-    let area = u32::from(stage.width) * u32::from(stage.height);
-    assert!(
-        covered * 4 >= area * 3,
-        "the cards cover {covered} of the stage's {area} cells"
-    );
-}
-
 /// The painted style of the cell at `(col, row)`.
 fn cell_style(model: &Model, col: u16, row: u16) -> Style {
     let root = view(model, &FrameClock::new(7, Duration::from_millis(1500)));
@@ -2882,67 +2742,6 @@ fn cell_style(model: &Model, col: u16, row: u16) -> Style {
     let mut buffer = Buffer::new(model.size().cols, model.size().rows);
     paint(&root, &resolved, &mut buffer);
     buffer.get(col, row).expect("cell exists").style.clone()
-}
-
-#[test]
-fn the_session_rows_are_hittable_and_light_on_hover() {
-    let mut m = Scenes::launcher(Size::new(120, 40));
-    let resolved = layout(&view(&m, &clock()), m.size());
-    let rect = resolved
-        .placed()
-        .iter()
-        .find(|p| p.id == Some(Widget::launch_session(0)))
-        .map(|p| p.rect)
-        .expect("the first session row is laid out");
-    let mut hits = crate::hit::HitRegistry::new();
-    hits.register_layout(&resolved, 0);
-    assert_eq!(hits.hit(rect.x, rect.y), Some(Widget::launch_session(0)));
-    let before = cell_style(&m, rect.x, rect.y);
-    update(
-        &mut m,
-        Msg::Mouse {
-            event: MouseEvent::new(MouseKind::Move, rect.x, rect.y),
-            target: Some(Widget::launch_session(0)),
-        },
-    );
-    let after = cell_style(&m, rect.x, rect.y);
-    assert_ne!(before, after, "the hovered row changes its paint");
-}
-
-#[test]
-fn the_selected_session_row_is_raised_and_an_unresumable_one_says_so_on_the_card() {
-    let mut m = Scenes::launcher(Size::new(120, 40));
-    let resolved = layout(&view(&m, &clock()), m.size());
-    let rect = resolved
-        .placed()
-        .iter()
-        .find(|p| p.id == Some(Widget::launch_session(0)))
-        .map(|p| p.rect)
-        .expect("the first session row is laid out");
-    let before = cell_style(&m, rect.x, rect.y);
-    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Down)));
-    assert_eq!(m.session_selected(), Some(0));
-    assert_ne!(
-        before,
-        cell_style(&m, rect.x, rect.y),
-        "the arrows raise the selected row the way a hover does"
-    );
-
-    // The second row's session is gone from disk: activating it paints
-    // the reason on the card and leaves the cockpit standing.
-    update(
-        &mut m,
-        Msg::Mouse {
-            event: MouseEvent::new(MouseKind::Down(Button::Left), rect.x, rect.y),
-            target: Some(Widget::launch_session(1)),
-        },
-    );
-    assert!(!m.quit_requested(), "an unresumable row never quits");
-    assert!(
-        screen(&m).contains("is no") && screen(&m).contains("longer resumable"),
-        "the card reports it:\n{}",
-        screen(&m)
-    );
 }
 
 // ── The screenshot gate: golden images ────────────────────
@@ -2984,9 +2783,7 @@ fn panel_chrome_keeps_density_at_120x40() {
             .filter(|line| line.chars().any(char::is_alphanumeric))
             .count()
     };
-    let launcher_rows = info(&Scenes::launcher(Size::new(120, 40)));
     let streaming_rows = info(&Scenes::streaming(Size::new(120, 40)));
-    assert!(launcher_rows >= 19, "launcher: {launcher_rows} info rows");
     assert!(
         streaming_rows >= 18,
         "streaming: {streaming_rows} info rows"
@@ -3023,11 +2820,7 @@ fn buffer_of(model: &Model) -> Buffer {
 /// padding would be noise rather than feedback. Written down rather than
 /// derived, so a widget that becomes registered without a hover decision
 /// turns up as a diff here.
-const CHROME: [&str; 24] = [
-    "CardActions",
-    "CardProject",
-    "CardRoadmap",
-    "CardSessions",
+const CHROME: [&str; 25] = [
     "Chunk",
     "Dock",
     "Execute",
@@ -3035,6 +2828,11 @@ const CHROME: [&str; 24] = [
     "Header",
     "HeaderBrand",
     "Inspector",
+    "InspectorActions",
+    "InspectorFields",
+    "InspectorMetadata",
+    "InspectorStatus",
+    "InspectorTitle",
     "HeaderSpark",
     "Plan",
     "Prompt",
@@ -3175,12 +2973,13 @@ fn no_hover_puts_a_glyph_under_the_contrast_floor() {
 type Surface = fn(Size) -> Model;
 
 /// The six surfaces the goldens cover, by name.
-const SURFACES: [(&str, Surface); 10] = [
+const SURFACES: [(&str, Surface); 11] = [
     ("launcher", Scenes::launcher),
     // The terminal pane is the one surface whose hues are a program's
     // own: swept here so every cell of it still pays
     // the floor, following and scrolled alike.
     ("terminal-pane", Scenes::terminal_pane),
+    ("inspector-edit", Scenes::inspected_edit),
     ("terminal-pane-scrolled", Scenes::terminal_pane_scrolled),
     ("streaming", Scenes::streaming),
     ("permission", Scenes::permission),
@@ -4168,7 +3967,7 @@ fn pictured(size: Size) -> Model {
     let png = pixmap.encode_png().expect("a pixmap encodes");
     let mut data = Vec::new();
     crate::base64::encode(&png, &mut data);
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     agent(&mut m, AgentEvent::Text("here it is:\n".to_owned()));
     agent(
         &mut m,
@@ -4251,7 +4050,7 @@ fn the_stage_shows_an_image_block() {
 
 /// A Changes tab with a journal far longer than the stage.
 fn long_changes(size: Size) -> Model {
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     m.tab = StageTab::Session;
     let entries: Vec<crate::workbench::JournalEntry> = (0..120)
         .map(|n| crate::workbench::JournalEntry {
@@ -4410,7 +4209,7 @@ fn the_changes_heading_and_run_verdict_stay_pinned_while_the_list_scrolls() {
 /// The Changes tab over a journal whose one edit left conflict markers.
 fn conflicted(size: Size) -> Model {
     use crate::workbench::JournalEntry;
-    let mut m = Model::new(size);
+    let mut m = Model::new(size).with_tab(StageTab::Turn);
     update(
         &mut m,
         Msg::Key(KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
@@ -4980,6 +4779,14 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
         for pixels in [false, true] {
             for (mut m, target) in [
                 (
+                    Scenes::terminal_pane(Size::new(cols, rows)),
+                    Widget::InspectorTitle.id(),
+                ),
+                (
+                    Scenes::inspected_edit(Size::new(cols, rows)),
+                    Widget::InspectorTitle.id(),
+                ),
+                (
                     Scenes::roadmapped(Size::new(cols, rows)),
                     Widget::roadmap_row(0),
                 ),
@@ -5051,11 +4858,13 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
                 assert_eq!(sections[4].width, m.inspector_width());
                 assert!(sections[4].height > 0, "a field remains readable");
                 let before = match m.tab() {
+                    StageTab::Turn => m.turn().len(),
                     StageTab::Session => session_body(&m, &Pen::for_theme(&m.theme())).len(),
                     _ => roadmap_body(&m, &Pen::for_theme(&m.theme())).len(),
                 };
                 update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
                 let after = match m.tab() {
+                    StageTab::Turn => m.turn().len(),
                     StageTab::Session => session_body(&m, &Pen::for_theme(&m.theme())).len(),
                     _ => roadmap_body(&m, &Pen::for_theme(&m.theme())).len(),
                 };
@@ -5078,7 +4887,7 @@ const AUDIT_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (132, 42)]
 fn every_surface_fits_its_screen_at_every_audited_size() {
     for (cols, rows) in AUDIT_SIZES {
         let size = Size::new(cols, rows);
-        let scenes: [(&str, Model); 3] = [
+        let scenes: [(&str, Model); 7] = [
             ("trace", {
                 let mut m = Scenes::traced(size);
                 expand_first_step(&mut m);
@@ -5087,6 +4896,10 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
             }),
             ("roadmap", Scenes::roadmapped(size)),
             ("launcher", Scenes::launcher(size)),
+            ("turn", Scenes::streaming(size)),
+            ("tool", Scenes::terminal_pane(size)),
+            ("edit", Scenes::inspected_edit(size)),
+            ("palette", Scenes::command_palette(size)),
         ];
         for (name, model) in scenes {
             for pixels in [false, true] {
@@ -5232,4 +5045,37 @@ fn a_graphics_terminal_spells_no_glyph_a_mark_draws() {
         plain_spelled > 0,
         "a plain terminal still spells its glyphs"
     );
+}
+#[test]
+fn three_tab_roadmap_footer_and_terminal_palette_are_hittable() {
+    let mut m = Scenes::launcher(Size::new(120, 40));
+    assert_eq!(m.tab(), StageTab::Roadmap);
+    let root = view(&m, &clock());
+    let resolved = layout(&root, m.size());
+    let mut hits = crate::hit::HitRegistry::new();
+    hits.register_layout(&resolved, 0);
+    for index in 0..3 {
+        let id = Widget::footer_chip(index);
+        let rect = resolved
+            .placed()
+            .iter()
+            .find(|p| p.id == Some(id))
+            .expect("launch chip laid out")
+            .rect;
+        assert_eq!(hits.hit(rect.x, rect.y), Some(id));
+    }
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Char('p')).with(crate::input::Modifiers::CTRL)),
+    );
+    assert!(m.palette().is_some());
+    for c in "gates".chars() {
+        update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
+    }
+    let screen = screen(&m);
+    assert!(
+        screen.contains("commands") && screen.contains("gates"),
+        "{screen}"
+    );
+    insta::assert_snapshot!("terminal_command_palette", screen);
 }

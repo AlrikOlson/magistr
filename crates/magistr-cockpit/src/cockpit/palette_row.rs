@@ -34,6 +34,10 @@ pub struct PaletteRow {
 /// binding's canonical key as the `Msg` the terminal sends.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum PaletteGo {
+    /// Start an existing host command.
+    Launch(super::launch_action::LaunchAction),
+    /// Open a terminal tab.
+    Tab(super::stage_tab::StageTab),
     /// Move the camera to a place.
     Place(Place),
     /// Open the sky centred on a chunk.

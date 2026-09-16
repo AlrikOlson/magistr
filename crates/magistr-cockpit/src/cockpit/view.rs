@@ -1,8 +1,5 @@
 //! The model as a layout tree.
 
-use magistr_theme::math::{darken, lerp};
-use magistr_theme::{Palette, ThemeColor};
-
 use super::animation::Animation;
 use super::binding::Binding;
 use super::copy::Copy;
@@ -11,7 +8,6 @@ use super::frame_clock::FrameClock;
 use super::gate_led::GateLed;
 use super::hover;
 use super::inspector::Inspector;
-use super::launcher_session::LauncherSession;
 use super::loop_status::LoopStatus;
 use super::marked::Marked;
 use super::model::{Model, PROMPT_MAX_ROWS, UNDOCK_COLS};
@@ -22,9 +18,7 @@ use super::plan_task::PlanTask;
 use super::progress::Progress;
 use super::rail::Rail;
 use super::rail_mark::RailMark;
-use super::roadmap_chunk::RoadmapChunk;
 use super::selected::Selected;
-use super::session_outcome::SessionOutcome;
 use super::size::Size;
 use super::space::Space;
 use super::stage_tab::StageTab;
@@ -213,6 +207,39 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
         root = root.child(hover_card(&card, model.size(), &pen));
     }
     let mut root = root.child(footer_bar(model, &pen));
+    if let Some(palette) = model.palette() {
+        let rows = super::palette::Palette::rows(model);
+        let panel = Node::column()
+            .width(Length::Cells(model.size().cols.saturating_sub(8).min(64)))
+            .viewport()
+            .style(pen.stage.clone())
+            .padding(Space::PAD)
+            .frame(
+                Frame::new(pen.panel(true).clone())
+                    .title("commands")
+                    .drawn(model.has_pixels()),
+            )
+            .child(segment(
+                &format!("Search · {}", palette.query()),
+                pen.heading.clone(),
+            ))
+            .children(rows.iter().enumerate().map(|(index, row)| {
+                let label = row
+                    .name
+                    .as_ref()
+                    .map_or_else(|| row.verb.clone(), |name| format!("{} {name}", row.verb));
+                segment(
+                    &label,
+                    if index == palette.chosen() {
+                        pen.code.clone()
+                    } else {
+                        pen.stage.clone()
+                    },
+                )
+                .id(Widget::palette_row(index))
+            }));
+        root = root.child(Node::centered_overlay(panel));
+    }
     // The pointer's answer, last: one pass over the finished tree, so
     // every id the hit registry will register is covered by the same
     // walk rather than by each surface remembering to ask.
@@ -729,15 +756,11 @@ fn iteration_text(status: &LoopStatus) -> String {
 
 /// The visible rows of the turn, one node each — or the Session
 /// or Roadmap tab's rows on those tabs. Dispatches on
-/// [`Model::shown_tab`], which is [`Model::tab`] everywhere but the
-/// native Home slot — there the Sky (the tech-tree) stands in for the
-/// launcher until builds the Galaxy.
+/// [`Model::shown_tab`], which maps native places to their closest
+/// terminal view and uses [`Model::tab`] on the terminal.
 fn stage_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     if model.is_sheet_open() {
         return sheet_rows(model, pen);
-    }
-    if model.shown_tab() == StageTab::Home {
-        return launcher_rows(model, pen);
     }
     if model.shown_tab() == StageTab::Session {
         return timeline_rows(model, pen);
@@ -762,7 +785,7 @@ fn stage_rows(model: &Model, pen: &Pen) -> Vec<Node> {
             // three ticks; a row that was already there is untouched, so
             // a settled stage is the stage it always was.
             let fade = in_motion(model).and_then(|(m, now)| m.row_arrival(at, now));
-            let content = match (model.hold_at_row(at), row.kind) {
+            let mut content = match (model.hold_at_row(at), row.kind) {
                 // The held kill fills the card's head red as it is
                 // held, from the left, by the ticks.
                 (Some(fraction), _) if fraction > 0.0 => held_head(row, fraction, model, pen),
@@ -779,11 +802,27 @@ fn stage_rows(model: &Model, pen: &Pen) -> Vec<Node> {
                 ),
                 _ => pen.accent(accent).clone(),
             };
+            let selected = model.turn().card_at_row(at).is_some_and(|(line, _)| {
+                matches!(line.kind(), crate::turn::LineKind::Tool { id, .. } | crate::turn::LineKind::Edit { id, .. }
+                    if model.selected() == Some(&Selected::Tool(id.clone())))
+            });
+            let mut style = arriving(pen, pen.row(row.kind), fade);
+            if selected {
+                style.bg = pen.code.bg;
+                content.restyle_all(&|style| style.clone().bg(pen.code.bg));
+            }
+            let gutter = if model.has_pixels() && accent != Accent::Meta {
+                Node::row().width(Length::Cells(Accent::GUTTER_COLS)).shrink(0.0)
+                    .child(Node::text(" ").width(Length::Cells(1)).style(gutter.clone().bg(gutter.fg)))
+                    .child(Node::text(" "))
+            } else {
+                segment(accent.gutter(), gutter)
+            };
             Node::row()
                 .height(Length::Cells(1))
-                .style(arriving(pen, pen.row(row.kind), fade))
+                .style(style)
                 .id(Widget::stage_row(index))
-                .child(segment(accent.gutter(), gutter))
+                .child(gutter)
                 .child(content)
         })
         .collect()
@@ -1868,521 +1907,9 @@ fn image_row(model: &Model, row: usize, pen: &Pen) -> Node {
 /// its foreground is the top pixel and its background the bottom one.
 const HALFBLOCK: &str = "▀";
 
-/// Screen columns below which the launcher's cards stack full-width
-/// instead of sitting on the two-column grid.
-const LAUNCHER_GRID_MIN_COLS: u16 = 100;
-
-/// The Home tab: the launcher as a dashboard. Four cards in panel
-/// chrome — the project (or the `magistr init` card while the project
-/// has no config), the roadmap's progress with the next-ready chunk
-/// called out, the recent sessions with their status icons, the action
-/// buttons as key-cap controls — on a grid that fills the stage: two
-/// columns at ≥[`LAUNCHER_GRID_MIN_COLS`] screen columns, stacked
-/// full-width below. The card data arrives as one job the entry point
-/// spawned; until it delivers the cards say so.
-fn launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
-    let avail = model.stage_rows();
-    if avail < 14 {
-        return compact_launcher_rows(model, pen);
-    }
-    if model.size().cols < LAUNCHER_GRID_MIN_COLS {
-        // Stacked: compact cards budgeted to the measured stage rows —
-        // the sessions list takes exactly what is left, so no card's
-        // ring ever lands on another row's cells.
-        let cap = avail.saturating_sub(14).max(1);
-        return vec![
-            launcher_card(
-                Widget::CardProject,
-                model,
-                pen,
-                project_rows(model, pen, true),
-            )
-            .shrink(0.0),
-            launcher_card(
-                Widget::CardRoadmap,
-                model,
-                pen,
-                roadmap_card_rows(model, pen, 0),
-            )
-            .shrink(0.0),
-            launcher_card(
-                Widget::CardActions,
-                model,
-                pen,
-                vec![action_chips(model, pen)],
-            )
-            .shrink(0.0),
-            launcher_card(
-                Widget::CardSessions,
-                model,
-                pen,
-                session_rows(model, pen, cap),
-            )
-            .shrink(0.0),
-        ];
-    }
-    // The grid: each column's growing card stretches its stack to the
-    // stage's bottom edge, so the cards own the screen the old text
-    // column left dead. Half the row each, so the bars and rows size
-    // predictably.
-    let session_cap = avail.saturating_sub(8).max(1);
-    let board_cap = avail.saturating_sub(11).max(1);
-    let project = launcher_card(
-        Widget::CardProject,
-        model,
-        pen,
-        project_rows(model, pen, false),
-    );
-    let roadmap = launcher_card(
-        Widget::CardRoadmap,
-        model,
-        pen,
-        roadmap_card_rows(model, pen, board_cap),
-    );
-    let sessions = launcher_card(
-        Widget::CardSessions,
-        model,
-        pen,
-        session_rows(model, pen, session_cap),
-    );
-    let actions = launcher_card(Widget::CardActions, model, pen, action_rows(model, pen));
-    vec![
-        Node::row()
-            .grow(1.0)
-            .gap(Space::TIGHT)
-            .child(
-                Node::column()
-                    .grow(1.0)
-                    .width(Length::Percent(0.5))
-                    .min_width(Length::Cells(0))
-                    .child(project.shrink(0.0))
-                    .child(sessions.grow(1.0)),
-            )
-            .child(
-                Node::column()
-                    .grow(1.0)
-                    .width(Length::Percent(0.5))
-                    .min_width(Length::Cells(0))
-                    .child(roadmap.grow(1.0))
-                    .child(actions.shrink(0.0)),
-            ),
-    ]
-}
-
-/// Short stages retain every launcher action and the selected session.
-fn compact_launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
-    let project_height = if model.stage_rows() >= 6 { 2 } else { 1 };
-    let project = if model.launcher().is_some_and(|data| !data.has_config) {
-        vec![segment(
-            "not configured · run `magistr init`",
-            pen.warn.clone(),
-        )]
-    } else {
-        project_rows(model, pen, true)
-            .into_iter()
-            .take(project_height)
-            .collect()
-    };
-    let used = project.len() + 3;
-    let project = Node::column()
-        .id(Widget::CardProject.id())
-        .children(project);
-    let next = model
-        .roadmap()
-        .next_ready()
-        .map_or("nothing ready", |chunk| chunk.name.as_str());
-    let roadmap = Node::text(format!("next · {next}"))
-        .style(pen.note.clone())
-        .height(Length::Cells(1))
-        .id(Widget::CardRoadmap.id());
-    let actions =
-        Node::column()
-            .id(Widget::CardActions.id())
-            .children(LAUNCHER_ACTIONS.chunks(2).map(|pair| {
-                Node::row()
-                    .height(Length::Cells(1))
-                    .gap(Space::GAP)
-                    .children(
-                        pair.iter()
-                            .map(|(binding, widget)| action_button(*binding, *widget, model, pen)),
-                    )
-            }));
-    let cap = model.stage_rows().saturating_sub(used).max(1);
-    let mut sessions = Node::column().id(Widget::CardSessions.id()).viewport();
-    if let Some(note) = model.session_note() {
-        sessions = sessions.child(segment(
-            &shorten(note, usize::from(model.stage_width())),
-            pen.warn.clone(),
-        ));
-    } else if let Some(data) = model.launcher() {
-        if data.sessions.is_empty() {
-            sessions = sessions.child(segment("sessions · none yet", pen.note.clone()));
-        } else {
-            let selected = model
-                .session_selected()
-                .unwrap_or(0)
-                .min(data.sessions.len() - 1);
-            let first = selected.saturating_sub(cap - 1);
-            sessions = sessions.children(
-                data.sessions
-                    .iter()
-                    .enumerate()
-                    .skip(first)
-                    .take(cap)
-                    .map(|(index, session)| session_row(index, session, model, pen)),
-            );
-        }
-    } else {
-        sessions = sessions.child(segment("loading sessions…", pen.note.clone()));
-    }
-    vec![
-        project.shrink(0.0),
-        roadmap.shrink(0.0),
-        actions.shrink(0.0),
-        sessions.grow(1.0),
-    ]
-}
-
-/// One launcher card: a framed panel named in its border, its id on the
-/// panel so the grid's coverage is measurable from the placed rects — a
-/// viewport, so a long row clips inside the ring instead of painting
-/// over its neighbour.
-fn launcher_card(widget: Widget, model: &Model, pen: &Pen, rows: Vec<Node>) -> Node {
-    Node::column()
-        .id(widget.id())
-        .viewport()
-        .min_width(Length::Cells(0))
-        .frame(
-            Frame::new(pen.panel(false).clone())
-                .title(widget.label())
-                .title_style(pen.heading.clone())
-                .drawn(model.has_pixels()),
-        )
-        .children(rows.into_iter().map(|row| row.shrink(0.0)))
-}
-
-/// The project card's rows: the config's identity as labelled values —
-/// or where to get a config while the project has none.
-///
-/// On a terminal that renders kitty's text sizing protocol the `name`
-/// row is replaced by a headline: two blank rows carrying
-/// [`Widget::CardHeadline`], which the runtime writes the project's name
-/// across as one scaled `OSC 66` run ([`Model::headline`]). Everywhere
-/// else — which is every terminal the goldens rasterize — the card is
-/// exactly the four labelled rows it always was.
-fn project_rows(model: &Model, pen: &Pen, compact: bool) -> Vec<Node> {
-    let cols = launcher_card_cols(model);
-    let Some(data) = model.launcher() else {
-        return vec![segment("loading project status…", pen.note.clone())];
-    };
-    if !data.has_config {
-        return vec![
-            Marked::new(model, pen)
-                .icon(Icon::Warning)
-                .text(" not configured")
-                .segment(pen.error.clone()),
-            segment(
-                "run `magistr init` to set this project up",
-                pen.stage.clone(),
-            ),
-        ];
-    }
-    if compact {
-        return vec![
-            segment(
-                &shorten(&format!("{} · {}", data.project, data.stack), cols),
-                pen.stage.clone(),
-            ),
-            segment(
-                &shorten(&format!("{} · {}", data.git, data.backend), cols),
-                pen.stage.clone(),
-            ),
-        ];
-    }
-    let headline = model.headline().is_some();
-    let labelled: Vec<(&str, &str)> = if headline {
-        // The headline *is* the name, so the label row would say it twice.
-        vec![
-            ("stack", data.stack.as_str()),
-            ("git", data.git.as_str()),
-            ("backend", data.backend.as_str()),
-        ]
-    } else {
-        vec![
-            ("name", data.project.as_str()),
-            ("stack", data.stack.as_str()),
-            ("git", data.git.as_str()),
-            ("backend", data.backend.as_str()),
-        ]
-    };
-    let rows = labelled.into_iter().map(|(label, value)| {
-        Node::row()
-            .height(Length::Cells(1))
-            .child(segment(&format!("{label:<8} "), pen.thought.clone()))
-            .child(segment(
-                &shorten(value, cols.saturating_sub(9)),
-                pen.stage.clone(),
-            ))
-    });
-    if headline {
-        return std::iter::once(headline_slot()).chain(rows).collect();
-    }
-    rows.collect()
-}
-
-/// The two blank rows the project card reserves for its scaled
-/// headline. Blank by construction: the terminal draws the run's block
-/// over both of them, so anything of ours in the second row would be
-/// painted over — and would put the cells back the moment the diff
-/// noticed them change.
-fn headline_slot() -> Node {
-    Node::column()
-        .id(Widget::CardHeadline.id())
-        .height(Length::Cells(crate::render::Headline::ROWS))
-        .shrink(0.0)
-}
-
-/// The roadmap card's rows: the colour-ramped progress bar, the
-/// next-ready chunk called out by name and title, and the accounting
-/// line — `no roadmap yet` until a seed arrives.
-fn roadmap_card_rows(model: &Model, pen: &Pen, board_cap: usize) -> Vec<Node> {
-    let roadmap = model.roadmap();
-    let (done, total) = (roadmap.done_count(), roadmap.active_count());
-    if total == 0 {
-        return vec![segment("no roadmap yet", pen.note.clone())];
-    }
-    let cols = launcher_card_cols(model);
-    let palette = model.theme().palette();
-    let mut rows = vec![ramp_bar(
-        model.motion().roadmap_fill(model.now()),
-        done,
-        total,
-        launcher_bar_cells(model, done, total),
-        &palette,
-        model,
-        pen,
-    )];
-    match roadmap.next_ready() {
-        Some(chunk) => {
-            let mut next = Node::row()
-                .height(Length::Cells(1))
-                .child(
-                    Marked::new(model, pen)
-                        .text("next ")
-                        .icon(Icon::Ready)
-                        .text(" ")
-                        .segment(pen.rail.clone()),
-                )
-                .child(segment(&chunk.name, pen.user.clone()));
-            if !chunk.title.is_empty() {
-                let free = cols.saturating_sub(7 + chunk.name.chars().count());
-                next = next.child(segment(
-                    &shorten(&format!(" — {}", chunk.title), free),
-                    pen.stage.clone(),
-                ));
-            }
-            rows.push(next);
-        }
-        None => rows.push(
-            Marked::new(model, pen)
-                .text("next ")
-                .icon(Icon::Ready)
-                .text(" nothing ready")
-                .segment(pen.note.clone()),
-        ),
-    }
-    rows.push(segment(
-        &shorten(&roadmap.summary_line(), cols),
-        pen.thought.clone(),
-    ));
-    for chunk in roadmap.rows().into_iter().take(board_cap) {
-        rows.push(board_row(chunk, cols, model, pen));
-    }
-    rows
-}
-
-/// Cells the roadmap card's bar takes: the card's interior columns less
-/// the ` done/total` label, floored so a tiny screen still shows a bar.
-fn launcher_bar_cells(model: &Model, done: usize, total: usize) -> usize {
-    let label = format!(" {done}/{total}").chars().count();
-    launcher_card_cols(model).saturating_sub(label).max(10)
-}
-
-/// The roadmap's progress as a colour-ramped bar: every cell keeps its
-/// position's colour on the red→yellow→blue ramp (the theme's lerp),
-/// the cells under `fill` (the eased fraction) bright, the not-yet
-/// cells darkened toward the base — then `done/total` at the end.
-fn ramp_bar(
-    fill: f32,
-    done: usize,
-    total: usize,
-    cells: usize,
-    palette: &Palette,
-    model: &Model,
-    pen: &Pen,
-) -> Node {
-    let filled = filled_cells(fill, cells);
-    let base = Color::Rgb(palette.base.r, palette.base.g, palette.base.b);
-    let mut row = Node::row().height(Length::Cells(1));
-    if model.has_pixels() {
-        // One drawn gauge over the bar's cells, in the ramp's closing
-        // colour, so the fill reads at the pixel rather than the cell.
-        let end = ramp(palette, 1.0);
-        let width = u16::try_from(cells).unwrap_or(u16::MAX);
-        let bar = Node::text(" ".repeat(cells))
-            .mark(Mark::Bar {
-                fill: (fill.clamp(0.0, 1.0) * 1000.0) as u16,
-                line: Color::Rgb(end.r, end.g, end.b),
-                ground: base,
-            })
-            .style(pen.stage.clone())
-            .width(Length::Cells(width))
-            .height(Length::Cells(1))
-            .shrink(0.0);
-        return row
-            .child(bar)
-            .child(segment(&format!(" {done}/{total}"), pen.stage.clone()));
-    }
-    for cell in 0..cells {
-        let t = cell as f64 / cells.saturating_sub(1).max(1) as f64;
-        let (glyph, color) = if cell < filled {
-            (pen.icons.bar_full, ramp(palette, t))
-        } else {
-            (pen.icons.bar_empty, darken(ramp(palette, t), 0.55))
-        };
-        row = row.child(segment(
-            glyph,
-            Style::new()
-                .fg(Color::Rgb(color.r, color.g, color.b))
-                .bg(base),
-        ));
-    }
-    row.child(segment(&format!(" {done}/{total}"), pen.stage.clone()))
-}
-
-/// Position `t` along the red→yellow→blue ramp — behind reads red, done
-/// reads the pass accent (green sits on Latte's 3:1 contrast line, so
-/// blue closes the ramp as it does the gate LEDs).
-fn ramp(palette: &Palette, t: f64) -> ThemeColor {
-    if t < 0.5 {
-        lerp(palette.red, palette.yellow, t * 2.0)
-    } else {
-        lerp(palette.yellow, palette.blue, (t - 0.5) * 2.0)
-    }
-}
-
-/// The sessions card's rows: one per recent session, its outcome as an
-/// icon in the outcome's pen, the when and duration quiet, the preview
-/// in body text — the hovered row raised as a surface band.
-fn session_rows(model: &Model, pen: &Pen, cap: usize) -> Vec<Node> {
-    let Some(data) = model.launcher() else {
-        return vec![segment("loading…", pen.note.clone())];
-    };
-    if data.sessions.is_empty() {
-        return vec![segment("none yet", pen.note.clone())];
-    }
-    let shown = if data.sessions.len() > cap {
-        cap.saturating_sub(1)
-    } else {
-        data.sessions.len()
-    };
-    let mut rows: Vec<Node> = data
-        .sessions
-        .iter()
-        .take(shown)
-        .enumerate()
-        .map(|(index, session)| session_row(index, session, model, pen))
-        .collect();
-    if shown < data.sessions.len() {
-        rows.push(segment(
-            &format!("… {} more", data.sessions.len() - shown),
-            pen.note.clone(),
-        ));
-    }
-    if let Some(note) = model.session_note() {
-        for text in crate::layout::TextMetrics::new(note)
-            .wrap(launcher_card_cols(model).saturating_sub(2).max(1) as u16)
-        {
-            rows.push(
-                Marked::new(model, pen)
-                    .icon(Icon::Blocked)
-                    .text(&format!(" {text}"))
-                    .segment(pen.warn.clone()),
-            );
-        }
-    }
-    rows
-}
-
-/// One session row, its id in the hit registry so the pointer can find
-/// it. The arrows' selection — which resumes on Enter — raises the row,
-/// swapping every pen onto the first surface and the row's band fill
-/// with them. Hover is not asked for here: since the pointer's
-/// answer is one pass over the finished tree ([`hover::raise`]), and
-/// this row is one [`HoverRole::Surface`](super::HoverRole::Surface)
-/// among many.
-fn session_row(index: usize, session: &LauncherSession, model: &Model, pen: &Pen) -> Node {
-    let raised = model.session_selected() == Some(index);
-    let icon = match (session.outcome, raised) {
-        (SessionOutcome::Success, false) => &pen.heading,
-        (SessionOutcome::Success, true) => &pen.diff_add,
-        (SessionOutcome::Error, false) => &pen.error,
-        (SessionOutcome::Error, true) => &pen.diff_remove,
-        (SessionOutcome::Cancelled, false) => &pen.thought,
-        (SessionOutcome::Cancelled, true) => &pen.fence,
-    };
-    let (quiet, body) = if raised {
-        (&pen.fence, &pen.code)
-    } else {
-        (&pen.thought, &pen.stage)
-    };
-    let when = format!("{}  {}  ", session.when, session.duration);
-    let free = launcher_card_cols(model).saturating_sub(2 + when.chars().count());
-    let mut row = Node::row()
-        .id(Widget::launch_session(index))
-        .height(Length::Cells(1));
-    if raised {
-        row = row.style(pen.code.clone());
-    }
-    row.child(
-        Marked::new(model, pen)
-            .icon(session.outcome.icon())
-            .text(" ")
-            .segment(icon.clone()),
-    )
-    .child(segment(&when, quiet.clone()))
-    .child(segment(&shorten(&session.preview, free), body.clone()))
-}
-
 /// A button label from the registry: `[keys] does`.
 fn accel_label(binding: Binding) -> String {
     format!("[{}] {}", binding.keys, binding.does)
-}
-
-/// The launcher's actions, each with the button widget that fires it.
-const LAUNCHER_ACTIONS: [(Binding, Widget); 4] = [
-    (Binding::NEXT, Widget::LaunchNext),
-    (Binding::LOOP, Widget::LaunchLoop),
-    (Binding::GATES, Widget::LaunchGates),
-    (Binding::ROADMAP, Widget::LaunchRoadmap),
-];
-
-/// One action as a key-cap control: the key on a raised cap, what it
-/// does beside it — the footer's grammar as a button, the id on the
-/// whole control so the cap and the label both take the click.
-fn action_button(binding: Binding, widget: Widget, model: &Model, pen: &Pen) -> Node {
-    Node::row()
-        .id(widget.id())
-        .gap(Space::TIGHT)
-        .shrink(0.0)
-        .height(Length::Cells(1))
-        .child(key_cap(
-            &format!(" {} ", binding.keys),
-            &pen.stage,
-            model,
-            pen,
-        ))
-        .child(segment(binding.does, pen.heading.clone()))
 }
 
 /// A key on a raised cap: the chip pen's cells, and on a graphics
@@ -2397,58 +1924,6 @@ fn key_cap(text: &str, bar: &Style, model: &Model, pen: &Pen) -> Node {
         });
     }
     cap
-}
-
-/// The actions card's rows on the grid: one control per row.
-fn action_rows(model: &Model, pen: &Pen) -> Vec<Node> {
-    LAUNCHER_ACTIONS
-        .into_iter()
-        .map(|(binding, widget)| action_button(binding, widget, model, pen))
-        .collect()
-}
-
-/// The actions as one row of controls, for the stacked layout. No gap
-/// of its own — each control's raised cap carries its own padding, and
-/// all four have to fit an 80-column stage beside the rail.
-fn action_chips(model: &Model, pen: &Pen) -> Node {
-    let mut row = Node::row().height(Length::Cells(1));
-    for (binding, widget) in LAUNCHER_ACTIONS {
-        row = row.child(action_button(binding, widget, model, pen));
-    }
-    row
-}
-
-/// A launcher card's interior columns at the model's size: the stage
-/// less the card's ring — half of it, less the grid's gap, on the grid.
-fn launcher_card_cols(model: &Model) -> usize {
-    let stage = usize::from(model.stage_width());
-    if model.stage_rows() < 14 {
-        stage
-    } else if model.size().cols < LAUNCHER_GRID_MIN_COLS {
-        stage.saturating_sub(2)
-    } else {
-        (stage.saturating_sub(usize::from(Space::TIGHT)) / 2).saturating_sub(2)
-    }
-}
-
-/// One chunk on the roadmap card's board: its status as a glyph in the
-/// status's pen, the name, the title when it has one.
-fn board_row(chunk: &RoadmapChunk, cols: usize, model: &Model, pen: &Pen) -> Node {
-    let (icon, style) = match chunk.status.as_str() {
-        "in_progress" => (Icon::InProgress, &pen.rail),
-        "pending" => (Icon::Pending, &pen.stage),
-        "blocked" => (Icon::Stopped, &pen.error),
-        _ => (Icon::Planned, &pen.thought),
-    };
-    let text = if chunk.title.is_empty() {
-        format!(" {}", chunk.name)
-    } else {
-        format!(" {} — {}", chunk.name, chunk.title)
-    };
-    Marked::new(model, pen)
-        .icon(icon)
-        .text(&shorten(&text, cols.saturating_sub(1)))
-        .segment(style.clone())
 }
 
 /// The accelerator sheet over the stage: every binding the cockpit
@@ -3084,7 +2559,7 @@ fn scrolled(model: &Model) -> String {
 
 /// The bindings the footer shows now: the context follows the model's
 /// focus, from the open sheet down to the idle prompt.
-fn hint_context(model: &Model) -> &'static [Binding] {
+pub(super) fn hint_context(model: &Model) -> &'static [Binding] {
     let running_loop = model.loop_status().filter(|s| s.ended().is_none());
     if model.is_sheet_open() {
         Binding::HINT_SHEET
@@ -3110,18 +2585,20 @@ fn hint_context(model: &Model) -> &'static [Binding] {
         }
     } else if model.turn_state() == TurnState::Streaming {
         Binding::HINT_STREAMING
+    } else if model.prompt().is_empty() && model.pane() == Pane::Stage && model.launcher().is_some()
+    {
+        Binding::HINT_COMMANDS
     } else if model.prompt().is_empty() && model.pane() == Pane::Inspector {
         Binding::HINT_INSPECTOR
     } else if model.prompt().is_empty()
-        && matches!(model.tab(), StageTab::Roadmap | StageTab::Session)
+        && (matches!(model.tab(), StageTab::Roadmap | StageTab::Session)
+            || matches!(model.selected(), Some(super::Selected::Tool(_))))
     {
         if model.tab() == StageTab::Roadmap {
             Binding::HINT_ROADMAP
         } else {
             Binding::HINT_SESSION
         }
-    } else if model.tab() == StageTab::Home {
-        Binding::HINT_HOME
     } else {
         Binding::HINT_IDLE
     }
@@ -3142,7 +2619,7 @@ fn chip_cols(binding: &Binding) -> usize {
 ///
 /// The footer clips rather than squeezes, so a chip the bar only half
 /// reaches would show its raised cap with the label beside it cut off —
-/// at 80 columns the Home context ended in a bare `ctrl-d`. Every
+/// at 80 columns a longer command context ended in a bare `ctrl-d`. Every
 /// `HINT_*` slice is priority-ordered, most important first, so
 /// stopping at the first chip that does not fit whole keeps the
 /// bindings that matter and drops the tail.

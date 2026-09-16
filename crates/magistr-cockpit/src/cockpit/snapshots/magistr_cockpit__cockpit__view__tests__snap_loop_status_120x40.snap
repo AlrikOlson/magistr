@@ -5,7 +5,7 @@ expression: "screen(&Scenes::looping(Size::new(120, 40)))"
 ▲ magistr  ▘ streaming                                                                                             00:01
 a  iteration 2/5  Research▸Plan▸Execute▸Verify  ✓ check ✗ test ▘ lint  1m 23s
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│◂                         │ │Turn  Session  Roadmap                             │  │Select a work item, tool, step or │
 │no objective yet          │ │  starting iteration 2 — 3/10 chunks done          │  │                                  │
 │▲ a · 0/0                 │ │  ▸ objective set                                  │  │                                  │
 │▲ a                       │ │  ▸ task started · t1                              │  │                                  │

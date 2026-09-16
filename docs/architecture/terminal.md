@@ -90,14 +90,22 @@ inspector sits to the right when the stage retains at least 40 content columns;
 otherwise it stacks below the stage. Plain terminals use the same panes. The
 dock and prompt remain below the body.
 
-One `Selected` identity names a chunk, reasoning step, change, receipt, run, or signal. Lists stay
+One `Selected` identity names a chunk, tool call, reasoning step, change, receipt, run, or signal. Lists stay
 compact; the shared inspector renders title, status, metadata, actions, and
 scrollable fields in that order. Selection survives view changes and resizing.
 Tab and Shift-Tab cycle pane focus; Ctrl-Tab cycles views. With an empty prompt,
 stage arrows select objects, Enter toggles inspector detail, and Esc closes it.
 Inspector arrows, page keys, and the wheel scroll its fields independently.
 
-The terminal tabs are Home · Turn · Session · Roadmap. Session keeps the step
+The terminal tabs are Turn · Session · Roadmap. Bare `magistr` starts on Roadmap;
+agent runs open Turn. The landing host offers next, loop and gates through footer
+chips, Alt-N/L/G and the Ctrl-P command palette. The palette preserves prompt drafts
+and also opens views, work items and saved sessions. Turn selects tools by call ID;
+live records and edit diffs use the same inspector, including Open and Undo.
+Graphics profiles draw row accents, status icons and panel frames; plain terminals
+keep the same geometry with text fallbacks.
+
+Session keeps the step
 graph above one timeline of reasoning, recorded actions, checks, and file changes.
 Source timestamps determine order in UTC; equal instants retain source order,
 and legacy rows without usable timestamps follow with an explicit unknown label.

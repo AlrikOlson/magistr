@@ -5,7 +5,7 @@
 # The captures are the real terminal renderer's frames of a sample project
 # (apps/website/fixtures/harbor.json); the project's own roadmap is never
 # read. Run this after an intentional change to the terminal interface, then
-# review the four images and commit them with the manifest.
+# review the six images and commit them with the manifest.
 #
 # Usage:
 #   ./scripts/website-captures.sh

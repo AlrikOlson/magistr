@@ -46,7 +46,7 @@ fn ask(id: u64, edit: bool, plan: bool) -> Msg {
 fn a_terminal_esc_is_not_the_folds() {
     let mut terminal = Model::new(Size::new(80, 24));
     assert_eq!(esc(&mut terminal), None);
-    assert_eq!(terminal.tab(), StageTab::Turn);
+    assert_eq!(terminal.tab(), StageTab::Roadmap);
     assert_eq!(terminal.place(), None);
 }
 

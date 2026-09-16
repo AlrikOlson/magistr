@@ -5,12 +5,12 @@ expression: screen(&m)
 ▲ magistr  ▘ streaming                                                                                             00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
-│no objective yet          │ │▎ Renaming the helper.                             │  │                                  │
-│roadmap 0/0 done          │ │▎ ✓ edit   src/main.rs · +1 −1                     │  │                                  │
-│signals 0                 │ │▎   [Open]  [Undo]                                 │  │                                  │
-│                          │ │▎   @@ -1,4 +1,4 @@                                │  │                                  │
-│                          │ │▎    fn main() {                                   │  │                                  │
+│◂                         │ │Turn  Session  Roadmap                             │  │ src/main.rs                      │
+│no objective yet          │ │▎ Renaming the helper.                             │  │ ✓ completed                      │
+│roadmap 0/0 done          │ │▎ ✓ edit   src/main.rs · +1 −1                     │  │ edit · e1                        │
+│signals 0                 │ │▎   [Open]  [Undo]                                 │  │ Open Undo More                   │
+│                          │ │▎   @@ -1,4 +1,4 @@                                │  │ @@ -1,4 +1,4 @@                  │
+│                          │ │▎    fn main() {                                   │  │  fn main() {                     │
 │                          │ │▎   -    old_helper();                             │  │                                  │
 │                          │ │▎   +    new_helper();                             │  │                                  │
 │                          │ │▎        keep();                                   │  │                                  │
