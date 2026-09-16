@@ -17,7 +17,7 @@ const jsonLd = [
 /** The terminal interface in both themes. */
 const alt = {
   overview: "The conversation above the recorded reasoning, with the roadmap and selected step beside it and the message area below.",
-  roadmap: "The conversation stays visible while a selected roadmap item shows its progress, dependencies and available actions.",
+  roadmap: "The Roadmap screen shows the full plan, filters and dependencies, with the selected item’s progress and available actions.",
   turn: "The conversation, retry test output and selected file changes, with a message draft and Stop button below.",
   session: "The reasoning shows two explored questions, numbered steps and the selected step’s result, explanation and next action.",
 };
@@ -55,15 +55,17 @@ const docs = [
         <p class="eyebrow">The roadmap</p>
         <h2 id="roadmap-title">Work items, their dependencies, and what is ready next.</h2>
         <ul class="facts">
-          <li><strong>See what comes next.</strong> Follow the work in progress and the items that depend on it. Open the roadmap to filter and sort the full list.</li>
-          <li><strong>Select an item to see its context.</strong> Read its status, dependencies and next actions beside the conversation.</li>
+          <li><strong>See the full plan.</strong> Open the Roadmap screen to filter and sort work items, follow their dependencies and see what is ready next.</li>
+          <li><strong>Select an item to see its context.</strong> Read its status, acceptance criteria and available actions alongside the plan.</li>
+          <li><strong>Ask for changes.</strong> Choose “Request a change” to start a message about the selected item, then edit and send it. Your existing draft is kept.</li>
+          <li><strong>Return to your conversation.</strong> Your message draft and place in the conversation stay as you left them.</li>
           <li><strong>One item at a time.</strong> The item in progress carries its acceptance criteria and its dependencies into the session that works on it.</li>
         </ul>
       </div>
       <figure class="capture">
         <a class="capture-light" href={screenshot("terminal-roadmap-light.png")}><img src={screenshot("terminal-roadmap-light.png")} alt={alt.roadmap} loading="lazy" width="1440" height="1000" /></a>
         <a class="capture-dark" href={screenshot("terminal-roadmap-dark.png")}><img src={screenshot("terminal-roadmap-dark.png")} alt={alt.roadmap} loading="lazy" width="1440" height="1000" /></a>
-        <figcaption>Select work on the roadmap to see its details without leaving the conversation.</figcaption>
+        <figcaption>Open Roadmap for the full plan, its dependencies and the details of each work item.</figcaption>
       </figure>
     </section>
 

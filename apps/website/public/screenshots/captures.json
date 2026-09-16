@@ -11,49 +11,57 @@
   "images": [
     {
       "file": "terminal-overview-dark.png",
+      "screen": "conversation",
       "sha256": "0befe3834410d4bcebc39a3f5ea4189b44d40749aa95d3b03d8ae80e2e13835b",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-overview-light.png",
+      "screen": "conversation",
       "sha256": "5d6349d4df2c4f1618dca432b76c2ff2dd134b96e54c99c7e9110fa24856d4f3",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-roadmap-dark.png",
-      "sha256": "d2a1b70eb8884679e08c2098213636ee4a7c498b9ab32e8ca087d38353818063",
+      "screen": "roadmap",
+      "sha256": "e5cd2a73722efa3a1c9934e5ed98e6b3e3fd8936dc353f209cfcaf81ca41a4ed",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-roadmap-light.png",
-      "sha256": "0071d7cf386904a561c1a0fc8c2a654e1e205d5bf734ef61f243aa25d2b32c52",
+      "screen": "roadmap",
+      "sha256": "58864900d75346bdbe5f58b5da7aa4dd5e41a53572f40c34236d149489915931",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-session-dark.png",
+      "screen": "conversation",
       "sha256": "820d628883dc8d482a4b83107c80d712171453fc3418e8009294ee32954b2d02",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-session-light.png",
+      "screen": "conversation",
       "sha256": "f820779ce7a2626f75407390d44d6f0a2e424bc1bcf07917f29388e791c88d3a",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-dark.png",
-      "sha256": "611c8ebf4b58ea472eb96b6c3459f313d8a477555c3a19b0d01617fc418d626d",
+      "screen": "conversation",
+      "sha256": "b8d4fdf6848e4b791cdd133c73007b68bb5781764336377e9cc59a79d692d73f",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-light.png",
-      "sha256": "6b43770dcea5ae766f96d105076250878303fa7495e7fbb031af36603e30a59f",
+      "screen": "conversation",
+      "sha256": "501a3a3ec35f7262c8ffc4fd5954ed7728619c2414b5296466cfdb20afb646df",
       "width": 1440,
       "height": 1000
     }

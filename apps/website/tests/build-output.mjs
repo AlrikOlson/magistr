@@ -45,6 +45,10 @@ assert(!indexHtml.includes("cargo install magistr"), "no registry installation c
 assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
 assert(new Set(homeImages).size === 8 && homeImages.length === 8, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
+const roadmapSection = indexHtml.match(/<section id="roadmap"[\s\S]*?<\/section>/)?.[0] ?? "";
+assert(roadmapSection.includes("Roadmap screen") && roadmapSection.includes("filter and sort"), "roadmap section describes the full plan on its own screen");
+assert(roadmapSection.includes("message draft and place in the conversation"), "returning from Roadmap preserves the draft and conversation position");
+assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 
 console.log("\nNavigation and accessibility:");
 assert(indexHtml.includes('aria-label="Primary"'), "primary navigation labelled");
@@ -72,7 +76,9 @@ assert(manifest.annotations === false, "screenshots carry no annotations");
 assert(manifest.images.length === 8, "overview, roadmap, turn and session screenshots in both themes");
 for (const view of ["overview", "roadmap", "turn", "session"]) {
   for (const theme of ["dark", "light"]) {
-    assert(manifest.images.some(({ file }) => file === `terminal-${view}-${theme}.png`), `${view} has a ${theme} screenshot`);
+    const capture = manifest.images.find(({ file }) => file === `terminal-${view}-${theme}.png`);
+    assert(Boolean(capture), `${view} has a ${theme} screenshot`);
+    assert(capture?.screen === (view === "roadmap" ? "roadmap" : "conversation"), `${view} ${theme} names the intended application screen`);
   }
 }
 for (const capture of manifest.images) {
@@ -84,9 +90,19 @@ for (const capture of manifest.images) {
   assert(capture.width === manifest.columns * 10 && capture.height === manifest.rows * 20, capture.file + " is the whole terminal at its cell size");
   assert(createHash("sha256").update(png).digest("hex") === capture.sha256, capture.file + " matches the built bytes");
 }
+for (const theme of ["dark", "light"]) {
+  const roadmap = manifest.images.find(({ file }) => file === `terminal-roadmap-${theme}.png`);
+  const conversation = manifest.images.filter(({ file }) => new RegExp(`^terminal-(overview|turn|session)-${theme}\\.png$`).test(file));
+  assert(conversation.length === 3 && conversation.every(({ sha256 }) => sha256 !== roadmap?.sha256), `Roadmap ${theme} has its own image, distinct from each conversation view`);
+}
 assert(!readdirSync(resolve(distDir, "screenshots")).some((name) => name.startsWith("tui2-")), "no stale screenshot files ship");
 assert((indexHtml.match(/width="1440" height="1000"/g) || []).length === 8, "every screenshot declares its native dimensions");
-assert((indexHtml.match(/<figcaption>/g) || []).length === 4, "four captioned figures");
+const figures = [...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)].map(([figure]) => figure);
+assert(figures.length === 4 && figures.every((figure) => figure.includes("<figcaption>")), "four captioned figures");
+for (const view of ["overview", "roadmap", "turn", "session"]) {
+  const matching = figures.filter((figure) => figure.includes(`terminal-${view}-dark.png`) && figure.includes(`terminal-${view}-light.png`));
+  assert(matching.length === 1 && (matching[0].match(/<img\b/g) || []).length === 2, `${view} has one figure containing only its dark and light images`);
+}
 assert(!indexHtml.includes("/diagrams/") && !indexHtml.includes("/icons/"), "no decorative diagrams or icons");
 
 console.log("\nPublic language:");
@@ -110,6 +126,8 @@ for (const word of ["Roadmap", "Sessions", "Recorded work", "Verification", "Pro
   assert(conceptsHtml.includes(word), `concepts page covers ${word}`);
 }
 assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "concepts page separates pin from checkpoint");
+assert(conceptsHtml.includes("separate screen with the full plan") && conceptsHtml.includes("roadmap summary"), "concepts distinguishes the full Roadmap from the conversation summary");
+assert(conceptsHtml.includes("preserves your message draft and place in the conversation"), "concepts explains returning to the same draft and conversation position");
 for (const slug of ["installation", "concepts"]) {
   assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
 }
