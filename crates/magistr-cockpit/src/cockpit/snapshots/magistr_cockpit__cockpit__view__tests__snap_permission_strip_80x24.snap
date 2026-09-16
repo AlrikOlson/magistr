@@ -1,5 +1,5 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen(&m)
 ---
 ▲ magistr  ▘ streaming                                                     00:01
@@ -13,9 +13,9 @@ Research▸Plan▸Execute▸Verify
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

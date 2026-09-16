@@ -15,15 +15,16 @@ rail toggle depth=3 x=1 y=3 w=26 h=1
 rail gauge depth=3 x=1 y=6 w=26 h=1
 rail graph depth=3 x=1 y=7 w=26 h=2
 rail divider depth=2 x=28 y=2 w=1 h=45
-Home     depth=4 x=30 y=3 w=4 h=1
-Turn     depth=4 x=36 y=3 w=4 h=1
-Changes  depth=4 x=42 y=3 w=7 h=1
-Trace    depth=4 x=51 y=3 w=5 h=1
-Roadmap  depth=4 x=58 y=3 w=7 h=1
-stage    depth=3 x=30 y=4 w=100 h=42
-tech tree depth=4 x=30 y=5 w=100 h=3
+Home     depth=5 x=30 y=3 w=4 h=1
+Turn     depth=5 x=36 y=3 w=4 h=1
+Changes  depth=5 x=42 y=3 w=7 h=1
+Trace    depth=5 x=51 y=3 w=5 h=1
+Roadmap  depth=5 x=58 y=3 w=7 h=1
+stage    depth=4 x=30 y=4 w=62 h=42
+tech tree depth=5 x=30 y=5 w=62 h=3
+inspector depth=3 x=95 y=2 w=36 h=45
 undock   depth=2 x=132 y=2 w=48 h=45
-Checkpoint depth=4 x=153 y=4 w=14 h=1
+Checkpoint depth=4 x=165 y=4 w=14 h=1
 dock     depth=1 x=0 y=47 w=180 h=1
 prompt   depth=1 x=0 y=48 w=180 h=1
 footer   depth=1 x=0 y=49 w=180 h=1

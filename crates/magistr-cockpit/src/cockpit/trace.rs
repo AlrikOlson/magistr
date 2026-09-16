@@ -484,7 +484,7 @@ impl Trace {
     /// moments. Counted from the same [`TraceCardRow::rows`] the view
     /// paints, so the window and the rows never drift.
     #[must_use]
-    pub fn body_rows(&self, width: u16) -> usize {
+    pub fn body_rows(&self, _width: u16) -> usize {
         if let Some(lines) = &self.viewer {
             return lines.len();
         }
@@ -492,7 +492,7 @@ impl Trace {
             // The "no trace yet" note.
             return 1;
         }
-        let steps = self.steps.len() + self.card_rows(width, false).len();
+        let steps = self.steps.len();
         let ship = if self.moments.is_empty() {
             0
         } else {

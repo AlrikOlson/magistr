@@ -4,41 +4,41 @@ expression: screen
 ---
 ▲ magistr  idle                                                                                                    00:01
 tui2-2-rail  Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
-│no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlog · 1 proposals · 1 signals            │
-│▲ tui2-2-rail · 1/3       │ │«Engine» 1/1                                                                             │
-│▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«TUI rewrite» 0/2                                                                        │
-│▲ Rail and dock           │ │                                                                                         │
-│1 before · 1 after        │ │                                                                                         │
-│signals 1                 │ │▸ in progress · 1                                                                        │
-│                          │ │▸ Rail and dock             critical  TUI rewrite                                        │
-│                          │ │                                                                                         │
-│                          │ │○ pending · 1                                                                            │
-│                          │ │▾ Roadmap view              high      TUI rewrite  ⚑                                     │
-│                          │ │    [Start]                                                                              │
-│                          │ │    The Roadmap tab of the cockpit                                                       │
-│                          │ │    The tech-tree, the list and the actions.                                             │
-│                          │ │    • the DAG renders                                                                    │
-│                          │ │    • clicks select                                                                      │
-│                          │ │    deps: tui2-2-rail                                                                    │
-│                          │ │    refs: think:190                                                                      │
-│                          │ │                                                                                         │
-│                          │ │✓ done · 1                                                                               │
-│                          │ │                                                                                         │
-│                          │ │⚑ proposals                                                                              │
-│                          │ │  Roadmap view              priority → 100 · sooner   [Accept] [Reject]                  │
-│                          │ │                                                                                         │
-│                          │ │◆ signals                                                                                │
-│                          │ │  idea · alice — make startup faster · 0.8 · researched   [Promote] [Ignore] [Snooze]    │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │ Roadmap view                     │
+│no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlog│  │ ○ pending                        │
+│▲ tui2-2-rail · 1/3       │ │«Engine» 1/1                                       │  │ high · TUI rewrite               │
+│▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«TUI rewrite» 0/2                                  │  │ Start Less                       │
+│▲ Rail and dock           │ │                                                   │  │ title · The Roadmap tab of the   │
+│1 before · 1 after        │ │                                                   │  │ cockpit                          │
+│signals 1                 │ │▸ in progress · 1                                  │  │ description · The tech-tree, the │
+│                          │ │▸ Rail and dock             critical  TUI rewrite  │  │ list and the actions.            │
+│                          │ │                                                   │  │ id · tui2-3-roadmap              │
+│                          │ │○ pending · 1                                      │  │ acceptance 1 · the DAG renders   │
+│                          │ │▾ Roadmap view              high      TUI rewrite  │  │ acceptance 2 · clicks select     │
+│                          │ │                                                   │  │ depends on · tui2-2-rail         │
+│                          │ │✓ done · 1                                         │  │ references · think:190           │
+│                          │ │                                                   │  │                                  │
+│                          │ │⚑ proposals                                        │  │                                  │
+│                          │ │  Roadmap view              priority → 100 · sooner│  │                                  │
+│                          │ │  [Accept] [Reject]                                │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │◆ signals                                          │  │                                  │
+│                          │ │  idea · alice — make startup faster · 0.8 ·       │  │                                  │
+│                          │ │  [Promote] [Ignore] [Snooze]                      │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- enter  send   ↑↓  history   ctrl-d  quit
+ ↑↓  select   enter  detail   tab / shift-tab  switch pane

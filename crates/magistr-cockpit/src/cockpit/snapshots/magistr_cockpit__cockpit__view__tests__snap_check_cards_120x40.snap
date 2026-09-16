@@ -4,41 +4,41 @@ expression: "screen(&gated(Size::new(120, 40)))"
 ---
 ▲ magistr  ▘ streaming                                                                                             00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
-│no objective yet          │ │▎ Running the gates.                                                                     │
-│roadmap 0/0 done          │ │  ▸ task started · verify                                                                │
-│signals 0                 │ │  ✦ think 7 · verify the slice                                                           │
-│                          │ │▎ ✓ gate   cargo check · exit 0 · 812ms                                                  │
-│                          │ │▎ ✗ gate   cargo nextest run · exit 100 · 12.3s                                          │
-│                          │ │▎ Two failures to fix.                                                                   │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
+│no objective yet          │ │▎ Running the gates.                               │  │                                  │
+│roadmap 0/0 done          │ │  ▸ task started · verify                          │  │                                  │
+│signals 0                 │ │  ✦ think 7 · verify the slice                     │  │                                  │
+│                          │ │▎ ✓ gate   cargo check · exit 0 · 812ms            │  │                                  │
+│                          │ │▎ ✗ gate   cargo nextest run · exit 100 · 12.3s    │  │                                  │
+│                          │ │▎ Two failures to fix.                             │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
  ctrl-c  cancel   ctrl-d  quit

@@ -319,7 +319,13 @@ fn workspace_root(tmp: &tempfile::TempDir) -> PathBuf {
 }
 
 fn options(root: &Path) -> WorkspaceOpenOptions {
-    WorkspaceOpenOptions::new(root, env!("CARGO_BIN_EXE_magistr")).with_network_override("0")
+    // Ownership and teardown still include an active watcher, without waiting
+    // for the system FSEvents daemon during concurrent lifecycle tests.
+    WorkspaceOpenOptions::new(root, env!("CARGO_BIN_EXE_magistr"))
+        .with_network_override("0")
+        .with_session_flags(
+            serde_json::from_value(serde_json::json!({"watcher.mode": "poll"})).unwrap(),
+        )
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

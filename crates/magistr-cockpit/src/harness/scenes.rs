@@ -361,7 +361,10 @@ impl Scenes {
     pub fn changed(size: Size) -> Model {
         use crate::workbench::JournalEntry;
         let mut m = Model::new(size);
-        update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Tab)));
+        update(
+            &mut m,
+            Msg::Key(KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
+        );
         assert_eq!(m.tab(), StageTab::Changes);
         update(
             &mut m,

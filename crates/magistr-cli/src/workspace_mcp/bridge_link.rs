@@ -159,8 +159,12 @@ impl Link {
 
     /// The client is gone: stop sending, so the owner sees EOF and answers
     /// what is still in flight before it closes its side.
-    pub(super) fn half_close(&mut self) {
-        self.writer = None;
+    pub(super) async fn half_close(&mut self) {
+        if let Some(mut writer) = self.writer.take() {
+            // A split duplex retains the stream through its read half; dropping
+            // only the writer does not deliver EOF. A lost peer is already closed.
+            let _ = writer.shutdown().await;
+        }
     }
 
     /// Initialize this owner on the client's behalf: send the recorded
@@ -229,3 +233,7 @@ async fn shutdown_service(service: Arc<WorkspaceService>) -> eyre::Result<()> {
     service.shutdown().await?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "bridge_link.tests.rs"]
+mod tests;

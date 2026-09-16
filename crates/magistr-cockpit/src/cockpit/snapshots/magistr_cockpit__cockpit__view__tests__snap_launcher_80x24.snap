@@ -6,22 +6,22 @@ expression: s
 tabs  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
-│no objective yet          │ │╭─ project ─────────────────────────────────────╮│
-│▲ tabs · 2/4              │ ││magistr · Rust / Cargo                         ││
-│▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ ││master, clean · ACP (available)                ││
-│▲ Tabs                    │ │╰───────────────────────────────────────────────╯│
-│0 before · 1 after        │ │╭─ roadmap ─────────────────────────────────────╮│
-│signals 0                 │ ││▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 2/4││
-│                          │ ││next ▸ nothing ready                           ││
-│                          │ ││2 done · 1 active · 1 pending · 0 backlog      ││
-│                          │ │╰───────────────────────────────────────────────╯│
-│                          │ │╭─ actions ─────────────────────────────────────╮│
-│                          │ ││ n  next iteration l  loop g  gates m  roadmap ││
-│                          │ │╰───────────────────────────────────────────────╯│
-│                          │ │╭─ sessions ────────────────────────────────────╮│
-│                          │ ││✓ Aug 28 14:02  12m 30s  shipped the roadmap…  ││
-│                          │ ││✗ Aug 27 19:41  3m 05s  gates failed on lint   ││
-│                          │ │╰───────────────────────────────────────────────╯│
+│no objective yet          │ │magistr · Rust / Cargo                           │
+│▲ tabs · 2/4              │ │master, clean · ACP (available)                  │
+│▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │next · nothing ready                             │
+│▲ Tabs                    │ │ n  next iteration   l  loop                     │
+│0 before · 1 after        │ │ g  gates   m  roadmap                           │
+│signals 0                 │ │✓ Aug 28 14:02  12m 30s  shipped the roadmap tab │
+│                          │ │✗ Aug 27 19:41  3m 05s  gates failed on lint     │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────
 ›

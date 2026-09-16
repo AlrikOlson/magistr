@@ -15,9 +15,9 @@ a  iteration 2/5  Research▸Plan▸Execute▸Verify  ✓ check ✗ test ▘ lin
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

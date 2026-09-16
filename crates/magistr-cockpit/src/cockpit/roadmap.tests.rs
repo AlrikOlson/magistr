@@ -492,35 +492,33 @@ fn the_body_rows_count_the_sections_the_rows_the_done_line_and_the_inboxes() {
     let roadmap = seeded();
     // in progress: spacer + header + mid; pending: spacer + header + ui;
     // done: spacer + the count line; signals: spacer + heading + s1.
-    assert_eq!(roadmap.body_rows(80), 11);
+    assert_eq!(roadmap.body_rows(80), 12);
 }
 
 #[test]
-fn selecting_a_row_grows_the_body_by_its_buttons_and_its_detail() {
+fn selecting_a_row_keeps_the_compact_body_height() {
     let mut roadmap = seeded();
     let plain = roadmap.body_rows(80);
     assert!(roadmap.select("mid", 0.0, false));
-    let open = roadmap.chunk("mid").expect("mid").detail_rows(120);
     assert_eq!(
         roadmap.body_rows(80),
-        plain + 1 + open,
-        "the button row and the card"
+        plain,
+        "the card lives in the inspector"
     );
 }
 
 #[test]
-fn a_chunk_selected_off_the_list_takes_its_own_card_under_the_graph() {
+fn a_chunk_selected_off_the_list_does_not_grow_the_body() {
     let mut roadmap = seeded();
     let plain = roadmap.body_rows(80);
     assert!(
         roadmap.select("base", 0.0, false),
         "done chunks are still selectable"
     );
-    let card = roadmap.chunk("base").expect("base").detail_rows(120);
     assert_eq!(
         roadmap.body_rows(80),
-        plain + 2 + card,
-        "the spacer and the head line"
+        plain,
+        "done selections live in the inspector"
     );
 }
 
@@ -549,8 +547,8 @@ fn the_signals_inbox_takes_a_heading_and_a_row_each() {
     roadmap.seed(&[], &[signal("s1", "researched")]);
     assert_eq!(
         roadmap.body_rows(80),
-        3,
-        "the spacer, the heading and the one open signal"
+        4,
+        "the spacer, heading, signal and its actions"
     );
 }
 

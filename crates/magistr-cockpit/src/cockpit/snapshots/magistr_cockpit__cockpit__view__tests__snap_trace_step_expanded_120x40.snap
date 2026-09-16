@@ -4,41 +4,41 @@ expression: screen
 ---
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
-│no objective yet          │ │reasoning  5 steps · 1 branch · 1 pinned  [✱ Checkpoint]                                 │
-│roadmap 0/0 done          │ │main · 3 steps                                                                           │
-│signals 0                 │ │└─ alt path (merged) from 2 · 2 steps                                                    │
-│                          │ │▾  1  hypothesis  0.62 ★                                                                 │
-│                          │ │                                                                                         │
-│                          │ │  ▎ step 1 · hypothesis                                                                  │
-│                          │ │  ▎ confidence 0.62 · depends on 7, 9 · estimate 4 · pinned                              │
-│                          │ │  ▎ [★ Unpin]  [Less]                                                                    │
-│                          │ │  ▎ context      the trace tab                                                           │
-│                          │ │  ▎ thought      the feed can drive the whole surface                                    │
-│                          │ │  ▎ outcome      it can                                                                  │
-│                          │ │  ▎ next action  wire the view                                                           │
-│                          │ │  ▎ rationale    one fold path for feed and port                                         │
-│                          │ │  ▎ uncertainty  no branch case yet                                                      │
-│                          │ │  ▎ execution ref task:trace-state                                                       │
-│                          │ │                                                                                         │
-│                          │ │▸  2  analysis · revised by 5  0.70                                                      │
-│                          │ │▸  3  hypothesis (alt path)                                                              │
-│                          │ │▸  4  validation (b-alt)                                                                 │
-│                          │ │▸  5  correction                                                                         │
-│                          │ │recorded work                                                                            │
-│                          │ │▸ code · wired the trace tab (trace-state)                                               │
-│                          │ │✓ test · exit 0 · 5.4s                                                                   │
-│                          │ │✗ lint · exit 101 · 900ms                                                                │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │ hypothesis                       │
+│no objective yet          │ │reasoning  5 steps · 1 branch · 1    [✱ Checkpoint]│  │ ★ recorded                       │
+│roadmap 0/0 done          │ │main · 3 steps                                     │  │ step 1 · main                    │
+│signals 0                 │ │└─ alt path (merged) from 2 · 2 steps              │  │ Unpin Less                       │
+│                          │ │▾  1  hypothesis  0.62 ★                           │  │ purpose · hypothesis             │
+│                          │ │▸  2  analysis · revised by 5  0.70                │  │ context · the trace tab          │
+│                          │ │▸  3  hypothesis (alt path)                        │  │ thought · the feed can drive the │
+│                          │ │▸  4  validation (b-alt)                           │  │ whole surface                    │
+│                          │ │▸  5  correction                                   │  │ outcome · it can                 │
+│                          │ │recorded work                                      │  │ next action · wire the view      │
+│                          │ │▸ code · wired the trace tab (trace-state)         │  │ rationale · one fold path for    │
+│                          │ │✓ test · exit 0 · 5.4s                             │  │ feed and port                    │
+│                          │ │✗ lint · exit 101 · 900ms                          │  │ confidence · 0.62                │
+│                          │ │                                                   │  │ uncertainty · no branch case yet │
+│                          │ │                                                   │  │ estimated total · 4              │
+│                          │ │                                                   │  │ depends on · 7, 9                │
+│                          │ │                                                   │  │ execution ref · task:trace-state │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  select   enter  detail   ctrl-d  quit
+ ↑↓  scroll   enter  detail   esc  less detail   tab / shift-tab  switch pane

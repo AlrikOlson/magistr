@@ -10,17 +10,20 @@ use super::dock_item::DockItem;
 use super::frame_clock::FrameClock;
 use super::gate_led::GateLed;
 use super::hover;
+use super::inspector::Inspector;
 use super::launcher_session::LauncherSession;
 use super::loop_status::LoopStatus;
 use super::marked::Marked;
 use super::model::{Model, PROMPT_MAX_ROWS, UNDOCK_COLS};
 use super::motion::Motion;
+use super::pane::Pane;
 use super::permission::Permission;
 use super::plan_task::PlanTask;
 use super::progress::Progress;
 use super::rail::Rail;
 use super::rail_mark::RailMark;
 use super::roadmap_chunk::RoadmapChunk;
+use super::selected::Selected;
 use super::session_outcome::SessionOutcome;
 use super::size::Size;
 use super::space::Space;
@@ -28,7 +31,6 @@ use super::stage_tab::StageTab;
 use super::summary::Summary;
 use super::task_state::TaskState;
 use super::tooltip::Tooltip;
-use super::trace::TRACE_GRAPH_ROWS;
 use super::turn_state::TurnState;
 use super::widget::Widget;
 use crate::agent::{PermissionKind, ToolStatus};
@@ -36,7 +38,7 @@ use crate::layout::{Frame, Inset, Length, Mark, Node};
 use crate::pixel::{Icon, RoadmapDag};
 use crate::render::{Attrs, Cell, Color, Style, width};
 use crate::theme::{Icons, Pen};
-use crate::turn::{Accent, Row, RowKind, diff_kind};
+use crate::turn::{Accent, Row, RowKind};
 
 /// What the stage says before the agent has said anything.
 const EMPTY_STAGE: &str = "nothing yet — waiting for the agent";
@@ -108,9 +110,10 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
         stage_content = stage_content.padding(Space::PAD);
     }
     let stage = Node::column()
+        .viewport()
         .grow(1.0)
         .min_width(Length::Cells(0))
-        .frame(Frame::new(pen.panel(false).clone()).drawn(model.has_pixels()))
+        .frame(Frame::new(pen.panel(model.pane() == Pane::Stage).clone()).drawn(model.has_pixels()))
         .child(tab_bar(model, &pen))
         .child(stage_content);
 
@@ -131,11 +134,28 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
     };
     // A viewport itself: the rail's content must never push the prompt
     // line and the footer off a short screen.
+    let inspector = Inspector::view(model, &pen);
+    let workspace = if model.inspector_stacked() {
+        Node::column()
+            .grow(1.0)
+            .min_width(Length::Cells(0))
+            .viewport()
+            .child(stage)
+            .child(inspector)
+    } else {
+        Node::row()
+            .grow(1.0)
+            .min_width(Length::Cells(0))
+            .viewport()
+            .child(stage)
+            .child(Node::leaf().width(Length::Cells(Space::GAP)).shrink(0.0))
+            .child(inspector)
+    };
     let mut body = Node::row()
         .grow(1.0)
         .viewport()
         .children(rail_side)
-        .child(stage);
+        .child(workspace);
     if let Some(tab) = model.undocked_tab() {
         body = body
             .child(Node::column().shrink(0.0).width(Length::Cells(1)))
@@ -337,7 +357,7 @@ fn rail(model: &Model, pen: &Pen) -> Node {
         .shrink(0.0)
         .viewport()
         .frame(
-            Frame::new(pen.panel(false).clone())
+            Frame::new(pen.panel(model.pane() == Pane::Rail).clone())
                 .title("plan")
                 .title_style(pen.heading.clone())
                 .drawn(model.has_pixels()),
@@ -849,8 +869,8 @@ fn held_head(row: &Row, fraction: f32, model: &Model, pen: &Pen) -> Node {
 }
 
 /// The Changes tab: the read-only viewer pane while one is open; else
-/// the journal list — one head row per entry, the expanded one showing
-/// its buttons and its diff — then the last run's rows, failing first;
+/// the compact journal list, whose selected entry lives in the inspector,
+/// then the last run's rows, failing first;
 /// a quiet note while the journal is empty.
 fn changes_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let changes = model.changes();
@@ -886,7 +906,7 @@ fn changes_rows(model: &Model, pen: &Pen) -> Vec<Node> {
                 .height(Length::Cells(1)),
         );
     }
-    // Everything below scrolls: a long journal, one expanded diff or a
+    // Everything below scrolls: a long journal or a
     // run's rows each run past the stage otherwise. The window is the
     // model's, so the keys and the wheel move exactly these rows.
     let (total, height) = model.changes_window();
@@ -919,7 +939,7 @@ fn changes_body(model: &Model, pen: &Pen) -> Vec<Node> {
     }
     let mut rows = Vec::new();
     for (index, entry) in changes.entries().iter().enumerate() {
-        let expanded = changes.is_expanded(&entry.id);
+        let expanded = matches!(model.selected(), Some(Selected::Change(id)) if id == &entry.id);
         rows.push(change_head(
             entry,
             index,
@@ -928,10 +948,6 @@ fn changes_body(model: &Model, pen: &Pen) -> Vec<Node> {
             model,
             pen,
         ));
-        if expanded {
-            rows.push(change_buttons(index, pen));
-            rows.extend(diff_rows(&entry.diff, pen));
-        }
     }
     if let Some((_, results)) = changes.runs() {
         // The run's own heading is the pinned verdict strip.
@@ -989,34 +1005,6 @@ fn change_head(
         .height(Length::Cells(1))
 }
 
-/// An expanded change's button row: \[Open\], \[Undo\] and \[Approve\],
-/// each hittable by the entry's index.
-fn change_buttons(index: usize, pen: &Pen) -> Node {
-    Node::row()
-        .height(Length::Cells(1))
-        .child(segment("  ", pen.code.clone()))
-        .child(segment("[Open]", pen.allow.clone()).id(Widget::change_open(index)))
-        .child(segment("  ", pen.code.clone()))
-        .child(segment("[Undo]", pen.deny.clone()).id(Widget::change_undo(index)))
-        .child(segment("  ", pen.code.clone()))
-        .child(segment("[Approve]", pen.allow.clone()).id(Widget::change_approve(index)))
-}
-
-/// A diff body's rows, each line in the pen of its kind — a conflict
-/// marker, added, removed, hunk header, context — indented under the
-/// head row. The classifier is [`diff_kind`], shared with the turn
-/// feed's edit cards so the two surfaces cannot disagree.
-fn diff_rows(diff: &str, pen: &Pen) -> Vec<Node> {
-    diff.lines()
-        .map(|line| {
-            let kind = diff_kind(line);
-            Node::text(format!("  {line}"))
-                .style(pen.row(kind).clone())
-                .height(Length::Cells(1))
-        })
-        .collect()
-}
-
 /// The Trace tab: the checkpoint pane while one is open; else the
 /// heading — `reasoning`, its accounting, the checkpoint button — over
 /// the step graph (pixels whenever there are steps; the lane list once
@@ -1045,9 +1033,19 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
                 .height(Length::Cells(1))
                 .child(segment("reasoning", pen.heading.clone()))
                 .child(segment("  ", pen.stage.clone()))
-                .child(segment(&trace.heading_line(), pen.note.clone()))
+                .child(
+                    segment(&trace.heading_line(), pen.note.clone())
+                        .grow(1.0)
+                        .shrink(1.0)
+                        .min_width(Length::Cells(0))
+                        .viewport(),
+                )
                 .child(segment("  ", pen.stage.clone()))
-                .child(checkpoint_button(model, pen).id(Widget::Checkpoint.id())),
+                .child(
+                    checkpoint_button(model, pen)
+                        .id(Widget::Checkpoint.id())
+                        .shrink(0.0),
+                ),
         );
         if model.has_pixels() && !trace.steps().is_empty() {
             // The block the pixel graph covers: empty cells, rigid, so
@@ -1055,12 +1053,16 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
             rows.push(
                 Node::column()
                     .id(Widget::TraceGraph.id())
-                    .height(Length::Cells(TRACE_GRAPH_ROWS as u16))
+                    .height(Length::Cells(model.trace_graph_rows()))
                     .shrink(0.0),
             );
         } else if trace.has_branches() {
             let mut graph = Node::column().id(Widget::TraceGraph.id());
-            for line in trace.branch_rows() {
+            for line in trace
+                .branch_rows()
+                .into_iter()
+                .take(usize::from(model.trace_graph_rows()))
+            {
                 graph = graph.child(
                     Node::text(line)
                         .style(pen.note.clone())
@@ -1088,13 +1090,6 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
 /// for the vector ring the compositor draws over them.
 fn checkpoint_button(model: &Model, pen: &Pen) -> Node {
     action_button_label(Icon::Checkpoint, "Checkpoint", model, pen).style(pen.warn.clone())
-}
-
-/// The pin button: violet, the star, and `Pin` or `Unpin` — nothing a
-/// checkpoint shares.
-fn pin_button(step: &crate::cockpit::TraceStep, model: &Model, pen: &Pen) -> Node {
-    let verb = if step.pinned { "Unpin" } else { "Pin" };
-    action_button_label(Icon::Pin, verb, model, pen).style(pen.always.clone())
 }
 
 /// A trace action's label: `[glyph word]` on a plain terminal; on a
@@ -1141,24 +1136,11 @@ fn trace_body(model: &Model, pen: &Pen) -> Vec<Node> {
         ];
     }
     let focus = trace.focus();
-    let width = model.trace_width();
     let mut rows = Vec::new();
     for (index, step) in trace.steps().iter().enumerate() {
-        let selected = trace.selected_index() == Some(index);
+        let selected = model.selected() == Some(&Selected::Step(step.number));
         let lit = focus.as_ref().is_none_or(|focus| focus.is_lit(index));
         rows.push(trace_head(step, index, selected, lit, model, pen));
-        if selected {
-            let jump = step
-                .execution_ref
-                .as_deref()
-                .is_some_and(|reference| model.roadmap().chunk_for_ref(reference).is_some());
-            rows.extend(
-                trace
-                    .card_rows(width, jump)
-                    .into_iter()
-                    .map(|row| trace_card_row(row, step, jump, model, pen)),
-            );
-        }
     }
     if !trace.moments().is_empty() {
         rows.push(
@@ -1204,8 +1186,7 @@ fn clip(text: &str, max: usize) -> String {
 /// tech-tree block (workstream legend on the left, the pixel DAG placed
 /// to its right in Graphics mode) pinned above a scrolling body — the
 /// hover line, then the working set as status sections (one aligned row
-/// per chunk, the selected one expanded to its detail card with
-/// \[Start\]/\[Complete\], done collapsed to a count) and the open
+/// per chunk, details in the inspector, done collapsed to a count) and the open
 /// proposals and the signals inbox, each row with its buttons; a quiet
 /// note while the store is empty.
 fn roadmap_rows(model: &Model, pen: &Pen) -> Vec<Node> {
@@ -1301,22 +1282,6 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
         );
     }
     let list = roadmap.rows();
-    // A chunk selected on the tree but absent from the list (done) shows
-    // its card right under the graph, where the click just landed.
-    if let Some(open) = roadmap.selected()
-        && !list.iter().any(|chunk| chunk.id == open.id)
-    {
-        rows.push(spacer());
-        rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Done)
-                .text(&format!(" {} — {}", open.name, clip(&open.title, 80)))
-                .node()
-                .style(pen.stage.clone())
-                .height(Length::Cells(1)),
-        );
-        rows.extend(roadmap_detail(open, model, pen));
-    }
     let mut section: Option<&str> = None;
     for (index, chunk) in list.iter().enumerate() {
         if section != Some(chunk.status.as_str()) {
@@ -1325,12 +1290,8 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
             rows.push(spacer());
             rows.push(roadmap_section_header(&chunk.status, others, model, pen));
         }
-        let selected = roadmap.selected().is_some_and(|open| open.id == chunk.id);
+        let selected = matches!(model.selected(), Some(Selected::Chunk(id)) if id == &chunk.id);
         rows.push(roadmap_head(chunk, index, selected, glow, model, pen));
-        if selected {
-            rows.push(roadmap_buttons(chunk, pen));
-            rows.extend(roadmap_detail(chunk, model, pen));
-        }
     }
     if roadmap.done_count() > 0 {
         rows.push(spacer());
@@ -1373,8 +1334,11 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
             if !reason.is_empty() {
                 row = row.child(segment(&format!(" · {reason}"), pen.note.clone()));
             }
+            rows.push(row);
             rows.push(
-                row.child(segment("   ", pen.stage.clone()))
+                Node::row()
+                    .height(Length::Cells(1))
+                    .child(segment("  ", pen.stage.clone()))
                     .child(
                         segment("[Accept]", pen.allow.clone()).id(Widget::proposal_accept(index)),
                     )
@@ -1415,8 +1379,12 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
                         ),
                         pen.stage.clone(),
                     ))
-                    .child(segment(&meta, pen.note.clone()))
-                    .child(segment("   ", pen.stage.clone()))
+                    .child(segment(&meta, pen.note.clone())),
+            );
+            rows.push(
+                Node::row()
+                    .height(Length::Cells(1))
+                    .child(segment("  ", pen.stage.clone()))
                     .child(
                         segment("[Promote]", pen.allow.clone()).id(Widget::signal_promote(index)),
                     )
@@ -1506,55 +1474,6 @@ fn roadmap_head(
     node
 }
 
-/// The selected chunk's button row: \[Start\] while it can start,
-/// \[Complete\] while it is in progress — each an ask for the engine
-/// port.
-fn roadmap_buttons(chunk: &crate::cockpit::RoadmapChunk, pen: &Pen) -> Node {
-    let mut node = Node::row()
-        .height(Length::Cells(1))
-        .child(segment("    ", pen.stage.clone()));
-    if matches!(chunk.status.as_str(), "pending" | "blocked" | "backlog") {
-        node = node.child(segment("[Start]", pen.allow.clone()).id(Widget::RoadmapStart.id()));
-    }
-    if chunk.is_in_progress() {
-        node =
-            node.child(segment("[Complete]", pen.allow.clone()).id(Widget::RoadmapComplete.id()));
-    }
-    node
-}
-
-/// The selected chunk's detail card, wrapped to the stage's width: the
-/// title, the description, the acceptance bullets (continuation rows
-/// indented under their text), then the deps and refs — exactly the
-/// rows [`RoadmapChunk::detail_lines`] hands over, so the scroll counts
-/// what is painted.
-fn roadmap_detail(chunk: &crate::cockpit::RoadmapChunk, model: &Model, pen: &Pen) -> Vec<Node> {
-    use crate::cockpit::roadmap_chunk::DetailLine;
-    let indent = " ".repeat(usize::from(crate::cockpit::RoadmapChunk::DETAIL_INDENT));
-    chunk
-        .detail_lines(model.stage_width())
-        .into_iter()
-        .map(|(kind, line)| {
-            let (text, style) = match kind {
-                DetailLine::Title => (format!("{indent}{line}"), pen.stage.clone()),
-                DetailLine::Description | DetailLine::Note => {
-                    (format!("{indent}{line}"), pen.note.clone())
-                }
-                DetailLine::Bullet => {
-                    let node = Marked::new(model, pen)
-                        .text(&indent)
-                        .icon(Icon::Bullet)
-                        .text(&format!(" {line}"))
-                        .node();
-                    return node.style(pen.bullet.clone()).height(Length::Cells(1));
-                }
-                DetailLine::BulletContinued => (format!("{indent}  {line}"), pen.bullet.clone()),
-            };
-            Node::text(text).style(style).height(Length::Cells(1))
-        })
-        .collect()
-}
-
 /// One step's compact row: the fold marker, the number, the purpose,
 /// the branch, the revision hint, the confidence and the pin star —
 /// raised while selected, dimmed while a selection elsewhere leaves it
@@ -1598,81 +1517,6 @@ fn trace_head(
         .id(Widget::trace_row(index))
         .style(style)
         .height(Length::Cells(1))
-}
-
-/// The card's left accent and gutter, [`TraceCardRow::INDENT`] wide.
-const CARD_GUTTER: &str = "  ▎ ";
-
-/// One row of the selected step's card: the title in the heading pen,
-/// the metadata as a note, the verbs as buttons — pin, the chunk jump
-/// while the card is brief, the revision links, more or less — and the
-/// fields with their label on the first row, the execution ref painted
-/// as the chunk link when it resolves.
-fn trace_card_row(
-    row: crate::cockpit::TraceCardRow,
-    step: &crate::cockpit::TraceStep,
-    jump: bool,
-    model: &Model,
-    pen: &Pen,
-) -> Node {
-    use crate::cockpit::TraceCardRow;
-    // The label column less the space that separates it from the value.
-    let label_cols = usize::from(TraceCardRow::LABEL_COLS) - 1;
-    match row {
-        TraceCardRow::Blank => Node::text("").height(Length::Cells(1)),
-        TraceCardRow::Title(title) => Node::text(format!("{CARD_GUTTER}{title}"))
-            .style(pen.heading.clone())
-            .height(Length::Cells(1)),
-        TraceCardRow::Meta(meta) => Node::text(format!("{CARD_GUTTER}{meta}"))
-            .style(pen.note.clone())
-            .height(Length::Cells(1)),
-        TraceCardRow::Buttons => {
-            let mut node = Node::row()
-                .height(Length::Cells(1))
-                .child(segment(CARD_GUTTER, pen.stage.clone()))
-                .child(pin_button(step, model, pen).id(Widget::trace_pin(step.number)));
-            if jump && !model.trace().is_full() {
-                node = node.child(segment("  ", pen.stage.clone())).child(
-                    segment("[Open chunk]", pen.link.clone()).id(Widget::trace_chunk(step.number)),
-                );
-            }
-            if let Some(revises) = step.revises {
-                node = node.child(segment("  ", pen.stage.clone())).child(
-                    segment(&format!("[revises {revises}]"), pen.link.clone())
-                        .id(Widget::trace_link(revises)),
-                );
-            }
-            if let Some(by) = step.revised_by {
-                node = node.child(segment("  ", pen.stage.clone())).child(
-                    segment(&format!("[revised by {by}]"), pen.link.clone())
-                        .id(Widget::trace_link(by)),
-                );
-            }
-            let detail = if model.trace().is_full() {
-                "[Less]"
-            } else {
-                "[More]"
-            };
-            node.child(segment("  ", pen.stage.clone()))
-                .child(segment(detail, pen.permission.clone()).id(Widget::TraceDetail.id()))
-        }
-        TraceCardRow::Field {
-            label,
-            text,
-            first,
-            linked,
-        } => {
-            let shown = if first { label } else { "" };
-            let node = Node::text(format!("{CARD_GUTTER}{shown:<label_cols$} {text}"))
-                .height(Length::Cells(1));
-            if linked && first {
-                node.style(pen.link.clone())
-                    .id(Widget::trace_chunk(step.number))
-            } else {
-                node.style(pen.stage.clone())
-            }
-        }
-    }
 }
 
 /// One ship-timeline row: an action with its kind, description and
@@ -2220,6 +2064,9 @@ const LAUNCHER_GRID_MIN_COLS: u16 = 100;
 /// spawned; until it delivers the cards say so.
 fn launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let avail = model.stage_rows();
+    if avail < 14 {
+        return compact_launcher_rows(model, pen);
+    }
     if model.size().cols < LAUNCHER_GRID_MIN_COLS {
         // Stacked: compact cards budgeted to the measured stage rows —
         // the sessions list takes exactly what is left, so no card's
@@ -2301,6 +2148,80 @@ fn launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
                     .child(roadmap.grow(1.0))
                     .child(actions.shrink(0.0)),
             ),
+    ]
+}
+
+/// Short stages retain every launcher action and the selected session.
+fn compact_launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
+    let project_height = if model.stage_rows() >= 6 { 2 } else { 1 };
+    let project = if model.launcher().is_some_and(|data| !data.has_config) {
+        vec![segment(
+            "not configured · run `magistr init`",
+            pen.warn.clone(),
+        )]
+    } else {
+        project_rows(model, pen, true)
+            .into_iter()
+            .take(project_height)
+            .collect()
+    };
+    let used = project.len() + 3;
+    let project = Node::column()
+        .id(Widget::CardProject.id())
+        .children(project);
+    let next = model
+        .roadmap()
+        .next_ready()
+        .map_or("nothing ready", |chunk| chunk.name.as_str());
+    let roadmap = Node::text(format!("next · {next}"))
+        .style(pen.note.clone())
+        .height(Length::Cells(1))
+        .id(Widget::CardRoadmap.id());
+    let actions =
+        Node::column()
+            .id(Widget::CardActions.id())
+            .children(LAUNCHER_ACTIONS.chunks(2).map(|pair| {
+                Node::row()
+                    .height(Length::Cells(1))
+                    .gap(Space::GAP)
+                    .children(
+                        pair.iter()
+                            .map(|(binding, widget)| action_button(*binding, *widget, model, pen)),
+                    )
+            }));
+    let cap = model.stage_rows().saturating_sub(used).max(1);
+    let mut sessions = Node::column().id(Widget::CardSessions.id()).viewport();
+    if let Some(note) = model.session_note() {
+        sessions = sessions.child(segment(
+            &shorten(note, usize::from(model.stage_width())),
+            pen.warn.clone(),
+        ));
+    } else if let Some(data) = model.launcher() {
+        if data.sessions.is_empty() {
+            sessions = sessions.child(segment("sessions · none yet", pen.note.clone()));
+        } else {
+            let selected = model
+                .session_selected()
+                .unwrap_or(0)
+                .min(data.sessions.len() - 1);
+            let first = selected.saturating_sub(cap - 1);
+            sessions = sessions.children(
+                data.sessions
+                    .iter()
+                    .enumerate()
+                    .skip(first)
+                    .take(cap)
+                    .map(|(index, session)| session_row(index, session, model, pen)),
+            );
+        }
+    } else {
+        sessions = sessions.child(segment("loading sessions…", pen.note.clone()));
+    }
+    vec![
+        project.shrink(0.0),
+        roadmap.shrink(0.0),
+        actions.shrink(0.0),
+        sessions.grow(1.0),
     ]
 }
 
@@ -2561,12 +2482,16 @@ fn session_rows(model: &Model, pen: &Pen, cap: usize) -> Vec<Node> {
         ));
     }
     if let Some(note) = model.session_note() {
-        rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Blocked)
-                .text(&format!(" {note}"))
-                .segment(pen.warn.clone()),
-        );
+        for text in crate::layout::TextMetrics::new(note)
+            .wrap(launcher_card_cols(model).saturating_sub(2).max(1) as u16)
+        {
+            rows.push(
+                Marked::new(model, pen)
+                    .icon(Icon::Blocked)
+                    .text(&format!(" {text}"))
+                    .segment(pen.warn.clone()),
+            );
+        }
     }
     rows
 }
@@ -2679,7 +2604,9 @@ fn action_chips(model: &Model, pen: &Pen) -> Node {
 /// less the card's ring — half of it, less the grid's gap, on the grid.
 fn launcher_card_cols(model: &Model) -> usize {
     let stage = usize::from(model.stage_width());
-    if model.size().cols < LAUNCHER_GRID_MIN_COLS {
+    if model.stage_rows() < 14 {
+        stage
+    } else if model.size().cols < LAUNCHER_GRID_MIN_COLS {
         stage.saturating_sub(2)
     } else {
         (stage.saturating_sub(usize::from(Space::TIGHT)) / 2).saturating_sub(2)
@@ -3365,7 +3292,12 @@ fn hint_context(model: &Model) -> &'static [Binding] {
         }
     } else if model.turn_state() == TurnState::Streaming {
         Binding::HINT_STREAMING
-    } else if model.tab() == StageTab::Trace && !model.trace().steps().is_empty() {
+    } else if model.prompt().is_empty() && model.pane() == Pane::Inspector {
+        Binding::HINT_INSPECTOR
+    } else if model.prompt().is_empty()
+        && (matches!(model.tab(), StageTab::Roadmap | StageTab::Changes)
+            || model.tab() == StageTab::Trace && !model.trace().steps().is_empty())
+    {
         Binding::HINT_TRACE
     } else if model.tab() == StageTab::Home {
         Binding::HINT_HOME

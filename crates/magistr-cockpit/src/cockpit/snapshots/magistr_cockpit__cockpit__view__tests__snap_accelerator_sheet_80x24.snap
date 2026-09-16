@@ -6,21 +6,21 @@ expression: screen(&m)
 tabs  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
-│no objective yet          │ │⌨ keys · esc closes · 1–15 of 65                 │
+│no objective yet          │ │⌨ keys · esc closes · 1–8 of 68                  │
 │▲ tabs · 2/4              │ │                                                 │
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │── global ────────────────────────               │
-│▲ Tabs                    │ │ tab / shift-tab   switch stage tab              │
-│0 before · 1 after        │ │ ?                 keyboard help                 │
-│signals 0                 │ │ esc               close help                    │
+│▲ Tabs                    │ │ tab / shift-tab   switch pane                   │
+│0 before · 1 after        │ │ ctrl-tab          switch view                   │
+│signals 0                 │ │ ?                 keyboard help                 │
+│                          │ │ esc               close help                    │
 │                          │ │ ctrl-d            quit                          │
 │                          │ │ ctrl-c            cancel                        │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
-│                          │ │── launcher ────────────────────────             │
-│                          │ │ n                 next iteration                │
-│                          │ │ l                 loop                          │
-│                          │ │ g                 gates                         │
-│                          │ │ m                 roadmap                       │
-│                          │ │ ↑↓ enter          resume session                │
+│                          │ │                                                 │
+│                          │ │                                                 │
 │                          │ │                                                 │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────

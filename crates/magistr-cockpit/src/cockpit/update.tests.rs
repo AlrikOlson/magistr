@@ -630,7 +630,7 @@ fn a_turn_that_ends_early_leaves_a_note() {
 fn a_resize_rewraps_the_turn_to_the_new_stage_width() {
     let mut m = model();
     assert_eq!(m.stage_width(), 49, "80 cols less padding and the rail");
-    assert_eq!(m.stage_rows(), 16);
+    assert_eq!(m.stage_rows(), 9);
     agent(
         &mut m,
         AgentEvent::Text("word ".repeat(30).trim_end().to_owned()),
@@ -638,7 +638,7 @@ fn a_resize_rewraps_the_turn_to_the_new_stage_width() {
     assert_eq!(m.turn().len(), 4);
     update(&mut m, Msg::Resize(Size::new(40, 12)));
     assert_eq!(m.stage_width(), 17, "the rail caps at half the screen");
-    assert_eq!(m.stage_rows(), 4);
+    assert_eq!(m.stage_rows(), 3);
     assert_eq!(m.turn().width(), 15, "the stage less the accent gutter");
     assert_eq!(m.turn().len(), 10);
     update(&mut m, Msg::Resize(Size::new(1, 1)));
@@ -1062,15 +1062,15 @@ fn keys_and_the_wheel_move_the_window_over_a_ten_thousand_line_turn() {
         agent(&mut m, AgentEvent::Text(format!("line {i}\n")));
     }
     let height = m.stage_rows();
-    assert_eq!(height, 16);
+    assert_eq!(height, 9);
     assert!(m.viewport().is_following());
-    assert_eq!(m.top_row(), 10_000 - 16);
-    assert_eq!(m.visible_rows().len(), 16);
-    assert_eq!(m.visible_rows()[15].text, "line 9999");
+    assert_eq!(m.top_row(), 10_000 - height);
+    assert_eq!(m.visible_rows().len(), height);
+    assert_eq!(m.visible_rows()[height - 1].text, "line 9999");
 
     update(&mut m, key(KeyCode::PageUp));
     settle(&mut m);
-    assert_eq!(m.top_row(), 10_000 - 16 - 15);
+    assert_eq!(m.top_row(), 10_000 - height - (height - 1));
     assert!(!m.viewport().is_following());
     let wheel = |kind| Msg::Mouse {
         event: MouseEvent::new(kind, 5, 5),
@@ -1078,10 +1078,10 @@ fn keys_and_the_wheel_move_the_window_over_a_ten_thousand_line_turn() {
     };
     update(&mut m, wheel(MouseKind::ScrollUp));
     settle(&mut m);
-    assert_eq!(m.top_row(), 10_000 - 16 - 18);
+    assert_eq!(m.top_row(), 10_000 - height - (height - 1) - 3);
     update(&mut m, wheel(MouseKind::ScrollDown));
     settle(&mut m);
-    assert_eq!(m.top_row(), 10_000 - 16 - 15);
+    assert_eq!(m.top_row(), 10_000 - height - (height - 1));
     update(&mut m, key(KeyCode::PageDown));
     assert!(m.viewport().is_following(), "back at the tail");
 
@@ -1094,7 +1094,7 @@ fn keys_and_the_wheel_move_the_window_over_a_ten_thousand_line_turn() {
     update(&mut m, key(KeyCode::End));
     settle(&mut m);
     assert!(m.viewport().is_following());
-    assert_eq!(m.visible_rows()[15].text, "line 10000");
+    assert_eq!(m.visible_rows()[height - 1].text, "line 10000");
     let release = Msg::Key(KeyEvent::new(KeyCode::PageUp).kind(KeyKind::Release));
     update(&mut m, release);
     assert!(m.viewport().is_following(), "a release scrolls nothing");
@@ -1559,13 +1559,13 @@ fn a_once_only_answer_leaves_no_rule_behind() {
 #[test]
 fn a_permission_request_takes_the_keys_until_it_is_answered() {
     let mut m = model();
-    assert_eq!(m.stage_rows(), 16, "chrome, tab bar and the empty dock");
+    assert_eq!(m.stage_rows(), 9, "chrome, tab bar and the empty dock");
     agent(&mut m, request(1, "Bash"));
     agent(&mut m, request(2, "Edit"));
     assert_eq!(m.permissions_pending(), 2);
     assert_eq!(m.permissions_seen(), 2);
     assert_eq!(front_title(&m), Some("Bash"));
-    assert_eq!(m.stage_rows(), 13, "a row per card inside the panel ring");
+    assert_eq!(m.stage_rows(), 6, "a row per card inside the panel ring");
     assert_eq!(update(&mut m, key(KeyCode::Char('x'))), vec![]);
     assert!(m.prompt().is_empty(), "letters do not reach the prompt");
     assert_eq!(
@@ -1582,7 +1582,7 @@ fn a_permission_request_takes_the_keys_until_it_is_answered() {
     assert_eq!(front_title(&m), Some("Edit"));
     assert_eq!(update(&mut m, key(KeyCode::Esc)), answered(2, "reject"));
     assert_eq!(m.permissions_pending(), 0);
-    assert_eq!(m.stage_rows(), 16);
+    assert_eq!(m.stage_rows(), 9);
     agent(&mut m, request(3, "Read"));
     assert_eq!(update(&mut m, key(KeyCode::Enter)), answered(3, "allow"));
     agent(&mut m, request(4, "Write"));
@@ -2079,14 +2079,20 @@ fn tab_cycles_the_stage_and_a_click_jumps_to_one() {
     let mut m = model();
     assert_eq!(m.tab(), StageTab::Turn);
     assert_eq!(
-        update(&mut m, key(KeyCode::Tab)),
+        update(
+            &mut m,
+            Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL))
+        ),
         vec![Cmd::Animate(Model::TICK_PERIOD)],
         "the switch transitions"
     );
     assert_eq!(m.tab(), StageTab::Changes);
-    update(&mut m, key(KeyCode::Tab));
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL)),
+    );
     assert_eq!(m.tab(), StageTab::Trace);
-    let back = Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::SHIFT));
+    let back = Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL | Modifiers::SHIFT));
     update(&mut m, back);
     assert_eq!(m.tab(), StageTab::Changes);
     let click = Msg::Mouse {
@@ -2097,7 +2103,10 @@ fn tab_cycles_the_stage_and_a_click_jumps_to_one() {
     assert_eq!(m.tab(), StageTab::Roadmap);
     // Tab still cycles while a permission waits — Roadmap wraps to Home.
     agent(&mut m, request(30, "Bash"));
-    update(&mut m, key(KeyCode::Tab));
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL)),
+    );
     assert_eq!(m.tab(), StageTab::Home);
     assert_eq!(m.permissions_pending(), 1);
 }
@@ -2167,7 +2176,7 @@ fn a_front_proposal_answers_on_an_empty_prompt_and_types_otherwise() {
     assert_eq!(m.dock().len(), 1);
     assert_eq!(
         m.stage_rows(),
-        14,
+        7,
         "one card and the needs-you panel's two border rows"
     );
     // With text in the prompt the letters are the prompt's.
@@ -2586,7 +2595,7 @@ fn alt_or_shift_enter_breaks_the_line_and_enter_sends_the_whole_text() {
     assert_eq!(m.prompt_rows(), 3);
     assert_eq!(
         m.stage_rows(),
-        14,
+        7,
         "the growing box costs the stage its rows"
     );
     let cmds = update(&mut m, key(KeyCode::Enter));
@@ -2598,7 +2607,7 @@ fn alt_or_shift_enter_breaks_the_line_and_enter_sends_the_whole_text() {
         ]
     );
     assert!(m.prompt().is_empty());
-    assert_eq!(m.stage_rows(), 16, "the box shrank back");
+    assert_eq!(m.stage_rows(), 9, "the box shrank back");
 }
 
 #[test]
@@ -2617,7 +2626,7 @@ fn at_opens_file_completion_filters_and_tab_accepts_into_the_prompt() {
     type_chars(&mut m, "read @");
     let c = m.completion().expect("the popup opened");
     assert_eq!(c.items().len(), 4, "an empty query lists the workspace");
-    assert_eq!(m.stage_rows(), 12, "the popup costs the stage its rows");
+    assert_eq!(m.stage_rows(), 5, "the popup costs the stage its rows");
     type_chars(&mut m, "prom");
     let c = m.completion().expect("still open");
     assert_eq!(c.items(), ["src/cockpit/prompt.rs"]);
@@ -2815,13 +2824,13 @@ fn a_change_row_click_expands_and_approve_marks_reviewed() {
             entries: vec![journal_entry("e1", "src/main.rs")],
         }),
     );
-    assert!(!m.changes().is_expanded("e1"));
+    assert!(m.selected().is_none());
     change_click(&mut m, Widget::change_row(0));
-    assert!(m.changes().is_expanded("e1"));
+    assert_eq!(m.selected(), Some(&super::Selected::Change("e1".into())));
     assert_eq!(change_click(&mut m, Widget::change_approve(0)), vec![]);
     assert!(m.changes().is_approved("e1"));
     change_click(&mut m, Widget::change_row(0));
-    assert!(!m.changes().is_expanded("e1"), "a second click folds it");
+    assert_eq!(m.selected(), Some(&super::Selected::Change("e1".into())));
 }
 
 #[test]
@@ -3005,7 +3014,7 @@ fn a_think_step_frame_lands_in_the_trace_and_a_click_expands_it() {
     assert_eq!(trace_click(&mut m, Widget::trace_row(0)), vec![]);
     assert!(m.trace().is_expanded(7));
     trace_click(&mut m, Widget::trace_row(0));
-    assert!(!m.trace().is_expanded(7), "a second click folds it");
+    assert!(m.trace().is_expanded(7), "a second click keeps selection");
 }
 
 #[test]
@@ -3346,9 +3355,11 @@ fn roadmap_rows_toggle_and_the_detail_buttons_ask_the_engine() {
             id: "ui".to_owned(),
         })]
     );
-    // Without a selection the buttons answer nothing.
+    // Repeating a selection keeps the inspector stable.
     update(&mut m, left_click(Widget::roadmap_row(1)));
-    assert!(m.roadmap().selected().is_none(), "a second click folds");
+    assert_eq!(m.roadmap().selected().map(|c| c.id.as_str()), Some("ui"));
+    m.roadmap.toggle_row(1, 0.0, false);
+    m.selected = None;
     assert_eq!(
         update(&mut m, left_click(Widget::RoadmapStart.id())),
         vec![]
@@ -3932,7 +3943,10 @@ fn reduced_motion_scrolls_the_stage_in_one_frame() {
 fn a_tab_switch_transitions_on_the_tick_and_goes_still_when_it_is_over() {
     let mut m = model();
     assert_eq!(
-        update(&mut m, key(KeyCode::Tab)),
+        update(
+            &mut m,
+            Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL))
+        ),
         vec![Cmd::Animate(Model::TICK_PERIOD)],
         "the switch starts a transition"
     );
@@ -4000,7 +4014,14 @@ fn progress_eases_on_the_tick_and_seeds_in_place() {
 #[test]
 fn reduced_motion_never_starts_the_tick() {
     let mut m = model().with_theme(Theme::default().with_motion(MotionMode::Reduced));
-    assert_eq!(update(&mut m, key(KeyCode::Tab)), vec![], "no transition");
+    assert_eq!(
+        update(
+            &mut m,
+            Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL))
+        ),
+        vec![],
+        "no transition"
+    );
     type_text(&mut m, "go");
     assert_eq!(
         update(&mut m, key(KeyCode::Enter)),
@@ -8222,7 +8243,7 @@ fn a_completed_hold_kills_the_screen_sends_the_kill_once_and_names_the_receipt()
 /// nothing, and the key's release never ends a cap hold.
 #[test]
 fn a_press_on_the_head_holds_the_kill_and_the_button_coming_up_lets_go() {
-    let mut m = pane_holdable(Size::new(80, 24));
+    let mut m = pane_holdable(Size::new(120, 40));
     let head = m
         .turn()
         .rows()
@@ -8775,11 +8796,11 @@ fn the_arrows_walk_the_trace_selection_and_enter_turns_the_card() {
     );
     update(&mut m, key(KeyCode::Up));
     assert_eq!(m.trace().selected_index(), Some(1));
-    assert!(!m.trace().is_full());
+    assert!(!m.inspector_open());
     update(&mut m, key(KeyCode::Enter));
-    assert!(m.trace().is_full(), "Enter opens the full card");
+    assert!(m.inspector_open(), "Enter opens the full card");
     update(&mut m, key(KeyCode::Enter));
-    assert!(!m.trace().is_full(), "and folds it back to the brief cut");
+    assert!(!m.inspector_open(), "and folds it back to the brief cut");
     assert!(m.prompt().is_empty(), "no Enter reached the prompt");
 
     // A letter in the prompt gives the keys back: Up is history again.
@@ -8819,17 +8840,140 @@ fn a_keyboard_selection_scrolls_its_row_into_the_window() {
 }
 
 #[test]
-fn the_more_button_turns_the_card_and_a_row_click_folds_it() {
+fn the_more_button_turns_the_card_and_a_row_click_preserves_it() {
     let mut m = model().with_tab(StageTab::Trace);
     update(&mut m, think_step_frame(4, serde_json::json!({})));
     trace_click(&mut m, Widget::trace_row(0));
     assert!(m.trace().is_expanded(4));
-    assert_eq!(trace_click(&mut m, Widget::TraceDetail.id()), vec![]);
-    assert!(m.trace().is_full());
+    assert_eq!(trace_click(&mut m, Widget::InspectorDetail.id()), vec![]);
+    assert!(m.inspector_open());
     trace_click(&mut m, Widget::trace_row(0));
-    assert!(!m.trace().is_expanded(4), "the row folds its own card");
+    assert!(m.trace().is_expanded(4), "the row retains its selection");
     assert!(
-        m.trace().is_full(),
+        m.inspector_open(),
         "the disclosure is a preference, not part of the selection"
     );
+}
+
+#[test]
+fn inspector_selection_is_shared_across_views_and_survives_resize() {
+    use crate::cockpit::Selected;
+    let mut m = model().with_tab(StageTab::Trace);
+    update(&mut m, think_step_frame(4, serde_json::json!({})));
+    trace_click(&mut m, Widget::trace_row(0));
+    assert_eq!(m.selected(), Some(&Selected::Step(4)));
+    update(&mut m, Msg::Resize(Size::new(132, 42)));
+    assert_eq!(m.selected(), Some(&Selected::Step(4)));
+    trace_click(&mut m, Widget::TabRoadmap.id());
+    assert_eq!(
+        m.selected(),
+        Some(&Selected::Step(4)),
+        "view changes keep the inspector"
+    );
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Seed(crate::harness::fixtures::snapshot(
+            vec![crate::harness::fixtures::chunk_from(
+                serde_json::json!({"id":"a","status":"pending"}),
+            )],
+            vec![],
+        ))),
+    );
+    trace_click(&mut m, Widget::roadmap_row(0));
+    assert_eq!(m.selected(), Some(&Selected::Chunk("a".to_owned())));
+    update(&mut m, key(KeyCode::Enter));
+    assert!(m.inspector_open());
+    update(&mut m, key(KeyCode::Esc));
+    assert!(!m.inspector_open());
+    assert_eq!(
+        m.selected(),
+        Some(&Selected::Chunk("a".to_owned())),
+        "Esc closes disclosure, not selection"
+    );
+}
+
+#[test]
+fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
+    use crate::cockpit::{Pane, Selected};
+    let mut m = crate::harness::Scenes::changed(Size::new(80, 24));
+    update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.selected(), Some(&Selected::Change("e1".into())));
+    update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.selected(), Some(&Selected::Change("e2".into())));
+    update(&mut m, key(KeyCode::Up));
+    assert_eq!(m.selected(), Some(&Selected::Change("e1".into())));
+    update(&mut m, key(KeyCode::Enter));
+    assert!(m.inspector_open());
+    update(&mut m, key(KeyCode::Tab));
+    assert_eq!(m.pane(), Pane::Inspector);
+    let list_top = m.changes_top();
+    update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.inspector_scroll, 1);
+    update(
+        &mut m,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::ScrollDown, 35, 16),
+            target: Some(Widget::change_approve(0)),
+        },
+    );
+    assert!(
+        m.inspector_scroll > 1,
+        "wheel over an inspector action scrolls its fields"
+    );
+    assert_eq!(m.changes_top(), list_top);
+    update(&mut m, key(KeyCode::Home));
+    assert_eq!(m.inspector_scroll, 0);
+    update(&mut m, key(KeyCode::End));
+    assert!(m.inspector_scroll > 0);
+    update(&mut m, key(KeyCode::Esc));
+    assert!(!m.inspector_open());
+    assert_eq!(m.inspector_scroll, 0);
+    update(&mut m, left_click(Widget::TabChanges.id()));
+    assert_eq!(m.pane(), Pane::Stage);
+    update(&mut m, Msg::Paste("draft".into()));
+    update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.selected(), Some(&Selected::Change("e1".into())));
+
+    let mut roadmap = crate::harness::Scenes::roadmapped(Size::new(80, 24));
+    update(&mut roadmap, key(KeyCode::Down));
+    assert_eq!(
+        roadmap.selected(),
+        Some(&Selected::Chunk("tui2-2-rail".into()))
+    );
+    update(&mut roadmap, key(KeyCode::Down));
+    assert_eq!(
+        roadmap.selected(),
+        Some(&Selected::Chunk("tui2-3-roadmap".into()))
+    );
+    let selected = roadmap.selected().cloned();
+    update(&mut roadmap, key(KeyCode::Down));
+    assert_eq!(
+        roadmap.selected(),
+        selected.as_ref(),
+        "selection stops at the list end"
+    );
+}
+
+#[test]
+fn inspector_tab_cycles_panes_and_control_tab_changes_views() {
+    use crate::cockpit::Pane;
+    let mut m = model();
+    assert_eq!(m.pane(), Pane::Stage);
+    update(&mut m, key(KeyCode::Tab));
+    assert_eq!(m.pane(), Pane::Inspector);
+    assert_eq!(m.tab(), StageTab::Turn);
+    update(&mut m, key(KeyCode::Tab));
+    assert_eq!(m.pane(), Pane::Rail);
+    update(&mut m, key(KeyCode::Tab));
+    assert_eq!(m.pane(), Pane::Stage);
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL)),
+    );
+    assert_eq!(m.tab(), StageTab::Changes);
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::SHIFT)),
+    );
+    assert_eq!(m.pane(), Pane::Rail, "Shift-Tab reverses the pane cycle");
 }

@@ -1,44 +1,44 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: "screen(&tool_calls(Size::new(120, 40)))"
 ---
 ▲ magistr  ▘ streaming                                                                                             00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
-│no objective yet          │ │▎ Let me look around.                                                                    │
-│roadmap 0/0 done          │ │▎ ○ read   tool call 0: read crates/magistr-tui/src/cockpit/view.rs                      │
-│signals 0                 │ │▎ ▘ read   tool call 1: read crates/magistr-tui/src/cockpit/view.rs                      │
-│                          │ │▎ ✓ read   tool call 2: read crates/magistr-tui/src/cockpit/view.rs · 842ms              │
-│                          │ │▎ ✗ read   tool call 3: read crates/magistr-tui/src/cockpit/view.rs · 842ms              │
-│                          │ │▎ Found it.                                                                              │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
+│no objective yet          │ │▎ Let me look around.                              │  │                                  │
+│roadmap 0/0 done          │ │▎ ○ read   tool call 0: read crates/magistr-tui/sr…│  │                                  │
+│signals 0                 │ │▎ ▘ read   tool call 1: read crates/magistr-tui/sr…│  │                                  │
+│                          │ │▎ ✓ read   tool call 2: read crates/magistr-tui/sr…│  │                                  │
+│                          │ │▎ ✗ read   tool call 3: read crates/magistr-tui/sr…│  │                                  │
+│                          │ │▎ Found it.                                        │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
  ctrl-c  cancel   ctrl-d  quit

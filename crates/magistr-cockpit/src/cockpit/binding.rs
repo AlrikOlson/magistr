@@ -46,20 +46,46 @@ impl Binding {
     }
 
     // ── trace ───────────────────────────────────────────────────────
-    /// Walk the reasoning steps on the Trace tab.
-    pub const TRACE_STEP: Self = Self::new("↑↓", "select", "trace", KeyCode::Up, Modifiers::NONE);
+    /// Walk work items, reasoning steps or changes in the stage.
+    pub const TRACE_STEP: Self =
+        Self::new("↑↓", "select", "inspector", KeyCode::Up, Modifiers::NONE);
     /// Show every field of the selected step, or the brief cut again.
-    pub const TRACE_DETAIL: Self =
-        Self::new("enter", "detail", "trace", KeyCode::Enter, Modifiers::NONE);
+    pub const TRACE_DETAIL: Self = Self::new(
+        "enter",
+        "detail",
+        "inspector",
+        KeyCode::Enter,
+        Modifiers::NONE,
+    );
+
+    /// Scroll the inspector's fields without changing its object.
+    pub const INSPECTOR_SCROLL: Self =
+        Self::new("↑↓", "scroll", "inspector", KeyCode::Down, Modifiers::NONE);
+    /// Return the inspector to its brief field set.
+    pub const INSPECTOR_CLOSE: Self = Self::new(
+        "esc",
+        "less detail",
+        "inspector",
+        KeyCode::Esc,
+        Modifiers::NONE,
+    );
 
     // ── global ──────────────────────────────────────────────────────
-    /// Cycle the stage tabs.
+    /// Cycle focus across the rail, stage and inspector.
     pub const TAB: Self = Self::new(
         "tab / shift-tab",
-        "switch stage tab",
+        "switch pane",
         "global",
         KeyCode::Tab,
         Modifiers::NONE,
+    );
+    /// Cycle views and return keyboard focus to the stage.
+    pub const VIEWS: Self = Self::new(
+        "ctrl-tab",
+        "switch view",
+        "global",
+        KeyCode::Tab,
+        Modifiers::CTRL,
     );
     /// Open the accelerator sheet (on an empty prompt).
     pub const SHEET: Self = Self::new(
@@ -407,6 +433,7 @@ impl Binding {
     /// this list, grouped by [`Binding::group`].
     pub const ALL: &'static [Self] = &[
         Self::TAB,
+        Self::VIEWS,
         Self::SHEET,
         Self::ESC_SHEET,
         Self::QUIT,
@@ -431,6 +458,8 @@ impl Binding {
         Self::HOME_END,
         Self::TRACE_STEP,
         Self::TRACE_DETAIL,
+        Self::INSPECTOR_SCROLL,
+        Self::INSPECTOR_CLOSE,
         Self::FOLD,
         Self::FOLLOW,
         Self::DOCK,
@@ -478,7 +507,14 @@ impl Binding {
     pub const HINT_IDLE: &'static [Self] = &[Self::SEND, Self::HISTORY, Self::QUIT];
     /// The footer on a Trace tab with steps: the selection walks and
     /// Enter opens the full card.
-    pub const HINT_TRACE: &'static [Self] = &[Self::TRACE_STEP, Self::TRACE_DETAIL, Self::QUIT];
+    pub const HINT_TRACE: &'static [Self] = &[Self::TRACE_STEP, Self::TRACE_DETAIL, Self::TAB];
+    /// The footer while the inspector has keyboard focus.
+    pub const HINT_INSPECTOR: &'static [Self] = &[
+        Self::INSPECTOR_SCROLL,
+        Self::TRACE_DETAIL,
+        Self::INSPECTOR_CLOSE,
+        Self::TAB,
+    ];
     /// The footer on the Home tab.
     pub const HINT_HOME: &'static [Self] = &[
         Self::NEXT,

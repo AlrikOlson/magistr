@@ -13,9 +13,9 @@ Plain-text mode: tmux is not passing graphics through. Set `allow-passthrough
 │· snapshot both sizes     │ │  ▸ task started · wire the banner               │
 │roadmap 0/0 done          │ │                                                 │
 │signals 0                 │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

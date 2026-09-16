@@ -14,6 +14,11 @@ impl Space {
     /// Inside an unframed surface's edge (framed panels inset through
     /// their ring instead).
     pub const PAD: u16 = 1;
+    /// Outer inspector width and minimum stage text width for side-by-side panes.
+    pub const INSPECTOR_COLS: u16 = 18 * Self::GAP;
+    pub const STAGE_COLS: u16 = 20 * Self::GAP;
+    /// A stacked card keeps its four header rows and one field inside its ring.
+    pub const INSPECTOR_ROWS: u16 = 7 * Self::TIGHT;
 }
 
 #[cfg(test)]

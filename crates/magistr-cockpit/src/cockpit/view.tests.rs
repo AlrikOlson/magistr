@@ -210,6 +210,12 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
             w,
             Widget::Checkpoint
                 | Widget::TraceDetail
+                | Widget::InspectorTitle
+                | Widget::InspectorStatus
+                | Widget::InspectorMetadata
+                | Widget::InspectorActions
+                | Widget::InspectorFields
+                | Widget::InspectorDetail
                 | Widget::TraceGraph
                 | Widget::RoadmapGraph
                 | Widget::RoadmapStart
@@ -554,7 +560,7 @@ fn the_prompt_line_shows_the_mark_the_text_around_the_cursor_and_the_cursor_cell
 #[test]
 fn the_permission_strip_names_the_tool_and_offers_its_buttons_in_their_pens() {
     let m = Scenes::permission(Size::new(80, 24));
-    assert_eq!(m.stage_rows(), 14, "one card inside the needs-you panel");
+    assert_eq!(m.stage_rows(), 7, "one card inside the needs-you panel");
     let root = view(&m, &clock());
     let mut lines = Vec::new();
     texts(&root, &mut lines);
@@ -726,7 +732,7 @@ fn the_stage_costs_the_screen_not_the_turn() {
     let root = view(&m, &clock());
     let nodes = count(&root);
     assert!(
-        nodes <= 3 * m.stage_rows() + 45,
+        nodes <= 3 * m.stage_rows() + 48,
         "{nodes} nodes for a 10K-row turn on a {}-row stage: three per row (the band, its accent gutter, its text) plus the chrome (root, the header bar's five nodes, the strip with its phase block's eight, the left rail panel and its five parts, the divider, the tab bar and its five tabs, stage, the dock's divider row and its three segments, the prompt box and its row's three parts, the footer bar and its chips)",
         m.stage_rows()
     );
@@ -747,8 +753,8 @@ fn a_scrolled_window_shows_its_row_range_in_the_header() {
     let mut lines = Vec::new();
     texts(&view(&m, &clock()), &mut lines);
     assert_eq!(lines[1], "▘ streaming");
-    assert_eq!(lines[2], "rows 70–85/100", "{lines:?}");
-    assert!(lines.contains(&"line 69".to_owned()));
+    assert_eq!(lines[2], "rows 84–92/100", "{lines:?}");
+    assert!(lines.contains(&"line 83".to_owned()));
     assert!(!lines.contains(&"line 99".to_owned()));
     update(
         &mut m,
@@ -760,7 +766,7 @@ fn a_scrolled_window_shows_its_row_range_in_the_header() {
     Scenes::settle(&mut m);
     let mut lines = Vec::new();
     texts(&view(&m, &clock()), &mut lines);
-    assert_eq!(lines[2], "rows 73–88/100", "{lines:?}");
+    assert_eq!(lines[2], "rows 87–95/100", "{lines:?}");
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::End)));
     Scenes::settle(&mut m);
     let mut lines = Vec::new();
@@ -1420,7 +1426,7 @@ fn model_at(size: Size) -> Model {
 fn the_dock_grows_a_row_per_card_and_buttons_sit_on_the_front_card_only() {
     let m = docked(Size::new(80, 24));
     assert_eq!(m.dock().len(), 2);
-    assert_eq!(m.stage_rows(), 13, "two cards inside the panel ring");
+    assert_eq!(m.stage_rows(), 6, "two cards inside the panel ring");
     let mut lines = Vec::new();
     let root = view(&m, &clock());
     texts(&root, &mut lines);
@@ -1569,7 +1575,7 @@ fn refused_dock_answers_paint_the_error_and_restore_actionable_cards_in_both_the
 fn a_switched_tab_shows_its_placeholder_and_the_bar_marks_it() {
     use crate::input::{KeyEvent as Key, Modifiers as Mods};
     let mut m = Scenes::streaming(Size::new(80, 24));
-    update(&mut m, Msg::Key(Key::new(KeyCode::Tab)));
+    update(&mut m, Msg::Key(Key::new(KeyCode::Tab).with(Mods::CTRL)));
     let mut lines = Vec::new();
     let root = view(&m, &clock());
     texts(&root, &mut lines);
@@ -1584,7 +1590,10 @@ fn a_switched_tab_shows_its_placeholder_and_the_bar_marks_it() {
     let mut found = Vec::new();
     styles(&root, &mut found);
     assert!(found.contains(&pen.phase_current), "Changes is bright");
-    update(&mut m, Msg::Key(Key::new(KeyCode::Tab).with(Mods::SHIFT)));
+    update(
+        &mut m,
+        Msg::Key(Key::new(KeyCode::Tab).with(Mods::CTRL | Mods::SHIFT)),
+    );
     let mut lines = Vec::new();
     texts(&view(&m, &clock()), &mut lines);
     assert!(lines.iter().any(|l| l.contains("Still streaming")));
@@ -1599,7 +1608,10 @@ fn snap_dock_cards_80x24() {
 fn snap_tab_changes_80x24() {
     let mut m = Scenes::streaming(Size::new(80, 24));
     Scenes::settle(&mut m);
-    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Tab)));
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
+    );
     insta::assert_snapshot!(screen(&m));
 }
 
@@ -1768,6 +1780,7 @@ fn an_expanded_change_lays_out_its_buttons_and_diff() {
             target: Some(Widget::change_row(0)),
         },
     );
+    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
     let root = view(&m, &clock());
     let resolved = layout(&root, m.size());
     let placed: Vec<_> = resolved.placed().iter().filter_map(|p| p.id).collect();
@@ -1776,8 +1789,8 @@ fn an_expanded_change_lays_out_its_buttons_and_diff() {
     assert!(placed.contains(&Widget::change_approve(0)));
     let mut lines = Vec::new();
     texts(&root, &mut lines);
-    assert!(lines.contains(&"  -fn old() {}".to_owned()), "{lines:?}");
-    assert!(lines.contains(&"  +fn renamed() {}".to_owned()));
+    assert!(lines.contains(&"-fn old() {}".to_owned()), "{lines:?}");
+    assert!(lines.contains(&"+fn renamed() {}".to_owned()));
 }
 
 #[test]
@@ -1899,9 +1912,15 @@ fn the_wheel_and_the_page_keys_move_the_trace_not_the_turn() {
     assert!(m.trace_top() < tail, "the wheel left the tail");
     assert_eq!(m.top_row(), turn_top, "the turn's own window stayed put");
 
+    let before = m.trace_top();
+    let page = m.trace_window().1.saturating_sub(1).max(1);
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::PageUp)));
     Scenes::settle(&mut m);
-    assert_eq!(m.trace_top(), 0, "a page from there reaches the head");
+    assert_eq!(
+        m.trace_top(),
+        before.saturating_sub(page),
+        "a page moves by the visible body"
+    );
     assert_eq!(m.top_row(), turn_top, "still the turn's own window");
 
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::End)));
@@ -1914,10 +1933,7 @@ fn snap_trace_feed_120x40() {
     let m = Scenes::traced(Size::new(120, 40));
     assert_eq!(m.tab(), StageTab::Trace);
     let screen = screen(&m);
-    assert!(
-        screen.contains("reasoning  5 steps · 1 branch · 1 pinned"),
-        "{screen}"
-    );
+    assert!(screen.contains("reasoning  5 steps · 1 branch"), "{screen}");
     assert!(screen.contains("[✱ Checkpoint]"), "{screen}");
     assert!(
         screen.contains("revised by 5"),
@@ -1945,13 +1961,13 @@ fn snap_trace_step_expanded_120x40() {
     let brief = screen(&m);
     for field in [
         "▾  1  hypothesis  0.62 ★",
-        "▎ step 1 · hypothesis",
-        "▎ confidence 0.62 · depends on 7, 9 · estimate 4 · pinned",
-        "[★ Unpin]",
-        "[More]",
-        "thought      the feed can drive the whole surface",
-        "outcome      it can",
-        "next action  wire the view",
+        "hypothesis",
+        "step 1 · main",
+        "Unpin",
+        "More",
+        "thought · the feed can drive the",
+        "outcome · it can",
+        "next action · wire the view",
     ] {
         assert!(brief.contains(field), "{field} missing:\n{brief}");
     }
@@ -1965,16 +1981,16 @@ fn snap_trace_step_expanded_120x40() {
         &mut m,
         Msg::Mouse {
             event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 9),
-            target: Some(Widget::TraceDetail.id()),
+            target: Some(Widget::InspectorDetail.id()),
         },
     );
     let screen = screen(&m);
     for field in [
-        "[Less]",
-        "context      the trace tab",
-        "rationale    one fold path for feed and port",
-        "uncertainty  no branch case yet",
-        "execution ref task:trace-state",
+        "Less",
+        "context · the trace tab",
+        "rationale · one fold path for",
+        "uncertainty · no branch case yet",
+        "execution ref · task:trace-state",
     ] {
         assert!(screen.contains(field), "{field} missing:\n{screen}");
     }
@@ -2071,12 +2087,12 @@ fn snap_roadmap_list_120x40() {
         "done collapsed to a count: {screen}"
     );
     assert!(
-        screen.contains("Roadmap view              priority → 100 · sooner"),
+        screen.contains("priority → 100 · sooner"),
         "the proposal row shows: {screen}"
     );
     assert!(screen.contains("[Accept]"), "{screen}");
     assert!(
-        screen.contains("idea · alice — make startup faster · 0.8 · researched"),
+        screen.contains("idea · alice — make startup faster"),
         "the signal row shows: {screen}"
     );
     assert!(screen.contains("[Promote]"), "{screen}");
@@ -2094,16 +2110,18 @@ fn snap_roadmap_detail_120x40() {
             target: Some(Widget::roadmap_row(1)),
         },
     );
+    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
     let screen = screen(&m);
     for needle in [
         "▾ Roadmap view",
-        "[Start]",
-        "The Roadmap tab of the cockpit",
-        "The tech-tree, the list and the actions.",
-        "• the DAG renders",
-        "• clicks select",
-        "deps: tui2-2-rail",
-        "refs: think:190",
+        "Start",
+        "title · The Roadmap tab of the",
+        "cockpit",
+        "The tech-tree, the",
+        "acceptance 1 · the DAG renders",
+        "acceptance 2 · clicks select",
+        "depends on · tui2-2-rail",
+        "references · think:190",
     ] {
         assert!(screen.contains(needle), "{needle} missing:\n{screen}");
     }
@@ -2121,7 +2139,7 @@ fn the_in_progress_detail_offers_complete_and_the_empty_tab_says_so() {
         },
     );
     let screen = screen(&m);
-    assert!(screen.contains("[Complete]"), "{screen}");
+    assert!(screen.contains("Complete"), "{screen}");
     assert!(!screen.contains("[Start]"), "{screen}");
 
     let empty = Model::new(Size::new(120, 40)).with_tab(StageTab::Roadmap);
@@ -2156,7 +2174,7 @@ fn a_hover_line_shows_under_the_tech_tree() {
 }
 
 #[test]
-fn a_tree_selected_done_chunk_shows_its_card_under_the_graph() {
+fn a_tree_selected_done_chunk_shows_its_card_in_the_inspector() {
     let mut m = Scenes::roadmapped(Size::new(120, 40));
     // The DAG can select a done chunk the list no longer rows.
     m.set_roadmap_graph_rect(Some(crate::layout::Rect::new(2, 4, 100, 12)));
@@ -2179,8 +2197,8 @@ fn a_tree_selected_done_chunk_shows_its_card_under_the_graph() {
     assert_eq!(m.roadmap().selected().map(|c| c.id.as_str()), Some("acp-2"));
     let screen = screen(&m);
     assert!(
-        screen.contains("✓ ACP transport —"),
-        "the card shows under the graph: {screen}"
+        screen.contains("ACP transport") && screen.contains("✓ done"),
+        "the card shows in the inspector: {screen}"
     );
 }
 
@@ -2765,7 +2783,7 @@ fn the_selected_session_row_is_raised_and_an_unresumable_one_says_so_on_the_card
     );
     assert!(!m.quit_requested(), "an unresumable row never quits");
     assert!(
-        screen(&m).contains("no longer resumable"),
+        screen(&m).contains("is no") && screen(&m).contains("longer resumable"),
         "the card reports it:\n{}",
         screen(&m)
     );
@@ -2849,7 +2867,7 @@ fn buffer_of(model: &Model) -> Buffer {
 /// padding would be noise rather than feedback. Written down rather than
 /// derived, so a widget that becomes registered without a hover decision
 /// turns up as a diff here.
-const CHROME: [&str; 22] = [
+const CHROME: [&str; 23] = [
     "CardActions",
     "CardProject",
     "CardRoadmap",
@@ -2860,6 +2878,7 @@ const CHROME: [&str; 22] = [
     "Footer",
     "Header",
     "HeaderBrand",
+    "Inspector",
     "HeaderSpark",
     "Plan",
     "Prompt",
@@ -3265,7 +3284,10 @@ fn a_tab_switch_pulses_the_active_tab_then_settles() {
     use crate::input::KeyCode;
     let mut m = model();
     let pen = Pen::for_theme(&m.theme());
-    update(&mut m, Msg::Key(crate::input::KeyEvent::new(KeyCode::Tab)));
+    update(
+        &mut m,
+        Msg::Key(crate::input::KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
+    );
     assert_eq!(m.tab(), StageTab::Changes);
     let row = row_of(&m, "Changes");
     let line = screen(&m)
@@ -4228,7 +4250,10 @@ fn the_changes_heading_and_run_verdict_stay_pinned_while_the_list_scrolls() {
 fn conflicted(size: Size) -> Model {
     use crate::workbench::JournalEntry;
     let mut m = Model::new(size);
-    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Tab)));
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
+    );
     assert_eq!(m.tab(), StageTab::Changes);
     update(
         &mut m,
@@ -4255,8 +4280,9 @@ fn conflicted(size: Size) -> Model {
 
 #[test]
 fn a_conflict_hunk_is_marked_with_the_curly_error_rule() {
-    let m = conflicted(Size::new(120, 40));
+    let mut m = conflicted(Size::new(120, 40));
     let pen = Pen::for_theme(&m.theme());
+    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
     let root = view(&m, &clock());
     let resolved = layout(&root, m.size());
     let mut buffer = Buffer::new(m.size().cols, m.size().rows);
@@ -4282,7 +4308,10 @@ fn a_conflict_hunk_is_marked_with_the_curly_error_rule() {
     for marker in ["<<<<<<< HEAD", "=======", ">>>>>>> branch"] {
         let (row, at) = rows
             .iter()
-            .find_map(|(row, text)| text.find(marker).map(|at| (*row, at)))
+            .find_map(|(row, text)| {
+                text.find(marker)
+                    .map(|at| (*row, text[..at].chars().count()))
+            })
             .unwrap_or_else(|| panic!("{marker:?} is on the screen"));
         let style = rule_at(row, at);
         assert_eq!(
@@ -4466,13 +4495,13 @@ fn an_execution_ref_that_names_a_chunk_is_a_link_and_one_that_names_none_is_not(
         &mut plain,
         Msg::Mouse {
             event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 9),
-            target: Some(Widget::TraceDetail.id()),
+            target: Some(Widget::InspectorDetail.id()),
         },
     );
-    assert!(plain.trace().is_full(), "More opened the full card");
+    assert!(plain.inspector_open(), "More opened the full card");
     assert!(!placed_ids(&plain).contains(&Widget::trace_chunk(1)));
     assert!(
-        screen(&plain).contains("execution ref task:trace-state"),
+        screen(&plain).contains("execution ref · task:trace-state"),
         "{}",
         screen(&plain)
     );
@@ -4569,7 +4598,7 @@ fn the_pane_paints_the_programs_cells_in_its_own_hues_over_the_floor() {
     use magistr_theme::{ThemeColor, catppuccin_mocha, math};
     let palette = catppuccin_mocha();
     let mut m =
-        Scenes::terminal_pane(Size::new(120, 40)).with_theme(Theme::forced(ThemeMode::Dark));
+        Scenes::terminal_pane(Size::new(154, 40)).with_theme(Theme::forced(ThemeMode::Dark));
     Scenes::settle(&mut m);
     let rows = pane_cells(&m);
     assert_eq!(
@@ -4788,11 +4817,100 @@ fn the_terminal_dock_is_laid_out_over_the_stage_above_the_prompt() {
     );
 }
 
+#[test]
+fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
+    for (cols, rows) in AUDIT_SIZES.into_iter().chain([(160, 42)]) {
+        for pixels in [false, true] {
+            for (mut m, target) in [
+                (
+                    Scenes::roadmapped(Size::new(cols, rows)),
+                    Widget::roadmap_row(0),
+                ),
+                (Scenes::traced(Size::new(cols, rows)), Widget::trace_row(0)),
+                (
+                    Scenes::changed(Size::new(cols, rows)),
+                    Widget::change_row(0),
+                ),
+            ] {
+                update(
+                    &mut m,
+                    Msg::Mouse {
+                        event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                        target: Some(target),
+                    },
+                );
+                if pixels {
+                    update(
+                        &mut m,
+                        Msg::Mode(crate::capability::Mode::Graphics {
+                            pointer_shapes: true,
+                        }),
+                    );
+                }
+                let root = view(&m, &clock());
+                let resolved = layout(&root, m.size());
+                let rect = |widget: Widget| {
+                    resolved
+                        .placed()
+                        .iter()
+                        .find(|p| p.id == Some(widget.id()))
+                        .expect("pane exists")
+                        .rect
+                };
+                let stage = rect(Widget::Stage);
+                let inspector = rect(Widget::Inspector);
+                assert!(stage.width > 0 && stage.height > 0);
+                assert!(inspector.width > 0 && inspector.height > 0);
+                assert_eq!(
+                    m.inspector_stacked(),
+                    cols <= 100 || (cols == 160 && pixels)
+                );
+                if m.inspector_stacked() {
+                    assert!(inspector.y >= stage.y + stage.height);
+                } else {
+                    assert!(inspector.x >= stage.x + stage.width);
+                }
+                let sections = [
+                    Widget::InspectorTitle,
+                    Widget::InspectorStatus,
+                    Widget::InspectorMetadata,
+                    Widget::InspectorActions,
+                    Widget::InspectorFields,
+                ]
+                .map(rect);
+                assert!(
+                    sections
+                        .windows(2)
+                        .all(|pair| pair[0].y + pair[0].height <= pair[1].y),
+                    "{cols}x{rows}: {sections:?}"
+                );
+                assert!(sections.iter().all(|r| r.x >= inspector.x
+                    && r.x + r.width <= inspector.x + inspector.width
+                    && r.y + r.height <= inspector.y + inspector.height));
+                assert_eq!(sections[4].width, m.inspector_width());
+                assert!(sections[4].height > 0, "a field remains readable");
+                let before = match m.tab() {
+                    StageTab::Trace => trace_body(&m, &Pen::for_theme(&m.theme())).len(),
+                    StageTab::Changes => changes_body(&m, &Pen::for_theme(&m.theme())).len(),
+                    _ => roadmap_body(&m, &Pen::for_theme(&m.theme())).len(),
+                };
+                update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+                let after = match m.tab() {
+                    StageTab::Trace => trace_body(&m, &Pen::for_theme(&m.theme())).len(),
+                    StageTab::Changes => changes_body(&m, &Pen::for_theme(&m.theme())).len(),
+                    _ => roadmap_body(&m, &Pen::for_theme(&m.theme())).len(),
+                };
+                assert_eq!(before, after, "disclosure never changes the stage list");
+            }
+        }
+    }
+}
+
 // ── Geometry across terminal sizes ────────────────────────────────────
 
 /// The sizes the geometry audit walks: the small terminal, a laptop
 /// window, the capture size.
-const AUDIT_SIZES: [(u16, u16); 3] = [(80, 24), (100, 30), (132, 42)];
+const AUDIT_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (132, 42)];
 
 /// Every placed rect stays inside the screen, and every trace row's
 /// text fits the stage it is painted into — on both surfaces' tabs, in
@@ -4823,6 +4941,16 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
                     );
                 }
                 let resolved = layout(&view(&m, &clock()), size);
+                let inspector = resolved
+                    .placed()
+                    .iter()
+                    .find(|p| p.id == Some(Widget::Inspector.id()))
+                    .expect("inspector is registered")
+                    .rect;
+                assert!(
+                    inspector.height >= 7 && inspector.width > 0,
+                    "{name} {cols}x{rows} pixels={pixels}: inspector remains visible: {inspector:?}"
+                );
                 for placed in resolved.placed() {
                     let rect = placed.rect;
                     assert!(

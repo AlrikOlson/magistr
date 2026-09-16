@@ -600,7 +600,8 @@ async fn palette_pin_and_checkpoint_round_trip_through_the_session_engine() {
         // "/checkpoint" keeps it open and Enter would accept the
         // candidate instead of sending.
         .text(MS(600), "/checkpoint \r")
-        .text(MS(900), "\x04");
+        .text(MS(750), "\x1b[H")
+        .text(MS(1000), "\x04");
     let port = FakeEnginePort::new()
         .with_report(serde_json::json!({"open_hypotheses": [{"step_number": 7}]}));
     let (model, observed, capture, deliveries, _arrivals) = run_full(
@@ -786,16 +787,24 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
         },
     );
     let start = rect_of(&opened, Widget::RoadmapStart.id());
-    // The open detail pushes the signals section past a 24-row screen
-    // so the flow folds the card before
-    // triaging: the promote coordinates come from the folded layout.
-    let promote = rect_of(&preview, Widget::signal_promote(0));
+    // The inspector stays open while the stage scrolls to its signal inbox.
+    let tab = rect_of(&preview, Widget::TabRoadmap.id());
+    let mut triage = preview.clone();
+    update(&mut triage, pixel_mode());
+    update(
+        &mut triage,
+        Msg::Key(magistr_cockpit::input::KeyEvent::new(
+            magistr_cockpit::input::KeyCode::End,
+        )),
+    );
+    let promote = rect_of(&triage, Widget::signal_promote(0));
     let script = Script::new()
         .startup_replies(MS(0))
         .click(MS(300), row.x, row.y)
         .click(MS(500), start.x + 1, start.y)
-        .click(MS(700), row.x, row.y)
-        .click(MS(900), promote.x + 1, promote.y)
+        .click(MS(700), tab.x, tab.y)
+        .text(MS(800), "\x1b[F")
+        .click(MS(1000), promote.x + 1, promote.y)
         .text(MS(1200), "\x04");
     let port = FakeEnginePort::new()
         .with_chunk(magistr_cockpit::harness::fixtures::chunk_from(ui))
@@ -836,10 +845,6 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
     assert!(
         model.roadmap().signals().is_empty(),
         "the promoted signal left the inbox"
-    );
-    eprintln!(
-        "DBG250\n{}",
-        screen_before(&capture, deliveries.instants()[0] + MS(250))
     );
     // The started chunk stood in its section before the quit.
     let quit = *deliveries.instants().last().expect("the quit");

@@ -292,8 +292,8 @@ async fn an_idle_cockpit_paints_nothing() {
 async fn an_idle_roadmap_tab_paints_nothing_while_its_glow_holds() {
     let (model, capture) = run(Script::new()
         .startup_replies(MS(0))
-        // Tab from Turn past Changes and Trace to the tech-tree.
-        .text(MS(30), "\t\t\t")
+        // Ctrl-Tab from Turn past Changes and Trace to the tech-tree.
+        .text(MS(30), "\x1b[9;5u\x1b[9;5u\x1b[9;5u")
         .text(MS(1030), "\x15\x04"))
     .await;
     assert_eq!(

@@ -6,7 +6,7 @@ expression: screen
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
-│no objective yet          │ │reasoning  20 steps  [✱ Checkpoint]              │
+│no objective yet          │ │reasoning  20 steps                [✱ Checkpoint]│
 │roadmap 0/0 done          │ │▸  1  step 1                                     │
 │signals 0                 │ │▸  2  step 2                                     │
 │                          │ │▸  3  step 3                                     │
@@ -15,14 +15,14 @@ Research▸Plan▸Execute▸Verify
 │                          │ │▸  6  step 6                                     │
 │                          │ │▸  7  step 7                                     │
 │                          │ │▸  8  step 8                                     │
-│                          │ │▸  9  step 9                                     │
-│                          │ │▸ 10  step 10                                    │
-│                          │ │▸ 11  step 11                                    │
-│                          │ │▸ 12  step 12                                    │
-│                          │ │▸ 13  step 13                                    │
-│                          │ │▸ 14  step 14                                    │
-│                          │ │▸ 15  step 15                                    │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
+│                          │ │                                                 │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────
 ›
- ↑↓  select   enter  detail   ctrl-d  quit
+ ↑↓  select   enter  detail   tab / shift-tab  switch pane

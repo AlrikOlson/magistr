@@ -93,7 +93,12 @@ fn shots_on(
     let golden = screens();
     let mut failures = Vec::new();
     for (mode, theme) in [("mocha", ThemeMode::Dark), ("latte", ThemeMode::Light)] {
-        for (cols, rows) in [(80, 24), (120, 40)] {
+        let sizes: &[(u16, u16)] = if surface.starts_with("inspector-") {
+            &[(80, 24), (100, 30), (120, 40), (132, 42)]
+        } else {
+            &[(80, 24), (120, 40)]
+        };
+        for &(cols, rows) in sizes {
             let mut model = make(Size::new(cols, rows)).with_theme(Theme::forced(theme));
             if settle {
                 Scenes::settle(&mut model);
@@ -111,6 +116,42 @@ fn shots_on(
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+fn inspected(mut model: Model, target: magistr_cockpit::WidgetId) -> Model {
+    use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(target),
+        },
+    );
+    update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+    model
+}
+
+#[test]
+fn shot_inspector_objects() {
+    use magistr_cockpit::cockpit::Widget;
+    use magistr_tui::screenshot::Profile;
+    type Scene = (&'static str, fn(Size) -> Model);
+    let scenes: [Scene; 3] = [
+        ("inspector-chunk", |size| {
+            inspected(Scenes::roadmapped(size), Widget::roadmap_row(1))
+        }),
+        ("inspector-step", |size| {
+            inspected(Scenes::traced(size), Widget::trace_row(0))
+        }),
+        ("inspector-change", |size| {
+            inspected(Scenes::changed(size), Widget::change_row(0))
+        }),
+    ];
+    for (name, make) in scenes {
+        for profile in [Profile::Cells, Profile::Kitty] {
+            shots_on(name, make, profile, true);
+        }
+    }
 }
 
 #[test]
@@ -344,7 +385,10 @@ fn rail_gliding() -> Model {
 /// the pulse at rest.
 fn tab_pulsing() -> Model {
     let mut m = Model::new(Size::new(80, 24)).with_theme(Theme::forced(ThemeMode::Dark));
-    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Tab)));
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(magistr_cockpit::input::Modifiers::CTRL)),
+    );
     m
 }
 

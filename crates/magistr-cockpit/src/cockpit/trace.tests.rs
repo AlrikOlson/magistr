@@ -269,18 +269,17 @@ fn the_body_counts_every_row_the_tab_paints() {
         "with pixels the graph block sits under the heading"
     );
 
-    // Selecting adds the card: its rows at the width the body is asked
-    // for — the same rows the view paints.
+    // Selection and disclosure leave the compact list unchanged.
     trace.toggle(0);
     let card = trace.card_rows(80, false).len();
     assert!(
         card >= 5,
         "blank, title, meta, buttons, blank at least: {card}"
     );
-    assert_eq!(trace.body_rows(80), 2 + card);
+    assert_eq!(trace.body_rows(80), 2);
     // Every field whole is never fewer rows than the brief cut.
     trace.toggle_detail();
-    assert!(trace.body_rows(80) >= 2 + card);
+    assert!(trace.body_rows(80) == 2);
     // A narrower stage wraps to more rows, never fewer.
     assert!(trace.body_rows(40) >= trace.body_rows(80));
     trace.toggle_detail();

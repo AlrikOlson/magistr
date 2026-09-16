@@ -1,44 +1,44 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen(&m)
 ---
 ▲ magistr  ▘ streaming                                                                                             00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
-│no objective yet          │ │▎ Renaming the helper.                                                                   │
-│roadmap 0/0 done          │ │▎ ✓ edit   src/main.rs · +1 −1                                                           │
-│signals 0                 │ │▎   [Open]  [Undo]                                                                       │
-│                          │ │▎   @@ -1,4 +1,4 @@                                                                      │
-│                          │ │▎    fn main() {                                                                         │
-│                          │ │▎   -    old_helper();                                                                   │
-│                          │ │▎   +    new_helper();                                                                   │
-│                          │ │▎        keep();                                                                         │
-│                          │ │▎    }                                                                                   │
-│                          │ │▎ Done.                                                                                  │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
+│no objective yet          │ │▎ Renaming the helper.                             │  │                                  │
+│roadmap 0/0 done          │ │▎ ✓ edit   src/main.rs · +1 −1                     │  │                                  │
+│signals 0                 │ │▎   [Open]  [Undo]                                 │  │                                  │
+│                          │ │▎   @@ -1,4 +1,4 @@                                │  │                                  │
+│                          │ │▎    fn main() {                                   │  │                                  │
+│                          │ │▎   -    old_helper();                             │  │                                  │
+│                          │ │▎   +    new_helper();                             │  │                                  │
+│                          │ │▎        keep();                                   │  │                                  │
+│                          │ │▎    }                                             │  │                                  │
+│                          │ │▎ Done.                                            │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
  ctrl-c  cancel   ctrl-d  quit

@@ -41,6 +41,8 @@ pub fn open_chunk(model: &mut Model, id: &str) -> bool {
         return false;
     }
     if !model.surface().is_native() {
+        model.inspect(super::Selected::Chunk(id.to_owned()));
+        model.pane = super::Pane::Stage;
         model.show(StageTab::Roadmap);
         return true;
     }

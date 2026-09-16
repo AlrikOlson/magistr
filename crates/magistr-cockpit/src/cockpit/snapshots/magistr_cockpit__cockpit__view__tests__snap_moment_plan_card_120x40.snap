@@ -1,26 +1,26 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: "screen(&plan_ask(Size::new(120, 40)))"
 ---
 ▲ magistr  ▘ streaming                                                                                             00:01
 Research▸Plan▸Execute▸Verify
-╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                                                      │
-│no objective yet          │ │▎ I should read the roadmap chunk first, then plan.                                      │
-│roadmap 0/0 done          │ │▎ implement the turn stage                                                               │
-│signals 0                 │ │▎ Plan                                                                                   │
-│                          │ │▎ First, read the file and record a think step. The wrap keeps every row inside the stage│
-│                          │ │▎ whatever the terminal width happens to be.                                             │
-│                          │ │▎                                                                                        │
-│                          │ │▎ • one item                                                                             │
-│                          │ │▎ • a second item long enough to wrap onto a continuation row at eighty columns          │
-│                          │ │▎ 1. numbered                                                                            │
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
+│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
+│no objective yet          │ │▎ I should read the roadmap chunk first, then plan.│  │                                  │
+│roadmap 0/0 done          │ │▎ implement the turn stage                         │  │                                  │
+│signals 0                 │ │▎ Plan                                             │  │                                  │
+│                          │ │▎ First, read the file and record a think step. The│  │                                  │
+│                          │ │▎ wrap keeps every row inside the stage whatever   │  │                                  │
+│                          │ │▎ the terminal width happens to be.                │  │                                  │
+│                          │ │▎                                                  │  │                                  │
+│                          │ │▎ • one item                                       │  │                                  │
+│                          │ │▎ • a second item long enough to wrap onto a       │  │                                  │
 │                          │ ╭────────────────────────────────────────────────────────────╮                            │
-│                          │ │                                                            │────────────────────────────│
+│                          │ │                                                            │                            │
 │                          │ │ ⚑ PLAN · APPROVAL REQUIRED           Checkpoint cp-1 saved │                            │
 │                          │ │                                                            │                            │
 │                          │ │ Re-bless 12 golden screenshots                             │                            │
-│                          │ │ 1. Render the 6 surfaces in both themes                    │────────────────────────────│
+│                          │ │ 1. Render the 6 surfaces in both themes                    │                            │
 │                          │ │ 2. Compare with goldens. Only status-bar rows may change   │                            │
 │                          │ │ 3. Update matching goldens. Reject all others              │                            │
 │                          │ │                                                            │                            │
@@ -29,14 +29,14 @@ Research▸Plan▸Execute▸Verify
 │                          │ │ › Add a condition. Example: allow, stop if other rows cha… │                            │
 │                          │ │                                                            │                            │
 │                          │ ╰────────────────────────────────────────────────────────────╯                            │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-│                          │ │                                                                                         │
-╰──────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ╭─ needs you ────────────────────────────────────────────────────────────────────────────────────────────────────── 1 ─╮
 │⚠ Re-bless 12 golden screenshots needs permission · cp-1 saved                                                        │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
