@@ -20,6 +20,7 @@ impl FlightConversation {
         if geometry.height() == 0 {
             return s.prose("Send a message to begin. Your recorded work is available in Records.");
         }
+        let layout = model.flight_layout();
         let top = model.top_row();
         let offset = model.conversation_top() - geometry.offset(top) as f32;
         let bottom = model.conversation_top() + model.conversation_height() as f32;
@@ -34,12 +35,19 @@ impl FlightConversation {
                     .skip(top)
                     .filter(|row| row.height > 0)
                     .take_while(|row| (row.top as f32) < bottom)
-                    .map(|row| Self::row(model, pen, &s, row, row.source - top)),
+                    .map(|row| Self::row(model, pen, &s, &layout, row, row.source - top)),
             )
     }
 
-    fn row(model: &Model, pen: &Pen, s: &S, row: &ConversationRow, visible: usize) -> Node {
-        let compact = model.flight_layout().conversation_height < 380.0;
+    fn row(
+        model: &Model,
+        pen: &Pen,
+        s: &S,
+        layout: &super::FlightLayout,
+        row: &ConversationRow,
+        visible: usize,
+    ) -> Node {
+        let compact = layout.conversation_height < 380.0;
         let source = &model.turn().rows()[row.source];
         let line = &model.turn().lines()[row.line];
         let mut node = Node::column()
@@ -62,7 +70,7 @@ impl FlightConversation {
         }
         let body_height = row.height - row.before - row.after;
         let content = if row.card_head {
-            Self::card(model, s, line, body_height)
+            Self::card(model, s, layout, line, body_height)
         } else {
             let mut content = match source.kind {
                 RowKind::EditButtons => Self::edit_actions(s, line, visible),
@@ -169,14 +177,20 @@ impl FlightConversation {
         controls
     }
 
-    fn card(model: &Model, s: &S, line: &crate::turn::Line, height: usize) -> Node {
-        let compact = model.flight_layout().conversation_height < 380.0;
+    fn card(
+        model: &Model,
+        s: &S,
+        layout: &super::FlightLayout,
+        line: &crate::turn::Line,
+        height: usize,
+    ) -> Node {
+        let compact = layout.conversation_height < 380.0;
         let mut card =
             ConversationCard::of(model.turn(), line).expect("a measured card has a source record");
         if card.running && model.turn_state() != super::TurnState::Streaming {
             card.status = "No result reported".into();
         }
-        let width = (model.flight_layout().left_width - 42.0).max(1.0);
+        let width = (layout.left_width - 42.0).max(1.0);
         let mut face = Typography::default();
         face.set_cell(model.cell_size());
         let (title_height, detail_height) = card.heights(&face, width);

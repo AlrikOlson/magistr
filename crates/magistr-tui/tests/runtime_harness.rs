@@ -417,7 +417,23 @@ async fn graph_points_and_latest_use_real_terminal_actions_with_sparse_decisions
         })),
     );
     update(&mut base, Msg::Paste("Keep this draft".into()));
+    let closed =
+        layout(&base, &FrameClock::new(0, Duration::ZERO), Profile::Kitty).expect("closed layout");
+    let toggle = closed
+        .px(Widget::ReasoningToggle.id())
+        .expect("Show reasoning");
+    let toggle = (
+        (toggle.x + toggle.width / 2.0) as u16,
+        (toggle.y + toggle.height / 2.0) as u16,
+    );
     let mut selected = base.clone();
+    update(
+        &mut selected,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::ReasoningToggle.id()),
+        },
+    );
     update(
         &mut selected,
         Msg::Mouse {
@@ -455,7 +471,8 @@ async fn graph_points_and_latest_use_real_terminal_actions_with_sparse_decisions
                 MS(0),
                 b"\x1b_Gi=31;OK\x1b\\\x1b[6;20;10t\x1b[?1016;2$y\x1b[?62;4c".as_slice(),
             )
-            .click(MS(100), point.0, point.1);
+            .click(MS(60), toggle.0, toggle.1)
+            .click(MS(140), point.0, point.1);
         if return_latest {
             script = script.click(MS(360), latest.0, latest.1);
         }
@@ -769,7 +786,23 @@ async fn an_idle_roadmap_tab_paints_nothing_while_its_glow_holds() {
     );
     // The first frame, the tab switches, and the transition they started
     // — then a whole quiet second with the glow simply held where it was.
-    assert!(model.frames() <= 8, "{} frames", model.frames());
+    let transition = u128::from(magistr_cockpit::cockpit::Motion::TRANSITION_STEPS)
+        * Model::TICK_PERIOD.as_millis();
+    let budget =
+        3 + transition.div_ceil(magistr_tui::runtime::Tier::Interactive.period().as_millis());
+    assert!(
+        u128::from(model.frames()) <= budget,
+        "{} frames",
+        model.frames()
+    );
+    let writes = capture.writes();
+    let start = writes[0].0;
+    assert!(
+        !writes
+            .iter()
+            .any(|(at, _)| (start + MS(500)..start + MS(1000)).contains(at)),
+        "the settled roadmap produces no writes"
+    );
     assert!(
         model.ticks() <= magistr_cockpit::cockpit::Motion::TRANSITION_STEPS + 1,
         "{} steps: the tab's own pulse and nothing more",
@@ -813,6 +846,119 @@ async fn a_spinning_cockpit_paints_at_the_rate_the_core_asked_for() {
         model.ticks()
     );
     assert_eq!(capture.count(BSU) as u64, model.frames());
+}
+
+/// Real wheel bytes must produce intermediate pixel frames between the model's
+/// 60ms ticks. Run in release so debug rasterization cannot mask the cadence.
+#[tokio::test]
+#[ignore = "release-only pixel scrolling and idle budget"]
+#[allow(
+    clippy::assertions_on_constants,
+    reason = "this ignored timing test must reject an explicit debug-mode run"
+)]
+async fn pixel_scroll_samples_between_ticks_and_stops_after_settling() {
+    use magistr_cockpit::agent::{AgentEvent, TurnEnd};
+    use magistr_cockpit::theme::{MotionMode, Theme};
+    assert!(!cfg!(debug_assertions), "run with --release");
+    for (size, motion) in [
+        (Size::new(144, 50), MotionMode::Full),
+        (Size::new(128, 40), MotionMode::Full),
+        (Size::new(128, 40), MotionMode::Reduced),
+    ] {
+        let mut model = Model::new(size).with_theme(Theme::default().with_motion(motion));
+        let prose = (0..100)
+            .map(|n| {
+                format!("Harbor delivery {n}: Keep each customer's retry budget separate.\n\n")
+            })
+            .collect::<String>();
+        update(&mut model, Msg::Agent(AgentEvent::Text(prose)));
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)),
+        );
+        let terminal = FakeTerminal::new(
+            size,
+            Script::new()
+                .startup_replies(MS(0))
+                .scroll_up(MS(800), 20, 10)
+                .scroll_up(MS(840), 20, 10)
+                .scroll_up(MS(1500), 20, 10)
+                .close(MS(2200)),
+        );
+        let capture = terminal.capture();
+        let model = Runtime::new(terminal, options())
+            .run(model)
+            .await
+            .expect("scroll");
+        assert!(
+            !model.viewport().is_following(),
+            "wheel reached the conversation"
+        );
+        let writes = capture.writes();
+        let started = writes[0].0;
+        let bytes = capture.bytes();
+        let mut offset = 0;
+        let mut scroll_frames = Vec::new();
+        let mut restarted_frames = Vec::new();
+        let mut idle_uploads = 0;
+        for (at, len) in writes {
+            let frame = &bytes[offset..offset + len];
+            offset += len;
+            let uploads = frame.windows(6).any(|part| part == b"\x1b_Ga=t");
+            if uploads && (started + MS(800)..started + MS(1000)).contains(&at) {
+                scroll_frames.push(at);
+            }
+            if uploads && (started + MS(1500)..started + MS(1700)).contains(&at) {
+                restarted_frames.push(at);
+            }
+            if uploads
+                && ((started + MS(1200)..started + MS(1400)).contains(&at)
+                    || (started + MS(1850)..started + MS(2100)).contains(&at))
+            {
+                idle_uploads += 1;
+            }
+        }
+        assert_eq!(idle_uploads, 0, "settled scroll uploads nothing");
+        assert_eq!(
+            model.now().fract(),
+            0.0,
+            "a finished gesture leaves a whole model tick"
+        );
+        if motion.is_full() {
+            assert!(
+                restarted_frames.len() >= 5,
+                "a later gesture also samples smoothly"
+            );
+            assert!(
+                scroll_frames.len() >= 5,
+                "intermediate positions: {scroll_frames:?}"
+            );
+            let mut gaps = scroll_frames
+                .windows(2)
+                .map(|pair| pair[1].duration_since(pair[0]))
+                .collect::<Vec<_>>();
+            gaps.sort();
+            let median = gaps[gaps.len() / 2];
+            eprintln!(
+                "{}×{} scroll: {} changed frames, median gap {median:?}",
+                size.cols * 10,
+                size.rows * 20,
+                scroll_frames.len()
+            );
+            assert!(
+                median < MS(30),
+                "scroll remains above 33 changed frames/s: {median:?}"
+            );
+        } else {
+            assert_eq!(
+                scroll_frames.len(),
+                2,
+                "reduced motion jumps once for each wheel event"
+            );
+            assert_eq!(restarted_frames.len(), 1);
+            assert_eq!(model.ticks(), 0);
+        }
+    }
 }
 
 /// The screen after the first `count` writes.
@@ -928,11 +1074,24 @@ async fn the_tick_stops_with_the_turn_and_the_quiet_second_after_is_free() {
     // stops asking for one — and the quiet second after it adds none,
     // which is what this test is really here to pin.
     assert!(model.ticks() <= 9, "{} steps", model.ticks());
-    // The first frame, the delta, those steps, the turn end — and then
-    // a whole second of nothing. The tick's period is fixed and the
-    // sweep is a fixed number of steps, so this is a ceiling a slower
-    // machine only comes in under.
-    assert!(model.frames() <= 11, "{} frames", model.frames());
+    // Pixel frames sample between the same bounded model ticks. After the
+    // final sweep the runtime must park completely, including empty frames.
+    let budget = 3
+        + (9 * Model::TICK_PERIOD.as_millis())
+            .div_ceil(magistr_tui::runtime::Tier::Interactive.period().as_millis());
+    assert!(
+        u128::from(model.frames()) <= budget,
+        "{} frames",
+        model.frames()
+    );
+    let writes = capture.writes();
+    let start = writes[0].0;
+    assert!(
+        !writes
+            .iter()
+            .any(|(at, _)| (start + MS(800)..start + MS(1150)).contains(at)),
+        "the ended turn produces no idle writes"
+    );
     assert_eq!(capture.count(BSU) as u64, model.frames());
 }
 

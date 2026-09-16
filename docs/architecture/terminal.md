@@ -59,7 +59,9 @@ Purity and crate-boundary tests enforce these restrictions.
 
 Turn text retains both source lines and wrapped rows. Streaming updates rewrap
 the changed line; resizing recomputes wrapping. Flat mode can therefore read the
-same source text without reconstructing it from painted cells.
+same source text without reconstructing it from painted cells. Conversation
+geometry is invalidated by content, card metadata, wrapping and font changes;
+unchanged input, hover and frame updates reuse it instead of scanning history.
 
 ## Runtime and effects
 
@@ -102,7 +104,11 @@ physical positions directly. Plain terminals retain the cell damage renderer
 and screen-reader sessions retain flat output.
 
 Graphics terminals keep conversation and recorded reasoning together. Conversation
-stays in the main left area, with the reasoning graph and recorded questions below.
+stays in the main left area. Reasoning starts as a slim heading with a step count;
+Show opens the graph and recorded questions below, and Hide returns that space to
+the conversation. Tab moves focus to Reasoning, where Enter toggles it without
+changing the selected record, message draft, or reading position. New records do
+not open it automatically.
 The roadmap neighborhood sits upper right and the selected step or work item
 below it. The complete message area spans the bottom. The shared `FlightLayout`
 allocates physical space for the view, conversation wrapping, and scrolling;
@@ -145,9 +151,12 @@ sorting; selection survives filtering and sorting. At small sizes the list uses
 the available space and selected details open within the same page. Plain terminals
 keep their graph/table navigation and text fallbacks.
 
-Motion is a function of model ticks. The model reports its active animations;
-an empty set removes the timer. Reduced motion and decision screens suppress
-movement. A screen has one leading animation, with new information taking
+Motion is a function of model ticks. Graphics terminals sample the fractional
+position between 60ms model ticks on a 16ms frame schedule while motion is active;
+this preserves animation durations while scrolling draws intermediate positions.
+Plain terminals keep their existing tick cadence. The model reports its active
+animations; an empty set removes the timer. Reduced motion and screens awaiting
+a response suppress movement. A screen has one leading animation, with new information taking
 priority over ambient effects. The checked
 [motion registry](../reference/cockpit-modules.md#motion-registry) lists the names, meanings,
 and day/night forms used by the code.

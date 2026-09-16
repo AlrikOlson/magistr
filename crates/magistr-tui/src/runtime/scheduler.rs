@@ -119,6 +119,17 @@ impl FrameScheduler {
         true
     }
 
+    /// Position between the last model tick and the next one. Pixel surfaces
+    /// sample this without advancing the model's tick-based durations.
+    #[must_use]
+    pub fn phase(&self, now: Instant) -> f32 {
+        let (Some(period), Some(due)) = (self.animate, self.next_tick) else {
+            return 0.0;
+        };
+        let remaining = due.saturating_duration_since(now).as_secs_f32();
+        (1.0 - remaining / period.as_secs_f32()).clamp(0.0, 1.0)
+    }
+
     /// How long the runtime's interval waits between firings at `now`:
     /// the tier's frame budget, or the animation's period when that is
     /// shorter.

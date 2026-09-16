@@ -45,6 +45,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
         let mut model = model(size, &data, ThemeMode::Dark)?;
+        capture(
+            &model,
+            &output,
+            &format!("collapsed-{}", size.cols * 10),
+            &mut manifest,
+        )?;
+        click(&mut model, Widget::ReasoningToggle.id())?;
         for number in 1..=12 {
             let index = model
                 .trace()
@@ -149,6 +156,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => {}
         }
         capture(&model, &output, name, &mut manifest)?;
+        if matches!(
+            name,
+            "light" | "small" | "narrow" | "large-font" | "large-trace" | "long-content"
+        ) {
+            click(&mut model, Widget::ReasoningToggle.id())?;
+            capture(&model, &output, &format!("{name}-expanded"), &mut manifest)?;
+        }
     }
     for (name, size, large_text) in [
         ("commands", Size::new(144, 50), false),
@@ -195,6 +209,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             "linked-work" => {
+                click(&mut model, Widget::ReasoningToggle.id())?;
                 click(&mut model, Widget::LatestDecision.id())?;
                 click(&mut model, Widget::LinkedWork.id())?;
                 if !matches!(model.selected(), Some(Selected::Task(_))) {

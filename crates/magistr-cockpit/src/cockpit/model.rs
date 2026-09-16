@@ -186,6 +186,7 @@ pub struct Model {
     pub(super) selected: Option<Selected>,
     pub(super) pane: Pane,
     pub(super) inspector_open: bool,
+    pub(super) reasoning_expanded: bool,
     pub(super) inspector_scroll: usize,
     /// Where the window's camera is — the native
     /// surface's own navigation, never derived from [`Model::tab`]: a
@@ -197,9 +198,9 @@ pub struct Model {
     pub(super) ticks: u64,
     /// How far into the current tick the frame being sampled is,
     /// `0.0..1.0`. Only a renderer that paints faster than the tick ever
-    /// sets it (see [`Msg::Phase`](super::Msg::Phase)); a terminal
-    /// leaves it at zero, which is what makes [`Model::now`] there
-    /// exactly `ticks` and every curve the curve it always was.
+    /// sets it (see [`Msg::Phase`](super::Msg::Phase)); graphics
+    /// terminals sample it between ticks too. Plain terminals leave it
+    /// at zero so their existing cell-motion timing stays unchanged.
     pub(super) tick_phase: f32,
     pub(super) inputs: u64,
     /// The tick the cockpit last saw a key, a mouse report or a paste
@@ -271,6 +272,12 @@ impl Model {
         self.pixels && !self.surface.is_native()
     }
 
+    /// Whether recorded reasoning is open beneath the conversation.
+    #[must_use]
+    pub const fn reasoning_expanded(&self) -> bool {
+        self.reasoning_expanded
+    }
+
     #[must_use]
     pub fn flight_layout(&self) -> super::FlightLayout {
         super::FlightLayout::of(self)
@@ -279,11 +286,12 @@ impl Model {
     /// Keep row storage measured by the same fonts and allocation as the pixel painter.
     pub(super) fn sync_flight_wrap(&mut self) {
         let cell = self.cell_size();
-        let width = self
-            .uses_flight_recorder()
-            .then(|| (self.flight_layout().left_width - 42.0).max(1.0).floor() as u32);
+        let layout = self.uses_flight_recorder().then(|| self.flight_layout());
+        let width = layout
+            .as_ref()
+            .map(|layout| (layout.left_width - 42.0).max(1.0).floor() as u32);
         self.turn.set_conversation_compact(
-            self.uses_flight_recorder() && self.flight_layout().conversation_height < 380.0,
+            layout.is_some_and(|layout| layout.conversation_height < 380.0),
         );
         self.turn.set_pixel_wrap(width, cell);
     }
@@ -441,6 +449,7 @@ impl Model {
             selected: None,
             pane: Pane::Stage,
             inspector_open: false,
+            reasoning_expanded: false,
             inspector_scroll: 0,
             place: Place::Session,
             permissions_seen: 0,
@@ -2726,11 +2735,10 @@ impl Model {
     /// [`Model::ticks`], which is the whole of "re-timed for a display
     /// rather than a tick": the tick still decides *when a fold's stamp
     /// is taken* and how long a transient lasts, and the phase decides
-    /// where between two ticks the frame being drawn sits. A terminal
-    /// paints once per tick and never sets a phase, so `now()` there is
-    /// `ticks` exactly and every golden is the golden it was; a window
-    /// paints at its display's refresh rate and folds
-    /// [`Msg::Phase`](super::Msg::Phase) before each one.
+    /// where between two ticks the frame being drawn sits. Graphics
+    /// terminals and windows fold [`Msg::Phase`](super::Msg::Phase)
+    /// between ticks for smooth pixel motion. Plain terminals leave
+    /// the phase at zero and retain their existing cell-motion timing.
     ///
     /// Deliberately *not* what [`Model::spin_step`] reads: a spinner is
     /// a sequence of four glyphs and a cell has no half frame, so

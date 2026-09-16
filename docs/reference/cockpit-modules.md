@@ -49,6 +49,8 @@ See [terminal architecture](../architecture/terminal.md) for the data flow and
 | nothing else in the process can write to the screen mid-session | `magistr-tui/tests/terminal_integrity.rs` |
 | a full 120×40 frame stays under 1 ms at p99 (release, `--ignored`) | `magistr-tui/tests/perf.rs` |
 | the pixel layer's per-frame byte budget (release, `--ignored`) | `magistr-tui/tests/pixel_perf.rs` |
+| pixel scrolling samples between model ticks, then stops; reduced motion jumps directly (release, `--ignored`) | `magistr-tui/tests/runtime_harness.rs` |
+| text measurement and glyph blending preserve pixels while avoiding repeated work | `magistr-cockpit/src/pixel/typography.tests.rs`, `magistr-tui/src/render/pixel_view.tests.rs` |
 | this page names every module and every harness | `magistr-tui/tests/architecture_doc.rs` |
 
 ## Module index

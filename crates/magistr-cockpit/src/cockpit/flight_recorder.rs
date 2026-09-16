@@ -11,10 +11,14 @@ use crate::render::{Attrs, Color};
 pub struct FlightRecorder;
 
 impl FlightRecorder {
-    /// The full recorder height. Narrow windows show one question at a time.
+    /// The chosen recorder height. Closed reasoning keeps only its heading.
     #[must_use]
     pub fn height(model: &Model, _width_px: f32) -> f32 {
-        280.0_f32.max(f32::from(model.cell_size().height) * 12.0 + 40.0)
+        if model.reasoning_expanded() {
+            280.0_f32.max(f32::from(model.cell_size().height) * 12.0 + 40.0)
+        } else {
+            (f32::from(model.cell_size().height) + 14.0).max(34.0) + 2.0
+        }
     }
 
     #[must_use]
@@ -30,10 +34,15 @@ impl FlightRecorder {
         let graph_height = Self::graph_height(model, graph_width);
         let line = f32::from(model.cell_size().height);
         let trace = model.trace();
-        let indices = Self::step_indices(model, graph_width);
+        let expanded = model.reasoning_expanded();
+        let indices = if expanded {
+            Self::step_indices(model, graph_width)
+        } else {
+            Vec::new()
+        };
         let selected = selected_number(model);
         let mut aside = Node::row().align_items(Align::Center);
-        if indices.len() < trace.steps().len() {
+        if expanded && indices.len() < trace.steps().len() {
             aside = aside
                 .child(
                     style
@@ -46,7 +55,7 @@ impl FlightRecorder {
                         .id(Widget::TraceNext.id()),
                 );
         }
-        if !trace.steps().is_empty() {
+        if expanded && !trace.steps().is_empty() {
             let latest = trace.steps().last().map(|s| s.number);
             aside = aside.child(
                 style
@@ -62,11 +71,25 @@ impl FlightRecorder {
                     .id(Widget::LatestDecision.id()),
             );
         }
+        let toggle = Widget::ReasoningToggle.id();
+        aside = aside.child(
+            style
+                .chip(
+                    if expanded { "Hide" } else { "Show" },
+                    style.accent,
+                    if model.hovered() == Some(toggle) || model.pane() == super::Pane::Rail {
+                        style.raised
+                    } else {
+                        style.header
+                    },
+                )
+                .id(toggle),
+        );
         let mut title = Node::row()
             .align_items(Align::Center)
             .child(style.heading("Reasoning"));
-        if width_px >= 650.0 {
-            let count = trace.steps().len();
+        let count = trace.steps().len();
+        if expanded && width_px >= 650.0 {
             let questions = trace.branch_count();
             title = title.child(FlightStyle::hspace(16.0)).child(style.label(
                 format!(
@@ -80,6 +103,11 @@ impl FlightRecorder {
                 ),
                 style.muted,
             ));
+        } else {
+            title = title.child(FlightStyle::hspace(12.0)).child(style.label(
+                format!("{count} {}", if count == 1 { "step" } else { "steps" }),
+                style.muted,
+            ));
         }
         let header = style
             .ground(
@@ -88,6 +116,22 @@ impl FlightRecorder {
             )
             .height(Length::Px((line + 14.0).max(34.0)))
             .shrink(0.0);
+        if !expanded {
+            return style
+                .outlined(
+                    header,
+                    style.header,
+                    if model.pane() == super::Pane::Rail {
+                        style.accent
+                    } else {
+                        style.line
+                    },
+                )
+                .id(Widget::Rail.id())
+                .height(Length::Px(height_px))
+                .shrink(0.0)
+                .viewport();
+        }
         let top = if height_px >= 260.0 { 21.0 } else { 8.0 };
         let mut body = Node::column()
             .min_height(Length::Px(0.0))
@@ -123,6 +167,7 @@ impl FlightRecorder {
                     style.line
                 },
             )
+            .id(Widget::Rail.id())
             .height(Length::Px(height_px))
             .shrink(0.0)
             .viewport()

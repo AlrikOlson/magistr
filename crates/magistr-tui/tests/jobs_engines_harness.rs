@@ -90,10 +90,13 @@ async fn a_hundred_agent_deltas_in_ten_milliseconds_cost_at_most_two_frames() {
     );
     let frames = model.frames();
     assert!(frames >= 1, "the first frame is painted");
+    let fade = u128::from(magistr_cockpit::cockpit::Motion::ARRIVAL_STEPS)
+        * Model::TICK_PERIOD.as_millis();
+    let frame_period = magistr_tui::runtime::Tier::Interactive.period().as_millis();
+    let budget = 3 + fade.div_ceil(frame_period);
     assert!(
-        frames <= 6,
-        "{frames} frames: the initial one, at most two for the burst, and \
-         the three the arrival fade takes to settle (tui2-j1)"
+        u128::from(frames) <= budget,
+        "{frames} frames: the initial frame, coalesced burst and bounded pixel fade ({budget})"
     );
     assert_eq!(capture.count(BSU) as u64, frames);
 }
@@ -277,9 +280,14 @@ async fn a_think_step_updates_the_recorder_without_replacing_the_conversation() 
         magistr_tui::screenshot::Profile::Kitty,
     )
     .unwrap();
+    assert!(
+        !model.reasoning_expanded(),
+        "arrival keeps reasoning minimized"
+    );
+    assert!(layout.px(Widget::TraceGraph.id()).is_none());
     let graph = layout
-        .px(Widget::TraceGraph.id())
-        .expect("recorder stays visible");
+        .px(Widget::Rail.id())
+        .expect("reasoning heading and updated count stay visible");
     assert!(
         layout.px(Widget::Stage.id()).is_some(),
         "conversation stays visible"

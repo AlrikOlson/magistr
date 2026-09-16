@@ -36,6 +36,11 @@ pub struct Turn {
     width: u16,
     pixel_wrap: Option<PixelWrap>,
     conversation: ConversationLayout,
+    /// Source rows or card summaries changed since the last physical projection.
+    /// This is independent of `layout`: appending a tail does not move earlier rows.
+    conversation_dirty: bool,
+    #[cfg(test)]
+    conversation_rebuilds: usize,
     conversation_compact: bool,
     /// Columns a MONO line is cut or broken to, when the surface holds
     /// its mono content to a narrower measure than its prose — see
@@ -85,6 +90,9 @@ impl Turn {
             width,
             pixel_wrap: None,
             conversation: ConversationLayout::new(),
+            conversation_dirty: false,
+            #[cfg(test)]
+            conversation_rebuilds: 0,
             conversation_compact: false,
             mono: None,
             fence: None,
@@ -111,9 +119,16 @@ impl Turn {
             cell,
             inline_user: self.conversation_compact,
         });
+        if self.pixel_wrap == policy && !self.conversation_dirty {
+            return;
+        }
         if self.pixel_wrap != policy {
             self.pixel_wrap = policy;
             self.rewrap(self.width);
+        }
+        #[cfg(test)]
+        if policy.is_some() {
+            self.conversation_rebuilds += 1;
         }
         let next = policy.map_or_else(ConversationLayout::new, |policy| {
             ConversationLayout::of(self, policy.width as f32, cell, self.conversation_compact)
@@ -122,6 +137,7 @@ impl Turn {
             self.conversation = next;
             self.layout = self.layout.wrapping_add(1);
         }
+        self.conversation_dirty = false;
     }
 
     /// Cached physical positions, refreshed with the pixel wrap policy after each model fold.
@@ -677,6 +693,7 @@ impl Turn {
         let line = &mut self.lines[index];
         let had_pane = line.record.terminal.is_some();
         line.record.absorb(record);
+        self.conversation_dirty = true;
         if let (Some(kind), LineKind::Tool { verb, .. }) = (line.record.kind, &mut line.kind)
             && *verb != kind
         {
@@ -849,6 +866,7 @@ impl Turn {
     pub fn set_tool_title(&mut self, id: &str, title: &str) {
         if let Some(index) = self.tool_line(id) {
             self.lines[index].title = Some(title.to_owned());
+            self.conversation_dirty = true;
         }
     }
 
@@ -922,6 +940,7 @@ impl Turn {
     /// replaced in place; while it is expanded the card re-wraps, since
     /// the detail's row count can change.
     fn refresh_line(&mut self, index: usize) {
+        self.conversation_dirty = true;
         let line = &self.lines[index];
         if matches!(
             line.kind,
@@ -1000,6 +1019,7 @@ impl Turn {
     /// Wrap every line again at `width`, replaying the fence state — and
     /// each closed code line through a fresh highlighter — front to back.
     pub fn rewrap(&mut self, width: u16) {
+        self.conversation_dirty = true;
         self.width = width;
         self.rows.clear();
         self.fence = None;
@@ -1040,6 +1060,7 @@ impl Turn {
     /// note — so a prose line takes the whole re-wrap instead, fence
     /// and highlighting replayed.
     fn rewrap_line(&mut self, index: usize) {
+        self.conversation_dirty = true;
         let Some(line) = self.lines.get(index) else {
             return;
         };
@@ -1080,6 +1101,7 @@ impl Turn {
             return;
         }
         self.open = false;
+        self.conversation_dirty = true;
         let Some(index) = self.lines.len().checked_sub(1) else {
             return;
         };
@@ -1123,6 +1145,7 @@ impl Turn {
     /// Append `piece` to the open line of `voice`, or open one. The open
     /// line renders plain until it closes.
     fn append(&mut self, voice: Voice, piece: &str) {
+        self.conversation_dirty = true;
         let same_voice = self
             .lines
             .last()
@@ -1159,6 +1182,7 @@ impl Turn {
 
     /// Append one line, tagged with the tool-call content it came from.
     fn push_sourced_line(&mut self, kind: LineKind, text: &str, source: Option<(String, usize)>) {
+        self.conversation_dirty = true;
         let row_start = self.rows.len();
         let columns = self.columns_for(&kind, self.fence.is_some());
         self.rows.extend(PixelWrap::wrap(

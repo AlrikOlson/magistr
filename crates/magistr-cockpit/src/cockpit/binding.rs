@@ -104,6 +104,14 @@ impl Binding {
         KeyCode::Tab,
         Modifiers::NONE,
     );
+    /// Toggle recorded reasoning while that section has keyboard focus.
+    pub const REASONING: Self = Self::new(
+        "enter",
+        "show or hide reasoning",
+        "reasoning",
+        KeyCode::Enter,
+        Modifiers::NONE,
+    );
     /// Cycle views and return keyboard focus to the stage.
     pub const VIEWS: Self = Self::new(
         "ctrl-tab",
@@ -511,6 +519,7 @@ impl Binding {
         Self::OBJECT_DETAIL,
         Self::INSPECTOR_SCROLL,
         Self::INSPECTOR_CLOSE,
+        Self::REASONING,
         Self::FOLD,
         Self::FOLLOW,
         Self::DOCK,

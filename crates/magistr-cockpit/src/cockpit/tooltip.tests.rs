@@ -5,6 +5,7 @@ fn flight_controls_explain_the_action_in_plain_language() {
     use crate::cockpit::{HoverRole, Widget};
     for widget in [
         Widget::LatestDecision,
+        Widget::ReasoningToggle,
         Widget::TracePrevious,
         Widget::TraceNext,
         Widget::PromptFiles,
