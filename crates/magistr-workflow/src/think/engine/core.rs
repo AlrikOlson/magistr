@@ -9,7 +9,7 @@ use crate::cloud::client::CloudClient;
 use crate::think::broadcast::Broadcaster;
 use crate::think::config::{ThinkConfig, resolve_project_id};
 use crate::think::domain::{
-    Branch, BranchStatus, HistoryMetadata, NextAction, SessionEntry, ThinkHistory, ThinkStep,
+    Branch, HistoryMetadata, NextAction, SessionEntry, ThinkHistory, ThinkStep,
 };
 use crate::think::formatter::Formatter;
 use crate::think::persistence::Persistence;
@@ -237,7 +237,7 @@ impl ReasoningServer {
         let mut step_numbers: HashSet<u32> = HashSet::new();
         let mut step_to_branch: HashMap<u32, String> = HashMap::new();
         let mut tools_used_set: HashSet<String> = HashSet::new();
-        let mut branches: HashMap<String, Branch> = HashMap::new();
+        let branches = Self::restored_branches(&history);
 
         for (idx, step) in history.steps.iter().enumerate() {
             step_index.insert(step.step_number, idx);
@@ -253,26 +253,6 @@ impl ReasoningServer {
                 }
             }
         }
-        // Reconstruct branches from persisted history steps: every step with
-        // a `branch_id` belongs to that branch. We rebuild Branch entries so
-        // depth/from_step/status are recovered.
-        for step in &history.steps {
-            let (Some(bid), Some(from)) = (&step.branch_id, step.branch_from) else {
-                continue;
-            };
-            let entry = branches.entry(bid.clone()).or_insert_with(|| Branch {
-                id: bid.clone(),
-                name: step.branch_name.clone().unwrap_or_else(|| bid.clone()),
-                from_step: from,
-                steps: Vec::new(),
-                status: BranchStatus::Active,
-                created_at: step.timestamp.clone().unwrap_or_default(),
-                depth: 1,
-                merged_into: None,
-            });
-            entry.steps.push(step.clone());
-        }
-
         // Ensure metadata reflects loaded state.
         if let Some(meta) = history.metadata.as_mut() {
             meta.tools_used = Some({
@@ -525,9 +505,10 @@ impl ReasoningServer {
         if !self.persistence.enabled() {
             return;
         }
+        let snapshot = self.history_with_branches();
         match &self.active_session {
-            Some(id) => self.persistence.save_session(id, &self.history),
-            None => self.persistence.save_default(&self.history),
+            Some(id) => self.persistence.save_session(id, &snapshot),
+            None => self.persistence.save_default(&snapshot),
         }
     }
 }

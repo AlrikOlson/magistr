@@ -176,7 +176,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/flight_secondary.rs` | Settings, search, and keyboard-help overlays above the live workspace | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_shell.rs` | Production conversation and reasoning workspace | `magistr-cockpit/src/cockpit/flight_shell.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_style.rs` | Day/night colors and pixel panel, text, and spacing helpers | `magistr-cockpit/src/cockpit/flight_style.tests.rs` |
-| `magistr-cockpit/src/cockpit/investigation.rs` | Recorded question membership, outcomes, dependencies, and honest merge inference | `magistr-cockpit/src/cockpit/investigation.tests.rs` |
+| `magistr-cockpit/src/cockpit/investigation.rs` | Recorded question membership, outcomes, exact merge destinations, dependencies, and legacy merge inference | `magistr-cockpit/src/cockpit/investigation.tests.rs` |
 | `magistr-cockpit/src/cockpit/frame_clock.rs` | The only clock `view` ever sees | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/freshness.rs` | Whether the projection is current, stale after a gap or a new owner, or unavailable | `magistr-cockpit/src/cockpit/projection.tests.rs` |
 | `magistr-cockpit/src/cockpit/galaxy.rs` | Native project overview state: projects, selection, and zoom | `magistr-cockpit/src/cockpit/galaxy.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
@@ -269,7 +269,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/terminals.rs` | Terminal screen models indexed by ACP terminal ID or gate name | `magistr-cockpit/src/cockpit/terminals.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/theme_choice.rs` | Dark, light, and system theme selection | `magistr-cockpit/src/cockpit/settings.tests.rs` |
 | `magistr-cockpit/src/cockpit/tooltip.rs` | Tooltip content, timing, and placement | `magistr-cockpit/src/cockpit/tooltip.tests.rs` |
-| `magistr-cockpit/src/cockpit/trace.rs` | The reasoning model's state: the steps, the selection and its card, the recorded work, the checkpoint pane | `magistr-cockpit/src/cockpit/trace.tests.rs` |
+| `magistr-cockpit/src/cockpit/trace.rs` | Reasoning steps, persisted and live branch lifecycle, exact merge links, selection, recorded work, and checkpoints | `magistr-cockpit/src/cockpit/trace.tests.rs` |
 | `magistr-cockpit/src/cockpit/trace_card.rs` | The rows a selected step's card takes — brief or full, wrapped to the width the scroll counts | `magistr-cockpit/src/cockpit/trace_card.tests.rs` |
 | `magistr-cockpit/src/cockpit/trace_focus.rs` | A selected step's ancestors and descendants — what the graph lights | `magistr-cockpit/src/cockpit/trace_focus.tests.rs` |
 | `magistr-cockpit/src/cockpit/trace_step.rs` | One reasoning step as the think feed carries it | `magistr-cockpit/src/cockpit/trace_step.tests.rs` |

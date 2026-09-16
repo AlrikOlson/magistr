@@ -42,7 +42,7 @@ A session is one agent run against one work item. `magistr next` starts a sessio
 
 ## Recorded work
 
-While a session runs, Magistr records what was done: the objective, the tasks planned, each action taken with the files it touched, and each check with its command, exit code and duration. The reasoning behind those actions is recorded as steps, each with its purpose, thought, outcome, next action and confidence. Steps can branch and merge, depend on earlier steps, and revise them.
+While a session runs, Magistr records what was done: the objective, the tasks planned, each action taken with the files it touched, and each check with its command, exit code and duration. The agent records important findings as the work progresses: what it checked, what it learned and what happens next. When an alternative or an unanswered question needs investigation, its findings stay together so you can follow how they affected the work. Later findings can correct earlier ones. Confidence is shown only when it was recorded.
 
 Reasoning shows the questions Magistr explored along the way. Each question identifies its starting point, related steps and recorded conclusion. A rejected idea can remain part of a useful investigation. When a relationship was not recorded, Magistr leaves it unspecified. Records provides the full history of reasoning, actions, checks and changes. Commands gives access to saved sessions and checkpoints. A step can be pinned to keep it easy to find. A checkpoint saves a place in your work that you can return to later.
 

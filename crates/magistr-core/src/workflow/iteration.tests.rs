@@ -958,6 +958,7 @@ fn native_prompt_names_the_next_chunk() {
         .with_native(Some(engines));
     let prompt = il.next_prompt(&project_config()).unwrap();
     assert!(prompt.contains("guards — Chunk guards"), "{prompt}");
+    assert!(prompt.contains(magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE));
     assert!(prompt.contains("Progress: 0/1"), "{prompt}");
     assert!(!prompt.contains("Legacy item"), "{prompt}");
 }

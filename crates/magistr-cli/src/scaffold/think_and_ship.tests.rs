@@ -83,6 +83,11 @@ fn upsert_refreshes_between_markers_and_keeps_both_sides() {
     assert!(text.ends_with("<!-- /think-and-ship -->\n\n# After\n\nkept.\n"));
     assert!(!text.contains("old body"));
     assert!(text.contains("cargo nextest run"));
+    assert_eq!(
+        text.matches(magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE)
+            .count(),
+        1,
+    );
 }
 
 #[test]

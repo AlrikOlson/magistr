@@ -340,20 +340,293 @@ fn duplicate_step_number_in_persistent_session_is_auto_bumped() {
 }
 
 #[test]
-fn duplicate_step_number_is_allowed_when_revising() {
-    // A revising step legitimately reuses the original number's
-    // semantic position (via revises_step pointing to the prior step).
-    // No rejection in that path.
+fn revision_allocates_a_new_number_and_preserves_the_original_record() {
+    // A revision is a new record; revises_step links its earlier target.
     let mut s = ReasoningServer::new(quiet_config());
     let _ = s.process_step(step_n(1));
 
-    let mut revision = step_n(2);
+    let mut revision = step_n(1);
     revision.revises_step = Some(1);
     revision.revision_reason = Some("clarification".into());
-    assert!(
-        s.process_step(revision).is_ok(),
-        "revision path must not be blocked"
+    let result = s.process_step_native(revision).unwrap();
+    assert_eq!(result.step.step_number, 2);
+    assert_eq!(s.step_by_number(1).unwrap().revised_by, Some(2));
+    assert_eq!(s.history().steps.len(), 2);
+}
+
+#[test]
+fn conflicting_branch_metadata_rejects_without_mutating_records_or_revision_state() {
+    let mut server = ReasoningServer::new(quiet_config());
+    server.process_step_native(step_n(1)).unwrap();
+    let mut branch = step_n(0);
+    branch.branch_from = Some(1);
+    branch.branch_name = Some("Can retries share a limit?".into());
+    let first = server.process_step_native(branch).unwrap();
+    let id = first.step.branch_id.unwrap();
+    let before = server.history_snapshot();
+
+    for (from, name, branch_id) in [
+        (Some(2), None, id.clone()),
+        (None, Some("A different question".into()), id.clone()),
+        (None, None, "missing-question".into()),
+        (None, None, " ".into()),
+    ] {
+        let mut invalid = step_n(0);
+        invalid.branch_id = Some(branch_id);
+        invalid.branch_from = from;
+        invalid.branch_name = name;
+        invalid.revises_step = Some(1);
+        invalid.revision_reason = Some("This must not change the original.".into());
+        invalid.is_final_step = Some(true);
+        assert!(server.process_step_native(invalid).is_err());
+        assert_eq!(server.history_snapshot(), before);
+    }
+    let mut continuation = step_n(0);
+    continuation.branch_id = Some(id.clone());
+    let recorded = server.process_step_native(continuation).unwrap();
+    assert_eq!(recorded.step.step_number, 3);
+    assert_eq!(recorded.step.branch_from, Some(1));
+    assert_eq!(
+        recorded.step.branch_name.as_deref(),
+        Some("Can retries share a limit?")
     );
+    assert_eq!(server.branches()[&id].steps.len(), 2);
+    let mut nested = step_n(0);
+    nested.branch_from = Some(3);
+    let nested = server.process_step_native(nested).unwrap();
+    assert_eq!(
+        server.branches()[nested.step.branch_id.as_ref().unwrap()].depth,
+        2
+    );
+}
+
+#[test]
+fn branch_lifecycle_is_isolated_and_restored_when_switching_sessions() {
+    use magistr_workflow::think::domain::BranchStatus;
+
+    let directory = TempDir::new().unwrap();
+    let mut config = quiet_config();
+    config.features.enable_sessions = true;
+    config.persistence.enabled = true;
+    config.persistence.data_dir = directory.path().to_path_buf();
+    let mut server = ReasoningServer::new_for_project(config.clone(), "branch-sessions".into());
+    let mut initial = step_n(0);
+    initial.session_id = Some("first".into());
+    server.process_step_native(initial).unwrap();
+    let mut branch = step_n(0);
+    branch.session_id = Some("first".into());
+    branch.branch_from = Some(1);
+    branch.branch_name = Some("Do retry limits survive restart?".into());
+    let id = server
+        .process_step_native(branch)
+        .unwrap()
+        .step
+        .branch_id
+        .unwrap();
+    server.set_branch_status(&id, "abandoned", None).unwrap();
+
+    let mut other = step_n(0);
+    other.session_id = Some("second".into());
+    server.process_step_native(other).unwrap();
+    assert!(server.branches().is_empty());
+    let mut wrong_session = step_n(0);
+    wrong_session.session_id = Some("second".into());
+    wrong_session.branch_id = Some(id.clone());
+    assert!(server.process_step_native(wrong_session).is_err());
+
+    let mut back = step_n(0);
+    back.session_id = Some("first".into());
+    server.process_step_native(back.clone()).unwrap();
+    assert_eq!(server.branches()[&id].status, BranchStatus::Abandoned);
+    drop(server);
+
+    let mut reopened = ReasoningServer::new_for_project(config, "branch-sessions".into());
+    reopened.process_step_native(back).unwrap();
+    assert_eq!(reopened.branches()[&id].status, BranchStatus::Abandoned);
+    assert_eq!(
+        reopened.branches()[&id].name,
+        "Do retry limits survive restart?"
+    );
+    reopened.set_branch_status(&id, "active", None).unwrap();
+    let mut continuation = step_n(0);
+    continuation.session_id = Some("first".into());
+    continuation.branch_id = Some(id.clone());
+    reopened.process_step_native(continuation).unwrap();
+    assert_eq!(reopened.branches()[&id].steps.len(), 2);
+}
+
+#[test]
+fn a_rejected_branch_in_another_session_preserves_the_active_session_and_history() {
+    let mut config = quiet_config();
+    config.features.enable_sessions = true;
+    let mut server = ReasoningServer::new_for_project(config, "branch-rejection".into());
+    let mut initial = step_n(0);
+    initial.session_id = Some("current".into());
+    server.process_step_native(initial).unwrap();
+    let before = server.history_snapshot();
+    let before_sessions = server.sessions_snapshot();
+    let before_active = server.status_snapshot(false)["active_session"].clone();
+    for kind in 0..3 {
+        let mut invalid = step_n(0);
+        invalid.session_id = Some("other".into());
+        match kind {
+            0 => invalid.branch_id = Some("missing".into()),
+            1 => invalid.branch_from = Some(999),
+            _ => invalid.revises_step = Some(999),
+        }
+        assert!(server.process_step_native(invalid).is_err());
+        assert_eq!(server.history_snapshot(), before);
+        assert_eq!(server.sessions_snapshot(), before_sessions);
+        assert_eq!(
+            server.status_snapshot(false)["active_session"],
+            before_active
+        );
+    }
+}
+
+#[test]
+fn a_trimmed_branch_origin_does_not_end_the_investigation() {
+    use magistr_workflow::think::domain::BranchStatus;
+    let directory = TempDir::new().unwrap();
+    let mut config = quiet_config();
+    config.system.max_history_size = 3;
+    config.features.enable_sessions = false;
+    config.persistence.enabled = true;
+    config.persistence.data_dir = directory.path().to_path_buf();
+    let mut server = ReasoningServer::new_for_project(config.clone(), "trimmed-branch".into());
+    server.process_step_native(step_n(0)).unwrap();
+    let mut branch = step_n(0);
+    branch.branch_from = Some(1);
+    branch.branch_name = Some("Can retry limits be shared?".into());
+    let id = server
+        .process_step_native(branch)
+        .unwrap()
+        .step
+        .branch_id
+        .unwrap();
+    let mut continuation = step_n(0);
+    continuation.branch_id = Some(id.clone());
+    server.process_step_native(continuation.clone()).unwrap();
+    server.process_step_native(step_n(0)).unwrap();
+    assert!(
+        server
+            .history()
+            .steps
+            .iter()
+            .all(|step| step.step_number != 1)
+    );
+    assert_eq!(server.branches()[&id].steps.len(), 2);
+    let continued = server.process_step_native(continuation).unwrap();
+    assert_eq!(continued.step.step_number, 5);
+    assert_eq!(continued.step.branch_from, Some(1));
+    let mut nested = step_n(0);
+    nested.branch_from = Some(5);
+    let nested_id = server
+        .process_step_native(nested)
+        .unwrap()
+        .step
+        .branch_id
+        .unwrap();
+    assert_eq!(server.branches()[&nested_id].depth, 2);
+    server.set_branch_status(&id, "merged", Some(6)).unwrap();
+    drop(server);
+
+    let reopened = ReasoningServer::new_for_project(config, "trimmed-branch".into());
+    let branch = &reopened.branches()[&id];
+    assert_eq!(branch.status, BranchStatus::Merged);
+    assert_eq!(branch.merged_into, Some(6));
+    assert_eq!(branch.from_step, 1);
+    assert_eq!(
+        branch
+            .steps
+            .iter()
+            .map(|step| step.step_number)
+            .collect::<Vec<_>>(),
+        vec![2, 3, 5]
+    );
+}
+
+#[test]
+fn restored_branch_members_use_canonical_numbers_after_cross_session_repair() {
+    use magistr_workflow::think::domain::ThinkHistory;
+    use magistr_workflow::think::persistence::Persistence;
+
+    let directory = TempDir::new().unwrap();
+    let mut config = quiet_config();
+    config.persistence.enabled = true;
+    config.persistence.data_dir = directory.path().to_path_buf();
+    config.features.enable_sessions = true;
+    let persistence = Persistence::for_project(&config.persistence, "repair-branches");
+    for (name, day) in [("first", 1), ("second", 2)] {
+        let mut source_config = quiet_config();
+        source_config.features.enable_sessions = false;
+        let mut source = ReasoningServer::new_for_project(source_config, "repair-branches".into());
+        let mut initial = step_n(1);
+        initial.thought = format!("The {name} investigation begins.");
+        source.process_step_native(initial).unwrap();
+        let mut branch = step_n(2);
+        branch.branch_id = Some(name.into());
+        branch.branch_from = Some(1);
+        branch.branch_name = Some(format!("Question in {name} session"));
+        source.process_step_native(branch).unwrap();
+        source.set_branch_status(name, "merged", Some(2)).unwrap();
+        let mut history: ThinkHistory = serde_json::from_value(source.history_snapshot()).unwrap();
+        let session = namespace_session_id("repair-branches", name);
+        history.session_id = Some(session.clone());
+        for (index, step) in history.steps.iter_mut().enumerate() {
+            step.timestamp = Some(format!("2025-01-0{day}T00:0{index}:00Z"));
+            step.session_id = Some(session.clone());
+        }
+        persistence.save_session(&session, &history);
+    }
+
+    let mut server = ReasoningServer::new_for_project(config, "repair-branches".into());
+    let mut back = step_n(0);
+    back.session_id = Some("second".into());
+    server.process_step_native(back).unwrap();
+    let branch = &server.branches()["second"];
+    assert_eq!(branch.from_step, 3);
+    assert_eq!(branch.merged_into, Some(4));
+    assert_eq!(
+        branch
+            .steps
+            .iter()
+            .map(|step| step.step_number)
+            .collect::<Vec<_>>(),
+        vec![4]
+    );
+    assert_eq!(branch.steps[0].branch_from, Some(3));
+}
+
+#[test]
+fn omitted_revision_number_in_legacy_session_allocates_after_its_existing_records() {
+    use magistr_workflow::think::domain::ThinkHistory;
+    use magistr_workflow::think::persistence::Persistence;
+    let directory = TempDir::new().unwrap();
+    let mut config = quiet_config();
+    config.features.enable_sessions = true;
+    config.persistence.enabled = true;
+    config.persistence.data_dir = directory.path().to_path_buf();
+    let session = namespace_session_id("legacy-branch-number", "old");
+    let history = ThinkHistory {
+        steps: vec![step_n(100)],
+        branches: None,
+        completed: false,
+        session_id: Some(session.clone()),
+        created_at: None,
+        updated_at: None,
+        metadata: None,
+    };
+    Persistence::for_project(&config.persistence, "legacy-branch-number")
+        .save_session(&session, &history);
+    let mut server = ReasoningServer::new_for_project(config, "legacy-branch-number".into());
+    let mut revision = step_n(0);
+    revision.session_id = Some("old".into());
+    revision.revises_step = Some(100);
+    revision.revision_reason = Some("The retry evidence changed.".into());
+    let result = server.process_step_native(revision).unwrap();
+    assert_eq!(result.step.step_number, 101);
+    assert_eq!(server.step_by_number(100).unwrap().revised_by, Some(101));
 }
 
 #[test]

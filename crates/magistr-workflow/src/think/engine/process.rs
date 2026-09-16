@@ -60,19 +60,13 @@ impl ReasoningServer {
             self.step_index.insert(s.step_number, idx);
         }
 
-        let removed_branches: Vec<(String, String, u32)> = self
-            .branches
-            .iter()
-            .filter(|(_, b)| removed_step_numbers.contains(&b.from_step))
-            .map(|(id, b)| (id.clone(), b.name.clone(), b.from_step))
-            .collect();
-        for (id, name, from_step) in removed_branches {
-            if let Some(branch) = self.branches.remove(&id) {
-                for s in &branch.steps {
-                    self.step_to_branch.remove(&s.step_number);
-                }
-                eprintln!("🗑️ Branch \"{name}\" removed (from_step {from_step} was trimmed)");
-            }
+        // The retained step window is not the lifetime of an investigation.
+        // Keep its origin and status so id-only continuation still works after
+        // that origin leaves the window; only evict old member copies.
+        for branch in self.branches.values_mut() {
+            branch
+                .steps
+                .retain(|step| !removed_step_numbers.contains(&step.step_number));
         }
 
         self.invalidate_branch_depth_cache();
@@ -104,21 +98,11 @@ impl ReasoningServer {
         // warning that we recovered — far better than a hard reject.
         let recovered_fields = Self::recover_xml_injection(&mut step);
 
-        // Forgiving step numbering. A *new* step (not a revision/branch) that
-        // either omits step_number (serde default 0) or reuses a number that's
-        // already taken project-wide is the #1 failure mode for a fresh agent
-        // chat that doesn't know the persistent project already has N steps.
-        // Rather than hard-fail (which stalls the run), auto-assign the next
-        // project-wide number and surface a warning. Revisions and branches
-        // legitimately carry an explicit number and are left untouched here.
-        // Doing this BEFORE validate_required_fields is deliberate: an omitted
-        // (0) step_number would otherwise be rejected as "missing".
+        // Every call appends a new record, including branches and revisions.
+        // Allocate before required-field validation so omitted numbers work
+        // consistently; references to earlier records keep their own fields.
         let mut auto_numbered: Option<u32> = None;
-        if step.revises_step.is_none()
-            && step.branch_id.is_none()
-            && step.branch_from.is_none()
-            && (step.step_number == 0 || self.step_number_taken_in_project(step.step_number))
-        {
+        if step.step_number == 0 || self.step_number_taken_in_project(step.step_number) {
             let requested = step.step_number;
             step.step_number = self.max_step_number_in_project().saturating_add(1);
             auto_numbered = Some(requested);
@@ -179,16 +163,15 @@ impl ReasoningServer {
             step.session_id = Some(resolved);
         }
 
+        if let Err(e) = self.validate_session_step(&mut step) {
+            return Err(self.make_error(&e));
+        }
         if let (Some(session_id), true) = (
             step.session_id.clone(),
             self.config.features.enable_sessions,
         ) {
-            self.cleanup_expired_sessions(false);
             self.switch_to_session(&session_id);
-        }
-
-        if let Err(e) = self.validate_dependencies(&step) {
-            return Err(self.make_error(&e));
+            self.cleanup_expired_sessions(false);
         }
 
         // Backstop for project-wide step_number uniqueness. The top-of-function
@@ -196,12 +179,7 @@ impl ReasoningServer {
         // to the target session above can surface steps that weren't visible
         // then (a lazily-loaded sibling session). If a new-step number is still
         // taken, auto-bump again rather than hard-fail — same forgiving policy.
-        // Revisions and branches legitimately carry their own number, untouched.
-        if step.revises_step.is_none()
-            && step.branch_id.is_none()
-            && step.branch_from.is_none()
-            && self.step_number_taken_in_project(step.step_number)
-        {
+        if self.step_number_taken_in_project(step.step_number) {
             let requested = step.step_number;
             step.step_number = self.max_step_number_in_project().saturating_add(1);
             // Preserve the originally-requested number if the top pass already
@@ -213,16 +191,13 @@ impl ReasoningServer {
             let lower = step.thought.to_ascii_lowercase();
             COMPLETION_PHRASES.iter().any(|p| lower.contains(p))
         };
-        if completed {
-            self.history.completed = true;
-        }
-
         if let Err(e) = self.handle_revision(&step) {
             return Err(self.make_error(&e));
         }
 
-        if let Err(e) = self.handle_branching(&mut step) {
-            return Err(self.make_error(&e));
+        self.handle_branching(&mut step);
+        if completed {
+            self.history.completed = true;
         }
 
         let tools_used = Self::extract_tools_used(&step);
@@ -286,8 +261,9 @@ impl ReasoningServer {
 
         // Mirror updated history back into the active session entry.
         if let Some(session_id) = self.active_session.clone() {
+            let snapshot = self.history_with_branches();
             if let Some(entry) = self.sessions.get_mut(&session_id) {
-                entry.history = self.history.clone();
+                entry.history = snapshot;
                 entry.last_accessed = Self::now_ms();
             }
         }

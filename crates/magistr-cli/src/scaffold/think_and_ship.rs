@@ -89,13 +89,16 @@ traces auto-correlate.
 
 1. `ship_set_objective` — define the goal
 2. `ship_plan` — break into tasks
-3. `think_record_step` — record your reasoning (open)
-4. `ship_start` → `ship_record` → `ship_complete` — do the work
-5. `ship_check` — record test/lint results
-6. `ship_finalize` — finalize the objective
-7. `think_record_step` — record outcome (close)
+3. `think_record_step` — record the question, current evidence, and planned next check
+4. `ship_start` → `ship_record` → `ship_complete` — do the work, recording findings and changed conclusions as evidence arrives
+5. `ship_check` — execute and record the relevant checks
+6. `think_record_step` — synthesize the findings, link the steps used, and state remaining uncertainty
+7. `ship_finalize` — finalize the objective after its acceptance criteria and checks pass
+
+{reasoning_guidance}
 {verify_block}{CLAUDE_MD_END_MARKER}
-"
+",
+        reasoning_guidance = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE,
     )
 }
 

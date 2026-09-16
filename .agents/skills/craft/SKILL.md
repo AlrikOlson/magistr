@@ -10,9 +10,12 @@ This skill guides the requested work; it does not select a roadmap chunk or
 start an implementation loop by itself.
 
 - Ground substantial decisions in the actual code through workbench before
-  researching replacements. Record decisions and evidence with native
-  `think_*` tools, linked to the relevant chunk and ship task. Revisit
-  assumptions when evidence changes the design.
+  researching replacements. Record evidence-backed findings with native
+  `think_*` tools throughout research, implementation, and verification,
+  linked to the relevant chunk and ship task. Explain what each finding
+  changes and what to check next. Follow the shared runtime's guidance for
+  real questions, branch membership, revisions, dependencies, and synthesis;
+  revisit earlier conclusions when evidence changes them.
 - Deliver one coherent, independently verifiable change at a time. Read
   acceptance criteria before implementing, preserve authorized scope, and
   record discoveries separately instead of silently expanding the task.

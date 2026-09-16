@@ -69,3 +69,5 @@ If the required Magistr connection is unavailable, report that connection and
 preserve current state. Do not substitute another store or claim a native
 lifecycle operation completed. Native lifecycle guards apply in every host;
 host hooks are additional mechanics, not acceptance or recorded gate evidence.
+
+{{reasoning_guidance}}

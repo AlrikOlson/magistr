@@ -54,6 +54,7 @@ fn workflow_session_uses_selected_project_for_execution_and_context() {
     let prompt = session.system_prompt.unwrap();
     assert!(prompt.contains("**Project:** selected-project"));
     assert!(prompt.contains("Selected project rule sentinel"));
+    assert!(prompt.contains(magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE));
     assert_eq!(std::env::current_dir().unwrap(), current_dir);
 }
 

@@ -225,8 +225,8 @@ impl NativeReader {
     /// The store read whole, family by family, as [`NativeSnapshot`]
     /// documents it: the cursor first, then the ship objective and tasks,
     /// the roadmap's chunks and progress, the signals, and the persisted
-    /// reasoning steps — each family observed and read under its own
-    /// lock, none of them under a shared one.
+    /// reasoning steps and branch metadata — each family observed and read
+    /// under its own lock, none of them under a shared one.
     #[must_use]
     pub fn snapshot(&self) -> NativeSnapshot {
         let cursor = self.snapshot_cursor();
@@ -242,6 +242,19 @@ impl NativeReader {
             )
         };
         let signals = self.current_signal().signals().signals.clone();
+        let (steps, branches) = self.think_history_from_store().map_or_else(
+            || (Vec::new(), Vec::new()),
+            |history| {
+                let branches = history
+                    .branches
+                    .as_deref()
+                    .unwrap_or_default()
+                    .iter()
+                    .map(super::ThinkBranch::from)
+                    .collect();
+                (history.steps, branches)
+            },
+        );
         NativeSnapshot {
             cursor,
             objective,
@@ -249,7 +262,8 @@ impl NativeReader {
             progress,
             chunks,
             signals,
-            steps: self.think_steps_from_store(),
+            steps,
+            branches,
         }
     }
 
@@ -260,15 +274,19 @@ impl NativeReader {
     /// must never see. Empty when persistence is off.
     #[must_use]
     pub fn think_steps_from_store(&self) -> Vec<ThinkStep> {
+        self.think_history_from_store()
+            .map(|history| history.steps)
+            .unwrap_or_default()
+    }
+
+    fn think_history_from_store(&self) -> Option<magistr_workflow::think::domain::ThinkHistory> {
         use magistr_workflow::think::persistence::{Persistence, read_history};
         let persist = self.config.persistence_config();
         if !persist.enabled {
-            return Vec::new();
+            return None;
         }
         let store = Persistence::for_project(&persist, &self.project_id);
         read_history(&store.default_store_path())
-            .map(|history| history.steps)
-            .unwrap_or_default()
     }
 
     /// The pinned reasoning steps of the live trace, in step order.

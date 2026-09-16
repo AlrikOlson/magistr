@@ -1,6 +1,7 @@
 use super::*;
 use crate::harness::fixtures;
 use magistr_engine::NativeSnapshot;
+use magistr_engine::native::{BranchStatus, ThinkBranch};
 use serde_json::json;
 
 fn trace(steps: Vec<serde_json::Value>) -> Trace {
@@ -79,6 +80,132 @@ fn rejected_idea_does_not_abandon_its_investigation_and_refutation_is_not_use() 
     assert_eq!(questions[0].used_by, [10]);
     assert_eq!(trace.steps()[1].revised_by, Some(9));
     assert_eq!(trace.steps()[4].refutes, [8]);
+}
+
+#[test]
+fn persisted_branch_metadata_restores_questions_status_and_exact_merge_provenance() {
+    let snapshot = NativeSnapshot {
+        steps: fixtures::steps_from(vec![
+            json!({"step_number":10}),
+            json!({"step_number":20,"branch_id":"receipt","outcome":"Keep one receipt per tenant."}),
+            json!({"step_number":30}),
+            json!({"step_number":40,"branch_id":"shared"}),
+            json!({"step_number":70,"dependencies":[20]}),
+        ]),
+        branches: vec![
+            ThinkBranch {
+                id: "receipt".into(),
+                name: "Can recovery stay tenant-specific?".into(),
+                from_step: Some(10),
+                status: BranchStatus::Merged,
+                merged_into: Some(70),
+            },
+            ThinkBranch {
+                id: "shared".into(),
+                name: "Could tenants share a receipt?".into(),
+                from_step: Some(20),
+                status: BranchStatus::Abandoned,
+                merged_into: None,
+            },
+        ],
+        ..NativeSnapshot::default()
+    };
+    let mut restarted = Trace::default();
+    restarted.seed(&snapshot);
+    let questions = restarted.investigations();
+    assert_eq!(questions.len(), 2);
+    assert_eq!(questions[0].question, "Can recovery stay tenant-specific?");
+    assert_eq!(questions[0].outcome, Some("Keep one receipt per tenant."));
+    assert_eq!(
+        questions[0].used_by,
+        [70],
+        "recorded targets are deduplicated"
+    );
+    assert_eq!(questions[0].merged_near, None);
+    assert_eq!(
+        questions[0].relationship(),
+        "Explored after 10 · answer used in 70"
+    );
+    assert!(
+        !questions[0].contains(30),
+        "the earlier unrelated main-line step is not a merge"
+    );
+    assert_eq!(questions[1].status_label(), "Investigation stopped");
+    assert_eq!(restarted.links(), [(0, 1), (1, 3)]);
+    assert_eq!(restarted.merges(), [(1, 4)]);
+
+    restarted.expand_step(20);
+    restarted.apply(&fixtures::frame(
+        "think",
+        "branch_status_changed",
+        json!({"branch_id":"receipt","status":"active"}),
+    ));
+    assert!(restarted.merges().is_empty());
+    assert_eq!(restarted.branch_merge("receipt"), None);
+    restarted.seed(&snapshot);
+    assert_eq!(
+        restarted.merges(),
+        [(1, 4)],
+        "a fresh archive repairs a missed status event"
+    );
+    assert_eq!(restarted.selected().map(|step| step.number), Some(20));
+}
+
+#[test]
+fn exact_merge_targets_survive_live_events_without_substituting_missing_steps() {
+    let mut trace = trace(vec![
+        json!({"step_number":10}),
+        json!({"step_number":20,"branch_id":"receipt","branch_from":10}),
+        json!({"step_number":30}),
+    ]);
+    trace.expand_step(20);
+    trace.apply(&fixtures::frame(
+        "think",
+        "branch_status_changed",
+        json!({"branch_id":"receipt","status":"merged","merged_into":70}),
+    ));
+    assert!(
+        trace.merges().is_empty(),
+        "a missing exact target must not become step 30"
+    );
+    let question = &trace.investigations()[0];
+    assert_eq!(question.used_by, [70]);
+    assert_eq!(question.merged_near, None);
+    assert_eq!(
+        question.relationship(),
+        "Explored after 10 · answer used in 70"
+    );
+
+    trace.apply(&fixtures::frame(
+        "think",
+        "step_appended",
+        json!({"step":{"step_number":70}}),
+    ));
+    assert_eq!(trace.merges(), [(1, 3)]);
+    assert_eq!(trace.selected().map(|step| step.number), Some(20));
+    trace.apply(&fixtures::frame(
+        "think",
+        "branch_status_changed",
+        json!({"branch_id":"receipt","status":"abandoned","merged_into":70}),
+    ));
+    assert!(trace.merges().is_empty());
+    assert_eq!(
+        trace.branch_merge("receipt"),
+        None,
+        "stopped investigations do not retain a stale merge"
+    );
+
+    trace.apply(&fixtures::frame(
+        "think",
+        "branch_status_changed",
+        json!({"branch_id":"receipt","status":"merged"}),
+    ));
+    assert_eq!(
+        trace.merges(),
+        [(1, 2)],
+        "legacy merged-only records keep the existing inference"
+    );
+    assert_eq!(trace.investigations()[0].merged_near, Some(30));
 }
 
 #[test]

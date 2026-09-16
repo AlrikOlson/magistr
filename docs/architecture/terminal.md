@@ -173,10 +173,13 @@ including sparse global step numbers, nested origins, revisions, and
 interleaved investigations. A bounded selection window keeps labels and points
 readable in large traces; previous/next controls retain access to the whole trace.
 Drawing, number placement, highlighting, and picking share `BranchGraph::points`.
-Question summaries come from recorded metadata and outcomes. Explicit dependencies
-identify where findings were used; a merged branch without that evidence is only
-described as joining near the first later main-line step, preserving the
-existing inference rule. Rejecting an idea does not abandon its investigation.
+Question summaries come from recorded metadata and outcomes. Native snapshots
+carry branch names, origins, status and exact merge destinations from the same
+saved history as the steps, so restarting restores the investigation's state.
+Explicit merge destinations and dependencies identify where findings were used;
+a merged branch without an exact destination keeps the first later main-line
+inference and is described as joining near that step. A missing recorded target
+does not create a substitute edge. Rejecting an idea does not abandon its investigation.
 Both graphs keep text forms on a plain terminal.
 
 Theme pens enforce contrast floors. Color and icons communicate status through

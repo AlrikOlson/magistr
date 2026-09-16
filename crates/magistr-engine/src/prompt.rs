@@ -27,6 +27,9 @@ pub struct PromptConfig {
 }
 
 impl PromptConfig {
+    /// Shared recording contract for live agents and generated project instructions.
+    pub const REASONING_GUIDANCE: &'static str = include_str!("prompt_reasoning.md");
+
     /// Build the prompt for a `/next` iteration.
     ///
     /// Embeds /next-specific instructions (stop rule, plan entry labeling, roadmap
@@ -67,6 +70,8 @@ impl PromptConfig {
 
         // Workflow instructions
         prompt.push_str(NEXT_WORKFLOW_INSTRUCTIONS);
+        prompt.push('\n');
+        prompt.push_str(Self::REASONING_GUIDANCE);
 
         // Project-specific config
         prompt.push_str(&format!(
@@ -112,13 +117,13 @@ The roadmap, the plan and the gates live in think-and-ship (served by the `magis
 
 - `roadmap_next` → the chunk this iteration implements; `roadmap_start_chunk(id)` marks it in progress
 - `ship_set_objective` + `ship_plan` → the plan (there is no plan file to write)
-- `think_record_step` → open the iteration with your sub-plan, close it with the outcome
+- `think_record_step` → record the plan, material findings and investigations as work proceeds, then the verified outcome
 - `ship_check` / `magistr_gate` → every quality gate, recorded with its real exit code
 - `roadmap_complete_chunk(id, ship_ref: "task:<id>")` + `ship_finalize` → done
 
 ### Execute Phase — restrictions
 
-During Execute, you write code and tests ONLY. Do NOT:
+During Execute, implement and test the change, recording material findings and investigations as they occur. Do NOT:
 - Call `roadmap_complete_chunk` or `roadmap_add_chunk` — roadmap updates belong in Verify
 - Commit code — commits belong in Verify
 - Run full quality gates — save that for Verify (periodic `cargo check` is fine)
@@ -132,7 +137,7 @@ After quality gates pass (each recorded through `ship_check`), complete these ad
    - `roadmap_add_chunk(status: "backlog", ...)` for work you discovered — never auto-promote it to pending
    - `roadmap_update_chunk` when the chunk's description or acceptance no longer matches reality
    - Do NOT edit ROADMAP.md directly — it is a generated view (`roadmap_export`)
-2. **Finalize** — `ship_finalize(summary: ...)` closes the objective; then a closing `think_record_step`
+2. **Finalize** — record the final synthesis with `think_record_step`, linking the findings used and any unresolved questions; then close the objective with `ship_finalize(summary: ...)`
 3. **Commit** with a conventional commit message (`feat:`, `fix:`, `refactor:`, `test:`)
    - Include ROADMAP.md when the project keeps a regenerated copy in git
 4. **Append summary** to `.magistr/iteration-log.md`

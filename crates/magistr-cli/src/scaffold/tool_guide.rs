@@ -49,6 +49,9 @@ pub(crate) fn build_tool_guide() -> String {
          file) and `ROADMAP.md` is a generated view (`roadmap_export`), never the source of truth.\n\n",
     );
 
+    doc.push_str(magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE);
+    doc.push_str("\n\n");
+
     // ── Quality & Workflow ─────────────────────────────────────────
     doc.push_str("## Quality & Workflow (magistr)\n\n");
     doc.push_str("| Tool | Purpose |\n");
@@ -125,7 +128,7 @@ const THINK_AND_SHIP_FAMILIES: &[(&str, &str, &str)] = &[
     ),
     (
         "think_*",
-        "The reasoning trace: open and close every iteration, pin load-bearing findings.",
+        "The reasoning trace: record findings throughout the work, explore questions, and link conclusions to evidence.",
         "`think_record_step`, `think_pin_step`, `think_trace_checkpoint`, `think_search_trace`",
     ),
     (

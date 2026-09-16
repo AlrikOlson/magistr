@@ -35,6 +35,14 @@ pub fn build_system_prompt(project_dir: &Path) -> Option<String> {
         prompt.push('\n');
     }
 
+    // Keep the recording contract current even when project rules predate it.
+    // Generated tool guides already carry the same bytes, so include it once.
+    let reasoning = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE;
+    if !prompt.contains(reasoning) {
+        prompt.push_str("\n---\n\n");
+        prompt.push_str(reasoning);
+    }
+
     Some(prompt)
 }
 

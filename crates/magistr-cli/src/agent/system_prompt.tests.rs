@@ -128,6 +128,41 @@ fn build_system_prompt_returns_none_for_missing_dir() {
 }
 
 #[test]
+fn agent_context_supplies_recording_guidance_without_rewriting_project_rules() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(dir.path().join(".magistr")).unwrap();
+    std::fs::create_dir_all(dir.path().join(".claude/rules")).unwrap();
+    std::fs::write(
+        dir.path().join(".magistr/project.json"),
+        serde_json::to_vec(&sample_config()).unwrap(),
+    )
+    .unwrap();
+    let rules = dir.path().join(".claude/rules/tools.md");
+    let guidance = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE;
+    for content in [
+        None,
+        Some("Custom project instructions: preserve this text.".to_owned()),
+        Some(format!("Custom introduction.\n{guidance}")),
+    ] {
+        if let Some(content) = &content {
+            std::fs::write(&rules, content).unwrap();
+        }
+        let context = crate::agent::AgentConfig::new("Continue the work", dir.path())
+            .with_project_context(dir.path());
+        let prompt = context.system_prompt.unwrap();
+        assert!(!guidance.is_empty());
+        assert_eq!(prompt.matches(guidance).count(), 1);
+        match content {
+            Some(content) => {
+                assert!(prompt.contains(&content));
+                assert_eq!(std::fs::read_to_string(&rules).unwrap(), content);
+            }
+            None => assert!(!rules.exists()),
+        }
+    }
+}
+
+#[test]
 fn format_prompt_includes_hints_when_present() {
     let mut config = sample_config();
     config.hints = vec![

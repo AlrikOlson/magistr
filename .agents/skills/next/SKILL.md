@@ -48,7 +48,11 @@ instead of replacing the execution plan with Markdown.
 Announce `magistr_set_phase(phase: "execute")`. Start each task with `ship_start`,
 implement its bounded change, record significant actions with `ship_record`,
 and close it with `ship_complete` and artifact references. Keep only one task
-active. Record material deviations in reasoning and update the plan deliberately.
+active. Record evidence-backed findings with `think_record_step` during research,
+implementation, and verification: what was learned, what it changes, and the
+next useful check. Follow the shared runtime's guidance for real questions,
+branch membership, revisions, dependencies, and synthesis. Update the plan
+when findings change the work; do not wait for a deviation or the final summary.
 For behavior changes, write meaningful failing tests, implement, and refactor
 with tests green. Follow project test placement. Do not add tests that merely
 mirror prose or reversible configuration. Follow the host and project rules
@@ -78,8 +82,9 @@ for delegation; the coordinating session owns shared ship state and file scope.
    using `roadmap_complete_chunk` with its real `task:<verification-id>` ship
    reference. Record discoveries as `backlog` unless the user authorized another
    status. Update descriptions if the delivered scope changed.
-4. Finalize with `ship_finalize` and record a closing `think_record_step`.
-   Inspect both responses; any refusal leaves the iteration incomplete.
+4. Record the final synthesis with `think_record_step`, linking the findings
+   and checks used and stating any remaining uncertainty. Finalize with
+   `ship_finalize`. Inspect both responses; any refusal leaves the iteration incomplete.
    Recover supported lifecycle context before treating a refusal as a blocker.
    Honor the runtime contract's native roadmap/export policy.
 5. Append `.magistr/iteration-log.md` with chunk, outcome, verification, and
