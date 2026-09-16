@@ -33,20 +33,26 @@ const DELETE: &[u8] = b"\x1b_Ga=d";
 /// A sixel image's opening.
 const SIXEL: &[u8] = b"\x1bP0;1;0q";
 
-/// Every image at least [`GRAPH_PX`] pixels wide is the graph — the
-/// header's chrome surfaces are one and eight cells across.
+/// The graph is at least this wide — the header's chrome surfaces are
+/// one and eight cells across, the glyph marks one or two.
 const GRAPH_PX: u32 = 200;
+/// The graph's rows in pixels lie strictly between these: a rule, a key
+/// cap or a phase segment is one row (20 or 32 px), a drawn panel ring
+/// ten rows or more.
+const GRAPH_ROWS_PX: (u32, u32) = (40, 200);
 
-/// Transmits of an image at least `GRAPH_PX` pixels wide: the trace
-/// graph's own, told apart from the header chrome's by the `s=` key the
-/// first chunk of every transmit carries.
+/// Transmits of the trace graph, told apart from every other surface
+/// by the `s=` and `v=` keys the first chunk of every transmit carries.
 fn graph_transmits(capture: &Capture) -> usize {
-    transmits_at_least(capture, GRAPH_PX)
+    transmits_sized(capture, |width, height| {
+        width >= GRAPH_PX && height > GRAPH_ROWS_PX.0 && height < GRAPH_ROWS_PX.1
+    })
 }
 
-/// Transmits of an image at least `pixels` wide, read from the `s=` key
-/// the first chunk of every transmit carries.
-fn transmits_at_least(capture: &Capture, pixels: u32) -> usize {
+/// Transmits of an image whose `(width, height)` in pixels satisfy
+/// `wanted`, read from the keys the first chunk of every transmit
+/// carries.
+fn transmits_sized(capture: &Capture, wanted: impl Fn(u32, u32) -> bool) -> usize {
     let bytes = capture.bytes();
     let mut found = 0;
     let mut at = 0;
@@ -62,21 +68,44 @@ fn transmits_at_least(capture: &Capture, pixels: u32) -> usize {
             .position(|b| *b == b';')
             .map_or(bytes.len(), |offset| at + offset);
         let header = &bytes[at..end];
-        let width = header
-            .windows(2)
-            .position(|w| w == b"s=")
-            .map(|offset| &header[offset + 2..])
-            .map(|rest| {
-                rest.iter()
-                    .take_while(|b| b.is_ascii_digit())
-                    .fold(0_u32, |n, b| n * 10 + u32::from(b - b'0'))
-            })
-            .unwrap_or(0);
-        if width >= pixels {
+        let key = |name: &[u8]| {
+            header
+                .windows(2)
+                .position(|w| w == name)
+                .map(|offset| &header[offset + 2..])
+                .map(|rest| {
+                    rest.iter()
+                        .take_while(|b| b.is_ascii_digit())
+                        .fold(0_u32, |n, b| n * 10 + u32::from(b - b'0'))
+                })
+                .unwrap_or(0)
+        };
+        if wanted(key(b"s="), key(b"v=")) {
             found += 1;
         }
     }
     found
+}
+
+/// Sixel images in the bytes written from `after` the run's first
+/// write onward.
+fn sixels_after(capture: &Capture, after: Duration) -> usize {
+    let bytes = capture.bytes();
+    let writes = capture.writes();
+    let Some((start, _)) = writes.first() else {
+        return 0;
+    };
+    let mut skip = 0;
+    for (when, len) in &writes {
+        if when.duration_since(*start) >= after {
+            break;
+        }
+        skip += len;
+    }
+    bytes[skip..]
+        .windows(SIXEL.len())
+        .filter(|w| *w == SIXEL)
+        .count()
 }
 
 fn options() -> Options {
@@ -350,7 +379,7 @@ async fn a_stream_image_is_a_pixel_surface_with_kitty_and_halfblocks_without() {
         "the image's cells are left blank for the surface"
     );
     assert!(
-        transmits_at_least(&capture, IMAGE_PX) >= 1,
+        transmits_sized(&capture, |width, _| width >= IMAGE_PX) >= 1,
         "the image transmits as a surface of its own"
     );
 
@@ -449,7 +478,7 @@ async fn an_image_a_tool_call_returned_is_the_same_pixel_surface() {
         "the image is its own line under the card"
     );
     assert!(
-        transmits_at_least(&capture, IMAGE_PX) >= 1,
+        transmits_sized(&capture, |width, _| width >= IMAGE_PX) >= 1,
         "it transmits through the one surface path, like any stream image"
     );
 }
@@ -494,10 +523,15 @@ async fn an_idle_sixel_cockpit_re_emits_nothing() {
     assert!(model.frames() >= 4, "{} frames", model.frames());
     let images = capture.count(SIXEL);
     assert!(images >= 1, "the surfaces painted once");
-    assert!(
-        images < model.frames() as usize,
-        "{images} images across {} frames — an idle surface costs nothing",
-        model.frames()
+    // The tab switches at 500 ms vacate the surfaces the tab left — a
+    // sixel image has no identity to delete, so the cells under it are
+    // painted again and every surface goes out once more on the frame
+    // after — and the `k` at 600 ms carries that frame. From then on
+    // the cockpit is idle: `j` paints a frame, and not one image.
+    assert_eq!(
+        sixels_after(&capture, MS(650)),
+        0,
+        "{images} images in all — an idle frame costs nothing"
     );
 }
 

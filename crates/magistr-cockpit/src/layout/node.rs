@@ -10,6 +10,7 @@ use super::frame::Frame;
 use super::inset::Inset;
 use super::justify::Justify;
 use super::length::Length;
+use super::mark::Mark;
 use super::text::TextMetrics;
 use crate::render::Cell;
 use crate::render::Style as CellStyle;
@@ -54,6 +55,7 @@ pub struct Node {
     padding: u16,
     style: Option<CellStyle>,
     frame: Option<Frame>,
+    marks: Vec<Mark>,
     children: Vec<Node>,
 }
 
@@ -80,6 +82,7 @@ impl Node {
             padding: 0,
             style: None,
             frame: None,
+            marks: Vec::new(),
             children: Vec::new(),
         }
     }
@@ -315,6 +318,21 @@ impl Node {
     #[must_use]
     pub const fn frame_spec(&self) -> Option<&Frame> {
         self.frame.as_ref()
+    }
+
+    /// Ask the pixel layer to draw `mark` over this node's cells — see
+    /// [`Mark`]. A node may carry several: a line with a glyph at each
+    /// end carries two icons.
+    #[must_use]
+    pub fn mark(mut self, mark: Mark) -> Self {
+        self.marks.push(mark);
+        self
+    }
+
+    /// The marks this node carries, in the order they were added.
+    #[must_use]
+    pub fn marks(&self) -> &[Mark] {
+        &self.marks
     }
 
     /// Append one child.

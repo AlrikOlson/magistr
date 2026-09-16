@@ -66,6 +66,18 @@ pub(crate) fn compose(
     clock: &FrameClock,
     protocol: Protocol,
 ) -> Result<(Buffer, Vec<Placement>), LayoutError> {
+    let (buffer, wire) = wire(model, clock, protocol)?;
+    Ok((buffer, kitty::decode(&wire)))
+}
+
+/// The frame's cell buffer and the bytes a `protocol` terminal would
+/// be sent for it — what [`compose`] decodes, kept apart so a test can
+/// count the placements in the very bytes the decoder read.
+pub(crate) fn wire(
+    model: &Model,
+    clock: &FrameClock,
+    protocol: Protocol,
+) -> Result<(Buffer, Vec<u8>), LayoutError> {
     let size = model.size();
     // The startup probe's decision is what `view` branches on, so a
     // pixel still has to fold it — into a copy, because a screenshot
@@ -81,7 +93,7 @@ pub(crate) fn compose(
     // it is by definition not the settled one.
     let root = view(&model, clock);
     let resolved = LayoutTree::new().compute(&root, size.cols, size.rows)?;
-    Surfaces::default().show(&mut model, &resolved, &mut screen(size, protocol));
+    Surfaces::default().show(&root, &mut model, &resolved, &mut screen(size, protocol));
 
     // The settled pass, laid out from the reported rects. A third would
     // report the same and change nothing.
@@ -95,10 +107,10 @@ pub(crate) fn compose(
     // rasterize: they are what leaves the encoder's cursor where the
     // placements' own moves are measured from.
     *screen.buffer() = buffer.clone();
-    Surfaces::default().show(&mut model, &resolved, &mut screen);
+    Surfaces::default().show(&root, &mut model, &resolved, &mut screen);
     let mut wire = Vec::new();
     screen.present(&mut wire);
-    Ok((buffer, kitty::decode(&wire)))
+    Ok((buffer, wire))
 }
 
 /// A screen of `size` compositing through `protocol`.

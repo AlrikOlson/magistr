@@ -11,13 +11,14 @@
 //! its arguments: the model (read, plus the two graph-rect reports it
 //! owes back), where layout put things, and the screen to show them on.
 
+use super::marks::{Fallback, Marks};
 use crate::render::Screen;
 use magistr_cockpit::cockpit::view::ROADMAP_LEGEND_COLS;
 use magistr_cockpit::cockpit::view::{activity_series, rail_gauge_cols, spark_sweep};
 use magistr_cockpit::cockpit::{DagNode, DagPath, Model, Motion, Widget};
-use magistr_cockpit::layout::{Rect, Resolved};
+use magistr_cockpit::layout::{Node, Rect, Resolved};
 use magistr_cockpit::pixel::{
-    BranchGraph, Brand, CellSize, Gauge, Icon, Image, PixelSurface, RoadmapDag, Sparkline,
+    BranchGraph, Brand, CellSize, Gauge, Image, PixelSurface, RoadmapDag, Sparkline,
 };
 use magistr_cockpit::render::Color;
 use magistr_cockpit::theme::Pen;
@@ -69,11 +70,6 @@ type ImageKey = (usize, u16, u16, Rect, CellSize);
 /// size and the pen colour it wears.
 type ChromeKey = (u32, Rect, CellSize, (u8, u8, u8));
 
-/// What a trace action icon was painted from: its widget id, slot, cell
-/// size and icon state. The slot stays hittable through the normal widget
-/// registry while the graphics surface supplies the visual affordance.
-type ActionKey = (WidgetId, Rect, CellSize, Icon);
-
 /// One run of an image's rows on the stage: the turn row its placement
 /// starts at, the visible index the run starts at, which rows of the
 /// placement they are, and the cells they cover.
@@ -92,7 +88,9 @@ struct Band {
 /// [`Surfaces::show`] is the whole entry point: run it after the cell
 /// buffer is painted and before [`Screen::present`], and the frame
 /// carries the brand mark, the activity sparkline, the rail gauge, the
-/// stream's images, the Trace tab's branch graph and both tech-trees.
+/// stream's images, the Trace tab's branch graph, both tech-trees and
+/// every mark the view declared — the drawn panels, glyphs, caps,
+/// segments, bars and rules.
 #[derive(Debug, Default)]
 pub(crate) struct Surfaces {
     /// The Trace tab's branch graph as a pixel surface, kept between
@@ -123,8 +121,8 @@ pub(crate) struct Surfaces {
     /// The stream's images, one surface per placement visible on the
     /// stage, keyed by the widget id of its first visible row.
     images: Vec<(WidgetId, PixelSurface, ImageKey)>,
-    /// Trace checkpoint and pin affordances, drawn as compact vector icons.
-    actions: Vec<(WidgetId, PixelSurface, ActionKey)>,
+    /// The view's marks, each a surface keyed by what it was painted from.
+    marks: Marks,
 }
 
 impl Surfaces {
@@ -135,12 +133,13 @@ impl Surfaces {
     /// depends on it.
     pub(crate) fn show(
         &mut self,
+        root: &Node,
         model: &mut Model,
         resolved: &Resolved,
         screen: &mut Screen,
     ) -> bool {
+        self.show_marks(root, model, resolved, screen);
         self.show_trace_graph(model, resolved, screen);
-        self.show_trace_controls(model, resolved, screen);
         self.show_chrome(model, resolved, screen);
         self.show_stage_images(model, resolved, screen);
         self.show_roadmap_graph(model, resolved, screen)
@@ -364,58 +363,24 @@ impl Surfaces {
         bands
     }
 
-    /// Trace actions are intentionally graphical in compositing mode: the
-    /// same hit targets remain in the cell layout, while these transparent
-    /// surfaces replace bracketed labels with a checkpoint ring and pin
-    /// markers. Plain terminals keep the accessible labels from the view.
-    fn show_trace_controls(&mut self, model: &Model, resolved: &Resolved, screen: &mut Screen) {
-        if !screen.has_graphics() {
-            self.actions.clear();
-            return;
-        }
-        let cell = model.cell_size();
-        let trace = model.trace();
-        let mut targets: Vec<(WidgetId, Icon)> = Vec::new();
-        targets.push((Widget::Checkpoint.id(), Icon::Checkpoint));
-        targets.extend(trace.steps().iter().map(|step| {
-            (
-                Widget::trace_pin(step.number),
-                if step.pinned {
-                    Icon::PinFilled
-                } else {
-                    Icon::Pin
-                },
-            )
-        }));
-        let mut shown = Vec::with_capacity(targets.len());
-        for (id, icon) in targets {
-            // The glyph takes the label's first two cells — the blanks
-            // the view leaves ahead of the word — so the word stays
-            // readable beside it.
-            let Some(rect) =
-                placed_id(resolved, id).map(|slot| Rect::new(slot.x, slot.y, slot.width.min(2), 1))
-            else {
-                continue;
-            };
-            let key = (id, rect, cell, icon);
-            let cached = self
-                .actions
-                .iter()
-                .position(|(known, _, known_key)| *known == id && *known_key == key);
-            let mut surface = match cached {
-                Some(at) => self.actions.remove(at).1,
-                None => {
-                    let mut surface = PixelSurface::with_alpha(rect, cell);
-                    surface.paint(&icon);
-                    surface
-                }
-            };
-            surface.set_rect(rect);
-            surface.set_cell_size(cell);
-            screen.surface(id, &mut surface);
-            shown.push((id, surface, key));
-        }
-        self.actions = shown;
+    /// Every mark the view declared on its tree — the drawn panel rings,
+    /// the vocabulary glyphs, the key caps, the phase segments, the bars
+    /// and the rules — as surfaces under the text, cached by
+    /// [`Marks`] so a still frame costs nothing. The pens leave a colour
+    /// at the terminal's default only when the palette did; the theme's
+    /// own ground and ink stand in for those.
+    fn show_marks(&mut self, root: &Node, model: &Model, resolved: &Resolved, screen: &mut Screen) {
+        let pen = Pen::for_theme(&model.theme());
+        let rgb = |color: Color, or: (u8, u8, u8)| match color {
+            Color::Rgb(r, g, b) => (r, g, b),
+            _ => or,
+        };
+        let fallback = Fallback {
+            ground: rgb(pen.base.bg, (26, 27, 38)),
+            ink: rgb(pen.base.fg, (205, 214, 244)),
+        };
+        self.marks
+            .show(root, resolved, model.cell_size(), fallback, screen);
     }
 
     /// The Trace tab's branch graph in pixels, over the cells of its

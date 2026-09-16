@@ -12,6 +12,7 @@ use super::gate_led::GateLed;
 use super::hover;
 use super::launcher_session::LauncherSession;
 use super::loop_status::LoopStatus;
+use super::marked::Marked;
 use super::model::{Model, PROMPT_MAX_ROWS, UNDOCK_COLS};
 use super::motion::Motion;
 use super::permission::Permission;
@@ -31,7 +32,8 @@ use super::trace::TRACE_GRAPH_ROWS;
 use super::turn_state::TurnState;
 use super::widget::Widget;
 use crate::agent::{PermissionKind, ToolStatus};
-use crate::layout::{Frame, Inset, Length, Node};
+use crate::layout::{Frame, Inset, Length, Mark, Node};
+use crate::pixel::{Icon, RoadmapDag};
 use crate::render::{Attrs, Cell, Color, Style, width};
 use crate::theme::{Icons, Pen};
 use crate::turn::{Accent, Row, RowKind, diff_kind};
@@ -108,7 +110,7 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
     let stage = Node::column()
         .grow(1.0)
         .min_width(Length::Cells(0))
-        .frame(Frame::new(pen.panel(false).clone()))
+        .frame(Frame::new(pen.panel(false).clone()).drawn(model.has_pixels()))
         .child(tab_bar(model, &pen))
         .child(stage_content);
 
@@ -257,9 +259,10 @@ fn tab_bar(model: &Model, pen: &Pen) -> Node {
 /// like every scrolling column.
 fn undock(model: &Model, tab: StageTab, pen: &Pen) -> Node {
     let mut rows = vec![
-        Node::text(format!("{} {}", pen.icons.undock, Widget::tab(tab).label()))
-            .style(pen.heading.clone())
-            .height(Length::Cells(1)),
+        Marked::new(model, pen)
+            .icon(Icon::Undock)
+            .text(&format!(" {}", Widget::tab(tab).label()))
+            .segment(pen.heading.clone()),
     ];
     rows.extend(match tab {
         StageTab::Changes => changes_rows(model, pen),
@@ -304,7 +307,9 @@ fn collapsed_rail(model: &Model, pen: &Pen) -> Node {
         .shrink(0.0)
         .width(Length::Cells(2))
         .child(fading(
-            Node::text(pen.icons.active)
+            Marked::new(model, pen)
+                .icon(Icon::FoldClosed)
+                .node()
                 .id(Widget::RailToggle.id())
                 .height(Length::Cells(1)),
             pen,
@@ -334,14 +339,17 @@ fn rail(model: &Model, pen: &Pen) -> Node {
         .frame(
             Frame::new(pen.panel(false).clone())
                 .title("plan")
-                .title_style(pen.heading.clone()),
+                .title_style(pen.heading.clone())
+                .drawn(model.has_pixels()),
         );
     if model.has_pixels() {
         column = column.padding(Space::PAD);
     }
     let mut column = column
         .child(
-            Node::text(pen.icons.collapse)
+            Marked::new(model, pen)
+                .icon(Icon::Collapse)
+                .node()
                 .id(Widget::RailToggle.id())
                 .style(arriving(pen, &pen.note, fade))
                 .height(Length::Cells(1)),
@@ -361,7 +369,8 @@ fn rail(model: &Model, pen: &Pen) -> Node {
             None => style.clone(),
         };
         column = column.child(
-            Node::text(task_text(task, pen.icons))
+            task_line(task, model, pen)
+                .node()
                 .style(arriving(pen, &style, fade))
                 .height(Length::Cells(1)),
         );
@@ -372,7 +381,8 @@ fn rail(model: &Model, pen: &Pen) -> Node {
         None => pen.rail.clone(),
     };
     column = column.child(
-        Node::text(progress_text(state, pen.icons, rail_inner_cols(model)))
+        progress_line(model, state, pen, rail_inner_cols(model))
+            .node()
             .style(arriving(pen, &progress, fade))
             .height(Length::Cells(1)),
     );
@@ -398,18 +408,26 @@ const RAIL_GRAPH_ROWS: u16 = 6;
 /// then (and always in cell-only mode). Rigid, like every block a
 /// reported rect depends on.
 fn rail_graph(model: &Model, pen: &Pen) -> Node {
-    let mut graph = Node::column().id(Widget::RailGraph.id()).shrink(0.0);
+    let graph = Node::column().id(Widget::RailGraph.id()).shrink(0.0);
     if model.rail_graph_rect().is_some() {
         return graph.height(Length::Cells(RAIL_GRAPH_ROWS));
     }
-    for line in model.roadmap().mini_summary(pen.icons) {
-        graph = graph.child(
-            Node::text(line)
+    let [here, neighbours] = model.roadmap().mini_glance();
+    graph
+        .child(
+            Marked::new(model, pen)
+                .icon(Icon::Here)
+                .text(&format!(" {here}"))
+                .node()
                 .style(pen.note.clone())
                 .height(Length::Cells(1)),
-        );
-    }
-    graph.height(Length::Cells(2))
+        )
+        .child(
+            Node::text(neighbours)
+                .style(pen.note.clone())
+                .height(Length::Cells(1)),
+        )
+        .height(Length::Cells(2))
 }
 
 /// The rail's roadmap gauge: the eased fill as a bar, then the
@@ -464,16 +482,23 @@ fn filled_cells(fill: f32, cells: usize) -> usize {
     ((fill.clamp(0.0, 1.0) * cells as f32 + 1e-3).floor() as usize).min(cells)
 }
 
-/// One checklist line: the state's glyph, the title, and the checks
+/// One checklist line: the state's mark, the title, and the checks
 /// recorded on the task when there are any.
-fn task_text(task: &PlanTask, icons: &Icons) -> String {
-    let mut line = format!("{} {}", task.state.glyph(icons), task.title);
+fn task_line<'a>(task: &PlanTask, model: &Model, pen: &'a Pen) -> Marked<'a> {
+    let line = Marked::new(model, pen)
+        .icon(task.state.icon())
+        .text(&format!(" {}", task.title));
     if task.checks_failed > 0 {
-        line.push_str(&format!(" {}{}", icons.failed, task.checks_failed));
+        line.text(" ")
+            .icon(Icon::Failed)
+            .text(&task.checks_failed.to_string())
     } else if task.checks_passed > 0 {
-        line.push_str(&format!(" {}{}", icons.done, task.checks_passed));
+        line.text(" ")
+            .icon(Icon::Done)
+            .text(&task.checks_passed.to_string())
+    } else {
+        line
     }
-    line
 }
 
 /// The pen a checklist line borrows: the tool pens already grade
@@ -504,7 +529,7 @@ fn rail_inner_cols(model: &Model) -> usize {
 }
 
 /// Where the roadmap stands: the chunk in progress and done/total.
-fn progress_text(state: &Rail, icons: &Icons, columns: usize) -> String {
+fn progress_line<'a>(model: &Model, state: &Rail, pen: &'a Pen, columns: usize) -> Marked<'a> {
     let (done, total) = state.progress();
     match state.chunk() {
         Some(chunk) => {
@@ -513,9 +538,11 @@ fn progress_text(state: &Rail, icons: &Icons, columns: usize) -> String {
             // row says "done".
             let suffix = format!(" · {done}/{total}");
             let room = columns.saturating_sub(width(&suffix) as usize + 2).max(4);
-            format!("{} {}{suffix}", icons.here, shorten(chunk, room))
+            Marked::new(model, pen)
+                .icon(Icon::Here)
+                .text(&format!(" {}{suffix}", shorten(chunk, room)))
         }
-        None => format!("roadmap {done}/{total} done"),
+        None => Marked::new(model, pen).text(&format!("roadmap {done}/{total} done")),
     }
 }
 
@@ -569,18 +596,43 @@ fn status_strip(model: &Model, pen: &Pen) -> Node {
     // without costing the columns the plain-gap strip spent, so the
     // whole strip still fits 80 columns beside three gates and the
     // clock.
+    // On a graphics terminal the same cells are a segmented control:
+    // the separators are blank and each label's cells carry a segment
+    // of one drawn track, the current one filled.
     let mut phases = Node::row().shrink(0.0).height(Length::Cells(1));
     for (index, phase) in Widget::PHASES.iter().enumerate() {
         if index > 0 {
-            phases = phases.child(segment(pen.icons.active, pen.footer.clone()));
+            // The separator: the set's chevron in cells; on a graphics
+            // terminal a blank cell carrying the track alone, so the
+            // control is one continuous piece.
+            let mut separator = segment(pen.icons.active, pen.footer.clone());
+            if model.has_pixels() {
+                separator = segment(" ", pen.footer.clone()).mark(Mark::Segment {
+                    fill: None,
+                    track: pen.chip_key.bg,
+                    ground: pen.footer.bg,
+                    first: false,
+                    last: false,
+                });
+            }
+            phases = phases.child(separator);
         }
-        phases = phases.child(
-            Node::text(phase.label())
-                .id(phase.id())
-                .style(pen.phase(current == Some(*phase)).clone())
-                .shrink(0.0)
-                .height(Length::Cells(1)),
-        );
+        let is_current = current == Some(*phase);
+        let mut label = Node::text(phase.label())
+            .id(phase.id())
+            .style(pen.phase(is_current).clone())
+            .shrink(0.0)
+            .height(Length::Cells(1));
+        if model.has_pixels() {
+            label = label.mark(Mark::Segment {
+                fill: is_current.then_some(pen.base.bg),
+                track: pen.chip_key.bg,
+                ground: pen.footer.bg,
+                first: index == 0,
+                last: index + 1 == Widget::PHASES.len(),
+            });
+        }
+        phases = phases.child(label);
     }
     strip = strip.child(phases);
     let Some(status) = model.loop_status() else {
@@ -603,17 +655,18 @@ fn status_strip(model: &Model, pen: &Pen) -> Node {
                         Some(t) => pen.pop(style, t),
                         None => style.clone(),
                     };
-                    Node::text(gate_text(gate, model, pen.icons))
-                        .style(style)
-                        .shrink(0.0)
+                    gate_line(gate, model, pen).node().style(style).shrink(0.0)
                 })),
         );
     }
     // The judge's LED, only once there is a verdict: a loop with no judge
     // paints the strip it always did.
-    if let Some((text, verdict)) = status.verdict_text(pen.icons).zip(status.verdict()) {
+    if let Some(verdict) = status.verdict() {
         strip = strip.child(
-            Node::text(text)
+            Marked::new(model, pen)
+                .icon(verdict.icon())
+                .text(" judge")
+                .node()
                 .style(pen.gate(Some(verdict.ok && !verdict.impossible)).clone())
                 .shrink(0.0),
         );
@@ -625,14 +678,22 @@ fn status_strip(model: &Model, pen: &Pen) -> Node {
     )
 }
 
-/// A gate LED's text: the spinner's frame while its job runs and the
-/// tick turns, its outcome glyph otherwise.
-fn gate_text(gate: &GateLed, model: &Model, icons: &Icons) -> String {
-    if gate.passed().is_none() && model.animates(Animation::Motion) {
-        format!("{} {}", icons.spin(model.spin_step()), gate.name())
+/// A gate LED's line: the spinner's frame while its job runs and the
+/// tick turns, its outcome mark otherwise, then the name.
+fn gate_line<'a>(gate: &GateLed, model: &Model, pen: &'a Pen) -> Marked<'a> {
+    let icon = if gate.passed().is_none() && model.animates(Animation::Motion) {
+        spinner(model)
     } else {
-        gate.text(icons)
-    }
+        gate.icon()
+    };
+    Marked::new(model, pen)
+        .icon(icon)
+        .text(&format!(" {}", gate.name()))
+}
+
+/// The spinner's frame at the model's step.
+fn spinner(model: &Model) -> Icon {
+    Icon::Spinner(u8::try_from(model.spin_step() % 4).unwrap_or(0))
 }
 
 /// `iteration i/N` while it runs, `paused i/N`, `ended i/N` — the word
@@ -694,7 +755,7 @@ fn stage_rows(model: &Model, pen: &Pen) -> Vec<Node> {
                 (_, RowKind::EditButtons) => edit_buttons(row, index, pen),
                 (_, RowKind::Image) => image_row(model, at, pen),
                 (_, RowKind::Pane) => pane_row(model, at, pen),
-                _ => stage_row(row, pen, fade),
+                _ => stage_row(row, model, pen, fade),
             };
             let accent = model.turn().accent_at_row(at);
             let gutter = match shimmer_from {
@@ -802,17 +863,16 @@ fn changes_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     // [`Changes::pinned_rows`](crate::cockpit::Changes::pinned_rows).
     let head = if changes.viewer().is_some() {
         // The pane names the file it is showing, and how to leave it.
-        format!(
-            "{} {} · {} closes",
-            pen.icons.file,
+        Marked::new(model, pen).icon(Icon::File).text(&format!(
+            " {} · {} closes",
             changes.heading(),
             Binding::ESC_VIEWER.keys
-        )
+        ))
     } else {
-        changes.heading()
+        Marked::new(model, pen).text(&changes.heading())
     };
     let mut rows = vec![
-        Node::text(head)
+        head.node()
             .style(pen.heading.clone())
             .height(Length::Cells(1)),
     ];
@@ -865,6 +925,7 @@ fn changes_body(model: &Model, pen: &Pen) -> Vec<Node> {
             index,
             expanded,
             changes.is_approved(&entry.id),
+            model,
             pen,
         ));
         if expanded {
@@ -875,13 +936,15 @@ fn changes_body(model: &Model, pen: &Pen) -> Vec<Node> {
     if let Some((_, results)) = changes.runs() {
         // The run's own heading is the pinned verdict strip.
         rows.extend(results.iter().map(|row| {
-            let glyph = pen.icons.check(row.passed);
             let text = if row.detail.is_empty() {
-                format!("{glyph} {}", row.name)
+                format!(" {}", row.name)
             } else {
-                format!("{glyph} {} · {}", row.name, row.detail)
+                format!(" {} · {}", row.name, row.detail)
             };
-            Node::text(text)
+            Marked::new(model, pen)
+                .icon(Icon::check(row.passed))
+                .text(&text)
+                .node()
                 .style(pen.row(RowKind::Check(row.passed)).clone())
                 .height(Length::Cells(1))
         }));
@@ -897,16 +960,16 @@ fn change_head(
     index: usize,
     expanded: bool,
     approved: bool,
+    model: &Model,
     pen: &Pen,
 ) -> Node {
-    let marker = pen.icons.fold(expanded);
     let verdict = if entry.parse_ok {
         "parse ok"
     } else {
         "parse failed"
     };
     let mut text = format!(
-        "{marker} {} · {}{} {}{} · {verdict}",
+        " {} · {}{} {}{} · {verdict}",
         entry.path, pen.icons.added, entry.added, pen.icons.removed, entry.removed
     );
     if approved {
@@ -917,7 +980,10 @@ fn change_head(
     } else {
         ToolStatus::Failed
     };
-    Node::text(text)
+    Marked::new(model, pen)
+        .icon(Icon::fold(expanded))
+        .text(&text)
+        .node()
         .id(Widget::change_row(index))
         .style(pen.row(RowKind::Tool(status)).clone())
         .height(Length::Cells(1))
@@ -963,16 +1029,17 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let mut rows = Vec::new();
     if trace.viewer().is_some() {
         rows.push(
-            Node::text(format!(
-                "{} checkpoint · {} closes",
-                pen.icons.checkpoint,
-                Binding::ESC_VIEWER.keys
-            ))
-            .style(pen.heading.clone())
-            .height(Length::Cells(1)),
+            Marked::new(model, pen)
+                .icon(Icon::Checkpoint)
+                .text(&format!(
+                    " checkpoint · {} closes",
+                    Binding::ESC_VIEWER.keys
+                ))
+                .node()
+                .style(pen.heading.clone())
+                .height(Length::Cells(1)),
         );
     } else {
-        let (label, style) = checkpoint_button(model, pen);
         rows.push(
             Node::row()
                 .height(Length::Cells(1))
@@ -980,7 +1047,7 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
                 .child(segment("  ", pen.stage.clone()))
                 .child(segment(&trace.heading_line(), pen.note.clone()))
                 .child(segment("  ", pen.stage.clone()))
-                .child(segment(&label, style).id(Widget::Checkpoint.id())),
+                .child(checkpoint_button(model, pen).id(Widget::Checkpoint.id())),
         );
         if model.has_pixels() && !trace.steps().is_empty() {
             // The block the pixel graph covers: empty cells, rigid, so
@@ -1016,28 +1083,40 @@ fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     rows.into_iter().map(|row| row.shrink(0.0)).collect()
 }
 
-/// The checkpoint button's label and pen: amber, its own glyph, and the
-/// word in both modes — on a pixel terminal the glyph's two cells are
-/// left blank for the vector ring the driver paints over them.
-fn checkpoint_button(model: &Model, pen: &Pen) -> (String, Style) {
-    let label = if model.has_pixels() {
-        "   Checkpoint".to_owned()
-    } else {
-        format!("[{} Checkpoint]", pen.icons.checkpoint)
-    };
-    (label, pen.warn.clone())
+/// The checkpoint button: amber, its own glyph, and the word in both
+/// modes — on a pixel terminal the glyph's two cells are left blank
+/// for the vector ring the compositor draws over them.
+fn checkpoint_button(model: &Model, pen: &Pen) -> Node {
+    action_button_label(Icon::Checkpoint, "Checkpoint", model, pen).style(pen.warn.clone())
 }
 
-/// The pin button's label and pen: violet, the star, and `Pin` or
-/// `Unpin` — nothing a checkpoint shares.
-fn pin_button(step: &crate::cockpit::TraceStep, model: &Model, pen: &Pen) -> (String, Style) {
+/// The pin button: violet, the star, and `Pin` or `Unpin` — nothing a
+/// checkpoint shares.
+fn pin_button(step: &crate::cockpit::TraceStep, model: &Model, pen: &Pen) -> Node {
     let verb = if step.pinned { "Unpin" } else { "Pin" };
-    let label = if model.has_pixels() {
-        format!("   {verb}")
+    action_button_label(Icon::Pin, verb, model, pen).style(pen.always.clone())
+}
+
+/// A trace action's label: `[glyph word]` on a plain terminal; on a
+/// graphics one the word after two blank cells that carry the glyph as
+/// a two-cell mark, so the vector stays legible beside the word.
+fn action_button_label(icon: Icon, word: &str, model: &Model, pen: &Pen) -> Node {
+    if model.has_pixels() {
+        Node::text(format!("   {word}"))
+            .mark(Mark::Icon {
+                icon,
+                col: 0,
+                cols: 2,
+                ink: pen.ink(icon),
+            })
+            .height(Length::Cells(1))
+            .shrink(0.0)
     } else {
-        format!("[{} {verb}]", pen.icons.pinned)
-    };
-    (label, pen.always.clone())
+        segment(
+            &format!("[{} {word}]", pen.icons.of(icon)),
+            Style::default(),
+        )
+    }
 }
 
 /// The Trace tab's scrolling rows, in order — counted by
@@ -1067,7 +1146,7 @@ fn trace_body(model: &Model, pen: &Pen) -> Vec<Node> {
     for (index, step) in trace.steps().iter().enumerate() {
         let selected = trace.selected_index() == Some(index);
         let lit = focus.as_ref().is_none_or(|focus| focus.is_lit(index));
-        rows.push(trace_head(step, index, selected, lit, pen));
+        rows.push(trace_head(step, index, selected, lit, model, pen));
         if selected {
             let jump = step
                 .execution_ref
@@ -1087,7 +1166,12 @@ fn trace_body(model: &Model, pen: &Pen) -> Vec<Node> {
                 .style(pen.heading.clone())
                 .height(Length::Cells(1)),
         );
-        rows.extend(trace.moments().iter().map(|moment| moment_row(moment, pen)));
+        rows.extend(
+            trace
+                .moments()
+                .iter()
+                .map(|moment| moment_row(moment, model, pen)),
+        );
     }
     rows
 }
@@ -1156,9 +1240,28 @@ fn roadmap_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     // about where the camera is.
     let scale = roadmap.scale_label();
     let bands = usize::from(graph_rows).saturating_sub(usize::from(scale.is_some()));
-    for line in roadmap.band_rows().into_iter().take(bands).chain(scale) {
+    let legend_cols = usize::from(ROADMAP_LEGEND_COLS) - 2;
+    for (region, (group, done, total)) in roadmap.bands().into_iter().take(bands).enumerate() {
+        // The band's line: `«group» done/total` in cells; on a graphics
+        // terminal a swatch in the tree's own tint for the workstream
+        // stands where the guillemets were.
+        let line = if model.has_pixels() {
+            let (r, g, b) = RoadmapDag::region_rgb(region);
+            let rest = clip(&format!(" {group} {done}/{total}"), legend_cols - 1);
+            Node::text(format!(" {rest}")).mark(Mark::Icon {
+                icon: Icon::Ready,
+                col: 0,
+                cols: 1,
+                ink: Color::Rgb(r, g, b),
+            })
+        } else {
+            Node::text(clip(&format!("«{group}» {done}/{total}"), legend_cols))
+        };
+        graph = graph.child(line.style(pen.note.clone()).height(Length::Cells(1)));
+    }
+    if let Some(scale) = scale {
         graph = graph.child(
-            Node::text(clip(&line, usize::from(ROADMAP_LEGEND_COLS) - 2))
+            Node::text(clip(&scale, legend_cols))
                 .style(pen.note.clone())
                 .height(Length::Cells(1)),
         );
@@ -1189,7 +1292,10 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
     let mut rows = Vec::new();
     if let Some(title) = roadmap.hovered_title() {
         rows.push(
-            Node::text(format!("{} {title}", pen.icons.here))
+            Marked::new(model, pen)
+                .icon(Icon::Here)
+                .text(&format!(" {title}"))
+                .node()
                 .style(pen.note.clone())
                 .height(Length::Cells(1)),
         );
@@ -1202,16 +1308,14 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
     {
         rows.push(spacer());
         rows.push(
-            Node::text(format!(
-                "{} {} — {}",
-                pen.icons.done,
-                open.name,
-                clip(&open.title, 80)
-            ))
-            .style(pen.stage.clone())
-            .height(Length::Cells(1)),
+            Marked::new(model, pen)
+                .icon(Icon::Done)
+                .text(&format!(" {} — {}", open.name, clip(&open.title, 80)))
+                .node()
+                .style(pen.stage.clone())
+                .height(Length::Cells(1)),
         );
-        rows.extend(roadmap_detail(open, model.stage_width(), pen));
+        rows.extend(roadmap_detail(open, model, pen));
     }
     let mut section: Option<&str> = None;
     for (index, chunk) in list.iter().enumerate() {
@@ -1219,32 +1323,34 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
             section = Some(chunk.status.as_str());
             let others = list.iter().filter(|c| c.status == chunk.status).count();
             rows.push(spacer());
-            rows.push(roadmap_section_header(&chunk.status, others, pen));
+            rows.push(roadmap_section_header(&chunk.status, others, model, pen));
         }
         let selected = roadmap.selected().is_some_and(|open| open.id == chunk.id);
-        rows.push(roadmap_head(chunk, index, selected, glow, pen));
+        rows.push(roadmap_head(chunk, index, selected, glow, model, pen));
         if selected {
             rows.push(roadmap_buttons(chunk, pen));
-            rows.extend(roadmap_detail(chunk, model.stage_width(), pen));
+            rows.extend(roadmap_detail(chunk, model, pen));
         }
     }
     if roadmap.done_count() > 0 {
         rows.push(spacer());
         rows.push(
-            Node::text(format!(
-                "{} done · {}",
-                pen.icons.done,
-                roadmap.done_count()
-            ))
-            .style(pen.note.clone())
-            .height(Length::Cells(1)),
+            Marked::new(model, pen)
+                .icon(Icon::Done)
+                .text(&format!(" done · {}", roadmap.done_count()))
+                .node()
+                .style(pen.note.clone())
+                .height(Length::Cells(1)),
         );
     }
     let proposals = roadmap.proposals();
     if !proposals.is_empty() {
         rows.push(spacer());
         rows.push(
-            Node::text(format!("{} proposals", pen.icons.proposal))
+            Marked::new(model, pen)
+                .icon(Icon::Proposal)
+                .text(" proposals")
+                .node()
                 .style(pen.heading.clone())
                 .height(Length::Cells(1)),
         );
@@ -1283,7 +1389,10 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
     if !signals.is_empty() {
         rows.push(spacer());
         rows.push(
-            Node::text(format!("{} signals", pen.icons.signal))
+            Marked::new(model, pen)
+                .icon(Icon::Signal)
+                .text(" signals")
+                .node()
                 .style(pen.heading.clone())
                 .height(Length::Cells(1)),
         );
@@ -1323,15 +1432,17 @@ fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
 
 /// A status section's header: the glyph the rows underneath drop, and
 /// how many of them follow.
-fn roadmap_section_header(status: &str, count: usize, pen: &Pen) -> Node {
-    let icons = pen.icons;
-    let (glyph, label) = match status {
-        "in_progress" => (icons.active, "in progress"),
-        "pending" => (icons.pending, "pending"),
-        "blocked" => (icons.failed, "blocked"),
-        _ => (icons.planned, "backlog"),
+fn roadmap_section_header(status: &str, count: usize, model: &Model, pen: &Pen) -> Node {
+    let (icon, label) = match status {
+        "in_progress" => (Icon::InProgress, "in progress"),
+        "pending" => (Icon::Pending, "pending"),
+        "blocked" => (Icon::Failed, "blocked"),
+        _ => (Icon::Planned, "backlog"),
     };
-    Node::text(format!("{glyph} {label} · {count}"))
+    Marked::new(model, pen)
+        .icon(icon)
+        .text(&format!(" {label} · {count}"))
+        .node()
         .style(pen.heading.clone())
         .height(Length::Cells(1))
 }
@@ -1347,9 +1458,9 @@ fn roadmap_head(
     index: usize,
     selected: bool,
     glow: Option<f32>,
+    model: &Model,
     pen: &Pen,
 ) -> Node {
-    let marker = pen.icons.fold(selected);
     let name_pen = match chunk.status.as_str() {
         "in_progress" => pen.tool_running.clone(),
         "blocked" => pen.tool_failed.clone(),
@@ -1366,7 +1477,12 @@ fn roadmap_head(
     let mut node = Node::row()
         .id(Widget::roadmap_row(index))
         .height(Length::Cells(1))
-        .child(segment(&format!("{marker} "), pen.note.clone()))
+        .child(
+            Marked::new(model, pen)
+                .icon(Icon::fold(selected))
+                .text(" ")
+                .segment(pen.note.clone()),
+        )
         .child(segment(
             &format!(
                 "{:<w$}",
@@ -1380,10 +1496,12 @@ fn roadmap_head(
         node = node.child(segment(&format!("  {group}"), pen.note.clone()));
     }
     if !chunk.proposals.is_empty() {
-        node = node.child(segment(
-            &format!("  {}", pen.icons.proposal),
-            pen.permission.clone(),
-        ));
+        node = node.child(
+            Marked::new(model, pen)
+                .text("  ")
+                .icon(Icon::Proposal)
+                .segment(pen.permission.clone()),
+        );
     }
     node
 }
@@ -1410,11 +1528,11 @@ fn roadmap_buttons(chunk: &crate::cockpit::RoadmapChunk, pen: &Pen) -> Node {
 /// indented under their text), then the deps and refs — exactly the
 /// rows [`RoadmapChunk::detail_lines`] hands over, so the scroll counts
 /// what is painted.
-fn roadmap_detail(chunk: &crate::cockpit::RoadmapChunk, width: u16, pen: &Pen) -> Vec<Node> {
+fn roadmap_detail(chunk: &crate::cockpit::RoadmapChunk, model: &Model, pen: &Pen) -> Vec<Node> {
     use crate::cockpit::roadmap_chunk::DetailLine;
     let indent = " ".repeat(usize::from(crate::cockpit::RoadmapChunk::DETAIL_INDENT));
     chunk
-        .detail_lines(width)
+        .detail_lines(model.stage_width())
         .into_iter()
         .map(|(kind, line)| {
             let (text, style) = match kind {
@@ -1422,10 +1540,14 @@ fn roadmap_detail(chunk: &crate::cockpit::RoadmapChunk, width: u16, pen: &Pen) -
                 DetailLine::Description | DetailLine::Note => {
                     (format!("{indent}{line}"), pen.note.clone())
                 }
-                DetailLine::Bullet => (
-                    format!("{indent}{} {line}", pen.icons.bullet),
-                    pen.bullet.clone(),
-                ),
+                DetailLine::Bullet => {
+                    let node = Marked::new(model, pen)
+                        .text(&indent)
+                        .icon(Icon::Bullet)
+                        .text(&format!(" {line}"))
+                        .node();
+                    return node.style(pen.bullet.clone()).height(Length::Cells(1));
+                }
                 DetailLine::BulletContinued => (format!("{indent}  {line}"), pen.bullet.clone()),
             };
             Node::text(text).style(style).height(Length::Cells(1))
@@ -1442,10 +1564,10 @@ fn trace_head(
     index: usize,
     selected: bool,
     lit: bool,
+    model: &Model,
     pen: &Pen,
 ) -> Node {
-    let marker = pen.icons.fold(selected);
-    let mut text = format!("{marker} {:>2}", step.number);
+    let mut text = format!(" {:>2}", step.number);
     if !step.purpose.is_empty() {
         text.push_str(&format!("  {}", step.purpose));
     }
@@ -1458,8 +1580,11 @@ fn trace_head(
     if let Some(confidence) = step.confidence {
         text.push_str(&format!("  {confidence:.2}"));
     }
+    let mut line = Marked::new(model, pen)
+        .icon(Icon::fold(selected))
+        .text(&text);
     if step.pinned {
-        text.push_str(&format!(" {}", pen.icons.pinned));
+        line = line.text(" ").icon(Icon::Pinned);
     }
     let base = pen.row(RowKind::Event);
     let style = if selected {
@@ -1469,7 +1594,7 @@ fn trace_head(
     } else {
         pen.note.clone()
     };
-    Node::text(text)
+    line.node()
         .id(Widget::trace_row(index))
         .style(style)
         .height(Length::Cells(1))
@@ -1502,11 +1627,10 @@ fn trace_card_row(
             .style(pen.note.clone())
             .height(Length::Cells(1)),
         TraceCardRow::Buttons => {
-            let (label, style) = pin_button(step, model, pen);
             let mut node = Node::row()
                 .height(Length::Cells(1))
                 .child(segment(CARD_GUTTER, pen.stage.clone()))
-                .child(segment(&label, style).id(Widget::trace_pin(step.number)));
+                .child(pin_button(step, model, pen).id(Widget::trace_pin(step.number)));
             if jump && !model.trace().is_full() {
                 node = node.child(segment("  ", pen.stage.clone())).child(
                     segment("[Open chunk]", pen.link.clone()).id(Widget::trace_chunk(step.number)),
@@ -1553,7 +1677,7 @@ fn trace_card_row(
 
 /// One ship-timeline row: an action with its kind, description and
 /// task, or a check with its glyph, exit code and duration.
-fn moment_row(moment: &crate::cockpit::ShipMoment, pen: &Pen) -> Node {
+fn moment_row(moment: &crate::cockpit::ShipMoment, model: &Model, pen: &Pen) -> Node {
     use crate::cockpit::ShipMoment;
     match moment {
         ShipMoment::Action {
@@ -1562,7 +1686,7 @@ fn moment_row(moment: &crate::cockpit::ShipMoment, pen: &Pen) -> Node {
             description,
             ..
         } => {
-            let mut text = String::from(pen.icons.active);
+            let mut text = String::new();
             if !kind.is_empty() {
                 text.push_str(&format!(" {kind}"));
             }
@@ -1572,7 +1696,10 @@ fn moment_row(moment: &crate::cockpit::ShipMoment, pen: &Pen) -> Node {
             if !task_id.is_empty() {
                 text.push_str(&format!(" ({task_id})"));
             }
-            Node::text(text)
+            Marked::new(model, pen)
+                .icon(Icon::InProgress)
+                .text(&text)
+                .node()
                 .style(pen.row(RowKind::Event).clone())
                 .height(Length::Cells(1))
         }
@@ -1582,15 +1709,17 @@ fn moment_row(moment: &crate::cockpit::ShipMoment, pen: &Pen) -> Node {
             exit_code,
             duration_ms,
         } => {
-            let glyph = pen.icons.check(*passed);
-            let mut text = format!("{glyph} {name}");
+            let mut text = format!(" {name}");
             if let Some(code) = exit_code {
                 text.push_str(&format!(" · exit {code}"));
             }
             if let Some(ms) = duration_ms {
                 text.push_str(&format!(" · {}", duration(*ms)));
             }
-            Node::text(text)
+            Marked::new(model, pen)
+                .icon(Icon::check(*passed))
+                .text(&text)
+                .node()
                 .style(pen.row(RowKind::Check(*passed)).clone())
                 .height(Length::Cells(1))
         }
@@ -1643,9 +1772,12 @@ fn edit_buttons(row: &crate::turn::Row, index: usize, pen: &Pen) -> Node {
 /// The caller ids it so a click can find it. `fade` is how far the row's
 /// arrival has come, when it is still arriving: every pen the row wears,
 /// its inline spans included, comes in on the same curve.
-fn stage_row(row: &crate::turn::Row, pen: &Pen, fade: Option<f32>) -> Node {
+fn stage_row(row: &crate::turn::Row, model: &Model, pen: &Pen, fade: Option<f32>) -> Node {
+    if row.kind == RowKind::Fence && model.has_pixels() {
+        return fence_row(row.text.as_str(), &arriving(pen, pen.row(row.kind), fade));
+    }
     if row.spans.is_empty() {
-        return Node::text(row.text.as_str())
+        return marked_prefix(row.text.as_str(), model, pen)
             .style(arriving(pen, pen.row(row.kind), fade))
             .height(Length::Cells(1));
     }
@@ -1671,6 +1803,80 @@ fn stage_row(row: &crate::turn::Row, pen: &Pen, fade: Option<f32>) -> Node {
         ));
     }
     node
+}
+
+/// The glyphs a turn row may open with — the tool statuses, a gate's
+/// verdict, a list's bullet, the spinner's frames — each with the mark
+/// that replaces it on a graphics terminal.
+fn prefix_icons(icons: &Icons) -> [(&'static str, Icon); 12] {
+    [
+        (icons.active, Icon::InProgress),
+        (icons.pending, Icon::Pending),
+        (icons.running, Icon::Running),
+        (icons.done, Icon::Done),
+        (icons.failed, Icon::Failed),
+        (icons.bullet, Icon::Bullet),
+        (icons.spinner[0], Icon::Spinner(0)),
+        (icons.spinner[1], Icon::Spinner(1)),
+        (icons.spinner[2], Icon::Spinner(2)),
+        (icons.spinner[3], Icon::Spinner(3)),
+        (icons.blocked, Icon::Blocked),
+        (icons.warning, Icon::Warning),
+    ]
+}
+
+/// A code fence's rule row on a graphics terminal: every run of `─`
+/// the turn spelled becomes blank cells under a drawn rule, and the
+/// language label between them stays text — cell for cell the row the
+/// turn wrapped.
+fn fence_row(text: &str, style: &Style) -> Node {
+    let mut node = Node::row().height(Length::Cells(1)).style(style.clone());
+    let mut run = String::new();
+    let mut ruled = false;
+    let flush = |node: Node, run: &mut String, ruled: bool| {
+        if run.is_empty() {
+            return node;
+        }
+        let cells = " ".repeat(width(run) as usize);
+        let mut part = segment(if ruled { &cells } else { run }, style.clone());
+        if ruled {
+            part = part.mark(Mark::Rule { ink: style.fg });
+        }
+        run.clear();
+        node.child(part)
+    };
+    for ch in text.chars() {
+        let is_rule = ch == '─';
+        if is_rule != ruled {
+            node = flush(node, &mut run, ruled);
+            ruled = is_rule;
+        }
+        run.push(ch);
+    }
+    flush(node, &mut run, ruled)
+}
+
+/// A turn row's text as a node: on a graphics terminal a leading
+/// vocabulary glyph — the transcript spells tool status, gate verdicts
+/// and bullets through the same set — gives its cell to the mark; the
+/// text is otherwise as the turn wrapped it, cell for cell.
+fn marked_prefix(text: &str, model: &Model, pen: &Pen) -> Node {
+    if !model.has_pixels() {
+        return Node::text(text);
+    }
+    let leading = text.len() - text.trim_start().len();
+    let rest = &text[leading..];
+    let Some((glyph, icon)) = prefix_icons(pen.icons)
+        .into_iter()
+        .find(|(glyph, _)| rest.starts_with(glyph))
+    else {
+        return Node::text(text);
+    };
+    Marked::new(model, pen)
+        .text(&text[..leading])
+        .icon(icon)
+        .text(&rest[glyph.len()..])
+        .node()
 }
 
 /// The motion layer as the view reads it, with the step to read it at:
@@ -1724,7 +1930,7 @@ fn pane_dim(pen: &Pen) -> Style {
 /// The strip under the card's head: the program's own progress report as a bar in the
 /// pane's columns with its percent, in the error pen when the program
 /// says so, with no fraction when it has none.
-fn strip_row(progress: Progress, columns: u16, ground: &Style, pen: &Pen) -> Node {
+fn strip_row(progress: Progress, columns: u16, ground: &Style, model: &Model, pen: &Pen) -> Node {
     let dim = pane_dim(pen);
     let (percent, label, style) = match progress {
         Progress::Running(p) => (p, format!("{p}%"), &dim),
@@ -1732,6 +1938,29 @@ fn strip_row(progress: Progress, columns: u16, ground: &Style, pen: &Pen) -> Nod
         Progress::Indeterminate => (0, "working".to_owned(), &dim),
         Progress::Cleared => (0, String::new(), &dim),
     };
+    let style = style.clone().bg(ground.bg);
+    if model.has_pixels() {
+        // The bar's cells are blank under a drawn gauge; the label
+        // stays text after it.
+        let bar = Node::text(" ".repeat(usize::from(STRIP_BAR_CELLS)))
+            .mark(Mark::Bar {
+                fill: u16::from(percent).min(100) * 10,
+                line: style.fg,
+                ground: ground.bg,
+            })
+            .style(style.clone())
+            .width(Length::Cells(STRIP_BAR_CELLS))
+            .height(Length::Cells(1))
+            .shrink(0.0);
+        let room = usize::from(columns + RailMark::COLS)
+            .saturating_sub(usize::from(RailMark::COLS + STRIP_BAR_CELLS));
+        return Node::row()
+            .height(Length::Cells(1))
+            .style(style.clone())
+            .child(segment(&blank_rail(), style.clone()))
+            .child(bar)
+            .child(segment(&clip(&format!(" {label}"), room), style));
+    }
     let filled = u16::from(percent).min(100) * STRIP_BAR_CELLS / 100;
     let bar: String = (0..STRIP_BAR_CELLS)
         .map(|cell| {
@@ -1744,7 +1973,7 @@ fn strip_row(progress: Progress, columns: u16, ground: &Style, pen: &Pen) -> Nod
         .collect();
     let text = format!("{}{bar} {label}", blank_rail());
     Node::text(clip(&text, usize::from(columns + RailMark::COLS)))
-        .style(style.clone().bg(ground.bg))
+        .style(style)
         .height(Length::Cells(1))
 }
 
@@ -1781,12 +2010,17 @@ fn pane_row(model: &Model, at: usize, pen: &Pen) -> Node {
     if strip && offset == 0 {
         // A program the reader killed says so where its progress was.
         if term.is_killed() {
-            let text = format!("{}{} {KILLED_BY_YOU}", blank_rail(), pen.icons.stopped);
-            return Node::text(clip(&text, usize::from(columns + RailMark::COLS)))
+            let room = usize::from(columns + RailMark::COLS)
+                .saturating_sub(usize::from(RailMark::COLS) + 1);
+            return Marked::new(model, pen)
+                .text(&blank_rail())
+                .icon(Icon::Stopped)
+                .text(&clip(&format!(" {KILLED_BY_YOU}"), room))
+                .node()
                 .style(pen.error.clone().bg(ground.bg))
                 .height(Length::Cells(1));
         }
-        return strip_row(term.progress(), columns, &ground, pen);
+        return strip_row(term.progress(), columns, &ground, model, pen);
     }
     let offset = offset.saturating_sub(usize::from(strip));
     let cursor = term.cursor().filter(|(r, _)| *r == offset).map(|(_, c)| c);
@@ -1901,11 +2135,11 @@ fn term_dock(model: &Model, pen: &Pen) -> Option<Node> {
         .id(Widget::TermDockGrip.id())
         .style(pen.stage.clone())
         .height(Length::Cells(1))
-        .child(segment("\u{2500}\u{2500}", pen.panel_border.clone()))
+        .child(rule_cells(2, model, pen))
         .child(segment(&label, pen.rail.clone()))
-        .child(segment(&"\u{2500}".repeat(fill), pen.panel_border.clone()))
+        .child(rule_cells(fill, model, pen))
         .child(segment(&format!(" {hint} "), pen.rail.clone()))
-        .child(segment("\u{2500}\u{2500}", pen.panel_border.clone()));
+        .child(rule_cells(2, model, pen));
     let ground = pen.row(RowKind::Pane).clone();
     let columns = cols.saturating_sub(RailMark::COLS);
     let cursor = term.window_cursor();
@@ -1992,10 +2226,34 @@ fn launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
         // ring ever lands on another row's cells.
         let cap = avail.saturating_sub(14).max(1);
         return vec![
-            launcher_card(Widget::CardProject, pen, project_rows(model, pen, true)).shrink(0.0),
-            launcher_card(Widget::CardRoadmap, pen, roadmap_card_rows(model, pen, 0)).shrink(0.0),
-            launcher_card(Widget::CardActions, pen, vec![action_chips(pen)]).shrink(0.0),
-            launcher_card(Widget::CardSessions, pen, session_rows(model, pen, cap)).shrink(0.0),
+            launcher_card(
+                Widget::CardProject,
+                model,
+                pen,
+                project_rows(model, pen, true),
+            )
+            .shrink(0.0),
+            launcher_card(
+                Widget::CardRoadmap,
+                model,
+                pen,
+                roadmap_card_rows(model, pen, 0),
+            )
+            .shrink(0.0),
+            launcher_card(
+                Widget::CardActions,
+                model,
+                pen,
+                vec![action_chips(model, pen)],
+            )
+            .shrink(0.0),
+            launcher_card(
+                Widget::CardSessions,
+                model,
+                pen,
+                session_rows(model, pen, cap),
+            )
+            .shrink(0.0),
         ];
     }
     // The grid: each column's growing card stretches its stack to the
@@ -2004,18 +2262,25 @@ fn launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     // predictably.
     let session_cap = avail.saturating_sub(8).max(1);
     let board_cap = avail.saturating_sub(11).max(1);
-    let project = launcher_card(Widget::CardProject, pen, project_rows(model, pen, false));
+    let project = launcher_card(
+        Widget::CardProject,
+        model,
+        pen,
+        project_rows(model, pen, false),
+    );
     let roadmap = launcher_card(
         Widget::CardRoadmap,
+        model,
         pen,
         roadmap_card_rows(model, pen, board_cap),
     );
     let sessions = launcher_card(
         Widget::CardSessions,
+        model,
         pen,
         session_rows(model, pen, session_cap),
     );
-    let actions = launcher_card(Widget::CardActions, pen, action_rows(pen));
+    let actions = launcher_card(Widget::CardActions, model, pen, action_rows(model, pen));
     vec![
         Node::row()
             .grow(1.0)
@@ -2043,7 +2308,7 @@ fn launcher_rows(model: &Model, pen: &Pen) -> Vec<Node> {
 /// panel so the grid's coverage is measurable from the placed rects — a
 /// viewport, so a long row clips inside the ring instead of painting
 /// over its neighbour.
-fn launcher_card(widget: Widget, pen: &Pen, rows: Vec<Node>) -> Node {
+fn launcher_card(widget: Widget, model: &Model, pen: &Pen, rows: Vec<Node>) -> Node {
     Node::column()
         .id(widget.id())
         .viewport()
@@ -2051,7 +2316,8 @@ fn launcher_card(widget: Widget, pen: &Pen, rows: Vec<Node>) -> Node {
         .frame(
             Frame::new(pen.panel(false).clone())
                 .title(widget.label())
-                .title_style(pen.heading.clone()),
+                .title_style(pen.heading.clone())
+                .drawn(model.has_pixels()),
         )
         .children(rows.into_iter().map(|row| row.shrink(0.0)))
 }
@@ -2072,10 +2338,10 @@ fn project_rows(model: &Model, pen: &Pen, compact: bool) -> Vec<Node> {
     };
     if !data.has_config {
         return vec![
-            segment(
-                &format!("{} not configured", pen.icons.warning),
-                pen.error.clone(),
-            ),
+            Marked::new(model, pen)
+                .icon(Icon::Warning)
+                .text(" not configured")
+                .segment(pen.error.clone()),
             segment(
                 "run `magistr init` to set this project up",
                 pen.stage.clone(),
@@ -2154,16 +2420,20 @@ fn roadmap_card_rows(model: &Model, pen: &Pen, board_cap: usize) -> Vec<Node> {
         total,
         launcher_bar_cells(model, done, total),
         &palette,
+        model,
         pen,
     )];
     match roadmap.next_ready() {
         Some(chunk) => {
             let mut next = Node::row()
                 .height(Length::Cells(1))
-                .child(segment(
-                    &format!("next {} ", pen.icons.active),
-                    pen.rail.clone(),
-                ))
+                .child(
+                    Marked::new(model, pen)
+                        .text("next ")
+                        .icon(Icon::Ready)
+                        .text(" ")
+                        .segment(pen.rail.clone()),
+                )
                 .child(segment(&chunk.name, pen.user.clone()));
             if !chunk.title.is_empty() {
                 let free = cols.saturating_sub(7 + chunk.name.chars().count());
@@ -2174,17 +2444,20 @@ fn roadmap_card_rows(model: &Model, pen: &Pen, board_cap: usize) -> Vec<Node> {
             }
             rows.push(next);
         }
-        None => rows.push(segment(
-            &format!("next {} nothing ready", pen.icons.active),
-            pen.note.clone(),
-        )),
+        None => rows.push(
+            Marked::new(model, pen)
+                .text("next ")
+                .icon(Icon::Ready)
+                .text(" nothing ready")
+                .segment(pen.note.clone()),
+        ),
     }
     rows.push(segment(
         &shorten(&roadmap.summary_line(), cols),
         pen.thought.clone(),
     ));
     for chunk in roadmap.rows().into_iter().take(board_cap) {
-        rows.push(board_row(chunk, cols, pen));
+        rows.push(board_row(chunk, cols, model, pen));
     }
     rows
 }
@@ -2206,11 +2479,31 @@ fn ramp_bar(
     total: usize,
     cells: usize,
     palette: &Palette,
+    model: &Model,
     pen: &Pen,
 ) -> Node {
     let filled = filled_cells(fill, cells);
     let base = Color::Rgb(palette.base.r, palette.base.g, palette.base.b);
     let mut row = Node::row().height(Length::Cells(1));
+    if model.has_pixels() {
+        // One drawn gauge over the bar's cells, in the ramp's closing
+        // colour, so the fill reads at the pixel rather than the cell.
+        let end = ramp(palette, 1.0);
+        let width = u16::try_from(cells).unwrap_or(u16::MAX);
+        let bar = Node::text(" ".repeat(cells))
+            .mark(Mark::Bar {
+                fill: (fill.clamp(0.0, 1.0) * 1000.0) as u16,
+                line: Color::Rgb(end.r, end.g, end.b),
+                ground: base,
+            })
+            .style(pen.stage.clone())
+            .width(Length::Cells(width))
+            .height(Length::Cells(1))
+            .shrink(0.0);
+        return row
+            .child(bar)
+            .child(segment(&format!(" {done}/{total}"), pen.stage.clone()));
+    }
     for cell in 0..cells {
         let t = cell as f64 / cells.saturating_sub(1).max(1) as f64;
         let (glyph, color) = if cell < filled {
@@ -2268,10 +2561,12 @@ fn session_rows(model: &Model, pen: &Pen, cap: usize) -> Vec<Node> {
         ));
     }
     if let Some(note) = model.session_note() {
-        rows.push(segment(
-            &format!("{} {note}", pen.icons.blocked),
-            pen.warn.clone(),
-        ));
+        rows.push(
+            Marked::new(model, pen)
+                .icon(Icon::Blocked)
+                .text(&format!(" {note}"))
+                .segment(pen.warn.clone()),
+        );
     }
     rows
 }
@@ -2306,10 +2601,12 @@ fn session_row(index: usize, session: &LauncherSession, model: &Model, pen: &Pen
     if raised {
         row = row.style(pen.code.clone());
     }
-    row.child(segment(
-        &format!("{} ", session.outcome.glyph(pen.icons)),
-        icon.clone(),
-    ))
+    row.child(
+        Marked::new(model, pen)
+            .icon(session.outcome.icon())
+            .text(" ")
+            .segment(icon.clone()),
+    )
     .child(segment(&when, quiet.clone()))
     .child(segment(&shorten(&session.preview, free), body.clone()))
 }
@@ -2330,34 +2627,50 @@ const LAUNCHER_ACTIONS: [(Binding, Widget); 4] = [
 /// One action as a key-cap control: the key on a raised cap, what it
 /// does beside it — the footer's grammar as a button, the id on the
 /// whole control so the cap and the label both take the click.
-fn action_button(binding: Binding, widget: Widget, pen: &Pen) -> Node {
+fn action_button(binding: Binding, widget: Widget, model: &Model, pen: &Pen) -> Node {
     Node::row()
         .id(widget.id())
         .gap(Space::TIGHT)
         .shrink(0.0)
         .height(Length::Cells(1))
-        .child(segment(
+        .child(key_cap(
             &format!(" {} ", binding.keys),
-            pen.chip_key.clone(),
+            &pen.stage,
+            model,
+            pen,
         ))
         .child(segment(binding.does, pen.heading.clone()))
 }
 
+/// A key on a raised cap: the chip pen's cells, and on a graphics
+/// terminal a drawn cap under them — rounded off onto `bar`, the
+/// ground the cap sits on.
+fn key_cap(text: &str, bar: &Style, model: &Model, pen: &Pen) -> Node {
+    let mut cap = segment(text, pen.chip_key.clone());
+    if model.has_pixels() {
+        cap = cap.mark(Mark::Chip {
+            fill: pen.chip_key.bg,
+            ground: bar.bg,
+        });
+    }
+    cap
+}
+
 /// The actions card's rows on the grid: one control per row.
-fn action_rows(pen: &Pen) -> Vec<Node> {
+fn action_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     LAUNCHER_ACTIONS
         .into_iter()
-        .map(|(binding, widget)| action_button(binding, widget, pen))
+        .map(|(binding, widget)| action_button(binding, widget, model, pen))
         .collect()
 }
 
 /// The actions as one row of controls, for the stacked layout. No gap
 /// of its own — each control's raised cap carries its own padding, and
 /// all four have to fit an 80-column stage beside the rail.
-fn action_chips(pen: &Pen) -> Node {
+fn action_chips(model: &Model, pen: &Pen) -> Node {
     let mut row = Node::row().height(Length::Cells(1));
     for (binding, widget) in LAUNCHER_ACTIONS {
-        row = row.child(action_button(binding, widget, pen));
+        row = row.child(action_button(binding, widget, model, pen));
     }
     row
 }
@@ -2375,20 +2688,22 @@ fn launcher_card_cols(model: &Model) -> usize {
 
 /// One chunk on the roadmap card's board: its status as a glyph in the
 /// status's pen, the name, the title when it has one.
-fn board_row(chunk: &RoadmapChunk, cols: usize, pen: &Pen) -> Node {
-    let icons = pen.icons;
-    let (glyph, style) = match chunk.status.as_str() {
-        "in_progress" => (icons.active, &pen.rail),
-        "pending" => (icons.pending, &pen.stage),
-        "blocked" => (icons.stopped, &pen.error),
-        _ => (icons.planned, &pen.thought),
+fn board_row(chunk: &RoadmapChunk, cols: usize, model: &Model, pen: &Pen) -> Node {
+    let (icon, style) = match chunk.status.as_str() {
+        "in_progress" => (Icon::InProgress, &pen.rail),
+        "pending" => (Icon::Pending, &pen.stage),
+        "blocked" => (Icon::Stopped, &pen.error),
+        _ => (Icon::Planned, &pen.thought),
     };
     let text = if chunk.title.is_empty() {
-        format!("{glyph} {}", chunk.name)
+        format!(" {}", chunk.name)
     } else {
-        format!("{glyph} {} — {}", chunk.name, chunk.title)
+        format!(" {} — {}", chunk.name, chunk.title)
     };
-    segment(&shorten(&text, cols), style.clone())
+    Marked::new(model, pen)
+        .icon(icon)
+        .text(&shorten(&text, cols.saturating_sub(1)))
+        .segment(style.clone())
 }
 
 /// The accelerator sheet over the stage: every binding the cockpit
@@ -2404,7 +2719,7 @@ fn board_row(chunk: &RoadmapChunk, cols: usize, pen: &Pen) -> Node {
 /// while the body overflows, so a sheet that fits is exactly the sheet
 /// it always was.
 fn sheet_rows(model: &Model, pen: &Pen) -> Vec<Node> {
-    let mut body = sheet_body(pen);
+    let mut body = sheet_body(model, pen);
     let (total, height) = model.sheet_window();
     let top = model.sheet_top().min(body.len());
     let bottom = top.saturating_add(height).min(body.len());
@@ -2413,14 +2728,15 @@ fn sheet_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     } else {
         String::new()
     };
-    let mut rows = vec![segment(
-        &format!(
-            "{} keys · {} closes{position}",
-            pen.icons.keys,
-            Binding::ESC_SHEET.keys
-        ),
-        pen.heading.clone(),
-    )];
+    let mut rows = vec![
+        Marked::new(model, pen)
+            .icon(Icon::Keys)
+            .text(&format!(
+                " keys · {} closes{position}",
+                Binding::ESC_SHEET.keys
+            ))
+            .segment(pen.heading.clone()),
+    ];
     rows.extend(body.drain(top..bottom));
     rows
 }
@@ -2429,7 +2745,7 @@ fn sheet_rows(model: &Model, pen: &Pen) -> Vec<Node> {
 /// [`Model::sheet_window`] measures and [`sheet_rows`] takes its window
 /// of. Built whole so the count and the paint come from one walk of
 /// [`Binding::ALL`].
-fn sheet_body(pen: &Pen) -> Vec<Node> {
+fn sheet_body(model: &Model, pen: &Pen) -> Vec<Node> {
     let mut rows = Vec::with_capacity(Binding::sheet_rows());
     let mut group = "";
     for binding in Binding::ALL {
@@ -2440,12 +2756,9 @@ fn sheet_body(pen: &Pen) -> Vec<Node> {
                 Node::row()
                     .height(Length::Cells(1))
                     .shrink(0.0)
-                    .child(segment("── ", pen.panel_border.clone()))
+                    .child(rule(2, true, model, pen))
                     .child(segment(group, pen.rail.clone()))
-                    .child(segment(
-                        &format!(" {}", "─".repeat(SHEET_DIVIDER_COLS)),
-                        pen.panel_border.clone(),
-                    )),
+                    .child(rule(SHEET_DIVIDER_COLS, false, model, pen)),
             );
         }
         rows.push(
@@ -2453,14 +2766,52 @@ fn sheet_body(pen: &Pen) -> Vec<Node> {
                 .height(Length::Cells(1))
                 .gap(Space::GAP)
                 .shrink(0.0)
-                .child(segment(
+                .child(key_cap(
                     &format!(" {:<15} ", binding.keys),
-                    pen.chip_key.clone(),
+                    &pen.stage,
+                    model,
+                    pen,
                 ))
                 .child(segment(binding.does, pen.stage.clone())),
         );
     }
     rows
+}
+
+/// `cols` cells of a labelled divider's line, with the space that
+/// separates it from the label after it (`leading`) or before it: one
+/// spelled segment on a plain terminal; on a graphics one the line's
+/// cells and the space apart, so the drawn rule stops short of the
+/// label.
+fn rule(cols: usize, leading: bool, model: &Model, pen: &Pen) -> Node {
+    if !model.has_pixels() {
+        let line = "─".repeat(cols);
+        let text = if leading {
+            format!("{line} ")
+        } else {
+            format!(" {line}")
+        };
+        return segment(&text, pen.panel_border.clone());
+    }
+    let space = segment(" ", pen.panel_border.clone());
+    let row = Node::row().height(Length::Cells(1)).shrink(0.0);
+    if leading {
+        row.child(rule_cells(cols, model, pen)).child(space)
+    } else {
+        row.child(space).child(rule_cells(cols, model, pen))
+    }
+}
+
+/// `cols` cells of a divider's line: `──` in cells, blank cells under a
+/// drawn rule on a graphics terminal.
+fn rule_cells(cols: usize, model: &Model, pen: &Pen) -> Node {
+    if model.has_pixels() {
+        segment(&" ".repeat(cols), pen.panel_border.clone()).mark(Mark::Rule {
+            ink: pen.panel_border.fg,
+        })
+    } else {
+        segment(&"─".repeat(cols), pen.panel_border.clone())
+    }
 }
 
 /// One styled segment of a stage row.
@@ -2495,14 +2846,16 @@ fn moment_card(model: &Model, permission: &Permission, pen: &Pen) -> Node {
         .padding(Space::PAD);
     // A cell grid has no elevation to lift a card off the screen with,
     // so a ring is what says "this is a surface of its own".
-    card = card.frame(Frame::new(pen.panel(true).clone()));
+    card = card.frame(Frame::new(pen.panel(true).clone()).drawn(model.has_pixels()));
 
     // The cap, and the checkpoint the ask named — pushed to the far
     // side of the same row, as shown on screen.
-    let cap = format!("{} PLAN · APPROVAL REQUIRED", pen.icons.proposal);
-    let mut head = Node::row()
-        .height(Length::Cells(1))
-        .child(segment(&cap, pen.warn.clone()));
+    let mut head = Node::row().height(Length::Cells(1)).child(
+        Marked::new(model, pen)
+            .icon(Icon::Proposal)
+            .text(" PLAN · APPROVAL REQUIRED")
+            .segment(pen.warn.clone()),
+    );
     head = head.child(Node::leaf().grow(1.0));
     if let Some(checkpoint) = permission.checkpoint() {
         head = head.child(segment(
@@ -2633,12 +2986,9 @@ fn dock(model: &Model, pen: &Pen) -> Node {
             .id(Widget::Dock.id())
             .style(pen.stage.clone())
             .height(Length::Cells(1))
-            .child(segment("── ", pen.panel_border.clone()))
+            .child(rule(2, true, model, pen))
             .child(segment(label, pen.rail.clone()))
-            .child(segment(
-                &format!(" {}", "─".repeat(fill)),
-                pen.panel_border.clone(),
-            ));
+            .child(rule(fill, false, model, pen));
     }
     // A card's arrival flashes the ring and pulses the front card once.
     let arrival = in_motion(model).and_then(|(m, now)| m.dock_transition(now));
@@ -2653,7 +3003,8 @@ fn dock(model: &Model, pen: &Pen) -> Node {
             Frame::new(ring)
                 .title("needs you")
                 .title_style(pen.heading.clone())
-                .meta(model.dock().len().to_string()),
+                .meta(model.dock().len().to_string())
+                .drawn(model.has_pixels()),
         );
     // A card whose buttons the Moment is already showing keeps its row
     // and loses its buttons: two nodes carrying `Widget::Allow` would
@@ -2663,7 +3014,7 @@ fn dock(model: &Model, pen: &Pen) -> Node {
     let front = model.moment().is_none();
     for (index, card) in model.dock().cards().enumerate() {
         let pulse = arrival.filter(|_| index == 0);
-        column = column.child(card_row(card, front && index == 0, pulse, pen));
+        column = column.child(card_row(card, front && index == 0, pulse, model, pen));
     }
     column
 }
@@ -2671,16 +3022,20 @@ fn dock(model: &Model, pen: &Pen) -> Node {
 /// One card's row: its text — pulsed once on arrival — then, on the
 /// front card, one hittable button per action its type offers, each
 /// with its accelerator.
-fn card_row(card: &DockItem, front: bool, pulse: Option<f32>, pen: &Pen) -> Node {
+fn card_row(card: &DockItem, front: bool, pulse: Option<f32>, model: &Model, pen: &Pen) -> Node {
     let text = match pulse {
         Some(t) => pen.pulse(&pen.permission, t),
         None => pen.permission.clone(),
     };
+    let (icon, words) = card.line();
     let mut row = Node::row()
         .gap(Space::TIGHT)
         .height(Length::Cells(1))
         .child(
-            Node::text(card.text(pen.icons))
+            Marked::new(model, pen)
+                .icon(icon)
+                .text(&format!(" {words}"))
+                .node()
                 .style(text)
                 .height(Length::Cells(1)),
         );
@@ -2824,20 +3179,28 @@ fn header_bar(model: &Model, clock: &FrameClock, pen: &Pen) -> Node {
         bar = bar.child(segment(title, pen.permission.clone()));
     }
     let state = model.turn_state();
-    let (state_text, state_pen) = if state == TurnState::Streaming {
+    let (state_line, state_pen) = if state == TurnState::Streaming {
         // The header's spinner turns on the runtime's tick, which runs
         // while this is true; under reduced motion it never starts, and
         // the still running mark stands in for the spinner.
         let mark = if model.animates(Animation::Motion) {
-            pen.icons.spin(model.spin_step())
+            spinner(model)
         } else {
-            pen.icons.running
+            Icon::Running
         };
-        (format!("{mark} {}", state.label()), pen.always.clone())
+        (
+            Marked::new(model, pen)
+                .icon(mark)
+                .text(&format!(" {}", state.label())),
+            pen.always.clone(),
+        )
     } else {
-        (state.label().to_owned(), pen.footer.clone())
+        (
+            Marked::new(model, pen).text(state.label()),
+            pen.footer.clone(),
+        )
     };
-    bar = bar.child(segment(&state_text, state_pen));
+    bar = bar.child(state_line.segment(state_pen));
     let scrolled = scrolled(model);
     if !scrolled.is_empty() {
         bar = bar.child(segment(&scrolled, pen.footer.clone()));
@@ -3089,9 +3452,11 @@ fn footer_bar(model: &Model, pen: &Pen) -> Node {
                 .gap(Space::TIGHT)
                 .shrink(0.0)
                 .height(Length::Cells(1))
-                .child(segment(
+                .child(key_cap(
                     &format!(" {} ", binding.keys),
-                    pen.chip_key.clone(),
+                    &pen.footer,
+                    model,
+                    pen,
                 ))
                 .child(segment(binding.does, pen.footer.clone())),
         );

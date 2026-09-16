@@ -66,6 +66,14 @@ fn screen_of_first_write_after(capture: &Capture, since: std::time::Instant) -> 
 /// The strip is in the very next frame after the request reached the
 /// inbox — the one-frame promise, pinned to the write rather than to
 /// "some time before the answering key".
+/// A line the view opens with a vocabulary glyph, as this session's
+/// terminal paints it: the glyph on a plain terminal, a blank cell under
+/// a drawn mark on a graphics one.
+fn marked(model: &Model, glyph: &str, rest: &str) -> String {
+    let mark = if model.has_pixels() { " " } else { glyph };
+    format!("{mark} {rest}")
+}
+
 fn assert_strip_in_next_frame(capture: &Capture, arrivals: &Arrivals, strip: &str) {
     let requests = arrivals.permission_requests();
     assert_eq!(requests.len(), 1, "one request reached the inbox");
@@ -331,7 +339,8 @@ async fn a_permission_answered_always_by_key_still_obeys_the_next_policy_ask() {
     for arrived in arrivals.permission_requests() {
         let frame = screen_of_first_write_after(&capture, arrived)
             .expect("the next frame shows the permission request");
-        assert!(frame.contains("⚠ Bash needs permission"), "{frame}");
+        let card = marked(&model, "⚠", "Bash needs permission");
+        assert!(frame.contains(&card), "{frame}");
     }
     assert_eq!(observed.prompts(), ["run the tests", "again"]);
     assert_eq!(
@@ -354,7 +363,8 @@ async fn a_permission_answered_always_by_key_still_obeys_the_next_policy_ask() {
     // the end.
     let key = deliveries.instants()[1];
     let before = screen_before(&capture, key);
-    assert!(before.contains("⚠ Bash needs permission"), "{before}");
+    let card = marked(&model, "⚠", "Bash needs permission");
+    assert!(before.contains(&card), "{before}");
     assert!(before.contains("[\u{21e7}A] Always"), "{before}");
     assert!(
         before.contains(" A  allow   \u{21e7}A  always   D  deny"),
@@ -528,7 +538,8 @@ async fn an_edit_permission_shows_as_a_diff_approval_and_round_trips() {
         SessionOptions::new().opening_prompt("fix the readme"),
     )
     .await;
-    assert_strip_in_next_frame(&capture, &arrivals, "✎ Edit README.md — approve the diff");
+    let card = marked(&model, "✎", "Edit README.md — approve the diff");
+    assert_strip_in_next_frame(&capture, &arrivals, &card);
     assert_eq!(observed.outcomes(), [Some("allow".to_owned())]);
     assert_eq!(model.permissions_seen(), 1);
     assert_eq!(model.permissions_pending(), 0);
@@ -536,10 +547,7 @@ async fn an_edit_permission_shows_as_a_diff_approval_and_round_trips() {
     // the same buttons a plain permission offers, and was gone by the end.
     let key = deliveries.instants()[1];
     let before = screen_before(&capture, key);
-    assert!(
-        before.contains("✎ Edit README.md — approve the diff"),
-        "{before}"
-    );
+    assert!(before.contains(&card), "{before}");
     assert!(before.contains("[A] Allow"), "{before}");
     let quit = *deliveries.instants().last().expect("the quit");
     assert!(!screen_before(&capture, quit).contains("approve the diff"));
@@ -577,7 +585,8 @@ async fn a_palette_read_round_trips_through_the_session_workbench() {
     let quit = *deliveries.instants().last().expect("the quit");
     let screen = screen_before(&capture, quit);
     assert!(screen.contains("# Magistr"), "{screen}");
-    assert!(screen.contains("▤ README.md · esc closes"), "{screen}");
+    let heading = marked(&model, "▤", "README.md · esc closes");
+    assert!(screen.contains(&heading), "{screen}");
 }
 
 #[tokio::test]
@@ -622,7 +631,8 @@ async fn palette_pin_and_checkpoint_round_trip_through_the_session_engine() {
     // The report stood on the Trace tab before the quit.
     let quit = *deliveries.instants().last().expect("the quit");
     let screen = screen_before(&capture, quit);
-    assert!(screen.contains("✱ checkpoint · esc closes"), "{screen}");
+    let heading = marked(&model, "✱", "checkpoint · esc closes");
+    assert!(screen.contains(&heading), "{screen}");
     assert!(screen.contains("open_hypotheses"), "{screen}");
 }
 
@@ -834,7 +844,8 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
     // The started chunk stood in its section before the quit.
     let quit = *deliveries.instants().last().expect("the quit");
     let screen = screen_before(&capture, quit);
-    assert!(screen.contains("▸ in progress · 1"), "{screen}");
+    let section = marked(&model, "▸", "in progress · 1");
+    assert!(screen.contains(&section), "{screen}");
 }
 
 /// A model with the ship plan already on the rail, as the engine feed

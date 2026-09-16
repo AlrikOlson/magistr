@@ -126,6 +126,14 @@ impl RoadmapDag {
         self
     }
 
+    /// The colour of workstream `region`'s tint, solid — what the
+    /// legend's swatch wears beside the workstream's name.
+    #[must_use]
+    pub const fn region_rgb(region: usize) -> (u8, u8, u8) {
+        let [r, g, b] = REGION_TINTS[region % REGION_TINTS.len()];
+        (r, g, b)
+    }
+
     /// Whether the workstream tint bands are painted.
     #[must_use]
     pub fn bands(mut self, bands: bool) -> Self {

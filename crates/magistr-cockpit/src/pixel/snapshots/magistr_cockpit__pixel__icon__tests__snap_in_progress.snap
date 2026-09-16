@@ -1,0 +1,18 @@
+---
+source: crates/magistr-cockpit/src/pixel/icon.tests.rs
+assertion_line: 52
+expression: "ascii(&render(Icon::InProgress))"
+---
+                
+                
+                
+    +.          
+    ###.        
+    ####+       
+    ######+     
+    ########.   
+    ########.   
+    ######+     
+    ####+       
+    ###.        
+    +.

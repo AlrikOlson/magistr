@@ -2,6 +2,7 @@
 
 use magistr_engine::native::TaskStatus;
 
+use crate::pixel::Icon;
 use crate::theme::Icons;
 
 /// The lifecycle of a task on the ship plan.
@@ -21,17 +22,23 @@ pub enum TaskState {
 }
 
 impl TaskState {
+    /// The mark the rail draws before the task's title.
+    #[must_use]
+    pub const fn icon(self) -> Icon {
+        match self {
+            Self::Planned => Icon::Planned,
+            Self::Active => Icon::InProgress,
+            Self::Completed => Icon::Done,
+            Self::Blocked => Icon::Blocked,
+            Self::Skipped => Icon::Skipped,
+        }
+    }
+
     /// The one-cell mark the rail draws before the task's title, in
     /// `icons`' vocabulary.
     #[must_use]
     pub const fn glyph(self, icons: &Icons) -> &'static str {
-        match self {
-            Self::Planned => icons.planned,
-            Self::Active => icons.active,
-            Self::Completed => icons.done,
-            Self::Blocked => icons.blocked,
-            Self::Skipped => icons.skipped,
-        }
+        icons.of(self.icon())
     }
 }
 

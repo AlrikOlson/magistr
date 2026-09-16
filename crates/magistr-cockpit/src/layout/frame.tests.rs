@@ -25,3 +25,27 @@ fn title_meta_and_title_style_are_carried() {
     assert_eq!(frame.border_style(), &style(1));
     assert_eq!(frame.heading_style(), &style(2).attrs(Attrs::BOLD));
 }
+
+#[test]
+fn a_frame_is_spelled_unless_asked_to_be_drawn() {
+    assert!(!Frame::new(style(1)).is_drawn());
+    assert!(Frame::new(style(1)).drawn(true).is_drawn());
+    assert!(!Frame::new(style(1)).drawn(false).is_drawn());
+}
+
+#[test]
+fn the_title_span_is_the_title_in_its_spaces_after_the_corner_cut_to_the_slot() {
+    assert_eq!(Frame::new(style(1)).title_span(20), None);
+    assert_eq!(Frame::new(style(1)).title("").title_span(20), None);
+    assert_eq!(
+        Frame::new(style(1)).title("plan").title_span(20),
+        Some((2, 6))
+    );
+    // A ring 9 wide has a 5-cell slot: three characters of title.
+    assert_eq!(
+        Frame::new(style(1)).title("roadmap").title_span(9),
+        Some((2, 5))
+    );
+    // Too narrow for even one character: no title at all.
+    assert_eq!(Frame::new(style(1)).title("plan").title_span(6), None);
+}

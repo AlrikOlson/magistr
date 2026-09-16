@@ -2,6 +2,7 @@
 
 use super::permission::Permission;
 use super::proposal_kind::ProposalKind;
+use crate::pixel::Icon;
 use crate::theme::Icons;
 
 /// Something that needs the human: a typed card on the dock, in the
@@ -31,32 +32,40 @@ pub enum DockItem {
 }
 
 impl DockItem {
-    /// The card's one-line text, without its buttons.
+    /// The card's one-line text, without its buttons: its mark, then
+    /// the words after it.
     #[must_use]
-    pub fn text(&self, icons: &Icons) -> String {
+    pub fn line(&self) -> (Icon, String) {
         match self {
-            Self::Permission(p) if p.is_edit() => saved(
-                format!("{} {} — approve the diff", icons.edit, p.title()),
-                p,
+            Self::Permission(p) if p.is_edit() => (
+                Icon::Edit,
+                saved(format!("{} — approve the diff", p.title()), p),
             ),
-            Self::Permission(p) => saved(
-                format!("{} {} needs permission", icons.warning, p.title()),
-                p,
+            Self::Permission(p) => (
+                Icon::Warning,
+                saved(format!("{} needs permission", p.title()), p),
             ),
             Self::Proposal {
                 chunk,
                 kind,
                 suggestion,
                 reason,
-            } => format!(
-                "{} {chunk}: {} → {suggestion} ({reason})",
-                icons.signal,
-                kind.label()
+            } => (
+                Icon::Signal,
+                format!("{chunk}: {} → {suggestion} ({reason})", kind.label()),
             ),
             Self::Blocker { chunk, reason } => {
-                format!("{} {chunk} blocked: {reason}", icons.blocker)
+                (Icon::Blocker, format!("{chunk} blocked: {reason}"))
             }
         }
+    }
+
+    /// The card's one-line text, without its buttons, in `icons`'
+    /// vocabulary.
+    #[must_use]
+    pub fn text(&self, icons: &Icons) -> String {
+        let (icon, rest) = self.line();
+        format!("{} {rest}", icons.of(icon))
     }
 }
 

@@ -104,27 +104,39 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
         .instants()
         .last()
         .expect("the quit was delivered");
-    // The scrolls reached the wire as glides rather than cuts.
-    // Four inputs cutting straight to their windows could only ever put
-    // three distinct row ranges on screen; the page's held frame on the
-    // way (stage-scroll-anchor-and-rate: a notch is on screen the frame
-    // it was turned, a page shows one frame between) puts up one more.
-    // Sampled across the whole run rather than at one instant, and
-    // finer than a tick, so a loaded machine shifts which frame a sample
-    // catches without changing how many distinct windows were painted.
-    let windows: std::collections::BTreeSet<String> = (0..40)
-        .map(|n| screen_before(&capture, page_up + MS(20 * n)))
-        .filter_map(|screen| {
-            screen
-                .lines()
-                .find(|line| line.contains("rows "))
-                .map(str::to_owned)
+    // The scrolls reached the wire in order: the page's landing, two
+    // notches up, one down — read off the header's row range, sampled
+    // across the whole run finer than any input is spaced, so a loaded
+    // machine shifts which frame a sample catches without changing the
+    // windows it lands on. (The glide between two windows is finer than
+    // this sampling; what is proven here is that every scroll painted,
+    // and none was skipped or reordered.)
+    let range = |screen: String| {
+        screen.lines().find_map(|line| {
+            let at = line.find("rows ")?;
+            let words: Vec<&str> = line[at..].split_whitespace().take(2).collect();
+            Some(words.join(" "))
         })
-        .collect();
-    assert!(
-        windows.len() > 3,
-        "{} distinct windows painted — a cut would show at most three: {windows:#?}",
-        windows.len()
+    };
+    let mut landed: Vec<String> = Vec::new();
+    for n in 0..40 {
+        if let Some(window) = range(screen_before(&capture, page_up + MS(20 * n)))
+            && landed.last() != Some(&window)
+        {
+            landed.push(window);
+        }
+    }
+    let window = |top: usize| format!("rows {}–{}/10000", top + 1, top + height);
+    let tail = 10_000 - height;
+    assert_eq!(
+        landed,
+        vec![
+            window(tail - (height - 1)),
+            window(tail - (height - 1) - 3),
+            window(tail - (height - 1) - 6),
+            window(top),
+        ],
+        "the page and the three notches each painted their window, in order"
     );
     let after = screen_before(&capture, quit);
     assert!(

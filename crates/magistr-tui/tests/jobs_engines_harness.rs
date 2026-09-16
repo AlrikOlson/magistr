@@ -239,8 +239,15 @@ async fn a_think_step_lands_on_the_trace_tab_and_its_next_paint() {
     .await;
     assert_eq!(model.trace().steps().len(), 1, "the step landed");
     assert_eq!(model.trace().steps()[0].number, 7);
+    // The fold marker before the number is a glyph on a plain terminal
+    // and a blank cell under a drawn mark on a graphics one.
+    let row = if model.has_pixels() {
+        "   7  hypothesis"
+    } else {
+        "\u{25b8}  7  hypothesis"
+    };
     assert!(
-        capture.count("\u{25b8}  7  hypothesis".as_bytes()) >= 1,
+        capture.count(row.as_bytes()) >= 1,
         "the step's row was painted ({} bytes captured)",
         capture.bytes().len()
     );

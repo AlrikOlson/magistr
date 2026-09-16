@@ -15,6 +15,7 @@ pub struct Frame {
     meta: Option<String>,
     style: Style,
     title_style: Option<Style>,
+    drawn: bool,
 }
 
 impl Frame {
@@ -26,7 +27,42 @@ impl Frame {
             meta: None,
             style,
             title_style: None,
+            drawn: false,
         }
+    }
+
+    /// Draw the ring in pixels rather than spelling it in box
+    /// characters: the painter leaves the ring's cells blank (the title
+    /// and meta still go on the top row) and the frame becomes a
+    /// [`Mark::Panel`](super::Mark::Panel) for the compositor — on a
+    /// graphics terminal. A plain terminal passes `false` and gets the
+    /// ring it always had.
+    #[must_use]
+    pub const fn drawn(mut self, drawn: bool) -> Self {
+        self.drawn = drawn;
+        self
+    }
+
+    /// Whether the ring is drawn in pixels.
+    #[must_use]
+    pub const fn is_drawn(&self) -> bool {
+        self.drawn
+    }
+
+    /// Where the title sits on the top row of a ring `width` cells
+    /// wide: `(col, cols)` from the ring's left edge, the title wrapped
+    /// in one space each side and cut to what fits after the corner and
+    /// its dash. `None` without a title, or when the slot is too narrow
+    /// for even one character.
+    #[must_use]
+    pub fn title_span(&self, width: u16) -> Option<(u16, u16)> {
+        let slot = usize::from(width).saturating_sub(4);
+        let title = self
+            .title
+            .as_deref()
+            .filter(|t| !t.is_empty() && slot > 2)?;
+        let chars = title.chars().count().min(slot - 2);
+        Some((2, u16::try_from(chars + 2).unwrap_or(u16::MAX)))
     }
 
     /// Embed `title` in the top border, after the first corner.

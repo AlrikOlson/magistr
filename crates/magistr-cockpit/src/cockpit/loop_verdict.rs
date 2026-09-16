@@ -1,5 +1,6 @@
 //! What the judge said about an iteration.
 
+use crate::pixel::Icon;
 use crate::theme::Icons;
 
 /// One verdict the loop driver reported: the judge's answer in Claude
@@ -29,10 +30,16 @@ impl LoopVerdict {
         }
     }
 
+    /// The strip's LED: the pass mark for met, the fail mark otherwise.
+    #[must_use]
+    pub const fn icon(&self) -> Icon {
+        Icon::gate(Some(self.ok && !self.impossible))
+    }
+
     /// The strip's LED: the pass glyph for met, the fail glyph otherwise.
     #[must_use]
     pub const fn glyph(&self, icons: &Icons) -> &'static str {
-        icons.gate(Some(self.ok && !self.impossible))
+        icons.of(self.icon())
     }
 
     /// The word and the reason: `not yet — the tests are missing`; the
