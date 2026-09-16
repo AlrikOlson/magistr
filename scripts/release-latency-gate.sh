@@ -6,7 +6,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-FILTER="${RELEASE_LATENCY_FILTER:-(binary(turn_harness) & test(under_the_bound)) | (binary(runtime_harness) & test(/frames|paints_|tick_stops|resize_storm/))}"
+FILTER="${RELEASE_LATENCY_FILTER:-(binary(turn_harness) & test(under_the_bound)) | (binary(runtime_harness) & test(/frames|paints_|tick_stops|resize_storm/)) | (binary(runtime_harness) & test(=pixel_scroll_samples_between_ticks_and_stops_after_settling))}"
 
 cd "$PROJECT_ROOT"
 
@@ -26,6 +26,6 @@ if ! cargo nextest run -p magistr-tui --release --no-run \
     exit 0
 fi
 
-cargo nextest run -p magistr-tui --release -E "$FILTER"
+cargo nextest run -p magistr-tui --release --run-ignored all -E "$FILTER"
 
 echo "OK: the cockpit's release-tier latency and frame-coalescing bounds hold"

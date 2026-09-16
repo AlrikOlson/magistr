@@ -116,6 +116,7 @@ impl HoverRole {
             // The tab bar, the rail's toggle and every `[Button]` on a
             // card: the pointer lifts them.
             Widget::PromptAction
+            | Widget::ReasoningToggle
             | Widget::LatestDecision
             | Widget::TracePrevious
             | Widget::TraceNext

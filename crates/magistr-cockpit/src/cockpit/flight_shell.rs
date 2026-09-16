@@ -86,7 +86,7 @@ impl FlightShell {
             .style(s.style(s.ink).bg(s.root));
         if l.compact
             && model.tab() != StageTab::Roadmap
-            && (model.pane() != Pane::Stage || model.tab() != StageTab::Turn)
+            && (model.pane() == Pane::Inspector || model.tab() != StageTab::Turn)
         {
             root = root.child(
                 details(model, &s, &pen, l.width, l.body_height)

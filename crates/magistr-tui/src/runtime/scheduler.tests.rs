@@ -134,6 +134,27 @@ fn re_declaring_the_same_period_keeps_the_spinner_in_phase() {
 }
 
 #[test]
+fn pixel_phase_samples_between_ticks_without_advancing_the_clock() {
+    let mut scheduler = FrameScheduler::new();
+    let t0 = Instant::now();
+    assert_eq!(scheduler.phase(t0), 0.0);
+    scheduler.animate(MS(60), t0);
+    assert_eq!(scheduler.phase(t0), 0.0);
+    assert!((scheduler.phase(t0 + MS(16)) - 16.0 / 60.0).abs() < 0.0001);
+    assert_eq!(scheduler.phase(t0 + MS(30)), 0.5);
+    assert!(!scheduler.tick_due(t0 + MS(59)));
+    assert_eq!(
+        scheduler.phase(t0 + MS(70)),
+        1.0,
+        "late frames stay bounded"
+    );
+    assert!(scheduler.tick_due(t0 + MS(70)));
+    assert!((scheduler.phase(t0 + MS(70)) - 10.0 / 60.0).abs() < 0.0001);
+    scheduler.still();
+    assert_eq!(scheduler.phase(t0 + MS(80)), 0.0);
+}
+
+#[test]
 fn a_zero_period_is_clamped_instead_of_panicking_the_interval() {
     let mut scheduler = FrameScheduler::new();
     let t0 = Instant::now();

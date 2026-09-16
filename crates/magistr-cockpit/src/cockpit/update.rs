@@ -1244,6 +1244,15 @@ fn sheet_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 
 /// Terminal object navigation. Modal and prompt input has already had priority.
 fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    if model.uses_flight_recorder()
+        && model.tab() == StageTab::Turn
+        && model.pane() == Pane::Rail
+        && key.code == KeyCode::Enter
+        && key.mods.is_empty()
+    {
+        model.reasoning_expanded = !model.reasoning_expanded;
+        return Some(Vec::new());
+    }
     if model.surface().is_native() || !model.prompt.is_empty() || !key.mods.is_empty() {
         return None;
     }
@@ -1262,6 +1271,7 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             return Some(Vec::new());
         }
         if model.pane() == Pane::Rail
+            && model.reasoning_expanded()
             && matches!(
                 key.code,
                 KeyCode::Left
@@ -2745,6 +2755,11 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 );
             }
             match target.and_then(Widget::from_id) {
+                Some(Widget::ReasoningToggle) => {
+                    model.reasoning_expanded = !model.reasoning_expanded;
+                    model.pane = Pane::Rail;
+                    return Vec::new();
+                }
                 Some(Widget::LatestDecision) => {
                     if let Some(step) = model.trace.steps().last() {
                         model.inspect(Selected::Step(step.number));

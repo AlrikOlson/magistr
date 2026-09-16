@@ -140,6 +140,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     // The step two before the newest: its card, its
                     // relations and the branch it stands on all show.
                     let index = snapshot.steps.len().saturating_sub(3);
+                    click(&mut model, Widget::ReasoningToggle.id());
                     click(&mut model, Widget::trace_row(index));
                 }
                 ("roadmap", _) => {
@@ -156,9 +157,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                         return Err("roadmap work did not remain on the Roadmap page".into());
                     }
                 }
-                // The overview follows the newest recorded decision.
+                // Startup already selects the latest recorded step while reasoning stays closed.
                 _ => {
-                    click(&mut model, Widget::LatestDecision.id());
+                    assert!(!model.reasoning_expanded());
                 }
             }
             for _ in 0..8 {

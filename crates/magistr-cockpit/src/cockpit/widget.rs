@@ -287,11 +287,13 @@ pub enum Widget {
     RoadmapRequest,
     /// Restore the full dependency graph without changing the message draft.
     RoadmapReset,
+    /// Show or hide the reasoning graph beneath the conversation.
+    ReasoningToggle,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 110] = [
+    pub const ALL: [Self; 111] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -402,6 +404,7 @@ impl Widget {
         Self::OverlayQuery,
         Self::RoadmapRequest,
         Self::RoadmapReset,
+        Self::ReasoningToggle,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -1320,6 +1323,7 @@ impl Widget {
             Self::OverlayQuery => "Search",
             Self::RoadmapRequest => "Request a change",
             Self::RoadmapReset => "Reset view",
+            Self::ReasoningToggle => "Show or hide reasoning",
         }
     }
 

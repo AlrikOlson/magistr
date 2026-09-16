@@ -60,6 +60,124 @@ fn click(model: &mut Model, id: crate::widget_id::WidgetId) -> Vec<Cmd> {
         },
     )
 }
+
+#[test]
+fn reasoning_starts_minimized_and_pointer_toggle_preserves_the_reading_position() {
+    for (cols, rows, cw, ch) in [
+        (144, 50, 10, 20),
+        (128, 40, 10, 20),
+        (64, 36, 10, 20),
+        (110, 34, 12, 28),
+    ] {
+        let mut model = model(Size::new(cols, rows));
+        update(
+            &mut model,
+            Msg::Reply(Reply::CellPixels {
+                width: cw,
+                height: ch,
+            }),
+        );
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::Text(
+                (0..100)
+                    .map(|i| format!("Saved retry check {i} passed.\n"))
+                    .collect(),
+            )),
+        );
+        model.inspect(Selected::Step(17));
+        model.pane = Pane::Stage;
+        assert!(model.reveal_conversation(20));
+        let anchor = model.stage_anchor().expect("held reading position");
+        let selected = model.selected().cloned();
+        let draft = model.prompt().text().to_owned();
+        let closed = model.flight_layout();
+        let resolved = layout(&model);
+        assert!(!model.reasoning_expanded());
+        assert_eq!(closed.recorder_height, f32::from(ch) + 16.0);
+        assert!(resolved.rect(Widget::ReasoningToggle.id()).is_some());
+        assert!(resolved.rect(Widget::TraceGraph.id()).is_none());
+        assert!(resolved.rect(Widget::LatestDecision.id()).is_none());
+        assert!(click(&mut model, Widget::ReasoningToggle.id()).is_empty());
+        assert!(model.reasoning_expanded());
+        let opened = model.flight_layout();
+        assert!(opened.conversation_height < closed.conversation_height);
+        assert!(layout(&model).rect(Widget::TraceGraph.id()).is_some());
+        assert_eq!(model.stage_anchor(), Some(anchor));
+        assert_eq!(model.selected(), selected.as_ref());
+        assert_eq!(model.prompt().text(), draft);
+        assert!(click(&mut model, Widget::ReasoningToggle.id()).is_empty());
+        assert!(!model.reasoning_expanded());
+        assert_eq!(model.stage_anchor(), Some(anchor));
+        assert_eq!(model.selected(), selected.as_ref());
+        assert_eq!(model.prompt().text(), draft);
+        assert_eq!(
+            model.flight_layout().conversation_height,
+            closed.conversation_height
+        );
+        assert!(layout(&model).rect(Widget::TraceGraph.id()).is_none());
+        update(
+            &mut model,
+            Msg::Engine(fixtures::event(
+                "think",
+                "step_appended",
+                json!({"step":{"step_number":91,"purpose":"Keep retry limits separate"}}),
+            )),
+        );
+        assert!(
+            !model.reasoning_expanded(),
+            "new reasoning does not take conversation space"
+        );
+        assert_eq!(model.selected(), selected.as_ref());
+        assert_eq!(model.prompt().text(), draft);
+        let node = FlightRecorder::view(&model, closed.left_width);
+        fn text(node: &Node) -> String {
+            node.text_metrics()
+                .map_or_else(String::new, |t| t.text().to_owned())
+                + &node.child_nodes().iter().map(text).collect::<String>()
+        }
+        assert!(text(&node).contains("2 steps"));
+        assert!(text(&node).contains("Show"));
+    }
+}
+
+#[test]
+fn focused_reasoning_can_be_toggled_by_keyboard_without_submitting_a_draft() {
+    use crate::input::{KeyCode, KeyEvent, Modifiers};
+    let mut model = model(Size::new(64, 36));
+    let draft = model.prompt().text().to_owned();
+    update(
+        &mut model,
+        Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::SHIFT)),
+    );
+    assert_eq!(model.pane(), Pane::Rail);
+    assert!(layout(&model).rect(Widget::ReasoningToggle.id()).is_some());
+    for expanded in [true, false] {
+        let commands = update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        assert!(commands.is_empty());
+        assert_eq!(model.reasoning_expanded(), expanded);
+        assert_eq!(model.prompt().text(), draft);
+        assert_eq!(model.pane(), Pane::Rail);
+    }
+}
+
+#[test]
+fn empty_reasoning_has_a_minimized_heading_and_can_still_be_opened() {
+    let mut model = Model::new(Size::new(128, 40)).with_tab(StageTab::Turn);
+    update(
+        &mut model,
+        Msg::Mode(crate::capability::Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    assert!(!model.reasoning_expanded());
+    assert!(layout(&model).rect(Widget::ReasoningToggle.id()).is_some());
+    click(&mut model, Widget::ReasoningToggle.id());
+    assert!(model.reasoning_expanded());
+    assert!(layout(&model).rect(Widget::TraceGraph.id()).is_none());
+    click(&mut model, Widget::ReasoningToggle.id());
+    assert!(!model.reasoning_expanded());
+}
 #[test]
 fn an_early_loop_stop_is_visible_without_inventing_a_started_iteration() {
     use crate::cockpit::LoopEvent;

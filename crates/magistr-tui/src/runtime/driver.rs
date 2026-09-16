@@ -15,7 +15,8 @@ use crate::flat::{FlatLine, Role, Transcript, plain};
 use crate::render::Screen;
 use crate::term::{InputEvent, Terminal};
 use magistr_cockpit::cockpit::{
-    Cmd, FlightRecorder, FrameClock, Model, Msg, PointerShape, Progress, Widget, update, view,
+    Animation, Cmd, FlightRecorder, FrameClock, Model, Msg, PointerShape, Progress, Widget, update,
+    view,
 };
 use magistr_cockpit::hit::HitRegistry;
 use magistr_cockpit::input::Event;
@@ -96,6 +97,9 @@ impl Driver {
             flat: flat.then(Transcript::new),
             echo: Echo::default(),
         };
+        if let Some(period) = driver.model.animations().period() {
+            driver.scheduler.animate(period, Instant::now());
+        }
         if flat {
             // Queue the session header before any input saved by the probe.
             driver.compose_flat();
@@ -160,13 +164,25 @@ impl Driver {
     /// else goes to whoever took the commands.
     fn fold(&mut self, msg: Msg) {
         self.geometry_dirty = true;
+        let sampling = matches!(msg, Msg::Phase(_));
         for cmd in update(&mut self.model, msg) {
             match cmd {
                 Cmd::Quit => self.quit = true,
                 Cmd::Announce(text) => self.announcements.push(text),
                 Cmd::Clipboard(text) => self.clipboard.push(text),
-                Cmd::Animate(period) => self.scheduler.animate(period, Instant::now()),
-                Cmd::Still => self.scheduler.still(),
+                // Fractional sampling can finish a curve before the whole tick.
+                // Keep that tick booked so the next gesture never restarts the
+                // model clock at an earlier phase. The tick reconciles timing.
+                Cmd::Animate(period) => {
+                    if !sampling {
+                        self.scheduler.animate(period, Instant::now());
+                    }
+                }
+                Cmd::Still => {
+                    if !sampling {
+                        self.scheduler.still();
+                    }
+                }
                 other => {
                     let _ = self.commands.send(other);
                 }
@@ -182,8 +198,38 @@ impl Driver {
     /// activity tier: a cockpit whose only news is its own spinner is
     /// still an idle one, and painting it at 60 fps would be a lie.
     fn tick(&mut self) {
+        // Phase belongs to the interval that just ended. Clear it before
+        // taking the next stamp so time never jumps ahead by that fraction.
+        if self.model.has_pixels() {
+            self.fold(Msg::Phase(0.0));
+        }
         self.fold(Msg::Tick);
+        // A sampling frame may already have retired the last animation.
+        // Reconcile explicitly even if this whole tick changes no model flag.
+        match self.model.animations().period() {
+            Some(period) => self.scheduler.animate(period, Instant::now()),
+            None => self.scheduler.still(),
+        }
         self.scheduler.request();
+    }
+
+    /// Pixel motion is sampled at the interactive frame rate while its
+    /// durations still advance on the model's existing tick. Plain terminals,
+    /// reduced motion and a running clock retain their quieter cadence.
+    fn interpolates(&self) -> bool {
+        self.flat.is_none()
+            && self.model.has_pixels()
+            && self.model.theme().motion().is_full()
+            && self.model.animates(Animation::Motion)
+    }
+
+    fn frame_period(&self, now: Instant) -> Duration {
+        let period = self.scheduler.period(now);
+        if self.interpolates() {
+            period.min(super::tier::Tier::Interactive.period())
+        } else {
+            period
+        }
     }
 
     /// Fold one message a producer posted on the inbox.
@@ -454,7 +500,7 @@ impl Driver {
             self.compose_flat();
             self.flush_flat(terminal)?;
         }
-        let mut period = self.scheduler.period(Instant::now());
+        let mut period = self.frame_period(Instant::now());
         let mut ticks = interval_for(period);
         let mut producers = true;
         while !self.quit {
@@ -489,13 +535,17 @@ impl Driver {
                     if self.scheduler.tick_due(Instant::now()) {
                         self.tick();
                     }
+                    if self.interpolates() {
+                        self.fold(Msg::Phase(self.scheduler.phase(Instant::now())));
+                        self.scheduler.request();
+                    }
                     if self.scheduler.is_dirty() {
                         self.paint(terminal)?;
                     }
                 }
             }
             self.flush_flat(terminal)?;
-            let next = self.scheduler.period(Instant::now());
+            let next = self.frame_period(Instant::now());
             if next != period {
                 period = next;
                 ticks = interval_for(period);
@@ -534,3 +584,7 @@ fn interval_for(period: Duration) -> Interval {
     interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
     interval
 }
+
+#[cfg(test)]
+#[path = "driver.tests.rs"]
+mod tests;

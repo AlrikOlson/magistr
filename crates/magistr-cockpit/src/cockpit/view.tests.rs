@@ -659,6 +659,7 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::HeaderSpark
                 | Widget::Undock
                 | Widget::LatestDecision
+                | Widget::ReasoningToggle
                 | Widget::TracePrevious
                 | Widget::TraceNext
                 | Widget::PromptFiles
@@ -1724,8 +1725,8 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
     texts(&view(&ended, &clock()), &mut lines);
     assert_eq!(lines[5], "ended 2/5", "after the chunk's name");
     assert_eq!(
-        &lines[lines.len() - 4..],
-        [" ctrl-c ", "cancel", " ctrl-d ", "quit"],
+        &lines[lines.len() - 6..],
+        [" enter ", "send", " ↑↓ ", "history", " ctrl-d ", "quit"],
         "{lines:?}"
     );
     // Without a loop the strip is the four phases and nothing else; the
@@ -4680,12 +4681,12 @@ fn large_terminals_keep_one_recorded_work_view() {
             );
             let session = model.with_tab(StageTab::Session);
             assert_eq!(session.undocked_tab(), None);
-            assert!(
-                layout_for(&session)
-                    .placed()
-                    .iter()
-                    .any(|placed| placed.id == Some(Widget::trace_row(0)))
-            );
+            assert!(layout_for(&session).placed().iter().any(|placed| placed.id
+                == Some(if pixels {
+                    Widget::session_row(0)
+                } else {
+                    Widget::trace_row(0)
+                })));
         }
     }
 }

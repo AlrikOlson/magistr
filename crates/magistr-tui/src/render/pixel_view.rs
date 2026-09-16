@@ -302,6 +302,12 @@ impl PixelView {
         }
         let (fg, _) = colors(style, palette);
         let baseline = rect.y + self.face.baseline(role);
+        let stride = canvas.width() as usize * 4;
+        let left_clip = clip.x.ceil().max(0.0) as i32;
+        let top_clip = clip.y.ceil().max(0.0) as i32;
+        let right_clip = clip.right().ceil().min(canvas.width() as f32).max(0.0) as i32;
+        let bottom_clip = clip.bottom().ceil().min(canvas.height() as f32).max(0.0) as i32;
+        let italic = style.attrs.contains(Attrs::ITALIC);
         let mut x = rect.x;
         for ch in text.chars() {
             let counted = role
@@ -310,32 +316,41 @@ impl PixelView {
             let (metrics, bitmap) = self.face.glyph(ch, role, style.attrs.contains(Attrs::BOLD));
             let left = x.round() as i32 + metrics.xmin;
             let top = baseline.round() as i32 - metrics.height as i32 - metrics.ymin;
-            for gy in 0..metrics.height {
-                for gx in 0..metrics.width {
-                    let py = top + gy as i32;
-                    let shear = if style.attrs.contains(Attrs::ITALIC) {
-                        ((baseline - py as f32) * 0.25).round() as i32
-                    } else {
-                        0
-                    };
-                    let px = left + gx as i32 + shear;
-                    if px < 0
-                        || py < 0
-                        || px >= canvas.width() as i32
-                        || py >= canvas.height() as i32
-                        || !clip.contains(f64::from(px), f64::from(py))
-                    {
-                        continue;
+            // Clip each scanline once. Most glyph bitmap pixels are transparent
+            // or opaque; neither needs four blend divisions or per-pixel bounds.
+            let first_row = (top_clip - top).clamp(0, metrics.height as i32) as usize;
+            let last_row = (bottom_clip - top).clamp(0, metrics.height as i32) as usize;
+            for gy in first_row..last_row {
+                let py = top + gy as i32;
+                let shear = if italic {
+                    ((baseline - py as f32) * 0.25).round() as i32
+                } else {
+                    0
+                };
+                let row_left = left + shear;
+                let first_col = (left_clip - row_left).clamp(0, metrics.width as i32) as usize;
+                let last_col = (right_clip - row_left).clamp(0, metrics.width as i32) as usize;
+                if first_col >= last_col {
+                    continue;
+                }
+                let at = py as usize * stride + (row_left + first_col as i32) as usize * 4;
+                let pixels = &mut canvas.data_mut()[at..at + (last_col - first_col) * 4];
+                let coverage =
+                    &bitmap[gy * metrics.width + first_col..gy * metrics.width + last_col];
+                for (dst, &coverage) in pixels.chunks_exact_mut(4).zip(coverage) {
+                    match coverage {
+                        0 => {}
+                        255 => dst.copy_from_slice(&fg),
+                        _ => {
+                            let a = u32::from(coverage);
+                            for c in 0..3 {
+                                dst[c] =
+                                    ((u32::from(fg[c]) * a + u32::from(dst[c]) * (255 - a) + 127)
+                                        / 255) as u8;
+                            }
+                            dst[3] = (a + (u32::from(dst[3]) * (255 - a) + 127) / 255) as u8;
+                        }
                     }
-                    let coverage = bitmap[gy * metrics.width + gx];
-                    let at = (py as usize * canvas.width() as usize + px as usize) * 4;
-                    let dst = &mut canvas.data_mut()[at..at + 4];
-                    let a = u32::from(coverage);
-                    for c in 0..3 {
-                        dst[c] = ((u32::from(fg[c]) * a + u32::from(dst[c]) * (255 - a) + 127)
-                            / 255) as u8;
-                    }
-                    dst[3] = (a + (u32::from(dst[3]) * (255 - a) + 127) / 255) as u8;
                 }
             }
             x += counted.unwrap_or(metrics.advance_width);

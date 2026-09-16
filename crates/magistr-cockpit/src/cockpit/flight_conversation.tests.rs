@@ -387,7 +387,15 @@ fn compact_harbor_conversation_keeps_the_question_visible() {
         Voice::Agent,
         &format!("{}\n", data["followup"].as_str().unwrap()),
     );
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::ReasoningToggle.id()),
+        },
+    );
     model.sync_flight_wrap();
+    assert!(model.reasoning_expanded());
     assert!(model.flight_layout().conversation_height < 380.0);
     assert_eq!(
         model.top_row(),

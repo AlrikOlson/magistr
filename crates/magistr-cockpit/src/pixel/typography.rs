@@ -11,8 +11,15 @@ use std::collections::HashMap;
 pub struct Typography {
     fonts: &'static Vec<Font>,
     glyphs: HashMap<(char, usize, u32), (Metrics, Vec<u8>)>,
+    intrinsic: HashMap<TextRole, HashMap<String, (f32, f32)>>,
+    intrinsic_entries: usize,
+    intrinsic_bytes: usize,
     cell: CellSize,
 }
+
+#[cfg(test)]
+#[path = "typography.tests.rs"]
+mod tests;
 
 impl Default for Typography {
     fn default() -> Self {
@@ -34,6 +41,9 @@ impl Default for Typography {
         Self {
             fonts,
             glyphs: HashMap::new(),
+            intrinsic: HashMap::new(),
+            intrinsic_entries: 0,
+            intrinsic_bytes: 0,
             cell: CellSize::DEFAULT,
         }
     }
@@ -47,6 +57,9 @@ impl Typography {
     pub fn set_cell(&mut self, cell: CellSize) {
         if self.cell != cell {
             self.glyphs.clear();
+            self.intrinsic.clear();
+            self.intrinsic_entries = 0;
+            self.intrinsic_bytes = 0;
             self.cell = cell;
         }
     }
@@ -108,6 +121,13 @@ impl Typography {
 
 impl Measure for Typography {
     fn intrinsic(&mut self, text: &TextMetrics) -> (f32, f32) {
+        if let Some(size) = self
+            .intrinsic
+            .get(&text.role())
+            .and_then(|entries| entries.get(text.text()))
+        {
+            return *size;
+        }
         let width = |s: &str| {
             let regular = self.advance(s, text.role());
             let bold: f32 = s
@@ -124,13 +144,31 @@ impl Measure for Typography {
                 regular.max(bold) + 1.0
             }
         };
-        (
+        let size = (
             text.text().lines().map(width).fold(0.0, f32::max),
             text.text()
                 .split_whitespace()
                 .map(width)
                 .fold(0.0, f32::max),
-        )
+        );
+        // Taffy measures the same labels repeatedly, within and across frames.
+        // Keep a small working set; a large transcript must not grow this cache.
+        if text.text().len() <= 4096 {
+            if self.intrinsic_entries >= 256
+                || self.intrinsic_bytes + text.text().len() > 256 * 1024
+            {
+                self.intrinsic.clear();
+                self.intrinsic_entries = 0;
+                self.intrinsic_bytes = 0;
+            }
+            self.intrinsic
+                .entry(text.role())
+                .or_default()
+                .insert(text.text().to_owned(), size);
+            self.intrinsic_entries += 1;
+            self.intrinsic_bytes += text.text().len();
+        }
+        size
     }
 
     fn wrap<'a>(&mut self, text: &'a TextMetrics, width: f32) -> Vec<&'a str> {

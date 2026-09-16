@@ -29,6 +29,7 @@ fn every_named_control_lifts() {
         Widget::LaunchGates,
         Widget::LaunchRoadmap,
         Widget::LatestDecision,
+        Widget::ReasoningToggle,
         Widget::TracePrevious,
         Widget::TraceNext,
         Widget::PromptFiles,
@@ -157,8 +158,8 @@ fn every_named_widget_is_either_a_control_or_chrome() {
         "the docked screen is the wheel's target, not a control"
     );
     assert_eq!(
-        lifting, 61,
-        "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four, the meter's Raise, recorder navigation, Add files, Commands, Settings, Request a change and Reset view controls"
+        lifting, 62,
+        "the controls the update loop acts on, the Galaxy's ＋ New project, the bad day's five verbs, Birth's nine, the ledger head's four, the meter's Raise, recorder navigation, Add files, Commands, Settings, Request a change, Reset view and Reasoning Show/Hide controls"
     );
     assert_eq!(
         linking,

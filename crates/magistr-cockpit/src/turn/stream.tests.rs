@@ -12,6 +12,251 @@ fn kinds(turn: &Turn) -> Vec<RowKind> {
 }
 
 #[test]
+#[ignore = "release-mode conversation geometry report"]
+fn report_unchanged_pixel_conversation_geometry_cost() {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    for lines in [0, 1_000, 10_000] {
+        let mut turn = Turn::new(90);
+        for index in 0..lines {
+            if index % 50 == 0 {
+                turn.push_tool(
+                    &format!("read-{index}"),
+                    "Read the saved retry policy",
+                    ToolVerb::Read,
+                    ToolStatus::Completed,
+                );
+            } else {
+                turn.push_text(
+                    Voice::Agent,
+                    "The saved retry policy keeps each request bounded.\n",
+                );
+            }
+        }
+        let cell = CellSize::new(10, 20);
+        turn.set_pixel_wrap(Some(880), cell);
+        for _ in 0..10 {
+            turn.set_pixel_wrap(black_box(Some(880)), black_box(cell));
+        }
+        let mut samples = Vec::new();
+        for _ in 0..200 {
+            let start = Instant::now();
+            turn.set_pixel_wrap(black_box(Some(880)), black_box(cell));
+            black_box(turn.conversation());
+            samples.push(start.elapsed());
+        }
+        samples.sort_unstable();
+        println!(
+            "{lines} source lines: unchanged geometry p50 {:?}, p99 {:?}",
+            samples[100], samples[198]
+        );
+    }
+}
+
+#[test]
+fn scrolling_and_hovering_do_not_remeasure_the_conversation_history() {
+    use crate::agent::AgentEvent;
+    use crate::capability::Mode;
+    use crate::cockpit::{Model, Msg, Size, Widget, update};
+    use crate::input::{MouseEvent, MouseKind};
+
+    let mut model = Model::new(Size::new(144, 50));
+    for index in 0..10_000 {
+        model
+            .turn_mut()
+            .push_text(Voice::Agent, &format!("Saved record {index}\n"));
+    }
+    update(
+        &mut model,
+        Msg::Mode(Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    let rebuilt = model.turn().conversation_rebuilds;
+    assert!(rebuilt > 0);
+    let layout = model.turn().layout();
+    let geometry = model.turn().conversation().clone();
+    for _ in 0..20 {
+        for kind in [MouseKind::Move, MouseKind::ScrollUp] {
+            update(
+                &mut model,
+                Msg::Mouse {
+                    event: MouseEvent::new(kind, 10, 8),
+                    target: Some(Widget::Stage.id()),
+                },
+            );
+        }
+        update(&mut model, Msg::FrameDue);
+        update(&mut model, Msg::Phase(0.5));
+        update(&mut model, Msg::Tick);
+    }
+    for _ in 0..30 {
+        update(&mut model, Msg::Tick);
+    }
+    assert!(!model.viewport().is_following());
+    assert_eq!(model.turn().conversation_rebuilds, rebuilt);
+    assert_eq!(model.turn().layout(), layout);
+    assert_eq!(model.turn().conversation(), &geometry);
+
+    let anchor = model.turn().anchor_at(model.top_row()).unwrap();
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text("A new saved record\n".into())),
+    );
+    assert_eq!(model.turn().conversation_rebuilds, rebuilt + 1);
+    assert_eq!(model.turn().anchor_at(model.top_row()), Some(anchor));
+}
+
+fn refresh_conversation(turn: &mut Turn, width: u32, cell: CellSize) {
+    let rebuilt = turn.conversation_rebuilds;
+    turn.set_pixel_wrap(Some(width), cell);
+    assert_eq!(
+        turn.conversation_rebuilds,
+        rebuilt + 1,
+        "changed content is measured"
+    );
+    assert_eq!(
+        turn.conversation(),
+        &ConversationLayout::of(turn, width as f32, cell, turn.conversation_compact),
+        "cached geometry agrees with the source"
+    );
+    turn.set_pixel_wrap(Some(width), cell);
+    assert_eq!(
+        turn.conversation_rebuilds,
+        rebuilt + 1,
+        "clean content is reused"
+    );
+}
+
+#[test]
+fn pixel_conversation_policy_changes_remeasure_and_keep_source_anchors() {
+    let mut turn = Turn::new(60);
+    let cell = CellSize::new(10, 20);
+    turn.push_text(
+        Voice::Agent,
+        &"Checking the saved retry policy. ".repeat(20),
+    );
+    turn.push_tool(
+        "read",
+        "Read saved policy",
+        ToolVerb::Read,
+        ToolStatus::Completed,
+    );
+    turn.push_text(Voice::Agent, "The policy is available.\n");
+    refresh_conversation(&mut turn, 600, cell);
+    let anchor = turn.anchor_at(turn.lines()[2].row_start()).unwrap();
+    for width in [300, 900] {
+        refresh_conversation(&mut turn, width, cell);
+        assert_eq!(turn.row_of(anchor), turn.lines()[2].row_start());
+    }
+    turn.set_conversation_compact(true);
+    refresh_conversation(&mut turn, 900, cell);
+    turn.set_conversation_compact(false);
+    refresh_conversation(&mut turn, 900, cell);
+    let large = CellSize::new(14, 28);
+    turn.set_cell_size(large);
+    refresh_conversation(&mut turn, 900, large);
+    turn.set_mode(ThemeMode::Light);
+    refresh_conversation(&mut turn, 900, large);
+    turn.set_pixel_wrap(None, large);
+    assert!(turn.conversation().rows().is_empty());
+    turn.push_note("Another saved result.");
+    turn.set_pixel_wrap(None, large);
+    refresh_conversation(&mut turn, 900, large);
+    assert_eq!(turn.row_of(anchor), turn.lines()[2].row_start());
+}
+
+#[test]
+fn pixel_conversation_refreshes_streaming_cards_and_metadata() {
+    let mut turn = Turn::new(60);
+    let cell = CellSize::new(10, 20);
+    let width = 420;
+    turn.push_text(Voice::User, "Check this change.\n");
+    turn.push_text(Voice::Agent, "I am checking");
+    refresh_conversation(&mut turn, width, cell);
+    let height = turn.conversation().height();
+    turn.push_text(Voice::Agent, &" the saved retry settings".repeat(20));
+    refresh_conversation(&mut turn, width, cell);
+    assert!(turn.conversation().height() > height);
+    turn.push_text(Voice::Agent, "\n```rust\nlet saved = true;\n```\n");
+    refresh_conversation(&mut turn, width, cell);
+
+    turn.push_tool(
+        "read-policy",
+        "Read policy",
+        ToolVerb::Read,
+        ToolStatus::InProgress,
+    );
+    refresh_conversation(&mut turn, width, cell);
+    let before = turn.conversation().height();
+    turn.set_tool_record(
+        "read-policy",
+        ToolRecord {
+            locations: vec![("src/retry/policy.rs".into(), None)],
+            ..Default::default()
+        },
+    );
+    refresh_conversation(&mut turn, width, cell);
+    assert!(
+        turn.conversation().height() > before,
+        "a newly reported file adds detail"
+    );
+    turn.update_tool(
+        "read-policy",
+        Some(&"Read the saved retry policy ".repeat(8)),
+        Some(ToolStatus::Completed),
+        None,
+    );
+    refresh_conversation(&mut turn, width, cell);
+    turn.toggle_last();
+    refresh_conversation(&mut turn, width, cell);
+    turn.set_tool_record(
+        "read-policy",
+        ToolRecord {
+            terminal: Some("terminal-read".into()),
+            ..Default::default()
+        },
+    );
+    refresh_conversation(&mut turn, width, cell);
+    turn.set_terminal_strip("terminal-read", true);
+    refresh_conversation(&mut turn, width, cell);
+
+    turn.set_edit(
+        "read-policy",
+        "src/retry/policy.rs",
+        None,
+        "@@ -1 +1 @@\n-old\n+saved\n",
+    );
+    refresh_conversation(&mut turn, width, cell);
+    turn.set_tool_title("read-policy", &"Save the retry policy ".repeat(10));
+    refresh_conversation(&mut turn, width, cell);
+    turn.set_tool_record(
+        "read-policy",
+        ToolRecord {
+            text: vec!["Preserve the retry schedule after restarting a worker.".repeat(5)],
+            ..Default::default()
+        },
+    );
+    refresh_conversation(&mut turn, width, cell);
+    turn.undo_edit("read-policy");
+    refresh_conversation(&mut turn, width, cell);
+
+    turn.push_check("Checks", None, true, Some(0), None, "All checks passed.");
+    refresh_conversation(&mut turn, width, cell);
+    turn.push_event("The saved record is available.");
+    refresh_conversation(&mut turn, width, cell);
+    turn.push_image(stream_image(200, 80), "Retry schedule");
+    refresh_conversation(&mut turn, width, cell);
+    turn.set_tool_image("read-policy", 0, Some(stream_image(200, 40)), "Before");
+    refresh_conversation(&mut turn, width, cell);
+    turn.set_tool_image("read-policy", 0, Some(stream_image(200, 160)), "After");
+    refresh_conversation(&mut turn, width, cell);
+    turn.push_error("The request could not finish.");
+    refresh_conversation(&mut turn, width, cell);
+}
+
+#[test]
 fn deltas_append_to_the_open_line_and_re_wrap_only_its_rows() {
     let mut turn = Turn::new(10);
     turn.push_text(Voice::Agent, "hello ");

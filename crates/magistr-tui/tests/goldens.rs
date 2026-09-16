@@ -152,6 +152,7 @@ fn render_shots(
                 use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
                 if matches!(surface, "launcher" | "command-palette")
                     || surface.starts_with("inspector-")
+                    || surface == "reasoning-expanded"
                 {
                     // These scenes exercise startup and shared conversation details.
                     // The separate roadmap scene exercises the complete plan page.
@@ -167,6 +168,7 @@ fn render_shots(
                 let target = match surface {
                     "roadmap" => Some(Widget::TabRoadmap.id()),
                     "trace" => Some(Widget::TabSession.id()),
+                    "reasoning-expanded" => Some(Widget::ReasoningToggle.id()),
                     name if name.starts_with("inspector-") => Some(Widget::InspectorFields.id()),
                     _ => None,
                 };
@@ -377,6 +379,16 @@ fn shot_roadmap_kitty() {
 fn shot_trace_kitty() {
     shots_on(
         "trace",
+        Scenes::traced,
+        magistr_tui::screenshot::Profile::Kitty,
+        true,
+    );
+}
+
+#[test]
+fn shot_reasoning_expanded() {
+    shots_on(
+        "reasoning-expanded",
         Scenes::traced,
         magistr_tui::screenshot::Profile::Kitty,
         true,
