@@ -27,7 +27,10 @@ creating an objective. Call `roadmap_start_chunk` for the selected ready chunk.
    Research relevant current primary API documentation, prior art, and pitfalls
    with the host's web tools. Tie findings to the acceptance criteria.
 2. Announce `magistr_set_phase(phase: "plan")`. Call `ship_set_objective` with
-   the chunk description, acceptance criteria, and `chunk:<id>` scope. Add
+   the chunk description, acceptance criteria, and `chunk:<id>` scope. Select
+   `verification: "focused"` for bounded changes, including code; choose `full`
+   only for an explicit full-suite request or a concrete cross-cutting risk.
+   Record the selected checks and their reason in the plan. Add
    concrete tasks with `ship_plan(action: "add", ...)`, using IDs prefixed by
    the chunk. Include a final `review`
    or `test` verification task. Valid types are `research`, `implement`,
@@ -54,12 +57,14 @@ for delegation; the coordinating session owns shared ship state and file scope.
 ## Verify, close, and commit
 
 1. Announce `magistr_set_phase(phase: "verify")` and `ship_start` the planned
-   verification task. Keep it active while running the checks for the
-   objective's verification mode. For the default `full` mode, run
-   `magistr_format` and `magistr_gate(gate: "all")`. For a docs-only
-   objective explicitly set `verification: "focused"` in
-   `ship_set_objective` and run server-executed acceptance checks for the
-   changed surface instead.
+   verification task. Choose checks from the changed behavior, affected
+   dependencies, and acceptance criteria. Use `verification: "focused"`
+   explicitly in `ship_set_objective` for bounded changes, including code.
+   Run formatting and the relevant crate, interface, and visual checks through
+   server-executed `ship_check` or named `magistr_gate` calls. A roadmap chunk
+   alone does not require every project gate. Use `verification: "full"` and
+   `magistr_gate(gate: "all")` only for an explicit full-suite request or when
+   a concrete cross-cutting risk requires it; state that reason before running.
 2. Require all required gates to pass **and be recorded**. Inspect `recorded`,
    `note`, exit codes, and native errors. Diagnose gate and test failures,
    repair their cause within authorized scope, and rerun affected checks.

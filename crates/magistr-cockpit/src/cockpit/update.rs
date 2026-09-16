@@ -18,6 +18,7 @@ use super::dock_item::DockItem;
 use super::engine_cmd::EngineCmd;
 use super::ground::Ground;
 use super::ground_field::GroundField;
+use super::inspector::Inspector;
 use super::launch_action::LaunchAction;
 use super::loop_cmd::LoopCmd;
 use super::loop_event::LoopEvent;
@@ -29,6 +30,7 @@ use super::nav;
 use super::open_chunk::open_chunk;
 use super::palette::Palette;
 use super::palette_row::{PaletteGo, PaletteRow};
+use super::pane::Pane;
 use super::permission::Permission;
 use super::phase::Phase;
 use super::place::Place;
@@ -37,6 +39,7 @@ use super::rule_mode::RuleMode;
 use super::search::Search;
 use super::search_hit::{SearchGo, SearchHit};
 use super::search_scope::SearchScope;
+use super::selected::Selected;
 use super::settings::Settings;
 use super::settings_group::SettingsGroup;
 use super::shelf_cmd::ShelfCmd;
@@ -62,8 +65,8 @@ use crate::widget_id::WidgetId;
 ///
 /// The background reply moves a detected theme to dark or light (a
 /// forced one stays) and re-highlights the turn's code. A resize
-/// re-wraps the turn. Keys go by state: Tab and Shift-Tab always cycle
-/// the stage's tabs; a pending permission on the dock's front takes the
+/// re-wraps the turn. Tab and Shift-Tab cycle terminal panes; Ctrl-Tab
+/// cycles views. Other keys go by state: a pending permission on the dock's front takes the
 /// rest first (its accelerators, Enter for allow, Esc for deny answer it
 /// with [`Cmd::Permission`]); a proposal or blocker card on the front
 /// answers only on an empty prompt (`y` accept / `n` reject with
@@ -549,12 +552,16 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
             } else {
                 model.place.next()
             };
-        } else {
-            model.tab = if key.mods == Modifiers::SHIFT {
+        } else if key.mods.contains(Modifiers::CTRL) {
+            let tab = if key.mods.contains(Modifiers::SHIFT) {
                 model.tab.prev()
             } else {
                 model.tab.next()
             };
+            model.show(tab);
+            model.pane = Pane::Stage;
+        } else {
+            model.pane = model.pane.cycle(key.mods == Modifiers::SHIFT);
         }
         return Vec::new();
     }
@@ -593,6 +600,9 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
         return cmds;
     }
     if let Some(cmds) = galaxy_key(model, key) {
+        return cmds;
+    }
+    if let Some(cmds) = inspector_key(model, key) {
         return cmds;
     }
     if let Some(cmds) = launcher_key(model, key) {
@@ -1126,6 +1136,103 @@ fn sheet_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     None
 }
 
+/// Terminal object navigation. Modal and prompt input has already had priority.
+fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    if model.surface().is_native() || !model.prompt.is_empty() || !key.mods.is_empty() {
+        return None;
+    }
+    if model.pane != Pane::Inspector
+        && (model.changes.viewer().is_some() && model.tab == StageTab::Changes
+            || model.trace.viewer().is_some() && model.tab == StageTab::Trace)
+    {
+        return None;
+    }
+    match key.code {
+        KeyCode::Enter
+            if model.selected.is_some()
+                && (model.pane == Pane::Inspector
+                    || model.pane == Pane::Stage
+                        && matches!(
+                            model.tab,
+                            StageTab::Roadmap | StageTab::Trace | StageTab::Changes
+                        )) =>
+        {
+            model.inspector_open = !model.inspector_open;
+            model.inspector_scroll = 0;
+        }
+        KeyCode::Esc if model.inspector_open => {
+            model.inspector_open = false;
+            model.inspector_scroll = 0;
+        }
+        KeyCode::Up | KeyCode::Down if model.pane == Pane::Rail => {}
+        KeyCode::PageUp | KeyCode::PageDown | KeyCode::Home | KeyCode::End
+            if model.pane == Pane::Inspector =>
+        {
+            let delta = match key.code {
+                KeyCode::Home => isize::MIN,
+                KeyCode::End => isize::MAX,
+                KeyCode::PageUp => -(model.stage_rows().max(1) as isize),
+                _ => model.stage_rows().max(1) as isize,
+            };
+            Inspector::scroll(model, delta);
+        }
+        KeyCode::Up | KeyCode::Down if model.pane == Pane::Inspector => {
+            Inspector::scroll(model, if key.code == KeyCode::Down { 1 } else { -1 });
+        }
+        KeyCode::Up | KeyCode::Down if model.tab == StageTab::Roadmap => {
+            let rows = model.roadmap.rows();
+            let current = match model.selected() {
+                Some(Selected::Chunk(id)) => rows.iter().position(|chunk| chunk.id == *id),
+                _ => None,
+            };
+            let at = selection_index(current, rows.len(), key.code == KeyCode::Down)?;
+            let selected = Selected::Chunk(rows[at].id.clone());
+            model.inspect(selected);
+            // The compact list has a spacer and heading before each status group.
+            let rows = model.roadmap.rows();
+            let mut row = usize::from(model.roadmap.hovered_title().is_some());
+            let mut previous = None;
+            for chunk in rows.iter().take(at + 1) {
+                if previous != Some(chunk.status.as_str()) {
+                    row += 2;
+                    previous = Some(chunk.status.as_str());
+                }
+                row += 1;
+            }
+            let (total, height) = model.roadmap_window();
+            model
+                .roadmap_viewport
+                .hold(row.saturating_sub(height), total, height);
+        }
+        KeyCode::Up | KeyCode::Down if model.tab == StageTab::Changes => {
+            let entries = model.changes.entries();
+            let current = match model.selected() {
+                Some(Selected::Change(id)) => entries.iter().position(|entry| entry.id == *id),
+                _ => None,
+            };
+            let at = selection_index(current, entries.len(), key.code == KeyCode::Down)?;
+            let selected = Selected::Change(entries[at].id.clone());
+            model.inspect(selected);
+            let (total, height) = model.changes_window();
+            model
+                .changes_viewport
+                .hold(at.saturating_add(1).saturating_sub(height), total, height);
+        }
+        _ => return None,
+    }
+    Some(Vec::new())
+}
+
+fn selection_index(current: Option<usize>, len: usize, forward: bool) -> Option<usize> {
+    if len == 0 {
+        return None;
+    }
+    Some(match current {
+        Some(at) if forward => at.saturating_add(1).min(len - 1),
+        Some(at) => at.saturating_sub(1),
+        None => 0,
+    })
+}
 /// A step accelerator on the Trace tab with an empty prompt, while the
 /// feed has steps and no checkpoint pane covers them: the arrows walk
 /// the selection (from the newest step when nothing is selected) and
@@ -1145,6 +1252,9 @@ fn trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     match key.code {
         KeyCode::Up | KeyCode::Down => {
             model.trace.select_step(key.code == KeyCode::Down);
+            if let Some(step) = model.trace.selected() {
+                model.inspect(Selected::Step(step.number));
+            }
             reveal_trace_selection(model);
             Some(Vec::new())
         }
@@ -2186,6 +2296,22 @@ fn pane_under(
 }
 
 fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<Cmd> {
+    if !model.surface().is_native() && target.is_some_and(Inspector::contains_target) {
+        if matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown) {
+            Inspector::scroll(
+                model,
+                if event.kind == MouseKind::ScrollDown {
+                    Viewport::WHEEL as isize
+                } else {
+                    -(Viewport::WHEEL as isize)
+                },
+            );
+            return Vec::new();
+        }
+        if event.kind == MouseKind::Down(Button::Left) {
+            model.pane = Pane::Inspector;
+        }
+    }
     // Which column the notch landed in, before anything borrows the
     // model: the undocked third one moves its own rows, everything else
     // moves what the stage is showing.
@@ -2326,8 +2452,38 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 Some(Widget::Reject) => return proposal_click(model, false),
                 Some(Widget::Clear) => return blocker_click(model),
                 Some(Widget::Checkpoint) => return vec![Cmd::Engine(EngineCmd::Checkpoint)],
+                Some(Widget::InspectorDetail) => {
+                    model.inspector_open = !model.inspector_open;
+                    model.inspector_scroll = 0;
+                    model.pane = Pane::Inspector;
+                    return Vec::new();
+                }
+                Some(
+                    Widget::Inspector
+                    | Widget::InspectorTitle
+                    | Widget::InspectorStatus
+                    | Widget::InspectorMetadata
+                    | Widget::InspectorFields
+                    | Widget::InspectorActions,
+                ) => {
+                    model.pane = Pane::Inspector;
+                    return Vec::new();
+                }
+                Some(Widget::Rail) => {
+                    model.pane = Pane::Rail;
+                    return Vec::new();
+                }
+                Some(Widget::Stage) => {
+                    model.pane = Pane::Stage;
+                    return Vec::new();
+                }
                 Some(Widget::TraceDetail) => {
-                    model.trace.toggle_detail();
+                    if model.surface().is_native() {
+                        model.trace.toggle_detail();
+                    } else {
+                        model.inspector_open = !model.inspector_open;
+                        model.inspector_scroll = 0;
+                    }
                     return Vec::new();
                 }
                 Some(Widget::RoadmapStart) => return roadmap_chunk_click(model, false),
@@ -2354,7 +2510,12 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 }
                 Some(Widget::RoadmapGraph) => {
                     if let Some((x, y)) = graph_cell(model, &event) {
-                        model.roadmap.click_at(x, y, model.now());
+                        if model.roadmap.click_at(x, y, model.now())
+                            && let Some(chunk) = model.roadmap.selected()
+                        {
+                            model.inspect(Selected::Chunk(chunk.id.clone()));
+                            model.pane = Pane::Stage;
+                        }
                         model.roadmap_drag = Some(model.pointer_at(&event));
                     }
                     return Vec::new();
@@ -2368,6 +2529,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     }
                     if let Some(tab) = widget.tab_target() {
                         model.show(tab);
+                        model.pane = Pane::Stage;
                         return Vec::new();
                     }
                 }
@@ -2413,7 +2575,13 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 return delegate_offer(model, index);
             }
             if let Some(index) = target.and_then(Widget::change_row_index) {
-                model.changes.toggle(index);
+                if model.surface().is_native() {
+                    model.changes.toggle(index);
+                } else if let Some(entry) = model.changes.entries().get(index) {
+                    let selected = Selected::Change(entry.id.clone());
+                    model.inspect(selected);
+                    model.pane = Pane::Stage;
+                }
                 return Vec::new();
             }
             if let Some(index) = target.and_then(Widget::change_open_index) {
@@ -2426,7 +2594,13 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 return change_approve(model, index);
             }
             if let Some(index) = target.and_then(Widget::trace_row_index) {
-                model.trace.toggle(index);
+                if model.surface().is_native() {
+                    model.trace.toggle(index);
+                } else if let Some(step) = model.trace.steps().get(index) {
+                    let selected = Selected::Step(step.number);
+                    model.inspect(selected);
+                    model.pane = Pane::Stage;
+                }
                 return Vec::new();
             }
             if let Some(number) = target.and_then(Widget::trace_pin_step) {
@@ -2434,6 +2608,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             }
             if let Some(number) = target.and_then(Widget::trace_link_step) {
                 model.trace.expand_step(number);
+                model.inspect(Selected::Step(number));
                 return Vec::new();
             }
             if let Some(number) = target.and_then(Widget::trace_chunk_step) {
@@ -2457,7 +2632,13 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             }
             if let Some(index) = target.and_then(Widget::roadmap_row_index) {
                 let animate = model.theme.motion().is_full();
-                model.roadmap.toggle_row(index, model.now(), animate);
+                if model.surface().is_native() {
+                    model.roadmap.toggle_row(index, model.now(), animate);
+                } else if let Some(chunk) = model.roadmap.rows().get(index) {
+                    let selected = Selected::Chunk(chunk.id.clone());
+                    model.inspect(selected);
+                    model.pane = Pane::Stage;
+                }
                 return Vec::new();
             }
             if let Some(index) = target.and_then(Widget::proposal_accept_index) {

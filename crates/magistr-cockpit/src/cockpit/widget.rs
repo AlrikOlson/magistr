@@ -266,11 +266,19 @@ pub enum Widget {
     /// Laid out only on [`Surface::Native`](super::Surface::Native) —
     /// the terminal's cap is a string.
     SessionChunk,
+    /// The shared object inspector and its card sections.
+    Inspector,
+    InspectorTitle,
+    InspectorStatus,
+    InspectorMetadata,
+    InspectorActions,
+    InspectorFields,
+    InspectorDetail,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 92] = [
+    pub const ALL: [Self; 99] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -363,6 +371,13 @@ impl Widget {
         Self::TermDockGrip,
         Self::TermDock,
         Self::SessionChunk,
+        Self::Inspector,
+        Self::InspectorTitle,
+        Self::InspectorStatus,
+        Self::InspectorMetadata,
+        Self::InspectorActions,
+        Self::InspectorFields,
+        Self::InspectorDetail,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -1173,6 +1188,13 @@ impl Widget {
             Self::Reject => "Reject",
             Self::Clear => "Clear",
             Self::Checkpoint => "Checkpoint",
+            Self::Inspector => "inspector",
+            Self::InspectorTitle => "object title",
+            Self::InspectorStatus => "object status",
+            Self::InspectorMetadata => "object metadata",
+            Self::InspectorActions => "object actions",
+            Self::InspectorFields => "object fields",
+            Self::InspectorDetail => "Details",
             Self::TraceDetail => "More",
             Self::TraceGraph => "trace graph",
             Self::RoadmapGraph => "tech tree",

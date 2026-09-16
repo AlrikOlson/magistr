@@ -1,5 +1,5 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: "screen(&docked(Size::new(80, 24)))"
 ---
 ▲ magistr  idle                                                            00:01
@@ -12,9 +12,9 @@ Research▸Plan▸Execute▸Verify
 │0 pending                 │ │                                                 │
 │signals 0                 │ │                                                 │
 │                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

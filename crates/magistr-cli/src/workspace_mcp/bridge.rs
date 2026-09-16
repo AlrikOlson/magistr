@@ -126,7 +126,7 @@ impl Bridge {
         let Some(mut link) = self.link.take() else {
             return Ok(());
         };
-        link.half_close();
+        link.half_close().await;
         let drained = tokio::time::timeout(DRAIN_DEADLINE, async {
             while let Some(line) = link.next_line().await {
                 self.on_owner(&line, stdout).await?;

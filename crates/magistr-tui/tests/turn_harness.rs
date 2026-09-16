@@ -60,15 +60,15 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
     let lines: String = (0..10_000).map(|i| format!("line {i}\n")).collect();
     let script = Script::new()
         .startup_replies(MS(0))
-        .page_up(MS(120))
-        .scroll_up(MS(160), 40, 12)
-        .scroll_up(MS(200), 40, 12)
-        .scroll_down(MS(240), 40, 12)
+        .page_up(MS(600))
+        .scroll_up(MS(800), 40, 8)
+        .scroll_up(MS(1000), 40, 8)
+        .scroll_down(MS(1200), 40, 8)
         // Well past the last notch's glide, so the run ends on the
         // window the scrolls landed on rather than a frame of the paint
         // still easing after it. The glide in between is asserted below,
         // on the bytes the terminal actually received.
-        .text(MS(800), "\x04");
+        .text(MS(1800), "\x04");
     let (model, capture, deliveries) = run(script, |inbox| {
         FakeAgent::new()
             .event(MS(20), AgentEvent::Text(lines))
@@ -80,10 +80,10 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
     assert_eq!(model.inputs(), 5, "PageUp, three wheel notches, q");
     let height = model.stage_rows();
     assert_eq!(
-        height, 12,
-        "24 rows less the chrome and the pixel arrangement's gutters"
+        height, 5,
+        "24 rows less chrome, pixel gutters and the stacked inspector"
     );
-    // Tail 9988, a page (11) up, two notches (6) up, one notch (3) down.
+    // A page up, two notches (6) up, then one notch (3) down from the tail.
     let top = 10_000 - height - (height - 1) - 3;
     assert_eq!(model.top_row(), top);
     assert!(!model.viewport().is_following());
@@ -119,7 +119,7 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
         })
     };
     let mut landed: Vec<String> = Vec::new();
-    for n in 0..40 {
+    for n in 0..70 {
         if let Some(window) = range(screen_before(&capture, page_up + MS(20 * n)))
             && landed.last() != Some(&window)
         {
@@ -128,6 +128,13 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
     }
     let window = |top: usize| format!("rows {}–{}/10000", top + 1, top + height);
     let tail = 10_000 - height;
+    // The shorter page can expose a glide frame before its landing.
+    // From the landing onward each wheel notch must still paint in order.
+    let page_landing = window(tail - (height - 1));
+    let landed: Vec<_> = landed
+        .into_iter()
+        .skip_while(|row| row != &page_landing)
+        .collect();
     assert_eq!(
         landed,
         vec![
@@ -414,8 +421,8 @@ async fn a_wheel_notch_is_on_screen_the_frame_it_was_turned_and_never_strobes() 
     let script = Script::new()
         .startup_replies(MS(0))
         .page_up(MS(120))
-        .scroll_up(notch, 40, 12)
-        .text(MS(800), "\x04");
+        .scroll_up(notch, 40, 8)
+        .text(MS(1200), "\x04");
     let (model, capture, deliveries) = run(script, |inbox| {
         FakeAgent::new()
             .event(MS(20), AgentEvent::Text(lines))
@@ -424,8 +431,8 @@ async fn a_wheel_notch_is_on_screen_the_frame_it_was_turned_and_never_strobes() 
     .await;
     let height = model.stage_rows();
     assert_eq!(
-        height, 12,
-        "24 rows less the chrome and the pixel arrangement's gutters"
+        height, 5,
+        "24 rows less chrome, pixel gutters and the stacked inspector"
     );
     // The window the page left the stage on, and the notch's own.
     let from = 10_000 - height - (height - 1);

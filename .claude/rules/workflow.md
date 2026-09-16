@@ -81,12 +81,16 @@ The plan phase is enforced by magistr's orchestration layer — set the objectiv
 
 The verification mode on the objective controls the scope:
 
-- `full` (the default) runs `magistr_format` and
-  `magistr_gate(gate: "all")`, including every configured project gate.
-- `focused` is for an explicitly documented docs-only cycle. Run
-  server-executed acceptance checks for the changed surface. It skips unrelated
-  project-wide gate contracts, but required acceptance checks still have to
-  pass and be recorded.
+- Explicitly select `focused` for bounded changes, including code and roadmap
+  chunks. Record formatting and checks covering changed behavior, affected
+  dependencies, and acceptance criteria through `ship_check` or named gates.
+- Select `full` and run `magistr_gate(gate: "all")` only for an explicit
+  full-suite request or a concrete cross-cutting risk; state the reason first.
+  The tool's compatibility default is not a scope decision.
+
+Run the selected verification once against the final source. Diagnose failures
+and rerun affected checks; do not repeat a failing suite without new evidence
+or a relevant correction, or widen verification merely because a check failed.
 
 1. **Run the checks for the declared mode** — all must pass before anything else, each recorded with its real exit code:
    - Use `magistr_format` and `magistr_gate(gate: "all")` for `full`, or targeted `ship_check` commands for `focused`
@@ -116,7 +120,7 @@ These apply to ALL work — `/next`, manual tasks, bug fixes, refactors, everyth
 
 2. **ALWAYS commit at the end** — No work is done until it's committed. The commit includes ALL changed files. One atomic commit per chunk.
 
-3. **ALWAYS run the declared verification before committing** — `full` objectives require all configured gates; explicitly documented `focused` docs-only objectives require their changed-surface acceptance checks. Record every check through `ship_check`. If they fail, fix the failures first.
+3. **ALWAYS run the declared verification before committing** — `full` objectives require all configured gates; explicitly scoped `focused` objectives require their changed-surface acceptance checks, including relevant code and dependency checks. Record every check through `ship_check`. If they fail, fix the failures first.
 
 4. **ALWAYS plan before executing** — Read the codebase first. `ship_set_objective` + `ship_plan`. Then implement.
 

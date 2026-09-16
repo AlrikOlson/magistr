@@ -39,13 +39,18 @@ remain the target; legacy search tool names describe a capability.
 - Omit `step_number` in `think_record_step` to allocate it. Link the returned
   step; total step count is not the next number. Use `think_step` to link a
   `ship_record` action to reasoning.
-- `magistr_gate(gate: "all")` includes standard gates and required custom
-  gates from `.magistr/project.json`. It is the default for a `full`
-  objective. For a docs-only cycle, set
-  `ship_set_objective(verification: "focused")` and run server-executed
-  acceptance checks for the changed surface instead. An active ship task
-  supplies recording context. Inspect `passed`, `recorded`, `note`, exit
-  codes, and native errors; transport success is not evidence.
+- Select verification by the changed behavior, affected dependencies, and
+  acceptance criteria. Explicitly set `verification: "focused"` for bounded
+  changes, including code and roadmap chunks, and record the relevant checks.
+  Use `verification: "full"` and `magistr_gate(gate: "all")` only when the user
+  requests the full suite or a concrete cross-cutting risk needs every gate;
+  state the reason first. The tool's compatibility default is not a scope
+  decision. An active ship task supplies recording context. Inspect `passed`,
+  `recorded`, `note`, exit codes, and native errors; transport success is not evidence.
+- Run focused checks while implementing, then the chosen verification once on
+  the final source. After a failure, diagnose it and rerun affected checks.
+  Do not repeat a failing suite without new evidence or a relevant correction;
+  do not widen the suite merely because one check failed.
 - Standalone validation may be green with `recorded: false` because no ship
   task is active. This is a valid command result but not proof of ship.
   During implementation, required checks must pass and be recorded. If task

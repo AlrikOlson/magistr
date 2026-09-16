@@ -471,19 +471,13 @@ impl Roadmap {
     /// and [`RoadmapChunk::detail_rows`] the view paints, so the window
     /// and the rows never drift.
     #[must_use]
-    pub fn body_rows(&self, width: u16) -> usize {
+    pub fn body_rows(&self, _width: u16) -> usize {
         if self.is_empty() {
             // The "no roadmap yet" note.
             return 1;
         }
         let mut rows = usize::from(self.hovered_title().is_some());
         let list = self.rows();
-        if let Some(open) = self.selected()
-            && !list.iter().any(|chunk| chunk.id == open.id)
-        {
-            // The spacer, the head line, then the card.
-            rows += 2 + open.detail_rows(width);
-        }
         let mut section: Option<&str> = None;
         for chunk in &list {
             if section != Some(chunk.status.as_str()) {
@@ -492,17 +486,13 @@ impl Roadmap {
                 rows += 2;
             }
             rows += 1;
-            if self.selected().is_some_and(|open| open.id == chunk.id) {
-                // The button row, then the card.
-                rows += 1 + chunk.detail_rows(width);
-            }
         }
         if self.done_count() > 0 {
             rows += 2;
         }
         for inbox in [self.proposals().len(), self.signals().len()] {
             if inbox > 0 {
-                rows += 2 + inbox;
+                rows += 2 + 2 * inbox;
             }
         }
         rows

@@ -15,9 +15,9 @@ Research▸Plan▸Execute▸Verify
 │                          │ │▎   FAIL cockpit::update::a_click_expands        │
 │                          │ │▎   2 tests failed                               │
 │                          │ │▎ Two failures to fix.                           │
-│                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

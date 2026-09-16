@@ -85,9 +85,17 @@ testing, keeping clickable areas tied to their displayed objects. The terminal
 renderer computes cell damage and encodes the changed output. The graphics layer
 selects Kitty, Sixel, or plain text according to the terminal's capabilities.
 
-Stage, rail, and dock share the available space. Scrolling, focus, and expanded
-cards live in model state. Resizing must preserve the user's position rather
-than silently restarting a session or selecting a different object.
+The terminal body has a labelled rail, an active stage, and an inspector. The
+inspector sits to the right when the stage retains at least 40 content columns;
+otherwise it stacks below the stage. Plain terminals use the same panes. The
+dock and prompt remain below the body.
+
+One `Selected` identity names a chunk, reasoning step, or change. Lists stay
+compact; the shared inspector renders title, status, metadata, actions, and
+scrollable fields in that order. Selection survives view changes and resizing.
+Tab and Shift-Tab cycle pane focus; Ctrl-Tab cycles views. With an empty prompt,
+stage arrows select objects, Enter toggles inspector detail, and Esc closes it.
+Inspector arrows, page keys, and the wheel scroll its fields independently.
 
 Motion is a function of model ticks. The model reports its active animations;
 an empty set removes the timer. Reduced motion and decision screens suppress

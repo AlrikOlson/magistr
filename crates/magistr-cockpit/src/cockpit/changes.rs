@@ -188,18 +188,7 @@ impl Changes {
             // and a note under it would only say so a second time.
             return 0;
         }
-        let entries: usize = self
-            .entries
-            .iter()
-            .map(|entry| {
-                if self.is_expanded(&entry.id) {
-                    // The head row, the buttons row, then the diff.
-                    1 + 1 + entry.diff.lines().count()
-                } else {
-                    1
-                }
-            })
-            .sum();
+        let entries = self.entries.len();
         // The run's heading is the pinned verdict strip; its result
         // rows scroll with everything else.
         entries + self.runs.len()

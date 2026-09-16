@@ -37,9 +37,9 @@ const SIXEL: &[u8] = b"\x1bP0;1;0q";
 /// one and eight cells across, the glyph marks one or two.
 const GRAPH_PX: u32 = 200;
 /// The graph's rows in pixels lie strictly between these: a rule, a key
-/// cap or a phase segment is one row (20 or 32 px), a drawn panel ring
-/// ten rows or more.
-const GRAPH_ROWS_PX: (u32, u32) = (40, 200);
+/// cap or a phase segment is one row (20 or 32 px), the compact graph
+/// two to four rows, and the stacked inspector ring at least seven rows.
+const GRAPH_ROWS_PX: (u32, u32) = (39, 140);
 
 /// Transmits of the trace graph, told apart from every other surface
 /// by the `s=` and `v=` keys the first chunk of every transmit carries.
@@ -158,7 +158,7 @@ async fn the_trace_graph_transmits_once_stays_quiet_while_idle_and_again_after_a
     // forgotten, the graph re-sized), ctrl-U + ctrl-D at 850 ms.
     let script = Script::new()
         .startup_replies(MS(0))
-        .text(MS(500), "\t\t")
+        .text(MS(500), "\x1b[9;5u\x1b[9;5u")
         .text(MS(600), "k")
         .resize(MS(700), Size::new(100, 30))
         .text(MS(850), "\x15\x04");
@@ -199,7 +199,7 @@ async fn the_trace_graph_sweeps_in_one_transmit_per_step_and_then_stops() {
     // is watched; then three quiet tenths of a second before the quit.
     let script = Script::new()
         .startup_replies(MS(0))
-        .text(MS(2), "\t\t")
+        .text(MS(2), "\x1b[9;5u\x1b[9;5u")
         .text(MS(600), "\x15\x04");
     let (model, capture) = run(script, branched_trace()).await;
 
@@ -224,7 +224,7 @@ async fn a_terminal_that_never_says_its_cell_size_still_gets_the_graph_on_the_de
     // surface is sized by the 10×20 default instead of staying invisible.
     let script = Script::new()
         .bytes(MS(0), b"\x1b_Gi=31;OK\x1b\\\x1b[?62;4c".as_slice())
-        .text(MS(500), "\t\t")
+        .text(MS(500), "\x1b[9;5u\x1b[9;5u")
         .text(MS(700), "\x15\x04");
     let (model, capture) = run(script, branched_trace()).await;
 
@@ -244,7 +244,7 @@ async fn a_late_cell_reply_resizes_the_graph_and_transmits_it_again() {
     // repainted pixels go out once more.
     let script = Script::new()
         .bytes(MS(0), b"\x1b_Gi=31;OK\x1b\\\x1b[?62;4c".as_slice())
-        .text(MS(500), "\t\t")
+        .text(MS(500), "\x1b[9;5u\x1b[9;5u")
         .bytes(MS(600), b"\x1b[6;32;16t".as_slice())
         .text(MS(800), "\x15\x04");
     let (model, capture) = run(script, branched_trace()).await;
@@ -491,7 +491,7 @@ async fn an_image_a_tool_call_returned_is_the_same_pixel_surface() {
 async fn a_sixel_only_terminal_gets_the_same_surfaces_as_a_dcs_image() {
     let script = Script::new()
         .bytes(MS(0), b"\x1b[?62;4c".as_slice())
-        .text(MS(50), "\t\t")
+        .text(MS(50), "\x1b[9;5u\x1b[9;5u")
         .text(MS(300), "\x15\x04");
     let (model, capture) = run(script, branched_trace()).await;
 
@@ -514,7 +514,7 @@ async fn an_idle_sixel_cockpit_re_emits_nothing() {
     // this counts is the caching and not the drawing-in.
     let script = Script::new()
         .bytes(MS(0), b"\x1b[?62;4c".as_slice())
-        .text(MS(500), "\t\t")
+        .text(MS(500), "\x1b[9;5u\x1b[9;5u")
         .text(MS(600), "k")
         .text(MS(700), "j")
         .text(MS(850), "\x15\x04");

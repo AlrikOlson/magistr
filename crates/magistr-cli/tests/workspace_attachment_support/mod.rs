@@ -168,6 +168,14 @@ pub(super) fn hostname() -> String {
 pub(super) fn workspace() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("workspace");
     std::fs::create_dir(dir.path().join(".git")).expect("repository marker");
+    // Exercise a live watcher and its joined shutdown without depending on
+    // macOS FSEvents daemon registration under parallel process load. Native
+    // watcher behavior is covered by workspace_index and index_watcher tests.
+    std::fs::write(
+        dir.path().join("workbench.toml"),
+        "[watcher]\nmode = 'poll'\n",
+    )
+    .expect("deterministic lifecycle watcher");
     for file in ["alice.txt", "bob.txt", "shared.txt", "pending.txt"] {
         std::fs::write(dir.path().join(file), "original bytes\n").expect("source fixture");
     }

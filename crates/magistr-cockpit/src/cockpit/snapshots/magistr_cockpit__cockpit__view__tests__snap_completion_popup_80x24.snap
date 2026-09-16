@@ -1,5 +1,5 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: "screen(&completing(Size::new(80, 24)))"
 ---
 ▲ magistr  awaiting input                                                  00:01
@@ -11,9 +11,9 @@ Research▸Plan▸Execute▸Verify
 │signals 0                 │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

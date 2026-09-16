@@ -30,9 +30,9 @@ pub struct SetObjectiveArgs {
     pub constraints: Vec<String>,
     #[serde(default)]
     pub scope: String,
-    /// `full` (default) runs every configured project gate. `focused` skips
-    /// those project-wide gates and requires only recorded acceptance checks;
-    /// use it for docs-only cycles.
+    /// `full` (compatibility default) requires every configured project gate.
+    /// Explicitly select `focused` for bounded changes, including code, with
+    /// recorded checks covering their behavior, dependencies, and acceptance.
     #[serde(default)]
     pub verification: VerificationMode,
 }
@@ -238,7 +238,7 @@ use crate::ship::application::command_runner::{CHECK_OUTPUT_TAIL, run_check_comm
 impl ShipService {
     #[tool(
         name = "ship_set_objective",
-        description = "Define what 'done' means for this development cycle. Sets the goal, acceptance criteria, constraints, scope, and verification mode. Call this before planning any tasks.\n\nInputs: description (required), acceptance_criteria (string[]), constraints (string[]), scope (string), verification ('full' default or 'focused' for docs-only cycles). constraints/acceptance_criteria also accept a single string (coerced to a one-element list).\n\nReturns: the objective as set; plus cleared_stale_tasks + note when a fresh cycle was started.\n\nPitfalls: focused verification still requires every recorded acceptance check to pass; it only omits unrelated project-wide gates. Overwriting an IN-FLIGHT objective preserves its tasks. But if the previous objective was already shipped (completed/abandoned), this starts a FRESH cycle and clears the old tasks — so a new chunk never inherits the prior cycle's explore/implement/verify tasks.",
+        description = "Define what 'done' means for this development cycle. Sets the goal, acceptance criteria, constraints, scope, and verification mode. Call this before planning any tasks.\n\nInputs: description (required), acceptance_criteria (string[]), constraints (string[]), scope (string), verification (explicitly select 'focused' for bounded changes including code; 'full' is the compatibility default, for an explicit full-suite request or a concrete cross-cutting risk). constraints/acceptance_criteria also accept a single string (coerced to a one-element list).\n\nReturns: the objective as set; plus cleared_stale_tasks + note when a fresh cycle was started.\n\nPitfalls: focused verification still requires every recorded acceptance check to pass; it only omits unrelated project-wide gates. Overwriting an IN-FLIGHT objective preserves its tasks. But if the previous objective was already shipped (completed/abandoned), this starts a FRESH cycle and clears the old tasks — so a new chunk never inherits the prior cycle's explore/implement/verify tasks.",
         annotations(
             title = "Set objective",
             read_only_hint = false,

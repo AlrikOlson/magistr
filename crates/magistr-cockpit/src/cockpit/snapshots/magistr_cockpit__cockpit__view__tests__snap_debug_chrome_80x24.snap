@@ -1,5 +1,5 @@
 ---
-source: crates/magistr-tui/src/cockpit/view.tests.rs
+source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: "screen(&markdown(Size::new(80, 24)).with_debug(true))"
 ---
 ▲ magistr  ▘ streaming                                   80×24 · frame 7 · 00:01
@@ -15,9 +15,9 @@ Research▸Plan▸Execute▸Verify
 │                          │ │▎ After the block                                │
 │                          │ │                                                 │
 │                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
-│                          │ │                                                 │
+│                          │ ╰─────────────────────────────────────────────────╯
+│                          │ ╭─ inspector ─────────────────────────────────────╮
+│                          │ │Select a work item, step or change               │
 │                          │ │                                                 │
 │                          │ │                                                 │
 │                          │ │                                                 │

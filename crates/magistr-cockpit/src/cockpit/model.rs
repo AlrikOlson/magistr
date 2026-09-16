@@ -31,6 +31,7 @@ use super::motion_key::MotionKey;
 use super::motion_name::MotionName;
 use super::msg::Msg;
 use super::palette::Palette;
+use super::pane::Pane;
 use super::path_stop::PathStop;
 use super::permission::Permission;
 use super::phase::Phase;
@@ -40,6 +41,7 @@ use super::prompt::Prompt;
 use super::rail::Rail;
 use super::roadmap::Roadmap;
 use super::search::Search;
+use super::selected::Selected;
 use super::settings::Settings;
 use super::settings_data::SettingsData;
 use super::shelf::Shelf;
@@ -182,6 +184,10 @@ pub struct Model {
     /// hangs from.
     pub(super) pointer: Option<(u16, u16)>,
     pub(super) tab: StageTab,
+    pub(super) selected: Option<Selected>,
+    pub(super) pane: Pane,
+    pub(super) inspector_open: bool,
+    pub(super) inspector_scroll: usize,
     /// Where the window's camera is — the native
     /// surface's own navigation, never derived from [`Model::tab`]: a
     /// window shows [`Place::tab`], a terminal shows its tab and has no
@@ -259,6 +265,79 @@ pub struct Model {
 }
 
 impl Model {
+    /// Whether the inspector fits beside the stage at its minimum readable width.
+    #[must_use]
+    pub const fn inspector_stacked(&self) -> bool {
+        !self.surface.is_native()
+            && stage_width(self.size, self.rail.cols(self.size.cols))
+                .saturating_sub(self.gutter_cells())
+                .saturating_sub(self.undock_cols())
+                < Space::INSPECTOR_COLS + Space::GAP + Space::STAGE_COLS
+    }
+
+    /// Outer height reserved below the stage, bounded on very short screens.
+    #[must_use]
+    pub fn inspector_stack_rows(&self) -> u16 {
+        if !self.inspector_stacked() {
+            return 0;
+        }
+        let available = self.body_stage_rows();
+        Space::INSPECTOR_ROWS.min(available.saturating_sub(3) as u16)
+    }
+
+    /// Inspector text width, using the same allocation as the view.
+    #[must_use]
+    pub const fn inspector_width(&self) -> u16 {
+        let outer = if self.inspector_stacked() {
+            self.size
+                .cols
+                .saturating_sub(self.rail.cols(self.size.cols))
+                .saturating_sub(self.undock_cols())
+                .saturating_sub(if self.pixels { 2 * Space::PAD } else { 0 })
+        } else {
+            Space::INSPECTOR_COLS
+        };
+        outer.saturating_sub(2 + 2 * Space::PAD)
+    }
+
+    /// The stable object identity shared by every terminal view.
+    #[must_use]
+    pub const fn selected(&self) -> Option<&Selected> {
+        self.selected.as_ref()
+    }
+
+    /// The pane receiving navigation keys.
+    #[must_use]
+    pub const fn pane(&self) -> Pane {
+        self.pane
+    }
+
+    /// Whether the inspector reveals all fields.
+    #[must_use]
+    pub const fn inspector_open(&self) -> bool {
+        self.inspector_open
+    }
+
+    /// Select by identity; the per-view cursors remain navigation history.
+    /// Repeating a selection preserves the object, disclosure and scroll.
+    pub(super) fn inspect(&mut self, selected: Selected) {
+        if self.selected.as_ref() != Some(&selected) {
+            self.inspector_open = false;
+            self.inspector_scroll = 0;
+        }
+        match &selected {
+            Selected::Chunk(id) => {
+                self.roadmap
+                    .select(id, self.now(), self.theme.motion().is_full());
+            }
+            Selected::Step(number) => {
+                self.trace.expand_step(*number);
+            }
+            Selected::Change(_) => {}
+        }
+        self.selected = Some(selected);
+    }
+
     /// A fresh cockpit at `size`, focused, nothing received yet, in the
     /// dark theme until the terminal answers OSC 11 (see
     /// [`Model::with_theme`]).
@@ -270,7 +349,7 @@ impl Model {
         } else {
             0
         };
-        Self {
+        let mut model = Self {
             size,
             theme: Theme::default(),
             title: None,
@@ -321,6 +400,10 @@ impl Model {
             pressed: None,
             pointer: None,
             tab: StageTab::Turn,
+            selected: None,
+            pane: Pane::Stage,
+            inspector_open: false,
+            inspector_scroll: 0,
             place: Place::Session,
             permissions_seen: 0,
             frames: 0,
@@ -364,7 +447,9 @@ impl Model {
             jobs_done: 0,
             last_job: None,
             last_job_frame: None,
-        }
+        };
+        model.turn.rewrap(model.turn_width());
+        model
     }
 
     /// Start in `theme` — what the entry point decided from
@@ -1672,6 +1757,11 @@ impl Model {
         stage_width(self.size, self.rail.cols(self.size.cols))
             .saturating_sub(self.undock_cols())
             .saturating_sub(self.gutter_cells())
+            .saturating_sub(if self.surface.is_native() || self.inspector_stacked() {
+                0
+            } else {
+                Space::INSPECTOR_COLS + Space::GAP
+            })
     }
 
     /// Text wrapping width in columns: stage width minus the accent gutter.
@@ -1746,6 +1836,11 @@ impl Model {
     /// the feed keeps its tail above the raised screen.
     #[must_use]
     pub fn stage_rows(&self) -> usize {
+        self.body_stage_rows()
+            .saturating_sub(usize::from(self.inspector_stack_rows()))
+    }
+
+    fn body_stage_rows(&self) -> usize {
         let (dock, grown) = if self.surface.is_native() {
             (0, 0)
         } else {
@@ -1813,6 +1908,13 @@ impl Model {
         self.viewport.hold(row, self.turn.len(), self.stage_rows());
     }
 
+    /// The graph leaves at least two selectable rows on short stages.
+    #[must_use]
+    pub fn trace_graph_rows(&self) -> u16 {
+        let rows = self.trace.pinned_rows(self.pixels).saturating_sub(1);
+        rows.min(self.stage_rows().saturating_sub(3)) as u16
+    }
+
     /// The Trace tab's scrolling body: how many rows it has and how many
     /// of them fit under the pinned heading (and branch graph). The
     /// window the view paints and the one the scroll keys move are this
@@ -1821,7 +1923,7 @@ impl Model {
     pub fn trace_window(&self) -> (usize, usize) {
         let height = self
             .stage_rows()
-            .saturating_sub(self.trace.pinned_rows(self.pixels));
+            .saturating_sub(1 + usize::from(self.trace_graph_rows()));
         (self.trace.body_rows(self.trace_width()), height)
     }
 
@@ -1896,6 +1998,9 @@ impl Model {
         }
         if self.roadmap.is_empty() {
             return 0;
+        }
+        if self.inspector_stacked() {
+            return u16::try_from(self.stage_rows().saturating_sub(4).min(3)).unwrap_or(0);
         }
         if self.roadmap_graph_rect.is_some() {
             // Half the stage on a tall one; a third on a short one —

@@ -114,12 +114,12 @@ fn the_body_counts_the_rows_the_tab_paints() {
     // A head row each, nothing expanded.
     assert_eq!(changes.body_rows(), 2);
     changes.toggle(0);
-    // The expanded entry adds its buttons row and its three diff lines.
-    assert_eq!(changes.body_rows(), 2 + 1 + 3);
+    // Inspector disclosure leaves the compact list unchanged.
+    assert_eq!(changes.body_rows(), 2);
     changes.set_runs("test", vec![row("a::passes", true), row("b::fails", false)]);
     // A row per result. The run's own heading is the pinned verdict
     // strip now, so it is no longer one of the body's rows.
-    assert_eq!(changes.body_rows(), 2 + 1 + 3 + 2);
+    assert_eq!(changes.body_rows(), 4);
 }
 
 #[test]
