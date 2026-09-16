@@ -117,6 +117,85 @@ fn a_stale_owned_file_is_brought_back_up_to_date() {
 }
 
 #[test]
+fn repair_updates_reasoning_guidance_and_preserves_customized_files() {
+    let guidance = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE;
+    for customize in [false, true] {
+        let tmp = project();
+        let vars =
+            super::super::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
+                .with_agents(&["codex".to_owned(), "claude".to_owned()])
+                .template_vars();
+        super::super::generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+        let mut manifest = super::super::manifest::ScaffoldManifest::load(tmp.path());
+        let runtimes = WorkflowSkills::codex_files()
+            .into_iter()
+            .chain(WorkflowSkills::claude_files())
+            .filter(|file| file.path.ends_with("runtime.md"))
+            .collect::<Vec<_>>();
+        assert_eq!(runtimes.len(), 2);
+        let mut expected = Vec::new();
+        for file in &runtimes {
+            assert!(file.content.contains(guidance));
+            let old = file.content.replace(
+                guidance,
+                "Record reasoning at the beginning and end of an iteration.",
+            );
+            manifest.record(file.path, &old);
+            let current = if customize {
+                format!("{old}\nProject-specific reasoning policy.\n")
+            } else {
+                old
+            };
+            std::fs::write(tmp.path().join(file.path), &current).unwrap();
+            expected.push(if customize {
+                current
+            } else {
+                file.content.clone()
+            });
+        }
+        let skill = ".agents/skills/next/SKILL.md";
+        let custom_skill = "# The team's customized implementation workflow\n";
+        std::fs::write(tmp.path().join(skill), custom_skill).unwrap();
+        let rules = ".claude/rules/conventions.md";
+        let custom_rules = "# The team's Rust conventions\n";
+        std::fs::write(tmp.path().join(rules), custom_rules).unwrap();
+        manifest.save(tmp.path()).unwrap();
+        let guide = ".claude/rules/tools.md";
+        std::fs::write(tmp.path().join(guide), "# Older generated tool guide\n").unwrap();
+        let claude_before = std::fs::read(tmp.path().join("CLAUDE.md")).unwrap();
+
+        let repaired = repair(tmp.path());
+        assert!(repaired.contains(&guide.to_owned()), "{repaired:?}");
+        assert_eq!(
+            std::fs::read_to_string(tmp.path().join(guide)).unwrap(),
+            super::super::tool_guide::build_tool_guide(),
+        );
+        for (file, expected) in runtimes.iter().zip(expected) {
+            assert_eq!(
+                std::fs::read_to_string(tmp.path().join(file.path)).unwrap(),
+                expected,
+                "{} customize={customize}",
+                file.path,
+            );
+            assert_eq!(repaired.contains(&file.path.to_owned()), !customize);
+        }
+        assert_eq!(
+            std::fs::read_to_string(tmp.path().join(skill)).unwrap(),
+            custom_skill
+        );
+        assert_eq!(
+            std::fs::read_to_string(tmp.path().join(rules)).unwrap(),
+            custom_rules
+        );
+        assert_eq!(
+            std::fs::read(tmp.path().join("CLAUDE.md")).unwrap(),
+            claude_before
+        );
+        assert!(repair(tmp.path()).is_empty());
+    }
+}
+
+#[test]
 fn custom_magistr_gitignore_survives_startup_repair() {
     let tmp = project();
     let relative = ".magistr/.gitignore";

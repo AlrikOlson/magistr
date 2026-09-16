@@ -36,7 +36,16 @@ impl ReasoningServer {
                 .metadata
                 .as_ref()
                 .and_then(|m| m.project_id.as_deref())
-                == Some(project_id);
+                .map_or_else(
+                    || {
+                        !project_id.is_empty()
+                            && (sid == project_id
+                                || sid.strip_prefix(project_id).is_some_and(|suffix| {
+                                    suffix.starts_with(crate::think::config::PROJECT_SEP)
+                                }))
+                    },
+                    |recorded| recorded == project_id,
+                );
             if !belongs {
                 return None;
             }

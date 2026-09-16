@@ -13,7 +13,7 @@ use crate::think::domain::ThinkStep;
 use super::core::ReasoningServer;
 
 impl ReasoningServer {
-    pub(crate) fn handle_revision(&mut self, step: &ThinkStep) -> Result<(), String> {
+    pub(crate) fn validate_revision(&self, step: &ThinkStep) -> Result<(), String> {
         let Some(revises) = step.revises_step else {
             return Ok(());
         };
@@ -29,6 +29,17 @@ impl ReasoningServer {
             return Err(msg);
         }
 
+        Ok(())
+    }
+
+    pub(crate) fn handle_revision(&mut self, step: &ThinkStep) -> Result<(), String> {
+        self.validate_revision(step)?;
+        let Some(revises) = step.revises_step else {
+            return Ok(());
+        };
+        if !self.config.features.enable_revisions {
+            return Ok(());
+        }
         if let Some(&idx) = self.step_index.get(&revises) {
             self.history.steps[idx].revised_by = Some(step.step_number);
             eprintln!(

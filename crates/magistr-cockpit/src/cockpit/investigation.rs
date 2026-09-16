@@ -12,7 +12,7 @@ pub struct Investigation<'a> {
     pub from: Option<u32>,
     pub members: Vec<u32>,
     pub indices: Vec<usize>,
-    /// External decisions with an explicit non-refuting dependency on a member.
+    /// Recorded merge targets or external steps with a non-refuting dependency on a member.
     pub used_by: Vec<u32>,
     /// Existing merge inference: first later main-line step, not exact provenance.
     pub merged_near: Option<u32>,
@@ -39,10 +39,16 @@ impl<'a> Investigation<'a> {
                 .filter_map(|(i, step)| (step.branch_id.as_deref() == Some(id)).then_some(i))
                 .collect();
             let members: Vec<_> = indices.iter().map(|&i| trace.steps()[i].number).collect();
-            let question = indices
-                .iter()
-                .filter_map(|&i| trace.steps()[i].branch_name.as_deref())
-                .find(|name| !name.trim().is_empty())
+            let metadata = trace.branch(id);
+            let question = metadata
+                .map(|branch| branch.name.as_str())
+                .filter(|name| !name.trim().is_empty())
+                .or_else(|| {
+                    indices
+                        .iter()
+                        .filter_map(|&i| trace.steps()[i].branch_name.as_deref())
+                        .find(|name| !name.trim().is_empty())
+                })
                 .or_else(|| (!first.purpose.trim().is_empty()).then_some(first.purpose.as_str()))
                 .unwrap_or("Question not recorded");
             let outcome = indices
@@ -50,8 +56,11 @@ impl<'a> Investigation<'a> {
                 .rev()
                 .map(|&i| trace.steps()[i].outcome.as_str())
                 .find(|text| !text.trim().is_empty());
-            let from = indices.iter().find_map(|&i| trace.steps()[i].branch_from);
-            let used_by = trace
+            let from = indices
+                .iter()
+                .find_map(|&i| trace.steps()[i].branch_from)
+                .or_else(|| metadata.and_then(|branch| branch.from_step));
+            let mut used_by: Vec<_> = trace
                 .steps()
                 .iter()
                 .filter(|step| step.branch_id.as_deref() != Some(id))
@@ -62,10 +71,20 @@ impl<'a> Investigation<'a> {
                 })
                 .map(|step| step.number)
                 .collect();
-            let merged_near = merges
-                .iter()
-                .find(|(last, _)| indices.last() == Some(last))
-                .map(|(_, next)| trace.steps()[*next].number);
+            let merged_into = trace.branch_merge(id);
+            if let Some(target) = merged_into
+                && !used_by.contains(&target)
+            {
+                used_by.push(target);
+            }
+            let merged_near = if merged_into.is_none() {
+                merges
+                    .iter()
+                    .find(|(last, _)| indices.last() == Some(last))
+                    .map(|(_, next)| trace.steps()[*next].number)
+            } else {
+                None
+            };
             investigations.push(Self {
                 id,
                 question,

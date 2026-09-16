@@ -14,13 +14,13 @@
 
 Every change follows this strict loop. No exceptions. The roadmap, the plan and the gates live in think-and-ship (the `roadmap_*` / `ship_*` / `think_*` / `signal_*` tools on the `magistr` MCP server); `ROADMAP.md` is a generated view.
 
-1. **PLAN** — `roadmap_next` picks the chunk; read the codebase; `ship_set_objective` + `ship_plan` before touching source files; open a `think_record_step`.
-2. **EXECUTE** — Implement with TDD (red-green-refactor). Follow `.claude/rules/conventions.md`.
+1. **PLAN** — `roadmap_next` picks the chunk; read the codebase; `ship_set_objective` + `ship_plan` before touching source files; record the question and current evidence with `think_record_step`.
+2. **EXECUTE** — Implement with TDD (red-green-refactor). Follow `.claude/rules/conventions.md`. Record findings and changed conclusions as evidence arrives, using the reasoning guidance in `.claude/skills/craft/references/runtime.md`.
 3. **VERIFY** — All four steps are mandatory, in order:
    - Run quality gates: `{{check_cmd}} && {{test_cmd}} && {{lint_cmd}}` — recorded through `ship_check`
    - **Update the roadmap** — `roadmap_complete_chunk` for what you implemented, `roadmap_add_chunk` for anything new
    - **Commit** — one atomic commit per chunk
-   - **Close** — `ship_finalize` and a closing `think_record_step`
+   - **Close** — synthesize the recorded findings with `think_record_step`, link the evidence used, then `ship_finalize`
 
 **These rules are NON-NEGOTIABLE:**
 - You MUST update the roadmap after every piece of work — no work is invisible

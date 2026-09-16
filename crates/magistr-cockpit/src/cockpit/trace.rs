@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 mod investigation;
 pub use investigation::Investigation;
 
+use magistr_engine::native::{BranchStatus, ThinkBranch};
 use magistr_engine::{NativeEvent, NativeSnapshot, ShipFrame, ThinkFrame};
 
 use super::ship_moment::ShipMoment;
@@ -30,7 +31,7 @@ pub const TRACE_GRAPH_ROWS: usize = 4;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Trace {
     steps: Vec<TraceStep>,
-    branch_status: BTreeMap<String, String>,
+    branches: BTreeMap<String, ThinkBranch>,
     /// The selected step's number — the one whose card is open.
     selected: Option<u32>,
     /// Whether the card shows every field or the brief cut.
@@ -67,14 +68,31 @@ impl Trace {
                 ..
             } => self.set_pinned(*step_number, *pinned),
             ThinkFrame::BranchStatusChanged {
-                branch_id, status, ..
+                branch_id,
+                status,
+                merged_into,
+                ..
             } => {
-                self.branch_status
-                    .insert(branch_id.clone(), branch_status_name(*status).to_owned());
+                let branch =
+                    self.branches
+                        .entry(branch_id.clone())
+                        .or_insert_with(|| ThinkBranch {
+                            id: branch_id.clone(),
+                            name: String::new(),
+                            from_step: None,
+                            status: *status,
+                            merged_into: None,
+                        });
+                branch.status = *status;
+                branch.merged_into = if *status == BranchStatus::Merged {
+                    *merged_into
+                } else {
+                    None
+                };
             }
             ThinkFrame::Cleared => {
                 self.steps.clear();
-                self.branch_status.clear();
+                self.branches.clear();
                 self.selected = None;
             }
             ThinkFrame::EstimateRevised { .. } => {}
@@ -116,12 +134,16 @@ impl Trace {
     /// order the engines stamped them.
     ///
     /// Replaces both halves rather than appending, so a re-seed mid-run
-    /// never doubles a moment the feed already delivered — the store is
-    /// the superset. What the feed alone knows survives: the branch
-    /// statuses, which step is selected, and an open checkpoint pane.
+    /// never doubles a moment the feed already delivered. Persisted branch
+    /// metadata restores lifecycle and merge destinations after a restart.
+    /// Legacy snapshots without it retain what the feed knows. Selection and
+    /// an open checkpoint pane survive either kind of snapshot.
     pub fn seed(&mut self, snapshot: &NativeSnapshot) {
         self.steps.clear();
         self.moments.clear();
+        for branch in &snapshot.branches {
+            self.branches.insert(branch.id.clone(), branch.clone());
+        }
         for step in &snapshot.steps {
             self.land(TraceStep::from_think(step));
         }
@@ -320,6 +342,7 @@ impl Trace {
                 .iter()
                 .filter(|candidate| candidate.branch_id.as_deref() == Some(branch))
                 .find_map(|candidate| candidate.branch_from)
+                .or_else(|| self.branch(branch).and_then(|branch| branch.from_step))
                 .and_then(|number| self.steps.iter().position(|s| s.number == number))
             {
                 links.push((from, index));
@@ -328,10 +351,9 @@ impl Trace {
         links
     }
 
-    /// The merge edges, as feed-index pairs: a branch whose status is
-    /// `merged` rejoins the main line at the first main-line step after
-    /// its last step, when the feed has one. Read off the branch's
-    /// recorded status, never invented.
+    /// Merge edges use the recorded synthesis destination when available.
+    /// Older records with only a merged status retain the first later main-line
+    /// inference. An explicit target missing from this trace creates no substitute edge.
     #[must_use]
     pub fn merges(&self) -> Vec<(usize, usize)> {
         let mut merges = Vec::new();
@@ -351,7 +373,11 @@ impl Trace {
             let Some(last) = last else {
                 continue;
             };
-            if let Some(next) = self.steps[last + 1..]
+            if let Some(number) = self.branch_merge(branch) {
+                if let Some(next) = self.steps.iter().position(|step| step.number == number) {
+                    merges.push((last, next));
+                }
+            } else if let Some(next) = self.steps[last + 1..]
                 .iter()
                 .position(|s| s.branch_id.is_none())
             {
@@ -384,14 +410,27 @@ impl Trace {
         rows
     }
 
-    /// A branch's status by id — `active` until a `branch_status_changed`
-    /// frame says otherwise (`merged`, `abandoned`). The same word
-    /// [`Trace::branch_rows`] prints, readable on its own.
+    /// A branch's status from persisted metadata or a live status event.
+    /// Older steps without either remain active.
     #[must_use]
     pub fn branch_status(&self, branch: &str) -> &str {
-        self.branch_status
+        self.branches
             .get(branch)
-            .map_or("active", String::as_str)
+            .map_or("active", |branch| branch_status_name(branch.status))
+    }
+
+    /// Recorded branch metadata, when the snapshot or live feed supplies it.
+    #[must_use]
+    pub fn branch(&self, id: &str) -> Option<&ThinkBranch> {
+        self.branches.get(id)
+    }
+
+    /// The exact recorded merge destination; never the positional fallback.
+    #[must_use]
+    pub fn branch_merge(&self, id: &str) -> Option<u32> {
+        self.branch(id)
+            .filter(|branch| branch.status == BranchStatus::Merged)
+            .and_then(|branch| branch.merged_into)
     }
 
     /// Whether any step sits on a branch.

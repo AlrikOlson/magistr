@@ -94,6 +94,27 @@ fn workflow_includes_mcp_tools() {
 }
 
 #[test]
+fn reasoning_lifecycle_is_available_to_workflow_and_roadmap_agents() {
+    for permissions in [
+        ToolPermissions::for_workflow(),
+        ToolPermissions::for_roadmap(),
+    ] {
+        for name in [
+            "think_record_step",
+            "think_get_step",
+            "think_set_branch_status",
+            "think_step_impact",
+            "think_revise_estimate",
+        ] {
+            assert!(permissions.contains(name), "reasoning must include {name}");
+        }
+        assert!(!permissions.contains("think_wipe_trace"));
+        assert!(!permissions.contains("think_export_trace"));
+    }
+    assert!(!ToolPermissions::for_interview().contains("think_set_branch_status"));
+}
+
+#[test]
 fn with_deduplicates() {
     let perms = ToolPermissions::base()
         .with(&["web_search", "extra"])

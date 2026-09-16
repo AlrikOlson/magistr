@@ -98,7 +98,10 @@ impl WorkflowSkills {
             ),
             format!(
                 "{}\n\n<!-- Host adapter -->\n\n{}",
-                RUNTIME.trim_end(),
+                RUNTIME.trim_end().replace(
+                    "{{reasoning_guidance}}",
+                    magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE
+                ),
                 host.adapter()
             ),
         ));

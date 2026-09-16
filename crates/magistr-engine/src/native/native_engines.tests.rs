@@ -101,6 +101,86 @@ fn step(n: u32, purpose: &str) -> ThinkStep {
 }
 
 #[test]
+fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
+    use crate::native::BranchStatus;
+
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = temp_config(&tmp);
+    let project = "reasoning-restart";
+    let observer = reader(&cfg, project);
+    assert!(observer.snapshot().branches.is_empty());
+    {
+        let engines = host(&cfg, project);
+        engines
+            .think_record_step(step(1, "Keep recovery isolated"))
+            .expect("origin");
+        let mut branch = step(2, "Can each tenant keep its own receipt?");
+        branch.branch_id = Some("receipt".into());
+        branch.branch_name = Some("Can each tenant keep its own receipt?".into());
+        branch.branch_from = Some(1);
+        branch.outcome = "Keep one receipt per tenant.".into();
+        engines.think_record_step(branch).expect("branch");
+        engines
+            .think_record_step(step(3, "Check the log format"))
+            .expect("unrelated step");
+        engines
+            .think_record_step(step(4, "Use tenant receipts during recovery"))
+            .expect("synthesis");
+        engines
+            .services
+            .think
+            .set_branch_status("receipt", "merged", Some(4))
+            .expect("merge");
+        let snapshot = observer.snapshot();
+        let receipt = snapshot
+            .branches
+            .iter()
+            .find(|branch| branch.id == "receipt")
+            .expect("persisted branch");
+        assert_eq!(receipt.name, "Can each tenant keep its own receipt?");
+        assert_eq!(receipt.from_step, Some(1));
+        assert_eq!(receipt.status, BranchStatus::Merged);
+        assert_eq!(receipt.merged_into, Some(4));
+        assert_eq!(snapshot.steps[1].branch_id.as_deref(), Some("receipt"));
+        assert_eq!(snapshot.steps[1].outcome, "Keep one receipt per tenant.");
+    }
+
+    let restarted = reader(&cfg, project);
+    let persisted = restarted.snapshot();
+    let receipt = persisted
+        .branches
+        .iter()
+        .find(|branch| branch.id == "receipt")
+        .expect("branch after restart");
+    assert_eq!(receipt.status, BranchStatus::Merged);
+    assert_eq!(
+        receipt.merged_into,
+        Some(4),
+        "do not substitute the first later main-line step"
+    );
+
+    {
+        let engines = host(&cfg, project);
+        engines
+            .services
+            .think
+            .set_branch_status("receipt", "abandoned", None)
+            .expect("stop investigation after restart");
+    }
+    let stopped = restarted.snapshot();
+    let receipt = stopped
+        .branches
+        .iter()
+        .find(|branch| branch.id == "receipt")
+        .expect("stopped branch");
+    assert_eq!(receipt.status, BranchStatus::Abandoned);
+    assert_eq!(
+        receipt.merged_into, None,
+        "reseed clears obsolete merge provenance"
+    );
+}
+
+#[test]
 fn round_trip_through_a_temp_store() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);

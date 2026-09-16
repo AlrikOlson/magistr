@@ -51,6 +51,19 @@ fn next_prompt_includes_workflow_reference() {
 }
 
 #[test]
+fn native_and_file_iteration_prompts_carry_the_shared_recording_contract() {
+    for spec_file in [None, Some("plan.md".to_owned())] {
+        let config = PromptConfig {
+            spec_file,
+            ..sample_config()
+        };
+        let prompt = config.build_next_prompt(&sample_summary());
+        assert!(!PromptConfig::REASONING_GUIDANCE.is_empty());
+        assert_eq!(prompt.matches(PromptConfig::REASONING_GUIDANCE).count(), 1);
+    }
+}
+
+#[test]
 fn next_prompt_does_not_duplicate_base_workflow() {
     let prompt = sample_config().build_next_prompt(&sample_summary());
     assert!(

@@ -13,7 +13,7 @@ use crate::roadmap::RoadmapProgress;
 /// engines by [`NativeReader::snapshot`](super::NativeReader::snapshot):
 /// the ship objective and its tasks with their actions and checks whole,
 /// the roadmap's chunks and progress, every signal, and the persisted
-/// reasoning steps.
+/// reasoning steps with their branch metadata.
 ///
 /// What it guarantees, and what it does not. Each family is read whole
 /// under its own engine lock, so within a family the snapshot is one
@@ -24,9 +24,10 @@ use crate::roadmap::RoadmapProgress;
 /// read, so a write that lands during the read moves the next cursor and
 /// the timer re-reads. No global revision is fabricated over the four:
 /// the store has none, and a projection that claimed one would be lying.
-/// The reasoning steps come from the persisted archive rather than the
-/// live engine (the live load path can print, which a raw-mode terminal
-/// must never see), so they may trail the trace by one unflushed step.
+/// The reasoning steps and branch metadata come from one persisted archive
+/// read rather than the live engine (the live load path can print, which
+/// a raw-mode terminal must never see), so they may trail the trace by
+/// one unflushed step.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct NativeSnapshot {
     /// The store stamp read before the families; `None` when the store is
@@ -44,4 +45,6 @@ pub struct NativeSnapshot {
     pub signals: Vec<Signal>,
     /// The persisted reasoning steps, in stored order.
     pub steps: Vec<ThinkStep>,
+    /// Branch names, origins, statuses and explicit merge destinations from the same archive.
+    pub branches: Vec<super::ThinkBranch>,
 }

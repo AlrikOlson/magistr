@@ -150,6 +150,27 @@ fn next_loop_requires_a_fresh_host_session_between_chunks() {
 }
 
 #[test]
+fn generated_reasoning_guidance_is_shared_by_every_instruction_surface() {
+    let guidance = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE;
+    let guide = super::super::tool_guide::build_tool_guide();
+    let section = super::super::think_and_ship::build_section(&Default::default());
+    let runtimes = WorkflowSkills::codex_files()
+        .into_iter()
+        .chain(WorkflowSkills::claude_files())
+        .filter(|file| file.path.ends_with("runtime.md"));
+    let mut surfaces = vec![guide, section];
+    surfaces.extend(runtimes.map(|file| file.content));
+    assert_eq!(surfaces.len(), 4);
+    for content in surfaces {
+        assert_eq!(content.matches(guidance).count(), 1, "{content}");
+        assert!(!content.contains("{{reasoning_guidance}}"));
+        assert!(!content.contains("open and close every iteration"));
+        assert!(!content.contains("record your reasoning (open)"));
+        assert!(!content.contains("record outcome (close)"));
+    }
+}
+
+#[test]
 fn every_generated_relative_workflow_link_resolves() {
     let temporary = tempfile::tempdir().expect("tempdir");
     for files in [
