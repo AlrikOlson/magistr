@@ -8,10 +8,9 @@ use crate::render::{Style, width};
 use crate::theme::Pen;
 
 /// A line the view builds glyph by glyph. On a plain terminal each
-/// glyph is the set's character; on a graphics terminal it is a blank
-/// cell carrying a [`Mark::Icon`] for the compositor to draw — one
-/// cell either way, so the line measures the same on both paths and
-/// the cell goldens never move when the pixel layer arrives.
+/// glyph is the set's character. On a graphics terminal each icon has its
+/// own layout slot, with proportional text runs beside it. Placeholder
+/// columns are only a construction detail and never position pixel text.
 #[derive(Clone, Debug)]
 pub struct Marked<'a> {
     pen: &'a Pen,
@@ -60,9 +59,46 @@ impl<'a> Marked<'a> {
     /// The line as a text node carrying its marks.
     #[must_use]
     pub fn node(self) -> Node {
-        self.marks
-            .into_iter()
-            .fold(Node::text(self.text), Node::mark)
+        if !self.pixels || self.marks.is_empty() {
+            return Node::text(self.text);
+        }
+        use unicode_segmentation::UnicodeSegmentation as _;
+        let mut node = Node::row().height(Length::Cells(1));
+        let mut run = String::new();
+        let mut col = 0;
+        for grapheme in self.text.graphemes(true) {
+            let mark = self
+                .marks
+                .iter()
+                .find(|mark| matches!(mark, Mark::Icon { col: at, .. } if *at == col));
+            if let Some(Mark::Icon {
+                icon, cols, ink, ..
+            }) = mark
+            {
+                if !run.is_empty() {
+                    node = node.child(Node::text(std::mem::take(&mut run)).shrink(0.0));
+                }
+                node = node.child(
+                    Node::leaf()
+                        .width(Length::Cells(*cols))
+                        .height(Length::Cells(1))
+                        .shrink(0.0)
+                        .mark(Mark::Icon {
+                            icon: *icon,
+                            col: 0,
+                            cols: *cols,
+                            ink: *ink,
+                        }),
+                );
+            } else {
+                run.push_str(grapheme);
+            }
+            col += width(grapheme);
+        }
+        if !run.is_empty() {
+            node = node.child(Node::text(run).shrink(0.0));
+        }
+        node
     }
 
     /// The line as a one-row segment in `style` that never gives way —

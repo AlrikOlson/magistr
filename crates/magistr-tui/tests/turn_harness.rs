@@ -1,7 +1,8 @@
 //! The turn stage end to end over the fake terminal: a
 //! scripted agent streams into the cockpit while scripted keys and wheel
 //! reports scroll it, and the byte stream, the model and the timing of
-//! every paint are checked against what went in.
+//! every paint are checked against what went in. Text-content assertions use the
+//! text profile; the streaming latency test exercises the full pixel renderer.
 
 use std::time::{Duration, Instant};
 
@@ -34,7 +35,7 @@ fn screen_before(capture: &Capture, until: Instant) -> String {
 }
 
 fn options() -> Options {
-    Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500))
+    Options::new(Env::new("xterm-kitty", false, Some("text"))).probe_timeout(MS(500))
 }
 
 async fn run(script: Script, producers: impl FnOnce(Inbox)) -> (Model, Capture, Deliveries) {
@@ -85,8 +86,8 @@ async fn a_ten_thousand_line_turn_scrolls_with_the_wheel_and_the_page_keys() {
     assert_eq!(model.inputs(), 5, "PageUp, three wheel notches, q");
     let height = model.stage_rows();
     assert_eq!(
-        height, 5,
-        "24 rows less chrome, pixel gutters and the stacked inspector"
+        height, 8,
+        "the text profile retains its compact composer and stacked inspector"
     );
     // A page up, two notches (6) up, then one notch (3) down from the tail.
     let top = 10_000 - height - (height - 1) - 3;
@@ -193,7 +194,15 @@ async fn two_hundred_lines_a_second_keep_input_to_paint_under_the_bound() {
     // The keys went into the prompt line; ctrl-U clears it so ctrl-D quits.
     let script = script.text(MS(1_250), "\x15\x04");
     let began = Instant::now();
-    let (model, capture, deliveries) = run(script, |inbox| {
+    let terminal = FakeTerminal::new(SIZE, script);
+    let capture = terminal.capture();
+    let deliveries = terminal.deliveries();
+    let runtime = Runtime::new(
+        terminal,
+        Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500)),
+    );
+    {
+        let inbox = runtime.inbox();
         let mut agent = FakeAgent::new();
         for i in 0..LINES {
             agent = agent.text(MS(30) + MS(5) * i, &format!("streamed line {i}\n"));
@@ -230,8 +239,12 @@ async fn two_hundred_lines_a_second_keep_input_to_paint_under_the_bound() {
                 }}),
             )
             .play(inbox);
-    })
-    .await;
+    }
+    let model = runtime
+        .run(Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn))
+        .await
+        .expect("pixel runtime");
+    assert!(model.has_pixels());
     assert!(
         began.elapsed() < MS(3_000),
         "the run took {:?}",
@@ -297,14 +310,11 @@ async fn two_hundred_lines_a_second_keep_input_to_paint_under_the_bound() {
 async fn a_tool_row_expands_by_click_and_enter_opens_its_inspector() {
     const TITLE: &str = "cargo nextest run --workspace --exclude magistr-gui --all-targets \
                          -E 'test(turn_stage)'";
-    // Rows on the kitty arrangement: gutter 0, header 1, strip 2, the
-    // panel frame 3, tab bar 4, stage padding 5, turn rows from 6 — the
-    // tool call is the turn's second row, on screen row 7. Columns: the
-    // gutter, the rail and its divider take 30, so the stage's rows
-    // start at 31 — the click lands well inside the row's text.
+    // The text profile has header, status, compatibility banner, frame
+    // and tabs before its rows. The second row is y=6; x=36 is inside it.
     let script = Script::new()
         .startup_replies(MS(0))
-        .click(MS(120), 36, 7)
+        .click(MS(120), 36, 6)
         .text(MS(200), "\r")
         .bytes(MS(280), b"\x04".as_slice());
     let (model, capture, deliveries) = run(script, |inbox| {
@@ -442,8 +452,8 @@ async fn a_wheel_notch_is_on_screen_the_frame_it_was_turned_and_never_strobes() 
     .await;
     let height = model.stage_rows();
     assert_eq!(
-        height, 5,
-        "24 rows less chrome, pixel gutters and the stacked inspector"
+        height, 8,
+        "the text profile retains its compact composer and stacked inspector"
     );
     // The window the page left the stage on, and the notch's own.
     let from = 10_000 - height - (height - 1);

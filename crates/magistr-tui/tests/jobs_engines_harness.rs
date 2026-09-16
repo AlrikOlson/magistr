@@ -18,6 +18,43 @@ const MS: fn(u64) -> Duration = Duration::from_millis;
 const SIZE: Size = Size::new(80, 24);
 const BSU: &[u8] = b"\x1b[?2026h";
 
+fn assert_pixel_region_changed(
+    capture: &Capture,
+    xs: std::ops::Range<u32>,
+    ys: std::ops::Range<u32>,
+) {
+    let writes = capture.writes();
+    let sample = |at| {
+        let mut pixels = Vec::new();
+        for p in capture.pixels_before(at) {
+            for y in 0..p.height {
+                let sy = u32::from(p.row) * 20 + y;
+                if !ys.contains(&sy) {
+                    continue;
+                }
+                for x in xs.clone() {
+                    let sx = x.saturating_sub(u32::from(p.col) * 10);
+                    if sx < p.width {
+                        let offset = ((y * p.width + sx) * 4) as usize;
+                        pixels.extend_from_slice(&p.rgba[offset..offset + 4]);
+                    }
+                }
+            }
+        }
+        pixels
+    };
+    let before = sample(writes[2].0);
+    let after = sample(writes.last().expect("exit write").0);
+    assert!(
+        !before.is_empty() && !after.is_empty(),
+        "graphics decoded from both paints"
+    );
+    assert_ne!(
+        before, after,
+        "the engine update changed the requested screen region"
+    );
+}
+
 fn options() -> Options {
     Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500))
 }
@@ -188,11 +225,7 @@ async fn engine_frames_reach_the_rail_and_its_next_paint() {
     // The signals line moved down a row when the task appeared, so its
     // new row paints over blank cells — one contiguous run in the stream.
     // (Rows repainted in place diff cell by cell and split their runs.)
-    assert!(
-        capture.count(b"signals 1") >= 1,
-        "the rail's update was painted ({} bytes captured)",
-        capture.bytes().len()
-    );
+    assert_pixel_region_changed(&capture, 10..280, 80..260);
 }
 
 #[tokio::test]
@@ -241,18 +274,7 @@ async fn a_think_step_lands_on_the_trace_tab_and_its_next_paint() {
     .await;
     assert_eq!(model.trace().steps().len(), 1, "the step landed");
     assert_eq!(model.trace().steps()[0].number, 7);
-    // The fold marker before the number is a glyph on a plain terminal
-    // and a blank cell under a drawn mark on a graphics one.
-    let row = if model.has_pixels() {
-        "   7  hypothesis"
-    } else {
-        "\u{25b8}  7  hypothesis"
-    };
-    assert!(
-        capture.count(row.as_bytes()) >= 1,
-        "the step's row was painted ({} bytes captured)",
-        capture.bytes().len()
-    );
+    assert_pixel_region_changed(&capture, 310..780, 100..200);
 }
 
 #[tokio::test]

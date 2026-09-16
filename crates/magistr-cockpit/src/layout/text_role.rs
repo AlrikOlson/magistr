@@ -28,16 +28,10 @@
 /// paint and `the_role_changes_nothing_on_a_terminal` pins the
 /// measure.
 ///
-/// # Why [`TextRole::Data`] is the default
-///
-/// A cockpit row is column-aligned far more often than it is prose: a
-/// gauge, a chip, a diff, a tree glyph, a `{:<15}` key cap and every
-/// ready-made cell band are laid out by counting columns, and a
-/// proportional face would take the alignment away. So a leaf is data
-/// until it says otherwise, which makes the sweep in `view` a list of
-/// deliberate exceptions rather than a list of things to remember to
-/// protect. It is also the reading of the design language's own rule —
-/// mono only where alignment matters.
+/// The enum's compatibility default is Data. New text leaves use Label:
+/// interface words are proportional in the graphics renderer. Code, diffs,
+/// aligned tables and ready-made cell bands select Data explicitly, preserving
+/// their column alignment. The plain cell renderer ignores these roles.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum TextRole {
     /// Column-aligned content: code, diffs, paths, ids, numerals,

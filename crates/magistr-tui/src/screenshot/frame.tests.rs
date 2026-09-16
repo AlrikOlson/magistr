@@ -19,47 +19,71 @@ const KITTY: Protocol = Protocol::Kitty(Passthrough::Direct);
 #[test]
 fn the_palette_masks_underlying_graphs_and_panel_rings() {
     use magistr_cockpit::harness::Scenes;
-    use magistr_cockpit::layout::{Mark, Rect, marks};
+    use magistr_cockpit::layout::{Mark, marks};
     let mut model = Scenes::command_palette(Size::new(80, 24));
     update(&mut model, Msg::Mode(Decision::Graphics(KITTY).mode()));
     let root = view(&model, &clock());
-    let resolved = LayoutTree::new().compute(&root, 80, 24).expect("layout");
+    let resolved = layout(&model, &clock(), Profile::Kitty).expect("layout");
     let panel = marks(&root, &resolved)
         .into_iter()
         .rev()
         .find_map(|(rect, mark)| matches!(mark, Mark::Panel { .. }).then_some(rect))
         .expect("palette panel");
     let (_, images) = compose(&model, &clock(), KITTY).expect("frame");
-    let mut checked = 0;
-    for image in images {
-        let rect = Rect::new(image.col, image.row, image.cols, image.rows);
-        if rect == panel {
-            continue;
-        }
-        let overlap = rect.intersection(panel);
-        if overlap.is_empty() {
-            continue;
-        }
-        for y in (overlap.y - rect.y)..(overlap.bottom() - rect.y) {
-            for x in (overlap.x - rect.x)..(overlap.right() - rect.x) {
-                for py in 0..20 {
-                    for px in 0..10 {
-                        let at = (((u32::from(y) * 20 + py) * image.width + u32::from(x) * 10 + px)
-                            * 4
-                            + 3) as usize;
-                        assert_eq!(
-                            image.rgba[at], 0,
-                            "underlying pixels cross the palette at {rect:?}"
-                        );
-                        checked += 1;
-                    }
-                }
-            }
-        }
+    // The background in the panel's unused bottom padding must be solid. Old
+    // graphs/rings crossing this rectangle would add a second colour.
+    let [r, g, b] = magistr_cockpit::render::resolve(
+        magistr_cockpit::theme::Pen::for_theme(&model.theme())
+            .stage
+            .bg,
+        &model.theme().palette(),
+        false,
+    );
+    let y = u32::from(panel.bottom() - 2) * 20 + 15;
+    let image = images
+        .iter()
+        .find(|p| u32::from(p.row) * 20 <= y && y < u32::from(p.row + p.rows) * 20)
+        .expect("strip");
+    let local_y = y - u32::from(image.row) * 20;
+    for x in u32::from(panel.x + 2) * 10..u32::from(panel.right() - 2) * 10 {
+        let at = ((local_y * image.width + x) * 4) as usize;
+        assert_eq!(
+            &image.rgba[at..at + 4],
+            &[r, g, b, 255],
+            "opaque palette ground at {x},{y}"
+        );
     }
+}
+
+#[test]
+fn a_proportional_gauge_label_has_space_beside_its_bar() {
+    let model = roadmapped();
+    let resolved = layout(&model, &clock(), Profile::Kitty).expect("pixel layout");
+    let placed = resolved.placed();
+    let at = placed
+        .iter()
+        .position(|p| p.id == Some(magistr_cockpit::cockpit::Widget::RailGauge.id()))
+        .expect("gauge");
+    let bar = placed[at + 1].px;
+    let label = placed[at + 2].px;
     assert!(
-        checked > 0,
-        "the fixture exercises overlapping pixel surfaces"
+        placed[at].px.height >= label.height,
+        "{:?}",
+        &placed[at..at + 3]
+    );
+    assert!(label.width >= 25.0, "{:?}", &placed[at..at + 3]);
+    assert!(label.x >= bar.right(), "the label clears the bar");
+    assert!(label.height >= 20.0, "{:?}", &placed[at..at + 3]);
+    let shot = frame(&model, &clock(), Profile::Kitty).expect("frame");
+    let background = shot
+        .pixel(label.x as u32, label.y as u32)
+        .expect("background");
+    assert!(
+        (label.y as u32..label.bottom() as u32).any(|y| {
+            (label.x as u32..label.right() as u32).any(|x| shot.pixel(x, y) != Some(background))
+        }),
+        "visible label: {:?}",
+        &placed[at..at + 3]
     );
 }
 
@@ -209,25 +233,24 @@ fn composing_is_settled_after_the_reporting_pass() {
 /// row) is a diff here rather than a still nobody re-reads.
 #[test]
 fn the_launcher_places_the_brand_and_the_roadmap_gauge() {
-    let (_, images) = compose(&roadmapped(), &clock(), KITTY).expect("layout succeeds");
-    let rects: Vec<(u16, u16, u16, u16)> = images
+    let (cells, images) = compose(&roadmapped(), &clock(), KITTY).expect("layout succeeds");
+    assert!(
+        cells.cells().iter().all(|cell| cell.symbol == " "),
+        "graphics typography leaves no terminal glyphs"
+    );
+    let rects: Vec<_> = images
         .iter()
         .map(|i| (i.col, i.row, i.cols, i.rows))
         .collect();
-    assert!(
-        rects
-            .iter()
-            .any(|(_, _, cols, rows)| *cols == 2 && *rows == 1),
-        "the brand mark's two-cell surface is not among {rects:?}"
+    let expected: Vec<_> = (0..40).step_by(4).map(|y| (0, y, 120, 4)).collect();
+    assert_eq!(
+        rects, expected,
+        "every viewport row is covered exactly once"
     );
     assert!(
-        rects
+        images
             .iter()
-            .any(|(_, _, cols, rows)| *cols > 1 && *rows == 1),
-        "a one-row bar (the gauge) is not among {rects:?}"
-    );
-    assert!(
-        rects.iter().any(|(_, _, _, rows)| *rows > 1),
-        "a block surface (a tech-tree) is not among {rects:?}"
+            .all(|image| image.rgba.chunks_exact(4).all(|p| p[3] == 255)),
+        "each strip is opaque"
     );
 }

@@ -1,16 +1,7 @@
-//! The pixel layer end to end over the fake terminal: scripted
-//! think frames put a branch graph on the Trace tab, and the byte stream
-//! proves the compositor's economy — one kitty transmit when the graph
-//! first paints, none across idle frames, one more after a resize
-//! re-placement, the default cell size when the terminal never answered
-//! `CSI 16 t`, and a re-size via the late reply when it answers after
-//! startup.
-//!
-//! Since the header carries pixel chrome of its own (the brand
-//! mark, the activity sparkline), so the graph's transmits are counted
-//! by their declared pixel width rather than by the raw total: the
-//! chrome's surfaces are a cell or eight wide, the graph's is the whole
-//! block. [`graph_transmits`] is that filter.
+//! The pixel interface end to end over the fake terminal. These tests decode
+//! complete opaque strips, check resize and late font metrics, retain image
+//! content, and require silence after both graphics and text animations settle.
+//! Unlike individual graph uploads, a strip includes animated tab typography.
 
 use std::time::Duration;
 
@@ -49,6 +40,26 @@ fn graph_transmits(capture: &Capture) -> usize {
     })
 }
 
+/// Graphics commands between two elapsed times, excluding shutdown.
+fn graphics_between(capture: &Capture, after: Duration, before: Duration, marker: &[u8]) -> usize {
+    let bytes = capture.bytes();
+    let writes = capture.writes();
+    let start = writes[0].0;
+    let mut offset = 0;
+    let mut count = 0;
+    for (at, len) in writes {
+        if (after..before).contains(&at.duration_since(start)) {
+            let n = bytes[offset..offset + len]
+                .windows(marker.len())
+                .filter(|w| *w == marker)
+                .count();
+            count += n;
+        }
+        offset += len;
+    }
+    count
+}
+
 /// Transmits of an image whose `(width, height)` in pixels satisfy
 /// `wanted`, read from the keys the first chunk of every transmit
 /// carries.
@@ -85,27 +96,6 @@ fn transmits_sized(capture: &Capture, wanted: impl Fn(u32, u32) -> bool) -> usiz
         }
     }
     found
-}
-
-/// Sixel images in the bytes written from `after` the run's first
-/// write onward.
-fn sixels_after(capture: &Capture, after: Duration) -> usize {
-    let bytes = capture.bytes();
-    let writes = capture.writes();
-    let Some((start, _)) = writes.first() else {
-        return 0;
-    };
-    let mut skip = 0;
-    for (when, len) in &writes {
-        if when.duration_since(*start) >= after {
-            break;
-        }
-        skip += len;
-    }
-    bytes[skip..]
-        .windows(SIXEL.len())
-        .filter(|w| *w == SIXEL)
-        .count()
 }
 
 fn options() -> Options {
@@ -161,22 +151,27 @@ async fn the_trace_graph_transmits_once_stays_quiet_while_idle_and_again_after_a
         .text(MS(500), "\x1b[9;5u")
         .text(MS(600), "k")
         .resize(MS(700), Size::new(100, 30))
-        .text(MS(850), "\x15\x04");
+        .text(MS(950), "\x15\x04");
     let (model, capture) = run(script, branched_trace()).await;
 
     assert_eq!(model.tab(), StageTab::Session);
     assert!(model.trace().has_branches());
-    // More frames were painted than transmits went out: the idle frames
-    // (the key, the prompt clear) cost zero graphics bytes.
+    // Typing changes the composer strip. Resizing replaces every strip;
+    // after its reporting pass and the tab pulse settle, uploads stop.
     assert!(model.frames() >= 4, "{} frames", model.frames());
+    let last = capture.writes().last().expect("exit").0;
+    let pixels = capture.pixels_before(last);
+    assert_eq!(pixels.len(), 8);
+    assert!(pixels.iter().all(|p| p.width == 1000 && p.height <= 80));
     assert_eq!(
-        graph_transmits(&capture),
-        2,
-        "one transmit for the first dirty graph, one for the resize"
+        graphics_between(&capture, MS(800), MS(940), TRANSMIT),
+        0,
+        "the resized frame settles and stays cached"
     );
-    assert!(
-        capture.count(TRANSMIT) > graph_transmits(&capture),
-        "the header's brand mark and activity sparkline transmit too"
+    assert_eq!(
+        graphics_between(&capture, MS(650), MS(700), TRANSMIT),
+        0,
+        "the settled frame is cached before the resize"
     );
     assert!(
         capture.count(PLACE) >= 2,
@@ -211,7 +206,7 @@ async fn the_trace_graph_sweeps_in_one_transmit_per_step_and_then_stops() {
         "the sweep draws the graph in over several frames ({transmits} transmits)"
     );
     assert!(
-        transmits <= Motion::SWEEP_STEPS as usize + 2,
+        transmits <= (Motion::SWEEP_STEPS as usize + 2) * SIZE.rows.div_ceil(4) as usize,
         "and stops when the sweep is over, not when the session is ({transmits} transmits over \
          {} frames)",
         model.frames()
@@ -230,11 +225,11 @@ async fn a_terminal_that_never_says_its_cell_size_still_gets_the_graph_on_the_de
 
     assert_eq!(model.tab(), StageTab::Session);
     assert_eq!(model.cell_pixels(), None, "the terminal never answered");
-    assert_eq!(
-        graph_transmits(&capture),
-        1,
-        "the graph transmits on the default cell size"
+    assert!(
+        transmits_sized(&capture, |w, h| w == 800 && h == 80) >= 6,
+        "the full frame uses the default 10×20 pixel metrics"
     );
+    assert_eq!(graphics_between(&capture, MS(650), MS(700), TRANSMIT), 0);
 }
 
 #[tokio::test]
@@ -246,14 +241,19 @@ async fn a_late_cell_reply_resizes_the_graph_and_transmits_it_again() {
         .bytes(MS(0), b"\x1b_Gi=31;OK\x1b\\\x1b[?62;4c".as_slice())
         .text(MS(500), "\x1b[9;5u")
         .bytes(MS(600), b"\x1b[6;32;16t".as_slice())
-        .text(MS(800), "\x15\x04");
+        .text(MS(950), "\x15\x04");
     let (model, capture) = run(script, branched_trace()).await;
 
     assert_eq!(model.cell_pixels(), Some((16, 32)), "the late reply landed");
+    assert!(transmits_sized(&capture, |w, h| w == 800 && h == 80) >= 6);
+    let last = capture.writes().last().expect("exit").0;
+    let pixels = capture.pixels_before(last);
+    assert_eq!(pixels.len(), 6);
+    assert!(pixels.iter().all(|p| p.width == 1280 && p.height == 128));
     assert_eq!(
-        graph_transmits(&capture),
-        2,
-        "the default-sized transmit, then the re-sized one"
+        graphics_between(&capture, MS(800), MS(940), TRANSMIT),
+        0,
+        "the new font and geometry settle without repeated uploads"
     );
 }
 
@@ -289,9 +289,20 @@ async fn the_header_chrome_is_pixels_with_kitty_and_cells_without() {
         0,
         "the brand's cell is left blank for the mark"
     );
-    assert!(capture.count(BLANK_BRAND) > 0, "the slot is still a cell");
-    // One transmit per header surface, none of them the graph's size.
-    assert_eq!(graph_transmits(&capture), 0, "no graph on this run");
+    assert_eq!(capture.count(BLANK_BRAND), 0, "typography is pixels too");
+    let quit = capture.writes().last().expect("exit").0;
+    let pixels = capture.pixels_before(quit);
+    assert_eq!(pixels.len(), 6, "opaque strips cover the complete viewport");
+    assert!(pixels.iter().all(|p| p.width == 800 && p.height == 80));
+    assert!(
+        pixels[0]
+            .rgba
+            .chunks_exact(4)
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+            > 30,
+        "header typography and marks survived the wire"
+    );
     assert!(
         capture.count(TRANSMIT) >= 2,
         "the brand mark and the activity sparkline both transmit ({})",
@@ -515,21 +526,18 @@ async fn an_idle_sixel_cockpit_re_emits_nothing() {
     let script = Script::new()
         .bytes(MS(0), b"\x1b[?62;4c".as_slice())
         .text(MS(500), "\x1b[9;5u")
-        .text(MS(600), "k")
-        .text(MS(700), "j")
-        .text(MS(850), "\x15\x04");
+        .text(MS(600), "\x1b")
+        .text(MS(700), "\x1b")
+        .text(MS(950), "\x15\x04");
     let (model, capture) = run(script, branched_trace()).await;
 
     assert!(model.frames() >= 4, "{} frames", model.frames());
     let images = capture.count(SIXEL);
     assert!(images >= 1, "the surfaces painted once");
-    // The tab switches at 500 ms vacate the surfaces the tab left — a
-    // sixel image has no identity to delete, so the cells under it are
-    // painted again and every surface goes out once more on the frame
-    // after — and the `k` at 600 ms carries that frame. From then on
-    // the cockpit is idle: `j` paints a frame, and not one image.
+    // Include the tab's 240ms typography pulse in the settling window.
+    // Esc leaves the draft unchanged; once settled the frame costs no images.
     assert_eq!(
-        sixels_after(&capture, MS(650)),
+        graphics_between(&capture, MS(800), MS(940), SIXEL),
         0,
         "{images} images in all — an idle frame costs nothing"
     );

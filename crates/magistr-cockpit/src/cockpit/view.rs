@@ -101,7 +101,14 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
         .viewport()
         .children(stage_rows(model, &pen));
     if model.has_pixels() {
-        stage_content = stage_content.padding(Space::PAD);
+        stage_content = stage_content.padding_xy(
+            Space::PAD,
+            if model.size().rows >= 30 {
+                Space::PAD
+            } else {
+                0
+            },
+        );
     }
     let stage = Node::column()
         .viewport()
@@ -182,7 +189,9 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
     if let Some(dock) = term_dock(model, &pen) {
         root = root.child(dock);
     }
-    root = root.child(dock(model, &pen));
+    if !model.has_pixels() || !model.dock().is_empty() {
+        root = root.child(dock(model, &pen));
+    }
     if let Some(popup) = completion_popup(model, &pen) {
         root = root.child(popup);
     }
@@ -488,12 +497,14 @@ fn rail_gauge(model: &Model, state: &Rail, pen: &Pen) -> Node {
     if width == 0 {
         return segment(&format!("{done}/{total}"), pen.rail.clone()).id(Widget::RailGauge.id());
     }
+    if model.has_pixels() {
+        return Node::row()
+            .id(Widget::RailGauge.id())
+            .child(Node::leaf().width(Length::Cells(width as u16)).shrink(0.0))
+            .child(segment(&format!(" {done}/{total}"), pen.rail.clone()));
+    }
     let fill = model.motion().rail_fill(model.now());
-    let bar = if model.has_pixels() {
-        " ".repeat(width)
-    } else {
-        progress_bar(fill, width, pen.icons)
-    };
+    let bar = progress_bar(fill, width, pen.icons);
     segment(&format!("{bar} {done}/{total}"), pen.rail.clone()).id(Widget::RailGauge.id())
 }
 
@@ -506,9 +517,7 @@ pub fn rail_gauge_cols(model: &Model) -> u16 {
     let (done, total) = state.progress();
     let label = format!(" {done}/{total}");
     let label = u16::try_from(label.chars().count()).unwrap_or(u16::MAX);
-    state
-        .content_cols(model.size().cols)
-        .saturating_sub(2 + label)
+    (rail_inner_cols(model) as u16).saturating_sub(label)
 }
 
 /// The eased fraction as `width` cells of the `▰▱` ramp.
@@ -1480,7 +1489,8 @@ fn stage_row(row: &crate::turn::Row, model: &Model, pen: &Pen, fade: Option<f32>
     if row.spans.is_empty() {
         return marked_prefix(row.text.as_str(), model, pen)
             .style(arriving(pen, pen.row(row.kind), fade))
-            .height(Length::Cells(1));
+            .height(Length::Cells(1))
+            .text_role(row.kind.text_role());
     }
     let mut node = Node::row().height(Length::Cells(1));
     let mut at = 0;
@@ -1503,7 +1513,7 @@ fn stage_row(row: &crate::turn::Row, model: &Model, pen: &Pen, fade: Option<f32>
             arriving(pen, pen.row(row.kind), fade),
         ));
     }
-    node
+    node.text_role(row.kind.text_role())
 }
 
 /// The glyphs a turn row may open with — the tool statuses, a gate's
@@ -1810,7 +1820,7 @@ fn cells_row(
             .child(segment(&" ".repeat(usize::from(pad)), ground.clone()))
             .child(segment(&pill, pen.chip_key.clone()));
     }
-    node.style(ground)
+    node.style(ground).text_role(crate::layout::TextRole::Data)
 }
 
 /// The terminal dock: the running card's screen raised
@@ -2315,6 +2325,9 @@ fn dock_button(text: &str, widget: Widget, style: crate::render::Style) -> Node 
 /// the cursor is always on screen. The box grows with the lines up to
 /// [`PROMPT_MAX_ROWS`], then slides to keep the cursor's line shown.
 fn prompt_box(model: &Model, pen: &Pen) -> Node {
+    if model.has_pixels() {
+        return pixel_composer(model, pen);
+    }
     let columns = model.size().cols.saturating_sub(PROMPT_MARK_COLUMNS);
     let rows = model.prompt().window_rows(columns, PROMPT_MAX_ROWS);
     let height = u16::try_from(rows.len()).unwrap_or(u16::MAX);
@@ -2350,6 +2363,109 @@ fn prompt_box(model: &Model, pen: &Pen) -> Node {
         column = column.child(line);
     }
     column
+}
+
+/// A complete editor card: message, context and action share one visible boundary.
+fn pixel_composer(model: &Model, pen: &Pen) -> Node {
+    let running = model.turn_state() == TurnState::Streaming;
+    let roomy = model.size().rows >= 30;
+    let rows = u16::try_from(model.prompt_rows()).unwrap_or(1);
+    let action_rows = if roomy { 2 } else { 1 };
+    let action = if running { "Stop" } else { "Send" };
+    let active = running || !model.prompt().text().trim().is_empty();
+    let action_style = if active {
+        pen.prompt.clone().fg(pen.prompt.bg).bg(if running {
+            pen.deny.fg
+        } else {
+            pen.prompt_mark.fg
+        })
+    } else {
+        pen.footer.clone()
+    };
+    let mut button = Node::row()
+        .style(action_style.clone())
+        .width(Length::Cells(9))
+        .align_items(crate::layout::Align::Center)
+        .justify_content(crate::layout::Justify::Center)
+        .child(Node::text(action).height(Length::Cells(1)))
+        .mark(Mark::Chip {
+            fill: action_style.bg,
+            ground: pen.prompt.bg,
+        })
+        .height(Length::Cells(action_rows))
+        .shrink(0.0);
+    if active {
+        button = button.id(Widget::PromptAction.id());
+    }
+    let hint = if running {
+        "Agent is working · stop to send a new direction"
+    } else if model.size().cols >= 80 {
+        "Enter to send   Shift+Enter for a new line   / commands   @ files"
+    } else {
+        "Enter to send · Alt+Enter for a new line"
+    };
+    let toolbar = Node::row()
+        .gap(2)
+        .align_items(crate::layout::Align::Center)
+        .height(Length::Cells(action_rows))
+        .shrink(0.0)
+        .child(
+            Node::text(hint)
+                .style(pen.footer.clone().bg(pen.prompt.bg))
+                .grow(1.0)
+                .height(Length::Cells(1)),
+        )
+        .child(button);
+    let content = if model.prompt().is_empty() {
+        Node::text(if running {
+            "Draft your next direction…"
+        } else {
+            "Ask a question, describe a change, or steer the next step…"
+        })
+        .text_role(crate::layout::TextRole::Steer)
+        .style(pen.footer.clone().bg(pen.prompt.bg))
+    } else {
+        Node::editor(model.prompt().text(), model.prompt().cursor()).style(pen.prompt.clone())
+    }
+    .height(Length::Cells(rows))
+    .min_width(Length::Cells(0))
+    .shrink(0.0);
+    let mut column = Node::column().grow(1.0).min_width(Length::Cells(0));
+    if roomy {
+        column = column.child(
+            Node::text(if running {
+                "Your next direction"
+            } else {
+                "Message Magistr"
+            })
+            .style(pen.heading.clone().bg(pen.prompt.bg))
+            .height(Length::Cells(1))
+            .shrink(0.0),
+        );
+    }
+    let content = column.child(content).child(toolbar);
+    let mut editor = Node::column()
+        .id(Widget::Prompt.id())
+        .style(pen.prompt.clone())
+        .height(Length::Cells(rows + if roomy { 5 } else { 3 }))
+        .shrink(0.0)
+        .frame(Frame::new(pen.prompt_mark.clone()).drawn(true))
+        .child(
+            Node::row()
+                .grow(1.0)
+                .child(Node::leaf().width(Length::Cells(1)).shrink(0.0))
+                .child(content)
+                .child(Node::leaf().width(Length::Cells(1)).shrink(0.0)),
+        );
+    // The gap belongs to the composer, so its model reservation and layout agree.
+    if roomy {
+        editor = Node::column()
+            .shrink(0.0)
+            .height(Length::Cells(rows + 6))
+            .child(Node::leaf().height(Length::Cells(1)).shrink(0.0))
+            .child(editor);
+    }
+    editor
 }
 
 /// The completion popup above the prompt: one row per candidate, the
@@ -2452,6 +2568,14 @@ pub const SPARK_COLS: u16 = 8;
 /// set's brand glyph. The slot is the same width either way, so the
 /// bar's layout does not move when the probe answers.
 fn brand_slot(model: &Model, pen: &Pen) -> Node {
+    if model.has_pixels() {
+        return Node::row()
+            .id(Widget::HeaderBrand.id())
+            .shrink(0.0)
+            .height(Length::Cells(1))
+            .child(Node::leaf().width(Length::Cells(3)).shrink(0.0))
+            .child(segment("magistr", pen.header.clone()));
+    }
     let mark = if model.has_pixels() {
         "  "
     } else {

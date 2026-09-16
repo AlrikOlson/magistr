@@ -3,7 +3,7 @@
   "surface": "Terminal",
   "profile": "Kitty",
   "source_commit": "working-tree",
-  "captured_on": "2026-09-15",
+  "captured_on": "2026-09-16",
   "state": "Rendered from apps/website/fixtures/harbor.json",
   "columns": 132,
   "rows": 42,
@@ -11,49 +11,49 @@
   "images": [
     {
       "file": "terminal-overview-dark.png",
-      "sha256": "9770566a3cebaee289bf9116b59c848253eeab76420fca179424c1a8f59c3fbb",
+      "sha256": "869096c54bc61b30563990a2eb107f653a54c9d28849e89805d1a72278108adb",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-overview-light.png",
-      "sha256": "54183ae79a501ccc0773d15d5584e6a446b349b83227a6f0cd455edf5e01438e",
+      "sha256": "d72ceebd0ff9942c8dcd5415a77b8cb6ffffeaa2555aef498de89180bbf6fcf3",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-roadmap-dark.png",
-      "sha256": "951d6a119ea055750653a6868277ddaa5cad95adc45c2016b4a93d5050c6a6ce",
+      "sha256": "13e9a611c7d3019155640bb3c5ccfd61581030ac705e132f2af0ec787092de4b",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-roadmap-light.png",
-      "sha256": "fea493a95b826abd6fe47012c43efcf754ddc36424170978aebac6836410d5fe",
+      "sha256": "05fca2b88e05bdd8d5ea5e2d2cb73c9ad86aba6641823ec62334bfa6c99e36fe",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-session-dark.png",
-      "sha256": "2f1aea3e47b5ab5408839b1f2926cda4b4546f4cf7c4184b382058075f2ca80e",
+      "sha256": "28c3248596fb33bdb6d0f41c1690fee59706f0c87b932410d2bb8876fbc5c153",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-session-light.png",
-      "sha256": "006c0f1659aab47dc3afa6f9a235970a084104a4057f6dce49652a4d5b2e0b03",
+      "sha256": "e9ae12e7ab7ca1db3dccaea820265f4db49806140d8c7761a6e3077178854f14",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-turn-dark.png",
-      "sha256": "20f03ec3eda89438f98606e4795483dc72448271be7a12e2859189f0417b18ff",
+      "sha256": "55227ebf71f4633b04d7a39ff4514bd06e75428696512b935130b2758fcbe6ba",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-turn-light.png",
-      "sha256": "9af689be24695b860b17ce5238712ce7fbb6c6da08120f403a045d112a5c0533",
+      "sha256": "8f42efb2a304044b3f1c0575770031dba296c271304465e5f33e4b87bf4afd5d",
       "width": 1320,
       "height": 840
     }

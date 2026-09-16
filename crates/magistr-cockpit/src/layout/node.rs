@@ -53,6 +53,7 @@ pub struct Node {
     wrap: bool,
     gap: u16,
     padding: u16,
+    padding_y: u16,
     style: Option<CellStyle>,
     frame: Option<Frame>,
     marks: Vec<Mark>,
@@ -80,6 +81,7 @@ impl Node {
             wrap: false,
             gap: 0,
             padding: 0,
+            padding_y: 0,
             style: None,
             frame: None,
             marks: Vec::new(),
@@ -112,6 +114,28 @@ impl Node {
         Self::with_kind(Kind::Text(TextMetrics::new(text)))
     }
 
+    /// A pixel editor with a real insertion caret and soft wrapping.
+    #[must_use]
+    pub fn editor(text: impl Into<String>, cursor: usize) -> Self {
+        let mut metrics = TextMetrics::new(text);
+        metrics.set_cursor(cursor);
+        Self::with_kind(Kind::Text(metrics))
+    }
+
+    /// Choose this text leaf's pixel typography; cell layout is unchanged.
+    #[must_use]
+    pub fn text_role(mut self, role: super::TextRole) -> Self {
+        if let Kind::Text(text) = &mut self.kind {
+            text.set_role(role);
+        }
+        self.children = self
+            .children
+            .into_iter()
+            .map(|child| child.text_role(role))
+            .collect();
+        self
+    }
+
     /// A leaf that is one row of cells, each with its own style, exactly
     /// as wide as there are cells.
     ///
@@ -126,6 +150,14 @@ impl Node {
             .width(Length::Cells(width))
             .height(Length::Cells(1))
             .shrink(0.0)
+    }
+
+    /// Independent horizontal and vertical padding for responsive pixel surfaces.
+    #[must_use]
+    pub const fn padding_xy(mut self, horizontal: u16, vertical: u16) -> Self {
+        self.padding = horizontal;
+        self.padding_y = vertical;
+        self
     }
 
     /// Attach the id the resolved rect and the hit registry report.
@@ -293,6 +325,7 @@ impl Node {
     #[must_use]
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
+        self.padding_y = padding;
         self
     }
 
@@ -465,7 +498,7 @@ impl Node {
         };
         let (pad_x, pad_y) = (
             length(basis.across(self.padding)),
-            length(basis.down(self.padding)),
+            length(basis.down(self.padding_y)),
         );
         let border = |unit: f32| length(if self.frame.is_some() { unit } else { 0.0 });
         Style {

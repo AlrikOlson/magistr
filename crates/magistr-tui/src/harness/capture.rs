@@ -101,6 +101,18 @@ impl Capture {
             .count()
     }
 
+    /// Decode the actual graphics on screen before a write boundary.
+    #[must_use]
+    pub fn pixels_before(&self, until: Instant) -> Vec<crate::screenshot::Placement> {
+        let end: usize = self
+            .writes()
+            .iter()
+            .take_while(|(at, _)| *at < until)
+            .map(|(_, len)| len)
+            .sum();
+        crate::screenshot::decode(&self.bytes()[..end])
+    }
+
     fn lock(&self) -> std::sync::MutexGuard<'_, Vec<u8>> {
         // A poisoned capture still holds the bytes written before the
         // panic; those are what a test wants to see.

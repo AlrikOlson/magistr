@@ -39,31 +39,21 @@ fn a_plain_terminal_gets_the_glyphs_and_no_marks() {
 }
 
 #[test]
-fn a_graphics_terminal_gets_blanks_of_the_same_width_carrying_the_marks() {
+fn a_graphics_terminal_places_icons_in_separate_slots_beside_proportional_text() {
     let pen = pen();
     let node = Marked::new(&pixels(), &pen)
         .icon(Icon::Done)
         .text(" check ")
         .icon(Icon::Pinned)
         .node();
-    assert_eq!(node.text_metrics().expect("text").text(), "  check  ");
-    assert_eq!(
-        node.marks(),
-        &[
-            Mark::Icon {
-                icon: Icon::Done,
-                col: 0,
-                cols: 1,
-                ink: pen.ink(Icon::Done),
-            },
-            Mark::Icon {
-                icon: Icon::Pinned,
-                col: 8,
-                cols: 1,
-                ink: pen.ink(Icon::Pinned),
-            },
-        ]
-    );
+    let children = node.child_nodes();
+    assert_eq!(children.len(), 3);
+    assert_eq!(children[1].text_metrics().expect("label").text(), " check ");
+    for (child, icon) in [(&children[0], Icon::Done), (&children[2], Icon::Pinned)] {
+        assert!(
+            matches!(child.marks(), [Mark::Icon { icon: actual, col: 0, cols: 1, .. }] if *actual == icon)
+        );
+    }
 }
 
 #[test]

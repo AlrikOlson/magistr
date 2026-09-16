@@ -88,12 +88,14 @@ fn widget_rect(id: magistr_cockpit::widget_id::WidgetId) -> magistr_cockpit::lay
             pointer_shapes: true,
         }),
     );
-    let root = view(&model, &FrameClock::new(0, Duration::ZERO));
-    let rect = LayoutTree::new()
-        .compute(&root, SIZE.cols, SIZE.rows)
-        .expect("layout")
-        .rect(id)
-        .expect("the widget is laid out");
+    let rect = magistr_tui::screenshot::layout(
+        &model,
+        &FrameClock::new(0, Duration::ZERO),
+        magistr_tui::screenshot::Profile::Kitty,
+    )
+    .expect("pixel layout")
+    .rect(id)
+    .expect("the widget is laid out");
     assert!(!rect.is_empty(), "{id:?} covers cells");
     rect
 }
@@ -393,7 +395,11 @@ async fn a_message_already_in_the_inbox_is_in_the_frame_the_tick_paints() {
     )
     .slow_writes(MS(70));
     let capture = terminal.capture();
-    let runtime = Runtime::new(terminal, options());
+    // The VT oracle observes the fallback; graphics latency has its own wire test.
+    let runtime = Runtime::new(
+        terminal,
+        Options::new(Env::new("xterm-kitty", false, Some("text"))).probe_timeout(MS(500)),
+    );
     let mut agent = FakeAgent::new().text(start, "thinking ");
     for (i, word) in words.iter().enumerate() {
         agent = agent.text(start + MS(65 * (i as u64 + 1)), word);
@@ -719,7 +725,7 @@ async fn a_wheel_over_the_undocked_column_moves_its_feed_and_not_the_turn() {
     // pixel arrangement's frame.
     assert_eq!(
         model.undock_rect(),
-        Some(magistr_cockpit::layout::Rect::new(131, 3, 48, 43)),
+        Some(magistr_cockpit::layout::Rect::new(131, 3, 48, 37)),
         "the driver reported where the column landed"
     );
     assert_eq!(

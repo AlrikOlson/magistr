@@ -268,11 +268,13 @@ pub enum Widget {
     RoadmapSortStatus,
     RoadmapSortPriority,
     RoadmapSortWorkstream,
+    /// The terminal composer's Send or Stop action.
+    PromptAction,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 100] = [
+    pub const ALL: [Self; 101] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -373,6 +375,7 @@ impl Widget {
         Self::RoadmapSortStatus,
         Self::RoadmapSortPriority,
         Self::RoadmapSortWorkstream,
+        Self::PromptAction,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -1269,6 +1272,7 @@ impl Widget {
             Self::TermDockGrip => "dock grip",
             Self::TermDock => "terminal dock",
             Self::SessionChunk => "chunk",
+            Self::PromptAction => "send or stop",
         }
     }
 

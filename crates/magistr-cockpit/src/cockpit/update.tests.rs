@@ -1,4 +1,40 @@
 #[test]
+fn composer_action_sends_stops_and_preserves_a_waiting_draft() {
+    let mut m = model();
+    assert!(update(&mut m, left_click(Widget::PromptAction.id())).is_empty());
+    update(&mut m, Msg::Paste("first direction".into()));
+    let commands = update(&mut m, left_click(Widget::PromptAction.id()));
+    assert!(commands.contains(&Cmd::Prompt("first direction".into())));
+    assert!(m.prompt().is_empty());
+    assert_eq!(m.turn_state(), TurnState::Streaming);
+    update(&mut m, Msg::Paste("a revised direction".into()));
+    assert_eq!(
+        update(&mut m, left_click(Widget::PromptAction.id())),
+        vec![Cmd::Cancel]
+    );
+    assert_eq!(m.prompt().text(), "a revised direction");
+    assert!(
+        !update(&mut m, key(KeyCode::Enter))
+            .iter()
+            .any(|cmd| matches!(cmd, Cmd::Prompt(_)))
+    );
+    assert_eq!(m.prompt().text(), "a revised direction");
+}
+
+#[test]
+fn composer_action_cannot_bypass_a_permission_moment() {
+    let mut m = model();
+    agent(&mut m, plan_request(1));
+    assert!(m.moment().is_some());
+    update(&mut m, Msg::Paste("keep this draft".into()));
+    assert!(
+        !update(&mut m, left_click(Widget::PromptAction.id()))
+            .iter()
+            .any(|cmd| matches!(cmd, Cmd::Prompt(_) | Cmd::Cancel))
+    );
+}
+
+#[test]
 fn session_change_selection_survives_reseed_with_shared_undo_ids() {
     let mut m = model().with_tab(StageTab::Session);
     let a = journal_entry("op", "src/a.rs");

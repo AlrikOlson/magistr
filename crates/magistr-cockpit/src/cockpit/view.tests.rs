@@ -393,6 +393,7 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
         matches!(
             w,
             Widget::Checkpoint
+                | Widget::PromptAction
                 | Widget::TraceDetail
                 | Widget::InspectorTitle
                 | Widget::InspectorStatus
@@ -3866,16 +3867,22 @@ mod pixel_chrome {
             "the ▰▱ ramp draws the fill: {cells:?}"
         );
         assert!(cells.ends_with(" 1/4"), "with its label: {cells:?}");
-        let pixels = slot(&with_pixels(m.clone()), Widget::RailGauge);
+        let pixels = with_pixels(m.clone());
+        let gauge = rail_gauge(&pixels, pixels.rail(), &Pen::for_theme(&pixels.theme()));
+        assert_eq!(gauge.child_nodes().len(), 2);
         assert!(
-            !pixels.contains(Icons::UNICODE.bar_full) && !pixels.contains(Icons::UNICODE.bar_empty),
-            "the bar's cells are blank for the gauge: {pixels:?}"
+            gauge.child_nodes()[0].text_metrics().is_none(),
+            "the gauge has a dedicated graphic slot"
         );
-        assert!(pixels.ends_with(" 1/4"), "the label stays text: {pixels:?}");
         assert_eq!(
-            cells.chars().count(),
-            pixels.chars().count(),
-            "the row is the same width either way"
+            gauge.child_nodes()[1].text_metrics().expect("label").text(),
+            " 1/4"
+        );
+        let placed = layout(&gauge, pixels.size());
+        assert_eq!(
+            placed.placed()[1].rect.width,
+            rail_gauge_cols(&pixels),
+            "the label starts after the complete bar, independent of font advances"
         );
         // And the driver's slice of that row covers the bar, not the
         // label: the four cells of " 1/4" are left to the text.

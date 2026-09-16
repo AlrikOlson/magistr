@@ -18,6 +18,11 @@
 pub struct Faces;
 
 impl Faces {
+    /// Source Sans 3, Adobe's proportional UI face (SIL OFL 1.1).
+    /// See `fonts/SourceSans3-LICENSE.md` for its licence and upstream attribution.
+    pub const SANS: &'static [u8] = include_bytes!("../fonts/SourceSans3-Regular.ttf");
+    /// Source Sans 3 Semibold, used for interface emphasis.
+    pub const SANS_BOLD: &'static [u8] = include_bytes!("../fonts/SourceSans3-Semibold.ttf");
     /// Almagest Mono Regular.
     pub const REGULAR: &'static [u8] = include_bytes!("../fonts/AlmagestMono-Regular.ttf");
     /// Almagest Mono Bold, the same licence.

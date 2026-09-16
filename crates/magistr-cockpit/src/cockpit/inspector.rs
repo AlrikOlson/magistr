@@ -548,7 +548,9 @@ impl Card {
                         TextMetrics::new(text)
                             .wrap(width.max(1))
                             .into_iter()
-                            .map(|wrapped| line(wrapped, &pen.code))
+                            .map(|wrapped| {
+                                line(wrapped, &pen.code).text_role(crate::layout::TextRole::Data)
+                            })
                             .collect()
                     }
                 })
@@ -596,7 +598,10 @@ impl Card {
                     TextMetrics::new(text)
                         .wrap(width.max(1))
                         .into_iter()
-                        .map(|wrapped| line(wrapped, pen.row(diff_kind(text)))),
+                        .map(|wrapped| {
+                            line(wrapped, pen.row(diff_kind(text)))
+                                .text_role(crate::layout::TextRole::Data)
+                        }),
                 );
             }
         }

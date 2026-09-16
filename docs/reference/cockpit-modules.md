@@ -539,6 +539,9 @@ test. The section headings separate the crates and their module families.
 | `magistr-tui/src/render/change.rs` | One cell that differs between two frames | `magistr-tui/tests/end_to_end.rs` |
 | `magistr-tui/src/render/diff.rs` | Damage tracking between the frame on screen and the frame to show | `magistr-tui/src/render/diff.tests.rs` |
 | `magistr-tui/src/render/encode.rs` | Turn a frame's changes into the fewest bytes the terminal needs | `magistr-tui/src/render/encode.tests.rs` |
+| `magistr-tui/src/render/pixel_type.rs` | Embedded proportional and monospace pixel metrics and glyph cache | `magistr-tui/src/render/pixel_type.tests.rs` |
+| `magistr-tui/src/render/pixel_view.rs` | Pixel layout, clipped typography and grapheme-safe composer editing | `magistr-tui/src/render/pixel_view.tests.rs` |
+| `magistr-tui/src/render/pixel_frame.rs` | Compose graphics and typography into cached opaque strips | `magistr-tui/src/render/pixel_frame.tests.rs` |
 | `magistr-tui/src/render/screen.rs` | The double-buffered screen: draw into the back buffer, present the diff | `magistr-tui/src/render/screen.tests.rs` |
 
 ### `runtime` — the loop

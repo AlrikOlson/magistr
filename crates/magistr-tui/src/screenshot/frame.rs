@@ -41,6 +41,19 @@ pub fn frame(model: &Model, clock: &FrameClock, profile: Profile) -> Result<Pixm
     ))
 }
 
+/// Resolve the same physical layout used by a graphics terminal, including hit rectangles.
+pub fn layout(
+    model: &Model,
+    clock: &FrameClock,
+    profile: Profile,
+) -> Result<magistr_cockpit::layout::Resolved, LayoutError> {
+    let mut model = model.clone();
+    if let Some(protocol) = profile.protocol() {
+        update(&mut model, Msg::Mode(Decision::Graphics(protocol).mode()));
+    }
+    Surfaces::default().layout(&view(&model, clock), &model, &mut LayoutTree::new())
+}
+
 /// The frame's cell buffer, with no graphics anywhere near it.
 fn cells(model: &Model, clock: &FrameClock) -> Result<Buffer, LayoutError> {
     let size = model.size();
@@ -91,14 +104,15 @@ pub(crate) fn wire(
     // tech-trees hand their placed rect back to the model here, and the
     // tab's layout depends on that report, so the frame that computed
     // it is by definition not the settled one.
+    let mut surfaces = Surfaces::default();
     let root = view(&model, clock);
-    let resolved = LayoutTree::new().compute(&root, size.cols, size.rows)?;
-    Surfaces::default().show(&root, &mut model, &resolved, &mut screen(size, protocol));
+    let resolved = surfaces.layout(&root, &model, &mut LayoutTree::new())?;
+    surfaces.show(&root, &mut model, &resolved, &mut screen(size, protocol));
 
     // The settled pass, laid out from the reported rects. A third would
     // report the same and change nothing.
     let root = view(&model, clock);
-    let resolved = LayoutTree::new().compute(&root, size.cols, size.rows)?;
+    let resolved = surfaces.layout(&root, &model, &mut LayoutTree::new())?;
     let mut buffer = Buffer::new(size.cols, size.rows);
     paint(&root, &resolved, &mut buffer);
 
@@ -107,7 +121,8 @@ pub(crate) fn wire(
     // rasterize: they are what leaves the encoder's cursor where the
     // placements' own moves are measured from.
     *screen.buffer() = buffer.clone();
-    Surfaces::default().show(&root, &mut model, &resolved, &mut screen);
+    surfaces.show(&root, &mut model, &resolved, &mut screen);
+    buffer = screen.buffer().clone();
     let mut wire = Vec::new();
     screen.present(&mut wire);
     Ok((buffer, wire))

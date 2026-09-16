@@ -40,6 +40,7 @@ pub struct Screen {
     shown: Option<Headline>,
     occlusion: Option<Rect>,
     masked: HashMap<WidgetId, (Rect, PixelSurface)>,
+    pixels: super::pixel_frame::PixelFrame,
 }
 
 impl Screen {
@@ -57,6 +58,7 @@ impl Screen {
             shown: None,
             occlusion: None,
             masked: HashMap::new(),
+            pixels: super::pixel_frame::PixelFrame::default(),
         }
     }
 
@@ -154,7 +156,11 @@ impl Screen {
             if let (Some(graphics), Some((_, masked))) =
                 (&mut self.graphics, self.masked.get_mut(&id))
             {
-                graphics.show(id, masked);
+                if self.pixels.is_active() {
+                    self.pixels.blend(masked);
+                } else {
+                    graphics.show(id, masked);
+                }
             }
         } else {
             if self.masked.remove(&id).is_some() {
@@ -179,9 +185,29 @@ impl Screen {
 
     /// The overlay's own border remains visible over its cell background.
     pub(crate) fn surface_unmasked(&mut self, id: WidgetId, surface: &mut PixelSurface) {
-        if let Some(graphics) = &mut self.graphics {
+        if self.pixels.is_active() {
+            self.pixels.blend(surface);
+        } else if let Some(graphics) = &mut self.graphics {
             graphics.show(id, surface);
         }
+    }
+
+    /// Start a graphics frame. All following surfaces are composed into it.
+    pub(crate) fn begin_pixels(&mut self, ground: tiny_skia::Pixmap) {
+        self.pixels.begin(ground);
+    }
+
+    /// Add pixel text and submit changed strips; no UI glyphs reach the cell encoder.
+    pub(crate) fn finish_pixels(
+        &mut self,
+        ink: &tiny_skia::Pixmap,
+        cell: magistr_cockpit::pixel::CellSize,
+    ) {
+        if let Some(graphics) = &mut self.graphics {
+            self.pixels
+                .finish(ink, self.back.width(), self.back.height(), cell, graphics);
+        }
+        self.back.fill(&magistr_cockpit::render::Cell::blank());
     }
 
     /// Delete every image the terminal stores for this screen (before

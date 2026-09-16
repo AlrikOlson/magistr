@@ -122,9 +122,32 @@ pub(crate) struct Surfaces {
     images: Vec<(WidgetId, PixelSurface, ImageKey)>,
     /// The view's marks, each a surface keyed by what it was painted from.
     marks: Marks,
+    /// Loaded only on graphics terminals; measures the same glyphs we paint.
+    text: Option<crate::render::pixel_view::PixelView>,
 }
 
 impl Surfaces {
+    /// Resolve graphics text in physical pixels, preserving cell coordinates for terminal input.
+    pub(crate) fn layout(
+        &mut self,
+        root: &Node,
+        model: &Model,
+        tree: &mut magistr_cockpit::layout::LayoutTree,
+    ) -> Result<Resolved, magistr_cockpit::layout::LayoutError> {
+        let size = model.size();
+        if model.has_pixels() {
+            self.text.get_or_insert_with(Default::default).layout(
+                tree,
+                root,
+                size.cols,
+                size.rows,
+                model.cell_size(),
+            )
+        } else {
+            tree.compute(root, size.cols, size.rows)
+        }
+    }
+
     /// Every surface of this frame, in the order the runtime has always
     /// shown them. Says whether a graph rect *report* changed — the two
     /// tech-trees feed their placed rect back to the model, and the
@@ -137,23 +160,44 @@ impl Surfaces {
         resolved: &Resolved,
         screen: &mut Screen,
     ) -> bool {
+        let ink = if screen.has_graphics() && model.has_pixels() {
+            let size = model.size();
+            let (ground, ink) = self.text.get_or_insert_with(Default::default).layers(
+                root,
+                resolved,
+                size.cols,
+                size.rows,
+                model.cell_size(),
+                &model.theme().palette(),
+            );
+            screen.begin_pixels(ground);
+            Some(ink)
+        } else {
+            None
+        };
         // The palette is the last framed overlay in the view. Mask every
         // underlying pixel surface to the same opaque rectangle as its cells.
-        let cover = model.palette().and_then(|_| {
-            magistr_cockpit::layout::marks(root, resolved)
-                .into_iter()
-                .rev()
-                .find_map(|(rect, mark)| {
-                    matches!(mark, magistr_cockpit::layout::Mark::Panel { .. }).then_some(rect)
-                })
-        });
+        let cover = (model.palette().is_some() || model.moment().is_some())
+            .then(|| {
+                magistr_cockpit::layout::marks(root, resolved)
+                    .into_iter()
+                    .rev()
+                    .find_map(|(rect, mark)| {
+                        matches!(mark, magistr_cockpit::layout::Mark::Panel { .. }).then_some(rect)
+                    })
+            })
+            .flatten();
         screen.occlude(cover);
         self.show_marks(root, model, resolved, screen);
         self.show_trace_graph(model, resolved, screen);
         self.show_chrome(model, resolved, screen);
         self.show_stage_images(model, resolved, screen);
-        self.show_roadmap_graph(model, resolved, screen)
-            | self.show_rail_graph(model, resolved, screen)
+        let changed = self.show_roadmap_graph(model, resolved, screen)
+            | self.show_rail_graph(model, resolved, screen);
+        if let Some(ink) = ink {
+            screen.finish_pixels(&ink, model.cell_size());
+        }
+        changed
     }
 
     /// The chrome's three small pixel surfaces — the header's brand mark

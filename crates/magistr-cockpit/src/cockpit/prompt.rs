@@ -229,6 +229,17 @@ impl Prompt {
         self.text.split('\n').count()
     }
 
+    /// Approximate soft-wrapped rows for reserving the composer's bounded height.
+    /// Pixel painting measures the actual glyphs and scrolls to the caret.
+    #[must_use]
+    pub fn wrapped_rows(&self, columns: u16) -> usize {
+        let columns = usize::from(columns.max(1));
+        self.text
+            .split('\n')
+            .map(|line| (usize::from(width(line)) + 1).div_ceil(columns).max(1))
+            .sum()
+    }
+
     /// The byte offset where the cursor's line starts.
     #[must_use]
     pub fn line_start(&self) -> usize {
