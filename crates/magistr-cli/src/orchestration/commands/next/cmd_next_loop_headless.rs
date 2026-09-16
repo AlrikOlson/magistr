@@ -31,7 +31,7 @@ pub async fn cmd_next_loop_headless(
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
     wf.cleanup()?;
 
-    let mut iter_loop = IterationLoop::open_or_recover(
+    let mut iter_loop = IterationLoop::start_or_recover(
         &dir,
         &wf.spec_path,
         max_iterations,

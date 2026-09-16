@@ -157,9 +157,11 @@ fn status_label(model: &Model, s: &S) -> Node {
     let text = status(model);
     let pen = Pen::for_theme(&model.theme());
     let ink = match text {
-        "Connection error" | "Agent unavailable" | "Disconnected" => pen.gate_fail.fg,
+        "Connection error" | "Agent unavailable" | "Disconnected" | "Work failed" => {
+            pen.gate_fail.fg
+        }
         "Needs your answer" | "Limit reached" | "Request declined" => s.accent,
-        "Stopped" | "Waiting for updates" => s.muted,
+        "Stopped" | "Paused" | "Waiting for updates" => s.muted,
         _ => s.good,
     };
     s.label(text, ink)
@@ -168,6 +170,12 @@ fn status_label(model: &Model, s: &S) -> Node {
 fn status(model: &Model) -> &'static str {
     if !model.dock().is_empty() {
         "Needs your answer"
+    } else if model.turn_notice == Some("Work failed")
+        && model.loop_status().is_none_or(|s| s.ended().is_some())
+    {
+        "Work failed"
+    } else if model.loop_status().is_some_and(|s| s.ended().is_some()) {
+        "Stopped"
     } else if model.feed() == Some(magistr_engine::FeedStatus::Disconnected)
         && !model
             .loop_status()
@@ -178,13 +186,25 @@ fn status(model: &Model) -> &'static str {
         "Waiting for updates"
     } else if model.agent_missing().is_some() {
         "Agent unavailable"
+    } else if let Some(loop_status) = model.loop_status() {
+        if loop_status.is_paused() {
+            "Paused"
+        } else {
+            match loop_status.stage() {
+                super::LoopStage::Connecting => "Starting agent",
+                super::LoopStage::Agent => "Working",
+                super::LoopStage::Gates => "Checking work",
+                super::LoopStage::Judge => "Reviewing work",
+            }
+        }
+    } else if model.turn_notice.is_some_and(|notice| notice != "Ready") {
+        model.turn_notice.unwrap_or("Ready")
     } else if model.rail().ship().is_shipped() {
         "Completed"
     } else {
         match model.turn_state() {
             TurnState::Streaming => "Working",
-            TurnState::AwaitingInput => model.turn_notice.unwrap_or("Ready"),
-            TurnState::Idle => "Ready",
+            TurnState::AwaitingInput | TurnState::Idle => "Ready",
         }
     }
 }

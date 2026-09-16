@@ -2039,7 +2039,7 @@ fn loop_events_fold_into_the_status_and_leave_lines_on_the_stage() {
             (RowKind::Note, "starting iteration 2 — 1/3"),
             (RowKind::Error, "error: no commit"),
             (RowKind::Note, "paused: gates failed"),
-            (RowKind::Note, "loop ended: aborted"),
+            (RowKind::Note, "Work stopped: aborted"),
         ]
     );
     assert_eq!(m.inputs(), 1, "loop events are not inputs");

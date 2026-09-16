@@ -202,8 +202,10 @@ async fn run_cockpit(runtime: Runtime<FakeTerminal>, driver: LoopDriver) -> (Mod
     let task = driver.spawn();
     let quit = async move {
         let report = task.await;
+        // The run is finished. Ctrl-C also exits when a rejected message has
+        // restored a nonempty draft; Ctrl-D would edit that draft instead.
         inbox.send(Msg::Key(
-            KeyEvent::new(KeyCode::Char('d')).with(Modifiers::CTRL),
+            KeyEvent::new(KeyCode::Char('c')).with(Modifiers::CTRL),
         ));
         report
     };
@@ -624,7 +626,7 @@ async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_b
     assert_eq!(report.end(), &LoopEnd::MaxIterations(1));
     assert_eq!(
         report.to_string().lines().next(),
-        Some("loop: 1 iteration · max iterations (1) reached")
+        Some("loop: 1 iteration · Reached the limit of 1 attempt.")
     );
     assert_eq!(prompts.len(), 1, "one turn, on a fresh agent");
     assert!(
@@ -642,7 +644,7 @@ async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_b
     assert_eq!(leds, ["✓ check", "✓ test", "✗ lint"], "gates ran as jobs");
     assert_eq!(status.gates_passed(), Some(false));
     assert!(!status.is_paused(), "auto-pause was off");
-    assert_eq!(status.ended(), Some("max iterations (1) reached"));
+    assert_eq!(status.ended(), Some("Reached the limit of 1 attempt."));
     assert_eq!(
         model.jobs_done(),
         4,
@@ -662,7 +664,7 @@ async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_b
     );
     assert_eq!(
         notes.last().map(String::as_str),
-        Some("loop ended: max iterations (1) reached")
+        Some("Work stopped: Reached the limit of 1 attempt.")
     );
     assert!(
         model
@@ -932,7 +934,7 @@ async fn esc_while_paused_aborts_the_loop() {
     assert_eq!(report.iterations(), 1);
     assert_eq!(report.end(), &LoopEnd::Aborted);
     let status = model.loop_status().expect("a loop");
-    assert_eq!(status.ended(), Some("aborted"));
+    assert_eq!(status.ended(), Some("Cancelled."));
     assert!(!status.is_paused());
     assert!(
         notes(&model).contains(&"aborting the loop".to_owned()),
@@ -1592,7 +1594,7 @@ async fn an_impossible_verdict_blocks_the_chunk_on_a_human_and_ends_the_loop() {
     );
     assert_eq!(
         report.to_string().lines().next(),
-        Some("loop: 1 iteration · the judge needs a human: the two criteria contradict each other")
+        Some("loop: 1 iteration · Your input is needed: the two criteria contradict each other")
     );
     let chunk = engines.roadmap_chunk("work").expect("the chunk");
     let blocker = chunk.blocked_by.expect("blocked on a human");
@@ -1613,7 +1615,7 @@ async fn an_impossible_verdict_blocks_the_chunk_on_a_human_and_ends_the_loop() {
     let stage = stage_text(&model);
     assert!(
         stage.ends_with(
-            "loop ended: the judge needs a human: the two criteria contradict each other"
+            "Work stopped: Your input is needed: the two criteria contradict each other"
         ),
         "{stage}"
     );
@@ -2560,6 +2562,194 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
         assert_eq!(record.attempt.number().get(), 1);
     }
     assert_eq!(state.operations.unsettled().count(), 0);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn failures_before_the_first_iteration_are_reported_without_connecting_an_agent() {
+    for fail_persistence in [false, true] {
+        let dir = project("true", "true", "true");
+        let spec = dir.path().join("ROADMAP.md");
+        let wf = WorkflowConfig::load(dir.path()).unwrap();
+        let iteration = IterationLoop::open(dir.path(), &spec, 1, None).unwrap();
+        if fail_persistence {
+            std::fs::create_dir(dir.path().join(".magistr/loop-state.json")).unwrap();
+        } else {
+            std::fs::remove_file(&spec).unwrap();
+        }
+        let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("must not be asked"));
+        let mut runtime = Runtime::new(
+            FakeTerminal::new(SIZE, Script::new().startup_replies(MS(0))),
+            Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500)),
+        );
+        let commands = runtime.commands().unwrap();
+        let driver = LoopDriver::new(
+            iteration,
+            wf,
+            Backend::Acp,
+            runtime.inbox(),
+            commands,
+            connector,
+        );
+        let (model, report) =
+            tokio::time::timeout(Duration::from_secs(5), run_cockpit(runtime, driver))
+                .await
+                .expect("startup failure is visible without an iteration");
+        let LoopEnd::Failed(reason) = report.end() else {
+            panic!("startup must fail: {:?}", report.end());
+        };
+        assert!(reason.contains(if fail_persistence {
+            "could not checkpoint attempt"
+        } else {
+            "pre-iteration check failed"
+        }));
+        assert_eq!(report.iterations(), 0);
+        assert!(seen.lock().unwrap().is_empty());
+        assert!(
+            model.loop_status().is_none(),
+            "no fake first iteration was started"
+        );
+        let errors: Vec<_> = model
+            .turn()
+            .lines()
+            .iter()
+            .filter(|line| matches!(line.kind(), LineKind::Error))
+            .collect();
+        assert_eq!(errors.len(), 1, "one terminal failure is emitted");
+        assert_eq!(errors[0].text(), format!("error: {reason}"));
+        assert!(notes(&model).contains(&format!("Work stopped: {reason}")));
+        assert_eq!(
+            model.turn_state(),
+            magistr_cockpit::cockpit::TurnState::AwaitingInput
+        );
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn rejected_opening_attachment_ends_the_loop_with_a_visible_failure() {
+    let dir = project("true", "true", "true");
+    std::fs::write(
+        dir.path().join("ROADMAP.md"),
+        "- [ ] Read @missing-loop-startup.txt before continuing\n",
+    )
+    .unwrap();
+    let (model, report, prompts) = tokio::time::timeout(
+        Duration::from_secs(5),
+        run(
+            dir.path(),
+            1,
+            Script::new().startup_replies(MS(0)),
+            FakeAcpAgent::new().reply("must not be asked"),
+            false,
+        ),
+    )
+    .await
+    .expect("a rejected opening message ends without waiting for a provider response");
+    let LoopEnd::Failed(reason) = report.end() else {
+        panic!(
+            "message rejection must fail the loop visibly: {:?}",
+            report.end()
+        );
+    };
+    assert!(reason.contains("The message could not be sent"));
+    assert!(reason.contains("missing-loop-startup.txt"));
+    assert_eq!(report.iterations(), 0);
+    assert!(
+        prompts.is_empty(),
+        "no invalid message reached the provider"
+    );
+    assert_eq!(
+        model.jobs_done(),
+        0,
+        "checks must not run after a rejected message"
+    );
+    assert!(stage_text(&model).contains("missing-loop-startup.txt"));
+    assert!(
+        model
+            .loop_status()
+            .unwrap()
+            .ended()
+            .unwrap()
+            .contains("could not be sent")
+    );
+    assert!(model.prompt().text().contains("@missing-loop-startup.txt"));
+    let saved = checkpoint(dir.path());
+    assert_eq!(
+        saved.run.terminal_reason,
+        Some(magistr_engine::workflow::StopReason::Failed)
+    );
+    assert!(
+        saved
+            .operations
+            .records()
+            .iter()
+            .any(|record| record.kind == OperationKind::ProviderDispatch
+                && record.outcome == OperationOutcome::Failed)
+    );
+    assert_eq!(saved.operations.unsettled().count(), 0);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_new_loop_request_after_cancellation_sends_the_opening_prompt() {
+    let dir = project("true", "true", "true");
+    let spec = dir.path().join("ROADMAP.md");
+    let mut previous = IterationLoop::open(dir.path(), &spec, 3, None).unwrap();
+    previous.pre_iteration_check().unwrap();
+    let dispatch = previous
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+        .unwrap()
+        .unwrap();
+    previous
+        .settle_operation(&dispatch, OperationOutcome::Completed)
+        .unwrap();
+    previous.stop(magistr_engine::workflow::StopReason::Cancelled);
+    previous.persist().unwrap();
+
+    let requested = IterationLoop::start_or_recover(dir.path(), &spec, 1, None).unwrap();
+    requested.persist().unwrap();
+    let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("The next item is underway."));
+    let terminal = FakeTerminal::new(SIZE, Script::new().startup_replies(MS(0)));
+    let mut runtime = Runtime::new(
+        terminal,
+        Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500)),
+    );
+    let commands = runtime.commands().unwrap();
+    let driver = LoopDriver::new(
+        requested,
+        WorkflowConfig::load(dir.path()).unwrap(),
+        Backend::Acp,
+        runtime.inbox(),
+        commands,
+        connector,
+    )
+    .auto_pause(false);
+    let (model, report) = run_cockpit(runtime, driver).await;
+    assert_eq!(report.iterations(), 1);
+    assert_eq!(report.end(), &LoopEnd::MaxIterations(1));
+    let agents = seen.lock().unwrap();
+    assert_eq!(
+        agents.len(),
+        1,
+        "the new request connected exactly one agent"
+    );
+    let prompts = agents[0].prompts();
+    assert_eq!(
+        prompts.len(),
+        1,
+        "the opening message reached the real ACP path"
+    );
+    assert!(prompts[0].contains("make it work"));
+    assert!(
+        model
+            .turn()
+            .rows()
+            .iter()
+            .any(|row| row.text == "The next item is underway.")
+    );
+    assert_eq!(
+        model.loop_status().unwrap().iteration_text(),
+        "iteration 1/1"
+    );
+    assert_ne!(checkpoint(dir.path()).run_id, previous.state().run_id);
 }
 
 /// A checkpoint whose provider dispatch is still owned by a live runtime:

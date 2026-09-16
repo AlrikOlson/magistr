@@ -171,6 +171,117 @@ async fn graphics_startup_preserves_an_explicit_roadmap_entrypoint() {
 }
 
 #[tokio::test]
+async fn an_early_loop_stop_survives_graphics_startup_with_its_reason_and_draft() {
+    use magistr_cockpit::engine::EngineEvent;
+    use magistr_cockpit::harness::fixtures;
+    use magistr_cockpit::layout::Node;
+    use magistr_tui::screenshot::{Profile, layout};
+
+    fn nodes<'a>(node: &'a Node, out: &mut Vec<&'a Node>) {
+        out.push(node);
+        for child in node.child_nodes() {
+            nodes(child, out);
+        }
+    }
+
+    let size = Size::new(144, 50);
+    for failed in [false, true] {
+        let reason = if failed {
+            "The agent could not start. Check the connection and try again."
+        } else {
+            "No ready work. Open Roadmap to review what is waiting."
+        };
+        let terminal =
+            FakeTerminal::new(size, Script::new().startup_replies(MS(80)).close(MS(260)));
+        let capture = terminal.capture();
+        let runtime = Runtime::new(terminal, options());
+        let mut model = Model::new(size);
+        update(
+            &mut model,
+            Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
+                objective: Some(fixtures::objective_from(serde_json::json!({
+                    "description": "Save delivery receipts", "status": "completed"
+                }))),
+                ..Default::default()
+            })),
+        );
+        update(&mut model, Msg::Paste("Keep this unsent message".into()));
+        assert!(model.rail().ship().is_shipped());
+        // The real driver can stop before it creates an iteration. Queue that
+        // news before the delayed terminal probe; no Started event is sent.
+        if failed {
+            runtime
+                .inbox()
+                .send(Msg::Loop(LoopEvent::Failed(reason.into())));
+        }
+        runtime
+            .inbox()
+            .send(Msg::Loop(LoopEvent::Ended(reason.into())));
+        let model = runtime
+            .run(model)
+            .await
+            .expect("early stop is not a runtime failure");
+        assert!(model.has_pixels());
+        assert!(model.loop_status().is_none());
+        assert_eq!(model.prompt().text(), "Keep this unsent message");
+
+        let clock = FrameClock::new(0, Duration::ZERO);
+        let root = view(&model, &clock);
+        let resolved = layout(&model, &clock, Profile::Kitty).expect("actual graphics layout");
+        let mut leaves = Vec::new();
+        nodes(&root, &mut leaves);
+        let visible: Vec<_> = leaves
+            .into_iter()
+            .zip(resolved.placed())
+            .filter_map(|(node, placed)| {
+                node.text_metrics()
+                    .filter(|_| placed.px.width > 0.0 && placed.px.height > 0.0)
+                    .map(|text| (text.text(), placed))
+            })
+            .collect();
+        let expected = format!("Work stopped: {reason}");
+        let (_, reason_place) = visible
+            .iter()
+            .find(|(text, _)| *text == expected)
+            .expect("the stop explanation is visible in the conversation");
+        assert!(
+            reason_place.px.height >= f32::from(model.cell_size().height),
+            "the explanation has a complete line"
+        );
+        let status = if failed { "Work failed" } else { "Stopped" };
+        assert!(visible.iter().any(|(text, _)| *text == status));
+        assert!(!visible.iter().any(|(text, _)| *text == "Completed"));
+
+        // Decode what the runtime actually wrote, before restoring the terminal,
+        // and inspect the explanation's exact physical box for rendered glyphs.
+        let exit = capture.writes().last().expect("terminal restore").0;
+        let cell = model.cell_size();
+        let rect = reason_place.px;
+        let mut colors = std::collections::HashSet::new();
+        for image in capture.pixels_before(exit) {
+            let left = u32::from(image.col) * u32::from(cell.width);
+            let top = u32::from(image.row) * u32::from(cell.height);
+            for y in rect.y.ceil() as u32..rect.bottom().floor() as u32 {
+                if y < top || y >= top + image.height {
+                    continue;
+                }
+                for x in rect.x.ceil() as u32..rect.right().floor() as u32 {
+                    if x < left || x >= left + image.width {
+                        continue;
+                    }
+                    let at = (((y - top) * image.width + x - left) * 4) as usize;
+                    colors.insert(image.rgba[at..at + 4].to_vec());
+                }
+            }
+        }
+        assert!(
+            colors.len() > 8,
+            "the terminal received the explanation's ink"
+        );
+    }
+}
+
+#[tokio::test]
 async fn physical_roadmap_click_and_zoom_reach_the_live_graph_after_resize() {
     use magistr_cockpit::cockpit::{FlightRoadmapGraph, Selected, StageTab};
     use magistr_cockpit::harness::Scenes;

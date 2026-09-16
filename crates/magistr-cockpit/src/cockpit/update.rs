@@ -501,7 +501,19 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
             return Vec::new();
         }
         LoopEvent::Failed(text) => {
+            model.turn_notice = Some("Work failed");
             model.turn.push_error(&format!("error: {text}"));
+            return Vec::new();
+        }
+        LoopEvent::Ended(why) => {
+            if let Some(status) = &mut model.loop_status {
+                status.end(why.as_str());
+            }
+            model.turn_state = TurnState::AwaitingInput;
+            if model.turn_notice != Some("Work failed") {
+                model.turn_notice = Some("Stopped");
+            }
+            model.turn.push_note(&format!("Work stopped: {why}"));
             return Vec::new();
         }
         other => other,
@@ -516,10 +528,6 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
         LoopEvent::Paused(why) => {
             status.set_paused(true);
             model.turn.push_note(&format!("paused: {why}"));
-        }
-        LoopEvent::Ended(why) => {
-            status.end(why.as_str());
-            model.turn.push_note(&format!("loop ended: {why}"));
         }
         LoopEvent::Verdict {
             iteration,
@@ -540,6 +548,7 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
         LoopEvent::Started { .. }
         | LoopEvent::Boundary { .. }
         | LoopEvent::Note(_)
+        | LoopEvent::Ended(_)
         | LoopEvent::Failed(_) => {}
     }
     Vec::new()

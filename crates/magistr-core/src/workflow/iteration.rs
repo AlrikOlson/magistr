@@ -216,6 +216,57 @@ impl IterationLoop {
         }
     }
 
+    /// Start an explicitly requested loop, recovering only unfinished work.
+    ///
+    /// A fully settled terminal run belongs to the previous request: archive
+    /// its checkpoint and return a fresh run with the requested limit. Invalid
+    /// checkpoints and unknown operation outcomes never authorize a new run.
+    /// The caller still persists the returned run before launching its agent.
+    pub fn start_or_recover(
+        project_dir: impl Into<PathBuf>,
+        spec_path: impl Into<PathBuf>,
+        max_iterations: u32,
+        native: Option<NativeEngines>,
+    ) -> Result<Self> {
+        let recovered = Self::open_or_recover(project_dir, spec_path, max_iterations, native)?;
+        if recovered.state.run.terminal_reason.is_none()
+            || recovered.state.run.terminal_reason == Some(StopReason::Paused)
+        {
+            return Ok(recovered);
+        }
+        if recovered.state.operations.unsettled().next().is_some() {
+            return Err(MagistrError::Workflow(
+                "The previous run has unfinished work whose outcome is not yet known. \
+                 Its saved progress has been kept; another run cannot start yet."
+                    .into(),
+            ));
+        }
+        let fresh = Self::open(
+            recovered.project_dir.clone(),
+            recovered.spec_path.clone(),
+            max_iterations,
+            recovered.native.clone(),
+        )?;
+        // Encode the opaque identity rather than treating it as a path.
+        let key: String = recovered
+            .state
+            .run_id
+            .local()
+            .bytes()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        let archive = recovered
+            .project_dir
+            .join(".magistr")
+            .join("loop-history")
+            .join(format!("{key}.json"));
+        let json = serde_json::to_string_pretty(&recovered.state)
+            .map_err(|error| MagistrError::parse("JSON", "saved loop", error))?;
+        durable_write(&archive, json.as_bytes())
+            .map_err(|error| MagistrError::io(&archive, error))?;
+        Ok(fresh)
+    }
+
     /// Recover from a previously persisted state (crash recovery).
     ///
     /// Reads `.magistr/loop-state.json` and reconstructs the loop. Every

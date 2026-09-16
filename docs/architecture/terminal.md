@@ -72,6 +72,14 @@ The terminal session controls output while it is active. Other parts of the
 process must not write directly to the screen. Shutdown restores the terminal;
 integration tests exercise session startup, cancellation, and cleanup.
 
+An explicit `next-loop` request archives a fully settled previous run before
+starting a new one. Unfinished runs retain their limits and recovery state;
+unknown operation outcomes cannot authorize another agent. Crash recovery
+continues to preserve terminal outcomes. Loop status reaches the interface even
+when work stops before the first agent starts, so the conversation shows the
+reason. The graphics header shows startup, work, checks, review, pause, and stop
+status independently of an older completed objective.
+
 Gate resolution and gate execution are separate. The resolver reads project
 configuration, deduplicates equivalent command/directory pairs, and assigns
 their working directories. The runner executes those resolved commands and

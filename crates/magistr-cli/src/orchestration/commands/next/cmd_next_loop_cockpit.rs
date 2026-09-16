@@ -11,9 +11,9 @@ use crate::error::ResultExt;
 use crate::workflow::WorkflowConfig;
 use crate::workflow::iteration::IterationLoop;
 
-/// Open (or recover) the iteration loop for `dir` exactly as the legacy
-/// entry point did — the native engines opened before raw mode, the
-/// state persisted from the start — and run it on the cockpit.
+/// Start the requested loop for `dir`, recovering unfinished work and
+/// archiving a settled previous run. Admit the native engines and persist
+/// the loop before entering raw mode.
 pub async fn cmd_next_loop_cockpit(
     dir: &Path,
     max_iterations: u32,
@@ -30,7 +30,7 @@ pub async fn cmd_next_loop_cockpit(
         .with_native(native.as_ref().map(NativeEngines::reader));
     wf.cleanup()?;
     let iter_loop =
-        IterationLoop::open_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;
+        IterationLoop::start_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;
     iter_loop.persist().suggest()?;
     super::run_cockpit_loop(&dir, wf, iter_loop, backend, true, profile).await
 }
