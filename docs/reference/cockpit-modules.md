@@ -567,6 +567,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-tui/src/screenshot/mod.rs` | The screenshot gate: a cockpit frame as the pixels a terminal would show, so visual regressions are judged on what a person sees — colours, weight, chrome — not on the attr-blind text dumps the insta snapshots are | `magistr-tui/tests/goldens.rs` |
 | `magistr-tui/src/screenshot/boxdraw.rs` | Box-drawing and block glyphs drawn from the cell, not from a font | `magistr-tui/src/screenshot/boxdraw.tests.rs` |
 | `magistr-tui/src/screenshot/frame.rs` | A cockpit model as the pixels its frame would show | `magistr-tui/src/screenshot/frame.tests.rs` |
+| `magistr-tui/src/screenshot/preview.rs` | Custom shell studies through the runtime's pixel layout, surfaces and wire encoder | `magistr-tui/src/screenshot/preview.tests.rs` |
 | `magistr-tui/src/screenshot/glyph.rs` | One rasterized glyph, placed inside its cell | `magistr-tui/tests/goldens.rs` |
 | `magistr-tui/src/screenshot/kitty.rs` | What a kitty terminal would be holding after a frame: the graphics APC commands read back out of the bytes the cockpit just wrote | `magistr-tui/src/screenshot/kitty.tests.rs` |
 | `magistr-tui/src/screenshot/placement.rs` | One image on screen, as the terminal would hold it | `magistr-tui/tests/goldens.rs` |

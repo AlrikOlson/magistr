@@ -4,6 +4,16 @@ Magistr is a Rust workspace. See [development](docs/development.md) for setup,
 [architecture](docs/architecture/overview.md) for crate boundaries, and
 [conventions](.claude/rules/conventions.md) for Rust style.
 
+## User-facing language
+
+Standing rule: everything user-facing must read as though a real user is using
+the finished product. Use plain, familiar language. Never put design language,
+design terminology, implementation jargon, or commentary about the creation
+process in screens, labels, help text, messages, examples, or other user-facing
+material. Keep internal names and identifiers out of interface copy; explain
+what the user can do and what happened. Apply this during exploration as well
+as delivery.
+
 ## Verification
 
 Match verification to the changed behavior, affected dependencies, and acceptance
