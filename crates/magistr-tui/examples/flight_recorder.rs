@@ -7,7 +7,7 @@ use magistr_cockpit::cockpit::{
 };
 use magistr_cockpit::harness::fixtures;
 use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
-use magistr_cockpit::layout::{Align, Justify, Length, Node, TextRole};
+use magistr_cockpit::layout::{Align, Inset, Justify, Length, Node, TextRole};
 use magistr_cockpit::render::{Attrs, Color, Style};
 use magistr_cockpit::theme::{Theme, ThemeMode};
 use magistr_engine::NativeSnapshot;
@@ -92,6 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ("message-panel", area_id(4)),
                 ("wait-explanation", area_id(5)),
                 ("limits-explanation", area_id(6)),
+                ("conversation-checks", area_id(7)),
             ] {
                 let rect = resolved
                     .placed()
@@ -186,8 +187,9 @@ fn view(model: &Model, _: &FrameClock) -> Node {
     let right_width = if model.size().cols >= 140 {
         440.0
     } else {
-        408.0
+        400.0
     };
+    let left_width = f32::from(model.size().cols) * 10.0 - right_width - 60.0;
     let header = on_ground(
         Node::row()
             .height(px(28.0))
@@ -206,8 +208,17 @@ fn view(model: &Model, _: &FrameClock) -> Node {
         .width(px(right_width))
         .shrink(0.0)
         .child(roadmap())
-        .child(vspace(12.0))
+        .child(vspace(16.0))
         .child(record(model, number).grow(1.0));
+    let left = Node::column()
+        .min_height(px(0.0))
+        .child(
+            session(model.size().rows < 45)
+                .grow(1.0)
+                .min_height(px(0.0)),
+        )
+        .child(vspace(16.0))
+        .child(recorder(model, number, left_width));
     let content = Node::column()
         .style(style(INK).bg(ROOT))
         .child(header)
@@ -216,12 +227,10 @@ fn view(model: &Model, _: &FrameClock) -> Node {
             Node::row()
                 .grow(1.0)
                 .min_height(px(0.0))
-                .child(session(model.size().rows < 45).grow(1.0).min_width(px(0.0)))
-                .child(hspace(12.0))
+                .child(left.grow(1.0).min_width(px(0.0)))
+                .child(hspace(20.0))
                 .child(right),
         )
-        .child(vspace(12.0))
-        .child(recorder(model, number))
         .child(vspace(12.0))
         .child(composer());
     inset(content, 20.0, 12.0).style(style(INK).bg(ROOT))
@@ -234,37 +243,34 @@ fn session(compact: bool) -> Node {
         .child(prose("Make the retry budget survive worker restarts. Keep tenant budgets isolated and show me the recovery checks."))
         .child(vspace(24.0))
         .child(label("Magistr  ·  14:18", ACCENT)).child(vspace(8.0))
-        .child(prose("The budget now lives beside the lease. A worker resumes from the stored next-attempt timestamp; a restart cannot create another allowance."))
-        .child(vspace(12.0))
-        .child(prose("Tenant isolation stays intact. I rejected the shared-pool variant after the latency check and merged the separate-counter approach."))
+        .child(prose("The budget now lives beside the lease and resumes from the saved retry time after a restart. Each customer keeps a separate allowance; the shared pool was rejected after the latency check."))
         .child(vspace(12.0))
         .child(Node::row().child(chip("Decision 10 · saved", ACCENT, background))
             .child(hspace(8.0)).child(chip("Decision 9 updated decision 8", MUTED, background)))
         .child(vspace(24.0))
-        .child(on_ground(Node::column().padding_xy(2, 1).style(style(INK).bg(RAISED))
+        .child(on_ground(inset(Node::column()
             .child(Node::row().child(heading("Save the retry schedule")).child(flex()).child(label("+34  −11", GOOD)))
             .child(vspace(6.0)).child(label("src/delivery/retry.rs", MUTED))
-            .child(vspace(10.0)).child(prose("The receipt, next due time and tenant counter commit in one transaction.")), RAISED))
+            .child(vspace(8.0)).child(prose("The receipt, next due time and tenant counter commit in one transaction.")), 20.0, 14.0), RAISED).height(px(100.0)).shrink(0.0))
         .child(vspace(20.0))
         .child(label("Magistr  ·  14:20", ACCENT)).child(vspace(8.0))
         .child(prose("The focused retry checks pass. I am checking the restart interleavings before recording the final receipt."))
         .child(vspace(12.0))
-        .child(Node::row().child(chip("3 checks passed", GOOD, background))
-            .child(hspace(8.0)).child(chip("Restart checks · next", MUTED, background)))
-        .child(vspace(20.0));
+        .child(Node::row().child(chip("3 checks passed", GOOD, background).id(area_id(7)))
+            .child(hspace(8.0)).child(chip("Restart checks · next", MUTED, background)));
     if compact {
         conversation = Node::column().viewport().grow(1.0)
             .child(label("You · Make retries durable and keep tenant budgets isolated.", MUTED))
-            .child(vspace(16.0))
+            .child(vspace(8.0))
             .child(label("Magistr · 14:18", ACCENT)).child(vspace(6.0))
             .child(prose("The budget, receipt and next due time now commit together. A restart resumes the existing allowance; each tenant keeps its own counter."))
-            .child(vspace(12.0))
+            .child(vspace(8.0))
             .child(Node::row().child(chip("Decision 10 · saved", ACCENT, background)).child(hspace(8.0)).child(label("src/delivery/retry.rs  +34 −11", GOOD)))
-            .child(vspace(20.0))
+            .child(vspace(16.0))
             .child(label("Magistr · 14:20", ACCENT)).child(vspace(6.0))
             .child(prose("The focused checks pass. I am checking the restart interleavings before recording the final receipt."))
-            .child(vspace(12.0))
-            .child(Node::row().child(chip("3 checks passed", GOOD, background)).child(hspace(8.0)).child(label("Restart checks · next", MUTED)));
+            .child(vspace(8.0))
+            .child(Node::row().child(chip("3 checks passed", GOOD, background).id(area_id(7))).child(hspace(8.0)).child(label("Restart checks · next", MUTED)));
     }
 
     let cap = section_heading("Conversation", label("Working", GOOD));
@@ -273,15 +279,18 @@ fn session(compact: bool) -> Node {
             Node::column()
                 .min_height(px(0.0))
                 .child(heading("Bound retries across worker restarts"))
-                .child(vspace(4.0))
-                .child(label(
-                    "Checking restart recovery  ·  12 decisions recorded",
-                    MUTED,
-                ))
-                .child(vspace(16.0))
+                .child(if compact {
+                    Node::leaf()
+                } else {
+                    Node::column().child(vspace(4.0)).child(label(
+                        "Checking restart recovery  ·  12 decisions recorded",
+                        MUTED,
+                    ))
+                })
+                .child(vspace(8.0))
                 .child(conversation),
             20.0,
-            14.0,
+            12.0,
         )
         .grow(1.0),
     );
@@ -352,17 +361,15 @@ fn record(model: &Model, number: u32) -> Node {
         .child(prose(&step.thought))
         .child(vspace(8.0))
         .child(prose(format!("Outcome: {}", step.outcome)));
-    if model.size().rows >= 45 {
-        body = body
-            .child(vspace(18.0))
-            .child(heading("Why"))
-            .child(vspace(4.0))
-            .child(prose(&step.rationale))
-            .child(vspace(16.0))
-            .child(heading("Next"))
-            .child(vspace(4.0))
-            .child(prose(&step.next_action));
-    }
+    body = body
+        .child(vspace(18.0))
+        .child(heading("Why"))
+        .child(vspace(4.0))
+        .child(prose(&step.rationale))
+        .child(vspace(16.0))
+        .child(heading("Next"))
+        .child(vspace(4.0))
+        .child(prose(&step.next_action));
     let body = body.child(flex()).child(vspace(8.0)).child(
         Node::row()
             .child(
@@ -386,61 +393,68 @@ fn record(model: &Model, number: u32) -> Node {
     .min_height(px(0.0))
 }
 
-fn recorder(model: &Model, number: u32) -> Node {
-    let mut numbers = Node::row()
-        .justify_content(Justify::SpaceBetween)
-        .height(px(28.0))
-        .shrink(0.0);
-    for (index, step) in model.trace().steps().iter().enumerate() {
-        let selected = step.number == number;
-        let fill = if selected { SELECTED } else { PANEL };
-        let item = on_ground(
-            Node::row()
+fn recorder(model: &Model, number: u32, width: f32) -> Node {
+    let contents = Node::column().child(recorder_heading(number)).child(
+        inset(
+            Node::column()
+                .child(vspace(21.0))
+                .child(numbered_graph(model, number, width - 40.0))
+                .child(vspace(12.0))
+                .child(branch_notes(model, number))
+                .child(vspace(15.0)),
+            19.0,
+            0.0,
+        )
+        .grow(1.0),
+    );
+    outlined(contents, PANEL, LINE)
+        .id(area_id(3))
+        .height(px(280.0))
+        .shrink(0.0)
+}
+
+fn numbered_graph(model: &Model, selected: u32, width: f32) -> Node {
+    let lanes = model.trace().lanes();
+    let lane_count = f32::from(lanes.iter().map(|(_, lane)| *lane).max().unwrap_or(0)) + 1.0;
+    let gap = (width - 72.0) / lanes.len().saturating_sub(1).max(1) as f32;
+    let mut graph = Node::column().height(px(100.0)).shrink(0.0).child(
+        Node::leaf()
+            .id(Widget::TraceGraph.id())
+            .height(px(80.0))
+            .style(style(INK)),
+    );
+    for (index, (number, lane)) in lanes.iter().enumerate() {
+        // Match BranchGraph's 80px surface: 36px sides, 8px above/below.
+        // Overlay text is painted after the graph by the native pixel runtime.
+        let x = 36.0 + index as f32 * gap;
+        let y = 8.0 + (f32::from(*lane) + 0.5) * 64.0 / lane_count;
+        let color = if *number == selected {
+            INK
+        } else {
+            match lane {
+                1 => WAITS,
+                2 => LIMITS,
+                _ => MUTED,
+            }
+        };
+        let text = label(format!("{number:02}"), color);
+        let text = if *number == selected {
+            text.style(style(color).attrs(Attrs::BOLD))
+        } else {
+            text
+        };
+        graph = graph.child(
+            Node::column()
                 .align_items(Align::Center)
-                .justify_content(Justify::Center)
-                .child(label(
-                    format!("{:02}", step.number),
-                    if selected { INK } else { MUTED },
-                )),
-            fill,
-        );
-        numbers = numbers.child(
-            outlined(item, fill, if selected { ACCENT } else { LINE })
+                .child(vspace(20.0))
+                .child(text)
                 .width(px(32.0))
+                .height(px(46.0))
+                .overlay(Inset::none().left(px(x - 16.0)).top(px(y - 10.0)))
                 .id(Widget::trace_row(index)),
         );
     }
-    // BranchGraph's 60px height gives it 27px side padding.
-    // Each 32px button is centered exactly below its own graph point.
-    let numbered = Node::row()
-        .child(hspace(11.0))
-        .child(numbers.grow(1.0))
-        .child(hspace(11.0));
-    outlined(
-        Node::column().child(recorder_heading(number)).child(
-            inset(
-                Node::column()
-                    .child(vspace(13.0))
-                    .child(
-                        Node::leaf()
-                            .id(Widget::TraceGraph.id())
-                            .height(px(60.0))
-                            .shrink(0.0)
-                            .style(style(INK).bg(PANEL)),
-                    )
-                    .child(numbered)
-                    .child(branch_notes(model)),
-                19.0,
-                4.0,
-            )
-            .grow(1.0),
-        ),
-        PANEL,
-        LINE,
-    )
-    .id(area_id(3))
-    .height(px(188.0))
-    .shrink(0.0)
+    graph
 }
 
 fn recorder_heading(number: u32) -> Node {
@@ -449,11 +463,8 @@ fn recorder_heading(number: u32) -> Node {
             Node::row()
                 .align_items(Align::Center)
                 .child(heading("Flight recorder"))
-                .child(hspace(24.0))
-                .child(label(
-                    "Side paths explore a question; they rejoin where the answer is used.",
-                    MUTED,
-                ))
+                .child(hspace(16.0))
+                .child(label("12 decisions · 2 questions explored", MUTED))
                 .child(flex())
                 .child(
                     chip(
@@ -476,42 +487,47 @@ fn recorder_heading(number: u32) -> Node {
     .shrink(0.0)
 }
 
-fn branch_notes(model: &Model) -> Node {
-    // Use the graph's pixel spacing, so each explanation spans its own
-    // departure and return rather than sitting under an unrelated decision.
-    let graph_width = f32::from(model.size().cols) * 10.0 - 80.0;
-    let gap = (graph_width - 54.0) / (model.trace().steps().len() - 1) as f32;
+fn branch_notes(model: &Model, selected: u32) -> Node {
     Node::row()
-        .height(px(42.0))
+        .height(px(96.0))
         .shrink(0.0)
-        .child(hspace(27.0 + 2.0 * gap))
         .child(
             branch_note(
                 model,
+                selected,
                 4,
                 "Wait when the server asks?",
-                "yes, within deadline",
+                "Honor waits within the deadline.",
                 WAITS,
             )
-            .width(px(3.0 * gap))
+            .grow(1.0)
+            .basis(px(0.0))
             .id(area_id(5)),
         )
-        .child(hspace(gap))
+        .child(hspace(12.0))
         .child(
             branch_note(
                 model,
+                selected,
                 8,
                 "Share customer limits?",
-                "no, kept separate",
+                "Shared limits rejected; separate limits kept.",
                 LIMITS,
             )
-            .width(px(3.0 * gap))
+            .grow(1.0)
+            .basis(px(0.0))
             .id(area_id(6)),
         )
-        .child(flex())
 }
 
-fn branch_note(model: &Model, first: u32, question: &str, answer: &str, ink: Color) -> Node {
+fn branch_note(
+    model: &Model,
+    selected: u32,
+    first: u32,
+    question: &str,
+    answer: &str,
+    ink: Color,
+) -> Node {
     let trace = model.trace();
     let Some(step) = trace.step(first) else {
         return Node::leaf();
@@ -530,14 +546,27 @@ fn branch_note(model: &Model, first: u32, question: &str, answer: &str, ink: Col
     let last = trace.steps()[last].number;
     let returned = trace.steps()[returned].number;
     let from = step.branch_from.unwrap_or(first);
-    Node::column()
-        .child(vspace(1.0))
-        .child(vspace(1.0).style(style(ink).bg(ink)))
-        .child(label(format!("{first:02}–{last:02} · {question}"), ink))
+    let active = (from..=returned).contains(&selected);
+    let content = Node::column()
+        .child(
+            Node::row()
+                .child(label(question, ink))
+                .child(flex())
+                .child(hspace(8.0))
+                .child(label(format!("{first:02}–{last:02}"), MUTED)),
+        )
+        .child(vspace(6.0))
+        .child(heading(answer))
+        .child(vspace(6.0))
         .child(label(
-            format!("From {from:02} · used in {returned:02}: {answer}"),
+            format!("Explored after {from:02} · answer used in {returned:02}"),
             MUTED,
-        ))
+        ));
+    outlined(
+        on_ground(inset(content, 14.0, 11.0), RAISED),
+        RAISED,
+        if active { ink } else { RAISED },
+    )
 }
 
 fn composer() -> Node {
