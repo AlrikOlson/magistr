@@ -18,6 +18,7 @@ const jsonLd = [
 const alt = {
   overview: "The Roadmap tab: the objective and task checklist at left, a dependency graph in the centre, and the shared inspector at right.",
   roadmap: "The Roadmap tab with a work item selected: its dependency chain stays lit, and its status, actions and details appear in the inspector at right.",
+  turn: "The Turn tab: the current conversation and tool calls, an expanded terminal with passing retry tests, and the selected edit diff in the inspector.",
   session: "The Session view: reasoning steps and merged branches in the centre, the selected step in the inspector at right, and reasoning, actions, checks and file changes in timestamp order below the graph.",
 };
 
@@ -66,7 +67,24 @@ const docs = [
       </figure>
     </section>
 
-    <section class="section-shell section-block story story-flip" aria-labelledby="trace-title">
+    <section id="turn" class="section-shell section-block story story-flip" aria-labelledby="turn-title">
+      <div class="story-copy">
+        <p class="eyebrow">The current turn</p>
+        <h2 id="turn-title">Follow the agent's work and inspect each tool call.</h2>
+        <ul class="facts">
+          <li><strong>The conversation in context.</strong> Read the prompt, response and tool calls while the objective and plan stay in view.</li>
+          <li><strong>Command output where it happens.</strong> Expand a run to see its terminal output alongside the conversation.</li>
+          <li><strong>Inspect a change.</strong> Select an edit to read its diff in the inspector, open the file or undo that edit.</li>
+        </ul>
+      </div>
+      <figure class="capture">
+        <a class="capture-light" href={screenshot("terminal-turn-light.png")}><img src={screenshot("terminal-turn-light.png")} alt={alt.turn} loading="lazy" width="1320" height="840" /></a>
+        <a class="capture-dark" href={screenshot("terminal-turn-dark.png")}><img src={screenshot("terminal-turn-dark.png")} alt={alt.turn} loading="lazy" width="1320" height="840" /></a>
+        <figcaption>The Turn view keeps the conversation and command output together, with the selected edit's diff in the inspector.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-shell section-block story" aria-labelledby="trace-title">
       <div class="story-copy">
         <p class="eyebrow">Reasoning and recorded work</p>
         <h2 id="trace-title">Every decision, and the checks behind it, stay with the project.</h2>

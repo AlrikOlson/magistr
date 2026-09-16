@@ -44,6 +44,18 @@
       "sha256": "006c0f1659aab47dc3afa6f9a235970a084104a4057f6dce49652a4d5b2e0b03",
       "width": 1320,
       "height": 840
+    },
+    {
+      "file": "terminal-turn-dark.png",
+      "sha256": "20f03ec3eda89438f98606e4795483dc72448271be7a12e2859189f0417b18ff",
+      "width": 1320,
+      "height": 840
+    },
+    {
+      "file": "terminal-turn-light.png",
+      "sha256": "9af689be24695b860b17ce5238712ce7fbb6c6da08120f403a045d112a5c0533",
+      "width": 1320,
+      "height": 840
     }
   ]
 }

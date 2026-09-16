@@ -44,7 +44,7 @@ assert(indexHtml.includes("0.1.0"), "the current release version is named");
 assert(!indexHtml.includes("cargo install magistr"), "no registry installation command");
 assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
-assert(new Set(homeImages).size === 6 && homeImages.length === 6, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
+assert(new Set(homeImages).size === 8 && homeImages.length === 8, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 
 console.log("\nNavigation and accessibility:");
 assert(indexHtml.includes('aria-label="Primary"'), "primary navigation labelled");
@@ -69,9 +69,14 @@ const manifest = JSON.parse(readFileSync(resolve(distDir, "screenshots/captures.
 assert(manifest.renderer === "magistr-tui::screenshot::frame" && manifest.surface === "Terminal", "manifest names the terminal renderer");
 assert(manifest.state.includes("fixtures/harbor.json"), "manifest names the fixture it was rendered from");
 assert(manifest.annotations === false, "screenshots carry no annotations");
-assert(manifest.images.length === 6, "overview, roadmap and session screenshots in both themes");
+assert(manifest.images.length === 8, "overview, roadmap, turn and session screenshots in both themes");
+for (const view of ["overview", "roadmap", "turn", "session"]) {
+  for (const theme of ["dark", "light"]) {
+    assert(manifest.images.some(({ file }) => file === `terminal-${view}-${theme}.png`), `${view} has a ${theme} screenshot`);
+  }
+}
 for (const capture of manifest.images) {
-  assert(/^terminal-(overview|roadmap|session)-(dark|light)\.png$/.test(capture.file), `${capture.file} carries a public name`);
+  assert(/^terminal-(overview|roadmap|turn|session)-(dark|light)\.png$/.test(capture.file), `${capture.file} carries a public name`);
   const url = `/screenshots/${capture.file}?v=${capture.sha256.slice(0, 12)}`;
   assert(indexHtml.includes(`src="${url}"`) && indexHtml.includes(`href="${url}"`), capture.file + " image and full-size link use the current content hash");
   const png = readFileSync(resolve(distDir, "screenshots", capture.file));
@@ -80,8 +85,8 @@ for (const capture of manifest.images) {
   assert(createHash("sha256").update(png).digest("hex") === capture.sha256, capture.file + " matches the built bytes");
 }
 assert(!readdirSync(resolve(distDir, "screenshots")).some((name) => name.startsWith("tui2-")), "no stale screenshot files ship");
-assert((indexHtml.match(/width="1320" height="840"/g) || []).length === 6, "every screenshot declares its native dimensions");
-assert((indexHtml.match(/<figcaption>/g) || []).length === 3, "three captioned figures");
+assert((indexHtml.match(/width="1320" height="840"/g) || []).length === 8, "every screenshot declares its native dimensions");
+assert((indexHtml.match(/<figcaption>/g) || []).length === 4, "four captioned figures");
 assert(!indexHtml.includes("/diagrams/") && !indexHtml.includes("/icons/"), "no decorative diagrams or icons");
 
 console.log("\nPublic language:");
