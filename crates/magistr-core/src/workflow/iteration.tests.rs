@@ -361,6 +361,163 @@ fn recovered_run_keeps_mode_budget_limits_and_terminal_reason() {
 }
 
 #[test]
+fn explicit_request_after_cancelled_settled_work_starts_fresh_and_archives_it() {
+    let (dir, spec_path) = setup_project("- [ ] item 1\n");
+    let mut previous = IterationLoop::with_max(dir.path(), &spec_path, 3).unwrap();
+    for _ in 0..2 {
+        assert_eq!(
+            previous.pre_iteration_check().unwrap(),
+            PreCheckResult::Continue
+        );
+        let dispatch = previous
+            .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+            .unwrap()
+            .unwrap();
+        previous
+            .settle_operation(&dispatch, OperationOutcome::Completed)
+            .unwrap();
+        previous.advance();
+    }
+    // Match quitting after reserving the next attempt, with all effects settled.
+    assert_eq!(
+        previous.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    previous.stop(StopReason::Cancelled);
+    previous.persist().unwrap();
+    let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
+
+    let mut next = IterationLoop::start_or_recover(dir.path(), &spec_path, 8, None).unwrap();
+    assert_ne!(next.state().run_id, previous.state().run_id);
+    assert_eq!(next.iteration(), 0);
+    assert_eq!(next.max_iterations(), 8);
+    assert_eq!(next.run_state().terminal_reason, None);
+    assert!(next.operations().records().is_empty());
+    // Constructor failure or a crash before the caller persists cannot lose the old state.
+    assert_eq!(
+        std::fs::read(loop_state_path(dir.path())).unwrap(),
+        checkpoint
+    );
+    let archives: Vec<_> = std::fs::read_dir(dir.path().join(".magistr/loop-history"))
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect();
+    assert_eq!(archives.len(), 1);
+    let archived: IterationState =
+        serde_json::from_slice(&std::fs::read(&archives[0]).unwrap()).unwrap();
+    assert_eq!(&archived, previous.state());
+    assert_eq!(
+        next.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    next.persist().unwrap();
+    let saved: IterationState =
+        serde_json::from_slice(&std::fs::read(loop_state_path(dir.path())).unwrap()).unwrap();
+    assert_eq!(saved.run_id, next.state().run_id);
+    assert_eq!(
+        serde_json::from_slice::<IterationState>(&std::fs::read(&archives[0]).unwrap()).unwrap(),
+        archived
+    );
+}
+
+#[test]
+fn explicit_request_can_follow_each_settled_terminal_outcome() {
+    for reason in [
+        StopReason::IterationLimit,
+        StopReason::OneChunkComplete,
+        StopReason::SpecComplete,
+        StopReason::NoReadyChunk,
+        StopReason::NoProgress,
+        StopReason::BudgetExceeded,
+        StopReason::Aborted,
+        StopReason::Failed,
+    ] {
+        let (dir, spec_path) = setup_project("- [ ] newly available work\n");
+        let mut previous = IterationLoop::with_max(dir.path(), &spec_path, 3).unwrap();
+        previous.stop(reason);
+        previous.persist().unwrap();
+        let mut next = IterationLoop::start_or_recover(dir.path(), &spec_path, 5, None).unwrap();
+        assert_eq!(next.run_state().terminal_reason, None, "{reason}");
+        assert_eq!(next.max_iterations(), 5);
+        assert_eq!(
+            next.pre_iteration_check().unwrap(),
+            PreCheckResult::Continue
+        );
+    }
+}
+
+#[test]
+fn explicit_request_preserves_active_and_paused_run_limits() {
+    for reason in [None, Some(StopReason::Paused)] {
+        let (dir, spec_path) = setup_project("- [ ] unfinished work\n");
+        let mut previous = IterationLoop::with_max(dir.path(), &spec_path, 3).unwrap();
+        previous.pre_iteration_check().unwrap();
+        previous.set_budget_limit(Some(2.0)).unwrap();
+        previous.observe_budget(1.0);
+        if let Some(reason) = reason {
+            previous.stop(reason);
+        }
+        previous.persist().unwrap();
+        let recovered = IterationLoop::start_or_recover(dir.path(), &spec_path, 99, None).unwrap();
+        assert_eq!(recovered.state(), previous.state());
+        assert!(!dir.path().join(".magistr/loop-history").exists());
+    }
+}
+
+#[test]
+fn explicit_request_refuses_unknown_work_even_when_cancelled() {
+    for kind in [
+        OperationKind::ProviderDispatch,
+        OperationKind::NativeMutation,
+    ] {
+        let (dir, spec_path) = setup_project("- [ ] unfinished work\n");
+        let mut previous = IterationLoop::with_max(dir.path(), &spec_path, 3).unwrap();
+        previous.pre_iteration_check().unwrap();
+        let operation = previous
+            .begin_operation(kind, "work", "unknown")
+            .unwrap()
+            .unwrap();
+        previous.start_operation(&operation, None).unwrap();
+        previous.stop(StopReason::Cancelled);
+        previous.persist().unwrap();
+        let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
+        let error = match IterationLoop::start_or_recover(dir.path(), &spec_path, 99, None) {
+            Ok(_) => panic!("unknown work cannot authorize another run"),
+            Err(error) => error,
+        };
+        assert!(error.to_string().contains("outcome is not yet known"));
+        assert_eq!(
+            std::fs::read(loop_state_path(dir.path())).unwrap(),
+            checkpoint
+        );
+        assert!(!dir.path().join(".magistr/loop-history").exists());
+    }
+}
+
+#[test]
+fn explicit_request_keeps_the_checkpoint_if_archiving_fails_or_it_is_invalid() {
+    let (dir, spec_path) = setup_project("- [ ] work\n");
+    let mut previous = IterationLoop::with_max(dir.path(), &spec_path, 3).unwrap();
+    previous.stop(StopReason::Cancelled);
+    previous.persist().unwrap();
+    let path = loop_state_path(dir.path());
+    let checkpoint = std::fs::read(&path).unwrap();
+    std::fs::write(
+        dir.path().join(".magistr/loop-history"),
+        "cannot become a directory",
+    )
+    .unwrap();
+    assert!(IterationLoop::start_or_recover(dir.path(), &spec_path, 5, None).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), checkpoint);
+    std::fs::write(&path, "{invalid checkpoint").unwrap();
+    assert!(IterationLoop::start_or_recover(dir.path(), &spec_path, 5, None).is_err());
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "{invalid checkpoint"
+    );
+}
+
+#[test]
 fn budget_exhaustion_survives_recovery_and_prevents_next_attempt() {
     let (dir, spec_path) = setup_project("- [ ] item 1\n");
     let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7).unwrap();
@@ -720,6 +877,29 @@ pub(in crate::workflow) fn add_native_chunk(
             None,
         )
         .expect("add chunk");
+}
+
+#[test]
+fn explicit_new_request_keeps_the_admitted_native_roadmap() {
+    let (dir, spec_path) = setup_project("- [x] old file is complete\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "ready", 100, &[]);
+    let mut previous =
+        IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    previous.stop(StopReason::Cancelled);
+    previous.persist().unwrap();
+    let mut next =
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 5, Some(engines.clone())).unwrap();
+    assert!(next.is_native());
+    assert_eq!(
+        next.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    assert_eq!(next.native().unwrap().roadmap_next().unwrap().id, "ready");
+    assert_eq!(
+        engines.roadmap_chunk("ready").unwrap().status,
+        magistr_engine::native::ChunkStatus::Pending
+    );
 }
 
 #[test]

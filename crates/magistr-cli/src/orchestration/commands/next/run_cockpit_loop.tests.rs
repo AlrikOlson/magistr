@@ -73,6 +73,18 @@ fn the_judge_holds_no_source_write_authority() {
 }
 
 #[test]
+fn explicit_next_loop_entrypoints_start_a_new_request_after_settled_work() {
+    for source in [
+        include_str!("cmd_next_loop.rs"),
+        include_str!("cmd_next_loop_cockpit.rs"),
+        include_str!("cmd_next_loop_headless.rs"),
+    ] {
+        assert!(source.contains("IterationLoop::start_or_recover("));
+        assert!(!source.contains("IterationLoop::open_or_recover("));
+    }
+}
+
+#[test]
 fn both_dispatches_build_the_cockpit_only_with_no_environment_hatch() {
     let module = include_str!("mod.rs");
     assert!(

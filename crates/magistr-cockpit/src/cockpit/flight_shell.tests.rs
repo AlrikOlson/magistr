@@ -61,6 +61,93 @@ fn click(model: &mut Model, id: crate::widget_id::WidgetId) -> Vec<Cmd> {
     )
 }
 #[test]
+fn an_early_loop_stop_is_visible_without_inventing_a_started_iteration() {
+    use crate::cockpit::LoopEvent;
+    for pixels in [false, true] {
+        let mut model = model(Size::new(144, 50));
+        model.pixels = pixels;
+        update(
+            &mut model,
+            Msg::Loop(LoopEvent::Ended(
+                "No work is ready. Open Roadmap to review what is blocked.".into(),
+            )),
+        );
+        assert!(model.loop_status().is_none());
+        assert!(!model.is_working());
+        assert_eq!(status(&model), "Stopped");
+        assert_eq!(model.prompt().text(), "Keep this draft");
+        assert!(
+            model
+                .turn()
+                .rows()
+                .iter()
+                .any(|row| row.text.contains("Work stopped: No work is ready."))
+        );
+        if pixels {
+            assert!(model.turn().conversation().height() > 0);
+            let resolved = layout(&model);
+            assert!(
+                resolved
+                    .placed()
+                    .iter()
+                    .any(|placed| placed.id == Some(Widget::Stage.id()) && placed.px.height > 0.0)
+            );
+        }
+    }
+}
+
+#[test]
+fn loop_startup_checks_pause_and_completion_have_distinct_visible_status() {
+    use crate::cockpit::{LoopEvent, LoopStage};
+    let mut model = model(Size::new(144, 50));
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Ended("Earlier work stopped.".into())),
+    );
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Started {
+            iteration: 1,
+            max: 10,
+        }),
+    );
+    assert_eq!(model.turn_notice, None);
+    for (stage, label) in [
+        (LoopStage::Connecting, "Starting agent"),
+        (LoopStage::Agent, "Working"),
+        (LoopStage::Gates, "Checking work"),
+        (LoopStage::Judge, "Reviewing work"),
+    ] {
+        update(&mut model, Msg::Loop(LoopEvent::Stage(stage)));
+        assert_eq!(status(&model), label);
+    }
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Failed("A check failed.".into())),
+    );
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Paused("A check failed.".into())),
+    );
+    assert_eq!(status(&model), "Paused");
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Failed("The agent could not start.".into())),
+    );
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Ended("The agent could not start.".into())),
+    );
+    update(
+        &mut model,
+        Msg::Engine(crate::engine::EngineEvent::Feed(FeedStatus::Disconnected)),
+    );
+    assert_eq!(status(&model), "Work failed");
+    assert_eq!(model.prompt().text(), "Keep this draft");
+    assert!(!model.is_working());
+}
+
+#[test]
 fn records_and_roadmap_open_details_without_moving_the_conversation_or_draft() {
     let mut model = model(Size::new(144, 50));
     update(

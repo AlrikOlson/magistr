@@ -82,6 +82,9 @@ impl FlightConversation {
             let normal = pen.row(source.kind).fg;
             content.restyle_all(&|style| {
                 let mut next = style.clone().bg(background);
+                if source.kind == RowKind::Note {
+                    next.attrs = next.attrs.without(crate::render::Attrs::ITALIC);
+                }
                 if next.fg == normal
                     && matches!(
                         source.kind,

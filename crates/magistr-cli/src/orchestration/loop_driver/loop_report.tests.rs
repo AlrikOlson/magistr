@@ -8,7 +8,7 @@ fn the_headline_is_unchanged_without_metrics() {
     let report = LoopReport::new(2, LoopEnd::MaxIterations(2));
     assert_eq!(
         report.to_string(),
-        "loop: 2 iterations · max iterations (2) reached"
+        "loop: 2 iterations · Reached the limit of 2 attempts."
     );
     assert!(report.metrics().is_empty());
 }
@@ -33,7 +33,7 @@ fn each_iterations_metrics_print_under_the_headline() {
         ]);
     assert_eq!(
         report.to_string(),
-        "loop: 2 iterations · max iterations (2) reached · goal: native\n  \
+        "loop: 2 iterations · Reached the limit of 2 attempts. · goal: native\n  \
          iteration 1: turn 10m00s · gates 1m30s · judge 7.0s · 31.0k tokens in context\n  \
          iteration 2: turn 30.0s · gates 1m00s · usage not reported"
     );

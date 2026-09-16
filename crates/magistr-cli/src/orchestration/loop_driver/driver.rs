@@ -492,7 +492,6 @@ impl LoopDriver {
                 Err(why) => {
                     self.iter_loop.post_iteration_check();
                     self.iter_loop.mark_failed();
-                    self.post(LoopEvent::Failed(why.clone()));
                     break LoopEnd::Failed(why);
                 }
             }
@@ -510,6 +509,9 @@ impl LoopDriver {
             && let Err(error) = self.iter_loop.persist()
         {
             self.note(format!("could not checkpoint terminal state: {error}"));
+        }
+        if let LoopEnd::Failed(why) = &end {
+            self.post(LoopEvent::Failed(why.clone()));
         }
         if end != LoopEnd::CockpitClosed {
             self.post(LoopEvent::Ended(end.to_string()));
@@ -1550,6 +1552,9 @@ impl LoopDriver {
                 }
                 Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
                     return Turn::Failed(format!("the agent failed: {e}"));
+                }
+                Wake::Tap(Msg::Agent(AgentEvent::PromptRejected { error, .. })) => {
+                    return Turn::Failed(format!("The message could not be sent: {error}"));
                 }
                 Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
                 Wake::Cmd(other) => {

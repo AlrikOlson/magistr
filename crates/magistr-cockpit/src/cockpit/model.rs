@@ -1060,6 +1060,7 @@ impl Model {
         let (total, height) = (self.turn.len(), self.stage_rows());
         self.viewport.end(total, height, self.now(), false);
         self.turn_state = TurnState::Idle;
+        self.turn_notice = None;
         self.phase = None;
     }
 
