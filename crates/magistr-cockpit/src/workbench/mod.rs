@@ -1,4 +1,4 @@
-//! The workbench behind the cockpit's Changes tab, as a port.
+//! The workbench behind the cockpit's journal model, as a port.
 //!
 //! The cockpit never talks to workbench-mcp itself: `update` answers a
 //! click or a palette command with [`Cmd::Workbench`], whoever consumes

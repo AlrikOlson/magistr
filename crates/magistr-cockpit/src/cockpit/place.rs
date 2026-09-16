@@ -140,8 +140,7 @@ impl Place {
             Self::Galaxy => StageTab::Home,
             Self::Sky | Self::Signals | Self::Report | Self::Birth => StageTab::Roadmap,
             Self::Session => StageTab::Turn,
-            Self::Changes => StageTab::Changes,
-            Self::Trace => StageTab::Trace,
+            Self::Changes | Self::Trace => StageTab::Session,
         }
     }
 
@@ -156,8 +155,7 @@ impl Place {
         match tab {
             StageTab::Home | StageTab::Roadmap => Self::Sky,
             StageTab::Turn => Self::Session,
-            StageTab::Changes => Self::Changes,
-            StageTab::Trace => Self::Trace,
+            StageTab::Session => Self::Trace,
         }
     }
 }

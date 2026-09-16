@@ -2,6 +2,7 @@ use super::*;
 
 fn entry(id: &str) -> JournalEntry {
     JournalEntry {
+        at_ms: None,
         id: id.to_owned(),
         path: format!("src/{id}.rs"),
         added: 1,

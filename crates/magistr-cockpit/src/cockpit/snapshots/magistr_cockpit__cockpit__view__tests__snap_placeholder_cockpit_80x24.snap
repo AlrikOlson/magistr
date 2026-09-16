@@ -14,9 +14,8 @@ rail toggle depth=3 x=1 y=3 w=26 h=1
 rail divider depth=2 x=28 y=2 w=1 h=19
 Home     depth=5 x=30 y=3 w=4 h=1
 Turn     depth=5 x=36 y=3 w=4 h=1
-Changes  depth=5 x=42 y=3 w=7 h=1
-Trace    depth=5 x=51 y=3 w=5 h=1
-Roadmap  depth=5 x=58 y=3 w=7 h=1
+Session  depth=5 x=42 y=3 w=7 h=1
+Roadmap  depth=5 x=51 y=3 w=7 h=1
 stage    depth=4 x=30 y=4 w=49 h=9
 inspector depth=3 x=29 y=14 w=51 h=7
 dock     depth=1 x=0 y=21 w=80 h=1

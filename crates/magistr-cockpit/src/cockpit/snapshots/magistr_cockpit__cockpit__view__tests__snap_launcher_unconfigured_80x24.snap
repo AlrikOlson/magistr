@@ -5,7 +5,7 @@ expression: s
 ▲ magistr  idle                                                            00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│◂                         │ │Home  Turn  Session  Roadmap                     │
 │no objective yet          │ │not configured · run `magistr init`              │
 │roadmap 0/0 done          │ │next · nothing ready                             │
 │signals 0                 │ │ n  next iteration   l  loop                     │

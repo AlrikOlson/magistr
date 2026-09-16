@@ -9,6 +9,8 @@ use magistr_engine::native::{DepEdge, NextAction, ThinkStep};
 pub struct TraceStep {
     /// The step's project-global number.
     pub number: u32,
+    /// The source's RFC 3339 stamp; absent on older records.
+    pub timestamp: Option<String>,
     /// How many steps the trace expected when this one landed.
     pub estimated_total: u32,
     /// What the step is for (`hypothesis`, `analysis`, …).
@@ -53,6 +55,7 @@ impl TraceStep {
     pub fn from_think(step: &ThinkStep) -> Self {
         Self {
             number: step.step_number,
+            timestamp: step.timestamp.clone(),
             estimated_total: step.estimated_total,
             purpose: step.purpose.clone(),
             context: step.context.clone(),

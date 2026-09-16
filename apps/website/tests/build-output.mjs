@@ -69,9 +69,9 @@ const manifest = JSON.parse(readFileSync(resolve(distDir, "screenshots/captures.
 assert(manifest.renderer === "magistr-tui::screenshot::frame" && manifest.surface === "Terminal", "manifest names the terminal renderer");
 assert(manifest.state.includes("fixtures/harbor.json"), "manifest names the fixture it was rendered from");
 assert(manifest.annotations === false, "screenshots carry no annotations");
-assert(manifest.images.length === 6, "overview, roadmap and trace screenshots in both themes");
+assert(manifest.images.length === 6, "overview, roadmap and session screenshots in both themes");
 for (const capture of manifest.images) {
-  assert(/^terminal-(overview|roadmap|trace)-(dark|light)\.png$/.test(capture.file), `${capture.file} carries a public name`);
+  assert(/^terminal-(overview|roadmap|session)-(dark|light)\.png$/.test(capture.file), `${capture.file} carries a public name`);
   const url = `/screenshots/${capture.file}?v=${capture.sha256.slice(0, 12)}`;
   assert(indexHtml.includes(`src="${url}"`) && indexHtml.includes(`href="${url}"`), capture.file + " image and full-size link use the current content hash");
   const png = readFileSync(resolve(distDir, "screenshots", capture.file));

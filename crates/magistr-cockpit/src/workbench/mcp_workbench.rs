@@ -238,6 +238,7 @@ fn journal_entries(stdout: &str) -> Result<Vec<JournalEntry>, String> {
         .filter(|result| result["kind"] == json!("op"))
         .map(|op| JournalEntry {
             id: op["seq"].as_u64().unwrap_or(0).to_string(),
+            at_ms: op["at"].as_i64(),
             path: op["path"].as_str().unwrap_or_default().to_owned(),
             added: u32::try_from(op["added"].as_u64().unwrap_or(0)).unwrap_or(u32::MAX),
             removed: u32::try_from(op["removed"].as_u64().unwrap_or(0)).unwrap_or(u32::MAX),

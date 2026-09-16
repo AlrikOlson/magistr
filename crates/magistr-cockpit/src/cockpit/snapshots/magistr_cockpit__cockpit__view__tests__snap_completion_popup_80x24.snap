@@ -5,7 +5,7 @@ expression: "screen(&completing(Size::new(80, 24)))"
 ▲ magistr  awaiting input                                                  00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│◂                         │ │Home  Turn  Session  Roadmap                     │
 │no objective yet          │ │▎ All done here.                                 │
 │roadmap 0/0 done          │ │                                                 │
 │signals 0                 │ │                                                 │

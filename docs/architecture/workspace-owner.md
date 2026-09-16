@@ -116,7 +116,7 @@ edits based on one old hash produce one applied change and a stale-anchor
 refusal; another connection's identity cannot select the first's undo history
 by default, and `scope: workspace` with named ops remains the explicit,
 conflict-surfacing way to rewind another client's op — which is how the
-cockpit's Changes tab rewinds an agent's edit through the same owner.
+cockpit's journal model rewinds an agent's edit through the same owner.
 
 ## Process lifetime and workers
 

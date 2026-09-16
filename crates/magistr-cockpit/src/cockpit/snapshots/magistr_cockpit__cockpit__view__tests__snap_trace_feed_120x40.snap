@@ -5,19 +5,19 @@ expression: screen
 ▲ magistr  idle                                                                                                    00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │Select a work item, step or change│
-│no objective yet          │ │reasoning  5 steps · 1 branch · 1    [✱ Checkpoint]│  │                                  │
+│◂                         │ │Home  Turn  Session  Roadmap                       │  │Select a work item, step or change│
+│no objective yet          │ │session · 5 steps · 1 branch · 1 pinned · 0 changes│  │                                  │
 │roadmap 0/0 done          │ │main · 3 steps                                     │  │                                  │
 │signals 0                 │ │└─ alt path (merged) from 2 · 2 steps              │  │                                  │
-│                          │ │▸  1  hypothesis  0.62 ★                           │  │                                  │
-│                          │ │▸  2  analysis · revised by 5  0.70                │  │                                  │
-│                          │ │▸  3  hypothesis (alt path)                        │  │                                  │
-│                          │ │▸  4  validation (b-alt)                           │  │                                  │
-│                          │ │▸  5  correction                                   │  │                                  │
-│                          │ │recorded work                                      │  │                                  │
-│                          │ │▸ code · wired the trace tab (trace-state)         │  │                                  │
-│                          │ │✓ test · exit 0 · 5.4s                             │  │                                  │
-│                          │ │✗ lint · exit 101 · 900ms                          │  │                                  │
+│                          │ │time unknown ▸  1  hypothesis  0.62 ★              │  │                                  │
+│                          │ │time unknown ▸  2  analysis · revised by 5  0.70   │  │                                  │
+│                          │ │time unknown ▸  3  hypothesis (alt path)           │  │                                  │
+│                          │ │time unknown ▸  4  validation (b-alt)              │  │                                  │
+│                          │ │time unknown ▸  5  correction                      │  │                                  │
+│                          │ │time unknown ▸ code · wired the trace tab          │  │                                  │
+│                          │ │time unknown ✓ test · exit 0 · 5.4s                │  │                                  │
+│                          │ │time unknown ✗ lint · exit 101 · 900ms             │  │                                  │
+│                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │

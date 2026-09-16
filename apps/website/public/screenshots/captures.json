@@ -11,37 +11,37 @@
   "images": [
     {
       "file": "terminal-overview-dark.png",
-      "sha256": "d238c67c65a0b7dec5e41b2f3637bd61461393200cd08a15068da1b432682964",
+      "sha256": "ac53b966ac27419135b24f6cda9135023b25b7222f7393bca46bbe9fa79edd5f",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-overview-light.png",
-      "sha256": "1a4cf12b7041bf5d0018bdf76b1ac19dfeccdd7cc293431f564c5a4114a473ab",
+      "sha256": "13f966e162fe279d0cecc0ecb63eadf70226b295d20333cfa2d43014376fd2dd",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-roadmap-dark.png",
-      "sha256": "feed90be4c7b9c18636d1aa926a4d9b777ce466525a6c68239686a5cd564a093",
+      "sha256": "ce5c269fd73a68daa57f6f382965c90eae65364fa17617fb004e41a8ea1316e1",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-roadmap-light.png",
-      "sha256": "abcf1a491d50841da8571a10ce126d70f11cdbbbe994f07381a978b963bdfa55",
+      "sha256": "d9de8223d195b5132aef0ad02938e1a080a7ff9c09dc9cc7a6eaa959682e3ea2",
       "width": 1320,
       "height": 840
     },
     {
-      "file": "terminal-trace-dark.png",
-      "sha256": "c52aa2651e00e55d97fdf243c625ebaabfb1498356ca6df53b83a9987cf0601a",
+      "file": "terminal-session-dark.png",
+      "sha256": "3542eb76193ca6e35740073597b066bb522505044119dde7719c151760eaa5d6",
       "width": 1320,
       "height": 840
     },
     {
-      "file": "terminal-trace-light.png",
-      "sha256": "898b8965a7c7fead1992c2c1c9624f8a2d80c0ccddfdfd963a5a2b4223943294",
+      "file": "terminal-session-light.png",
+      "sha256": "83f9119bb1d04cc5fc6bcf1b49f4d5cbbd1a8dad3bc65763ed00c7902d294e3d",
       "width": 1320,
       "height": 840
     }

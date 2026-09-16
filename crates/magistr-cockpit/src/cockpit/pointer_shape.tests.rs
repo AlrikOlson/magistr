@@ -7,7 +7,7 @@ use crate::cockpit::Widget;
 fn the_hand_appears_over_buttons_chips_and_links_only() {
     for id in [
         Widget::Accept.id(),
-        Widget::TabTrace.id(),
+        Widget::TabSession.id(),
         Widget::footer_chip(0),
         Widget::signal_snooze(1),
         Widget::trace_link(4),

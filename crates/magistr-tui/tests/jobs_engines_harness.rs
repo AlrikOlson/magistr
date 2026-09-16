@@ -222,7 +222,7 @@ async fn a_think_step_lands_on_the_trace_tab_and_its_next_paint() {
     // Ctrl-Tab twice turns the stage to Trace before the step lands.
     let script = Script::new()
         .startup_replies(MS(0))
-        .text(MS(20), "\x1b[9;5u\x1b[9;5u")
+        .text(MS(20), "\x1b[9;5u")
         .text(MS(200), "\x04");
     let (model, capture) = run(script, |inbox| {
         FakeEngines::new()

@@ -1,3 +1,103 @@
+#[test]
+fn session_change_selection_survives_reseed_with_shared_undo_ids() {
+    let mut m = model().with_tab(StageTab::Session);
+    let a = journal_entry("op", "src/a.rs");
+    let b = journal_entry("op", "src/b.rs");
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Journal {
+            entries: vec![a.clone(), b.clone()],
+        }),
+    );
+    change_click(&mut m, Widget::change_row(1));
+    assert_eq!(m.selected(), Some(&Selected::Change(b.identity())));
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Journal {
+            entries: vec![b.clone(), a],
+        }),
+    );
+    assert_eq!(m.selected(), Some(&Selected::Change(b.identity())));
+    assert_eq!(
+        change_click(&mut m, Widget::change_open(0)),
+        vec![Cmd::Workbench(WorkbenchCmd::Open {
+            path: "src/b.rs".into()
+        })]
+    );
+    assert_eq!(
+        change_click(&mut m, Widget::change_undo(0)),
+        vec![Cmd::Workbench(WorkbenchCmd::Undo { id: "op".into() })]
+    );
+}
+
+#[test]
+fn session_report_scroll_and_close_leave_the_timeline_in_place() {
+    let mut m = crate::harness::Scenes::long_trace(Size::new(120, 40));
+    let top = m.session_top();
+    let window = m.session_window();
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Checkpoint {
+            lines: (0..100).map(|n| format!("report line {n}")).collect(),
+        }),
+    );
+    assert_eq!(m.pane(), Pane::Inspector);
+    update(&mut m, key(KeyCode::End));
+    assert!(m.inspector_scroll > 0);
+    assert_eq!(m.session_top(), top);
+    assert_eq!(m.session_window(), window);
+    update(&mut m, key(KeyCode::Esc));
+    assert!(m.trace().viewer().is_none());
+    assert_eq!(m.inspector_scroll, 0);
+    assert_eq!(m.session_top(), top);
+}
+
+#[test]
+fn session_view_joins_navigation_and_keeps_viewers_out_of_the_stage() {
+    let mut m = model();
+    m.show(StageTab::Session);
+    assert_eq!(m.tab().label(), "Session");
+    update(
+        &mut m,
+        frame(
+            "think",
+            "step_appended",
+            serde_json::json!({"step": {
+                "step_number": 1, "timestamp": "2026-09-15T00:00:00Z"
+            }}),
+        ),
+    );
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Journal {
+            entries: vec![crate::workbench::JournalEntry {
+                id: "7".into(),
+                path: "src/a.rs".into(),
+                at_ms: Some(1_789_430_401_000),
+                ..Default::default()
+            }],
+        }),
+    );
+    m.inspect(Selected::Step(1));
+    update(&mut m, key(KeyCode::Down));
+    assert!(matches!(m.selected(), Some(Selected::Change(_))));
+    update(&mut m, key(KeyCode::Up));
+    assert_eq!(m.selected(), Some(&Selected::Step(1)));
+    let extent = m.session_window();
+    update(
+        &mut m,
+        Msg::Engine(EngineEvent::Checkpoint {
+            lines: vec!["report".into(); 50],
+        }),
+    );
+    assert_eq!(
+        m.session_window(),
+        extent,
+        "viewer belongs to the inspector"
+    );
+    assert_eq!(m.pane(), Pane::Inspector);
+}
+
 use magistr_engine::FeedStatus;
 use magistr_engine::policy::RiskTier;
 
@@ -2142,15 +2242,15 @@ fn tab_cycles_the_stage_and_a_click_jumps_to_one() {
         vec![Cmd::Animate(Model::TICK_PERIOD)],
         "the switch transitions"
     );
-    assert_eq!(m.tab(), StageTab::Changes);
+    assert_eq!(m.tab(), StageTab::Session);
     update(
         &mut m,
         Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL)),
     );
-    assert_eq!(m.tab(), StageTab::Trace);
+    assert_eq!(m.tab(), StageTab::Roadmap);
     let back = Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL | Modifiers::SHIFT));
     update(&mut m, back);
-    assert_eq!(m.tab(), StageTab::Changes);
+    assert_eq!(m.tab(), StageTab::Session);
     let click = Msg::Mouse {
         event: MouseEvent::new(MouseKind::Down(Button::Left), 40, 2),
         target: Some(Widget::TabRoadmap.id()),
@@ -2784,6 +2884,7 @@ fn a_click_on_a_popup_row_accepts_that_candidate() {
 
 fn journal_entry(id: &str, path: &str) -> crate::workbench::JournalEntry {
     crate::workbench::JournalEntry {
+        at_ms: None,
         id: id.to_owned(),
         path: path.to_owned(),
         added: 1,
@@ -2882,11 +2983,21 @@ fn a_change_row_click_expands_and_approve_marks_reviewed() {
     );
     assert!(m.selected().is_none());
     change_click(&mut m, Widget::change_row(0));
-    assert_eq!(m.selected(), Some(&super::Selected::Change("e1".into())));
+    assert_eq!(
+        m.selected(),
+        Some(&super::Selected::Change(
+            journal_entry("e1", "src/main.rs").identity()
+        ))
+    );
     assert_eq!(change_click(&mut m, Widget::change_approve(0)), vec![]);
     assert!(m.changes().is_approved("e1"));
     change_click(&mut m, Widget::change_row(0));
-    assert_eq!(m.selected(), Some(&super::Selected::Change("e1".into())));
+    assert_eq!(
+        m.selected(),
+        Some(&super::Selected::Change(
+            journal_entry("e1", "src/main.rs").identity()
+        ))
+    );
 }
 
 #[test]
@@ -2915,7 +3026,7 @@ fn open_on_a_change_reads_into_the_viewer_pane() {
     let (title, lines) = m.changes().viewer().expect("the pane opened");
     assert_eq!(title, "src/main.rs");
     assert_eq!(lines, ["fn main() {}"]);
-    assert_eq!(m.tab(), StageTab::Changes, "the stage turned to Changes");
+    assert_eq!(m.tab(), StageTab::Session, "the stage turned to Changes");
     // Esc closes the pane and stays in the cockpit.
     assert_eq!(update(&mut m, key(KeyCode::Esc)), vec![]);
     assert!(m.changes().viewer().is_none());
@@ -3005,7 +3116,7 @@ fn palette_search_map_read_and_run_reach_the_workbench_not_the_agent() {
     assert_eq!(command, "test");
     let names: Vec<&str> = rows.iter().map(|row| row.name.as_str()).collect();
     assert_eq!(names, ["b::fails", "a::passes"], "failing first");
-    assert_eq!(m.tab(), StageTab::Changes);
+    assert_eq!(m.tab(), StageTab::Session);
 }
 
 #[test]
@@ -3143,7 +3254,7 @@ fn checkpoint_round_trips_into_the_viewer_and_esc_closes_it() {
             lines: vec!["open hypotheses: 1".to_owned()],
         }),
     );
-    assert_eq!(m.tab(), StageTab::Trace, "the report turned the stage");
+    assert_eq!(m.tab(), StageTab::Session, "the report turned the stage");
     assert_eq!(
         m.trace().viewer().expect("the pane opened"),
         ["open hypotheses: 1".to_owned()]
@@ -3200,6 +3311,8 @@ fn ship_action_and_check_frames_join_the_timeline() {
     assert_eq!(
         m.trace().moments()[1],
         ShipMoment::Check {
+            task_id: String::new(),
+            timestamp: String::new(),
             name: "test".to_owned(),
             passed: true,
             exit_code: Some(0),
@@ -3909,11 +4022,12 @@ fn a_wheel_notch_glides_every_tab_to_the_window_the_jump_used_to_cut_to() {
     };
     let changes: fn() -> Model = || {
         let mut m = model();
-        m.tab = StageTab::Changes;
+        m.tab = StageTab::Session;
         let entries: Vec<crate::workbench::JournalEntry> = (0..200)
             .map(|n| journal_entry(&format!("e{n}"), &format!("src/f{n}.rs")))
             .collect();
         update(&mut m, Msg::Workbench(WorkbenchEvent::Journal { entries }));
+        update(&mut m, key(KeyCode::PageUp));
         m
     };
     let trace: fn() -> Model = || {
@@ -3924,8 +4038,8 @@ fn a_wheel_notch_glides_every_tab_to_the_window_the_jump_used_to_cut_to() {
     };
     let cases: [Scrolled; 4] = [
         ("turn", Model::top_row, turn),
-        ("trace", Model::trace_top, trace),
-        ("changes", Model::changes_top, changes),
+        ("trace", Model::session_top, trace),
+        ("changes", Model::session_top, changes),
         ("roadmap", Model::roadmap_top, || long_roadmap(110)),
     ];
     for (name, top, make) in cases {
@@ -4373,7 +4487,7 @@ fn next_ready_follows_the_engines_pick() {
 /// The Trace tab showing `n` think steps — enough that its body runs
 /// past the stage under the pinned heading.
 fn long_trace_tab(n: u32) -> Model {
-    let mut m = model().with_tab(StageTab::Trace);
+    let mut m = model().with_tab(StageTab::Session);
     for number in 1..=n {
         update(
             &mut m,
@@ -4909,35 +5023,42 @@ fn approve_with_a_card_for_another_file_leaves_it_alone() {
 #[test]
 fn a_long_journal_scrolls_on_the_changes_tab() {
     let mut m = model();
-    m.tab = StageTab::Changes;
+    m.tab = StageTab::Session;
     let entries: Vec<crate::workbench::JournalEntry> = (0..200)
         .map(|n| journal_entry(&format!("e{n}"), &format!("src/f{n}.rs")))
         .collect();
     update(&mut m, Msg::Workbench(WorkbenchEvent::Journal { entries }));
-    let (total, height) = m.changes_window();
+    let (total, height) = m.session_window();
     assert_eq!(total, 200);
     assert!(height < total, "the list runs past the stage");
-    assert_eq!(m.changes_top(), 0, "the tab opens at the newest end's top");
+    assert_eq!(
+        m.session_top(),
+        total - height,
+        "the session follows new activity"
+    );
+    update(&mut m, key(KeyCode::Home));
+    settle(&mut m);
+    assert_eq!(m.session_top(), 0);
     update(&mut m, key(KeyCode::PageDown));
     settle(&mut m);
-    let paged = m.changes_top();
+    let paged = m.session_top();
     assert!(paged > 0, "PageDown moved the list, got {paged}");
     update(&mut m, key(KeyCode::End));
     settle(&mut m);
     assert_eq!(
-        m.changes_top(),
+        m.session_top(),
         total - height,
         "End lands on the last window"
     );
     update(&mut m, key(KeyCode::Home));
     settle(&mut m);
-    assert_eq!(m.changes_top(), 0);
+    assert_eq!(m.session_top(), 0);
 }
 
 #[test]
 fn the_wheel_over_the_changes_tab_moves_its_own_list_not_the_turn() {
     let mut m = model();
-    m.tab = StageTab::Changes;
+    m.tab = StageTab::Session;
     let entries: Vec<crate::workbench::JournalEntry> = (0..200)
         .map(|n| journal_entry(&format!("e{n}"), &format!("src/f{n}.rs")))
         .collect();
@@ -4951,7 +5072,7 @@ fn the_wheel_over_the_changes_tab_moves_its_own_list_not_the_turn() {
         },
     );
     settle(&mut m);
-    assert!(m.changes_top() > 0, "the list moved");
+    assert!(m.session_top() > 0, "the list moved");
     assert_eq!(m.top_row(), before, "the turn stayed where it was");
 }
 
@@ -5249,26 +5370,26 @@ fn notch(kind: MouseKind, col: u16, row: u16) -> Msg {
 #[test]
 fn a_notch_over_the_undocked_column_moves_that_column_and_not_the_turn() {
     let mut m = undocked(60, 200);
-    assert_eq!(m.undocked_tab(), Some(StageTab::Trace));
-    let (total, height) = m.trace_window();
+    assert_eq!(m.undocked_tab(), Some(StageTab::Session));
+    let (total, height) = m.session_window();
     assert!(total > height, "the feed is longer than the column");
     let turn_before = m.top_row();
-    let tail = m.trace_top();
+    let tail = m.session_top();
     assert_eq!(tail, total - height, "a fresh feed follows its tail");
 
     // Over the third column: the feed moves, the turn stays put.
     update(&mut m, notch(MouseKind::ScrollUp, 150, 20));
     settle(&mut m);
-    assert_eq!(m.trace_top(), tail - Viewport::WHEEL);
+    assert_eq!(m.session_top(), tail - Viewport::WHEEL);
     assert_eq!(m.top_row(), turn_before, "the turn did not move");
 
     // Over the stage, one column short of the divider: the turn moves
     // and the feed stays where the last notch left it.
-    let feed = m.trace_top();
+    let feed = m.session_top();
     update(&mut m, notch(MouseKind::ScrollUp, 60, 20));
     settle(&mut m);
     assert_eq!(m.top_row(), turn_before - Viewport::WHEEL);
-    assert_eq!(m.trace_top(), feed, "the feed did not move");
+    assert_eq!(m.session_top(), feed, "the feed did not move");
     assert_eq!(
         wheeled_undock(&m, &MouseEvent::new(MouseKind::ScrollUp, 131, 20)),
         None,
@@ -5279,19 +5400,19 @@ fn a_notch_over_the_undocked_column_moves_that_column_and_not_the_turn() {
 #[test]
 fn a_trace_feed_longer_than_the_column_reaches_both_its_head_and_its_tail() {
     let mut m = undocked(60, 200);
-    let (total, height) = m.trace_window();
+    let (total, height) = m.session_window();
     for _ in 0..total.div_ceil(Viewport::WHEEL) {
         update(&mut m, notch(MouseKind::ScrollUp, 150, 20));
     }
     settle(&mut m);
-    assert_eq!(m.trace_top(), 0, "the first step is reachable");
+    assert_eq!(m.session_top(), 0, "the first step is reachable");
     for _ in 0..total.div_ceil(Viewport::WHEEL) {
         update(&mut m, notch(MouseKind::ScrollDown, 150, 20));
     }
     settle(&mut m);
-    assert_eq!(m.trace_top(), total - height, "and so is the last");
+    assert_eq!(m.session_top(), total - height, "and so is the last");
     assert!(
-        m.trace_viewport.is_following(),
+        m.session_viewport.is_following(),
         "reaching the bottom follows the tail again"
     );
 }
@@ -5300,18 +5421,19 @@ fn a_trace_feed_longer_than_the_column_reaches_both_its_head_and_its_tail() {
 fn the_column_measures_the_undocked_tab_and_the_stage_the_active_one() {
     let m = undocked(60, 200);
     let over = MouseEvent::new(MouseKind::ScrollUp, 150, 20);
-    assert_eq!(wheeled_undock(&m, &over), Some(StageTab::Trace));
-    assert_eq!(wheel_extent(&m, Some(StageTab::Trace)), m.trace_window());
-    // On the Trace tab the journal undocks instead: the column's wheel
-    // measures the journal while the stage's measures the feed, so the
-    // two surfaces can never be moved by the same notch.
-    let m = m.with_tab(StageTab::Trace);
-    assert_eq!(wheeled_undock(&m, &over), Some(StageTab::Changes));
+    assert_eq!(wheeled_undock(&m, &over), Some(StageTab::Session));
     assert_eq!(
-        wheel_extent(&m, Some(StageTab::Changes)),
-        m.changes_window()
+        wheel_extent(&m, Some(StageTab::Session)),
+        m.session_window()
     );
-    assert_eq!(wheel_extent(&m, None), m.trace_window());
+    // Session occupies the stage itself, so there is no duplicate column.
+    let m = m.with_tab(StageTab::Session);
+    assert_eq!(wheeled_undock(&m, &over), None);
+    assert_eq!(
+        wheel_extent(&m, Some(StageTab::Session)),
+        m.session_window()
+    );
+    assert_eq!(wheel_extent(&m, None), m.session_window());
 }
 
 #[test]
@@ -5319,11 +5441,11 @@ fn without_an_undock_rect_the_wheel_moves_the_stage_everywhere() {
     let mut m = undocked(60, 200);
     m.set_undock_rect(None);
     let turn = m.top_row();
-    let feed = m.trace_top();
+    let feed = m.session_top();
     update(&mut m, notch(MouseKind::ScrollUp, 150, 20));
     settle(&mut m);
     assert_eq!(m.top_row(), turn - Viewport::WHEEL, "the turn took it");
-    assert_eq!(m.trace_top(), feed, "the feed is untouched");
+    assert_eq!(m.session_top(), feed, "the feed is untouched");
     // And a screen too narrow to undock anything never answers, however
     // stale a rect it is holding.
     let mut narrow = Model::new(Size::new(120, 40));
@@ -5355,7 +5477,7 @@ fn a_chunk_link_click_turns_the_stage_to_the_roadmap_tab_with_the_chunk_selected
         &mut m,
         think_step_frame(7, serde_json::json!({"execution_ref": "task:trace-jump"})),
     );
-    m.tab = StageTab::Trace;
+    m.tab = StageTab::Session;
     trace_click(&mut m, Widget::trace_row(0));
     assert!(m.trace().is_expanded(7));
 
@@ -5375,10 +5497,10 @@ fn a_chunk_link_click_on_a_ref_no_chunk_answers_moves_nothing() {
         &mut m,
         think_step_frame(7, serde_json::json!({"execution_ref": "task:nobody"})),
     );
-    m.tab = StageTab::Trace;
+    m.tab = StageTab::Session;
     trace_click(&mut m, Widget::trace_row(0));
     assert_eq!(trace_click(&mut m, Widget::trace_chunk(7)), vec![]);
-    assert_eq!(m.tab(), StageTab::Trace, "the stage stayed");
+    assert_eq!(m.tab(), StageTab::Session, "the stage stayed");
     assert!(m.roadmap().selected().is_none());
 }
 
@@ -6156,6 +6278,7 @@ fn reviewing() -> Model {
         Msg::Workbench(WorkbenchEvent::Journal {
             entries: vec![
                 JournalEntry {
+                    at_ms: None,
                     id: "e1".to_owned(),
                     path: "theme/ink.rs".to_owned(),
                     added: 31,
@@ -6164,6 +6287,7 @@ fn reviewing() -> Model {
                     diff: "@@ -1,1 +1,1 @@\n-old\n+new".to_owned(),
                 },
                 JournalEntry {
+                    at_ms: None,
                     id: "e2".to_owned(),
                     path: "theme/css.rs".to_owned(),
                     added: 9,
@@ -8839,7 +8963,7 @@ fn folding_the_same_seed_and_events_rebuilds_the_same_projection_and_a_duplicate
 
 #[test]
 fn the_arrows_walk_the_trace_selection_and_enter_turns_the_card() {
-    let mut m = model().with_tab(StageTab::Trace);
+    let mut m = model().with_tab(StageTab::Session);
     for number in 1..=3u32 {
         update(&mut m, think_step_frame(number, serde_json::json!({})));
     }
@@ -8847,10 +8971,10 @@ fn the_arrows_walk_the_trace_selection_and_enter_turns_the_card() {
     assert_eq!(update(&mut m, key(KeyCode::Down)), vec![]);
     assert_eq!(
         m.trace().selected_index(),
-        Some(2),
-        "the first press takes the newest step"
+        Some(0),
+        "Down selects the first timeline item"
     );
-    update(&mut m, key(KeyCode::Up));
+    update(&mut m, key(KeyCode::Down));
     assert_eq!(m.trace().selected_index(), Some(1));
     assert!(!m.inspector_open());
     update(&mut m, key(KeyCode::Enter));
@@ -8877,27 +9001,27 @@ fn a_keyboard_selection_scrolls_its_row_into_the_window() {
     let mut m = Scenes::long_trace(Size::new(80, 24));
     update(&mut m, key(KeyCode::Home));
     Scenes::settle(&mut m);
-    assert_eq!(m.trace_top(), 0);
+    assert_eq!(m.session_top(), 0);
     update(&mut m, key(KeyCode::Down));
     Scenes::settle(&mut m);
-    let (_, height) = m.trace_window();
+    let (_, height) = m.session_window();
     let row = m.trace().selected_index().expect("the newest step");
     assert!(
-        row >= m.trace_top() && row < m.trace_top() + height,
+        row >= m.session_top() && row < m.session_top() + height,
         "row {row} sits in the window starting at {}",
-        m.trace_top()
+        m.session_top()
     );
     for _ in 0..25 {
         update(&mut m, key(KeyCode::Up));
     }
     Scenes::settle(&mut m);
     assert_eq!(m.trace().selected_index(), Some(0), "Up stops at the head");
-    assert_eq!(m.trace_top(), 0, "and the window followed it back up");
+    assert_eq!(m.session_top(), 0, "and the window followed it back up");
 }
 
 #[test]
 fn the_more_button_turns_the_card_and_a_row_click_preserves_it() {
-    let mut m = model().with_tab(StageTab::Trace);
+    let mut m = model().with_tab(StageTab::Session);
     update(&mut m, think_step_frame(4, serde_json::json!({})));
     trace_click(&mut m, Widget::trace_row(0));
     assert!(m.trace().is_expanded(4));
@@ -8914,7 +9038,7 @@ fn the_more_button_turns_the_card_and_a_row_click_preserves_it() {
 #[test]
 fn inspector_selection_is_shared_across_views_and_survives_resize() {
     use crate::cockpit::Selected;
-    let mut m = model().with_tab(StageTab::Trace);
+    let mut m = model().with_tab(StageTab::Session);
     update(&mut m, think_step_frame(4, serde_json::json!({})));
     trace_click(&mut m, Widget::trace_row(0));
     assert_eq!(m.selected(), Some(&Selected::Step(4)));
@@ -8953,16 +9077,25 @@ fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
     use crate::cockpit::{Pane, Selected};
     let mut m = crate::harness::Scenes::changed(Size::new(80, 24));
     update(&mut m, key(KeyCode::Down));
-    assert_eq!(m.selected(), Some(&Selected::Change("e1".into())));
+    assert_eq!(
+        m.selected(),
+        Some(&Selected::Change(m.changes().entries()[0].identity()))
+    );
     update(&mut m, key(KeyCode::Down));
-    assert_eq!(m.selected(), Some(&Selected::Change("e2".into())));
+    assert_eq!(
+        m.selected(),
+        Some(&Selected::Change(m.changes().entries()[1].identity()))
+    );
     update(&mut m, key(KeyCode::Up));
-    assert_eq!(m.selected(), Some(&Selected::Change("e1".into())));
+    assert_eq!(
+        m.selected(),
+        Some(&Selected::Change(m.changes().entries()[0].identity()))
+    );
     update(&mut m, key(KeyCode::Enter));
     assert!(m.inspector_open());
     update(&mut m, key(KeyCode::Tab));
     assert_eq!(m.pane(), Pane::Inspector);
-    let list_top = m.changes_top();
+    let list_top = m.session_top();
     update(&mut m, key(KeyCode::Down));
     assert_eq!(m.inspector_scroll, 1);
     update(
@@ -8976,7 +9109,7 @@ fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
         m.inspector_scroll > 1,
         "wheel over an inspector action scrolls its fields"
     );
-    assert_eq!(m.changes_top(), list_top);
+    assert_eq!(m.session_top(), list_top);
     update(&mut m, key(KeyCode::Home));
     assert_eq!(m.inspector_scroll, 0);
     update(&mut m, key(KeyCode::End));
@@ -8984,11 +9117,14 @@ fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
     update(&mut m, key(KeyCode::Esc));
     assert!(!m.inspector_open());
     assert_eq!(m.inspector_scroll, 0);
-    update(&mut m, left_click(Widget::TabChanges.id()));
+    update(&mut m, left_click(Widget::TabSession.id()));
     assert_eq!(m.pane(), Pane::Stage);
     update(&mut m, Msg::Paste("draft".into()));
     update(&mut m, key(KeyCode::Down));
-    assert_eq!(m.selected(), Some(&Selected::Change("e1".into())));
+    assert_eq!(
+        m.selected(),
+        Some(&Selected::Change(m.changes().entries()[0].identity()))
+    );
 
     let mut roadmap = crate::harness::Scenes::roadmapped(Size::new(80, 24));
     update(&mut roadmap, key(KeyCode::Down));
@@ -9028,7 +9164,7 @@ fn inspector_tab_cycles_panes_and_control_tab_changes_views() {
         &mut m,
         Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::CTRL)),
     );
-    assert_eq!(m.tab(), StageTab::Changes);
+    assert_eq!(m.tab(), StageTab::Session);
     update(
         &mut m,
         Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::SHIFT)),

@@ -284,10 +284,7 @@ fn undock(model: &Model, tab: StageTab, pen: &Pen) -> Node {
             .text(&format!(" {}", Widget::tab(tab).label()))
             .segment(pen.heading.clone()),
     ];
-    rows.extend(match tab {
-        StageTab::Changes => changes_rows(model, pen),
-        _ => trace_rows(model, pen),
-    });
+    rows.extend(timeline_rows(model, pen));
     Node::column()
         .id(Widget::Undock.id())
         .style(pen.stage.clone())
@@ -730,7 +727,7 @@ fn iteration_text(status: &LoopStatus) -> String {
     format!("{word} {}/{}", status.iteration(), status.max())
 }
 
-/// The visible rows of the turn, one node each — or the Changes, Trace
+/// The visible rows of the turn, one node each — or the Session
 /// or Roadmap tab's rows on those tabs. Dispatches on
 /// [`Model::shown_tab`], which is [`Model::tab`] everywhere but the
 /// native Home slot — there the Sky (the tech-tree) stands in for the
@@ -742,11 +739,8 @@ fn stage_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     if model.shown_tab() == StageTab::Home {
         return launcher_rows(model, pen);
     }
-    if model.shown_tab() == StageTab::Changes {
-        return changes_rows(model, pen);
-    }
-    if model.shown_tab() == StageTab::Trace {
-        return trace_rows(model, pen);
+    if model.shown_tab() == StageTab::Session {
+        return timeline_rows(model, pen);
     }
     if model.shown_tab() == StageTab::Roadmap {
         return roadmap_rows(model, pen);
@@ -868,112 +862,11 @@ fn held_head(row: &Row, fraction: f32, model: &Model, pen: &Pen) -> Node {
         .child(segment(&text[split..], pen.row(row.kind).clone()))
 }
 
-/// The Changes tab: the read-only viewer pane while one is open; else
-/// the compact journal list, whose selected entry lives in the inspector,
-/// then the last run's rows, failing first;
-/// a quiet note while the journal is empty.
-fn changes_rows(model: &Model, pen: &Pen) -> Vec<Node> {
-    let changes = model.changes();
-    // The heading stays whatever the journal does, and the run's
-    // verdict joins it once one has landed — a gate's answer is what
-    // brings a user back to the tab, and behind a long journal it would
-    // otherwise sit off the bottom of the stage. Both are one row, so
-    // the pinned block is bounded however much the run said; the result
-    // rows themselves scroll with everything else. Counted by
-    // [`Changes::pinned_rows`](crate::cockpit::Changes::pinned_rows).
-    let head = if changes.viewer().is_some() {
-        // The pane names the file it is showing, and how to leave it.
-        Marked::new(model, pen).icon(Icon::File).text(&format!(
-            " {} · {} closes",
-            changes.heading(),
-            Binding::ESC_VIEWER.keys
-        ))
-    } else {
-        Marked::new(model, pen).text(&changes.heading())
-    };
-    let mut rows = vec![
-        head.node()
-            .style(pen.heading.clone())
-            .height(Length::Cells(1)),
-    ];
-    if let Some(summary) = changes.run_summary() {
-        let failed = changes
-            .runs()
-            .is_some_and(|(_, results)| results.iter().any(|row| !row.passed));
-        rows.push(
-            Node::text(summary)
-                .style(pen.row(RowKind::Check(!failed)).clone())
-                .height(Length::Cells(1)),
-        );
-    }
-    // Everything below scrolls: a long journal or a
-    // run's rows each run past the stage otherwise. The window is the
-    // model's, so the keys and the wheel move exactly these rows.
-    let (total, height) = model.changes_window();
-    let top = model.changes_top().min(total);
-    let bottom = top.saturating_add(height).min(total);
-    let mut body = changes_body(model, pen);
-    body.truncate(bottom);
-    rows.extend(body.drain(top..).map(|row| row.shrink(0.0)));
-    rows
-}
-
-/// The Changes tab's scrolling rows, in order — counted by
-/// [`Changes::body_rows`](crate::cockpit::Changes::body_rows).
-fn changes_body(model: &Model, pen: &Pen) -> Vec<Node> {
-    let changes = model.changes();
-    if let Some((_, lines)) = changes.viewer() {
-        // The pane's title is pinned above; only its lines scroll.
-        return lines
-            .iter()
-            .map(|line| {
-                Node::text(line.as_str())
-                    .style(pen.code.clone())
-                    .height(Length::Cells(1))
-            })
-            .collect();
-    }
-    if changes.is_empty() {
-        // The pinned heading already says the journal is empty.
-        return Vec::new();
-    }
-    let mut rows = Vec::new();
-    for (index, entry) in changes.entries().iter().enumerate() {
-        let expanded = matches!(model.selected(), Some(Selected::Change(id)) if id == &entry.id);
-        rows.push(change_head(
-            entry,
-            index,
-            expanded,
-            changes.is_approved(&entry.id),
-            model,
-            pen,
-        ));
-    }
-    if let Some((_, results)) = changes.runs() {
-        // The run's own heading is the pinned verdict strip.
-        rows.extend(results.iter().map(|row| {
-            let text = if row.detail.is_empty() {
-                format!(" {}", row.name)
-            } else {
-                format!(" {} · {}", row.name, row.detail)
-            };
-            Marked::new(model, pen)
-                .icon(Icon::check(row.passed))
-                .text(&text)
-                .node()
-                .style(pen.row(RowKind::Check(row.passed)).clone())
-                .height(Length::Cells(1))
-        }));
-    }
-    rows
-}
-
 /// One journal entry's head row: the fold marker, the path, the +/−
 /// counts, the parse verdict, and ` · approved` once the human marked
 /// it — hittable to expand or fold the diff.
 fn change_head(
     entry: &crate::workbench::JournalEntry,
-    index: usize,
     expanded: bool,
     approved: bool,
     model: &Model,
@@ -1000,162 +893,140 @@ fn change_head(
         .icon(Icon::fold(expanded))
         .text(&text)
         .node()
-        .id(Widget::change_row(index))
         .style(pen.row(RowKind::Tool(status)).clone())
         .height(Length::Cells(1))
 }
 
-/// The Trace tab: the checkpoint pane while one is open; else the
-/// heading — `reasoning`, its accounting, the checkpoint button — over
-/// the step graph (pixels whenever there are steps; the lane list once
-/// a branch forked on a plain terminal), then the scrolling body: one
-/// compact row per step, the selected step's card under its row, and
-/// the recorded work — actions and checks — after the steps; a quiet
-/// note while nothing has landed.
-fn trace_rows(model: &Model, pen: &Pen) -> Vec<Node> {
+/// The Session graph stays above a single timestamp-ordered timeline.
+fn timeline_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let trace = model.trace();
-    let mut rows = Vec::new();
-    if trace.viewer().is_some() {
+    let mut rows = vec![
+        Node::text(format!(
+            "session · {} · {} changes · UTC",
+            trace.heading_line(),
+            model.changes().entries().len()
+        ))
+        .style(pen.heading.clone())
+        .height(Length::Cells(1))
+        .shrink(0.0),
+    ];
+    if model.has_pixels() && !trace.steps().is_empty() {
         rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Checkpoint)
-                .text(&format!(
-                    " checkpoint · {} closes",
-                    Binding::ESC_VIEWER.keys
-                ))
-                .node()
-                .style(pen.heading.clone())
-                .height(Length::Cells(1)),
+            Node::column()
+                .id(Widget::TraceGraph.id())
+                .height(Length::Cells(model.trace_graph_rows()))
+                .shrink(0.0),
         );
-    } else {
+    } else if trace.has_branches() {
         rows.push(
-            Node::row()
-                .height(Length::Cells(1))
-                .child(segment("reasoning", pen.heading.clone()))
-                .child(segment("  ", pen.stage.clone()))
-                .child(
-                    segment(&trace.heading_line(), pen.note.clone())
-                        .grow(1.0)
-                        .shrink(1.0)
-                        .min_width(Length::Cells(0))
-                        .viewport(),
-                )
-                .child(segment("  ", pen.stage.clone()))
-                .child(
-                    checkpoint_button(model, pen)
-                        .id(Widget::Checkpoint.id())
-                        .shrink(0.0),
-                ),
+            Node::column().id(Widget::TraceGraph.id()).children(
+                trace
+                    .branch_rows()
+                    .into_iter()
+                    .take(usize::from(model.trace_graph_rows()))
+                    .map(|text| {
+                        Node::text(text)
+                            .style(pen.note.clone())
+                            .height(Length::Cells(1))
+                            .shrink(0.0)
+                    }),
+            ),
         );
-        if model.has_pixels() && !trace.steps().is_empty() {
-            // The block the pixel graph covers: empty cells, rigid, so
-            // the surface's anchor never moves under it.
-            rows.push(
-                Node::column()
-                    .id(Widget::TraceGraph.id())
-                    .height(Length::Cells(model.trace_graph_rows()))
-                    .shrink(0.0),
-            );
-        } else if trace.has_branches() {
-            let mut graph = Node::column().id(Widget::TraceGraph.id());
-            for line in trace
-                .branch_rows()
-                .into_iter()
-                .take(usize::from(model.trace_graph_rows()))
-            {
-                graph = graph.child(
-                    Node::text(line)
-                        .style(pen.note.clone())
-                        .height(Length::Cells(1)),
-                );
-            }
-            rows.push(graph);
-        }
     }
-    // Everything below the heading (and the graph, which anchors the
-    // pixel surface and so stays whole) scrolls: a long trace runs past
-    // the stage otherwise. The window is the model's, so the keys and
-    // the wheel move exactly these rows.
-    let (total, height) = model.trace_window();
-    let top = model.trace_top().min(total);
-    let bottom = top.saturating_add(height).min(total);
-    let mut body = trace_body(model, pen);
-    body.truncate(bottom);
-    rows.extend(body.drain(top..));
-    rows.into_iter().map(|row| row.shrink(0.0)).collect()
+    let (_, height) = model.session_window();
+    rows.extend(
+        session_body(model, pen)
+            .into_iter()
+            .skip(model.session_top())
+            .take(height),
+    );
+    rows
 }
 
-/// The checkpoint button: amber, its own glyph, and the word in both
-/// modes — on a pixel terminal the glyph's two cells are left blank
-/// for the vector ring the compositor draws over them.
-fn checkpoint_button(model: &Model, pen: &Pen) -> Node {
-    action_button_label(Icon::Checkpoint, "Checkpoint", model, pen).style(pen.warn.clone())
-}
-
-/// A trace action's label: `[glyph word]` on a plain terminal; on a
-/// graphics one the word after two blank cells that carry the glyph as
-/// a two-cell mark, so the vector stays legible beside the word.
-fn action_button_label(icon: Icon, word: &str, model: &Model, pen: &Pen) -> Node {
-    if model.has_pixels() {
-        Node::text(format!("   {word}"))
-            .mark(Mark::Icon {
-                icon,
-                col: 0,
-                cols: 2,
-                ink: pen.ink(icon),
-            })
-            .height(Length::Cells(1))
-            .shrink(0.0)
-    } else {
-        segment(
-            &format!("[{} {word}]", pen.icons.of(icon)),
-            Style::default(),
-        )
-    }
-}
-
-/// The Trace tab's scrolling rows, in order — counted by
-/// [`Trace::body_rows`](crate::cockpit::Trace::body_rows).
-fn trace_body(model: &Model, pen: &Pen) -> Vec<Node> {
-    let trace = model.trace();
-    if let Some(lines) = trace.viewer() {
-        return lines
-            .iter()
-            .map(|line| {
-                Node::text(line.as_str())
-                    .style(pen.code.clone())
-                    .height(Length::Cells(1))
-            })
-            .collect();
-    }
-    if trace.is_empty() {
+/// One compact row per recorded event; detail lives in the inspector.
+fn session_body(model: &Model, pen: &Pen) -> Vec<Node> {
+    use super::session_item::SessionItem;
+    let items = SessionItem::collect(model.trace(), model.changes());
+    if items.is_empty() {
         return vec![
-            Node::text("no reasoning yet — the trace is quiet")
+            Node::text("No session activity yet")
                 .style(pen.note.clone())
-                .height(Length::Cells(1)),
+                .height(Length::Cells(1))
+                .shrink(0.0),
         ];
     }
-    let focus = trace.focus();
-    let mut rows = Vec::new();
-    for (index, step) in trace.steps().iter().enumerate() {
-        let selected = model.selected() == Some(&Selected::Step(step.number));
-        let lit = focus.as_ref().is_none_or(|focus| focus.is_lit(index));
-        rows.push(trace_head(step, index, selected, lit, model, pen));
-    }
-    if !trace.moments().is_empty() {
-        rows.push(
-            Node::text("recorded work")
-                .style(pen.heading.clone())
-                .height(Length::Cells(1)),
-        );
-        rows.extend(
-            trace
-                .moments()
-                .iter()
-                .map(|moment| moment_row(moment, model, pen)),
-        );
-    }
-    rows
+    let focus = model.trace().focus();
+    items
+        .into_iter()
+        .enumerate()
+        .map(|(row, item)| {
+            let selected = model.selected() == Some(&item.selection());
+            let (content, id) = match item {
+                SessionItem::Step(index, step) => (
+                    trace_head(
+                        step,
+                        selected,
+                        focus.as_ref().is_none_or(|f| f.is_lit(index)),
+                        model,
+                        pen,
+                    ),
+                    Widget::trace_row(index),
+                ),
+                SessionItem::Change(index, entry) => (
+                    change_head(
+                        entry,
+                        selected,
+                        model.changes().is_approved(&entry.id),
+                        model,
+                        pen,
+                    ),
+                    Widget::change_row(index),
+                ),
+                SessionItem::Moment(_, moment) => {
+                    (moment_row(moment, model, pen), Widget::session_row(row))
+                }
+                SessionItem::Run(_, run) => (
+                    Marked::new(model, pen)
+                        .icon(Icon::check(run.passed))
+                        .text(&format!(" run · {} · {}", run.name, run.detail))
+                        .node(),
+                    Widget::session_row(row),
+                ),
+            };
+            let base = if row.is_multiple_of(2) {
+                &pen.code
+            } else {
+                &pen.stage
+            };
+            let style = if selected {
+                pen.raise(base)
+            } else {
+                base.clone()
+            };
+            let mut line = Node::row()
+                .id(id)
+                .style(style.clone())
+                .height(Length::Cells(1))
+                .shrink(0.0)
+                .viewport();
+            if model.trace_width() >= 48 {
+                line = line.child(
+                    Node::text(format!("{:12} ", item.time_label()))
+                        .width(Length::Cells(13))
+                        .shrink(0.0)
+                        .style(style.clone()),
+                );
+            }
+            // The parent owns the hit rect and background; the content owns its glyphs.
+            line.child(
+                content
+                    .style(style)
+                    .grow(1.0)
+                    .min_width(Length::Cells(0))
+                    .viewport(),
+            )
+        })
+        .collect()
 }
 
 /// A breathing row between card sections.
@@ -1430,7 +1301,6 @@ fn roadmap_head(
 /// unrelated — hittable to select or fold the step.
 fn trace_head(
     step: &crate::cockpit::TraceStep,
-    index: usize,
     selected: bool,
     lit: bool,
     model: &Model,
@@ -1463,10 +1333,7 @@ fn trace_head(
     } else {
         pen.note.clone()
     };
-    line.node()
-        .id(Widget::trace_row(index))
-        .style(style)
-        .height(Length::Cells(1))
+    line.node().style(style).height(Length::Cells(1))
 }
 
 /// One ship-timeline row: an action with its kind, description and
@@ -1502,6 +1369,7 @@ fn moment_row(moment: &crate::cockpit::ShipMoment, model: &Model, pen: &Pen) -> 
             passed,
             exit_code,
             duration_ms,
+            ..
         } => {
             let mut text = format!(" {name}");
             if let Some(code) = exit_code {
@@ -3228,8 +3096,8 @@ fn hint_context(model: &Model) -> &'static [Binding] {
             DockItem::Proposal { .. } => Binding::HINT_PROPOSAL,
             DockItem::Blocker { .. } => Binding::HINT_BLOCKER,
         }
-    } else if model.tab() == StageTab::Changes && model.changes().viewer().is_some()
-        || model.tab() == StageTab::Trace && model.trace().viewer().is_some()
+    } else if model.pane() == Pane::Inspector
+        && (model.changes().viewer().is_some() || model.trace().viewer().is_some())
     {
         Binding::HINT_VIEWER
     } else if running_loop.is_some_and(LoopStatus::is_paused) {
@@ -3245,13 +3113,12 @@ fn hint_context(model: &Model) -> &'static [Binding] {
     } else if model.prompt().is_empty() && model.pane() == Pane::Inspector {
         Binding::HINT_INSPECTOR
     } else if model.prompt().is_empty()
-        && (matches!(model.tab(), StageTab::Roadmap | StageTab::Changes)
-            || model.tab() == StageTab::Trace && !model.trace().steps().is_empty())
+        && matches!(model.tab(), StageTab::Roadmap | StageTab::Session)
     {
         if model.tab() == StageTab::Roadmap {
             Binding::HINT_ROADMAP
         } else {
-            Binding::HINT_TRACE
+            Binding::HINT_SESSION
         }
     } else if model.tab() == StageTab::Home {
         Binding::HINT_HOME

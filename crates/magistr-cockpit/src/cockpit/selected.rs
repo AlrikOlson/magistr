@@ -8,4 +8,8 @@ pub enum Selected {
     Step(u32),
     Change(String),
     Signal(String),
+    /// Recorded action or check, keyed by its source identity.
+    Receipt(String),
+    /// Latest Workbench run result.
+    Run(usize),
 }

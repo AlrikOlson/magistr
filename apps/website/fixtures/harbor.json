@@ -1279,6 +1279,26 @@
       "status": "planned"
     }
   ],
+  "changes": [
+    {
+      "id": "harbor-retry-lease",
+      "path": "src/retry/lease.rs",
+      "at_ms": 1787062260000,
+      "added": 18,
+      "removed": 4,
+      "parse_ok": true,
+      "diff": "@@ lease renewal @@\n-renew_in_memory();\n+receipt_and_schedule.commit()?;"
+    },
+    {
+      "id": "harbor-retry-budget",
+      "path": "src/retry/budget.rs",
+      "at_ms": 1787062710000,
+      "added": 12,
+      "removed": 7,
+      "parse_ok": true,
+      "diff": "@@ tenant budget @@\n-shared_pool.take();\n+tenant_budget.decrement();"
+    }
+  ],
   "steps": [
     {
       "step_number": 1,

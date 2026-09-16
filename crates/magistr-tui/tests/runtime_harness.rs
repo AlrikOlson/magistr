@@ -293,7 +293,7 @@ async fn an_idle_roadmap_tab_paints_nothing_while_its_glow_holds() {
     let (model, capture) = run(Script::new()
         .startup_replies(MS(0))
         // Ctrl-Tab from Turn past Changes and Trace to the tech-tree.
-        .text(MS(30), "\x1b[9;5u\x1b[9;5u\x1b[9;5u")
+        .text(MS(30), "\x1b[9;5u\x1b[9;5u")
         .text(MS(1030), "\x15\x04"))
     .await;
     assert_eq!(
@@ -721,13 +721,13 @@ async fn a_wheel_over_the_undocked_column_moves_its_feed_and_not_the_turn() {
     );
     assert_eq!(
         model.undocked_tab(),
-        Some(magistr_cockpit::cockpit::StageTab::Trace)
+        Some(magistr_cockpit::cockpit::StageTab::Session)
     );
     assert_eq!(model.inputs(), 2, "the notch and the quit");
-    let (total, height) = model.trace_window();
+    let (total, height) = model.session_window();
     assert!(total > height, "the feed is longer than the column");
     assert_eq!(
-        model.trace_top(),
+        model.session_top(),
         total - height - 3,
         "the feed took the notch"
     );

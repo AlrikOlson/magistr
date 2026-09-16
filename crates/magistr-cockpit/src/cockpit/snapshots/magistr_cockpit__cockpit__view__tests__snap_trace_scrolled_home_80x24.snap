@@ -5,16 +5,16 @@ expression: screen
 ▲ magistr  idle                                                            00:01
 Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
-│no objective yet          │ │reasoning  20 steps                [✱ Checkpoint]│
-│roadmap 0/0 done          │ │▸  1  step 1                                     │
-│signals 0                 │ │▸  2  step 2                                     │
-│                          │ │▸  3  step 3                                     │
-│                          │ │▸  4  step 4                                     │
-│                          │ │▸  5  step 5                                     │
-│                          │ │▸  6  step 6                                     │
-│                          │ │▸  7  step 7                                     │
-│                          │ │▸  8  step 8                                     │
+│◂                         │ │Home  Turn  Session  Roadmap                     │
+│no objective yet          │ │session · 20 steps · 0 changes · UTC             │
+│roadmap 0/0 done          │ │time unknown ▸  1  step 1                        │
+│signals 0                 │ │time unknown ▸  2  step 2                        │
+│                          │ │time unknown ▸  3  step 3                        │
+│                          │ │time unknown ▸  4  step 4                        │
+│                          │ │time unknown ▸  5  step 5                        │
+│                          │ │time unknown ▸  6  step 6                        │
+│                          │ │time unknown ▸  7  step 7                        │
+│                          │ │time unknown ▸  8  step 8                        │
 │                          │ ╰─────────────────────────────────────────────────╯
 │                          │ ╭─ inspector ─────────────────────────────────────╮
 │                          │ │Select a work item, step or change               │

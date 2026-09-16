@@ -83,6 +83,7 @@ fn every_place_draws_a_surface_and_the_tabs_round_trip() {
                 );
                 assert_eq!(Place::of_tab(place.tab()), Place::Sky);
             }
+            Place::Changes => assert_eq!(place.tab(), StageTab::Session),
             _ => assert_eq!(Place::of_tab(place.tab()), place, "{place:?}"),
         }
     }

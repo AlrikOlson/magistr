@@ -5,7 +5,7 @@ expression: s
 ▲ magistr  idle                                                            00:01
 tabs  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭─────────────────────────────────────────────────╮
-│◂                         │ │Home  Turn  Changes  Trace  Roadmap              │
+│◂                         │ │Home  Turn  Session  Roadmap                     │
 │no objective yet          │ │magistr · Rust / Cargo                           │
 │▲ tabs · 2/4              │ │master, clean · ACP (available)                  │
 │▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │next · nothing ready                             │

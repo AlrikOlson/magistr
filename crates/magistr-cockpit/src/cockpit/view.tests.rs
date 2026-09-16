@@ -739,7 +739,7 @@ fn the_stage_shows_the_turn_rows_in_their_pens() {
     let mut found = Vec::new();
     styles(&root, &mut found);
     assert_eq!(
-        &found[..24],
+        &found[..23],
         &[
             pen.base.clone(),
             pen.footer.clone(),
@@ -763,14 +763,13 @@ fn the_stage_shows_the_turn_rows_in_their_pens() {
             pen.tab_active.clone(),
             pen.tab_inactive.clone(),
             pen.tab_inactive.clone(),
-            pen.tab_inactive.clone(),
             pen.stage.clone()
         ],
         "root, the header bar (brand, the streaming state, the clock), the \
          strip and its four phases (none current) between their separators, \
          the rail panel (its surface, its toggle in the note pen — the plan \
          title lives in the frame now — progress and signals), the unstyled \
-         divider, the tab bar with Turn bright among the five tabs, stage, \
+         divider, the tab bar with Turn bright among the four tabs, stage, \
          then the rows"
     );
     let top = m.top_row();
@@ -788,7 +787,7 @@ fn the_stage_shows_the_turn_rows_in_their_pens() {
         })
         .collect();
     assert_eq!(
-        &found[24..24 + rows.len()],
+        &found[23..23 + rows.len()],
         &rows[..],
         "each row is its band, its accent gutter, then its text"
     );
@@ -1286,7 +1285,7 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
     let mut found = Vec::new();
     styles(&root, &mut found);
     assert_eq!(
-        &found[2..30],
+        &found[2..29],
         &[
             pen.header.clone(),
             pen.always.clone(),
@@ -1313,7 +1312,6 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
             pen.rail.clone(),
             pen.tab_inactive.clone(),
             pen.tab_active.clone(),
-            pen.tab_inactive.clone(),
             pen.tab_inactive.clone(),
             pen.tab_inactive.clone(),
             pen.stage.clone(),
@@ -1404,11 +1402,11 @@ fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
         ["◂", "no objective yet", "roadmap 0/0 done", "signals 0"]
     );
     assert_eq!(
-        &lines[15..20],
-        ["Home", "Turn", "Changes", "Trace", "Roadmap"],
+        &lines[15..19],
+        ["Home", "Turn", "Session", "Roadmap"],
         "the tab bar sits between the rail and the stage"
     );
-    assert!(lines[20].starts_with("nothing yet"));
+    assert!(lines[19].starts_with("nothing yet"));
 }
 
 #[test]
@@ -1682,14 +1680,14 @@ fn a_switched_tab_shows_its_placeholder_and_the_bar_marks_it() {
     // The pinned heading is the empty tab's whole answer — there is no
     // note under it saying the same thing a second time.
     assert!(
-        lines.contains(&"changes · nothing journaled yet".to_owned()),
+        lines.contains(&"No session activity yet".to_owned()),
         "{lines:?}"
     );
     assert!(!lines.contains(&"Still streaming".to_owned()));
     let pen = Pen::of(&m.theme().palette());
     let mut found = Vec::new();
     styles(&root, &mut found);
-    assert!(found.contains(&pen.phase_current), "Changes is bright");
+    assert!(found.contains(&pen.phase_current), "Session is bright");
     update(
         &mut m,
         Msg::Key(Key::new(KeyCode::Tab).with(Mods::CTRL | Mods::SHIFT)),
@@ -1956,14 +1954,14 @@ fn snap_changes_viewer_120x40() {
 #[test]
 fn snap_trace_tail_80x24() {
     let m = Scenes::long_trace(Size::new(80, 24));
-    let (total, height) = m.trace_window();
+    let (total, height) = m.session_window();
     assert!(
         total > height,
         "the trace outgrows the stage: {total} > {height}"
     );
     let screen = screen(&m);
     assert!(
-        screen.contains("reasoning"),
+        screen.contains("session ·"),
         "the heading is pinned: {screen}"
     );
     assert!(
@@ -1982,10 +1980,10 @@ fn snap_trace_scrolled_home_80x24() {
     let mut m = Scenes::long_trace(Size::new(80, 24));
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Home)));
     Scenes::settle(&mut m);
-    assert_eq!(m.trace_top(), 0, "Home pins the body's first row");
+    assert_eq!(m.session_top(), 0, "Home pins the body's first row");
     let screen = screen(&m);
     assert!(
-        screen.contains("reasoning"),
+        screen.contains("session ·"),
         "the heading is still pinned: {screen}"
     );
     assert!(screen.contains("▸  1  step 1 "), "the head shows: {screen}");
@@ -2000,7 +1998,7 @@ fn snap_trace_scrolled_home_80x24() {
 fn the_wheel_and_the_page_keys_move_the_trace_not_the_turn() {
     let mut m = Scenes::long_trace(Size::new(80, 24));
     let turn_top = m.top_row();
-    let tail = m.trace_top();
+    let tail = m.session_top();
     update(
         &mut m,
         Msg::Mouse {
@@ -2009,15 +2007,15 @@ fn the_wheel_and_the_page_keys_move_the_trace_not_the_turn() {
         },
     );
     Scenes::settle(&mut m);
-    assert!(m.trace_top() < tail, "the wheel left the tail");
+    assert!(m.session_top() < tail, "the wheel left the tail");
     assert_eq!(m.top_row(), turn_top, "the turn's own window stayed put");
 
-    let before = m.trace_top();
-    let page = m.trace_window().1.saturating_sub(1).max(1);
+    let before = m.session_top();
+    let page = m.session_window().1.saturating_sub(1).max(1);
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::PageUp)));
     Scenes::settle(&mut m);
     assert_eq!(
-        m.trace_top(),
+        m.session_top(),
         before.saturating_sub(page),
         "a page moves by the visible body"
     );
@@ -2025,16 +2023,19 @@ fn the_wheel_and_the_page_keys_move_the_trace_not_the_turn() {
 
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::End)));
     Scenes::settle(&mut m);
-    assert_eq!(m.trace_top(), tail, "End follows the tail again");
+    assert_eq!(m.session_top(), tail, "End follows the tail again");
 }
 
 #[test]
 fn snap_trace_feed_120x40() {
     let m = Scenes::traced(Size::new(120, 40));
-    assert_eq!(m.tab(), StageTab::Trace);
+    assert_eq!(m.tab(), StageTab::Session);
     let screen = screen(&m);
-    assert!(screen.contains("reasoning  5 steps · 1 branch"), "{screen}");
-    assert!(screen.contains("[✱ Checkpoint]"), "{screen}");
+    assert!(screen.contains("session · 5 steps · 1 branch"), "{screen}");
+    assert!(
+        !screen.contains("[✱ Checkpoint]"),
+        "actions belong in the inspector"
+    );
     assert!(
         screen.contains("revised by 5"),
         "the revision hint shows: {screen}"
@@ -2098,6 +2099,69 @@ fn snap_trace_step_expanded_120x40() {
 }
 
 #[test]
+fn session_receipts_and_reports_share_the_inspector() {
+    let mut m = Model::new(Size::new(132, 42)).with_tab(StageTab::Session);
+    Scenes::engine_frame(
+        &mut m,
+        "ship",
+        "action_recorded",
+        serde_json::json!({
+            "task_id": "wire", "action": {
+                "id": 42, "type": "code", "description": "Persist the schedule",
+                "timestamp": "2026-09-15T12:00:00Z", "files_touched": ["src/schedule.rs"]
+            }
+        }),
+    );
+    Scenes::engine_frame(
+        &mut m,
+        "ship",
+        "check_recorded",
+        serde_json::json!({
+            "task_id": "wire", "check": {
+                "name": "retry recovery", "passed": false, "exit_code": 101,
+                "timestamp": "2026-09-15T12:01:00Z", "results": {"duration_ms": 800}
+            }
+        }),
+    );
+    let card = |m: &Model| {
+        let mut content = Vec::new();
+        texts(
+            &super::super::inspector::Inspector::view(m, &Pen::for_theme(&m.theme())),
+            &mut content,
+        );
+        content.join("\n")
+    };
+    for (index, expected) in [(0, "Persist the schedule"), (1, "retry recovery")] {
+        update(
+            &mut m,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::session_row(index)),
+            },
+        );
+        assert!(card(&m).contains(expected));
+    }
+    let detail = card(&m);
+    assert!(detail.contains("exit code · 101"), "{detail}");
+    assert!(detail.contains("duration · 800 ms"), "{detail}");
+    assert!(detail.contains("2026-09-15T12:01:00Z"), "{detail}");
+    let timeline = m.session_window();
+    update(
+        &mut m,
+        Msg::Engine(crate::engine::EngineEvent::Checkpoint {
+            lines: vec!["checkpoint body".into()],
+        }),
+    );
+    assert!(card(&m).contains("checkpoint body"));
+    assert_eq!(m.session_window(), timeline);
+    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Esc)));
+    assert!(
+        card(&m).contains("retry recovery"),
+        "closing the report restores the selected receipt"
+    );
+}
+
+#[test]
 fn snap_trace_ship_timeline_120x40() {
     let mut m = Model::new(Size::new(120, 40));
     Scenes::engine_frame(
@@ -2125,7 +2189,7 @@ fn snap_trace_ship_timeline_120x40() {
         &mut m,
         Msg::Mouse {
             event: MouseEvent::new(MouseKind::Down(Button::Left), 40, 2),
-            target: Some(Widget::TabTrace.id()),
+            target: Some(Widget::TabSession.id()),
         },
     );
     let screen = screen(&m);
@@ -2153,7 +2217,7 @@ fn the_trace_graph_block_is_laid_out_only_with_branches() {
         &mut plain,
         Msg::Mouse {
             event: MouseEvent::new(MouseKind::Down(Button::Left), 40, 2),
-            target: Some(Widget::TabTrace.id()),
+            target: Some(Widget::TabSession.id()),
         },
     );
     let resolved = layout(&view(&plain, &clock()), Size::new(120, 40));
@@ -2316,10 +2380,10 @@ fn think_step_frame(m: &mut Model, number: u32) {
 #[test]
 fn snap_undocked_trace_180x50() {
     let mut m = Scenes::roadmapped(Size::new(180, 50));
-    assert_eq!(m.undocked_tab(), Some(StageTab::Trace));
+    assert_eq!(m.undocked_tab(), Some(StageTab::Session));
     think_step_frame(&mut m, 7);
     let screen = screen(&m);
-    assert!(screen.contains("⇱ Trace"), "{screen}");
+    assert!(screen.contains("⇱ Session"), "{screen}");
     assert!(screen.contains("▸  7  hypothesis  0.70"), "{screen}");
     assert!(
         screen.contains("▲ Rail and dock"),
@@ -2346,11 +2410,11 @@ fn the_undock_needs_width_and_never_doubles_the_active_tab() {
         !placement(&resolved).contains("undock"),
         "no third column below 160 columns"
     );
-    let on_trace = Model::new(Size::new(180, 50)).with_tab(StageTab::Trace);
+    let on_trace = Model::new(Size::new(180, 50)).with_tab(StageTab::Session);
     assert_eq!(
         on_trace.undocked_tab(),
-        Some(StageTab::Changes),
-        "the Trace tab on stage undocks the journal instead"
+        None,
+        "the Session view is never duplicated"
     );
 }
 
@@ -3381,14 +3445,14 @@ fn a_tab_switch_pulses_the_active_tab_then_settles() {
         &mut m,
         Msg::Key(crate::input::KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
     );
-    assert_eq!(m.tab(), StageTab::Changes);
-    let row = row_of(&m, "Changes");
+    assert_eq!(m.tab(), StageTab::Session);
+    let row = row_of(&m, "Session");
     let line = screen(&m)
         .lines()
         .nth(usize::from(row))
         .expect("row")
         .to_owned();
-    let byte = line.find("Changes").expect("the tab label");
+    let byte = line.find("Session").expect("the tab label");
     let col = u16::try_from(line[..byte].chars().count()).expect("cols fit");
     assert_eq!(
         cell_style(&m, col, row),
@@ -4188,9 +4252,10 @@ fn the_stage_shows_an_image_block() {
 /// A Changes tab with a journal far longer than the stage.
 fn long_changes(size: Size) -> Model {
     let mut m = Model::new(size);
-    m.tab = StageTab::Changes;
+    m.tab = StageTab::Session;
     let entries: Vec<crate::workbench::JournalEntry> = (0..120)
         .map(|n| crate::workbench::JournalEntry {
+            at_ms: None,
             id: format!("e{n}"),
             path: format!("src/file-{n:03}.rs"),
             added: 1,
@@ -4200,6 +4265,8 @@ fn long_changes(size: Size) -> Model {
         })
         .collect();
     update(&mut m, Msg::Workbench(WorkbenchEvent::Journal { entries }));
+    update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Home)));
+    Scenes::settle(&mut m);
     m
 }
 
@@ -4209,9 +4276,9 @@ fn the_changes_body_count_is_the_rows_the_tab_paints() {
     // list, so the count the model keeps must be the view's own.
     let mut m = long_changes(Size::new(80, 24));
     let pen = Pen::for_theme(&m.theme());
-    assert_eq!(changes_body(&m, &pen).len(), m.changes().body_rows());
+    assert_eq!(session_body(&m, &pen).len(), m.session_window().0);
     m.changes.toggle(0);
-    assert_eq!(changes_body(&m, &pen).len(), m.changes().body_rows());
+    assert_eq!(session_body(&m, &pen).len(), m.session_window().0);
     m.changes.set_runs(
         "test",
         vec![crate::workbench::RunRow {
@@ -4220,9 +4287,9 @@ fn the_changes_body_count_is_the_rows_the_tab_paints() {
             detail: String::new(),
         }],
     );
-    assert_eq!(changes_body(&m, &pen).len(), m.changes().body_rows());
+    assert_eq!(session_body(&m, &pen).len(), m.session_window().0);
     m.changes.open_viewer("src/lib.rs", vec!["a".to_owned()]);
-    assert_eq!(changes_body(&m, &pen).len(), m.changes().body_rows());
+    assert_eq!(session_body(&m, &pen).len(), m.session_window().0);
 }
 
 #[test]
@@ -4251,11 +4318,11 @@ fn the_changes_pinned_and_body_counts_are_the_rows_the_tab_paints() {
     // Tall enough that the whole body fits: painted == pinned + body.
     let mut m = long_changes(Size::new(80, 200));
     let fits = |m: &Model| {
-        let (total, height) = m.changes_window();
+        let (total, height) = m.session_window();
         assert!(total <= height, "the case is meant to fit");
         assert_eq!(
-            changes_rows(m, &pen).len(),
-            m.changes().pinned_rows() + m.changes().body_rows()
+            timeline_rows(m, &pen).len(),
+            1 + usize::from(m.trace_graph_rows()) + m.session_window().0
         );
     };
     fits(&m);
@@ -4284,11 +4351,11 @@ fn the_changes_pinned_and_body_counts_are_the_rows_the_tab_paints() {
     // And when it does not fit, the paint is the pinned block plus one
     // window — never more than the stage has rows for.
     let m = long_changes(Size::new(80, 24));
-    let (total, height) = m.changes_window();
+    let (total, height) = m.session_window();
     assert!(height < total, "the case is meant to overflow");
     assert_eq!(
-        changes_rows(&m, &pen).len(),
-        m.changes().pinned_rows() + height
+        timeline_rows(&m, &pen).len(),
+        1 + usize::from(m.trace_graph_rows()) + height
     );
 }
 
@@ -4315,8 +4382,7 @@ fn the_changes_heading_and_run_verdict_stay_pinned_while_the_list_scrolls() {
         ],
     );
     assert_eq!(m.changes().pinned_rows(), 2);
-    let heading = "changes · 120 files";
-    let verdict = "run test · 1 failed of 2";
+    let heading = "session · 0 steps · 120 changes";
 
     for (label, key) in [
         ("at the top", None),
@@ -4330,7 +4396,6 @@ fn the_changes_heading_and_run_verdict_stay_pinned_while_the_list_scrolls() {
         }
         let screen = screen(&m);
         assert!(screen.contains(heading), "{label}: the heading: {screen}");
-        assert!(screen.contains(verdict), "{label}: the verdict: {screen}");
     }
     // The run's own result rows are body rows, so they are only on
     // screen at the end the journal puts them at.
@@ -4350,11 +4415,12 @@ fn conflicted(size: Size) -> Model {
         &mut m,
         Msg::Key(KeyEvent::new(KeyCode::Tab).with(crate::input::Modifiers::CTRL)),
     );
-    assert_eq!(m.tab(), StageTab::Changes);
+    assert_eq!(m.tab(), StageTab::Session);
     update(
         &mut m,
         Msg::Workbench(WorkbenchEvent::Journal {
             entries: vec![JournalEntry {
+                at_ms: None,
                 id: "e1".to_owned(),
                 path: "src/lib.rs".to_owned(),
                 added: 3,
@@ -4513,19 +4579,14 @@ fn the_undock_column_windows_by_the_same_rows_as_the_stage() {
             "{size:?}"
         );
         let chrome = 1 + 2 * usize::from(Space::PAD);
-        assert_eq!(m.undocked_tab(), Some(StageTab::Trace));
+        assert_eq!(m.undocked_tab(), Some(StageTab::Session));
         assert_eq!(
-            m.trace_window().1 + m.trace().pinned_rows(m.has_pixels()) + chrome,
+            m.session_window().1 + m.trace().pinned_rows(m.has_pixels()) + chrome,
             usize::from(undock.height),
             "the trace feed fills the column exactly at {size:?}"
         );
-        let on_trace = m.with_tab(StageTab::Trace);
-        assert_eq!(on_trace.undocked_tab(), Some(StageTab::Changes));
-        assert_eq!(
-            on_trace.changes_window().1 + on_trace.changes().pinned_rows() + chrome,
-            usize::from(undock.height),
-            "and so does the journal at {size:?}"
-        );
+        let on_session = m.with_tab(StageTab::Session);
+        assert_eq!(on_session.undocked_tab(), None);
     }
 }
 
@@ -4611,7 +4672,7 @@ fn the_chunk_link_does_not_move_a_row() {
     let mut plain = Scenes::traced(Size::new(120, 40));
     expand_first_step(&mut linked);
     expand_first_step(&mut plain);
-    assert_eq!(linked.trace_window().0, plain.trace_window().0);
+    assert_eq!(linked.session_window().0, plain.session_window().0);
 }
 
 #[test]
@@ -4963,7 +5024,7 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
                 assert!(inspector.width > 0 && inspector.height > 0);
                 assert_eq!(
                     m.inspector_stacked(),
-                    cols <= 100 || (cols == 160 && pixels)
+                    cols <= 100 || (cols == 160 && pixels && m.tab() != StageTab::Session)
                 );
                 if m.inspector_stacked() {
                     assert!(inspector.y >= stage.y + stage.height);
@@ -4990,14 +5051,12 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
                 assert_eq!(sections[4].width, m.inspector_width());
                 assert!(sections[4].height > 0, "a field remains readable");
                 let before = match m.tab() {
-                    StageTab::Trace => trace_body(&m, &Pen::for_theme(&m.theme())).len(),
-                    StageTab::Changes => changes_body(&m, &Pen::for_theme(&m.theme())).len(),
+                    StageTab::Session => session_body(&m, &Pen::for_theme(&m.theme())).len(),
                     _ => roadmap_body(&m, &Pen::for_theme(&m.theme())).len(),
                 };
                 update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
                 let after = match m.tab() {
-                    StageTab::Trace => trace_body(&m, &Pen::for_theme(&m.theme())).len(),
-                    StageTab::Changes => changes_body(&m, &Pen::for_theme(&m.theme())).len(),
+                    StageTab::Session => session_body(&m, &Pen::for_theme(&m.theme())).len(),
                     _ => roadmap_body(&m, &Pen::for_theme(&m.theme())).len(),
                 };
                 assert_eq!(before, after, "disclosure never changes the stage list");
@@ -5076,7 +5135,7 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
                             "{cols}x{rows}: card text wider than the stage: {text:?}"
                         );
                     }
-                    let (total, height) = m.trace_window();
+                    let (total, height) = m.session_window();
                     assert!(height > 0, "{cols}x{rows}: the trace body has room");
                     assert!(total >= m.trace().steps().len(), "every step has a row");
                 }
