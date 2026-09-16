@@ -90,12 +90,20 @@ inspector sits to the right when the stage retains at least 40 content columns;
 otherwise it stacks below the stage. Plain terminals use the same panes. The
 dock and prompt remain below the body.
 
-One `Selected` identity names a chunk, reasoning step, or change. Lists stay
+One `Selected` identity names a chunk, reasoning step, change, or signal. Lists stay
 compact; the shared inspector renders title, status, metadata, actions, and
 scrollable fields in that order. Selection survives view changes and resizing.
 Tab and Shift-Tab cycle pane focus; Ctrl-Tab cycles views. With an empty prompt,
 stage arrows select objects, Enter toggles inspector detail, and Esc closes it.
 Inspector arrows, page keys, and the wheel scroll its fields independently.
+
+Roadmap places the graph beside a status-filtered table at 132 columns when the
+stage has room, and stacks them on narrower terminals. The table carries name,
+status, numeric priority and workstream columns. Click a column to sort, then
+again to reverse it; Alt-F cycles the status filter, Alt-S cycles columns and
+Alt-R reverses the current column. Filter and sort changes preserve selected
+identity. Work-item proposals and signal triage actions live in the shared
+inspector; the graph and table select into that same card.
 
 Motion is a function of model ticks. The model reports its active animations;
 an empty set removes the timer. Reduced motion and decision screens suppress

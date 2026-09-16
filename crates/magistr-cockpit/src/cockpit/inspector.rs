@@ -21,6 +21,7 @@ struct Card {
     actions: Vec<(&'static str, WidgetId)>,
     fields: Vec<(String, String)>,
     diff: Option<String>,
+    proposals: Vec<(usize, String)>,
 }
 
 impl Inspector {
@@ -150,6 +151,11 @@ impl Inspector {
             || Widget::change_open_index(id).is_some()
             || Widget::change_undo_index(id).is_some()
             || Widget::change_approve_index(id).is_some()
+            || Widget::proposal_accept_index(id).is_some()
+            || Widget::proposal_reject_index(id).is_some()
+            || Widget::signal_promote_index(id).is_some()
+            || Widget::signal_ignore_index(id).is_some()
+            || Widget::signal_snooze_index(id).is_some()
     }
 
     /// Scroll within the current field set, clamped to its visible extent.
@@ -192,6 +198,7 @@ impl Card {
             actions: Vec::new(),
             fields: Vec::new(),
             diff: None,
+            proposals: Vec::new(),
         };
         match model.selected()? {
             Selected::Chunk(id) => {
@@ -227,11 +234,48 @@ impl Card {
                     card.fields
                         .push(("references".into(), chunk.cross_refs.join(", ")));
                 }
-                if chunk.is_in_progress() {
+                card.proposals = model
+                    .roadmap()
+                    .proposals()
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(_, (owner, _, _, _))| owner.id == chunk.id)
+                    .map(|(index, (_, kind, suggestion, reason))| {
+                        (index, format!("{} → {suggestion} · {reason}", kind.label()))
+                    })
+                    .collect();
+                if matches!(chunk.status.as_str(), "in_progress" | "stuck") {
                     card.actions
                         .push(("Complete", Widget::RoadmapComplete.id()));
                 } else if matches!(chunk.status.as_str(), "pending" | "blocked" | "backlog") {
                     card.actions.push(("Start", Widget::RoadmapStart.id()));
+                }
+            }
+            Selected::Signal(id) => {
+                let signals = model.roadmap().signals();
+                let (index, signal) = signals
+                    .iter()
+                    .enumerate()
+                    .find(|(_, signal)| signal.id == *id)?;
+                card.title = signal.title().to_owned();
+                card.status = signal.status.clone();
+                card.icon = Icon::Signal;
+                card.metadata = format!("{} · {}", signal.kind, signal.from);
+                card.actions = vec![
+                    ("Promote", Widget::signal_promote(index)),
+                    ("Ignore", Widget::signal_ignore(index)),
+                    ("Snooze", Widget::signal_snooze(index)),
+                ];
+                card.fields = vec![("body".into(), signal.body.clone())];
+                if let Some(findings) = &signal.findings {
+                    card.fields.push(("findings".into(), findings.clone()));
+                }
+                if model.inspector_open() {
+                    card.fields.push(("id".into(), signal.id.clone()));
+                    if let Some(confidence) = signal.confidence {
+                        card.fields
+                            .push(("confidence".into(), format!("{confidence:.1}")));
+                    }
                 }
             }
             Selected::Step(number) => {
@@ -322,6 +366,22 @@ impl Card {
 
     fn rows(&self, width: u16, full: bool, pen: &Pen) -> Vec<Node> {
         let mut rows = Vec::new();
+        for (index, proposal) in &self.proposals {
+            rows.extend(
+                TextMetrics::new(proposal)
+                    .wrap(width.max(1))
+                    .into_iter()
+                    .map(|text| line(text, &pen.permission)),
+            );
+            rows.push(
+                Node::row()
+                    .gap(Space::TIGHT)
+                    .height(Length::Cells(1))
+                    .shrink(0.0)
+                    .child(line("Accept", &pen.allow).id(Widget::proposal_accept(*index)))
+                    .child(line("Reject", &pen.deny).id(Widget::proposal_reject(*index))),
+            );
+        }
         for (label, value) in &self.fields {
             if value.trim().is_empty() {
                 continue;

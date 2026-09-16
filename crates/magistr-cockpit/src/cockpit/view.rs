@@ -35,7 +35,7 @@ use super::turn_state::TurnState;
 use super::widget::Widget;
 use crate::agent::{PermissionKind, ToolStatus};
 use crate::layout::{Frame, Inset, Length, Mark, Node};
-use crate::pixel::{Icon, RoadmapDag};
+use crate::pixel::Icon;
 use crate::render::{Attrs, Cell, Color, Style, width};
 use crate::theme::{Icons, Pen};
 use crate::turn::{Accent, Row, RowKind};
@@ -1158,15 +1158,7 @@ fn trace_body(model: &Model, pen: &Pen) -> Vec<Node> {
     rows
 }
 
-/// Columns the tech-tree block keeps as a text legend on its left —
-/// the workstream names in tier order; the driver places the pixel
-/// surface to their right, so glyphs and pixels never overlap.
-pub const ROADMAP_LEGEND_COLS: u16 = 26;
-
-/// The name column's width on a chunk row.
-const ROADMAP_NAME_COLS: usize = 24;
-
-/// A one-cell breathing row between the tab's sections.
+/// A breathing row between card sections.
 fn spacer() -> Node {
     Node::text("").height(Length::Cells(1))
 }
@@ -1182,296 +1174,254 @@ fn clip(text: &str, max: usize) -> String {
     }
 }
 
-/// The Roadmap tab: a heading that carries the accounting and the
-/// tech-tree block (workstream legend on the left, the pixel DAG placed
-/// to its right in Graphics mode) pinned above a scrolling body — the
-/// hover line, then the working set as status sections (one aligned row
-/// per chunk, details in the inspector, done collapsed to a count) and the open
-/// proposals and the signals inbox, each row with its buttons; a quiet
-/// note while the store is empty.
+/// The graph and table share one stage allocation. Both stay beside the inspector.
 fn roadmap_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     let roadmap = model.roadmap();
-    let mut rows = vec![
-        Node::row()
-            .height(Length::Cells(1))
-            .child(segment("roadmap", pen.heading.clone()))
-            .child(segment("   ", pen.stage.clone()))
-            .child(segment(&roadmap.summary_line(), pen.note.clone())),
-    ];
+    let heading = match roadmap.hovered_title() {
+        Some(title) => Marked::new(model, pen)
+            .icon(Icon::Here)
+            .text(&format!(" {title}"))
+            .node(),
+        None => Node::text(clip(
+            &format!("roadmap   {}", roadmap.summary_line()),
+            usize::from(model.stage_width()),
+        )),
+    }
+    .style(pen.heading.clone())
+    .height(Length::Cells(1))
+    .shrink(0.0);
     if roadmap.is_empty() {
-        rows.push(
+        return vec![
+            heading,
             Node::text("no roadmap yet — the store is empty")
                 .style(pen.note.clone())
                 .height(Length::Cells(1)),
-        );
-        return rows;
+        ];
     }
-    let graph_rows = model.roadmap_graph_rows();
-    // No shrink: the tree must not resize when a detail card opens
-    // below it — the list clips instead.
     let mut graph = Node::column()
         .id(Widget::RoadmapGraph.id())
-        .height(Length::Cells(graph_rows))
-        .shrink(0.0);
-    // the scale readout takes the block's last row while the
-    // tree is off the fit, and nothing at all while it sits on it. It
-    // is *reserved* rather than appended: the legend gives up a band
-    // instead of the readout being the thing that clips, since a
-    // readout that vanishes on a busy roadmap says the wrong thing
-    // about where the camera is.
-    let scale = roadmap.scale_label();
-    let bands = usize::from(graph_rows).saturating_sub(usize::from(scale.is_some()));
-    let legend_cols = usize::from(ROADMAP_LEGEND_COLS) - 2;
-    for (region, (group, done, total)) in roadmap.bands().into_iter().take(bands).enumerate() {
-        // The band's line: `«group» done/total` in cells; on a graphics
-        // terminal a swatch in the tree's own tint for the workstream
-        // stands where the guillemets were.
-        let line = if model.has_pixels() {
-            let (r, g, b) = RoadmapDag::region_rgb(region);
-            let rest = clip(&format!(" {group} {done}/{total}"), legend_cols - 1);
-            Node::text(format!(" {rest}")).mark(Mark::Icon {
-                icon: Icon::Ready,
-                col: 0,
-                cols: 1,
-                ink: Color::Rgb(r, g, b),
-            })
-        } else {
-            Node::text(clip(&format!("«{group}» {done}/{total}"), legend_cols))
-        };
-        graph = graph.child(line.style(pen.note.clone()).height(Length::Cells(1)));
-    }
-    if let Some(scale) = scale {
-        graph = graph.child(
-            Node::text(clip(&scale, legend_cols))
-                .style(pen.note.clone())
-                .height(Length::Cells(1)),
+        .height(Length::Cells(model.roadmap_graph_rows()))
+        .shrink(0.0)
+        .viewport();
+    if !model.has_pixels() {
+        graph = graph.children(
+            roadmap
+                .band_rows()
+                .into_iter()
+                .take(usize::from(model.roadmap_graph_rows()))
+                .map(|text| {
+                    Node::text(text)
+                        .style(pen.note.clone())
+                        .height(Length::Cells(1))
+                        .shrink(0.0)
+                }),
         );
     }
-    rows.push(graph);
-    // Everything below the heading and the tech-tree block (which
-    // anchors the pixel surface, and so stays whole) scrolls: a
-    // hundred-chunk roadmap runs far past the stage otherwise. The
-    // window is the model's, so the keys and the wheel move exactly
-    // these rows.
-    let (total, height) = model.roadmap_window();
-    let top = model.roadmap_top().min(total);
-    let bottom = top.saturating_add(height).min(total);
-    let mut body = roadmap_body(model, pen);
-    body.truncate(bottom);
-    rows.extend(body.drain(top..));
-    // Every row rigid: an overfull tab clips at the stage's viewport
-    // instead of flex-shrinking a row to nothing and shifting every
-    // click target below it.
-    rows.into_iter().map(|row| row.shrink(0.0)).collect()
-}
-
-/// The Roadmap tab's scrolling rows, in order — counted by
-/// [`Roadmap::body_rows`](crate::cockpit::Roadmap::body_rows).
-fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
-    let roadmap = model.roadmap();
-    let glow = in_motion(model).map(|(_, now)| Motion::glow_phase(now));
-    let mut rows = Vec::new();
-    if let Some(title) = roadmap.hovered_title() {
+    let table = roadmap_table(model, pen);
+    let mut rows: Vec<_> = (model.roadmap_heading_rows() > 0)
+        .then_some(heading)
+        .into_iter()
+        .collect();
+    if model.roadmap_side_by_side() {
+        let width = model
+            .stage_width()
+            .saturating_sub(model.roadmap_table_width() + Space::GAP);
         rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Here)
-                .text(&format!(" {title}"))
-                .node()
-                .style(pen.note.clone())
-                .height(Length::Cells(1)),
+            Node::row()
+                .gap(Space::GAP)
+                .height(Length::Cells(model.roadmap_graph_rows()))
+                .shrink(0.0)
+                .child(graph.width(Length::Cells(width)))
+                .child(
+                    table
+                        .width(Length::Cells(model.roadmap_table_width()))
+                        .shrink(0.0),
+                ),
         );
-    }
-    let list = roadmap.rows();
-    let mut section: Option<&str> = None;
-    for (index, chunk) in list.iter().enumerate() {
-        if section != Some(chunk.status.as_str()) {
-            section = Some(chunk.status.as_str());
-            let others = list.iter().filter(|c| c.status == chunk.status).count();
-            rows.push(spacer());
-            rows.push(roadmap_section_header(&chunk.status, others, model, pen));
-        }
-        let selected = matches!(model.selected(), Some(Selected::Chunk(id)) if id == &chunk.id);
-        rows.push(roadmap_head(chunk, index, selected, glow, model, pen));
-    }
-    if roadmap.done_count() > 0 {
-        rows.push(spacer());
-        rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Done)
-                .text(&format!(" done · {}", roadmap.done_count()))
-                .node()
-                .style(pen.note.clone())
-                .height(Length::Cells(1)),
-        );
-    }
-    let proposals = roadmap.proposals();
-    if !proposals.is_empty() {
-        rows.push(spacer());
-        rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Proposal)
-                .text(" proposals")
-                .node()
-                .style(pen.heading.clone())
-                .height(Length::Cells(1)),
-        );
-        for (index, (chunk, kind, suggestion, reason)) in proposals.iter().enumerate() {
-            let mut row = Node::row()
-                .height(Length::Cells(1))
-                .child(segment("  ", pen.stage.clone()))
-                .child(segment(
-                    &format!(
-                        "{:<w$}",
-                        clip(&chunk.name, ROADMAP_NAME_COLS),
-                        w = ROADMAP_NAME_COLS
-                    ),
-                    pen.stage.clone(),
-                ))
-                .child(segment(
-                    &format!("  {} → {suggestion}", kind.label()),
-                    pen.stage.clone(),
-                ));
-            if !reason.is_empty() {
-                row = row.child(segment(&format!(" · {reason}"), pen.note.clone()));
-            }
-            rows.push(row);
-            rows.push(
-                Node::row()
-                    .height(Length::Cells(1))
-                    .child(segment("  ", pen.stage.clone()))
-                    .child(
-                        segment("[Accept]", pen.allow.clone()).id(Widget::proposal_accept(index)),
-                    )
-                    .child(segment(" ", pen.stage.clone()))
-                    .child(
-                        segment("[Reject]", pen.deny.clone()).id(Widget::proposal_reject(index)),
-                    ),
-            );
-        }
-    }
-    let signals = roadmap.signals();
-    if !signals.is_empty() {
-        rows.push(spacer());
-        rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Signal)
-                .text(" signals")
-                .node()
-                .style(pen.heading.clone())
-                .height(Length::Cells(1)),
-        );
-        for (index, signal) in signals.iter().enumerate() {
-            let mut meta = String::new();
-            if let Some(confidence) = signal.confidence {
-                meta.push_str(&format!(" · {confidence:.1}"));
-            }
-            meta.push_str(&format!(" · {}", signal.status));
-            rows.push(
-                Node::row()
-                    .height(Length::Cells(1))
-                    .child(segment("  ", pen.stage.clone()))
-                    .child(segment(
-                        &format!(
-                            "{} · {} — {}",
-                            signal.kind,
-                            signal.from,
-                            clip(&signal.body, 60)
-                        ),
-                        pen.stage.clone(),
-                    ))
-                    .child(segment(&meta, pen.note.clone())),
-            );
-            rows.push(
-                Node::row()
-                    .height(Length::Cells(1))
-                    .child(segment("  ", pen.stage.clone()))
-                    .child(
-                        segment("[Promote]", pen.allow.clone()).id(Widget::signal_promote(index)),
-                    )
-                    .child(segment(" ", pen.stage.clone()))
-                    .child(segment("[Ignore]", pen.deny.clone()).id(Widget::signal_ignore(index)))
-                    .child(segment(" ", pen.stage.clone()))
-                    .child(segment("[Snooze]", pen.note.clone()).id(Widget::signal_snooze(index))),
-            );
-        }
+    } else {
+        rows.extend([graph, table]);
     }
     rows
 }
 
-/// A status section's header: the glyph the rows underneath drop, and
-/// how many of them follow.
-fn roadmap_section_header(status: &str, count: usize, model: &Model, pen: &Pen) -> Node {
-    let (icon, label) = match status {
-        "in_progress" => (Icon::InProgress, "in progress"),
-        "pending" => (Icon::Pending, "pending"),
-        "blocked" => (Icon::Failed, "blocked"),
-        _ => (Icon::Planned, "backlog"),
-    };
-    Marked::new(model, pen)
-        .icon(icon)
-        .text(&format!(" {label} · {count}"))
-        .node()
-        .style(pen.heading.clone())
-        .height(Length::Cells(1))
+/// Column widths are shared by header hit targets and body cells.
+fn roadmap_columns(model: &Model) -> [u16; 4] {
+    let flexible = model.roadmap_table_width().saturating_sub(18);
+    let name = flexible * 3 / 5;
+    [name, 10, 5, flexible.saturating_sub(name)]
 }
 
-/// One chunk's row: the fold marker, the name column in its status's
-/// pen, the dimmed band and workstream, and the proposal flag — the
-/// status itself lives on the section header. Hittable to open or fold
-/// the detail card. The chunk in progress wears the glow's breath at
-/// `glow`, so the cell path says "here" the way the pixel
-/// halo does.
+fn roadmap_table(model: &Model, pen: &Pen) -> Node {
+    use super::RoadmapSort;
+    let roadmap = model.roadmap();
+    let widths = roadmap_columns(model);
+    let direction = if roadmap.descending() { "↓" } else { "↑" };
+    let headers = RoadmapSort::ALL.into_iter().zip(widths).fold(
+        Node::row()
+            .gap(Space::TIGHT)
+            .height(Length::Cells(1))
+            .shrink(0.0),
+        |row, (column, width)| {
+            let label = format!(
+                "{}{}",
+                column.label(),
+                if roadmap.sort() == column {
+                    direction
+                } else {
+                    ""
+                }
+            );
+            row.child(
+                Node::text(label)
+                    .id(column.widget().id())
+                    .width(Length::Cells(width))
+                    .shrink(0.0)
+                    .viewport()
+                    .style(pen.heading.clone()),
+            )
+        },
+    );
+    let filter = Node::row()
+        .height(Length::Cells(1))
+        .shrink(0.0)
+        .child(
+            Marked::new(model, pen)
+                .text(&format!("Status: {} ", roadmap.filter_label()))
+                .icon(Icon::FoldOpen)
+                .node()
+                .id(Widget::RoadmapFilter.id())
+                .style(pen.link.clone()),
+        )
+        .child(
+            Node::text(roadmap.scale_label().map_or_else(
+                || format!(" · {}", roadmap.rows().len()),
+                |scale| format!(" · {scale}"),
+            ))
+            .style(pen.note.clone()),
+        );
+    let (total, height) = model.roadmap_window();
+    let top = model.roadmap_top().min(total);
+    Node::column()
+        .id(Widget::RoadmapTable.id())
+        .viewport()
+        .min_width(Length::Cells(0))
+        .height(Length::Cells(u16::try_from(height + 2).unwrap_or(u16::MAX)))
+        .shrink(0.0)
+        .child(filter)
+        .child(headers)
+        .children(roadmap_body(model, pen).into_iter().skip(top).take(height))
+}
+
+/// A compact table: status is a column, proposals belong to the selected card.
+fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
+    let roadmap = model.roadmap();
+    let mut rows: Vec<_> = roadmap
+        .rows()
+        .into_iter()
+        .enumerate()
+        .map(|(index, chunk)| {
+            let selected = matches!(model.selected(), Some(Selected::Chunk(id)) if id == &chunk.id);
+            roadmap_head(chunk, index, selected, model, pen)
+        })
+        .collect();
+    if rows.is_empty() {
+        rows.push(
+            Node::text("No matching work items")
+                .style(pen.note.clone())
+                .height(Length::Cells(1))
+                .shrink(0.0),
+        );
+    }
+    for (index, signal) in roadmap.signals().into_iter().enumerate() {
+        rows.push(
+            Marked::new(model, pen)
+                .icon(Icon::Signal)
+                .text(&format!(" {}", signal.title()))
+                .node()
+                .id(Widget::signal_row(index))
+                .style(
+                    if model.selected() == Some(&Selected::Signal(signal.id.clone())) {
+                        pen.raise(&pen.code)
+                    } else {
+                        pen.code.clone()
+                    },
+                )
+                .height(Length::Cells(1))
+                .shrink(0.0),
+        );
+    }
+    rows
+}
+
+/// A row background, status glyph and aligned cells, with stable identity on selection.
 fn roadmap_head(
     chunk: &crate::cockpit::RoadmapChunk,
     index: usize,
     selected: bool,
-    glow: Option<f32>,
     model: &Model,
     pen: &Pen,
 ) -> Node {
-    let name_pen = match chunk.status.as_str() {
-        "in_progress" => pen.tool_running.clone(),
-        "blocked" => pen.tool_failed.clone(),
-        "backlog" => pen.note.clone(),
-        _ => pen.stage.clone(),
+    let base = if index.is_multiple_of(2) {
+        &pen.code
+    } else {
+        &pen.stage
     };
-    // the cell tech-tree is a legend rather than a picture, so
-    // "you are here" breathes on the chunk's own row instead — the same
-    // raised cosine, at the same phase, as the pixel halo.
-    let name_pen = match glow.filter(|_| chunk.is_in_progress()) {
-        Some(phase) => pen.pulse(&name_pen, phase),
-        None => name_pen,
+    let style = if selected {
+        pen.raise(base)
+    } else {
+        base.clone()
     };
-    let mut node = Node::row()
-        .id(Widget::roadmap_row(index))
-        .height(Length::Cells(1))
-        .child(
-            Marked::new(model, pen)
-                .icon(Icon::fold(selected))
-                .text(" ")
-                .segment(pen.note.clone()),
-        )
-        .child(segment(
-            &format!(
-                "{:<w$}",
-                clip(&chunk.name, ROADMAP_NAME_COLS),
-                w = ROADMAP_NAME_COLS
-            ),
-            name_pen,
+    let style = if chunk.is_in_progress() {
+        in_motion(model).map_or(style.clone(), |(_, now)| {
+            pen.pulse(&style, Motion::glow_phase(now))
+        })
+    } else {
+        style
+    };
+    let icon = match chunk.status.as_str() {
+        "in_progress" => Icon::InProgress,
+        "blocked" | "stuck" => Icon::Blocked,
+        "done" => Icon::Done,
+        "backlog" => Icon::Planned,
+        _ => Icon::Pending,
+    };
+    let status = match chunk.status.as_str() {
+        "in_progress" => "working",
+        status => status,
+    };
+    let widths = roadmap_columns(model);
+    let name = Marked::new(model, pen)
+        .icon(icon)
+        .text(&format!(
+            " {}",
+            clip(&chunk.name, usize::from(widths[0].saturating_sub(2)))
         ))
-        .child(segment(&format!("  {:<8}", chunk.band()), pen.note.clone()));
-    if let Some(group) = &chunk.group {
-        node = node.child(segment(&format!("  {group}"), pen.note.clone()));
-    }
-    if !chunk.proposals.is_empty() {
-        node = node.child(
-            Marked::new(model, pen)
-                .text("  ")
-                .icon(Icon::Proposal)
-                .segment(pen.permission.clone()),
-        );
-    }
-    node
+        .node()
+        .width(Length::Cells(widths[0]))
+        .shrink(0.0)
+        .viewport();
+    let values = [
+        status.to_owned(),
+        chunk.priority.to_string(),
+        chunk.group.clone().unwrap_or_default(),
+    ];
+    values.into_iter().zip(widths.into_iter().skip(1)).fold(
+        Node::row()
+            .id(Widget::roadmap_row(index))
+            .height(Length::Cells(1))
+            .shrink(0.0)
+            .gap(Space::TIGHT)
+            .style(style)
+            .child(name),
+        |row, (value, width)| {
+            row.child(
+                Node::text(clip(&value, usize::from(width)))
+                    .width(Length::Cells(width))
+                    .shrink(0.0)
+                    .viewport(),
+            )
+        },
+    )
 }
 
 /// One step's compact row: the fold marker, the number, the purpose,
@@ -3298,7 +3248,11 @@ fn hint_context(model: &Model) -> &'static [Binding] {
         && (matches!(model.tab(), StageTab::Roadmap | StageTab::Changes)
             || model.tab() == StageTab::Trace && !model.trace().steps().is_empty())
     {
-        Binding::HINT_TRACE
+        if model.tab() == StageTab::Roadmap {
+            Binding::HINT_ROADMAP
+        } else {
+            Binding::HINT_TRACE
+        }
     } else if model.tab() == StageTab::Home {
         Binding::HINT_HOME
     } else {

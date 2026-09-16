@@ -11,25 +11,25 @@
   "images": [
     {
       "file": "terminal-overview-dark.png",
-      "sha256": "c7fe9d2c4daf313e4466186265ab0d033239446c99fcd3af9872ec42357bd693",
+      "sha256": "d238c67c65a0b7dec5e41b2f3637bd61461393200cd08a15068da1b432682964",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-overview-light.png",
-      "sha256": "e903bdfb3aed997556f871383dbd86290b86bf82bf2b952180f7712e1bdc9080",
+      "sha256": "1a4cf12b7041bf5d0018bdf76b1ac19dfeccdd7cc293431f564c5a4114a473ab",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-roadmap-dark.png",
-      "sha256": "e90bf97e78bad7266217b3dbc42a837435cd2f76c4b977b229f59a7a27e94288",
+      "sha256": "feed90be4c7b9c18636d1aa926a4d9b777ce466525a6c68239686a5cd564a093",
       "width": 1320,
       "height": 840
     },
     {
       "file": "terminal-roadmap-light.png",
-      "sha256": "d7d2ee5d8623162859c60a3c70f6ba77d90f3eef6848007e2fa373a280374a2e",
+      "sha256": "abcf1a491d50841da8571a10ce126d70f11cdbbbe994f07381a978b963bdfa55",
       "width": 1320,
       "height": 840
     },

@@ -7,4 +7,5 @@ pub enum Selected {
     Chunk(String),
     Step(u32),
     Change(String),
+    Signal(String),
 }

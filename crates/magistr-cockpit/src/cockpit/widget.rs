@@ -274,11 +274,18 @@ pub enum Widget {
     InspectorActions,
     InspectorFields,
     InspectorDetail,
+    /// Roadmap table and its filter and sortable column headers.
+    RoadmapTable,
+    RoadmapFilter,
+    RoadmapSortName,
+    RoadmapSortStatus,
+    RoadmapSortPriority,
+    RoadmapSortWorkstream,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 99] = [
+    pub const ALL: [Self; 105] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -378,6 +385,12 @@ impl Widget {
         Self::InspectorActions,
         Self::InspectorFields,
         Self::InspectorDetail,
+        Self::RoadmapTable,
+        Self::RoadmapFilter,
+        Self::RoadmapSortName,
+        Self::RoadmapSortStatus,
+        Self::RoadmapSortPriority,
+        Self::RoadmapSortWorkstream,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -569,6 +582,18 @@ impl Widget {
     /// Each indexed id space is this wide — far more rows than any
     /// screen shows, and no space bleeds into the next.
     const INDEX_SPAN: u32 = 0x1_0000;
+    /// A compact signal row selecting the shared inspector.
+    const SIGNAL_ROW_BASE: u32 = 0x27_0000;
+
+    #[must_use]
+    pub const fn signal_row(index: usize) -> WidgetId {
+        Self::indexed(Self::SIGNAL_ROW_BASE, index)
+    }
+
+    #[must_use]
+    pub const fn signal_row_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(Self::SIGNAL_ROW_BASE, id)
+    }
 
     /// The id this widget carries through layout and hit-testing.
     #[must_use]
@@ -1198,6 +1223,12 @@ impl Widget {
             Self::TraceDetail => "More",
             Self::TraceGraph => "trace graph",
             Self::RoadmapGraph => "tech tree",
+            Self::RoadmapTable => "work items",
+            Self::RoadmapFilter => "filter status",
+            Self::RoadmapSortName => "sort name",
+            Self::RoadmapSortStatus => "sort status",
+            Self::RoadmapSortPriority => "sort priority",
+            Self::RoadmapSortWorkstream => "sort workstream",
             Self::RoadmapStart => "Start",
             Self::RoadmapComplete => "Complete",
             Self::ShelfExport => "Export",

@@ -3,6 +3,77 @@ use magistr_engine::native::{Chunk, Signal};
 use serde_json::json;
 
 use super::*;
+
+#[test]
+fn table_sort_and_status_filter_keep_identity_and_do_not_filter_proposals() {
+    let mut roadmap = seeded();
+    roadmap.select("ui", 0.0, false);
+    roadmap.sort_by(RoadmapSort::Name);
+    assert_eq!(
+        roadmap
+            .rows()
+            .iter()
+            .map(|c| c.id.as_str())
+            .collect::<Vec<_>>(),
+        ["mid", "ui"]
+    );
+    roadmap.sort_by(RoadmapSort::Name);
+    assert_eq!(roadmap.rows()[0].id, "ui");
+    roadmap.cycle_filter();
+    assert_eq!(roadmap.filter_label(), "In progress");
+    assert_eq!(roadmap.rows().len(), 1);
+    assert_eq!(roadmap.rows()[0].id, "mid");
+    assert_eq!(roadmap.selected().expect("kept identity").id, "ui");
+    roadmap.cycle_filter();
+    assert_eq!(roadmap.rows()[0].id, "ui");
+    let snapshot = [
+        chunk("new", "pending", 1, "Next", &[]),
+        chunk("ui", "pending", 200, "Views", &[]),
+    ];
+    roadmap.seed(&snapshot, &[]);
+    assert_eq!(roadmap.filter_label(), "Pending");
+    assert_eq!(
+        roadmap.rows()[0].id,
+        "ui",
+        "descending name survives reseed"
+    );
+    roadmap.sort_by(RoadmapSort::Priority);
+    assert_eq!(roadmap.rows()[0].id, "new", "priority sorts numerically");
+    for _ in 0..3 {
+        roadmap.cycle_filter();
+    }
+    assert!(roadmap.rows().is_empty(), "empty Done filter is honest");
+}
+
+#[test]
+fn filtering_and_sorting_never_renumber_proposal_actions() {
+    let mut roadmap = seeded();
+    let mut proposed = chunk_json("ui", "pending", 200, "Views", &[]);
+    proposed["reprioritize"] =
+        serde_json::json!({"suggested_priority":100,"reason":"sooner","proposed_at":""});
+    roadmap.apply(
+        &frame("roadmap", "chunk_changed", "chunk", proposed),
+        0.0,
+        false,
+    );
+    let before = roadmap
+        .proposals()
+        .iter()
+        .map(|(c, k, _, _)| (c.id.clone(), *k))
+        .collect::<Vec<_>>();
+    assert!(!before.is_empty());
+    roadmap.cycle_filter();
+    roadmap.sort_by(RoadmapSort::Name);
+    assert_eq!(
+        roadmap
+            .proposals()
+            .iter()
+            .map(|(c, k, _, _)| (c.id.clone(), *k))
+            .collect::<Vec<_>>(),
+        before
+    );
+}
+
 use crate::cockpit::Eased;
 use crate::harness::fixtures;
 
@@ -488,11 +559,10 @@ fn eyeball_a_hundred_chunk_tree() {
 }
 
 #[test]
-fn the_body_rows_count_the_sections_the_rows_the_done_line_and_the_inboxes() {
+fn the_body_rows_count_only_table_items_and_signals() {
     let roadmap = seeded();
-    // in progress: spacer + header + mid; pending: spacer + header + ui;
-    // done: spacer + the count line; signals: spacer + heading + s1.
-    assert_eq!(roadmap.body_rows(80), 12);
+    // Two work items and one signal; controls are pinned and cards live elsewhere.
+    assert_eq!(roadmap.body_rows(80), 3);
 }
 
 #[test]
@@ -523,7 +593,7 @@ fn a_chunk_selected_off_the_list_does_not_grow_the_body() {
 }
 
 #[test]
-fn a_hover_takes_the_tooltip_row() {
+fn a_hover_uses_the_heading_without_shifting_table_rows() {
     let mut roadmap = seeded();
     roadmap.set_viewport(Some((40, 20)));
     let plain = roadmap.body_rows(80);
@@ -533,7 +603,7 @@ fn a_hover_takes_the_tooltip_row() {
     };
     roadmap.hover_at(x, y, 0.0);
     assert!(roadmap.hovered_title().is_some(), "the hover took a node");
-    assert_eq!(roadmap.body_rows(80), plain + 1);
+    assert_eq!(roadmap.body_rows(80), plain);
 }
 
 #[test]
@@ -542,13 +612,13 @@ fn an_empty_roadmap_bodies_to_its_one_note() {
 }
 
 #[test]
-fn the_signals_inbox_takes_a_heading_and_a_row_each() {
+fn a_signal_only_table_has_an_empty_work_item_note_and_one_signal_row() {
     let mut roadmap = Roadmap::default();
     roadmap.seed(&[], &[signal("s1", "researched")]);
     assert_eq!(
         roadmap.body_rows(80),
-        4,
-        "the spacer, heading, signal and its actions"
+        2,
+        "the empty work item note and signal; actions live in the inspector"
     );
 }
 
@@ -675,6 +745,19 @@ fn framed(roadmap: &Roadmap, id: &str, now: u64) -> bool {
     let at: usize = id[1..].parse().expect("cN");
     let node = &roadmap.dag_nodes_at(now as f32)[at];
     node.x >= 0.0 && node.x <= 30.0 && node.y >= 0.0 && node.y <= 10.0
+}
+
+#[test]
+fn selection_before_layout_is_framed_when_the_graph_gets_its_viewport() {
+    let mut roadmap = chained(40);
+    assert!(roadmap.select("c39", 0.0, false));
+    roadmap.set_viewport(Some((30, 10)));
+    assert!(framed(&roadmap, "c39", 0));
+    roadmap.set_viewport(Some((20, 8)));
+    let nodes = roadmap.dag_nodes();
+    let node = &nodes[39];
+    assert!(node.x >= 0.0 && node.x <= 20.0);
+    assert!(node.y >= 0.0 && node.y <= 8.0);
 }
 
 #[test]

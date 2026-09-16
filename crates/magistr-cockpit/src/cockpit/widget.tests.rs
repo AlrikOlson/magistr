@@ -6,7 +6,10 @@ fn ids_are_distinct_and_round_trip() {
         assert_eq!(widget.id(), WidgetId::new(u32::try_from(i).expect("small")));
         assert_eq!(Widget::from_id(widget.id()), Some(widget));
     }
-    assert_eq!(Widget::from_id(WidgetId::new(99)), None);
+    assert_eq!(
+        Widget::from_id(WidgetId::new(Widget::ALL.len() as u32)),
+        None
+    );
 }
 
 #[test]

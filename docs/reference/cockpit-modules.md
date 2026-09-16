@@ -210,6 +210,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/rail_mark.rs` | Terminal output timing markers derived from arrival ticks: second boundaries, pauses, and elapsed timestamps | `magistr-cockpit/src/cockpit/rail_mark.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap.rs` | Roadmap state and deterministic dependency-layer layout with connected-node alignment | `magistr-cockpit/src/cockpit/roadmap.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_chunk.rs` | One roadmap chunk as the Roadmap tab holds it | `magistr-cockpit/src/cockpit/roadmap_chunk.tests.rs` |
+| `magistr-cockpit/src/cockpit/roadmap_sort.rs` | Sortable roadmap columns and their header targets | `magistr-cockpit/src/cockpit/roadmap.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/rule_mode.rs` | How a charter rule answers — the ASK / AUTO / OFF badge vocabulary | `magistr-cockpit/src/cockpit/rule_mode.tests.rs` |
 | `magistr-cockpit/src/cockpit/scaffold_kind.rs` | Project setup artifact types and their displayed completion status | `magistr-cockpit/src/cockpit/scaffold_kind.tests.rs` |
 | `magistr-cockpit/src/cockpit/search.rs` | Search state, text matching, excerpts, and result limits | `magistr-cockpit/src/cockpit/search.tests.rs` |

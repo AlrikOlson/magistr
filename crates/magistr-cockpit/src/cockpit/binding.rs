@@ -70,6 +70,31 @@ impl Binding {
         Modifiers::NONE,
     );
 
+    /// Cycle the roadmap table's status filter.
+    pub const ROADMAP_FILTER: Self = Self::new(
+        "alt-f",
+        "filter",
+        "roadmap",
+        KeyCode::Char('f'),
+        Modifiers::ALT,
+    );
+    /// Cycle the roadmap's sortable columns.
+    pub const ROADMAP_SORT: Self = Self::new(
+        "alt-s",
+        "sort",
+        "roadmap",
+        KeyCode::Char('s'),
+        Modifiers::ALT,
+    );
+    /// Reverse the current roadmap column.
+    pub const ROADMAP_REVERSE: Self = Self::new(
+        "alt-r",
+        "reverse sort",
+        "roadmap",
+        KeyCode::Char('r'),
+        Modifiers::ALT,
+    );
+
     // ── global ──────────────────────────────────────────────────────
     /// Cycle focus across the rail, stage and inspector.
     pub const TAB: Self = Self::new(
@@ -443,6 +468,9 @@ impl Binding {
         Self::GATES,
         Self::ROADMAP,
         Self::RESUME,
+        Self::ROADMAP_FILTER,
+        Self::ROADMAP_SORT,
+        Self::ROADMAP_REVERSE,
         Self::ZOOM,
         Self::ZOOM_FIT,
         Self::SEND,
@@ -508,6 +536,13 @@ impl Binding {
     /// The footer on a Trace tab with steps: the selection walks and
     /// Enter opens the full card.
     pub const HINT_TRACE: &'static [Self] = &[Self::TRACE_STEP, Self::TRACE_DETAIL, Self::TAB];
+    /// The roadmap's table controls, also listed in keyboard help.
+    pub const HINT_ROADMAP: &'static [Self] = &[
+        Self::TRACE_STEP,
+        Self::ROADMAP_FILTER,
+        Self::ROADMAP_SORT,
+        Self::TRACE_DETAIL,
+    ];
     /// The footer while the inspector has keyboard focus.
     pub const HINT_INSPECTOR: &'static [Self] = &[
         Self::INSPECTOR_SCROLL,

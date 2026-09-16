@@ -6,26 +6,26 @@ expression: screen
 tui2-2-rail  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ inspector ──────────────────────╮
 │◂                         │ │Home  Turn  Changes  Trace  Roadmap                │  │ Roadmap view                     │
-│no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlog│  │ ○ pending                        │
+│no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlo…│  │ ○ pending                        │
 │▲ tui2-2-rail · 1/3       │ │«Engine» 1/1                                       │  │ high · TUI rewrite               │
 │▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«TUI rewrite» 0/2                                  │  │ Start Less                       │
-│▲ Rail and dock           │ │                                                   │  │ title · The Roadmap tab of the   │
-│1 before · 1 after        │ │                                                   │  │ cockpit                          │
-│signals 1                 │ │▸ in progress · 1                                  │  │ description · The tech-tree, the │
-│                          │ │▸ Rail and dock             critical  TUI rewrite  │  │ list and the actions.            │
+│▲ Rail and dock           │ │Status: Active ▾ · 2                               │  │ priority → 100 · sooner          │
+│1 before · 1 after        │ │Name                Status↑    Pri   Stream        │  │ Accept Reject                    │
+│signals 1                 │ │▸ Rail and dock     working    100   TUI rewrite   │  │ title · The Roadmap tab of the   │
+│                          │ │○ Roadmap view      pending    200   TUI rewrite   │  │ cockpit                          │
+│                          │ │◆ make startup faster                              │  │ description · The tech-tree, the │
+│                          │ │                                                   │  │ list and the actions.            │
 │                          │ │                                                   │  │ id · tui2-3-roadmap              │
-│                          │ │○ pending · 1                                      │  │ acceptance 1 · the DAG renders   │
-│                          │ │▾ Roadmap view              high      TUI rewrite  │  │ acceptance 2 · clicks select     │
+│                          │ │                                                   │  │ acceptance 1 · the DAG renders   │
+│                          │ │                                                   │  │ acceptance 2 · clicks select     │
 │                          │ │                                                   │  │ depends on · tui2-2-rail         │
-│                          │ │✓ done · 1                                         │  │ references · think:190           │
+│                          │ │                                                   │  │ references · think:190           │
 │                          │ │                                                   │  │                                  │
-│                          │ │⚑ proposals                                        │  │                                  │
-│                          │ │  Roadmap view              priority → 100 · sooner│  │                                  │
-│                          │ │  [Accept] [Reject]                                │  │                                  │
 │                          │ │                                                   │  │                                  │
-│                          │ │◆ signals                                          │  │                                  │
-│                          │ │  idea · alice — make startup faster · 0.8 ·       │  │                                  │
-│                          │ │  [Promote] [Ignore] [Snooze]                      │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
@@ -41,4 +41,4 @@ tui2-2-rail  Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  select   enter  detail   tab / shift-tab  switch pane
+ ↑↓  select   alt-f  filter   alt-s  sort   enter  detail

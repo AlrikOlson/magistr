@@ -100,9 +100,6 @@ const UNDOCK_MIN_COLS: u16 = 160;
 /// Columns the undocked column takes (its divider adds one).
 pub(super) const UNDOCK_COLS: u16 = 48;
 
-/// Stage heights at or under this are short: the tech-tree takes a
-/// third of them rather than half, so the roadmap's list stays usable.
-const SHORT_STAGE_ROWS: usize = 14;
 /// Rows the prompt box grows to before it scrolls.
 pub(super) const PROMPT_MAX_ROWS: usize = 5;
 
@@ -333,7 +330,7 @@ impl Model {
             Selected::Step(number) => {
                 self.trace.expand_step(*number);
             }
-            Selected::Change(_) => {}
+            Selected::Change(_) | Selected::Signal(_) => {}
         }
         self.selected = Some(selected);
     }
@@ -1982,42 +1979,53 @@ impl Model {
         self.sheet_viewport.top_at(total, height, self.now())
     }
 
-    /// Rows the tech-tree block takes: with the pixel DAG placed (the
-    /// runtime reported its rect) half the stage, so the tree has room;
-    /// in cell-only mode just the workstream legend. Pinned above the
-    /// tab's scrolling body — the block anchors the pixel surface, so it
-    /// must stay whole.
+    /// Rows reserved for the graph beside the table, or above it on a
+    /// narrow terminal. Text-only mode needs just its workstream legend
+    /// when stacked. The pinned block also anchors the pixel surface.
     #[must_use]
     pub fn roadmap_graph_rows(&self) -> u16 {
-        // On a window the Sky is the room, not a block inside one: it
-        // takes the whole stage whether or not the store has answered
-        // yet, because an empty sky is where the ghost stars go while
-        // the roadmap loads.
         if self.surface.is_native() {
             return u16::try_from(self.stage_rows()).unwrap_or(u16::MAX);
         }
         if self.roadmap.is_empty() {
             return 0;
         }
-        if self.inspector_stacked() {
-            return u16::try_from(self.stage_rows().saturating_sub(4).min(3)).unwrap_or(0);
+        let rows = self
+            .stage_rows()
+            .saturating_sub(self.roadmap_heading_rows());
+        if self.roadmap_side_by_side() {
+            return u16::try_from(rows).unwrap_or(u16::MAX);
         }
-        if self.roadmap_graph_rect.is_some() {
-            // Half the stage on a tall one; a third on a short one —
-            // twelve stage rows at 80x24 on the pixel arrangement — so
-            // the list under the tree keeps its sections and the inbox.
-            let rows = self.stage_rows();
-            let share = if rows <= SHORT_STAGE_ROWS {
-                rows / 3
-            } else {
-                rows / 2
-            };
-            return u16::try_from(share).unwrap_or(u16::MAX).clamp(4, 16);
+        // Leave the filter, column header and at least one selectable row.
+        let available = rows.saturating_sub(3);
+        let graph = if self.has_pixels() {
+            (rows / 3).clamp(2, 10)
+        } else {
+            self.roadmap.band_rows().len()
+        };
+        u16::try_from(graph.min(available)).unwrap_or(0)
+    }
+
+    /// On a short stage the rail supplies the summary; keep rows for the actual work.
+    #[must_use]
+    pub fn roadmap_heading_rows(&self) -> usize {
+        usize::from(self.stage_rows() > 6)
+    }
+
+    /// Room for a useful graph beside all four table columns.
+    #[must_use]
+    pub const fn roadmap_side_by_side(&self) -> bool {
+        !self.surface.is_native() && self.size.cols >= 132 && self.stage_width() >= 58
+    }
+
+    /// The list owns two thirds of a wide stage; both allocations share this value.
+    #[must_use]
+    pub const fn roadmap_table_width(&self) -> u16 {
+        if self.roadmap_side_by_side() {
+            self.stage_width().saturating_sub(Space::GAP) * 2 / 3
+        } else {
+            self.stage_width()
         }
-        u16::try_from(self.roadmap.band_rows().len())
-            .unwrap_or(u16::MAX)
-            .saturating_add(1)
-            .clamp(3, 8)
     }
 
     /// The Roadmap tab's scrolling body: how many rows it has and how
@@ -2026,9 +2034,15 @@ impl Model {
     /// wheel move are this same pair.
     #[must_use]
     pub fn roadmap_window(&self) -> (usize, usize) {
-        let pinned = 1 + usize::from(self.roadmap_graph_rows());
-        let height = self.stage_rows().saturating_sub(pinned);
-        (self.roadmap.body_rows(self.stage_width()), height)
+        let graph = if self.roadmap_side_by_side() {
+            0
+        } else {
+            usize::from(self.roadmap_graph_rows())
+        };
+        let height = self
+            .stage_rows()
+            .saturating_sub(self.roadmap_heading_rows() + 2 + graph);
+        (self.roadmap.body_rows(self.roadmap_table_width()), height)
     }
 
     /// The first visible row of the Roadmap tab's body.

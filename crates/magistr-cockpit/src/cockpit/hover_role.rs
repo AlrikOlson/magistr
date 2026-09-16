@@ -54,6 +54,7 @@ impl HoverRole {
             || Widget::change_row_index(id).is_some()
             || Widget::trace_row_index(id).is_some()
             || Widget::roadmap_row_index(id).is_some()
+            || Widget::signal_row_index(id).is_some()
             || Widget::completion_index(id).is_some()
             || Widget::launch_session_index(id).is_some()
             || Widget::spine_row_index(id).is_some()
@@ -120,6 +121,11 @@ impl HoverRole {
             | Widget::Checkpoint
             | Widget::TraceDetail
             | Widget::InspectorDetail
+            | Widget::RoadmapFilter
+            | Widget::RoadmapSortName
+            | Widget::RoadmapSortStatus
+            | Widget::RoadmapSortPriority
+            | Widget::RoadmapSortWorkstream
             | Widget::RoadmapStart
             | Widget::RoadmapComplete
             | Widget::LaunchNext

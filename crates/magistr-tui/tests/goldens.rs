@@ -136,9 +136,12 @@ fn shot_inspector_objects() {
     use magistr_cockpit::cockpit::Widget;
     use magistr_tui::screenshot::Profile;
     type Scene = (&'static str, fn(Size) -> Model);
-    let scenes: [Scene; 3] = [
+    let scenes: [Scene; 4] = [
         ("inspector-chunk", |size| {
             inspected(Scenes::roadmapped(size), Widget::roadmap_row(1))
+        }),
+        ("inspector-signal", |size| {
+            inspected(Scenes::roadmapped(size), Widget::signal_row(0))
         }),
         ("inspector-step", |size| {
             inspected(Scenes::traced(size), Widget::trace_row(0))

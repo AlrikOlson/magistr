@@ -2,6 +2,62 @@ use magistr_engine::FeedStatus;
 use magistr_engine::policy::RiskTier;
 
 use super::*;
+
+#[test]
+fn roadmap_table_controls_preserve_selected_identity_and_keyboard_walks_visible_order() {
+    let mut m = roadmap_model();
+    update(&mut m, left_click(Widget::roadmap_row(1)));
+    let chosen = m.selected().cloned();
+    update(&mut m, left_click(Widget::RoadmapSortName.id()));
+    update(&mut m, left_click(Widget::RoadmapSortName.id()));
+    assert_eq!(m.selected(), chosen.as_ref());
+    assert_eq!(m.roadmap().rows()[0].id, "ui");
+    update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.selected(), Some(&Selected::Chunk("mid".into())));
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Char('f')).with(Modifiers::ALT)),
+    );
+    assert_eq!(m.roadmap().filter_label(), "In progress");
+    assert_eq!(m.roadmap_top(), 0);
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Char('s')).with(Modifiers::ALT)),
+    );
+    assert_eq!(m.roadmap().sort(), super::super::RoadmapSort::Status);
+    update(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Char('r')).with(Modifiers::ALT)),
+    );
+    assert!(m.roadmap().descending());
+    assert!(
+        m.prompt().is_empty(),
+        "table accelerators never enter the prompt"
+    );
+}
+
+#[test]
+fn roadmap_signals_are_selectable_by_pointer_and_keyboard_without_changing_chunk_identity() {
+    let mut m = crate::harness::Scenes::roadmapped(Size::new(132, 42));
+    let signal_id = m.roadmap().signals()[0].id.clone();
+    update(&mut m, left_click(Widget::roadmap_row(1)));
+    let chunk = m.roadmap().selected().expect("selected chunk").id.clone();
+    update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.selected(), Some(&Selected::Signal(signal_id.clone())));
+    update(&mut m, key(KeyCode::Up));
+    assert_eq!(m.selected(), Some(&Selected::Chunk(chunk.clone())));
+    update(&mut m, left_click(Widget::signal_row(0)));
+    assert_eq!(m.selected(), Some(&Selected::Signal(signal_id)));
+    assert_eq!(
+        m.roadmap().selected().expect("graph selection retained").id,
+        chunk
+    );
+    assert!(matches!(
+        update(&mut m, left_click(Widget::signal_promote(0))).as_slice(),
+        [Cmd::Engine(EngineCmd::PromoteSignal { .. })]
+    ));
+}
+
 use crate::agent::{AgentEvent, ImageBlock, TurnEnd};
 use crate::cockpit::Size;
 use crate::cockpit::{
@@ -8945,6 +9001,8 @@ fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
         roadmap.selected(),
         Some(&Selected::Chunk("tui2-3-roadmap".into()))
     );
+    update(&mut roadmap, key(KeyCode::Down));
+    assert!(matches!(roadmap.selected(), Some(Selected::Signal(_))));
     let selected = roadmap.selected().cloned();
     update(&mut roadmap, key(KeyCode::Down));
     assert_eq!(
