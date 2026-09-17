@@ -2,7 +2,7 @@
 
 use magistr_engine::CheckpointReason;
 
-use magistr_engine::{FeedStatus, MagistrFrame, NativeEvent, ShipFrame, ThinkFrame};
+use magistr_engine::{FeedStatus, MagistrFrame, NativeEvent};
 
 use super::bad_day::BadDay;
 use super::binding::Binding;
@@ -11,7 +11,6 @@ use super::charter_rule::CharterRule;
 use super::checkpoint_cmd::CheckpointCmd;
 use super::checkpoint_event::CheckpointEvent;
 use super::cmd::Cmd;
-use super::completion::Completion;
 use super::decision::{self, DecisionIntent};
 use super::density::Density;
 use super::dock_item::DockItem;
@@ -33,33 +32,31 @@ use super::palette_row::{PaletteGo, PaletteRow};
 use super::pane::Pane;
 use super::phase::Phase;
 use super::place::Place;
-use super::progress::Progress;
 use super::request_phase::RequestPhase;
-use super::roadmap_request::RoadmapRequest;
 use super::rule_mode::RuleMode;
 use super::search::Search;
 use super::search_hit::{SearchGo, SearchHit};
 use super::search_scope::SearchScope;
 use super::selected::Selected;
+use super::session;
 use super::settings::Settings;
 use super::settings_group::SettingsGroup;
 use super::shelf_cmd::ShelfCmd;
 use super::stage_tab::StageTab;
 use super::star_state::StarState;
 use super::surface::Surface;
-use super::term::Term;
 use super::term_hold::TermHold;
 use super::theme_choice::ThemeChoice;
 use super::turn_state::TurnState;
 use super::widget::Widget;
 use super::workbench_cmd::WorkbenchCmd;
 use super::workbench_event::WorkbenchEvent;
-use crate::agent::{AgentEvent, ImageBlock, ToolStatus, TurnEnd};
+use crate::agent::{AgentEvent, TurnEnd};
 use crate::engine::EngineEvent;
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind, Reply};
 use crate::job::JobOutput;
 use crate::theme::MotionMode;
-use crate::turn::{StreamImage, Viewport, Voice};
+use crate::turn::{Viewport, Voice};
 use crate::widget_id::WidgetId;
 
 /// Apply `msg` to `model`; the returned commands are for the runtime.
@@ -137,11 +134,11 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Cmd> {
     // instead, and re-pinned on that line's row once the fold has moved
     // it — every fold, so no re-wrap anyone adds can forget to.
     let anchor = model.stage_anchor();
-    let layout = model.turn.layout();
+    let layout = model.session.turn.layout();
     let mut cmds = fold(model, msg);
     model.sync_flight_wrap();
     if let Some(anchor) = anchor
-        && model.turn.layout() != layout
+        && model.session.turn.layout() != layout
     {
         model.hold_stage_anchor(anchor);
     }
@@ -171,9 +168,9 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
     match msg {
         Msg::Resize(size) => {
             model.size = size;
-            model.turn.set_cell_size(model.cell_size());
-            model.turn.set_row_cap(model.image_row_cap());
-            model.turn.rewrap(model.turn_width());
+            model.session.turn.set_cell_size(model.cell_size());
+            model.session.turn.set_row_cap(model.image_row_cap());
+            model.session.turn.rewrap(model.turn_width());
         }
         Msg::FrameDue => {
             model.frames += 1;
@@ -211,7 +208,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         Msg::Reply(Reply::Background(colour)) => {
             model.background = Some(colour);
             model.theme = model.theme.observe(colour);
-            model.turn.set_mode(model.theme.mode());
+            model.session.turn.set_mode(model.theme.mode());
         }
         Msg::Mode(mode) => {
             let entering_pixels = !model.pixels && mode.has_pixels();
@@ -236,17 +233,17 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             // the same rewrap a resize does. Without it a word that fit
             // the wider measure sits in a column the panel no longer
             // shows, and is never painted.
-            model.turn.rewrap(model.turn_width());
+            model.session.turn.rewrap(model.turn_width());
         }
         Msg::TextSizing(sizing) => model.text_sizing = sizing,
         Msg::Reply(Reply::KeyboardFlags(flags)) => model.keyboard_flags = Some(flags),
         Msg::Reply(Reply::CellPixels { width, height }) => {
             model.cell_pixels = Some((width, height));
-            model.turn.set_cell_size(model.cell_size());
+            model.session.turn.set_cell_size(model.cell_size());
         }
         Msg::Reply(Reply::WindowPixels { width, height }) => {
             model.window_pixels = Some((width, height));
-            model.turn.set_cell_size(model.cell_size());
+            model.session.turn.set_cell_size(model.cell_size());
         }
         Msg::Key(key) => {
             if key.is_press() {
@@ -268,8 +265,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             return cmds;
         }
         Msg::Paste(text) => {
-            model.prompt.insert(&text);
-            refresh_completion(model);
+            session::paste(model, &text);
             model.remember(Msg::Paste(text));
         }
         Msg::Decision(intent) => return decision::apply(model, intent),
@@ -291,12 +287,13 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 matches!(request.phase, RequestPhase::Waiting | RequestPhase::Queued)
             }) {
                 model
+                    .session
                     .turn
                     .push_text(Voice::User, &format!("{}\n", request.text));
-                request.source_start = Some(model.turn.lines().len());
+                request.source_start = Some(model.session.turn.lines().len());
                 request.phase = RequestPhase::Working;
-                model.turn_state = TurnState::Streaming;
-                model.turn_notice = None;
+                model.session.state = TurnState::Streaming;
+                model.session.notice = None;
                 model.agent_activity.begin("Updating roadmap");
                 return vec![Cmd::Announce(
                     "Updating roadmap. Waiting for the agent to respond.".to_owned(),
@@ -311,13 +308,13 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 .filter(|request| request.phase.is_active())
             {
                 request.phase = RequestPhase::Stopped;
-                request.source_end = Some(model.turn.lines().len());
-                if model.prompt.is_empty() {
-                    model.prompt.insert(&request.text);
+                request.source_end = Some(model.session.turn.lines().len());
+                if model.session.prompt.is_empty() {
+                    model.session.prompt.insert(&request.text);
                 }
             }
             if running {
-                model.turn_state = TurnState::AwaitingInput;
+                model.session.state = TurnState::AwaitingInput;
                 model
                     .agent_activity
                     .observe(&AgentEvent::TurnEnded(TurnEnd::Cancelled));
@@ -326,7 +323,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         Msg::Agent(event) => {
             model.agent_events += 1;
             model.note_activity();
-            return agent(model, event);
+            return session::agent(model, event);
         }
         Msg::Engine(EngineEvent::Feed(status)) => {
             // The loss is stamped on the loop's clock, so the bad day's
@@ -351,7 +348,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 model.note_activity();
                 let tick = model.ticks;
                 model.terminals.push(&output.gate, &output.bytes, tick);
-                sync_strip(model, &output.gate);
+                session::sync_strip(model, &output.gate);
                 return Vec::new();
             }
             model.engine_frames += 1;
@@ -362,7 +359,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.trace.apply(&event);
             let animate = model.theme.motion().is_full();
             model.roadmap.apply(&event, model.now(), animate);
-            turn_event(model, &event);
+            session::turn_event(model, &event);
             // The screen-reader channel: each card the event queued and
             // the phase it moved, as plain lines for the runtime to speak.
             let icons = model.theme().icons();
@@ -398,7 +395,10 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         }
         Msg::Engine(EngineEvent::PortFailed { cmd, what, error }) => {
             model.dock.restore_answer(&cmd);
-            model.turn.push_error(&format!("engine {what}: {error}"));
+            model
+                .session
+                .turn
+                .push_error(&format!("engine {what}: {error}"));
         }
         Msg::Job { id, output } => {
             model.jobs_done += 1;
@@ -431,7 +431,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
 fn workbench(model: &mut Model, event: WorkbenchEvent) {
     match event {
         WorkbenchEvent::Opened { path, content } => {
-            model.turn.push_note(&format!(
+            model.session.turn.push_note(&format!(
                 "opened {path} · {} lines",
                 content.lines().count()
             ));
@@ -444,7 +444,7 @@ fn workbench(model: &mut Model, event: WorkbenchEvent) {
             model.show_changes();
         }
         WorkbenchEvent::Undone { id } => {
-            model.turn.undo_edit(&id);
+            model.session.turn.undo_edit(&id);
             model.changes.remove(&id);
         }
         WorkbenchEvent::Journal { entries } => model.changes.set_entries(entries),
@@ -470,7 +470,10 @@ fn workbench(model: &mut Model, event: WorkbenchEvent) {
             model.show_changes();
         }
         WorkbenchEvent::Failed { what, error } => {
-            model.turn.push_error(&format!("workbench {what}: {error}"));
+            model
+                .session
+                .turn
+                .push_error(&format!("workbench {what}: {error}"));
         }
     }
     if model.changes.viewer().is_some() {
@@ -495,15 +498,17 @@ fn checkpoint(model: &mut Model, event: CheckpointEvent) {
             if !severed.is_empty() {
                 note.push_str(&format!(" · left behind: {}", severed.join(", ")));
             }
-            model.turn.push_note(&note);
+            model.session.turn.push_note(&note);
         }
         CheckpointEvent::Forked { id, branch, path } => {
             model
+                .session
                 .turn
                 .push_note(&format!("forked {id} · {branch} at {path}"));
         }
         CheckpointEvent::Merged { id, branch, head } => {
             model
+                .session
                 .turn
                 .push_note(&format!("merged {id} · {branch} at {head}"));
         }
@@ -512,6 +517,7 @@ fn checkpoint(model: &mut Model, event: CheckpointEvent) {
                 spine.failed(id, &error);
             }
             model
+                .session
                 .turn
                 .push_error(&format!("checkpoint {what}: {error}"));
         }
@@ -558,26 +564,29 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
             })];
         }
         LoopEvent::Note(text) => {
-            model.turn.push_note(&text);
+            model.session.turn.push_note(&text);
             return Vec::new();
         }
         LoopEvent::Failed(text) => {
-            model.turn_notice = Some("Work failed");
-            model.turn.push_error(&format!("error: {text}"));
+            model.session.notice = Some("Work failed");
+            model.session.turn.push_error(&format!("error: {text}"));
             return Vec::new();
         }
         LoopEvent::Ended(why) => {
-            model.turn.finish();
+            model.session.turn.finish();
             model.agent_activity.active = false;
             model.agent_activity.status = "Stopped";
             if let Some(status) = &mut model.loop_status {
                 status.end(why.as_str());
             }
-            model.turn_state = TurnState::AwaitingInput;
-            if model.turn_notice != Some("Work failed") {
-                model.turn_notice = Some("Stopped");
+            model.session.state = TurnState::AwaitingInput;
+            if model.session.notice != Some("Work failed") {
+                model.session.notice = Some("Stopped");
             }
-            model.turn.push_note(&format!("Work stopped: {why}"));
+            model
+                .session
+                .turn
+                .push_note(&format!("Work stopped: {why}"));
             return Vec::new();
         }
         other => other,
@@ -591,7 +600,7 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
         LoopEvent::GateStarted { name, job } => status.start_gate(name, job),
         LoopEvent::Paused(why) => {
             status.set_paused(true);
-            model.turn.push_note(&format!("paused: {why}"));
+            model.session.turn.push_note(&format!("paused: {why}"));
         }
         LoopEvent::Verdict {
             iteration,
@@ -605,6 +614,7 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
                 reason,
             };
             model
+                .session
                 .turn
                 .push_note(&format!("judge, iteration {iteration}: {}", verdict.text()));
             status.record_verdict(verdict);
@@ -622,7 +632,7 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     if super::flight_panels::FlightPanels::key(model, key) {
         return Vec::new();
     }
-    if let Some(cmd) = quit_or_cancel(model, key) {
+    if let Some(cmd) = session::quit_or_cancel(model, key) {
         return vec![cmd];
     }
     if let Some(cmds) = settings_key(model, key) {
@@ -642,7 +652,7 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     if let Some(cmds) = sheet_key(model, key) {
         return cmds;
     }
-    if let Some(cmds) = completion_key(model, key) {
+    if let Some(cmds) = session::completion_key(model, key) {
         return cmds;
     }
     if key.code == KeyCode::Tab {
@@ -723,7 +733,7 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     }
     if !model.surface().is_native()
         && model.tab == StageTab::Roadmap
-        && model.prompt.is_empty()
+        && model.session.prompt.is_empty()
         && key.mods == Modifiers::ALT
     {
         let handled = match key.code {
@@ -767,129 +777,13 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     if key.code == KeyCode::Esc && model.tab == StageTab::Session && model.trace.close_viewer() {
         return Vec::new();
     }
-    let ctrl = key.mods == Modifiers::CTRL;
-    let plain = key.mods.is_empty() || key.mods == Modifiers::SHIFT;
-    match key.code {
-        KeyCode::Enter if key.mods == Modifiers::ALT || key.mods == Modifiers::SHIFT => {
-            model.prompt.insert("\n");
-        }
-        KeyCode::Enter => return send(model),
-        KeyCode::Char(c) if plain => {
-            model.prompt.insert(c.encode_utf8(&mut [0; 4]));
-            open_completion(model, c);
-        }
-        KeyCode::Char('a') if ctrl => model.prompt.home(),
-        KeyCode::Char('e') if ctrl => model.prompt.end(),
-        KeyCode::Char('u') if ctrl => model.prompt.kill_to_start(),
-        KeyCode::Char('k') if ctrl => model.prompt.kill_to_end(),
-        KeyCode::Char('w') if ctrl => model.prompt.kill_word(),
-        KeyCode::Char('d') if ctrl => model.prompt.delete(),
-        KeyCode::Backspace => model.prompt.backspace(),
-        KeyCode::Delete => model.prompt.delete(),
-        KeyCode::Left => model.prompt.left(),
-        KeyCode::Right => model.prompt.right(),
-        KeyCode::Up => {
-            if !model.prompt.up() {
-                model.prompt.history_up();
-            }
-        }
-        KeyCode::Down => {
-            if !model.prompt.down() {
-                model.prompt.history_down();
-            }
-        }
-        KeyCode::Home if !model.prompt.is_empty() => model.prompt.home(),
-        KeyCode::End if !model.prompt.is_empty() => model.prompt.end(),
-        code => scroll_key(model, code),
+    // The draft's own keys; a key the draft has no meaning for scrolls
+    // the stage.
+    if let Some(cmds) = session::draft_key(model, key) {
+        return cmds;
     }
-    refresh_completion(model);
+    scroll_key(model, key.code);
     Vec::new()
-}
-
-/// A key for the open completion popup: Up/Down move the selection,
-/// Enter or Tab accepts, Esc closes; every other key falls through to
-/// the prompt and the popup re-filters on what it typed. `None` when no
-/// popup is open or the key was not the popup's to take.
-fn completion_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    let completion = model.completion.as_mut()?;
-    if !key.mods.is_empty() {
-        return None;
-    }
-    match key.code {
-        KeyCode::Up => completion.up(),
-        KeyCode::Down => completion.down(),
-        KeyCode::Esc => model.completion = None,
-        KeyCode::Tab | KeyCode::Enter => accept_completion(model),
-        _ => return None,
-    }
-    Some(Vec::new())
-}
-
-/// A typed `@` opens file completion; `/` at the start of a line opens
-/// command completion. The popup fills — or closes straight away — on
-/// the refresh that follows every edit.
-fn open_completion(model: &mut Model, c: char) {
-    let anchor = model.prompt.cursor().saturating_sub(c.len_utf8());
-    match c {
-        '@' => model.completion = Some(Completion::file(anchor)),
-        '/' if model.prompt.line_start() == anchor => {
-            model.completion = Some(Completion::command(anchor));
-        }
-        _ => {}
-    }
-}
-
-/// Re-filter the open popup against the prompt; it closes when the
-/// query no longer completes to anything.
-fn refresh_completion(model: &mut Model) {
-    let Some(completion) = &mut model.completion else {
-        return;
-    };
-    let keep = completion.refresh(
-        model.prompt.text(),
-        model.prompt.cursor(),
-        &model.workspace_files,
-    );
-    if !keep {
-        model.completion = None;
-    }
-}
-
-/// Accept the popup's selected candidate: it replaces the query in the
-/// prompt and the popup closes.
-fn accept_completion(model: &mut Model) {
-    let Some(completion) = model.completion.take() else {
-        return;
-    };
-    if let Some(replacement) = completion.replacement() {
-        model.prompt.complete(completion.anchor(), &replacement);
-    }
-}
-
-/// ctrl-C cancels a streaming turn and quits otherwise; ctrl-D quits on
-/// an empty prompt. A bare `q` types `q` — a prompt line owns its
-/// letters.
-fn quit_or_cancel(model: &mut Model, key: KeyEvent) -> Option<Cmd> {
-    let ctrl = key.mods == Modifiers::CTRL;
-    match key.code {
-        KeyCode::Char('c') if ctrl => {
-            if model.tab == StageTab::Roadmap && model.roadmap_request_pending() {
-                if model.roadmap_request_running() {
-                    model.agent_activity.stopping();
-                }
-                return Some(Cmd::CancelRoadmapPrompt);
-            }
-            if model.turn_state == TurnState::Streaming {
-                model.agent_activity.stopping();
-                model.turn.push_note("Stopping…");
-                return Some(Cmd::Cancel);
-            }
-        }
-        KeyCode::Char('d') if ctrl && model.prompt.is_empty() => {}
-        _ => return None,
-    }
-    model.quit_requested = true;
-    Some(Cmd::Quit)
 }
 
 /// A click on one of the Brief's controls. Every one of them puts the
@@ -940,7 +834,7 @@ fn fault_click(model: &mut Model, widget: Widget) -> Vec<Cmd> {
     match widget {
         Widget::FaultInstall => {
             let line = format!("install the agent: {}", BadDay::INSTALL);
-            model.turn.push_note(&line);
+            model.session.turn.push_note(&line);
             vec![Cmd::Announce(line)]
         }
         Widget::FaultDetails => {
@@ -954,7 +848,7 @@ fn fault_click(model: &mut Model, widget: Widget) -> Vec<Cmd> {
                 })
                 .unwrap_or_default();
             for detail in details {
-                model.turn.push_note(&detail);
+                model.session.turn.push_note(&detail);
             }
             model.show(StageTab::Turn);
             Vec::new()
@@ -1328,7 +1222,7 @@ fn sheet_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         }
         return Some(Vec::new());
     }
-    if key.code == KeyCode::Char('?') && plain && model.prompt.is_empty() {
+    if key.code == KeyCode::Char('?') && plain && model.session.prompt.is_empty() {
         model.sheet = true;
         model.sheet_viewport = Viewport::at_top();
         return Some(Vec::new());
@@ -1347,7 +1241,7 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         model.reasoning_expanded = !model.reasoning_expanded;
         return Some(Vec::new());
     }
-    if model.surface().is_native() || !model.prompt.is_empty() || !key.mods.is_empty() {
+    if model.surface().is_native() || !model.session.prompt.is_empty() || !key.mods.is_empty() {
         return None;
     }
     if key.code == KeyCode::Esc
@@ -1459,10 +1353,13 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             if model.tab == StageTab::Turn && matches!(model.selected, Some(Selected::Tool(_))) =>
         {
             let calls: Vec<_> = model
+                .session
                 .turn
                 .lines()
                 .iter()
-                .filter_map(|line| tool_identity(line).map(|id| (id.to_owned(), line.row_start())))
+                .filter_map(|line| {
+                    session::tool_identity(line).map(|id| (id.to_owned(), line.row_start()))
+                })
                 .collect();
             let current = calls
                 .iter()
@@ -1473,6 +1370,7 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             let (total, height) = model.conversation_window();
             let position = model.conversation_row_offset(row.saturating_add(1));
             model
+                .session
                 .viewport
                 .hold(position.saturating_sub(height), total, height);
         }
@@ -1504,7 +1402,7 @@ fn selection_index(current: Option<usize>, len: usize, forward: bool) -> Option<
 /// Native step navigation keeps the desktop trace reading independent of terminal tabs.
 fn native_trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     if model.place() != Some(Place::Trace)
-        || !model.prompt.is_empty()
+        || !model.session.prompt.is_empty()
         || !key.mods.is_empty()
         || model.trace.viewer().is_some()
         || model.trace.steps().is_empty()
@@ -1562,7 +1460,10 @@ fn reveal_session_selection(model: &mut Model) {
 /// terminal draws the tech-tree as a legend rather than a picture,
 /// has no camera, and so keeps `-` and `0` for typing.
 fn roadmap_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if model.shown_tab() != StageTab::Roadmap || !model.prompt.is_empty() || !key.mods.is_empty() {
+    if model.shown_tab() != StageTab::Roadmap
+        || !model.session.prompt.is_empty()
+        || !key.mods.is_empty()
+    {
         return None;
     }
     let (now, animate) = glide(model);
@@ -1583,7 +1484,10 @@ fn roadmap_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 /// a terminal (which has no Galaxy) and every other altitude keep the
 /// keys' meanings.
 fn galaxy_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if model.place() != Some(Place::Galaxy) || !model.prompt.is_empty() || !key.mods.is_empty() {
+    if model.place() != Some(Place::Galaxy)
+        || !model.session.prompt.is_empty()
+        || !key.mods.is_empty()
+    {
         return None;
     }
     let handled = match key.code {
@@ -1634,7 +1538,7 @@ fn launcher_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             _ => None,
         };
     }
-    if !model.is_launcher() || !model.prompt.is_empty() || !key.mods.is_empty() {
+    if !model.is_launcher() || !model.session.prompt.is_empty() || !key.mods.is_empty() {
         return None;
     }
     match key.code {
@@ -1712,7 +1616,7 @@ fn launch(model: &mut Model, action: LaunchAction) -> Vec<Cmd> {
 fn loop_verb(model: &mut Model, decision: LoopCmd) -> Option<Vec<Cmd>> {
     let status = model.loop_status.as_mut().filter(|s| s.ended().is_none())?;
     status.set_paused(decision == LoopCmd::Pause);
-    model.turn.push_note(decision_note(decision));
+    model.session.turn.push_note(decision_note(decision));
     Some(vec![Cmd::Loop(decision)])
 }
 
@@ -1742,7 +1646,7 @@ const CHECKPOINT_NOW_LABEL: &str = "checkpoint now";
 /// Take a checkpoint of the state as it stands, under `label`: the
 /// spine mints the name — whoever prints it must be the one that chose
 /// it — and the port is asked to save it under that name.
-fn checkpoint_now(model: &mut Model, label: &str) -> CheckpointCmd {
+pub(super) fn checkpoint_now(model: &mut Model, label: &str) -> CheckpointCmd {
     let id = model
         .rail
         .spine_mut()
@@ -1762,7 +1666,7 @@ fn pause_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     if key.code == Binding::ABORT_CHORD.code && key.mods == Binding::ABORT_CHORD.mods {
         return Some(loop_verb(model, LoopCmd::Abort).unwrap_or_default());
     }
-    if key.code != KeyCode::Char(' ') || !key.mods.is_empty() || !model.prompt.is_empty() {
+    if key.code != KeyCode::Char(' ') || !key.mods.is_empty() || !model.session.prompt.is_empty() {
         return None;
     }
     loop_toggle(model)
@@ -1801,7 +1705,7 @@ fn paused_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 /// nothing running on a pane, so the letter stays the prompt's; a
 /// second press while one is held changes nothing.
 fn kill_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if key.code != Binding::KILL.code || !key.mods.is_empty() || !model.prompt.is_empty() {
+    if key.code != Binding::KILL.code || !key.mods.is_empty() || !model.session.prompt.is_empty() {
         return None;
     }
     if !model.reports_key_releases() {
@@ -1819,10 +1723,10 @@ fn kill_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 /// screen, through [`Cmd::Clipboard`]. `None` without a card that ran
 /// on a terminal that wrote anything.
 fn copy_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if key.code != Binding::COPY.code || !key.mods.is_empty() || !model.prompt.is_empty() {
+    if key.code != Binding::COPY.code || !key.mods.is_empty() || !model.session.prompt.is_empty() {
         return None;
     }
-    let id = model.turn.running_terminal()?;
+    let id = model.session.turn.running_terminal()?;
     let text = model.terminals.term(id)?.transcript();
     Some(vec![Cmd::Clipboard(text)])
 }
@@ -1838,6 +1742,7 @@ fn arm_cap_hold(model: &mut Model, row: usize) {
         return;
     };
     let on_head = model
+        .session
         .turn
         .card_at_row(row)
         .is_some_and(|(line, _)| line.record().terminal.as_deref() == Some(target.id()));
@@ -1874,12 +1779,12 @@ fn hold_step(model: &mut Model) -> Vec<Cmd> {
     model.hold = None;
     let id = target.id();
     model.terminals.kill(id);
-    model.turn.set_terminal_strip(id, true);
+    model.session.turn.set_terminal_strip(id, true);
     vec![Cmd::Kill(target)]
 }
 
 fn follow_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if key.code != KeyCode::Char('f') || !key.mods.is_empty() || !model.prompt.is_empty() {
+    if key.code != KeyCode::Char('f') || !key.mods.is_empty() || !model.session.prompt.is_empty() {
         return None;
     }
     model.terminals.follow_all().then(Vec::new)
@@ -1924,291 +1829,6 @@ const fn decision_note(decision: LoopCmd) -> &'static str {
     }
 }
 
-/// Tool call `id` ended: the terminal its record embeds, if any, holds
-/// still — the pane freezes on its last screen with the cursor stopped.
-fn finish_terminal(model: &mut Model, id: &str) {
-    if let Some(terminal) = model
-        .turn
-        .tool_record(id)
-        .and_then(|record| record.terminal.clone())
-    {
-        model.terminals.finish(&terminal);
-        sync_strip(model, &terminal);
-    }
-}
-
-/// The strip under a card's head follows the program's own progress
-/// report: the card embedding terminal `id` carries
-/// it while the term reports one and gives the row back when the
-/// report clears or the program ends.
-fn sync_strip(model: &mut Model, id: &str) {
-    // Output or terminal association can arrive after the completed tool record.
-    if model.turn.terminal_finished(id) {
-        model.terminals.finish(id);
-    }
-    // A killed program keeps its strip: the row is where the pane says
-    // it was the human.
-    let on = model
-        .terminals
-        .term(id)
-        .is_some_and(|term| term.is_killed() || term.progress() != Progress::Cleared);
-    model.turn.set_terminal_strip(id, on);
-}
-
-/// Fold one typed event into the turn: a recorded check becomes a
-/// foldable card, ship task/objective milestones and think steps become
-/// one-line event rows; every other event stays off the stage.
-fn turn_event(model: &mut Model, native: &NativeEvent) {
-    match native {
-        NativeEvent::Ship(ShipFrame::CheckRecorded { check, .. }) => {
-            let name = check.name.as_str();
-            model.turn.push_check(
-                name,
-                check.command.as_deref(),
-                check.passed,
-                check.exit_code.map(i64::from),
-                check.results.as_ref().and_then(|r| r.duration_ms),
-                &check.details,
-            );
-            // The gate's run is over: its screen holds still, and the
-            // card it just made opens into it when it streamed.
-            model.terminals.finish(name);
-            if model.terminals.term(name).is_some() {
-                model.turn.set_check_terminal(name, name);
-                sync_strip(model, name);
-            }
-        }
-        NativeEvent::Ship(ShipFrame::ObjectiveSet { objective }) => {
-            model
-                .turn
-                .push_event(&event(model, "objective set", &objective.description));
-        }
-        NativeEvent::Ship(ShipFrame::TaskStarted { task_id }) => {
-            let title = task_title(model, task_id);
-            model.turn.push_event(&event(model, "task started", &title));
-        }
-        NativeEvent::Ship(ShipFrame::TaskCompleted { task_id }) => {
-            let title = task_title(model, task_id);
-            model
-                .turn
-                .push_event(&event(model, "task completed", &title));
-        }
-        NativeEvent::Ship(ShipFrame::ObjectiveShipped { .. }) => {
-            model
-                .turn
-                .push_event(&event(model, "objective shipped", ""));
-        }
-        NativeEvent::Think(ThinkFrame::StepAppended { step, .. })
-            if !model.uses_flight_recorder() =>
-        {
-            let head = format!("Step {}", step.step_number);
-            model.turn.push_event(&format!(
-                "{} {}",
-                model.theme().icons().think,
-                detailed(&head, &step.purpose)
-            ));
-        }
-        _ => {}
-    }
-}
-
-/// The task's title as the plan knows it, or its id when the plan does
-/// not — a task event names only the id.
-fn task_title(model: &Model, task_id: &str) -> String {
-    model
-        .rail
-        .ship()
-        .task(task_id)
-        .map_or_else(|| task_id.to_owned(), |task| task.title.clone())
-}
-
-/// `▸ what · detail` in the model's icon vocabulary, the detail left
-/// off when empty.
-fn event(model: &Model, what: &str, detail: &str) -> String {
-    format!(
-        "{} {}",
-        model.theme().icons().active,
-        detailed(what, detail)
-    )
-}
-
-/// `what · detail`, or `what` alone when the detail is empty.
-fn detailed(what: &str, detail: &str) -> String {
-    if detail.is_empty() {
-        what.to_owned()
-    } else {
-        format!("{what} · {detail}")
-    }
-}
-
-/// Send the prompt line as a turn: echoed on the stage in the user's
-/// voice, the turn streaming, the window back at the tail. On an empty
-/// prompt, Enter instead expands or collapses the most recent card. A
-/// palette command goes to its port instead of the agent — `/search`,
-/// `/map`, `/read` and `/run` to the workbench, `/pin`, `/unpin` and
-/// `/checkpoint` to the think engine — even while a turn streams — and
-/// is echoed without starting a turn.
-fn send(model: &mut Model) -> Vec<Cmd> {
-    if model.prompt.is_empty() {
-        model.turn.toggle_last();
-        if !model.surface().is_native() && model.tab == StageTab::Turn {
-            let id = model
-                .turn
-                .lines()
-                .iter()
-                .rev()
-                .find(|line| {
-                    matches!(
-                        line.kind(),
-                        crate::turn::LineKind::Tool { .. }
-                            | crate::turn::LineKind::Edit { .. }
-                            | crate::turn::LineKind::Check { .. }
-                    )
-                })
-                .and_then(tool_identity)
-                .map(str::to_owned);
-            if let Some(id) = id {
-                model.inspect(Selected::Tool(id));
-            }
-        }
-        return Vec::new();
-    }
-    if let Some(cmd) = palette(model.prompt.text()) {
-        let text = model.prompt.take();
-        model.turn.push_text(Voice::User, &format!("{text}\n"));
-        return vec![Cmd::Workbench(cmd)];
-    }
-    if let Some(cmd) = engine_palette(model.prompt.text()) {
-        let text = model.prompt.take();
-        model.turn.push_text(Voice::User, &format!("{text}\n"));
-        return vec![Cmd::Engine(cmd)];
-    }
-    let typed = model.prompt.text().to_owned();
-    if let Some(cmd) = spine_palette(model, &typed) {
-        let text = model.prompt.take();
-        model.turn.push_text(Voice::User, &format!("{text}\n"));
-        return vec![Cmd::Checkpoint(cmd)];
-    }
-    if model.tab == StageTab::Roadmap {
-        if model.roadmap_request_pending() {
-            return Vec::new();
-        }
-        let text = model.prompt.take();
-        if !model.uses_flight_recorder() {
-            model.turn.push_note(&format!("Roadmap request: {text}"));
-            model
-                .turn
-                .push_note("Waiting to update the roadmap. Current work will finish first.");
-        }
-        model
-            .roadmap_requests
-            .push(RoadmapRequest::new(text.clone()));
-        model.refused = false;
-        model.roadmap_requests_open = true;
-        model.roadmap_request_scroll = usize::MAX;
-        model.pane = Pane::Inspector;
-        return vec![Cmd::RoadmapPrompt(text)];
-    }
-    if model.turn_state == TurnState::Streaming || model.roadmap_request_pending() {
-        return Vec::new();
-    }
-    let text = model.prompt.take();
-    model.agent_activity.begin("Conversation");
-    model.turn.push_text(Voice::User, &format!("{text}\n"));
-    model.turn_notice = None;
-    model.turn_state = TurnState::Streaming;
-    // A new turn answers the refusal card: the thing to do was to send
-    // another, and it has been sent.
-    model.refused = false;
-    // Back to the tail to watch the answer. Not a scroll — the echo row
-    // that just landed is already fading in, and a glide under
-    // it would be a second move on the same event — so the window simply
-    // is at the bottom.
-    let (total, height) = model.conversation_window();
-    model.viewport.end(total, height, model.now(), false);
-    vec![Cmd::Prompt(text)]
-}
-
-/// The workbench request a palette command names: `/read <path>`,
-/// `/search <query>`, `/map`, `/run <command>`. `None` for anything
-/// else — including a bare `/read`, `/search` or `/run`, which the
-/// agent can be asked about instead.
-fn palette(text: &str) -> Option<WorkbenchCmd> {
-    let text = text.trim();
-    let (head, rest) = text
-        .split_once(char::is_whitespace)
-        .map_or((text, ""), |(head, rest)| (head, rest.trim()));
-    match head {
-        "/map" if rest.is_empty() => Some(WorkbenchCmd::Map),
-        "/read" if !rest.is_empty() => Some(WorkbenchCmd::Open {
-            path: rest.to_owned(),
-        }),
-        "/search" if !rest.is_empty() => Some(WorkbenchCmd::Search {
-            query: rest.to_owned(),
-        }),
-        "/run" if !rest.is_empty() => Some(WorkbenchCmd::Run {
-            command: rest.to_owned(),
-        }),
-        _ => None,
-    }
-}
-
-/// The engine request a palette command names: `/pin <step>`,
-/// `/unpin <step>`, `/checkpoint`. `None` for anything else — a bare
-/// `/pin` or one without a number goes to the agent like any prompt.
-fn engine_palette(text: &str) -> Option<EngineCmd> {
-    let text = text.trim();
-    let (head, rest) = text
-        .split_once(char::is_whitespace)
-        .map_or((text, ""), |(head, rest)| (head, rest.trim()));
-    match head {
-        "/checkpoint" if rest.is_empty() => Some(EngineCmd::Checkpoint),
-        "/pin" | "/unpin" => rest.parse().ok().map(|step_number| EngineCmd::Pin {
-            step_number,
-            pinned: head == "/pin",
-        }),
-        _ => None,
-    }
-}
-
-/// The checkpoint request a ledger command names: `/checkpoint-now
-/// [label]` takes one, `/restore <cp>` resumes from one, `/fork <cp>
-/// [branch]` opens a worktree branch at one.
-///
-/// A restore or a fork naming a checkpoint the spine does not hold is
-/// `None`, so the text goes to the agent instead of asking the port
-/// about a state that was never on the rail — the same rule the Trace
-/// tab's chunk link takes, where a ref no chunk answers is not painted
-/// as a link at all.
-///
-/// The manual save mints its name here for the same reason the risky
-/// permission does: whoever prints the name must be the one that chose
-/// it (`Spine::open`). That makes this the one palette command that
-/// mutates the model, which is why it takes `&mut Model` while
-/// [`palette`] and [`engine_palette`] are pure functions of the text.
-fn spine_palette(model: &mut Model, text: &str) -> Option<CheckpointCmd> {
-    let text = text.trim();
-    let (head, rest) = text
-        .split_once(char::is_whitespace)
-        .map_or((text, ""), |(head, rest)| (head, rest.trim()));
-    match head {
-        "/checkpoint-now" => Some(checkpoint_now(model, rest)),
-        "/restore" if model.rail.spine().get(rest).is_some() => Some(CheckpointCmd::Restore {
-            id: rest.to_owned(),
-        }),
-        "/fork" if !rest.is_empty() => {
-            let (id, branch) = rest
-                .split_once(char::is_whitespace)
-                .map_or((rest, ""), |(id, branch)| (id, branch.trim()));
-            model.rail.spine().get(id).map(|_| CheckpointCmd::Fork {
-                id: id.to_owned(),
-                branch: (!branch.is_empty()).then(|| branch.to_owned()),
-            })
-        }
-        _ => None,
-    }
-}
-
 /// A key for the dock's front card. A permission is the decision
 /// feature's to answer ([`decision::key`]) and takes every key — the
 /// agent is blocked on it. A proposal or blocker answers its
@@ -2236,7 +1856,7 @@ fn delegate_offer(model: &mut Model, index: usize) -> Vec<Cmd> {
 /// The empty-prompt accelerator of a front proposal (`y` accept, `n`
 /// reject) or blocker (`c` clear): the answered card leaves the dock.
 fn card_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if !key.mods.is_empty() || !model.prompt.is_empty() {
+    if !key.mods.is_empty() || !model.session.prompt.is_empty() {
         return None;
     }
     let cmd = match (model.dock.front()?, key.code) {
@@ -2273,6 +1893,7 @@ fn scroll_key(model: &mut Model, code: KeyCode) {
         };
         let origin = model.conversation_scroll_origin();
         model
+            .session
             .viewport
             .scroll_from(origin, delta, total, height, (now, animate));
         return;
@@ -2317,7 +1938,7 @@ fn scrolled_viewport(model: &mut Model) -> &mut Viewport {
     match scrolled_tab(model) {
         Some(StageTab::Session) => &mut model.session_viewport,
         Some(StageTab::Roadmap) => &mut model.roadmap_viewport,
-        _ => &mut model.viewport,
+        _ => &mut model.session.viewport,
     }
 }
 
@@ -2398,6 +2019,7 @@ fn pane_under(
     }
     let index = target.and_then(Widget::stage_row_index)?;
     let (id, _) = model
+        .session
         .turn
         .pane_at_row(model.top_row().checked_add(index)?)?;
     Some(id.to_owned())
@@ -2478,7 +2100,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             let (now, animate) = glide(model);
             let distance = model.conversation_wheel();
             let origin = model.conversation_scroll_origin();
-            model.viewport.scroll_from(
+            model.session.viewport.scroll_from(
                 origin,
                 if down { distance } else { -distance },
                 total,
@@ -2701,26 +2323,24 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                             }
                             return vec![Cmd::CancelRoadmapPrompt];
                         }
-                        if !model.prompt.text().trim().is_empty() {
-                            model.completion = None;
-                            return send(model);
+                        if !model.session.prompt.text().trim().is_empty() {
+                            model.session.completion = None;
+                            return session::send(model);
                         }
                         return Vec::new();
                     }
-                    if model.turn_state == TurnState::Streaming {
-                        model.agent_activity.stopping();
-                        model.turn.push_note("Stopping. Your draft is kept.");
-                        return vec![Cmd::Cancel];
+                    if model.session.state == TurnState::Streaming {
+                        return vec![session::stop(model, "Stopping. Your draft is kept.")];
                     }
-                    if !model.prompt.text().trim().is_empty() {
-                        model.completion = None;
-                        return send(model);
+                    if !model.session.prompt.text().trim().is_empty() {
+                        model.session.completion = None;
+                        return session::send(model);
                     }
                     return Vec::new();
                 }
                 Some(Widget::RailToggle) => {
                     model.rail.toggle();
-                    model.turn.rewrap(model.turn_width());
+                    model.session.turn.rewrap(model.turn_width());
                     return Vec::new();
                 }
                 Some(Widget::RailDivider) => {
@@ -2909,10 +2529,10 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 None => {}
             }
             if let Some(index) = target.and_then(Widget::completion_index) {
-                if let Some(completion) = &mut model.completion {
+                if let Some(completion) = &mut model.session.completion {
                     completion.select(index);
                 }
-                accept_completion(model);
+                session::accept_completion(model);
                 return Vec::new();
             }
             if let Some(index) = target.and_then(Widget::edit_open_index) {
@@ -3084,17 +2704,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 // folds the card also starts the held kill, which a click's release cancels inside the
                 // dead zone before it shows.
                 arm_cap_hold(model, row);
-                if !model.surface().is_native() {
-                    let id = model
-                        .turn
-                        .card_at_row(row)
-                        .and_then(|(line, _)| tool_identity(line))
-                        .map(str::to_owned);
-                    if let Some(id) = id {
-                        model.inspect(Selected::Tool(id));
-                    }
-                }
-                model.turn.toggle_at_row(row);
+                session::select_row(model, row);
                 return Vec::new();
             }
             // An answer button or *Show images*, on the strip or the
@@ -3109,7 +2719,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             let (x, _) = model.pointer_at(&event);
             let width = model.rail_drag_width(x);
             model.rail.drag_width(width, model.size.cols);
-            model.turn.rewrap(model.turn_width());
+            model.session.turn.rewrap(model.turn_width());
         }
         // The cap let go before the half second: nothing happens.
         MouseKind::Up(Button::Left) if model.hold.as_ref().is_some_and(TermHold::is_by_cap) => {
@@ -3490,30 +3100,28 @@ fn signal_click(model: &mut Model, index: usize, act: SignalAct) -> Vec<Cmd> {
             minutes: SNOOZE_MINUTES,
         },
         SignalAct::Research => {
-            if model.turn_state == TurnState::Streaming {
+            if model.session.state == TurnState::Streaming {
                 return Vec::new();
             }
             let text = format!(
                 "Research signal {id} (\u{201c}{title}\u{201d}): ground it in the codebase, \
                  research the world, and record the findings with signal_research."
             );
-            model.turn.push_text(Voice::User, &format!("{text}\n"));
-            model.turn_notice = None;
-            model.turn_state = TurnState::Streaming;
+            model
+                .session
+                .turn
+                .push_text(Voice::User, &format!("{text}\n"));
+            model.session.notice = None;
+            model.session.state = TurnState::Streaming;
             let (total, height) = model.conversation_window();
-            model.viewport.end(total, height, model.now(), false);
+            model
+                .session
+                .viewport
+                .end(total, height, model.now(), false);
             return vec![Cmd::Prompt(text)];
         }
     };
     vec![Cmd::Engine(cmd)]
-}
-
-/// The tool identity is independent of its visible row or wrapping.
-fn tool_identity(line: &crate::turn::Line) -> Option<&str> {
-    match line.kind() {
-        crate::turn::LineKind::Tool { id, .. } | crate::turn::LineKind::Edit { id, .. } => Some(id),
-        _ => None,
-    }
 }
 
 fn selected_edit_click(model: &Model, undo: bool) -> Vec<Cmd> {
@@ -3539,7 +3147,7 @@ fn selected_edit_click(model: &Model, undo: bool) -> Vec<Cmd> {
 /// Open or undo the edit identified by its visible inline button row.
 fn edit_click(model: &mut Model, index: usize, undo: bool) -> Vec<Cmd> {
     let row = model.top_row().saturating_add(index);
-    let Some((id, path, undone)) = model.turn.edit_at_row(row) else {
+    let Some((id, path, undone)) = model.session.turn.edit_at_row(row) else {
         return Vec::new();
     };
     let cmd = if undo {
@@ -3689,7 +3297,7 @@ fn report_receipt(model: &mut Model, receipt: Widget) -> Vec<Cmd> {
         _ => return Vec::new(),
     };
     for line in lines {
-        model.turn.push_note(&line);
+        model.session.turn.push_note(&line);
     }
     model.show(StageTab::Turn);
     Vec::new()
@@ -3795,81 +3403,6 @@ fn blocker_click(model: &mut Model) -> Vec<Cmd> {
     vec![cmd]
 }
 
-/// One image content block decoded: its base64 payload measured
-/// against the terminal's cell, with the alt text the block's type and
-/// uri make. The format is sniffed from the bytes by `StreamImage`, so
-/// the `mime_type` here only ever labels the block — a JPEG an agent
-/// called a PNG still shows. `None` for anything the cockpit cannot
-/// show — a format it does not decode, corrupt bytes, base64 that is
-/// not base64 — which every caller turns into a note naming the type,
-/// so the block is never silently dropped.
-fn decode_image(model: &Model, block: &ImageBlock) -> (Option<StreamImage>, String) {
-    let mime_type = &block.mime_type;
-    let alt = match block.uri.as_deref() {
-        Some(uri) if !uri.is_empty() => format!("[image {mime_type}: {uri}]"),
-        _ => format!("[image {mime_type}]"),
-    };
-    let image = crate::base64::decode(block.data.as_bytes())
-        .and_then(|bytes| StreamImage::decode(&bytes, &alt, model.cell_size()));
-    (image, alt)
-}
-
-/// One image content block of a message chunk into the turn, as its own
-/// line — or one note row when it could not be decoded.
-pub(super) fn picture(model: &mut Model, block: &ImageBlock) {
-    match decode_image(model, block) {
-        (Some(image), alt) => model.turn.push_image(image, &alt),
-        (None, alt) => model.turn.push_note(&format!("{alt} could not be shown")),
-    }
-}
-
-/// A call completed: bump the session's one receipt counter and write
-/// the call's receipt — its ordinal on that counter, the `+/−` its edit
-/// carries (zero for a call with no diff), and the checkpoint whose
-/// rollback reach covers it (the spine's head right now). The native
-/// card's head and trailer read it; the cell renderer never does, so
-/// no terminal golden can move on it.
-fn mint_receipt(model: &mut Model, id: &str) {
-    model.rail.spine_mut().note_receipt();
-    let spine = model.rail.spine();
-    let ordinal = spine.receipts();
-    let reach = spine.head().map(|cp| cp.id().to_owned());
-    let (added, removed) = model.turn.diff_stats(id).unwrap_or((0, 0));
-    // A run the reader ended with the held kill says so on its receipt.
-    let killed = model
-        .turn
-        .tool_record(id)
-        .and_then(|record| record.terminal.as_deref())
-        .and_then(|terminal| model.terminals.term(terminal))
-        .is_some_and(Term::is_killed);
-    model.turn.set_receipt(
-        id,
-        crate::turn::Receipt {
-            added,
-            removed,
-            ordinal,
-            reach,
-            killed,
-        },
-    );
-}
-
-/// The image blocks one tool call's content carried, each as its own
-/// line after the call's card. The line is keyed by the call and the
-/// block's position, so an update re-sending the same content refreshes
-/// the line it already pushed rather than stacking a second copy under
-/// the card.
-fn tool_pictures(model: &mut Model, id: &str, blocks: &[ImageBlock]) {
-    for (index, block) in blocks.iter().enumerate() {
-        let (image, alt) = decode_image(model, block);
-        let text = match image {
-            Some(_) => alt.clone(),
-            None => format!("{alt} could not be shown"),
-        };
-        model.turn.set_tool_image(id, index, image, &text);
-    }
-}
-
 /// Scroll the visible detail surface without moving the conversation or work list.
 fn detail_scroll(model: &mut Model, delta: isize) {
     if model.uses_flight_recorder() && model.tab == StageTab::Roadmap && model.roadmap_requests_open
@@ -3877,318 +3410,6 @@ fn detail_scroll(model: &mut Model, delta: isize) {
         super::FlightRequests::scroll(model, delta);
     } else {
         Inspector::scroll(model, delta);
-    }
-}
-
-/// Observe request ownership before the event changes the shared transcript.
-/// A queued request rejected by admission does not end the implementation turn.
-fn observe_request(model: &mut Model, event: &AgentEvent) -> Option<&'static str> {
-    if let AgentEvent::PromptRejected { text, error } = event
-        && model.roadmap_request_pending()
-        && model
-            .roadmap_requests
-            .last()
-            .is_some_and(|request| request.text != *text)
-    {
-        if model.prompt.is_empty() {
-            model.prompt.insert(text);
-        }
-        model.turn.push_error(error);
-        return Some("Your message was not sent. Your roadmap request is still pending.");
-    }
-    let queued_rejection = matches!(event, AgentEvent::PromptRejected { text, .. }
-        if model.roadmap_requests.last().is_some_and(|request|
-            request.text == *text && matches!(request.phase, RequestPhase::Waiting | RequestPhase::Queued)));
-    if queued_rejection {
-        if let (Some(request), AgentEvent::PromptRejected { text, error }) =
-            (model.roadmap_requests.last_mut(), event)
-        {
-            request.phase = RequestPhase::Failed;
-            request.error = Some(error.clone());
-            if model.prompt.is_empty() {
-                model.prompt.insert(text);
-            }
-        }
-        return Some("Your roadmap request was not sent. Your draft is kept.");
-    }
-    model.agent_activity.observe(event);
-    if let Some(request) = model
-        .roadmap_requests
-        .last_mut()
-        .filter(|request| request.phase == RequestPhase::Working)
-    {
-        match event {
-            AgentEvent::TurnEnded(end) => {
-                let (phase, reason) = match end {
-                    TurnEnd::EndTurn => (RequestPhase::Complete, None),
-                    TurnEnd::Cancelled => (RequestPhase::Stopped, None),
-                    TurnEnd::Other => (
-                        RequestPhase::Stopped,
-                        Some("The response stopped before it finished."),
-                    ),
-                    TurnEnd::Refusal => (
-                        RequestPhase::Failed,
-                        Some("The agent declined this request."),
-                    ),
-                    TurnEnd::MaxTokens => (
-                        RequestPhase::Failed,
-                        Some("The response reached its length limit before it finished."),
-                    ),
-                    TurnEnd::MaxTurnRequests => (
-                        RequestPhase::Failed,
-                        Some("The agent reached its action limit before it finished."),
-                    ),
-                };
-                request.phase = phase;
-                request.error = reason.map(str::to_owned);
-                request.source_end = Some(model.turn.lines().len());
-                if *end != TurnEnd::EndTurn && model.prompt.is_empty() {
-                    model.prompt.insert(&request.text);
-                }
-            }
-            AgentEvent::Error(error) | AgentEvent::PromptRejected { error, .. } => {
-                request.phase = RequestPhase::Failed;
-                request.source_end = Some(model.turn.lines().len());
-                request.error = Some(error.clone());
-                if model.prompt.is_empty() {
-                    model.prompt.insert(&request.text);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-/// Fold one agent event into the model. An edit — a tool call or an
-/// update carrying a diff — also asks the workbench for the journal, so
-/// the journal model lists the entry within the same frame; the journal,
-/// not the ACP event, is the authoritative record.
-fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
-    if let Some(note) = observe_request(model, &event) {
-        return vec![Cmd::Announce(note.to_owned())];
-    }
-    let edited = matches!(
-        &event,
-        AgentEvent::ToolCall { diff: Some(_), .. }
-            | AgentEvent::ToolCallUpdate { diff: Some(_), .. }
-    );
-    match event {
-        AgentEvent::Text(text) => {
-            model.turn_notice = None;
-            model.turn_state = TurnState::Streaming;
-            model.turn.push_text(Voice::Agent, &text);
-        }
-        AgentEvent::Thought(text) => {
-            model.turn_notice = None;
-            model.turn_state = TurnState::Streaming;
-            model.turn.push_text(Voice::Thought, &text);
-        }
-        AgentEvent::UserText(text) => {
-            model.turn_notice = None;
-            model.turn_state = TurnState::Streaming;
-            model.turn.push_text(Voice::User, &text);
-        }
-        AgentEvent::ToolCall {
-            id,
-            title,
-            verb,
-            status,
-            diff,
-            images,
-            record,
-        } => {
-            model.turn_notice = None;
-            model.turn_state = TurnState::Streaming;
-            match diff {
-                Some(diff) => model.turn.push_edit(
-                    &id,
-                    &diff.path,
-                    status,
-                    &crate::turn::diff::body(&diff.old_text, &diff.new_text),
-                ),
-                None => model.turn.push_tool(&id, &title, verb, status),
-            }
-            model.turn.set_tool_title(&id, &title);
-            // What the call said past its row stays beside it, for
-            // the card to open into.
-            if !record.is_empty() {
-                let terminal = record.terminal.clone();
-                model.turn.set_tool_record(&id, *record);
-                if let Some(terminal) = terminal {
-                    sync_strip(model, &terminal);
-                }
-            }
-            // A call that arrives already completed is a receipt too —
-            // the spine's head counts what landed past it.
-            if status == ToolStatus::Completed {
-                mint_receipt(model, &id);
-            }
-            if matches!(status, ToolStatus::Completed | ToolStatus::Failed) {
-                finish_terminal(model, &id);
-            }
-            tool_pictures(model, &id, &images);
-        }
-        AgentEvent::ToolCallUpdate {
-            id,
-            title,
-            status,
-            diff,
-            duration_ms,
-            images,
-            record,
-        } => {
-            if let Some(diff) = diff {
-                model.turn.set_edit(
-                    &id,
-                    &diff.path,
-                    status,
-                    &crate::turn::diff::body(&diff.old_text, &diff.new_text),
-                );
-            } else {
-                model
-                    .turn
-                    .update_tool(&id, title.as_deref(), status, duration_ms);
-            }
-            if let Some(title) = title.as_deref() {
-                model.turn.set_tool_title(&id, title);
-            }
-            if !record.is_empty() {
-                let terminal = record.terminal.clone();
-                model.turn.set_tool_record(&id, *record);
-                if let Some(terminal) = terminal {
-                    sync_strip(model, &terminal);
-                }
-            }
-            // A completed call is a receipt on the session's ledger:
-            // the native rail's head row counts the receipts taken
-            // after the newest checkpoint.
-            if status == Some(ToolStatus::Completed) {
-                mint_receipt(model, &id);
-            }
-            if matches!(status, Some(ToolStatus::Completed | ToolStatus::Failed)) {
-                finish_terminal(model, &id);
-            }
-            tool_pictures(model, &id, &images);
-        }
-        AgentEvent::Usage {
-            used,
-            size,
-            cost_cents,
-            elapsed_secs,
-        } => {
-            model.note_usage(used, size);
-            // The agent's own price for the session so far fills the
-            // rail's budget meter, and the
-            // session's own clock the agent block's minutes: one
-            // message meters the context, the dollars and the time.
-            if let Some(cents) = cost_cents {
-                model.rail.note_spend(cents);
-            }
-            if let Some(secs) = elapsed_secs {
-                model.rail.note_clock(secs);
-            }
-        }
-        AgentEvent::TurnEnded(end) => {
-            model.turn.finish();
-            model.turn_notice = Some(match end {
-                TurnEnd::EndTurn => "Ready",
-                TurnEnd::Cancelled => "Stopped",
-                TurnEnd::Refusal => "Request declined",
-                TurnEnd::MaxTokens | TurnEnd::MaxTurnRequests => "Limit reached",
-                TurnEnd::Other => "Stopped",
-            });
-            model.turn_state = TurnState::AwaitingInput;
-            // A turn is a request on the agent block's ledger.
-            model.rail.note_turn();
-            // The turn boundary is what makes a token *sample*:
-            // usage arrives as a running context
-            // level, and one turn's share of it is what the header's
-            // monitor plots.
-            model.roll_tokens();
-            model.refused = end == TurnEnd::Refusal;
-            if let Some(why) = ended_early(end) {
-                model.turn.push_note(why);
-            }
-        }
-        AgentEvent::PermissionRequest {
-            id,
-            title,
-            choices,
-            edit,
-            risk,
-            plan,
-        } => return decision::request(model, id, &title, choices, edit, risk, plan),
-        AgentEvent::PermissionLapsed {
-            id,
-            title,
-            after_secs,
-        } => return decision::lapsed(model, id, &title, after_secs),
-        AgentEvent::PermissionCancelled { id } => decision::cancelled(model, id),
-        AgentEvent::Image(block) => {
-            model.turn_notice = None;
-            model.turn_state = TurnState::Streaming;
-            picture(model, &block);
-        }
-        AgentEvent::PromptRejected { text, error } => {
-            model.turn_state = TurnState::AwaitingInput;
-            model.turn.push_error(&error);
-            if model.prompt.is_empty() {
-                model.prompt.insert(&text);
-                model
-                    .turn
-                    .push_note("Your message was not sent. Your draft is ready to edit.");
-            } else {
-                model.turn.push_note("Your message was not sent. Your newer draft is kept; the earlier message is in history.");
-            }
-        }
-        AgentEvent::Error(text) => {
-            model.turn.finish();
-            model.turn_state = TurnState::AwaitingInput;
-            model.turn_notice = Some("Connection error");
-            model.turn.push_error(&text);
-        }
-        // The hole is said where it is: a transcript the cockpit fell
-        // behind on must not read as continuous.
-        AgentEvent::Lagged { bytes, items } => {
-            model.turn_notice = None;
-            model.turn_state = TurnState::Streaming;
-            model.turn.push_note(&format!(
-                "… {bytes} bytes of streamed text ({items} whole updates) not shown: the cockpit fell behind"
-            ));
-        }
-        // A new session's handshake: the cost and the clock it reports
-        // count from zero, so what the last session spent and ran is
-        // settled first and a loop's meter reads the whole run — and
-        // the model it named binds the rail's agent block.
-        AgentEvent::Initialized { model: named, .. } => {
-            model.rail.settle_session();
-            model.rail.bind_agent(named.as_deref());
-        }
-        // A terminal's bytes are kept by id, not shown: the tool call
-        // that embeds the terminal may name it only after they land.
-        AgentEvent::Terminal { terminal_id, bytes } => {
-            let tick = model.ticks;
-            model.terminals.push(&terminal_id, &bytes, tick);
-            sync_strip(model, &terminal_id);
-        }
-        AgentEvent::Plan { .. } | AgentEvent::System { .. } => {}
-    }
-    if edited {
-        return vec![Cmd::Workbench(WorkbenchCmd::Journal)];
-    }
-    Vec::new()
-}
-
-/// Why a turn did not end on its own, in words.
-const fn ended_early(end: TurnEnd) -> Option<&'static str> {
-    match end {
-        TurnEnd::EndTurn => None,
-        TurnEnd::MaxTokens => Some("The response reached its length limit."),
-        TurnEnd::MaxTurnRequests => Some("The request limit was reached."),
-        TurnEnd::Refusal => Some("The agent declined this request."),
-        TurnEnd::Cancelled => Some("Stopped."),
-        TurnEnd::Other => Some("The agent stopped."),
     }
 }
 

@@ -48,14 +48,14 @@ fn request_owns_only_its_admitted_response_across_iteration_boundaries() {
         &mut model,
         Msg::Agent(AgentEvent::Text("Existing implementation".into())),
     );
-    let old_lines = model.turn.lines().len();
+    let old_lines = model.session.turn.lines().len();
     assert_eq!(
         submit(&mut model, "Add recovery checks"),
         vec![Cmd::RoadmapPrompt("Add recovery checks".into())]
     );
     assert!(model.roadmap_requests_open());
     assert_eq!(model.roadmap_requests()[0].phase, RequestPhase::Waiting);
-    assert_eq!(model.turn.lines().len(), old_lines);
+    assert_eq!(model.session.turn.lines().len(), old_lines);
     update(&mut model, Msg::RoadmapRequestQueued);
     update(
         &mut model,
@@ -97,7 +97,7 @@ fn request_owns_only_its_admitted_response_across_iteration_boundaries() {
     );
     assert_eq!(model.roadmap_requests()[0], response);
     assert_eq!(
-        model.turn.lines()[start].text(),
+        model.session.turn.lines()[start].text(),
         "Added two recovery checks."
     );
 }
@@ -111,7 +111,7 @@ fn queued_rejection_keeps_the_current_work_and_newer_draft() {
     );
     submit(&mut model, "Read @missing.txt");
     update(&mut model, Msg::RoadmapRequestQueued);
-    model.prompt.insert("A newer request");
+    model.session.prompt.insert("A newer request");
     update(
         &mut model,
         Msg::Agent(AgentEvent::PromptRejected {
@@ -121,7 +121,7 @@ fn queued_rejection_keeps_the_current_work_and_newer_draft() {
     );
     assert_eq!(model.turn_state(), TurnState::Streaming);
     assert_eq!(model.agent_activity().status, "Thinking");
-    assert_eq!(model.prompt.text(), "A newer request");
+    assert_eq!(model.session.prompt.text(), "A newer request");
     assert_eq!(model.roadmap_requests()[0].phase, RequestPhase::Failed);
     assert_eq!(
         model.roadmap_requests()[0].error.as_deref(),
@@ -154,7 +154,7 @@ fn unrelated_rejected_prompt_does_not_end_a_queued_or_running_roadmap_request() 
         );
         assert_eq!(model.roadmap_requests()[0], request);
         assert_eq!(model.agent_activity(), activity);
-        assert_eq!(model.prompt.text(), "Another question");
+        assert_eq!(model.session.prompt.text(), "Another question");
     }
 }
 
@@ -173,7 +173,7 @@ fn queued_cancel_leaves_implementation_running_and_restores_request_draft() {
     );
     update(&mut model, Msg::RoadmapRequestCancelled);
     assert_eq!(model.turn_state(), TurnState::Streaming);
-    assert_eq!(model.prompt.text(), "Split the next item");
+    assert_eq!(model.session.prompt.text(), "Split the next item");
     assert_eq!(model.roadmap_requests()[0].phase, RequestPhase::Stopped);
 }
 
@@ -182,14 +182,14 @@ fn request_panel_and_draft_survive_navigation() {
     let mut model = model();
     submit(&mut model, "Add more ready work");
     update(&mut model, Msg::RoadmapRequestStarted);
-    model.prompt.insert("Keep this draft");
+    model.session.prompt.insert("Keep this draft");
     click(&mut model, Widget::RoadmapDetails);
     assert!(!model.roadmap_requests_open());
     click(&mut model, Widget::RoadmapRequests);
     model.show(StageTab::Turn);
     model.show(StageTab::Roadmap);
     assert!(model.roadmap_requests_open());
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
     assert_eq!(model.roadmap_requests()[0].text, "Add more ready work");
 }
 
@@ -282,6 +282,7 @@ fn roadmap_request_semantics_and_panel_keys_are_independent_of_graphics() {
     );
     assert!(
         model
+            .session
             .turn
             .lines()
             .iter()
@@ -332,14 +333,14 @@ fn incomplete_responses_keep_their_reason_and_recover_the_request_without_overwr
                 Msg::Agent(AgentEvent::Text("Reviewing current coverage".into())),
             );
             if newer_draft {
-                model.prompt.insert("A newer draft");
+                model.session.prompt.insert("A newer draft");
             }
             update(&mut model, Msg::Agent(AgentEvent::TurnEnded(end)));
             let request = model.roadmap_requests()[0].clone();
             assert_eq!(request.phase, phase);
             assert_eq!(request.error.as_deref(), reason);
             assert_eq!(
-                model.prompt.text(),
+                model.session.prompt.text(),
                 if newer_draft {
                     "A newer draft"
                 } else {

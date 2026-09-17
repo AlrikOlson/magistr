@@ -137,7 +137,7 @@ fn roadmap_composer_names_its_request_and_selected_work_without_mutating_the_dra
     assert!(!words.contains("internal-work-73"));
     assert!(model.prompt().is_empty());
 
-    model.prompt.insert("Keep this draft");
+    model.session.prompt.insert("Keep this draft");
     model.show(StageTab::Turn);
     assert_eq!(model.prompt().text(), "Keep this draft");
     let view = FlightComposer::view(&model, &FlightStyle::for_model(&model), 1400.0, 112.0);
@@ -153,7 +153,10 @@ fn selected_work_request_is_visible_editable_and_sent_unchanged() {
     FlightComposer::request_change(&mut model);
     assert_eq!(model.prompt().text(), "For “Save the retry schedule”, ");
     assert_eq!(model.pane(), Pane::Stage);
-    model.prompt.insert("split this into two smaller items.");
+    model
+        .session
+        .prompt
+        .insert("split this into two smaller items.");
     let draft = model.prompt().text().to_owned();
     let commands = update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)))
         .into_iter()
@@ -175,14 +178,14 @@ fn selected_work_request_is_visible_editable_and_sent_unchanged() {
 #[test]
 fn requesting_a_change_preserves_existing_text_cursor_and_missing_work() {
     let mut model = roadmap_model();
-    model.prompt.insert("A different question");
-    model.prompt.left();
-    let draft = model.prompt.clone();
+    model.session.prompt.insert("A different question");
+    model.session.prompt.left();
+    let draft = model.session.prompt.clone();
     FlightComposer::request_change(&mut model);
-    assert_eq!(model.prompt, draft);
+    assert_eq!(model.session.prompt, draft);
     assert_eq!(model.pane(), Pane::Stage);
 
-    model.prompt.take();
+    model.session.prompt.take();
     model.selected = Some(Selected::Chunk("missing-work".into()));
     FlightComposer::request_change(&mut model);
     assert!(model.prompt().is_empty());
@@ -208,7 +211,7 @@ fn large_fonts_keep_the_full_action_and_file_control_inside_the_composer() {
                 height: cell_height,
             }),
         );
-        model.prompt.insert("Check the retry schedule");
+        model.session.prompt.insert("Check the retry schedule");
         let extent = FlightComposer::height(&model, width, height);
         let view = FlightComposer::view(&model, &FlightStyle::for_model(&model), width, extent);
         let mut face = Typography::default();
@@ -246,8 +249,8 @@ fn refused_attachment_restores_original_message_without_overwriting_newer_draft(
     use crate::agent::AgentEvent;
     let mut model = Model::new(Size::new(144, 50));
     let original = "Read @missing.rs";
-    model.prompt.insert(original);
-    model.prompt.take();
+    model.session.prompt.insert(original);
+    model.session.prompt.take();
     update(
         &mut model,
         Msg::Agent(AgentEvent::PromptRejected {
@@ -255,10 +258,10 @@ fn refused_attachment_restores_original_message_without_overwriting_newer_draft(
             error: "Cannot attach missing.rs: the file is missing.".into(),
         }),
     );
-    assert_eq!(model.prompt.text(), original);
+    assert_eq!(model.session.prompt.text(), original);
     assert_eq!(model.turn_state(), TurnState::AwaitingInput);
-    model.prompt.take();
-    model.prompt.insert("My newer message");
+    model.session.prompt.take();
+    model.session.prompt.insert("My newer message");
     update(
         &mut model,
         Msg::Agent(AgentEvent::PromptRejected {
@@ -266,8 +269,15 @@ fn refused_attachment_restores_original_message_without_overwriting_newer_draft(
             error: "Cannot attach missing.rs: the file is missing.".into(),
         }),
     );
-    assert_eq!(model.prompt.text(), "My newer message");
-    assert!(model.prompt.history().iter().any(|entry| entry == original));
+    assert_eq!(model.session.prompt.text(), "My newer message");
+    assert!(
+        model
+            .session
+            .prompt
+            .history()
+            .iter()
+            .any(|entry| entry == original)
+    );
 }
 
 use crate::cockpit::{Msg, Size, update};
@@ -277,9 +287,9 @@ use crate::input::{KeyCode, KeyEvent, Modifiers};
 fn add_files_keeps_draft_and_completion_quotes_spaces() {
     let mut model =
         Model::new(Size::new(144, 50)).with_workspace_files(vec!["docs/retry guide.md".into()]);
-    model.prompt.insert("Check this");
+    model.session.prompt.insert("Check this");
     FlightComposer::add_files(&mut model);
-    assert_eq!(model.prompt.text(), "Check this @");
+    assert_eq!(model.session.prompt.text(), "Check this @");
     let completion = model.completion().expect("file chooser");
     assert_eq!(completion.items(), &["docs/retry guide.md"]);
     assert_eq!(
@@ -290,7 +300,10 @@ fn add_files_keeps_draft_and_completion_quotes_spaces() {
         &mut model,
         Msg::Key(KeyEvent::new(KeyCode::Enter).with(Modifiers::NONE)),
     );
-    assert_eq!(model.prompt.text(), "Check this @\"docs/retry guide.md\" ");
+    assert_eq!(
+        model.session.prompt.text(),
+        "Check this @\"docs/retry guide.md\" "
+    );
 }
 
 #[test]
@@ -298,6 +311,7 @@ fn composer_grows_from_measured_proportional_text_and_stops_at_bound() {
     let mut model = Model::new(Size::new(144, 50));
     assert_eq!(FlightComposer::height(&model, 1400.0, 1000.0), 112.0);
     model
+        .session
         .prompt
         .insert(&"Long text including broad letters WWW ".repeat(100));
     let height = FlightComposer::height(&model, 600.0, 800.0);
@@ -310,7 +324,7 @@ fn empty_workspace_still_explains_file_chooser() {
     let mut model = Model::new(Size::new(80, 40));
     FlightComposer::add_files(&mut model);
     assert!(model.completion().is_some());
-    assert_eq!(model.prompt.text(), "@");
+    assert_eq!(model.session.prompt.text(), "@");
 }
 
 #[test]
@@ -323,9 +337,9 @@ fn stop_preserves_draft_and_send_button_is_absent_when_empty() {
     }
     let view = FlightComposer::view(&model, &style, 1400.0, 112.0);
     assert!(!has(&view, Widget::PromptAction.id()));
-    model.turn_state = TurnState::Streaming;
-    model.prompt.insert("Keep this draft");
+    model.session.state = TurnState::Streaming;
+    model.session.prompt.insert("Keep this draft");
     let view = FlightComposer::view(&model, &style, 1400.0, 112.0);
     assert!(has(&view, Widget::PromptAction.id()));
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
 }

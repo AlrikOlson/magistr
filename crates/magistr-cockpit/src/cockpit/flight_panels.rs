@@ -64,7 +64,7 @@ impl FlightPanels {
                 offset: None,
                 before: model.flight_panels.proportions,
             });
-            model.completion = None;
+            model.session.completion = None;
         }
     }
 

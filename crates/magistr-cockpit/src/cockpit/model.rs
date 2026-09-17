@@ -16,7 +16,6 @@ use super::brief::Brief;
 use super::changes::Changes;
 use super::chapter::Chapter;
 use super::checkpoint::Checkpoint;
-use super::completion::Completion;
 use super::dag_node::DagNode;
 use super::decision::Decision;
 use super::dock::Dock;
@@ -36,11 +35,11 @@ use super::path_stop::PathStop;
 use super::phase::Phase;
 use super::place::Place;
 use super::projection::Projection;
-use super::prompt::Prompt;
 use super::rail::Rail;
 use super::roadmap::Roadmap;
 use super::search::Search;
 use super::selected::Selected;
+use super::session::Session;
 use super::settings::Settings;
 use super::settings_data::SettingsData;
 use super::shelf::Shelf;
@@ -65,7 +64,7 @@ use crate::job::{JobId, JobOutput};
 use crate::pixel::CellSize;
 use crate::render::Color;
 use crate::theme::{Theme, ThemeMode};
-use crate::turn::{Accent, Anchor, MAX_IMAGE_ROWS, Row, Turn, Viewport};
+use crate::turn::{Accent, MAX_IMAGE_ROWS, Row, Viewport};
 use crate::widget_id::WidgetId;
 use crate::workbench::JournalEntry;
 
@@ -120,12 +119,10 @@ pub struct Model {
     /// core reads no clock, so it is told once.
     pub(super) session_started: Option<String>,
     pub(super) debug: bool,
-    pub(super) turn: Turn,
-    pub(super) viewport: Viewport,
+    pub(super) session: Session,
     pub(super) session_viewport: Viewport,
     pub(super) roadmap_viewport: Viewport,
     pub(super) sheet_viewport: Viewport,
-    pub(super) turn_state: TurnState,
     pub(super) agent_activity: super::AgentActivity,
     pub(super) roadmap_requests: Vec<super::RoadmapRequest>,
     pub(super) roadmap_requests_open: bool,
@@ -141,12 +138,9 @@ pub struct Model {
     /// The held kill while a key or the cap holds it:
     /// what it would kill and the step it was pressed at.
     pub(super) hold: Option<TermHold>,
-    pub(super) prompt: Prompt,
     /// The decision feature's state — the ask in front is on the dock,
     /// everything the screen holds about answering it is here.
     pub(super) decision: Decision,
-    pub(super) completion: Option<Completion>,
-    pub(super) workspace_files: Vec<String>,
     pub(super) dock: Dock,
     pub(super) motion: Motion,
     pub(super) changes: Changes,
@@ -258,7 +252,6 @@ pub struct Model {
     pub(super) agent_missing: Option<AgentMissing>,
     pub(super) server: Option<String>,
     pub(super) refused: bool,
-    pub(super) turn_notice: Option<&'static str>,
     pub(super) jobs_done: u64,
     pub(super) last_job: Option<(JobId, JobOutput)>,
     pub(super) last_job_frame: Option<u64>,
@@ -289,10 +282,10 @@ impl Model {
         let width = layout
             .as_ref()
             .map(|layout| (layout.left_width - 42.0).max(1.0).floor() as u32);
-        self.turn.set_conversation_compact(
+        self.session.turn.set_conversation_compact(
             layout.is_some_and(|layout| layout.conversation_height < 380.0),
         );
-        self.turn.set_pixel_wrap(width, cell);
+        self.session.turn.set_pixel_wrap(width, cell);
     }
 
     /// Whether the inspector fits beside the stage at its minimum readable width.
@@ -414,9 +407,9 @@ impl Model {
                     activity.task = "Updating roadmap".to_owned();
                     activity.status = request.phase.label();
                     activity.active = true;
-                } else if self.turn_notice == Some("Work failed") {
+                } else if self.session.notice == Some("Work failed") {
                     activity.status = "Work failed";
-                } else if self.turn_notice == Some("Connection error") {
+                } else if self.session.notice == Some("Connection error") {
                     activity.status = "Connection error";
                 } else if self
                     .loop_status
@@ -520,16 +513,14 @@ impl Model {
             title: None,
             session_started: None,
             debug: false,
-            turn: Turn::new(
+            session: Session::new(
                 stage_width(size, rail.cols(size.cols))
                     .saturating_sub(undock)
                     .saturating_sub(Accent::GUTTER_COLS),
             ),
-            viewport: Viewport::new(),
             session_viewport: Viewport::new(),
             roadmap_viewport: Viewport::at_top(),
             sheet_viewport: Viewport::at_top(),
-            turn_state: TurnState::Idle,
             agent_activity: super::AgentActivity::default(),
             roadmap_requests: Vec::new(),
             roadmap_requests_open: false,
@@ -540,10 +531,7 @@ impl Model {
             terminals: Terminals::default(),
             term_dock: TermDock::new(),
             hold: None,
-            prompt: Prompt::new(),
             decision: Decision::default(),
-            completion: None,
-            workspace_files: Vec::new(),
             dock: Dock::default(),
             motion: Motion::default(),
             changes: Changes::default(),
@@ -587,7 +575,6 @@ impl Model {
             agent_missing: None,
             server: None,
             refused: false,
-            turn_notice: None,
             palette: None,
             search: None,
             settings: None,
@@ -618,7 +605,7 @@ impl Model {
             last_job: None,
             last_job_frame: None,
         };
-        model.turn.rewrap(model.turn_width());
+        model.session.turn.rewrap(model.turn_width());
         model
     }
 
@@ -637,8 +624,8 @@ impl Model {
     /// place the theme moves, so the two can never disagree.
     pub(super) fn set_theme(&mut self, theme: Theme) {
         self.theme = theme;
-        self.turn.set_mode(theme.mode());
-        self.turn.set_icons(theme.icons());
+        self.session.turn.set_mode(theme.mode());
+        self.session.turn.set_icons(theme.icons());
     }
 
     /// Choose a theme card: the sky forces night, the chart forces
@@ -707,15 +694,6 @@ impl Model {
         self.roadmap.seed(&snapshot.chunks, &snapshot.signals);
         self.trace.seed(snapshot);
         self.projection.seeded();
-    }
-
-    /// The workspace's files, workspace-relative, for the prompt's
-    /// `@`-completion — what the entry point found on disk before taking
-    /// the terminal over.
-    #[must_use]
-    pub fn with_workspace_files(mut self, files: Vec<String>) -> Self {
-        self.workspace_files = files;
-        self
     }
 
     /// Set the time away used to open the native catch-up overlay.
@@ -1011,12 +989,6 @@ impl Model {
         self.theme
     }
 
-    /// The agent's turn as it stands.
-    #[must_use]
-    pub const fn turn(&self) -> &Turn {
-        &self.turn
-    }
-
     /// Everything the agent's terminal `id` has written so far, raw —
     /// the bytes a live pane paints (acp-terminal-pty-live).
     #[must_use]
@@ -1075,7 +1047,7 @@ impl Model {
     /// `false` — without a card that ran on a terminal that has written
     /// something.
     pub(super) fn raise_term_dock(&mut self) -> bool {
-        let Some(id) = self.turn.running_terminal().map(str::to_owned) else {
+        let Some(id) = self.session.turn.running_terminal().map(str::to_owned) else {
             return false;
         };
         if self.terminals.term(&id).is_none() {
@@ -1135,18 +1107,6 @@ impl Model {
         }
     }
 
-    /// The window onto the turn.
-    #[must_use]
-    pub const fn viewport(&self) -> Viewport {
-        self.viewport
-    }
-
-    /// Where the turn stands.
-    #[must_use]
-    pub const fn turn_state(&self) -> TurnState {
-        self.turn_state
-    }
-
     /// The workflow phase the engine feed last implied, once it did.
     #[must_use]
     pub const fn phase(&self) -> Option<Phase> {
@@ -1168,44 +1128,10 @@ impl Model {
         &mut self.rail
     }
 
-    /// The turn, to seed before the runtime takes the model — the same
-    /// construction-time door as [`Model::rail_mut`]: a mock fixture
-    /// writes the capture's own receipt numbers where a live session
-    /// derives them at the fold. Folding stays `update`'s alone.
-    pub const fn turn_mut(&mut self) -> &mut crate::turn::Turn {
-        &mut self.turn
-    }
-
     /// Where the iteration loop stands, while one runs.
     #[must_use]
     pub const fn loop_status(&self) -> Option<&LoopStatus> {
         self.loop_status.as_ref()
-    }
-
-    /// Turn the stage to a new iteration: the transcript stays (the loop
-    /// reads as one session), the window goes back to the tail, the turn
-    /// is idle until the new session speaks, and the phase starts over.
-    pub(super) fn next_iteration(&mut self) {
-        self.agent_activity.begin("Working on a work item");
-        // A scene change rather than a scroll: the window is simply at
-        // the tail again, with nothing for the paint to catch up on.
-        let (total, height) = (self.turn.len(), self.stage_rows());
-        self.viewport.end(total, height, self.now(), false);
-        self.turn_state = TurnState::Idle;
-        self.turn_notice = None;
-        self.phase = None;
-    }
-
-    /// The prompt line.
-    #[must_use]
-    pub const fn prompt(&self) -> &Prompt {
-        &self.prompt
-    }
-
-    /// The completion popup, while one is open.
-    #[must_use]
-    pub const fn completion(&self) -> Option<&Completion> {
-        self.completion.as_ref()
     }
 
     /// Rows the prompt box takes: the text's lines, capped at
@@ -1213,12 +1139,13 @@ impl Model {
     #[must_use]
     pub fn prompt_rows(&self) -> usize {
         if self.pixels && !self.surface.is_native() {
-            self.prompt
+            self.session
+                .prompt
                 .wrapped_rows(self.size.cols.saturating_sub(8))
                 .max(if self.size.rows >= 30 { 2 } else { 1 })
                 .min(PROMPT_MAX_ROWS.min(usize::from(self.size.rows / 5)).max(1))
         } else {
-            self.prompt.rows().min(PROMPT_MAX_ROWS)
+            self.session.prompt.rows().min(PROMPT_MAX_ROWS)
         }
     }
 
@@ -1296,7 +1223,7 @@ impl Model {
     /// thing it thought this turn.
     #[must_use]
     pub fn review_note(&self) -> Option<&str> {
-        self.turn.last_thought()
+        self.session.turn.last_thought()
     }
 
     /// The journal model's state: the journal, the last run, the viewer.
@@ -1807,7 +1734,7 @@ impl Model {
         // A surface has its own room for a picture (see
         // `image_row_cap`), and the renderer declares itself late — on
         // its first frame, over a model that may already hold one.
-        self.turn.set_row_cap(self.image_row_cap());
+        self.session.turn.set_row_cap(self.image_row_cap());
     }
 
     /// Rows a window keeps clear of a stream image: the header, the
@@ -1910,7 +1837,7 @@ impl Model {
             return;
         }
         self.mono_cols = cols;
-        self.turn.set_mono_width(cols);
+        self.session.turn.set_mono_width(cols);
     }
 
     /// Rows the chrome takes around the stage, on the surface this
@@ -1984,7 +1911,12 @@ impl Model {
         let taken = dock
             .saturating_add(grown)
             .saturating_add(self.term_dock.taken(self.now()))
-            .saturating_add(self.completion.as_ref().map_or(0, |c| c.items().len()));
+            .saturating_add(
+                self.session
+                    .completion
+                    .as_ref()
+                    .map_or(0, |c| c.items().len()),
+            );
         let taken = u16::try_from(taken).unwrap_or(u16::MAX);
         self.size
             .rows
@@ -1996,11 +1928,11 @@ impl Model {
     pub fn conversation_window(&self) -> (usize, usize) {
         if self.uses_flight_recorder() {
             (
-                self.turn.conversation().height(),
+                self.session.turn.conversation().height(),
                 self.conversation_height(),
             )
         } else {
-            (self.turn.len(), self.stage_rows())
+            (self.session.turn.len(), self.stage_rows())
         }
     }
 
@@ -2025,7 +1957,7 @@ impl Model {
     #[must_use]
     pub fn conversation_row_offset(&self, row: usize) -> usize {
         if self.uses_flight_recorder() {
-            self.turn.conversation().offset(row)
+            self.session.turn.conversation().offset(row)
         } else {
             row
         }
@@ -2035,16 +1967,17 @@ impl Model {
     /// Keeps selection and the message draft intact; later appends preserve this
     /// source anchor through the same viewport used by mouse and keyboard scrolling.
     pub fn reveal_conversation(&mut self, row: usize) -> bool {
-        if row >= self.turn.len() {
+        if row >= self.session.turn.len() {
             return false;
         }
         let (total, height) = self.conversation_window();
         let destination = self.conversation_row_offset(row);
-        let origin = self.viewport.top(total, height);
+        let origin = self.session.viewport.top(total, height);
         let delta = isize::try_from(destination)
             .unwrap_or(isize::MAX)
             .saturating_sub(isize::try_from(origin).unwrap_or(isize::MAX));
-        self.viewport
+        self.session
+            .viewport
             .scroll_by(delta, total, height, self.now(), false);
         true
     }
@@ -2064,10 +1997,10 @@ impl Model {
     #[must_use]
     pub(super) fn conversation_scroll_origin(&self) -> usize {
         let (total, height) = self.conversation_window();
-        if self.viewport.is_following() && !self.viewport.is_gliding(self.now()) {
+        if self.session.viewport.is_following() && !self.session.viewport.is_gliding(self.now()) {
             self.conversation_top() as usize
         } else {
-            self.viewport.top(total, height)
+            self.session.viewport.top(total, height)
         }
     }
 
@@ -2075,12 +2008,12 @@ impl Model {
     #[must_use]
     pub fn conversation_top(&self) -> f32 {
         let (total, height) = self.conversation_window();
-        let top = self.viewport.top_between(total, height, self.now());
+        let top = self.session.viewport.top_between(total, height, self.now());
         if self.uses_flight_recorder()
-            && self.viewport.is_following()
-            && !self.viewport.is_gliding(self.now())
+            && self.session.viewport.is_following()
+            && !self.session.viewport.is_gliding(self.now())
         {
-            let geometry = self.turn.conversation();
+            let geometry = self.session.turn.conversation();
             if let Some(row) = geometry.rows().get(geometry.row_at(top.floor() as usize))
                 && (row.top as f32) < top
                 && row.height < height
@@ -2104,16 +2037,17 @@ impl Model {
     pub fn top_row(&self) -> usize {
         if self.uses_flight_recorder() {
             return self
+                .session
                 .turn
                 .conversation()
                 .row_at(self.conversation_top().floor() as usize);
         }
-        let (total, height) = (self.turn.len(), self.stage_rows());
+        let (total, height) = (self.session.turn.len(), self.stage_rows());
         if self.surface.is_native() {
-            let between = self.viewport.top_between(total, height, self.now());
+            let between = self.session.viewport.top_between(total, height, self.now());
             return between.floor() as usize;
         }
-        self.viewport.top_at(total, height, self.now())
+        self.session.viewport.top_at(total, height, self.now())
     }
 
     /// How far into [`Model::top_row`] the window's paint sits while a
@@ -2127,47 +2061,12 @@ impl Model {
         if !self.surface.is_native() {
             return 0.0;
         }
-        let between = self
-            .viewport
-            .top_between(self.turn.len(), self.stage_rows(), self.now());
+        let between = self.session.viewport.top_between(
+            self.session.turn.len(),
+            self.stage_rows(),
+            self.now(),
+        );
         between - between.floor()
-    }
-
-    /// Where the window sits in the turn's *content* — the anchor of
-    /// its settled top while it is pinned, `None` while it follows the
-    /// tail. Read before a fold, so the window can be held there after
-    /// the fold moved the rows ([`Model::hold_stage_anchor`]).
-    #[must_use]
-    pub(super) fn stage_anchor(&self) -> Option<(Anchor, usize)> {
-        if self.viewport.is_following() {
-            return None;
-        }
-        let (total, height) = self.conversation_window();
-        let top = self.viewport.top(total, height);
-        let row = if self.uses_flight_recorder() {
-            self.turn.conversation().row_at(top)
-        } else {
-            top
-        };
-        let within = top.saturating_sub(self.conversation_row_offset(row));
-        self.turn.anchor_at(row).map(|anchor| (anchor, within))
-    }
-
-    /// Re-pin to the same source row and the same pixel within it after wrapping.
-    pub(super) fn hold_stage_anchor(&mut self, (anchor, within): (Anchor, usize)) {
-        let row = self.turn.row_of(anchor);
-        let within = if self.uses_flight_recorder() {
-            self.turn
-                .conversation()
-                .rows()
-                .get(row)
-                .map_or(0, |row| within.min(row.height.saturating_sub(1)))
-        } else {
-            0
-        };
-        let position = self.conversation_row_offset(row).saturating_add(within);
-        let (total, height) = self.conversation_window();
-        self.viewport.hold(position, total, height);
     }
 
     /// The graph leaves at least two selectable rows on short stages.
@@ -2341,11 +2240,12 @@ impl Model {
     /// bottom.
     #[must_use]
     pub fn visible_rows(&self) -> &[Row] {
-        let rows = self.turn.rows();
+        let rows = self.session.turn.rows();
         let top = self.top_row().min(rows.len());
         if self.uses_flight_recorder() {
             let end = self.conversation_top().ceil() as usize + self.conversation_height();
             let bottom = self
+                .session
                 .turn
                 .conversation()
                 .rows()
@@ -2427,7 +2327,7 @@ impl Model {
         if !self.theme.motion().is_full() {
             return Animations::NONE.with_if(Animation::Motion, holding);
         }
-        let streaming = matches!(self.turn_state, TurnState::Streaming);
+        let streaming = matches!(self.session.state, TurnState::Streaming);
         Animations::NONE
             .with_if(
                 Animation::Motion,
@@ -2525,7 +2425,7 @@ impl Model {
         let now = self.now();
         let native = self.surface.is_native();
         let night = self.theme.mode() == ThemeMode::Dark;
-        let streaming = matches!(self.turn_state, TurnState::Streaming);
+        let streaming = matches!(self.session.state, TurnState::Streaming);
         let mut set: Vec<MotionName> = Vec::new();
         let mut add = |name: MotionName, moving: bool| {
             if moving && !set.contains(&name) {
@@ -2647,7 +2547,7 @@ impl Model {
     #[must_use]
     pub fn is_working(&self) -> bool {
         self.roadmap_request_pending()
-            || matches!(self.turn_state, TurnState::Streaming)
+            || matches!(self.session.state, TurnState::Streaming)
             || self.has_running_gate()
             || self
                 .loop_status
@@ -2663,7 +2563,7 @@ impl Model {
     #[must_use]
     pub fn is_scrolling(&self) -> bool {
         [
-            self.viewport,
+            self.session.viewport,
             self.session_viewport,
             self.roadmap_viewport,
             self.sheet_viewport,
@@ -2697,7 +2597,7 @@ impl Model {
             dock: self.dock.len(),
             rail: self.rail.progress(),
             roadmap: (self.roadmap.done_count(), self.roadmap.active_count()),
-            rows: self.turn.rows().len(),
+            rows: self.session.turn.rows().len(),
             gates: self.loop_status.as_ref().map_or(0, |status| {
                 status
                     .gates()
@@ -2835,7 +2735,7 @@ impl Model {
     /// while a hold targets that card's program.
     #[must_use]
     pub fn hold_at_row(&self, at: usize) -> Option<f32> {
-        let (line, _) = self.turn.card_at_row(at)?;
+        let (line, _) = self.session.turn.card_at_row(at)?;
         self.hold_fraction(line.record().terminal.as_deref()?)
     }
 
@@ -2845,12 +2745,12 @@ impl Model {
     /// `None` when nothing is running on a pane.
     #[must_use]
     pub fn kill_target(&self) -> Option<KillCmd> {
-        let id = self.turn.running_terminal()?;
+        let id = self.session.turn.running_terminal()?;
         let term = self.terminals.term(id)?;
         if term.is_finished() {
             return None;
         }
-        Some(if self.turn.terminal_is_gate(id) {
+        Some(if self.session.turn.terminal_is_gate(id) {
             KillCmd::Gate(id.to_owned())
         } else {
             KillCmd::Terminal(id.to_owned())

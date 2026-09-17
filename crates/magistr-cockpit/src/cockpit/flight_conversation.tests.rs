@@ -3,20 +3,24 @@ use super::*;
 #[test]
 fn events_received_before_graphics_stay_in_records_without_conversation_rows() {
     let mut model = Model::new(crate::cockpit::Size::new(144, 50));
-    model.turn.push_event("Decision 12 saved");
-    model.turn.push_text(Voice::User, "Check the restart.\n");
-    model.turn.push_event("Task started");
+    model.session.turn.push_event("Decision 12 saved");
     model
+        .session
+        .turn
+        .push_text(Voice::User, "Check the restart.\n");
+    model.session.turn.push_event("Task started");
+    model
+        .session
         .turn
         .push_text(Voice::Agent, "The receipt is saved.\n");
     model.pixels = true;
     model.sync_flight_wrap();
-    let rows = model.turn.conversation().rows();
+    let rows = model.session.turn.conversation().rows();
     assert_eq!(rows[0].height, 0);
     assert_eq!(rows[2].height, 0);
     assert_eq!(rows[1].source, 1);
     assert_eq!(model.top_row(), 1);
-    assert!(matches!(model.turn.rows()[2].kind, RowKind::Event));
+    assert!(matches!(model.session.turn.rows()[2].kind, RowKind::Event));
     assert_eq!(rows[3].author, Some(Voice::Agent));
 }
 
@@ -38,19 +42,20 @@ fn source_reveal_uses_measured_rows_and_preserves_the_draft() {
     let mut model = model();
     for i in 0..40 {
         model
+            .session
             .turn
             .push_text(Voice::Agent, &format!("Saved result {i}.\n"));
     }
-    model.prompt.insert("Keep this draft");
+    model.session.prompt.insert("Keep this draft");
     model.sync_flight_wrap();
-    let source = model.turn.lines()[8].row_start();
+    let source = model.session.turn.lines()[8].row_start();
     assert!(model.reveal_conversation(source));
     assert_eq!(
         model.conversation_top() as usize,
         model.conversation_row_offset(source)
     );
     assert_eq!(model.top_row(), source);
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
     let before = model.conversation_top();
     assert!(!model.reveal_conversation(usize::MAX));
     assert_eq!(model.conversation_top(), before);
@@ -59,18 +64,22 @@ fn source_reveal_uses_measured_rows_and_preserves_the_draft() {
 #[test]
 fn speaker_groups_and_cards_keep_actual_source_targets() {
     let mut model = model();
-    model.turn.push_text(Voice::User, "Keep retries safe.\n");
     model
+        .session
+        .turn
+        .push_text(Voice::User, "Keep retries safe.\n");
+    model
+        .session
         .turn
         .push_text(Voice::Agent, "I will save the retry schedule.\n");
-    model.turn.push_edit(
+    model.session.turn.push_edit(
         "change-one",
         "src/retry.rs",
         ToolStatus::Completed,
         "-old\n+new",
     );
     model.sync_flight_wrap();
-    let geometry = model.turn.conversation();
+    let geometry = model.session.turn.conversation();
     assert_eq!(
         geometry
             .rows()
@@ -79,7 +88,7 @@ fn speaker_groups_and_cards_keep_actual_source_targets() {
             .collect::<Vec<_>>(),
         [Voice::User, Voice::Agent]
     );
-    let source = model.turn.lines().last().unwrap().row_start();
+    let source = model.session.turn.lines().last().unwrap().row_start();
     let row = geometry.rows()[source];
     assert!(row.height > 60);
     let root = crate::cockpit::view(
@@ -110,10 +119,11 @@ fn speaker_groups_and_cards_keep_actual_source_targets() {
     );
     assert_eq!(model.selected(), Some(&Selected::Tool("change-one".into())));
     assert!(matches!(
-        model.turn.lines().last().unwrap().kind(),
+        model.session.turn.lines().last().unwrap().kind(),
         LineKind::Edit { expanded: true, .. }
     ));
     let button_row = model
+        .session
         .turn
         .rows()
         .iter()
@@ -169,7 +179,7 @@ fn speaker_groups_and_cards_keep_actual_source_targets() {
 fn pinned_pixel_anchor_survives_streaming_resize_and_card_growth() {
     let mut model = model();
     for i in 0..40 {
-        model.turn.push_text(
+        model.session.turn.push_text(
             Voice::Agent,
             &format!(
                 "Message {i}: {}\n",
@@ -180,8 +190,8 @@ fn pinned_pixel_anchor_survives_streaming_resize_and_card_growth() {
     model.sync_flight_wrap();
     let position = model.conversation_row_offset(20) + 7;
     let (total, height) = model.conversation_window();
-    model.viewport.home(total, height, 0.0, false);
-    model.viewport.hold(position, total, height);
+    model.session.viewport.home(total, height, 0.0, false);
+    model.session.viewport.hold(position, total, height);
     let anchor = model.stage_anchor().unwrap();
     update(
         &mut model,
@@ -197,7 +207,7 @@ fn pinned_pixel_anchor_survives_streaming_resize_and_card_growth() {
     );
     assert_eq!(model.stage_anchor(), Some(anchor));
     assert_eq!(model.cell_size(), CellSize::new(13, 29));
-    assert!(!model.viewport.is_following());
+    assert!(!model.session.viewport.is_following());
 }
 
 #[test]
@@ -304,11 +314,12 @@ fn settled_following_starts_with_a_complete_source_row_at_large_metrics() {
     );
     for index in 0..30 {
         model
+            .session
             .turn
             .push_text(Voice::Agent, &format!("Saved result {index}.\n"));
     }
     model.sync_flight_wrap();
-    assert!(model.viewport.is_following());
+    assert!(model.session.viewport.is_following());
     assert_eq!(
         model.conversation_top() as usize,
         model.conversation_row_offset(model.top_row())
@@ -360,30 +371,31 @@ fn compact_harbor_conversation_keeps_the_question_visible() {
     let data = &data["turn"];
     let mut model = Model::new(Size::new(128, 40));
     model.pixels = true;
-    model.turn.push_text(
+    model.session.turn.push_text(
         Voice::User,
         &format!("{}\n", data["prompt"].as_str().unwrap()),
     );
-    model.turn.push_text(
+    model.session.turn.push_text(
         Voice::Agent,
         &format!("{}\n", data["response"].as_str().unwrap()),
     );
-    model.turn.push_edit(
+    model.session.turn.push_edit(
         "harbor-edit",
         data["edit_path"].as_str().unwrap(),
         ToolStatus::Completed,
         "-renew_in_memory();\n+receipt_and_schedule.commit()?;",
     );
     model
+        .session
         .turn
         .set_tool_title("harbor-edit", "Save the retry schedule");
-    model.turn.push_tool(
+    model.session.turn.push_tool(
         "harbor-test",
         "3 recovery checks passed",
         ToolVerb::Run,
         ToolStatus::Completed,
     );
-    model.turn.push_text(
+    model.session.turn.push_text(
         Voice::Agent,
         &format!("{}\n", data["followup"].as_str().unwrap()),
     );
@@ -422,7 +434,7 @@ fn compact_harbor_conversation_keeps_the_question_visible() {
 #[test]
 fn card_growth_preserves_following_and_latest_text_remains_visible() {
     let mut model = model();
-    model.turn.push_tool(
+    model.session.turn.push_tool(
         "check",
         "Run restart recovery checks",
         ToolVerb::Run,
@@ -430,11 +442,12 @@ fn card_growth_preserves_following_and_latest_text_remains_visible() {
     );
     for _ in 0..12 {
         model
+            .session
             .turn
             .push_text(Voice::Agent, "Waiting for the current checks.\n");
     }
     model.sync_flight_wrap();
-    assert!(model.viewport.is_following());
+    assert!(model.session.viewport.is_following());
     update(
         &mut model,
         Msg::Agent(AgentEvent::Text("The latest result is ready.\n".into())),
@@ -447,7 +460,7 @@ fn card_growth_preserves_following_and_latest_text_remains_visible() {
             .text
             .contains("latest result")
     );
-    let last = model.turn.conversation().rows().last().unwrap();
+    let last = model.session.turn.conversation().rows().last().unwrap();
     assert!(
         last.top + last.height <= model.conversation_top() as usize + model.conversation_height()
     );
