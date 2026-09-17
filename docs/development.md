@@ -19,6 +19,13 @@ The `structure` gate (`scripts/lint-structure.sh`) checks the owned crates `magi
 
 The terminal interface is checked against golden images under `crates/magistr-tui/tests/golden`; after an intended visual change, review the candidates and re-bless them with `MAGISTR_GOLDEN_UPDATE=1 cargo nextest run -p magistr-tui -E 'test(shot_)'`. The website's captures come from the sample project in `apps/website/fixtures/harbor.json`, never from Magistr's own roadmap; `./scripts/website-captures.sh` regenerates them and their manifest.
 
+## Desktop
+
+The desktop fixture renderer is excluded from the public workspace because it
+uses a pinned private renderer dependency. It has its own lockfile and explicit
+build, CPU screenshot and GPU readback checks. Follow the
+[desktop guide](architecture/desktop.md); root workspace checks do not cover it.
+
 ## Website
 
 ```sh

@@ -1,0 +1,18 @@
+{
+  "threshold": 0.015,
+  "excluded": [
+    {"x": 0, "y": 0, "w": 14, "h": 13, "why": "window corner radius (top left): the capture rounds against the page; a native window's corners are the compositor's"},
+    {"x": 1086, "y": 0, "w": 14, "h": 13, "why": "window corner radius (top right)"},
+    {"x": 0, "y": 626, "w": 14, "h": 14, "why": "window corner radius (bottom left)"},
+    {"x": 1086, "y": 626, "w": 14, "h": 14, "why": "window corner radius (bottom right)"},
+    {"x": 0, "y": 4, "w": 60, "h": 40, "why": "the volume's own window lights: a native cockpit draws no title-bar dots"},
+    {"x": 178, "y": 17, "w": 22, "h": 20, "why": "project sigil in the crumb: derived per project"},
+    {"x": 370, "y": 300, "w": 8, "h": 20, "why": "the live step's caret: blinks"}
+  ],
+  "regions": [
+    {"name": "header", "x": 0, "y": 0, "w": 1100, "h": 52, "budget": 0.01},
+    {"name": "feed", "x": 0, "y": 52, "w": 820, "h": 588, "budget": 0.015},
+    {"name": "rail", "x": 820, "y": 52, "w": 280, "h": 588, "budget": 0.02},
+    {"name": "graph", "x": 840, "y": 90, "w": 230, "h": 150, "budget": 0.03}
+  ]
+}

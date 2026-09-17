@@ -1,7 +1,8 @@
 # Architecture
 
 Magistr separates project configuration, workflow state, agent transport, and
-presentation. The root Cargo manifest groups the Rust crates into one workspace.
+presentation. The root Cargo manifest groups the public Rust crates into one workspace.
+The desktop renderer has a separate workspace and lockfile for its private dependencies.
 The [contract baseline](contracts.md) maps current owners and entry paths,
 records the refactor's intended policies, and names executable behavior scenarios.
 
@@ -21,6 +22,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-cockpit` | Shared interface state, updates, layout vocabulary, and effect ports |
 | `magistr-cockpit-runtime` | Shared message channels, arrival measurements and background job dispatch for hosts and surfaces |
 | `magistr-tui` | Terminal input, rendering, graphics protocols, and runtime |
+| `magistr-gui2` | Independent desktop fixture renderer, native window, pixel layout, GPU/CPU painting and accessibility bounds; separate Cargo workspace |
 | `magistr-theme` | Shared color and theme vocabulary |
 | `magistr-protocol` | Transport types |
 
@@ -120,4 +122,6 @@ authentication and governed dispatch are not wired into the CLI or interfaces.
 provenance, and licenses remain beside
 the files they document.
 
-[Desktop development](desktop.md) is maintained on the `gui2` branch.
+[Desktop development](desktop.md) is maintained in `crates/magistr-gui2` on `main`.
+Its interactive fixtures exercise the shared contracts; live desktop session
+integration remains separate work.

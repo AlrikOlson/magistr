@@ -1726,6 +1726,15 @@ impl Model {
         self
     }
 
+    /// Report the measured size of one cell without dispatching a command.
+    ///
+    /// Renderers may provide bounded layout feedback through this method.
+    /// It changes image wrapping only; session and workflow state stay unchanged.
+    pub fn report_cell_size(&mut self, cell: Option<CellSize>) {
+        self.cell_pixels = cell.filter(|cell| cell.width > 0 && cell.height > 0);
+        self.session.turn.set_cell_size(self.cell_size());
+    }
+
     /// Declare the surface on a model already in hand.
     ///
     /// The `&mut` form of [`Model::with_surface`], for the renderer that
