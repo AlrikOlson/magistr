@@ -315,7 +315,8 @@ pub(crate) fn run_interactive(preview: &ChangePlan, dir: &Path) -> Result<Vec<St
         ))
     );
 
-    let written = super::apply::apply_approved(dir, &approved_files)?;
+    let receipt = super::apply::apply_approved(dir, &approved_files)?;
+    let written = receipt.applied_paths();
 
     eprintln!(
         "{} Applied {} file{}.",
@@ -323,8 +324,16 @@ pub(crate) fn run_interactive(preview: &ChangePlan, dir: &Path) -> Result<Vec<St
         written.len(),
         if written.len() == 1 { "" } else { "s" }
     );
-
-    Ok(written)
+    for failed in receipt.failed() {
+        eprintln!("{} {}", fmt::red("✗"), failed.describe());
+    }
+    if receipt.manifest.is_failed() {
+        eprintln!("{} {}", fmt::red("✗"), receipt.manifest);
+    }
+    match receipt.partial_error() {
+        Some(error) => Err(error),
+        None => Ok(written),
+    }
 }
 
 #[cfg(test)]

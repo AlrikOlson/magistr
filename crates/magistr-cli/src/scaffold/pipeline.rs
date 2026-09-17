@@ -168,10 +168,22 @@ impl ScaffoldPipeline {
 
         // Template plugins from the captured registry: the same plan the
         // preview shows, applied best-effort (plugin failures don't block
-        // scaffolding).
+        // scaffolding; a destination that cannot be written is left out of
+        // the answer and logged).
         if let Some(inputs) = &self.inputs {
             let plugins = scaffold::plan_template_plugins(dir, &vars, inputs);
-            written.extend(scaffold::apply_template_plugins(dir, &plugins));
+            let mut service = scaffold::AdminService::open(
+                dir,
+                scaffold::AdminOperation::Setup,
+                Vec::<String>::new(),
+            );
+            for change in &plugins {
+                let receipt = service.execute(change);
+                if receipt.outcome.is_failed() {
+                    tracing::warn!(target: "magistr", receipt = %receipt.describe(), "template plugin not applied");
+                }
+            }
+            written.extend(service.finish().applied_paths());
         }
 
         // Enrich a newly seeded config only. Once present, project.json is

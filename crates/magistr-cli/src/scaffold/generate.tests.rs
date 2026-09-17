@@ -379,6 +379,8 @@ fn generate_result_written_returns_created_plus_updated() {
         preserved: vec!["d.md".to_string()],
         removed: Vec::new(),
         refused: Vec::new(),
+        failed: Vec::new(),
+        manifest: ManifestOutcome::Saved,
     };
 
     let written = result.written();
@@ -533,4 +535,61 @@ fn a_directory_at_a_scaffold_path_is_refused_not_overwritten() {
     assert!(dir.join(".claude/rules/tools.md").is_dir());
     assert!(dir.join(".claude/rules/workflow.md").is_file());
     assert!(dir.join(".magistr/project.json").is_file());
+}
+
+/// Fault injection on generation: one upgrade cannot be written (its
+/// temporary file name is taken), so the target keeps its bytes, the other
+/// changes still land, the result names the failure, and `generate` refuses
+/// to call that a success while saying what was applied.
+#[test]
+fn a_setup_with_one_failed_write_reports_the_partial_outcome() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let vars = test_vars();
+    generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+    let settings = ".claude/settings.json";
+    let before = std::fs::read_to_string(tmp.path().join(settings)).unwrap();
+    let overrides = HashMap::from([
+        (settings.to_owned(), "{\"upgraded\": true}\n".to_owned()),
+        (
+            ".claude/rules/tools.md".to_owned(),
+            "# upgraded tool guide\n".to_owned(),
+        ),
+    ]);
+    std::fs::write(
+        super::super::admin_service::temp_path(&tmp.path().join(settings)),
+        "occupied",
+    )
+    .unwrap();
+
+    let error = generate(tmp.path(), &vars, &overrides)
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("setup did not complete"), "{error}");
+    assert!(error.contains(".claude/settings.json: failed"), "{error}");
+    assert!(error.contains("applied before that: "), "{error}");
+    assert!(error.contains(".claude/rules/tools.md"), "{error}");
+    assert_eq!(
+        std::fs::read_to_string(tmp.path().join(settings)).unwrap(),
+        before
+    );
+    assert_eq!(
+        std::fs::read_to_string(tmp.path().join(".claude/rules/tools.md")).unwrap(),
+        "# upgraded tool guide\n"
+    );
+
+    // The same run, seen through the detailed result.
+    let result = generate_with_result(tmp.path(), &vars, &overrides).unwrap();
+    assert_eq!(result.failed.len(), 1, "{:?}", result.failed);
+    assert_eq!(result.failed[0].0, settings);
+    assert!(
+        result.failed[0].1.starts_with("write failed"),
+        "{}",
+        result.failed[0].1
+    );
+    assert!(
+        result
+            .unchanged
+            .contains(&".claude/rules/tools.md".to_owned())
+    );
+    assert_eq!(result.manifest, ManifestOutcome::Saved);
 }

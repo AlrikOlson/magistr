@@ -1,5 +1,17 @@
 use super::*;
 
+/// Write what the seed plans, as setup does through the administrative
+/// service; answers whether anything was written.
+fn apply(seed: &WorkbenchSeed, root: &Path) -> std::io::Result<bool> {
+    match seed.plan(root).1 {
+        Some(body) => {
+            std::fs::write(root.join("workbench.toml"), body)?;
+            Ok(true)
+        }
+        None => Ok(false),
+    }
+}
+
 fn vars() -> HashMap<String, String> {
     HashMap::from([
         (
@@ -109,7 +121,7 @@ fn merge_adds_a_table_to_a_file_without_one() {
 fn apply_creates_the_file_and_never_rewrites_a_declared_table() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let seed = WorkbenchSeed::from_template_vars(&vars());
-    assert!(seed.apply(tmp.path()).expect("apply"));
+    assert!(apply(&seed, tmp.path()).expect("apply"));
     let path = tmp.path().join("workbench.toml");
     let first = std::fs::read_to_string(&path).expect("written");
     assert!(first.contains("[commands]"));
@@ -119,7 +131,7 @@ fn apply_creates_the_file_and_never_rewrites_a_declared_table() {
     // human wrote does not say what it should be — see
     // `an_existing_commands_table_still_gets_the_confirm_mode`.
     std::fs::write(&path, "[commands]\n\"test\" = \"my own\"\n").expect("edit");
-    assert!(seed.apply(tmp.path()).expect("apply again"));
+    assert!(apply(&seed, tmp.path()).expect("apply again"));
     let second = std::fs::read_to_string(&path).expect("read");
     assert!(
         second.starts_with("[commands]\n\"test\" = \"my own\"\n"),
@@ -130,7 +142,7 @@ fn apply_creates_the_file_and_never_rewrites_a_declared_table() {
         "no gate row was added back"
     );
     // And once the confirm mode is there, a re-init writes nothing at all.
-    assert!(!seed.apply(tmp.path()).expect("apply a third time"));
+    assert!(!apply(&seed, tmp.path()).expect("apply a third time"));
     assert_eq!(std::fs::read_to_string(&path).expect("read"), second);
 }
 
@@ -138,7 +150,7 @@ fn apply_creates_the_file_and_never_rewrites_a_declared_table() {
 fn apply_with_nothing_to_seed_writes_nothing() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let seed = WorkbenchSeed::default();
-    assert!(!seed.apply(tmp.path()).expect("apply"));
+    assert!(!apply(&seed, tmp.path()).expect("apply"));
     assert!(!tmp.path().join("workbench.toml").exists());
 }
 
@@ -285,7 +297,7 @@ fn an_existing_commands_table_still_gets_the_confirm_mode() {
             "gate".to_owned(),
         )],
     };
-    assert!(seed.apply(tmp.path()).expect("apply"));
+    assert!(apply(&seed, tmp.path()).expect("apply"));
     let body = std::fs::read_to_string(&path).expect("read");
     assert!(body.contains("confirm_mode = \"token\""), "{body}");
     assert!(
@@ -293,7 +305,7 @@ fn an_existing_commands_table_still_gets_the_confirm_mode() {
         "the human's table is untouched: {body}"
     );
     assert!(
-        !seed.apply(tmp.path()).expect("apply"),
+        !apply(&seed, tmp.path()).expect("apply"),
         "a second init writes nothing"
     );
     assert_eq!(std::fs::read_to_string(&path).expect("read"), body);

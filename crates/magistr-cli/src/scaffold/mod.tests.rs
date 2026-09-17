@@ -888,42 +888,6 @@ fn merge_gitignore_language_specific() {
 }
 
 #[test]
-fn remove_magistr_gitignore_entries_preserves_user() {
-    let tmp = tempfile::TempDir::new().unwrap();
-    let gi_path = tmp.path().join(".gitignore");
-
-    // Generate with user content
-    std::fs::write(&gi_path, "# my patterns\nvendor/\n").unwrap();
-    let tv = test_vars();
-    merge_gitignore(tmp.path(), &tv).unwrap();
-
-    // Remove magistr section
-    remove_magistr_gitignore_entries(tmp.path()).unwrap();
-
-    let content = std::fs::read_to_string(&gi_path).unwrap();
-    assert!(content.contains("vendor/"), "user pattern preserved");
-    assert!(
-        !content.contains(GITIGNORE_SECTION_START),
-        "magistr section removed"
-    );
-}
-
-#[test]
-fn remove_magistr_gitignore_entries_deletes_empty_file() {
-    let tmp = tempfile::TempDir::new().unwrap();
-    let gi_path = tmp.path().join(".gitignore");
-
-    // Generate with no user content
-    let tv = test_vars();
-    merge_gitignore(tmp.path(), &tv).unwrap();
-    assert!(gi_path.exists());
-
-    // Remove magistr section — file should be deleted
-    remove_magistr_gitignore_entries(tmp.path()).unwrap();
-    assert!(!gi_path.exists(), "empty .gitignore should be deleted");
-}
-
-#[test]
 fn magistr_dir_gitignore_in_scaffold_files() {
     let tv = test_vars();
     let files = scaffold_files(&tv);

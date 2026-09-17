@@ -1,6 +1,13 @@
 use super::*;
 use crate::scaffold::manifest::ScaffoldManifest;
 
+/// Write the managed `.gitignore` section for a Rust project, as setup does.
+fn merge_gitignore(dir: &Path) {
+    let vars = std::collections::HashMap::from([("language".to_owned(), "rust".to_owned())]);
+    let change = crate::scaffold::gitignore_change(dir, &vars);
+    std::fs::write(dir.join(".gitignore"), &change.new_content).unwrap();
+}
+
 const SHARED_FILES: &[&str] = &[
     ".claude/settings.json",
     ".claude/rules/conventions.md",
@@ -234,4 +241,38 @@ fn removal_preserves_symlink_files_even_when_target_bytes_match() {
         std::fs::read_to_string(dir.join("user-script")).unwrap(),
         "generated"
     );
+}
+
+#[test]
+fn remove_magistr_gitignore_entries_preserves_user() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let gi_path = tmp.path().join(".gitignore");
+
+    // Generate with user content
+    std::fs::write(&gi_path, "# my patterns\nvendor/\n").unwrap();
+    merge_gitignore(tmp.path());
+
+    // Remove magistr section
+    remove_magistr_gitignore_entries(tmp.path()).unwrap();
+
+    let content = std::fs::read_to_string(&gi_path).unwrap();
+    assert!(content.contains("vendor/"), "user pattern preserved");
+    assert!(
+        !content.contains(GITIGNORE_SECTION_START),
+        "magistr section removed"
+    );
+}
+
+#[test]
+fn remove_magistr_gitignore_entries_deletes_empty_file() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let gi_path = tmp.path().join(".gitignore");
+
+    // Generate with no user content
+    merge_gitignore(tmp.path());
+    assert!(gi_path.exists());
+
+    // Remove magistr section — file should be deleted
+    remove_magistr_gitignore_entries(tmp.path()).unwrap();
+    assert!(!gi_path.exists(), "empty .gitignore should be deleted");
 }

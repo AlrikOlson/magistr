@@ -162,7 +162,9 @@ fn apply_creates_new_files() {
         "# Workflow",
     );
 
-    let written = apply_approved(tmp.path(), &[&f1, &f2]).unwrap();
+    let written = apply_approved(tmp.path(), &[&f1, &f2])
+        .unwrap()
+        .applied_paths();
 
     assert_eq!(written.len(), 2);
     assert!(tmp.path().join(".magistr/project.json").exists());
@@ -190,7 +192,7 @@ fn apply_overwrites_existing_files() {
         diff: Some("- old\n+ new".to_string()),
     };
 
-    let written = apply_approved(tmp.path(), &[&f]).unwrap();
+    let written = apply_approved(tmp.path(), &[&f]).unwrap().applied_paths();
 
     assert_eq!(written, vec![".claude/settings.json"]);
     assert_eq!(
@@ -204,7 +206,7 @@ fn apply_skips_unchanged_files() {
     let tmp = TempDir::new().unwrap();
     let f = make_preview(".claude/settings.json", FileAction::Unchanged, "same");
 
-    let written = apply_approved(tmp.path(), &[&f]).unwrap();
+    let written = apply_approved(tmp.path(), &[&f]).unwrap().applied_paths();
 
     assert!(written.is_empty());
     assert!(!tmp.path().join(".claude/settings.json").exists());
@@ -227,7 +229,7 @@ fn apply_skips_preserved_files() {
         diff: None,
     };
 
-    let written = apply_approved(tmp.path(), &[&f]).unwrap();
+    let written = apply_approved(tmp.path(), &[&f]).unwrap().applied_paths();
 
     assert!(written.is_empty());
     assert_eq!(
@@ -245,7 +247,7 @@ fn apply_creates_nested_directories() {
         "# Validate",
     );
 
-    let written = apply_approved(tmp.path(), &[&f]).unwrap();
+    let written = apply_approved(tmp.path(), &[&f]).unwrap().applied_paths();
 
     assert_eq!(written.len(), 1);
     assert!(tmp.path().join(".claude/skills/validate/SKILL.md").exists());
@@ -273,7 +275,7 @@ fn apply_sets_executable_on_shell_scripts() {
 #[test]
 fn apply_empty_list_is_noop() {
     let tmp = TempDir::new().unwrap();
-    let written = apply_approved(tmp.path(), &[]).unwrap();
+    let written = apply_approved(tmp.path(), &[]).unwrap().applied_paths();
     assert!(written.is_empty());
 }
 
@@ -387,7 +389,7 @@ fn codex_apply_validates_context_once_before_its_own_batch_changes_it() {
     .into_iter()
     .map(|path| preview.files.iter().find(|file| file.path == path).unwrap())
     .collect();
-    let written = apply_approved(dir, &selected).unwrap();
+    let written = apply_approved(dir, &selected).unwrap().applied_paths();
     assert_eq!(written.len(), selected.len());
     for file in selected {
         assert_eq!(

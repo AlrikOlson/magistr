@@ -36,6 +36,17 @@
 #    take the host's SourceRoute (the admitted workspace's pipeline) or are
 #    refused, so magistr-acp production sources contain no direct file
 #    write or directory creation (audit-260912-04).
+# 13. Administrative writes are explicit: under crates/magistr-cli/src/scaffold
+#    every planned change is written by the administrative service
+#    (admin_service.rs) and nowhere else. The other files allowed to touch
+#    the filesystem are the ownership manifest it saves, the explicit reset
+#    (remove_scaffold.rs, owned_removal.rs), the legacy link migration
+#    (codex_skill_links.rs), the post-generation enrichments of a fresh
+#    project.json/CLAUDE.md (pipeline.rs, backlog
+#    setup-plan-post-generate-enrichments), the CI workflow writer (ci.rs,
+#    backlog ci-workflow-through-admin-plan), the legacy YAML roadmap seed
+#    (generate.rs) and the interview trace log (trace.rs)
+#    (audit-260912-16-admin-apply).
 #
 # Doc comments are not code: rule 1 skips comment lines.
 #
@@ -214,8 +225,30 @@ while IFS= read -r f; do
     fi
 done < <(find crates/magistr-acp/src -name '*.rs' -not -name '*.tests.rs' | sort)
 
+# --- Rule 13: administrative writes only through the administrative service --
+while IFS= read -r f; do
+    case "$f" in
+        crates/magistr-cli/src/scaffold/admin_service.rs) continue ;;
+        crates/magistr-cli/src/scaffold/manifest.rs) continue ;;
+        crates/magistr-cli/src/scaffold/remove_scaffold.rs) continue ;;
+        crates/magistr-cli/src/scaffold/owned_removal.rs) continue ;;
+        crates/magistr-cli/src/scaffold/codex_skill_links.rs) continue ;;
+        crates/magistr-cli/src/scaffold/pipeline.rs) continue ;;
+        crates/magistr-cli/src/scaffold/ci.rs) continue ;;
+        crates/magistr-cli/src/scaffold/generate.rs) continue ;;
+        crates/magistr-cli/src/scaffold/trace.rs) continue ;;
+        crates/magistr-cli/src/scaffold/*) ;;
+        *) continue ;;
+    esac
+    hits=$(grep -nE '(std::fs|fs)::(write|create_dir|create_dir_all|remove_file|remove_dir|remove_dir_all|rename|copy|hard_link|set_permissions)\(|OpenOptions::new\(|File::create\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
+    if [[ -n "$hits" ]]; then
+        fail "$f writes the filesystem outside the administrative service (plan the change and execute it through scaffold::AdminService):"
+        echo "$hits"
+    fi
+done < <(production_sources)
+
 if [[ "$errors" -eq 0 ]]; then
-    echo "OK: one native write path — engines composed in magistr-engine/native, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, owners opened and attached only on the inventoried paths, no MCP roundtrips, no direct file write in the ACP host."
+    echo "OK: one native write path — engines composed in magistr-engine/native, typed application verbs beneath transports, checks admitted through the composition boundary with the evidence capability, owners opened and attached only on the inventoried paths, no MCP roundtrips, no direct file write in the ACP host, administrative writes only through the administrative service."
     exit 0
 fi
 echo "native-write-path-gate: $errors error(s)"

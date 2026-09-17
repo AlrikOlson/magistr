@@ -224,39 +224,14 @@ impl WorkbenchSeed {
         (before, planned)
     }
 
-    /// Seed `<root>/workbench.toml` as [`WorkbenchSeed::plan`] describes.
-    /// Returns whether the file was written.
-    pub fn apply(&self, root: &Path) -> std::io::Result<bool> {
-        match self.plan(root).1 {
-            Some(body) => {
-                std::fs::write(root.join("workbench.toml"), body)?;
-                Ok(true)
-            }
-            None => Ok(false),
-        }
-    }
-
-    /// Declare the unattended confirm mode on `root`'s `workbench.toml`,
-    /// answering whether anything was written.
-    ///
-    /// Split out of [`WorkbenchSeed::apply`] because it is the half that
-    /// wants asking on *every* session rather than once at init: a project
-    /// scaffolded before this landed has a perfectly good `[commands]` table
-    /// and no idea that a confirm-gated write is about to ask a human who is
-    /// not there. `scaffold::repair` is the caller that closes that.
-    pub fn ensure_confirm_mode(root: &Path) -> std::io::Result<bool> {
-        match Self::plan_confirm_mode(root).1 {
-            Some(body) => {
-                std::fs::write(root.join("workbench.toml"), body)?;
-                Ok(true)
-            }
-            None => Ok(false),
-        }
-    }
-
     /// The confirm-mode declaration as a planned change: the current
     /// `workbench.toml` (none when there is no file) and the body declaring
     /// the mode when the file does not already.
+    ///
+    /// Asked on *every* session rather than once at init, by
+    /// `scaffold::repair`: a project scaffolded before this landed has a
+    /// perfectly good `[commands]` table and no idea that a confirm-gated
+    /// write is about to ask a human who is not there.
     #[must_use]
     pub fn plan_confirm_mode(root: &Path) -> (Option<String>, Option<String>) {
         let current = std::fs::read_to_string(root.join("workbench.toml")).ok();

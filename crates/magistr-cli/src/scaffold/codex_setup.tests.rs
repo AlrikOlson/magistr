@@ -1,10 +1,25 @@
 use super::*;
-use crate::scaffold::{apply::apply_approved, generate_with_result, pipeline::ScaffoldPipeline};
+use crate::scaffold::{
+    FileAction, apply::apply_approved, generate_with_result, pipeline::ScaffoldPipeline,
+};
 
 /// Plan and apply the Codex repair, as the startup repair does for it.
 fn repair_codex(dir: &Path) -> Result<Vec<String>> {
     let changes = CodexSetup::repair_plan(dir)?;
-    CodexSetup::apply_repair(dir, &changes)
+    let owned = changes
+        .iter()
+        .map(|c| c.path.as_str())
+        .filter(|p| CodexSetup::owned_path(p));
+    let mut service =
+        crate::scaffold::AdminService::open(dir, crate::scaffold::AdminOperation::Repair, owned);
+    for change in &changes {
+        service.execute(change);
+    }
+    let receipt = service.finish();
+    match receipt.partial_error() {
+        Some(error) => Err(error),
+        None => Ok(receipt.applied_paths()),
+    }
 }
 use std::collections::BTreeMap;
 
@@ -362,7 +377,10 @@ fn selective_apply_claims_only_the_approved_codex_component() {
             .iter()
             .find(|file| file.path == approved)
             .unwrap();
-        assert_eq!(apply_approved(dir, &[selected]).unwrap(), [approved]);
+        assert_eq!(
+            apply_approved(dir, &[selected]).unwrap().applied_paths(),
+            [approved]
+        );
         let manifest = ScaffoldManifest::load(dir);
         let ownership = manifest.codex.as_ref().unwrap();
         assert!(ownership.selected);
