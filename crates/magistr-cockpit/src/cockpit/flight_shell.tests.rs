@@ -1,4 +1,115 @@
 use super::*;
+
+fn activity_marks(node: &Node) -> Vec<u16> {
+    let mut positions: Vec<_> = node
+        .marks()
+        .iter()
+        .filter_map(|mark| match mark {
+            crate::layout::Mark::Indeterminate { position, .. } => Some(*position),
+            _ => None,
+        })
+        .collect();
+    for child in node.child_nodes() {
+        positions.extend(activity_marks(child));
+    }
+    positions
+}
+
+#[test]
+fn active_work_has_one_continuous_indicator_and_reduced_motion_holds_it_still() {
+    use crate::cockpit::{Animation, LoopEvent, LoopStage};
+    use crate::theme::{MotionMode, Theme, ThemeMode};
+    for theme in [ThemeMode::Dark, ThemeMode::Light] {
+        let mut model = model(Size::new(144, 50)).with_theme(Theme::forced(theme));
+        update(
+            &mut model,
+            Msg::Loop(LoopEvent::Started {
+                iteration: 1,
+                max: 4,
+            }),
+        );
+        for stage in [
+            LoopStage::Connecting,
+            LoopStage::Agent,
+            LoopStage::Gates,
+            LoopStage::Judge,
+        ] {
+            update(&mut model, Msg::Loop(LoopEvent::Stage(stage)));
+            assert!(model.animates(Animation::Motion), "{stage:?}");
+            let s = S::for_model(&model);
+            let before = activity_marks(&FlightShell::view(
+                &model,
+                &FrameClock::new(0, std::time::Duration::ZERO),
+            ));
+            assert_eq!(before.len(), 1, "one leading indicator");
+            let text = status(&model);
+            update(&mut model, Msg::Tick);
+            update(&mut model, Msg::Phase(0.5));
+            let after = activity_marks(&status_label(&model, &s, true));
+            assert_ne!(
+                before, after,
+                "fractional motion continues through {stage:?}"
+            );
+            assert_eq!(status(&model), text, "animation never rewrites status");
+        }
+        model.set_theme(Theme::forced(theme).with_motion(MotionMode::Reduced));
+        let s = S::for_model(&model);
+        assert_eq!(activity_marks(&status_label(&model, &s, true)), vec![500]);
+        for _ in 0..10 {
+            update(&mut model, Msg::Tick);
+        }
+        assert_eq!(activity_marks(&status_label(&model, &s, true)), vec![500]);
+        assert!(!model.has_activity_motion());
+        assert!(!model.is_animating());
+    }
+}
+
+#[test]
+fn pausing_answering_and_finishing_remove_the_activity_indicator() {
+    use crate::cockpit::LoopEvent;
+    let mut model = model(Size::new(144, 50));
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Started {
+            iteration: 1,
+            max: 4,
+        }),
+    );
+    update(
+        &mut model,
+        Msg::Loop(LoopEvent::Paused("Review the result".into())),
+    );
+    let s = S::for_model(&model);
+    assert!(!model.has_activity_motion());
+    assert!(activity_marks(&status_label(&model, &s, true)).is_empty());
+    update(&mut model, Msg::Loop(LoopEvent::Ended("Finished".into())));
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::UserText("Check recovery".into())),
+    );
+    assert!(model.has_activity_motion());
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::PermissionRequest {
+            id: 4,
+            title: "Run checks".into(),
+            choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)],
+            edit: false,
+            risk: magistr_engine::policy::RiskTier::Low,
+            plan: None,
+        }),
+    );
+    assert!(!model.has_activity_motion());
+    assert!(activity_marks(&status_label(&model, &s, true)).is_empty());
+    click(&mut model, Widget::Allow.id());
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)),
+    );
+    assert!(!model.has_activity_motion());
+    assert!(activity_marks(&status_label(&model, &s, true)).is_empty());
+}
+
 use crate::agent::{AgentEvent, PermissionChoice, PermissionKind, TurnEnd};
 use crate::cockpit::{Cmd, Msg, Selected, Size, Surface, update};
 use crate::harness::fixtures;

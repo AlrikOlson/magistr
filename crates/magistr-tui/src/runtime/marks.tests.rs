@@ -194,6 +194,11 @@ fn every_kind_of_mark_paints_a_surface_of_its_rect() {
             line: Color::Default,
             ground: Color::Default,
         },
+        Mark::Indeterminate {
+            position: 500,
+            line: Color::Default,
+            ground: Color::Default,
+        },
         Mark::Rule {
             ink: Color::Default,
         },

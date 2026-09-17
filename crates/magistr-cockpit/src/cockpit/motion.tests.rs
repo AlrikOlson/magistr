@@ -1,4 +1,23 @@
 use super::*;
+
+#[test]
+fn indeterminate_motion_is_continuous_at_turnarounds_and_cycle_boundaries() {
+    assert_eq!(Motion::indeterminate_position(0.0), 0);
+    assert_eq!(Motion::indeterminate_position(16.0), 1000);
+    assert_eq!(Motion::indeterminate_position(32.0), 0);
+    for step in 0..128 {
+        let now = step as f32 / 4.0;
+        let a = Motion::indeterminate_position(now);
+        let b = Motion::indeterminate_position(now + 0.25);
+        assert!(a.abs_diff(b) <= 25, "no wraparound jump at {now}");
+        assert!(a <= 1000 && b <= 1000);
+    }
+    assert_ne!(
+        Motion::indeterminate_position(8.0),
+        Motion::indeterminate_position(8.5)
+    );
+}
+
 use crate::cockpit::StageTab;
 
 const fn key(tab: StageTab, dock: usize, rail: (u32, u32), roadmap: (usize, usize)) -> MotionKey {

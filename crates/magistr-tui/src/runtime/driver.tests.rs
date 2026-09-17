@@ -96,7 +96,15 @@ fn retire_scroll(driver: &mut Driver) {
     for _ in 0..Viewport::GLIDE_STEPS {
         driver.tick();
     }
-    assert!(driver.model.animates(Animation::Motion));
+    assert!(
+        driver.model.animates(Animation::Motion),
+        "now={} scrolling={} top={} total={} motion={:?}",
+        driver.model.now(),
+        driver.model.is_scrolling(),
+        driver.model.top_row(),
+        driver.model.turn().len(),
+        driver.model.motions_in_flight()
+    );
     driver.fold(Msg::Phase(0.5));
     assert!(!driver.model.animates(Animation::Motion));
     assert!(
@@ -200,13 +208,27 @@ fn reducing_motion_after_fractional_retirement_stops_the_booked_tick() {
 }
 
 #[test]
-fn fractional_retirement_returns_to_the_running_loops_clock_period() {
+fn fractional_retirement_returns_to_the_paused_loops_clock_period() {
     let mut driver = driver(model(), false);
     driver.fold(Msg::Loop(LoopEvent::Started {
         iteration: 1,
         max: 2,
     }));
-    retire_scroll(&mut driver);
+    driver.fold(Msg::Loop(LoopEvent::Paused("Review the result".into())));
+    // Let the pause note settle. A paused loop consumes Home, so use the
+    // wheel to retarget a scroll between ticks.
+    for _ in 0..24 {
+        driver.tick();
+    }
+    mouse(&mut driver, MouseKind::ScrollUp, Some(Widget::Stage.id()));
+    driver.fold(Msg::Phase(0.25));
+    mouse(&mut driver, MouseKind::ScrollUp, Some(Widget::Stage.id()));
+    for _ in 0..Viewport::GLIDE_STEPS {
+        driver.tick();
+    }
+    assert!(driver.model.animates(Animation::Motion));
+    driver.fold(Msg::Phase(0.5));
+    assert!(!driver.model.animates(Animation::Motion));
     assert_eq!(
         driver.model.animations().period(),
         Some(Animation::Clock.period())
@@ -232,7 +254,7 @@ fn fractional_retirement_returns_to_the_running_loops_clock_period() {
 }
 
 #[test]
-fn waiting_for_a_response_ticks_without_continuous_interpolation() {
+fn waiting_for_a_response_samples_at_a_lower_rate_than_gestures() {
     let mut driver = driver(model(), false);
     driver.fold(Msg::Agent(magistr_cockpit::agent::AgentEvent::UserText(
         "Review the plan".into(),
@@ -243,6 +265,12 @@ fn waiting_for_a_response_ticks_without_continuous_interpolation() {
     assert!(driver.model.agent_activity().active);
     assert!(driver.model.is_animating());
     assert!(!driver.interpolates());
+    assert_eq!(
+        driver.frame_period(Instant::now()),
+        Duration::from_millis(32)
+    );
+    driver.fold(Msg::Phase(0.5));
+    assert_eq!(driver.model.now().fract(), 0.5);
     mouse(&mut driver, MouseKind::ScrollUp, Some(Widget::Stage.id()));
     assert!(driver.interpolates());
 }

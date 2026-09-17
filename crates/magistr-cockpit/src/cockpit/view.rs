@@ -1716,10 +1716,22 @@ fn strip_row(progress: Progress, columns: u16, ground: &Style, model: &Model, pe
         // The bar's cells are blank under a drawn gauge; the label
         // stays text after it.
         let bar = Node::text(" ".repeat(usize::from(STRIP_BAR_CELLS)))
-            .mark(Mark::Bar {
-                fill: u16::from(percent).min(100) * 10,
-                line: style.fg,
-                ground: ground.bg,
+            .mark(if progress == Progress::Indeterminate {
+                Mark::Indeterminate {
+                    position: if model.animates(Animation::Motion) {
+                        Motion::indeterminate_position(model.now())
+                    } else {
+                        500
+                    },
+                    line: style.fg,
+                    ground: ground.bg,
+                }
+            } else {
+                Mark::Bar {
+                    fill: u16::from(percent).min(100) * 10,
+                    line: style.fg,
+                    ground: ground.bg,
+                }
             })
             .style(style.clone())
             .width(Length::Cells(STRIP_BAR_CELLS))

@@ -1,4 +1,33 @@
 use super::*;
+
+#[test]
+fn unknown_progress_moves_a_visible_segment_without_growing() {
+    let mut prior = None;
+    let mut lengths = Vec::new();
+    for position in [0, 250, 500, 750, 1000] {
+        let surface = render(&Gauge::indeterminate(position), 10, 1);
+        let row = usize::from(surface.width()) * usize::from(surface.height()) / 2;
+        let lit: Vec<_> = (0..usize::from(surface.width()))
+            .filter(|x| {
+                let pixel = &surface.pixels()[(row + x) * 4..(row + x) * 4 + 3];
+                pixel.iter().map(|v| u16::from(*v)).sum::<u16>() > 350
+            })
+            .collect();
+        assert!(!lit.is_empty(), "segment is always visible");
+        assert!(
+            lit.len() < usize::from(surface.width()) / 2,
+            "never looks complete"
+        );
+        if let Some(x) = prior {
+            assert!(lit[0] > x);
+        }
+        prior = Some(lit[0]);
+        lengths.push(lit.len());
+    }
+    assert!(lengths.iter().max().unwrap() - lengths.iter().min().unwrap() <= 1);
+    assert_eq!(Gauge::indeterminate(u16::MAX), Gauge::indeterminate(1000));
+}
+
 use crate::layout::Rect;
 use crate::pixel::{CellSize, PixelSurface};
 

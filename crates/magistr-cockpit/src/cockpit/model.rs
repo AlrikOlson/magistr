@@ -2504,6 +2504,13 @@ impl Model {
     pub const SPIN_STEPS: u64 =
         (Self::SPIN_PERIOD.as_millis() / Self::TICK_PERIOD.as_millis()) as u64;
 
+    /// The graphics workspace's leading indicator, including quiet waits
+    /// between agents. Pauses, completion and permission requests are still.
+    #[must_use]
+    pub fn has_activity_motion(&self) -> bool {
+        self.uses_flight_recorder() && self.theme.motion().is_full() && self.agent_activity().active
+    }
+
     /// Everything on screen that moves right now, each named with the
     /// period it wants steps at; the runtime reconciles the set to one
     /// interval ([`Animations::period`]).
@@ -2545,7 +2552,7 @@ impl Model {
             .with_if(
                 Animation::Motion,
                 streaming
-                    || (self.uses_flight_recorder() && self.roadmap_request_pending() && self.dock.is_empty())
+                    || self.has_activity_motion()
                     || holding
                     || self.has_running_gate()
                     || self.motion.is_settling(self.now())
@@ -2563,10 +2570,9 @@ impl Model {
                     || (self.is_sky() && !self.sky_at_rest())
                     // The window breathes while it works — a tool running
                     // for minutes, a thought being thought, the loop
-                    // between agents. The *window*: a terminal keeps its
-                    // measured contract that a quiet running loop costs a
-                    // frame a second (runtime_harness), the way the hover
-                    // and rail keys are the window's alone.
+                    // between agents. Plain terminals keep their clock-only
+                    // cadence; graphics terminals declare their activity
+                    // indicator above.
                     || (self.surface == Surface::Native && self.is_working())
                     // A project being born: the survey's sweep runs while its rows
                     // land, the charting while its stars are born —
@@ -2652,7 +2658,7 @@ impl Model {
             if native {
                 self.is_working()
             } else {
-                streaming || self.has_running_gate()
+                streaming || self.has_running_gate() || self.has_activity_motion()
             },
         );
         for name in self.motion.in_flight(now) {

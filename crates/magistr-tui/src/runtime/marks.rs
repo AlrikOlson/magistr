@@ -286,6 +286,21 @@ fn paint(mark: &Mark, rect: Rect, cell: CellSize, fallback: Fallback) -> PixelSu
             );
             surface
         }
+        Mark::Indeterminate {
+            position,
+            line,
+            ground,
+        } => {
+            let (r, g, b) = rgb(*line, fallback.ink);
+            let (gr, gg, gb) = rgb(*ground, fallback.ground);
+            let mut surface = PixelSurface::new(rect, cell);
+            surface.paint(
+                &Gauge::indeterminate(*position)
+                    .line(r, g, b)
+                    .background(gr, gg, gb),
+            );
+            surface
+        }
         Mark::Rule { ink } => {
             let (r, g, b) = rgb(*ink, fallback.ink);
             let mut surface = PixelSurface::with_alpha(rect, cell);

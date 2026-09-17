@@ -39,6 +39,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("captures require fictional records".into());
     }
     let mut manifest = Vec::new();
+    if std::env::args().any(|arg| arg == "--motion-only") {
+        return capture_motion(&data, &output);
+    }
     if std::env::args().any(|arg| arg == "--requests-only") {
         return capture_requests(&data, &output);
     }
@@ -299,6 +302,55 @@ fn main() -> Result<(), Box<dyn Error>> {
             "renderer":"Production cockpit view → runtime Surfaces → terminal graphics → decoded PNG",
             "synthetic":true,"production_shell":true,"captures":manifest
         }))?,
+    )?;
+    Ok(())
+}
+
+fn capture_motion(data: &Value, output: &Path) -> Result<(), Box<dyn Error>> {
+    use magistr_cockpit::theme::MotionMode;
+    let mut manifest = Vec::new();
+    for (name, theme, cols) in [
+        ("dark", ThemeMode::Dark, 144),
+        ("light", ThemeMode::Light, 144),
+        ("compact", ThemeMode::Dark, 64),
+    ] {
+        let mut current = model(Size::new(cols, 40), data, theme)?;
+        update(
+            &mut current,
+            Msg::Agent(AgentEvent::UserText("Check the restart behavior".into())),
+        );
+        for step in 0..32 {
+            if step % 8 == 0 {
+                capture(
+                    &current,
+                    output,
+                    &format!("motion-{name}-{step}"),
+                    &mut manifest,
+                )?;
+            }
+            update(&mut current, Msg::Tick);
+        }
+        current = current.with_theme(Theme::forced(theme).with_motion(MotionMode::Reduced));
+        capture(
+            &current,
+            output,
+            &format!("motion-{name}-reduced"),
+            &mut manifest,
+        )?;
+        update(
+            &mut current,
+            Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)),
+        );
+        capture(
+            &current,
+            output,
+            &format!("motion-{name}-complete"),
+            &mut manifest,
+        )?;
+    }
+    std::fs::write(
+        output.join("motion-captures.json"),
+        serde_json::to_vec_pretty(&manifest)?,
     )?;
     Ok(())
 }

@@ -61,6 +61,15 @@ pub enum Mark {
         /// The ground behind the track.
         ground: Color,
     },
+    /// Unknown progress: a fixed-length segment moving along a track.
+    Indeterminate {
+        /// Segment position in thousandths, independent of any completion fraction.
+        position: u16,
+        /// The segment's colour.
+        line: Color,
+        /// The ground behind the track.
+        ground: Color,
+    },
     /// A soft horizontal rule across the node's rect.
     Rule {
         /// The rule's colour.
