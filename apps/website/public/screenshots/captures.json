@@ -12,56 +12,56 @@
     {
       "file": "terminal-overview-dark.png",
       "screen": "conversation",
-      "sha256": "b20a79f93160450c75baec2f5b893de369f7c4ec82147da2e0d4c6885bceca2a",
+      "sha256": "0a01451816e32c6c646734808b7f6cba5996364a291ad15cd54437bacfc91313",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-overview-light.png",
       "screen": "conversation",
-      "sha256": "02b8f1cf88f9c6e58907c875b7e8ce3ef1d49488dc984bd4229d917223a402e8",
+      "sha256": "ac89756960ca4c35787250f603e54bdc0c6d9e492c20b4c4945e79308edb308b",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-roadmap-dark.png",
       "screen": "roadmap",
-      "sha256": "e5cd2a73722efa3a1c9934e5ed98e6b3e3fd8936dc353f209cfcaf81ca41a4ed",
+      "sha256": "aa403ccb7dfab10f583641150f3a75f08d400f4a1d962e1700bc45d5c8ca2ee9",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-roadmap-light.png",
       "screen": "roadmap",
-      "sha256": "58864900d75346bdbe5f58b5da7aa4dd5e41a53572f40c34236d149489915931",
+      "sha256": "326a3a5aafdf0822f1f93b10db0af7f6b15ab412327cd35c9753fb2fa02796bc",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-session-dark.png",
       "screen": "conversation",
-      "sha256": "475a2134a61aaaade9ee3cb970f348a123c47c1fe0183b9e18002e10cf93336e",
+      "sha256": "287842785623977d2fab343db1bcbd28e3c8fbb5b65cf0ed6e256e49e402dad3",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-session-light.png",
       "screen": "conversation",
-      "sha256": "be62860c97b16a1daeff47d654db7b925333948aab1dbedaa5b9f5ce02b34ba6",
+      "sha256": "6a9ae496571508e86e8fab5b124e9733564e9acbd80ac4629e0d1c3835049089",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-dark.png",
       "screen": "conversation",
-      "sha256": "c3e1b8eea2728fbc82fd307f9899826086b2e1e5ccc8d70d241027dc25fd162d",
+      "sha256": "ddb61259f45cdb32f02c4674c71428900db756f94e239ec690da1d4a0b3486e3",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-light.png",
       "screen": "conversation",
-      "sha256": "180a5592c0fd5bbee30fa88d82f2edb701ff2dd777eeef63d0cac977fc814da0",
+      "sha256": "ab3d5128ce8f7ab092500d1cabe2bcadbeb28a393d2a1303de1f07c7e65428e6",
       "width": 1440,
       "height": 1000
     }
