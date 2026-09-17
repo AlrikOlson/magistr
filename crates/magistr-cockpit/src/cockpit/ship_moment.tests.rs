@@ -4,6 +4,18 @@ use super::*;
 use crate::harness::fixtures;
 
 #[test]
+fn a_self_reported_check_is_not_upgraded_to_verified() {
+    let check = fixtures::check_from(json!({"name":"review", "passed":true, "verified":false}));
+    assert!(matches!(
+        ShipMoment::check("", &check),
+        ShipMoment::Check {
+            verified: false,
+            ..
+        }
+    ));
+}
+
+#[test]
 fn an_action_keeps_its_task_kind_description_ordinal_and_files() {
     let mut action = fixtures::action(198, "wired the port");
     action.files_touched = vec!["src/port.rs".to_owned()];
@@ -35,6 +47,7 @@ fn a_check_keeps_its_exit_code_and_the_reports_duration() {
             timestamp: String::new(),
             name: "test".to_owned(),
             passed: false,
+            verified: true,
             exit_code: Some(101),
             duration_ms: Some(5400),
         }

@@ -192,17 +192,18 @@ impl Session {
         let what = crate::workbench::describe(&cmd);
         let Some(port) = self.workbench.as_ref().map(Arc::clone) else {
             self.inbox.send(Msg::Workbench(WorkbenchEvent::Failed {
-                what,
+                cmd,
                 error: "no workbench is attached to this session".to_owned(),
             }));
             return;
         };
+        let asked = cmd.clone();
         if let Err(error) = self.jobs.run(&what, &self.inbox, move || {
             let mut port = port.lock().unwrap_or_else(PoisonError::into_inner);
             Msg::Workbench(crate::workbench::apply(port.as_mut(), &cmd))
         }) {
             self.inbox
-                .send(Msg::Workbench(WorkbenchEvent::Failed { what, error }));
+                .send(Msg::Workbench(WorkbenchEvent::Failed { cmd: asked, error }));
         }
     }
 

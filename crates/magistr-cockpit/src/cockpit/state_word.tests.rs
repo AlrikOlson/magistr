@@ -39,21 +39,40 @@ fn every_star_state_has_one_of_the_seven_words() {
     assert_eq!(StateWord::of_star(StarState::Done), StateWord::Done);
 }
 
-/// A wire status reads through the star's own mapping; readiness
+/// A chunk's state reads through the star's own mapping; readiness
 /// decides between Ready and Blocked; an obsoleted chunk is Idle.
 #[test]
-fn a_wire_status_reads_as_one_word() {
+fn a_chunk_state_reads_as_one_word() {
+    use crate::cockpit::ChunkState;
     assert_eq!(
-        StateWord::of_status("in_progress", false),
+        StateWord::of_state(ChunkState::InProgress, false),
         StateWord::Executing
     );
-    assert_eq!(StateWord::of_status("pending", true), StateWord::Ready);
-    assert_eq!(StateWord::of_status("pending", false), StateWord::Blocked);
-    assert_eq!(StateWord::of_status("backlog", false), StateWord::Blocked);
-    assert_eq!(StateWord::of_status("blocked", true), StateWord::Blocked);
-    assert_eq!(StateWord::of_status("stuck", true), StateWord::Stuck);
-    assert_eq!(StateWord::of_status("done", true), StateWord::Done);
-    assert_eq!(StateWord::of_status("obsoleted", true), StateWord::Idle);
+    assert_eq!(
+        StateWord::of_state(ChunkState::Pending, true),
+        StateWord::Ready
+    );
+    assert_eq!(
+        StateWord::of_state(ChunkState::Pending, false),
+        StateWord::Blocked
+    );
+    assert_eq!(
+        StateWord::of_state(ChunkState::Backlog, false),
+        StateWord::Blocked
+    );
+    assert_eq!(
+        StateWord::of_state(ChunkState::Blocked, true),
+        StateWord::Blocked
+    );
+    assert_eq!(
+        StateWord::of_state(ChunkState::Stuck, true),
+        StateWord::Stuck
+    );
+    assert_eq!(StateWord::of_state(ChunkState::Done, true), StateWord::Done);
+    assert_eq!(
+        StateWord::of_state(ChunkState::Obsoleted, true),
+        StateWord::Idle
+    );
 }
 
 /// No impostor is one of the seven — the negative space never overlaps

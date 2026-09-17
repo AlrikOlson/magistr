@@ -1,8 +1,9 @@
 //! One roadmap chunk as the Roadmap tab holds it.
 
 use crate::layout::TextMetrics;
-use magistr_engine::native::{Chunk, ChunkStatus};
+use magistr_engine::native::Chunk;
 
+use super::chunk_state::ChunkState;
 use super::proposal_kind::ProposalKind;
 
 /// A chunk as the Roadmap tab shows it, read off the store's own
@@ -17,12 +18,10 @@ pub struct RoadmapChunk {
     pub name: String,
     /// The full claim.
     pub title: String,
-    /// The status, in the roadmap's own spelling (`pending`,
-    /// `in_progress`, …) — the vocabulary the list's section headers and
-    /// the sky's states are named in — with one word the store spells
-    /// as two fields: `stuck`, a chunk in progress that carries a
+    /// The state, read off the record once ([`ChunkState::of`]): the
+    /// store's status, or Stuck for a chunk in progress that carries a
     /// blocker (the star that breathes and wears the alert ring).
-    pub status: String,
+    pub state: ChunkState,
     /// Lower sorts earlier; 100/200/300/400 are the named bands.
     pub priority: u32,
     /// The workstream, when grouped.
@@ -58,7 +57,7 @@ impl RoadmapChunk {
             id: chunk.id.clone(),
             name,
             title: chunk.title.clone(),
-            status: status_word(chunk).to_owned(),
+            state: ChunkState::of(chunk),
             priority: chunk.priority,
             group: chunk.group.clone(),
             deps: chunk.deps.clone(),
@@ -81,13 +80,13 @@ impl RoadmapChunk {
     /// Whether the chunk still takes part in the plan.
     #[must_use]
     pub fn is_active(&self) -> bool {
-        self.status != "obsoleted"
+        self.state.is_active()
     }
 
     /// Whether this chunk is "you are here".
     #[must_use]
     pub fn is_in_progress(&self) -> bool {
-        self.status == "in_progress"
+        self.state == ChunkState::InProgress
     }
 
     /// Rows the chunk's detail card takes when it is open: the title,
@@ -198,15 +197,6 @@ pub enum DetailLine {
     BulletContinued,
     /// The deps or refs line.
     Note,
-}
-
-/// The state word for a record: its status as the roadmap spells it, or
-/// `stuck` for work in progress that waits on a blocker.
-fn status_word(chunk: &Chunk) -> &'static str {
-    if chunk.status == ChunkStatus::InProgress && chunk.blocked_by.is_some() {
-        return "stuck";
-    }
-    chunk.status.as_wire()
 }
 
 #[cfg(test)]

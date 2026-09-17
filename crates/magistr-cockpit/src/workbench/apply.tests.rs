@@ -113,7 +113,9 @@ fn a_refusal_becomes_a_failed_event_with_the_reason() {
     assert_eq!(
         event,
         WorkbenchEvent::Failed {
-            what: "undo e9".to_owned(),
+            cmd: WorkbenchCmd::Undo {
+                id: "e9".to_owned(),
+            },
             error: "no journal entry for e9".to_owned(),
         }
     );
@@ -125,7 +127,9 @@ fn a_refusal_becomes_a_failed_event_with_the_reason() {
             }
         ),
         WorkbenchEvent::Failed {
-            what: "run test".to_owned(),
+            cmd: WorkbenchCmd::Run {
+                command: "test".to_owned()
+            },
             error: "no declared command: test".to_owned(),
         }
     );

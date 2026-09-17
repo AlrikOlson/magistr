@@ -43,6 +43,7 @@ See [terminal architecture](../architecture/terminal.md) for the data flow and
 | no input can panic the renderer | `magistr-tui/tests/fuzz.rs` |
 | the loop coalesces bursts, and a frame folds what already arrived | `magistr-tui/tests/runtime_harness.rs` |
 | the turn stage streams, scrolls and repaints within its latency bound | `magistr-tui/tests/turn_harness.rs` |
+| cockpit journal and undo use the agent's owner; conflicts preserve external edits and the next write keeps the generation | `magistr-cli/tests/cockpit_journal_owner.rs` |
 | a real ACP session drives the cockpit end to end | `magistr-cli/tests/session_harness.rs` |
 | jobs and engines never stall the loop | `magistr-tui/tests/jobs_engines_harness.rs` |
 | the compositor's economy: one transmit per change, none while idle | `magistr-tui/tests/graphics_harness.rs` |
@@ -140,7 +141,8 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/brief_card.rs` | Activity summary card with severity, heading, and body | `magistr-cockpit/src/cockpit/brief_card.tests.rs` |
 | `magistr-cockpit/src/cockpit/budget.rs` | Session spend, budget limit, and breaker threshold in cents | `magistr-cockpit/src/cockpit/budget.tests.rs` |
 | `magistr-cockpit/src/cockpit/camera.rs` | Roadmap graph viewport and camera transitions | `magistr-cockpit/src/cockpit/camera.tests.rs` |
-| `magistr-cockpit/src/cockpit/changes.rs` | The journal model's state | `magistr-cockpit/src/cockpit/changes.tests.rs` |
+| `magistr-cockpit/src/cockpit/chunk_state.rs` | Typed roadmap state, including Stuck derived from in-progress work with a blocker | `magistr-cockpit/src/cockpit/chunk_state.tests.rs` |
+| `magistr-cockpit/src/cockpit/changes.rs` | Journal state and interaction: file identity anchors, review, undo refusals and workbench outcomes | `magistr-cockpit/src/cockpit/changes.tests.rs` |
 | `magistr-cockpit/src/cockpit/chapter.rs` | Completed roadmap item details for reports and exports | `magistr-cockpit/src/cockpit/chapter.tests.rs` |
 | `magistr-cockpit/src/cockpit/charter_offer.rs` | A proposed scope expansion, its allowed/total count, and the key sent when the user delegates | `magistr-cockpit/src/cockpit/charter_offer.tests.rs` · `magistr-cockpit/src/cockpit/rail.tests.rs` |
 | `magistr-cockpit/src/cockpit/charter_rule.rs` | Session permission rule displayed in the rail | `magistr-cockpit/src/cockpit/charter_rule.tests.rs` |
@@ -153,7 +155,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/completion_kind.rs` | What a completion popup completes | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/copy.rs` | Shared quantity formatting and copy vocabulary: `2.07 USD`, `1.84 / 12.00`, `04:12`, and `12 min` / `4 h` / `2 d` | `magistr-cockpit/src/cockpit/copy.tests.rs`
 | `magistr-cockpit/src/cockpit/dag_layout.rs` | Deterministic layered DAG layout with virtual routing vertices and crossing reduction | `magistr-cockpit/src/cockpit/dag_layout.tests.rs` |
-| `magistr-cockpit/src/cockpit/dag_node.rs` | One node of the roadmap's tech-tree, placed on the cell grid | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
+| `magistr-cockpit/src/cockpit/dag_node.rs` | A positioned roadmap node with typed ChunkState | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/dag_path.rs` | A routed dependency edge through the layered roadmap layout | `magistr-cockpit/src/cockpit/dag_layout.tests.rs` |
 | `magistr-cockpit/src/cockpit/decision.rs` | Permission and confirmation interaction: the decision state (conditional register, scroll, seen, stood-down), the semantic intents, the one reducer every key, click and `Msg::Decision` reaches, and the moment/review/ask selectors | `magistr-cockpit/src/cockpit/decision.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/diff_layout.rs` | Width thresholds for diff display modes | `magistr-cockpit/src/cockpit/diff_layout.tests.rs` |
@@ -213,8 +215,6 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/motion_name.rs` | Animation names and their day/night behavior | `magistr-cockpit/src/cockpit/motion_name.tests.rs` |
 | `magistr-cockpit/src/cockpit/msg.rs` | Everything that can change the model | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/nav.rs` | Escape-key navigation through overlays, viewers, transient screens, and parent views | `magistr-cockpit/src/cockpit/nav.tests.rs` |
-| `magistr-cockpit/src/cockpit/rise_chunk.rs` | Selects a roadmap item and focuses its graph node | `magistr-cockpit/src/cockpit/rise_chunk.tests.rs` |
-| `magistr-cockpit/src/cockpit/open_chunk.rs` | Routes each roadmap item to the view appropriate to its status | `magistr-cockpit/src/cockpit/open_chunk.tests.rs` |
 | `magistr-cockpit/src/cockpit/palette.rs` | Command palette state and filtered results | `magistr-cockpit/src/cockpit/palette.tests.rs` |
 | `magistr-cockpit/src/cockpit/palette_row.rs` | Command palette result and its dispatched action | `magistr-cockpit/src/cockpit/palette.tests.rs` |
 | `magistr-cockpit/src/cockpit/path_stop.rs` | Navigation breadcrumb derived from the current view | —
@@ -234,7 +234,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/rail_mark.rs` | Terminal output timing markers derived from arrival ticks: second boundaries, pauses, and elapsed timestamps | `magistr-cockpit/src/cockpit/rail_mark.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap.rs` | Roadmap state and deterministic dependency-layer layout with connected-node alignment | `magistr-cockpit/src/cockpit/roadmap.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_request.rs` | Submitted roadmap messages with admission, outcome and real reply source ranges | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
-| `magistr-cockpit/src/cockpit/roadmap_chunk.rs` | One roadmap chunk as the Roadmap tab holds it | `magistr-cockpit/src/cockpit/roadmap_chunk.tests.rs` |
+| `magistr-cockpit/src/cockpit/roadmap_chunk.rs` | Roadmap item projection with typed ChunkState and stable chunk identity | `magistr-cockpit/src/cockpit/roadmap_chunk.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_sort.rs` | Sortable roadmap columns and their header targets | `magistr-cockpit/src/cockpit/roadmap.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/rule_mode.rs` | How a charter rule answers — the ASK / AUTO / OFF badge vocabulary | `magistr-cockpit/src/cockpit/rule_mode.tests.rs` |
 | `magistr-cockpit/src/cockpit/scaffold_kind.rs` | Project setup artifact types and their displayed completion status | `magistr-cockpit/src/cockpit/scaffold_kind.tests.rs` |
@@ -254,7 +254,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/shelf_cmd.rs` | Artifact collection, export, and report-sharing requests | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/shelf_still.rs` | Artifact image metadata and decoded pixels | `magistr-cockpit/src/shelf/load_still.tests.rs` |
 | `magistr-cockpit/src/cockpit/session_item.rs` | Timestamp-ordered session items and stable inspector selection | `magistr-cockpit/src/cockpit/session_item.tests.rs` |
-| `magistr-cockpit/src/cockpit/ship_moment.rs` | One entry of the ship timeline | `magistr-cockpit/src/cockpit/ship_moment.tests.rs` |
+| `magistr-cockpit/src/cockpit/ship_moment.rs` | Recorded actions and checks, preserving verified versus self-reported evidence | `magistr-cockpit/src/cockpit/ship_moment.tests.rs` |
 | `magistr-cockpit/src/cockpit/ship_run.rs` | The ship moment in flight | `magistr-cockpit/src/cockpit/ship_run.tests.rs` |
 | `magistr-cockpit/src/cockpit/ship_view.rs` | The ship objective and its plan, as the rail shows them | `magistr-cockpit/src/cockpit/ship_view.tests.rs` |
 | `magistr-cockpit/src/cockpit/signal_row.rs` | One stakeholder signal as the Roadmap tab's inbox holds it | `magistr-cockpit/src/cockpit/signal_row.tests.rs` |
@@ -287,7 +287,8 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/view.rs` | The model as a layout tree | `magistr-cockpit/src/cockpit/view.tests.rs` |
 | `magistr-cockpit/src/cockpit/widget.rs` | The widgets of the cockpit and their ids | `magistr-cockpit/src/cockpit/widget.tests.rs` |
 | `magistr-cockpit/src/cockpit/workbench_cmd.rs` | What the cockpit asks of the workbench | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
-| `magistr-cockpit/src/cockpit/workbench_event.rs` | What the workbench answered | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
+| `magistr-cockpit/src/cockpit/work.rs` | Roadmap selection, navigation, graph/list interaction and chunk commands | `magistr-cockpit/src/cockpit/work.tests.rs` |
+| `magistr-cockpit/src/cockpit/workbench_event.rs` | Workbench outcomes; a refusal retains the command it answers | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 
 ### `engine` — the think-and-ship client and feed
 
@@ -490,7 +491,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/workbench/describe.rs` | What a workbench command asked, in the words a refusal names | `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/workbench/journal_entry.rs` | One journaled edit, as the workbench recorded it | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/mcp_client.rs` | One MCP server on the other end of a pipe | `magistr-cockpit/src/workbench/mcp_client.tests.rs` |
-| `magistr-cockpit/src/workbench/mcp_workbench.rs` | The workbench port over a real workbench-mcp server | `magistr-cockpit/src/workbench/mcp_workbench.tests.rs` |
+| `magistr-cockpit/src/workbench/mcp_workbench.rs` | Native journal listing and undo through one owner connection; legacy lock-free journal listing | `magistr-cockpit/src/workbench/mcp_workbench.tests.rs`, `magistr-cli/tests/cockpit_journal_owner.rs` |
 | `magistr-cockpit/src/workbench/port.rs` | What the cockpit asks of a workbench | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/run_row.rs` | One structured row of a workbench run's result | `magistr-cli/tests/session_harness.rs` |
 

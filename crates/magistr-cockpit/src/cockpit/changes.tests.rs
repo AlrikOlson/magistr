@@ -26,12 +26,18 @@ fn a_journal_refresh_replaces_the_list_and_keeps_surviving_flags() {
     changes.set_entries(vec![entry("e1"), entry("e2")]);
     changes.toggle(0);
     changes.approve(1);
-    assert!(changes.is_expanded("e1"));
-    assert!(changes.is_approved("e2"));
+    assert!(changes.is_expanded(&entry("e1").identity()));
+    assert!(changes.is_approved(&entry("e2").identity()));
 
     changes.set_entries(vec![entry("e2"), entry("e3")]);
-    assert!(!changes.is_expanded("e1"), "the expansion left with e1");
-    assert!(changes.is_approved("e2"), "the approval survives");
+    assert!(
+        !changes.is_expanded(&entry("e1").identity()),
+        "the expansion left with e1"
+    );
+    assert!(
+        changes.is_approved(&entry("e2").identity()),
+        "the approval survives"
+    );
     assert_eq!(changes.entries().len(), 2);
 }
 
@@ -41,12 +47,15 @@ fn one_entry_expands_at_a_time_and_a_second_click_folds_it() {
     changes.set_entries(vec![entry("e1"), entry("e2")]);
     changes.toggle(0);
     changes.toggle(1);
-    assert!(!changes.is_expanded("e1"));
-    assert!(changes.is_expanded("e2"));
+    assert!(!changes.is_expanded(&entry("e1").identity()));
+    assert!(changes.is_expanded(&entry("e2").identity()));
     changes.toggle(1);
-    assert!(!changes.is_expanded("e2"));
+    assert!(!changes.is_expanded(&entry("e2").identity()));
     changes.toggle(9);
-    assert!(!changes.is_expanded("e1") && !changes.is_expanded("e2"));
+    assert!(
+        !changes.is_expanded(&entry("e1").identity())
+            && !changes.is_expanded(&entry("e2").identity())
+    );
 }
 
 #[test]
@@ -58,8 +67,8 @@ fn removing_an_entry_drops_it_and_its_flags() {
     changes.remove("e1");
     assert_eq!(changes.entries().len(), 1);
     assert_eq!(changes.entries()[0].id, "e2");
-    assert!(!changes.is_expanded("e1"));
-    assert!(!changes.is_approved("e1"));
+    assert!(!changes.is_expanded(&entry("e1").identity()));
+    assert!(!changes.is_approved(&entry("e1").identity()));
 }
 
 #[test]
@@ -221,4 +230,106 @@ fn the_heading_counts_the_journal_and_its_lines() {
         "src/lib.rs",
         "the viewer pane names the file it is showing instead"
     );
+}
+
+/// A refused rewind lands on the entry it named, only while that entry
+/// is journaled: a successful rewind or a refresh that drops the entry
+/// takes the refusal with it, and an id the journal never listed
+/// records nothing.
+#[test]
+fn a_refused_undo_is_recorded_on_its_entry_and_leaves_with_it() {
+    let mut changes = Changes::default();
+    changes.set_entries(vec![entry("e1"), entry("e2")]);
+    assert!(changes.refuse("e1", "src/e1.rs: it moved on"));
+    assert_eq!(changes.refusal("e1"), Some("src/e1.rs: it moved on"));
+    assert!(!changes.refuse("e9", "no such op"), "not journaled");
+    assert_eq!(changes.refusal("e9"), None);
+
+    changes.set_entries(vec![entry("e1")]);
+    assert_eq!(
+        changes.refusal("e1"),
+        Some("src/e1.rs: it moved on"),
+        "survives a refresh"
+    );
+    changes.remove("e1");
+    assert_eq!(changes.refusal("e1"), None, "a rewind clears it");
+}
+
+#[test]
+fn file_flags_follow_the_journal_identity_across_reordering() {
+    let first = entry("e1");
+    let second = JournalEntry {
+        path: "src/other.rs".into(),
+        ..first.clone()
+    };
+    let first_key = first.identity();
+    let second_key = second.identity();
+    let mut changes = Changes::default();
+    changes.set_entries(vec![first.clone(), second.clone()]);
+    changes.toggle(0);
+    changes.approve(0);
+    assert!(changes.is_expanded(&first_key));
+    assert!(!changes.is_expanded(&second_key));
+    assert!(changes.is_approved(&first_key));
+    assert!(!changes.is_approved(&second_key));
+
+    changes.set_entries(vec![second.clone(), first.clone()]);
+    assert!(changes.is_expanded(&first_key));
+    assert!(changes.is_approved(&first_key));
+    changes.set_entries(vec![second]);
+    assert!(!changes.is_expanded(&first_key));
+    assert!(!changes.is_approved(&first_key));
+    changes.set_entries(vec![first]);
+    assert!(
+        !changes.is_expanded(&first_key),
+        "a removed row has no retained flag"
+    );
+    assert!(!changes.is_approved(&first_key));
+}
+
+/// The fold routes a refused undo onto its entry and still reports it
+/// on the stage; every other refusal is the stage line alone.
+#[test]
+fn the_fold_lands_a_refused_undo_on_the_entry() {
+    use crate::cockpit::{Msg, Size, update};
+    let mut m = Model::new(Size::new(80, 24));
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Journal {
+            entries: vec![entry("e1")],
+        }),
+    );
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Failed {
+            cmd: WorkbenchCmd::Undo {
+                id: "e1".to_owned(),
+            },
+            error: "op e1 was not rewound — src/e1.rs: it moved on".to_owned(),
+        }),
+    );
+    assert_eq!(
+        m.changes().refusal("e1"),
+        Some("op e1 was not rewound — src/e1.rs: it moved on")
+    );
+    assert_eq!(m.changes().entries().len(), 1, "the change is still there");
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Failed {
+            cmd: WorkbenchCmd::Map,
+            error: "no workbench".to_owned(),
+        }),
+    );
+    assert!(
+        m.changes().refusal("e1").is_some(),
+        "a map refusal touches no entry"
+    );
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Undone {
+            id: "e1".to_owned(),
+        }),
+    );
+    assert!(m.changes().entries().is_empty());
+    assert_eq!(m.changes().refusal("e1"), None);
 }

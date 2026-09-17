@@ -35,6 +35,10 @@ pub enum ShipMoment {
         name: String,
         /// Whether it passed.
         passed: bool,
+        /// Whether a server ran the command and read the exit code —
+        /// `false` for a self-reported check, whose pass is the agent's
+        /// word and whose evidence is therefore indeterminate.
+        verified: bool,
         /// The command's exit code, when one was recorded.
         exit_code: Option<i64>,
         /// The runner-reported duration, when the check carried a
@@ -65,6 +69,7 @@ impl ShipMoment {
             timestamp: check.timestamp.clone(),
             name: check.name.clone(),
             passed: check.passed,
+            verified: check.verified,
             exit_code: check.exit_code.map(i64::from),
             duration_ms: check.results.as_ref().and_then(|r| r.duration_ms),
         }

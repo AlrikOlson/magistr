@@ -4,26 +4,43 @@ use super::*;
 /// unknown one is still a star.
 #[test]
 fn every_status_names_a_state() {
-    assert_eq!(StarState::of("done", false), StarState::Done);
-    assert_eq!(StarState::of("blocked", true), StarState::Blocked);
-    assert_eq!(StarState::of("stuck", false), StarState::Stuck);
-    assert_eq!(StarState::of("in_progress", false), StarState::Executing);
-    assert_eq!(StarState::of("pending", true), StarState::Ready);
-    assert_eq!(StarState::of("pending", false), StarState::Pending);
-    assert_eq!(StarState::of("backlog", false), StarState::Pending);
-    // The engines' wire shape is theirs to grow.
-    assert_eq!(StarState::of("some_new_status", false), StarState::Pending);
+    assert_eq!(StarState::of(ChunkState::Done, false), StarState::Done);
+    assert_eq!(StarState::of(ChunkState::Blocked, true), StarState::Blocked);
+    assert_eq!(StarState::of(ChunkState::Stuck, false), StarState::Stuck);
+    assert_eq!(
+        StarState::of(ChunkState::InProgress, false),
+        StarState::Executing
+    );
+    assert_eq!(StarState::of(ChunkState::Pending, true), StarState::Ready);
+    assert_eq!(
+        StarState::of(ChunkState::Pending, false),
+        StarState::Pending
+    );
+    assert_eq!(
+        StarState::of(ChunkState::Backlog, false),
+        StarState::Pending
+    );
+    // The plan keeps obsoleted history; the sky reads it as a planned star.
+    assert_eq!(
+        StarState::of(ChunkState::Obsoleted, false),
+        StarState::Pending
+    );
 }
 
 /// `ready` decides between exactly two states and nothing else: a done
 /// chunk whose deps happen to be done is still done.
 #[test]
 fn readiness_only_separates_pending_from_ready() {
-    for status in ["done", "blocked", "stuck", "in_progress"] {
+    for state in [
+        ChunkState::Done,
+        ChunkState::Blocked,
+        ChunkState::Stuck,
+        ChunkState::InProgress,
+    ] {
         assert_eq!(
-            StarState::of(status, true),
-            StarState::of(status, false),
-            "{status} read its readiness"
+            StarState::of(state, true),
+            StarState::of(state, false),
+            "{state:?} read its readiness"
         );
     }
 }

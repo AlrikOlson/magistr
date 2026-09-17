@@ -775,7 +775,7 @@ impl Model {
         {
             return StarState::Blocked;
         }
-        StarState::of(&chunk.status, false)
+        StarState::of(chunk.state, false)
     }
 
     /// The murmur's note for `chunk`, when a fault rings it —
@@ -1260,7 +1260,7 @@ impl Model {
     #[must_use]
     pub fn shelf(&self) -> Option<&Shelf> {
         let selected = self.roadmap.selected()?;
-        if selected.status != "done" {
+        if !selected.state.is_done() {
             return None;
         }
         self.shelf
@@ -1276,7 +1276,10 @@ impl Model {
     #[must_use]
     pub fn chapter(&self) -> Option<Chapter> {
         let selected = self.roadmap.selected()?;
-        (selected.status == "done").then(|| Chapter::of(selected, &self.roadmap))
+        selected
+            .state
+            .is_done()
+            .then(|| Chapter::of(selected, &self.roadmap))
     }
 
     /// The Galaxy — every project this machine knows, the selection

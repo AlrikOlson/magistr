@@ -141,7 +141,7 @@ impl FlightRoadmap {
             let title = fit(&title, available, &typography);
             let ink = if chunks.iter().any(|chunk| chunk.is_in_progress()) {
                 s.accent
-            } else if chunks.iter().all(|chunk| chunk.status == "done") {
+            } else if chunks.iter().all(|chunk| chunk.state.is_done()) {
                 s.good
             } else {
                 s.muted

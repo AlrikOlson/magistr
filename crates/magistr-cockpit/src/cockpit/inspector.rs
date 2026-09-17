@@ -2,7 +2,7 @@
 
 use super::marked::Marked;
 use super::space::Space;
-use super::{Model, Pane, Selected, Widget};
+use super::{ChunkState, Model, Pane, Selected, Widget};
 use crate::layout::{Frame, Length, Node, TextMetrics};
 use crate::pixel::Icon;
 use crate::render::Style;
@@ -19,6 +19,19 @@ fn task_name(model: &Model, id: &str) -> String {
         .ship()
         .task(id)
         .map_or_else(|| "Recorded work".to_owned(), |task| task.title.clone())
+}
+
+/// The card's status line for a chunk's state.
+const fn chunk_state_label(state: ChunkState) -> &'static str {
+    match state {
+        ChunkState::Done => "Completed",
+        ChunkState::InProgress => "In progress",
+        ChunkState::Pending => "Waiting",
+        ChunkState::Stuck => "Needs attention",
+        ChunkState::Blocked => "Blocked",
+        ChunkState::Backlog => "Backlog",
+        ChunkState::Obsoleted => "Obsoleted",
+    }
 }
 
 fn state_label(value: &str) -> String {
@@ -414,12 +427,14 @@ impl Card {
             Selected::Chunk(id) => {
                 let chunk = model.roadmap().chunk(id)?;
                 card.title = work_name(chunk).to_owned();
-                card.status = state_label(&chunk.status);
-                card.icon = match chunk.status.as_str() {
-                    "done" => Icon::Done,
-                    "in_progress" => Icon::InProgress,
-                    "blocked" | "stuck" => Icon::Blocked,
-                    _ => Icon::Pending,
+                card.status = chunk_state_label(chunk.state).into();
+                card.icon = match chunk.state {
+                    ChunkState::Done => Icon::Done,
+                    ChunkState::InProgress => Icon::InProgress,
+                    ChunkState::Blocked | ChunkState::Stuck => Icon::Blocked,
+                    ChunkState::Backlog | ChunkState::Pending | ChunkState::Obsoleted => {
+                        Icon::Pending
+                    }
                 };
                 card.metadata = format!(
                     "{} · {}",
@@ -455,10 +470,13 @@ impl Card {
                         (index, format!("{} → {suggestion} · {reason}", kind.label()))
                     })
                     .collect();
-                if matches!(chunk.status.as_str(), "in_progress" | "stuck") {
+                if chunk.state.is_working() {
                     card.actions
                         .push(("Complete", Widget::RoadmapComplete.id()));
-                } else if matches!(chunk.status.as_str(), "pending" | "blocked" | "backlog") {
+                } else if matches!(
+                    chunk.state,
+                    ChunkState::Pending | ChunkState::Blocked | ChunkState::Backlog
+                ) {
                     card.actions.push(("Start", Widget::RoadmapStart.id()));
                 }
             }
@@ -577,14 +595,37 @@ impl Card {
                         timestamp,
                         name,
                         passed,
+                        verified,
                         exit_code,
                         duration_ms,
                     } => {
                         card.title = name.clone();
-                        card.status = if *passed { "Passed" } else { "Failed" }.into();
+                        card.status = match (*passed, *verified) {
+                            (true, true) => "Passed",
+                            (false, true) => "Failed",
+                            (true, false) => "Passed · self-reported",
+                            (false, false) => "Failed · self-reported",
+                        }
+                        .into();
                         card.icon = Icon::check(*passed);
                         card.metadata = task_name(model, task_id);
                         card.fields.push(("Recorded".into(), timestamp.clone()));
+                        card.fields.push((
+                            "Evidence".into(),
+                            if *verified {
+                                "Magistr ran this check and recorded the result."
+                            } else {
+                                "The agent reported this result. Magistr has no recorded run."
+                            }
+                            .into(),
+                        ));
+                        if model.projection().freshness() == super::Freshness::Stale {
+                            card.fields.push((
+                                "Updates".into(),
+                                "Waiting for current results. A newer result may be available."
+                                    .into(),
+                            ));
+                        }
                         if let Some(code) = exit_code {
                             card.fields.push(("Exit code".into(), code.to_string()));
                         }
@@ -616,8 +657,12 @@ impl Card {
                     "Syntax needs attention"
                 }
                 .into();
-                if model.changes().is_approved(&entry.id) {
+                if model.changes().is_approved(&entry.identity()) {
                     card.status.push_str(" · approved");
+                }
+                if let Some(reason) = model.changes().refusal(&entry.id) {
+                    card.status.push_str(" · undo refused");
+                    card.fields.push(("Undo refused".into(), reason.to_owned()));
                 }
                 card.icon = Icon::check(entry.parse_ok);
                 card.metadata = format!("{} lines added · {} removed", entry.added, entry.removed);
@@ -626,7 +671,7 @@ impl Card {
                     ("Undo", Widget::change_undo(index)),
                     ("Approve", Widget::change_approve(index)),
                 ];
-                card.fields = vec![("File".into(), entry.path.clone())];
+                card.fields.insert(0, ("File".into(), entry.path.clone()));
                 if model.inspector_open()
                     && let Some(at) = entry
                         .at_ms

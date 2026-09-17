@@ -1,5 +1,6 @@
 //! The one state vocabulary every chip, card and star reads from.
 
+use crate::cockpit::chunk_state::ChunkState;
 use crate::cockpit::star_state::StarState;
 
 /// Shared labels for session strips, card headers, and roadmap state.
@@ -89,16 +90,16 @@ impl StateWord {
         }
     }
 
-    /// The word for a chunk's wire `status`, given whether everything
-    /// it depends on has shipped — [`StarState::of`]'s reading, plus
-    /// the one status the sky never draws: an obsoleted chunk is
-    /// nothing happening.
+    /// The word for a chunk in `state`, given whether everything it
+    /// depends on has shipped — [`StarState::of`]'s reading, plus the
+    /// one state the sky never draws: an obsoleted chunk is nothing
+    /// happening.
     #[must_use]
-    pub fn of_status(status: &str, ready: bool) -> Self {
-        if status == "obsoleted" {
+    pub const fn of_state(state: ChunkState, ready: bool) -> Self {
+        if matches!(state, ChunkState::Obsoleted) {
             return Self::Idle;
         }
-        Self::of_star(StarState::of(status, ready))
+        Self::of_star(StarState::of(state, ready))
     }
 
     /// The state a word names, when it is one of the seven.

@@ -1,14 +1,14 @@
 use super::*;
-use crate::cockpit::{DagNode, StarState};
+use crate::cockpit::{ChunkState, DagNode, StarState};
 use crate::layout::Rect;
 use crate::pixel::{CellSize, PixelSurface};
 
-fn node(x: f32, y: f32, status: &str, region: usize) -> DagNode {
+fn node(x: f32, y: f32, status: ChunkState, region: usize) -> DagNode {
     DagNode {
         x,
         y,
         state: StarState::of(status, false),
-        status: status.to_owned(),
+        status,
         region,
         here: false,
         selected: false,
@@ -18,16 +18,16 @@ fn node(x: f32, y: f32, status: &str, region: usize) -> DagNode {
 /// A small three-chunk tree: done -> in-progress -> pending, the last
 /// on a second workstream, the middle one selected.
 fn scene() -> RoadmapDag {
-    let mut here = node(7.5, 1.5, "in_progress", 0);
+    let mut here = node(7.5, 1.5, ChunkState::InProgress, 0);
     here.here = true;
     here.selected = true;
     RoadmapDag::new(
         vec![
-            node(1.5, 1.5, "done", 0),
+            node(1.5, 1.5, ChunkState::Done, 0),
             here,
-            node(13.5, 4.5, "pending", 1),
-            node(1.5, 4.5, "blocked", 1),
-            node(7.5, 4.5, "backlog", 1),
+            node(13.5, 4.5, ChunkState::Pending, 1),
+            node(1.5, 4.5, ChunkState::Blocked, 1),
+            node(7.5, 4.5, ChunkState::Backlog, 1),
         ],
         vec![(0, 1), (1, 2)],
         (10, 20),
@@ -49,14 +49,14 @@ fn pixel(surface: &PixelSurface, x: u32, y: u32) -> [u8; 4] {
 
 #[test]
 fn full_plan_highlights_only_recorded_edges_touching_the_selected_work() {
-    let mut selected = node(4.0, 2.0, "pending", 0);
+    let mut selected = node(4.0, 2.0, ChunkState::Pending, 0);
     selected.selected = true;
     let graph = RoadmapDag::new(
         vec![
-            node(1.0, 2.0, "done", 0),
+            node(1.0, 2.0, ChunkState::Done, 0),
             selected,
-            node(7.0, 2.0, "pending", 0),
-            node(10.0, 2.0, "pending", 0),
+            node(7.0, 2.0, ChunkState::Pending, 0),
+            node(10.0, 2.0, ChunkState::Pending, 0),
         ],
         vec![(0, 1), (1, 2), (2, 3)],
         (10, 20),
@@ -79,7 +79,7 @@ fn light_roadmap_marks_retain_contrast_without_a_white_halo() {
     use magistr_theme::{ThemeColor, math::contrast_ratio};
     let graph = scene().light(true).background(248, 249, 255).bands(false);
     let paper = ThemeColor::new(248, 249, 255);
-    for status in ["in_progress", "done", "blocked", "backlog", "pending"] {
+    for status in ChunkState::ALL {
         let color = graph.status_ink(status).to_color_u8();
         assert!(
             contrast_ratio(
@@ -156,10 +156,10 @@ fn visual_reduction_keeps_cyclic_input_and_is_order_independent() {
 #[test]
 fn a_selection_lights_the_chain_to_its_relations_and_dims_the_rest() {
     let mut nodes = vec![
-        node(1.5, 1.5, "done", 0),
-        node(7.5, 1.5, "done", 0),
-        node(13.5, 1.5, "pending", 0),
-        node(7.5, 4.5, "pending", 1),
+        node(1.5, 1.5, ChunkState::Done, 0),
+        node(7.5, 1.5, ChunkState::Done, 0),
+        node(13.5, 1.5, ChunkState::Pending, 0),
+        node(7.5, 4.5, ChunkState::Pending, 1),
     ];
     let edges = vec![(0, 1), (1, 2), (0, 2)];
     let plain = RoadmapDag::new(nodes.clone(), edges.clone(), (10, 20));
@@ -189,9 +189,9 @@ fn a_selection_lights_the_chain_to_its_relations_and_dims_the_rest() {
 
 #[test]
 fn a_waiting_chunk_is_hollow_and_a_ready_one_is_filled() {
-    let mut ready = node(7.5, 1.5, "pending", 0);
-    ready.state = StarState::of("pending", true);
-    let waiting = node(1.5, 1.5, "pending", 0);
+    let mut ready = node(7.5, 1.5, ChunkState::Pending, 0);
+    ready.state = StarState::of(ChunkState::Pending, true);
+    let waiting = node(1.5, 1.5, ChunkState::Pending, 0);
     let dag = RoadmapDag::new(vec![waiting, ready], Vec::new(), (10, 20)).bands(false);
     let surface = render(&dag, 12, 3);
     let [r, g, b, _] = pixel(&surface, 15, 30);

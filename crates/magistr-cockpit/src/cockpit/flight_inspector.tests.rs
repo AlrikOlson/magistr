@@ -3,6 +3,80 @@ use crate::cockpit::Size;
 use crate::harness::fixtures;
 use serde_json::json;
 
+#[test]
+fn check_cards_keep_reported_results_distinct_and_warn_when_updates_are_missing() {
+    use crate::cockpit::{FlightRecords, StageTab};
+    use magistr_engine::FeedStatus;
+    for verified in [false, true] {
+        for passed in [false, true] {
+            let mut model = model();
+            model.trace.apply(&fixtures::frame(
+                "ship",
+                "check_recorded",
+                json!({
+                    "task_id":"verify", "check":{
+                        "name":"Recovery checks", "passed":passed, "verified":verified,
+                        "timestamp":"2026-09-17T12:00:00Z"
+                    }
+                }),
+            ));
+            model.selected = Some(
+                crate::cockpit::session_item::SessionItem::Moment(0, &model.trace.moments()[0])
+                    .selection(),
+            );
+            model.projection.seeded();
+            let card = Card::of(&model).unwrap();
+            assert_eq!(card.status.contains("self-reported"), !verified);
+            assert!(
+                card.status
+                    .starts_with(if passed { "Passed" } else { "Failed" })
+            );
+            assert!(!card.fields.iter().any(|(label, _)| label == "Updates"));
+            let details = text(&Inspector::flight_view(&model, 600.0, 800.0));
+            assert!(details.contains(if verified {
+                "Magistr ran this check"
+            } else {
+                "The agent reported this result"
+            }));
+            model.tab = StageTab::Session;
+            let records = text(&FlightRecords::view(&model, 800.0, 600.0));
+            assert_eq!(records.contains("self-reported"), !verified);
+
+            model.projection.feed(FeedStatus::Disconnected);
+            let card = Card::of(&model).unwrap();
+            assert!(card.fields.iter().any(|(label, value)| label == "Updates"
+                && value.contains("Waiting for current results")));
+            model.projection.seeded();
+            assert!(
+                !Card::of(&model)
+                    .unwrap()
+                    .fields
+                    .iter()
+                    .any(|(label, _)| label == "Updates")
+            );
+        }
+    }
+}
+
+#[test]
+fn a_refused_undo_is_visible_on_the_selected_change_card() {
+    let mut model = model();
+    let entry = crate::workbench::JournalEntry {
+        id: "7".into(),
+        path: "src/lib.rs".into(),
+        parse_ok: true,
+        ..Default::default()
+    };
+    model.selected = Some(Selected::Change(entry.identity()));
+    model.changes.set_entries(vec![entry]);
+    model
+        .changes
+        .refuse("7", "src/lib.rs changed after this edit");
+    let output = text(&Inspector::flight_view(&model, 600.0, 800.0));
+    assert!(output.contains("Undo refused"), "{output}");
+    assert!(output.contains("src/lib.rs changed after this edit"));
+}
+
 fn model() -> Model {
     let mut model = Model::new(Size::new(144, 50));
     model.trace.apply(&fixtures::frame("think", "step_appended", json!({

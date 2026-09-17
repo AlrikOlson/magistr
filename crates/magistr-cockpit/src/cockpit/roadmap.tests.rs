@@ -243,8 +243,8 @@ fn frames_upsert_chunks_and_signals() {
         false,
     );
     assert_eq!(
-        roadmap.chunk("ui").map(|c| c.status.as_str()),
-        Some("in_progress")
+        roadmap.chunk("ui").map(|c| c.state),
+        Some(ChunkState::InProgress)
     );
     // A new chunk appends.
     roadmap.apply(
@@ -1107,8 +1107,8 @@ fn reduced_motion_ships_without_a_moment() {
     assert!(roadmap.ship_run(10.0).is_none());
     assert!(!roadmap.is_gliding(10.0));
     assert_eq!(
-        roadmap.chunk("a").expect("still folded").status,
-        "done",
+        roadmap.chunk("a").expect("still folded").state,
+        ChunkState::Done,
         "the completion itself lands either way"
     );
 }

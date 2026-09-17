@@ -59,9 +59,11 @@ fn ask(id: u64) -> Msg {
     })
 }
 
+// ── open_chunk ──────────────────────────────────────────────────────────
+
 /// A terminal has no Place: opening a chunk there is what it always
 /// was — the chunk selected and the stage turned to the Roadmap tab,
-/// whatever the chunk's status.
+/// whatever the chunk's state.
 #[test]
 fn a_terminal_selects_the_chunk_and_turns_to_the_roadmap_tab() {
     for id in ["here", "stuck", "shipped", "blocked", "next"] {
@@ -190,10 +192,11 @@ fn a_pending_chunk_opens_the_sky_card() {
 }
 
 /// The fold is the only site that derives a destination from a chunk:
-/// every opener in `update` calls it, and none selects on the roadmap
-/// by itself.
+/// every opener calls it, and nothing outside this module selects on
+/// the roadmap by itself — a row, a star or a graph position is
+/// resolved to an id here and nowhere else.
 #[test]
-fn every_opener_routes_through_the_fold() {
+fn every_opener_routes_through_the_fold_and_selection_stays_here() {
     let update_src = include_str!("update.rs");
     assert_eq!(
         update_src.matches("roadmap.select(").count(),
@@ -202,13 +205,126 @@ fn every_opener_routes_through_the_fold() {
     );
     assert_eq!(
         update_src.matches("open_chunk(model, ").count(),
-        5,
-        "the palette's ↵, a sky star, the Brief's verbs, the trace's chunk jump and a search hit's ↵"
+        3,
+        "the palette's ↵, the Brief's verbs and a search hit's ↵"
+    );
+    let work_src = include_str!("work.rs");
+    assert_eq!(
+        work_src.matches("roadmap.select(").count(),
+        2,
+        "open_chunk and rise_to_chunk"
     );
     assert_eq!(
-        include_str!("open_chunk.rs")
-            .matches("roadmap.select(")
-            .count(),
-        1
+        work_src.matches("open_chunk(model, ").count(),
+        2,
+        "a sky star and the trace's chunk jump"
     );
+    assert_eq!(
+        update_src.matches("toggle_row(").count()
+            + update_src.matches("click_at(").count()
+            + update_src.matches("hover_at(").count(),
+        0,
+        "rows, stars and graph positions resolve to chunks in work.rs"
+    );
+}
+
+// ── rise_to_chunk ───────────────────────────────────────────────────────
+
+/// The rise is the same for every state — the executing chunk this
+/// session is on, which the open-chunk fold would route back to the
+/// Session, rises to the Sky like a pending or a done one: the chip's
+/// point is the star, framed.
+#[test]
+fn every_chunk_rises_to_the_sky_framed() {
+    for id in ["here", "next", "shipped"] {
+        let mut w = window().with_place(Place::Session);
+        assert!(rise_to_chunk(&mut w, id), "{id}");
+        assert_eq!(w.place(), Some(Place::Sky), "{id} rises to the Sky");
+        assert_eq!(selected(&w), Some(id), "{id} is framed");
+    }
+}
+
+/// A chunk the roadmap does not hold moves nothing: the camera stays at
+/// the Session and nothing is selected.
+#[test]
+fn an_unknown_chunk_does_not_rise() {
+    let mut w = window().with_place(Place::Session);
+    assert!(!rise_to_chunk(&mut w, "nowhere"));
+    assert_eq!(w.place(), Some(Place::Session));
+    assert_eq!(selected(&w), None);
+}
+
+/// The identity chip rises to the chunk the rail names and nothing
+/// when the rail names none.
+#[test]
+fn the_session_chip_rises_to_the_rails_chunk() {
+    let mut w = window().with_place(Place::Session);
+    assert_eq!(w.rail().chunk(), Some("here"));
+    session_chunk_click(&mut w);
+    assert_eq!(w.place(), Some(Place::Sky));
+    assert_eq!(selected(&w), Some("here"));
+
+    let mut bare = Model::new(Size::new(120, 40)).with_surface(Surface::Native);
+    bare.place = Place::Session;
+    session_chunk_click(&mut bare);
+    assert_eq!(bare.place(), Some(Place::Session), "no chunk, no rise");
+}
+
+// ── anchors and verbs ───────────────────────────────────────────────────
+
+/// A star is resolved by its graph index at press time: the id the
+/// paint carried is never trusted, so a re-seed between the frame and
+/// the press opens whatever is at that place now.
+#[test]
+fn a_star_click_resolves_the_chunk_by_graph_index_at_press_time() {
+    let mut w = window().with_place(Place::Sky);
+    let ids = w.roadmap().graph_ids();
+    let at = ids
+        .iter()
+        .position(|id| *id == "next")
+        .expect("next is on the graph");
+    assert_eq!(sky_star_click(&mut w, at), vec![]);
+    assert_eq!(selected(&w), Some("next"));
+    assert_eq!(sky_star_click(&mut w, 99), vec![], "no star there");
+    assert_eq!(selected(&w), Some("next"), "and nothing moved");
+}
+
+/// Start and Complete are asks for the engine port on the selected
+/// chunk by id; with nothing selected there is nothing to ask.
+#[test]
+fn start_and_complete_ask_the_engine_for_the_selected_chunk() {
+    let mut w = window();
+    assert_eq!(roadmap_chunk_click(&w, false), vec![]);
+    assert!(open_chunk(&mut w, "next"));
+    assert_eq!(
+        roadmap_chunk_click(&w, false),
+        vec![Cmd::Engine(EngineCmd::StartChunk { id: "next".into() })]
+    );
+    assert_eq!(
+        roadmap_chunk_click(&w, true),
+        vec![Cmd::Engine(EngineCmd::CompleteChunk { id: "next".into() })]
+    );
+}
+
+/// The filter and the sort own the list's window: each cycles or sorts
+/// and puts the list back at its top.
+#[test]
+fn the_filter_and_the_sort_reset_the_lists_window() {
+    let mut w = window();
+    assert_eq!(w.roadmap().filter_label(), "Active");
+    filter_click(&mut w);
+    assert_eq!(w.roadmap().filter_label(), "In progress");
+    assert_eq!(
+        w.roadmap()
+            .rows()
+            .iter()
+            .map(|c| c.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["here", "stuck"],
+        "the in-progress filter keeps the stuck chunk too"
+    );
+    let column = sort_column(RoadmapSort::Name.widget()).expect("a sort header");
+    sort_click(&mut w, column);
+    assert_eq!(w.roadmap().sort(), RoadmapSort::Name);
+    assert_eq!(sort_column(Widget::RoadmapReset), None);
 }

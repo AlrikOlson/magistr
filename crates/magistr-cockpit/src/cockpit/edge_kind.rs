@@ -1,5 +1,7 @@
 //! Which of the two ways a dependency edge is drawn.
 
+use super::chunk_state::ChunkState;
+
 /// A dependency edge's kind: the
 /// dependency is either behind you or ahead of you, and nothing else.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -15,10 +17,10 @@ impl EdgeKind {
     /// Both kinds, in the order specimen II.b lays them out.
     pub const ALL: [Self; 2] = [Self::Done, Self::Ahead];
 
-    /// The kind of an edge out of a chunk with this wire `status`.
+    /// The kind of an edge out of a chunk in `state`.
     #[must_use]
-    pub fn of(status: &str) -> Self {
-        if status == "done" {
+    pub const fn of(state: ChunkState) -> Self {
+        if state.is_done() {
             Self::Done
         } else {
             Self::Ahead
