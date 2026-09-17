@@ -12,14 +12,14 @@
 //! than a re-quantisation. And because a sixel image covers the cells it
 //! sits on (kitty places under the text at `z=-1`; sixel has no z), a
 //! surface that moves or leaves the frame vacates a rect whose cells are
-//! now stale — [`SixelCompositor::finish`] reports that, and the
-//! [`Screen`](crate::render::Screen) turns it into a full redraw of the
-//! next frame.
+//! now stale. [`SixelCompositor::prepare`] reports those rects before the
+//! cell diff is emitted; [`SixelCompositor::finish`] then restores images
+//! touched by those cell writes, in their original drawing order.
 
 use std::collections::HashMap;
 
 use crate::graphics::sixel;
-use crate::render::Encoder;
+use crate::render::{Change, Encoder};
 use magistr_cockpit::layout::Rect;
 use magistr_cockpit::pixel::PixelSurface;
 use magistr_cockpit::widget_id::WidgetId;
@@ -36,8 +36,8 @@ pub struct SixelCompositor {
     slots: HashMap<WidgetId, Slot>,
     packed: Vec<u8>,
     queue: Vec<Pending>,
-    /// A rect a surface left this frame, whose cells are now stale.
-    vacated: bool,
+    /// Rects surfaces moved away from this frame.
+    vacated: Vec<Rect>,
 }
 
 /// One surface's encoded image and where it is on the terminal.
@@ -56,6 +56,7 @@ struct Slot {
 struct Pending {
     id: WidgetId,
     rect: Rect,
+    dirty: bool,
 }
 
 impl SixelCompositor {
@@ -100,39 +101,61 @@ impl SixelCompositor {
             return;
         }
         let moved = slot.placed != Some(rect);
-        if moved && slot.placed.is_some() {
-            self.vacated = true;
+        if moved && let Some(previous) = slot.placed {
+            self.vacated.push(previous);
         }
-        if encoded || moved {
-            self.queue.push(Pending { id, rect });
-        }
+        // Retain drawing order even for cached images: cell repair or an
+        // earlier image can damage an unchanged image above it.
+        self.queue.push(Pending {
+            id,
+            rect,
+            dirty: encoded || moved,
+        });
     }
 
-    /// Write the frame's images, each preceded by the cursor move the
-    /// encoder tracks and bracketed by DECSC/DECRC so the cursor survives.
-    ///
-    /// Returns whether a surface vacated a rect this frame — the cells it
-    /// covered still hold its pixels and have to be painted again.
-    pub fn finish(&mut self, encoder: &mut Encoder, out: &mut Vec<u8>) -> bool {
+    /// Take the rects that need cell repair before this frame's images.
+    /// Call after all surfaces have been shown, before encoding cell changes.
+    pub fn prepare(&mut self) -> Vec<Rect> {
+        let mut vacated = std::mem::take(&mut self.vacated);
+        for slot in self.slots.values_mut() {
+            if !slot.seen
+                && let Some(rect) = slot.placed.take()
+            {
+                vacated.push(rect);
+            }
+        }
+        vacated
+    }
+
+    /// Write dirty images and restore cached images touched by cell writes
+    /// or earlier images. DECSC/DECRC preserves the encoder's cursor.
+    pub fn finish(&mut self, encoder: &mut Encoder, out: &mut Vec<u8>, changes: &[Change<'_>]) {
+        let mut emitted: Vec<Rect> = Vec::new();
         for pending in self.queue.drain(..) {
+            let rect = pending.rect;
+            let damaged = changes.iter().any(|change| {
+                !rect
+                    .intersection(Rect::new(change.col, change.row, change.cell.width(), 1))
+                    .is_empty()
+            }) || emitted
+                .iter()
+                .any(|other| !rect.intersection(*other).is_empty());
+            if !pending.dirty && !damaged {
+                continue;
+            }
             let Some(slot) = self.slots.get_mut(&pending.id) else {
                 continue;
             };
-            let rect = pending.rect;
             encoder.move_to(rect.x, rect.y, out);
             out.extend_from_slice(SAVE_CURSOR);
             out.extend_from_slice(&slot.image);
             out.extend_from_slice(RESTORE_CURSOR);
             slot.placed = Some(rect);
+            emitted.push(rect);
         }
-        let mut vacated = std::mem::take(&mut self.vacated);
         for slot in self.slots.values_mut() {
-            if !slot.seen && slot.placed.take().is_some() {
-                vacated = true;
-            }
             slot.seen = false;
         }
-        vacated
     }
 
     /// The display was cleared: every surface shown next frame is emitted
@@ -141,7 +164,7 @@ impl SixelCompositor {
         for slot in self.slots.values_mut() {
             slot.placed = None;
         }
-        self.vacated = false;
+        self.vacated.clear();
     }
 
     /// Leaving the session. A sixel terminal stores nothing to delete, so
@@ -150,7 +173,7 @@ impl SixelCompositor {
     pub fn release(&mut self, _out: &mut Vec<u8>) {
         self.slots.clear();
         self.queue.clear();
-        self.vacated = false;
+        self.vacated.clear();
     }
 }
 

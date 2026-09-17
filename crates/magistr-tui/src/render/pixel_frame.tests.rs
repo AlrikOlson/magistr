@@ -18,7 +18,8 @@ fn send(
     frame.begin(ground);
     frame.finish(&ink, 10, 8, CellSize::DEFAULT, graphics);
     let mut wire = Vec::new();
-    graphics.finish(&mut Encoder::new(), &mut wire);
+    assert!(graphics.prepare().is_empty());
+    graphics.finish(&mut Encoder::new(), &mut wire, &[]);
     wire
 }
 

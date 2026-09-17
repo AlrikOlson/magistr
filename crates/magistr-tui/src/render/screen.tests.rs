@@ -305,31 +305,105 @@ fn a_sixel_surface_rides_inside_the_frames_bracket_after_the_text() {
 }
 
 #[test]
-fn a_sixel_surface_leaving_the_frame_forces_the_next_frame_to_redraw() {
+fn a_sixel_surface_leaving_repairs_only_its_cells_in_the_same_frame() {
     let mut screen = sixel_screen();
     let mut surface = painted(Rect::new(2, 2, 4, 2));
+    let mut retained = painted(Rect::new(12, 1, 3, 2));
     screen.surface(WidgetId::new(1), &mut surface);
+    screen.surface(WidgetId::new(2), &mut retained);
     screen.buffer().put_str(0, 0, "title", &Style::new());
     screen.present(&mut Vec::new());
 
-    // The surface is not shown: its cells still hold its pixels.
     screen.buffer().put_str(0, 0, "title", &Style::new());
+    screen.surface(WidgetId::new(2), &mut retained);
     let mut out = Vec::new();
     screen.present(&mut out);
-    assert_eq!(count(&out, b"\x1b[2J"), 0, "the frame itself is unchanged");
+    assert_eq!(
+        out,
+        [BSU, b"\x1b[3;3H    \x1b[4;3H    ", ESU].concat(),
+        "only the eight vacated cells are written, without any image"
+    );
 
     screen.buffer().put_str(0, 0, "title", &Style::new());
+    screen.surface(WidgetId::new(2), &mut retained);
     out.clear();
     screen.present(&mut out);
-    assert_eq!(
-        count(&out, b"\x1b[2J"),
-        1,
-        "the frame after clears and redraws"
-    );
+    assert_eq!(out, [BSU, ESU].concat(), "repair leaves no deferred redraw");
+}
+
+#[test]
+fn a_moved_sixel_repairs_before_emitting_and_keeps_unrelated_images() {
+    let mut screen = sixel_screen();
+    let mut moving = painted(Rect::new(2, 2, 4, 2));
+    let mut retained = painted(Rect::new(12, 1, 3, 2));
+    screen.surface(WidgetId::new(1), &mut moving);
+    screen.surface(WidgetId::new(2), &mut retained);
+    screen.present(&mut Vec::new());
+
+    moving.set_rect(Rect::new(3, 2, 4, 2));
+    screen.surface(WidgetId::new(1), &mut moving);
+    screen.surface(WidgetId::new(2), &mut retained);
+    let mut out = Vec::new();
+    screen.present(&mut out);
+    assert_eq!(count(&out, b"\x1bP"), 1, "only the moved image");
     assert!(
-        String::from_utf8_lossy(&out).contains("title"),
-        "the text under the image is painted again"
+        out.starts_with(&[BSU, b"\x1b[3;3H    \x1b[4;3H    "].concat()),
+        "repair precedes the overlapping new placement: {out:?}"
     );
+    assert_eq!(count(&out, b"\x1b[2J"), 0);
+
+    screen.surface(WidgetId::new(1), &mut moving);
+    screen.surface(WidgetId::new(2), &mut retained);
+    out.clear();
+    screen.present(&mut out);
+    assert_eq!(out, [BSU, ESU].concat());
+}
+
+#[test]
+fn sixel_repair_restores_wide_glyph_heads_and_clips_to_the_screen() {
+    let mut screen = sixel_screen();
+    let mut surface = painted(Rect::new(2, 2, 30, 10));
+    screen.buffer().put_str(1, 2, "界", &Style::new());
+    screen.surface(WidgetId::new(1), &mut surface);
+    screen.present(&mut Vec::new());
+
+    screen.buffer().put_str(1, 2, "界", &Style::new());
+    let mut out = Vec::new();
+    screen.present(&mut out);
+    assert_eq!(
+        out,
+        [
+            BSU,
+            "\x1b[3;2H界                 \x1b[4;3H                  \x1b[5;3H                  "
+                .as_bytes(),
+            ESU
+        ]
+        .concat()
+    );
+}
+
+#[test]
+fn sixel_repair_restores_only_images_overlapping_the_written_cells() {
+    let mut screen = sixel_screen();
+    let mut lower = painted(Rect::new(2, 2, 4, 2));
+    let mut upper = painted(Rect::new(4, 2, 4, 2));
+    let mut unrelated = painted(Rect::new(12, 1, 3, 2));
+    screen.surface(WidgetId::new(1), &mut lower);
+    screen.surface(WidgetId::new(2), &mut upper);
+    screen.surface(WidgetId::new(3), &mut unrelated);
+    screen.present(&mut Vec::new());
+
+    screen.surface(WidgetId::new(2), &mut upper);
+    screen.surface(WidgetId::new(3), &mut unrelated);
+    let mut out = Vec::new();
+    screen.present(&mut out);
+    assert_eq!(
+        count(&out, b"\x1bP"),
+        1,
+        "the intersected image is restored"
+    );
+    assert!(out.starts_with(&[BSU, b"\x1b[3;3H    \x1b[4;3H    \x1b[3;5H\x1b7\x1bP"].concat()));
+    assert_eq!(count(&out, b"\x1b[2J"), 0);
 }
 
 #[test]

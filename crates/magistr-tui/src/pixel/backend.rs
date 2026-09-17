@@ -5,7 +5,8 @@ use super::compression::Compression;
 use super::id_space::IdSpace;
 use super::sixel_compositor::SixelCompositor;
 use crate::graphics::{Kitty, Protocol};
-use crate::render::Encoder;
+use crate::render::{Change, Encoder};
+use magistr_cockpit::layout::Rect;
 use magistr_cockpit::pixel::PixelSurface;
 use magistr_cockpit::widget_id::WidgetId;
 
@@ -48,16 +49,22 @@ impl Backend {
         }
     }
 
-    /// Write the frame's graphics, and say whether a surface vacated a
-    /// rect whose cells now have to be painted again. Only sixel can:
-    /// kitty places under the text, so the cells were never covered.
-    pub fn finish(&mut self, encoder: &mut Encoder, out: &mut Vec<u8>) -> bool {
+    /// Rects to repair before writing graphics. Kitty placements do not
+    /// cover the cell layer, so only sixel needs this preparation.
+    pub fn prepare(&mut self) -> Vec<Rect> {
+        match self {
+            Self::Kitty(_) => Vec::new(),
+            Self::Sixel(compositor) => compositor.prepare(),
+        }
+    }
+
+    /// Write the frame's graphics after its cell changes.
+    pub fn finish(&mut self, encoder: &mut Encoder, out: &mut Vec<u8>, changes: &[Change<'_>]) {
         match self {
             Self::Kitty(compositor) => {
                 compositor.finish(encoder, out);
-                false
             }
-            Self::Sixel(compositor) => compositor.finish(encoder, out),
+            Self::Sixel(compositor) => compositor.finish(encoder, out, changes),
         }
     }
 

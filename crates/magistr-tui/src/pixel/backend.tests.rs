@@ -16,12 +16,13 @@ fn frame(
     backend: &mut Backend,
     encoder: &mut Encoder,
     shown: Option<&mut PixelSurface>,
-) -> (Vec<u8>, bool) {
+) -> (Vec<u8>, Vec<Rect>) {
     if let Some(surface) = shown {
         backend.show(WidgetId::new(1), surface);
     }
     let mut out = Vec::new();
-    let vacated = backend.finish(encoder, &mut out);
+    let vacated = backend.prepare();
+    backend.finish(encoder, &mut out, &[]);
     (out, vacated)
 }
 
@@ -43,7 +44,7 @@ fn the_kitty_protocol_builds_the_kitty_compositor() {
         "a kitty transmit"
     );
     assert!(
-        !vacated,
+        vacated.is_empty(),
         "kitty places under the text, so it covers no cell"
     );
 }
@@ -59,7 +60,7 @@ fn the_sixel_protocol_builds_the_sixel_compositor() {
     assert!(matches!(backend, Backend::Sixel(_)));
     assert!(out.windows(2).any(|w| w == b"\x1bP"), "a sixel DCS");
     assert!(!out.windows(3).any(|w| w == b"\x1b_G"), "no kitty command");
-    assert!(!vacated);
+    assert!(vacated.is_empty());
 }
 
 #[test]
@@ -73,7 +74,7 @@ fn only_the_sixel_backend_reports_a_vacated_rect() {
         let (_, vacated) = frame(&mut backend, &mut encoder, None);
 
         assert_eq!(
-            vacated,
+            !vacated.is_empty(),
             protocol == Protocol::Sixel,
             "{protocol:?} after the surface left"
         );

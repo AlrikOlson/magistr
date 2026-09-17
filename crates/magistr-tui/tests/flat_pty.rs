@@ -7,7 +7,7 @@ use std::os::fd::OwnedFd;
 use std::time::{Duration, Instant};
 
 use magistr_cockpit::agent::{AgentEvent, TurnEnd};
-use magistr_cockpit::cockpit::{Cmd, Model, Msg, Size, update};
+use magistr_cockpit::cockpit::{Cmd, Model, Msg, Size, StageTab, update};
 use magistr_tui::graphics::Env;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RawMode, RealTerminal};
@@ -124,7 +124,9 @@ async fn exercise_flat_tty() {
     let terminal = pty.terminal();
     assert!(RawMode::is_raw(&pty.slave).expect("raw mode"));
 
-    let mut model = Model::new(SIZE).with_title("flat pty");
+    let mut model = Model::new(SIZE)
+        .with_tab(StageTab::Turn)
+        .with_title("flat pty");
     for event in [
         AgentEvent::Initialized {
             session_id: "pty-local".to_owned(),
