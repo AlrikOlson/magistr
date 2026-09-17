@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use super::attach_error::AttachError;
 use super::attach_kind::AttachKind;
+use super::build_identity::BuildIdentity;
 use super::caller_identity::CallerIdentity;
 use super::native_config::NativeConfig;
 use super::owner_command::OwnerCommand;
@@ -13,7 +14,7 @@ use super::owner_generation::OwnerGeneration;
 use super::owner_identity::OwnerIdentity;
 use super::owner_reply::OwnerReply;
 use super::owner_socket::owner_socket_path;
-use super::owner_wire::{ClientFrame, CommandRefusal, Hello, OWNER_BUILD, OWNER_PROTOCOL_VERSION};
+use super::owner_wire::{ClientFrame, CommandRefusal, Hello, OWNER_PROTOCOL_VERSION};
 use super::writer_role::WriterRole;
 
 /// A synchronous client on an [`OwnerEndpoint`](super::OwnerEndpoint):
@@ -93,7 +94,7 @@ impl OwnerClient {
         let path = owner_socket_path(config, &project_id, role);
         let hello = Hello {
             protocol: OWNER_PROTOCOL_VERSION,
-            build: OWNER_BUILD.to_owned(),
+            build: BuildIdentity::this_build(),
             identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Commands,
             caller,
@@ -128,7 +129,7 @@ impl OwnerClient {
         let path = owner_socket_path(config, &project_id, role);
         let hello = Hello {
             protocol: OWNER_PROTOCOL_VERSION,
-            build: OWNER_BUILD.to_owned(),
+            build: BuildIdentity::this_build(),
             identity: OwnerIdentity::Workflow { project_id, role },
             attach: AttachKind::Mcp,
             caller,

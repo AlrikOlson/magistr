@@ -288,17 +288,45 @@ endpoint while a socket file nothing answers on is reclaimed.
 ### Handshake and identity
 
 Both ways the wire is one JSON object per line. The client opens with a
-`Hello` naming protocol version 3 (`OWNER_PROTOCOL_VERSION`, exact match
-only), its build (the package version; an owner serves only its own build),
-an `OwnerIdentity`, the kind of attachment it wants (`commands` or
-`mcp`) and its `CallerIdentity` (pid and surface). Workflow identity names
-the project and writer role; workspace identity names the canonical root
-without a workflow role. The owner checks the peer credential of the socket
-first — the connecting process must be the owner's own user, which the
-socket's file mode also enforces — and then the version, build, identity and
-offered kind, answering `Welcome` with its generation and pid or `Refused`
-with the reason. The caller identity is kept
-for diagnostics; the credential is the proof.
+`Hello` naming protocol version 4 (`OWNER_PROTOCOL_VERSION`, exact match
+only), its `BuildIdentity`, an `OwnerIdentity`, the kind of attachment it
+wants (`commands` or `mcp`) and its `CallerIdentity` (pid and surface).
+Workflow identity names the project and writer role; workspace identity
+names the canonical root without a workflow role. The owner reads the
+protocol field before anything else in the line, so a well-formed `Hello`
+of another version is answered with `Refused(Protocol { served, offered })`
+whatever else it carries — that refusal has had the same shape since
+version 3 — while a line that is no `Hello` at all gets no greeting. It then
+checks the peer credential of the socket — the connecting process must be
+the owner's own user, which the socket's file mode also enforces — and then
+the build, identity and offered kind, answering `Welcome` with its
+generation and pid or `Refused` with the reason. The caller identity is
+kept for diagnostics; the credential is the proof.
+
+#### Build identity
+
+A `BuildIdentity` is fixed when the binary is compiled and is independent of
+the package version alone, of any workspace source snapshot and of the owner
+generation an admission mints. It has four fields:
+
+| Field | Value |
+| --- | --- |
+| `package` | `CARGO_PKG_VERSION` |
+| `contract` | Sixteen hex digits of a SHA-256 the engine's build script takes over the shipped source of `magistr-engine` and its transitive path dependencies (`magistr-workflow`, `magistr-domain`, `magistr-process`: each manifest and its `src/` tree less `*.tests.rs`, hidden entries and generated state) plus the workspace `Cargo.lock` — the crates that define every type crossing the socket |
+| `profile` | `debug` or `release` |
+| `target` | The target triple |
+
+The compatibility rule is exact build: an owner serves a client only when all
+four fields are equal (`BuildIdentity::admits`), and `AttachRefusal::Build`
+names both identities so the difference — another checkout, a rebuilt tree,
+the other profile, a stale install on `PATH` — is visible in the refusal.
+Two binaries compiled from one source tree at one profile for one target
+carry the same identity wherever and whenever they were built, so a copied
+install attaches to a running owner of the same build. There is no
+equal-version relaxation and no ambient override: widening what attaches is
+a deliberate change to the rule under a new protocol version. Version 3
+carried the package version alone and could not tell two builds of one
+version apart; version 4 carries the identity.
 
 ### What an owner serves
 

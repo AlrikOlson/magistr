@@ -37,9 +37,12 @@ admission proof, or resets the durable generation.
 project identity, store and writer roles. Aliases resolve to the same owner;
 distinct roots, including separate worktrees, have independent services and
 journals. The shared [project owner protocol](project-authority.md#handshake-and-identity)
-uses `Hello` version 3, which carries the build: an owner serves only clients
-of its own build (`AttachRefusal::Build`), so one workspace never mixes two
-versions' tool surfaces. Workspace endpoints accept MCP connections, not
+uses `Hello` version 4, which carries a
+[`BuildIdentity`](project-authority.md#build-identity): an owner serves only
+clients of its exact build — package version, contract digest, profile and
+target — and refuses any other with `AttachRefusal::Build` naming both
+identities, so one workspace never mixes two contracts even when their
+package versions are equal. Workspace endpoints accept MCP connections, not
 workflow commands. Socket peer credentials restrict attachment to the owner's
 operating-system user.
 
@@ -184,7 +187,7 @@ supply actual execution results (macOS host).
 | 16: worktrees | `attachment`: independent canonical roots admit separately | Explicit Git-worktree fixture |
 | 17: long path | `workspace_socket_path.tests.rs` checks a stable fallback within the Unix path limit | Real attachment through a deliberately long root |
 | 18: permissions | Shared endpoint enforces private directory/socket and peer credentials | Cross-UID and non-host platform evidence |
-| 19: version skew | `owner_endpoint.tests.rs`: a `Hello` from another build is refused with `AttachRefusal::Build`; a bridge answers typed refusals until the owner of the other build ends, then admits | Equal package versions from different checkouts are not told apart |
+| 19: version skew | `owner_endpoint.tests.rs`: a `Hello` from another build is refused with `AttachRefusal::Build` naming both identities — another checkout's contract digest and the other profile of one tree are told apart from an equal package version, a copy of the same build attaches, and a protocol-3 `Hello` is answered with an explicit `Protocol` refusal; a bridge answers typed refusals until the owner of the other build ends, then admits | A real two-binary process fixture (the identities are exercised over the wire from one test process) |
 | 20: legacy overlap | d1 native/Bun mutual-refusal oracle; `migrate` refuses a live legacy pid and a foreign host | None |
 | 21: unreachable owner | Post-startup: typed refusals, cached listing, bounded retry per request. Startup: exit 75 | Always-available `initialize` before any owner was ever reached |
 | 22: statelessness | Existing native served-schema/envelope tests use the same adapter through every path | Retained gate replayed through two bridges |
