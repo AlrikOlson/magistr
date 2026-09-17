@@ -7,6 +7,7 @@ use crate::{
     index::WorkspaceIndex,
     journal::JournalDb,
     query::WorkspaceQueries,
+    source_languages::SourceLanguages,
     transaction::FormatterOptions,
     worker::WorkerSupervisor,
     workspace_policy::WorkspacePolicy,
@@ -28,6 +29,8 @@ pub struct WorkspaceCommands<'a> {
     pub(super) session_id: String,
     pub(super) reads: SourceReads<'a>,
     pub(super) formatter_tasks: tokio_util::task::TaskTracker,
+    /// Which files parse-verify reaches the worker for, and as what.
+    pub(super) languages: SourceLanguages,
 }
 
 impl<'a> WorkspaceCommands<'a> {
@@ -50,11 +53,20 @@ impl<'a> WorkspaceCommands<'a> {
             session_id: session_id.into(),
             reads: SourceReads::new(policy)?,
             formatter_tasks: tokio_util::task::TaskTracker::new(),
+            languages: SourceLanguages::bundled(),
         })
     }
 
     pub(crate) fn with_formatter_tasks(mut self, tasks: tokio_util::task::TaskTracker) -> Self {
         self.formatter_tasks = tasks;
+        self
+    }
+
+    /// Select languages through the owner's handle: retained lang-pack
+    /// claims answer after the bundled table.
+    #[must_use]
+    pub fn with_languages(mut self, languages: SourceLanguages) -> Self {
+        self.languages = languages;
         self
     }
 

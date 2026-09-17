@@ -1,16 +1,17 @@
 use super::{
-    EffectiveCapabilities, InstalledPluginRecord, LangPackStatus, PluginComponent,
-    PluginGuestPolicy, PluginHost, PluginManifest,
+    AdmittedLangPack, EffectiveCapabilities, InstalledPluginRecord, LangPackAdmission,
+    LangPackStatus, PluginComponent, PluginGuestPolicy, PluginHost, PluginManifest,
 };
-use crate::worker::{WorkerGuestEnd, WorkerLanguageLane};
 
 /// The lang-pack boot lane: discovers installed packs, reads each carrier in
 /// the worker's sandbox lane and registers the language in the worker's
 /// dynamic registry. The trust tier decides the execution lane there: a
 /// blessed pack may promote to native execution, everything else runs its
 /// grammar in the WASM store. A failing pack is breakered and its language
-/// simply stays lexical-only. The worker owns the registry, so a worker
-/// restart forgets it; boot may re-run at any time (idempotent per language).
+/// simply stays lexical-only. Registration lives in the worker: the owner
+/// keeps what `admit` decided and replays it into every incarnation through
+/// [`super::LangPackRestore`]; `boot` is the same admission followed by one
+/// registration through the lane (idempotent per language).
 pub struct LangPackBoot<'a> {
     host: &'a PluginHost<'a>,
 }
@@ -24,119 +25,107 @@ impl<'a> LangPackBoot<'a> {
         Self { host }
     }
 
-    /// Boot every installed lang pack; each answers a status row.
-    pub async fn boot(&self) -> Vec<LangPackStatus> {
+    /// The host-side half of boot, no worker involved: every installed pack
+    /// with a readable manifest and component is admitted with its carrier
+    /// bytes captured; the rest are refused status rows.
+    #[must_use]
+    pub fn admit(&self) -> LangPackAdmission {
         let Ok(inventory) = self.host.discovery().inventory() else {
-            return Vec::new();
+            return LangPackAdmission::default();
         };
-        let mut statuses = Vec::new();
+        let mut admission = LangPackAdmission::default();
         for record in inventory {
-            if record.pkg().starts_with(Self::PKG_PREFIX) {
-                statuses.push(self.boot_one(&record).await);
+            if !record.pkg().starts_with(Self::PKG_PREFIX) {
+                continue;
             }
+            match self.admit_one(&record) {
+                Ok(pack) => admission.packs.push(pack),
+                Err(status) => admission.refused.push(*status),
+            }
+        }
+        admission
+    }
+
+    /// Boot every installed lang pack through the host's lane; each answers
+    /// a status row.
+    pub async fn boot(&self) -> Vec<LangPackStatus> {
+        let admission = self.admit();
+        let mut statuses = admission.refused;
+        for pack in &admission.packs {
+            statuses.push(self.register(pack).await);
         }
         statuses
     }
 
-    async fn boot_one(&self, record: &InstalledPluginRecord) -> LangPackStatus {
+    fn admit_one(
+        &self,
+        record: &InstalledPluginRecord,
+    ) -> Result<AdmittedLangPack, Box<LangPackStatus>> {
         let plugin = record.name.clone();
-        let refused = |outcome: &str, detail: String, notes: Vec<String>| LangPackStatus {
-            plugin: plugin.clone(),
-            ok: false,
-            outcome: outcome.into(),
-            detail,
-            language: None,
-            extensions: None,
-            lane: None,
-            queries_ok: None,
-            notes,
+        let refused = |outcome: &str, detail: String| {
+            Box::new(LangPackStatus::refused(
+                &plugin,
+                outcome,
+                detail,
+                Vec::new(),
+            ))
         };
         let Some(dir) = record.dir.as_deref() else {
-            return refused(
+            return Err(refused(
                 "missing-component",
                 "inventory-only record: no plugin directory".into(),
-                Vec::new(),
-            );
+            ));
         };
-        let source = match self.host.discovery().read_manifest(dir) {
-            Ok(source) => source,
-            Err(error) => return refused("manifest-unreadable", error, Vec::new()),
-        };
-        let manifest = match PluginManifest::parse(&source) {
-            Ok(parsed) => parsed.manifest,
-            Err(errors) => return refused("manifest-unreadable", errors.join("; "), Vec::new()),
-        };
-        let Some(component) =
+        let source = self
+            .host
+            .discovery()
+            .read_manifest(dir)
+            .map_err(|error| refused("manifest-unreadable", error))?;
+        let manifest = PluginManifest::parse(&source)
+            .map(|parsed| parsed.manifest)
+            .map_err(|errors| refused("manifest-unreadable", errors.join("; ")))?;
+        let component =
             PluginComponent::resolve(self.host.discovery().policy, dir, &manifest.component_path)
-        else {
-            return refused(
-                "missing-component",
-                format!(
-                    "component {} is missing or outside the workspace",
-                    manifest.component_path
-                ),
-                Vec::new(),
-            );
-        };
-        if let Some(breach) = self.host.health().breach(&plugin, &component.sha256) {
-            return refused(
-                "breakered",
-                format!(
-                    "unhealthy since {} ({}); a changed component clears the breaker",
-                    breach.at, breach.reason
-                ),
-                Vec::new(),
-            );
-        }
+                .ok_or_else(|| {
+                refused(
+                    "missing-component",
+                    format!(
+                        "component {} is missing or outside the workspace",
+                        manifest.component_path
+                    ),
+                )
+            })?;
         let capabilities = EffectiveCapabilities::resolve(record, &manifest);
-        let mut notes = capabilities.notes;
+        Ok(AdmittedLangPack {
+            plugin,
+            component,
+            capabilities: capabilities.effective,
+            notes: capabilities.notes,
+            policy: PluginGuestPolicy::for_manifest(&manifest),
+            blessed: record.is_blessed(),
+        })
+    }
+
+    async fn register(&self, pack: &AdmittedLangPack) -> LangPackStatus {
+        if let Some(breach) = self
+            .host
+            .health()
+            .breach(&pack.plugin, &pack.component.sha256)
+        {
+            return LangPackStatus::breakered(pack, &breach);
+        }
         let outcome = self
             .host
             .lane()
             .load_lang_pack(
-                component.bytes,
-                capabilities.effective,
-                PluginGuestPolicy::for_manifest(&manifest),
-                record.is_blessed(),
+                pack.component.bytes.clone(),
+                pack.capabilities.clone(),
+                pack.policy,
+                pack.blessed,
             )
-            .await;
-        let outcome = match outcome {
-            Ok(outcome) => outcome,
-            Err(error) => {
-                self.host
-                    .record_breach(&plugin, &component.sha256, &error.message, &mut notes);
-                return refused("registration-refused", error.message, notes);
-            }
-        };
-        let (Some(registration), WorkerGuestEnd::Ok) = (outcome.registration, &outcome.end) else {
-            let reason = super::PluginInvokeOutcome::ended(outcome.end, outcome.fuel_used);
-            let detail = if reason.detail().is_empty() {
-                reason.kind().to_owned()
-            } else {
-                reason.detail()
-            };
-            self.host
-                .record_breach(&plugin, &component.sha256, &detail, &mut notes);
-            return refused(reason.kind(), detail, notes);
-        };
-        notes.extend(registration.notes);
-        LangPackStatus {
-            plugin,
-            ok: true,
-            outcome: "ok".into(),
-            detail: String::new(),
-            language: Some(registration.id),
-            extensions: Some(registration.extensions),
-            lane: Some(
-                match registration.lane {
-                    WorkerLanguageLane::Native => "native",
-                    WorkerLanguageLane::Wasm => "wasm",
-                }
-                .into(),
-            ),
-            queries_ok: Some(registration.queries_ok),
-            notes,
-        }
+            .await
+            .map_err(|error| error.message);
+        LangPackStatus::registered(pack, outcome, self.host.health(), &self.host.now())
     }
 }
 

@@ -298,8 +298,10 @@ deterministic crashes, stalls and corrupt streams. They also check queued and
 active cancellation, dropped callers, deadline/backoff behavior, quarantine,
 shutdown and owned-child cleanup. The fixture is test-only and adds no
 production fault-injection mode. Dynamic language registrations and LSP warm
-state are intentionally lost on worker restart; index/extension orchestration
-must restore admitted state in later chunks. This iteration's gate results are
+state are lost with the worker process; the supervisor's restore step
+(`WorkerRestore`, audit-260912-24) replays admitted language registrations
+into every incarnation before it serves, LSP warm state is rebuilt on demand.
+This iteration's gate results are
 recorded in native ship state; it does not claim Windows/Linux execution or
 production workspace port parity.
 
@@ -758,9 +760,23 @@ Lanes: `LangPackBoot` discovers `lang-pack-` packs, reads the carrier through
 the worker and registers the language there; the tier selects the lane
 (blessed promotes to native, everything else runs the grammar in the WASM
 store), a failing pack breaches and stays lexical-only, and boot is idempotent
-per language. Registration lives in the worker, so a worker restart forgets it
-and boot must re-run; host-side language selection for the index and live
-queries still uses the bundled table (backlog). `RankingSignals` keeps the
+per language. Registration lives in the worker, so the owner keeps what
+`admit` decided — the carrier bytes, capabilities, policy and tier of every
+installed pack, captured once at open — and replays it into every worker
+incarnation (`LangPackRestore`, the supervisor's restore step): the
+supervisor admits a spawned process only after its readiness frame and the
+restore have both succeeded, so no request reaches an incarnation whose
+registry is empty and an earlier incarnation's readiness never certifies a
+replacement. The replay re-checks the breaker per incarnation, breaches a
+pack that refuses or traps, strikes a pack the worker was lost under (three
+strikes breach it) and fails that incarnation explicitly; the healthy rows are
+the retained set, ride the status envelope's notes, and their claims feed
+`SourceLanguages`, the owner's host-side selection handle every index scan,
+rewrite and parse-verify consults after the bundled table (a bundled
+extension is never shadowed; structural search and rewrite keep the bundled
+pattern table, a pack grammar having no pattern language). A workspace with
+no packs installs no restore and spawns nothing at open. `RankingSignals`
+keeps the
 persisted promotion store `.workbench/ranking-promotions.json` bound to the
 component hash, the 5 MiB `.workbench/ranking-shadow.jsonl` with oldest-half
 eviction, a 50,000-entry feature cache per signal and the post-response scorer;
@@ -881,8 +897,9 @@ admits one workspace per process and holds the resolved `WorkspacePolicy`,
 the private key and `ConfirmationSeal`, the sole `JournalDb` writer (SQLite's
 applied journal mode read back verbatim), the supervised worker, the derived
 `WorkspaceIndex`, the extension lanes (ranking signals booted at open,
-installed lang packs registered at open, language-server detection for the
-resolver lane, `runner-` plugins for the run tool), the owned-process executor
+installed lang packs admitted at open and restored into every worker
+incarnation, language-server detection for the resolver lane, `runner-`
+plugins for the run tool), the owned-process executor
 and the flight recorder, behind typed methods — status, map, read, search,
 edit, files, undo, journal list, script, run, plugin tools, the index task —
 that append the workspace's deterministic notes to every answer. Admission is

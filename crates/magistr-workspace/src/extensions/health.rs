@@ -44,6 +44,31 @@ impl PluginHealth {
             .find(|record| record.plugin == plugin && record.component_hash == component_hash)
     }
 
+    /// Record one breach at `at`. A breach that cannot be persisted is
+    /// returned as the note every lane appends: the breaker then will not
+    /// short-circuit, and the envelope says so.
+    #[must_use]
+    pub fn record(
+        &self,
+        plugin: &str,
+        component_hash: &str,
+        reason: &str,
+        at: &str,
+    ) -> Option<String> {
+        self.append(PluginHealthRecord {
+            plugin: plugin.to_owned(),
+            component_hash: component_hash.to_owned(),
+            reason: reason.to_owned(),
+            at: at.to_owned(),
+        })
+        .err()
+        .map(|error| {
+            format!(
+                "plugin {plugin}: breach could not be recorded ({error}); the breaker will not short-circuit"
+            )
+        })
+    }
+
     pub fn append(&self, record: PluginHealthRecord) -> std::io::Result<()> {
         let mut breaches = self.read();
         breaches.push(record);

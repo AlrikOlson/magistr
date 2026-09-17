@@ -4,6 +4,8 @@
 //! ranking, resolver and runner lanes. Every guest executes through an
 //! [`ExtensionLane`]; the production lane is the supervised native worker,
 //! so untrusted bytes never load into the application owner's process.
+#[cfg(feature = "lang-pack")]
+mod admitted_lang_pack;
 mod component;
 mod discovery;
 mod effective_capabilities;
@@ -19,7 +21,11 @@ mod lane_future;
 #[cfg(feature = "lang-pack")]
 mod lang_pack;
 #[cfg(feature = "lang-pack")]
+mod lang_pack_admission;
+#[cfg(feature = "lang-pack")]
 mod lang_pack_load_outcome;
+#[cfg(feature = "lang-pack")]
+mod lang_pack_restore;
 #[cfg(feature = "lang-pack")]
 mod lang_pack_status;
 mod language_server_spec;
@@ -43,6 +49,8 @@ mod tool_listing;
 mod wasi_lane_outcome;
 mod worker_lane;
 
+#[cfg(feature = "lang-pack")]
+pub use admitted_lang_pack::AdmittedLangPack;
 pub use component::PluginComponent;
 pub use effective_capabilities::EffectiveCapabilities;
 pub use grant::grant_covers;
@@ -57,7 +65,11 @@ pub use lane_future::LaneFuture;
 #[cfg(feature = "lang-pack")]
 pub use lang_pack::LangPackBoot;
 #[cfg(feature = "lang-pack")]
+pub use lang_pack_admission::LangPackAdmission;
+#[cfg(feature = "lang-pack")]
 pub use lang_pack_load_outcome::LangPackLoadOutcome;
+#[cfg(feature = "lang-pack")]
+pub use lang_pack_restore::LangPackRestore;
 #[cfg(feature = "lang-pack")]
 pub use lang_pack_status::LangPackStatus;
 pub use language_server_spec::LanguageServerSpec;

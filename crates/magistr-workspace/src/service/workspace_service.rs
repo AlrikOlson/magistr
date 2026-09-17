@@ -31,6 +31,7 @@ use crate::{
         MutationReceipt, SelectionPolicy, SnapshotError, SnapshotValidation, SourceSnapshot,
         WorkspaceIdentity,
     },
+    source_languages::SourceLanguages,
     transaction::FormatterOptions,
     worker::WorkerSupervisor,
     workspace_policy::WorkspacePolicy,
@@ -60,10 +61,17 @@ pub struct WorkspaceService {
     /// When the first index build was kicked: the task's start until the
     /// coordinator stamps its own.
     opened_at_ms: u64,
+    /// Which files parse as what, everywhere this workspace reads source:
+    /// the bundled table, then the lang-pack claims the owner retains.
+    languages: SourceLanguages,
     #[cfg(feature = "sandbox")]
     lane: Arc<crate::extensions::WorkerExtensionLane>,
     #[cfg(feature = "sandbox")]
     ranking: crate::extensions::RankingSignals,
+    /// The admitted lang packs and their replay into every worker
+    /// incarnation; `None` when no pack is installed.
+    #[cfg(all(feature = "sandbox", feature = "lang-pack"))]
+    lang_packs: Option<Arc<crate::extensions::LangPackRestore>>,
     #[cfg(feature = "sandbox")]
     resolver_specs: Vec<crate::extensions::LanguageServerSpec>,
     #[cfg(feature = "sandbox")]
@@ -77,8 +85,10 @@ impl WorkspaceService {
     /// taken before any store opens, configuration resolves (a layer from a
     /// newer binary fails closed), the key exists before the first request,
     /// the journal opens in the mode the filesystem detector chose and the
-    /// applied mode is read back, then the worker, index, recorder and
-    /// extension lanes compose over the admitted policy.
+    /// applied mode is read back, then the worker, the extension lanes (the
+    /// admitted lang packs are installed as the worker's restore before
+    /// anything can spawn it), the index and the recorder compose over the
+    /// admitted policy.
     pub async fn open(options: WorkspaceOpenOptions) -> Result<Self, WorkspaceOpenError> {
         let root = options
             .root
@@ -109,6 +119,9 @@ impl WorkspaceService {
             options.worker_executable.clone(),
             options.worker_options.clone(),
         )?);
+        let languages = SourceLanguages::bundled();
+        #[cfg(feature = "sandbox")]
+        let extensions = compose_extensions(&policy, &root, &state_dir, &worker, &languages).await;
         let index = WorkspaceIndex::start(
             root.clone(),
             state_dir.clone(),
@@ -116,6 +129,7 @@ impl WorkspaceService {
             IndexOptions {
                 watch_mode: watch_mode(policy.config()),
                 network_override: options.network_override.clone(),
+                languages: languages.clone(),
                 ..IndexOptions::default()
             },
         )?;
@@ -125,8 +139,6 @@ impl WorkspaceService {
             TraceRecorder::disabled()
         };
         let notes = workspace_notes(&journal, &detection, policy.config());
-        #[cfg(feature = "sandbox")]
-        let extensions = compose_extensions(&policy, &root, &state_dir, &worker).await;
         Ok(Self {
             executor: ProcessExecutor::new(root.clone()),
             root,
@@ -143,12 +155,15 @@ impl WorkspaceService {
             applied_journal_mode,
             notes,
             opened_at_ms: crate::diagnostics::now_unix_ms(),
+            languages,
             #[cfg(feature = "sandbox")]
-            lane: extensions.0,
+            lane: extensions.lane,
             #[cfg(feature = "sandbox")]
-            ranking: extensions.1,
+            ranking: extensions.ranking,
+            #[cfg(all(feature = "sandbox", feature = "lang-pack"))]
+            lang_packs: extensions.lang_packs,
             #[cfg(feature = "sandbox")]
-            resolver_specs: extensions.2,
+            resolver_specs: extensions.specs,
             #[cfg(feature = "sandbox")]
             interpreter: options.interpreter,
             lock,
@@ -234,13 +249,18 @@ impl WorkspaceService {
         })
     }
 
-    /// The retained status row; ranking-signal state rides the notes.
+    /// The retained status row; ranking-signal and lang-pack state ride the
+    /// notes.
     #[must_use]
     pub fn status(&self) -> WorkspaceResponse<StatusRow> {
         #[allow(unused_mut)]
         let mut notes = self.notes.clone();
         #[cfg(feature = "sandbox")]
         notes.extend(self.ranking.status_notes());
+        #[cfg(all(feature = "sandbox", feature = "lang-pack"))]
+        if let Some(packs) = &self.lang_packs {
+            notes.extend(packs.status_notes());
+        }
         StatusRow::new(
             &self.root,
             &self.detection,
@@ -523,6 +543,31 @@ impl WorkspaceService {
         Ok(())
     }
 
+    /// The owner's language selection: bundled first, then the lang-pack
+    /// claims the last worker incarnation registered.
+    #[must_use]
+    pub fn languages(&self) -> &SourceLanguages {
+        &self.languages
+    }
+
+    /// The supervised worker as it stands: pid of the admitted incarnation,
+    /// restarts, failures, quarantine, admission — an observation for hosts
+    /// and fixtures, never a handle to the process.
+    pub async fn worker_status(&self) -> crate::worker::WorkerStatus {
+        self.worker.status().await
+    }
+
+    /// The last worker incarnation's lang-pack rows, admission refusals
+    /// first; empty without installed packs.
+    #[cfg(all(feature = "sandbox", feature = "lang-pack"))]
+    #[must_use]
+    pub fn lang_pack_statuses(&self) -> Vec<crate::extensions::LangPackStatus> {
+        self.lang_packs
+            .as_ref()
+            .map(|packs| packs.statuses())
+            .unwrap_or_default()
+    }
+
     fn queries(&self, cancel: CancellationToken) -> Result<WorkspaceQueries<'_>, WorkspaceError> {
         let queries = WorkspaceQueries::new(&self.policy, &self.worker, Some(&self.index))?
             .with_state_dir(self.state_dir.clone())
@@ -547,7 +592,11 @@ impl WorkspaceService {
             self.formatter.clone(),
             session.id(),
         )
-        .map(|commands| commands.with_formatter_tasks(self.formatter_tasks.clone()))
+        .map(|commands| {
+            commands
+                .with_formatter_tasks(self.formatter_tasks.clone())
+                .with_languages(self.languages.clone())
+        })
     }
 
     #[cfg(feature = "sandbox")]
@@ -613,33 +662,73 @@ fn workspace_notes(
     notes
 }
 
-/// The production extension lanes over the supervised worker: ranking
-/// signals booted now, installed lang packs registered now (a workspace
-/// with none pays nothing), and the language-server detection table the
-/// resolver lane consults per request.
+/// The production extension lanes over the supervised worker.
+#[cfg(feature = "sandbox")]
+struct Extensions {
+    lane: Arc<crate::extensions::WorkerExtensionLane>,
+    ranking: crate::extensions::RankingSignals,
+    specs: Vec<crate::extensions::LanguageServerSpec>,
+    #[cfg(all(feature = "sandbox", feature = "lang-pack"))]
+    lang_packs: Option<Arc<crate::extensions::LangPackRestore>>,
+}
+
+/// Ranking signals booted now; installed lang packs admitted now and
+/// installed as the worker's restore before anything can spawn it, then the
+/// first incarnation is forced so the retained registrations and the
+/// selection table exist before the index's first extraction (a workspace
+/// with no packs never spawns here); and the language-server detection
+/// table the resolver lane consults per request. A worker that cannot be
+/// restored at open does not refuse the open: the restore stays installed,
+/// the next request spawns and restores again, and the status notes name
+/// the failure until an incarnation is restored.
 #[cfg(feature = "sandbox")]
 async fn compose_extensions(
     policy: &WorkspacePolicy,
     root: &Path,
     state_dir: &Path,
     worker: &Arc<WorkerSupervisor>,
-) -> (
-    Arc<crate::extensions::WorkerExtensionLane>,
-    crate::extensions::RankingSignals,
-    Vec<crate::extensions::LanguageServerSpec>,
-) {
+    languages: &SourceLanguages,
+) -> Extensions {
     use crate::extensions::{ExtensionLane, RankingSignals, WorkerExtensionLane};
     let lane = Arc::new(WorkerExtensionLane::new(Arc::clone(worker)));
     let shared: Arc<dyn ExtensionLane> = lane.clone();
     let ranking = RankingSignals::new(state_dir, shared);
     ranking.boot(policy, state_dir);
-    #[cfg(feature = "lang-pack")]
-    {
+    #[cfg(not(all(feature = "sandbox", feature = "lang-pack")))]
+    let _ = languages;
+    #[cfg(all(feature = "sandbox", feature = "lang-pack"))]
+    let lang_packs = {
         let host = crate::extensions::PluginHost::new(policy, state_dir.to_path_buf(), &*lane);
-        crate::extensions::LangPackBoot::new(&host).boot().await;
-    }
+        let admission = crate::extensions::LangPackBoot::new(&host).admit();
+        if admission.is_empty() {
+            None
+        } else {
+            let restore = Arc::new(crate::extensions::LangPackRestore::new(
+                admission,
+                state_dir,
+                languages.clone(),
+            ));
+            worker.install_restore(restore.clone());
+            // The answer is the restore's: a failure is already retained
+            // on the restore's rows and repeats on the next spawn.
+            let _ = worker
+                .call(
+                    crate::worker::WorkerRequest::Ping,
+                    std::time::Duration::from_secs(120),
+                    &CancellationToken::new(),
+                )
+                .await;
+            Some(restore)
+        }
+    };
     let specs = crate::extensions::LanguageServerSpec::detect(root);
-    (lane, ranking, specs)
+    Extensions {
+        lane,
+        ranking,
+        specs,
+        #[cfg(all(feature = "sandbox", feature = "lang-pack"))]
+        lang_packs,
+    }
 }
 
 #[cfg(test)]

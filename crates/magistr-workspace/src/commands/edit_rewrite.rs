@@ -53,7 +53,9 @@ pub(super) async fn resolve(
                 format!("rewrite scope exceeds {MAX_FILES} files; narrow path or lang"),
             )));
         }
-        let Some(language) = crate::source_language::language(&entry.path) else {
+        let Some(language) =
+            crate::source_languages::SourceLanguages::pattern_language(&entry.path)
+        else {
             skipped_language += 1;
             continue;
         };
@@ -75,7 +77,7 @@ pub(super) async fn resolve(
             .call(
                 WorkerRequest::Rewrite {
                     path: entry.path.clone(),
-                    language: language.into(),
+                    language,
                     source: before.clone(),
                     pattern: pattern.into(),
                     replacement: replacement.into(),
@@ -109,7 +111,7 @@ pub(super) async fn resolve(
     )];
     if skipped_language > 0 {
         notes.push(format!(
-            "rewrite: {skipped_language} candidate file(s) have no bundled grammar and were not rewritten"
+            "rewrite: {skipped_language} candidate file(s) have no bundled pattern grammar and were not rewritten"
         ));
     }
     Ok(Resolution::Writes(ResolvedWrites {

@@ -62,7 +62,7 @@ fn live_walk_honors_nested_ignores_metadata_and_empty_directories() {
     assert!(rows.iter().any(|row| row.path == "src/empty" && row.is_dir));
     assert!(
         rows.iter()
-            .any(|row| row.path == "src/yes.rs" && row.language.as_deref() == Some("rust"))
+            .any(|row| row.path == "src/yes.rs" && !row.is_dir)
     );
     assert!(
         rows.iter()

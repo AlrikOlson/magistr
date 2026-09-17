@@ -1,4 +1,5 @@
 use super::{cache::IndexedFile, observation::Observation};
+use crate::source_languages::SourceLanguages;
 use std::path::Path;
 /// Charges live reads, including failed reads, rather than cached sizes.
 pub(super) struct ValidationBudget {
@@ -12,12 +13,17 @@ impl ValidationBudget {
             per_file,
         }
     }
-    pub fn validate(&mut self, root: &Path, indexed: &IndexedFile) -> bool {
+    pub fn validate(
+        &mut self,
+        root: &Path,
+        languages: &SourceLanguages,
+        indexed: &IndexedFile,
+    ) -> bool {
         if self.remaining == 0 {
             return false;
         }
         let allowance = self.per_file.min(self.remaining as usize);
-        match Observation::read(root, &indexed.path, allowance) {
+        match Observation::read(root, &indexed.path, allowance, languages) {
             Ok(live) => {
                 self.remaining -= live.file.size.min(allowance as u64);
                 live.same(indexed)

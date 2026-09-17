@@ -676,3 +676,109 @@ async fn shutdown_cleans_owned_descendants_and_preserves_an_unrelated_process() 
         .await
         .expect("reap independent test process");
 }
+
+/// What a composition installs: every incarnation answers a restore request
+/// before the supervisor dispatches the caller's own; `refuse_first` refuses
+/// the first incarnation from the restore itself.
+struct CountingRestore {
+    invoked: std::sync::atomic::AtomicUsize,
+    refuse_first: bool,
+}
+
+impl magistr_workspace::worker::WorkerRestore for CountingRestore {
+    fn restore<'a>(
+        &'a self,
+        incarnation: &'a mut magistr_workspace::worker::WorkerIncarnation<'_>,
+    ) -> magistr_workspace::worker::RestoreFuture<'a> {
+        Box::pin(async move {
+            let attempt = self
+                .invoked
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if self.refuse_first && attempt == 0 {
+                return Err(WorkerError::Protocol("restore refused".into()));
+            }
+            assert!(incarnation.pid().is_some(), "a spawned process");
+            match incarnation.call(WorkerRequest::Ping, WAIT).await? {
+                WorkerResponse::Pong => Ok(()),
+                other => Err(WorkerError::Protocol(format!(
+                    "unexpected restore answer {other:?}"
+                ))),
+            }
+        })
+    }
+}
+
+impl CountingRestore {
+    fn invoked(&self) -> usize {
+        self.invoked.load(std::sync::atomic::Ordering::SeqCst)
+    }
+}
+
+#[tokio::test]
+async fn every_incarnation_is_restored_before_it_serves_and_a_lost_restore_never_admits_it() {
+    let directory = tempfile::tempdir().expect("test directory");
+    let log = directory.path().join("worker.log");
+    // The first process dies on its first request, which is the restore's.
+    let worker = fixture("crash-once", &log, options());
+    let restore = Arc::new(CountingRestore {
+        invoked: std::sync::atomic::AtomicUsize::new(0),
+        refuse_first: false,
+    });
+    worker.install_restore(restore.clone());
+    assert!(matches!(
+        ping(&worker).await,
+        Err(WorkerError::Unavailable(_))
+    ));
+    assert_eq!(restore.invoked(), 1);
+    assert!(
+        worker.status().await.pid.is_none(),
+        "a process whose restore was lost is never admitted"
+    );
+    assert!(matches!(ping(&worker).await, Ok(WorkerResponse::Pong)));
+    assert_eq!(restore.invoked(), 2, "the replacement is restored itself");
+    assert_eq!(events(&log, "start").len(), 2);
+    assert_eq!(
+        events(&log, "request").len(),
+        3,
+        "one restore request per incarnation, then the caller's"
+    );
+    assert!(worker.status().await.restarts >= 1);
+    assert!(matches!(ping(&worker).await, Ok(WorkerResponse::Pong)));
+    assert_eq!(
+        restore.invoked(),
+        2,
+        "an admitted incarnation is not restored again"
+    );
+    assert_eq!(events(&log, "request").len(), 4);
+    worker.shutdown().await.expect("shutdown");
+    reaped(&events(&log, "start")).await;
+}
+
+#[tokio::test]
+async fn a_restore_that_refuses_an_incarnation_stops_it_and_the_next_call_starts_over() {
+    let directory = tempfile::tempdir().expect("test directory");
+    let log = directory.path().join("worker.log");
+    let worker = fixture("answer", &log, options());
+    let restore = Arc::new(CountingRestore {
+        invoked: std::sync::atomic::AtomicUsize::new(0),
+        refuse_first: true,
+    });
+    worker.install_restore(restore.clone());
+    let error = ping(&worker)
+        .await
+        .expect_err("refused restore fails the caller explicitly");
+    assert_eq!(error, WorkerError::Protocol("restore refused".into()));
+    assert!(worker.status().await.pid.is_none());
+    let first = event(&log, "start", 1).await;
+    reaped(&first).await;
+    assert!(
+        events(&log, "request").is_empty(),
+        "nothing was dispatched to the refused incarnation"
+    );
+    assert!(matches!(ping(&worker).await, Ok(WorkerResponse::Pong)));
+    assert_eq!(restore.invoked(), 2);
+    assert_eq!(events(&log, "start").len(), 2);
+    assert_ne!(worker.status().await.pid, Some(first[0]));
+    worker.shutdown().await.expect("shutdown");
+    reaped(&events(&log, "start")).await;
+}

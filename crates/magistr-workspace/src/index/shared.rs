@@ -1,5 +1,5 @@
 use super::watch::IndexWatcher;
-use super::{IndexOptions, IndexStatus, cache::IndexCache};
+use super::{IndexError, IndexOptions, IndexStatus, cache::IndexCache, observation::Observation};
 use crate::worker::WorkerSupervisor;
 use std::{
     path::PathBuf,
@@ -16,4 +16,16 @@ pub(super) struct Shared {
     pub status: Mutex<IndexStatus>,
     pub requested: AtomicU64,
     pub stopped: CancellationToken,
+}
+impl Shared {
+    /// One bounded read of `path` selecting its language through the owner's
+    /// handle.
+    pub fn observe(&self, path: &str) -> Result<Observation, IndexError> {
+        Observation::read(
+            &self.root,
+            path,
+            self.options.max_file_bytes,
+            &self.options.languages,
+        )
+    }
 }

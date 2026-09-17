@@ -277,7 +277,12 @@ async fn engine_candidates(
     let mut freshness = queries.freshness();
     for entry in scoped {
         let structural = input.mode == SearchMode::Structural;
-        if structural && entry.language.is_none() {
+        // A pack language parses but has no pattern engine: its files are
+        // not structural candidates, exactly as unparsed files are not.
+        let pattern_language = structural
+            .then(|| crate::source_languages::SourceLanguages::pattern_language(&entry.path))
+            .flatten();
+        if structural && pattern_language.is_none() {
             continue;
         }
         let snapshot = queries.snapshot(&entry.path)?;
@@ -295,7 +300,7 @@ async fn engine_candidates(
         let request = if structural {
             WorkerRequest::Structural {
                 path: entry.path.clone(),
-                language: entry.language.unwrap_or_default(),
+                language: pattern_language.unwrap_or_default(),
                 source,
                 pattern: input.query.clone(),
             }

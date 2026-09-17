@@ -3,6 +3,5 @@
 pub(crate) struct SourceEntry {
     pub path: String,
     pub is_dir: bool,
-    pub language: Option<String>,
     pub junk: bool,
 }

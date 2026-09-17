@@ -255,7 +255,9 @@ impl WorkspaceIndex {
             let valid = if let Some(valid) = observed.get(&indexed.path) {
                 *valid
             } else {
-                let valid = budget.validate(&self.shared.root, indexed) && admitted(&indexed.path);
+                let valid =
+                    budget.validate(&self.shared.root, &self.shared.options.languages, indexed)
+                        && admitted(&indexed.path);
                 observed.insert(indexed.path.clone(), valid);
                 valid
             };

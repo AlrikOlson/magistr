@@ -165,7 +165,6 @@ fn walk_entry(
         .ok_or_else(|| WorkspaceError::new(ErrorKind::PatternInvalid, "source path is not UTF-8"))?
         .replace('\\', "/");
     Ok(Some(SourceEntry {
-        language: crate::source_language::language(&path).map(str::to_owned),
         junk: crate::indexer::is_junk(&path),
         path,
         is_dir: kind.is_dir(),

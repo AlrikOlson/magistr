@@ -65,7 +65,9 @@ pub(super) async fn run(
         service.seal,
         service.options.clone(),
     ) {
-        Ok(transactions) => transactions.with_formatter_tasks(service.formatter_tasks.clone()),
+        Ok(transactions) => transactions
+            .with_formatter_tasks(service.formatter_tasks.clone())
+            .with_languages(service.languages.clone()),
         Err(error) => return budget::failure(transaction_errors::map(reads, error, &changes)),
     };
     let prepared = match transactions.prepare(request).await {
