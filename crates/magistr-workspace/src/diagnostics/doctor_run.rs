@@ -1,5 +1,6 @@
 use super::{
-    DoctorOptions, DoctorReport, DoctorSectionId, DoctorSeverity, doctor_probes, utc_timestamp,
+    DoctorOptions, DoctorReport, DoctorSection, DoctorSectionId, DoctorSeverity, doctor_probes,
+    utc_timestamp,
 };
 
 /// One doctor run: every probe composed into the report plus the config
@@ -26,12 +27,7 @@ impl DoctorRun {
             quarantine,
             doctor_probes::crashes(&entries),
         ];
-        let findings_present = sections.iter().any(|section| {
-            section
-                .findings
-                .iter()
-                .any(|finding| finding.severity == DoctorSeverity::Unhealthy)
-        });
+        let findings_present = sections.iter().any(has_unhealthy);
         Self {
             report: DoctorReport {
                 workspace_root: options.root.display().to_string(),
@@ -42,6 +38,14 @@ impl DoctorRun {
             },
             config_text,
         }
+    }
+
+    /// Append a section the host observed with means this crate does not
+    /// have — the owner endpoint, the run checkpoint. It renders and bundles
+    /// like every probe here and counts toward the exit-1 signal.
+    pub fn append(&mut self, section: DoctorSection) {
+        self.report.findings_present |= has_unhealthy(&section);
+        self.report.sections.push(section);
     }
 
     /// Sections in contract order, a `source:` line on every section, a
@@ -87,6 +91,13 @@ impl DoctorRun {
         );
         lines.join("\n")
     }
+}
+
+fn has_unhealthy(section: &DoctorSection) -> bool {
+    section
+        .findings
+        .iter()
+        .any(|finding| finding.severity == DoctorSeverity::Unhealthy)
 }
 
 #[cfg(test)]

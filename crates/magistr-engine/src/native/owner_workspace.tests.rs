@@ -10,7 +10,8 @@ use std::time::Duration;
 use super::*;
 use crate::native::owner_wire::Greeting;
 use crate::native::{
-    AttachRefusal, BuildIdentity, CallerIdentity, OWNER_PROTOCOL_VERSION, OwnerClient,
+    AttachKind, AttachRefusal, BuildIdentity, CallerIdentity, OWNER_PROTOCOL_VERSION, OwnerClient,
+    OwnerIdentity, OwnerLiveness, OwnerProbe,
 };
 
 const DEADLINE: Duration = Duration::from_secs(2);
@@ -203,4 +204,126 @@ async fn workspace_endpoint_refuses_redirected_or_public_run_directories() {
             .await
             .expect_err("symlink directory");
     assert_eq!(failure.kind(), io::ErrorKind::PermissionDenied);
+}
+
+fn probe(root: &Path) -> OwnerProbe {
+    OwnerProbe::workspace(root, CallerIdentity::this_process("probe-test"), DEADLINE)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_probe_reports_the_live_owner_and_its_welcomed_sessions_without_being_counted() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let active = Arc::new(AtomicUsize::new(0));
+    let endpoint = OwnerEndpoint::serve_workspace(tmp.path(), 41, echo(Arc::clone(&active)))
+        .await
+        .expect("endpoint");
+    let root = tmp.path().canonicalize().expect("canonical");
+
+    let first = tokio::task::spawn_blocking(move || probe(&root))
+        .await
+        .expect("probe task");
+    assert_eq!(first.endpoint, endpoint.path());
+    let OwnerLiveness::Live(report) = &first.liveness else {
+        panic!("a live owner answers: {:?}", first.liveness);
+    };
+    assert_eq!(report.generation.get(), 41);
+    assert_eq!(report.owner_pid, std::process::id());
+    assert_eq!(report.build, BuildIdentity::this_build());
+    assert_eq!(
+        report.identity,
+        OwnerIdentity::Workspace {
+            root: tmp.path().canonicalize().expect("canonical")
+        }
+    );
+    assert!(report.connections.is_empty(), "a probe is not a session");
+    assert!(first.liveness.is_live());
+
+    let (_, mut a) = attach(tmp.path()).await;
+    ping(&mut a);
+    let root = tmp.path().to_path_buf();
+    let second = tokio::task::spawn_blocking(move || probe(&root))
+        .await
+        .expect("probe task");
+    let OwnerLiveness::Live(report) = &second.liveness else {
+        panic!("still live: {:?}", second.liveness);
+    };
+    assert_eq!(report.connections.len(), 1);
+    assert_eq!(report.connections[0].attach, AttachKind::Mcp);
+    assert_eq!(report.connections[0].caller.pid, std::process::id());
+    assert_eq!(report.connections[0].caller.surface, "workspace-test");
+    assert_eq!(report.attached(AttachKind::Mcp), 1);
+    assert_eq!(report.attached(AttachKind::Commands), 0);
+
+    drop(a);
+    let root = tmp.path().to_path_buf();
+    tokio::time::timeout(DEADLINE, async {
+        loop {
+            let root = root.clone();
+            let probed = tokio::task::spawn_blocking(move || probe(&root))
+                .await
+                .expect("probe task");
+            if let OwnerLiveness::Live(report) = &probed.liveness
+                && report.connections.is_empty()
+            {
+                return;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("the count falls once the session ends");
+
+    endpoint.shutdown().await.expect("shutdown");
+    let root = tmp.path().to_path_buf();
+    let gone = tokio::task::spawn_blocking(move || probe(&root))
+        .await
+        .expect("probe task");
+    assert!(
+        matches!(gone.liveness, OwnerLiveness::Absent),
+        "{:?}",
+        gone.liveness
+    );
+    assert!(!gone.liveness.is_live());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_probe_never_certifies_liveness_from_a_socket_file_or_a_silent_listener() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().canonicalize().expect("canonical");
+    let path = crate::native::workspace_socket_path(&root).expect("endpoint path");
+    std::fs::create_dir_all(path.parent().expect("parent")).expect("run dir");
+    // A socket file nothing listens on: what a killed owner leaves behind.
+    drop(std::os::unix::net::UnixListener::bind(&path).expect("bind"));
+    assert!(path.exists());
+    let stale = probe(&root);
+    assert!(
+        matches!(&stale.liveness, OwnerLiveness::Unanswered { .. }),
+        "{:?}",
+        stale.liveness
+    );
+    assert!(!stale.liveness.is_live());
+    std::fs::remove_file(&path).expect("unlink");
+
+    // A listener that accepts and never greets: not certified live either.
+    let listener = tokio::net::UnixListener::bind(&path).expect("silent listener");
+    let silent = tokio::spawn(async move {
+        let mut held = Vec::new();
+        while let Ok((stream, _)) = listener.accept().await {
+            held.push(stream);
+        }
+    });
+    let deadline = Duration::from_millis(150);
+    let probed = tokio::task::spawn_blocking(move || {
+        OwnerProbe::workspace(&root, CallerIdentity::this_process("probe-test"), deadline)
+    })
+    .await
+    .expect("probe task");
+    assert!(
+        matches!(probed.liveness, OwnerLiveness::Silent { deadline: limit } if limit == deadline),
+        "{:?}",
+        probed.liveness
+    );
+    assert!(!probed.liveness.is_live());
+    silent.abort();
+    let _ = std::fs::remove_file(&path);
 }

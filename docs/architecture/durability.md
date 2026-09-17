@@ -128,6 +128,52 @@ objective; the loop must persist its reference before receipt settlement.
 See [receipt retention](project-authority.md#receipt-retention). A corrupt or
 unreadable checkpoint refuses compaction.
 
+## Diagnostics versus evidence
+
+`magistr workspace doctor <root>` reads the checkpoint as it lies on disk
+(`IterationState::read`: parsed and validated, never marked, reconciled or
+written back) and reports it as the `operations` section: for every record
+the project and run from the run key, the attempt's command and number, the
+kind, target and external handle, a receipt's gate, task and receipt id, a
+dispatch's runtime pid and start identity with whether that runtime is
+alive now, the workspace's canonical root and durable generation, and the
+loop process the run key names with whether it is alive (pid evidence only:
+the key is not pinned to a start identity). Four facts are stated per
+record: *cancellation requested* (the run has latched `cancelled` or
+`aborted`), *terminal observed* and *effects settled* (the outcome is
+settled), *ownership released* (a dispatch's runtime is gone; otherwise the
+loop process is gone; `null` when the host cannot say). Each record gets a
+state in recovery's own words: `settled`; `live` (an unsettled record owned
+by a loop that is still running); `stalled` (the loop is gone and the
+runtime it dispatched is alive — the next loop start waits for it,
+`Unreconciled`, and admits nothing meanwhile; an unhealthy finding that
+says to wait for or end that runtime, since nothing is signalled or
+replayed for you); `recoverable` (the loop and any runtime are gone — the
+next start reconciles it against the authority named for its kind);
+`indeterminate` (no runtime handle, or a host that cannot say — open until
+the checkpoint is set aside explicitly). Session and turn identities are
+declared *not persisted*: a provider session and its turns exist only in
+the live host's session feed and end with it; live clients are the
+`owner` section's connections.
+
+The section is a diagnostic, not evidence. It is computed on request,
+retained nowhere and decides nothing: it never establishes an outcome,
+never advances a record and cannot be cited by a completion. The evidence
+is the checkpoint itself, the receipts it names and the native store, each
+with its own retention — the checkpoint until the run is set aside,
+receipts under [receipt retention](project-authority.md#receipt-retention),
+the store for good — while a doctor report or bundle lives exactly as long
+as its reader keeps it, and a bundle passes the same redaction as every
+other member. What the doctor explains as stalled or recoverable is what
+the next loop start will find; only that start performs the reconciliation.
+
+Fixtures: `doctor_operations.tests.rs` (a lost loop with a live runtime is
+stalled, then recoverable once the runtime is killed, beside settled,
+receipt and handle-less rows, with the checkpoint left unmarked; a running
+loop owns its unsettled rows; a torn checkpoint is an unhealthy finding)
+and `tests/workspace_cli_verbs.rs::doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker`
+against the binary.
+
 ## Per-family atomicity
 
 | Family | Store | Atomic unit | Cross-family atomicity |

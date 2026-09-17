@@ -668,3 +668,78 @@ mod shutdown_tests;
 
 #[path = "workspace_attachment_support/launcher.tests.rs"]
 mod launcher_tests;
+
+/// `magistr workspace doctor <root>` beside a live owner, as text and as
+/// the machine-readable owner section of a bundle.
+async fn doctor(root: &std::path::Path) -> (i32, String) {
+    let output = tokio::time::timeout(
+        WAIT,
+        magistr()
+            .args(["workspace", "doctor"])
+            .arg(root)
+            .stdin(Stdio::null())
+            .output(),
+    )
+    .await
+    .expect("bounded doctor")
+    .expect("doctor runs");
+    (
+        output.status.code().expect("exit code"),
+        String::from_utf8_lossy(&output.stdout).into_owned(),
+    )
+}
+
+/// The doctor's owner section answers beside the live owner without taking
+/// the lock: it reports the owner's generation and build, and its attached
+/// connection count rises when a second bridge attaches and falls when that
+/// bridge's client closes.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn doctor_reports_the_live_owner_and_counts_attached_bridges_as_they_come_and_go() {
+    let dir = workspace();
+    let owner = Connection::open(dir.path()).await;
+    let (code, report) = doctor(dir.path()).await;
+    assert_eq!(code, 0, "{report}");
+    assert!(report.contains("[owner]"), "{report}");
+    assert!(report.contains("live owner generation 1, pid "), "{report}");
+    assert!(
+        report.contains("0 live connection(s): 0 mcp, 0 commands"),
+        "the embedded owner's own client is not a socket attachment: {report}"
+    );
+    assert!(report.contains("[operations]"), "{report}");
+    assert!(report.contains("no run checkpoint"), "{report}");
+    assert_eq!(generation(dir.path()), 1, "the doctor admits nothing");
+
+    let attached = Connection::open(dir.path()).await;
+    let (_, report) = doctor(dir.path()).await;
+    assert!(
+        report.contains("1 live connection(s): 1 mcp, 0 commands"),
+        "{report}"
+    );
+    assert_eq!(generation(dir.path()), 1);
+
+    attached.close().await;
+    tokio::time::timeout(WAIT, async {
+        loop {
+            let (_, report) = doctor(dir.path()).await;
+            if report.contains("0 live connection(s): 0 mcp, 0 commands") {
+                return;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+    })
+    .await
+    .expect("the count falls when the bridge's client closes");
+    assert_ok(&owner.call("workbench_status", json!({})).await);
+    owner.close().await;
+
+    // The owner is gone: the endpoint is unlinked, and the counter that
+    // remains is reported as the last admission, never as a live owner.
+    let (code, report) = doctor(dir.path()).await;
+    assert_eq!(code, 0, "{report}");
+    assert!(report.contains("no owner reachable"), "{report}");
+    assert!(
+        report.contains("generation 1 as the last admission, which is not a liveness proof"),
+        "{report}"
+    );
+    assert_eq!(generation(dir.path()), 1);
+}

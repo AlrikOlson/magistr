@@ -7,8 +7,8 @@ use super::*;
 use crate::native::owner_wire::Greeting;
 use crate::native::{
     AttachError, AttachKind, AttachRefusal, BuildIdentity, CallerIdentity, NativeConfig,
-    NativeReader, OWNER_PROTOCOL_VERSION, OwnerClient, OwnerCommand, OwnerReply, ProjectAuthority,
-    RoadmapCommand, WriterRole, owner_socket_path,
+    NativeReader, OWNER_PROTOCOL_VERSION, OwnerClient, OwnerCommand, OwnerIdentity, OwnerLiveness,
+    OwnerProbe, OwnerReply, ProjectAuthority, RoadmapCommand, WriterRole, owner_socket_path,
 };
 use magistr_workflow::roadmap::domain::ChunkStatus;
 
@@ -647,4 +647,53 @@ async fn a_regular_file_at_the_owner_endpoint_is_preserved() {
         std::fs::read(&path).expect("preserved"),
         b"preserve this file"
     );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_probe_is_answered_with_a_report_and_refused_like_any_other_build() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = config(&tmp);
+    let owner = host(&cfg);
+    let endpoint = OwnerEndpoint::serve(owner.clone()).await.expect("endpoint");
+    let path = endpoint.path();
+    let this = BuildIdentity::this_build();
+
+    // A probe from another build learns the served build and nothing else.
+    let other = BuildIdentity::new(
+        "0.0.0-other",
+        this.contract(),
+        this.profile(),
+        this.target(),
+    );
+    let mut hello = hello("lease", "host", "probe", OWNER_PROTOCOL_VERSION);
+    hello["build"] = serde_json::to_value(&other).expect("identity");
+    assert_eq!(
+        raw_greeting(path, hello),
+        Greeting::Refused(AttachRefusal::Build {
+            served: Box::new(this.clone()),
+            offered: Box::new(other),
+        })
+    );
+
+    // A typed probe of this build: the welcome, then the report, then EOF.
+    let mut attached = client(&cfg).expect("a commands session to be counted");
+    let probed = OwnerProbe::at(
+        path,
+        OwnerIdentity::Workflow {
+            project_id: "lease".into(),
+            role: WriterRole::Host,
+        },
+        CallerIdentity::this_process("probe-test"),
+        DEADLINE,
+    );
+    let OwnerLiveness::Live(report) = probed.liveness else {
+        panic!("live: {:?}", probed.liveness);
+    };
+    assert_eq!(report.generation, endpoint.generation());
+    assert_eq!(report.owner_pid, std::process::id());
+    assert_eq!(report.build, this);
+    assert_eq!(report.attached(AttachKind::Commands), 1);
+    assert_eq!(report.connections[0].caller.surface, "test");
+    attached.detach();
+    assert!(chunk_ids(&cfg).is_empty(), "a probe writes nothing");
 }

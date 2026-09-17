@@ -273,6 +273,22 @@ impl Drop for OwnerClient {
     }
 }
 
+/// One probe exchange for [`OwnerProbe`](super::OwnerProbe): the handshake
+/// as any client does it, then the owner's report line. The connection is
+/// dropped afterwards; the owner closes its side as soon as it has written.
+///
+/// # Errors
+/// As [`OwnerClient::attach_with`]; a welcome not followed by a report is
+/// [`AttachError::OwnerGone`] or [`AttachError::Deadline`].
+pub(super) fn probe_line(
+    path: &Path,
+    hello: &Hello,
+    deadline: Duration,
+) -> Result<super::owner_report::OwnerReport, AttachError> {
+    let (mut link, _, _) = unix::connect(path, hello, deadline)?;
+    link.next_line(deadline)
+}
+
 #[cfg(unix)]
 mod unix {
     use std::io::{self, BufRead, BufReader, Read, Write};
@@ -353,6 +369,22 @@ mod unix {
             let _ = write_line(&mut self.stream, &ClientFrame::Detach);
             let _ = self.stream.shutdown(std::net::Shutdown::Both);
         }
+
+        /// The next line the owner writes, as `T`; EOF is the owner gone.
+        pub(super) fn next_line<T: serde::de::DeserializeOwned>(
+            &mut self,
+            deadline: Duration,
+        ) -> Result<T, AttachError> {
+            let mut line = String::new();
+            let read = self
+                .reader
+                .read_line(&mut line)
+                .map_err(|e| classify(e, deadline))?;
+            if read == 0 {
+                return Err(AttachError::OwnerGone);
+            }
+            serde_json::from_str(line.trim_end()).map_err(|e| AttachError::Wire(e.to_string()))
+        }
     }
 
     fn write_line<T: serde::Serialize>(writer: &mut impl Write, value: &T) -> io::Result<()> {
@@ -432,5 +464,12 @@ mod unix {
         }
 
         pub(super) fn detach(&mut self) {}
+
+        pub(super) fn next_line<T: serde::de::DeserializeOwned>(
+            &mut self,
+            _deadline: Duration,
+        ) -> Result<T, AttachError> {
+            Err(AttachError::Unsupported)
+        }
     }
 }

@@ -237,3 +237,68 @@ fn migration_moves_a_dead_legacy_record_or_an_empty_lock_aside_and_admission_fol
     ));
     ServerLock::acquire(&path).expect("native admission after migration");
 }
+
+#[test]
+fn inspect_classifies_the_record_without_taking_the_lock_or_touching_it() {
+    let (_dir, path) = lock_path();
+    assert_eq!(
+        ServerLock::inspect(&path).expect("absent"),
+        LockRecord::Absent
+    );
+    let held = ServerLock::acquire(&path).expect("owner");
+    let before = std::fs::read(&path).expect("marker");
+    assert_eq!(
+        ServerLock::inspect(&path).expect("native"),
+        LockRecord::Native
+    );
+    // Inspecting beside a live holder neither blocks nor releases it.
+    assert_eq!(
+        ServerLock::acquire(&path).expect_err("still held").kind(),
+        io::ErrorKind::WouldBlock
+    );
+    drop(held);
+    assert_eq!(
+        ServerLock::inspect(&path).expect("native"),
+        LockRecord::Native
+    );
+    assert_eq!(std::fs::read(&path).expect("unchanged"), before);
+
+    std::fs::write(&path, br#"{"pid":123456789,"host":"legacy-host"}"#).expect("legacy");
+    let legacy = ServerLock::inspect(&path).expect("legacy");
+    assert!(
+        matches!(&legacy, LockRecord::Legacy { host, pid: 123456789, .. } if host == "legacy-host"),
+        "{legacy:?}"
+    );
+    let LockRecord::Legacy { pid_alive, .. } = legacy else {
+        unreachable!()
+    };
+    assert_eq!(
+        pid_alive, None,
+        "a pid from another host is never judged here"
+    );
+
+    std::fs::write(
+        &path,
+        format!(
+            r#"{{"pid":{},"host":"{}"}}"#,
+            std::process::id(),
+            local_hostname()
+        ),
+    )
+    .expect("legacy on this host");
+    let LockRecord::Legacy { pid_alive, .. } = ServerLock::inspect(&path).expect("legacy") else {
+        panic!("legacy record")
+    };
+    assert_eq!(pid_alive, Some(true), "this process is alive on this host");
+
+    std::fs::write(&path, b"not a lock record").expect("garbage");
+    assert_eq!(
+        ServerLock::inspect(&path).expect("unrecognized"),
+        LockRecord::Unrecognized
+    );
+    std::fs::write(&path, b"").expect("empty");
+    assert_eq!(
+        ServerLock::inspect(&path).expect("empty is unrecognized"),
+        LockRecord::Unrecognized
+    );
+}

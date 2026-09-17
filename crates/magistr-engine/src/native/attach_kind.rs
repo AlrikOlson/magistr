@@ -16,6 +16,10 @@ pub enum AttachKind {
     /// handshake is done: a second `magistr mcp-serve` proxies its stdio
     /// here.
     Mcp,
+    /// A diagnostic handshake: after the welcome the owner writes one
+    /// [`OwnerReport`](super::OwnerReport) line and closes. Every owner
+    /// offers it; a probe is never counted among the owner's sessions.
+    Probe,
 }
 
 impl AttachKind {
@@ -25,6 +29,7 @@ impl AttachKind {
         match self {
             Self::Commands => "commands",
             Self::Mcp => "mcp",
+            Self::Probe => "probe",
         }
     }
 }

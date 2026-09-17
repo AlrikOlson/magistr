@@ -37,7 +37,7 @@ admission proof, or resets the durable generation.
 project identity, store and writer roles. Aliases resolve to the same owner;
 distinct roots, including separate worktrees, have independent services and
 journals. The shared [project owner protocol](project-authority.md#handshake-and-identity)
-uses `Hello` version 4, which carries a
+uses `Hello` version 5, which carries a
 [`BuildIdentity`](project-authority.md#build-identity): an owner serves only
 clients of its exact build — package version, contract digest, profile and
 target — and refuses any other with `AttachRefusal::Build` naming both
@@ -157,6 +157,37 @@ parent (a `getppid` poll every 250 ms) and ends itself once re-parented, after
 shutting its sandbox pool. There is no idle timer or retire protocol: the
 owner's own client ends it, and its peers reconnect.
 
+## Ownership diagnostics
+
+`magistr workspace doctor <root>` appends two sections to the six retained
+probes, both composed by the CLI host from observations the workspace crate
+alone cannot make, and both read-only: no lock is taken, no store opened,
+nothing admitted, minted, marked or written.
+
+- **`owner`.** The durable generation (`.workbench/server.generation`) and
+  the lock record (`ServerLock::inspect`: absent, the native marker, a
+  legacy record with its host, pid and — for this host only — whether that
+  pid is alive, or unrecognized bytes) are read as records of past
+  admissions. Liveness comes only from one bounded `probe` handshake on the
+  owner endpoint ([project authority](project-authority.md#handshake-and-identity)):
+  a live owner is reported with its generation, pid, build, endpoint and
+  every attached session by kind with the caller each declared (`mcp` for
+  bridges and the cockpit's port, `commands` for a workflow client); the
+  embedded owner's own client speaks over an in-process duplex and is not
+  a socket session, so a lone `magistr run` reports zero. A durable counter
+  that disagrees with the live owner, a live owner of another build (named
+  with both identities), a refused probe and a listener that accepts but
+  never greets are unhealthy findings; no endpoint, or an endpoint file
+  nothing answers on, is reported as *no owner reachable* with the counter
+  named as the last admission, never as a live owner. A legacy or
+  unrecognized record is the migration finding.
+- **`operations`.** The run checkpoint (`.magistr/loop-state.json`) read as
+  it lies, see [durability](durability.md#diagnostics-versus-evidence).
+
+Both sections render in the report and ride the bundle as `owner.json` and
+`operations.json` through the same redaction choke point. They are
+diagnostics: computed on request, retained nowhere.
+
 ## Production launch and discovery
 
 - `magistr mcp-launch workbench-mcp <dir>` selects the project root exactly as
@@ -198,7 +229,7 @@ supply actual execution results (macOS host).
 
 | ADR row | Native evidence | Remaining |
 | --- | --- | --- |
-| 1: two clients | `attachment`: both initialize and use the tool surface through one owner | Connection counts in doctor |
+| 1: two clients | `attachment`: both initialize and use the tool surface through one owner; `doctor_reports_the_live_owner_and_counts_attached_bridges_as_they_come_and_go` reads the owner's generation and its attached count rising with a second bridge through the probe | None |
 | 2: startup race | `attachment`: eight barrier-released starts initialize, share generation 1 and close before generation 2 admits | None for the embedded model (no daemon record, no idle cleanup) |
 | 3: different-file edits | `attachment`: both writes apply; each identity lists only its own journal row | None |
 | 4: same-file edits | `attachment`: exactly one anchored edit applies; the other receives `STALE_ANCHOR`; both clients read the final bytes | None |
@@ -208,7 +239,7 @@ supply actual execution results (macOS host).
 | 8: identity survives owner restart | `attachment`: a bridge's stamped identity lists the same op under generation 2, edits again, and rewinds its own latest batch | None |
 | 9: owner crash mid-session | `attachment`: after `kill -9` a survivor's next call succeeds under generation 2 (one admits, the other attaches); with admission denied, the call answers `ENGINE_UNAVAILABLE`/`retry` and the listing keeps answering until an owner returns | Fault injection *inside* a request (the answer is the owner's cancellation or the typed refusal, never a replay) |
 | 10: crash mid-write | Existing native intent/transaction recovery boundary; `workspace_served_stdio` proves a crashed owner's grant is fenced on restart | Full fault-injection matrix |
-| 11: client EOF/crash | `attachment`: attached EOF preserves owner and peers; owner EOF is survived by the remaining client, which admits on its next call | Connection-count diagnostics |
+| 11: client EOF/crash | `attachment`: attached EOF preserves owner and peers; owner EOF is survived by the remaining client, which admits on its next call; the doctor's attached count falls to zero after the bridge's client closes and reports no owner reachable after the owner's | None |
 | 12: idle exit | Not applicable: an embedded owner ends with its own client; peers reconnect | — |
 | 13: idle versus build | Owner shutdown waits for handlers and tracked formatter cleanup before index/worker teardown; a real pending-edit test covers owner EOF | — |
 | 14: external edits | One shared native index and watcher retain live validation | Two-client watcher freshness scenario |
@@ -216,7 +247,7 @@ supply actual execution results (macOS host).
 | 16: worktrees | `attachment`: independent canonical roots admit separately | Explicit Git-worktree fixture |
 | 17: long path | `workspace_socket_path.tests.rs` checks a stable fallback within the Unix path limit | Real attachment through a deliberately long root |
 | 18: permissions | Shared endpoint enforces private directory/socket and peer credentials | Cross-UID and non-host platform evidence |
-| 19: version skew | `owner_endpoint.tests.rs`: a `Hello` from another build is refused with `AttachRefusal::Build` naming both identities — another checkout's contract digest and the other profile of one tree are told apart from an equal package version, a copy of the same build attaches, and a protocol-3 `Hello` is answered with an explicit `Protocol` refusal; a bridge answers typed refusals until the owner of the other build ends, then admits | A real two-binary process fixture (the identities are exercised over the wire from one test process) |
+| 19: version skew | `owner_endpoint.tests.rs`: a `Hello` from another build is refused with `AttachRefusal::Build` naming both identities — another checkout's contract digest and the other profile of one tree are told apart from an equal package version, a copy of the same build attaches, and a protocol-3 `Hello` is answered with an explicit `Protocol` refusal; a bridge answers typed refusals until the owner of the other build ends, then admits; a probe from another build is refused the same way, and the doctor reports that owner as live but of another build | A real two-binary process fixture (the identities are exercised over the wire from one test process) |
 | 20: legacy overlap | d1 native/Bun mutual-refusal oracle; `migrate` refuses a live legacy pid and a foreign host | None |
 | 21: unreachable owner | `attachment`: a bridge started against an unmigrated marker answers `initialize` and the listing from the shared capability definition, refuses calls `ENGINE_UNAVAILABLE`/`retry` naming `magistr workspace migrate`, mints nothing, and admits on its next call after the migration with a handshake and listing equal to a live owner's; a bridge started against a lock held without an endpoint answers within the bounded windows, opens no store, and admits once the lock is released. Non-temporary refusals still exit (66, 65, policy) | Startup against a lock held without an endpoint costs one bounded window per request until it is released |
 | 22: statelessness | Existing native served-schema/envelope tests use the same adapter through every path | Retained gate replayed through two bridges |
