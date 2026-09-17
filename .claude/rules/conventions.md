@@ -31,9 +31,9 @@
 
 ## File Structure
 
-- **One `pub` item per file.** Each `.rs` file exports at most one public type, trait, function, or constant. `pub mod` and `pub use` re-exports don't count.
+- **Cohesive modules, not item counts.** A module holds the public types and behavior that change together (one decision, one contract). Several `pub` items may share a file when it is a facade internal: its parent declares it `mod name;` (never `pub mod`) and re-exports the surface with `pub use name::…`, it opens with a `//!` doc naming what the items decide together and why they change together, and it has its companion `{name}.tests.rs`. A file reached through a public module path exports at most one item. `pub mod`, `pub use` and impl blocks never count.
 - **Tests in separate files.** Unit tests go in `{name}.tests.rs`, NOT inline `#[cfg(test)] mod tests {}` blocks. The test file uses `use super::*;` to access the parent module's internals.
-- Enforced by `scripts/lint-structure.sh`. Existing violations are allowlisted in `.magistr/lint-structure-allowlist.txt` for gradual migration.
+- **Fitness over structure.** The checks that carry this policy are behavior and boundary tests: the companion suites, the dependency-direction rule, and the `domain_boundary` / `application_boundary` suites. Enforced by `scripts/lint-structure.sh` on the owned crates; `.magistr/lint-structure-allowlist.txt` is a grandfathered baseline that is pruned, never extended. Imported subsystems keep their own per-file ratchets.
 
 ## Testing
 
