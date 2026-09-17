@@ -1,4 +1,7 @@
-use super::{WorkspaceQueries, source_entry::SourceEntry, source_observation::SourceObservation};
+use super::{
+    WorkspaceQueries, source_entry::SourceEntry, source_observation::SourceObservation,
+    source_read::SourceRead,
+};
 use crate::workspace_policy::WorkspacePolicy;
 use crate::{
     contracts::{ErrorKind, Freshness, WorkspaceError},
@@ -16,7 +19,25 @@ const MAX_FILE_BYTES: usize = 1024 * 1024;
 const MAX_ENTRIES: usize = 100_000;
 
 impl WorkspaceQueries<'_> {
+    /// One live observation of a file that must fit the ceiling; an oversized
+    /// file is the named `BUDGET_TOO_SMALL` refusal.
     pub(super) fn snapshot(&self, path: &str) -> Result<SourceObservation, WorkspaceError> {
+        match self.observe(path)? {
+            SourceRead::Observed(observation) => Ok(observation),
+            SourceRead::Oversized { bytes } => Err(WorkspaceError::new(
+                ErrorKind::BudgetTooSmall,
+                format!(
+                    "{} exceeds the 1 MiB live-read ceiling ({bytes} bytes); narrow to a smaller file",
+                    path.replace('\\', "/")
+                ),
+            )),
+        }
+    }
+
+    /// One bounded live observation. The ceiling is decided from the file's
+    /// metadata before any byte is read, so an oversized file costs a stat;
+    /// a file that grows past the ceiling while it is read is still refused.
+    pub(super) fn observe(&self, path: &str) -> Result<SourceRead, WorkspaceError> {
         let requested = path.replace('\\', "/");
         let admitted = self.policy.check_read(&requested)?;
         let relative = admitted
@@ -40,6 +61,11 @@ impl WorkspaceQueries<'_> {
                     "source is not a regular file",
                 ));
             }
+            if before.len() > MAX_FILE_BYTES as u64 {
+                return Ok(SourceRead::Oversized {
+                    bytes: before.len(),
+                });
+            }
             let file = open_source(&self.root, &admitted)?;
             let opened = file.metadata().map_err(io_error)?;
             if !opened.is_file() {
@@ -53,10 +79,10 @@ impl WorkspaceQueries<'_> {
                 .read_to_end(&mut bytes)
                 .map_err(io_error)?;
             if bytes.len() > MAX_FILE_BYTES {
-                return Err(WorkspaceError::new(
-                    ErrorKind::BudgetTooSmall,
-                    "source exceeds the 1 MiB live-read ceiling; narrow to a smaller file",
-                ));
+                let after = fs::metadata(&admitted).map_err(io_error)?;
+                return Ok(SourceRead::Oversized {
+                    bytes: after.len().max(bytes.len() as u64),
+                });
             }
             let after = fs::metadata(&admitted).map_err(io_error)?;
             let admitted_again = self.policy.check_read(&requested)?;
@@ -67,7 +93,7 @@ impl WorkspaceQueries<'_> {
             }
             let content = FileContent::decode(bytes);
             let content_hash = content.content_hash();
-            return Ok(SourceObservation {
+            return Ok(SourceRead::Observed(SourceObservation {
                 path: relative,
                 content,
                 content_hash,
@@ -76,7 +102,7 @@ impl WorkspaceQueries<'_> {
                 } else {
                     Freshness::Cold
                 },
-            });
+            }));
         }
         Err(WorkspaceError::new(
             ErrorKind::FileNotFound,

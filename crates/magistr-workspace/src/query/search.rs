@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use super::{
     SearchGroup, SearchHit, SearchInput, SearchMode, WorkspaceQueries, budget, ranking::Ranking,
     ranking_candidate::RankingCandidate, search_references::references, search_scope::SearchScope,
-    source_entry::SourceEntry,
+    source_entry::SourceEntry, source_read::SourceRead,
 };
 use crate::{
     contracts::{
@@ -87,9 +87,10 @@ async fn execute(
             if input.mode == SearchMode::Auto {
                 notes.push("mode:auto ran lexical; use mode:structural for AST patterns or mode:references for symbol edges".into());
             }
-            let (candidates, hashes, observed_freshness) =
+            let (candidates, hashes, observed_freshness, scan_notes) =
                 engine_candidates(queries, input, scoped).await?;
             freshness = observed_freshness;
+            notes.extend(scan_notes);
             (candidates, hashes)
         }
     };
@@ -263,7 +264,18 @@ fn file_candidates(
         .collect())
 }
 
-type EngineCandidates = (Vec<RankingCandidate>, BTreeMap<String, String>, Freshness);
+type EngineCandidates = (
+    Vec<RankingCandidate>,
+    BTreeMap<String, String>,
+    Freshness,
+    Vec<String>,
+);
+
+/// The scan ceilings. An oversized file is excluded by name and the scan
+/// continues; the aggregate ceilings refuse and name where they were crossed.
+const MAX_SCAN_BYTES: usize = 64 * 1024 * 1024;
+const MAX_MATCHED_LINES: usize = 20_000;
+const NAMED_OMISSIONS: usize = 5;
 
 async fn engine_candidates(
     queries: &WorkspaceQueries<'_>,
@@ -273,7 +285,9 @@ async fn engine_candidates(
     let mut candidates = Vec::new();
     let mut hashes = BTreeMap::new();
     let mut bytes = 0usize;
+    let mut scanned = 0usize;
     let mut total = 0usize;
+    let mut oversized = Vec::new();
     let mut freshness = queries.freshness();
     for entry in scoped {
         let structural = input.mode == SearchMode::Structural;
@@ -285,16 +299,28 @@ async fn engine_candidates(
         if structural && pattern_language.is_none() {
             continue;
         }
-        let snapshot = queries.snapshot(&entry.path)?;
+        // One file over the live-read ceiling is excluded by name; it never
+        // decides the answer for every small file in scope.
+        let snapshot = match queries.observe(&entry.path)? {
+            SourceRead::Observed(snapshot) => snapshot,
+            SourceRead::Oversized { .. } => {
+                oversized.push(entry.path);
+                continue;
+            }
+        };
         freshness = observed(freshness, snapshot.freshness);
         let FileContent::Text(source) = snapshot.content else {
             continue;
         };
+        scanned += 1;
         bytes = bytes.saturating_add(source.len());
-        if bytes > 64 * 1024 * 1024 {
+        if bytes > MAX_SCAN_BYTES {
             return Err(WorkspaceError::new(
                 ErrorKind::BudgetTooSmall,
-                "search scan exceeds 64 MiB; narrow the path",
+                format!(
+                    "search scan exceeds 64 MiB at {} ({scanned} files read so far); narrow the path",
+                    entry.path
+                ),
             ));
         }
         let request = if structural {
@@ -342,10 +368,14 @@ async fn engine_candidates(
             continue;
         }
         total = total.saturating_add(hits.len());
-        if total > 20_000 {
+        if total > MAX_MATCHED_LINES {
             return Err(WorkspaceError::new(
                 ErrorKind::BudgetTooSmall,
-                "search exceeds 20000 matched lines; narrow the path or query",
+                format!(
+                    "search exceeds 20000 matched lines at {} ({} matching files so far); narrow the path or query",
+                    entry.path,
+                    candidates.len() + 1
+                ),
             ));
         }
         let mut test_ranges = Vec::new();
@@ -385,7 +415,28 @@ async fn engine_candidates(
             test_ranges,
         });
     }
-    Ok((candidates, hashes, freshness))
+    let notes = omission_note(&oversized).into_iter().collect();
+    Ok((candidates, hashes, freshness, notes))
+}
+
+/// Coverage is incomplete when scoped files were excluded; name them.
+fn omission_note(oversized: &[String]) -> Option<String> {
+    if oversized.is_empty() {
+        return None;
+    }
+    let mut named = oversized
+        .iter()
+        .take(NAMED_OMISSIONS)
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(", ");
+    if oversized.len() > NAMED_OMISSIONS {
+        named.push_str(&format!(" and {} more", oversized.len() - NAMED_OMISSIONS));
+    }
+    Some(format!(
+        "coverage is incomplete: {} file(s) over the 1 MiB live-read ceiling were not searched: {named}; scope with path to exclude them",
+        oversized.len()
+    ))
 }
 
 fn is_symbolish(query: &str) -> bool {

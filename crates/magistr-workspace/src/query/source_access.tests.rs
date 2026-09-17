@@ -40,6 +40,38 @@ fn snapshot_preserves_original_bytes_hash_and_rejects_directories() {
 }
 
 #[test]
+fn oversized_source_is_a_typed_observation_and_a_named_refusal() {
+    let dir = tempfile::tempdir().expect("fixture");
+    fs::create_dir(dir.path().join("data")).expect("directory");
+    let huge = vec![b'x'; MAX_FILE_BYTES + 1];
+    fs::write(dir.path().join("data/huge.json"), &huge).expect("oversized source");
+    fs::write(dir.path().join("data/small.json"), b"{}").expect("small source");
+    let policy = WorkspacePolicy::resolve(&ResolveOptions::new(dir.path())).expect("policy");
+    let worker = worker();
+    let query = WorkspaceQueries::new(&policy, &worker, None).expect("queries");
+    match query.observe("data/huge.json").expect("observation") {
+        SourceRead::Oversized { bytes } => assert_eq!(bytes, huge.len() as u64),
+        SourceRead::Observed(_) => panic!("an oversized file is never observed as bytes"),
+    }
+    assert!(matches!(
+        query.observe("data/small.json").expect("observation"),
+        SourceRead::Observed(_)
+    ));
+    let refusal = query
+        .snapshot("data\\huge.json")
+        .err()
+        .expect("named refusal");
+    assert_eq!(refusal.kind, ErrorKind::BudgetTooSmall);
+    assert!(
+        refusal.message.contains("data/huge.json")
+            && refusal.message.contains("1 MiB")
+            && refusal.message.contains(&huge.len().to_string()),
+        "{}",
+        refusal.message
+    );
+}
+
+#[test]
 fn live_walk_honors_nested_ignores_metadata_and_empty_directories() {
     let dir = tempfile::tempdir().expect("fixture");
     for path in ["src/empty", ".git", ".workbench", "vendor"] {

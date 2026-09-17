@@ -44,6 +44,26 @@ fn context_is_attached_with_retained_blank_line_semantics() {
     );
 }
 
+#[test]
+fn omission_note_names_the_first_five_excluded_files_and_counts_the_rest() {
+    assert_eq!(omission_note(&[]), None);
+    let one = omission_note(&["data/huge.json".into()]).expect("note");
+    assert!(
+        one.contains("1 file(s)") && one.contains("data/huge.json") && one.contains("incomplete"),
+        "{one}"
+    );
+    assert!(!one.contains("more"));
+    let paths: Vec<String> = (0..7).map(|n| format!("data/huge{n}.json")).collect();
+    let many = omission_note(&paths).expect("note");
+    assert!(
+        many.contains("7 file(s)")
+            && many.contains("data/huge4.json")
+            && many.contains("and 2 more"),
+        "{many}"
+    );
+    assert!(!many.contains("data/huge5.json"));
+}
+
 #[tokio::test]
 async fn files_and_empty_scopes_do_not_start_the_native_worker() {
     use crate::{
