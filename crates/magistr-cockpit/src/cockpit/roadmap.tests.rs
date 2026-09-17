@@ -1,5 +1,5 @@
-use magistr_engine::NativeEvent;
-use magistr_engine::native::{Chunk, Signal};
+use magistr_workflow_contracts::NativeEvent;
+use magistr_workflow_contracts::{Chunk, Signal};
 use serde_json::json;
 
 use super::*;

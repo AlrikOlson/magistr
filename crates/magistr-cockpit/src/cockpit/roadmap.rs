@@ -1,8 +1,8 @@
 //! The Roadmap tab's state.
 
 use super::RoadmapSort;
-use magistr_engine::native::{Chunk, Signal};
-use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
+use magistr_workflow_contracts::{Chunk, Signal};
+use magistr_workflow_contracts::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::camera::Camera;
 use super::chunk_state::ChunkState;

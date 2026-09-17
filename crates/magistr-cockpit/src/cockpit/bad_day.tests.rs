@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use magistr_engine::CheckpointReason;
+use magistr_domain::workflow::CheckpointReason;
 use serde_json::json;
 
 use super::*;
@@ -22,14 +22,16 @@ fn sky() -> Model {
         .with_tab(StageTab::Roadmap);
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(211, 306),
-            chunks: crate::harness::fixtures::chunks_from(vec![
-                json!({"id": "layout", "name": "layout", "status": "done", "priority": 200, "deps": []}),
-                json!({"id": "e6b", "name": "e6b", "status": "in_progress", "priority": 300, "deps": ["layout"]}),
-            ]),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(211, 306),
+                chunks: crate::harness::fixtures::chunks_from(vec![
+                    json!({"id": "layout", "name": "layout", "status": "done", "priority": 200, "deps": []}),
+                    json!({"id": "e6b", "name": "e6b", "status": "in_progress", "priority": 300, "deps": ["layout"]}),
+                ]),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     model
 }

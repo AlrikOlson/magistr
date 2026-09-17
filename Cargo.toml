@@ -14,6 +14,7 @@ members = [
     "crates/magistr-cockpit-runtime",
     "crates/magistr-tui",
     "crates/magistr-workflow",
+    "crates/magistr-workflow-contracts",
     "crates/magistr-workspace",
     "crates/magistr-process",
 ]

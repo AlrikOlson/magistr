@@ -47,6 +47,7 @@ OWNED_SRC=(
     "$PROJECT_ROOT/crates/magistr-engine/src/"
     "$PROJECT_ROOT/crates/magistr-domain/src/"
     "$PROJECT_ROOT/crates/magistr-application/src/"
+    "$PROJECT_ROOT/crates/magistr-workflow-contracts/src/"
 )
 
 owned_sources() {

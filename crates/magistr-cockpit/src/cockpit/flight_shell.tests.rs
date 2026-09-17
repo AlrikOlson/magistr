@@ -95,7 +95,7 @@ fn pausing_answering_and_finishing_remove_the_activity_indicator() {
             title: "Run checks".into(),
             choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)],
             edit: false,
-            risk: magistr_engine::policy::RiskTier::Low,
+            risk: magistr_domain::policy::RiskTier::Low,
             plan: None,
         }),
     );
@@ -117,7 +117,7 @@ use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree, Resolved};
 use crate::pixel::Typography;
 use magistr_application::sessions::{AgentEvent, PermissionChoice, PermissionKind, TurnEnd};
-use magistr_engine::{FeedStatus, NativeSnapshot};
+use magistr_workflow_contracts::{FeedStatus, NativeSnapshot};
 use serde_json::json;
 
 fn model(size: Size) -> Model {
@@ -502,7 +502,7 @@ fn a_pending_request_keeps_every_answer_and_the_message_box_inside_the_window() 
                     .map(|(i, kind)| PermissionChoice::new(i.to_string(), kind))
                     .collect(),
                 edit: false,
-                risk: magistr_engine::policy::RiskTier::Low,
+                risk: magistr_domain::policy::RiskTier::Low,
                 plan: None,
             }),
         );

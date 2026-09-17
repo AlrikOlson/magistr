@@ -1,5 +1,5 @@
 use super::*;
-use crate::native::OwnerGeneration;
+use crate::native::{Delivery, EventCursor, OwnerGeneration};
 
 fn at(epoch: u64, sequence: u64) -> Option<EventCursor> {
     Some(EventCursor {

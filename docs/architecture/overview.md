@@ -10,6 +10,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-cli` | Commands, project setup, runtime integration, concrete workflow/workspace interface clients, and MCP service startup |
 | `magistr-domain` | Deterministic identities, run rules, policy, and verification values |
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
+| `magistr-workflow-contracts` | Canonical workflow records, typed mutation frames, snapshots and freshness values, independent of stores and runtimes |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
 | `magistr-engine` | Sessions, workflow policies, costs, gates, native think-and-ship integration, and the one producer of typed workflow snapshots and events |
 | `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, generation-fenced single-owner admission with explicit sessions, Unix client attachment through the shared owner endpoint, and the explicit legacy lock migration; the bridge, launcher and worker lifetime live in `magistr-cli` |

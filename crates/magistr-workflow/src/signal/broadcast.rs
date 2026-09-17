@@ -6,22 +6,11 @@
 //! [`crate::infra::broadcast`]; this is the typed view the signal engine
 //! emits through, mirroring `crate::roadmap::broadcast`.
 
-use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::infra::{Broadcaster as EngineBroadcaster, Family};
-use crate::signal::domain::Signal;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum SignalFrame {
-    /// A new signal was captured.
-    SignalCaptured { signal: Signal },
-    /// A non-terminal change (research/link/surface/snooze/promote).
-    SignalChanged { signal: Signal },
-    /// Terminal: the signal was dismissed (ignored).
-    SignalDismissed { signal: Signal },
-}
+pub use magistr_workflow_contracts::signal::SignalFrame;
 
 /// Cheaply cloneable handle wrapping the shared [`EngineBroadcaster`], tagging
 /// every emitted frame with `family: "signal"`.
@@ -51,7 +40,7 @@ impl Broadcaster {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::signal::domain::{SignalKind, SignalStatus};
+    use crate::signal::domain::{Signal, SignalKind, SignalStatus};
 
     fn signal() -> Signal {
         Signal {

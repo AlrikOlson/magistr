@@ -4,7 +4,7 @@ use crate::cockpit::{LauncherData, LauncherSession, Msg, SessionOutcome, Size, S
 use crate::input::{KeyCode, KeyEvent, Modifiers};
 use crate::job::{JobId, JobOutput};
 use magistr_application::sessions::{AgentEvent, PermissionChoice, PermissionKind};
-use magistr_engine::{CheckpointReason, policy::RiskTier};
+use magistr_domain::{policy::RiskTier, workflow::CheckpointReason};
 
 fn native() -> Model {
     Model::new(Size::new(120, 40)).with_surface(Surface::Native)
@@ -182,7 +182,7 @@ fn every_binding_is_reachable_and_a_verb_row_dispatches_its_key() {
 #[test]
 fn a_loop_verb_row_dispatches_the_verb_not_its_key() {
     use crate::cockpit::{CheckpointCmd, Cmd, LoopCmd, LoopEvent};
-    use magistr_engine::CheckpointReason;
+    use magistr_domain::workflow::CheckpointReason;
     let mut model = native();
     let _ = update(
         &mut model,
@@ -262,13 +262,13 @@ fn enter_on_a_chunk_row_takes_the_fold_and_cmd_enter_holds_the_camera() {
         update(
             model,
             Msg::Engine(crate::engine::EngineEvent::Seed(
-                magistr_engine::NativeSnapshot {
+                magistr_workflow_contracts::NativeSnapshot {
                     progress: crate::harness::fixtures::progress(0, 1),
                     chunks: crate::harness::fixtures::chunks_from(vec![serde_json::json!({
                         "id": "gui2-2d5", "name": "palette", "title": "the palette",
                         "status": "in_progress", "priority": 162,
                     })]),
-                    ..magistr_engine::NativeSnapshot::default()
+                    ..magistr_workflow_contracts::NativeSnapshot::default()
                 },
             )),
         );

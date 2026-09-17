@@ -10,12 +10,12 @@
 //! live feed would deliver. The leniency is the fixture's, not the
 //! wire's: a live line missing a field is dropped by that same decoder.
 
-use magistr_engine::native::{
+use magistr_workflow_contracts::{
     Action, ActionType, Check, CheckType, Chunk, ChunkStatus, NativeFrame, Objective,
     ObjectiveStatus, Signal, SignalKind, SignalStatus, Task, TaskStatus, TaskType, ThinkStep,
     VerificationMode,
 };
-use magistr_engine::{NativeEvent, NativeSnapshot};
+use magistr_workflow_contracts::{NativeEvent, NativeSnapshot};
 use serde_json::{Value, json};
 
 use crate::engine::EngineEvent;
@@ -79,7 +79,7 @@ pub fn step(number: u32) -> ThinkStep {
         context: String::new(),
         thought: String::new(),
         outcome: String::new(),
-        next_action: magistr_engine::native::NextAction::default(),
+        next_action: magistr_workflow_contracts::NextAction::default(),
         rationale: String::new(),
         confidence: None,
         uncertainty_notes: None,
@@ -185,11 +185,11 @@ pub fn snapshot(chunks: Vec<Chunk>, signals: Vec<Signal>) -> NativeSnapshot {
 
 /// The roadmap's progress as `done` of `total` chunks.
 #[must_use]
-pub fn progress(done: u32, total: u32) -> magistr_engine::RoadmapProgress {
-    magistr_engine::RoadmapProgress {
+pub fn progress(done: u32, total: u32) -> magistr_workflow_contracts::RoadmapProgress {
+    magistr_workflow_contracts::RoadmapProgress {
         total_tasks: total,
         checked_tasks: done,
-        ..magistr_engine::RoadmapProgress::default()
+        ..magistr_workflow_contracts::RoadmapProgress::default()
     }
 }
 

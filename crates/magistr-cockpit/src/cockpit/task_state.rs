@@ -1,6 +1,6 @@
 //! Where one planned task stands, as the ship records and events name it.
 
-use magistr_engine::native::TaskStatus;
+use magistr_workflow_contracts::TaskStatus;
 
 use crate::pixel::Icon;
 use crate::theme::Icons;

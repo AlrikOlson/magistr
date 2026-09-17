@@ -3,4 +3,4 @@
 //! line; written by the broadcaster.
 
 /// The wire key of the publisher's declared epoch.
-pub const EPOCH_KEY: &str = "epoch";
+pub use magistr_workflow_contracts::EPOCH_KEY;

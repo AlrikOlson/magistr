@@ -28,7 +28,7 @@
 //! the state is open to the cockpit rather than hidden behind a verb
 //! per caller.
 
-use magistr_engine::{NativeEvent, ShipFrame, ThinkFrame};
+use magistr_workflow_contracts::{NativeEvent, ShipFrame, ThinkFrame};
 
 use super::checkpoint_cmd::CheckpointCmd;
 use super::cmd::Cmd;

@@ -1,6 +1,6 @@
 //! What the cockpit asks of the checkpoint spine.
 
-use magistr_engine::CheckpointReason;
+use magistr_domain::workflow::CheckpointReason;
 
 /// A checkpoint request from the cockpit, carried by
 /// [`Cmd::Checkpoint`](super::Cmd::Checkpoint): the consumer runs it

@@ -8,6 +8,21 @@ document names the one producer of those facts, the typed shapes it produces,
 the identities that travel with them, and what a consumer may conclude from
 each.
 
+## Canonical values
+
+`magistr-workflow-contracts` owns the records, family frame enums and pure
+projection values consumed by surfaces. The workflow and engine crates retain
+compatibility re-exports of these exact types; no conversion or duplicate model
+sits between the producer and the view. The contracts crate has no store, process,
+provider, workspace-client or async-runtime dependency and no feature-selected
+storage facade. It parses supplied wire bytes and timestamps without reading a
+clock. Native readers, broadcasters, report-file parsing and owner-lock generation
+allocation remain with their effectful owners.
+
+The cockpit's `DisplayPhase` is an inference used for presentation. It cannot
+advance an objective or grant workflow authority. Application session events and
+permission policy remain in `magistr-application::sessions`.
+
 ## One producer
 
 `magistr_engine::native` is the only producer of workflow facts for every

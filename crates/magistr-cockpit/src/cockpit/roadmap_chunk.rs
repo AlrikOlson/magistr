@@ -1,7 +1,7 @@
 //! One roadmap chunk as the Roadmap tab holds it.
 
 use crate::layout::TextMetrics;
-use magistr_engine::native::Chunk;
+use magistr_workflow_contracts::Chunk;
 
 use super::chunk_state::ChunkState;
 use super::proposal_kind::ProposalKind;

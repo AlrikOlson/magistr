@@ -2,8 +2,8 @@
 
 use std::collections::VecDeque;
 
-use magistr_engine::native::{BlockerKind, Chunk};
-use magistr_engine::{NativeEvent, RoadmapFrame};
+use magistr_workflow_contracts::{BlockerKind, Chunk};
+use magistr_workflow_contracts::{NativeEvent, RoadmapFrame};
 
 use super::dock_item::DockItem;
 use super::engine_cmd::EngineCmd;

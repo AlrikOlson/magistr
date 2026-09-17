@@ -19,16 +19,18 @@ fn seeded() -> Model {
     shipped["updated_at"] = "2026-08-30T14:02:00Z".into();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(1, 4),
-            chunks: crate::harness::fixtures::chunks_from(vec![
-                shipped,
-                chunk("next", "pending", vec!["shipped"]),
-                chunk("later", "pending", vec!["shipped", "next"]),
-                chunk("elsewhere", "pending", vec![]),
-            ]),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(1, 4),
+                chunks: crate::harness::fixtures::chunks_from(vec![
+                    shipped,
+                    chunk("next", "pending", vec!["shipped"]),
+                    chunk("later", "pending", vec!["shipped", "next"]),
+                    chunk("elsewhere", "pending", vec![]),
+                ]),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     m
 }

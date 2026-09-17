@@ -60,7 +60,7 @@ impl OwnerLease {
             .files
             .first_mut()
             .ok_or_else(|| io::Error::other("magistr: lease taken without a lock file"))?;
-        lease.generation = OwnerGeneration::mint(lock).map_err(|error| {
+        lease.generation = super::owner_generation::mint(lock).map_err(|error| {
             io::Error::new(
                 error.kind(),
                 format!(

@@ -6,8 +6,8 @@ use std::collections::BTreeMap;
 mod investigation;
 pub use investigation::Investigation;
 
-use magistr_engine::native::{BranchStatus, ThinkBranch};
-use magistr_engine::{NativeEvent, NativeSnapshot, ShipFrame, ThinkFrame};
+use magistr_workflow_contracts::{BranchStatus, ThinkBranch};
+use magistr_workflow_contracts::{NativeEvent, NativeSnapshot, ShipFrame, ThinkFrame};
 
 use super::ship_moment::ShipMoment;
 use super::trace_card::TraceCardRow;
@@ -555,8 +555,8 @@ impl Trace {
 
 /// The branch status in the store's spelling — the word the lane list
 /// prints after the branch's name.
-fn branch_status_name(status: magistr_engine::native::BranchStatus) -> &'static str {
-    use magistr_engine::native::BranchStatus;
+fn branch_status_name(status: magistr_workflow_contracts::BranchStatus) -> &'static str {
+    use magistr_workflow_contracts::BranchStatus;
     match status {
         BranchStatus::Active => "active",
         BranchStatus::Merged => "merged",

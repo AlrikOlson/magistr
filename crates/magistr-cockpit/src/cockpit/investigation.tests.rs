@@ -1,7 +1,7 @@
 use super::*;
 use crate::harness::fixtures;
-use magistr_engine::NativeSnapshot;
-use magistr_engine::native::{BranchStatus, ThinkBranch};
+use magistr_workflow_contracts::NativeSnapshot;
+use magistr_workflow_contracts::{BranchStatus, ThinkBranch};
 use serde_json::json;
 
 fn trace(steps: Vec<serde_json::Value>) -> Trace {

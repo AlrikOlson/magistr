@@ -141,6 +141,7 @@ fn the_index_names_application_contracts_and_host_clients_with_their_guards() {
         "magistr-cli/src/application/workflow_client/",
         "magistr-cli/src/application/workspace_client/",
         "magistr-application/src/sessions/",
+        "magistr-workflow-contracts/src/",
     ] {
         let root = crates_dir.join(prefix);
         let mut files = BTreeSet::new();

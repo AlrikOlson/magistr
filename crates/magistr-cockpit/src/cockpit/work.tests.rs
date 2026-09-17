@@ -1,4 +1,4 @@
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
 
 use super::*;
 use crate::cockpit::{Msg, Size, StageTab, Surface, update};
@@ -26,11 +26,13 @@ fn seeded(surface: Surface, other: Option<&str>) -> Model {
     }
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(1, 5),
-            chunks: crate::harness::fixtures::chunks_from(chunks),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(1, 5),
+                chunks: crate::harness::fixtures::chunks_from(chunks),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     m
 }

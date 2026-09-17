@@ -11,7 +11,10 @@ fn a_chunk_names_itself_after_its_id_and_carries_its_record_shape() {
         record.title, "harmonic engine",
         "the name stands in for a missing claim"
     );
-    assert_eq!(record.status, magistr_engine::ChunkStatus::Pending);
+    assert_eq!(
+        record.status,
+        magistr_workflow_contracts::ChunkStatus::Pending
+    );
     assert_eq!(record.deps, vec!["import".to_owned()]);
     assert_eq!(record.group.as_deref(), Some("core"));
     assert!(!chunk.pinned);

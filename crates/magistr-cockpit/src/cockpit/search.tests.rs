@@ -53,55 +53,57 @@ fn seeded() -> Model {
     };
     let _ = update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(4, 5),
-            chunks: crate::harness::fixtures::chunks_from(vec![
-                done(
-                    "latte-floor",
-                    "Every light palette clears its floor",
-                    "The Latte pens are all contrast-checked, nudged until it clears the contrast floor the validator declares, role by role.",
-                    "2026-08-29T15:00:00Z",
-                ),
-                done(
-                    "pane-parity",
-                    "The native pane at parity",
-                    "Stills in both media are measured; every run clears the cell pens\u{2019} own contrast floor (crates/magistr-gui2/src/lexicon.rs).",
-                    "2026-08-30T09:30:00Z",
-                ),
-                done(
-                    "sweep",
-                    "The contrast sweep",
-                    "A sweep over every painted cell asks the floor of each pen.",
-                    "2026-08-27T09:30:00Z",
-                ),
-                done(
-                    "ink",
-                    "Ink at the consumer",
-                    "The consumer fixes its own floor; the palette is never retuned.",
-                    "2026-08-28T09:30:00Z",
-                ),
-                serde_json::json!({
-                    "id": "gui2-2a", "name": "gui2-2a", "status": "in_progress", "priority": 159,
-                    "description": "contrast floor everywhere — but not shipped, so not a chapter",
-                }),
-            ]),
-            steps: vec![crate::harness::fixtures::step_from(serde_json::json!({
-                "step_number": 387,
-                "purpose": "the pen on screen",
-                "thought": "Anti-aliasing is a rasterizer-question; the pen on screen is style after REVERSE, and the floor is asked of what was painted, never of the palette.",
-            }))],
-            tasks: vec![crate::harness::fixtures::task_from(serde_json::json!({
-                "id": "ink",
-                "actions": [{
-                    "id": 198, "type": "code",
-                    "description": "ensure_contrast at the consumer",
-                    "files_touched": ["theme/ink.rs"],
-                    "timestamp": "2026-08-30T10:00:00Z",
-                }],
-                "checks": [{"name": "contrast", "passed": true, "timestamp": "2026-08-30T10:01:00Z"}],
-            }))],
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(4, 5),
+                chunks: crate::harness::fixtures::chunks_from(vec![
+                    done(
+                        "latte-floor",
+                        "Every light palette clears its floor",
+                        "The Latte pens are all contrast-checked, nudged until it clears the contrast floor the validator declares, role by role.",
+                        "2026-08-29T15:00:00Z",
+                    ),
+                    done(
+                        "pane-parity",
+                        "The native pane at parity",
+                        "Stills in both media are measured; every run clears the cell pens\u{2019} own contrast floor (crates/magistr-gui2/src/lexicon.rs).",
+                        "2026-08-30T09:30:00Z",
+                    ),
+                    done(
+                        "sweep",
+                        "The contrast sweep",
+                        "A sweep over every painted cell asks the floor of each pen.",
+                        "2026-08-27T09:30:00Z",
+                    ),
+                    done(
+                        "ink",
+                        "Ink at the consumer",
+                        "The consumer fixes its own floor; the palette is never retuned.",
+                        "2026-08-28T09:30:00Z",
+                    ),
+                    serde_json::json!({
+                        "id": "gui2-2a", "name": "gui2-2a", "status": "in_progress", "priority": 159,
+                        "description": "contrast floor everywhere — but not shipped, so not a chapter",
+                    }),
+                ]),
+                steps: vec![crate::harness::fixtures::step_from(serde_json::json!({
+                    "step_number": 387,
+                    "purpose": "the pen on screen",
+                    "thought": "Anti-aliasing is a rasterizer-question; the pen on screen is style after REVERSE, and the floor is asked of what was painted, never of the palette.",
+                }))],
+                tasks: vec![crate::harness::fixtures::task_from(serde_json::json!({
+                    "id": "ink",
+                    "actions": [{
+                        "id": 198, "type": "code",
+                        "description": "ensure_contrast at the consumer",
+                        "files_touched": ["theme/ink.rs"],
+                        "timestamp": "2026-08-30T10:00:00Z",
+                    }],
+                    "checks": [{"name": "contrast", "passed": true, "timestamp": "2026-08-30T10:01:00Z"}],
+                }))],
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     let _ = update(
         &mut model,

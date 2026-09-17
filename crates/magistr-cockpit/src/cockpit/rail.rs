@@ -1,7 +1,7 @@
 //! Where you are and what the plan is — the left rail's state.
 
-use magistr_engine::native::{ChunkStatus, SignalStatus};
-use magistr_engine::{NativeEvent, NativeSnapshot, RoadmapFrame, SignalFrame};
+use magistr_workflow_contracts::{ChunkStatus, SignalStatus};
+use magistr_workflow_contracts::{NativeEvent, NativeSnapshot, RoadmapFrame, SignalFrame};
 
 use super::budget::Budget;
 use super::charter_offer::CharterOffer;

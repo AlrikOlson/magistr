@@ -12,7 +12,7 @@ use crate::cockpit::{
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
 use crate::workbench::JournalEntry;
 use magistr_application::sessions::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
 
 fn model() -> Model {
     Model::new(Size::new(80, 24)).with_tab(crate::cockpit::StageTab::Turn)
@@ -102,7 +102,10 @@ fn reviewing(ask: AgentEvent) -> Model {
     let mut m = Model::new(Size::new(125, 32)).with_surface(Surface::Native);
     {
         let spine = m.rail_mut().spine_mut();
-        let id = spine.open(magistr_engine::CheckpointReason::Iteration, "iter 1");
+        let id = spine.open(
+            magistr_domain::workflow::CheckpointReason::Iteration,
+            "iter 1",
+        );
         spine.saved(&id, Some("abc123".to_owned()), true);
     }
     update(
@@ -526,7 +529,7 @@ fn a_risky_ask_announces_before_it_asks_for_the_checkpoint() {
             Cmd::Announce("needs you: rm -rf build".to_owned()),
             Cmd::Checkpoint(CheckpointCmd::Save {
                 id: "cp-1".to_owned(),
-                reason: magistr_engine::CheckpointReason::Risk,
+                reason: magistr_domain::workflow::CheckpointReason::Risk,
                 label: "rm -rf build".to_owned(),
             }),
         ]

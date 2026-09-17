@@ -3,7 +3,7 @@
 use std::collections::VecDeque;
 use std::time::Duration;
 
-use magistr_engine::{FeedStatus, NativeSnapshot};
+use magistr_workflow_contracts::{FeedStatus, NativeSnapshot};
 
 use super::agent_missing::AgentMissing;
 use super::animation::Animation;
@@ -32,7 +32,7 @@ use super::msg::Msg;
 use super::palette::Palette;
 use super::pane::Pane;
 use super::path_stop::PathStop;
-use super::phase::Phase;
+use super::phase::DisplayPhase;
 use super::place::Place;
 use super::projection::Projection;
 use super::rail::Rail;
@@ -127,7 +127,7 @@ pub struct Model {
     pub(super) roadmap_requests: Vec<super::RoadmapRequest>,
     pub(super) roadmap_requests_open: bool,
     pub(super) roadmap_request_scroll: usize,
-    pub(super) phase: Option<Phase>,
+    pub(super) phase: Option<DisplayPhase>,
     pub(super) rail: Rail,
     pub(super) loop_status: Option<LoopStatus>,
     pub(super) terminals: Terminals,
@@ -1107,7 +1107,7 @@ impl Model {
 
     /// The workflow phase the engine feed last implied, once it did.
     #[must_use]
-    pub const fn phase(&self) -> Option<Phase> {
+    pub const fn phase(&self) -> Option<DisplayPhase> {
         self.phase
     }
 

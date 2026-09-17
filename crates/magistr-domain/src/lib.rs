@@ -2,7 +2,7 @@
 //!
 //! Effects supply identities and observations. This crate neither allocates IDs
 //! from clocks/randomness nor loads project or provider state. Native workflow
-//! library records stay behind the engine's native adapter.
+//! records belong to the separate effect-free workflow-contracts crate.
 
 #![no_std]
 #![forbid(unsafe_code)]

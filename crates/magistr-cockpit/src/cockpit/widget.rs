@@ -1,6 +1,6 @@
 //! The widgets of the cockpit and their ids.
 
-use super::phase::Phase;
+use super::phase::DisplayPhase;
 use super::place::Place;
 use super::stage_tab::StageTab;
 use crate::widget_id::WidgetId;
@@ -1358,13 +1358,13 @@ impl Widget {
 
     /// The widget that shows `phase` on the strip; `Done` has none.
     #[must_use]
-    pub const fn phase(phase: Phase) -> Option<Self> {
+    pub const fn phase(phase: DisplayPhase) -> Option<Self> {
         match phase {
-            Phase::Research => Some(Self::Research),
-            Phase::Plan => Some(Self::Plan),
-            Phase::Execute => Some(Self::Execute),
-            Phase::Verify => Some(Self::Verify),
-            Phase::Done => None,
+            DisplayPhase::Research => Some(Self::Research),
+            DisplayPhase::Plan => Some(Self::Plan),
+            DisplayPhase::Execute => Some(Self::Execute),
+            DisplayPhase::Verify => Some(Self::Verify),
+            DisplayPhase::Done => None,
         }
     }
 }

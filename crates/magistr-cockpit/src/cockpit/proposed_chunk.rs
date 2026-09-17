@@ -1,6 +1,6 @@
 //! One star of a proposed roadmap.
 
-use magistr_engine::native::{Chunk, ChunkStatus};
+use magistr_workflow_contracts::{Chunk, ChunkStatus};
 
 /// A chunk the charting proposes (Birth F4) — what `roadmap_add_chunk`
 /// will be called with once the proposal is accepted: the id, the

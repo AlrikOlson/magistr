@@ -1,4 +1,4 @@
-use magistr_engine::native::TaskStatus;
+use magistr_workflow_contracts::TaskStatus;
 
 use super::*;
 

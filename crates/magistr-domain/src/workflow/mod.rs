@@ -1,5 +1,8 @@
 //! Pure values and rules for workflow iteration progress.
 
+pub mod checkpoint_reason;
+pub use checkpoint_reason::CheckpointReason;
+
 pub mod iteration_state;
 pub mod iteration_status;
 pub mod operation_admission;

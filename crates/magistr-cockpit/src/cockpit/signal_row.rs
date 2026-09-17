@@ -1,6 +1,6 @@
 //! One stakeholder signal as the Roadmap tab's inbox holds it.
 
-use magistr_engine::native::{Signal, SignalStatus};
+use magistr_workflow_contracts::{Signal, SignalStatus};
 
 use super::copy::Copy;
 

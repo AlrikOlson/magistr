@@ -16,63 +16,16 @@
 
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::infra::{Broadcaster as EngineBroadcaster, Family};
-use crate::think::domain::{BranchStatus, ThinkStep};
 
 /// One mutation event. Encoded as a single JSON object with an externally
 /// tagged `type` discriminant so a stream of mixed frames is unambiguous.
 /// The wrapping [`Broadcaster`] flattens a `family: "think"` field onto
 /// every emitted frame so a shared viewer can interleave events from
 /// other tool families on one timeline.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum BroadcastFrame {
-    /// A new step was appended to the trace (either main line or branch).
-    StepAppended {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        session_id: Option<String>,
-        step: Box<ThinkStep>,
-    },
-    /// An older step's `revised_by` pointer was set. The revising step
-    /// itself is delivered via a separate [`Self::StepAppended`] frame.
-    StepRevised {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        session_id: Option<String>,
-        revised_step: u32,
-        by_step: u32,
-    },
-    /// A branch transitioned to a new status. `merged_into` is set only
-    /// when `status == Merged` and the caller named a synthesis step.
-    BranchStatusChanged {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        session_id: Option<String>,
-        branch_id: String,
-        status: BranchStatus,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        merged_into: Option<u32>,
-    },
-    /// The `pinned` flag on a step changed.
-    PinChanged {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        session_id: Option<String>,
-        step_number: u32,
-        pinned: bool,
-    },
-    /// The most-recent step's `estimated_total` was revised in place.
-    EstimateRevised {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        session_id: Option<String>,
-        old: u32,
-        new: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        reason: Option<String>,
-    },
-    /// The entire trace was wiped.
-    Cleared,
-}
+pub use magistr_workflow_contracts::think::ThinkFrame as BroadcastFrame;
 
 /// Cheaply cloneable handle that wraps the shared [`engine::Broadcaster`](crate::infra::Broadcaster)
 /// and tags every emitted frame with `family: "think"`.

@@ -1,6 +1,6 @@
 //! What the cockpit knows about its own view of the store.
 
-use magistr_engine::{Delivery, FeedStatus};
+use magistr_workflow_contracts::{Delivery, FeedStatus};
 
 use super::freshness::Freshness;
 

@@ -1,6 +1,8 @@
 //! What the feed — or the cockpit's own engine port — reports.
 
-use magistr_engine::{Delivery, FeedStatus, NativeEvent, NativeSnapshot, SnapshotCursor};
+use magistr_workflow_contracts::{
+    Delivery, FeedStatus, NativeEvent, NativeSnapshot, SnapshotCursor,
+};
 
 use crate::cockpit::EngineCmd;
 

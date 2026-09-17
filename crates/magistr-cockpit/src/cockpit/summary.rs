@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use magistr_engine::FeedStatus;
+use magistr_workflow_contracts::FeedStatus;
 
 use super::model::Model;
 use crate::job::JobOutput;

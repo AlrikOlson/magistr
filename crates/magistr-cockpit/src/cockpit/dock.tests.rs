@@ -1,4 +1,4 @@
-use magistr_engine::NativeEvent;
+use magistr_workflow_contracts::NativeEvent;
 use serde_json::json;
 
 use super::*;

@@ -9,7 +9,7 @@
 
 use std::time::Duration;
 
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
 
 use crate::cockpit::{
     FrameClock, Model, Msg, Size, StageTab, Widget, WorkbenchEvent, update, view,
@@ -596,11 +596,11 @@ impl Scenes {
         update(
             &mut m,
             Msg::Engine(crate::engine::EngineEvent::Seed(
-                magistr_engine::NativeSnapshot {
-                    progress: magistr_engine::RoadmapProgress {
+                magistr_workflow_contracts::NativeSnapshot {
+                    progress: magistr_workflow_contracts::RoadmapProgress {
                         total_tasks: 3,
                         checked_tasks: 1,
-                        ..magistr_engine::RoadmapProgress::default()
+                        ..magistr_workflow_contracts::RoadmapProgress::default()
                     },
                     chunks: vec![
                         fixtures::chunk_from(
@@ -618,7 +618,7 @@ impl Scenes {
                         "id": "sig-fast", "kind": "idea", "from": "alice", "body": "make startup faster",
                         "status": "researched", "enrichment": [{"confidence": 0.8}],
                     }))],
-                    ..magistr_engine::NativeSnapshot::default()
+                    ..magistr_workflow_contracts::NativeSnapshot::default()
                 },
             )),
         );
@@ -685,11 +685,11 @@ impl Scenes {
         update(
             &mut m,
             Msg::Engine(crate::engine::EngineEvent::Seed(
-                magistr_engine::NativeSnapshot {
-                    progress: magistr_engine::RoadmapProgress {
+                magistr_workflow_contracts::NativeSnapshot {
+                    progress: magistr_workflow_contracts::RoadmapProgress {
                         total_tasks: 306,
                         checked_tasks: 211,
-                        ..magistr_engine::RoadmapProgress::default()
+                        ..magistr_workflow_contracts::RoadmapProgress::default()
                     },
                     chunks: vec![
                         fixtures::chunk_from(serde_json::json!({"id": "motion", "name": "motion",
@@ -707,7 +707,7 @@ impl Scenes {
                         "blocked_by": {"kind": "awaiting_human", "reason": "scope undecided"}}),
                         ),
                     ],
-                    ..magistr_engine::NativeSnapshot::default()
+                    ..magistr_workflow_contracts::NativeSnapshot::default()
                 },
             )),
         );
@@ -721,11 +721,11 @@ impl Scenes {
         update(
             &mut m,
             Msg::Engine(crate::engine::EngineEvent::Seed(
-                magistr_engine::NativeSnapshot {
-                    progress: magistr_engine::RoadmapProgress {
+                magistr_workflow_contracts::NativeSnapshot {
+                    progress: magistr_workflow_contracts::RoadmapProgress {
                         total_tasks: 4,
                         checked_tasks: 2,
-                        ..magistr_engine::RoadmapProgress::default()
+                        ..magistr_workflow_contracts::RoadmapProgress::default()
                     },
                     chunks: vec![
                         fixtures::chunk_from(
@@ -741,7 +741,7 @@ impl Scenes {
                             serde_json::json!({"id": "launcher", "name": "Recovery checks", "title": "Check resumed deliveries", "status": "pending", "priority": 300, "deps": ["tabs", "rail"]}),
                         ),
                     ],
-                    ..magistr_engine::NativeSnapshot::default()
+                    ..magistr_workflow_contracts::NativeSnapshot::default()
                 },
             )),
         );

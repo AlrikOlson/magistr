@@ -250,7 +250,7 @@ pub use palette_row::PaletteRow;
 pub use pane::Pane;
 pub use path_stop::PathStop;
 pub use permission::Permission;
-pub use phase::Phase;
+pub use phase::DisplayPhase;
 pub use place::Place;
 pub use plan_task::PlanTask;
 pub use pointer_shape::PointerShape;

@@ -1,8 +1,8 @@
 //! Folding one message into the model.
 
-use magistr_engine::CheckpointReason;
+use magistr_domain::workflow::CheckpointReason;
 
-use magistr_engine::{FeedStatus, MagistrFrame, NativeEvent};
+use magistr_workflow_contracts::{FeedStatus, MagistrFrame, NativeEvent};
 
 use super::bad_day::BadDay;
 use super::binding::Binding;
@@ -30,7 +30,7 @@ use super::nav;
 use super::palette::Palette;
 use super::palette_row::{PaletteGo, PaletteRow};
 use super::pane::Pane;
-use super::phase::Phase;
+use super::phase::DisplayPhase;
 use super::place::Place;
 use super::request_phase::RequestPhase;
 use super::rule_mode::RuleMode;
@@ -99,7 +99,7 @@ use magistr_application::sessions::{AgentEvent, TurnEnd};
 /// awaiting-human blockers appear and clear as the frames say), a seed
 /// replacing the rail's state
 /// whole, and the phase a frame implies taken — never backwards within
-/// an iteration (see [`Phase::from_frame`]); a click on the rail's
+/// an iteration (see [`DisplayPhase::from_frame`]); a click on the rail's
 /// toggle collapses or expands it and a drag on its divider resizes it,
 /// both rewrapping the turn to the stage's new width; a job result is kept with the frame it
 /// landed on and settles the gate LED running as that job. Loop events
@@ -364,7 +364,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 .skip(docked)
                 .map(|card| Cmd::Announce(format!("needs you: {}", card.text(icons))))
                 .collect();
-            if let Some(phase) = Phase::from_event(&event)
+            if let Some(phase) = DisplayPhase::from_event(&event)
                 && advance_phase(model, phase)
             {
                 cmds.push(Cmd::Announce(format!("phase {phase}")));
@@ -466,10 +466,10 @@ fn checkpoint(model: &mut Model, event: CheckpointEvent) {
 /// Take `phase` unless the iteration is already past it; once done, the
 /// next frame starts over (a new objective on a plain `run`). Says
 /// whether the shown phase changed — what the runtime announces.
-fn advance_phase(model: &mut Model, phase: Phase) -> bool {
+fn advance_phase(model: &mut Model, phase: DisplayPhase) -> bool {
     let forward = model
         .phase
-        .is_none_or(|current| current == Phase::Done || phase > current);
+        .is_none_or(|current| current == DisplayPhase::Done || phase > current);
     let changed = model.phase != Some(phase);
     if forward {
         model.phase = Some(phase);
