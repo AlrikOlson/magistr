@@ -37,13 +37,15 @@ impl MapEnrichment {
             }
             return result;
         }
-        let mut paths = BTreeSet::new();
-        let mut graph_complete = files.len() <= Self::FILE_LIMIT;
-        if graph_complete {
-            paths.extend(files.iter().cloned());
-        } else {
-            result.notes.push(format!("import-graph summary and use counts unavailable: workspace exceeds the {}-file validation ceiling; no partial counts are reported", Self::FILE_LIMIT));
-        }
+        let mut graph_complete = true;
+        let mut paths = match Self::graph_inventory(files) {
+            Ok(inventory) => inventory,
+            Err(note) => {
+                graph_complete = false;
+                result.notes.push(note);
+                BTreeSet::new()
+            }
+        };
         if detail != MapDetail::Skeleton {
             paths.extend(visible.iter().take(Self::FILE_LIMIT).cloned());
             if visible.len() > Self::FILE_LIMIT {
@@ -96,6 +98,21 @@ impl MapEnrichment {
             result.imports = Some(imports);
         }
         result
+    }
+
+    /// The import-summary ceiling, decided from the live inventory before any
+    /// index read: the graph validates the complete inventory or nothing. Over
+    /// the ceiling there is no inventory at all, so no fan-in/fan-out or use
+    /// count can ever be computed from a subset.
+    fn graph_inventory(files: &[String]) -> Result<BTreeSet<String>, String> {
+        if files.len() > Self::FILE_LIMIT {
+            return Err(format!(
+                "import-graph summary and use counts unavailable: workspace has {} files, over the {}-file validation ceiling; no partial counts are reported",
+                files.len(),
+                Self::FILE_LIMIT
+            ));
+        }
+        Ok(files.iter().cloned().collect())
     }
 
     pub fn attach(&self, rows: &mut [MapRow], detail: MapDetail) {

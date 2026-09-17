@@ -399,8 +399,11 @@ occurrences per file, 1,000 in total) which cap the answer with a note rather
 than refuse (arch-14c10b; the c4 port had refused at 200 hits per file and
 20,000 in total over an unbounded file scan). Query patterns are at most 8,192 bytes
 and contain no NUL; context is at most 20 lines. Budgeted row cuts produce
-truncation manifests; work ceilings and oversized source/patterns receive
-explicit errors or per-file omission notes. Whole-row accounting uses serialized UTF-16
+truncation manifests; work ceilings and oversized patterns receive explicit
+errors that name the file at which the ceiling was crossed, while a live file
+over 1 MiB inside a lexical or structural scope is excluded by name and never
+aborts the small-file matches around it (audit-260912-25, below). Whole-row
+accounting uses serialized UTF-16
 units divided by four, rounded up, matching the retained wire contract.
 Search retains the reference's pre-context budget accounting; requested context
 can enlarge the final payload within its separate line/file ceilings.
@@ -410,6 +413,35 @@ requires a complete inventory of at most 512 files in one cache generation;
 otherwise graph/count summaries are omitted with a note. Outline enrichment
 is capped at 512 files; Cargo scans at 256 manifests with 24 output rows,
 eight entry points and 16 features per crate.
+
+### Bounded navigation coverage (audit-260912-25)
+
+Search reads each scoped file through one typed bounded observation: the
+1 MiB ceiling is decided from the file's metadata before a byte is read, so an
+oversized file costs a stat, and a file that grows past the ceiling while it
+is read is still refused. Single-file verbs (read, map manifests, reference
+validation) keep the `BUDGET_TOO_SMALL` refusal, now naming the path and its
+size. The lexical and structural scan excludes an oversized file and keeps
+going; the response then carries one note that says coverage is incomplete,
+names up to five excluded paths and counts the rest, with `path` scoping as
+the recovery. Absence of a match in an excluded file is therefore never
+claimed. The 64 MiB aggregate and 20,000-matched-line ceilings still refuse
+(the scan would otherwise be unbounded) but name the file at which they were
+crossed and how many files had been read or had matched. Budgets, the
+request's cancellation token and freshness accounting are unchanged;
+references take candidates from the index, which holds no oversized content,
+so they were never affected.
+
+The map import summary keeps its separate ceiling: the graph is validated
+from the complete live inventory of at most 512 files in one cache
+generation, or not at all. The decision is made from the inventory before any
+index read (`MapEnrichment::graph_inventory`, unit-tested in isolation), the
+note states the actual file count against the ceiling, and over the ceiling
+no fan-in, fan-out or unused-dependency count exists, because none can be
+derived from a subset. Cache generation remains progress, not source proof: a
+generation change during enrichment withdraws the graph. A path-scoped import
+summary for workspaces over the ceiling is a separate design question, not a
+partial number reported here.
 
 Live bytes are optimistic observations with before/open/after metadata checks,
 fresh hashes and one retry. Unix opens traverse directory descriptors with

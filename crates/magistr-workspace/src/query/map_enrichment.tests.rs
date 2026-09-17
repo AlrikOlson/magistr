@@ -48,6 +48,33 @@ fn outlines_cap_at_twenty_preserve_docs_and_full_lifts_the_cap() {
 }
 
 #[test]
+fn import_summary_ceiling_is_the_whole_inventory_or_nothing() {
+    let at_ceiling: Vec<String> = (0..MapEnrichment::FILE_LIMIT)
+        .map(|n| format!("src/f{n}.rs"))
+        .collect();
+    let inventory = MapEnrichment::graph_inventory(&at_ceiling).expect("complete inventory");
+    assert_eq!(inventory.len(), at_ceiling.len());
+    let mut over = at_ceiling.clone();
+    over.push("src/one_more.rs".into());
+    let note = MapEnrichment::graph_inventory(&over).expect_err("ceiling note");
+    assert!(
+        note.contains("513 files")
+            && note.contains("512-file validation ceiling")
+            && note.contains("no partial counts"),
+        "{note}"
+    );
+    // Over the ceiling the graph is absent, never a subset: no fan-in/out
+    // and no use counts can be derived from what was not validated.
+    let enrichment = MapEnrichment {
+        freshness: Freshness::Warm,
+        notes: vec![note],
+        imports: None,
+        symbols: BTreeMap::new(),
+    };
+    assert_eq!(enrichment.graph(), None);
+}
+
+#[test]
 fn import_summary_counts_raw_imports_orders_ties_and_omits_empty_graph() {
     let mut enrichment = MapEnrichment {
         freshness: Freshness::Warm,

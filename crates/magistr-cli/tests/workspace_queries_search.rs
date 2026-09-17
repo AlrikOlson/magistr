@@ -9,7 +9,7 @@ use std::{
 
 use magistr_workspace::{
     config::ResolveOptions,
-    contracts::{ErrorKind, Freshness, WorkspaceResponse},
+    contracts::{ErrorKind, Freshness, WorkspaceError, WorkspaceResponse},
     index::{IndexOptions, WorkspaceIndex, watch::WatchMode},
     query::{
         SearchConfidence, SearchGroup, SearchInclude, SearchInput, SearchMode, WorkspaceQueries,
@@ -73,11 +73,22 @@ fn rows(response: &WorkspaceResponse<SearchGroup>) -> &[SearchGroup] {
     results.rows()
 }
 
-fn error(response: WorkspaceResponse<SearchGroup>) -> ErrorKind {
+fn failure(response: WorkspaceResponse<SearchGroup>) -> WorkspaceError {
     let WorkspaceResponse::Failure { error, .. } = response else {
         panic!("typed native refusal: {response:?}")
     };
-    error.kind
+    error
+}
+
+fn error(response: WorkspaceResponse<SearchGroup>) -> ErrorKind {
+    failure(response).kind
+}
+
+fn notes(response: &WorkspaceResponse<SearchGroup>) -> Vec<String> {
+    let WorkspaceResponse::Success { notes, .. } = response else {
+        panic!("successful native search: {response:?}")
+    };
+    notes.clone().unwrap_or_default()
 }
 
 async fn built(index: &WorkspaceIndex, after: u64) {
@@ -324,15 +335,73 @@ async fn aggregate_scan_and_hit_bounds_are_explicit_failures() {
     let mut input = SearchInput::new("absent");
     input.mode = SearchMode::Lexical;
     input.path = Some("big/**".into());
-    assert_eq!(
-        error(queries.search(&input).await),
-        ErrorKind::BudgetTooSmall
+    let scan = failure(queries.search(&input).await);
+    assert_eq!(scan.kind, ErrorKind::BudgetTooSmall);
+    assert!(
+        scan.message.contains("64 MiB") && scan.message.contains("big/file64.txt"),
+        "the scan ceiling names where it was crossed: {}",
+        scan.message
     );
     input.path = Some("hits.txt".into());
     input.query = "needle".into();
-    assert_eq!(
-        error(queries.search(&input).await),
-        ErrorKind::BudgetTooSmall
+    let lines = failure(queries.search(&input).await);
+    assert_eq!(lines.kind, ErrorKind::BudgetTooSmall);
+    assert!(
+        lines.message.contains("20000") && lines.message.contains("hits.txt"),
+        "the matched-line ceiling names where it was crossed: {}",
+        lines.message
+    );
+    worker.shutdown().await.expect("reap worker");
+}
+
+#[tokio::test]
+async fn oversized_files_are_excluded_by_name_without_aborting_small_file_matches() {
+    let fixture = Fixture::new();
+    fixture.write("src/lib.rs", "pub fn needle() {}\n");
+    fixture.write("src/other.rs", "fn other() { needle(); }\n");
+    let huge = format!("needle {}\n", "x".repeat(1024 * 1024));
+    fixture.write("data/huge.txt", &huge);
+    fixture.write("data/huge.rs", &huge);
+    let policy = fixture.policy();
+    let worker = worker();
+    let queries = WorkspaceQueries::new(&policy, &worker, None).expect("queries");
+    let mut input = SearchInput::new("needle");
+    input.mode = SearchMode::Lexical;
+    input.context = 0;
+    let lexical = queries.search(&input).await;
+    let files: Vec<_> = rows(&lexical).iter().map(|group| &group.file).collect();
+    assert_eq!(files, ["src/lib.rs", "src/other.rs"]);
+    let note = notes(&lexical)
+        .into_iter()
+        .find(|note| note.contains("1 MiB"))
+        .expect("the omission is named");
+    assert!(
+        note.contains("data/huge.txt")
+            && note.contains("data/huge.rs")
+            && note.contains("2 file")
+            && note.contains("incomplete"),
+        "{note}"
+    );
+    input.mode = SearchMode::Structural;
+    input.query = "fn $NAME() { $$$BODY }".into();
+    let structural = queries.search(&input).await;
+    assert_eq!(rows(&structural)[0].file, "src/other.rs");
+    let note = notes(&structural)
+        .into_iter()
+        .find(|note| note.contains("1 MiB"))
+        .expect("structural omission is named");
+    assert!(
+        note.contains("data/huge.rs") && !note.contains("data/huge.txt"),
+        "only pattern-language files are structural candidates: {note}"
+    );
+    input.mode = SearchMode::Lexical;
+    input.query = "needle".into();
+    input.path = Some("src/**".into());
+    assert!(
+        notes(&queries.search(&input).await)
+            .iter()
+            .all(|note| !note.contains("1 MiB")),
+        "a scope without oversized files reports complete coverage"
     );
     worker.shutdown().await.expect("reap worker");
 }

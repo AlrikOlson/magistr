@@ -39,6 +39,7 @@ mod source_access;
 mod source_entry;
 pub(crate) use source_entry::SourceEntry;
 mod source_observation;
+mod source_read;
 mod worker_error;
 pub use service::WorkspaceQueries;
 pub(crate) use worker_error::worker_error;
