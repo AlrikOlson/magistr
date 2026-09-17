@@ -1,7 +1,6 @@
 use super::{
     IndexError,
     cache::IndexCache,
-    observation::Observation,
     selection::Selection,
     shared::Shared,
     watch::{IndexWatcher, NetworkDetection, WatchMode},
@@ -160,7 +159,7 @@ impl Coordinator {
             let read = shared.clone();
             let path = path.clone();
             let loaded = tokio::task::spawn_blocking(move || {
-                let observed = Observation::read(&read.root, &path, read.options.max_file_bytes)?;
+                let observed = read.observe(&path)?;
                 let cache = read.cache.lock().unwrap_or_else(|e| e.into_inner());
                 let previous = cache
                     .as_ref()
@@ -226,11 +225,7 @@ impl Coordinator {
             }
             let commit = shared.clone();
             tokio::task::spawn_blocking(move || {
-                let live = Observation::read(
-                    &commit.root,
-                    &observed.file.path,
-                    commit.options.max_file_bytes,
-                )?;
+                let live = commit.observe(&observed.file.path)?;
                 if !observed.file.content_hash.is_empty() && !live.same(&observed.file) {
                     return Err(IndexError::Unavailable(
                         "file changed during worker extraction".into(),

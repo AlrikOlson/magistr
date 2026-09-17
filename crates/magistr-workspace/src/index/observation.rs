@@ -1,5 +1,5 @@
 use super::{IndexError, cache::IndexedFile};
-use crate::jail::JailPolicy;
+use crate::{jail::JailPolicy, source_languages::SourceLanguages};
 use sha2::{Digest, Sha256};
 use std::{io::Read, path::Path, time::UNIX_EPOCH};
 
@@ -8,7 +8,12 @@ pub(super) struct Observation {
     pub file: IndexedFile,
 }
 impl Observation {
-    pub fn read(root: &Path, path: &str, max_bytes: usize) -> Result<Self, IndexError> {
+    pub fn read(
+        root: &Path,
+        path: &str,
+        max_bytes: usize,
+        languages: &SourceLanguages,
+    ) -> Result<Self, IndexError> {
         let jail = JailPolicy::new(root).map_err(|e| IndexError::Unavailable(format!("{e:?}")))?;
         let absolute = jail
             .check_read(path)
@@ -61,7 +66,7 @@ impl Observation {
         Ok(Self {
             file: IndexedFile {
                 path: path.into(),
-                language: crate::source_language::language(path).map(str::to_owned),
+                language: languages.language(path),
                 size: before.len(),
                 mtime_ms: before
                     .modified()

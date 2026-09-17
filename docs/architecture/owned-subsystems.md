@@ -151,7 +151,11 @@ admission. Production workspace consumers still await native port parity and
 owner integration. No Bun process, addon loader or second daemon is involved
 in this native path.
 
-Admission bounds queued and active calls together. One request executes at a
+Admission bounds queued and active calls together. A spawned worker is
+admitted only after its readiness frame and the composition's restore step
+(`WorkerRestore`: the admitted language packs replayed into that
+incarnation) have both succeeded; an earlier incarnation's readiness never
+certifies its replacement. One request executes at a
 time in each worker, so a crash is attributed to the dispatched input only.
 Versioned length-prefixed frames cap each payload at 32 MiB on both write and
 read; startup requires the native parser/search/rewrite self-test. Absolute

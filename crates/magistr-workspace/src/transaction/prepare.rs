@@ -230,7 +230,7 @@ async fn verify_candidate(
         preview.verification = VerificationStatus::Binary;
         return Ok(());
     }
-    if !Verification::supported(&preview.path) {
+    if !Verification::supported(&service.languages, &preview.path) {
         preview.verification = VerificationStatus::Unsupported;
         preview
             .diagnostics
@@ -239,11 +239,13 @@ async fn verify_candidate(
     }
     preview.verification = VerificationStatus::Verified;
     let baseline = if let Some(baseline) = baseline {
-        Verification::verify(service.worker, &preview.path, baseline).await?
+        Verification::verify(service.worker, &service.languages, &preview.path, baseline).await?
     } else {
         None
     };
-    if let Some(message) = Verification::verify(service.worker, &preview.path, after).await? {
+    if let Some(message) =
+        Verification::verify(service.worker, &service.languages, &preview.path, after).await?
+    {
         if baseline.is_none() {
             return Err(TransactionError::ParseRejected {
                 path: preview.path.clone(),
@@ -302,7 +304,7 @@ async fn format(
             "degraded: verified unformatted content (formatter returned binary)".into();
         return Ok(());
     }
-    match Verification::verify(service.worker, &preview.path, &content).await? {
+    match Verification::verify(service.worker, &service.languages, &preview.path, &content).await? {
         Some(message) => {
             preview.formatting = format!(
                 "degraded: verified unformatted content (formatter broke syntax: {message})"

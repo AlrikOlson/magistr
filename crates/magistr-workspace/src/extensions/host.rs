@@ -246,16 +246,10 @@ impl<'a> PluginHost<'a> {
         reason: &str,
         notes: &mut Vec<String>,
     ) {
-        if let Err(error) = self.health.append(PluginHealthRecord {
-            plugin: plugin.to_owned(),
-            component_hash: component_hash.to_owned(),
-            reason: reason.to_owned(),
-            at: self.now(),
-        }) {
-            notes.push(format!(
-                "plugin {plugin}: breach could not be recorded ({error}); the breaker will not short-circuit"
-            ));
-        }
+        notes.extend(
+            self.health
+                .record(plugin, component_hash, reason, &self.now()),
+        );
     }
 }
 

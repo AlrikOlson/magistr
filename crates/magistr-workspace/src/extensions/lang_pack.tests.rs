@@ -228,3 +228,25 @@ async fn a_registration_refusal_is_a_status_row_and_a_breach() {
             .contains("\"queriesOk\"")
     );
 }
+
+#[test]
+fn admission_captures_the_carrier_bytes_and_keeps_refusals_as_rows() {
+    let rig = Rig::new(Rig::record("blessed"), Some(MANIFEST), true);
+    let lane = FakeLoad::failing("admission never loads");
+    let admission = LangPackBoot::new(&rig.host(&lane)).admit();
+    assert!(lane.loads.lock().unwrap().is_empty());
+    assert_eq!(admission.packs.len(), 1);
+    assert!(admission.refused.is_empty());
+    let pack = &admission.packs[0];
+    assert_eq!(pack.plugin, "workbench.lang-pack-gleam");
+    assert_eq!(pack.component.bytes, b"(component)");
+    assert!(pack.blessed);
+    assert!(pack.capabilities.is_empty());
+    assert!(!admission.is_empty());
+
+    let rig = Rig::new(Rig::record("verified"), Some(MANIFEST), false);
+    let admission = LangPackBoot::new(&rig.host(&lane)).admit();
+    assert!(admission.is_empty());
+    assert_eq!(admission.refused.len(), 1);
+    assert_eq!(admission.refused[0].outcome, "missing-component");
+}

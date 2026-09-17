@@ -24,7 +24,6 @@ fn listing(files: &BTreeMap<String, String>) -> Vec<SourceEntry> {
         .map(|path| SourceEntry {
             path: path.clone(),
             is_dir: false,
-            language: None,
             junk: path.starts_with("target/"),
         })
         .collect()

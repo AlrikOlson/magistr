@@ -6,7 +6,6 @@ fn entries(paths: &[&str]) -> Vec<SourceEntry> {
         .map(|path| SourceEntry {
             path: (*path).into(),
             is_dir: false,
-            language: None,
             junk: false,
         })
         .collect()

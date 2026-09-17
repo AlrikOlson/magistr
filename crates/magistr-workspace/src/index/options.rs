@@ -1,4 +1,5 @@
 use super::watch::WatchMode;
+use crate::source_languages::SourceLanguages;
 use std::time::Duration;
 /// Hard limits apply before scanning, reading or admitting worker inputs.
 #[derive(Debug, Clone)]
@@ -9,6 +10,9 @@ pub struct IndexOptions {
     pub max_files: usize,
     pub worker_timeout: Duration,
     pub network_override: Option<String>,
+    /// Which files are extracted through the worker and as what: the
+    /// owner's selection handle (bundled table, then retained pack claims).
+    pub languages: SourceLanguages,
 }
 impl Default for IndexOptions {
     fn default() -> Self {
@@ -19,6 +23,7 @@ impl Default for IndexOptions {
             max_files: 100_000,
             worker_timeout: Duration::from_secs(10),
             network_override: None,
+            languages: SourceLanguages::bundled(),
         }
     }
 }

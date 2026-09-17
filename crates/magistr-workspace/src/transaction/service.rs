@@ -3,8 +3,8 @@ use super::{
     TransactionRequest, native_files::NativeFiles,
 };
 use crate::{
-    confirmation::ConfirmationSeal, journal::JournalDb, worker::WorkerSupervisor,
-    workspace_policy::WorkspacePolicy,
+    confirmation::ConfirmationSeal, journal::JournalDb, source_languages::SourceLanguages,
+    worker::WorkerSupervisor, workspace_policy::WorkspacePolicy,
 };
 
 /// Native transaction boundary under the composing host's exclusive local
@@ -21,6 +21,8 @@ pub struct WorkspaceTransactions<'a> {
     pub(super) seal: &'a ConfirmationSeal,
     pub(super) formatter: NativeFormatter,
     pub(super) files: NativeFiles,
+    /// Which files parse-verify reaches the worker for, and as what.
+    pub(super) languages: SourceLanguages,
     #[cfg(test)]
     pub(super) faults: super::faults::Faults,
 }
@@ -44,6 +46,7 @@ impl<'a> WorkspaceTransactions<'a> {
             seal,
             formatter,
             files: NativeFiles { root },
+            languages: SourceLanguages::bundled(),
             #[cfg(test)]
             faults: Default::default(),
         })
@@ -51,6 +54,13 @@ impl<'a> WorkspaceTransactions<'a> {
     /// Use the composing owner's tracker for cancellation cleanup.
     pub(crate) fn with_formatter_tasks(mut self, tasks: tokio_util::task::TaskTracker) -> Self {
         self.formatter = self.formatter.with_tasks(tasks);
+        self
+    }
+    /// Select languages through the owner's handle: retained lang-pack
+    /// claims answer after the bundled table.
+    #[must_use]
+    pub fn with_languages(mut self, languages: SourceLanguages) -> Self {
+        self.languages = languages;
         self
     }
 

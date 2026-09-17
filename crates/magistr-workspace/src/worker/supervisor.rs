@@ -1,14 +1,11 @@
 use super::{
-    WorkerError, WorkerOptions, WorkerRequest, WorkerResponse, WorkerStatus, frame::Frame,
-    process::WorkerProcess,
+    WorkerError, WorkerIncarnation, WorkerOptions, WorkerRequest, WorkerResponse, WorkerRestore,
+    WorkerStatus, frame::Frame, process::WorkerProcess, request_id::next_request_id,
 };
 use std::{
     collections::VecDeque,
     path::PathBuf,
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
+    sync::{Arc, PoisonError, RwLock, atomic::AtomicU64},
     time::Duration,
 };
 use tokio::{
@@ -29,6 +26,9 @@ struct Inner {
     permits: Arc<Semaphore>,
     stopped: CancellationToken,
     next_id: AtomicU64,
+    /// Replayed into every incarnation between its readiness frame and its
+    /// first dispatched request.
+    restore: RwLock<Option<Arc<dyn WorkerRestore>>>,
     state: Mutex<State>,
 }
 #[derive(Default)]
@@ -58,9 +58,21 @@ impl WorkerSupervisor {
                 options,
                 stopped: CancellationToken::new(),
                 next_id: AtomicU64::new(1),
+                restore: RwLock::new(None),
                 state: Mutex::new(State::default()),
             }),
         })
+    }
+
+    /// Install what every incarnation must replay before it serves. The
+    /// composition installs this before the first request can spawn a
+    /// process; a process already admitted is not revisited.
+    pub fn install_restore(&self, restore: Arc<dyn WorkerRestore>) {
+        *self
+            .inner
+            .restore
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = Some(restore);
     }
 
     pub fn pending(&self) -> usize {
@@ -89,11 +101,7 @@ impl WorkerSupervisor {
             .try_acquire_owned()
             .map_err(|_| WorkerError::Busy)?;
         // Bound local payloads before queueing or hashing their full contents.
-        let id = self
-            .inner
-            .next_id
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
-            .map_err(|_| WorkerError::Protocol("request ids exhausted".into()))?;
+        let id = next_request_id(&self.inner.next_id)?;
         let frame = Frame::Request {
             v: Frame::version(),
             id,
@@ -228,28 +236,51 @@ impl Inner {
         result
     }
 
+    /// Spawn a replacement when none is admitted. The spawned process stays
+    /// local until its readiness frame and the installed restore have both
+    /// succeeded: only then is it the process requests are dispatched to,
+    /// so an earlier incarnation's readiness never certifies this one. A
+    /// caller whose deadline or cancellation interrupts admission drops the
+    /// unadmitted process, which its guard kills.
     async fn ensure_ready(&self, state: &mut State) -> Result<(), WorkerError> {
         if state.process.is_some() {
             return Ok(());
         }
         let index = (state.failures as usize).min(self.options.backoff.len() - 1);
         tokio::time::sleep(self.options.backoff[index]).await;
-        state.process = Some(WorkerProcess::spawn(&self.executable, &self.options)?);
+        let mut process = WorkerProcess::spawn(&self.executable, &self.options)?;
         state.starts += 1;
-        let process = state
-            .process
-            .as_mut()
-            .ok_or_else(|| WorkerError::Unavailable("worker missing after spawn".into()))?;
+        if let Err(error) = self.admit(&mut process).await {
+            process.stop().await?;
+            return Err(error);
+        }
+        state.process = Some(process);
+        Ok(())
+    }
+
+    async fn admit(&self, process: &mut WorkerProcess) -> Result<(), WorkerError> {
         match tokio::time::timeout(self.options.ready_timeout, Frame::read(&mut process.stdout))
             .await
         {
-            Ok(Ok(Frame::Ready { .. })) => Ok(()),
-            Ok(Ok(_)) => Err(WorkerError::Protocol("expected readiness frame".into())),
-            Ok(Err(error)) => Err(error),
-            Err(_) => Err(WorkerError::Unavailable(
-                "worker readiness deadline exceeded".into(),
-            )),
+            Ok(Ok(Frame::Ready { .. })) => {}
+            Ok(Ok(_)) => return Err(WorkerError::Protocol("expected readiness frame".into())),
+            Ok(Err(error)) => return Err(error),
+            Err(_) => {
+                return Err(WorkerError::Unavailable(
+                    "worker readiness deadline exceeded".into(),
+                ));
+            }
         }
+        let restore = self
+            .restore
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        if let Some(restore) = restore {
+            let mut incarnation = WorkerIncarnation::new(process, &self.next_id);
+            restore.restore(&mut incarnation).await?;
+        }
+        Ok(())
     }
 
     fn strike(&self, state: &mut State, key: String) {
