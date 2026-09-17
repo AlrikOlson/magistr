@@ -7,9 +7,10 @@ use tokio::{
     net::UnixStream,
 };
 
-use super::owner_wire::{Greeting, Hello, OWNER_BUILD, OWNER_PROTOCOL_VERSION};
+use super::owner_wire::{Greeting, Hello, OWNER_PROTOCOL_VERSION};
 use super::{
-    AttachError, AttachKind, CallerIdentity, OwnerGeneration, OwnerIdentity, workspace_socket_path,
+    AttachError, AttachKind, BuildIdentity, CallerIdentity, OwnerGeneration, OwnerIdentity,
+    workspace_socket_path,
 };
 
 /// Connect without an uncancellable blocking socket operation. The deadline
@@ -23,7 +24,7 @@ pub(super) async fn attach(
     let path = workspace_socket_path(&root).map_err(AttachError::Unavailable)?;
     let hello = Hello {
         protocol: OWNER_PROTOCOL_VERSION,
-        build: OWNER_BUILD.to_owned(),
+        build: BuildIdentity::this_build(),
         identity: OwnerIdentity::Workspace { root },
         attach: AttachKind::Mcp,
         caller,

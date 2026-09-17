@@ -25,5 +25,9 @@ tokio-util = { version = "0.7", features = ["rt"] }
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread", "time"] }
 tempfile = "3"
 
+[build-dependencies]
+# The owner contract digest (build.rs) over this crate's source closure.
+sha2 = "0.10"
+
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

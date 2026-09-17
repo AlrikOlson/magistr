@@ -6,9 +6,9 @@ use std::time::Duration;
 use super::*;
 use crate::native::owner_wire::Greeting;
 use crate::native::{
-    AttachError, AttachKind, AttachRefusal, CallerIdentity, NativeConfig, NativeReader,
-    OwnerClient, OwnerCommand, OwnerReply, ProjectAuthority, RoadmapCommand, WriterRole,
-    owner_socket_path,
+    AttachError, AttachKind, AttachRefusal, BuildIdentity, CallerIdentity, NativeConfig,
+    NativeReader, OWNER_PROTOCOL_VERSION, OwnerClient, OwnerCommand, OwnerReply, ProjectAuthority,
+    RoadmapCommand, WriterRole, owner_socket_path,
 };
 use magistr_workflow::roadmap::domain::ChunkStatus;
 
@@ -118,11 +118,19 @@ fn raw_greeting(path: &std::path::Path, hello: serde_json::Value) -> Greeting {
 fn hello(project_id: &str, role: &str, attach: &str, protocol: u32) -> serde_json::Value {
     serde_json::json!({
         "protocol": protocol,
-        "build": env!("CARGO_PKG_VERSION"),
+        "build": BuildIdentity::this_build(),
         "identity": { "kind": "workflow", "project_id": project_id, "role": role },
         "attach": attach,
         "caller": {"pid": std::process::id(), "surface": "test"},
     })
+}
+
+/// The `Hello` of this same project at another build: `build` replaced by
+/// `other`, everything else as this process would send it.
+fn hello_from(other: &BuildIdentity) -> serde_json::Value {
+    let mut hello = hello("lease", "host", "commands", OWNER_PROTOCOL_VERSION);
+    hello["build"] = serde_json::to_value(other).expect("identity");
+    hello
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -312,14 +320,19 @@ async fn the_handshake_is_validated_before_anything_is_served() {
             offered: "other".into()
         }
     );
-    // Same protocol, another build of the binary: refused before identity.
-    let mut skewed = hello("lease", "host", "commands", served);
-    skewed["build"] = serde_json::json!("0.0.0-other");
+    // Same protocol, another package version: refused before identity.
+    let this = BuildIdentity::this_build();
+    let other_version = BuildIdentity::new(
+        "0.0.0-other",
+        this.contract(),
+        this.profile(),
+        this.target(),
+    );
     assert_eq!(
-        refused(raw_greeting(path, skewed)),
+        refused(raw_greeting(path, hello_from(&other_version))),
         AttachRefusal::Build {
-            served: env!("CARGO_PKG_VERSION").into(),
-            offered: "0.0.0-other".into()
+            served: Box::new(this),
+            offered: Box::new(other_version),
         }
     );
     assert_eq!(
@@ -353,6 +366,101 @@ async fn the_handshake_is_validated_before_anything_is_served() {
     let welcomed = client(&cfg).expect("welcomed");
     assert!(welcomed.is_attached());
     assert!(chunk_ids(&cfg).is_empty(), "refusals wrote nothing");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn equal_package_versions_from_other_builds_are_refused_with_both_identities() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = config(&tmp);
+    let owner = host(&cfg);
+    let endpoint = OwnerEndpoint::serve(owner.clone()).await.expect("endpoint");
+    let path = endpoint.path();
+    let this = BuildIdentity::this_build();
+
+    // Another checkout of the same package version: the contract digest
+    // differs, nothing else does.
+    let other_checkout = BuildIdentity::new(
+        this.package(),
+        "ffffffffffffffff",
+        this.profile(),
+        this.target(),
+    );
+    // The other profile of this very tree.
+    let other_profile = BuildIdentity::new(
+        this.package(),
+        this.contract(),
+        if this.profile() == "debug" {
+            "release"
+        } else {
+            "debug"
+        },
+        this.target(),
+    );
+    for offered in [other_checkout, other_profile] {
+        assert_eq!(offered.package(), this.package(), "same package version");
+        let Greeting::Refused(refusal) = raw_greeting(path, hello_from(&offered)) else {
+            panic!("another build must be refused: {offered}");
+        };
+        assert_eq!(
+            refusal,
+            AttachRefusal::Build {
+                served: Box::new(this.clone()),
+                offered: Box::new(offered.clone()),
+            }
+        );
+        let text = refusal.to_string();
+        assert!(text.contains(&this.to_string()), "{text}");
+        assert!(text.contains(&offered.to_string()), "{text}");
+    }
+
+    // A copy of this build — the same identity from another process — is
+    // the same build and attaches.
+    let copied = BuildIdentity::new(
+        this.package(),
+        this.contract(),
+        this.profile(),
+        this.target(),
+    );
+    assert!(
+        matches!(
+            raw_greeting(path, hello_from(&copied)),
+            Greeting::Welcome { .. }
+        ),
+        "an equal build attaches"
+    );
+    assert!(chunk_ids(&cfg).is_empty(), "refusals wrote nothing");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_protocol_3_hello_is_answered_with_an_explicit_protocol_refusal() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cfg = config(&tmp);
+    let owner = host(&cfg);
+    let endpoint = OwnerEndpoint::serve(owner.clone()).await.expect("endpoint");
+    // Exactly what a protocol-3 binary sends: the build is a bare package
+    // version string, which is not a `BuildIdentity`.
+    let version_3 = serde_json::json!({
+        "protocol": 3,
+        "build": env!("CARGO_PKG_VERSION"),
+        "identity": { "kind": "workflow", "project_id": "lease", "role": "host" },
+        "attach": "commands",
+        "caller": {"pid": std::process::id(), "surface": "test"},
+    });
+    assert_eq!(
+        raw_greeting(endpoint.path(), version_3),
+        Greeting::Refused(AttachRefusal::Protocol {
+            served: OWNER_PROTOCOL_VERSION,
+            offered: 3,
+        })
+    );
+    // A line that is not a `Hello` of any version gets no greeting at all.
+    let mut stream = UnixStream::connect(endpoint.path()).expect("connect");
+    stream.set_read_timeout(Some(DEADLINE)).expect("timeout");
+    writeln!(stream, "{}", serde_json::json!({"protocol": "four"})).expect("write");
+    let mut line = String::new();
+    let read = BufReader::new(stream).read_line(&mut line).expect("eof");
+    assert_eq!(read, 0, "dropped without a greeting: {line}");
+    assert!(client(&cfg).is_ok(), "the served protocol still attaches");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

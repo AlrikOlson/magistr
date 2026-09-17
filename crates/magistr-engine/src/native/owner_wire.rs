@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use super::attach_kind::AttachKind;
 #[cfg(unix)]
 use super::attach_refusal::AttachRefusal;
+use super::build_identity::BuildIdentity;
 use super::caller_identity::CallerIdentity;
 use super::owner_command::OwnerCommand;
 use super::owner_generation::OwnerGeneration;
@@ -21,23 +22,53 @@ use super::owner_reply::OwnerReply;
 
 /// The protocol this binary speaks. Exact match only — during development
 /// every change to the frames is a new version, and an older or newer
-/// client is refused rather than guessed at.
-pub const OWNER_PROTOCOL_VERSION: u32 = 3;
-
-/// The build this binary is: an owner serves only clients of the same
-/// build, so a session never mixes two versions' tool surfaces or
-/// confirmation formats across one workspace. Equal package versions from
-/// different checkouts are not told apart.
-pub(crate) const OWNER_BUILD: &str = env!("CARGO_PKG_VERSION");
+/// client is refused rather than guessed at. The owner reads this field
+/// before the rest of the `Hello`, so a client of another version is
+/// answered with [`AttachRefusal::Protocol`] whatever else its frame
+/// carries; that refusal has kept the same shape since version 3.
+///
+/// History: 3 carried the package version as the build; 4 carries a
+/// [`BuildIdentity`] and refuses on it exactly.
+pub const OWNER_PROTOCOL_VERSION: u32 = 4;
 
 /// The first line a client sends.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Hello {
     pub(crate) protocol: u32,
-    pub(crate) build: String,
+    /// The client's build; an owner serves only its exact build
+    /// ([`BuildIdentity::admits`]), so a session never mixes two contracts
+    /// across one workspace.
+    pub(crate) build: BuildIdentity,
     pub(crate) identity: OwnerIdentity,
     pub(crate) attach: AttachKind,
     pub(crate) caller: CallerIdentity,
+}
+
+impl Hello {
+    /// Read a client's first line, deciding on the protocol field alone
+    /// before the rest of the frame is interpreted.
+    ///
+    /// # Errors
+    /// `Err(Some(refusal))` for a well-formed line of another protocol
+    /// version — the owner writes that refusal back so the client learns
+    /// why; `Err(None)` for a line that is not a `Hello` of the served
+    /// version at all, which is dropped.
+    #[cfg(unix)]
+    pub(crate) fn parse(line: &[u8]) -> Result<Self, Option<AttachRefusal>> {
+        let value: serde_json::Value = serde_json::from_slice(line).map_err(|_| None)?;
+        let offered = value
+            .get("protocol")
+            .and_then(serde_json::Value::as_u64)
+            .and_then(|v| u32::try_from(v).ok())
+            .ok_or(None)?;
+        if offered != OWNER_PROTOCOL_VERSION {
+            return Err(Some(AttachRefusal::Protocol {
+                served: OWNER_PROTOCOL_VERSION,
+                offered,
+            }));
+        }
+        serde_json::from_value(value).map_err(|_| None)
+    }
 }
 
 /// The owner's answer to a [`Hello`].

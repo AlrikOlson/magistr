@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::attach_kind::AttachKind;
+use super::build_identity::BuildIdentity;
 use super::owner_identity::OwnerIdentity;
 use super::writer_role::WriterRole;
 
@@ -20,14 +21,16 @@ pub enum AttachRefusal {
         /// What the client asked for.
         offered: u32,
     },
-    /// The client is another build of Magistr; only the same build is served,
-    /// so the client waits for this owner's session to end rather than mix
-    /// two versions across one workspace.
+    /// The client is another build of Magistr; only the exact build is
+    /// served ([`BuildIdentity::admits`]), so the client waits for this
+    /// owner's session to end rather than mix two contracts across one
+    /// workspace. Both identities are named so the difference — another
+    /// checkout, the other profile, a stale install — is visible.
     Build {
         /// The owner's build.
-        served: String,
+        served: Box<BuildIdentity>,
         /// The client's.
-        offered: String,
+        offered: Box<BuildIdentity>,
     },
     /// The client named a different project than the owner holds.
     Project {
@@ -64,7 +67,7 @@ impl std::fmt::Display for AttachRefusal {
             ),
             Self::Build { served, offered } => write!(
                 f,
-                "owner is magistr {served}, client is magistr {offered}; end the owner's session to change builds"
+                "owner is {served}, client is {offered}; end the owner's session to change builds"
             ),
             Self::Project { expected, offered } => {
                 write!(f, "owner holds project {expected}, client named {offered}")

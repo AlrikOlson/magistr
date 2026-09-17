@@ -13,12 +13,10 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-use super::owner_wire::{
-    ClientFrame, CommandRefusal, Greeting, Hello, OWNER_BUILD, OWNER_PROTOCOL_VERSION, ReplyFrame,
-};
+use super::owner_wire::{ClientFrame, CommandRefusal, Greeting, Hello, ReplyFrame};
 use super::{
-    AttachKind, AttachRefusal, McpAcceptor, NativeEngines, OwnerGeneration, OwnerIdentity,
-    ProjectAuthority,
+    AttachKind, AttachRefusal, BuildIdentity, McpAcceptor, NativeEngines, OwnerGeneration,
+    OwnerIdentity, ProjectAuthority,
 };
 
 /// The admitted service and writer guard. Connection tasks only retain this
@@ -29,6 +27,7 @@ pub(super) struct OwnerConnections {
     _authority: Option<Arc<ProjectAuthority>>,
     engines: Option<NativeEngines>,
     generation: OwnerGeneration,
+    build: BuildIdentity,
     uid: u32,
     mcp: Option<McpAcceptor>,
 }
@@ -47,6 +46,7 @@ impl OwnerConnections {
             _authority: authority,
             engines,
             generation,
+            build: BuildIdentity::this_build(),
             uid,
             mcp,
         }
@@ -96,18 +96,9 @@ impl OwnerConnections {
                 peer.uid()
             )));
         }
-        if hello.protocol != OWNER_PROTOCOL_VERSION {
-            return Err(AttachRefusal::Protocol {
-                served: OWNER_PROTOCOL_VERSION,
-                offered: hello.protocol,
-            });
-        }
-        if hello.build != OWNER_BUILD {
-            return Err(AttachRefusal::Build {
-                served: OWNER_BUILD.to_owned(),
-                offered: hello.build.clone(),
-            });
-        }
+        // The protocol version was decided when the line was parsed
+        // (`Hello::parse`); a `Hello` that reaches here speaks this one.
+        self.build.admits(&hello.build)?;
         self.identity.admit(&hello.identity)?;
         let offered = match hello.attach {
             AttachKind::Mcp => self.mcp.is_some(),
@@ -125,31 +116,41 @@ async fn serve_connection(
     shared: Weak<OwnerConnections>,
     stop: CancellationToken,
 ) {
-    let hello = tokio::select! {
+    let line = tokio::select! {
         _ = stop.cancelled() => return,
-        result = tokio::time::timeout(Duration::from_secs(5), read_hello(&mut stream)) => match result {
-            Ok(Ok(hello)) => hello,
+        result = tokio::time::timeout(Duration::from_secs(5), read_hello_line(&mut stream)) => match result {
+            Ok(Ok(line)) => line,
             _ => return,
         }
     };
     let Some(owner) = shared.upgrade() else {
         return;
     };
-    let greeting = match owner.admit(&stream, &hello) {
-        Ok(()) => Greeting::Welcome {
-            generation: owner.generation,
-            owner_pid: std::process::id(),
-        },
-        Err(refusal) => Greeting::Refused(refusal),
+    // A well-formed line of another protocol version is answered, not
+    // dropped: the client learns which version is served. Anything that is
+    // not a `Hello` at all gets no greeting.
+    let (hello, greeting) = match Hello::parse(&line) {
+        Ok(hello) => {
+            let greeting = match owner.admit(&stream, &hello) {
+                Ok(()) => Greeting::Welcome {
+                    generation: owner.generation,
+                    owner_pid: std::process::id(),
+                },
+                Err(refusal) => Greeting::Refused(refusal),
+            };
+            (Some(hello), greeting)
+        }
+        Err(Some(refusal)) => (None, Greeting::Refused(refusal)),
+        Err(None) => return,
     };
     let welcomed = matches!(greeting, Greeting::Welcome { .. });
     let result = tokio::select! {
         _ = stop.cancelled() => return,
         result = write_line(&mut stream, &greeting) => result,
     };
-    if result.is_err() || !welcomed {
+    let Some(hello) = hello.filter(|_| result.is_ok() && welcomed) else {
         return;
-    }
+    };
     match hello.attach {
         AttachKind::Mcp => {
             let acceptor = owner.mcp.clone();
@@ -168,8 +169,8 @@ async fn serve_connection(
     }
 }
 
-/// Read exactly the handshake, without consuming the MCP bytes after it.
-async fn read_hello(stream: &mut UnixStream) -> io::Result<Hello> {
+/// Read exactly the handshake line, without consuming the MCP bytes after it.
+async fn read_hello_line(stream: &mut UnixStream) -> io::Result<Vec<u8>> {
     const MAX_HELLO: usize = 64 * 1024;
     let mut line = Vec::new();
     let mut byte = [0_u8; 1];
@@ -186,7 +187,7 @@ async fn read_hello(stream: &mut UnixStream) -> io::Result<Hello> {
             ));
         }
     }
-    serde_json::from_slice(&line).map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
+    Ok(line)
 }
 
 async fn write_line<T: serde::Serialize>(

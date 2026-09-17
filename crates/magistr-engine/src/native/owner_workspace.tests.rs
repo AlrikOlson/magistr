@@ -9,7 +9,9 @@ use std::time::Duration;
 
 use super::*;
 use crate::native::owner_wire::Greeting;
-use crate::native::{AttachRefusal, CallerIdentity, OWNER_PROTOCOL_VERSION, OwnerClient};
+use crate::native::{
+    AttachRefusal, BuildIdentity, CallerIdentity, OWNER_PROTOCOL_VERSION, OwnerClient,
+};
 
 const DEADLINE: Duration = Duration::from_secs(2);
 
@@ -134,7 +136,7 @@ async fn workspace_handshake_refuses_another_root_and_workflow_identity() {
     ] {
         let mut stream = UnixStream::connect(endpoint.path()).expect("connect");
         stream.set_read_timeout(Some(DEADLINE)).expect("timeout");
-        writeln!(stream, "{}", serde_json::json!({"protocol":OWNER_PROTOCOL_VERSION,"build":env!("CARGO_PKG_VERSION"),"identity":identity,"attach":"mcp","caller":{"pid":1,"surface":"test"}})).expect("hello");
+        writeln!(stream, "{}", serde_json::json!({"protocol":OWNER_PROTOCOL_VERSION,"build":BuildIdentity::this_build(),"identity":identity,"attach":"mcp","caller":{"pid":1,"surface":"test"}})).expect("hello");
         let mut line = String::new();
         BufReader::new(stream)
             .read_line(&mut line)

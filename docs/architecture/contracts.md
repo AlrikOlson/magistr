@@ -295,7 +295,10 @@ and direct writers is claimed.
 an admitted writer serves an `OwnerEndpoint` on a Unix socket derived from the
 lease's key, and a surface whose role is held attaches through the synchronous
 `OwnerClient` instead of opening a second cached writer. The handshake checks
-the peer credential, protocol version, project and role; every command carries
+the protocol version, the peer credential, the exact
+[build identity](project-authority.md#build-identity) (package version,
+contract digest, profile and target — equal package versions of different
+builds are refused with both identities named), project and role; every command carries
 the `OwnerGeneration` the admission minted in the lock file and a stale one is
 refused. Hosts serve typed `OwnerCommand`s carried out by `NativeEngines::apply`
 (a second `magistr run` acts through them via `AttachedEnginePort`); the MCP
