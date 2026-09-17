@@ -121,7 +121,7 @@ async fn with_the_gate_on_a_tracker_setup_that_did_not_land_still_asks_nobody() 
 
     let mut req = CallToolRequestParams::new("tracker_setup");
     req.arguments = Some(
-        json!({ "provider": "nosuchprovider", "into": "ENG", "dry_run": true, "push_secs": 0 })
+        json!({ "provider": "nosuchprovider", "into": "ENG", "dry_run": true })
             .as_object()
             .unwrap()
             .clone(),

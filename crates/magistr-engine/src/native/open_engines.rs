@@ -17,6 +17,16 @@ use super::native_config::NativeConfig;
 /// `config`; every engine is keyed by `project_id`. When `broadcaster` is
 /// given (the service that binds the NDJSON socket), every engine emits
 /// through it; a reader passes `None` and subscribes to that socket instead.
+///
+/// Nothing here runs in the background. The standalone workflow server
+/// composed its engines with a tracker push cadence, a tracker sweep floor
+/// and a cloud realtime subscription; Magistr composes none of them, and the
+/// library code that carried them was retired
+/// (`audit-260912-37-integration-promises`) so no served tool can promise
+/// what this root does not start. An automatic cadence is deferred product
+/// work: if one is ever justified it is composed here, once, opt-in and
+/// cancellable, under the same authority as the engines — never as a second
+/// writer or a daemon.
 #[must_use]
 pub(crate) fn open_engines(
     config: &NativeConfig,

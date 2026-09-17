@@ -106,20 +106,20 @@ pub struct TrackerSetupArgs {
     /// set it when the human has asked for the destination to be created.
     #[serde(default)]
     pub create_missing: bool,
-    /// Seconds between unattended pushes; 0 leaves auto-push alone.
-    #[serde(default = "default_push_secs")]
-    pub push_secs: u64,
     /// Report what would happen and write nothing, locally or upstream.
     #[serde(default)]
     pub dry_run: bool,
+    /// RETIRED, and deliberately absent from the advertised schema. The
+    /// standalone server's push cadence read this; Magistr runs none. It is
+    /// still deserialized so a caller following an older description is
+    /// refused by name instead of having the setting silently ignored.
+    #[serde(default)]
+    #[schemars(skip)]
+    pub push_secs: Option<u64>,
 }
 
 fn default_provider() -> String {
     "github".to_string()
-}
-
-const fn default_push_secs() -> u64 {
-    300
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -810,7 +810,7 @@ impl RoadmapService {
 
     #[tool(
         name = "tracker_setup",
-        description = "Connect this project's roadmap to an issue tracker, end to end: check the destination exists, turn mirroring on, include the active chunks, and wire up unattended pushing.\n\nInputs: provider ('linear'|'github', default 'github'), into (REQUIRED — a Linear team key like ENG, or a GitHub owner/repo), name (display name if it has to be created), band (only include one priority band), initiative (name for the roof the mirrored projects file under; absent keeps the configured or directory-basename default), create_missing (default FALSE — see below), push_secs (default 300; not applied — Magistr runs no push cadence), dry_run.\n\nCREATE_MISSING WRITES TO SOMEBODY ELSE'S SYSTEM. It creates the team/board upstream, which cannot be undone from here. Leave it false unless the human you are working with has actually asked for the destination to be created. With it false, a missing destination stops the run and nothing at all is written.\n\nNOTE Linear team keys are letters and digits only (ENG, WOW) — Linear silently rewrites anything else into a different key.\n\nReturns: what it did — target_existed/target_created/target_unverified, mirroring_enabled, included[], already_included, auto_push, and any follow-up the human must do.\n\nNothing is sent by this tool and Magistr has no tracker push yet; say so.",
+        description = "Connect this project's roadmap to an issue tracker: check the destination exists, turn mirroring on for this project, and opt the active chunks in.\n\nInputs: provider ('linear'|'github', default 'github'), into (REQUIRED — a Linear team key like ENG, or a GitHub owner/repo), name (display name if it has to be created), band (only include one priority band), initiative (name for the roof the mirrored projects file under; absent keeps the configured or directory-basename default), create_missing (default FALSE — see below), dry_run.\n\nCREATE_MISSING WRITES TO SOMEBODY ELSE'S SYSTEM. It creates the team/board upstream, which cannot be undone from here. Leave it false unless the human you are working with has actually asked for the destination to be created. With it false, a missing destination stops the run and nothing at all is written.\n\nNOTE Linear team keys are letters and digits only (ENG, WOW) — Linear silently rewrites anything else into a different key.\n\nReturns: what it did — target_existed/target_created/target_unverified, mirroring_enabled, included[], already_included, and any follow-up the human must do.\n\nNothing is sent by this tool, and Magistr runs no background push: opt-ins are roadmap state, and no cadence projects them. A push interval is refused, not scheduled; say so rather than promising a sync.",
         annotations(
             title = "Set up tracker mirroring",
             read_only_hint = false,
@@ -825,6 +825,21 @@ impl RoadmapService {
         &self,
         Parameters(args): Parameters<TrackerSetupArgs>,
     ) -> Result<CallToolResult, ErrorData> {
+        if args.push_secs.is_some() {
+            // Refused before the port is built or anything is written: the
+            // setting names a cadence this host does not run, and accepting
+            // it would be the silent promise this contract no longer makes.
+            return Ok(crate::infra::tool_failure::ToolFailure::rejected(
+                "unsupported_setting",
+                "push_secs is not a setting of this host: Magistr runs no unattended \
+                 tracker push, so no interval can be scheduled. Call again without it; \
+                 opt-ins are recorded and nothing is sent.",
+                vec![serde_json::json!({
+                    "field": "push_secs",
+                    "problem": "retired: no background push cadence exists on this host",
+                })],
+            ));
+        }
         let (data_dir, _, _) = crate::tracker::host::tracker_config();
         let req = crate::roadmap::application::tracker::SetupRequest {
             provider: args.provider.clone(),
@@ -832,10 +847,6 @@ impl RoadmapService {
             name: args.name.clone(),
             band: args.band.clone(),
             initiative: args.initiative.clone(),
-            // An immediate push would be a second network phase and a second
-            // way to fail; the cadence or `tracker push` covers it.
-            push: false,
-            push_secs: args.push_secs,
             // NOT wired to anything a caller can set. `yes` is the CLI's
             // "skip the prompt" flag and this path has no prompt to skip —
             // `create_missing` is the whole of the decision here.
@@ -866,18 +877,11 @@ impl RoadmapService {
         use crate::roadmap::application::tracker::TargetPhase;
 
         let mut next_steps: Vec<String> = Vec::new();
-        if outcome.auto_push_not_applied {
-            next_steps.push(
-                "push_secs was not applied: Magistr runs no unattended push \
-                 cadence (that belonged to the retired standalone server), so \
-                 nothing is scheduled."
-                    .into(),
-            );
-        }
         if !outcome.included.is_empty() {
             next_steps.push(
-                "Nothing has been sent: Magistr has no tracker push yet; the \
-                 opt-ins are recorded for when it does."
+                "Nothing has been sent: the opt-ins are recorded as roadmap \
+                 state, and Magistr runs no background push that would project \
+                 them."
                     .into(),
             );
         }
@@ -893,12 +897,6 @@ impl RoadmapService {
             "mirroring_enabled": outcome.mirroring_enabled,
             "included": outcome.included,
             "already_included": outcome.already_included,
-            // Always absent: the cadence these described belonged to the
-            // retired standalone server. Kept so the output schema is stable.
-            "auto_push_secs": serde_json::Value::Null,
-            "auto_push_written_to": serde_json::Value::Null,
-            "auto_push_unchanged": false,
-            "auto_push_manual_step": serde_json::Value::Null,
             "next_steps": next_steps,
         })))
     }
@@ -1687,7 +1685,10 @@ mod tests {
             args.provider, "github",
             "provider defaults like its siblings"
         );
-        assert_eq!(args.push_secs, 300);
+        assert!(
+            args.push_secs.is_none(),
+            "an omitted push interval is nothing, not a default cadence"
+        );
 
         // Driving the handler needs no network for the assertion that matters:
         // whatever happens, mirroring must not be silently switched on for a
@@ -1699,6 +1700,76 @@ mod tests {
                 .and_then(serde_json::Value::as_bool),
             Some(true),
             "nothing may be provisioned without an explicit create_missing"
+        );
+    }
+
+    /// Magistr runs no unattended tracker push. A caller that still sends the
+    /// retired interval — an agent following an older description — is told
+    /// so by name and nothing is written, rather than the setting being
+    /// accepted and silently doing nothing.
+    #[tokio::test]
+    async fn a_supplied_push_interval_is_refused_by_name_and_writes_nothing() {
+        use crate::roadmap::engine::RoadmapEngine;
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
+        let args: TrackerSetupArgs = serde_json::from_value(
+            serde_json::json!({ "into": "acme/widgets", "push_secs": 300, "dry_run": true }),
+        )
+        .expect("the retired field still deserializes, so it can be refused");
+
+        let res = svc.tracker_setup(Parameters(args)).await.expect("no panic");
+        assert_eq!(res.is_error, Some(true));
+        let sc = res.structured_content.expect("structured content");
+        assert_eq!(sc["ok"], serde_json::json!(false));
+        assert_eq!(sc["error_kind"], serde_json::json!("unsupported_setting"));
+        let message = sc["message"].as_str().unwrap_or_default().to_string();
+        assert!(
+            message.contains("push_secs") && message.contains("no unattended"),
+            "the refusal must name the setting and the missing capability: {message}"
+        );
+        assert_eq!(
+            sc["effect"],
+            serde_json::json!("none"),
+            "a refused setting is refused before any write"
+        );
+    }
+
+    /// The served contract advertises only what the host does: no push
+    /// interval on the way in, no auto-push report on the way out, and a
+    /// description that promises no unattended pushing.
+    #[test]
+    fn the_tracker_setup_contract_promises_no_unattended_push() {
+        use crate::roadmap::engine::RoadmapEngine;
+        let svc = RoadmapService::new(RoadmapEngine::new("p".into()), completion());
+        let tools = svc.list_tools_view();
+        let tool = tools
+            .iter()
+            .find(|t| t.name == "tracker_setup")
+            .expect("tracker_setup is served");
+
+        let input = serde_json::to_string(&tool.input_schema).expect("input schema");
+        assert!(
+            !input.contains("push_secs") && !input.contains("push"),
+            "the input schema still advertises a push setting: {input}"
+        );
+        let output = tool
+            .output_schema
+            .as_ref()
+            .map(|s| serde_json::to_string(s).expect("output schema"))
+            .unwrap_or_default();
+        assert!(
+            !output.contains("auto_push"),
+            "the output schema still carries auto-push fields: {output}"
+        );
+        let description = tool.description.as_deref().unwrap_or_default();
+        for promise in ["unattended", "push_secs", "auto_push", "wire up"] {
+            assert!(
+                !description.contains(promise),
+                "the description still says `{promise}`: {description}"
+            );
+        }
+        assert!(
+            description.contains("Nothing is sent"),
+            "the description must say that nothing is sent: {description}"
         );
     }
 

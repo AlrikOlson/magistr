@@ -337,7 +337,7 @@ fn day_of(now: &str) -> Option<String> {
 ///
 /// Split out from the `std::env` read so the DECISION is reachable by a test
 /// and only the environment lookup stays untestable — the same split
-/// `push_schedule_interval` and `unattended_propose_enabled` use.
+/// `unattended_propose_enabled` uses.
 #[must_use]
 pub fn counting_enabled(raw: Option<&str>) -> bool {
     match raw {

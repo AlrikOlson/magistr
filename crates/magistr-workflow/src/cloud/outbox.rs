@@ -6,10 +6,10 @@
 //! Capture happens INSIDE [`CloudClient::push`](crate::cloud::client::CloudClient::push)
 //! (the one chokepoint every writer funnels through), so all four families,
 //! the backfill, and every future writer inherit it with zero wiring.
-//! Flushing happens wherever connectivity is (re)proven: the realtime loop's
-//! `refresh("*")` (every successful connect + every poll-fallback cycle) and
-//! the boot hydrate, BEFORE the pull — so queued local mutations land first
-//! and win recency at the store.
+//! Flushing happens where a caller proves connectivity — the hydrate
+//! (`pull::reconcile_all`) drains the queue BEFORE the pull, so queued local
+//! mutations land first and win recency at the store. No background loop
+//! flushes it: Magistr runs no cloud cadence.
 //!
 //! Semantics:
 //! - **Per-record latest-only**: keyed by `<family>/<kind>/<id>`; a newer

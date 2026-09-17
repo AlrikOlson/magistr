@@ -40,9 +40,12 @@
 //! next run redoes the window. "Advance only after the batch" and "a crash does
 //! not skip unprocessed items" are one property, not two.
 //!
-//! NOTE — `cloud/events.rs` keeps its watermark in a per-process `HashMap` and
-//! advances it to the newest record's stamp. That is the shape this module
-//! deliberately does not copy; the gap is filed as `cloud-watermark-gap`.
+//! # Who runs it
+//!
+//! A caller. The standalone server's sweep schedule and its cloud doorbell
+//! were retired (`audit-260912-37-integration-promises`); Magistr composes no
+//! background cadence, so [`reconcile`] runs when something invokes it and
+//! the watermark file stays a correct input for whenever that is.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

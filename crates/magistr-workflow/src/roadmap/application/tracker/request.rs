@@ -8,8 +8,6 @@ pub struct SetupRequest {
     /// the directory-basename default 10b decided) — absent must never CLEAR a
     /// name a human chose.
     pub initiative: Option<String>,
-    pub push: bool,
-    pub push_secs: u64,
     pub yes: bool,
     pub dry_run: bool,
 }
