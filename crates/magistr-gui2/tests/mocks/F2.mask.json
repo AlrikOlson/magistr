@@ -1,0 +1,17 @@
+{
+  "threshold": 0.02,
+  "excluded": [
+    {"x": 0, "y": 0, "w": 14, "h": 13, "why": "window corner radius (top left): the capture rounds against the page; a native window's corners are the compositor's"},
+    {"x": 1086, "y": 0, "w": 14, "h": 13, "why": "window corner radius (top right)"},
+    {"x": 0, "y": 626, "w": 14, "h": 14, "why": "window corner radius (bottom left)"},
+    {"x": 1086, "y": 626, "w": 14, "h": 14, "why": "window corner radius (bottom right)"},
+    {"x": 0, "y": 4, "w": 60, "h": 48, "why": "the volume's own window lights: a native cockpit draws no title-bar dots"},
+    {"x": 178, "y": 16, "w": 22, "h": 22, "why": "project sigil in the crumb: derived per project"}
+  ],
+  "regions": [
+    {"name": "header", "x": 0, "y": 0, "w": 1100, "h": 51, "budget": 0.02},
+    {"name": "detected", "x": 56, "y": 95, "w": 330, "h": 230, "budget": 0.03},
+    {"name": "written", "x": 714, "y": 95, "w": 330, "h": 140, "budget": 0.03},
+    {"name": "meter", "x": 400, "y": 580, "w": 300, "h": 40, "budget": 0.03}
+  ]
+}

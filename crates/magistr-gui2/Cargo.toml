@@ -1,0 +1,50 @@
+[workspace]
+resolver = "3"
+
+[profile.dev]
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[package]
+name = "magistr-gui2"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+description = "Native desktop renderer for the Magistr cockpit with CPU rendering for headless verification"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "magistr-gui2"
+path = "src/main.rs"
+
+[dependencies]
+# Pure Rust math keeps CPU-rendered pixels consistent across platforms.
+libm = "0.2"
+# These private Git dependencies require access to qs-framework.
+# Keep their revisions and the wgpu/winit/AccessKit versions compatible.
+qs-gpu = { git = "https://github.com/AlrikOlson/qs-framework", rev = "a788b7be2d1035c64f4387259f4c8b3fc670e9ec" }
+qs-platform = { git = "https://github.com/AlrikOlson/qs-framework", rev = "a788b7be2d1035c64f4387259f4c8b3fc670e9ec" }
+qs-text = { git = "https://github.com/AlrikOlson/qs-framework", rev = "a788b7be2d1035c64f4387259f4c8b3fc670e9ec" }
+magistr-cockpit = { path = "../magistr-cockpit" }
+magistr-theme = { path = "../magistr-theme" }
+ttf-parser = "0.25"
+wgpu = "30.0"
+winit = "0.30"
+serde_json = "1"
+taffy = { version = "0.14", default-features = false, features = ["std", "taffy_tree", "flexbox", "content_size"] }
+magistr-application = { path = "../magistr-application" }
+magistr-domain = { path = "../magistr-domain" }
+magistr-workflow-contracts = { path = "../magistr-workflow-contracts" }
+magistr-cockpit-runtime = { path = "../magistr-cockpit-runtime" }
+thiserror = "2"
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "simd", "png-format"] }
+tokio = { version = "1", features = ["sync"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+accesskit = "0.24"
+accesskit_winit = "0.33"
+arboard = { version = "3", default-features = false }

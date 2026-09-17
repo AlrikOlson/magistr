@@ -23,8 +23,12 @@ workbench ─────┘                         v
                                       terminal
 ```
 
-Everything that changes the model arrives as a `Msg`. Effect requests leave as a
-`Cmd`; results return through the inbox. Rendering does not mutate project state.
+Semantic changes arrive as a `Msg`. Effect requests leave as a `Cmd`; results
+return through the inbox. Renderers may report bounded layout facts through
+narrow methods such as `Model::report_cell_size`, mono wrapping width and graph
+allocations. Those reports must not dispatch commands or change project state.
+The desktop uses the cell-size report directly; the terminal's `Msg::CellSize`
+fold delegates to the same method.
 
 Engine events are typed before they reach the inbox: the feed task decodes each
 wire line into a `NativeEvent` with its `Delivery`, and the re-seed task posts

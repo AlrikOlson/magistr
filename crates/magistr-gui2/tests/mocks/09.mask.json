@@ -1,0 +1,18 @@
+{
+  "threshold": 0.02,
+  "excluded": [
+    {"x": 0, "y": 0, "w": 14, "h": 13, "why": "window corner radius (top left): the capture rounds against the page; a native window's corners are the compositor's"},
+    {"x": 1086, "y": 0, "w": 14, "h": 13, "why": "window corner radius (top right)"},
+    {"x": 0, "y": 626, "w": 14, "h": 14, "why": "window corner radius (bottom left)"},
+    {"x": 1086, "y": 626, "w": 14, "h": 14, "why": "window corner radius (bottom right)"},
+    {"x": 0, "y": 4, "w": 60, "h": 48, "why": "the volume's own window lights: a native cockpit draws no title-bar dots"},
+    {"x": 178, "y": 20, "w": 22, "h": 22, "why": "project sigil in the crumb: derived per project"},
+    {"x": 794, "y": 108, "w": 137, "h": 84, "why": "the first still tile's picture: the gate's own golden stands where the volume drew a placeholder wash"},
+    {"x": 941, "y": 108, "w": 136, "h": 84, "why": "the second still tile's picture, likewise"}
+  ],
+  "regions": [
+    {"name": "header", "x": 0, "y": 0, "w": 1100, "h": 60, "budget": 0.02},
+    {"name": "chapter", "x": 0, "y": 60, "w": 770, "h": 580, "budget": 0.02},
+    {"name": "rail", "x": 770, "y": 60, "w": 330, "h": 580, "budget": 0.03}
+  ]
+}

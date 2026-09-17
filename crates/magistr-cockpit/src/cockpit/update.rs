@@ -236,10 +236,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         }
         Msg::TextSizing(sizing) => model.text_sizing = sizing,
         Msg::KeyReleases(reports) => model.key_releases = reports,
-        Msg::CellSize(cell) => {
-            model.cell_pixels = cell.filter(|cell| cell.width > 0 && cell.height > 0);
-            model.session.turn.set_cell_size(model.cell_size());
-        }
+        Msg::CellSize(cell) => model.report_cell_size(cell),
         Msg::Key(key) => {
             if key.is_press() {
                 model.remember(Msg::Key(key));

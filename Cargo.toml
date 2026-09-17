@@ -18,6 +18,8 @@ members = [
     "crates/magistr-workspace",
     "crates/magistr-process",
 ]
+# Desktop has a separate lockfile and private renderer dependency.
+exclude = ["crates/magistr-gui2"]
 default-members = ["crates/magistr-cli"]
 resolver = "3"
 
