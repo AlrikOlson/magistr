@@ -135,6 +135,26 @@ opens a dedicated page with the complete dependency graph, work list, and select
 work details. The conversation keeps its scroll position and continues receiving
 updates while that page is open; the message draft stays in the shared composer.
 Returning to Conversation restores the conversation and reasoning arrangement.
+Roadmap has separate Requests and Item details views. Each `RoadmapRequest` retains
+its submitted message and a bounded range of actual conversation source lines;
+that range begins only after the host admits the request. A queued request therefore
+cannot absorb output from the work item already running. Request scrolling is
+independent of the plan, selected item, conversation and draft.
+
+`Cmd::RoadmapPrompt` routes planning work separately from ordinary prompts. The
+interactive command owner survives a completed work loop and lazily opens separate
+conversation and planning sessions. Each keeps its provider context when the user
+switches purpose; only the active session publishes into the displayed turn.
+During a loop, a roadmap request waits for the current item and its checks to settle before
+it can update the plan. Cancellation targets that queued or active request. These
+follow-ups do not reopen settled loop accounting or run another judge/gate cycle.
+Failed channel delivery and agent submission restore the draft with an explanation.
+
+`AgentActivity` folds observed text, thought, tool, permission and turn-end events.
+Its current request takes precedence over historical objective completion. The
+interface distinguishes updating the roadmap from implementing a work item and
+shows waiting, responding, tool activity, stopping, permission and outcome states.
+Thinking is shown only when a thought event was actually received.
 Source timestamps order timeline items in UTC; equal instants retain source order,
 and legacy rows without usable timestamps show an unknown time. These views retain
 their independent scroll positions, and selecting an item opens its details.
@@ -152,12 +172,14 @@ the available space and selected details open within the same page. Plain termin
 keep their graph/table navigation and text fallbacks.
 
 Motion is a function of model ticks. Graphics terminals sample the fractional
-position between 60ms model ticks on a 16ms frame schedule while motion is active;
-this preserves animation durations while scrolling draws intermediate positions.
-Plain terminals keep their existing tick cadence. The model reports its active
-animations; an empty set removes the timer. Reduced motion and screens awaiting
-a response suppress movement. A screen has one leading animation, with new information taking
-priority over ambient effects. The checked
+position between 60ms model ticks on a 16ms frame schedule while scrolling,
+settling, or moving the roadmap camera; this preserves animation durations while
+drawing intermediate positions. The activity indicator changes on model ticks
+while waiting for the agent or following its work, without requesting interpolated
+frames. Plain terminals keep their existing tick cadence. The model reports its
+active animations; an empty set removes the timer. Reduced motion suppresses
+movement, and activity awaiting the user's answer stays still. A screen has one
+leading animation, with new information taking priority over ambient effects. The checked
 [motion registry](../reference/cockpit-modules.md#motion-registry) lists the names, meanings,
 and day/night forms used by the code.
 

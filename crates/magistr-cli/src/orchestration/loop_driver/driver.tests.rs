@@ -220,6 +220,439 @@ async fn run_cockpit(runtime: Runtime<FakeTerminal>, driver: LoopDriver) -> (Mod
     )
 }
 
+async fn next_matching(
+    events: &mut tokio::sync::mpsc::UnboundedReceiver<Msg>,
+    predicate: impl Fn(&Msg) -> bool,
+) -> Msg {
+    tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let event = events.recv().await.expect("live inbox");
+            if predicate(&event) {
+                return event;
+            }
+        }
+    })
+    .await
+    .expect("the expected session event arrives")
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
+    let dir = project("true", "true", "true");
+    repository(dir.path());
+    let engines = host(&work_config(dir.path()), "finished-followup");
+    engines
+        .roadmap_add_chunk(
+            "later".into(),
+            "Future work".into(),
+            "Future work".into(),
+            ChunkStatus::Backlog,
+            100,
+            String::new(),
+            vec![],
+            vec![],
+            None,
+            None,
+        )
+        .unwrap();
+    let mut port = ledger(dir.path(), &engines);
+    port.save(
+        "before-followup",
+        magistr_engine::CheckpointReason::Manual,
+        "Before request",
+    )
+    .unwrap();
+    let iteration =
+        IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 2, Some(engines)).unwrap();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("The plan is updated."));
+    let captured = Arc::new(Mutex::new(Vec::new()));
+    let inputs = Arc::clone(&captured);
+    let connector = Connector::new(move |config: AgentConfig| {
+        inputs.lock().unwrap().push(config.clone());
+        let connector = connector.clone();
+        async move { connector.connect(config).await }
+    });
+    let driver = LoopDriver::new(
+        iteration,
+        WorkflowConfig::load(dir.path()).unwrap(),
+        Backend::Acp,
+        inbox,
+        receiver,
+        connector,
+    )
+    .persisting(false)
+    .checkpoints(port)
+    .keep_open(true);
+    let task = driver.spawn();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::Loop(LoopEvent::Ended(_)))
+    })
+    .await;
+    assert!(
+        !task.is_finished(),
+        "the completed loop still owns message delivery"
+    );
+    commands
+        .send(Cmd::Checkpoint(CheckpointCmd::Restore {
+            id: "before-followup".into(),
+        }))
+        .unwrap();
+    let restored = next_matching(&mut events, |event| matches!(event, Msg::Checkpoint(_))).await;
+    assert!(
+        matches!(
+            restored,
+            Msg::Checkpoint(magistr_cockpit::cockpit::CheckpointEvent::Restored { .. })
+        ),
+        "post-loop local controls share the loop's existing checkpoint history: {restored:?}"
+    );
+    for text in ["Add more ready work", "Include accessibility"] {
+        commands.send(Cmd::RoadmapPrompt(text.to_owned())).unwrap();
+        next_matching(&mut events, |event| {
+            matches!(event, Msg::RoadmapRequestStarted)
+        })
+        .await;
+        next_matching(&mut events, |event| {
+            matches!(event, Msg::Agent(AgentEvent::Text(_)))
+        })
+        .await;
+        next_matching(&mut events, |event| {
+            matches!(event, Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)))
+        })
+        .await;
+    }
+    assert_eq!(
+        seen.lock().unwrap().len(),
+        1,
+        "planning follow-ups reuse their context"
+    );
+    for command in [
+        Cmd::Prompt("Explain the last result".to_owned()),
+        Cmd::RoadmapPrompt("Keep the earlier testing request".to_owned()),
+        Cmd::Prompt("Continue your explanation".to_owned()),
+    ] {
+        commands.send(command).unwrap();
+        next_matching(&mut events, |event| {
+            matches!(event, Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)))
+        })
+        .await;
+    }
+    // Quit must close both retained connections even while its sender lives.
+    commands.send(Cmd::Quit).unwrap();
+    let report = tokio::time::timeout(Duration::from_secs(10), task)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        report.iterations(),
+        0,
+        "messages never start another work iteration"
+    );
+    assert_eq!(report.end(), &LoopEnd::NoReadyChunk);
+    let observed = seen.lock().unwrap();
+    assert_eq!(
+        observed.len(),
+        2,
+        "changing purpose opens a separate conversation"
+    );
+    assert_eq!(
+        observed[0].prompts(),
+        [
+            "Add more ready work",
+            "Include accessibility",
+            "Keep the earlier testing request",
+        ]
+    );
+    assert_eq!(
+        observed[1].prompts(),
+        ["Explain the last result", "Continue your explanation"]
+    );
+    let configs = captured.lock().unwrap();
+    assert!(configs[0].planning_only && !configs[0].workflow_permissions);
+    assert!(!configs[1].planning_only);
+    assert!(
+        !configs[0]
+            .allowed_tools
+            .iter()
+            .any(|name| name == "Bash" || name == "ship_start")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn conversation_messages_during_checks_are_rejected_with_the_original_draft() {
+    let dir = project("sleep 0.2", "true", "true");
+    let iteration = IterationLoop::with_max(dir.path(), dir.path().join("ROADMAP.md"), 1).unwrap();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Done."));
+    let task = LoopDriver::new(
+        iteration,
+        WorkflowConfig::load(dir.path()).unwrap(),
+        Backend::Acp,
+        inbox,
+        receiver,
+        connector,
+    )
+    .persisting(false)
+    .auto_pause(false)
+    .spawn();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::Loop(LoopEvent::Stage(LoopStage::Gates)))
+    })
+    .await;
+    commands
+        .send(Cmd::Prompt("Keep this question".into()))
+        .unwrap();
+    let rejected = next_matching(&mut events, |event| {
+        matches!(event, Msg::Agent(AgentEvent::PromptRejected { .. }))
+    })
+    .await;
+    assert!(
+        matches!(rejected, Msg::Agent(AgentEvent::PromptRejected { text, error })
+        if text == "Keep this question" && error.contains("draft is kept"))
+    );
+    let report = tokio::time::timeout(Duration::from_secs(20), task)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.iterations(), 1);
+    let observed = seen.lock().unwrap();
+    assert_eq!(observed.len(), 1);
+    assert_eq!(
+        observed[0].prompts().len(),
+        1,
+        "the finished agent receives no lost follow-up"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_queued() {
+    for cancel in [false, true] {
+        let dir = project("sleep 0.05", "true", "true");
+        let iteration =
+            IterationLoop::with_max(dir.path(), dir.path().join("ROADMAP.md"), 1).unwrap();
+        let (inbox, mut events) = Inbox::channel();
+        let (commands, receiver) = Commands::channel();
+        let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Done."));
+        let driver = LoopDriver::new(
+            iteration,
+            WorkflowConfig::load(dir.path()).unwrap(),
+            Backend::Acp,
+            inbox,
+            receiver,
+            connector,
+        )
+        .persisting(false)
+        .auto_pause(false);
+        commands
+            .send(Cmd::RoadmapPrompt("Add testing work".into()))
+            .unwrap();
+        let task = driver.spawn();
+        next_matching(&mut events, |event| {
+            matches!(event, Msg::RoadmapRequestQueued)
+        })
+        .await;
+        if cancel {
+            commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+            next_matching(&mut events, |event| {
+                matches!(event, Msg::RoadmapRequestCancelled)
+            })
+            .await;
+        } else {
+            next_matching(&mut events, |event| {
+                matches!(event, Msg::Loop(LoopEvent::Stage(LoopStage::Gates)))
+            })
+            .await;
+            next_matching(&mut events, |event| {
+                matches!(event, Msg::RoadmapRequestStarted)
+            })
+            .await;
+        }
+        let report = tokio::time::timeout(Duration::from_secs(20), task)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(report.iterations(), 1);
+        let observed = seen.lock().unwrap();
+        assert_eq!(observed.len(), if cancel { 1 } else { 2 });
+        if !cancel {
+            assert_eq!(observed[1].prompts(), ["Add testing work"]);
+        }
+    }
+}
+
+#[tokio::test]
+async fn interactive_roadmap_startup_failure_preserves_request_and_does_not_claim_started() {
+    let dir = tempfile::tempdir().unwrap();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+        AgentConfig::new("", dir.path()),
+        Connector::new(|_| async { Err(MagistrError::Acp("offline".into())) }),
+        inbox,
+        None,
+    )
+    .spawn(receiver);
+    commands
+        .send(Cmd::RoadmapPrompt("Add more work".into()))
+        .unwrap();
+    let event = next_matching(&mut events, |event| {
+        matches!(
+            event,
+            Msg::RoadmapRequestStarted | Msg::Agent(AgentEvent::PromptRejected { .. })
+        )
+    })
+    .await;
+    assert!(
+        matches!(event, Msg::Agent(AgentEvent::PromptRejected { text, error })
+        if text == "Add more work" && error.contains("offline"))
+    );
+    drop(commands);
+    session.await.unwrap().unwrap();
+}
+
+#[tokio::test]
+async fn active_roadmap_request_stop_reaches_the_provider_without_a_work_iteration() {
+    let dir = tempfile::tempdir().unwrap();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (connector, seen) = fake_connector(FakeAcpAgent::new().stalling());
+    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+        AgentConfig::new("", dir.path()),
+        connector,
+        inbox,
+        None,
+    )
+    .spawn(receiver);
+    commands
+        .send(Cmd::RoadmapPrompt("Review the plan".into()))
+        .unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::RoadmapRequestStarted)
+    })
+    .await;
+    commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::Agent(AgentEvent::TurnEnded(TurnEnd::Cancelled)))
+    })
+    .await;
+    drop(commands);
+    session.await.unwrap().unwrap();
+    assert_eq!(seen.lock().unwrap()[0].prompts(), ["Review the plan"]);
+}
+
+#[tokio::test]
+async fn roadmap_connection_can_be_cancelled_or_closed_before_handshake_finishes() {
+    for quit in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let (inbox, mut events) = Inbox::channel();
+        let (commands, receiver) = Commands::channel();
+        let started = Arc::new(tokio::sync::Notify::new());
+        let signal = Arc::clone(&started);
+        let connector = Connector::new(move |_| {
+            signal.notify_one();
+            std::future::pending()
+        });
+        let session = crate::orchestration::interactive_session::InteractiveSession::new(
+            AgentConfig::new("", dir.path()),
+            connector,
+            inbox,
+            None,
+        )
+        .spawn(receiver);
+        commands
+            .send(Cmd::RoadmapPrompt("More ready work".into()))
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(1), started.notified())
+            .await
+            .unwrap();
+        if quit {
+            drop(commands);
+        } else {
+            commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+            let event = tokio::time::timeout(Duration::from_secs(1), events.recv())
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(matches!(event, Msg::RoadmapRequestCancelled));
+            drop(commands);
+        }
+        tokio::time::timeout(Duration::from_secs(1), session)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+    }
+}
+
+#[tokio::test]
+async fn local_project_controls_work_before_any_agent_is_connected() {
+    let dir = project("true", "true", "true");
+    let engines = engines_with_work(dir.path());
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+        AgentConfig::new("", dir.path()),
+        Connector::new(|_| async { panic!("local controls must not launch an agent") }),
+        inbox,
+        Some(magistr_cockpit::engine::EngineClient::attach(
+            engines.clone(),
+        )),
+    )
+    .spawn(receiver);
+    commands
+        .send(Cmd::Engine(
+            magistr_cockpit::cockpit::EngineCmd::StartChunk { id: "work".into() },
+        ))
+        .unwrap();
+    next_matching(&mut events, |event| matches!(event, Msg::Engine(_))).await;
+    assert_eq!(engines.roadmap_chunks()[0].status, ChunkStatus::InProgress);
+    drop(commands);
+    session.await.unwrap().unwrap();
+}
+
+#[tokio::test]
+async fn plain_roadmap_keyboard_request_reaches_its_planning_session_and_stays_on_roadmap() {
+    use magistr_cockpit::cockpit::{RequestPhase, StageTab};
+    let dir = tempfile::tempdir().unwrap();
+    let script = Script::new()
+        .startup_replies(MS(0))
+        .text(MS(200), "Add testing work\r")
+        .close(MS(700));
+    let terminal = FakeTerminal::new(SIZE, script);
+    let mut runtime = Runtime::new(
+        terminal,
+        Options::new(Env::new("xterm-kitty", false, None).with_screen_reader(true))
+            .probe_timeout(MS(500)),
+    );
+    let commands = runtime.commands().unwrap();
+    let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Testing work is ready."));
+    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+        AgentConfig::new("", dir.path()),
+        connector,
+        runtime.inbox(),
+        None,
+    )
+    .spawn(commands);
+    let model = runtime
+        .run(Model::new(SIZE).with_tab(StageTab::Roadmap))
+        .await
+        .unwrap();
+    session.await.unwrap().unwrap();
+    assert_eq!(seen.lock().unwrap()[0].prompts(), ["Add testing work"]);
+    assert_eq!(model.tab(), StageTab::Roadmap);
+    assert_eq!(model.roadmap_requests().len(), 1);
+    assert_eq!(model.roadmap_requests()[0].phase, RequestPhase::Complete);
+    assert!(
+        model
+            .turn()
+            .rows()
+            .iter()
+            .any(|line| line.text.contains("Testing work is ready."))
+    );
+}
+
 const MS: fn(u64) -> Duration = Duration::from_millis;
 const SIZE: Size = Size::new(80, 24);
 

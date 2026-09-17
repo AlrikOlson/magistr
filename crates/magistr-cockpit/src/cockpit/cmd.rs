@@ -21,6 +21,10 @@ pub enum Cmd {
     Quit,
     /// Send a turn to the agent.
     Prompt(String),
+    /// Request roadmap changes without implementing a work item.
+    RoadmapPrompt(String),
+    /// Cancel the pending or running roadmap request.
+    CancelRoadmapPrompt,
     /// Ask the agent to stop the turn in flight.
     Cancel,
     /// Answer a permission request with one of its options.

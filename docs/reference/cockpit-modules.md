@@ -88,6 +88,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/agent/session_policy.rs` | The decision a session asks for before a permission request reaches the cockpit | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/tool_record.rs` | Tool-call metadata and output, bounded by `ToolRecord::CAP` and stored with the source line | `magistr-cockpit/src/agent/tool_record.tests.rs`, `magistr-cockpit/src/turn/stream.tests.rs` |
 | `magistr-cockpit/src/agent/tool_status.rs` | Where a tool call stands | `magistr-cli/tests/session_harness.rs` |
+| `magistr-cockpit/src/agent/tool_title.rs` | Familiar tool titles shared by conversation cards, plain output, edits, and permission requests | `magistr-cockpit/src/agent/tool_title.tests.rs` |
 | `magistr-cockpit/src/agent/tool_verb.rs` | What kind of thing a tool call does, as a one-word verb column | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/translate.rs` | From the protocol's events to the cockpit's | `magistr-cockpit/src/agent/translate.tests.rs` |
 | `magistr-cockpit/src/agent/turn_end.rs` | Why a turn ended | `magistr-cli/tests/session_harness.rs` |
@@ -124,6 +125,7 @@ test. The section headings separate the crates and their module families.
 | Module | Responsibility | Tests |
 | --- | --- | --- |
 | `magistr-cockpit/src/cockpit/mod.rs` | Elm-style model, messages, update function, runtime commands, and view tree | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
+| `magistr-cockpit/src/cockpit/agent_activity.rs` | Observed request intent and agent activity, independent of historical objective completion | `magistr-cockpit/src/cockpit/agent_activity.tests.rs` · `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/agent_missing.rs` | Missing agent executable details, including its last-seen timestamp | `magistr-cockpit/src/cockpit/bad_day.tests.rs` |
 | `magistr-cockpit/src/cockpit/animation.rs` | Animation state and tick interval | `magistr-cockpit/src/cockpit/animation.tests.rs` |
 | `magistr-cockpit/src/cockpit/animations.rs` | Active animation set and shared timer interval | `magistr-cockpit/src/cockpit/animations.tests.rs` |
@@ -172,6 +174,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/flight_records.rs` | Recorded-work and roadmap lists with shared physical row geometry | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_roadmap.rs` | Readable roadmap neighborhood with shared physical points, labels, and hit targets | `magistr-cockpit/src/cockpit/flight_roadmap.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_roadmap_graph.rs` | Complete dependency graph with measured labels, physical pointer targets, and camera navigation | `magistr-cockpit/src/cockpit/flight_roadmap_graph.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_requests.rs` | Measured request history projected from real conversation source ranges, with independent scrolling | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_roadmap_page.rs` | Dedicated roadmap page with work list, selected details, and preserved conversation state | `magistr-cockpit/src/cockpit/view.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_secondary.rs` | Settings, search, and keyboard-help overlays above the live workspace | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_shell.rs` | Production conversation and reasoning workspace | `magistr-cockpit/src/cockpit/flight_shell.tests.rs` |
@@ -219,6 +222,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/pointer_shape.rs` | The mouse pointer's shape, as kitty's OSC 22 names it | `magistr-cockpit/src/cockpit/pointer_shape.tests.rs` |
 | `magistr-cockpit/src/cockpit/progress.rs` | What the terminal's own progress indicator is told | `magistr-cockpit/src/cockpit/progress.tests.rs` |
 | `magistr-cockpit/src/cockpit/projection.rs` | How the model stands to the store: freshness and the last delivery folded | `magistr-cockpit/src/cockpit/projection.tests.rs` |
+| `magistr-cockpit/src/cockpit/request_phase.rs` | Typed waiting, queued, active and terminal request states | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/prompt.rs` | The prompt: a multi-line editor with history | `magistr-cockpit/src/cockpit/prompt.tests.rs` |
 | `magistr-cockpit/src/cockpit/proposal.rs` | Proposed roadmap items and workstreams, including ordering and names | `magistr-cockpit/src/cockpit/proposal.tests.rs` |
 | `magistr-cockpit/src/cockpit/proposal_kind.rs` | Which field of a chunk an open proposal wants to change | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
@@ -226,6 +230,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/rail.rs` | Navigation and execution-plan rail state | `magistr-cockpit/src/cockpit/rail.tests.rs` |
 | `magistr-cockpit/src/cockpit/rail_mark.rs` | Terminal output timing markers derived from arrival ticks: second boundaries, pauses, and elapsed timestamps | `magistr-cockpit/src/cockpit/rail_mark.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap.rs` | Roadmap state and deterministic dependency-layer layout with connected-node alignment | `magistr-cockpit/src/cockpit/roadmap.tests.rs` |
+| `magistr-cockpit/src/cockpit/roadmap_request.rs` | Submitted roadmap messages with admission, outcome and real reply source ranges | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_chunk.rs` | One roadmap chunk as the Roadmap tab holds it | `magistr-cockpit/src/cockpit/roadmap_chunk.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_sort.rs` | Sortable roadmap columns and their header targets | `magistr-cockpit/src/cockpit/roadmap.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/rule_mode.rs` | How a charter rule answers — the ASK / AUTO / OFF badge vocabulary | `magistr-cockpit/src/cockpit/rule_mode.tests.rs` |

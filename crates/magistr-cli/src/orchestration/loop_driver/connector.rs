@@ -2,6 +2,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use magistr_acp::AcpTransport;
 use magistr_application::effects::SourceRoute;
@@ -19,8 +20,9 @@ type Connect = dyn Fn(
 /// seam between the loop driver and a process. [`Connector::live`]
 /// spawns the real agent with the host's source route; a test hands in a
 /// closure that connects the transport over a channel to an in-process fake.
+#[derive(Clone)]
 pub struct Connector {
-    connect: Box<Connect>,
+    connect: Arc<Connect>,
 }
 
 impl Connector {
@@ -31,7 +33,7 @@ impl Connector {
         Fut: Future<Output = Result<(AcpTransport, ResolvedSessionSpec)>> + Send + 'static,
     {
         Self {
-            connect: Box::new(move |config| Box::pin(connect(config))),
+            connect: Arc::new(move |config| Box::pin(connect(config))),
         }
     }
 

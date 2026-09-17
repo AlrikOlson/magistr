@@ -1492,7 +1492,7 @@ fn ctrl_c_cancels_a_streaming_turn_and_quits_otherwise_and_q_only_on_an_empty_pr
     let note = m.turn().rows().last().expect("a note");
     assert_eq!(
         (note.kind, note.text.as_str()),
-        (RowKind::Note, "cancelling…")
+        (RowKind::Note, "Stopping…")
     );
     agent(
         &mut m,
@@ -2831,16 +2831,18 @@ fn a_workbench_refusal_is_an_error_line() {
 }
 
 fn files_model() -> Model {
-    Model::new(Size::new(80, 24)).with_workspace_files(
-        [
-            "src/main.rs",
-            "src/cockpit/prompt.rs",
-            "src/cockpit/view.rs",
-            "README.md",
-        ]
-        .map(str::to_owned)
-        .to_vec(),
-    )
+    Model::new(Size::new(80, 24))
+        .with_tab(StageTab::Turn)
+        .with_workspace_files(
+            [
+                "src/main.rs",
+                "src/cockpit/prompt.rs",
+                "src/cockpit/view.rs",
+                "README.md",
+            ]
+            .map(str::to_owned)
+            .to_vec(),
+        )
 }
 
 fn type_chars(m: &mut Model, text: &str) {

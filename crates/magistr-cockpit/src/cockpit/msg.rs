@@ -74,6 +74,12 @@ pub enum Msg {
     TextSizing(bool),
     /// The agent's session reported something.
     Agent(AgentEvent),
+    /// A roadmap request will run after the current work finishes.
+    RoadmapRequestQueued,
+    /// The roadmap request now owns the following agent response.
+    RoadmapRequestStarted,
+    /// The queued or running roadmap request was cancelled.
+    RoadmapRequestCancelled,
     /// The think-and-ship feed reported something.
     Engine(EngineEvent),
     /// A job finished.

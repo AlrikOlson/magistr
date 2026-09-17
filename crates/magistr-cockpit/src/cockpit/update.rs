@@ -35,6 +35,8 @@ use super::permission::Permission;
 use super::phase::Phase;
 use super::place::Place;
 use super::progress::Progress;
+use super::request_phase::RequestPhase;
+use super::roadmap_request::RoadmapRequest;
 use super::rule_mode::RuleMode;
 use super::search::Search;
 use super::search_hit::{SearchGo, SearchHit};
@@ -261,6 +263,56 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.prompt.insert(&text);
             refresh_completion(model);
             model.remember(Msg::Paste(text));
+        }
+        Msg::RoadmapRequestQueued => {
+            if let Some(request) = model
+                .roadmap_requests
+                .last_mut()
+                .filter(|request| request.phase == RequestPhase::Waiting)
+            {
+                request.phase = RequestPhase::Queued;
+                return vec![Cmd::Announce(
+                    "Roadmap request queued. It will start after the current work finishes."
+                        .to_owned(),
+                )];
+            }
+        }
+        Msg::RoadmapRequestStarted => {
+            if let Some(request) = model.roadmap_requests.last_mut().filter(|request| {
+                matches!(request.phase, RequestPhase::Waiting | RequestPhase::Queued)
+            }) {
+                model
+                    .turn
+                    .push_text(Voice::User, &format!("{}\n", request.text));
+                request.source_start = Some(model.turn.lines().len());
+                request.phase = RequestPhase::Working;
+                model.turn_state = TurnState::Streaming;
+                model.turn_notice = None;
+                model.agent_activity.begin("Updating roadmap");
+                return vec![Cmd::Announce(
+                    "Updating roadmap. Waiting for the agent to respond.".to_owned(),
+                )];
+            }
+        }
+        Msg::RoadmapRequestCancelled => {
+            let running = model.roadmap_request_running();
+            if let Some(request) = model
+                .roadmap_requests
+                .last_mut()
+                .filter(|request| request.phase.is_active())
+            {
+                request.phase = RequestPhase::Stopped;
+                request.source_end = Some(model.turn.lines().len());
+                if model.prompt.is_empty() {
+                    model.prompt.insert(&request.text);
+                }
+            }
+            if running {
+                model.turn_state = TurnState::AwaitingInput;
+                model
+                    .agent_activity
+                    .observe(&AgentEvent::TurnEnded(TurnEnd::Cancelled));
+            }
         }
         Msg::Agent(event) => {
             model.agent_events += 1;
@@ -506,6 +558,9 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
             return Vec::new();
         }
         LoopEvent::Ended(why) => {
+            model.turn.finish();
+            model.agent_activity.active = false;
+            model.agent_activity.status = "Stopped";
             if let Some(status) = &mut model.loop_status {
                 status.end(why.as_str());
             }
@@ -626,6 +681,19 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     }
     if let Some(cmds) = dock_key(model, key) {
         return cmds;
+    }
+    if model.tab == StageTab::Roadmap
+        && key.mods == Modifiers::ALT
+        && key.code == KeyCode::Char('m')
+    {
+        model.roadmap_requests_open = !model.roadmap_requests_open;
+        model.pane = Pane::Inspector;
+        let label = if model.roadmap_requests_open {
+            "Roadmap requests"
+        } else {
+            "Roadmap item details"
+        };
+        return vec![Cmd::Announce(label.to_owned())];
     }
     if let Some(cmds) = paused_key(model, key) {
         return cmds;
@@ -794,8 +862,15 @@ fn quit_or_cancel(model: &mut Model, key: KeyEvent) -> Option<Cmd> {
     let ctrl = key.mods == Modifiers::CTRL;
     match key.code {
         KeyCode::Char('c') if ctrl => {
+            if model.tab == StageTab::Roadmap && model.roadmap_request_pending() {
+                if model.roadmap_request_running() {
+                    model.agent_activity.stopping();
+                }
+                return Some(Cmd::CancelRoadmapPrompt);
+            }
             if model.turn_state == TurnState::Streaming {
-                model.turn.push_note("cancelling…");
+                model.agent_activity.stopping();
+                model.turn.push_note("Stopping…");
                 return Some(Cmd::Cancel);
             }
         }
@@ -1327,10 +1402,10 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
                 KeyCode::PageUp => -(model.stage_rows().max(1) as isize),
                 _ => model.stage_rows().max(1) as isize,
             };
-            Inspector::scroll(model, delta);
+            detail_scroll(model, delta);
         }
         KeyCode::Up | KeyCode::Down if model.pane == Pane::Inspector => {
-            Inspector::scroll(model, if key.code == KeyCode::Down { 1 } else { -1 });
+            detail_scroll(model, if key.code == KeyCode::Down { 1 } else { -1 });
         }
         KeyCode::Up | KeyCode::Down if model.tab == StageTab::Roadmap => {
             let chunks = model.roadmap.rows();
@@ -1995,10 +2070,31 @@ fn send(model: &mut Model) -> Vec<Cmd> {
         model.turn.push_text(Voice::User, &format!("{text}\n"));
         return vec![Cmd::Checkpoint(cmd)];
     }
-    if model.turn_state == TurnState::Streaming {
+    if model.tab == StageTab::Roadmap {
+        if model.roadmap_request_pending() {
+            return Vec::new();
+        }
+        let text = model.prompt.take();
+        if !model.uses_flight_recorder() {
+            model.turn.push_note(&format!("Roadmap request: {text}"));
+            model
+                .turn
+                .push_note("Waiting to update the roadmap. Current work will finish first.");
+        }
+        model
+            .roadmap_requests
+            .push(RoadmapRequest::new(text.clone()));
+        model.refused = false;
+        model.roadmap_requests_open = true;
+        model.roadmap_request_scroll = usize::MAX;
+        model.pane = Pane::Inspector;
+        return vec![Cmd::RoadmapPrompt(text)];
+    }
+    if model.turn_state == TurnState::Streaming || model.roadmap_request_pending() {
         return Vec::new();
     }
     let text = model.prompt.take();
+    model.agent_activity.begin("Conversation");
     model.turn.push_text(Voice::User, &format!("{text}\n"));
     model.turn_notice = None;
     model.turn_state = TurnState::Streaming;
@@ -2630,9 +2726,11 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             return Vec::new();
         }
     }
-    if !model.surface().is_native() && target.is_some_and(Inspector::contains_target) {
+    if !model.surface().is_native()
+        && target.is_some_and(|id| Inspector::contains_target(id) || id == Widget::RequestBody.id())
+    {
         if matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown) {
-            Inspector::scroll(
+            detail_scroll(
                 model,
                 if event.kind == MouseKind::ScrollDown {
                     Viewport::WHEEL as isize
@@ -2806,8 +2904,22 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     return Vec::new();
                 }
                 Some(Widget::PromptAction) if model.moment().is_none() => {
+                    if model.tab == StageTab::Roadmap {
+                        if model.roadmap_request_pending() {
+                            if model.roadmap_request_running() {
+                                model.agent_activity.stopping();
+                            }
+                            return vec![Cmd::CancelRoadmapPrompt];
+                        }
+                        if !model.prompt.text().trim().is_empty() {
+                            model.completion = None;
+                            return send(model);
+                        }
+                        return Vec::new();
+                    }
                     if model.turn_state == TurnState::Streaming {
-                        model.turn.push_note("cancelling… draft kept");
+                        model.agent_activity.stopping();
+                        model.turn.push_note("Stopping. Your draft is kept.");
                         return vec![Cmd::Cancel];
                     }
                     if !model.prompt.text().trim().is_empty() {
@@ -2937,7 +3049,23 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     model.roadmap.reset_view(now, animate);
                     return Vec::new();
                 }
+                Some(Widget::RequestLatest) => {
+                    model.roadmap_request_scroll = usize::MAX;
+                    model.pane = Pane::Inspector;
+                    return Vec::new();
+                }
+                Some(Widget::RoadmapRequests) => {
+                    model.roadmap_requests_open = true;
+                    model.pane = Pane::Inspector;
+                    return Vec::new();
+                }
+                Some(Widget::RoadmapDetails) => {
+                    model.roadmap_requests_open = false;
+                    model.pane = Pane::Inspector;
+                    return Vec::new();
+                }
                 Some(Widget::RoadmapRequest) => {
+                    model.roadmap_requests_open = true;
                     super::FlightComposer::request_change(model);
                     return Vec::new();
                 }
@@ -3977,11 +4105,104 @@ fn tool_pictures(model: &mut Model, id: &str, blocks: &[ImageBlock]) {
     }
 }
 
+/// Scroll the visible detail surface without moving the conversation or work list.
+fn detail_scroll(model: &mut Model, delta: isize) {
+    if model.uses_flight_recorder() && model.tab == StageTab::Roadmap && model.roadmap_requests_open
+    {
+        super::FlightRequests::scroll(model, delta);
+    } else {
+        Inspector::scroll(model, delta);
+    }
+}
+
+/// Observe request ownership before the event changes the shared transcript.
+/// A queued request rejected by admission does not end the implementation turn.
+fn observe_request(model: &mut Model, event: &AgentEvent) -> Option<&'static str> {
+    if let AgentEvent::PromptRejected { text, error } = event
+        && model.roadmap_request_pending()
+        && model
+            .roadmap_requests
+            .last()
+            .is_some_and(|request| request.text != *text)
+    {
+        if model.prompt.is_empty() {
+            model.prompt.insert(text);
+        }
+        model.turn.push_error(error);
+        return Some("Your message was not sent. Your roadmap request is still pending.");
+    }
+    let queued_rejection = matches!(event, AgentEvent::PromptRejected { text, .. }
+        if model.roadmap_requests.last().is_some_and(|request|
+            request.text == *text && matches!(request.phase, RequestPhase::Waiting | RequestPhase::Queued)));
+    if queued_rejection {
+        if let (Some(request), AgentEvent::PromptRejected { text, error }) =
+            (model.roadmap_requests.last_mut(), event)
+        {
+            request.phase = RequestPhase::Failed;
+            request.error = Some(error.clone());
+            if model.prompt.is_empty() {
+                model.prompt.insert(text);
+            }
+        }
+        return Some("Your roadmap request was not sent. Your draft is kept.");
+    }
+    model.agent_activity.observe(event);
+    if let Some(request) = model
+        .roadmap_requests
+        .last_mut()
+        .filter(|request| request.phase == RequestPhase::Working)
+    {
+        match event {
+            AgentEvent::TurnEnded(end) => {
+                let (phase, reason) = match end {
+                    TurnEnd::EndTurn => (RequestPhase::Complete, None),
+                    TurnEnd::Cancelled => (RequestPhase::Stopped, None),
+                    TurnEnd::Other => (
+                        RequestPhase::Stopped,
+                        Some("The response stopped before it finished."),
+                    ),
+                    TurnEnd::Refusal => (
+                        RequestPhase::Failed,
+                        Some("The agent declined this request."),
+                    ),
+                    TurnEnd::MaxTokens => (
+                        RequestPhase::Failed,
+                        Some("The response reached its length limit before it finished."),
+                    ),
+                    TurnEnd::MaxTurnRequests => (
+                        RequestPhase::Failed,
+                        Some("The agent reached its action limit before it finished."),
+                    ),
+                };
+                request.phase = phase;
+                request.error = reason.map(str::to_owned);
+                request.source_end = Some(model.turn.lines().len());
+                if *end != TurnEnd::EndTurn && model.prompt.is_empty() {
+                    model.prompt.insert(&request.text);
+                }
+            }
+            AgentEvent::Error(error) | AgentEvent::PromptRejected { error, .. } => {
+                request.phase = RequestPhase::Failed;
+                request.source_end = Some(model.turn.lines().len());
+                request.error = Some(error.clone());
+                if model.prompt.is_empty() {
+                    model.prompt.insert(&request.text);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 /// Fold one agent event into the model. An edit — a tool call or an
 /// update carrying a diff — also asks the workbench for the journal, so
 /// the journal model lists the entry within the same frame; the journal,
 /// not the ACP event, is the authoritative record.
 fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
+    if let Some(note) = observe_request(model, &event) {
+        return vec![Cmd::Announce(note.to_owned())];
+    }
     let edited = matches!(
         &event,
         AgentEvent::ToolCall { diff: Some(_), .. }
@@ -4104,6 +4325,7 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             }
         }
         AgentEvent::TurnEnded(end) => {
+            model.turn.finish();
             model.turn_notice = Some(match end {
                 TurnEnd::EndTurn => "Ready",
                 TurnEnd::Cancelled => "Stopped",
@@ -4136,6 +4358,7 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             if model.moment().is_none() {
                 model.permission_scroll = 0;
             }
+            let title = crate::agent::ToolTitle::display(&title);
             let announce = Cmd::Announce(format!("needs you: {title}"));
             let mut permission = Permission::new(id, title, choices);
             if let Some(plan) = plan {
@@ -4173,6 +4396,7 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             title,
             after_secs,
         } => {
+            let title = crate::agent::ToolTitle::display(&title);
             // The transport denied an ask nobody answered (fail closed): the card comes down wherever it
             // waited, and the denial is said where the wait was named.
             if model.dock.remove_permission(id).is_some() {
@@ -4211,6 +4435,7 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             }
         }
         AgentEvent::Error(text) => {
+            model.turn.finish();
             model.turn_state = TurnState::AwaitingInput;
             model.turn_notice = Some("Connection error");
             model.turn.push_error(&text);

@@ -13,7 +13,7 @@ use super::row::Row;
 use super::row_kind::RowKind;
 use super::voice::Voice;
 use super::wrap::opens_fence;
-use crate::agent::{ToolRecord, ToolStatus, ToolVerb};
+use crate::agent::{ToolRecord, ToolStatus, ToolTitle, ToolVerb};
 use crate::pixel::CellSize;
 use crate::theme::{Icons, ThemeMode};
 
@@ -138,6 +138,12 @@ impl Turn {
             self.layout = self.layout.wrapping_add(1);
         }
         self.conversation_dirty = false;
+    }
+
+    /// Seal the final source line at a response boundary, without adding visible text.
+    /// Later events cannot append to a response that has already finished.
+    pub fn finish(&mut self) {
+        self.close();
     }
 
     /// Cached physical positions, refreshed with the pixel wrap policy after each model fold.
@@ -535,6 +541,7 @@ impl Turn {
 
     /// A tool call announced: one new line, collapsed.
     pub fn push_tool(&mut self, id: &str, title: &str, verb: ToolVerb, status: ToolStatus) {
+        let title = ToolTitle::display(title);
         self.close();
         self.push_line(
             LineKind::Tool {
@@ -544,7 +551,7 @@ impl Turn {
                 duration_ms: None,
                 expanded: false,
             },
-            title,
+            &title,
         );
     }
 
@@ -640,7 +647,7 @@ impl Turn {
         };
         let line = &mut self.lines[index];
         if let (Some(title), LineKind::Tool { .. }) = (title, &line.kind) {
-            line.text = title.to_owned();
+            line.text = ToolTitle::display(title);
         }
         if let (
             Some(status),
@@ -865,7 +872,7 @@ impl Turn {
     /// Preserve the provider's title independently of an edit's diff body.
     pub fn set_tool_title(&mut self, id: &str, title: &str) {
         if let Some(index) = self.tool_line(id) {
-            self.lines[index].title = Some(title.to_owned());
+            self.lines[index].title = Some(ToolTitle::display(title));
             self.conversation_dirty = true;
         }
     }

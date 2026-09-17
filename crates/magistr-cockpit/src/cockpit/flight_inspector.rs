@@ -253,17 +253,19 @@ impl Inspector {
             _ => None,
         };
         let layout = model.flight_layout();
-        let (width, height) = if layout.compact {
+        let (width, height) = if model.tab() == crate::cockpit::StageTab::Roadmap {
+            (
+                if layout.compact {
+                    layout.width
+                } else {
+                    layout.right_width
+                },
+                crate::cockpit::FlightRoadmapPage::detail_height(model),
+            )
+        } else if layout.compact {
             (layout.width, layout.body_height)
         } else {
-            (
-                layout.right_width,
-                if model.tab() == crate::cockpit::StageTab::Roadmap {
-                    layout.body_height
-                } else {
-                    layout.detail_height
-                },
-            )
+            (layout.right_width, layout.detail_height)
         };
         let rows = body(model, &style, &card, step, width - 34.0);
         let max = max_top(&rows, (height - 48.0 - style.line_height * 2.0).max(0.0));

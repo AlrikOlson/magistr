@@ -102,6 +102,9 @@ pub struct LoopDriver {
     connector: Connector,
     persist: bool,
     auto_pause: bool,
+    keep_open: bool,
+    session_active: bool,
+    roadmap_request: Option<String>,
     goal: GoalMode,
     goal_note: Option<String>,
     judge: Option<Arc<dyn Judge>>,
@@ -279,6 +282,9 @@ impl LoopDriver {
             connector,
             persist: true,
             auto_pause: true,
+            keep_open: false,
+            session_active: false,
+            roadmap_request: None,
             goal: GoalMode::Off,
             goal_note: None,
             judge: None,
@@ -412,6 +418,13 @@ impl LoopDriver {
         self
     }
 
+    /// Keep accepting conversation and roadmap requests after the work loop ends.
+    #[must_use]
+    pub const fn keep_open(mut self, keep_open: bool) -> Self {
+        self.keep_open = keep_open;
+        self
+    }
+
     /// The observer for a tapped inbox: what a producer posts through
     /// `inbox.tap(driver.tap())` reaches the driver too — the entry
     /// point subscribes the engine feed this way so the driver counts the
@@ -495,6 +508,11 @@ impl LoopDriver {
                     break LoopEnd::Failed(why);
                 }
             }
+            if let Some(text) = self.roadmap_request.take()
+                && !self.interact(Some(Cmd::RoadmapPrompt(text)), true).await
+            {
+                break LoopEnd::CockpitClosed;
+            }
             self.advance();
         };
         if self.iter_loop.run_state().last_settled_attempt
@@ -516,9 +534,43 @@ impl LoopDriver {
         if end != LoopEnd::CockpitClosed {
             self.post(LoopEvent::Ended(end.to_string()));
         }
-        LoopReport::new(self.iterations, end)
+        let retain = self.keep_open
+            && end != LoopEnd::CockpitClosed
+            && !crate::utils::shutdown::Shutdown::is_requested();
+        let report = LoopReport::new(self.iterations, end)
             .with_goal(self.goal_record())
-            .with_metrics(std::mem::take(&mut self.metrics))
+            .with_metrics(std::mem::take(&mut self.metrics));
+        if retain {
+            let first = self.roadmap_request.take().map(Cmd::RoadmapPrompt);
+            self.interact(first, false).await;
+        }
+        report
+    }
+
+    /// Follow-up sessions are outside the settled iteration: they cannot alter
+    /// its report, spend accounting, gates, judge evidence, or attempt number.
+    async fn interact(&mut self, first: Option<Cmd>, once: bool) -> bool {
+        let config = self.agent_config("", &self.wf.project_dir);
+        let session =
+            crate::orchestration::interactive_session::InteractiveSession::with_checkpoints(
+                config,
+                self.connector.clone(),
+                self.inbox.clone(),
+                self.iter_loop
+                    .native()
+                    .cloned()
+                    .map(magistr_cockpit::engine::EngineClient::attach),
+                self.checkpoints.as_ref().map(|port| {
+                    Box::new(crate::orchestration::shared_checkpoint::SharedCheckpoint(
+                        Arc::clone(port),
+                    )) as _
+                }),
+            );
+        let (open, controls) = session.run(&mut self.commands, first, once).await;
+        for control in controls {
+            self.decide(control);
+        }
+        open
     }
 
     /// The boundary before an iteration: a skip or abort asked for
@@ -544,6 +596,11 @@ impl LoopDriver {
         }
         self.note("paused — space resumes · s steps one iteration · x skips the next · esc aborts");
         loop {
+            if let Some(text) = self.roadmap_request.take()
+                && !self.interact(Some(Cmd::RoadmapPrompt(text)), true).await
+            {
+                return Boundary::Closed;
+            }
             match self.wake(None, None).await {
                 Wake::Cmd(Cmd::Loop(cmd)) => {
                     self.decide(cmd);
@@ -738,6 +795,7 @@ impl LoopDriver {
         &mut self,
         mut session: JoinHandle<Result<(), String>>,
     ) -> Result<(), String> {
+        self.session_active = false;
         let cleanup = match tokio::time::timeout(SESSION_GRACE, &mut session).await {
             Ok(result) => result
                 .map_err(|error| format!("the agent connection ended unexpectedly: {error}"))?,
@@ -814,6 +872,7 @@ impl LoopDriver {
             // and the boundary's is taken only once the session is gone.
             None,
         );
+        self.session_active = true;
         Ok((session, session_tx, control))
     }
 
@@ -2048,6 +2107,33 @@ impl LoopDriver {
             () = tick(ticks) => Wake::Tick,
         };
         match wake {
+            Wake::Cmd(Cmd::Prompt(text)) if !self.session_active => {
+                let rejection = Msg::Agent(AgentEvent::PromptRejected {
+                    text,
+                    error: "No agent is ready for a message right now. Your draft is kept."
+                        .to_owned(),
+                });
+                self.inbox.send(rejection.clone());
+                Wake::Tap(rejection)
+            }
+            Wake::Cmd(Cmd::RoadmapPrompt(text)) => {
+                if self.roadmap_request.is_none() {
+                    self.roadmap_request = Some(text);
+                    self.inbox.send(Msg::RoadmapRequestQueued);
+                } else {
+                    self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
+                        text,
+                        error: "A roadmap request is already waiting. Cancel it before sending another.".to_owned(),
+                    }));
+                }
+                Wake::Tap(Msg::RoadmapRequestQueued)
+            }
+            Wake::Cmd(Cmd::CancelRoadmapPrompt) => {
+                if self.roadmap_request.take().is_some() {
+                    self.inbox.send(Msg::RoadmapRequestCancelled);
+                }
+                Wake::Tap(Msg::RoadmapRequestCancelled)
+            }
             Wake::Tap(msg) => {
                 self.observe(&msg);
                 Wake::Tap(msg)

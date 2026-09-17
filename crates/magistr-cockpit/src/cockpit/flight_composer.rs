@@ -50,7 +50,11 @@ impl FlightComposer {
         } else {
             "Message Magistr"
         };
-        let running = model.turn_state() == TurnState::Streaming;
+        let running = if roadmap {
+            model.roadmap_request_pending()
+        } else {
+            model.turn_state() == TurnState::Streaming
+        };
         let active = running || !model.prompt().text().trim().is_empty();
         let line = f32::from(model.cell_size().height);
         let editor_height = (height - 52.0 - line * 2.0).max(line);
@@ -81,7 +85,13 @@ impl FlightComposer {
         let mut button = style
             .ground(
                 style.chip(
-                    if running { "Stop" } else { "Send ↑" },
+                    if roadmap && running {
+                        "Cancel"
+                    } else if running {
+                        "Stop"
+                    } else {
+                        "Send ↑"
+                    },
                     if active { style.ink } else { style.muted },
                     button_bg,
                 ),
@@ -110,13 +120,31 @@ impl FlightComposer {
             .outlined(entry, style.raised, style.line)
             .height(Length::Px(editor_height + 16.0))
             .shrink(0.0);
-        let hint = if running {
-            "Your draft is kept while Magistr works."
+        let activity = model.agent_activity();
+        let hint = if roadmap && running {
+            if model.roadmap_request_running() {
+                format!("Updating roadmap · {}", activity.status)
+            } else {
+                model
+                    .roadmap_requests()
+                    .last()
+                    .map_or("Waiting for response", |r| r.phase.label())
+                    .to_owned()
+            }
+        } else if !roadmap && activity.active {
+            format!("{} · {}", activity.task, activity.status)
         } else if width >= 600.0 {
-            "Enter to send  ·  Shift + Enter for a new line  ·"
+            "Enter to send  ·  Shift + Enter for a new line  ·".to_owned()
         } else {
-            "Enter to send  ·"
+            "Enter to send  ·".to_owned()
         };
+        let mut hint_face = Typography::default();
+        hint_face.set_cell(model.cell_size());
+        let hint = FlightStyle::fit_label(
+            &hint,
+            (width - 58.0 - hint_face.advance("Add files", TextRole::Label)).max(1.0),
+            &hint_face,
+        );
         let files = style
             .label("Add files", style.accent)
             .id(Widget::PromptFiles.id())

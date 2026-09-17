@@ -5,7 +5,6 @@
 use std::time::Duration;
 
 use color_eyre::eyre::{self, Context as _};
-use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::cockpit::{Model, Summary};
 use magistr_cockpit::engine::EngineClient;
 use magistr_cockpit::theme::Theme;
@@ -15,7 +14,8 @@ use magistr_tui::term::{RealTerminal, Terminal as _};
 use crate::agent;
 use crate::agent::cockpit_session::CockpitSession;
 use crate::application::WorkspaceAdmission;
-use crate::orchestration::ledger::{SpinePort, session_engine};
+use crate::orchestration::interactive_session::InteractiveSession;
+use crate::orchestration::loop_driver::Connector;
 use crate::permissions::PermissionProfile;
 
 /// How long the session gets to end the agent once the cockpit is gone.
@@ -63,7 +63,7 @@ pub async fn cmd_run_cockpit(
             return Err(eyre::eyre!("Magistr could not start this session"));
         }
     };
-    let engine_port = engines
+    engines
         .port()
         .ok_or_else(|| eyre::eyre!("Magistr could not connect to the project"))?;
     // Dropped after the runtime and before the engines: the endpoint stops
@@ -76,8 +76,10 @@ pub async fn cmd_run_cockpit(
         }
     };
     let workspace = admit_workspace(&root, |line| println!("{line}")).await;
+    let config = config.permission_profile(profile);
+    let followup_config = config.clone();
+    let opening = !config.prompt.trim().is_empty();
     let spec = config
-        .permission_profile(profile)
         .resolve()?
         .with_source_route(workspace.source_route());
     let root = spec.cwd().to_path_buf();
@@ -110,17 +112,14 @@ pub async fn cmd_run_cockpit(
     // over its stdio; the server is only spawned once something is asked
     // of it. The engine port is the same in-process engines the rail
     // seed reads.
-    let mut session = spawn_session(
-        Box::new(session_handle),
+    let mut session = InteractiveSession::new(
+        followup_config,
+        Connector::live(workspace.source_route()),
         runtime.inbox(),
-        commands,
-        crate::orchestration::commands::workbench_port::workbench_port(&root),
-        Some(engine_port),
-        Some(Box::new(SpinePort::at(
-            session_engine(&root, engines.reader().clone()),
-            root.clone(),
-        ))),
-    );
+        Some(engines.clone()),
+    )
+    .connected(session_handle, opening)
+    .spawn(commands);
     let model = runtime
         .run(super::seed_supervision(
             Model::new(size)

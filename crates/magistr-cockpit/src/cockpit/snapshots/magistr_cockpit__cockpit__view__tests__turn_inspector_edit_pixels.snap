@@ -3,12 +3,12 @@ source: crates/magistr-cockpit/src/cockpit/view.tests.rs
 expression: screen(&edit)
 ---
 
-  MAGISTR  Your                                                                                        Workin   Record   Commands
+  MAGISTR  Your                                                                               Waiting for       Record   Commands
 
-    Conversat                                                                  Workin      Roadmap                         Open
+    Conversat                                                          Waiting for         Roadmap                         Open
 
     What would you like to work on?                                                        No work items yet. Open Roadmap to
-    0 reasoning steps recorded
+    Conversation · Waiting for response
 
     Magistr
     Updating the retry limit.
@@ -42,4 +42,4 @@ expression: screen(&edit)
 
      Write your next message…                                                                                            Stop
 
-    Your draft is kept while    Add
+    Conversation · Waiting    Add

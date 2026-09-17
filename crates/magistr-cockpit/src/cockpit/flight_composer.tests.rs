@@ -112,11 +112,16 @@ fn roadmap_request_pointer_multiline_send_and_stop_use_the_real_prompt_path() {
         assert_eq!(model.prompt().text(), message);
         assert_eq!(
             click(&mut model, Widget::PromptAction),
-            vec![Cmd::Prompt(message.into())]
+            vec![Cmd::RoadmapPrompt(message.into())]
         );
+        assert!(model.roadmap_request_pending());
+        update(&mut model, Msg::RoadmapRequestStarted);
         assert_eq!(model.turn_state(), TurnState::Streaming);
         update(&mut model, Msg::Paste("Keep my next request".into()));
-        assert_eq!(click(&mut model, Widget::PromptAction), vec![Cmd::Cancel]);
+        assert_eq!(
+            click(&mut model, Widget::PromptAction),
+            vec![Cmd::CancelRoadmapPrompt]
+        );
         assert_eq!(model.prompt().text(), "Keep my next request");
     }
 }
@@ -154,7 +159,7 @@ fn selected_work_request_is_visible_editable_and_sent_unchanged() {
         .into_iter()
         .filter(|cmd| !matches!(cmd, Cmd::Animate(_)))
         .collect::<Vec<_>>();
-    assert_eq!(commands, vec![Cmd::Prompt(draft.clone())]);
+    assert_eq!(commands, vec![Cmd::RoadmapPrompt(draft.clone())]);
     assert!(model.prompt().is_empty());
     assert_eq!(model.prompt().history().last(), Some(&draft));
     update(
@@ -311,6 +316,7 @@ fn empty_workspace_still_explains_file_chooser() {
 #[test]
 fn stop_preserves_draft_and_send_button_is_absent_when_empty() {
     let mut model = Model::new(Size::new(144, 50));
+    model.tab = StageTab::Turn;
     let style = FlightStyle::for_model(&model);
     fn has(node: &Node, id: crate::widget_id::WidgetId) -> bool {
         node.widget_id() == Some(id) || node.child_nodes().iter().any(|n| has(n, id))

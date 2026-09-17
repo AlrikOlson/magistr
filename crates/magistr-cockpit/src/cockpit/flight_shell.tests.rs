@@ -62,6 +62,71 @@ fn click(model: &mut Model, id: crate::widget_id::WidgetId) -> Vec<Cmd> {
 }
 
 #[test]
+fn roadmap_requests_use_visible_targets_and_keep_the_plan_and_draft_stable() {
+    for size in [Size::new(144, 50), Size::new(64, 24)] {
+        let mut model = model(size);
+        click(&mut model, Widget::TabRoadmap.id());
+        let top = model.top_row();
+        let selected = model.selected().cloned();
+        let commands = click(&mut model, Widget::PromptAction.id());
+        assert!(
+            commands
+                .iter()
+                .any(|c| matches!(c, Cmd::RoadmapPrompt(text) if text == "Keep this draft"))
+        );
+        assert!(model.roadmap_requests_open());
+        assert!(layout(&model).rect(Widget::RequestBody.id()).is_some());
+        assert_eq!(model.top_row(), top);
+        assert_eq!(model.selected(), selected.as_ref());
+        update(&mut model, Msg::RoadmapRequestStarted);
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::Text("A recovery check.\n".repeat(100))),
+        );
+        assert!(model.reveal_conversation(0));
+        let top = model.top_row();
+        update(&mut model, Msg::Paste("Keep a follow-up draft".into()));
+        let before = model.roadmap_request_scroll();
+        let node = layout(&model);
+        let rect = node
+            .placed()
+            .iter()
+            .find(|p| p.id == Some(Widget::RequestBody.id()))
+            .unwrap()
+            .px;
+        let x = rect.x + 8.0;
+        let y = rect.y + 8.0;
+        let mut hits = HitRegistry::new();
+        hits.register_layout_px(&node, 0);
+        let target = hits.hit_at(f64::from(x), f64::from(y));
+        assert_eq!(target, Some(Widget::RequestBody.id()));
+        update(
+            &mut model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::ScrollUp, 0, 0).at_px(x as u32, y as u32),
+                target,
+            },
+        );
+        assert!(model.roadmap_request_scroll() < before);
+        let held = model.roadmap_request_scroll();
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::Text("Another check.\n".into())),
+        );
+        assert_eq!(model.roadmap_request_scroll(), held);
+        click(&mut model, Widget::RequestLatest.id());
+        assert_eq!(model.roadmap_request_scroll(), usize::MAX);
+        assert_eq!(model.top_row(), top);
+        assert_eq!(model.prompt().text(), "Keep a follow-up draft");
+        let commands = click(&mut model, Widget::PromptAction.id());
+        assert!(commands.contains(&Cmd::CancelRoadmapPrompt));
+        click(&mut model, Widget::RoadmapDetails.id());
+        click(&mut model, Widget::RoadmapRequests.id());
+        assert_eq!(model.prompt().text(), "Keep a follow-up draft");
+    }
+}
+
+#[test]
 fn reasoning_starts_minimized_and_pointer_toggle_preserves_the_reading_position() {
     for (cols, rows, cw, ch) in [
         (144, 50, 10, 20),
@@ -232,7 +297,7 @@ fn loop_startup_checks_pause_and_completion_have_distinct_visible_status() {
     assert_eq!(model.turn_notice, None);
     for (stage, label) in [
         (LoopStage::Connecting, "Starting agent"),
-        (LoopStage::Agent, "Working"),
+        (LoopStage::Agent, "Waiting for response"),
         (LoopStage::Gates, "Checking work"),
         (LoopStage::Judge, "Reviewing work"),
     ] {

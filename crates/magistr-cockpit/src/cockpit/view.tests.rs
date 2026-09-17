@@ -649,6 +649,10 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::RoadmapStart
                 | Widget::RoadmapComplete
                 | Widget::RoadmapRequest
+                | Widget::RoadmapRequests
+                | Widget::RoadmapDetails
+                | Widget::RequestBody
+                | Widget::RequestLatest
                 | Widget::RoadmapReset
                 | Widget::LaunchNext
                 | Widget::LaunchLoop
@@ -4077,7 +4081,7 @@ mod pixel_chrome {
         );
         let mut labels = Vec::new();
         texts(&view(&native, &clock()), &mut labels);
-        assert!(labels.iter().any(|label| label == "Working"));
+        assert!(labels.iter().any(|label| label == "Writing a response"));
         assert!(layout_for(&native).rect(Widget::HeaderSpark.id()).is_none());
     }
 

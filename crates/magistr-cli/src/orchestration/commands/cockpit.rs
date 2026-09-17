@@ -3,6 +3,12 @@
 //! `magistr roadmap`.
 
 use std::path::Path;
+use std::time::Duration;
+
+use crate::agent::AgentConfig;
+use crate::orchestration::interactive_session::InteractiveSession;
+use crate::orchestration::loop_driver::Connector;
+use magistr_application::effects::{SourceRefusal, SourceRoute};
 
 use color_eyre::eyre::{self, Context as _};
 use magistr_cockpit::cockpit::{Model, StageTab, Summary};
@@ -49,7 +55,17 @@ pub(crate) async fn cockpit_model_on(
     let (title, debug) = super::chrome::chrome(root, None, None);
     let terminal = RealTerminal::stdio().context("open Magistr in a terminal to use this view")?;
     let size = terminal.size()?;
-    let runtime = Runtime::new(terminal, Options::from_os());
+    let mut runtime = Runtime::new(terminal, Options::from_os());
+    let commands = runtime
+        .commands()
+        .ok_or_else(|| eyre::eyre!("Magistr could not connect the session controls"))?;
+    let mut session = InteractiveSession::new(
+        AgentConfig::new("", root).with_project_context(root),
+        Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
+        runtime.inbox(),
+        Some(engines.clone()),
+    )
+    .spawn(commands);
     let feed = engines.subscribe(runtime.inbox());
     // The store as the model first sees it; the re-seed measures every
     // later read against it.
@@ -71,6 +87,13 @@ pub(crate) async fn cockpit_model_on(
         .await;
     feed.abort();
     reseed.abort();
+    if tokio::time::timeout(Duration::from_secs(5), &mut session)
+        .await
+        .is_err()
+    {
+        session.abort();
+        let _ = session.await;
+    }
     model.context("the session ended unexpectedly")
 }
 
