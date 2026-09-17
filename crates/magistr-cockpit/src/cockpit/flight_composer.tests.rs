@@ -146,8 +146,8 @@ fn roadmap_composer_names_its_request_and_selected_work_without_mutating_the_dra
 
 #[test]
 fn selected_work_request_is_visible_editable_and_sent_unchanged() {
-    use crate::agent::AgentEvent;
     use crate::cockpit::Cmd;
+    use magistr_application::sessions::AgentEvent;
     let mut model = roadmap_model();
     FlightComposer::request_change(&mut model);
     assert_eq!(model.prompt().text(), "For “Save the retry schedule”, ");
@@ -244,7 +244,7 @@ fn large_fonts_keep_the_full_action_and_file_control_inside_the_composer() {
 
 #[test]
 fn refused_attachment_restores_original_message_without_overwriting_newer_draft() {
-    use crate::agent::AgentEvent;
+    use magistr_application::sessions::AgentEvent;
     let mut model = Model::new(Size::new(144, 50));
     let original = "Read @missing.rs";
     model.session.prompt.insert(original);

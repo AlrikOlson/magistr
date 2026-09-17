@@ -178,22 +178,22 @@ async fn stale_reply_does_not_disable_fresh_permission_handling() {
 }
 
 struct RecordingPolicy {
-    decision: magistr_cockpit::agent::PolicyDecision,
-    answers: std::sync::Arc<Mutex<Vec<magistr_cockpit::agent::PermissionKind>>>,
+    decision: magistr_application::sessions::PolicyDecision,
+    answers: std::sync::Arc<Mutex<Vec<magistr_application::sessions::PermissionKind>>>,
 }
 
-impl magistr_cockpit::agent::SessionPolicy for RecordingPolicy {
+impl magistr_application::sessions::SessionPolicy for RecordingPolicy {
     fn decide(
         &mut self,
-        _request: &AcpPermissionRequest,
-    ) -> magistr_cockpit::agent::PolicyDecision {
+        _request: &magistr_application::sessions::SessionPolicyRequest,
+    ) -> magistr_application::sessions::PolicyDecision {
         self.decision
     }
 
     fn answered(
         &mut self,
-        _request: &AcpPermissionRequest,
-        kind: magistr_cockpit::agent::PermissionKind,
+        _request: &magistr_application::sessions::SessionPolicyRequest,
+        kind: magistr_application::sessions::PermissionKind,
     ) {
         self.answers.lock().unwrap().push(kind);
     }
@@ -201,14 +201,14 @@ impl magistr_cockpit::agent::SessionPolicy for RecordingPolicy {
 
 fn interactive() -> (
     Permissions,
-    crate::agent::observation::ObservationReceiver<magistr_cockpit::agent::AgentEvent>,
-    std::sync::Arc<Mutex<Vec<magistr_cockpit::agent::PermissionKind>>>,
+    crate::agent::observation::ObservationReceiver<magistr_application::sessions::AgentEvent>,
+    std::sync::Arc<Mutex<Vec<magistr_application::sessions::PermissionKind>>>,
 ) {
     let (events, receiver) =
         crate::agent::observation::channel(crate::agent::observation::ObservationCapacity::DEFAULT);
     let answers = std::sync::Arc::new(Mutex::new(Vec::new()));
     let policy = RecordingPolicy {
-        decision: magistr_cockpit::agent::PolicyDecision::Ask(
+        decision: magistr_application::sessions::PolicyDecision::Ask(
             magistr_engine::policy::RiskTier::Medium,
         ),
         answers: std::sync::Arc::clone(&answers),
@@ -223,7 +223,7 @@ fn interactive() -> (
 #[tokio::test]
 async fn interactive_fabricated_and_expired_options_never_become_remembered_grants() {
     use magistr_acp::AcpPermissionOptionKind as Kind;
-    use magistr_cockpit::agent::AgentEvent;
+    use magistr_application::sessions::AgentEvent;
     let state = state();
     let (mut permissions, mut events, answers) = interactive();
     let (request, reply) = request(&[("always", Kind::AllowAlways)]);
@@ -254,7 +254,7 @@ async fn interactive_fabricated_and_expired_options_never_become_remembered_gran
 #[tokio::test]
 async fn interactive_always_answer_does_not_bypass_the_next_policy_ask() {
     use magistr_acp::AcpPermissionOptionKind as Kind;
-    use magistr_cockpit::agent::{AgentEvent, PermissionKind};
+    use magistr_application::sessions::{AgentEvent, PermissionKind};
     let state = state();
     let (mut permissions, mut events, answers) = interactive();
     let (first, reply) = request(&[("always", Kind::AllowAlways)]);
@@ -277,7 +277,7 @@ async fn interactive_always_answer_does_not_bypass_the_next_policy_ask() {
 
 #[tokio::test]
 async fn interactive_lapse_removes_the_matching_card_and_late_answer_is_quiet() {
-    use magistr_cockpit::agent::AgentEvent;
+    use magistr_application::sessions::AgentEvent;
     let state = state();
     let (mut permissions, mut events, answers) = interactive();
     let (request, reply) = request(&[("allow", magistr_acp::AcpPermissionOptionKind::AllowOnce)]);
@@ -302,7 +302,7 @@ async fn interactive_lapse_removes_the_matching_card_and_late_answer_is_quiet() 
 
 #[tokio::test]
 async fn interactive_cancel_refuses_pending_late_and_stale_answers_before_fresh_turn() {
-    use magistr_cockpit::agent::AgentEvent;
+    use magistr_application::sessions::AgentEvent;
     let state = state();
     let (mut permissions, mut events, answers) = interactive();
     let options = [("allow", magistr_acp::AcpPermissionOptionKind::AllowOnce)];
@@ -345,7 +345,7 @@ async fn interactive_cancel_refuses_pending_late_and_stale_answers_before_fresh_
 #[tokio::test]
 async fn headless_and_interactive_policy_answers_select_only_the_exact_once_kind() {
     use magistr_acp::AcpPermissionOptionKind as Kind;
-    use magistr_cockpit::agent::PolicyDecision;
+    use magistr_application::sessions::PolicyDecision;
     for decision in [PolicyDecision::Allow, PolicyDecision::Deny] {
         for options in [
             vec![("allow", Kind::AllowOnce), ("reject", Kind::RejectOnce)],

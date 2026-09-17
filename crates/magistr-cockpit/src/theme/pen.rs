@@ -6,10 +6,10 @@ use magistr_theme::{CvdMode, Palette, SemanticRole, ThemeColor, ThemeMapping, xt
 use super::decision::Theme;
 use super::icons::Icons;
 use super::severity::Severity;
-use crate::agent::{PermissionKind, ToolStatus};
 use crate::pixel::Icon;
 use crate::render::{Attrs, Color, Style};
 use crate::turn::{Accent, RowKind, SpanStyle, Voice};
+use magistr_application::sessions::{PermissionKind, ToolStatus};
 
 /// One [`Style`] per kind of thing the cockpit paints, every colour from
 /// the same [`Palette`] so the screen reads as a whole: the base the

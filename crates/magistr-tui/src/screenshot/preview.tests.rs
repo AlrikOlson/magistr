@@ -6,7 +6,7 @@ use std::time::Duration;
 
 #[test]
 fn screenshot_activity_moves_only_the_header_and_reduced_motion_is_identical() {
-    use magistr_cockpit::agent::AgentEvent;
+    use magistr_application::sessions::AgentEvent;
     use magistr_cockpit::cockpit::view;
     use magistr_cockpit::theme::{MotionMode, Theme, ThemeMode};
     for theme in [ThemeMode::Dark, ThemeMode::Light] {

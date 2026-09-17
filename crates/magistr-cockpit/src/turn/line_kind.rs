@@ -2,7 +2,7 @@
 
 use super::image::StreamImage;
 use super::voice::Voice;
-use crate::agent::{ToolStatus, ToolVerb};
+use magistr_application::sessions::{ToolStatus, ToolVerb};
 
 /// The kind of one source line of a turn.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

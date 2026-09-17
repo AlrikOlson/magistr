@@ -1,5 +1,5 @@
 use super::*;
-use magistr_cockpit::agent::{AgentEvent, TurnEnd};
+use magistr_application::sessions::{AgentEvent, TurnEnd};
 use magistr_core::{AgentMessage, AssistantContent, ContentBlock, SessionId};
 use std::time::Duration;
 

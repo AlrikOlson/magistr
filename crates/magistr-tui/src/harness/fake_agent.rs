@@ -5,7 +5,7 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 
 use super::timeline::Timeline;
-use magistr_cockpit::agent::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
+use magistr_application::sessions::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
 use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
 

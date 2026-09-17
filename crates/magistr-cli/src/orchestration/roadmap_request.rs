@@ -1,7 +1,7 @@
 //! Planning-only session setup for requests made from Roadmap.
 
-use magistr_acp::AcpPermissionRequest;
-use magistr_cockpit::agent::{PermissionKind, PolicyDecision, SessionPolicy};
+use magistr_application::sessions::SessionPolicyRequest;
+use magistr_application::sessions::{PermissionKind, PolicyDecision, SessionPolicy};
 
 use crate::agent::{AgentConfig, ToolPermissions};
 use crate::permissions::SessionPermissionPolicy;
@@ -39,7 +39,7 @@ impl RoadmapPolicy {
         Self { inner }
     }
 
-    fn permitted(request: &AcpPermissionRequest) -> bool {
+    fn permitted(request: &SessionPolicyRequest) -> bool {
         let title = request
             .tool_title
             .split(':')
@@ -48,8 +48,10 @@ impl RoadmapPolicy {
             .trim();
         let name = title.rsplit("__").next().unwrap_or(title);
         if name == "roadmap_set_status" {
-            return request
-                .tool_input
+            let Ok(input) = serde_json::from_str::<serde_json::Value>(&request.input_json) else {
+                return false;
+            };
+            return input
                 .get("status")
                 .and_then(serde_json::Value::as_str)
                 .is_some_and(|status| matches!(status, "backlog" | "pending"));
@@ -59,7 +61,7 @@ impl RoadmapPolicy {
 }
 
 impl SessionPolicy for RoadmapPolicy {
-    fn decide(&mut self, request: &AcpPermissionRequest) -> PolicyDecision {
+    fn decide(&mut self, request: &SessionPolicyRequest) -> PolicyDecision {
         if Self::permitted(request) {
             self.inner.decide(request)
         } else {
@@ -67,13 +69,13 @@ impl SessionPolicy for RoadmapPolicy {
         }
     }
 
-    fn answered(&mut self, request: &AcpPermissionRequest, kind: PermissionKind) {
+    fn answered(&mut self, request: &SessionPolicyRequest, kind: PermissionKind) {
         if Self::permitted(request) {
             self.inner.answered(request, kind);
         }
     }
 
-    fn constrain(&mut self, request: &AcpPermissionRequest, condition: &str) {
+    fn constrain(&mut self, request: &SessionPolicyRequest, condition: &str) {
         if Self::permitted(request) {
             self.inner.constrain(request, condition);
         }

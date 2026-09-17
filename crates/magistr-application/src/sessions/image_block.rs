@@ -1,5 +1,7 @@
 //! An image block the protocol carried.
 
+use alloc::string::String;
+
 /// One ACP image content block, exactly as the wire carried it: the
 /// base64 payload, its mime type, and where it came from when the block
 /// said.

@@ -1,10 +1,10 @@
 use super::*;
-use crate::agent::{AgentEvent, ToolRecord, ToolStatus, ToolVerb, TurnEnd};
 use crate::cockpit::{
     Animation, Cmd, LoopEvent, Model, Msg, Size, StageTab, TurnState, Widget, update,
 };
 use crate::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use crate::theme::{MotionMode, Theme};
+use magistr_application::sessions::{AgentEvent, ToolRecord, ToolStatus, ToolVerb, TurnEnd};
 
 fn model() -> Model {
     let mut model = Model::new(Size::new(144, 50));

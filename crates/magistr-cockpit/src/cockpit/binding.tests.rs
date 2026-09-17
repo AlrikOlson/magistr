@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent::PermissionKind;
+use magistr_application::sessions::PermissionKind;
 
 #[test]
 fn every_footer_context_is_a_subset_of_the_registry() {

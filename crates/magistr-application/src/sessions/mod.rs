@@ -1,15 +1,47 @@
 //! Provider-neutral session commands and observations.
 
+mod ask_everything;
+mod ask_plan;
+mod edit_diff;
+mod event;
+mod image_block;
+mod permission_choice;
+mod permission_kind;
+mod policy_decision;
+mod policy_request;
 mod service;
 mod session_command;
 mod session_handle;
+mod session_options;
 mod session_outcome;
+mod session_policy;
 mod session_port;
 mod session_response;
+mod tool_payload;
+mod tool_record;
+mod tool_status;
+mod tool_verb;
+mod turn_end;
 
+pub use ask_everything::AskEverything;
+pub use ask_plan::AskPlan;
+pub use edit_diff::EditDiff;
+pub use event::AgentEvent;
+pub use image_block::ImageBlock;
+pub use permission_choice::PermissionChoice;
+pub use permission_kind::PermissionKind;
+pub use policy_decision::PolicyDecision;
+pub use policy_request::SessionPolicyRequest;
 pub use service::Sessions;
 pub use session_command::SessionCommand;
 pub use session_handle::SessionHandle;
+pub use session_options::SessionOptions;
 pub use session_outcome::SessionOutcome;
+pub use session_policy::SessionPolicy;
 pub use session_port::SessionPort;
 pub use session_response::SessionResponse;
+pub use tool_payload::ToolPayload;
+pub use tool_record::ToolRecord;
+pub use tool_status::ToolStatus;
+pub use tool_verb::ToolVerb;
+pub use turn_end::TurnEnd;

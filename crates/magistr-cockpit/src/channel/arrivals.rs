@@ -3,8 +3,8 @@
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use crate::agent::AgentEvent;
 use crate::cockpit::Msg;
+use magistr_application::sessions::AgentEvent;
 
 /// A shared log of the instant every message posted on a stamped
 /// [`Inbox`](crate::channel::Inbox) reached it — the "event arrived" end

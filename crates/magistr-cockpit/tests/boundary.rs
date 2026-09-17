@@ -93,6 +93,12 @@ fn concrete_service_clients_belong_to_the_host() {
     let mut files = Vec::new();
     walk(&crate_root().join("src"), &mut files);
     let forbidden = [
+        "enum AgentEvent",
+        "struct SessionOptions",
+        "trait SessionPolicy",
+        "struct ToolRecord",
+        "magistr_acp::",
+        "agent_client_protocol::",
         "struct EngineClient",
         "struct NativeEnginePort",
         "struct AttachedEnginePort",

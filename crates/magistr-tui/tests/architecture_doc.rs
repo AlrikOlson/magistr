@@ -128,30 +128,54 @@ fn the_index_names_every_module_of_both_crates_and_no_others() {
 }
 
 #[test]
-fn the_index_names_host_client_modules_and_their_guards() {
+fn the_index_names_application_contracts_and_host_clients_with_their_guards() {
     let doc = doc();
     let crates_dir = crate_dir("..");
-    for module in ["workflow_client", "workspace_client"] {
-        let prefix = format!("magistr-cli/src/application/{module}/");
-        let root = crates_dir.join(&prefix);
+    for prefix in [
+        "magistr-cli/src/application/workflow_client/",
+        "magistr-cli/src/application/workspace_client/",
+        "magistr-application/src/sessions/",
+    ] {
+        let root = crates_dir.join(prefix);
         let mut files = BTreeSet::new();
         walk(&root, &root, &mut files);
-        assert!(!files.is_empty(), "missing host client: {module}");
+        assert!(!files.is_empty(), "missing indexed source: {prefix}");
         let actual: BTreeSet<_> = files
             .into_iter()
             .map(|file| format!("{prefix}{file}"))
             .collect();
-        let listed = named(&doc, &prefix);
+        let listed = named(&doc, prefix);
         let modules: BTreeSet<_> = listed
             .iter()
             .filter(|file| !file.ends_with(".tests.rs"))
             .cloned()
             .collect();
-        assert_eq!(actual, modules, "host client inventory: {module}");
+        assert_eq!(actual, modules, "contract/client inventory: {prefix}");
         for file in listed {
             assert!(
                 crates_dir.join(&file).is_file(),
-                "stale host client guard: {file}"
+                "stale contract/client guard: {file}"
+            );
+        }
+    }
+}
+
+#[test]
+fn the_index_names_host_session_adapters_and_existing_guards() {
+    let doc = doc();
+    let crates_dir = crate_dir("..");
+    for path in [
+        "magistr-cli/src/agent/translate.rs",
+        "magistr-cli/src/agent/permission_request.rs",
+        "magistr-cli/src/permissions/request_data.rs",
+    ] {
+        assert!(doc.contains(path), "host session adapter missing: {path}");
+    }
+    for prefix in ["magistr-cli/src/agent/", "magistr-cli/src/permissions/"] {
+        for path in named(&doc, prefix) {
+            assert!(
+                crates_dir.join(&path).is_file(),
+                "stale session path: {path}"
             );
         }
     }

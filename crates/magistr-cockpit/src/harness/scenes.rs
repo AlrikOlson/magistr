@@ -11,7 +11,6 @@ use std::time::Duration;
 
 use magistr_engine::policy::RiskTier;
 
-use crate::agent::{AgentEvent, ToolStatus, ToolVerb};
 use crate::cockpit::{
     FrameClock, Model, Msg, Size, StageTab, Widget, WorkbenchEvent, update, view,
 };
@@ -19,6 +18,7 @@ use crate::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use crate::layout::LayoutTree;
 use crate::theme::{Theme, ThemeMode};
 use crate::widget_id::WidgetId;
+use magistr_application::sessions::{AgentEvent, ToolStatus, ToolVerb};
 
 use super::fixtures;
 
@@ -72,7 +72,7 @@ impl Scenes {
                 title: "edit src/retry.rs".into(),
                 verb: ToolVerb::Edit,
                 status: ToolStatus::Completed,
-                diff: Some(crate::agent::EditDiff {
+                diff: Some(magistr_application::sessions::EditDiff {
                     path: "src/retry.rs".into(),
                     old_text: "const RETRIES: usize = 2;\n".into(),
                     new_text: "const RETRIES: usize = 3;\n".into(),
@@ -105,7 +105,7 @@ impl Scenes {
     /// truecolor word and a progress bar overwritten in place — the
     /// cursor at the tail.
     pub fn terminal_pane(size: Size) -> Model {
-        use crate::agent::ToolRecord;
+        use magistr_application::sessions::ToolRecord;
         let mut m = Model::new(size).with_tab(StageTab::Turn);
         agent(&mut m, AgentEvent::Text("Running the checks.\n".to_owned()));
         agent(
@@ -118,9 +118,9 @@ impl Scenes {
                 diff: None,
                 images: Vec::new(),
                 record: Box::new(ToolRecord {
-                    input: Some(serde_json::json!({
-                        "command": "cargo nextest run -p magistr-tui"
-                    })),
+                    input: Some(magistr_application::sessions::ToolPayload::Json(
+                        r#"{"command":"cargo nextest run -p magistr-tui"}"#.into(),
+                    )),
                     terminal: Some("term-1".to_owned()),
                     ..ToolRecord::default()
                 }),
@@ -310,7 +310,7 @@ impl Scenes {
 
     /// The request that puts the card on the dock.
     pub fn request_permission(m: &mut Model) {
-        use crate::agent::{PermissionChoice, PermissionKind};
+        use magistr_application::sessions::{PermissionChoice, PermissionKind};
         agent(
             m,
             AgentEvent::PermissionRequest {

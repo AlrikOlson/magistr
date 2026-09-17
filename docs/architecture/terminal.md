@@ -149,9 +149,11 @@ Its `application::workspace_client` owns the MCP subprocess connection and
 journal adapter. The cockpit retains semantic ports, commands and events;
 reducers receive the same outcomes regardless of the concrete client.
 The live terminal example belongs to the CLI (`cargo run -p magistr-cli --example
-cockpit`), so the terminal crate never depends on its host. Session relays,
-channels and projection contracts are still tracked for a later ownership move;
-this boundary does not yet make the entire cockpit crate effect-free.
+cockpit`), so the terminal crate never depends on its host. Shared session events,
+startup options and permission contracts belong to `magistr-application::sessions`;
+ACP translation belongs to the CLI. Session relays, channels and projection
+contracts remain in the cockpit pending their later ownership move, so the entire
+cockpit crate is not yet effect-free.
 
 The driver coalesces input and producer updates before rendering. Jobs, engine
 calls, and agent transport work run outside the state-update function. Engine

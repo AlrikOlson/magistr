@@ -1,14 +1,13 @@
 //! Session attachment for local project controls before an agent is connected.
 
+use magistr_application::sessions::AgentEvent;
 use magistr_application::sessions::SessionHandle;
-use magistr_cockpit::agent::AgentEvent;
 use std::{future::Future, pin::Pin};
 
 /// Owns no provider; the cockpit relay still serves its project ports.
 pub(crate) struct LocalSession;
 
 impl SessionHandle for LocalSession {
-    type Event = AgentEvent;
     fn submit_turn(&mut self, _: &str) -> Result<(), String> {
         Err("Connect to Magistr before sending a message.".into())
     }

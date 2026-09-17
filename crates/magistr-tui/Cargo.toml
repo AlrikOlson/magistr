@@ -10,6 +10,7 @@ rust-version = "1.89"
 # The cockpit this crate renders: its core, layout, theme, cell and pixel
 # painters and producers. This crate adds the terminal and forks none of it.
 magistr-cockpit = { path = "../magistr-cockpit" }
+magistr-application = { path = "../magistr-application" }
 # Incremental prompt echo must never split a composed character.
 unicode-segmentation = "1"
 # The software rasterizer the compositors read pixel surfaces from and the

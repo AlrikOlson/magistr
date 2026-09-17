@@ -1,7 +1,8 @@
 use super::*;
+use crate::agent::permission_request::permission_request as policy_request;
 use crate::agent::{AuthMethod, PermissionMode};
 use crate::in_env as env_test;
-use magistr_cockpit::agent::{PolicyDecision, SessionPolicy};
+use magistr_application::sessions::{PolicyDecision, SessionPolicy};
 use magistr_engine::policy::GovernancePolicy;
 
 fn runtime(provider: &str) -> AgentRuntime {
@@ -66,7 +67,7 @@ fn snapshots_keep_provider_model_mcp_and_policy_after_configuration_changes() {
         response_tx,
     };
     assert_eq!(
-        policy.decide(&request),
+        policy.decide(&policy_request(&request)),
         PolicyDecision::Allow,
         "running policy retains its resolved profile"
     );

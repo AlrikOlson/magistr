@@ -1,10 +1,10 @@
 use magistr_engine::policy::RiskTier;
 
 use super::*;
-use crate::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 use crate::cockpit::{Msg, Size, StageTab, Surface, update};
 use crate::engine::EngineEvent;
 use crate::input::{KeyCode, KeyEvent};
+use magistr_application::sessions::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 
 /// A store with `here` in progress, `stuck` stuck, `shipped` done,
 /// `blocked` blocked and `next` pending — and, when `other` is set, a

@@ -1,5 +1,8 @@
 use super::*;
+use crate::agent::permission_request::permission_request as policy_request;
 use crate::permissions::PermissionProfile;
+
+use magistr_acp::AcpPermissionRequest;
 
 fn request(name: &str, input: serde_json::Value) -> AcpPermissionRequest {
     let (response_tx, _) = tokio::sync::oneshot::channel();
@@ -66,15 +69,15 @@ fn roadmap_purpose_is_a_ceiling_even_under_yolo() {
         "mcp__magistr__roadmap_export",
     ] {
         assert_eq!(
-            policy.decide(&request(name, serde_json::json!({}))),
+            policy.decide(&policy_request(&request(name, serde_json::json!({})))),
             PolicyDecision::Deny
         );
     }
     assert_eq!(
-        policy.decide(&request(
+        policy.decide(&policy_request(&request(
             "mcp__magistr__roadmap_add_chunk",
             serde_json::json!({"title":"Accessibility"})
-        )),
+        ))),
         PolicyDecision::Allow
     );
     for (status, answer) in [
@@ -83,10 +86,10 @@ fn roadmap_purpose_is_a_ceiling_even_under_yolo() {
         ("done", PolicyDecision::Deny),
     ] {
         assert_eq!(
-            policy.decide(&request(
+            policy.decide(&policy_request(&request(
                 "mcp__magistr__roadmap_set_status",
                 serde_json::json!({"status":status})
-            )),
+            ))),
             answer
         );
     }

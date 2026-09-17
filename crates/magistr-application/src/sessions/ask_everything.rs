@@ -1,7 +1,7 @@
 //! The policy of no policy.
 
-use magistr_acp::AcpPermissionRequest;
-use magistr_engine::policy::RiskTier;
+use super::policy_request::SessionPolicyRequest;
+use magistr_domain::policy::RiskTier;
 
 use super::policy_decision::PolicyDecision;
 use super::session_policy::SessionPolicy;
@@ -17,7 +17,7 @@ use super::session_policy::SessionPolicy;
 pub struct AskEverything;
 
 impl SessionPolicy for AskEverything {
-    fn decide(&mut self, _request: &AcpPermissionRequest) -> PolicyDecision {
+    fn decide(&mut self, _request: &SessionPolicyRequest) -> PolicyDecision {
         PolicyDecision::Ask(RiskTier::Medium)
     }
 }

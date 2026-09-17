@@ -4,7 +4,6 @@ use magistr_engine::CheckpointReason;
 use serde_json::json;
 
 use super::*;
-use crate::agent::{AgentEvent, TurnEnd};
 use crate::cockpit::{
     AgentMissing, Budget, CheckpointEvent, Cmd, LoopEvent, LoopStage, LoopStatus, Msg,
     SettingsGroup, Size, StageTab, StarState, Surface, update,
@@ -13,6 +12,7 @@ use crate::engine::EngineEvent;
 use crate::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use crate::job::{JobId, JobOutput};
 use crate::widget_id::WidgetId;
+use magistr_application::sessions::{AgentEvent, TurnEnd};
 
 /// A window on the Sky with `e6b` on the rail — the room every fault
 /// in this file is read on, since the cards are native only.

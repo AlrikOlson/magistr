@@ -1,3 +1,4 @@
+use crate::agent::permission_request::permission_request as policy_request;
 use crate::in_env as env_test;
 
 use super::*;
@@ -365,7 +366,7 @@ fn allowed_tools_replaces_list() {
 #[test]
 fn permission_context_uses_selected_project_and_preserves_explicit_profile() {
     use crate::permissions::{NoninteractivePolicy, PermissionProfile};
-    use magistr_cockpit::agent::{PolicyDecision, SessionPolicy};
+    use magistr_application::sessions::{PolicyDecision, SessionPolicy};
     let project = tempfile::tempdir().unwrap();
     std::fs::create_dir(project.path().join(".claude")).unwrap();
     std::fs::write(
@@ -386,12 +387,15 @@ fn permission_context_uses_selected_project_and_preserves_explicit_profile() {
         options: vec![],
         response_tx,
     };
-    assert!(matches!(policy.decide(&request), PolicyDecision::Ask(_)));
+    assert!(matches!(
+        policy.decide(&policy_request(&request)),
+        PolicyDecision::Ask(_)
+    ));
     let (policy, _) = config
         .permission_profile(PermissionProfile::Standard)
         .session_permission_policy();
     assert!(matches!(
-        policy.audit_to(None).decide(&request),
+        policy.audit_to(None).decide(&policy_request(&request)),
         PolicyDecision::Allow
     ));
     assert_eq!(

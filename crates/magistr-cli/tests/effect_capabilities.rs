@@ -16,7 +16,8 @@ use magistr::application::WorkspaceAdmission;
 use magistr::permissions::{PermissionProfile, SessionPermissionPolicy};
 use magistr_acp::AcpTransport;
 use magistr_application::effects::{EffectFuture, SourceRoute, SourceWriteReceipt, SourceWriter};
-use magistr_cockpit::agent::{AgentEvent, PermissionKind, SessionOptions, spawn_session};
+use magistr_application::sessions::{AgentEvent, PermissionKind, SessionOptions};
+use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::cockpit::{Cmd, Msg};
 #[cfg(unix)]

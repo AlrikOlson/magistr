@@ -1,5 +1,5 @@
 //! Fictional roadmap request states exercised through the production input and event path.
-use magistr_cockpit::agent::{
+use magistr_application::sessions::{
     AgentEvent, PermissionChoice, PermissionKind, ToolRecord, ToolStatus, ToolVerb, TurnEnd,
 };
 use magistr_cockpit::cockpit::{Cmd, FrameClock, Model, Msg, Widget, update, view};

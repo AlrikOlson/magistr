@@ -24,11 +24,11 @@ fn events_received_before_graphics_stay_in_records_without_conversation_rows() {
     assert_eq!(rows[3].author, Some(Voice::Agent));
 }
 
-use crate::agent::{AgentEvent, ToolStatus, ToolVerb};
 use crate::cockpit::{Msg, Size, update};
 use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree};
 use crate::pixel::{CellSize, Typography};
+use magistr_application::sessions::{AgentEvent, ToolStatus, ToolVerb};
 
 fn model() -> Model {
     let mut model = Model::new(Size::new(144, 50)).with_tab(crate::cockpit::StageTab::Turn);
@@ -287,9 +287,9 @@ fn terminal_output_arriving_after_completion_cannot_be_killed_as_running_work() 
                 status: ToolStatus::Completed,
                 diff: None,
                 images: Vec::new(),
-                record: Box::new(crate::agent::ToolRecord {
+                record: Box::new(magistr_application::sessions::ToolRecord {
                     terminal: Some("checks".into()),
-                    ..crate::agent::ToolRecord::default()
+                    ..magistr_application::sessions::ToolRecord::default()
                 }),
             }),
         );

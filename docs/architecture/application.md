@@ -62,11 +62,21 @@ adapter's ownership checks. They do not claim the domain `AttemptId`, revision
 admission or attempt correlation required by the scoped facades.
 
 `SessionHandle` supplies explicit turn, permission, terminal, detach and shutdown
-operations for an attached client. Its associated event type is the client's
-portable vocabulary; the trait imports neither ACP nor a renderer. Host admission
-errors remain strings on this live adapter contract, and its session-local
-permission IDs do not claim durable domain attempt/revision correlation. The
-scoped `Sessions` facade remains a separate contract for that later migration.
+operations for an attached client and observes application-owned `AgentEvent`
+values. The same `sessions` module owns startup `SessionOptions`, `SessionPolicy`,
+permission requests and choices, and bounded tool records. These contracts use
+only `alloc`, `core` and the domain crate; no ACP, runtime, channel, filesystem or
+JSON library belongs here. Tool payloads distinguish text from encoded JSON, and
+locations retain wire path text. Truncated JSON becomes text rather than claiming
+to remain structured data.
+
+The CLI translates ACP into this vocabulary. Policy requests retain the full
+encoded input; the host decodes and normalizes it, refuses malformed input, and
+keeps offered option IDs and reply channels. Tool-record display bounds never
+truncate the input used to decide permission. Host admission errors remain
+strings, and session-local permission IDs do not claim durable domain
+attempt/revision correlation. The scoped `Sessions` facade remains a separate
+contract for that later migration.
 
 ## Identity and admission
 

@@ -7,15 +7,15 @@ use std::time::Instant;
 use magistr_application::sessions::SessionHandle;
 use tokio::task::JoinHandle;
 
-use super::event::AgentEvent;
 use super::session_jobs::SessionJobs;
-use super::tool_status::ToolStatus;
 use crate::channel::{Commands, Inbox};
 use crate::checkpoint::CheckpointPort;
 use crate::cockpit::{CheckpointCmd, CheckpointEvent, EngineCmd, WorkbenchCmd, WorkbenchEvent};
 use crate::cockpit::{Cmd, KillCmd, Msg};
 use crate::engine::{EngineEvent, EnginePort};
 use crate::workbench::WorkbenchPort;
+use magistr_application::sessions::AgentEvent;
+use magistr_application::sessions::ToolStatus;
 
 /// A port the relay holds for its owned jobs: shared with the blocking
 /// thread that runs the call, held by one relay, so never contended
@@ -34,7 +34,7 @@ type Shared<P> = Arc<Mutex<Box<P>>>;
 /// than answered with silence. Once the runtime ends, the jobs are fenced and
 /// joined, then the session owner's cleanup is awaited.
 pub fn spawn_session(
-    handle: Box<dyn SessionHandle<Event = AgentEvent>>,
+    handle: Box<dyn SessionHandle>,
     inbox: Inbox,
     commands: Commands,
     workbench: Option<Box<dyn WorkbenchPort>>,
@@ -55,7 +55,7 @@ pub fn spawn_session(
 }
 
 struct Session {
-    handle: Box<dyn SessionHandle<Event = AgentEvent>>,
+    handle: Box<dyn SessionHandle>,
     inbox: Inbox,
     workbench: Option<Shared<dyn WorkbenchPort>>,
     engine: Option<Shared<dyn EnginePort>>,

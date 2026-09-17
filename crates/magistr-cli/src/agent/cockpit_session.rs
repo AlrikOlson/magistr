@@ -5,7 +5,7 @@ use std::pin::Pin;
 
 use magistr_acp::AcpTransport;
 use magistr_application::sessions::SessionHandle;
-use magistr_cockpit::agent::{AgentEvent, SessionOptions, SessionPolicy};
+use magistr_application::sessions::{AgentEvent, SessionOptions, SessionPolicy};
 
 use super::ResolvedSessionSpec;
 use super::observation::{ObservationCapacity, ObservationReceiver};
@@ -76,8 +76,6 @@ impl CockpitSession {
 }
 
 impl SessionHandle for CockpitSession {
-    type Event = AgentEvent;
-
     fn submit_turn(&mut self, text: &str) -> std::result::Result<(), String> {
         self.supervisor
             .send_followup(text)
@@ -117,7 +115,7 @@ impl SessionHandle for CockpitSession {
         // Detaching ends observation: buffered events belong to no client.
         self.events.close();
     }
-    fn next_event(&mut self) -> Pin<Box<dyn Future<Output = Option<Self::Event>> + Send + '_>> {
+    fn next_event(&mut self) -> Pin<Box<dyn Future<Output = Option<AgentEvent>> + Send + '_>> {
         Box::pin(self.events.recv())
     }
     fn terminate_session(

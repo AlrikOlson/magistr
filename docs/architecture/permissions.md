@@ -17,6 +17,13 @@ The CLI `SessionPermissionPolicy` supplies request classification, project path
 resolution, configuration, charter persistence and audit effects.
 `CockpitPolicy` remains a compatibility name for that implementation.
 
+The application owns `sessions::SessionPolicy`, its request and decision types,
+and the meaning of offered permission choices. The CLI converts ACP requests to
+that contract, retaining tool identity, title, kind and the full encoded input.
+Its policy adapter decodes and normalizes the input; malformed data is refused
+and cannot create a remembered rule. ACP reply channels and pending offered IDs
+remain with the host supervisor.
+
 The decision order is:
 
 1. A mutation of a protected target is denied, including edit, delete and move.

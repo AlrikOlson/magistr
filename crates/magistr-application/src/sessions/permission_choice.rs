@@ -1,6 +1,6 @@
 //! One option the agent offers in a permission request.
 
-use magistr_acp::AcpPermissionOption;
+use alloc::string::String;
 
 use super::permission_kind::PermissionKind;
 
@@ -22,11 +22,5 @@ impl PermissionChoice {
             option_id: option_id.into(),
             kind,
         }
-    }
-}
-
-impl From<&AcpPermissionOption> for PermissionChoice {
-    fn from(option: &AcpPermissionOption) -> Self {
-        Self::new(option.option_id.clone(), PermissionKind::from(option.kind))
     }
 }

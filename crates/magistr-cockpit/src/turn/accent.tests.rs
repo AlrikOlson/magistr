@@ -1,6 +1,6 @@
 use super::*;
-use crate::agent::{ToolStatus, ToolVerb};
 use crate::render::width;
+use magistr_application::sessions::{ToolStatus, ToolVerb};
 
 #[test]
 fn every_line_kind_maps_to_its_role() {

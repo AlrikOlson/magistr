@@ -1,5 +1,5 @@
 //! Fictional conversation shared by public captures and production visual checks.
-use magistr_cockpit::agent::{AgentEvent, EditDiff, ToolRecord, ToolStatus, ToolVerb};
+use magistr_application::sessions::{AgentEvent, EditDiff, ToolRecord, ToolStatus, ToolVerb};
 use magistr_cockpit::cockpit::{Model, Msg, update};
 use serde_json::{Value, json};
 use std::error::Error;
@@ -32,7 +32,7 @@ pub fn conversation(model: &mut Model, data: &Value) -> Result<(), Box<dyn Error
             images: Vec::new(),
             record: Box::new(ToolRecord {
                 text: vec![text("edit_summary")?],
-                locations: vec![(text("edit_path")?.into(), None)],
+                locations: vec![(text("edit_path")?, None)],
                 ..ToolRecord::default()
             }),
         },
@@ -44,8 +44,12 @@ pub fn conversation(model: &mut Model, data: &Value) -> Result<(), Box<dyn Error
             diff: None,
             images: Vec::new(),
             record: Box::new(ToolRecord {
-                input: Some(json!({"command": text("command")?})),
-                output: Some(json!({"passed": 3, "failed": 0})),
+                input: Some(magistr_application::sessions::ToolPayload::Json(
+                    json!({"command": text("command")?}).to_string(),
+                )),
+                output: Some(magistr_application::sessions::ToolPayload::Json(
+                    json!({"passed": 3, "failed": 0}).to_string(),
+                )),
                 terminal: Some("harbor-test-terminal".into()),
                 ..ToolRecord::default()
             }),

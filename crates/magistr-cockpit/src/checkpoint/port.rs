@@ -15,7 +15,7 @@ use magistr_engine::CheckpointReason;
 /// `&mut self` because a spine grows; `Send + Sync` because the
 /// consumer's task holds it across awaits, as [`SessionPolicy`] is.
 ///
-/// [`SessionPolicy`]: crate::agent::SessionPolicy
+/// [`SessionPolicy`]: magistr_application::sessions::SessionPolicy
 pub trait CheckpointPort: Send + Sync {
     /// Take a checkpoint under `id`, and answer `(head, verified)`.
     fn save(

@@ -54,7 +54,7 @@ impl FlightDock {
             DockItem::Permission(p) => p
                 .buttons()
                 .map(|(kind, _)| {
-                    use crate::agent::PermissionKind;
+                    use magistr_application::sessions::PermissionKind;
                     let label = match kind {
                         PermissionKind::AllowOnce => "Allow once",
                         PermissionKind::AllowAlways => "Allow for session",

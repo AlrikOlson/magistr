@@ -3,7 +3,7 @@
 use super::flat_line::FlatLine;
 use super::plain::plain;
 use super::role::Role;
-use magistr_cockpit::agent::{ToolStatus, ToolVerb};
+use magistr_application::sessions::{ToolStatus, ToolVerb};
 use magistr_cockpit::cockpit::{Model, TurnState};
 use magistr_cockpit::turn::{Line, LineKind, Voice};
 

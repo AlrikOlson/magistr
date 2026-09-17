@@ -4,7 +4,6 @@
 //! owner's rule, and the effects it produces keep their order.
 
 use super::*;
-use crate::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 use crate::cockpit::update::update;
 use crate::cockpit::{
     CheckpointCmd, DockItem, EngineCmd, MotionName, Msg, Selected, Size, Surface, TurnState,
@@ -12,6 +11,7 @@ use crate::cockpit::{
 };
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
 use crate::workbench::JournalEntry;
+use magistr_application::sessions::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 use magistr_engine::policy::RiskTier;
 
 fn model() -> Model {
@@ -295,7 +295,7 @@ fn the_registers_editing_intents_are_the_keys() {
 
 #[test]
 fn show_images_is_one_intent_reached_by_the_key_and_the_button() {
-    use crate::agent::ImageBlock;
+    use magistr_application::sessions::ImageBlock;
     let picture = || AgentEvent::PermissionRequest {
         id: 6,
         title: "Look".to_owned(),

@@ -11,7 +11,7 @@ fn moving() -> Model {
     let mut model = Model::new(Size::new(40, 8)).with_theme(Theme::forced(ThemeMode::Dark));
     update(
         &mut model,
-        Msg::Agent(magistr_cockpit::agent::AgentEvent::Text(
+        Msg::Agent(magistr_application::sessions::AgentEvent::Text(
             "streaming".to_owned(),
         )),
     );

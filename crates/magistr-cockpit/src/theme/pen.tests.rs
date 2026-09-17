@@ -85,8 +85,8 @@ fn the_panel_pens_are_structure_border_quiet_focus_accent() {
 
 #[test]
 fn every_row_kind_has_its_pen_and_the_kinds_that_differ_read_differently() {
-    use crate::agent::ToolStatus;
     use crate::turn::{RowKind, Voice};
+    use magistr_application::sessions::ToolStatus;
     let pen = Pen::of(&catppuccin_mocha());
     assert_eq!(pen.row(RowKind::Prose(Voice::Agent)), &pen.stage);
     assert_eq!(pen.row(RowKind::Prose(Voice::Thought)), &pen.thought);
@@ -297,7 +297,7 @@ fn the_keycap_chip_rises_off_the_footer_bar() {
 
 #[test]
 fn the_strip_the_buttons_the_prompt_and_the_cursor_have_their_pens() {
-    use crate::agent::PermissionKind;
+    use magistr_application::sessions::PermissionKind;
     for palette in [catppuccin_mocha(), catppuccin_latte()] {
         let pen = Pen::of(&palette);
         assert_eq!(pen.permission.bg, pen.header.bg, "the strip is chrome");

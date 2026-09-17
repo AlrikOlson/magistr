@@ -1,7 +1,7 @@
 //! One source line of a turn.
 
 use super::line_kind::LineKind;
-use crate::agent::ToolRecord;
+use magistr_application::sessions::ToolRecord;
 
 /// A source line: its kind, its text (no newline), where its rows start
 /// in the turn's row list, and — for a line one tool call's content

@@ -1,4 +1,4 @@
-//! From the protocol's events to the cockpit's.
+//! Host translation from ACP events to application session observations.
 
 use agent_client_protocol::schema::v1::{
     ContentBlock, Cost, PlanEntryStatus, SessionConfigKind, SessionConfigOption,
@@ -7,13 +7,9 @@ use agent_client_protocol::schema::v1::{
 };
 use magistr_acp::AcpEvent;
 
-use super::edit_diff::EditDiff;
-use super::event::AgentEvent;
-use super::image_block::ImageBlock;
-use super::tool_record::ToolRecord;
-use super::tool_status::ToolStatus;
-use super::tool_verb::ToolVerb;
-use super::turn_end::TurnEnd;
+use magistr_application::sessions::{
+    AgentEvent, EditDiff, ImageBlock, ToolPayload, ToolRecord, ToolStatus, ToolVerb, TurnEnd,
+};
 
 /// The cockpit's reading of one transport event; nothing is dropped —
 /// an update this cockpit has no words for becomes [`AgentEvent::System`]
@@ -176,8 +172,8 @@ fn tool_record(
 ) -> Box<ToolRecord> {
     let record = ToolRecord {
         kind: kind.map(tool_verb),
-        input: input.cloned(),
-        output: output.cloned(),
+        input: input.map(tool_payload),
+        output: output.map(tool_payload),
         text: content
             .iter()
             .filter_map(|item| match item {
@@ -190,7 +186,7 @@ fn tool_record(
             .collect(),
         locations: locations
             .iter()
-            .map(|location| (location.path.clone(), location.line))
+            .map(|location| (location.path.display().to_string(), location.line))
             .collect(),
         terminal: content.iter().find_map(|item| match item {
             ToolCallContent::Terminal(terminal) => Some(terminal.terminal_id.to_string()),
@@ -262,7 +258,7 @@ fn text(block: &ContentBlock) -> String {
     }
 }
 
-fn tool_verb(kind: ToolKind) -> ToolVerb {
+pub(crate) fn tool_verb(kind: ToolKind) -> ToolVerb {
     match kind {
         ToolKind::Read => ToolVerb::Read,
         ToolKind::Edit => ToolVerb::Edit,
@@ -294,6 +290,14 @@ fn turn_end(reason: &StopReason) -> TurnEnd {
         StopReason::Refusal => TurnEnd::Refusal,
         StopReason::Cancelled => TurnEnd::Cancelled,
         _ => TurnEnd::Other,
+    }
+}
+
+/// Preserve string values separately from encoded structured data.
+fn tool_payload(value: &serde_json::Value) -> ToolPayload {
+    match value {
+        serde_json::Value::String(text) => ToolPayload::Text(text.clone()),
+        other => ToolPayload::Json(other.to_string()),
     }
 }
 

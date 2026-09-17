@@ -1,8 +1,8 @@
 //! How a row is styled.
 
 use super::voice::Voice;
-use crate::agent::ToolStatus;
 use crate::layout::TextRole;
+use magistr_application::sessions::ToolStatus;
 
 /// The block-level kind of one wrapped row — what the pen styles.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

@@ -1,5 +1,7 @@
 //! The plan an ask carries, when it asks about one.
 
+use alloc::{string::String, vec::Vec};
+
 use super::image_block::ImageBlock;
 
 /// What turns a permission request into the design's *Moment*: the plan

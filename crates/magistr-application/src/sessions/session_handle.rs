@@ -1,18 +1,17 @@
 //! Runtime-independent commands and observations for one resident agent session.
 
+use super::AgentEvent;
 use alloc::{boxed::Box, string::String};
 use core::{future::Future, pin::Pin};
 
 /// A client attachment to the application-owned session lifecycle.
 ///
-/// The host chooses the event vocabulary and runtime. Cancellation ends a turn
-/// only after the provider acknowledges it; detachment ends observation while
-/// explicit termination releases the session and its resources. Dropping the
+/// The application owns the observation vocabulary; the host chooses the runtime.
+/// Cancellation ends a turn only after the provider acknowledges it; detachment
+/// ends observation while explicit termination releases the session and its
+/// resources. Dropping the
 /// owning handle also releases those resources, including pending decisions.
 pub trait SessionHandle: Send {
-    /// The client's portable observation vocabulary.
-    type Event: Send;
-
     /// Admit input in FIFO order after any active turn.
     fn submit_turn(&mut self, text: &str) -> Result<(), String>;
     /// Cancel active and queued input while retaining session residency.
@@ -29,7 +28,7 @@ pub trait SessionHandle: Send {
     fn detach_client(&mut self);
     /// Observe the next event; `None` means the attachment has ended. Dropping
     /// a pending observation future must not consume or lose an event.
-    fn next_event(&mut self) -> Pin<Box<dyn Future<Output = Option<Self::Event>> + Send + '_>>;
+    fn next_event(&mut self) -> Pin<Box<dyn Future<Output = Option<AgentEvent>> + Send + '_>>;
     /// Terminate the resident session and await resource cleanup.
     fn terminate_session(
         &mut self,

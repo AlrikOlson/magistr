@@ -4,12 +4,12 @@
 #[path = "flight_overlays.tests.rs"]
 mod tests;
 
-use crate::agent::PermissionKind;
 use crate::cockpit::hover;
 use crate::cockpit::{FlightStyle, Model, Permission, Tooltip, Widget};
 use crate::layout::{Inset, Length, Node, TextMetrics, TextRole};
 use crate::pixel::Typography;
 use crate::theme::Pen;
+use magistr_application::sessions::PermissionKind;
 
 #[path = "flight_secondary.rs"]
 mod secondary;

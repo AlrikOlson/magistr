@@ -1,9 +1,9 @@
 use super::*;
-use crate::agent::{AgentEvent, PermissionChoice, PermissionKind};
 use crate::cockpit::{CheckpointCmd, Cmd};
 use crate::cockpit::{LauncherData, LauncherSession, Msg, SessionOutcome, Size, Surface, update};
 use crate::input::{KeyCode, KeyEvent, Modifiers};
 use crate::job::{JobId, JobOutput};
+use magistr_application::sessions::{AgentEvent, PermissionChoice, PermissionKind};
 use magistr_engine::{CheckpointReason, policy::RiskTier};
 
 fn native() -> Model {

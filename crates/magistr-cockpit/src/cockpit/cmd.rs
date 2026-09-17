@@ -31,7 +31,7 @@ pub enum Cmd {
     Permission {
         /// The request, as [`AgentEvent::PermissionRequest`] numbered it.
         ///
-        /// [`AgentEvent::PermissionRequest`]: crate::agent::AgentEvent::PermissionRequest
+        /// [`AgentEvent::PermissionRequest`]: magistr_application::sessions::AgentEvent::PermissionRequest
         id: u64,
         /// The chosen option's id.
         option_id: String,
@@ -52,7 +52,7 @@ pub enum Cmd {
     Constraint {
         /// The request, as [`AgentEvent::PermissionRequest`] numbered it.
         ///
-        /// [`AgentEvent::PermissionRequest`]: crate::agent::AgentEvent::PermissionRequest
+        /// [`AgentEvent::PermissionRequest`]: magistr_application::sessions::AgentEvent::PermissionRequest
         id: u64,
         /// The reader's words.
         condition: String,

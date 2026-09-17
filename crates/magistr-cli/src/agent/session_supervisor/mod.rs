@@ -21,7 +21,7 @@ use agent_client_protocol::schema::v1::{
     AgentCapabilities, SessionConfigOption, SessionConfigOptionValue, SessionInfo, StopReason,
 };
 use magistr_acp::AcpTransport;
-use magistr_cockpit::agent::{AgentEvent, SessionOptions, SessionPolicy};
+use magistr_application::sessions::{AgentEvent, SessionOptions, SessionPolicy};
 use magistr_core::AcpSessionState;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
@@ -39,7 +39,7 @@ pub use turn_outcome::TurnOutcome;
 
 type Messages = ObservationReceiver<Result<AgentMessage>>;
 type Policy = (
-    Box<dyn magistr_cockpit::agent::SessionPolicy>,
+    Box<dyn magistr_application::sessions::SessionPolicy>,
     crate::permissions::NoninteractivePolicy,
 );
 

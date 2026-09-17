@@ -1,6 +1,8 @@
 //! What the agent said.
 
-use magistr_engine::policy::RiskTier;
+use alloc::{boxed::Box, string::String, vec::Vec};
+
+use magistr_domain::policy::RiskTier;
 
 use super::ask_plan::AskPlan;
 use super::edit_diff::EditDiff;
@@ -11,9 +13,7 @@ use super::tool_status::ToolStatus;
 use super::tool_verb::ToolVerb;
 use super::turn_end::TurnEnd;
 
-/// One thing the agent's session reported, as [`Msg::Agent`] carries it.
-///
-/// [`Msg::Agent`]: crate::cockpit::Msg::Agent
+/// One observation from the resident session, shared by hosts and interfaces.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AgentEvent {
     /// The handshake completed and a session exists.
@@ -58,8 +58,7 @@ pub enum AgentEvent {
         /// wire named, its raw input and output, text blocks, the
         /// files it touched, the terminal it embeds — kept on the
         /// call's line as the body a card opens into, capped at
-        /// [`ToolRecord::CAP`]. Boxed so the event — and every
-        /// [`Msg`](crate::cockpit::Msg) — stays the size it was.
+        /// [`ToolRecord::CAP`]. Boxed to keep the observation compact.
         record: Box<ToolRecord>,
     },
     /// A tool call changed.
@@ -119,9 +118,7 @@ pub enum AgentEvent {
     /// The turn ended.
     TurnEnded(TurnEnd),
     /// The agent asks whether a tool may run; the answer is one of the
-    /// choices' ids, sent back as [`Cmd::Permission`].
-    ///
-    /// [`Cmd::Permission`]: crate::cockpit::Cmd::Permission
+    /// choices' ids, sent back through the session handle.
     PermissionRequest {
         /// The request's id, unique within the session.
         id: u64,
@@ -167,10 +164,7 @@ pub enum AgentEvent {
     },
     /// A chunk of raw output from one of the agent's terminals — the
     /// bytes the command wrote, escapes and all, in order — kept by
-    /// terminal id ([`Model::terminal_output`]) for the pane that paints
-    /// them.
-    ///
-    /// [`Model::terminal_output`]: crate::cockpit::model::Model::terminal_output
+    /// terminal id for the interface that displays them.
     Terminal {
         /// The terminal's id, as `terminal/create` named it.
         terminal_id: String,
