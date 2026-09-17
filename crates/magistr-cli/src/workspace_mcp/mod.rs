@@ -22,6 +22,7 @@ mod arguments;
 mod bridge;
 mod bridge_link;
 mod bridge_session;
+mod capability;
 mod connection;
 mod dispatch;
 mod elicitation;

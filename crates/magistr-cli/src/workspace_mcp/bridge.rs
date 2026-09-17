@@ -3,11 +3,13 @@
 //! Every `magistr workspace serve` is this bridge. Its client speaks MCP on
 //! the bridge's stdio; the bridge speaks the same frames to an owner — the
 //! service this process admitted, or the one another process welcomed it on.
-//! When an attached owner goes away, calls in flight are answered with the
-//! typed `ENGINE_UNAVAILABLE` refusal, the tool listing keeps answering, and
-//! the next request reconnects within the bounded window: attaching to the
-//! owner that admitted meanwhile, or admitting the workspace itself. Nothing
-//! is replayed against a new owner except the client's own `initialize`.
+//! When an attached owner goes away — or none was reachable when the bridge
+//! started — calls in flight are answered with the typed `ENGINE_UNAVAILABLE`
+//! refusal, `initialize` and the tool listing keep answering from the shared
+//! capability definition, and the next request reconnects within the bounded
+//! window: attaching to the owner that admitted meanwhile, or admitting the
+//! workspace itself. Nothing is replayed against a new owner except the
+//! client's own `initialize`.
 
 use std::time::Duration;
 
@@ -23,6 +25,7 @@ const DRAIN_DEADLINE: Duration = Duration::from_secs(5);
 use super::{
     bridge_link::Link,
     bridge_session::{ClientSession, Inbound},
+    capability::Capability,
 };
 
 pub(super) struct Bridge {
@@ -34,18 +37,39 @@ pub(super) struct Bridge {
 }
 
 impl Bridge {
-    pub(super) fn new(options: WorkspaceOpenOptions, identity: String, link: Link) -> Self {
-        tracing::info!(
-            generation = link.generation(),
-            embedded = link.is_embedded(),
-            identity = identity.as_str(),
-            "workspace bridge linked"
-        );
+    /// A bridge over the owner startup reached, or — when startup was
+    /// refused for a reason a later request can outlive — over none yet,
+    /// with that refusal as the reason every local answer names.
+    pub(super) fn new(
+        options: WorkspaceOpenOptions,
+        identity: String,
+        link: Result<Link, String>,
+    ) -> Self {
+        let capability = Capability::new(options.offers_script());
+        let (link, unreachable) = match link {
+            Ok(link) => {
+                tracing::info!(
+                    generation = link.generation(),
+                    embedded = link.is_embedded(),
+                    identity = identity.as_str(),
+                    "workspace bridge linked"
+                );
+                (Some(link), String::new())
+            }
+            Err(reason) => {
+                tracing::warn!(
+                    reason = reason.as_str(),
+                    identity = identity.as_str(),
+                    "workspace bridge started without an owner; discovery is served locally and the next request reconnects"
+                );
+                (None, reason)
+            }
+        };
         Self {
             options,
-            session: ClientSession::new(identity),
-            link: Some(link),
-            unreachable: String::new(),
+            session: ClientSession::new(identity, capability),
+            link,
+            unreachable,
         }
     }
 

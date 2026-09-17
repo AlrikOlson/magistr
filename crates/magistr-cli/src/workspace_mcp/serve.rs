@@ -2,7 +2,7 @@ use color_eyre::eyre;
 use magistr_workspace::{
     commands::ScriptInterpreter,
     config::SessionFlags,
-    service::{WorkspaceOpenOptions, mint_session_identity},
+    service::{WorkspaceOpenError, WorkspaceOpenOptions, mint_session_identity},
 };
 
 use super::{bridge::Bridge, bridge_link::Link};
@@ -16,9 +16,16 @@ const QJS_WASI: &[u8] =
 /// at — to this process's stdio client through the bridge: the first
 /// invocation admits and owns the service, later ones attach to it over the
 /// shared owner endpoint, and any of them survives the owner going away by
-/// reconnecting on the next request. The launcher may name the session
-/// identity the bridge stamps (the captured `WORKBENCH_SESSION_ID`);
-/// otherwise one is minted for the life of this process.
+/// reconnecting on the next request. A startup refusal of the temporary
+/// kind — the lock is held by an owner that published no endpoint yet, or
+/// the marker awaits `magistr workspace migrate` — does not end the process
+/// either: the bridge serves discovery itself and reconnects on the next
+/// request, so the refusal is answered typed and outlived without a
+/// restart. Every other refusal (missing root, durable data of a newer
+/// binary, overrides against a live owner) is still a startup error with
+/// its retained exit code. The launcher may name the session identity the
+/// bridge stamps (the captured `WORKBENCH_SESSION_ID`); otherwise one is
+/// minted for the life of this process.
 pub async fn run_workspace_stdio_server(
     inputs: &ProjectInputs,
     config: &[String],
@@ -29,7 +36,11 @@ pub async fn run_workspace_stdio_server(
     }
     let options = open_options(inputs, flags.flags)?;
     let link = match Link::open(&options).await {
-        Ok(link) => link,
+        Ok(link) => Ok(link),
+        Err(error) if error.exit_code() == WorkspaceOpenError::EXIT_LOCKED => {
+            eprintln!("magistr workspace: {error}; serving discovery until an owner is reachable");
+            Err(error.to_string())
+        }
         Err(error) => fail(error.exit_code(), &error.to_string()),
     };
     let identity = match inputs.workspace_session_id() {

@@ -8,23 +8,16 @@ use rmcp::{
     ErrorData, ServerHandler,
     model::{
         CallToolRequestParams, CallToolResponse, CustomRequest, CustomResult, ErrorCode,
-        GetTaskParams, GetTaskResult, Implementation, ListToolsResult, PaginatedRequestParams,
-        ProtocolVersion, ServerCapabilities, ServerInfo,
+        GetTaskParams, GetTaskResult, ListToolsResult, PaginatedRequestParams, ProtocolVersion,
+        ServerInfo,
     },
     service::{RequestContext, RoleServer},
 };
 use serde_json::json;
 
-use super::{dispatch, session_lifetime::SessionLifetime, tasks, tool_surface};
-
-/// The protocol eras this server will negotiate or advertise: everything
-/// below 2026-07-28, as `magistr mcp-serve` caps them too, so every Claude
-/// client accepts the result shapes.
-const SERVED_PROTOCOL_VERSIONS: &[ProtocolVersion] = &[
-    ProtocolVersion::V_2024_11_05,
-    ProtocolVersion::V_2025_03_26,
-    ProtocolVersion::V_2025_06_18,
-];
+use super::{
+    capability::Capability, dispatch, session_lifetime::SessionLifetime, tasks, tool_surface,
+};
 
 /// The rmcp server over one admitted workspace. Cheap by design and
 /// carries one fallback identity per connection. Explicit request `_meta`
@@ -62,24 +55,14 @@ impl WorkspaceMcpService {
 }
 
 impl ServerHandler for WorkspaceMcpService {
+    /// The shared capability definition; the bridge answers `initialize`
+    /// from the same one while no owner is reachable.
     fn get_info(&self) -> ServerInfo {
-        // SEP-2663: declaring tasks is what makes `tasks/get` reachable at
-        // all — rmcp answers the tasks/* methods with -32601 unless the
-        // server advertised the extension.
-        let mut info = ServerInfo::new(
-            ServerCapabilities::builder()
-                .enable_tools()
-                .enable_tasks()
-                .build(),
-        )
-        .with_instructions(tool_surface::INSTRUCTIONS)
-        .with_server_info(Implementation::new("magistr", env!("CARGO_PKG_VERSION")));
-        info.protocol_version = ProtocolVersion::V_2025_06_18;
-        info
+        Capability::server_info()
     }
 
     fn supported_protocol_versions(&self) -> Cow<'static, [ProtocolVersion]> {
-        Cow::Borrowed(SERVED_PROTOCOL_VERSIONS)
+        Capability::supported_protocol_versions()
     }
 
     async fn list_tools(

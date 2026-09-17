@@ -88,6 +88,21 @@ impl WorkspaceOpenOptions {
         self
     }
 
+    /// Whether an owner opened from these options offers the script verb:
+    /// an interpreter is composed and the sandbox host is built in. The
+    /// opened service answers the same from the interpreter it kept.
+    #[must_use]
+    pub fn offers_script(&self) -> bool {
+        #[cfg(feature = "sandbox")]
+        {
+            self.interpreter.is_some()
+        }
+        #[cfg(not(feature = "sandbox"))]
+        {
+            false
+        }
+    }
+
     pub(super) fn resolve_options(&self, root: PathBuf) -> ResolveOptions {
         ResolveOptions {
             root,

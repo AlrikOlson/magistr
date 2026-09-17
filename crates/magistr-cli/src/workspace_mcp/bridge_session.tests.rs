@@ -1,7 +1,7 @@
 use super::*;
 
 fn session() -> ClientSession {
-    ClientSession::new("bridge-test".to_owned())
+    ClientSession::new("bridge-test".to_owned(), Capability::new(true))
 }
 
 fn call(id: u64, meta: Option<Value>) -> String {
@@ -74,10 +74,69 @@ fn owner_loss_answers_every_outstanding_request_once() {
         .find(|answer| answer["id"] == "x")
         .expect("the listing is answered");
     assert_eq!(
-        listing["error"]["code"], -32000,
-        "no listing was cached yet"
+        listing["result"],
+        Capability::new(true).core_listing(),
+        "no owner ever listed, so the shared definition answers"
     );
     assert!(session.owner_lost("again").is_empty(), "answered once");
+}
+
+#[test]
+fn initialize_and_the_listing_are_answered_locally_before_any_owner() {
+    let mut session = session();
+    let params = json!({"protocolVersion": "2026-07-28", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}});
+    let Inbound::Unanswered(request) = session.inbound(
+        &json!({"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": params}).to_string(),
+        false,
+    ) else {
+        panic!("an unlinked initialize is answered locally");
+    };
+    let answer = session.answer_unavailable(&request, "no owner");
+    assert_eq!(answer["id"], 0);
+    assert_eq!(
+        answer["result"],
+        serde_json::to_value(Capability::initialize(&ProtocolVersion::V_2026_07_28)).unwrap()
+    );
+    assert_eq!(answer["result"]["protocolVersion"], "2025-06-18");
+    assert!(
+        session.initialized(),
+        "the later owner is initialized on the client's behalf"
+    );
+    let Inbound::Unanswered(listing) = session.inbound(
+        &json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}).to_string(),
+        false,
+    ) else {
+        panic!("an unlinked listing is answered locally");
+    };
+    let answer = session.answer_unavailable(&listing, "no owner");
+    assert_eq!(answer["result"], Capability::new(true).core_listing());
+    let call = session.answer_unavailable(
+        &serde_json::from_str(&call(2, None)).unwrap(),
+        "run `magistr workspace migrate`",
+    );
+    let envelope = &call["result"]["structuredContent"];
+    assert_eq!(envelope["error"]["code"], "ENGINE_UNAVAILABLE");
+    assert!(
+        envelope["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("magistr workspace migrate"),
+        "{envelope}"
+    );
+}
+
+#[test]
+fn an_initialize_without_a_protocol_version_is_invalid_params() {
+    let mut session = session();
+    let Inbound::Unanswered(request) = session.inbound(
+        &json!({"jsonrpc": "2.0", "id": 9, "method": "initialize", "params": {"capabilities": {}}})
+            .to_string(),
+        false,
+    ) else {
+        panic!("answered locally");
+    };
+    let answer = session.answer_unavailable(&request, "no owner");
+    assert_eq!(answer["error"]["code"], -32602, "{answer}");
 }
 
 #[test]

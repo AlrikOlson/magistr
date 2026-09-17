@@ -269,12 +269,18 @@ fn legacy_lock_refusal_preserves_the_record_and_never_opens_workspace_stores() {
     // neither grants a native process permission to migrate its record.
     let bytes = format!(r#"{{"pid":{},"host":"legacy-host"}}"#, std::process::id());
     std::fs::write(state.join("server.lock"), &bytes).expect("legacy owner");
+    // Since audit-260912-20 the refused bridge serves discovery instead of
+    // exiting 75: it writes no MCP frame for a client that sends nothing,
+    // names the migration on stderr, and ends cleanly on the client's EOF.
     let result = served(dir.path())
         .stdin(Stdio::null())
         .output()
         .expect("native contender");
-    assert_eq!(result.status.code(), Some(75));
-    assert!(String::from_utf8_lossy(&result.stderr).contains("migration"));
+    assert_eq!(result.status.code(), Some(0), "{result:?}");
+    assert!(result.stdout.is_empty(), "no MCP frame without a request");
+    let diagnostic = String::from_utf8_lossy(&result.stderr);
+    assert!(diagnostic.contains("migration"), "{diagnostic}");
+    assert!(diagnostic.contains("serving discovery"), "{diagnostic}");
     assert_eq!(
         std::fs::read_to_string(state.join("server.lock")).expect("preserved"),
         bytes

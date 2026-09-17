@@ -6,17 +6,24 @@ use magistr_workspace::{
     contracts::{EnvelopeVersion, ErrorKind, WorkspaceError, WorkspaceResponse},
     response::ResponseAdapter,
 };
+use rmcp::model::ProtocolVersion;
 use serde_json::{Map, Value, json};
+
+use super::capability::Capability;
 
 /// The `_meta` key the retained server reads its session identity from.
 const SESSION_META: &str = "workbench/sessionId";
 
 /// One client's session as the bridge sees it: the durable identity stamped
-/// on its calls, the `initialize` it sent (replayed to every later owner),
-/// the requests still waiting for an owner's answer and the last tool listing
-/// (answered while no owner is reachable, so the surface never disappears).
+/// on its calls, the `initialize` it sent (answered locally when no owner is
+/// reachable, replayed to every later owner), the requests still waiting for
+/// an owner's answer and the last tool listing. While no owner is reachable
+/// the listing answers — the last one an owner gave, else the shared
+/// capability definition — so the surface never disappears, not even before
+/// any owner was ever reached.
 pub(super) struct ClientSession {
     identity: String,
+    capability: Capability,
     initialize: Option<Value>,
     outstanding: HashMap<String, Outstanding>,
     tools: Option<Value>,
@@ -41,9 +48,10 @@ pub(super) enum Inbound {
 }
 
 impl ClientSession {
-    pub(super) fn new(identity: String) -> Self {
+    pub(super) fn new(identity: String, capability: Capability) -> Self {
         Self {
             identity,
+            capability,
             initialize: None,
             outstanding: HashMap::new(),
             tools: None,
@@ -135,18 +143,12 @@ impl ClientSession {
     /// the typed refusal so the client sees one failure per call, never a
     /// silent hang or a replay against the next owner.
     pub(super) fn owner_lost(&mut self, reason: &str) -> Vec<Value> {
-        let mut answers: Vec<Value> = self
-            .outstanding
-            .drain()
+        let outstanding: Vec<_> = self.outstanding.drain().collect();
+        let mut answers: Vec<Value> = outstanding
+            .iter()
             .map(|(id, waiting)| {
-                let id: Value = serde_json::from_str(&id).unwrap_or(Value::Null);
-                unavailable(
-                    &id,
-                    &waiting.method,
-                    waiting.meta.as_ref(),
-                    self.tools.as_ref(),
-                    reason,
-                )
+                let id: Value = serde_json::from_str(id).unwrap_or(Value::Null);
+                self.local_answer(&id, &waiting.method, waiting.meta.as_ref(), reason)
             })
             .collect();
         answers.sort_by_key(|answer| answer["id"].to_string());
@@ -158,7 +160,58 @@ impl ClientSession {
         let id = request.get("id").cloned().unwrap_or(Value::Null);
         let method = request["method"].as_str().unwrap_or_default();
         let meta = request["params"]["_meta"].as_object();
-        unavailable(&id, method, meta, self.tools.as_ref(), reason)
+        self.local_answer(&id, method, meta, reason)
+    }
+
+    /// The answer a client gets for `method` while no owner is reachable:
+    /// `initialize` the shared capability negotiated for the recorded
+    /// request, a tool listing the last listing an owner gave or the core
+    /// definition, a tool call the retained `ENGINE_UNAVAILABLE` envelope
+    /// (recovery `retry`), a ping an empty result, anything else a JSON-RPC
+    /// error naming the reason.
+    fn local_answer(
+        &self,
+        id: &Value,
+        method: &str,
+        meta: Option<&Map<String, Value>>,
+        reason: &str,
+    ) -> Value {
+        match method {
+            "initialize" => self.initialize_answer(id),
+            "tools/list" => json!({"jsonrpc": "2.0", "id": id, "result": self.listing()}),
+            "tools/call" => unavailable_call(id, meta, reason),
+            "ping" => json!({"jsonrpc": "2.0", "id": id, "result": {}}),
+            _ => rpc_error(id, reason),
+        }
+    }
+
+    /// The recorded `initialize`, negotiated exactly as an owner would
+    /// negotiate it. A request without a protocol version is invalid, as
+    /// rmcp would refuse it.
+    fn initialize_answer(&self, id: &Value) -> Value {
+        let requested = self
+            .initialize
+            .as_ref()
+            .and_then(|params| params.get("protocolVersion"))
+            .and_then(|version| serde_json::from_value::<ProtocolVersion>(version.clone()).ok());
+        match requested {
+            Some(requested) => json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": Capability::initialize(&requested),
+            }),
+            None => json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "error": {"code": -32602, "message": "initialize requires params.protocolVersion"},
+            }),
+        }
+    }
+
+    fn listing(&self) -> Value {
+        self.tools
+            .clone()
+            .unwrap_or_else(|| self.capability.core_listing())
     }
 
     fn stamp(&self, message: &mut Value) -> bool {
@@ -192,55 +245,35 @@ fn key(id: &Value) -> String {
     id.to_string()
 }
 
-/// The answer a client gets for `method` while no owner is reachable: a tool
-/// call receives the retained `ENGINE_UNAVAILABLE` envelope (recovery
-/// `retry`), a tool listing the last listing this bridge saw, a ping an empty
-/// result, anything else a JSON-RPC error naming the reason.
-fn unavailable(
-    id: &Value,
-    method: &str,
-    meta: Option<&Map<String, Value>>,
-    tools: Option<&Value>,
-    reason: &str,
-) -> Value {
-    match method {
-        "tools/call" => {
-            let version = ResponseAdapter::negotiate_meta(meta).unwrap_or(EnvelopeVersion::LATEST);
-            let response: WorkspaceResponse<Value> = WorkspaceResponse::Failure {
-                version,
-                error: WorkspaceError::new(
-                    ErrorKind::EngineUnavailable,
-                    format!(
-                        "the workspace owner is unavailable; the next call reconnects: {reason}"
-                    ),
-                ),
-                notes: Some(vec![
-                    "effect unknown: read back the affected object or operation receipt before retrying a write; the bridge keeps its session identity".to_owned(),
-                    format!("owner: {reason}"),
-                ]),
-            };
-            match ResponseAdapter::seal(&response) {
-                Ok(sealed) => json!({
-                    "jsonrpc": "2.0",
-                    "id": id,
-                    "result": {
-                        "content": [{"type": "text", "text": sealed.json()}],
-                        "structuredContent": sealed.structured(),
-                        "isError": true,
-                    },
-                }),
-                Err(error) => rpc_error(
-                    id,
-                    &format!("{reason}; and the refusal could not be sealed: {error}"),
-                ),
-            }
-        }
-        "tools/list" => match tools {
-            Some(listing) => json!({"jsonrpc": "2.0", "id": id, "result": listing}),
-            None => rpc_error(id, reason),
-        },
-        "ping" => json!({"jsonrpc": "2.0", "id": id, "result": {}}),
-        _ => rpc_error(id, reason),
+/// The retained `ENGINE_UNAVAILABLE` envelope (recovery `retry`) for a tool
+/// call that found no owner, in the envelope version the call negotiated.
+fn unavailable_call(id: &Value, meta: Option<&Map<String, Value>>, reason: &str) -> Value {
+    let version = ResponseAdapter::negotiate_meta(meta).unwrap_or(EnvelopeVersion::LATEST);
+    let response: WorkspaceResponse<Value> = WorkspaceResponse::Failure {
+        version,
+        error: WorkspaceError::new(
+            ErrorKind::EngineUnavailable,
+            format!("the workspace owner is unavailable; the next call reconnects: {reason}"),
+        ),
+        notes: Some(vec![
+            "effect unknown: read back the affected object or operation receipt before retrying a write; the bridge keeps its session identity".to_owned(),
+            format!("owner: {reason}"),
+        ]),
+    };
+    match ResponseAdapter::seal(&response) {
+        Ok(sealed) => json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "result": {
+                "content": [{"type": "text", "text": sealed.json()}],
+                "structuredContent": sealed.structured(),
+                "isError": true,
+            },
+        }),
+        Err(error) => rpc_error(
+            id,
+            &format!("{reason}; and the refusal could not be sealed: {error}"),
+        ),
     }
 }
 

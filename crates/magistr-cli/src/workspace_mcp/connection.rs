@@ -5,6 +5,8 @@ use std::time::Duration;
 
 #[cfg(unix)]
 use magistr_engine::native::{AttachError, CallerIdentity, OwnerClient};
+#[cfg(unix)]
+use magistr_workspace::contracts::{ErrorKind, WorkspaceError};
 use magistr_workspace::service::{WorkspaceOpenError, WorkspaceOpenOptions, WorkspaceService};
 
 /// Startup either owns the native service or holds only a welcomed transport.
@@ -20,6 +22,8 @@ pub(super) enum WorkspaceConnection {
 impl WorkspaceConnection {
     /// Retry only native contention during the bounded lock-to-listener window.
     /// A migration refusal never grants permission to contact an endpoint.
+    /// Overrides against a live owner are a policy refusal, not contention:
+    /// waiting cannot make them admissible.
     #[cfg(unix)]
     pub(super) async fn open(options: WorkspaceOpenOptions) -> Result<Self, WorkspaceOpenError> {
         let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
@@ -28,9 +32,12 @@ impl WorkspaceConnection {
                 Ok(service) => return Ok(Self::Owner(Arc::new(service))),
                 Err(WorkspaceOpenError::Locked(refusal)) => {
                     if !options.session_flags.is_empty() {
-                        return Err(WorkspaceOpenError::Locked(format!(
-                            "{refusal}; attachment cannot change the running owner's --config; \
-                             reconnect without overrides or stop that owner first"
+                        return Err(WorkspaceOpenError::Policy(WorkspaceError::new(
+                            ErrorKind::ConfigPolicyDenied,
+                            format!(
+                                "{refusal}; attachment cannot change the running owner's --config; \
+                                 reconnect without overrides or stop that owner first"
+                            ),
                         )));
                     }
                     let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());

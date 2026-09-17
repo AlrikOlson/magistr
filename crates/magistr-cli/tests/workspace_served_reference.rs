@@ -246,6 +246,10 @@ async fn native_and_legacy_owners_refuse_each_other_without_touching_the_live_lo
     let (mut legacy_child, legacy_client) = reference_client(legacy_dir.path()).await;
     let lock = legacy_dir.path().join(".workbench/server.lock");
     let legacy_marker = std::fs::read(&lock).expect("legacy marker");
+    // The native bridge is refused admission, serves discovery instead of
+    // exiting 75 (audit-260912-20), writes nothing on its stdio for a client
+    // that sends nothing, and ends cleanly on that client's EOF — never
+    // touching the live legacy lock.
     let native = tokio::time::timeout(
         Duration::from_secs(15),
         tokio::process::Command::new(env!("CARGO_BIN_EXE_magistr"))
@@ -257,7 +261,11 @@ async fn native_and_legacy_owners_refuse_each_other_without_touching_the_live_lo
     .await
     .expect("bounded native refusal")
     .expect("native contender");
-    assert_eq!(native.status.code(), Some(75));
+    assert_eq!(native.status.code(), Some(0), "{native:?}");
+    assert!(native.stdout.is_empty(), "no MCP frame without a request");
+    let diagnostic = String::from_utf8_lossy(&native.stderr);
+    assert!(diagnostic.contains("migrat"), "{diagnostic}");
+    assert!(diagnostic.contains("serving discovery"), "{diagnostic}");
     assert_eq!(std::fs::read(&lock).expect("marker"), legacy_marker);
     assert_eq!(
         call(&legacy_client, "workbench_status", json!({})).await["ok"],
