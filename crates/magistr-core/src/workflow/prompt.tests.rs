@@ -192,7 +192,10 @@ fn shared_workflow_uses_native_phases_and_matches_project_skills() {
             .expect("project next skill");
         assert_eq!(
             generated,
-            shared.replace("{{invoke}}", invocation),
+            shared.replace("{{invoke}}", invocation).replace(
+                "{{next_recovery_guidance}}",
+                magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE.trim_end(),
+            ),
             "{host}"
         );
     }

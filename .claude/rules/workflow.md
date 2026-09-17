@@ -15,6 +15,17 @@ The roadmap, the plan and the quality gates live in **think-and-ship**, served b
 
 A roadmap chunk is realized by a ship objective, motivated by think reasoning. `ROADMAP.md` is a **generated view** (`roadmap_export`) — never edit it by hand and never treat it as the source of truth. There is no plan file: the plan is `ship_plan`.
 
+## Recover interrupted work
+
+Before choosing work, read `roadmap_status` and `ship_status` and follow the
+chunk selected by the current request or iteration prompt. Resume authorized
+in-progress work before selecting a pending chunk. Keep its matching unfinished
+objective, plan, task statuses, actions, checks, and reasoning. Do not call
+`roadmap_start_chunk` or `ship_set_objective` again to restart it. Preserve
+unrelated active work and report a conflict rather than replacing it. Re-read
+actual code and saved evidence, then continue the first unfinished task or
+phase. The complete recovery contract is in `.claude/skills/next/SKILL.md`.
+
 ## Phase Tracking
 
 You MUST call `magistr_set_phase` at each workflow transition. This updates the magistr TUI progress indicator.
@@ -45,7 +56,7 @@ Keep your plan entry statuses up to date. The Magistr TUI sidebar shows your pla
 
 > `magistr_set_phase(phase: "research")` — call this first.
 
-1. **Pick the chunk** — `roadmap_next` (or the chunk the user named); `roadmap_get` for its full record; `roadmap_start_chunk(id)` to mark it in progress.
+1. **Recover or select the chunk** — honor the selected chunk and read its `roadmap_get` record. Resume in-progress work first. Only when none is resumable, select pending work with `roadmap_next` and call `roadmap_start_chunk(id)` once.
 2. **Web search** — use the `WebSearch` tool (NOT `WebFetch`) to research best practices, recent API changes, known pitfalls, and idiomatic patterns for what you're about to build. Formulate 2-4 targeted queries. Only use `WebFetch` to read specific URLs found via `WebSearch`.
 3. **Deep dive** — when applicable, use `WebFetch` to read official documentation pages, changelogs, or reference implementations found during web search.
 4. **Capture findings** — note API contracts, patterns to follow, anti-patterns to avoid, and version-specific behavior that will inform the plan.
@@ -60,17 +71,17 @@ Keep your plan entry statuses up to date. The Magistr TUI sidebar shows your pla
    - `search mode:references` before modifying shared code — see all callers and importers
    - `read` (file, range, or symbol by name) for detailed code reading; built-in `Read` is ONLY for immediately before `Edit`
    - Follow `.claude/skills/workbench-routing/SKILL.md` for routing and error recovery
-2. **Set the objective** — `ship_set_objective` with the chunk's title, acceptance criteria and scope (`chunk:<id>`)
-3. **Plan the tasks** — `ship_plan(action: "add", ...)` for each sub-step (explore / implement / test / verify)
+2. **Recover or create the objective** — retain the matching unfinished objective. Call `ship_set_objective` with the chunk's title, acceptance criteria and scope (`chunk:<id>`) only when none exists and no unrelated objective is active.
+3. **Recover or extend the plan** — keep existing tasks, statuses, actions, and checks; use `ship_plan(action: "add", ...)` only for missing work.
 4. **Open the reasoning** — `think_record_step` (omit `step_number`) with the sub-plan and `execution_ref: "task:<id>"`; `roadmap_link(id, "think:<N>")`
 
-The plan phase is enforced by magistr's orchestration layer — set the objective and plan before editing source files.
+The objective and plan must exist before editing source files; resuming keeps the existing records rather than recreating them.
 
 ### EXECUTE
 
 > `magistr_set_phase(phase: "execute")` — call this first.
 
-1. `ship_start` the task; use the codebase navigation tools from `tools.md` to understand code before modifying. Use `Read` only immediately before `Edit`.
+1. Continue an already active task without calling `ship_start` again; start only the next pending task and never restart completed tasks. Use the codebase navigation tools from `tools.md` to understand code before modifying. Use `Read` only immediately before `Edit`.
 2. Implement the plan using TDD (red-green-refactor); `ship_record` significant actions with `files_touched`
 3. Follow project conventions from `.claude/rules/conventions.md`
 4. `ship_complete` the task with its artifacts
@@ -122,7 +133,7 @@ These apply to ALL work — `/next`, manual tasks, bug fixes, refactors, everyth
 
 3. **ALWAYS run the declared verification before committing** — `full` objectives require all configured gates; explicitly scoped `focused` objectives require their changed-surface acceptance checks, including relevant code and dependency checks. Record every check through `ship_check`. If they fail, fix the failures first.
 
-4. **ALWAYS plan before executing** — Read the codebase first. `ship_set_objective` + `ship_plan`. Then implement.
+4. **ALWAYS recover the plan before executing** — Read the codebase and saved work first. Keep a matching unfinished objective and plan; create only missing records with `ship_set_objective` + `ship_plan`. Then continue unfinished work.
 
 5. **ALWAYS use TDD** — Write a failing test, make it pass, refactor. Every significant type/function gets tests.
 
@@ -154,8 +165,8 @@ Format: `<type>: <description>`
 ## Iteration Pattern
 
 Each `/next` iteration:
-1. `roadmap_next` → `roadmap_start_chunk` — one chunk per iteration; split it in the roadmap if it is too big
-2. `ship_set_objective` + `ship_plan` + `think_record_step` — plan the implementation (3-6 files per iteration)
+1. Read `roadmap_status` and `ship_status`; follow the selected chunk and resume authorized in-progress work first. Only without resumable work, select a pending chunk with `roadmap_next` and start it once with `roadmap_start_chunk`.
+2. Keep the matching unfinished objective and plan, or create missing records with `ship_set_objective` + `ship_plan`. Record material findings with `think_record_step` as work continues.
 3. Implement with TDD
 4. Run quality gates through `ship_check` — all must pass
 5. `roadmap_complete_chunk` + `ship_finalize` + closing `think_record_step`

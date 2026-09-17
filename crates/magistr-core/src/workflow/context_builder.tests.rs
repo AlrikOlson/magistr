@@ -54,6 +54,38 @@ fn context_includes_spec_counts() {
 }
 
 #[test]
+fn native_context_keeps_in_progress_work_in_remaining_counts() {
+    use crate::workflow::iteration::tests::{
+        add_native_chunk, complete_native_chunk, native_engines,
+    };
+    let (dir, spec_path) = setup_project("- [x] Legacy item\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "unfinished", 100, &[]);
+    engines.roadmap_start_chunk("unfinished").unwrap();
+    let builder = ContextBuilder::new(dir.path(), &spec_path).with_native(Some(engines.reader()));
+    let context = builder.gather();
+    assert_eq!(
+        (
+            context.spec_total,
+            context.spec_checked,
+            context.spec_unchecked
+        ),
+        (1, 0, 1)
+    );
+    assert!(builder.build().contains("1 items"));
+    complete_native_chunk(&engines, "unfinished");
+    let context = builder.gather();
+    assert_eq!(
+        (
+            context.spec_total,
+            context.spec_checked,
+            context.spec_unchecked
+        ),
+        (1, 1, 0)
+    );
+}
+
+#[test]
 fn context_includes_git_log() {
     let (dir, spec_path) = setup_project("- [ ] Todo\n");
     let builder = ContextBuilder::new(dir.path(), &spec_path);

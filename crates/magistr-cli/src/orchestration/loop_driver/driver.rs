@@ -602,10 +602,18 @@ impl LoopDriver {
             // waiting for a frame.
             self.inbox
                 .send(Msg::Engine(EngineEvent::Seed(engines.snapshot())));
-            // The chunk the prompt is about to be built for: what the
-            // judge is asked about if the agent starts nothing itself.
-            self.target = engines.roadmap_next().map(|chunk| chunk.id);
         }
+        // Prompt, delegated goal and judge share the resumable selection.
+        let target = self
+            .iter_loop
+            .next_native_chunk()
+            .map_err(|e| format!("cannot choose the work to continue: {e}"))?;
+        if let Some(chunk) = &target
+            && chunk.status == ChunkStatus::InProgress
+        {
+            self.note(format!("Resuming {}", chunk.title));
+        }
+        self.target = target.map(|chunk| chunk.id);
         let prompt = self
             .iter_loop
             .next_prompt(&self.wf.project_config)
@@ -1355,19 +1363,18 @@ impl LoopDriver {
         }
     }
 
-    /// The chunk the judge is asked about: the iteration's target when
-    /// the agent took it in progress, else whatever is in progress, else
-    /// the target as it stands.
+    /// Judge the work selected for this iteration, even if another item is
+    /// in progress. An unselected legacy iteration may use its single active item.
     fn target_chunk(&self, engines: &NativeEngines) -> Option<Chunk> {
         let chunks = engines.roadmap_chunks();
-        let target = |c: &&Chunk| self.target.as_deref() == Some(c.id.as_str());
-        let in_progress = |c: &&Chunk| c.status == ChunkStatus::InProgress;
-        chunks
-            .iter()
-            .find(|c| target(c) && in_progress(c))
-            .or_else(|| chunks.iter().find(in_progress))
-            .or_else(|| chunks.iter().find(target))
-            .cloned()
+        if let Some(target) = &self.target {
+            return chunks.into_iter().find(|chunk| &chunk.id == target);
+        }
+        let mut active = chunks
+            .into_iter()
+            .filter(|chunk| chunk.status == ChunkStatus::InProgress);
+        let chunk = active.next()?;
+        active.next().is_none().then_some(chunk)
     }
 
     /// Complete `chunk` through the engines (starting one the agent

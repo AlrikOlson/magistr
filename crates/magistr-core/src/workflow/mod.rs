@@ -132,7 +132,7 @@ impl WorkflowConfig {
     /// back to markdown parsing for non-magistr projects.
     pub fn spec_summary(&self) -> Result<spec::SpecSummary> {
         if let Some(engines) = self.engines() {
-            return Ok(native_summary::native_spec_summary(&engines));
+            return native_summary::native_work_summary(&engines, None);
         }
         spec::spec_summary_from_project(&self.project_dir, &self.spec_path)
     }

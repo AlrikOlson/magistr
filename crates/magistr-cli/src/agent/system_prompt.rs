@@ -43,6 +43,14 @@ pub fn build_system_prompt(project_dir: &Path) -> Option<String> {
         prompt.push_str(reasoning);
     }
 
+    // Recovery instructions override older fresh-start recipes without editing
+    // customized project rules. They apply only to authorized roadmap work.
+    let recovery = magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE;
+    if !prompt.contains(recovery) {
+        prompt.push_str("\n---\n\nFor authorized roadmap work (`next` or `next-loop`), follow this recovery policy. It does not authorize starting roadmap work for an unrelated request.\n\n");
+        prompt.push_str(recovery);
+    }
+
     Some(prompt)
 }
 

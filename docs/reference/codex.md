@@ -144,13 +144,18 @@ legacy state directories, after confirmation.
 
 ## Workflow
 
-`$next` completes one ready chunk in the current session. `$next-loop` carries a
-single-chunk handoff: one chunk completes, its handoff is written, and the
-current session stops before another chunk is selected. Invoke `$next-loop`
+`$next` resumes an interrupted item or starts one ready item in the current
+session. `$next-loop` carries a single-item handoff: one item completes, its
+handoff is written, and the current session stops before another item is
+selected. Invoke `$next-loop`
 again only from a fresh Codex session; the bound defaults to ten iterations
 when none is supplied. Native `magistr next-loop`
 is the automatic host-owned loop; it starts a fresh provider session per
-iteration. Skills recover existing work and preserve unrelated objectives.
+iteration. After an interruption, run the same command again: in-progress
+work takes precedence over pending work. The matching objective, saved plan,
+task statuses, actions, and check results are retained. The agent re-reads the
+code and remaining tasks before continuing; it does not start the item again
+or replace another session's objective.
 
 When `roadmap_exports` is false, setup adds native-only instructions and disables
 the export tool. Codex skills perform each workflow step directly. Reusable

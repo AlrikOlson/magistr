@@ -2689,6 +2689,224 @@ async fn rejected_opening_attachment_ends_the_loop_with_a_visible_failure() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item() {
+    use magistr_engine::workflow::StopReason;
+
+    for add_pending in [false, true] {
+        let dir = project("true", "true", "true");
+        let engines = engines_with_work(dir.path());
+        let spec = dir.path().join("ROADMAP.md");
+        let previous =
+            IterationLoop::start_or_recover(dir.path(), &spec, 3, Some(engines.clone())).unwrap();
+        let previous_run = previous.state().run_id.clone();
+        previous.persist().unwrap();
+        let (inner, seen) = fake_connector(FakeAcpAgent::new().stalling());
+        let inner = Arc::new(inner);
+        let writer = engines.clone();
+        let connector = Connector::new(move |config| {
+            writer.roadmap_start_chunk("work").unwrap();
+            let inner = Arc::clone(&inner);
+            async move { inner.connect(config).await }
+        });
+        let terminal = FakeTerminal::new(SIZE, Script::new().startup_replies(MS(0)));
+        let mut runtime = Runtime::new(
+            terminal,
+            Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500)),
+        );
+        let commands = runtime.commands().unwrap();
+        let driver = LoopDriver::new(
+            previous,
+            WorkflowConfig::load(dir.path()).unwrap(),
+            Backend::Acp,
+            runtime.inbox(),
+            commands,
+            connector,
+        )
+        .auto_pause(false)
+        .persisting(true);
+        let inbox = runtime.inbox();
+        let quit = tokio::spawn(async move {
+            tokio::time::timeout(Duration::from_secs(10), async {
+                loop {
+                    if seen
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .any(|agent| !agent.prompts().is_empty())
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(MS(10)).await;
+                }
+            })
+            .await
+            .expect("the agent received its opening prompt");
+            inbox.send(Msg::Key(
+                KeyEvent::new(KeyCode::Char('d')).with(Modifiers::CTRL),
+            ));
+        });
+        let (_, report) = run_cockpit(runtime, driver).await;
+        quit.await.unwrap();
+        assert_eq!(report.end(), &LoopEnd::CockpitClosed);
+        let stopped = checkpoint(dir.path());
+        assert_eq!(stopped.run.terminal_reason, Some(StopReason::Cancelled));
+        assert_eq!(stopped.operations.unsettled().count(), 0);
+        assert_eq!(stopped.native_chunk_id.as_deref(), Some("work"));
+        assert!(
+            stopped
+                .operations
+                .records()
+                .iter()
+                .any(
+                    |operation| operation.kind == OperationKind::ProviderDispatch
+                        && operation.outcome == OperationOutcome::Cancelled
+                )
+        );
+        assert_eq!(
+            engines.roadmap_chunk("work").unwrap().status,
+            ChunkStatus::InProgress
+        );
+        if add_pending {
+            engines
+                .roadmap_add_chunk(
+                    "new-work".into(),
+                    "A different ready item".into(),
+                    "other".into(),
+                    ChunkStatus::Pending,
+                    1,
+                    String::new(),
+                    vec!["new acceptance".into()],
+                    vec![],
+                    None,
+                    None,
+                )
+                .unwrap();
+            assert_eq!(engines.roadmap_next().unwrap().id, "new-work");
+        } else {
+            assert!(
+                engines.roadmap_next().is_none(),
+                "ready-only selection cannot resume work"
+            );
+        }
+
+        let requested =
+            IterationLoop::start_or_recover(dir.path(), &spec, 1, Some(engines.clone())).unwrap();
+        assert_ne!(requested.state().run_id, previous_run);
+        requested.persist().unwrap();
+        let (connector, seen) =
+            fake_connector(FakeAcpAgent::new().reply("Continuing the retry work."));
+        let terminal = FakeTerminal::new(SIZE, Script::new().startup_replies(MS(0)));
+        let mut runtime = Runtime::new(
+            terminal,
+            Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500)),
+        );
+        let commands = runtime.commands().unwrap();
+        let judge = Scripted::new([Verdict::not_yet("Finish the remaining check.")]);
+        let driver = LoopDriver::new(
+            requested,
+            WorkflowConfig::load(dir.path()).unwrap(),
+            Backend::Acp,
+            runtime.inbox(),
+            commands,
+            connector,
+        )
+        .auto_pause(false)
+        .persisting(true)
+        .goal(GoalMode::Native, Some(judge.clone()), None);
+        let (model, report) = run_cockpit(runtime, driver).await;
+        assert_eq!(report.iterations(), 1);
+        assert_eq!(report.end(), &LoopEnd::MaxIterations(1));
+        let advanced = checkpoint(dir.path());
+        assert_eq!(advanced.run.completed_attempts, 1);
+        assert_eq!(
+            advanced.native_chunk_id.as_deref(),
+            Some("work"),
+            "advancing an attempt keeps its unfinished item for the next request"
+        );
+        let prompts: Vec<_> = seen
+            .lock()
+            .unwrap()
+            .iter()
+            .flat_map(|agent| agent.prompts())
+            .collect();
+        assert_eq!(prompts.len(), 1);
+        assert!(prompts[0].contains("Chunk work"), "{}", prompts[0]);
+        assert!(!prompts[0].contains("A different ready item"));
+        assert_eq!(judge.asked().len(), 1);
+        assert_eq!(judge.asked()[0].chunk, "work");
+        assert!(
+            notes(&model)
+                .iter()
+                .any(|line| line == "Resuming Chunk work")
+        );
+        assert!(
+            model
+                .turn()
+                .rows()
+                .iter()
+                .any(|row| row.text == "Continuing the retry work.")
+        );
+        assert_eq!(
+            engines.roadmap_chunk("work").unwrap().status,
+            ChunkStatus::InProgress
+        );
+        if add_pending {
+            assert_eq!(
+                engines.roadmap_chunk("new-work").unwrap().status,
+                ChunkStatus::Pending
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn the_selected_judge_target_is_not_replaced_by_another_in_progress_item() {
+    let dir = project("true", "true", "true");
+    let engines = engines_with_work(dir.path());
+    engines
+        .roadmap_add_chunk(
+            "other".into(),
+            "Other work".into(),
+            "other".into(),
+            ChunkStatus::Pending,
+            1,
+            String::new(),
+            vec!["done".into()],
+            vec![],
+            None,
+            None,
+        )
+        .unwrap();
+    engines.roadmap_start_chunk("other").unwrap();
+    let iter_loop = IterationLoop::open(
+        dir.path(),
+        dir.path().join("ROADMAP.md"),
+        1,
+        Some(engines.clone()),
+    )
+    .unwrap();
+    let (connector, _) = fake_connector(FakeAcpAgent::new());
+    let terminal = FakeTerminal::new(SIZE, Script::new());
+    let mut runtime = Runtime::new(terminal, Options::new(Env::new("dumb", false, None)));
+    let commands = runtime.commands().unwrap();
+    let mut driver = LoopDriver::new(
+        iter_loop,
+        WorkflowConfig::load(dir.path()).unwrap(),
+        Backend::Acp,
+        runtime.inbox(),
+        commands,
+        connector,
+    );
+    driver.target = Some("work".into());
+    assert_eq!(driver.target_chunk(&engines).unwrap().id, "work");
+    driver.target = Some("missing".into());
+    assert!(
+        driver.target_chunk(&engines).is_none(),
+        "a removed selection cannot redirect work"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_new_loop_request_after_cancellation_sends_the_opening_prompt() {
     let dir = project("true", "true", "true");
     let spec = dir.path().join("ROADMAP.md");

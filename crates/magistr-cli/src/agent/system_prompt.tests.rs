@@ -128,7 +128,7 @@ fn build_system_prompt_returns_none_for_missing_dir() {
 }
 
 #[test]
-fn agent_context_supplies_recording_guidance_without_rewriting_project_rules() {
+fn agent_context_supplies_workflow_guidance_without_rewriting_project_rules() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(dir.path().join(".magistr")).unwrap();
     std::fs::create_dir_all(dir.path().join(".claude/rules")).unwrap();
@@ -139,10 +139,14 @@ fn agent_context_supplies_recording_guidance_without_rewriting_project_rules() {
     .unwrap();
     let rules = dir.path().join(".claude/rules/tools.md");
     let guidance = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE;
+    let recovery = magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE;
     for content in [
         None,
-        Some("Custom project instructions: preserve this text.".to_owned()),
-        Some(format!("Custom introduction.\n{guidance}")),
+        Some(
+            "Old project workflow: always select roadmap_next and create a new objective."
+                .to_owned(),
+        ),
+        Some(format!("Custom introduction.\n{guidance}\n{recovery}")),
     ] {
         if let Some(content) = &content {
             std::fs::write(&rules, content).unwrap();
@@ -152,6 +156,13 @@ fn agent_context_supplies_recording_guidance_without_rewriting_project_rules() {
         let prompt = context.system_prompt.unwrap();
         assert!(!guidance.is_empty());
         assert_eq!(prompt.matches(guidance).count(), 1);
+        assert_eq!(prompt.matches(recovery).count(), 1);
+        if !content.as_ref().is_some_and(|text| text.contains(recovery)) {
+            assert!(
+                prompt
+                    .contains("does not authorize starting roadmap work for an unrelated request")
+            );
+        }
         match content {
             Some(content) => {
                 assert!(prompt.contains(&content));

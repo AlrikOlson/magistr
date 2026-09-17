@@ -9,8 +9,11 @@ adapter; other hosts use their own generated adapter.
 
 Use the skill matching the user’s request:
 
-- `/next` or `/roadmap`: exactly one ready chunk through the full native
-  research, plan, execute, verify, completion, and commit lifecycle.
+- `/next` or `/roadmap`: resume an authorized in-progress chunk first, otherwise
+  select one ready chunk, through the native research, plan, execute, verify,
+  completion, and commit lifecycle. Follow next's recovery contract: inspect
+  `roadmap_status` and `ship_status`, keep a matching unfinished objective and
+  plan, and never restart completed tasks or replace conflicting active work.
 - `/next-loop`: bounded fresh-session handoff; one complete chunk per
   agent session, then a new session before the next chunk. The native TUI
   loop owns automatic chaining.

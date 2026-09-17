@@ -1,6 +1,6 @@
 ---
 name: next-loop
-description: Run one ready Magistr roadmap chunk, then hand off to a fresh agent session. Use for $next-loop or an explicit request to continue the roadmap implementation loop.
+description: Resume interrupted work or run one ready Magistr roadmap chunk, then hand off to a fresh agent session. Use for $next-loop or an explicit request to continue the roadmap implementation loop.
 ---
 
 # Fresh-context Magistr loop
@@ -17,9 +17,13 @@ state that bound before starting. Honor tighter existing limits. The native
 Claude harness cannot create a new host session from inside this skill, so it
 must hand off explicitly instead of chaining in the current context.
 
-1. Recover native roadmap and ship state and record the initial Git revision.
-   Resume an unfinished iteration belonging to this work before selecting
-   another chunk. Preserve unrelated objectives and worktree changes.
+1. Read `roadmap_status` and `ship_status` and record the initial Git revision.
+   Follow the chunk already selected by the request or iteration prompt. Resume
+   its in-progress work before selecting a pending chunk, following next's
+   recovery contract. Keep its matching unfinished objective, plan, task
+   statuses, actions, and checks; do not start the chunk again or reset its
+   objective. Preserve unrelated objectives and worktree changes, and report
+   conflicting active work instead of replacing it.
 2. Invoke exactly one complete `$next` workflow. When its stop rule is
    reached, end this loop invocation; the return is not permission to select
    another chunk in the same session. A recoverable gate or test failure stays
@@ -35,10 +39,11 @@ must hand off explicitly instead of chaining in the current context.
    `$next-loop` again in this context, and do not use compaction as a
    substitute for a new session.
 5. The host may invoke this skill again only from a fresh agent session. That
-   new session must re-read live roadmap and ship state before selecting the
-   next ready chunk. This invocation ends after the handoff.
+   new session must re-read live roadmap and ship state, resuming unfinished
+   work first and selecting a pending chunk only when no resumable work remains.
+   This invocation ends after the handoff.
 
-Stop when no authorized chunk is ready after the current iteration, an explicit
+Stop when no authorized work can be resumed or started, an explicit
 iteration/time/usage limit is reached, the user pauses or cancels the work, or
 progress is blocked. A blocker requires user input or an external state change,
 exceeds the authorized scope or permissions, conflicts with another objective,

@@ -44,13 +44,16 @@ Magistr's [Codex session provider](architecture/sessions.md#codex) is a separate
 
 ## Work on a project
 
-Use `$next` in Codex to implement one ready roadmap item. Use `$next-loop` for
-a single-chunk fresh-session handoff: finish one chunk, end the current
-session, then invoke `$next-loop` again from the next session. Use `$validate` to run the project's checks. Claude Code
-uses the same skill names with a `/` prefix.
+Use `$next` in Codex to finish an interrupted roadmap item or start one ready
+item. Use `$next-loop` for a single-item handoff: finish one item, end the
+current session, then invoke `$next-loop` again from the next session. Use
+`$validate` to run the project's checks. Claude Code uses the same skill names
+with a `/` prefix.
 
-The skills read existing work, record an execution plan, and save check results
-in Magistr. The MCP tools `roadmap_status` and `ship_status` report progress.
+After an interruption, invoke the same command again. Magistr resumes work
+already in progress before starting another item, keeping its plan, completed
+tasks, and check results. It reports conflicting active work instead of
+replacing it. The MCP tools `roadmap_status` and `ship_status` report progress.
 
 ## Refresh or remove setup
 

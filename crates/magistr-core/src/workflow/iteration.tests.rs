@@ -690,6 +690,7 @@ fn state_serializes_to_json() {
         .unwrap(),
         operations: OperationLedger::new(),
         attempt_started: None,
+        native_chunk_id: None,
         last_commit_sha: Some("abc1234".to_string()),
         last_status: IterationStatus::Committed,
         spec_checked: 5,
@@ -938,14 +939,23 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
         vec!["second — Chunk second".to_string()]
     );
 
+    il.advance();
     writer.roadmap_start_chunk("second").unwrap();
-    // In progress but not done: nothing is ready, so the loop stops with the
-    // native reason — the roadmap is not "complete", one chunk is mid-flight.
+    assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+    assert_eq!(il.next_native_chunk().unwrap().unwrap().id, "second");
+    assert!(
+        il.next_prompt(&project_config())
+            .unwrap()
+            .contains("in progress; resume this work")
+    );
+    assert_eq!(il.state().spec_checked, 1);
+    writer.ship_finalize(vec![], None).unwrap();
+    complete_native_chunk(&writer, "second");
+    il.advance();
     assert_eq!(
         il.pre_iteration_check().unwrap(),
         PreCheckResult::NoReadyChunk
     );
-    assert_eq!(il.state().spec_checked, 1);
 }
 
 #[test]
@@ -961,6 +971,131 @@ fn native_prompt_names_the_next_chunk() {
     assert!(prompt.contains(magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE));
     assert!(prompt.contains("Progress: 0/1"), "{prompt}");
     assert!(!prompt.contains("Legacy item"), "{prompt}");
+}
+
+#[test]
+fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
+    use magistr_engine::native::TaskType;
+    let (dir, spec_path) = setup_project("- [x] Legacy item\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "current", 200, &[]);
+    let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    assert_eq!(
+        first.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    engines.roadmap_start_chunk("current").unwrap();
+    engines
+        .ship_set_objective(
+            "Finish the current change".into(),
+            vec![],
+            vec![],
+            "chunk:current".into(),
+        )
+        .unwrap();
+    engines
+        .ship_add_task(
+            "build".into(),
+            "Finish the change".into(),
+            TaskType::Implement,
+            None,
+        )
+        .unwrap();
+    engines.ship_start_task("build").unwrap();
+    let objective = engines.ship_objective();
+    let plan = engines.ship_tasks();
+    first.stop(StopReason::Cancelled);
+    first.persist().unwrap();
+    drop(first);
+
+    add_native_chunk(&engines, "urgent", 1, &[]);
+    add_native_chunk(&engines, "other", 10, &[]);
+    engines.roadmap_start_chunk("other").unwrap();
+    let mut resumed =
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 5, Some(engines.clone())).unwrap();
+    assert_eq!(resumed.max_iterations(), 5);
+    assert_eq!(resumed.state().native_chunk_id.as_deref(), Some("current"));
+    assert_eq!(
+        resumed.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    assert_eq!(resumed.next_native_chunk().unwrap().unwrap().id, "current");
+    let prompt = resumed.next_prompt(&project_config()).unwrap();
+    assert!(
+        prompt.contains("current — Chunk current (in progress; resume this work)"),
+        "{prompt}"
+    );
+    assert!(
+        !prompt.contains("Chunk urgent") && !prompt.contains("Chunk other"),
+        "{prompt}"
+    );
+    assert_eq!(engines.ship_objective(), objective);
+    assert_eq!(engines.ship_tasks(), plan);
+}
+
+#[test]
+fn older_native_checkpoint_resumes_the_only_unfinished_item() {
+    let (dir, spec_path) = setup_project("- [x] Legacy item\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "unfinished", 100, &[]);
+    engines.roadmap_start_chunk("unfinished").unwrap();
+    let first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    first.persist().unwrap();
+    let path = loop_state_path(dir.path());
+    let mut old: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    old.as_object_mut().unwrap().remove("native_chunk_id");
+    std::fs::write(&path, serde_json::to_vec(&old).unwrap()).unwrap();
+    drop(first);
+
+    let mut resumed =
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 9, Some(engines)).unwrap();
+    assert_eq!(resumed.max_iterations(), 3);
+    assert_eq!(
+        resumed.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    assert_eq!(
+        resumed.state().native_chunk_id.as_deref(),
+        Some("unfinished")
+    );
+}
+
+#[test]
+fn interrupted_native_item_does_not_bypass_a_live_or_unknown_dispatch() {
+    use crate::workflow::runtime_handle::RuntimeHandle;
+    for external in [
+        None,
+        RuntimeHandle::observe(std::process::id()).map(|handle| handle.to_string()),
+    ] {
+        let (dir, spec_path) = setup_project("- [x] Legacy item\n");
+        let engines = native_engines(&dir);
+        add_native_chunk(&engines, "unfinished", 100, &[]);
+        let mut first =
+            IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+        first.pre_iteration_check().unwrap();
+        engines.roadmap_start_chunk("unfinished").unwrap();
+        let dispatch = first
+            .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+            .unwrap()
+            .unwrap();
+        first.start_operation(&dispatch, external).unwrap();
+        first.persist().unwrap();
+        drop(first);
+
+        let mut resumed =
+            IterationLoop::start_or_recover(dir.path(), &spec_path, 3, Some(engines.clone()))
+                .unwrap();
+        assert!(matches!(
+            resumed.pre_iteration_check().unwrap(),
+            PreCheckResult::Unreconciled(_)
+        ));
+        assert_eq!(
+            engines.roadmap_chunk("unfinished").unwrap().status,
+            magistr_engine::native::ChunkStatus::InProgress
+        );
+        assert_eq!(resumed.operations().records().len(), 2);
+    }
 }
 
 #[test]
