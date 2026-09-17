@@ -1,4 +1,5 @@
 use super::*;
+use alloc::vec::Vec;
 
 #[test]
 fn every_kind_has_a_label_and_a_distinct_accelerator() {
@@ -25,31 +26,6 @@ fn every_kind_has_a_label_and_a_distinct_accelerator() {
     );
     let caps: Vec<&str> = PermissionKind::ALL.iter().map(|k| k.key_cap()).collect();
     assert_eq!(caps, ["A", "\u{21e7}A", "D", "\u{21e7}D"]);
-}
-
-#[test]
-fn the_transport_kinds_map_one_to_one() {
-    let pairs = [
-        (
-            AcpPermissionOptionKind::AllowOnce,
-            PermissionKind::AllowOnce,
-        ),
-        (
-            AcpPermissionOptionKind::AllowAlways,
-            PermissionKind::AllowAlways,
-        ),
-        (
-            AcpPermissionOptionKind::RejectOnce,
-            PermissionKind::RejectOnce,
-        ),
-        (
-            AcpPermissionOptionKind::RejectAlways,
-            PermissionKind::RejectAlways,
-        ),
-    ];
-    for (acp, kind) in pairs {
-        assert_eq!(PermissionKind::from(acp), kind);
-    }
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use super::*;
-use crate::agent::{ToolStatus, ToolVerb};
 use crate::turn::{ConversationCard, Turn};
+use magistr_application::sessions::{ToolStatus, ToolVerb};
 
 #[test]
 fn known_tool_names_keep_meaningful_descriptions_without_internal_names() {

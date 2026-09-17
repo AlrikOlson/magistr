@@ -1,6 +1,6 @@
 //! The cockpit's event vocabulary under the channel's classes.
 
-use magistr_cockpit::agent::AgentEvent;
+use magistr_application::sessions::AgentEvent;
 
 use super::class::ObservationClass;
 use super::observed::Observed;

@@ -145,7 +145,6 @@ fn roadmap_graph_and_table_share_a_wide_stage_and_stack_on_a_narrow_one() {
     }
 }
 
-use crate::agent::{AgentEvent, ImageBlock, ToolStatus, ToolVerb, TurnEnd};
 use crate::cockpit::{
     Eased, HoverRole, Motion, Msg, ShipRun, Size, TurnState, WorkbenchEvent, update,
 };
@@ -157,6 +156,7 @@ use crate::render::{Buffer, Color, Style, Underline};
 use crate::theme::{Icons, Theme, ThemeMode};
 use crate::turn::{Accent, RowKind};
 use crate::widget_id::WidgetId;
+use magistr_application::sessions::{AgentEvent, ImageBlock, ToolStatus, ToolVerb, TurnEnd};
 
 #[test]
 fn turn_inspector_renders_live_records_diffs_and_scrolling_in_both_profiles() {
@@ -180,8 +180,10 @@ fn turn_inspector_renders_live_records_diffs_and_scrolling_in_both_profiles() {
                 diff: None,
                 duration_ms: Some(128),
                 images: Vec::new(),
-                record: Box::new(crate::agent::ToolRecord {
-                    output: Some(serde_json::json!({"passed": 17})),
+                record: Box::new(magistr_application::sessions::ToolRecord {
+                    output: Some(magistr_application::sessions::ToolPayload::Json(
+                        r#"{"passed":17}"#.into(),
+                    )),
                     text: (0..100).map(|i| format!("result line {i}")).collect(),
                     locations: vec![("src/runtime.rs".into(), Some(8))],
                     truncated_from: Some(16000),
@@ -1409,7 +1411,7 @@ fn plan_ask(size: Size) -> Model {
 /// The same ask, raised on a session the caller already built — so a
 /// test can ask what a Moment does to a foot that has a phase on it.
 fn plan_ask_on(mut m: Model) -> Model {
-    use crate::agent::{AskPlan, PermissionChoice, PermissionKind};
+    use magistr_application::sessions::{AskPlan, PermissionChoice, PermissionKind};
     agent(
         &mut m,
         AgentEvent::PermissionRequest {
@@ -1464,7 +1466,7 @@ fn the_moment_shows_the_plan_the_checkpoint_and_the_scope() {
 
 #[test]
 fn a_moment_with_no_checkpoint_names_none_rather_than_a_placeholder() {
-    use crate::agent::{AskPlan, PermissionChoice, PermissionKind};
+    use magistr_application::sessions::{AskPlan, PermissionChoice, PermissionKind};
     let mut m = Scenes::streaming(Size::new(120, 40));
     agent(
         &mut m,
@@ -1490,7 +1492,7 @@ fn a_moment_with_no_checkpoint_names_none_rather_than_a_placeholder() {
 
 #[test]
 fn show_images_is_offered_only_while_the_ask_still_has_pictures() {
-    use crate::agent::{AskPlan, ImageBlock, PermissionChoice, PermissionKind};
+    use magistr_application::sessions::{AskPlan, ImageBlock, PermissionChoice, PermissionKind};
     let mut m = Scenes::streaming(Size::new(120, 40));
     agent(
         &mut m,
@@ -2099,7 +2101,7 @@ fn snap_tab_changes_80x24() {
 
 /// A turn where the agent edited a file: prose, then the edit card.
 fn edited(size: Size) -> Model {
-    use crate::agent::EditDiff;
+    use magistr_application::sessions::EditDiff;
     let mut m = Model::new(size).with_tab(StageTab::Turn);
     agent(
         &mut m,

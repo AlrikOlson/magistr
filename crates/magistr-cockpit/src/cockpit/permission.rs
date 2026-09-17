@@ -1,6 +1,6 @@
 //! A permission request waiting for the user's answer.
 
-use crate::agent::{AskPlan, ImageBlock, PermissionChoice, PermissionKind};
+use magistr_application::sessions::{AskPlan, ImageBlock, PermissionChoice, PermissionKind};
 
 /// One request the agent made, as the strip shows it: which request,
 /// what it wants to run, and the options offered. The answer is one of

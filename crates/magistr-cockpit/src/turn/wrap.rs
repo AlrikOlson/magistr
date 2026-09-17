@@ -11,10 +11,10 @@ use super::row::Row;
 use super::row_kind::RowKind;
 use super::span::Span;
 use super::voice::Voice;
-use crate::agent::{ToolStatus, ToolVerb};
 use crate::layout::TextMetrics;
 use crate::render::width;
 use crate::theme::Icons;
+use magistr_application::sessions::{ToolStatus, ToolVerb};
 
 /// Columns of a tool row's verb column — `delete` and `search`, the
 /// longest verbs, fit exactly.

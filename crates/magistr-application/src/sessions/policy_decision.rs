@@ -1,6 +1,6 @@
 //! What a policy says about one permission request.
 
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
 
 /// The policy's answer for a permission request, decided before the
 /// cockpit is involved.

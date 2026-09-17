@@ -1,7 +1,8 @@
 # Cockpit module reference
 
 The module index lists the shared cockpit, terminal renderer, and the host's
-workflow and workspace clients, with their responsibilities and tests. Paths in
+workflow and workspace clients, application session contracts and host session
+translation, with their responsibilities and tests. Paths in
 table cells are relative to `crates/`.
 
 See [terminal architecture](../architecture/terminal.md) for the data flow and
@@ -73,29 +74,50 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/fonts.rs` | The embedded monospace faces as bytes, shared by every renderer magistr has | `magistr-tui/src/screenshot/typeface.tests.rs` |
 | `magistr-cockpit/src/widget_id.rs` | The identity a widget keeps across layout, painting and hit-testing | `magistr-cockpit/src/widget_id.tests.rs` |
 
-### `agent` — the ACP relay
+### Application session contracts
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit/src/agent/mod.rs` | ACP session events, commands, and permission handling | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/ask_everything.rs` | Permission policy that asks the user for every request | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/ask_plan.rs` | Plan details attached to a permission request: steps, images, and scope | `magistr-cockpit/src/cockpit/update.tests.rs` |
-| `magistr-cockpit/src/agent/edit_diff.rs` | The diff a tool call carried | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/event.rs` | Agent session events | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/image_block.rs` | An image block the protocol carried | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/permission_choice.rs` | One option the agent offers in a permission request | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/permission_kind.rs` | What choosing a permission option means | `magistr-cockpit/src/agent/permission_kind.tests.rs` |
-| `magistr-cockpit/src/agent/policy_decision.rs` | What a policy says about one permission request | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/ask_everything.rs` | Permission policy that asks the user for every request | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/ask_plan.rs` | Plan details attached to a permission request: steps, images, and scope | `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-application/src/sessions/edit_diff.rs` | The diff a tool call carried | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/event.rs` | Agent session events | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/image_block.rs` | An image block the protocol carried | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/mod.rs` | Portable session commands, observations, options and policies | `magistr-cli/tests/application_boundary.rs` |
+| `magistr-application/src/sessions/permission_choice.rs` | One option the agent offers in a permission request | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/permission_kind.rs` | What choosing a permission option means | `magistr-application/src/sessions/permission_kind.tests.rs` |
+| `magistr-application/src/sessions/policy_decision.rs` | What a policy says about one permission request | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/policy_request.rs` | Full tool identity and encoded input for host permission decisions | `magistr-cli/src/permissions/request_data.tests.rs` |
+| `magistr-application/src/sessions/service.rs` | Scoped session use cases and command/outcome validation | `magistr-application/src/sessions/service.tests.rs` |
+| `magistr-application/src/sessions/session_command.rs` | Commands addressed to domain session and turn identities | `magistr-application/src/sessions/service.tests.rs` |
+| `magistr-application/src/sessions/session_handle.rs` | Live session operations and application-owned event observations | `magistr-cli/tests/cockpit_session_contract.rs` |
+| `magistr-application/src/sessions/session_options.rs` | What a session does once the handshake completes | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/session_outcome.rs` | Session readiness, accepted turns, cancellation and closure outcomes | `magistr-application/src/sessions/service.tests.rs` |
+| `magistr-application/src/sessions/session_policy.rs` | The decision a session asks for before a permission request reaches the cockpit | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/session_port.rs` | Host boundary for scoped session commands | `magistr-application/src/sessions/service.tests.rs` |
+| `magistr-application/src/sessions/session_response.rs` | Scoped session outcome paired with its command receipt | `magistr-application/src/sessions/service.tests.rs` |
+| `magistr-application/src/sessions/tool_payload.rs` | Plain text or encoded JSON without a JSON-library dependency | `magistr-cli/src/agent/translate.tests.rs`, `magistr-application/src/sessions/tool_record.tests.rs` |
+| `magistr-application/src/sessions/tool_record.rs` | Tool-call metadata and output, bounded by `ToolRecord::CAP` and stored with the source line | `magistr-application/src/sessions/tool_record.tests.rs`, `magistr-cockpit/src/turn/stream.tests.rs` |
+| `magistr-application/src/sessions/tool_status.rs` | Where a tool call stands | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/tool_verb.rs` | What kind of thing a tool call does, as a one-word verb column | `magistr-cli/tests/session_harness.rs` |
+| `magistr-application/src/sessions/turn_end.rs` | Why a turn ended | `magistr-cli/tests/session_harness.rs` |
+
+### Host session translation
+
+| Module | Responsibility | Tests |
+| --- | --- | --- |
+| `magistr-cli/src/agent/translate.rs` | ACP events converted to application observations and bounded tool records | `magistr-cli/src/agent/translate.tests.rs` |
+| `magistr-cli/src/agent/permission_request.rs` | ACP tool identity, full input and offered choice meanings converted to application contracts | `magistr-cli/src/permissions/request_data.tests.rs` |
+| `magistr-cli/src/permissions/request_data.rs` | Host decoding of portable policy requests, preserving kind and full input | `magistr-cli/src/permissions/request_data.tests.rs` |
+
+### `agent` — session relay
+
+| Module | Responsibility | Tests |
+| --- | --- | --- |
+| `magistr-cockpit/src/agent/mod.rs` | Application session relay and local effect jobs | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/session.rs` | Relays application session events to the inbox and explicit commands to the shared owner; stamps presentation timing and serves local effect ports | `magistr-cli/tests/session_harness.rs`, `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/agent/session_jobs.rs` | The blocking port calls a session relay owns: a capacity, a fence closed before the session ends so late answers never post, a join grace | `magistr-cockpit/src/agent/session.tests.rs` |
-| `magistr-cockpit/src/agent/session_options.rs` | What a session does once the handshake completes | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/session_policy.rs` | The decision a session asks for before a permission request reaches the cockpit | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/tool_record.rs` | Tool-call metadata and output, bounded by `ToolRecord::CAP` and stored with the source line | `magistr-cockpit/src/agent/tool_record.tests.rs`, `magistr-cockpit/src/turn/stream.tests.rs` |
-| `magistr-cockpit/src/agent/tool_status.rs` | Where a tool call stands | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/agent/tool_title.rs` | Familiar tool titles shared by conversation cards, plain output, edits, and permission requests | `magistr-cockpit/src/agent/tool_title.tests.rs` |
-| `magistr-cockpit/src/agent/tool_verb.rs` | What kind of thing a tool call does, as a one-word verb column | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/agent/translate.rs` | From the protocol's events to the cockpit's | `magistr-cockpit/src/agent/translate.tests.rs` |
-| `magistr-cockpit/src/agent/turn_end.rs` | Why a turn ended | `magistr-cli/tests/session_harness.rs` |
 
 ### `capability` — what the surface can show
 

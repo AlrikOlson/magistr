@@ -14,6 +14,30 @@ fn update(update: SessionUpdate) -> magistr_acp::Result<AcpEvent> {
     })
 }
 
+#[test]
+fn tool_payloads_preserve_json_types_and_string_bytes() {
+    for value in [
+        serde_json::json!(null),
+        serde_json::json!(false),
+        serde_json::json!(42),
+        serde_json::json!(1.25),
+        serde_json::json!({"nested":[null, {"é":"line\nquote\""}]}),
+    ] {
+        let ToolPayload::Json(encoded) = tool_payload(&value) else {
+            panic!("structured value became text");
+        };
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&encoded).unwrap(),
+            value
+        );
+    }
+    let text = r#"{"looks":"structured"}"#;
+    assert_eq!(
+        tool_payload(&serde_json::json!(text)),
+        ToolPayload::Text(text.into())
+    );
+}
+
 fn chunk(text: &str) -> ContentChunk {
     ContentChunk::new(ContentBlock::Text(TextContent::new(text)))
 }
@@ -96,12 +120,12 @@ fn a_call_keeps_its_input_output_text_locations_and_terminal_capped() {
         *record,
         ToolRecord {
             kind: Some(ToolVerb::Run),
-            input: Some(serde_json::json!({"command": "cargo test"})),
+            input: Some(ToolPayload::Json(r#"{"command":"cargo test"}"#.into())),
             output: None,
             text: vec!["running 3 tests".to_owned()],
             locations: vec![
-                (std::path::PathBuf::from("/repo/src/lib.rs"), Some(12)),
-                (std::path::PathBuf::from("/repo/Cargo.toml"), None),
+                (String::from("/repo/src/lib.rs"), Some(12)),
+                (String::from("/repo/Cargo.toml"), None),
             ],
             terminal: Some("term-4".to_owned()),
             truncated_from: None,
@@ -224,8 +248,8 @@ fn system_events_and_errors_keep_their_names() {
 
 #[test]
 fn a_diff_content_block_rides_the_call_as_an_edit_diff() {
-    use crate::agent::EditDiff;
     use agent_client_protocol::schema::v1::{Diff, ToolCallContent, ToolKind};
+    use magistr_application::sessions::EditDiff;
     let call = ToolCall::new(ToolCallId::new("tc-2"), "Edit main.rs")
         .kind(ToolKind::Edit)
         .status(ToolCallStatus::InProgress)

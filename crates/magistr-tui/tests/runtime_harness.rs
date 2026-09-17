@@ -855,7 +855,7 @@ async fn a_spinning_cockpit_paints_at_the_rate_the_core_asked_for() {
     reason = "this ignored timing test must reject an explicit debug-mode run"
 )]
 async fn pixel_scroll_samples_between_ticks_and_stops_after_settling() {
-    use magistr_cockpit::agent::{AgentEvent, TurnEnd};
+    use magistr_application::sessions::{AgentEvent, TurnEnd};
     use magistr_cockpit::theme::{MotionMode, Theme};
     assert!(!cfg!(debug_assertions), "run with --release");
     for (size, motion) in [
@@ -1332,10 +1332,14 @@ async fn opening_and_scrolling_records_keeps_the_conversation_in_place() {
         },
     )));
     let lines: String = (0..60).map(|n| format!("line {n}\n")).collect();
-    inbox.send(Msg::Agent(magistr_cockpit::agent::AgentEvent::Text(lines)));
-    inbox.send(Msg::Agent(magistr_cockpit::agent::AgentEvent::TurnEnded(
-        magistr_cockpit::agent::TurnEnd::EndTurn,
+    inbox.send(Msg::Agent(magistr_application::sessions::AgentEvent::Text(
+        lines,
     )));
+    inbox.send(Msg::Agent(
+        magistr_application::sessions::AgentEvent::TurnEnded(
+            magistr_application::sessions::TurnEnd::EndTurn,
+        ),
+    ));
     let model = runtime
         .run(Model::new(WIDE))
         .await

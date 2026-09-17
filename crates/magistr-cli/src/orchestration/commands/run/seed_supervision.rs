@@ -20,7 +20,7 @@ use crate::permissions::{CharterStore, PermissionProfile, ProfileAction, RiskLev
 ///
 /// Usage and timing arrive later through [`AgentEvent::Usage`] and turn events.
 ///
-/// [`AgentEvent::Usage`]: magistr_cockpit::agent::AgentEvent::Usage
+/// [`AgentEvent::Usage`]: magistr_application::sessions::AgentEvent::Usage
 pub fn seed_supervision(
     model: Model,
     project_dir: &Path,

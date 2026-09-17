@@ -6,7 +6,9 @@ mod harbor;
 #[path = "support/requests.rs"]
 mod requests;
 
-use magistr_cockpit::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind, TurnEnd};
+use magistr_application::sessions::{
+    AgentEvent, AskPlan, PermissionChoice, PermissionKind, TurnEnd,
+};
 use magistr_cockpit::cockpit::{
     FrameClock, Model, Msg, Selected, Size, StageTab, Surface, Widget, update, view,
 };

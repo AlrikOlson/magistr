@@ -3,7 +3,7 @@
 //! Run `cargo run -p magistr-tui --example flat_prompt` in a terminal
 //! with a screen reader enabled; the reply below is entirely local.
 
-use magistr_cockpit::agent::{AgentEvent, TurnEnd};
+use magistr_application::sessions::{AgentEvent, TurnEnd};
 use magistr_cockpit::cockpit::{Cmd, Model, Msg};
 use magistr_tui::graphics::Env;
 use magistr_tui::runtime::{Options, Runtime};

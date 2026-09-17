@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::agent::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
+use magistr_application::sessions::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
 
 /// A human-readable task and its current, observed activity.
 #[derive(Clone, Debug, PartialEq, Eq)]

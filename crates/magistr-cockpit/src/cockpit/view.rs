@@ -28,12 +28,12 @@ use super::task_state::TaskState;
 use super::tooltip::Tooltip;
 use super::turn_state::TurnState;
 use super::widget::Widget;
-use crate::agent::{PermissionKind, ToolStatus};
 use crate::layout::{Frame, Inset, Length, Mark, Node};
 use crate::pixel::Icon;
 use crate::render::{Attrs, Cell, Color, Style, width};
 use crate::theme::{Icons, Pen};
 use crate::turn::{Accent, Row, RowKind};
+use magistr_application::sessions::{PermissionKind, ToolStatus};
 
 /// What the stage says before the agent has said anything.
 const EMPTY_STAGE: &str = "nothing yet — waiting for the agent";

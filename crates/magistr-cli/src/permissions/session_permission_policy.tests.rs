@@ -1,4 +1,5 @@
 use super::*;
+use crate::agent::permission_request::permission_request as policy_request;
 use crate::permissions::CockpitPolicy;
 use magistr_engine::policy::RiskTier;
 
@@ -23,6 +24,21 @@ fn policy(profile: PermissionProfile, workflow: bool) -> CockpitPolicy {
     CockpitPolicy::new(profile, Vec::new(), Vec::new(), Vec::new(), workflow).audit_to(None)
 }
 
+#[test]
+fn malformed_portable_input_cannot_allow_or_create_a_standing_rule() {
+    let mut policy = policy(PermissionProfile::Yolo, true);
+    let request = SessionPolicyRequest {
+        tool_call_id: "broken".into(),
+        tool_title: "Write".into(),
+        input_json: "{broken".into(),
+        tool_kind: Some(magistr_application::sessions::ToolVerb::Edit),
+    };
+    assert_eq!(policy.decide(&request), PolicyDecision::Deny);
+    policy.answered(&request, PermissionKind::AllowAlways);
+    policy.constrain(&request, "allow this");
+    assert!(policy.charter().delegations.is_empty());
+}
+
 fn audit_entries(path: &std::path::Path) -> Vec<AuditEntry> {
     let content = std::fs::read_to_string(path).unwrap_or_default();
     content
@@ -34,22 +50,22 @@ fn audit_entries(path: &std::path::Path) -> Vec<AuditEntry> {
 #[test]
 fn a_read_the_standard_profile_allows_is_allowed() {
     let mut policy = policy(PermissionProfile::Standard, false);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "Read",
         serde_json::json!({"file_path": "/src/main.rs"}),
         None,
-    ));
+    )));
     assert_eq!(decision, PolicyDecision::Allow);
 }
 
 #[test]
 fn a_write_on_the_standard_profile_asks() {
     let mut policy = policy(PermissionProfile::Standard, false);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "Write",
         serde_json::json!({"file_path": "/src/new.rs"}),
         None,
-    ));
+    )));
     assert_eq!(
         decision,
         PolicyDecision::Ask(RiskTier::Medium),
@@ -67,11 +83,11 @@ fn a_protected_path_write_is_denied() {
         false,
     )
     .audit_to(None);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "Write",
         serde_json::json!({"file_path": "/project/.magistr/roadmap.yaml"}),
         None,
-    ));
+    )));
     assert_eq!(decision, PolicyDecision::Deny, "even yolo never writes it");
 }
 
@@ -93,7 +109,7 @@ fn a_protected_missing_target_is_denied_through_a_symlinked_parent() {
     .rooted_at(Some(root))
     .audit_to(None);
     assert_eq!(
-        policy.decide(&write_request("alias/../secret.txt")),
+        policy.decide(&policy_request(&write_request("alias/../secret.txt"))),
         PolicyDecision::Deny
     );
 }
@@ -115,7 +131,7 @@ fn a_protected_alias_and_a_direct_resolved_target_have_the_same_floor() {
     .rooted_at(Some(root))
     .audit_to(None);
     assert_eq!(
-        policy.decide(&write_request("actual/not-created.txt")),
+        policy.decide(&policy_request(&write_request("actual/not-created.txt"))),
         PolicyDecision::Deny
     );
 }
@@ -132,7 +148,10 @@ fn process_scope_uses_command_even_when_resolved_cwd_is_a_policy_path() {
         }),
         Some(ToolKind::Execute),
     );
-    assert_eq!(policy.scope_of(&request).unwrap().key, "bash:sh");
+    assert_eq!(
+        policy.scope_of(&RequestData::from(&request)).unwrap().key,
+        "bash:sh"
+    );
 }
 
 #[cfg(unix)]
@@ -154,7 +173,7 @@ fn unresolvable_symlink_targets_are_denied_even_with_workflow_allowance() {
     assert_eq!(resolution.outcome, PermissionOutcome::Deny);
     assert_eq!(resolution.source, PermissionSource::Profile);
     assert!(
-        policy.scope_of(&request).is_none(),
+        policy.scope_of(&RequestData::from(&request)).is_none(),
         "an unresolved target cannot receive standing authority"
     );
 }
@@ -177,7 +196,7 @@ fn a_relative_spelling_of_a_protected_path_is_denied_once_the_policy_is_rooted()
         .rooted_at(Some(PathBuf::from("/project")))
         .audit_to(None);
         assert_eq!(
-            policy.decide(&write_request(spelling)),
+            policy.decide(&policy_request(&write_request(spelling))),
             PolicyDecision::Deny,
             "{spelling} names the protected file"
         );
@@ -197,7 +216,7 @@ fn a_different_file_with_the_same_name_is_not_blocked() {
         .rooted_at(Some(PathBuf::from("/project")))
         .audit_to(None);
         assert_eq!(
-            policy.decide(&write_request(spelling)),
+            policy.decide(&policy_request(&write_request(spelling))),
             PolicyDecision::Allow,
             "{spelling} is not the protected file"
         );
@@ -217,22 +236,24 @@ fn without_a_root_a_relative_target_matches_by_trailing_components_only() {
         .audit_to(None)
     };
     assert_eq!(
-        protect().decide(&write_request(".magistr/roadmap.yaml")),
+        protect().decide(&policy_request(&write_request(".magistr/roadmap.yaml"))),
         PolicyDecision::Deny,
         "the trailing components are the protected entry's"
     );
     assert_eq!(
-        protect().decide(&write_request("roadmap.yaml")),
+        protect().decide(&policy_request(&write_request("roadmap.yaml"))),
         PolicyDecision::Deny,
         "so is the bare file name"
     );
     assert_eq!(
-        protect().decide(&write_request("old-roadmap.yaml")),
+        protect().decide(&policy_request(&write_request("old-roadmap.yaml"))),
         PolicyDecision::Allow,
         "a string suffix is not a component"
     );
     assert_eq!(
-        protect().decide(&write_request("/other/.magistr/roadmap.yaml")),
+        protect().decide(&policy_request(&write_request(
+            "/other/.magistr/roadmap.yaml"
+        ))),
         PolicyDecision::Allow,
         "an absolute path elsewhere is a different file"
     );
@@ -256,7 +277,7 @@ fn a_symlinked_root_still_blocks_the_protected_file() {
     .rooted_at(Some(dir.path().to_path_buf()))
     .audit_to(None);
     assert_eq!(
-        policy.decide(&write_request("ROADMAP.md")),
+        policy.decide(&policy_request(&write_request("ROADMAP.md"))),
         PolicyDecision::Deny
     );
 }
@@ -271,11 +292,11 @@ fn a_protected_path_write_is_denied_even_in_workflow_mode() {
         true,
     )
     .audit_to(None);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "Edit",
         serde_json::json!({"file_path": "/project/.magistr/roadmap.yaml"}),
         Some(ToolKind::Edit),
-    ));
+    )));
     assert_eq!(
         decision,
         PolicyDecision::Deny,
@@ -301,17 +322,21 @@ fn every_path_in_a_multi_file_edit_is_checked_before_workflow_auto_approval() {
         serde_json::json!({"target_file":".magistr/roadmap.yaml"}),
     ] {
         assert_eq!(
-            policy.decide(&request("Edit", input.clone(), Some(ToolKind::Edit))),
+            policy.decide(&policy_request(&request(
+                "Edit",
+                input.clone(),
+                Some(ToolKind::Edit)
+            ))),
             PolicyDecision::Deny,
             "every target must be protected, regardless of field or position: {input}"
         );
     }
     assert_eq!(
-        policy.decide(&request(
+        policy.decide(&policy_request(&request(
             "Edit",
             serde_json::json!({"paths":["src/allowed.rs","src/another.rs"]}),
             Some(ToolKind::Edit)
-        )),
+        ))),
         PolicyDecision::Allow
     );
 }
@@ -320,7 +345,11 @@ fn every_path_in_a_multi_file_edit_is_checked_before_workflow_auto_approval() {
 fn workflow_mode_auto_approves_read_edit_and_execute_by_kind() {
     for kind in [ToolKind::Read, ToolKind::Edit, ToolKind::Execute] {
         let mut policy = policy(PermissionProfile::Cautious, true);
-        let decision = policy.decide(&request("anything", serde_json::json!({}), Some(kind)));
+        let decision = policy.decide(&policy_request(&request(
+            "anything",
+            serde_json::json!({}),
+            Some(kind),
+        )));
         assert_eq!(
             decision,
             PolicyDecision::Allow,
@@ -332,11 +361,11 @@ fn workflow_mode_auto_approves_read_edit_and_execute_by_kind() {
 #[test]
 fn outside_workflow_an_execute_kind_is_the_profiles_call() {
     let mut policy = policy(PermissionProfile::Cautious, false);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "Bash",
         serde_json::json!({"command": "rm -rf /tmp/scratch"}),
         Some(ToolKind::Execute),
-    ));
+    )));
     assert_eq!(
         decision,
         PolicyDecision::Ask(RiskTier::High),
@@ -347,11 +376,11 @@ fn outside_workflow_an_execute_kind_is_the_profiles_call() {
 #[test]
 fn a_safe_shell_command_is_auto_approved_outside_workflow() {
     let mut policy = policy(PermissionProfile::Cautious, false);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "Bash",
         serde_json::json!({"command": "cd /project && git status"}),
         Some(ToolKind::Execute),
-    ));
+    )));
     assert_eq!(decision, PolicyDecision::Allow, "safe prefix behind a cd");
 }
 
@@ -365,11 +394,11 @@ fn a_gate_command_is_batch_approved_by_evaluate() {
         false,
     )
     .audit_to(None);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "Bash",
         serde_json::json!({"command": "custom-runner && cargo nextest run --workspace"}),
         None,
-    ));
+    )));
     assert_eq!(decision, PolicyDecision::Allow);
 }
 
@@ -387,17 +416,17 @@ fn evaluate_decisions_land_in_the_audit_log() {
     .audit_to(Some(log.clone()));
 
     // Allowed by the profile → audited as allowed.
-    policy.decide(&request(
+    policy.decide(&policy_request(&request(
         "Read",
         serde_json::json!({"file_path": "/src/main.rs"}),
         None,
-    ));
+    )));
     // Asked → audited as not allowed.
-    policy.decide(&request(
+    policy.decide(&policy_request(&request(
         "Write",
         serde_json::json!({"file_path": "/src/new.rs"}),
         None,
-    ));
+    )));
 
     let entries = audit_entries(&log);
     assert_eq!(entries.len(), 2);
@@ -426,11 +455,11 @@ fn audit_entries_carry_the_actor_and_respect_retention() {
     });
 
     for path in ["/src/a.rs", "/src/b.rs", "/src/c.rs"] {
-        policy.decide(&request(
+        policy.decide(&policy_request(&request(
             "Read",
             serde_json::json!({"file_path": path}),
             None,
-        ));
+        )));
     }
 
     let entries = audit_entries(&log);
@@ -457,16 +486,16 @@ fn denies_and_auto_approvals_are_not_audited() {
     )
     .audit_to(Some(log.clone()));
 
-    policy.decide(&request(
+    policy.decide(&policy_request(&request(
         "Write",
         serde_json::json!({"file_path": "/project/ROADMAP.md"}),
         None,
-    ));
-    policy.decide(&request(
+    )));
+    policy.decide(&policy_request(&request(
         "anything",
         serde_json::json!({}),
         Some(ToolKind::Execute),
-    ));
+    )));
 
     assert!(
         audit_entries(&log).is_empty(),
@@ -477,7 +506,11 @@ fn denies_and_auto_approvals_are_not_audited() {
 #[test]
 fn magistrs_own_mcp_tools_are_auto_approved() {
     let mut policy = policy(PermissionProfile::Cautious, false);
-    let decision = policy.decide(&request("magistr_gate", serde_json::json!({}), None));
+    let decision = policy.decide(&policy_request(&request(
+        "magistr_gate",
+        serde_json::json!({}),
+        None,
+    )));
     assert_eq!(decision, PolicyDecision::Allow);
 }
 
@@ -491,7 +524,11 @@ fn workflow_mode_auto_approves_every_project_mcp_tool() {
         "mcp__magistr__roadmap_start_chunk",
     ] {
         assert_eq!(
-            policy.decide(&request(tool, serde_json::json!({}), Some(ToolKind::Other))),
+            policy.decide(&policy_request(&request(
+                tool,
+                serde_json::json!({}),
+                Some(ToolKind::Other)
+            ))),
             PolicyDecision::Allow,
             "{tool}"
         );
@@ -501,11 +538,11 @@ fn workflow_mode_auto_approves_every_project_mcp_tool() {
 #[test]
 fn outside_workflow_an_mcp_tool_is_the_profiles_call() {
     let mut policy = policy(PermissionProfile::Standard, false);
-    let decision = policy.decide(&request(
+    let decision = policy.decide(&policy_request(&request(
         "mcp__workbench-mcp__read",
         serde_json::json!({}),
         Some(ToolKind::Other),
-    ));
+    )));
     assert_eq!(decision, PolicyDecision::Ask(RiskTier::Medium));
 }
 
@@ -541,7 +578,10 @@ fn governed(profile: PermissionProfile, governance: GovernancePolicy) -> Cockpit
 fn the_org_policy_denies_what_even_yolo_workflow_mode_would_allow() {
     // Workflow mode + yolo is the most permissive configuration there is.
     let mut ungoverned = policy(PermissionProfile::Yolo, true);
-    assert_eq!(ungoverned.decide(&fetch_request()), PolicyDecision::Allow);
+    assert_eq!(
+        ungoverned.decide(&policy_request(&fetch_request())),
+        PolicyDecision::Allow
+    );
 
     let mut under = governed(
         PermissionProfile::Yolo,
@@ -550,7 +590,10 @@ fn the_org_policy_denies_what_even_yolo_workflow_mode_would_allow() {
             ..GovernancePolicy::default()
         },
     );
-    assert_eq!(under.decide(&fetch_request()), PolicyDecision::Deny);
+    assert_eq!(
+        under.decide(&policy_request(&fetch_request())),
+        PolicyDecision::Deny
+    );
 }
 
 #[test]
@@ -563,11 +606,11 @@ fn a_protected_path_from_the_roster_is_denied() {
         },
     );
     assert_eq!(
-        under.decide(&write_request("/repo/.env")),
+        under.decide(&policy_request(&write_request("/repo/.env"))),
         PolicyDecision::Deny
     );
     assert_eq!(
-        under.decide(&write_request("/repo/src/main.rs")),
+        under.decide(&policy_request(&write_request("/repo/src/main.rs"))),
         PolicyDecision::Allow
     );
 }
@@ -586,7 +629,7 @@ fn a_require_approval_rule_turns_an_auto_approval_into_a_prompt() {
         },
     );
     assert_eq!(
-        under.decide(&write_request("/repo/src/main.rs")),
+        under.decide(&policy_request(&write_request("/repo/src/main.rs"))),
         PolicyDecision::Ask(RiskTier::Medium)
     );
 }
@@ -604,7 +647,10 @@ fn a_warn_rule_permits_the_call_and_is_only_recorded() {
             ..GovernancePolicy::default()
         },
     );
-    assert_eq!(under.decide(&fetch_request()), PolicyDecision::Allow);
+    assert_eq!(
+        under.decide(&policy_request(&fetch_request())),
+        PolicyDecision::Allow
+    );
 }
 
 #[test]
@@ -629,7 +675,7 @@ fn the_policy_cannot_loosen_a_local_denial() {
     .governed_by(allow_everything.compile())
     .audit_to(None);
     assert_eq!(
-        under.decide(&write_request("/repo/ROADMAP.md")),
+        under.decide(&policy_request(&write_request("/repo/ROADMAP.md"))),
         PolicyDecision::Deny
     );
 }
@@ -651,7 +697,10 @@ fn a_governed_denial_is_audited_by_rule_id() {
     )
     .governed_by(governance.compile())
     .audit_to(Some(log.clone()));
-    assert_eq!(under.decide(&fetch_request()), PolicyDecision::Deny);
+    assert_eq!(
+        under.decide(&policy_request(&fetch_request())),
+        PolicyDecision::Deny
+    );
 
     let entries = audit_entries(&log);
     assert_eq!(entries.len(), 1);
@@ -668,7 +717,10 @@ fn an_empty_policy_leaves_every_decision_exactly_as_it_was() {
         let mut under = CockpitPolicy::new(*profile, Vec::new(), Vec::new(), Vec::new(), false)
             .governed_by(empty.clone())
             .audit_to(None);
-        assert_eq!(plain.decide(&target), under.decide(&target));
+        assert_eq!(
+            plain.decide(&policy_request(&target)),
+            under.decide(&policy_request(&target))
+        );
     }
 }
 
@@ -676,9 +728,10 @@ fn an_empty_policy_leaves_every_decision_exactly_as_it_was() {
 
 mod charter {
     use super::*;
+    use crate::agent::permission_request::permission_request as policy_request;
     use crate::permissions::CharterStore;
     #[cfg(unix)]
-    use magistr_cockpit::agent::PermissionKind;
+    use magistr_application::sessions::PermissionKind;
     use magistr_engine::policy::{
         Charter, GovernancePolicy, PolicyCondition, PolicyEffect as Effect, PolicyRule,
     };
@@ -716,9 +769,9 @@ mod charter {
     #[test]
     fn a_delegated_scope_is_allowed_where_the_profile_would_ask() {
         let mut plain = cautious(Charter::default(), None);
-        assert!(asks(
-            plain.decide(&write_under("/repo/crates/magistr-tui/src/view.rs"))
-        ));
+        assert!(asks(plain.decide(&policy_request(&write_under(
+            "/repo/crates/magistr-tui/src/view.rs"
+        )))));
 
         let mut charter = Charter::default();
         charter.delegate(PolicyRule::new(
@@ -731,11 +784,15 @@ mod charter {
         ));
         let mut under = cautious(charter, None);
         assert_eq!(
-            under.decide(&write_under("/repo/crates/magistr-tui/src/view.rs")),
+            under.decide(&policy_request(&write_under(
+                "/repo/crates/magistr-tui/src/view.rs"
+            ))),
             PolicyDecision::Allow
         );
         assert!(
-            asks(under.decide(&write_under("/repo/crates/magistr-cockpit/src/view.rs"))),
+            asks(under.decide(&policy_request(&write_under(
+                "/repo/crates/magistr-cockpit/src/view.rs"
+            )))),
             "outside the scope the profile still asks"
         );
     }
@@ -757,11 +814,11 @@ mod charter {
             .compile(),
         );
         assert_eq!(
-            under.decide(&write_under("/repo/.env")),
+            under.decide(&policy_request(&write_under("/repo/.env"))),
             PolicyDecision::Deny
         );
         assert_eq!(
-            under.decide(&write_under("/repo/src/main.rs")),
+            under.decide(&policy_request(&write_under("/repo/src/main.rs"))),
             PolicyDecision::Allow,
             "where the roster says nothing the widening holds"
         );
@@ -774,10 +831,10 @@ mod charter {
         let store = CharterStore::at(dir.path());
         let mut first = cautious(Charter::default(), Some(store.clone()));
         let ask = write_under("/repo/crates/x/src/a.rs");
-        assert!(asks(first.decide(&ask)));
-        first.answered(&ask, PermissionKind::AllowAlways);
+        assert!(asks(first.decide(&policy_request(&ask))));
+        first.answered(&policy_request(&ask), PermissionKind::AllowAlways);
         assert_eq!(
-            first.decide(&write_under("/repo/crates/x/src/b.rs")),
+            first.decide(&policy_request(&write_under("/repo/crates/x/src/b.rs"))),
             PolicyDecision::Allow,
             "the rule holds for the rest of this session"
         );
@@ -795,10 +852,12 @@ mod charter {
         );
         let mut next = cautious(saved, Some(store));
         assert_eq!(
-            next.decide(&write_under("/repo/crates/x/src/c.rs")),
+            next.decide(&policy_request(&write_under("/repo/crates/x/src/c.rs"))),
             PolicyDecision::Allow
         );
-        assert!(asks(next.decide(&write_under("/repo/crates/y/src/c.rs"))));
+        assert!(asks(next.decide(&policy_request(&write_under(
+            "/repo/crates/y/src/c.rs"
+        )))));
     }
 
     #[cfg(unix)]
@@ -818,17 +877,17 @@ mod charter {
         let ask = write_under("/repo/crates/x/src/a.rs");
 
         let mut never = yolo();
-        assert_eq!(never.decide(&ask), PolicyDecision::Allow);
-        never.answered(&ask, PermissionKind::RejectAlways);
-        assert_eq!(never.decide(&ask), PolicyDecision::Deny);
+        assert_eq!(never.decide(&policy_request(&ask)), PolicyDecision::Allow);
+        never.answered(&policy_request(&ask), PermissionKind::RejectAlways);
+        assert_eq!(never.decide(&policy_request(&ask)), PolicyDecision::Deny);
         assert_eq!(
             never.charter().tally("write:crates/x").map(|t| t.denied),
             Some(1)
         );
 
         let mut conditioned = yolo();
-        conditioned.constrain(&ask, "  allow, stop if other rows change ");
-        assert!(asks(conditioned.decide(&ask)));
+        conditioned.constrain(&policy_request(&ask), "  allow, stop if other rows change ");
+        assert!(asks(conditioned.decide(&policy_request(&ask))));
         assert_eq!(
             conditioned
                 .charter()
@@ -838,7 +897,7 @@ mod charter {
             "the rule carries the reader's words"
         );
         let mut blank = yolo();
-        blank.constrain(&ask, "   ");
+        blank.constrain(&policy_request(&ask), "   ");
         assert!(blank.charter().is_empty(), "no words, no rule");
     }
 
@@ -848,15 +907,18 @@ mod charter {
         let mut policy = cautious(Charter::default(), None);
         let ask = write_under("/repo/crates/x/src/a.rs");
         for _ in 0..Charter::OFFER_AFTER {
-            policy.answered(&ask, PermissionKind::AllowOnce);
+            policy.answered(&policy_request(&ask), PermissionKind::AllowOnce);
         }
-        assert!(asks(policy.decide(&ask)), "once is not a rule");
+        assert!(
+            asks(policy.decide(&policy_request(&ask))),
+            "once is not a rule"
+        );
         let offers = policy.charter().offers();
         assert_eq!(offers.len(), 1);
         assert_eq!(offers[0].key, "write:crates/x");
         assert!(!policy.delegate("nowhere"));
         assert!(policy.delegate("write:crates/x"));
-        assert_eq!(policy.decide(&ask), PolicyDecision::Allow);
+        assert_eq!(policy.decide(&policy_request(&ask)), PolicyDecision::Allow);
         assert!(policy.charter().offers().is_empty());
     }
 
@@ -872,7 +934,7 @@ mod charter {
         ));
         let mut policy = cautious(charter, None).audit_to(Some(log.clone()));
         assert_eq!(
-            policy.decide(&write_under("/repo/crates/x/src/a.rs")),
+            policy.decide(&policy_request(&write_under("/repo/crates/x/src/a.rs"))),
             PolicyDecision::Allow
         );
         let entries = audit_entries(&log);
@@ -887,8 +949,11 @@ mod charter {
 fn remembered_refusal_caps_workflow_shortcuts() {
     let mut policy = policy(PermissionProfile::Yolo, true);
     let target = write_request("/repo/src/main.rs");
-    policy.answered(&target, PermissionKind::RejectAlways);
-    assert_eq!(policy.decide(&target), PolicyDecision::Deny);
+    policy.answered(&policy_request(&target), PermissionKind::RejectAlways);
+    assert_eq!(
+        policy.decide(&policy_request(&target)),
+        PolicyDecision::Deny
+    );
 }
 
 #[test]
@@ -899,8 +964,14 @@ fn written_condition_caps_safe_command_shortcuts() {
         serde_json::json!({"command":"cargo test"}),
         Some(ToolKind::Execute),
     );
-    policy.constrain(&target, "ask before running expensive tests");
-    assert!(matches!(policy.decide(&target), PolicyDecision::Ask(_)));
+    policy.constrain(
+        &policy_request(&target),
+        "ask before running expensive tests",
+    );
+    assert!(matches!(
+        policy.decide(&policy_request(&target)),
+        PolicyDecision::Ask(_)
+    ));
 }
 
 #[test]
@@ -919,7 +990,11 @@ fn protected_targets_include_delete_and_move_requests() {
             serde_json::json!({"paths":["/repo/ordinary.rs", "/repo/ROADMAP.md"]}),
             Some(kind),
         );
-        assert_eq!(policy.decide(&target), PolicyDecision::Deny, "{kind:?}");
+        assert_eq!(
+            policy.decide(&policy_request(&target)),
+            PolicyDecision::Deny,
+            "{kind:?}"
+        );
     }
 }
 
@@ -928,7 +1003,7 @@ fn a_remembered_path_allow_cannot_widen_a_multi_target_call() {
     let mut policy =
         policy(PermissionProfile::Cautious, false).rooted_at(Some(PathBuf::from("/repo")));
     policy.answered(
-        &write_request("/repo/crates/allowed/a.rs"),
+        &policy_request(&write_request("/repo/crates/allowed/a.rs")),
         PermissionKind::AllowAlways,
     );
     let target = request(
@@ -936,7 +1011,10 @@ fn a_remembered_path_allow_cannot_widen_a_multi_target_call() {
         serde_json::json!({"paths":["/repo/crates/allowed/b.rs", "/repo/crates/other/c.rs"]}),
         Some(ToolKind::Edit),
     );
-    assert!(matches!(policy.decide(&target), PolicyDecision::Ask(_)));
+    assert!(matches!(
+        policy.decide(&policy_request(&target)),
+        PolicyDecision::Ask(_)
+    ));
 }
 
 #[cfg(unix)]
@@ -966,13 +1044,13 @@ fn shared_decisions_carry_stable_request_scope_and_behavior_version() {
         .evaluate_request(&target);
     assert_ne!(baseline.scope, other_model.scope);
     assert_ne!(baseline.policy_version, other_model.policy_version);
-    first.answered(&target, PermissionKind::AllowOnce);
+    first.answered(&policy_request(&target), PermissionKind::AllowOnce);
     assert_eq!(
         baseline.policy_version,
         first.policy_version(),
         "tallies do not change authorization"
     );
-    first.answered(&target, PermissionKind::RejectAlways);
+    first.answered(&policy_request(&target), PermissionKind::RejectAlways);
     let refused = first.evaluate_request(&target);
     assert_eq!(refused.outcome, PermissionOutcome::Deny);
     assert_ne!(baseline.policy_version, refused.policy_version);
@@ -996,7 +1074,7 @@ fn governance_matches_normalized_absolute_and_project_relative_paths() {
             "/repo/src/private/key",
         ] {
             assert_eq!(
-                policy.decide(&write_request(target)),
+                policy.decide(&policy_request(&write_request(target))),
                 PolicyDecision::Deny,
                 "{pattern}: {target}"
             );
@@ -1009,16 +1087,21 @@ fn remembered_allow_does_not_follow_a_path_that_escapes_its_scope() {
     let mut policy =
         policy(PermissionProfile::Cautious, false).rooted_at(Some(PathBuf::from("/repo")));
     policy.answered(
-        &write_request("crates/allowed/a.rs"),
+        &policy_request(&write_request("crates/allowed/a.rs")),
         PermissionKind::AllowAlways,
     );
     assert!(matches!(
-        policy.decide(&write_request("crates/allowed/../private/key")),
+        policy.decide(&policy_request(&write_request(
+            "crates/allowed/../private/key"
+        ))),
         PolicyDecision::Ask(_)
     ));
-    policy.answered(&write_request("/outside/a.rs"), PermissionKind::AllowAlways);
+    policy.answered(
+        &policy_request(&write_request("/outside/a.rs")),
+        PermissionKind::AllowAlways,
+    );
     assert!(matches!(
-        policy.decide(&write_request("crates/other/a.rs")),
+        policy.decide(&policy_request(&write_request("crates/other/a.rs"))),
         PolicyDecision::Ask(_)
     ));
 }
@@ -1027,10 +1110,10 @@ fn remembered_allow_does_not_follow_a_path_that_escapes_its_scope() {
 fn standing_answers_do_not_turn_glob_shaped_tool_titles_into_wildcard_rules() {
     let mut policy = policy(PermissionProfile::Cautious, false);
     let target = request("*", serde_json::json!({}), None);
-    policy.answered(&target, PermissionKind::AllowAlways);
+    policy.answered(&policy_request(&target), PermissionKind::AllowAlways);
     assert!(policy.charter().delegations.is_empty());
     assert!(matches!(
-        policy.decide(&write_request("src/main.rs")),
+        policy.decide(&policy_request(&write_request("src/main.rs"))),
         PolicyDecision::Ask(_)
     ));
 }

@@ -3,8 +3,8 @@
 use super::phase::Phase;
 use super::place::Place;
 use super::stage_tab::StageTab;
-use crate::agent::PermissionKind;
 use crate::widget_id::WidgetId;
+use magistr_application::sessions::PermissionKind;
 
 /// Every widget the cockpit lays out. The discriminant is the
 /// [`WidgetId`] the layout and the hit registry report.

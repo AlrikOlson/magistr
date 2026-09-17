@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use magistr_acp::{AcpError, AcpTransport};
-use magistr_cockpit::agent::{AgentEvent, TurnEnd};
+use magistr_application::sessions::{AgentEvent, TurnEnd};
 use tokio::sync::oneshot;
 
 use super::{Inner, SessionResidency, TurnOutcome, acp_error};

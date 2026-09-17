@@ -1,8 +1,8 @@
 //! What a tool call carried besides its title, status and diff.
 
-use std::path::PathBuf;
+use alloc::{string::String, vec::Vec};
 
-use serde_json::Value;
+use super::tool_payload::ToolPayload;
 
 use super::tool_verb::ToolVerb;
 
@@ -22,14 +22,14 @@ pub struct ToolRecord {
     /// re-kind a call it announced as something else.
     pub kind: Option<ToolVerb>,
     /// The raw input the agent sent the tool.
-    pub input: Option<Value>,
+    pub input: Option<ToolPayload>,
     /// The raw output the tool returned.
-    pub output: Option<Value>,
+    pub output: Option<ToolPayload>,
     /// The text content blocks, in wire order.
     pub text: Vec<String>,
     /// The files the call touched, each with the line when the wire
     /// gave one.
-    pub locations: Vec<(PathBuf, Option<u32>)>,
+    pub locations: Vec<(String, Option<u32>)>,
     /// The terminal the call embeds, by id.
     pub terminal: Option<String>,
     /// How many bytes the record measured before it was cut to the
@@ -110,36 +110,29 @@ impl ToolRecord {
             (Some(a), Some(b)) => Some(a.max(b)),
             (a, b) => a.or(b),
         };
-        *self = std::mem::take(self).bounded();
+        *self = core::mem::take(self).bounded();
     }
 }
 
 /// The bytes a JSON value takes: a string's own, anything else its
 /// serialized form.
-fn value_len(value: &Value) -> usize {
-    match value {
-        Value::String(text) => text.len(),
-        other => other.to_string().len(),
-    }
+fn value_len(value: &ToolPayload) -> usize {
+    value.content().len()
 }
 
 /// `value` cut to `budget`: a string keeps its head, anything else
 /// becomes the head of its serialized form — still readable, no longer
 /// parseable, which the noted size says.
-fn cut_value(value: Value, budget: &mut usize) -> Value {
+fn cut_value(value: ToolPayload, budget: &mut usize) -> ToolPayload {
+    if value.content().len() <= *budget {
+        *budget -= value.content().len();
+        return value;
+    }
     let mut text = match value {
-        Value::String(text) => text,
-        other => {
-            let json = other.to_string();
-            if json.len() <= *budget {
-                *budget -= json.len();
-                return other;
-            }
-            json
-        }
+        ToolPayload::Text(text) | ToolPayload::Json(text) => text,
     };
     cut_text(&mut text, budget);
-    Value::String(text)
+    ToolPayload::Text(text)
 }
 
 /// `text` cut to `budget` on a char boundary, the budget reduced by

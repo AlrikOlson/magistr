@@ -3183,14 +3183,12 @@ dependencies = [
 name = "magistr-cockpit"
 version = "0.1.0"
 dependencies = [
- "agent-client-protocol",
  "chrono",
  "compact_str",
  "fontdue",
  "image-webp",
  "insta",
  "libm",
- "magistr-acp",
  "magistr-application",
  "magistr-engine",
  "magistr-theme",
@@ -3312,6 +3310,7 @@ dependencies = [
  "flate2",
  "fontdue",
  "insta",
+ "magistr-application",
  "magistr-cockpit",
  "magistr-engine",
  "magistr-theme",

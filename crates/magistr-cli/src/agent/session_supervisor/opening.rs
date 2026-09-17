@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use agent_client_protocol::schema::v1::{SessionConfigOptionCategory, SessionConfigOptionValue};
 use magistr_acp::{AcpEvent, AcpTransport};
-use magistr_cockpit::agent::{AgentEvent, SessionOptions};
+use magistr_application::sessions::{AgentEvent, SessionOptions};
 
 use super::{Inner, SessionResidency, acp_error};
 
@@ -62,7 +62,7 @@ pub(super) async fn initialize(
     if inner.closing {
         return;
     }
-    let mut translated = magistr_cockpit::agent::translate(&Ok(event));
+    let mut translated = crate::agent::translate::translate(&Ok(event));
     if let (AgentEvent::Initialized { model, .. }, Some(selected)) = (&mut translated, selected) {
         *model = Some(selected);
     }

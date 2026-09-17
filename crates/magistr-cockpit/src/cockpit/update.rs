@@ -50,13 +50,13 @@ use super::turn_state::TurnState;
 use super::widget::Widget;
 use super::work::{self, open_chunk};
 use super::workbench_cmd::WorkbenchCmd;
-use crate::agent::{AgentEvent, TurnEnd};
 use crate::engine::EngineEvent;
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
 use crate::job::JobOutput;
 use crate::theme::MotionMode;
 use crate::turn::{Viewport, Voice};
 use crate::widget_id::WidgetId;
+use magistr_application::sessions::{AgentEvent, TurnEnd};
 
 /// Apply `msg` to `model`; the returned commands are for the runtime.
 ///

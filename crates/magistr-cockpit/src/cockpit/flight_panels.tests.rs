@@ -90,7 +90,7 @@ fn dragging_keeps_selection_draft_and_conversation_anchor_while_output_arrives()
     let mut m = model(StageTab::Turn, (10, 20));
     update(
         &mut m,
-        Msg::Agent(crate::agent::AgentEvent::Text(
+        Msg::Agent(magistr_application::sessions::AgentEvent::Text(
             (0..80)
                 .map(|i| {
                     format!(
@@ -122,7 +122,7 @@ fn dragging_keeps_selection_draft_and_conversation_anchor_while_output_arrives()
     );
     update(
         &mut m,
-        Msg::Agent(crate::agent::AgentEvent::Text(
+        Msg::Agent(magistr_application::sessions::AgentEvent::Text(
             "A new observation.\n\n".into(),
         )),
     );

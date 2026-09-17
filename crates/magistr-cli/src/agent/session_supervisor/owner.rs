@@ -5,7 +5,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 
 use magistr_acp::{AcpEvent, AcpTransport};
-use magistr_cockpit::agent::SessionOptions;
+use magistr_application::sessions::SessionOptions;
 use tokio::sync::mpsc;
 
 use super::permissions::Permissions;
@@ -255,7 +255,7 @@ async fn run_loop(
                             }
                         }
                         let (messages, _, _) = crate::agent::convert_acp_event::convert_acp_event(&event);
-                        inner.emit_cockpit(magistr_cockpit::agent::translate(&Ok(event)));
+                        inner.emit_cockpit(crate::agent::translate::translate(&Ok(event)));
                         for message in messages {
                             inner.emit(Ok(message));
                         }

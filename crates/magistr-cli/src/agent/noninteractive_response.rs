@@ -1,7 +1,7 @@
 //! Map shared policy decisions to ACP choices for a session with no approval UI.
 
 use magistr_acp::{AcpPermissionOptionKind as Kind, AcpPermissionRequest, AcpPermissionResponse};
-use magistr_cockpit::agent::{PolicyDecision, SessionPolicy};
+use magistr_application::sessions::{PolicyDecision, SessionPolicy};
 
 use crate::permissions::NoninteractivePolicy;
 
@@ -12,7 +12,7 @@ pub fn noninteractive_response(
     handling: NoninteractivePolicy,
 ) -> AcpPermissionResponse {
     let once = |kind| request.options.iter().find(|option| option.kind == kind);
-    let choice = match policy.decide(request) {
+    let choice = match policy.decide(&super::permission_request::permission_request(request)) {
         PolicyDecision::Allow => once(Kind::AllowOnce),
         PolicyDecision::Deny => once(Kind::RejectOnce),
         PolicyDecision::Ask(_) => match handling {

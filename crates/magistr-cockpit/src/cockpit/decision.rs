@@ -35,9 +35,10 @@ use super::place::Place;
 use super::prompt::Prompt;
 use super::rule_mode::RuleMode;
 use super::widget::Widget;
-use crate::agent::{AskPlan, ImageBlock, PermissionChoice, PermissionKind, ToolTitle};
+use crate::agent::ToolTitle;
 use crate::input::{KeyCode, KeyEvent, Modifiers};
 use crate::widget_id::WidgetId;
+use magistr_application::sessions::{AskPlan, ImageBlock, PermissionChoice, PermissionKind};
 
 /// Rows a page key moves the Moment's card by.
 const PAGE: isize = 8;

@@ -1,10 +1,10 @@
 use super::*;
-use crate::agent::{AskPlan, PermissionChoice};
 use crate::cockpit::{Cmd, Msg, Palette, Selected, Size, update};
 use crate::harness::fixtures;
 use crate::hit::HitRegistry;
 use crate::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree};
+use magistr_application::sessions::{AskPlan, PermissionChoice};
 use serde_json::json;
 
 fn model() -> Model {

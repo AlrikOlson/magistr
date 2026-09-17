@@ -56,10 +56,10 @@ fn report_unchanged_pixel_conversation_geometry_cost() {
 
 #[test]
 fn scrolling_and_hovering_do_not_remeasure_the_conversation_history() {
-    use crate::agent::AgentEvent;
     use crate::capability::Mode;
     use crate::cockpit::{Model, Msg, Size, Widget, update};
     use crate::input::{MouseEvent, MouseKind};
+    use magistr_application::sessions::AgentEvent;
 
     let mut model = Model::new(Size::new(144, 50));
     for index in 0..10_000 {
@@ -389,14 +389,18 @@ fn a_tool_calls_record_lives_beside_its_row_and_an_update_folds_into_it() {
     assert!(turn.set_tool_record(
         "c1",
         ToolRecord {
-            input: Some(serde_json::json!({"command": "cargo test"})),
+            input: Some(magistr_application::sessions::ToolPayload::Json(
+                r#"{"command":"cargo test"}"#.into()
+            )),
             ..ToolRecord::default()
         }
     ));
     assert!(turn.set_tool_record(
         "c1",
         ToolRecord {
-            output: Some(serde_json::json!("ok")),
+            output: Some(magistr_application::sessions::ToolPayload::Text(
+                "ok".into()
+            )),
             text: vec!["test result: ok".to_owned()],
             ..ToolRecord::default()
         }
@@ -405,9 +409,16 @@ fn a_tool_calls_record_lives_beside_its_row_and_an_update_folds_into_it() {
     let record = turn.tool_record("c1").expect("kept");
     assert_eq!(
         record.input,
-        Some(serde_json::json!({"command": "cargo test"}))
+        Some(magistr_application::sessions::ToolPayload::Json(
+            r#"{"command":"cargo test"}"#.into()
+        ))
     );
-    assert_eq!(record.output, Some(serde_json::json!("ok")));
+    assert_eq!(
+        record.output,
+        Some(magistr_application::sessions::ToolPayload::Text(
+            "ok".into()
+        ))
+    );
     assert_eq!(record.text, ["test result: ok".to_owned()]);
     assert_eq!(turn.lines()[0].record(), record);
     assert!(turn.lines()[1].record().is_empty());
@@ -1091,7 +1102,9 @@ fn push_check_keeps_the_gates_command_on_the_record() {
     turn.push_check("lint", Some("cargo clippy"), true, Some(0), None, "");
     assert_eq!(
         turn.lines()[0].record().input,
-        Some(serde_json::Value::String("cargo clippy".to_owned()))
+        Some(magistr_application::sessions::ToolPayload::Text(
+            "cargo clippy".to_owned()
+        ))
     );
     assert_eq!(texts(&turn), ["✓ gate   lint · exit 0"]);
     let mut bare = Turn::new(40);

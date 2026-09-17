@@ -1,5 +1,7 @@
 //! The diff a tool call carried.
 
+use alloc::string::String;
+
 /// A file modification an ACP tool call reported as diff content: the
 /// path and both sides of the change, ready for the turn's edit card.
 #[derive(Clone, Debug, PartialEq, Eq)]

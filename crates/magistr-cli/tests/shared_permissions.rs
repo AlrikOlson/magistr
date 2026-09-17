@@ -1,5 +1,6 @@
 //! Compare real project-policy construction used by session hosts before presentation.
 use agent_client_protocol::schema::v1::ToolKind;
+use magistr::agent::permission_request::permission_request as policy_request;
 use magistr::agent::{AgentConfig, noninteractive_response::noninteractive_response};
 use magistr::orchestration::commands::run::cockpit_policy_for_project;
 use magistr::permissions::{CharterStore, NoninteractivePolicy, PermissionProfile};
@@ -7,7 +8,7 @@ use magistr_acp::{
     AcpPermissionOption, AcpPermissionOptionKind as Kind, AcpPermissionRequest,
     AcpPermissionResponse,
 };
-use magistr_cockpit::agent::{PermissionKind, SessionPolicy};
+use magistr_application::sessions::{PermissionKind, SessionPolicy};
 use magistr_engine::policy::{
     Charter, PermissionOutcome, PolicyCondition, PolicyEffect, PolicyRule,
 };
@@ -169,7 +170,7 @@ fn remembered_answers_survive_a_surface_change_but_do_not_override_governance() 
             .audit_to(None);
     let before = cockpit.evaluate_request(&ask);
     assert_eq!(before.outcome, PermissionOutcome::Ask);
-    cockpit.answered(&ask, PermissionKind::AllowAlways);
+    cockpit.answered(&policy_request(&ask), PermissionKind::AllowAlways);
     let (session, _) = AgentConfig::new("fixture", dir.path()).session_permission_policy();
     let mut session = session.audit_to(None);
     let after = session.evaluate_request(&ask);

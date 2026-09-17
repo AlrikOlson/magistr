@@ -256,9 +256,9 @@ fn fractional_retirement_returns_to_the_paused_loops_clock_period() {
 #[test]
 fn waiting_for_a_response_samples_at_a_lower_rate_than_gestures() {
     let mut driver = driver(model(), false);
-    driver.fold(Msg::Agent(magistr_cockpit::agent::AgentEvent::UserText(
-        "Review the plan".into(),
-    )));
+    driver.fold(Msg::Agent(
+        magistr_application::sessions::AgentEvent::UserText("Review the plan".into()),
+    ));
     for _ in 0..24 {
         driver.tick();
     }

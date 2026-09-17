@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent::ToolRecord;
+use magistr_application::sessions::ToolRecord;
 
 fn tool(id: &str, status: ToolStatus) -> AgentEvent {
     AgentEvent::ToolCall {

@@ -1,10 +1,10 @@
 use magistr_engine::policy::RiskTier;
 
 use super::*;
-use crate::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 use crate::cockpit::{Msg, Permission, Size, StageTab, Surface, Widget, update};
 use crate::harness::Scenes;
 use crate::input::{KeyCode, KeyEvent};
+use magistr_application::sessions::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 
 fn window() -> Model {
     Model::new(Size::new(120, 40)).with_surface(Surface::Native)
@@ -220,7 +220,7 @@ fn a_viewer_pane_closes_before_the_altitude_moves() {
 /// press; a card open at another altitude is not that altitude's.
 #[test]
 fn an_open_card_folds_before_the_altitude_moves() {
-    use crate::agent::{ToolStatus, ToolVerb};
+    use magistr_application::sessions::{ToolStatus, ToolVerb};
     let open = |w: &Model| {
         w.turn()
             .lines()

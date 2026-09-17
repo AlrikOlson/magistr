@@ -3,7 +3,8 @@
 use std::time::Duration;
 
 use crate::application::workflow_client::EngineClient;
-use magistr_cockpit::agent::{AgentEvent, SessionOptions, spawn_session};
+use magistr_application::sessions::{AgentEvent, SessionOptions};
+use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::cockpit::{Cmd, LoopCmd, Msg};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -192,7 +193,7 @@ impl InteractiveSession {
                         }
                         Some(Cmd::Cancel) if !roadmap => {
                             self.inbox.send(Msg::Agent(AgentEvent::TurnEnded(
-                                magistr_cockpit::agent::TurnEnd::Cancelled,
+                                magistr_application::sessions::TurnEnd::Cancelled,
                             )));
                             return;
                         }
@@ -204,7 +205,7 @@ impl InteractiveSession {
                                     self.inbox.send(Msg::RoadmapRequestCancelled);
                                 } else {
                                     self.inbox.send(Msg::Agent(AgentEvent::TurnEnded(
-                                        magistr_cockpit::agent::TurnEnd::Cancelled,
+                                        magistr_application::sessions::TurnEnd::Cancelled,
                                     )));
                                 }
                                 return;
@@ -220,7 +221,7 @@ impl InteractiveSession {
             let handle = match connected {
                 Ok((transport, spec)) => {
                     let (policy, _) = spec.into_permission_policy();
-                    let policy: Box<dyn magistr_cockpit::agent::SessionPolicy> = if roadmap {
+                    let policy: Box<dyn magistr_application::sessions::SessionPolicy> = if roadmap {
                         Box::new(RoadmapPolicy::new(policy))
                     } else {
                         Box::new(policy)

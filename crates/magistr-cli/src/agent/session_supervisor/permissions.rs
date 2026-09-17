@@ -3,12 +3,11 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use crate::agent::permission_request::{permission_kind, permission_request};
 use magistr_acp::{
     AcpPermissionOption, AcpPermissionOptionKind, AcpPermissionRequest, AcpPermissionResponse,
 };
-use magistr_cockpit::agent::{
-    AgentEvent, PermissionChoice, PermissionKind, PolicyDecision, SessionPolicy,
-};
+use magistr_application::sessions::{AgentEvent, PermissionChoice, PolicyDecision, SessionPolicy};
 use tokio::sync::mpsc;
 
 use super::{Inner, Policy};
@@ -93,7 +92,7 @@ impl Permissions {
             let _ = request.response_tx.send(response);
             return;
         }
-        let risk = match policy.decide(&request) {
+        let risk = match policy.decide(&permission_request(&request)) {
             PolicyDecision::Allow => {
                 let response = select(&request.options, AcpPermissionOptionKind::AllowOnce);
                 let _ = request.response_tx.send(response);
@@ -115,7 +114,13 @@ impl Permissions {
         let event = AgentEvent::PermissionRequest {
             id,
             title: request.tool_title.clone(),
-            choices: request.options.iter().map(PermissionChoice::from).collect(),
+            choices: request
+                .options
+                .iter()
+                .map(|option| {
+                    PermissionChoice::new(&option.option_id, permission_kind(option.kind))
+                })
+                .collect(),
             edit: request.tool_kind == Some(agent_client_protocol::schema::v1::ToolKind::Edit),
             risk,
             plan: None,
@@ -140,7 +145,7 @@ impl Permissions {
             .options
             .iter()
             .find(|option| option.option_id == option_id)
-            .map(|option| PermissionKind::from(option.kind));
+            .map(|option| permission_kind(option.kind));
         let Some(kind) = kind.filter(|_| {
             can_answer(&inner) && inner.snapshot.client_attached && !request.response_tx.is_closed()
         }) else {
@@ -149,7 +154,7 @@ impl Permissions {
             return;
         };
         if let Some(policy) = self.policy.as_mut() {
-            policy.answered(&request, kind);
+            policy.answered(&permission_request(&request), kind);
         }
         let _ = request
             .response_tx
@@ -164,7 +169,7 @@ impl Permissions {
             && !request.response_tx.is_closed()
             && let Some(policy) = self.policy.as_mut()
         {
-            policy.constrain(request, condition);
+            policy.constrain(&permission_request(request), condition);
         }
     }
 

@@ -110,13 +110,13 @@ fn pausing_answering_and_finishing_remove_the_activity_indicator() {
     assert!(activity_marks(&status_label(&model, &s, true)).is_empty());
 }
 
-use crate::agent::{AgentEvent, PermissionChoice, PermissionKind, TurnEnd};
 use crate::cockpit::{Cmd, Msg, Selected, Size, Surface, update};
 use crate::harness::fixtures;
 use crate::hit::HitRegistry;
 use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree, Resolved};
 use crate::pixel::Typography;
+use magistr_application::sessions::{AgentEvent, PermissionChoice, PermissionKind, TurnEnd};
 use magistr_engine::{FeedStatus, NativeSnapshot};
 use serde_json::json;
 

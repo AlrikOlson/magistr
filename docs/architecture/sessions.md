@@ -239,8 +239,13 @@ observed owner disconnect reports failure without taking over ownership.
 
 The runtime-independent application `SessionHandle` gives the cockpit explicit
 operations for turns, permissions, terminal cancellation, detach, and termination.
-Its relay stamps presentation timing and serves workbench, engine, and checkpoint
-commands; it does not own ACP connections or permission reply channels. The
+The application also owns its `AgentEvent` observations, `SessionOptions` and
+`SessionPolicy` vocabulary. Both interactive and headless hosts import those
+contracts directly; the CLI translates ACP events and permission requests into
+them. Tool records carry bounded text or encoded JSON and textual wire locations.
+Policy requests carry the full input independently of those display bounds.
+The cockpit relay stamps presentation timing and serves workbench, engine, and
+checkpoint commands; it does not own ACP connections or permission reply channels. The
 supervisor emits initialization and the opening user text before provider output.
 An absent opening prompt leaves the session idle, including home resume.
 

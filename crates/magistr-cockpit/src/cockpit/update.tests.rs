@@ -195,7 +195,6 @@ fn roadmap_signals_are_selectable_by_pointer_and_keyboard_without_changing_chunk
     ));
 }
 
-use crate::agent::{AgentEvent, ImageBlock, ToolStatus, TurnEnd};
 use crate::cockpit::Size;
 use crate::cockpit::{
     Animation, Budget, Eased, KillCmd, Motion, MotionName, ShipRun, Surface, Term, TermDock,
@@ -207,6 +206,7 @@ use crate::job::{JobId, JobOutput};
 use crate::render::Color;
 use crate::theme::{MotionMode, Theme, ThemeMode};
 use crate::turn::RowKind;
+use magistr_application::sessions::{AgentEvent, ImageBlock, ToolStatus, TurnEnd};
 
 /// The model advanced past a scroll's glide: every viewport
 /// moves its window the instant a scroll lands, but the *paint* eases
@@ -227,12 +227,14 @@ fn turn_tool_selection_opens_a_live_record_in_the_inspector() {
         AgentEvent::ToolCall {
             id: "inspect-call".into(),
             title: "read settings".into(),
-            verb: crate::agent::ToolVerb::Read,
+            verb: magistr_application::sessions::ToolVerb::Read,
             status: ToolStatus::InProgress,
             diff: None,
             images: Vec::new(),
-            record: Box::new(crate::agent::ToolRecord {
-                input: Some(serde_json::json!({"path":"settings.toml"})),
+            record: Box::new(magistr_application::sessions::ToolRecord {
+                input: Some(magistr_application::sessions::ToolPayload::Json(
+                    r#"{"path":"settings.toml"}"#.into(),
+                )),
                 ..Default::default()
             }),
         },
@@ -251,7 +253,7 @@ fn turn_tool_selection_opens_a_live_record_in_the_inspector() {
             diff: None,
             duration_ms: Some(19),
             images: Vec::new(),
-            record: Box::new(crate::agent::ToolRecord {
+            record: Box::new(magistr_application::sessions::ToolRecord {
                 text: vec!["loaded configuration".into()],
                 ..Default::default()
             }),
@@ -768,9 +770,9 @@ fn stage(m: &Model) -> Vec<&str> {
 
 #[test]
 fn agent_events_fold_into_the_turn_and_move_its_state() {
-    use crate::agent::{ToolStatus, ToolVerb, TurnEnd};
     use crate::cockpit::TurnState;
     use crate::turn::{RowKind, Voice};
+    use magistr_application::sessions::{ToolStatus, ToolVerb, TurnEnd};
     let mut m = model();
     assert_eq!(m.turn_state(), TurnState::Idle);
     agent(
@@ -859,8 +861,8 @@ fn agent_events_fold_into_the_turn_and_move_its_state() {
 
 #[test]
 fn a_turn_that_ends_early_leaves_a_note() {
-    use crate::agent::TurnEnd;
     use crate::turn::RowKind;
+    use magistr_application::sessions::TurnEnd;
     for (end, why) in [
         (TurnEnd::MaxTokens, "The response reached its length limit."),
         (TurnEnd::MaxTurnRequests, "The request limit was reached."),
@@ -1447,7 +1449,7 @@ fn enter_sends_the_prompt_echoes_it_and_streams_until_the_turn_ends() {
     agent(&mut m, AgentEvent::Text("done\n".to_owned()));
     agent(
         &mut m,
-        AgentEvent::TurnEnded(crate::agent::TurnEnd::EndTurn),
+        AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
     );
     assert_eq!(
         update(&mut m, key(KeyCode::Enter)),
@@ -1484,7 +1486,7 @@ fn ctrl_c_cancels_a_streaming_turn_and_quits_otherwise_and_q_only_on_an_empty_pr
     );
     agent(
         &mut m,
-        AgentEvent::TurnEnded(crate::agent::TurnEnd::Cancelled),
+        AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::Cancelled),
     );
     assert_eq!(m.turn_state(), TurnState::AwaitingInput);
     assert_eq!(update(&mut m, ctrl('c')), vec![Cmd::Quit]);
@@ -1519,7 +1521,7 @@ fn ctrl_c_cancels_a_streaming_turn_and_quits_otherwise_and_q_only_on_an_empty_pr
 }
 
 fn request(id: u64, title: &str) -> AgentEvent {
-    use crate::agent::{PermissionChoice, PermissionKind};
+    use magistr_application::sessions::{PermissionChoice, PermissionKind};
     AgentEvent::PermissionRequest {
         id,
         title: title.to_owned(),
@@ -1551,7 +1553,7 @@ fn front_title(m: &Model) -> Option<&str> {
 /// A plan approval request with a scope, three steps and one
 /// picture.
 fn plan_request(id: u64) -> AgentEvent {
-    use crate::agent::{AskPlan, ImageBlock, PermissionChoice, PermissionKind};
+    use magistr_application::sessions::{AskPlan, ImageBlock, PermissionChoice, PermissionKind};
     AgentEvent::PermissionRequest {
         id,
         title: "Re-bless 12 golden screenshots".to_owned(),
@@ -1598,8 +1600,8 @@ fn a_plan_ask_raises_a_moment_and_a_plain_ask_does_not() {
 /// other Moment's.
 #[test]
 fn a_plain_ask_is_a_card_on_the_window_at_the_session_and_nowhere_else() {
-    use crate::agent::{PermissionChoice, PermissionKind};
     use crate::cockpit::{Place, Surface};
+    use magistr_application::sessions::{PermissionChoice, PermissionKind};
     let mut terminal = model();
     agent(&mut terminal, request(1, "Bash"));
     assert!(terminal.ask().is_none(), "the terminal has its strip");
@@ -2533,7 +2535,7 @@ fn proposal_and_reject_clicks_answer_the_front_proposal() {
 }
 
 fn edit_call(id: &str) -> AgentEvent {
-    use crate::agent::{EditDiff, ToolStatus, ToolVerb};
+    use magistr_application::sessions::{EditDiff, ToolStatus, ToolVerb};
     AgentEvent::ToolCall {
         id: id.to_owned(),
         title: format!("edit src/main.rs ({id})"),
@@ -2570,7 +2572,7 @@ fn an_edit_tool_call_is_a_foldable_diff_card() {
 
 #[test]
 fn a_diff_landing_on_an_update_upgrades_the_tool_row() {
-    use crate::agent::{EditDiff, ToolStatus, ToolVerb};
+    use magistr_application::sessions::{EditDiff, ToolStatus, ToolVerb};
     let mut m = model();
     agent(
         &mut m,
@@ -3960,7 +3962,7 @@ fn a_scroll_starts_the_tick_and_the_last_step_of_the_glide_takes_it_back() {
     // is the only thing that could be moving.
     agent(
         &mut m,
-        AgentEvent::TurnEnded(crate::agent::TurnEnd::EndTurn),
+        AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
     );
     settle(&mut m);
     assert!(!m.is_animating(), "nothing moves before the scroll");
@@ -3993,7 +3995,7 @@ fn a_wheel_notch_glides_every_tab_to_the_window_the_jump_used_to_cut_to() {
         }
         agent(
             &mut m,
-            AgentEvent::TurnEnded(crate::agent::TurnEnd::EndTurn),
+            AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
         );
         // Off the tail, so a notch down has somewhere to go.
         update(&mut m, key(KeyCode::PageUp));
@@ -4807,7 +4809,7 @@ fn an_images_uri_labels_it() {
 
 #[test]
 fn an_image_a_tool_call_returned_lands_after_its_card_and_survives_its_updates() {
-    use crate::agent::{ToolStatus, ToolVerb};
+    use magistr_application::sessions::{ToolStatus, ToolVerb};
     let mut m = model();
     let shot = ImageBlock {
         mime_type: "image/png".to_owned(),
@@ -4887,7 +4889,7 @@ fn an_image_a_tool_call_returned_lands_after_its_card_and_survives_its_updates()
 
 #[test]
 fn a_tool_calls_record_rides_the_events_onto_its_line_without_a_row() {
-    use crate::agent::{ToolRecord, ToolStatus, ToolVerb};
+    use magistr_application::sessions::{ToolRecord, ToolStatus, ToolVerb};
     let mut m = model();
     update(
         &mut m,
@@ -4900,7 +4902,9 @@ fn a_tool_calls_record_rides_the_events_onto_its_line_without_a_row() {
             images: Vec::new(),
             record: Box::new(ToolRecord {
                 kind: Some(ToolVerb::Run),
-                input: Some(serde_json::json!({"command": "cargo test"})),
+                input: Some(magistr_application::sessions::ToolPayload::Json(
+                    r#"{"command":"cargo test"}"#.into(),
+                )),
                 ..ToolRecord::default()
             }),
         }),
@@ -4916,7 +4920,9 @@ fn a_tool_calls_record_rides_the_events_onto_its_line_without_a_row() {
             duration_ms: Some(40),
             images: Vec::new(),
             record: Box::new(ToolRecord {
-                output: Some(serde_json::json!("test result: ok")),
+                output: Some(magistr_application::sessions::ToolPayload::Text(
+                    "test result: ok".into(),
+                )),
                 text: vec!["test result: ok".to_owned()],
                 ..ToolRecord::default()
             }),
@@ -4927,9 +4933,16 @@ fn a_tool_calls_record_rides_the_events_onto_its_line_without_a_row() {
     assert_eq!(record.kind, Some(ToolVerb::Run));
     assert_eq!(
         record.input,
-        Some(serde_json::json!({"command": "cargo test"}))
+        Some(magistr_application::sessions::ToolPayload::Json(
+            r#"{"command":"cargo test"}"#.into()
+        ))
     );
-    assert_eq!(record.output, Some(serde_json::json!("test result: ok")));
+    assert_eq!(
+        record.output,
+        Some(magistr_application::sessions::ToolPayload::Text(
+            "test result: ok".into()
+        ))
+    );
     assert_eq!(record.text, ["test result: ok".to_owned()]);
 }
 
@@ -4952,7 +4965,7 @@ fn a_late_cell_size_answer_re_measures_the_images_in_the_turn() {
 /// A diff-approval request for `path`, as the session posts one when a
 /// policy holds an edit for review.
 fn edit_request(id: u64, path: &str) -> AgentEvent {
-    use crate::agent::{PermissionChoice, PermissionKind};
+    use magistr_application::sessions::{PermissionChoice, PermissionKind};
     AgentEvent::PermissionRequest {
         id,
         title: format!("Edit {path}"),
@@ -5758,7 +5771,7 @@ fn the_terminal_caps_an_image_at_twenty_rows_and_a_window_at_most_of_its_height(
 // ── The checkpoint spine ────────────────────
 
 fn risky(id: u64, title: &str) -> AgentEvent {
-    use crate::agent::{PermissionChoice, PermissionKind};
+    use magistr_application::sessions::{PermissionChoice, PermissionKind};
     AgentEvent::PermissionRequest {
         id,
         title: title.to_owned(),
@@ -6171,7 +6184,7 @@ fn an_iteration_boundary_mints_a_row_wearing_the_gates_and_asks_the_port_for_it(
 
 #[test]
 fn a_completed_call_mints_a_receipt_on_the_spines_own_counter() {
-    use crate::agent::{EditDiff, ToolStatus, ToolVerb};
+    use magistr_application::sessions::{EditDiff, ToolStatus, ToolVerb};
     let mut m = model();
     // The session's history: 239 receipts before this window opened,
     // then cp-1 — so the card's ordinal and the rail's after-head count
@@ -6229,7 +6242,7 @@ fn a_completed_call_mints_a_receipt_on_the_spines_own_counter() {
 
 #[test]
 fn a_call_with_no_diff_still_gets_its_ordinal_and_an_uncheckpointed_session_has_no_reach() {
-    use crate::agent::{ToolStatus, ToolVerb};
+    use magistr_application::sessions::{ToolStatus, ToolVerb};
     let mut m = model();
     agent(
         &mut m,
@@ -6260,8 +6273,8 @@ fn a_call_with_no_diff_still_gets_its_ordinal_and_an_uncheckpointed_session_has_
 /// A native cockpit with a verified state, a journal and an edit ask
 /// waiting — the review surface's own model.
 fn reviewing() -> Model {
-    use crate::agent::{PermissionChoice, PermissionKind};
     use crate::workbench::JournalEntry;
+    use magistr_application::sessions::{PermissionChoice, PermissionKind};
     let mut m = Model::new(Size::new(125, 32)).with_surface(crate::cockpit::Surface::Native);
     {
         let spine = m.rail_mut().spine_mut();
@@ -6389,9 +6402,9 @@ fn an_ordinary_permission_answered_on_a_window_merges_nothing() {
         Msg::Agent(AgentEvent::PermissionRequest {
             id: 8,
             title: "Bash".to_owned(),
-            choices: vec![crate::agent::PermissionChoice::new(
+            choices: vec![magistr_application::sessions::PermissionChoice::new(
                 "allow",
-                crate::agent::PermissionKind::AllowOnce,
+                magistr_application::sessions::PermissionKind::AllowOnce,
             )],
             edit: false,
             risk: RiskTier::Medium,
@@ -7488,7 +7501,7 @@ fn the_galaxy_breathes_while_a_project_is_live_and_holds_still_otherwise() {
 /// boundary — across sessions, the way the meter does.
 #[test]
 fn the_handshake_binds_the_agent_block_and_the_ledger_moves() {
-    use crate::agent::TurnEnd;
+    use magistr_application::sessions::TurnEnd;
     let mut m = model();
     m.rail_mut().set_mode("Workflow mode");
     assert_eq!(m.rail().agent(), None, "no block before the handshake");
@@ -7605,7 +7618,7 @@ fn a_gates_bytes_arrive_as_engine_frames_and_are_kept_by_the_gate() {
 
 /// A running run card whose terminal has streamed, open on the stage.
 fn live_pane() -> Model {
-    use crate::agent::{ToolRecord, ToolStatus, ToolVerb};
+    use magistr_application::sessions::{ToolRecord, ToolStatus, ToolVerb};
     let mut m = model();
     agent(
         &mut m,
@@ -7658,7 +7671,7 @@ fn a_terminals_bytes_make_a_screen_stamped_with_the_tick_they_arrived_on() {
 
 #[test]
 fn an_open_run_card_shows_its_pane_and_a_completion_freezes_it() {
-    use crate::agent::ToolStatus;
+    use magistr_application::sessions::ToolStatus;
     let mut m = live_pane();
     let rows = m.turn().rows();
     let panes = rows.iter().filter(|r| r.kind == RowKind::Pane).count();
@@ -7913,7 +7926,7 @@ fn a_previewed_verified_checkpoint_scopes_the_review() {
 /// A running run card whose terminal has streamed thirty rows, open on
 /// the stage of a `size` cockpit — the dock's subject.
 fn pane_at(size: Size) -> Model {
-    use crate::agent::{ToolRecord, ToolStatus, ToolVerb};
+    use magistr_application::sessions::{ToolRecord, ToolStatus, ToolVerb};
     let mut m = Model::new(size);
     agent(
         &mut m,
@@ -8568,7 +8581,7 @@ fn no_key_reaches_the_pty() {
 /// on a window (whose Esc folds the newest open card). Built through
 /// `update`, so the window is held the way the runtime holds it.
 fn anchored_turn() -> Model {
-    use crate::agent::{ToolStatus, ToolVerb};
+    use magistr_application::sessions::{ToolStatus, ToolVerb};
     let mut m = model().with_surface(Surface::Native);
     let tool = |id: &str, title: &str| AgentEvent::ToolCall {
         id: id.to_owned(),
@@ -8613,7 +8626,7 @@ fn anchored_turn() -> Model {
     }
     agent(
         &mut m,
-        AgentEvent::TurnEnded(crate::agent::TurnEnd::EndTurn),
+        AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
     );
     m
 }
@@ -8844,7 +8857,7 @@ fn a_window_paints_between_rows_while_a_notch_glides_and_a_terminal_never_does()
         }
         agent(
             &mut m,
-            AgentEvent::TurnEnded(crate::agent::TurnEnd::EndTurn),
+            AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
         );
         update(&mut m, key(KeyCode::PageUp));
         settle(&mut m);

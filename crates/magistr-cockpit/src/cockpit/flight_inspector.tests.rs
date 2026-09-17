@@ -265,8 +265,8 @@ fn roadmap_dependency_pointer_opens_exact_work_without_moving_the_draft_or_list(
 
 #[test]
 fn locally_stopped_terminal_is_not_shown_as_a_running_tool() {
-    use crate::agent::{AgentEvent, ToolRecord, ToolStatus, ToolVerb};
     use crate::cockpit::{Msg, update};
+    use magistr_application::sessions::{AgentEvent, ToolRecord, ToolStatus, ToolVerb};
     let mut model = model();
     update(
         &mut model,

@@ -5,12 +5,12 @@ use super::decision::DecisionIntent;
 use super::loop_event::LoopEvent;
 use super::size::Size;
 use super::workbench_event::WorkbenchEvent;
-use crate::agent::AgentEvent;
 use crate::capability::Mode;
 use crate::engine::EngineEvent;
 use crate::input::{KeyEvent, MouseEvent};
 use crate::job::{JobId, JobOutput};
 use crate::widget_id::WidgetId;
+use magistr_application::sessions::AgentEvent;
 
 /// A message for [`update`](super::update).
 ///

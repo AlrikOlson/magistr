@@ -80,7 +80,7 @@ fn a_failed_job_and_a_lost_feed_read_as_such() {
 
 #[test]
 fn the_turn_state_and_its_rows_are_summarised() {
-    use crate::agent::{AgentEvent, TurnEnd};
+    use magistr_application::sessions::{AgentEvent, TurnEnd};
     let mut model = Model::new(Size::new(80, 24));
     update(
         &mut model,

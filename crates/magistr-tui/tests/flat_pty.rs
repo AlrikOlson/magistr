@@ -6,7 +6,7 @@
 use std::os::fd::OwnedFd;
 use std::time::{Duration, Instant};
 
-use magistr_cockpit::agent::{AgentEvent, TurnEnd};
+use magistr_application::sessions::{AgentEvent, TurnEnd};
 use magistr_cockpit::cockpit::{Cmd, Model, Msg, Size, StageTab, update};
 use magistr_tui::graphics::Env;
 use magistr_tui::runtime::{Options, Runtime};

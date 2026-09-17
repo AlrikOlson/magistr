@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use super::*;
-use magistr_cockpit::agent::AgentEvent;
+use magistr_application::sessions::AgentEvent;
 
 fn text(t: &str) -> Msg {
     Msg::Agent(AgentEvent::Text(t.to_owned()))

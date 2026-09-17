@@ -16,7 +16,7 @@ use magistr_acp_agent::{
     SessionStart, Turn,
 };
 use magistr_application::sessions::SessionHandle;
-use magistr_cockpit::agent::{AgentEvent, AskEverything, SessionOptions, TurnEnd};
+use magistr_application::sessions::{AgentEvent, AskEverything, SessionOptions, TurnEnd};
 use tokio::sync::{Semaphore, mpsc};
 
 const DEADLINE: Duration = Duration::from_secs(3);

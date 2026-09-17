@@ -14,6 +14,7 @@ pub mod mock;
 #[cfg(test)]
 pub mod mock_followups;
 pub mod observation;
+pub mod permission_request;
 pub mod probe;
 pub mod probe_model;
 pub mod provider_model_set;
@@ -27,6 +28,7 @@ pub mod session_config_source;
 pub mod session_supervisor;
 pub mod system_prompt;
 pub mod tool_permissions;
+pub mod translate;
 pub mod types;
 
 // ── Consolidated sub-domains ────────────────────────────────────────────

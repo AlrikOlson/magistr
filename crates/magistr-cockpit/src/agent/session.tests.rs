@@ -5,9 +5,10 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 
 use super::*;
-use crate::agent::{SessionJobs, ToolRecord, TurnEnd};
+use crate::agent::SessionJobs;
 use crate::cockpit::{WorkbenchCmd, WorkbenchEvent};
 use crate::harness::FakeWorkbench;
+use magistr_application::sessions::{ToolRecord, TurnEnd};
 
 struct FakeSession {
     events: mpsc::UnboundedReceiver<AgentEvent>,
@@ -17,8 +18,6 @@ struct FakeSession {
 }
 
 impl SessionHandle for FakeSession {
-    type Event = AgentEvent;
-
     fn submit_turn(&mut self, text: &str) -> Result<(), String> {
         self.calls
             .send(format!("prompt {text}"))

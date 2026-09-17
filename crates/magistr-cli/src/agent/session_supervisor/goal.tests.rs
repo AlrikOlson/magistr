@@ -10,7 +10,7 @@ use agent_client_protocol::schema::v1::{
 use agent_client_protocol::{
     Agent, Channel, Error, JsonRpcRequest, JsonRpcResponse, on_receive_request,
 };
-use magistr_cockpit::agent::{AgentEvent, SessionOptions, TurnEnd};
+use magistr_application::sessions::{AgentEvent, SessionOptions, TurnEnd};
 use magistr_tui::harness::FakeAcpAgent;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;

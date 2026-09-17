@@ -1,5 +1,5 @@
 use super::*;
-use magistr_cockpit::agent::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
+use magistr_application::sessions::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
 use magistr_cockpit::cockpit::{Msg, Size, update};
 
 const SIZE: Size = Size::new(80, 24);

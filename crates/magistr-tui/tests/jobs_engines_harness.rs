@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use magistr_cockpit::agent::{AgentEvent, TurnEnd};
+use magistr_application::sessions::{AgentEvent, TurnEnd};
 use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::{Model, Size};
 use magistr_cockpit::job::{JobId, JobOutput, Jobs};

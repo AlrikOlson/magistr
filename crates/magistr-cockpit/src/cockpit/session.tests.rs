@@ -7,11 +7,13 @@
 //! receipt by the spine head it reaches, a terminal by id.
 
 use super::*;
-use crate::agent::{AgentEvent, EditDiff, ToolRecord, ToolStatus, ToolVerb, TurnEnd};
 use crate::cockpit::update::update;
 use crate::cockpit::{Cmd, Eased, Msg, Selected, Size, StageTab, TurnState, Widget};
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
 use crate::turn::{LineKind, RowKind, Voice};
+use magistr_application::sessions::{
+    AgentEvent, EditDiff, ToolRecord, ToolStatus, ToolVerb, TurnEnd,
+};
 
 fn model() -> Model {
     Model::new(Size::new(80, 24)).with_tab(StageTab::Turn)

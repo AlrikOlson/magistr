@@ -1,8 +1,9 @@
 //! Readable summaries of recorded work in the conversation.
 use super::{Line, LineKind, Turn};
-use crate::agent::{ToolStatus, ToolTitle};
+use crate::agent::ToolTitle;
 use crate::layout::{TextMetrics, TextRole};
 use crate::pixel::Typography;
+use magistr_application::sessions::ToolStatus;
 
 /// A card uses only facts present in the source record.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -23,7 +24,7 @@ impl ConversationCard {
                 line.record()
                     .locations
                     .first()
-                    .map_or_else(String::new, |(path, _)| path.display().to_string()),
+                    .map_or_else(String::new, |(path, _)| path.clone()),
                 status_label(*status).to_owned(),
                 *status == ToolStatus::Failed,
                 matches!(status, ToolStatus::Pending | ToolStatus::InProgress),

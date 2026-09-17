@@ -681,13 +681,13 @@ async fn dropping_the_owner_closes_the_real_provider_connection() {
 
 struct CountingAllow(Arc<AtomicUsize>);
 
-impl magistr_cockpit::agent::SessionPolicy for CountingAllow {
+impl magistr_application::sessions::SessionPolicy for CountingAllow {
     fn decide(
         &mut self,
-        _request: &magistr_acp::AcpPermissionRequest,
-    ) -> magistr_cockpit::agent::PolicyDecision {
+        _request: &magistr_application::sessions::SessionPolicyRequest,
+    ) -> magistr_application::sessions::PolicyDecision {
         self.0.fetch_add(1, Ordering::SeqCst);
-        magistr_cockpit::agent::PolicyDecision::Allow
+        magistr_application::sessions::PolicyDecision::Allow
     }
 }
 
@@ -1070,16 +1070,16 @@ async fn empty_opening_keeps_the_resident_session_idle_until_input_arrives() {
 /// Decides by the tool title the raw agent copies from the prompt text.
 struct TitledPolicy(mpsc::UnboundedSender<String>);
 
-impl magistr_cockpit::agent::SessionPolicy for TitledPolicy {
+impl magistr_application::sessions::SessionPolicy for TitledPolicy {
     fn decide(
         &mut self,
-        request: &magistr_acp::AcpPermissionRequest,
-    ) -> magistr_cockpit::agent::PolicyDecision {
+        request: &magistr_application::sessions::SessionPolicyRequest,
+    ) -> magistr_application::sessions::PolicyDecision {
         let _ = self.0.send(format!("decide {}", request.tool_title));
         match request.tool_title.as_str() {
-            "allow" => magistr_cockpit::agent::PolicyDecision::Allow,
-            "deny" => magistr_cockpit::agent::PolicyDecision::Deny,
-            _ => magistr_cockpit::agent::PolicyDecision::Ask(
+            "allow" => magistr_application::sessions::PolicyDecision::Allow,
+            "deny" => magistr_application::sessions::PolicyDecision::Deny,
+            _ => magistr_application::sessions::PolicyDecision::Ask(
                 magistr_engine::policy::RiskTier::Medium,
             ),
         }
@@ -1087,8 +1087,8 @@ impl magistr_cockpit::agent::SessionPolicy for TitledPolicy {
 
     fn answered(
         &mut self,
-        request: &magistr_acp::AcpPermissionRequest,
-        kind: magistr_cockpit::agent::PermissionKind,
+        request: &magistr_application::sessions::SessionPolicyRequest,
+        kind: magistr_application::sessions::PermissionKind,
     ) {
         let _ = self
             .0
@@ -1254,7 +1254,7 @@ async fn headless_and_cockpit_attachments_share_policy_decisions_and_terminal_ou
     let (policy_log, mut cockpit_log) = mpsc::unbounded_channel();
     let (mut supervisor, mut events) = SessionSupervisor::start_interactive(
         transport,
-        magistr_cockpit::agent::SessionOptions::new().opening_prompt("allow"),
+        magistr_application::sessions::SessionOptions::new().opening_prompt("allow"),
         Box::new(TitledPolicy(policy_log)),
     )
     .unwrap();
@@ -1269,11 +1269,14 @@ async fn headless_and_cockpit_attachments_share_policy_decisions_and_terminal_ou
                 assert!(
                     !matches!(
                         event,
-                        magistr_cockpit::agent::AgentEvent::PermissionRequest { .. }
+                        magistr_application::sessions::AgentEvent::PermissionRequest { .. }
                     ),
                     "policy-decided requests never reach the cockpit"
                 );
-                if matches!(event, magistr_cockpit::agent::AgentEvent::TurnEnded(_)) {
+                if matches!(
+                    event,
+                    magistr_application::sessions::AgentEvent::TurnEnded(_)
+                ) {
                     return;
                 }
             }
@@ -1287,8 +1290,9 @@ async fn headless_and_cockpit_attachments_share_policy_decisions_and_terminal_ou
     }
     let id = tokio::time::timeout(DEADLINE, async {
         loop {
-            if let magistr_cockpit::agent::AgentEvent::PermissionRequest { id, title, .. } =
-                events.recv().await.expect("cockpit event stream")
+            if let magistr_application::sessions::AgentEvent::PermissionRequest {
+                id, title, ..
+            } = events.recv().await.expect("cockpit event stream")
             {
                 assert_eq!(title, "ask");
                 return id;
@@ -1314,7 +1318,10 @@ async fn headless_and_cockpit_attachments_share_policy_decisions_and_terminal_ou
     );
     tokio::time::timeout(DEADLINE, async {
         while let Some(event) = events.recv().await {
-            if matches!(event, magistr_cockpit::agent::AgentEvent::TurnEnded(_)) {
+            if matches!(
+                event,
+                magistr_application::sessions::AgentEvent::TurnEnded(_)
+            ) {
                 return;
             }
         }

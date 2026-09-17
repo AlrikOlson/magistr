@@ -14,7 +14,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use magistr_cockpit::agent::AgentEvent;
+use magistr_application::sessions::AgentEvent;
 use magistr_cockpit::cockpit::view::SPARK_COLS;
 use magistr_cockpit::cockpit::{
     Eased, FrameClock, Model, Motion, Msg, Size, StageTab, update, view,

@@ -13,9 +13,10 @@ use super::row::Row;
 use super::row_kind::RowKind;
 use super::voice::Voice;
 use super::wrap::opens_fence;
-use crate::agent::{ToolRecord, ToolStatus, ToolTitle, ToolVerb};
+use crate::agent::ToolTitle;
 use crate::pixel::CellSize;
 use crate::theme::{Icons, ThemeMode};
+use magistr_application::sessions::{ToolRecord, ToolStatus, ToolVerb};
 
 /// A turn: source lines in arrival order and the rows they wrap to at
 /// the current width.
@@ -1000,7 +1001,9 @@ impl Turn {
             details,
         );
         if let (Some(command), Some(line)) = (command, self.lines.last_mut()) {
-            line.record.input = Some(serde_json::Value::String(command.to_owned()));
+            line.record.input = Some(magistr_application::sessions::ToolPayload::Text(
+                command.to_owned(),
+            ));
         }
     }
 

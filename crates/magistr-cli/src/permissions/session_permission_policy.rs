@@ -3,9 +3,12 @@
 
 use std::path::{Path, PathBuf};
 
+use super::request_data::RequestData;
 use agent_client_protocol::schema::v1::ToolKind;
 use magistr_acp::AcpPermissionRequest;
-use magistr_cockpit::agent::{PermissionKind, PolicyDecision, SessionPolicy};
+use magistr_application::sessions::{
+    PermissionKind, PolicyDecision, SessionPolicy, SessionPolicyRequest,
+};
 use magistr_engine::policy::{
     Charter, PermissionContext, PermissionMode, PermissionOutcome, PermissionPolicyService,
     PermissionResolution, PermissionSource, PolicyEffect, PolicyEngine, PolicyRequest, PolicyRule,
@@ -217,6 +220,10 @@ impl SessionPermissionPolicy {
     /// outcome carries its exact request scope and policy configuration version.
     #[must_use]
     pub fn evaluate_request(&mut self, request: &AcpPermissionRequest) -> PermissionResolution {
+        self.evaluate_data(&RequestData::from(request))
+    }
+
+    fn evaluate_data(&mut self, request: &RequestData) -> PermissionResolution {
         let (act, resolution_error) = self.normalized_request(request);
         let evaluated = evaluate(
             &request.tool_title,
@@ -270,10 +277,7 @@ impl SessionPermissionPolicy {
         resolution
     }
 
-    fn normalized_request(
-        &self,
-        request: &AcpPermissionRequest,
-    ) -> (PolicyRequest, Option<String>) {
+    fn normalized_request(&self, request: &RequestData) -> (PolicyRequest, Option<String>) {
         let mut act = policy_request_for(
             &request.tool_title,
             &request.tool_input,
@@ -333,7 +337,7 @@ impl SessionPermissionPolicy {
         })
     }
 
-    fn request_scope(&self, request: &AcpPermissionRequest, act: &PolicyRequest) -> String {
+    fn request_scope(&self, request: &RequestData, act: &PolicyRequest) -> String {
         let root = self.root.as_deref().map(|root| resolve_against(None, root));
         // Retain the complete transport input too: URLs and other tool-specific
         // arguments must never share approval just because both have no paths.
@@ -354,7 +358,7 @@ impl SessionPermissionPolicy {
 
     /// The charter's scope for `request`, cut against the session's
     /// root.
-    fn scope_of(&self, request: &AcpPermissionRequest) -> Option<DelegationScope> {
+    fn scope_of(&self, request: &RequestData) -> Option<DelegationScope> {
         if request.tool_title.contains(['*', '?']) {
             return None;
         }
@@ -406,8 +410,11 @@ impl SessionPermissionPolicy {
 }
 
 impl SessionPolicy for SessionPermissionPolicy {
-    fn decide(&mut self, request: &AcpPermissionRequest) -> PolicyDecision {
-        let resolution = self.evaluate_request(request);
+    fn decide(&mut self, request: &SessionPolicyRequest) -> PolicyDecision {
+        let Ok(request) = RequestData::decode(request) else {
+            return PolicyDecision::Deny;
+        };
+        let resolution = self.evaluate_data(&request);
         match resolution.outcome {
             PermissionOutcome::Allow => PolicyDecision::Allow,
             PermissionOutcome::Deny => PolicyDecision::Deny,
@@ -415,8 +422,11 @@ impl SessionPolicy for SessionPermissionPolicy {
         }
     }
 
-    fn answered(&mut self, request: &AcpPermissionRequest, kind: PermissionKind) {
-        let Some(scope) = self.scope_of(request) else {
+    fn answered(&mut self, request: &SessionPolicyRequest, kind: PermissionKind) {
+        let Ok(request) = RequestData::decode(request) else {
+            return;
+        };
+        let Some(scope) = self.scope_of(&request) else {
             return;
         };
         let allowed = matches!(
@@ -448,12 +458,15 @@ impl SessionPolicy for SessionPermissionPolicy {
         }
     }
 
-    fn constrain(&mut self, request: &AcpPermissionRequest, condition: &str) {
+    fn constrain(&mut self, request: &SessionPolicyRequest, condition: &str) {
+        let Ok(request) = RequestData::decode(request) else {
+            return;
+        };
         let condition = condition.trim();
         if condition.is_empty() {
             return;
         }
-        let Some(scope) = self.scope_of(request) else {
+        let Some(scope) = self.scope_of(&request) else {
             return;
         };
         // A written condition is a reason to be asked again here. The
@@ -534,7 +547,7 @@ fn is_write_to_protected_file(
 /// with `tool_title` and command content analysis as fallbacks. In
 /// workflow mode, all standard development operations are auto-approved —
 /// only truly unknown tools go on to the profile.
-fn should_auto_approve(req: &AcpPermissionRequest, is_workflow: bool) -> bool {
+fn should_auto_approve(req: &RequestData, is_workflow: bool) -> bool {
     if is_workflow && let Some(ref kind) = req.tool_kind {
         match kind {
             ToolKind::Read
@@ -584,7 +597,7 @@ fn should_auto_approve(req: &AcpPermissionRequest, is_workflow: bool) -> bool {
 ///
 /// Different backends use different names: "Bash" (Claude), "shell"
 /// (Copilot), or human-readable titles like "Check recent commits".
-fn is_shell_command(req: &AcpPermissionRequest) -> bool {
+fn is_shell_command(req: &RequestData) -> bool {
     if req.tool_kind.as_ref() == Some(&ToolKind::Execute) {
         return true;
     }

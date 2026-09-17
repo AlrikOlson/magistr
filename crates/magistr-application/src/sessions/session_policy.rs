@@ -1,7 +1,7 @@
 //! The decision a session asks for before a permission request
 //! reaches the cockpit.
 
-use magistr_acp::AcpPermissionRequest;
+use super::policy_request::SessionPolicyRequest;
 
 use super::permission_kind::PermissionKind;
 use super::policy_decision::PolicyDecision;
@@ -26,16 +26,16 @@ use super::policy_decision::PolicyDecision;
 /// [`decide`]: SessionPolicy::decide
 pub trait SessionPolicy: Send + Sync {
     /// The policy's answer for `request`.
-    fn decide(&mut self, request: &AcpPermissionRequest) -> PolicyDecision;
+    fn decide(&mut self, request: &SessionPolicyRequest) -> PolicyDecision;
 
     /// The reader answered `request` with `kind` — tally it under the
     /// ask's scope, and write the standing rule an *always* or a
     /// *never* is.
-    fn answered(&mut self, _request: &AcpPermissionRequest, _kind: PermissionKind) {}
+    fn answered(&mut self, _request: &SessionPolicyRequest, _kind: PermissionKind) {}
 
     /// The reader wrote `condition` on `request` — the reason to ask
     /// again under this scope, recorded as a rule in their words.
-    fn constrain(&mut self, _request: &AcpPermissionRequest, _condition: &str) {}
+    fn constrain(&mut self, _request: &SessionPolicyRequest, _condition: &str) {}
 
     /// The reader accepted the charter's offer for the scope `key`.
     /// `true` when a rule was written.

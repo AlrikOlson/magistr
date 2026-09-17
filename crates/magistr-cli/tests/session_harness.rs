@@ -12,10 +12,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use magistr_acp::{AcpPermissionRequest, AcpTransport};
-use magistr_cockpit::agent::{
-    AgentEvent, AskEverything, PolicyDecision, SessionOptions, SessionPolicy, spawn_session,
+use magistr_acp::AcpTransport;
+use magistr_application::sessions::{
+    AgentEvent, AskEverything, PolicyDecision, SessionOptions, SessionPolicy,
 };
+use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::channel::Arrivals;
 use magistr_cockpit::cockpit::{
     FrameClock, Model, Msg, Size, StageTab, TurnState, Widget, update, view,
@@ -295,17 +296,17 @@ fn button_cell(title: &str, button: Widget) -> (u16, u16) {
             id: 1,
             title: title.to_owned(),
             choices: vec![
-                magistr_cockpit::agent::PermissionChoice::new(
+                magistr_application::sessions::PermissionChoice::new(
                     "allow",
-                    magistr_cockpit::agent::PermissionKind::AllowOnce,
+                    magistr_application::sessions::PermissionKind::AllowOnce,
                 ),
-                magistr_cockpit::agent::PermissionChoice::new(
+                magistr_application::sessions::PermissionChoice::new(
                     "allow_always",
-                    magistr_cockpit::agent::PermissionKind::AllowAlways,
+                    magistr_application::sessions::PermissionKind::AllowAlways,
                 ),
-                magistr_cockpit::agent::PermissionChoice::new(
+                magistr_application::sessions::PermissionChoice::new(
                     "reject",
-                    magistr_cockpit::agent::PermissionKind::RejectOnce,
+                    magistr_application::sessions::PermissionKind::RejectOnce,
                 ),
             ],
             edit: false,
@@ -428,7 +429,10 @@ struct TitlePolicy {
 }
 
 impl SessionPolicy for TitlePolicy {
-    fn decide(&mut self, request: &AcpPermissionRequest) -> PolicyDecision {
+    fn decide(
+        &mut self,
+        request: &magistr_application::sessions::SessionPolicyRequest,
+    ) -> PolicyDecision {
         if self.allow.contains(&request.tool_title.as_str()) {
             PolicyDecision::Allow
         } else if self.deny.contains(&request.tool_title.as_str()) {
@@ -1316,7 +1320,7 @@ async fn flat_prompt_echo_survives_async_output_without_replaying_settled_lines(
             "background answer\n".to_owned(),
         )));
         inbox.send(Msg::Agent(AgentEvent::TurnEnded(
-            magistr_cockpit::agent::TurnEnd::EndTurn,
+            magistr_application::sessions::TurnEnd::EndTurn,
         )));
     });
     let model = runtime

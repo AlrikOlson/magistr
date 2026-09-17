@@ -1,7 +1,5 @@
 //! What choosing a permission option means.
 
-use magistr_acp::AcpPermissionOptionKind;
-
 /// The kind of a permission option, mirroring the protocol's four: allow
 /// or reject, this once or for the rest of the session.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -72,17 +70,6 @@ impl PermissionKind {
     #[must_use]
     pub const fn is_allow(self) -> bool {
         matches!(self, Self::AllowOnce | Self::AllowAlways)
-    }
-}
-
-impl From<AcpPermissionOptionKind> for PermissionKind {
-    fn from(kind: AcpPermissionOptionKind) -> Self {
-        match kind {
-            AcpPermissionOptionKind::AllowOnce => Self::AllowOnce,
-            AcpPermissionOptionKind::AllowAlways => Self::AllowAlways,
-            AcpPermissionOptionKind::RejectOnce => Self::RejectOnce,
-            AcpPermissionOptionKind::RejectAlways => Self::RejectAlways,
-        }
     }
 }
 

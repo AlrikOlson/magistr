@@ -686,8 +686,8 @@ impl Card {
     }
 
     fn tool(&mut self, line: &crate::turn::Line, _id: &str) {
-        use crate::agent::ToolStatus;
         use crate::turn::LineKind;
+        use magistr_application::sessions::ToolStatus;
         let status = match line.kind() {
             LineKind::Tool {
                 status,
@@ -757,10 +757,7 @@ impl Card {
             .extend(record.locations.iter().map(|(path, line)| {
                 (
                     "File".into(),
-                    line.map_or_else(
-                        || path.display().to_string(),
-                        |line| format!("{}:{line}", path.display()),
-                    ),
+                    line.map_or_else(|| path.clone(), |line| format!("{path}:{line}")),
                 )
             }));
         if record.terminal.is_some() {

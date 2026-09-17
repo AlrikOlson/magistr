@@ -46,9 +46,9 @@ use super::stage_tab::StageTab;
 use super::term::Term;
 use super::turn_state::TurnState;
 use super::workbench_cmd::WorkbenchCmd;
-use crate::agent::{AgentEvent, ImageBlock, ToolStatus, TurnEnd};
 use crate::input::{KeyCode, KeyEvent, Modifiers};
 use crate::turn::{Anchor, Line, LineKind, StreamImage, Turn, Viewport, Voice};
+use magistr_application::sessions::{AgentEvent, ImageBlock, ToolStatus, TurnEnd};
 
 /// The session feature's state: the transcript, the draft and the
 /// reading position — what the agent's turn is on the screen.

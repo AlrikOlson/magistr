@@ -356,11 +356,13 @@ async fn a_stream_image_is_a_pixel_surface_with_kitty_and_halfblocks_without() {
     let png = pixmap.encode_png().expect("a pixmap encodes");
     let mut data = Vec::new();
     magistr_cockpit::base64::encode(&png, &mut data);
-    let block = magistr_cockpit::agent::AgentEvent::Image(magistr_cockpit::agent::ImageBlock {
-        mime_type: "image/png".to_owned(),
-        data: String::from_utf8(data).expect("base64 is ascii"),
-        uri: None,
-    });
+    let block = magistr_application::sessions::AgentEvent::Image(
+        magistr_application::sessions::ImageBlock {
+            mime_type: "image/png".to_owned(),
+            data: String::from_utf8(data).expect("base64 is ascii"),
+            uri: None,
+        },
+    );
 
     let script = || {
         Script::new()
@@ -433,7 +435,7 @@ async fn an_image_a_tool_call_returned_is_the_same_pixel_surface() {
     let png = pixmap.encode_png().expect("a pixmap encodes");
     let mut data = Vec::new();
     magistr_cockpit::base64::encode(&png, &mut data);
-    let shot = magistr_cockpit::agent::ImageBlock {
+    let shot = magistr_application::sessions::ImageBlock {
         mime_type: "image/png".to_owned(),
         data: String::from_utf8(data).expect("base64 is ascii"),
         uri: None,
@@ -450,11 +452,11 @@ async fn an_image_a_tool_call_returned_is_the_same_pixel_surface() {
     FakeAgent::new()
         .event(
             MS(10),
-            magistr_cockpit::agent::AgentEvent::ToolCall {
+            magistr_application::sessions::AgentEvent::ToolCall {
                 id: "tc-1".to_owned(),
                 title: "browser screenshot".to_owned(),
-                verb: magistr_cockpit::agent::ToolVerb::Tool,
-                status: magistr_cockpit::agent::ToolStatus::InProgress,
+                verb: magistr_application::sessions::ToolVerb::Tool,
+                status: magistr_application::sessions::ToolStatus::InProgress,
                 diff: None,
                 images: vec![shot.clone()],
                 record: Default::default(),
@@ -462,10 +464,10 @@ async fn an_image_a_tool_call_returned_is_the_same_pixel_surface() {
         )
         .event(
             MS(20),
-            magistr_cockpit::agent::AgentEvent::ToolCallUpdate {
+            magistr_application::sessions::AgentEvent::ToolCallUpdate {
                 id: "tc-1".to_owned(),
                 title: None,
-                status: Some(magistr_cockpit::agent::ToolStatus::Completed),
+                status: Some(magistr_application::sessions::ToolStatus::Completed),
                 diff: None,
                 duration_ms: Some(120),
                 images: vec![shot],

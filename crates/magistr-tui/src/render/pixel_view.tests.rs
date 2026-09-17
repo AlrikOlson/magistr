@@ -250,7 +250,7 @@ fn report_graphics_frame_phase_costs() {
     use crate::graphics::{Passthrough, Protocol};
     use crate::pixel::{Compression, IdSpace};
     use crate::render::Screen;
-    use magistr_cockpit::agent::AgentEvent;
+    use magistr_application::sessions::AgentEvent;
     use magistr_cockpit::capability::Mode;
     use magistr_cockpit::cockpit::{FrameClock, Msg, Size, update, view};
     use magistr_cockpit::harness::Scenes;
@@ -353,7 +353,7 @@ fn report_large_trace_frame_costs() {
     use crate::pixel::{Compression, IdSpace};
     use crate::render::Screen;
     use crate::runtime::Surfaces;
-    use magistr_cockpit::agent::AgentEvent;
+    use magistr_application::sessions::AgentEvent;
     use magistr_cockpit::capability::Mode;
     use magistr_cockpit::cockpit::{FrameClock, Msg, Size, Widget, update, view};
     use magistr_cockpit::harness::{Scenes, fixtures};
