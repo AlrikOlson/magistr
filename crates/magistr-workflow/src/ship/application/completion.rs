@@ -8,7 +8,7 @@ use crate::ship::domain::receipt_settlement::ReceiptSettlement;
 
 use super::{
     AcceptedReceipt, CompletionEvidence, CompletionRefusal, GateContract, OutstandingGate,
-    RecoveredFailure, ShipUseCases, SourceFreshness, TaskAdmission,
+    RecoveredFailure, ShipUseCases, SourceFreshness, SourceObservation, TaskAdmission,
 };
 
 impl ShipUseCases {
@@ -18,8 +18,11 @@ impl ShipUseCases {
     /// instance the run's latest receipt was admitted on. Every gate the
     /// host requires, and every required verified receipt on that
     /// instance, must have a latest receipt that was applied, passed,
-    /// ran its configured command, saw the source unchanged during its run,
-    /// and certifies the source and acceptance revisions current now. A
+    /// ran its configured command, saw the source and the applicable
+    /// configuration unchanged during its run, and certifies the workspace,
+    /// selection policy, source bytes, external configuration and
+    /// acceptance revision current now (a new owner generation of the same
+    /// bytes is not a change). A
     /// focused objective intentionally omits project-wide gate contracts;
     /// its required acceptance-specific receipts still govern completion.
     /// Nothing here holds the engine lock while the source is observed.
@@ -80,11 +83,10 @@ impl ShipUseCases {
                 .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?,
             VerificationMode::Focused => Vec::new(),
         };
-        let current_revision = port
+        let current = port
             .observe()
             .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?
-            .observation()
-            .revision;
+            .observation();
 
         let mut by_gate: BTreeMap<&str, Vec<&CheckReceipt>> = BTreeMap::new();
         for receipt in receipts
@@ -101,7 +103,8 @@ impl ShipUseCases {
             run_id: snapshot.run_id.clone(),
             task_id: target.task_id.clone(),
             task_instance: target.task_instance.clone(),
-            source_revision: current_revision.clone(),
+            source_revision: current.revision.clone(),
+            config_digest: current.config_digest.clone(),
             acceptance_revision: acceptance_revision.clone(),
             accepted: Vec::new(),
             recovered: Vec::new(),
@@ -124,7 +127,7 @@ impl ShipUseCases {
                     &contract.name,
                     attempts,
                     Some(contract),
-                    &current_revision,
+                    &current,
                     &acceptance_revision,
                 ),
             }
@@ -150,7 +153,7 @@ impl ShipUseCases {
                 gate,
                 attempts,
                 None,
-                &current_revision,
+                &current,
                 &acceptance_revision,
             );
         }
@@ -169,13 +172,13 @@ fn judge(
     gate: &str,
     attempts: &[&CheckReceipt],
     contract: Option<&GateContract>,
-    current_revision: &str,
+    current: &SourceObservation,
     acceptance_revision: &str,
 ) {
     let Some(latest) = attempts.last() else {
         return;
     };
-    let refusal = reason_to_refuse(latest, contract, current_revision, acceptance_revision);
+    let refusal = reason_to_refuse(latest, contract, current, acceptance_revision);
     match refusal {
         Some(reason) => evidence.outstanding.push(OutstandingGate {
             gate: gate.to_owned(),
@@ -207,10 +210,14 @@ fn judge(
 }
 
 /// The first reason the latest receipt is not current evidence, or `None`.
+/// Each identity is judged on its own and named in the reason: the
+/// workspace, the scheme, the selection policy, the source bytes, the
+/// external configuration and the acceptance revision. The owner
+/// generation is not judged.
 fn reason_to_refuse(
     latest: &CheckReceipt,
     contract: Option<&GateContract>,
-    current_revision: &str,
+    current: &SourceObservation,
     acceptance_revision: &str,
 ) -> Option<String> {
     let execution = match &latest.execution {
@@ -260,6 +267,15 @@ fn reason_to_refuse(
         Some(SourceFreshness::Diverged { .. }) => {
             return Some("the workspace changed while the gate ran".into());
         }
+        Some(SourceFreshness::Reconfigured { layers }) if layers.is_empty() => {
+            return Some("the applicable configuration changed while the gate ran".into());
+        }
+        Some(SourceFreshness::Reconfigured { layers }) => {
+            return Some(format!(
+                "the applicable configuration changed while the gate ran: {}",
+                layers.join(", ")
+            ));
+        }
         Some(SourceFreshness::Unobserved { reason }) => {
             return Some(format!(
                 "the workspace could not be re-observed after the gate: {reason}"
@@ -267,12 +283,8 @@ fn reason_to_refuse(
         }
         None => return Some("the latest attempt recorded no source validation".into()),
     }
-    if source.revision != current_revision {
-        return Some(format!(
-            "the source changed since the gate ran (receipt {}…, now {}…)",
-            &source.revision[..12.min(source.revision.len())],
-            &current_revision[..12.min(current_revision.len())]
-        ));
+    if let Some(drift) = source.drift_to(current) {
+        return Some(drift.to_string());
     }
     if latest.acceptance_revision != acceptance_revision {
         return Some("the objective's acceptance changed since the gate ran".into());

@@ -2433,8 +2433,10 @@ async fn a_gate_that_fails_then_passes_is_a_flake_and_does_not_pause_the_loop() 
 fn the_loop_resolves_its_gates_through_the_evidence_capability() {
     let driver = include_str!("driver.rs");
     assert!(
-        driver.contains("WorkspaceEvidence::new(") && driver.contains(".required_gates()"),
-        "the loop asks the evidence capability for the project's required gates"
+        driver.contains(".config().evidence())")
+            && driver.contains(".required_gates()")
+            && driver.contains("WorkspaceEvidence::gate_contracts("),
+        "the loop asks the admitted writer's evidence capability for the project's required gates, and the one resolver behind it without a writer"
     );
     assert!(
         !driver.contains("gate_command("),

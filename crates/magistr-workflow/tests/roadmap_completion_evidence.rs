@@ -24,6 +24,8 @@ impl SourceWitness for Fixed {
             scheme: "fake/1".into(),
             policy_digest: "p".into(),
             revision: self.0.clone(),
+            source_digest: self.0.clone(),
+            config_digest: "c".into(),
             consistency: "optimistic".into(),
             captured_at_ms: 0,
         }

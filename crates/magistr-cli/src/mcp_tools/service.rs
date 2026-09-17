@@ -33,7 +33,7 @@ use magistr_engine::native::{
 };
 
 use crate::application::AdmittedCheck;
-use magistr_core::evidence::{WorkspaceEvidence, writer_config_from_env};
+use magistr_core::evidence::writer_config_from_env;
 use magistr_engine::{GateOutput, MagistrFrame, ShipGuardState, WorkflowPhase};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use magistr_workflow::infra::Family;
@@ -95,14 +95,19 @@ impl MagistrService {
 
     /// Open one owner on an explicit configuration. Clones share the same engines
     /// and lease. Independent instances must acquire ownership before loading state.
-    /// A configuration without the project's evidence capability gets it here:
-    /// this service is a composition root, and every check it records must be
-    /// bound to the source it certifies.
+    /// A configuration without the project's evidence capability is refused
+    /// before the lease is taken: every check this service records must be
+    /// bound to the source and the external configuration it certifies, and
+    /// only a configuration composed through `writer_config` (over the
+    /// captured project inputs) knows which external layers apply.
     pub async fn new(project_root: PathBuf, tas: &NativeConfig) -> std::io::Result<Self> {
         let project_root = project_root.canonicalize()?;
-        let mut tas = tas.clone().with_project_root(project_root.clone());
+        let tas = tas.clone().with_project_root(project_root.clone());
         if tas.evidence().is_none() {
-            tas = tas.with_evidence(Arc::new(WorkspaceEvidence::new(project_root.clone())));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "the writer configuration carries no verification evidence capability; compose it with magistr_core::evidence::writer_config so every recorded check is bound to the source and configuration it certifies",
+            ));
         }
         let mut authority = ProjectAuthority::admit(&tas, WriterRole::Service)?;
         if let Some(path) = tas.broadcast_path() {

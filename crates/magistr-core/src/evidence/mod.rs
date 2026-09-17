@@ -6,9 +6,14 @@
 //! it already owns — the workspace crate's lock-free
 //! [`SourceSnapshot`](magistr_workspace::snapshot::SourceSnapshot) under its
 //! default selection policy (which hashes `.magistr/project.json` as a
-//! config input, so a gate-configuration edit moves the revision too) and
-//! the same gate resolver `magistr_gate all` runs. There is no second
-//! scanner: a receipt's source revision is the snapshot's.
+//! config input, so a gate-configuration edit moves the revision too), the
+//! workspace's [`ConfigDigest`](magistr_workspace::config::ConfigDigest) over
+//! the external configuration layers the captured project inputs name (the
+//! organization policy and the user layer, by content only — so a policy
+//! edited outside the tree moves the evidence with every source byte
+//! unchanged) and the same gate resolver `magistr_gate all` runs. There is
+//! no second scanner: a receipt's source revision is the snapshot's and its
+//! configuration digest is the layers'.
 //!
 //! [`writer_config_from_env`] captures production configuration and attaches
 //! the capability; [`writer_config`] accepts explicit test inputs. A writer

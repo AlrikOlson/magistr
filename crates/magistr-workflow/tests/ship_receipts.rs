@@ -16,18 +16,62 @@ use magistr_workflow::ship::domain::{
 use magistr_workflow::ship::engine::ShipEngine;
 use magistr_workflow::ship::persistence::{Persistence, PersistenceConfig};
 
-/// The world as the fake port sees it: one mutable revision and the gates
-/// the project requires.
-#[derive(Default)]
+/// What one observation of the fake world saw: the source bytes, the
+/// external configuration, the selection policy and the owner generation,
+/// each its own identity as the real capability keeps them.
+#[derive(Clone, PartialEq, Eq)]
+struct Seen {
+    revision: String,
+    config: String,
+    policy: String,
+    generation: Option<u64>,
+    /// `false` mimics a receipt recorded before digests were bound.
+    bound: bool,
+}
+
+/// The world as the fake port sees it: one mutable source revision, one
+/// external configuration, one selection policy, one owner generation and
+/// the gates the project requires.
 struct World {
-    revision: Mutex<String>,
+    seen: Mutex<Seen>,
     gates: Mutex<Vec<GateContract>>,
     refuse: Mutex<Option<String>>,
 }
 
+impl Default for World {
+    fn default() -> Self {
+        Self {
+            seen: Mutex::new(Seen {
+                revision: String::new(),
+                config: "c1".into(),
+                policy: "p".into(),
+                generation: Some(3),
+                bound: true,
+            }),
+            gates: Mutex::new(Vec::new()),
+            refuse: Mutex::new(None),
+        }
+    }
+}
+
 impl World {
     fn set_revision(&self, revision: &str) {
-        *self.revision.lock().unwrap() = revision.to_owned();
+        self.seen.lock().unwrap().revision = revision.to_owned();
+    }
+    fn set_config(&self, config: &str) {
+        self.seen.lock().unwrap().config = config.to_owned();
+    }
+    fn set_policy(&self, policy: &str) {
+        self.seen.lock().unwrap().policy = policy.to_owned();
+    }
+    fn set_generation(&self, generation: u64) {
+        self.seen.lock().unwrap().generation = Some(generation);
+    }
+    fn set_bound(&self, bound: bool) {
+        self.seen.lock().unwrap().bound = bound;
+    }
+    fn now(&self) -> Seen {
+        self.seen.lock().unwrap().clone()
     }
     fn require(&self, name: &str, command: &str) {
         self.gates.lock().unwrap().push(GateContract {
@@ -40,29 +84,45 @@ impl World {
 
 struct Witness {
     world: Arc<World>,
-    seen: String,
+    seen: Seen,
 }
 
 impl SourceWitness for Witness {
     fn observation(&self) -> SourceObservation {
+        // The workspace's revision folds the owner generation in, exactly
+        // as the real snapshot's does; the digests do not.
         SourceObservation {
             workspace_root: "/w".into(),
-            workspace_generation: Some(3),
+            workspace_generation: self.seen.generation,
             scheme: "fake/1".into(),
-            policy_digest: "p".into(),
-            revision: self.seen.clone(),
+            policy_digest: self.seen.policy.clone(),
+            revision: format!("{}@{:?}", self.seen.revision, self.seen.generation),
+            source_digest: if self.seen.bound {
+                self.seen.revision.clone()
+            } else {
+                String::new()
+            },
+            config_digest: if self.seen.bound {
+                self.seen.config.clone()
+            } else {
+                String::new()
+            },
             consistency: "optimistic".into(),
             captured_at_ms: 0,
         }
     }
     fn validate(&self) -> Result<SourceFreshness, String> {
-        let now = self.world.revision.lock().unwrap().clone();
-        Ok(if now == self.seen {
-            SourceFreshness::Unchanged
-        } else {
+        let now = self.world.now();
+        Ok(if now.revision != self.seen.revision {
             SourceFreshness::Changed {
                 paths: vec!["src/lib.rs".into()],
             }
+        } else if now.config != self.seen.config {
+            SourceFreshness::Reconfigured {
+                layers: vec!["org-policy".into()],
+            }
+        } else {
+            SourceFreshness::Unchanged
         })
     }
 }
@@ -72,13 +132,14 @@ impl EvidencePort for World {
         if let Some(reason) = self.refuse.lock().unwrap().clone() {
             return Err(reason);
         }
+        let seen = self.now();
         Ok(Box::new(Witness {
             world: Arc::new(World {
-                revision: Mutex::new(self.revision.lock().unwrap().clone()),
+                seen: Mutex::new(seen.clone()),
                 gates: Mutex::new(Vec::new()),
                 refuse: Mutex::new(None),
             }),
-            seen: self.revision.lock().unwrap().clone(),
+            seen,
         }))
     }
     fn required_gates(&self) -> Result<Vec<GateContract>, String> {
@@ -97,7 +158,7 @@ impl EvidencePort for LivePort {
         }
         Ok(Box::new(Witness {
             world: Arc::clone(&self.0),
-            seen: self.0.revision.lock().unwrap().clone(),
+            seen: self.0.now(),
         }))
     }
     fn required_gates(&self) -> Result<Vec<GateContract>, String> {
@@ -235,7 +296,10 @@ fn admission_publishes_a_durable_receipt_and_settlement_completes_it() {
     let admitted = ledger.get(&admission.receipt_id).unwrap().unwrap();
     assert_eq!(admitted.attempt, 1);
     assert_eq!(admitted.target, admission.target);
-    assert_eq!(admitted.source.as_ref().unwrap().revision, "r1");
+    let source = admitted.source.as_ref().unwrap();
+    assert_eq!(source.source_digest, "r1");
+    assert_eq!(source.config_digest, "c1");
+    assert_eq!(source.revision, "r1@Some(3)");
     assert_eq!(admitted.acceptance_revision, admission.acceptance_revision);
     assert!(admitted.execution.is_none() && admitted.settlement.is_none());
     assert!(
@@ -386,7 +450,8 @@ fn completion_accepts_current_evidence_and_separates_recovered_from_outstanding(
     let evidence = cases.verify_completion("chunk:c1", Some("verify")).unwrap();
     assert!(evidence.is_complete());
     assert_eq!(evidence.task_id, "verify");
-    assert_eq!(evidence.source_revision, "r1");
+    assert_eq!(evidence.source_revision, "r1@Some(3)");
+    assert_eq!(evidence.config_digest, "c1");
     assert_eq!(
         evidence
             .accepted
@@ -581,4 +646,192 @@ fn a_refused_observation_refuses_admission_before_anything_runs() {
     let ledger = cases.engine().lock().unwrap().receipts().clone();
     let run_id = cases.admit_task(None).unwrap().run_id;
     assert!(ledger.for_run(&run_id).unwrap().is_empty());
+}
+
+#[test]
+fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_governs() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    planned(&cases);
+    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    // The organization policy moved while the command ran; not one source
+    // byte did.
+    world.set_config("c2");
+    let settled = cases
+        .settle_check(
+            admission,
+            outcome(CheckExecution::Exited { code: 0 }, "cargo test"),
+        )
+        .unwrap();
+    assert_eq!(
+        settled.receipt().freshness,
+        Some(SourceFreshness::Reconfigured {
+            layers: vec!["org-policy".into()]
+        })
+    );
+    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    assert!(
+        refusal
+            .to_string()
+            .contains("configuration changed while the gate ran: org-policy"),
+        "{refusal}"
+    );
+
+    // Re-run under the current configuration: the latest attempt decides.
+    let again = run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    assert_eq!(again.receipt().attempt, 2);
+    assert_eq!(again.receipt().source.as_ref().unwrap().config_digest, "c2");
+    let evidence = cases.verify_completion("chunk:c1", None).unwrap();
+    assert_eq!(evidence.config_digest, "c2");
+    assert_eq!(evidence.accepted[0].attempt, 2);
+}
+
+#[test]
+fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_owner_generation() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    planned(&cases);
+    run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+
+    // An external configuration layer changed after the gate, every
+    // selected byte unchanged: the evidence no longer applies.
+    world.set_config("c2");
+    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    assert!(
+        refusal
+            .to_string()
+            .contains("the applicable external configuration changed since the gate ran"),
+        "{refusal}"
+    );
+    world.set_config("c1");
+    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+
+    // The selection policy changed: named as such, never as a source change.
+    world.set_policy("p2");
+    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    assert!(
+        refusal
+            .to_string()
+            .contains("the selection policy changed since the gate ran"),
+        "{refusal}"
+    );
+    world.set_policy("p");
+    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+
+    // A new owner of the same bytes moved the workspace's revision and
+    // nothing else: the evidence still applies.
+    world.set_generation(4);
+    let evidence = cases.verify_completion("chunk:c1", None).unwrap();
+    assert_ne!(
+        evidence.source_revision,
+        evidence.accepted[0].source_revision.clone().unwrap(),
+        "the workspace revision folds the generation in"
+    );
+    assert!(evidence.is_complete());
+
+    // The source itself moved: named as a source change.
+    world.set_revision("r2");
+    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    assert!(
+        refusal
+            .to_string()
+            .contains("the source changed since the gate ran"),
+        "{refusal}"
+    );
+}
+
+#[test]
+fn a_receipt_recorded_before_digests_were_bound_is_refused_by_name() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    planned(&cases);
+    world.set_bound(false);
+    run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    world.set_bound(true);
+    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    assert!(
+        refusal
+            .to_string()
+            .contains("recorded before source evidence was bound"),
+        "{refusal}"
+    );
+    run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+}
+
+#[test]
+fn a_settlement_without_the_witness_compares_digests_not_generations() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    planned(&cases);
+
+    // Admitted here, settled by another process (a fresh handle over the
+    // same store holds no witness): only the observations are compared.
+    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    world.set_generation(4);
+    let elsewhere = stored(temp.path(), &world);
+    let settled = elsewhere
+        .settle_check(
+            admission,
+            outcome(CheckExecution::Exited { code: 0 }, "cargo test"),
+        )
+        .unwrap();
+    assert_eq!(
+        settled.receipt().freshness,
+        Some(SourceFreshness::Unchanged)
+    );
+
+    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    world.set_config("c2");
+    let settled = elsewhere
+        .settle_check(
+            admission,
+            outcome(CheckExecution::Exited { code: 0 }, "cargo test"),
+        )
+        .unwrap();
+    assert_eq!(
+        settled.receipt().freshness,
+        Some(SourceFreshness::Reconfigured { layers: vec![] })
+    );
+
+    let admission = cases.admit_check(request("test", "cargo test")).unwrap();
+    world.set_revision("r2");
+    let settled = elsewhere
+        .settle_check(
+            admission,
+            outcome(CheckExecution::Exited { code: 0 }, "cargo test"),
+        )
+        .unwrap();
+    assert_eq!(
+        settled.receipt().freshness,
+        Some(SourceFreshness::Diverged {
+            before: "r1".into(),
+            after: "r2".into()
+        })
+    );
 }

@@ -4,6 +4,8 @@
 
 mod cargo_layout;
 mod command_admission;
+mod config_digest;
+mod config_layer_digest;
 mod detected_command;
 mod key_spec;
 mod layer;
@@ -16,6 +18,8 @@ mod session_flags;
 mod settings;
 
 pub use command_admission::CommandAdmission;
+pub use config_digest::ConfigDigest;
+pub use config_layer_digest::ConfigLayerDigest;
 pub use detected_command::DetectedCommand;
 pub use layer::ConfigLayer;
 pub use layer_report::LayerReport;

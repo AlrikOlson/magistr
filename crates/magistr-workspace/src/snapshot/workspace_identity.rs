@@ -66,7 +66,7 @@ impl WorkspaceIdentity {
 }
 
 /// Length-prefixed update, so concatenated fields cannot alias each other.
-pub(super) fn frame(digest: &mut Sha256, bytes: &[u8]) {
+pub(crate) fn frame(digest: &mut Sha256, bytes: &[u8]) {
     digest.update((bytes.len() as u64).to_le_bytes());
     digest.update(bytes);
 }
