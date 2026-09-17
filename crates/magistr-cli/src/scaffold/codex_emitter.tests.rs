@@ -8,7 +8,7 @@ fn launcher_preserves_arguments_and_resolves_its_project() {
 
     let files = CodexEmitter.files(&HashMap::new());
     let launcher = files.iter().find(|file| file.path == ".codex/run").unwrap();
-    assert!(launcher.executable);
+    assert!(crate::scaffold::is_executable_path(launcher.path));
     assert_eq!(launcher.policy, UpdatePolicy::PreserveCustomized);
     let tmp = tempfile::TempDir::new().unwrap();
     let project = tmp.path().join("project ' with $ literals");

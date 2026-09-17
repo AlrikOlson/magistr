@@ -128,19 +128,22 @@ fn run_dry_run(
         .files
         .iter()
         .map(|f| {
-            json!({
-                "path": f.path,
-                "action": format!("{:?}", f.action).to_lowercase(),
-            })
+            let mut entry = crate::commands::init::planned_change_json(f);
+            // The tool answer is a summary; the diff is the CLI's to print.
+            entry.as_object_mut().map(|obj| obj.remove("diff"));
+            entry
         })
         .collect();
 
     let result = json!({
         "mode": "dry_run",
+        "operation": preview.operation.label(),
         "creates": preview.creates(),
         "overwrites": preview.overwrites(),
+        "removes": preview.removes(),
         "unchanged": preview.unchanged(),
         "preserved": preview.preserved(),
+        "refused": preview.refusals(),
         "files": files,
     });
 

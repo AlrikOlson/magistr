@@ -3,9 +3,12 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use super::canonical::CanonicalSource;
+use super::manifest::ScaffoldManifest;
 use super::update_policy::UpdatePolicy;
 use super::workbench_toml::WorkbenchSeed;
 use super::workflow_skills::WorkflowSkills;
+use super::{AdminOperation, ChangePlan, FileAction, Ownership, PlannedChange, Refusal};
 use crate::error::{MagistrError, Result};
 
 /// Repair the scaffold artifacts magistr owns outright in `dir`, answering
@@ -23,8 +26,9 @@ use crate::error::{MagistrError, Result};
 /// to one project out of three. This runs on every session instead, costs a
 /// read per file, and writes only what actually differs.
 ///
-/// Four rules keep it safe, and each one is a thing it deliberately will
-/// not do:
+/// The repair is [planned](plan) first and the plan executed, so the same
+/// judgement is reviewable without writing. Four rules keep it safe, and
+/// each one is a thing it deliberately will not do:
 ///
 /// 1. **Only [`UpdatePolicy::Overwrite`] files.** That policy already says
 ///    "magistr internals that users should not edit" and a re-init already
@@ -49,75 +53,163 @@ use crate::error::{MagistrError, Result};
 ///    scaffolding a project that did not ask to be scaffolded. One bounded
 ///    exception installs the new runtime companion before upgrading existing
 ///    Claude workflow skills that depend on it. A previously recorded runtime
-///    that the user removed stays removed, and dependent upgrades are skipped.
+///    that the user removed stays removed, and dependent upgrades are refused.
 /// 4. **Only in a magistr project** — `.magistr/project.json` must be
 ///    there — and never fatally: a repair that cannot write is a warning,
 ///    because it must not be able to stop the thing it runs before.
+///
+/// In Magistr's own source checkout the owned workflow skills are rendered
+/// from the live templates rather than the binary's embedded copies, so an
+/// older installed binary cannot downgrade them; a template that is missing
+/// or unreadable refuses the path instead.
 #[must_use]
 pub fn repair(dir: &Path) -> Vec<String> {
-    if !dir.join(".magistr/project.json").is_file() {
-        return Vec::new();
-    }
+    let plan = plan(dir);
+    let mut manifest = ScaffoldManifest::load(dir);
     let mut repaired = Vec::new();
-    let owned = owned_files();
-    let runtime_ready = match ensure_workflow_runtime(dir, &owned, &mut repaired) {
-        Ok(ready) => ready,
-        Err(error) => {
-            tracing::warn!(target: "magistr", %error, "could not prepare workflow runtime; skill upgrades skipped");
-            false
-        }
-    };
-    for (path, content) in owned {
-        // The companion has its own conservative migration policy. Never let
-        // the unconditional sweep overwrite a customized runtime afterward.
-        if path == WORKFLOW_RUNTIME || (WorkflowSkills::is_claude_workflow(path) && !runtime_ready)
-        {
+    let mut runtime_ready = true;
+    for change in &plan.files {
+        let path = change.path.as_str();
+        if WorkflowSkills::is_claude_workflow(path) && !runtime_ready {
             continue;
         }
-        // A vendored skill in its home repository converges on the canonical
-        // file's own bytes, never back on the embedded (markered) version —
-        // otherwise every startup here re-breaks the byte-equality gate the
-        // home repo holds its dogfood copy to.
-        let content = super::canonical_content(dir, path).unwrap_or(content);
-        let target = dir.join(path);
-        // Rule 3: repair, never create.
-        let Ok(current) = std::fs::read_to_string(&target) else {
-            continue;
-        };
-        if current == content {
-            continue;
-        }
-        match std::fs::write(&target, &content) {
-            Ok(()) => repaired.push(path.to_owned()),
+        match execute(dir, change, &mut manifest) {
+            Ok(true) => repaired.push(change.path.clone()),
+            Ok(false) => {}
             Err(error) => {
                 tracing::warn!(target: "magistr", %error, path, "could not repair");
+                if path == WORKFLOW_RUNTIME {
+                    // The companion the skills refer to did not land; leave
+                    // the skills at the version that does not need it.
+                    runtime_ready = false;
+                }
             }
         }
-    }
-    // Additive and idempotent on its own terms, and it declares a key rather
-    // than rewriting a file, so it is not part of the owned-file sweep.
-    match WorkbenchSeed::ensure_confirm_mode(dir) {
-        Ok(true) => repaired.push("workbench.toml".to_owned()),
-        Ok(false) => {}
-        Err(error) => tracing::warn!(target: "magistr", %error, "could not repair workbench.toml"),
-    }
-    match super::CodexSetup::repair(dir) {
-        Ok(paths) => repaired.extend(paths),
-        Err(error) => tracing::warn!(target: "magistr", %error, "could not repair Codex scaffold"),
     }
     repaired
 }
 
+/// The repair `dir` needs, without writing: every owned file that exists
+/// and differs, the runtime companion migration, the `workbench.toml`
+/// confirm mode and the Codex target's repair. An absent owned file is not
+/// listed (rule 3); a path the plan will not touch is listed as refused.
+#[must_use]
+pub(crate) fn plan(dir: &Path) -> ChangePlan {
+    let mut plan = ChangePlan::new(AdminOperation::Repair);
+    if !dir.join(".magistr/project.json").is_file() {
+        return plan;
+    }
+    let owned = owned_files();
+    let canonical = CanonicalSource::capture(dir);
+    let (runtime, runtime_ready) = match runtime_migration(dir, &owned, &canonical) {
+        Ok(migration) => migration,
+        Err(error) => {
+            tracing::warn!(target: "magistr", %error, "could not prepare workflow runtime; skill upgrades skipped");
+            (None, false)
+        }
+    };
+    plan.files.extend(runtime);
+    for (path, embedded) in owned {
+        // The companion has its own conservative migration policy. Never let
+        // the unconditional sweep overwrite a customized runtime afterward.
+        if path == WORKFLOW_RUNTIME {
+            continue;
+        }
+        plan.files
+            .extend(owned_change(dir, path, embedded, &canonical, runtime_ready));
+    }
+    // Additive and idempotent on its own terms, and it declares a key rather
+    // than rewriting a file, so it is not part of the owned-file sweep.
+    plan.files.extend(confirm_mode_change(dir));
+    match super::CodexSetup::repair_plan(dir) {
+        Ok(changes) => plan.files.extend(changes),
+        Err(error) => tracing::warn!(target: "magistr", %error, "could not plan Codex repair"),
+    }
+    plan
+}
+
+/// One owned file's repair: nothing when it is absent (rule 3), unchanged
+/// or overwritten with the embedded or canonical rendering, refused when the
+/// canonical input is unavailable or the runtime it depends on is not ready.
+fn owned_change(
+    dir: &Path,
+    path: &'static str,
+    embedded: String,
+    canonical: &CanonicalSource,
+    runtime_ready: bool,
+) -> Option<PlannedChange> {
+    let ownership = if canonical.is_canonical(path) {
+        Ownership::Canonical
+    } else {
+        Ownership::Internal
+    };
+    let current = match super::read_target(dir, path) {
+        Ok(None) => return None,
+        Ok(Some(current)) => current,
+        Err(refusal) => return Some(PlannedChange::refused(path, refusal, None, ownership)),
+    };
+    if WorkflowSkills::is_claude_workflow(path) && !runtime_ready {
+        return Some(PlannedChange::refused(
+            path,
+            Refusal::MissingDependency {
+                dependency: WORKFLOW_RUNTIME.to_owned(),
+            },
+            Some(current),
+            ownership,
+        ));
+    }
+    Some(match canonical.resolve(path, embedded) {
+        Ok(content) => PlannedChange::merged(path, Some(current), content).owned_by(ownership),
+        Err(refusal) => PlannedChange::refused(path, refusal, Some(current), ownership),
+    })
+}
+
+/// Execute one repair change; answers whether the path was repaired.
+fn execute(dir: &Path, change: &PlannedChange, manifest: &mut ScaffoldManifest) -> Result<bool> {
+    let path = change.path.as_str();
+    if super::CodexSetup::owned_path(path) || super::CodexSetup::is_shared(path) {
+        return Ok(!super::CodexSetup::apply_repair(dir, std::slice::from_ref(change))?.is_empty());
+    }
+    let target = dir.join(path);
+    match change.action {
+        FileAction::Create => {
+            use std::io::Write;
+            if let Some(parent) = target.parent() {
+                std::fs::create_dir_all(parent).map_err(|error| MagistrError::io(parent, error))?;
+            }
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&target)
+                .map_err(|error| MagistrError::io(&target, error))?;
+            file.write_all(change.new_content.as_bytes())
+                .map_err(|error| MagistrError::io(&target, error))?;
+        }
+        FileAction::Overwrite => {
+            std::fs::write(&target, &change.new_content)
+                .map_err(|error| MagistrError::io(&target, error))?;
+        }
+        _ => return Ok(false),
+    }
+    if path == WORKFLOW_RUNTIME {
+        manifest.record(path, &change.new_content);
+        manifest.save(dir)?;
+    }
+    Ok(true)
+}
+
 const WORKFLOW_RUNTIME: &str = ".claude/skills/craft/references/runtime.md";
 
-/// A dependency migration, not a general missing-file repair. Prepare the
+/// A dependency migration, not a general missing-file repair. Plan the
 /// runtime before any skill starts referring to it, preserving deleted or
 /// customized companions and refusing malformed ownership or symlink paths.
-fn ensure_workflow_runtime(
+/// Answers the runtime's change (none when no Claude workflow skill is
+/// present) and whether dependent skill upgrades may proceed.
+fn runtime_migration(
     dir: &Path,
     owned: &[(&str, String)],
-    repaired: &mut Vec<String>,
-) -> Result<bool> {
+    canonical: &CanonicalSource,
+) -> Result<(Option<PlannedChange>, bool)> {
     let mut has_workflow = false;
     for (path, _) in owned
         .iter()
@@ -126,45 +218,72 @@ fn ensure_workflow_runtime(
         has_workflow |= super::CodexSetup::read(dir, path)?.is_some();
     }
     if !has_workflow {
-        return Ok(false);
+        return Ok((None, false));
     }
     super::CodexSetup::validate_manifest(dir)?;
-    let mut manifest = super::manifest::ScaffoldManifest::load(dir);
+    let manifest = ScaffoldManifest::load(dir);
     let current = super::CodexSetup::read(dir, WORKFLOW_RUNTIME)?;
-    let content = owned
+    let embedded = owned
         .iter()
         .find(|(path, _)| *path == WORKFLOW_RUNTIME)
-        .map(|(_, content)| content)
+        .map(|(_, content)| content.clone())
         .expect("shared workflow runtime is a project-independent scaffold artifact");
-    match current.as_deref() {
-        Some(current)
-            if current == content || manifest.is_customized(WORKFLOW_RUNTIME, current) =>
-        {
-            return Ok(true);
-        }
-        None if manifest.files.contains_key(WORKFLOW_RUNTIME) => return Ok(false),
-        _ => {}
-    }
-    let target = dir.join(WORKFLOW_RUNTIME);
-    if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent).map_err(|error| MagistrError::io(parent, error))?;
-    }
-    if current.is_none() {
-        use std::io::Write;
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&target)
-            .map_err(|error| MagistrError::io(&target, error))?;
-        file.write_all(content.as_bytes())
-            .map_err(|error| MagistrError::io(&target, error))?;
+    let ownership = if canonical.is_canonical(WORKFLOW_RUNTIME) {
+        Ownership::Canonical
     } else {
-        std::fs::write(&target, content).map_err(|error| MagistrError::io(&target, error))?;
+        Ownership::Internal
+    };
+    let content = match canonical.resolve(WORKFLOW_RUNTIME, embedded) {
+        Ok(content) => content,
+        Err(refusal) => {
+            let refused = PlannedChange::refused(WORKFLOW_RUNTIME, refusal, current, ownership);
+            return Ok((Some(refused), false));
+        }
+    };
+    Ok(match current {
+        Some(current) if manifest.is_customized(WORKFLOW_RUNTIME, &current) => (
+            Some(PlannedChange::preserved(
+                WORKFLOW_RUNTIME,
+                Some(current),
+                Ownership::Customized,
+            )),
+            true,
+        ),
+        Some(current) => (
+            Some(
+                PlannedChange::merged(WORKFLOW_RUNTIME, Some(current), content).owned_by(ownership),
+            ),
+            true,
+        ),
+        None if manifest.files.contains_key(WORKFLOW_RUNTIME) => (
+            Some(PlannedChange::preserved(
+                WORKFLOW_RUNTIME,
+                None,
+                Ownership::User,
+            )),
+            false,
+        ),
+        None => (
+            Some(PlannedChange::merged(WORKFLOW_RUNTIME, None, content)),
+            true,
+        ),
+    })
+}
+
+/// The `workbench.toml` confirm-mode declaration as a change: none when
+/// there is no file, unchanged when it already declares one.
+fn confirm_mode_change(dir: &Path) -> Option<PlannedChange> {
+    match WorkbenchSeed::plan_confirm_mode(dir) {
+        (Some(before), Some(body)) => {
+            Some(PlannedChange::merged("workbench.toml", Some(before), body))
+        }
+        (Some(before), None) => Some(PlannedChange::merged(
+            "workbench.toml",
+            Some(before.clone()),
+            before,
+        )),
+        (None, _) => None,
     }
-    manifest.record(WORKFLOW_RUNTIME, content);
-    manifest.save(dir)?;
-    repaired.push(WORKFLOW_RUNTIME.to_owned());
-    Ok(true)
 }
 
 /// Every key [`build_template_vars`](crate::orchestration) can set, so the

@@ -28,7 +28,6 @@ impl AgentEmitter for CodexEmitter {
                 "\"$(CDPATH= cd -- \"$(dirname -- \"$0\")/..\" && pwd)\" -- \"$@\"\n",
             )
             .to_owned(),
-            executable: true,
             policy: UpdatePolicy::PreserveCustomized,
         });
         files

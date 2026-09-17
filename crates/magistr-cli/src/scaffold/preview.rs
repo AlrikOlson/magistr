@@ -1,144 +1,248 @@
-use std::collections::HashMap;
+//! The setup plan: what `generate()` would do, computed without writing.
+
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::error::Result;
 
-use super::{FileAction, FilePreview, ScaffoldPreview};
+use super::canonical::CanonicalSource;
+use super::codex_skill_links::CodexSkillLinks;
+use super::manifest::ScaffoldManifest;
+use super::{AdminOperation, ChangePlan, FileAction, Ownership, PlannedChange, ScaffoldFile};
 
 /// Preview what `generate()` would do without writing any files.
 ///
-/// Returns a `ScaffoldPreview` describing each file's action (create, overwrite,
-/// unchanged, or preserved) along with unified diffs for modified files.
+/// Returns the setup [`ChangePlan`]: every scaffold file, the shared merges
+/// (`.mcp.json`, `.gitignore`, the think-and-ship section of `CLAUDE.md`,
+/// the `workbench.toml` seed), the retired rule files setup removes and the
+/// shared Codex components, each with its action, ownership and diff.
 pub fn preview(
     dir: &Path,
     template_vars: &HashMap<String, String>,
     generated_overrides: &HashMap<String, String>,
-) -> Result<ScaffoldPreview> {
-    super::existing_config::ExistingConfig::validate(dir)?;
+) -> Result<ChangePlan> {
+    Ok(SetupPlan::compute(dir, template_vars, generated_overrides)?.plan)
+}
 
-    let mut vars = template_vars.clone();
-    super::CodexSetup::prepare_vars(dir, &mut vars);
-    vars.entry("project_root".to_string())
-        .or_insert_with(|| ".".to_string());
-    super::mcp_config::build(&vars)?;
+/// The setup plan together with the inputs generation needs to execute it.
+pub(super) struct SetupPlan {
+    pub(super) plan: ChangePlan,
+    /// The template variables after Codex selection recovery.
+    pub(super) vars: HashMap<String, String>,
+    /// Legacy Codex skill links to detach before any generated write.
+    pub(super) links: CodexSkillLinks,
+    /// The regular scaffold files: whole-file ownership recorded in the
+    /// manifest. Merged shared files keep their own merge policies.
+    pub(super) owned: HashSet<&'static str>,
+}
 
-    let codex = super::CodexSetup::plan(dir, &vars, false)?;
-    let ownership_context = if super::CodexSetup::selected(&vars) {
-        Some(super::preview_context::PreviewContext::capture(dir)?)
-    } else {
-        None
-    };
-    let links = if super::CodexSetup::selected(&vars) {
-        super::codex_skill_links::CodexSkillLinks::capture(dir)?
-    } else {
-        super::codex_skill_links::CodexSkillLinks::default()
-    };
-    let mut files = super::scaffold_files(&vars);
-    for f in &mut files {
-        if let Some(content) = generated_overrides.get(f.path) {
-            f.content = content.clone();
-        }
-    }
-    // The same canonical-repo override generate applies.
-    for f in &mut files {
-        if let Some(content) = super::canonical_content(dir, f.path) {
-            f.content = content;
-        }
-    }
-    let manifest = super::manifest::ScaffoldManifest::load(dir);
-    let mut previews = Vec::with_capacity(files.len());
+impl SetupPlan {
+    pub(super) fn compute(
+        dir: &Path,
+        template_vars: &HashMap<String, String>,
+        generated_overrides: &HashMap<String, String>,
+    ) -> Result<Self> {
+        super::existing_config::ExistingConfig::validate(dir)?;
 
-    for f in &files {
-        let full = dir.join(f.path);
-        let existing = if links.covers(f.path) {
-            links.read(dir, f.path)?
-        } else {
-            std::fs::read_to_string(&full).ok()
-        };
+        // Host configuration stays portable; the native launcher discovers the
+        // workspace and dependencies when the MCP client starts it.
+        let mut vars = template_vars.clone();
+        super::CodexSetup::prepare_vars(dir, &mut vars);
+        vars.entry("project_root".to_string())
+            .or_insert_with(|| ".".to_string());
+        // Invalid explicit argv must fail before any scaffold writes.
+        super::mcp_config::build(&vars)?;
 
-        let action = if links.covers(f.path) {
-            FileAction::Overwrite
-        } else {
-            f.policy
-                .action(f.path, existing.as_deref(), &f.content, &manifest)
-        };
-        let new_content = if action == FileAction::Preserved {
-            existing.as_deref().unwrap_or(&f.content).to_owned()
-        } else {
-            f.content.clone()
-        };
-
-        let diff = if let Some(description) = links.description(f.path) {
-            Some(format!(
-                "{description}{}",
-                super::unified_diff(f.path, existing.as_deref().unwrap_or_default(), &f.content)
-            ))
-        } else if action == FileAction::Overwrite {
-            existing
-                .as_deref()
-                .map(|old| super::unified_diff(f.path, old, &f.content))
+        let codex = super::CodexSetup::plan(dir, &vars, false)?;
+        let codex_selected = super::CodexSetup::selected(&vars);
+        let ownership_context = if codex_selected {
+            Some(super::preview_context::PreviewContext::capture(dir)?)
         } else {
             None
         };
+        let links = if codex_selected {
+            CodexSkillLinks::capture(dir)?
+        } else {
+            CodexSkillLinks::default()
+        };
+        let canonical = CanonicalSource::capture(dir);
+        let manifest = ScaffoldManifest::load(dir);
+        let mut files = super::scaffold_files(&vars);
+        apply_overrides(&mut files, generated_overrides);
+        let owned: HashSet<&'static str> = files.iter().map(|f| f.path).collect();
 
-        previews.push(FilePreview {
-            path: f.path.to_string(),
-            action,
-            new_content,
-            existing_content: existing,
-            ownership_context: if super::CodexSetup::owned_path(f.path) {
-                ownership_context.clone()
-            } else {
-                None
-            },
-            diff,
-        });
+        let mut plan = ChangePlan::new(AdminOperation::Setup);
+        for file in &files {
+            let mut change = plan_file(dir, file, &links, &canonical, &manifest)?;
+            if file.path == "CLAUDE.md" {
+                with_think_and_ship_section(&mut change, &vars);
+            }
+            if super::CodexSetup::owned_path(file.path) {
+                change.ownership_context = ownership_context.clone();
+            }
+            plan.files.push(change);
+        }
+        plan.files.push(super::mcp_json_change(dir, &vars)?);
+        plan.files.push(super::gitignore_change(dir, &vars));
+        plan.files.extend(workbench_change(dir, &vars));
+        plan.files.extend(super::legacy_rule_removals(dir));
+        plan.files.extend(codex);
+        Ok(Self {
+            plan,
+            vars,
+            links,
+            owned,
+        })
     }
+}
 
-    // Add .mcp.json preview (merge-aware).
-    let mcp_path = dir.join(".mcp.json");
-    let existing_mcp = std::fs::read_to_string(&mcp_path).ok();
-    let (merged_content, mcp_action) = super::preview_mcp_json(dir, &vars)?;
+/// Replace static template content with AI-generated overrides.
+fn apply_overrides(files: &mut [ScaffoldFile], generated_overrides: &HashMap<String, String>) {
+    if generated_overrides.is_empty() {
+        return;
+    }
+    let scaffold_paths: HashSet<&str> = files.iter().map(|f| f.path).collect();
+    let mut matched = 0usize;
+    for f in files.iter_mut() {
+        if let Some(content) = generated_overrides.get(f.path) {
+            tracing::debug!(path = f.path, "Applied AI-generated file override");
+            f.content = content.clone();
+            matched += 1;
+        }
+    }
+    for key in generated_overrides.keys() {
+        if !scaffold_paths.contains(key.as_str()) {
+            tracing::warn!(
+                path = key.as_str(),
+                "AI-generated override did not match any scaffold file path — content ignored"
+            );
+        }
+    }
+    tracing::debug!(
+        total = generated_overrides.len(),
+        matched,
+        orphaned = generated_overrides.len() - matched,
+        "Generated file override summary"
+    );
+}
 
-    let mcp_diff = if mcp_action == FileAction::Overwrite {
-        existing_mcp
+/// One regular scaffold file's planned change.
+fn plan_file(
+    dir: &Path,
+    file: &ScaffoldFile,
+    links: &CodexSkillLinks,
+    canonical: &CanonicalSource,
+    manifest: &ScaffoldManifest,
+) -> Result<PlannedChange> {
+    let path = file.path;
+    // A legacy Codex skill link is an upgrade input: its Claude source text
+    // is what the generated file replaces.
+    let existing = if links.covers(path) {
+        links.read(dir, path)?
+    } else {
+        match super::read_target(dir, path) {
+            Ok(existing) => existing,
+            Err(refusal) => {
+                let ownership = Ownership::judge(file.policy, path, Some(""), manifest);
+                return Ok(PlannedChange::refused(path, refusal, None, ownership));
+            }
+        }
+    };
+    let ownership = if links.covers(path) {
+        Ownership::Internal
+    } else if canonical.is_canonical(path) && existing.is_some() {
+        Ownership::Canonical
+    } else {
+        Ownership::judge(file.policy, path, existing.as_deref(), manifest)
+    };
+    // A vendored skill in its home repository, or a workflow skill in
+    // Magistr's own checkout, is the canonical rendering itself; a canonical
+    // input that cannot be read keeps the embedded copy off the path.
+    let content = match canonical.resolve(path, file.content.clone()) {
+        Ok(content) => content,
+        Err(refusal) => return Ok(PlannedChange::refused(path, refusal, existing, ownership)),
+    };
+    let action = if links.covers(path) {
+        FileAction::Overwrite
+    } else {
+        file.policy
+            .action(path, existing.as_deref(), &content, manifest)
+    };
+    let new_content = if action == FileAction::Preserved {
+        existing.as_deref().unwrap_or(&content).to_owned()
+    } else {
+        content.clone()
+    };
+    let diff = if let Some(description) = links.description(path) {
+        Some(format!(
+            "{description}{}",
+            super::unified_diff(path, existing.as_deref().unwrap_or_default(), &content)
+        ))
+    } else if action == FileAction::Overwrite {
+        existing
             .as_deref()
-            .map(|old| super::unified_diff(".mcp.json", old, &merged_content))
+            .map(|old| super::unified_diff(path, old, &content))
     } else {
         None
     };
-
-    previews.push(FilePreview {
-        path: ".mcp.json".to_string(),
-        action: mcp_action,
-        new_content: merged_content,
-        existing_content: existing_mcp,
+    Ok(PlannedChange {
+        path: path.to_owned(),
+        action,
+        ownership,
+        new_content,
+        existing_content: existing,
         ownership_context: None,
-        diff: mcp_diff,
-    });
+        diff,
+    })
+}
 
-    // Add .gitignore preview (merge-aware).
-    let gi_path = dir.join(".gitignore");
-    let existing_gi = std::fs::read_to_string(&gi_path).ok();
-    let (gi_content, gi_action) = super::preview_gitignore(dir, &vars)?;
+/// `CLAUDE.md` is the user's file (never overwritten as a whole), but the
+/// think-and-ship section between its markers is magistr's: the plan shows
+/// the document with that section written or refreshed, so the preview says
+/// exactly what generation writes.
+fn with_think_and_ship_section(change: &mut PlannedChange, vars: &HashMap<String, String>) {
+    if matches!(change.action, FileAction::Refused(_)) {
+        return;
+    }
+    let base = change
+        .existing_content
+        .clone()
+        .unwrap_or_else(|| change.new_content.clone());
+    let next = super::think_and_ship::with_claude_md_section(&base, vars);
+    match change.existing_content.as_deref() {
+        None => {
+            change.action = FileAction::Create;
+            change.new_content = next;
+        }
+        Some(existing) if existing == next => {
+            change.action = FileAction::Unchanged;
+            change.new_content = next;
+            change.diff = None;
+        }
+        Some(existing) => {
+            change.action = FileAction::Overwrite;
+            change.ownership = Ownership::Shared;
+            change.diff = Some(super::unified_diff("CLAUDE.md", existing, &next));
+            change.new_content = next;
+        }
+    }
+}
 
-    let gi_diff = if gi_action == FileAction::Overwrite {
-        existing_gi
-            .as_deref()
-            .map(|old| super::unified_diff(".gitignore", old, &gi_content))
-    } else {
-        None
-    };
-
-    previews.push(FilePreview {
-        path: ".gitignore".to_string(),
-        action: gi_action,
-        new_content: gi_content,
-        existing_content: existing_gi,
-        ownership_context: None,
-        diff: gi_diff,
-    });
-
-    previews.extend(codex);
-    Ok(ScaffoldPreview { files: previews })
+/// The `workbench.toml` seed as a planned change: none when the gates seed
+/// nothing, unchanged when the file already says everything, otherwise the
+/// body seeding writes.
+fn workbench_change(dir: &Path, vars: &HashMap<String, String>) -> Option<PlannedChange> {
+    let seed = super::WorkbenchSeed::from_template_vars(vars);
+    if seed.is_empty() {
+        return None;
+    }
+    match seed.plan(dir) {
+        (before, Some(body)) => Some(PlannedChange::merged("workbench.toml", before, body)),
+        (Some(before), None) => Some(PlannedChange::merged(
+            "workbench.toml",
+            Some(before.clone()),
+            before,
+        )),
+        (None, None) => None,
+    }
 }

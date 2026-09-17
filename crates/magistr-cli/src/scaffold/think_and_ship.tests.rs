@@ -1,5 +1,20 @@
 use super::*;
+use crate::error::{MagistrError, Result};
 use crate::scaffold::vars;
+use std::path::Path;
+
+/// Write or refresh the section of `<dir>/CLAUDE.md`, creating the file when
+/// there is none; answers whether the file changed.
+fn upsert_claude_md_section(dir: &Path, vars: &HashMap<String, String>) -> Result<bool> {
+    let path = dir.join("CLAUDE.md");
+    let existing = std::fs::read_to_string(&path).unwrap_or_default();
+    let next = with_claude_md_section(&existing, vars);
+    if next == existing {
+        return Ok(false);
+    }
+    std::fs::write(&path, next).map_err(|e| MagistrError::io(&path, e))?;
+    Ok(true)
+}
 
 fn rust_vars() -> HashMap<String, String> {
     vars([

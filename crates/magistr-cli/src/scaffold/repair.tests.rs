@@ -454,3 +454,149 @@ fn a_runtime_symlink_blocks_the_upgrade_without_writing_its_target() {
     assert_eq!(std::fs::read_to_string(sentinel).unwrap(), "outside policy");
     assert_eq!(std::fs::read_to_string(skill).unwrap(), old);
 }
+
+/// A Magistr source checkout (the workflow templates directory beside the
+/// project) for a repair: the checkout's own templates are what the owned
+/// workflow skills are rendered from.
+fn source_checkout(dir: &Path) {
+    use super::super::workflow_skills::{Host, WorkflowSkills};
+    let workflows = dir.join(super::super::canonical::WORKFLOW_TEMPLATES);
+    std::fs::create_dir_all(workflows.join("hosts")).unwrap();
+    for (name, _) in WorkflowSkills::workflow_paths(Host::Claude) {
+        std::fs::write(
+            workflows.join(format!("{name}.md")),
+            format!("# {name} ({{{{invoke}}}}{name}) — first edition\n"),
+        )
+        .unwrap();
+    }
+    std::fs::write(workflows.join("runtime.md"), "# runtime — first edition\n").unwrap();
+    std::fs::write(workflows.join("hosts/claude.md"), "claude adapter\n").unwrap();
+    std::fs::write(workflows.join("hosts/codex.md"), "codex adapter\n").unwrap();
+    std::fs::write(
+        dir.join("crates/magistr-cli/templates/skills/workbench-routing/SKILL.md"),
+        "# routing\n",
+    )
+    .unwrap_or_else(|_| {
+        std::fs::create_dir_all(dir.join("crates/magistr-cli/templates/skills/workbench-routing"))
+            .unwrap();
+        std::fs::write(
+            dir.join("crates/magistr-cli/templates/skills/workbench-routing/SKILL.md"),
+            "# routing\n",
+        )
+        .unwrap();
+    });
+}
+
+/// In Magistr's own checkout an installed binary older than the templates
+/// must not downgrade them: repair renders the live templates, follows a
+/// later edit without a rebuild, and is idempotent in between. A template
+/// that goes missing refuses its skill and never falls back to the
+/// embedded copy; ordinary projects (every other test here) keep the
+/// embedded upgrades.
+#[test]
+fn in_a_source_checkout_repair_follows_the_live_templates_and_refuses_missing_ones() {
+    let tmp = project();
+    let dir = tmp.path();
+    source_checkout(dir);
+    let skill = ".claude/skills/next/SKILL.md";
+    let runtime = ".claude/skills/craft/references/runtime.md";
+    // The runtime companion is upgraded only under recorded ownership (an
+    // unrecorded one counts as the user's); an earlier setup recorded it.
+    let mut manifest = super::super::manifest::ScaffoldManifest::new();
+    for path in [skill, runtime] {
+        let target = dir.join(path);
+        std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+        std::fs::write(&target, owned(path)).unwrap();
+        manifest.record(path, &owned(path));
+    }
+    manifest.save(dir).unwrap();
+
+    let first = plan(dir);
+    let planned = first.get(skill).unwrap();
+    assert_eq!(planned.action, FileAction::Overwrite);
+    assert_eq!(planned.ownership, Ownership::Canonical);
+    assert_eq!(planned.new_content, "# next (/next) — first edition\n");
+    let repaired = repair(dir);
+    assert!(repaired.contains(&skill.to_owned()), "{repaired:?}");
+    assert!(repaired.contains(&runtime.to_owned()), "{repaired:?}");
+    assert_eq!(
+        std::fs::read_to_string(dir.join(skill)).unwrap(),
+        "# next (/next) — first edition\n"
+    );
+    assert!(
+        std::fs::read_to_string(dir.join(runtime))
+            .unwrap()
+            .ends_with("claude adapter\n")
+    );
+    assert!(repair(dir).is_empty(), "idempotent once converged");
+
+    // A second edition, and no rebuild in between.
+    let templates = dir.join(super::super::canonical::WORKFLOW_TEMPLATES);
+    std::fs::write(
+        templates.join("next.md"),
+        "# next ({{invoke}}next) — second edition\n",
+    )
+    .unwrap();
+    assert_eq!(repair(dir), vec![skill.to_owned()]);
+    assert_eq!(
+        std::fs::read_to_string(dir.join(skill)).unwrap(),
+        "# next (/next) — second edition\n"
+    );
+    assert!(repair(dir).is_empty());
+
+    // The template disappears: the skill is refused, kept as it is, and the
+    // binary's embedded copy is not written in its place.
+    std::fs::remove_file(templates.join("next.md")).unwrap();
+    let after = plan(dir);
+    let refused = after.get(skill).unwrap();
+    assert!(
+        matches!(
+            &refused.action,
+            FileAction::Refused(Refusal::CanonicalUnavailable { source, .. })
+                if source.ends_with("workflows/next.md")
+        ),
+        "{:?}",
+        refused.action
+    );
+    assert!(repair(dir).is_empty());
+    assert_eq!(
+        std::fs::read_to_string(dir.join(skill)).unwrap(),
+        "# next (/next) — second edition\n"
+    );
+    assert_ne!(
+        std::fs::read_to_string(dir.join(skill)).unwrap(),
+        owned(skill),
+        "no stale embedded fallback"
+    );
+}
+
+/// The repair plan lists a deleted runtime as preserved (not recreated)
+/// and the skills that depend on it as refused, so a reviewer sees why an
+/// upgrade did not happen.
+#[test]
+fn the_repair_plan_shows_a_deleted_runtime_and_the_upgrades_it_blocks() {
+    let tmp = project();
+    let mut manifest = legacy_workflow(tmp.path());
+    let runtime = ".claude/skills/craft/references/runtime.md";
+    manifest.record(runtime, &owned(runtime));
+    manifest.save(tmp.path()).unwrap();
+
+    let listed = plan(tmp.path());
+    assert_eq!(listed.operation, AdminOperation::Repair);
+    let deleted = listed.get(runtime).unwrap();
+    assert_eq!(deleted.action, FileAction::Preserved);
+    assert_eq!(
+        deleted.reason().as_deref(),
+        Some("removed by the user; not recreated")
+    );
+    let skill = listed.get(".claude/skills/next/SKILL.md").unwrap();
+    assert!(
+        matches!(
+            &skill.action,
+            FileAction::Refused(Refusal::MissingDependency { dependency }) if dependency == runtime
+        ),
+        "{:?}",
+        skill.action
+    );
+    assert!(repair(tmp.path()).is_empty());
+}

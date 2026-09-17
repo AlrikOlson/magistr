@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::error::Result;
 
-use super::ScaffoldPreview;
+use super::ChangePlan;
 
 /// Generates scaffold files for a project.
 ///
@@ -32,7 +32,7 @@ pub trait Scaffolder: Send + Sync {
         dir: &Path,
         template_vars: &HashMap<String, String>,
         generated_overrides: &HashMap<String, String>,
-    ) -> Result<ScaffoldPreview>;
+    ) -> Result<ChangePlan>;
 }
 
 #[cfg(test)]

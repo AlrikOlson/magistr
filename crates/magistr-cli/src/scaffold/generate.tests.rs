@@ -70,6 +70,8 @@ fn assert_preview_outcomes(
             FileAction::Overwrite => &result.updated,
             FileAction::Unchanged => &result.unchanged,
             FileAction::Preserved => &result.preserved,
+            FileAction::Remove => &result.removed,
+            FileAction::Refused(_) => &result.refused,
         };
         assert!(paths.iter().any(|p| p == path), "{path}: {result:?}");
         let entry = preview.files.iter().find(|f| f.path == *path).unwrap();
@@ -222,10 +224,17 @@ fn reinit_skips_unchanged_files() {
         "most files should be unchanged: {:?}",
         result.unchanged
     );
-    // CLAUDE.md is NeverOverwrite → preserved
+    // CLAUDE.md is the user's file; its think-and-ship section is already
+    // current, so the plan lists it as unchanged rather than rewriting it.
     assert!(
-        result.preserved.contains(&"CLAUDE.md".to_string()),
-        "CLAUDE.md should be preserved"
+        result.unchanged.contains(&"CLAUDE.md".to_string()),
+        "CLAUDE.md should be unchanged: {result:?}"
+    );
+    assert!(
+        result
+            .preserved
+            .contains(&".magistr/project.json".to_string()),
+        "project.json is never overwritten"
     );
 }
 
@@ -368,6 +377,8 @@ fn generate_result_written_returns_created_plus_updated() {
         updated: vec!["b.md".to_string()],
         unchanged: vec!["c.md".to_string()],
         preserved: vec!["d.md".to_string()],
+        removed: Vec::new(),
+        refused: Vec::new(),
     };
 
     let written = result.written();
@@ -390,10 +401,136 @@ fn reinit_never_overwrites_claude_md() {
 
     let result = generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
 
-    assert!(result.preserved.contains(&"CLAUDE.md".to_string()));
+    // The plan says what happens: the user's document is merged with the
+    // section, so it is reported as updated, never as preserved-and-then-
+    // rewritten behind the preview's back.
+    assert!(result.updated.contains(&"CLAUDE.md".to_string()));
     let content = std::fs::read_to_string(&claude_path).unwrap();
     // The user's text is kept verbatim; only the marked think-and-ship
     // section is (re)appended after it.
     assert!(content.starts_with("# User's custom CLAUDE.md\n\n<!-- think-and-ship -->"));
     assert_ne!(content, original);
+}
+
+/// The plan is what generation executes: every applied change lands with
+/// the planned bytes, every removal is gone, and a second plan over the
+/// result has nothing left to apply. Exercised on a project that carries
+/// everything setup merges or retires: a retired rule file, a retired MCP
+/// server, a user `.gitignore`, a `CLAUDE.md` without its section and a
+/// `workbench.toml` without a confirm mode.
+#[test]
+fn the_setup_plan_is_what_generation_writes() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let dir = tmp.path();
+    let vars = test_vars();
+    std::fs::create_dir_all(dir.join(".claude/rules")).unwrap();
+    std::fs::write(dir.join(".claude/rules/ministr-scope.md"), "retired\n").unwrap();
+    std::fs::write(
+        dir.join(".mcp.json"),
+        r#"{"mcpServers":{"think-and-ship":{"command":"think-and-ship"},"mine":{"command":"mine"}}}"#,
+    )
+    .unwrap();
+    std::fs::write(dir.join(".gitignore"), "mine/\n").unwrap();
+    std::fs::write(dir.join("CLAUDE.md"), "# Ours\n").unwrap();
+    std::fs::write(
+        dir.join("workbench.toml"),
+        "[commands]\n\"test\" = \"cargo test\"\n",
+    )
+    .unwrap();
+
+    let plan = super::super::preview(dir, &vars, &HashMap::new()).unwrap();
+    assert_eq!(plan.operation, super::super::AdminOperation::Setup);
+    assert_eq!(plan.refusals(), 0, "{:?}", plan.refused());
+    let rule = plan.get(".claude/rules/ministr-scope.md").unwrap();
+    assert_eq!(rule.action, super::super::FileAction::Remove);
+    let mcp = plan.get(".mcp.json").unwrap();
+    assert_eq!(mcp.action, super::super::FileAction::Overwrite);
+    assert_eq!(mcp.ownership, super::super::Ownership::Shared);
+    assert!(
+        !mcp.new_content.contains("think-and-ship"),
+        "retired server stripped in the plan"
+    );
+    assert!(mcp.new_content.contains("\"mine\""), "user entry kept");
+    let gitignore = plan.get(".gitignore").unwrap();
+    assert_eq!(gitignore.action, super::super::FileAction::Overwrite);
+    assert!(gitignore.new_content.starts_with("mine/\n"));
+    let claude = plan.get("CLAUDE.md").unwrap();
+    assert_eq!(claude.action, super::super::FileAction::Overwrite);
+    assert!(
+        claude
+            .new_content
+            .starts_with("# Ours\n\n<!-- think-and-ship -->")
+    );
+    let workbench = plan.get("workbench.toml").unwrap();
+    assert_eq!(workbench.action, super::super::FileAction::Overwrite);
+    assert!(workbench.new_content.contains("confirm_mode = \"token\""));
+    assert!(
+        workbench
+            .new_content
+            .starts_with("[commands]\n\"test\" = \"cargo test\"\n")
+    );
+    for f in &plan.files {
+        assert_eq!(
+            f.expected(),
+            super::super::Expected::of(f.existing_content.as_deref())
+        );
+    }
+
+    let result = generate_with_result(dir, &vars, &HashMap::new()).unwrap();
+    assert!(result.refused.is_empty());
+    assert_eq!(result.removed, vec![".claude/rules/ministr-scope.md"]);
+    assert!(!dir.join(".claude/rules/ministr-scope.md").exists());
+    for f in plan.applied() {
+        if f.action == super::super::FileAction::Remove {
+            continue;
+        }
+        assert_eq!(
+            std::fs::read_to_string(dir.join(&f.path)).unwrap(),
+            f.new_content,
+            "{} lands exactly as planned",
+            f.path
+        );
+        let bucket = if f.existing_content.is_some() {
+            &result.updated
+        } else {
+            &result.created
+        };
+        assert!(bucket.contains(&f.path), "{}: {result:?}", f.path);
+    }
+
+    let again = super::super::preview(dir, &vars, &HashMap::new()).unwrap();
+    assert_eq!(
+        again.applies(),
+        0,
+        "{:?}",
+        again.applied().collect::<Vec<_>>()
+    );
+    assert_eq!(again.refusals(), 0);
+    assert_eq!(
+        again.get("CLAUDE.md").unwrap().action,
+        super::super::FileAction::Unchanged
+    );
+}
+
+/// A directory (or anything that is not a regular file) at a scaffold path
+/// is refused in the plan and left alone by generation; the rest of the
+/// scaffold still lands and the result says what was refused.
+#[test]
+fn a_directory_at_a_scaffold_path_is_refused_not_overwritten() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let dir = tmp.path();
+    std::fs::create_dir_all(dir.join(".claude/rules/tools.md")).unwrap();
+    let plan = super::super::preview(dir, &test_vars(), &HashMap::new()).unwrap();
+    let tools = plan.get(".claude/rules/tools.md").unwrap();
+    assert_eq!(
+        tools.action,
+        super::super::FileAction::Refused(super::super::Refusal::NotRegularFile)
+    );
+    assert_eq!(plan.refusals(), 1);
+
+    let result = generate_with_result(dir, &test_vars(), &HashMap::new()).unwrap();
+    assert_eq!(result.refused, vec![".claude/rules/tools.md"]);
+    assert!(dir.join(".claude/rules/tools.md").is_dir());
+    assert!(dir.join(".claude/rules/workflow.md").is_file());
+    assert!(dir.join(".magistr/project.json").is_file());
 }

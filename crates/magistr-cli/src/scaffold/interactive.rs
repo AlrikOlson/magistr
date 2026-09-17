@@ -7,7 +7,7 @@
 use std::io::{BufRead, Write};
 use std::path::Path;
 
-use super::{FileAction, FilePreview, ScaffoldPreview};
+use super::{ChangePlan, FileAction, PlannedChange};
 use crate::error::Result;
 use crate::utils::format as fmt;
 
@@ -38,7 +38,7 @@ pub(crate) struct ApprovalResult {
 
 impl ApprovalResult {
     /// Get references to the approved file previews.
-    pub fn approved_files<'a>(&self, preview: &'a ScaffoldPreview) -> Vec<&'a FilePreview> {
+    pub fn approved_files<'a>(&self, preview: &'a ChangePlan) -> Vec<&'a PlannedChange> {
         self.approved_indices
             .iter()
             .map(|&i| &preview.files[i])
@@ -71,13 +71,15 @@ pub(crate) fn format_action_badge(action: &FileAction) -> String {
     match action {
         FileAction::Create => fmt::green("[CREATE]"),
         FileAction::Overwrite => fmt::yellow("[OVERWRITE]"),
+        FileAction::Remove => fmt::red("[REMOVE]"),
         FileAction::Unchanged => fmt::dim("[UNCHANGED]"),
         FileAction::Preserved => fmt::cyan("[PRESERVED]"),
+        FileAction::Refused(_) => fmt::red("[REFUSED]"),
     }
 }
 
 /// Format the file header line for the approval prompt.
-pub(crate) fn format_file_header(index: usize, total: usize, file: &FilePreview) -> String {
+pub(crate) fn format_file_header(index: usize, total: usize, file: &PlannedChange) -> String {
     format!(
         "{} {} {}",
         fmt::bold(&format!("[{}/{}]", index + 1, total)),
@@ -87,7 +89,7 @@ pub(crate) fn format_file_header(index: usize, total: usize, file: &FilePreview)
 }
 
 /// Print detailed view of a file (existing content, new content, diff).
-pub(crate) fn print_file_detail<W: Write>(w: &mut W, file: &FilePreview) -> std::io::Result<()> {
+pub(crate) fn print_file_detail<W: Write>(w: &mut W, file: &PlannedChange) -> std::io::Result<()> {
     // Show existing content if present
     if let Some(ref existing) = file.existing_content {
         writeln!(w, "\n{}", fmt::bold("── Existing content ──"))?;
@@ -152,7 +154,7 @@ pub(crate) fn print_file_detail<W: Write>(w: &mut W, file: &FilePreview) -> std:
 /// Only actionable files (Create, Overwrite) are prompted. Unchanged
 /// and Preserved files are shown as informational and auto-skipped.
 pub(crate) fn interactive_approve<R: BufRead, W: Write>(
-    preview: &ScaffoldPreview,
+    preview: &ChangePlan,
     reader: &mut R,
     writer: &mut W,
 ) -> Result<ApprovalResult> {
@@ -178,7 +180,9 @@ pub(crate) fn interactive_approve<R: BufRead, W: Write>(
     .ok();
 
     for (i, file) in preview.files.iter().enumerate() {
-        // Auto-skip non-actionable files with a status line
+        // Auto-skip non-actionable files with a status line. A removal is
+        // never approved file by file: selective apply writes approved
+        // content and leaves deletions to the operation that planned them.
         match file.action {
             FileAction::Unchanged => {
                 writeln!(writer, "{}", format_file_header(i, total, file)).ok();
@@ -187,7 +191,25 @@ pub(crate) fn interactive_approve<R: BufRead, W: Write>(
             }
             FileAction::Preserved => {
                 writeln!(writer, "{}", format_file_header(i, total, file)).ok();
-                writeln!(writer, "  {}", fmt::dim("→ skipped (user file preserved)")).ok();
+                writeln!(
+                    writer,
+                    "  {}",
+                    fmt::dim(&format!(
+                        "→ skipped ({} preserved)",
+                        file.reason().unwrap_or_default()
+                    ))
+                )
+                .ok();
+                continue;
+            }
+            FileAction::Refused(ref refusal) => {
+                writeln!(writer, "{}", format_file_header(i, total, file)).ok();
+                writeln!(writer, "  {}", fmt::red(&format!("→ refused ({refusal})"))).ok();
+                continue;
+            }
+            FileAction::Remove => {
+                writeln!(writer, "{}", format_file_header(i, total, file)).ok();
+                writeln!(writer, "  {}", fmt::dim("→ not selectable here")).ok();
                 continue;
             }
             FileAction::Create | FileAction::Overwrite => {}
@@ -225,9 +247,7 @@ pub(crate) fn interactive_approve<R: BufRead, W: Write>(
                     // Approve all remaining actionable files
                     for j in (i + 1)..total {
                         let remaining = &preview.files[j];
-                        if remaining.action == FileAction::Create
-                            || remaining.action == FileAction::Overwrite
-                        {
+                        if matches!(remaining.action, FileAction::Create | FileAction::Overwrite) {
                             approved.push(j);
                         }
                     }
@@ -272,7 +292,7 @@ pub(crate) fn interactive_approve<R: BufRead, W: Write>(
 /// Run the full interactive approval flow: prompt user, then apply approved files.
 ///
 /// This is the main entry point called from `cmd_init_dry_run` when on a TTY.
-pub(crate) fn run_interactive(preview: &ScaffoldPreview, dir: &Path) -> Result<Vec<String>> {
+pub(crate) fn run_interactive(preview: &ChangePlan, dir: &Path) -> Result<Vec<String>> {
     let stdin = std::io::stdin();
     let mut reader = stdin.lock();
     let mut writer = std::io::stderr();
