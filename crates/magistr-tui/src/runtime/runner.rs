@@ -8,12 +8,12 @@ use super::driver::Driver;
 use super::error::RuntimeError;
 use super::options::Options;
 use crate::graphics::{Decision, Probe};
+use crate::input::{Decoder, Event};
 use crate::pixel::{Compression, IdSpace};
 use crate::render::Screen;
 use crate::term::{InputEvent, InputThread, PanicHook, Session, Terminal, TerminalInput};
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::cockpit::{Cmd, Model, Msg, update};
-use magistr_cockpit::input::{Decoder, Event};
 
 /// The cockpit's driver over a [`Terminal`].
 ///

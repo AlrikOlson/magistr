@@ -64,10 +64,10 @@ fn captures_use_reported_terminal_pixels_instead_of_default_cells() {
     let mut model = Model::new(Size::new(20, 8));
     update(
         &mut model,
-        Msg::Reply(magistr_cockpit::input::Reply::CellPixels {
+        Msg::CellSize(Some(magistr_cockpit::pixel::CellSize {
             width: 13,
             height: 29,
-        }),
+        })),
     );
     let shot = Preview::frame(&model, &FrameClock::new(0, Duration::ZERO), |_, _| {
         Node::column()

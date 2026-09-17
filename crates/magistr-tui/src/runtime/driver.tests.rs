@@ -293,3 +293,96 @@ fn flat_and_reduced_motion_do_not_request_interpolated_frames() {
     assert!(!reduced.interpolates());
     assert!(!reduced.scheduler.is_animating());
 }
+
+#[test]
+fn terminal_replies_reach_the_model_as_capabilities_without_commands_or_input() {
+    use crate::input::Decoder;
+    use magistr_cockpit::render::Color;
+    let (commands, mut receiver) = tokio::sync::mpsc::unbounded_channel();
+    let mut driver = Driver::new(
+        Model::new(Size::new(80, 24)),
+        Screen::new(80, 24),
+        commands,
+        None,
+        false,
+        false,
+    );
+    let mut decoder = Decoder::new();
+    for byte in b"\x1b]11;#eff1f5\x07\x1b[?3u\x1b[4;480;800t" {
+        let mut events = Vec::new();
+        decoder.feed(&[*byte], &mut events);
+        for event in events {
+            driver.event(InputEvent::Event(event));
+        }
+    }
+    assert_eq!(driver.model.background(), Some(Color::Rgb(239, 241, 245)));
+    assert_eq!(
+        driver.model.theme().mode(),
+        magistr_cockpit::theme::ThemeMode::Light
+    );
+    assert!(driver.model.reports_key_releases());
+    assert_eq!(driver.model.cell_pixels(), Some((10, 20)));
+    assert_eq!(driver.model.turn().cell_size(), driver.model.cell_size());
+    assert_eq!(driver.model.inputs(), 0);
+    assert!(driver.model.prompt().is_empty());
+    assert!(driver.model.recent().next().is_none());
+    assert!(
+        receiver.try_recv().is_err(),
+        "query replies cannot request effects"
+    );
+}
+
+#[test]
+fn resize_recomputes_window_fallback_but_preserves_a_direct_measurement() {
+    use crate::input::Reply;
+    let mut driver = driver(Model::new(Size::new(80, 24)), false);
+    driver.event(InputEvent::Event(Event::Reply(Reply::WindowPixels {
+        width: 800,
+        height: 480,
+    })));
+    assert_eq!(driver.model.cell_pixels(), Some((10, 20)));
+    driver.event(InputEvent::Resize(Size::new(160, 48)));
+    assert_eq!(driver.model.cell_pixels(), Some((5, 10)));
+    assert_eq!(driver.model.turn().cell_size(), driver.model.cell_size());
+    driver.event(InputEvent::Event(Event::Reply(Reply::CellPixels {
+        width: 9,
+        height: 18,
+    })));
+    driver.event(InputEvent::Resize(Size::new(80, 24)));
+    assert_eq!(driver.model.cell_pixels(), Some((9, 18)));
+    driver.event(InputEvent::Event(Event::Reply(Reply::WindowPixels {
+        width: 1600,
+        height: 960,
+    })));
+    assert_eq!(driver.model.cell_pixels(), Some((9, 18)));
+    driver.event(InputEvent::Event(Event::Reply(Reply::CellPixels {
+        width: 0,
+        height: 18,
+    })));
+    assert_eq!(
+        driver.model.cell_pixels(),
+        None,
+        "an invalid direct reply retains precedence"
+    );
+    assert_eq!(
+        driver.model.cell_size(),
+        magistr_cockpit::pixel::CellSize::DEFAULT
+    );
+}
+
+#[test]
+fn keyboard_flags_are_interpreted_only_by_the_terminal_runtime() {
+    use crate::input::Reply;
+    let mut driver = driver(Model::new(Size::new(80, 24)), false);
+    for (flags, reports) in [
+        (0, false),
+        (1, false),
+        (2, true),
+        (3, true),
+        (255, true),
+        (1, false),
+    ] {
+        driver.event(InputEvent::Event(Event::Reply(Reply::KeyboardFlags(flags))));
+        assert_eq!(driver.model.reports_key_releases(), reports);
+    }
+}

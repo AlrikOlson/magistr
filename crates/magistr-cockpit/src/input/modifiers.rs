@@ -3,10 +3,6 @@
 use std::ops::BitOr;
 
 /// A set of modifier keys: shift, alt, ctrl, super.
-///
-/// The kitty keyboard protocol also reports hyper, meta and the lock keys;
-/// those are dropped on decode so a key binding never depends on
-/// caps-lock state.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Modifiers(u8);
 
@@ -21,32 +17,6 @@ impl Modifiers {
     pub const CTRL: Self = Self(4);
     /// Super (command, windows).
     pub const SUPER: Self = Self(8);
-
-    /// The set encoded by the kitty modifier field (`1 + bits`; hyper,
-    /// meta and lock bits are dropped). `0` and `1` both mean none.
-    #[must_use]
-    pub const fn from_kitty(field: u32) -> Self {
-        let bits = field.saturating_sub(1) & 0x0f;
-        // Masked to four bits above, so the narrowing is exact.
-        Self(bits as u8)
-    }
-
-    /// The set encoded in an SGR mouse button value (shift 4, alt 8,
-    /// ctrl 16).
-    #[must_use]
-    pub const fn from_sgr(button: u32) -> Self {
-        let mut bits = 0;
-        if button & 4 != 0 {
-            bits |= Self::SHIFT.0;
-        }
-        if button & 8 != 0 {
-            bits |= Self::ALT.0;
-        }
-        if button & 16 != 0 {
-            bits |= Self::CTRL.0;
-        }
-        Self(bits)
-    }
 
     /// Both sets held at once — `BitOr` in a `const` — so a chord
     /// with two modifiers can be a registry constant.

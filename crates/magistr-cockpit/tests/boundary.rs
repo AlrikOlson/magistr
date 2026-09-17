@@ -37,6 +37,10 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
 fn terminal_names() -> Vec<String> {
     [
         ["Protocol", "::"],
+        ["Msg::", "Reply"],
+        ["fn ", "from_kitty"],
+        ["fn ", "from_sgr"],
+        ["fn ", "keyboard_flags"],
         ["Passthrough", "::"],
         ["Kitty", "("],
         ["Sixel", "Compositor"],

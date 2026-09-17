@@ -29,7 +29,6 @@ const CLEAR: &[u8] = b"\x1b[2J";
 #[tokio::test]
 async fn pixel_mouse_submits_at_drawn_bounds_for_varied_metrics_and_resize() {
     use magistr_cockpit::cockpit::Cmd;
-    use magistr_cockpit::input::Reply;
     use magistr_tui::screenshot::{Profile, layout};
     for (width, height) in [(7, 17), (13, 29), (20, 40)] {
         let initial = Size::new(100, 40);
@@ -37,7 +36,7 @@ async fn pixel_mouse_submits_at_drawn_bounds_for_varied_metrics_and_resize() {
         let mut expected = Model::new(resized);
         update(
             &mut expected,
-            Msg::Reply(Reply::CellPixels { width, height }),
+            Msg::CellSize(Some(magistr_cockpit::pixel::CellSize { width, height })),
         );
         update(&mut expected, Msg::Paste("Check Harbor".into()));
         let resolved = layout(
@@ -285,7 +284,6 @@ async fn an_early_loop_stop_survives_graphics_startup_with_its_reason_and_draft(
 async fn physical_roadmap_click_and_zoom_reach_the_live_graph_after_resize() {
     use magistr_cockpit::cockpit::{FlightRoadmapGraph, Selected, StageTab};
     use magistr_cockpit::harness::Scenes;
-    use magistr_cockpit::input::Reply;
     use magistr_tui::screenshot::{Profile, layout};
     for (width, height) in [(10, 20), (13, 29)] {
         let initial = Size::new(120, 40);
@@ -299,7 +297,7 @@ async fn physical_roadmap_click_and_zoom_reach_the_live_graph_after_resize() {
         );
         update(
             &mut expected,
-            Msg::Reply(Reply::CellPixels { width, height }),
+            Msg::CellSize(Some(magistr_cockpit::pixel::CellSize { width, height })),
         );
         let placed = layout(
             &expected,
@@ -718,7 +716,7 @@ async fn fifty_keys_and_twenty_clicks_reach_the_model_in_order_with_the_right_ta
     assert!(targets.len() >= 7, "{targets:?}");
 
     // The startup replies reached the model.
-    assert_eq!(model.keyboard_flags(), Some(3));
+    assert!(model.reports_key_releases());
     assert_eq!(model.cell_pixels(), Some((10, 20)));
     assert!(model.background().is_some());
 
@@ -1167,7 +1165,7 @@ async fn a_closed_input_ends_the_run_and_a_plain_terminal_gets_no_graphics() {
     .await;
     assert!(!model.quit_requested());
     assert_eq!(model.inputs(), 1);
-    assert_eq!(model.keyboard_flags(), None);
+    assert!(!model.reports_key_releases());
     let bytes = capture.bytes();
     assert!(bytes.ends_with(&leave_sequence()));
     assert_eq!(

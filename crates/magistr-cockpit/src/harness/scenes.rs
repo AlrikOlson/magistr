@@ -180,10 +180,9 @@ impl Scenes {
     /// part-way red from the left.
     pub fn terminal_kill(size: Size) -> Model {
         use crate::cockpit::TermHold;
-        use crate::input::Reply;
         let mut m = Self::terminal_pane(size);
         Self::settle(&mut m);
-        update(&mut m, Msg::Reply(Reply::KeyboardFlags(3)));
+        update(&mut m, Msg::KeyReleases(true));
         update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Char('k'))));
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let dead = TermHold::DEAD.ceil() as usize;

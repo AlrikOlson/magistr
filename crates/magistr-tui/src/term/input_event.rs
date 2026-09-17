@@ -1,7 +1,7 @@
 //! What the input thread sends the runtime.
 
+use crate::input::Event;
 use magistr_cockpit::cockpit::Size;
-use magistr_cockpit::input::Event;
 
 /// One item on the input thread's channel.
 #[derive(Clone, Debug, PartialEq, Eq)]

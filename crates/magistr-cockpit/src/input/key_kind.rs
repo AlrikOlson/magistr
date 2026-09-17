@@ -1,7 +1,6 @@
 //! Press, repeat or release.
 
-/// The event type of a key report. Legacy encodings only ever report a
-/// press; the kitty protocol (with event types enabled) reports all three.
+/// Whether a key was pressed, repeated while held, or released.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum KeyKind {
     /// The key went down.

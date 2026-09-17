@@ -1,7 +1,7 @@
 //! Resizing through raw terminal reports and the production renderer/hit registry.
 use magistr_cockpit::capability::Mode;
 use magistr_cockpit::cockpit::{Cmd, FrameClock, Model, Msg, Size, StageTab, Widget, update};
-use magistr_cockpit::input::{Button, MouseEvent, MouseKind, Reply};
+use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
 use magistr_cockpit::theme::{MotionMode, Theme, ThemeMode};
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{FakeTerminal, Script};
@@ -28,10 +28,10 @@ fn prepared(widget: Widget, cell: (u16, u16)) -> Model {
     );
     update(
         &mut m,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(magistr_cockpit::pixel::CellSize {
             width: cell.0,
             height: cell.1,
-        }),
+        })),
     );
     if widget == Widget::PanelReasoning {
         update(

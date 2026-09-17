@@ -150,7 +150,7 @@ use crate::cockpit::{
     Eased, HoverRole, Motion, Msg, ShipRun, Size, TurnState, WorkbenchEvent, update,
 };
 use crate::harness::Scenes;
-use crate::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind, Reply};
+use crate::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use crate::layout::{LayoutTree, Resolved};
 use crate::render::paint;
 use crate::render::{Buffer, Color, Style, Underline};
@@ -350,10 +350,10 @@ fn page_model(size: Size, cell_width: u16, cell_height: u16) -> Model {
     );
     update(
         &mut model,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: cell_width,
             height: cell_height,
-        }),
+        })),
     );
     update(
         &mut model,
@@ -856,14 +856,14 @@ fn the_stage_rect_is_the_geometry_the_model_pages_and_wraps_by() {
 #[test]
 fn the_header_names_the_turn_state_and_the_diagnostics_hide_behind_debug() {
     let replies = |m: &mut Model| {
-        update(m, Msg::Reply(Reply::Background(Color::Rgb(30, 30, 46))));
-        update(m, Msg::Reply(Reply::KeyboardFlags(3)));
+        update(m, Msg::Background(Color::Rgb(30, 30, 46)));
+        update(m, Msg::KeyReleases(true));
         update(
             m,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: 10,
                 height: 20,
-            }),
+            })),
         );
     };
     let mut m = model();
@@ -902,7 +902,9 @@ fn the_header_names_the_turn_state_and_the_diagnostics_hide_behind_debug() {
     assert_eq!(lines[3], "80×24 · frame 17 · 00:03");
     assert_eq!(
         lines.last().map(String::as_str),
-        Some("focus yes · theme dark · background #1e1e2e · keyboard kitty 3 · cell 10×20px")
+        Some(
+            "focus yes · theme dark · background #1e1e2e · keyboard press and release · cell 10×20px"
+        )
     );
     assert_eq!(
         &lines[lines.len() - 7..lines.len() - 1],
@@ -1085,7 +1087,7 @@ fn an_empty_stage_says_so_and_unknown_replies_read_as_such_in_debug() {
     texts(&view(&model().with_debug(true), &clock()), &mut lines);
     assert_eq!(
         lines.last().map(String::as_str),
-        Some("focus yes · theme dark · background unknown · keyboard legacy")
+        Some("focus yes · theme dark · background unknown · keyboard press only")
     );
 }
 

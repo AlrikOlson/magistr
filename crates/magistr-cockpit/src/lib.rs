@@ -53,7 +53,7 @@ pub mod shelf;
 pub mod theme;
 pub mod turn;
 pub mod widget_id;
-pub mod wire;
+
 pub mod workbench;
 
 pub use widget_id::WidgetId;

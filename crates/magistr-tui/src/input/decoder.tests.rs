@@ -487,3 +487,31 @@ proptest! {
         let _ = decode(&bytes);
     }
 }
+
+#[test]
+fn kitty_field_is_one_plus_bits() {
+    assert_eq!(kitty_modifiers(1), Modifiers::NONE);
+    assert_eq!(kitty_modifiers(0), Modifiers::NONE);
+    assert_eq!(kitty_modifiers(2), Modifiers::SHIFT);
+    assert_eq!(kitty_modifiers(5), Modifiers::CTRL);
+    assert_eq!(kitty_modifiers(6), Modifiers::SHIFT | Modifiers::CTRL);
+    assert_eq!(kitty_modifiers(9), Modifiers::SUPER);
+}
+
+#[test]
+fn kitty_lock_and_hyper_bits_are_dropped() {
+    assert_eq!(kitty_modifiers(1 + 64 + 128), Modifiers::NONE);
+    assert_eq!(kitty_modifiers(1 + 16 + 32 + 4), Modifiers::CTRL);
+}
+
+#[test]
+fn sgr_bits_map_shift_alt_ctrl() {
+    assert_eq!(sgr_modifiers(0), Modifiers::NONE);
+    assert_eq!(sgr_modifiers(4), Modifiers::SHIFT);
+    assert_eq!(sgr_modifiers(8), Modifiers::ALT);
+    assert_eq!(sgr_modifiers(16 + 32), Modifiers::CTRL);
+    assert_eq!(
+        sgr_modifiers(28),
+        Modifiers::SHIFT | Modifiers::ALT | Modifiers::CTRL
+    );
+}

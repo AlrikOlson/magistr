@@ -2,7 +2,7 @@ use super::*;
 use crate::cockpit::{Msg, Selected, Size, Surface, update};
 use crate::harness::fixtures;
 use crate::hit::HitRegistry;
-use crate::input::{Button, MouseEvent, MouseKind, Reply};
+use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree};
 use magistr_engine::NativeSnapshot;
 use serde_json::json;
@@ -36,10 +36,10 @@ fn every_drawn_point_resolves_to_its_work_after_resize_and_font_changes() {
         let mut model = model(true);
         update(
             &mut model,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: cell_width,
                 height: cell_height,
-            }),
+            })),
         );
         let graph_height = FlightRoadmap::graph_height(&model, 148.0);
         let mut typeface = Typography::default();

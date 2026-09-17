@@ -35,6 +35,7 @@ See [terminal architecture](../architecture/terminal.md) for the data flow and
 | the core never names a producer handle | `magistr-cockpit/tests/purity.rs` |
 | the producers spawn no process, open no database, write no file | `magistr-cockpit/tests/purity.rs` |
 | the theme reads the environment in exactly one place | `magistr-cockpit/tests/purity.rs` |
+| terminal bytes and neutral input share draft behavior; replies affect capabilities without input or effects; resizing preserves measurement precedence | `magistr-tui/tests/boundary.rs`, `magistr-tui/src/runtime/driver.tests.rs` |
 | the engines open before the terminal is taken over | `magistr-tui/tests/boundary.rs` |
 | terminal dependencies exclude the legacy GUI, with `deny(dead_code, unused)` enabled | `magistr-tui/tests/boundary.rs` |
 | no cockpit surface names a terminal protocol or the terminal crate, and the cockpit crate's root keeps `deny(dead_code, unused)` | `magistr-cockpit/tests/boundary.rs` |
@@ -340,22 +341,18 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/hit/mod.rs` | Mouse hit-testing: screen rects to widget ids | `magistr-cockpit/src/hit/registry.tests.rs` |
 | `magistr-cockpit/src/hit/registry.rs` | Which widget is under a cell | `magistr-cockpit/src/hit/registry.tests.rs` |
 
-### `input` — bytes to typed events
+### `input` — shared key and pointer values
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit/src/input/mod.rs` | Terminal input as typed events, decoded from bytes | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/button.rs` | A mouse button | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/csi.rs` | Splitting a CSI parameter string into numbers | `magistr-cockpit/src/input/csi.tests.rs` |
-| `magistr-cockpit/src/input/decoder.rs` | The incremental decoder: bytes in, events out, any fragmentation | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/event.rs` | One decoded input event | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/key_code.rs` | Which key | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/key_event.rs` | One key report | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/key_kind.rs` | Press, repeat or release | `magistr-cockpit/src/input/decoder.tests.rs` |
+| `magistr-cockpit/src/input/mod.rs` | Surface-neutral keys and pointer values | `magistr-tui/src/input/decoder.tests.rs` |
+| `magistr-cockpit/src/input/button.rs` | A mouse button | `magistr-tui/src/input/decoder.tests.rs` |
+| `magistr-cockpit/src/input/key_code.rs` | Which key | `magistr-tui/src/input/decoder.tests.rs` |
+| `magistr-cockpit/src/input/key_event.rs` | One key report | `magistr-tui/src/input/decoder.tests.rs` |
+| `magistr-cockpit/src/input/key_kind.rs` | Press, repeat or release | `magistr-tui/src/input/decoder.tests.rs` |
 | `magistr-cockpit/src/input/modifiers.rs` | Modifier keys held during a key or mouse event | `magistr-cockpit/src/input/modifiers.tests.rs` |
-| `magistr-cockpit/src/input/mouse_event.rs` | One mouse report | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/mouse_kind.rs` | What the mouse did | `magistr-cockpit/src/input/decoder.tests.rs` |
-| `magistr-cockpit/src/input/reply.rs` | The terminal's answers to the cockpit's startup queries | `magistr-cockpit/src/input/decoder.tests.rs` |
+| `magistr-cockpit/src/input/mouse_event.rs` | One mouse report | `magistr-tui/src/input/decoder.tests.rs` |
+| `magistr-cockpit/src/input/mouse_kind.rs` | What the mouse did | `magistr-tui/src/input/decoder.tests.rs` |
 
 ### `job` — work off the loop thread
 
@@ -475,13 +472,6 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/turn/pixel_wrap.rs` | Proportional paragraph wrapping with aligned code and output fallback | `magistr-cockpit/src/turn/stream.tests.rs` |
 | `magistr-cockpit/src/turn/wrap.rs` | From one source line to the rows it takes at a width | `magistr-cockpit/src/turn/wrap.tests.rs` |
 
-### `wire` — the escape-sequence walker
-
-| Module | Responsibility | Tests |
-| --- | --- | --- |
-| `magistr-cockpit/src/wire/mod.rs` | Escape-sequence parsing shared by graphics probes and input decoding | `magistr-cockpit/src/wire/sequence.tests.rs` |
-| `magistr-cockpit/src/wire/sequence.rs` | Finding one complete escape sequence at the head of a byte buffer | `magistr-cockpit/src/wire/sequence.tests.rs` |
-
 ### `workbench` — the journal model's port
 
 | Module | Responsibility | Tests |
@@ -552,6 +542,16 @@ test. The section headings separate the crates and their module families.
 | `magistr-tui/src/harness/step.rs` | One thing a scripted terminal does | the harnesses that drive it |
 | `magistr-tui/src/harness/timeline.rs` | Messages that arrive at chosen moments | `magistr-tui/src/harness/timeline.tests.rs` |
 
+### `input` — terminal bytes to typed events
+
+| Module | Responsibility | Tests |
+| --- | --- | --- |
+| `magistr-tui/src/input/mod.rs` | Terminal decoding facade | `magistr-tui/tests/boundary.rs` |
+| `magistr-tui/src/input/csi.rs` | Splitting a CSI parameter string into numbers | `magistr-tui/src/input/csi.tests.rs` |
+| `magistr-tui/src/input/decoder.rs` | The incremental decoder: bytes in, events out, any fragmentation | `magistr-tui/src/input/decoder.tests.rs` |
+| `magistr-tui/src/input/event.rs` | One decoded input event | `magistr-tui/src/input/decoder.tests.rs` |
+| `magistr-tui/src/input/reply.rs` | The terminal's answers to the cockpit's startup queries | `magistr-tui/src/input/decoder.tests.rs` |
+
 ### `pixel` — the compositors
 
 | Module | Responsibility | Tests |
@@ -582,7 +582,8 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-tui/src/runtime/mod.rs` | The runtime: the loop that drives the Elm core over a `Terminal` | `magistr-tui/tests/runtime_harness.rs` |
 | `magistr-tui/src/runtime/activity.rs` | What just happened, as far as the frame cadence cares | `magistr-tui/tests/runtime_harness.rs` |
-| `magistr-tui/src/runtime/driver.rs` | The event loop proper: fold events, paint on the tick | `magistr-tui/tests/runtime_harness.rs` |
+| `magistr-tui/src/runtime/driver.rs` | The event loop proper: fold events, paint on the tick | `magistr-tui/tests/runtime_harness.rs`, `magistr-tui/src/runtime/driver.tests.rs` |
+| `magistr-tui/src/runtime/terminal_replies.rs` | Resolve terminal queries into background, release support and measured cell size | `magistr-tui/src/runtime/terminal_replies.tests.rs`, `magistr-tui/src/runtime/driver.tests.rs` |
 | `magistr-tui/src/runtime/error.rs` | What can stop the runtime | `magistr-tui/src/runtime/error.tests.rs` |
 | `magistr-tui/src/runtime/options.rs` | How the runtime is configured | `magistr-tui/tests/runtime_harness.rs` |
 | `magistr-tui/src/runtime/runner.rs` | Taking the terminal over, running the loop, handing it back | `magistr-tui/tests/runtime_harness.rs` |
@@ -628,6 +629,13 @@ test. The section headings separate the crates and their module families.
 | `magistr-tui/src/term/unsupported.rs` | The process terminal where there is no tty the cockpit can drive (Windows): `RealTerminal::stdio` refuses with `Unsupported` before anything is painted | `magistr-tui/src/term/unsupported.tests.rs` |
 | `magistr-tui/src/term/unsupported_input.rs` | The input side of that terminal, never handed out | `magistr-tui/src/term/unsupported.tests.rs` |
 | `magistr-tui/src/term/winsize.rs` | The window size of a tty, as cells | `magistr-tui/tests/terminal_integrity.rs` |
+
+### `wire` — the escape-sequence walker
+
+| Module | Responsibility | Tests |
+| --- | --- | --- |
+| `magistr-tui/src/wire/mod.rs` | Escape-sequence parsing shared by graphics probes and input decoding | `magistr-tui/src/wire/sequence.tests.rs` |
+| `magistr-tui/src/wire/sequence.rs` | Finding one complete escape sequence at the head of a byte buffer | `magistr-tui/src/wire/sequence.tests.rs` |
 
 ## Additional test references
 

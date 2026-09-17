@@ -1,8 +1,8 @@
 //! One decoded input event.
 
-use super::key_event::KeyEvent;
-use super::mouse_event::MouseEvent;
 use super::reply::Reply;
+use magistr_cockpit::input::KeyEvent;
+use magistr_cockpit::input::MouseEvent;
 
 /// What the terminal reported.
 #[derive(Clone, Debug, PartialEq, Eq)]

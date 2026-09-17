@@ -22,7 +22,7 @@
 use super::kitty::Kitty;
 use super::passthrough::Passthrough;
 use super::probe_reply::ProbeReply;
-use magistr_cockpit::wire::next_sequence;
+use crate::wire::next_sequence;
 
 /// Cursor position report: the terminal answers `ESC [ row ; col R`.
 const CPR: &[u8] = b"\x1b[6n";

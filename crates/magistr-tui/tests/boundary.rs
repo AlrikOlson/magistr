@@ -4,6 +4,35 @@
 
 use std::path::{Path, PathBuf};
 
+/// Raw terminal bytes end at the terminal crate. Shared interaction can use
+/// the same decoded key and paste without importing a terminal protocol.
+#[test]
+fn terminal_bytes_and_neutral_input_edit_the_same_draft() {
+    use magistr_cockpit::cockpit::{Model, Msg, Size, update};
+    use magistr_cockpit::input::{KeyCode, KeyEvent};
+    use magistr_tui::input::{Decoder, Event};
+
+    let mut decoded = Model::new(Size::new(80, 24));
+    let mut neutral = decoded.clone();
+    let mut decoder = Decoder::new();
+    let mut events = Vec::new();
+    for byte in b"\x1b[200~hello\x1b[201~\x1b[33u" {
+        decoder.feed(&[*byte], &mut events);
+    }
+    for event in events {
+        let message = match event {
+            Event::Paste(text) => Msg::Paste(text),
+            Event::Key(key) => Msg::Key(key),
+            other => panic!("unexpected input: {other:?}"),
+        };
+        assert!(update(&mut decoded, message).is_empty());
+    }
+    assert!(update(&mut neutral, Msg::Paste("hello".into())).is_empty());
+    assert!(update(&mut neutral, Msg::Key(KeyEvent::new(KeyCode::Char('!')))).is_empty());
+    assert_eq!(decoded.prompt().text(), neutral.prompt().text());
+    assert_eq!(decoded.prompt().text(), "hello!");
+}
+
 fn crate_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }

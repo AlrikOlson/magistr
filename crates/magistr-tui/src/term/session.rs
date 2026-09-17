@@ -119,7 +119,7 @@ impl Session {
     }
 
     /// Append the startup queries whose replies the decoder reports as
-    /// [`Reply`](magistr_cockpit::input::Reply): the background colour (OSC 11),
+    /// [`Reply`](crate::input::Reply): the background colour (OSC 11),
     /// the kitty keyboard flags in effect (`CSI ? u`), one cell's size in
     /// pixels (`CSI 16 t`) and the text area's size in pixels
     /// (`CSI 14 t`, the fallback for terminals that ignore `16 t`).

@@ -78,7 +78,6 @@ fn click(model: &mut Model, widget: Widget) -> Vec<crate::cockpit::Cmd> {
 #[test]
 fn roadmap_request_pointer_multiline_send_and_stop_use_the_real_prompt_path() {
     use crate::cockpit::Cmd;
-    use crate::input::Reply;
     for (size, cell_width, cell_height) in [
         (Size::new(144, 50), 10, 20),
         (Size::new(128, 40), 10, 20),
@@ -89,10 +88,10 @@ fn roadmap_request_pointer_multiline_send_and_stop_use_the_real_prompt_path() {
         update(&mut model, Msg::Resize(size));
         update(
             &mut model,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: cell_width,
                 height: cell_height,
-            }),
+            })),
         );
         assert!(click(&mut model, Widget::RoadmapRequest).is_empty());
         assert_eq!(model.prompt().text(), "For “Save the retry schedule”, ");
@@ -196,7 +195,6 @@ fn requesting_a_change_preserves_existing_text_cursor_and_missing_work() {
 
 #[test]
 fn large_fonts_keep_the_full_action_and_file_control_inside_the_composer() {
-    use crate::input::Reply;
     use crate::layout::{Basis, LayoutTree};
     for (width, height, cell_width, cell_height) in [
         (1440.0, 1000.0, 10, 20),
@@ -206,10 +204,10 @@ fn large_fonts_keep_the_full_action_and_file_control_inside_the_composer() {
         let mut model = Model::new(Size::new(144, 50));
         update(
             &mut model,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: cell_width,
                 height: cell_height,
-            }),
+            })),
         );
         model.session.prompt.insert("Check the retry schedule");
         let extent = FlightComposer::height(&model, width, height);

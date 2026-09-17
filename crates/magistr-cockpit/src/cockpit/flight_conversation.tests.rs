@@ -26,7 +26,7 @@ fn events_received_before_graphics_stay_in_records_without_conversation_rows() {
 
 use crate::agent::{AgentEvent, ToolStatus, ToolVerb};
 use crate::cockpit::{Msg, Size, update};
-use crate::input::{Button, MouseEvent, MouseKind, Reply};
+use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree};
 use crate::pixel::{CellSize, Typography};
 
@@ -200,10 +200,10 @@ fn pinned_pixel_anchor_survives_streaming_resize_and_card_growth() {
     assert_eq!(model.stage_anchor(), Some(anchor));
     update(
         &mut model,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: 13,
             height: 29,
-        }),
+        })),
     );
     assert_eq!(model.stage_anchor(), Some(anchor));
     assert_eq!(model.cell_size(), CellSize::new(13, 29));
@@ -307,10 +307,10 @@ fn settled_following_starts_with_a_complete_source_row_at_large_metrics() {
     let mut model = model();
     update(
         &mut model,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: 12,
             height: 28,
-        }),
+        })),
     );
     for index in 0..30 {
         model

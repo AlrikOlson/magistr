@@ -1,17 +1,17 @@
 //! The incremental decoder: bytes in, events out, any fragmentation.
 
-use super::button::Button;
 use super::csi::Params;
 use super::event::Event;
-use super::key_code::KeyCode;
-use super::key_event::KeyEvent;
-use super::key_kind::KeyKind;
-use super::modifiers::Modifiers;
-use super::mouse_event::MouseEvent;
-use super::mouse_kind::MouseKind;
 use super::reply::Reply;
-use crate::render::Color;
 use crate::wire::next_sequence;
+use magistr_cockpit::input::Button;
+use magistr_cockpit::input::KeyCode;
+use magistr_cockpit::input::KeyEvent;
+use magistr_cockpit::input::KeyKind;
+use magistr_cockpit::input::Modifiers;
+use magistr_cockpit::input::MouseEvent;
+use magistr_cockpit::input::MouseKind;
+use magistr_cockpit::render::Color;
 
 const ESC: u8 = 0x1b;
 const PASTE_END: &[u8] = b"\x1b[201~";
@@ -191,7 +191,7 @@ fn decode_csi(params: &[u8], last: u8, out: &mut Vec<Event>) -> bool {
         return false;
     }
     let p = Params::parse(params);
-    let mods = Modifiers::from_kitty(p.get(1).unwrap_or(1));
+    let mods = kitty_modifiers(p.get(1).unwrap_or(1));
     let kind = key_kind(p.sub(1, 1));
     match last {
         b'~' => match p.get(0) {
@@ -222,6 +222,31 @@ fn decode_csi(params: &[u8], last: u8, out: &mut Vec<Event>) -> bool {
         }
     }
     false
+}
+
+/// Decode terminal modifier fields before constructing neutral modifiers.
+fn kitty_modifiers(field: u32) -> Modifiers {
+    let bits = field.saturating_sub(1);
+    [
+        (1, Modifiers::SHIFT),
+        (2, Modifiers::ALT),
+        (4, Modifiers::CTRL),
+        (8, Modifiers::SUPER),
+    ]
+    .into_iter()
+    .filter(|(bit, _)| bits & bit != 0)
+    .fold(Modifiers::NONE, |all, (_, modifier)| all | modifier)
+}
+
+fn sgr_modifiers(button: u32) -> Modifiers {
+    [
+        (4, Modifiers::SHIFT),
+        (8, Modifiers::ALT),
+        (16, Modifiers::CTRL),
+    ]
+    .into_iter()
+    .filter(|(bit, _)| button & bit != 0)
+    .fold(Modifiers::NONE, |all, (_, modifier)| all | modifier)
 }
 
 fn key_kind(field: Option<u32>) -> KeyKind {
@@ -358,7 +383,7 @@ fn decode_mouse(params: &[u8], last: u8, out: &mut Vec<Event>) {
     };
     let cell = |n: u32| u16::try_from(n.saturating_sub(1)).unwrap_or(u16::MAX);
     out.push(Event::Mouse(
-        MouseEvent::new(kind, cell(x), cell(y)).with(Modifiers::from_sgr(b)),
+        MouseEvent::new(kind, cell(x), cell(y)).with(sgr_modifiers(b)),
     ));
 }
 

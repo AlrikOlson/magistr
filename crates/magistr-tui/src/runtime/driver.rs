@@ -10,8 +10,10 @@ use super::error::RuntimeError;
 use super::osc52;
 use super::scheduler::FrameScheduler;
 use super::surfaces::Surfaces;
+use super::terminal_replies::TerminalReplies;
 use crate::flat::echo::Echo;
 use crate::flat::{FlatLine, Role, Transcript, plain};
+use crate::input::Event;
 use crate::render::Screen;
 use crate::term::{InputEvent, Terminal};
 use magistr_cockpit::cockpit::{
@@ -19,13 +21,13 @@ use magistr_cockpit::cockpit::{
     view,
 };
 use magistr_cockpit::hit::HitRegistry;
-use magistr_cockpit::input::Event;
 use magistr_cockpit::layout::{LayoutTree, Resolved};
 use magistr_cockpit::render::paint;
 
 /// Everything the loop owns between the startup window and the shutdown.
 pub(crate) struct Driver {
     pub(crate) model: Model,
+    replies: TerminalReplies,
     pub(crate) screen: Screen,
     tree: LayoutTree,
     hits: HitRegistry,
@@ -76,7 +78,9 @@ impl Driver {
         reports_progress: bool,
         flat: bool,
     ) -> Self {
+        let replies = TerminalReplies::new(model.cell_pixels());
         let mut driver = Self {
+            replies,
             model,
             screen,
             tree: LayoutTree::new(),
@@ -139,11 +143,16 @@ impl Driver {
                 self.apply(Msg::Focus(focused), Activity::Message);
             }
             InputEvent::Event(Event::Reply(reply)) => {
-                self.apply(Msg::Reply(reply), Activity::Message);
+                let message = self.replies.observe(reply, self.model.size());
+                self.apply(message, Activity::Message);
             }
             InputEvent::Resize(size) => {
                 self.screen.resize(size.cols, size.rows);
                 self.apply(Msg::Resize(size), Activity::Message);
+                self.apply(
+                    Msg::CellSize(self.replies.measured(size)),
+                    Activity::Message,
+                );
                 if self.model.has_pixels() {
                     // Font changes can alter both cells and physical pixels.
                     // Refresh the ruler used by layout and pointer conversion.
