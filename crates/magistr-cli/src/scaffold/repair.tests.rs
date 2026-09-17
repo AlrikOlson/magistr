@@ -196,6 +196,63 @@ fn repair_updates_reasoning_guidance_and_preserves_customized_files() {
 }
 
 #[test]
+fn repair_updates_iteration_recovery_but_preserves_customized_codex_skills() {
+    let guidance = magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE.trim_end();
+    for customize in [false, true] {
+        let tmp = project();
+        let vars =
+            super::super::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
+                .with_agents(&["codex".to_owned(), "claude".to_owned()])
+                .template_vars();
+        super::super::generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+        let skills = WorkflowSkills::codex_files()
+            .into_iter()
+            .chain(WorkflowSkills::claude_files())
+            .filter(|file| file.path.ends_with("/next/SKILL.md"))
+            .collect::<Vec<_>>();
+        assert_eq!(skills.len(), 2);
+        let mut manifest = super::super::manifest::ScaffoldManifest::load(tmp.path());
+        let mut expected = Vec::new();
+        for skill in &skills {
+            let old = skill.content.replace(
+                guidance,
+                "Read roadmap_next, start its ready chunk, and create an objective.",
+            );
+            assert_ne!(old, skill.content);
+            manifest.record(skill.path, &old);
+            let preserve = customize && skill.path.starts_with(".agents/");
+            let current = if preserve {
+                format!("{old}\nProject-specific recovery policy.\n")
+            } else {
+                old
+            };
+            std::fs::write(tmp.path().join(skill.path), &current).unwrap();
+            expected.push((
+                preserve,
+                if preserve {
+                    current
+                } else {
+                    skill.content.clone()
+                },
+            ));
+        }
+        manifest.save(tmp.path()).unwrap();
+
+        let repaired = repair(tmp.path());
+        for (skill, (preserve, expected)) in skills.iter().zip(expected) {
+            assert_eq!(
+                std::fs::read_to_string(tmp.path().join(skill.path)).unwrap(),
+                expected,
+                "{} customize={customize}",
+                skill.path,
+            );
+            assert_eq!(repaired.contains(&skill.path.to_owned()), !preserve);
+        }
+        assert!(repair(tmp.path()).is_empty());
+    }
+}
+
+#[test]
 fn custom_magistr_gitignore_survives_startup_repair() {
     let tmp = project();
     let relative = ".magistr/.gitignore";

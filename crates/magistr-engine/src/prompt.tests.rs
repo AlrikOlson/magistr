@@ -64,6 +64,51 @@ fn native_and_file_iteration_prompts_carry_the_shared_recording_contract() {
 }
 
 #[test]
+fn selected_native_work_keeps_its_resume_marker_and_recovery_contract() {
+    let config = PromptConfig {
+        spec_file: None,
+        ..sample_config()
+    };
+    for selected in [
+        "retry-recovery — Restore interrupted delivery (in progress; resume this work)",
+        "retry-recovery — Restore interrupted delivery",
+    ] {
+        let summary = SpecSummary {
+            total: 12,
+            checked: 8,
+            unchecked: 4,
+            unchecked_items: vec![selected.into()],
+        };
+        let prompt = config.build_next_prompt(&summary);
+        let selected_section = format!("### Selected Work\n\n1. {selected}\n");
+        assert!(prompt.contains(&selected_section), "{prompt}");
+        assert_eq!(prompt.matches(selected).count(), 1);
+        assert!(!prompt.contains("### Next Unchecked Items"));
+        assert_eq!(
+            prompt.matches(PromptConfig::NEXT_RECOVERY_GUIDANCE).count(),
+            1
+        );
+        assert!(prompt.find(&selected_section) < prompt.find(PromptConfig::NEXT_RECOVERY_GUIDANCE));
+        assert!(
+            prompt.find(PromptConfig::NEXT_RECOVERY_GUIDANCE)
+                < prompt.find(NEXT_WORKFLOW_INSTRUCTIONS)
+        );
+        assert!(prompt.contains("MUST STOP"));
+    }
+}
+
+#[test]
+fn file_iteration_recovery_preserves_the_existing_item_preview() {
+    let prompt = sample_config().build_next_prompt(&sample_summary());
+    assert!(prompt.contains("### Next Unchecked Items\n\n1. Item one"));
+    assert!(!prompt.contains("### Selected Work"));
+    assert_eq!(
+        prompt.matches(PromptConfig::NEXT_RECOVERY_GUIDANCE).count(),
+        1
+    );
+}
+
+#[test]
 fn next_prompt_does_not_duplicate_base_workflow() {
     let prompt = sample_config().build_next_prompt(&sample_summary());
     assert!(

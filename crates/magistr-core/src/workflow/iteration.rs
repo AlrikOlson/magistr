@@ -49,6 +49,10 @@ pub struct IterationState {
     /// Attempt whose Git baseline was captured, retained across recovery.
     #[serde(deserialize_with = "required_option")]
     pub attempt_started: Option<u32>,
+    /// The unfinished roadmap item selected for this run. Older checkpoints did not
+    /// carry one; recovery can then use an unambiguous unfinished item.
+    #[serde(default)]
+    pub native_chunk_id: Option<String>,
     /// Git HEAD SHA before the current iteration started.
     /// Used to detect whether the iteration produced a commit.
     #[serde(deserialize_with = "required_option")]
@@ -180,6 +184,7 @@ impl IterationLoop {
             run_id: mint_run_id(&project_dir, native.as_ref())?,
             operations: OperationLedger::new(),
             attempt_started: None,
+            native_chunk_id: None,
             last_commit_sha: git_head_sha(&project_dir),
             last_status: IterationStatus::None,
             spec_checked: summary.checked,
@@ -241,12 +246,15 @@ impl IterationLoop {
                     .into(),
             ));
         }
-        let fresh = Self::open(
+        let mut fresh = Self::open(
             recovered.project_dir.clone(),
             recovered.spec_path.clone(),
             max_iterations,
             recovered.native.clone(),
         )?;
+        // A new request gets a new run budget, but unfinished roadmap work
+        // still belongs to the item the user was working on.
+        fresh.state.native_chunk_id = recovered.state.native_chunk_id.clone();
         // Encode the opaque identity rather than treating it as a path.
         let key: String = recovered
             .state
@@ -393,8 +401,17 @@ impl IterationLoop {
         self.native.as_ref()
     }
 
-    /// The prompt for the next iteration, from this loop's view of progress
-    /// (native: the next ready chunk is the one remaining item).
+    /// The roadmap item to continue, selected from the saved attempt, matching
+    /// unfinished plan, or one unambiguous in-progress item before ready work.
+    /// Host admission and operation reconciliation still guard dispatch.
+    pub fn next_native_chunk(&self) -> Result<Option<magistr_engine::native::Chunk>> {
+        self.native.as_ref().map_or(Ok(None), |engines| {
+            super::native_summary::native_work_chunk(engines, self.state.native_chunk_id.as_deref())
+        })
+    }
+
+    /// The prompt for the next iteration, continuing unfinished native work
+    /// before selecting a new ready item.
     pub fn next_prompt(&self, config: &ProjectConfig) -> Result<String> {
         let summary = self.spec_summary()?;
         if summary.all_done() {
@@ -416,7 +433,9 @@ impl IterationLoop {
             return Ok(PreCheckResult::Unreconciled(open));
         }
 
-        // Check if all spec items are done
+        // Bind the exact native item before building the prompt or launching
+        // an agent. Persisted with the attempt, it survives an interrupted run.
+        self.state.native_chunk_id = self.next_native_chunk()?.map(|chunk| chunk.id);
         let summary = self.spec_summary()?;
         self.state.spec_checked = summary.checked;
         self.state.spec_total = summary.total;
@@ -485,6 +504,8 @@ impl IterationLoop {
         self.state.run.advance_attempt();
         self.state.iteration = self.state.run.completed_attempts;
         self.state.attempt_started = None;
+        // Keep unfinished work selected across retries. Selection moves on
+        // once the roadmap records that this item has finished.
     }
 
     /// Whether the loop should stop due to repeated no-commit failures.
@@ -552,13 +573,15 @@ impl IterationLoop {
 
     /// Get the current spec summary.
     ///
-    /// Native projects: re-read the roadmap (the agent's `magistr mcp-serve`
-    /// wrote it) and report chunk progress, with the next ready chunk as the
-    /// single remaining item — `all_done()` then means "no ready chunk".
+    /// Native projects re-read the roadmap and continue the selected or
+    /// unambiguous unfinished item before choosing a new ready item.
     /// Otherwise prefers YAML store data, falls back to markdown parsing.
     pub fn spec_summary(&self) -> Result<SpecSummary> {
         if let Some(engines) = &self.native {
-            return Ok(super::native_summary::native_spec_summary(engines));
+            return super::native_summary::native_work_summary(
+                engines,
+                self.state.native_chunk_id.as_deref(),
+            );
         }
         spec::spec_summary_from_project(&self.project_dir, &self.spec_path)
     }

@@ -150,6 +150,26 @@ fn next_loop_requires_a_fresh_host_session_between_chunks() {
 }
 
 #[test]
+fn generated_next_skills_use_the_native_iteration_recovery_contract() {
+    let guidance = magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE.trim_end();
+    let skills = WorkflowSkills::codex_files()
+        .into_iter()
+        .chain(WorkflowSkills::claude_files())
+        .filter(|file| file.path.ends_with("/next/SKILL.md"))
+        .collect::<Vec<_>>();
+    assert_eq!(skills.len(), 2);
+    for skill in skills {
+        assert_eq!(skill.content.matches(guidance).count(), 1, "{}", skill.path);
+        assert!(!skill.content.contains("{{next_recovery_guidance}}"));
+        assert!(
+            skill.content.find(guidance) < skill.content.find("## Research and plan"),
+            "{} must recover before creating a plan",
+            skill.path,
+        );
+    }
+}
+
+#[test]
 fn generated_reasoning_guidance_is_shared_by_every_instruction_surface() {
     let guidance = magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE;
     let guide = super::super::tool_guide::build_tool_guide();

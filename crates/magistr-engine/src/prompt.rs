@@ -30,6 +30,9 @@ impl PromptConfig {
     /// Shared recording contract for live agents and generated project instructions.
     pub const REASONING_GUIDANCE: &'static str = include_str!("prompt_reasoning.md");
 
+    /// Shared recovery contract for native iterations and generated next skills.
+    pub const NEXT_RECOVERY_GUIDANCE: &'static str = include_str!("prompt_recovery.md");
+
     /// Build the prompt for a `/next` iteration.
     ///
     /// Embeds /next-specific instructions (stop rule, plan entry labeling, roadmap
@@ -38,7 +41,7 @@ impl PromptConfig {
     pub fn build_next_prompt(&self, spec_summary: &SpecSummary) -> String {
         let mut prompt = String::with_capacity(4096);
 
-        prompt.push_str("# Task: Implement Next Spec Items\n\n");
+        prompt.push_str("# Task: Complete One Roadmap Item\n\n");
 
         // Progress context
         prompt.push_str(&format!(
@@ -53,9 +56,13 @@ impl PromptConfig {
             spec_summary.unchecked,
         ));
 
-        // Next unchecked items preview (first 10)
+        // Native selection contains one chosen chunk; file summaries preview remaining items.
         if !spec_summary.unchecked_items.is_empty() {
-            prompt.push_str("### Next Unchecked Items\n\n");
+            prompt.push_str(if self.spec_file.is_none() {
+                "### Selected Work\n\n"
+            } else {
+                "### Next Unchecked Items\n\n"
+            });
             for (i, item) in spec_summary.unchecked_items.iter().take(10).enumerate() {
                 prompt.push_str(&format!("{}. {}\n", i + 1, item));
             }
@@ -68,7 +75,9 @@ impl PromptConfig {
             prompt.push('\n');
         }
 
-        // Workflow instructions
+        // Recover saved work before any new lifecycle operation.
+        prompt.push_str(Self::NEXT_RECOVERY_GUIDANCE);
+        prompt.push('\n');
         prompt.push_str(NEXT_WORKFLOW_INSTRUCTIONS);
         prompt.push('\n');
         prompt.push_str(Self::REASONING_GUIDANCE);
@@ -115,8 +124,9 @@ Call `magistr_set_phase` at each phase transition to update the TUI progress ind
 
 The roadmap, the plan and the gates live in think-and-ship (served by the `magistr` MCP server):
 
-- `roadmap_next` → the chunk this iteration implements; `roadmap_start_chunk(id)` marks it in progress
-- `ship_set_objective` + `ship_plan` → the plan (there is no plan file to write)
+- `roadmap_status` + `ship_status` → recover the selected chunk and matching unfinished objective first
+- `roadmap_next` → select pending work only when there is no resumable in-progress chunk; `roadmap_start_chunk(id)` starts a pending chunk once
+- `ship_set_objective` + `ship_plan` → create a missing objective and plan; keep the matching unfinished objective and saved plan when resuming
 - `think_record_step` → record the plan, material findings and investigations as work proceeds, then the verified outcome
 - `ship_check` / `magistr_gate` → every quality gate, recorded with its real exit code
 - `roadmap_complete_chunk(id, ship_ref: "task:<id>")` + `ship_finalize` → done
@@ -165,6 +175,7 @@ Keep plan entry statuses up to date — the TUI sidebar shows your plan as a liv
 - Mark entries as `completed` when you finish them
 - Only one entry should be `in_progress` at a time
 - Update the plan with every phase transition — all entries from the previous phase should be `completed` before starting the next phase
+- On resume, continue an already active task without calling `ship_start` again; do not restart completed entries or discard their actions and check results
 "#;
 
 #[cfg(test)]

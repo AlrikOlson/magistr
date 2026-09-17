@@ -156,7 +156,16 @@ impl ContextBuilder {
 
     fn spec_summary(&self) -> Option<spec::SpecSummary> {
         if let Some(engines) = &self.native {
-            return Some(super::native_summary::native_spec_summary(engines));
+            engines.reload_roadmap();
+            let progress = engines.roadmap_progress();
+            // Context describes all unfinished work, not just the candidate
+            // an execution selector may admit for the next attempt.
+            return Some(spec::SpecSummary {
+                total: progress.total_tasks as usize,
+                checked: progress.checked_tasks as usize,
+                unchecked: progress.total_tasks.saturating_sub(progress.checked_tasks) as usize,
+                unchecked_items: Vec::new(),
+            });
         }
         spec::spec_summary_from_project(&self.project_dir, &self.spec_path).ok()
     }

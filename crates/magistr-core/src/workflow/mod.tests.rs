@@ -79,4 +79,15 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
     assert_eq!(summary.unchecked_items, vec!["one — Chunk one".to_string()]);
     let prompt = wf.build_prompt().unwrap();
     assert!(prompt.contains("one — Chunk one"), "{prompt}");
+
+    engines.roadmap_start_chunk("one").unwrap();
+    let resumed = wf.build_prompt().unwrap();
+    assert!(
+        resumed.contains("one — Chunk one (in progress; resume this work)"),
+        "{resumed}"
+    );
+    assert_eq!(
+        engines.roadmap_chunk("one").unwrap().status,
+        ChunkStatus::InProgress
+    );
 }

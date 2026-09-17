@@ -74,7 +74,10 @@ impl WorkflowSkills {
                 Self::file(
                     host,
                     host.path(codex, claude),
-                    content.replace("{{invoke}}", host.invocation()),
+                    content.replace("{{invoke}}", host.invocation()).replace(
+                        "{{next_recovery_guidance}}",
+                        magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE.trim_end(),
+                    ),
                 )
             })
             .collect();

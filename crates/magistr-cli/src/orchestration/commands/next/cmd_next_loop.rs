@@ -61,7 +61,9 @@ pub async fn cmd_next_loop(
             PreCheckResult::NoReadyChunk => {
                 eprintln!(
                     "{}",
-                    fmt::success("No ready roadmap chunk — nothing left for the loop to take.")
+                    fmt::success(
+                        "No work is ready to start or continue. Check the roadmap for blocked items."
+                    )
                 );
                 break;
             }

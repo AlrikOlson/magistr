@@ -87,10 +87,12 @@ traces auto-correlate.
 
 ## Quick-start workflow
 
-1. `ship_set_objective` — define the goal
-2. `ship_plan` — break into tasks
+First read `ship_status` and, for roadmap work, `roadmap_status`. Resume a matching unfinished objective and keep its plan, task statuses, actions, checks, and reasoning. Continue an already active task without starting it again; do not restart completed tasks. Preserve conflicting active work and report the conflict instead of resetting it. For `/next`, follow the selected chunk and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
+
+1. `ship_set_objective` — define the goal only when no unfinished objective exists
+2. `ship_plan` — keep existing tasks and add only missing work
 3. `think_record_step` — record the question, current evidence, and planned next check
-4. `ship_start` → `ship_record` → `ship_complete` — do the work, recording findings and changed conclusions as evidence arrives
+4. `ship_start` a pending task, or continue the active task; then `ship_record` → `ship_complete` — do the work, recording findings and changed conclusions as evidence arrives
 5. `ship_check` — execute and record the relevant checks
 6. `think_record_step` — synthesize the findings, link the steps used, and state remaining uncertainty
 7. `ship_finalize` — finalize the objective after its acceptance criteria and checks pass
