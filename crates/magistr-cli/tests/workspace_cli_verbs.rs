@@ -312,9 +312,13 @@ fn a_healthy_workspace_exits_zero_and_doctor_config_renders_provenance() {
         "[plugins]",
         "[quarantine]",
         "[crashes]",
+        "[owner]",
+        "[operations]",
     ] {
         assert!(out.contains(section), "{out}");
     }
+    assert!(out.contains("no owner reachable"), "{out}");
+    assert!(out.contains("no run checkpoint"), "{out}");
     assert!(
         out.contains("no native index yet (fresh workspace)"),
         "{out}"
@@ -473,4 +477,94 @@ fn snapshot_prints_the_source_observation_beside_a_live_owner_and_refuses_bad_in
     assert_eq!(code(&refused), Some(64), "{}", stderr(&refused));
     assert_eq!(code(&run(&["snapshot", "missing"], dir.path())), Some(66));
     drop(lock);
+}
+
+/// The operations section explains a run checkpoint's records from what
+/// the process table says now, without marking or rewriting the file: a
+/// dispatch whose runtime outlived its loop is stalled (exit 1) until that
+/// runtime ends, after which it is recoverable by the next loop start.
+#[test]
+fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
+    let dir = workspace();
+    let root = dir.path().to_str().expect("utf8 root");
+    let mut runtime = std::process::Command::new("sleep")
+        .arg("30")
+        .spawn()
+        .expect("a runtime that outlives the loop");
+    let handle = magistr_core::workflow::runtime_handle::RuntimeHandle::observe(runtime.id())
+        .expect("live handle");
+    let mut exited = std::process::Command::new("true").spawn().expect("spawn");
+    let gone = exited.id();
+    exited.wait().expect("reaped");
+    let run_key = format!("run-1-{gone}");
+    let record = |local: &str, kind: &str, target: &str, outcome: &str, external: Value| {
+        serde_json::json!({
+            "attempt": { "command": { "run": { "project": "proj", "local": run_key }, "local": local }, "number": 1 },
+            "kind": kind, "target": target, "outcome": outcome, "external": external,
+        })
+    };
+    let checkpoint = serde_json::json!({
+        "iteration": 0, "max_iterations": 5,
+        "run": { "mode": "chunk_loop", "completed_attempts": 0, "max_iterations": 5,
+                 "consecutive_no_commits": 0, "budget_total_usd": 0.0, "budget_limit_usd": null,
+                 "terminal_reason": null, "last_settled_attempt": null },
+        "run_id": { "project": "proj", "local": run_key },
+        "operations": { "records": [
+            record("0/attempt", "reservation", "attempt:0", "completed", Value::Null),
+            record("0/dispatch", "provider_dispatch", "dispatch", "running", serde_json::json!(handle.to_string())),
+        ] },
+        "attempt_started": 0, "native_chunk_id": "chunk-a", "last_commit_sha": null,
+        "last_status": "none", "spec_checked": 0, "spec_total": 1,
+    });
+    let state = dir.path().join(".magistr");
+    std::fs::create_dir_all(&state).expect("state");
+    let path = state.join("loop-state.json");
+    let bytes = serde_json::to_vec_pretty(&checkpoint).expect("json");
+    std::fs::write(&path, &bytes).expect("checkpoint");
+
+    let stalled = run(&["doctor", root], dir.path());
+    assert_eq!(code(&stalled), Some(1), "{}", stderr(&stalled));
+    let out = stdout(&stalled);
+    assert!(out.contains("1 stalled, 0 recoverable"), "{out}");
+    assert!(
+        out.contains(&format!(
+            "stalled: attempt \"0/dispatch\" (\"provider_dispatch\") is owned by runtime pid {} which outlived the loop",
+            runtime.id()
+        )),
+        "{out}"
+    );
+    assert!(
+        out.contains("remediation: wait for that runtime to end"),
+        "{out}"
+    );
+    assert!(out.contains(&format!("loop process {gone} gone")), "{out}");
+
+    runtime.kill().expect("end the runtime");
+    runtime.wait().expect("reap");
+    let recoverable = run(&["doctor", root], dir.path());
+    assert_eq!(code(&recoverable), Some(0), "{}", stderr(&recoverable));
+    let out = stdout(&recoverable);
+    assert!(out.contains("0 stalled, 1 recoverable"), "{out}");
+    assert!(out.contains("recoverable: attempt \"0/dispatch\""), "{out}");
+    assert!(out.contains("Git baseline"), "{out}");
+    assert_eq!(
+        std::fs::read(&path).expect("checkpoint"),
+        bytes,
+        "read, never rewritten"
+    );
+
+    // A legacy marker is an unhealthy owner finding naming the migration.
+    let workbench = dir.path().join(".workbench");
+    std::fs::create_dir_all(&workbench).expect("workbench");
+    std::fs::write(
+        workbench.join(ServerLock::FILE_NAME),
+        br#"{"pid":0,"host":"elsewhere"}"#,
+    )
+    .expect("legacy marker");
+    let legacy = run(&["doctor", root], dir.path());
+    assert_eq!(code(&legacy), Some(1), "{}", stderr(&legacy));
+    let out = stdout(&legacy);
+    assert!(out.contains("legacy server record"), "{out}");
+    assert!(out.contains("magistr workspace migrate"), "{out}");
+    assert!(out.contains("no owner reachable"), "{out}");
 }

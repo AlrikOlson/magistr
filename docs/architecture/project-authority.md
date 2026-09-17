@@ -288,9 +288,10 @@ endpoint while a socket file nothing answers on is reclaimed.
 ### Handshake and identity
 
 Both ways the wire is one JSON object per line. The client opens with a
-`Hello` naming protocol version 4 (`OWNER_PROTOCOL_VERSION`, exact match
+`Hello` naming protocol version 5 (`OWNER_PROTOCOL_VERSION`, exact match
 only), its `BuildIdentity`, an `OwnerIdentity`, the kind of attachment it
-wants (`commands` or `mcp`) and its `CallerIdentity` (pid and surface).
+wants (`commands`, `mcp` or `probe`) and its `CallerIdentity` (pid and
+surface).
 Workflow identity names the project and writer role; workspace identity
 names the canonical root without a workflow role. The owner reads the
 protocol field before anything else in the line, so a well-formed `Hello`
@@ -301,7 +302,26 @@ checks the peer credential of the socket — the connecting process must be
 the owner's own user, which the socket's file mode also enforces — and then
 the build, identity and offered kind, answering `Welcome` with its
 generation and pid or `Refused` with the reason. The caller identity is
-kept for diagnostics; the credential is the proof.
+kept for diagnostics — it is what the owner's report names for each live
+session — and the credential is the proof.
+
+A `probe` attachment is the diagnostic handshake, offered by every owner:
+after the welcome the owner writes one `OwnerReport` line — its generation,
+pid, build, identity and every `mcp` or `commands` session it has welcomed
+and not yet seen end, each with the caller it declared — and closes. The
+probe is answered from the same admission checks as any attachment (a
+probe from another build is refused with both identities, which is itself
+evidence of a live owner), holds no session, is not counted among the
+sessions it is told about and is never retained by the owner.
+`OwnerProbe::{workspace, at}` is the client: one connect, hello, greeting
+and report under one deadline, typed as `OwnerLiveness` — `Live(report)`,
+`Refused(refusal)`, `Silent` (accepted, never greeted), `Absent` (no
+endpoint) or `Unanswered` (an endpoint file nothing answered on). Only the
+first two come from an owner process; a socket file, a durable generation
+counter or a lock record is a record of a past admission and never certifies
+a live owner. `magistr workspace doctor` reports through it, see the
+[workspace guide](workspace-owner.md#ownership-diagnostics). Version 5
+added the probe; version 4 introduced the build identity.
 
 #### Build identity
 
@@ -326,7 +346,7 @@ install attaches to a running owner of the same build. There is no
 equal-version relaxation and no ambient override: widening what attaches is
 a deliberate change to the rule under a new protocol version. Version 3
 carried the package version alone and could not tell two builds of one
-version apart; version 4 carries the identity.
+version apart; version 4 carries the identity, and version 5 keeps it.
 
 ### What an owner serves
 

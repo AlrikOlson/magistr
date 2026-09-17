@@ -1,8 +1,12 @@
 //! `magistr workspace doctor [bundle|config]`: the read-only doctor plane.
-//! `doctor` prints the six-section report, `doctor bundle` packs the same
-//! probes into a redacted tar.gz, `doctor config` prints the five-layer
-//! resolved configuration with per-key provenance. No lock is taken, so
-//! every form runs beside a live server. Exit 0 healthy, 1 findings.
+//! `doctor` prints the report — the six retained probes over the
+//! `.workbench` artifacts, then the `owner` section this host composes from
+//! the durable records and one bounded probe of the owner endpoint, and
+//! the `operations` section from the run checkpoint — `doctor bundle`
+//! packs the same sections into a redacted tar.gz, `doctor config` prints
+//! the five-layer resolved configuration with per-key provenance. No lock
+//! is taken, so every form runs beside a live server. Exit 0 healthy, 1
+//! findings.
 
 use std::{
     collections::BTreeMap,
@@ -82,7 +86,18 @@ fn report(
     let options = DoctorOptions::new(root)
         .with_env(env.clone())
         .with_session_flags(flags.clone());
-    let run = DoctorRun::observe(&options);
+    let mut run = DoctorRun::observe(&options);
+    let owner = super::doctor_owner::owner_section(
+        root,
+        &options.state_dir,
+        super::doctor_owner::PROBE_DEADLINE,
+    );
+    let workspace_generation = owner.detail["durableGeneration"].as_u64();
+    run.append(owner);
+    run.append(super::doctor_operations::operations_section(
+        root,
+        workspace_generation,
+    ));
     match bundle {
         None => println!("{}", run.render()),
         Some(out) => {

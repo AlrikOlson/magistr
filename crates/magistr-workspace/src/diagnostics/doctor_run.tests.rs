@@ -2,7 +2,7 @@ use std::path::Path;
 
 use super::*;
 use crate::{
-    diagnostics::{DoctorDataClass, DoctorSection},
+    diagnostics::{DoctorDataClass, DoctorFinding, DoctorSection},
     index::cache::IndexCache,
 };
 
@@ -237,4 +237,46 @@ fn a_broken_config_layer_is_a_durable_finding_and_the_report_still_renders() {
         );
     }
     assert!(text.contains("[config]"));
+}
+
+#[test]
+fn a_host_section_is_appended_in_order_and_its_unhealthy_finding_flips_the_result() {
+    let dir = workspace();
+    let mut run = DoctorRun::observe(&options(dir.path()));
+    assert!(!run.report.findings_present);
+    run.append(DoctorSection {
+        id: DoctorSectionId::Owner,
+        source: "probe".into(),
+        findings: vec![DoctorFinding::healthy("owner", "no owner reachable")],
+        detail: serde_json::json!({ "live": false }),
+    });
+    assert!(!run.report.findings_present);
+    run.append(DoctorSection {
+        id: DoctorSectionId::Operations,
+        source: "checkpoint".into(),
+        findings: vec![DoctorFinding::unhealthy(
+            "operations",
+            DoctorDataClass::Durable,
+            "one attempt stalled",
+            "wait for the runtime",
+        )],
+        detail: serde_json::json!({ "records": [] }),
+    });
+    assert!(run.report.findings_present);
+    let ids: Vec<_> = run
+        .report
+        .sections
+        .iter()
+        .map(|section| section.id)
+        .collect();
+    assert_eq!(ids.len(), 8);
+    assert_eq!(ids[6], DoctorSectionId::Owner);
+    assert_eq!(ids[7], DoctorSectionId::Operations);
+    let text = run.render();
+    let owner = text.find("[owner]").expect("owner section");
+    let operations = text.find("[operations]").expect("operations section");
+    assert!(owner < operations);
+    assert!(text.contains("  source: probe"));
+    assert!(text.contains("remediation: wait for the runtime"));
+    assert!(text.ends_with("result: findings present (exit 1)"));
 }

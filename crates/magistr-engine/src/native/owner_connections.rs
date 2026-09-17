@@ -2,7 +2,10 @@
 
 use std::{
     io,
-    sync::{Arc, Weak},
+    sync::{
+        Arc, Mutex, Weak,
+        atomic::{AtomicU64, Ordering},
+    },
     time::Duration,
 };
 
@@ -15,8 +18,8 @@ use tokio_util::sync::CancellationToken;
 
 use super::owner_wire::{ClientFrame, CommandRefusal, Greeting, Hello, ReplyFrame};
 use super::{
-    AttachKind, AttachRefusal, BuildIdentity, McpAcceptor, NativeEngines, OwnerGeneration,
-    OwnerIdentity, ProjectAuthority,
+    AttachKind, AttachRefusal, BuildIdentity, McpAcceptor, NativeEngines, OwnerConnectionRecord,
+    OwnerGeneration, OwnerIdentity, OwnerReport, ProjectAuthority,
 };
 
 /// The admitted service and writer guard. Connection tasks only retain this
@@ -30,6 +33,29 @@ pub(super) struct OwnerConnections {
     build: BuildIdentity,
     uid: u32,
     mcp: Option<McpAcceptor>,
+    /// Every welcomed `mcp` or `commands` session still running, keyed so
+    /// its guard removes exactly itself. Probes are answered and closed
+    /// without ever entering; the report a probe gets is this list.
+    sessions: Mutex<Vec<(u64, OwnerConnectionRecord)>>,
+    next_session: AtomicU64,
+}
+
+/// Registers one welcomed session for the report and removes it when the
+/// session's work — the MCP acceptor's future or the command loop — ends,
+/// however it ends.
+struct SessionGuard {
+    owner: Weak<OwnerConnections>,
+    key: u64,
+}
+
+impl Drop for SessionGuard {
+    fn drop(&mut self) {
+        if let Some(owner) = self.owner.upgrade()
+            && let Ok(mut sessions) = owner.sessions.lock()
+        {
+            sessions.retain(|(key, _)| *key != self.key);
+        }
+    }
 }
 
 impl OwnerConnections {
@@ -49,6 +75,42 @@ impl OwnerConnections {
             build: BuildIdentity::this_build(),
             uid,
             mcp,
+            sessions: Mutex::new(Vec::new()),
+            next_session: AtomicU64::new(1),
+        }
+    }
+
+    /// What a probe is told: this owner as it is right now.
+    fn report(&self) -> OwnerReport {
+        let connections = self
+            .sessions
+            .lock()
+            .map(|sessions| sessions.iter().map(|(_, record)| record.clone()).collect())
+            .unwrap_or_default();
+        OwnerReport {
+            generation: self.generation,
+            owner_pid: std::process::id(),
+            build: self.build.clone(),
+            identity: self.identity.clone(),
+            connections,
+        }
+    }
+
+    /// Enter a welcomed session into the report until its guard drops.
+    fn register(self: &Arc<Self>, hello: &Hello) -> SessionGuard {
+        let key = self.next_session.fetch_add(1, Ordering::Relaxed);
+        if let Ok(mut sessions) = self.sessions.lock() {
+            sessions.push((
+                key,
+                OwnerConnectionRecord {
+                    attach: hello.attach,
+                    caller: hello.caller.clone(),
+                },
+            ));
+        }
+        SessionGuard {
+            owner: Arc::downgrade(self),
+            key,
         }
     }
 
@@ -103,6 +165,7 @@ impl OwnerConnections {
         let offered = match hello.attach {
             AttachKind::Mcp => self.mcp.is_some(),
             AttachKind::Commands => self.engines.is_some(),
+            AttachKind::Probe => true,
         };
         if !offered {
             return Err(AttachRefusal::Unsupported(hello.attach));
@@ -152,19 +215,33 @@ async fn serve_connection(
         return;
     };
     match hello.attach {
+        AttachKind::Probe => {
+            // The report is a moment's observation and the whole answer;
+            // the stream closes when this task returns.
+            let report = owner.report();
+            drop(owner);
+            tokio::select! {
+                _ = stop.cancelled() => {},
+                _ = write_line(&mut stream, &report) => {},
+            }
+        }
         AttachKind::Mcp => {
+            let session = owner.register(&hello);
             let acceptor = owner.mcp.clone();
             drop(owner);
             if let Some(acceptor) = acceptor {
                 acceptor(stream, stop).await;
             }
+            drop(session);
         }
         AttachKind::Commands => {
+            let session = owner.register(&hello);
             drop(owner);
             tokio::select! {
                 _ = stop.cancelled() => {},
                 _ = command_loop(stream, shared) => {},
             }
+            drop(session);
         }
     }
 }

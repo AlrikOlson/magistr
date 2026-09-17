@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::{LegacyMigration, WorkspaceGeneration};
+use super::{LegacyMigration, LockRecord, WorkspaceGeneration};
 
 /// Immutable compatibility marker. The retained exclusive-create owner sees
 /// a foreign host and refuses it, even after this native owner has exited.
@@ -76,6 +76,47 @@ impl ServerLock {
     #[must_use]
     pub const fn generation(&self) -> WorkspaceGeneration {
         self.generation
+    }
+
+    /// Read the record at `path` without locking, modifying or judging it:
+    /// what a diagnostic reports beside a live owner. A native marker says
+    /// nothing about whether an owner holds the lock now — only the owner's
+    /// own endpoint can — and a legacy pid is reported with its liveness on
+    /// this host as a hint, never as proof.
+    ///
+    /// # Errors
+    /// `InvalidInput` for a path that is not a regular file, and I/O errors.
+    pub fn inspect(path: &Path) -> io::Result<LockRecord> {
+        let metadata = match std::fs::symlink_metadata(path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Ok(LockRecord::Absent);
+            }
+            Err(error) => return Err(error),
+        };
+        if metadata.is_symlink() || !metadata.is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{} is not a regular lock file", path.display()),
+            ));
+        }
+        let mut record = Vec::new();
+        File::open(path)?.take(4096).read_to_end(&mut record)?;
+        if record == NATIVE_MARKER {
+            return Ok(LockRecord::Native);
+        }
+        let Ok(legacy) = serde_json::from_slice::<serde_json::Value>(&record) else {
+            return Ok(LockRecord::Unrecognized);
+        };
+        let host = legacy["host"].as_str().unwrap_or_default().to_owned();
+        let pid = legacy["pid"].as_u64().unwrap_or(0);
+        let pid_alive =
+            (pid != 0 && (host.is_empty() || host == local_hostname())).then(|| is_alive(pid));
+        Ok(LockRecord::Legacy {
+            host,
+            pid,
+            pid_alive,
+        })
     }
 
     /// The documented offline migration, as one refusing command: move an

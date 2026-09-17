@@ -66,6 +66,42 @@ pub struct IterationState {
     pub spec_total: usize,
 }
 
+impl IterationState {
+    /// Read the persisted checkpoint of `project_dir` as it is on disk,
+    /// without recovering it: no record is marked, nothing is reconciled
+    /// and nothing is written back. What a diagnostic reads beside a live
+    /// or dead loop. `None` when no checkpoint exists.
+    ///
+    /// # Errors
+    /// The file exists but cannot be read, parsed or validated.
+    pub fn read(project_dir: &Path) -> Result<Option<Self>> {
+        let state_path = loop_state_path(project_dir);
+        let content = match std::fs::read_to_string(&state_path) {
+            Ok(content) => content,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(MagistrError::io(&state_path, error)),
+        };
+        let state: Self = serde_json::from_str(&content).map_err(recovery_error)?;
+        validate_state(&state).map_err(recovery_error)?;
+        Ok(Some(state))
+    }
+
+    /// The process that minted this run, as the run key names it
+    /// (`run-<millis>-<pid>`, see `mint_run_id`). Evidence, not proof: the
+    /// id is not pinned to a start identity and may have been reused.
+    #[must_use]
+    pub fn run_process(&self) -> Option<u32> {
+        self.run_id
+            .local()
+            .strip_prefix("run-")?
+            .rsplit_once('-')?
+            .1
+            .parse::<u32>()
+            .ok()
+            .filter(|pid| *pid > 0)
+    }
+}
+
 // ── Pre/post check results ──────────────────────────────────────────────────
 
 /// Result of a pre-iteration check.

@@ -616,8 +616,10 @@ pub enum WorkspaceAction {
     },
 
     /// Read-only health report over the .workbench artifacts (environment,
-    /// index, config provenance, plugins, quarantine, crashes). No lock is
-    /// taken, so it runs beside a live server. Exit 0 healthy, 1 findings.
+    /// index, config provenance, plugins, quarantine, crashes), the live
+    /// owner (one bounded probe: generation, build, attached connections)
+    /// and the run checkpoint's operation settlement. No lock is taken, so
+    /// it runs beside a live server. Exit 0 healthy, 1 findings.
     Doctor {
         #[command(subcommand)]
         mode: Option<WorkspaceDoctorMode>,

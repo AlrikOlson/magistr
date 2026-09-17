@@ -5,7 +5,9 @@
 //! then, for a commands attachment, the client sends [`ClientFrame`]s and
 //! the owner answers each command with a [`ReplyFrame`] carrying the same
 //! id. An MCP attachment hands the socket to the owner's rmcp session as
-//! soon as the greeting is written, so neither side sends another frame.
+//! soon as the greeting is written, so neither side sends another frame. A
+//! probe attachment is answered with the greeting, then one
+//! [`OwnerReport`](super::OwnerReport) line, then EOF.
 
 use serde::{Deserialize, Serialize};
 
@@ -28,8 +30,10 @@ use super::owner_reply::OwnerReply;
 /// carries; that refusal has kept the same shape since version 3.
 ///
 /// History: 3 carried the package version as the build; 4 carries a
-/// [`BuildIdentity`] and refuses on it exactly.
-pub const OWNER_PROTOCOL_VERSION: u32 = 4;
+/// [`BuildIdentity`] and refuses on it exactly; 5 adds the `probe`
+/// attachment, answered with a welcome and one
+/// [`OwnerReport`](super::OwnerReport) line before the owner closes.
+pub const OWNER_PROTOCOL_VERSION: u32 = 5;
 
 /// The first line a client sends.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

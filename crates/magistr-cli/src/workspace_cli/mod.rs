@@ -10,6 +10,8 @@
 //! this binary cannot read, 66 missing root. Parsing and process exit live
 //! here; `magistr-workspace` only renders.
 mod doctor;
+mod doctor_operations;
+mod doctor_owner;
 mod exit;
 mod init;
 mod journal;
