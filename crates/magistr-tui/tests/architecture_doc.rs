@@ -127,6 +127,36 @@ fn the_index_names_every_module_of_both_crates_and_no_others() {
     );
 }
 
+#[test]
+fn the_index_names_host_client_modules_and_their_guards() {
+    let doc = doc();
+    let crates_dir = crate_dir("..");
+    for module in ["workflow_client", "workspace_client"] {
+        let prefix = format!("magistr-cli/src/application/{module}/");
+        let root = crates_dir.join(&prefix);
+        let mut files = BTreeSet::new();
+        walk(&root, &root, &mut files);
+        assert!(!files.is_empty(), "missing host client: {module}");
+        let actual: BTreeSet<_> = files
+            .into_iter()
+            .map(|file| format!("{prefix}{file}"))
+            .collect();
+        let listed = named(&doc, &prefix);
+        let modules: BTreeSet<_> = listed
+            .iter()
+            .filter(|file| !file.ends_with(".tests.rs"))
+            .cloned()
+            .collect();
+        assert_eq!(actual, modules, "host client inventory: {module}");
+        for file in listed {
+            assert!(
+                crates_dir.join(&file).is_file(),
+                "stale host client guard: {file}"
+            );
+        }
+    }
+}
+
 /// The guard column names companion tests by path, and a companion test
 /// is deleted far more often than a module is — a row pointing at one
 /// that is gone claims a guarantee nothing holds up.

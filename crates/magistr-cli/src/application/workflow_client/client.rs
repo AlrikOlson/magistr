@@ -16,21 +16,21 @@ use super::error::EngineError;
 use super::feed::spawn_feed;
 use super::feed_link::FeedLink;
 use super::native_port::NativeEnginePort;
-use super::port::EnginePort;
 use super::reseed::spawn_reseed;
-use crate::channel::Inbox;
+use magistr_cockpit::channel::Inbox;
+use magistr_cockpit::engine::EnginePort;
 
 /// The project's think-and-ship engines, in-process, and the socket their
 /// live feed attaches to.
 ///
 /// Open it before the terminal is taken over (magistr-tui's `RealTerminal::stdio`):
 /// opening reads the store and may fail, and that must happen on a normal
-/// terminal, never inside the alternate screen. [`EngineClient::open`]
+/// terminal, never inside the alternate screen. [`EngineClient::with_config`]
 /// admits this process as the project's host and holds the writer — one
 /// cockpit or loop per project and store, beside the agent's own
 /// `magistr mcp-serve` in the other role — while [`EngineClient::observe`]
 /// holds a reader only, so a viewer never contends with a running host.
-/// [`EngineClient::admit_or_attach`] is the cockpit's own entry: the host
+/// [`EngineClient::admit_or_attach_config`] is the cockpit's own entry: the host
 /// when the role is free, otherwise a client on the running host's owner
 /// endpoint ([`OwnerClient`]) acting through that host's writer — and a
 /// refusal when neither is possible, never a second writer.

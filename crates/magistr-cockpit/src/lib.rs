@@ -6,19 +6,19 @@
 //! nothing about a terminal or a window: the flexbox layout tree
 //! ([`layout`], taffy underneath) that resolves widget rects in cells,
 //! mouse hit-testing ([`hit`]) from those rects, the input vocabulary
-//! ([`input`]: keys, mouse, paste, focus, query replies — and the
-//! decoder that reads them from bytes), the [`turn`] (the agent's turn as
+//! ([`input`]: neutral key and pointer values), the [`turn`] (the agent's turn as
 //! source lines and the rows they wrap to), the [`theme`] (the palette
 //! from magistr-theme, the pens every painter draws with), the cell
 //! vocabulary and the cell painter ([`render`]: a styled grapheme, a grid
 //! of them, and `paint` putting a laid-out view into the grid), the
 //! pixel chrome ([`pixel`]: the widgets that draw with tiny-skia into a
 //! surface sized in cells), the producers — [`job`]s off the loop thread,
-//! the think-and-ship [`engine`] client and feed, the [`agent`] relay
-//! over ACP, the [`workbench`] and [`checkpoint`] ports — and the
+//! [`agent`] relay, the semantic [`engine`], [`workbench`] and
+//! [`checkpoint`] ports — and the
 //! [`channel`]s they post on. What a surface can show reaches the core
 //! as one value, the [`capability`] vocabulary; how it shows it is the
-//! renderer's business.
+//! renderer's business. Concrete workflow and workspace clients belong to
+//! the CLI host; the remaining relays and channels are separate from reducers.
 //!
 //! Two renderers paint this core and fork none of it: magistr-tui (a
 //! cell buffer diffed and encoded for a terminal, plus the terminal's

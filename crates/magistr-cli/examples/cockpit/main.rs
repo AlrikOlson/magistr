@@ -1,11 +1,11 @@
 //! Run the cockpit on a real terminal.
 //!
 //! ```sh
-//! cargo run -p magistr-tui --example cockpit
+//! cargo run -p magistr-cli --example cockpit
 //! ```
 
+use magistr::application::workflow_client::EngineClient;
 use magistr_cockpit::cockpit::{Model, Summary};
-use magistr_cockpit::engine::EngineClient;
 use magistr_cockpit::theme::Theme;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};

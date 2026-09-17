@@ -6,8 +6,7 @@
 //! the resulting [`WorkbenchEvent`] comes back through the inbox as
 //! [`Msg::Workbench`]. The harness fakes the port
 //! ([`FakeWorkbench`](crate::harness::FakeWorkbench)); the session
-//! applies an injected port, and [`McpWorkbench`] is that port over a
-//! real workbench-mcp server, spoken to as MCP over its stdio.
+//! applies an injected port. The CLI host supplies the concrete MCP adapter.
 //!
 //! [`Cmd::Workbench`]: crate::cockpit::Cmd::Workbench
 //! [`Msg::Workbench`]: crate::cockpit::Msg::Workbench
@@ -16,15 +15,11 @@
 pub mod apply;
 pub mod describe;
 pub mod journal_entry;
-pub mod mcp_client;
-pub mod mcp_workbench;
 pub mod port;
 pub mod run_row;
 
 pub use apply::apply;
 pub use describe::describe;
 pub use journal_entry::JournalEntry;
-pub use mcp_client::McpClient;
-pub use mcp_workbench::McpWorkbench;
 pub use port::WorkbenchPort;
 pub use run_row::RunRow;

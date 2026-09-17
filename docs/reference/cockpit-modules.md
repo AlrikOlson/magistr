@@ -1,7 +1,8 @@
 # Cockpit module reference
 
-The module index lists the shared cockpit and terminal renderer, with their
-responsibilities and tests. Paths in table cells are relative to `crates/`.
+The module index lists the shared cockpit, terminal renderer, and the host's
+workflow and workspace clients, with their responsibilities and tests. Paths in
+table cells are relative to `crates/`.
 
 See [terminal architecture](../architecture/terminal.md) for the data flow and
 [desktop architecture](../architecture/desktop.md) for the native interface.
@@ -36,7 +37,8 @@ See [terminal architecture](../architecture/terminal.md) for the data flow and
 | the producers spawn no process, open no database, write no file | `magistr-cockpit/tests/purity.rs` |
 | the theme reads the environment in exactly one place | `magistr-cockpit/tests/purity.rs` |
 | terminal bytes and neutral input share draft behavior; replies affect capabilities without input or effects; resizing preserves measurement precedence | `magistr-tui/tests/boundary.rs`, `magistr-tui/src/runtime/driver.tests.rs` |
-| the engines open before the terminal is taken over | `magistr-tui/tests/boundary.rs` |
+| the host opens engines before the terminal is taken over | `magistr-cli/tests/host_clients.rs` |
+| concrete workflow and workspace clients stay in the host | `magistr-cockpit/tests/boundary.rs` |
 | terminal dependencies exclude the legacy GUI, with `deny(dead_code, unused)` enabled | `magistr-tui/tests/boundary.rs` |
 | no cockpit surface names a terminal protocol or the terminal crate, and the cockpit crate's root keeps `deny(dead_code, unused)` | `magistr-cockpit/tests/boundary.rs` |
 | every terminal still and filmstrip matches its golden | `magistr-tui/tests/goldens.rs` |
@@ -291,22 +293,24 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/work.rs` | Roadmap selection, navigation, graph/list interaction and chunk commands | `magistr-cockpit/src/cockpit/work.tests.rs` |
 | `magistr-cockpit/src/cockpit/workbench_event.rs` | Workbench outcomes; a refusal retains the command it answers | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 
-### `engine` — the think-and-ship client and feed
+### Workflow ports and host clients
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit/src/engine/mod.rs` | The think-and-ship engines, in-process, and their live feed | `magistr-tui/tests/jobs_engines_harness.rs` |
+| `magistr-cli/src/application/workflow_client/mod.rs` | Host workflow clients, concrete ports and feed delivery | `magistr-cli/src/application/workflow_client/client.tests.rs` |
+| `magistr-cli/src/application/workspace_client/mod.rs` | Host MCP workspace connection and journal adapter | `magistr-cli/src/application/workspace_client/mcp_workbench.tests.rs` |
+| `magistr-cockpit/src/engine/mod.rs` | Semantic workflow ports and events | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cockpit/src/engine/apply.rs` | Carrying an engine command out on a port | `magistr-cockpit/src/engine/apply.tests.rs` |
-| `magistr-cockpit/src/engine/attached_port.rs` | The engine port over an owner this process did not open | `magistr-cockpit/src/engine/client.tests.rs` |
-| `magistr-cockpit/src/engine/client.rs` | The engines, opened before the terminal is taken over | `magistr-cockpit/src/engine/client.tests.rs` |
+| `magistr-cli/src/application/workflow_client/attached_port.rs` | The engine port over an owner this process did not open | `magistr-cli/src/application/workflow_client/client.tests.rs` |
+| `magistr-cli/src/application/workflow_client/client.rs` | The engines, opened before the terminal is taken over | `magistr-cli/src/application/workflow_client/client.tests.rs` |
 | `magistr-cockpit/src/engine/describe.rs` | What an engine command asked, in the words a refusal names | `magistr-cockpit/src/agent/session.tests.rs` |
-| `magistr-cockpit/src/engine/error.rs` | Why the engines could not open | `magistr-tui/tests/jobs_engines_harness.rs` |
+| `magistr-cli/src/application/workflow_client/error.rs` | Why the engines could not open | `magistr-cli/src/application/workflow_client/client.tests.rs` |
 | `magistr-cockpit/src/engine/event.rs` | What the feed — or the cockpit's own engine port — reports | `magistr-tui/tests/jobs_engines_harness.rs` |
-| `magistr-cockpit/src/engine/feed.rs` | The broadcast socket decoded at the edge into typed events with their delivery, relayed onto the inbox | `magistr-cockpit/src/engine/feed.tests.rs` |
-| `magistr-cockpit/src/engine/feed_link.rs` | What the feed tells the re-seed: attached or not, and a snapshot asked for | `magistr-cockpit/src/engine/feed_link.tests.rs` |
-| `magistr-cockpit/src/engine/native_port.rs` | The engine port over the in-process engines | `magistr-cockpit/src/engine/native_port.tests.rs` |
+| `magistr-cli/src/application/workflow_client/feed.rs` | The broadcast socket decoded at the edge into typed events with their delivery, relayed onto the inbox | `magistr-cli/src/application/workflow_client/feed.tests.rs` |
+| `magistr-cli/src/application/workflow_client/feed_link.rs` | What the feed tells the re-seed: attached or not, and a snapshot asked for | `magistr-cli/src/application/workflow_client/feed_link.tests.rs` |
+| `magistr-cli/src/application/workflow_client/native_port.rs` | The engine port over the in-process engines | `magistr-cli/src/application/workflow_client/native_port.tests.rs` |
 | `magistr-cockpit/src/engine/port.rs` | What the cockpit asks of the think-and-ship engines | `magistr-tui/tests/jobs_engines_harness.rs` |
-| `magistr-cockpit/src/engine/reseed.rs` | Re-reading the store as one snapshot on a timer while no feed is attached, or when the feed asks — confirming an unchanged store when it asked | `magistr-cockpit/src/engine/reseed.tests.rs` |
+| `magistr-cli/src/application/workflow_client/reseed.rs` | Re-reading the store as one snapshot on a timer while no feed is attached, or when the feed asks — confirming an unchanged store when it asked | `magistr-cli/src/application/workflow_client/reseed.tests.rs` |
 
 ### `golden` — the PNG review flow
 
@@ -480,8 +484,8 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/workbench/apply.rs` | One workbench command, carried out on a port | `magistr-cockpit/src/workbench/apply.tests.rs` |
 | `magistr-cockpit/src/workbench/describe.rs` | What a workbench command asked, in the words a refusal names | `magistr-cockpit/src/agent/session.tests.rs` |
 | `magistr-cockpit/src/workbench/journal_entry.rs` | One journaled edit, as the workbench recorded it | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/workbench/mcp_client.rs` | One MCP server on the other end of a pipe | `magistr-cockpit/src/workbench/mcp_client.tests.rs` |
-| `magistr-cockpit/src/workbench/mcp_workbench.rs` | Native journal listing and undo through one owner connection; legacy lock-free journal listing | `magistr-cockpit/src/workbench/mcp_workbench.tests.rs`, `magistr-cli/tests/cockpit_journal_owner.rs` |
+| `magistr-cli/src/application/workspace_client/mcp_client.rs` | One MCP server on the other end of a pipe | `magistr-cli/src/application/workspace_client/mcp_client.tests.rs` |
+| `magistr-cli/src/application/workspace_client/mcp_workbench.rs` | Native journal listing and undo through one owner connection; legacy lock-free journal listing | `magistr-cli/src/application/workspace_client/mcp_workbench.tests.rs`, `magistr-cli/tests/cockpit_journal_owner.rs` |
 | `magistr-cockpit/src/workbench/port.rs` | What the cockpit asks of a workbench | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/run_row.rs` | One structured row of a workbench run's result | `magistr-cli/tests/session_harness.rs` |
 

@@ -6,7 +6,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::*;
 #[cfg(unix)]
-use crate::harness::fixtures;
+use magistr_cockpit::harness::fixtures;
 
 async fn next(rx: &mut UnboundedReceiver<Msg>) -> EngineEvent {
     let msg = tokio::time::timeout(Duration::from_secs(5), rx.recv())

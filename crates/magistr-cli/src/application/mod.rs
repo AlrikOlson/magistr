@@ -53,3 +53,8 @@ pub use hosted_workspace::HostedWorkspace;
 pub use settled_check::SettledCheck;
 pub use workspace_admission::WorkspaceAdmission;
 pub use workspace_source_writer::WorkspaceSourceWriter;
+
+/// Workflow store clients and feeds for interface entry points.
+pub mod workflow_client;
+/// Workspace clients for interface entry points.
+pub mod workspace_client;

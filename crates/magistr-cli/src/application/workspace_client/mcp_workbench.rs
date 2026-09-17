@@ -4,10 +4,10 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
-use super::journal_entry::JournalEntry;
 use super::mcp_client::McpClient;
-use super::port::WorkbenchPort;
-use super::run_row::RunRow;
+use magistr_cockpit::workbench::journal_entry::JournalEntry;
+use magistr_cockpit::workbench::port::WorkbenchPort;
+use magistr_cockpit::workbench::run_row::RunRow;
 
 /// How long a read, a search or a map gets.
 const CALL: Duration = Duration::from_secs(30);

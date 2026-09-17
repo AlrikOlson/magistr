@@ -33,12 +33,11 @@ tiny-skia = { version = "0.12", default-features = false, features = ["std", "si
 # same decoders `image` itself delegates to.
 zune-jpeg = "0.5"
 image-webp = "0.2"
-# The producers' channels and tasks: the inbox every producer posts on,
-# the jobs off the loop thread, the engine feed's socket, the session relay.
-tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
-# The producers behind Msg::Engine and Msg::Agent: the in-process
-# think-and-ship engines and their broadcast-socket feed, the application
-# session handle, and the ACP vocabulary translated at the host boundary.
+# Remaining runtime channels, jobs and session relay. Concrete store/socket
+# clients live in the CLI host; no direct network or async I/O feature here.
+tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
+# Workflow projection values, the application session handle and the remaining
+# ACP translation. Their semantic-contract migration is tracked separately.
 magistr-engine = { path = "../magistr-engine" }
 magistr-application = { path = "../magistr-application" }
 magistr-acp = { path = "../magistr-acp" }
@@ -72,8 +71,7 @@ syn = { version = "2", features = ["full", "visit"] }
 proc-macro2 = "1"
 insta = "1"
 proptest = "1"
-# A temporary project root and store for the engine client tests.
+# Temporary directories for shelf and golden fixtures.
 tempfile = "3"
-# The attached-client tests block on a synchronous socket client while the
-# owner endpoint's tasks run: they need more than one worker.
+# Session relay tests hold blocking jobs while observing async events.
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

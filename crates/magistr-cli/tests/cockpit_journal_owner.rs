@@ -6,13 +6,14 @@ use std::path::Path;
 use std::sync::Arc;
 
 use magistr::application::HostedWorkspace;
+use magistr::application::workspace_client::McpWorkbench;
 use magistr_acp::{AcpEvent, capabilities::LocalEffectPort};
 use magistr_application::effects::{
     EffectAuthorizer, EffectFuture, EffectPort, EffectRequest, EffectResponse, SourceRoute,
 };
 use magistr_cockpit::{
     cockpit::{Model, Msg, Size, WorkbenchCmd, WorkbenchEvent, update},
-    workbench::{self, McpWorkbench},
+    workbench,
 };
 use magistr_workspace::{service::WorkspaceOpenOptions, snapshot::MutationStatus};
 use tokio::sync::mpsc;

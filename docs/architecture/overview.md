@@ -7,7 +7,7 @@ records the refactor's intended policies, and names executable behavior scenario
 
 | Component | Responsibility |
 | --- | --- |
-| `magistr-cli` | Commands, project setup, runtime integration, and MCP service startup |
+| `magistr-cli` | Commands, project setup, runtime integration, concrete workflow/workspace interface clients, and MCP service startup |
 | `magistr-domain` | Deterministic identities, run rules, policy, and verification values |
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-core` | Configuration, presets, and shared project/interface types |

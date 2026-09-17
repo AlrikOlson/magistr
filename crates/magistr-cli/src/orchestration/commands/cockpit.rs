@@ -10,9 +10,9 @@ use crate::orchestration::interactive_session::InteractiveSession;
 use crate::orchestration::loop_driver::Connector;
 use magistr_application::effects::{SourceRefusal, SourceRoute};
 
+use crate::application::workflow_client::EngineClient;
 use color_eyre::eyre::{self, Context as _};
 use magistr_cockpit::cockpit::{Model, StageTab, Summary};
-use magistr_cockpit::engine::EngineClient;
 use magistr_cockpit::theme::Theme;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};

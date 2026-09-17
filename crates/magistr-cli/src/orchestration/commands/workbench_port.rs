@@ -2,7 +2,8 @@
 
 use std::path::Path;
 
-use magistr_cockpit::workbench::{McpWorkbench, WorkbenchPort};
+use crate::application::workspace_client::McpWorkbench;
+use magistr_cockpit::workbench::WorkbenchPort;
 
 /// The server entry the cockpit speaks to.
 const SERVER: &str = "workbench-mcp";
