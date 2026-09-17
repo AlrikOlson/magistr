@@ -457,7 +457,7 @@ fn hidden_images(model: &Model) -> bool {
 
 /// *Show images*: the pictures the asking call carries go onto the feed
 /// through the one rendering route a picture has ever taken
-/// (`update::picture`), so a screenshot on a plan card is the same
+/// (`session::picture`), so a screenshot on a plan card is the same
 /// line, the same wrap and the same compositor placement as a
 /// screenshot in a tool result. The card keeps its place; only its
 /// button leaves.
@@ -470,7 +470,7 @@ fn show_images(model: &mut Model) -> Vec<Cmd> {
         _ => Vec::new(),
     };
     for block in &images {
-        super::update::picture(model, block);
+        super::session::picture(model, block);
     }
     Vec::new()
 }
@@ -660,7 +660,7 @@ pub(super) fn lapsed(model: &mut Model, id: u64, title: &str, after_secs: u64) -
         Copy::duration(after_secs),
         ToolTitle::display(title)
     );
-    model.turn.push_note(&line);
+    model.session.turn.push_note(&line);
     vec![Cmd::Announce(line)]
 }
 

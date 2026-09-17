@@ -11,7 +11,7 @@ fn model(tab: StageTab, cell: (u16, u16)) -> Model {
         .with_theme(Theme::forced(crate::theme::ThemeMode::Dark).with_motion(MotionMode::Reduced));
     model.pixels = true;
     model.reasoning_expanded = true;
-    model.prompt.insert("Keep my draft");
+    model.session.prompt.insert("Keep my draft");
     update(
         &mut model,
         Msg::Reply(crate::input::Reply::CellPixels {
@@ -128,9 +128,10 @@ fn dragging_keeps_selection_draft_and_conversation_anchor_while_output_arrives()
     );
     assert_eq!(m.stage_anchor().unwrap().0, anchor);
     assert_eq!(m.selected(), selected.as_ref());
-    assert_eq!(m.prompt.text(), "Keep my draft");
+    assert_eq!(m.session.prompt.text(), "Keep my draft");
     assert!(
-        m.turn
+        m.session
+            .turn
             .lines()
             .iter()
             .any(|line| line.text().contains("A new observation."))
@@ -159,7 +160,7 @@ fn commands_open_keyboard_resizing_and_restore_initial_sizes() {
     assert_ne!(m.flight_layout(), initial);
     command(&mut m, "Reset panel sizes");
     assert_eq!(m.flight_layout(), initial);
-    assert_eq!(m.prompt.text(), "Keep my draft");
+    assert_eq!(m.session.prompt.text(), "Keep my draft");
 }
 
 fn key(model: &mut Model, code: KeyCode) {
@@ -210,7 +211,7 @@ fn every_panel_divider_resizes_live_with_pixel_and_cell_reports() {
                 assert!(m.flight_panels.active().is_none());
                 mouse(&mut m, MouseKind::Drag(Button::Left), at, None, pixels);
                 assert_eq!(divider.geometry(&m).2, resized, "release ends capture");
-                assert_eq!(m.prompt.text(), "Keep my draft");
+                assert_eq!(m.session.prompt.text(), "Keep my draft");
             }
         }
     }
@@ -309,5 +310,5 @@ fn keyboard_adjustment_cycles_only_visible_boundaries_and_can_reset_or_cancel() 
     key(&mut m, KeyCode::Right);
     key(&mut m, KeyCode::Esc);
     assert_eq!(m.flight_layout(), saved);
-    assert_eq!(m.prompt.text(), "Keep my draft");
+    assert_eq!(m.session.prompt.text(), "Keep my draft");
 }

@@ -70,6 +70,22 @@ approval; workspace confirmations (`Cmd::Workbench`) and workflow evidence
 (`Cmd::Engine`) are other cards with other owners, and no decision intent can
 stand in for them.
 
+Session, transcript and draft interaction has one owner, `cockpit::session`. It
+holds the session state (the turn, where it stands and the notice it left, the
+draft, the completion popup with the workspace files that fill it, and the
+reading position over the transcript) and the folds that move it: the agent
+fold and the frame fold consume what the supervisor and the store report, the
+draft keys and pastes edit the message, one `send` and one `stop` serve the
+keys and the composer's button alike, and Enter on an empty draft or a click on
+a card's row select the transcript's card through the same fold. The anchor a
+pinned window is held by across a re-wrap is a source line and an offset within
+it, never a row index; the cell and pixel arithmetic that turns it into rows
+stays with the turn's layout and the surfaces. Outcomes are consumed by
+reference: a recorded check becomes a card by the check's name, a completed
+call's receipt reaches the spine's head by id, a call's terminal is held by id
+while its bytes stay with the terminals, and an edit asks the workbench for
+the journal rather than trusting the wire.
+
 Turn text retains both source lines and wrapped rows. Streaming updates rewrap
 the changed line; resizing recomputes wrapping. Flat mode can therefore read the
 same source text without reconstructing it from painted cells. Conversation

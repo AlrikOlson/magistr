@@ -207,7 +207,10 @@ fn panned_nodes_never_capture_header_list_or_composer_clicks() {
 #[test]
 fn reset_view_works_through_its_drawn_button_with_an_unsent_draft() {
     let mut model = model(66, false);
-    model.prompt.insert("Please check the recovery order.");
+    model
+        .session
+        .prompt
+        .insert("Please check the recovery order.");
     model.set_roadmap_graph_px(Some(PxRect::new(1.0, 35.0, 898.0, 208.0)));
     model.roadmap.zoom_at(3.0, 400.0, 100.0);
     model.roadmap.pan_by(-40.0, -10.0);
@@ -240,7 +243,10 @@ fn reset_view_works_through_its_drawn_button_with_an_unsent_draft() {
     );
     assert_eq!(model.roadmap.zoom(), 1.0);
     assert_eq!(model.roadmap.pan(), (0.0, 0.0));
-    assert_eq!(model.prompt.text(), "Please check the recovery order.");
+    assert_eq!(
+        model.session.prompt.text(),
+        "Please check the recovery order."
+    );
     assert_eq!(model.selected(), selected.as_ref());
 }
 

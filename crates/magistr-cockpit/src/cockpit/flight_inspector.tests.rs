@@ -133,10 +133,10 @@ fn roadmap_dependency_pointer_opens_exact_work_without_moving_the_draft_or_list(
     for size in [Size::new(144, 50), Size::new(64, 24)] {
         let mut model = roadmap_model();
         update(&mut model, Msg::Resize(size));
-        model.prompt.insert("Keep this request");
+        model.session.prompt.insert("Keep this request");
         Inspector::flight_scroll(&mut model, isize::MAX);
-        let draft = model.prompt.clone();
-        let conversation = model.viewport;
+        let draft = model.session.prompt.clone();
+        let conversation = model.session.viewport;
         let list = model.roadmap_viewport;
         let cell = model.cell_size();
         let mut face = Typography::default();
@@ -177,8 +177,8 @@ fn roadmap_dependency_pointer_opens_exact_work_without_moving_the_draft_or_list(
             Some(&Selected::Chunk("internal-receipts".into()))
         );
         assert_eq!(model.tab(), StageTab::Roadmap);
-        assert_eq!(model.prompt, draft);
-        assert_eq!(model.viewport, conversation);
+        assert_eq!(model.session.prompt, draft);
+        assert_eq!(model.session.viewport, conversation);
         assert_eq!(model.roadmap_viewport, list);
         assert_eq!(model.inspector_scroll, 0);
         if model.flight_layout().compact {
@@ -320,12 +320,12 @@ fn long_details_scroll_without_changing_selection_or_message() {
         }}),
     ));
     model.selected = Some(Selected::Step(900));
-    model.prompt.insert("keep my draft");
+    model.session.prompt.insert("keep my draft");
     let selection = model.selected.clone();
     Inspector::flight_scroll(&mut model, 1000);
     assert!(model.inspector_scroll > 0);
     Inspector::flight_scroll(&mut model, -1000);
     assert_eq!(model.inspector_scroll, 0);
     assert_eq!(model.selected, selection);
-    assert_eq!(model.prompt.text(), "keep my draft");
+    assert_eq!(model.session.prompt.text(), "keep my draft");
 }

@@ -52,7 +52,7 @@ pub fn esc(model: &mut Model) -> Option<Vec<Cmd>> {
     // A card open on the Session's feed folds before the camera moves:
     // collapse is not navigation, so it goes ahead
     // of it — the newest open card first, one per press.
-    if model.place == Place::Session && model.turn.collapse_expanded() {
+    if model.place == Place::Session && model.session.turn.collapse_expanded() {
         return Some(Vec::new());
     }
     // Birth: a field being typed closes

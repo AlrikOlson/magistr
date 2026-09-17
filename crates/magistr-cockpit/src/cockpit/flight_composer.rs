@@ -234,34 +234,34 @@ impl FlightComposer {
     /// Put the selected work in an editable request without replacing a draft.
     /// The visible text goes through the normal send, history and retry paths.
     pub fn request_change(model: &mut Model) {
-        if model.prompt.is_empty()
+        if model.session.prompt.is_empty()
             && let Some(title) = Self::selected_work(model)
         {
             let prefix = format!("For “{title}”, ");
-            model.prompt.insert(&prefix);
+            model.session.prompt.insert(&prefix);
         }
         model.pane = Pane::Stage;
     }
 
     /// Open the workspace file chooser without replacing the current draft.
     pub fn add_files(model: &mut Model) {
-        if model.prompt.text()[..model.prompt.cursor()]
+        if model.session.prompt.text()[..model.session.prompt.cursor()]
             .chars()
             .next_back()
             .is_some_and(|c| !c.is_whitespace())
         {
-            model.prompt.insert(" ");
+            model.session.prompt.insert(" ");
         }
-        let anchor = model.prompt.cursor();
-        model.prompt.insert("@");
+        let anchor = model.session.prompt.cursor();
+        model.session.prompt.insert("@");
         let mut completion = Completion::file(anchor);
         completion.refresh(
-            model.prompt.text(),
-            model.prompt.cursor(),
-            &model.workspace_files,
+            model.session.prompt.text(),
+            model.session.prompt.cursor(),
+            &model.session.workspace_files,
         );
         // Keep an empty chooser open so the user receives a useful empty state.
-        model.completion = Some(completion);
+        model.session.completion = Some(completion);
     }
 
     /// A floating chooser above the composer; it cannot squeeze the message area.

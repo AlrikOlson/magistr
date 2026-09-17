@@ -194,7 +194,7 @@ fn roadmap_signals_are_selectable_by_pointer_and_keyboard_without_changing_chunk
     ));
 }
 
-use crate::agent::{AgentEvent, ImageBlock, TurnEnd};
+use crate::agent::{AgentEvent, ImageBlock, ToolStatus, TurnEnd};
 use crate::cockpit::Size;
 use crate::cockpit::{
     Animation, Budget, Eased, KillCmd, Motion, MotionName, ShipRun, Surface, Term, TermDock,
@@ -3460,7 +3460,7 @@ fn pin_unpin_and_checkpoint_palette_commands_go_to_the_engine() {
         ),
         ("/checkpoint", EngineCmd::Checkpoint),
     ] {
-        m.prompt.insert(typed);
+        m.session.prompt.insert(typed);
         // The echo is a row arriving, so the fold may also ask for the
         // tick — only the first does, the rest already have it running.
         let cmds = update(&mut m, key(KeyCode::Enter));
@@ -3469,12 +3469,12 @@ fn pin_unpin_and_checkpoint_palette_commands_go_to_the_engine() {
             cmds[1..].iter().all(|cmd| matches!(cmd, Cmd::Animate(_))),
             "{typed}: {cmds:?}"
         );
-        assert!(m.prompt.is_empty(), "{typed} was taken");
+        assert!(m.session.prompt.is_empty(), "{typed} was taken");
     }
     let echoed: Vec<&str> = m.turn().rows().iter().map(|r| r.text.as_str()).collect();
     assert_eq!(echoed, ["/pin 7", "/unpin 7", "/checkpoint"]);
     // A bare /pin, one without a number, goes to the agent as a prompt.
-    m.prompt.insert("/pin");
+    m.session.prompt.insert("/pin");
     assert_eq!(
         update(&mut m, key(KeyCode::Enter)),
         vec![Cmd::Prompt("/pin".to_owned())],
@@ -5385,11 +5385,14 @@ fn plus_and_minus_zoom_the_tech_tree_from_the_keyboard() {
     let mut m = zoomable_roadmap();
     update(&mut m, key(KeyCode::Char('+')));
     assert!(m.roadmap().zoom() > 1.0, "the tree zoomed in");
-    assert!(m.prompt.is_empty(), "and the key never reached the prompt");
+    assert!(
+        m.session.prompt.is_empty(),
+        "and the key never reached the prompt"
+    );
     let zoomed = m.roadmap().zoom();
     update(&mut m, key(KeyCode::Char('-')));
     assert!(m.roadmap().zoom() < zoomed, "and back out");
-    assert!(m.prompt.is_empty());
+    assert!(m.session.prompt.is_empty());
 }
 
 #[test]
@@ -5399,7 +5402,7 @@ fn an_unshifted_equals_zooms_in_too() {
     let mut m = zoomable_roadmap();
     update(&mut m, key(KeyCode::Char('=')));
     assert!(m.roadmap().zoom() > 1.0);
-    assert!(m.prompt.is_empty());
+    assert!(m.session.prompt.is_empty());
 }
 
 #[test]
@@ -5411,7 +5414,7 @@ fn zero_puts_the_tech_tree_back_to_the_fit() {
     update(&mut m, key(KeyCode::Char('0')));
     assert!((m.roadmap().zoom() - 1.0).abs() < 1e-5, "back at the fit");
     assert_eq!(m.roadmap().pan(), (0.0, 0.0));
-    assert!(m.prompt.is_empty());
+    assert!(m.session.prompt.is_empty());
 }
 
 #[test]
@@ -5432,7 +5435,7 @@ fn a_zoom_key_on_a_cell_only_tab_is_the_prompts_letter() {
     assert!(m.roadmap_graph_rect().is_none(), "cell-only mode");
     update(&mut m, key(KeyCode::Char('-')));
     update(&mut m, key(KeyCode::Char('0')));
-    assert_eq!(m.prompt.text(), "-0");
+    assert_eq!(m.session.prompt.text(), "-0");
     assert!((m.roadmap().zoom() - 1.0).abs() < f32::EPSILON);
 }
 
@@ -5442,7 +5445,7 @@ fn a_zoom_key_with_text_in_the_prompt_stays_the_prompts() {
     update(&mut m, key(KeyCode::Char('x')));
     update(&mut m, key(KeyCode::Char('-')));
     update(&mut m, key(KeyCode::Char('0')));
-    assert_eq!(m.prompt.text(), "x-0");
+    assert_eq!(m.session.prompt.text(), "x-0");
     assert!((m.roadmap().zoom() - 1.0).abs() < f32::EPSILON);
 }
 
@@ -5450,7 +5453,7 @@ fn a_zoom_key_with_text_in_the_prompt_stays_the_prompts() {
 fn the_zoom_keys_belong_to_the_roadmap_tab_alone() {
     let mut m = model();
     update(&mut m, key(KeyCode::Char('+')));
-    assert_eq!(m.prompt.text(), "+", "the turn tab types it");
+    assert_eq!(m.session.prompt.text(), "+", "the turn tab types it");
 }
 
 /// A cockpit wide enough to undock a third column, carrying a think

@@ -10,7 +10,7 @@ use serde_json::json;
 fn model() -> Model {
     let mut model = Model::new(Size::new(128, 40));
     model.pixels = true;
-    model.prompt.insert("Keep this draft");
+    model.session.prompt.insert("Keep this draft");
     model.sync_flight_wrap();
     model
 }
@@ -74,7 +74,7 @@ fn commands_open_settings_and_theme_buttons_change_the_live_theme() {
     let node = FlightSecondary::settings(&model, &FlightStyle::for_model(&model));
     click(&mut model, node, Widget::SettingsClose.id());
     assert!(model.settings().is_none());
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
 }
 
 #[test]
@@ -87,8 +87,8 @@ fn search_selects_the_record_without_changing_the_conversation_or_draft() {
             "step_number":864,"thought":"Keep customer budgets separate","purpose":"Retry limits"
         }}),
     ));
-    let turn = model.turn.clone();
-    let viewport = model.viewport;
+    let turn = model.session.turn.clone();
+    let viewport = model.session.viewport;
     command(&mut model, "Search recorded work");
     for c in "customer".chars() {
         update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
@@ -96,9 +96,9 @@ fn search_selects_the_record_without_changing_the_conversation_or_draft() {
     let node = FlightSecondary::search(&model, &FlightStyle::for_model(&model));
     click(&mut model, node, Widget::search_row(0));
     assert_eq!(model.selected(), Some(&Selected::Step(864)));
-    assert_eq!(model.turn, turn);
-    assert_eq!(model.viewport, viewport);
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.turn, turn);
+    assert_eq!(model.session.viewport, viewport);
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
 }
 
 #[test]
@@ -180,7 +180,7 @@ fn clicking_a_query_keeps_the_overlay_and_the_original_message() {
     assert!(model.search().is_some());
     update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char('s'))));
     assert_eq!(model.search().unwrap().query(), "s");
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn permission_scroll_is_bounded_and_the_answer_button_keeps_working_at_the_end()
             (0..200).map(|i| format!("Check file {i} and preserve its existing contents.")),
         )),
     );
-    let viewport = model.viewport;
+    let viewport = model.session.viewport;
     FlightOverlays::scroll_permission(&mut model, isize::MAX);
     let last = model.decision().scroll();
     assert!(last > 0);
@@ -216,14 +216,14 @@ fn permission_scroll_is_bounded_and_the_answer_button_keeps_working_at_the_end()
     assert!(!cmds.is_empty());
     assert!(model.moment().is_none());
     assert_eq!(model.decision().scroll(), 0);
-    assert_eq!(model.viewport, viewport);
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.viewport, viewport);
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
 }
 
 #[test]
 fn permission_clicks_and_help_wheels_do_not_reach_the_workspace() {
     let mut model = model();
-    let viewport = model.viewport;
+    let viewport = model.session.viewport;
     command(&mut model, "Keyboard help");
     assert!(model.is_sheet_open());
     update(
@@ -240,8 +240,8 @@ fn permission_clicks_and_help_wheels_do_not_reach_the_workspace() {
             target: Some(Widget::PromptAction.id()),
         },
     );
-    assert_eq!(model.viewport, viewport);
-    assert_eq!(model.prompt.text(), "Keep this draft");
+    assert_eq!(model.session.viewport, viewport);
+    assert_eq!(model.session.prompt.text(), "Keep this draft");
     update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Esc)));
     model.dock.push_permission(
         Permission::new(

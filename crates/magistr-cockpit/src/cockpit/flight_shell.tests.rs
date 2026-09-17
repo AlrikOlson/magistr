@@ -129,7 +129,7 @@ fn model(size: Size) -> Model {
             ..NativeSnapshot::default()
         });
     model.pixels = true;
-    model.prompt.insert("Keep this draft");
+    model.session.prompt.insert("Keep this draft");
     model
 }
 fn layout(model: &Model) -> Resolved {
@@ -415,7 +415,7 @@ fn loop_startup_checks_pause_and_completion_have_distinct_visible_status() {
             max: 10,
         }),
     );
-    assert_eq!(model.turn_notice, None);
+    assert_eq!(model.session.notice, None);
     for (stage, label) in [
         (LoopStage::Connecting, "Starting agent"),
         (LoopStage::Agent, "Waiting for response"),
