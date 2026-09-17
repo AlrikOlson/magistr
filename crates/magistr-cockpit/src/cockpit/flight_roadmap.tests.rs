@@ -4,7 +4,7 @@ use crate::harness::fixtures;
 use crate::hit::HitRegistry;
 use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree};
-use magistr_engine::NativeSnapshot;
+use magistr_workflow_contracts::NativeSnapshot;
 use serde_json::json;
 
 fn model(wide: bool) -> Model {

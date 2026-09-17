@@ -1,4 +1,4 @@
-use magistr_engine::{NativeEvent, NativeSnapshot, RoadmapProgress};
+use magistr_workflow_contracts::{NativeEvent, NativeSnapshot, RoadmapProgress};
 use serde_json::json;
 
 use super::*;

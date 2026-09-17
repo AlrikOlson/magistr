@@ -1,4 +1,4 @@
-use magistr_engine::FeedStatus;
+use magistr_workflow_contracts::FeedStatus;
 
 use super::*;
 use crate::cockpit::{Msg, Size, update};

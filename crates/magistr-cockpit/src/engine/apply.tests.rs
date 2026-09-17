@@ -1,5 +1,5 @@
-use magistr_engine::native::{Chunk, ChunkStatus, Signal, SignalStatus};
-use magistr_engine::{Delivery, NativeEvent, RoadmapFrame, SignalFrame};
+use magistr_workflow_contracts::{Chunk, ChunkStatus, Signal, SignalStatus};
+use magistr_workflow_contracts::{Delivery, NativeEvent, RoadmapFrame, SignalFrame};
 use serde_json::json;
 
 use super::*;

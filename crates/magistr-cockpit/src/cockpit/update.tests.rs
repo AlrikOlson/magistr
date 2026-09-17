@@ -134,8 +134,8 @@ fn session_view_joins_navigation_and_keeps_viewers_out_of_the_stage() {
     assert_eq!(m.pane(), Pane::Inspector);
 }
 
-use magistr_engine::FeedStatus;
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
+use magistr_workflow_contracts::FeedStatus;
 
 use super::*;
 use crate::cockpit::WorkbenchEvent;
@@ -913,24 +913,26 @@ fn a_seed_shows_the_stores_plan_without_waiting_for_a_frame() {
     assert_eq!(m.rail().ship().objective(), None);
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            objective: Some(crate::harness::fixtures::objective("ship the rail")),
-            tasks: vec![crate::harness::fixtures::task_from(serde_json::json!({
-                "id": "t1", "title": "implement", "status": "active"
-            }))],
-            progress: crate::harness::fixtures::progress(5, 9),
-            chunks: crate::harness::fixtures::chunks_from(vec![
-                serde_json::json!({"id": "tui2-2a1-rail", "status": "in_progress"}),
-            ]),
-            signals: (0..1)
-                .map(|n| {
-                    crate::harness::fixtures::signal_from(
-                        serde_json::json!({"id": format!("s{n}"), "status": "new"}),
-                    )
-                })
-                .collect(),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                objective: Some(crate::harness::fixtures::objective("ship the rail")),
+                tasks: vec![crate::harness::fixtures::task_from(serde_json::json!({
+                    "id": "t1", "title": "implement", "status": "active"
+                }))],
+                progress: crate::harness::fixtures::progress(5, 9),
+                chunks: crate::harness::fixtures::chunks_from(vec![
+                    serde_json::json!({"id": "tui2-2a1-rail", "status": "in_progress"}),
+                ]),
+                signals: (0..1)
+                    .map(|n| {
+                        crate::harness::fixtures::signal_from(
+                            serde_json::json!({"id": format!("s{n}"), "status": "new"}),
+                        )
+                    })
+                    .collect(),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     assert_eq!(m.rail().ship().objective(), Some("ship the rail"));
     assert_eq!(m.rail().ship().tasks().len(), 1);
@@ -954,12 +956,14 @@ fn a_seed_shows_the_stores_trace_and_a_re_seed_replaces_it() {
             "id": "t1", "checks": [{"name": "lint", "passed": true}],
         }))
     };
-    let seed = |steps: Vec<magistr_engine::ThinkStep>| {
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            steps,
-            tasks: vec![gated_task()],
-            ..magistr_engine::NativeSnapshot::default()
-        }))
+    let seed = |steps: Vec<magistr_workflow_contracts::ThinkStep>| {
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                steps,
+                tasks: vec![gated_task()],
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        ))
     };
     update(&mut m, seed(vec![step(1, "open")]));
     assert_eq!(
@@ -2052,12 +2056,12 @@ fn engine_frames_advance_the_phase_and_a_new_iteration_starts_over() {
             serde_json::json!({"chunk": {"id": "a", "status": "in_progress"}}),
         ),
     );
-    assert_eq!(m.phase(), Some(Phase::Research));
+    assert_eq!(m.phase(), Some(DisplayPhase::Research));
     update(
         &mut m,
         frame("ship", "task_started", serde_json::json!({"task_id": "t"})),
     );
-    assert_eq!(m.phase(), Some(Phase::Execute));
+    assert_eq!(m.phase(), Some(DisplayPhase::Execute));
     update(
         &mut m,
         frame(
@@ -2066,7 +2070,7 @@ fn engine_frames_advance_the_phase_and_a_new_iteration_starts_over() {
             serde_json::json!({"objective": {}}),
         ),
     );
-    assert_eq!(m.phase(), Some(Phase::Execute), "never backwards");
+    assert_eq!(m.phase(), Some(DisplayPhase::Execute), "never backwards");
     update(
         &mut m,
         frame(
@@ -2075,7 +2079,7 @@ fn engine_frames_advance_the_phase_and_a_new_iteration_starts_over() {
             serde_json::json!({"task_id": "t", "check": {"passed": true}}),
         ),
     );
-    assert_eq!(m.phase(), Some(Phase::Verify));
+    assert_eq!(m.phase(), Some(DisplayPhase::Verify));
     update(
         &mut m,
         frame(
@@ -2084,7 +2088,7 @@ fn engine_frames_advance_the_phase_and_a_new_iteration_starts_over() {
             serde_json::json!({"warnings": []}),
         ),
     );
-    assert_eq!(m.phase(), Some(Phase::Done));
+    assert_eq!(m.phase(), Some(DisplayPhase::Done));
     update(
         &mut m,
         frame(
@@ -2095,7 +2099,7 @@ fn engine_frames_advance_the_phase_and_a_new_iteration_starts_over() {
     );
     assert_eq!(
         m.phase(),
-        Some(Phase::Plan),
+        Some(DisplayPhase::Plan),
         "after done, a new objective starts over"
     );
     update(
@@ -3358,19 +3362,21 @@ fn roadmap_model() -> Model {
     proposed["reprioritize"] = serde_json::json!({"suggested_priority": 100, "reason": "sooner"});
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(1, 3),
-            chunks: crate::harness::fixtures::chunks_from(vec![
-                serde_json::json!({"id": "base", "status": "done", "priority": 100, "group": "Core"}),
-                serde_json::json!({"id": "mid", "name": "Run the work", "status": "in_progress", "priority": 100, "group": "Core", "deps": ["base"]}),
-                proposed,
-            ]),
-            signals: crate::harness::fixtures::signals_from(vec![serde_json::json!({
-                "id": "s1", "kind": "idea", "from": "alice", "body": "faster",
-                "status": "researched",
-            })]),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(1, 3),
+                chunks: crate::harness::fixtures::chunks_from(vec![
+                    serde_json::json!({"id": "base", "status": "done", "priority": 100, "group": "Core"}),
+                    serde_json::json!({"id": "mid", "name": "Run the work", "status": "in_progress", "priority": 100, "group": "Core", "deps": ["base"]}),
+                    proposed,
+                ]),
+                signals: crate::harness::fixtures::signals_from(vec![serde_json::json!({
+                    "id": "s1", "kind": "idea", "from": "alice", "body": "faster",
+                    "status": "researched",
+                })]),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     m
 }
@@ -3442,7 +3448,7 @@ fn a_reconnect_over_an_unchanged_store_is_confirmed_current_and_moves_no_selecti
 fn an_owner_change_is_stale_until_the_resync_confirms_and_in_order_frames_conceal_nothing() {
     use crate::cockpit::Freshness;
     use crate::harness::fixtures;
-    use magistr_engine::Delivery;
+    use magistr_workflow_contracts::Delivery;
 
     let changed = |id: &str| {
         fixtures::frame(
@@ -4114,10 +4120,12 @@ fn a_tab_switch_transitions_on_the_tick_and_goes_still_when_it_is_over() {
 #[test]
 fn progress_eases_on_the_tick_and_seeds_in_place() {
     let mut m = model();
-    let seed = Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-        progress: crate::harness::fixtures::progress(2, 4),
-        ..magistr_engine::NativeSnapshot::default()
-    }));
+    let seed = Msg::Engine(EngineEvent::Seed(
+        magistr_workflow_contracts::NativeSnapshot {
+            progress: crate::harness::fixtures::progress(2, 4),
+            ..magistr_workflow_contracts::NativeSnapshot::default()
+        },
+    ));
     assert_eq!(
         update(&mut m, seed),
         vec![],
@@ -4449,15 +4457,17 @@ fn next_ready_follows_the_engines_pick() {
     let mut m = model();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(1, 3),
-            chunks: crate::harness::fixtures::chunks_from(vec![
-                serde_json::json!({"id": "base", "status": "done", "priority": 100}),
-                serde_json::json!({"id": "gated", "status": "pending", "priority": 100, "deps": ["open"]}),
-                serde_json::json!({"id": "open", "status": "pending", "priority": 300, "deps": ["base"]}),
-            ]),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(1, 3),
+                chunks: crate::harness::fixtures::chunks_from(vec![
+                    serde_json::json!({"id": "base", "status": "done", "priority": 100}),
+                    serde_json::json!({"id": "gated", "status": "pending", "priority": 100, "deps": ["open"]}),
+                    serde_json::json!({"id": "open", "status": "pending", "priority": 300, "deps": ["base"]}),
+                ]),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     let next = m.roadmap().next_ready().expect("one chunk is ready");
     assert_eq!(
@@ -4508,10 +4518,12 @@ fn long_roadmap(n: usize) -> Model {
         .collect();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            chunks: crate::harness::fixtures::chunks_from(chunks),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                chunks: crate::harness::fixtures::chunks_from(chunks),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     m
 }
@@ -5353,10 +5365,12 @@ fn undocked(steps: u32, lines: usize) -> Model {
         .collect();
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            steps,
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                steps,
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     for n in 0..lines {
         update(&mut m, Msg::Agent(AgentEvent::Text(format!("line {n}\n"))));
@@ -6190,10 +6204,10 @@ fn a_completed_call_mints_a_receipt_on_the_spines_own_counter() {
     // then cp-1 — so the card's ordinal and the rail's after-head count
     // are two readings of the one counter.
     m.rail.spine_mut().seed_receipts(239);
-    let cp = m
-        .rail
-        .spine_mut()
-        .open(magistr_engine::CheckpointReason::Iteration, "iter 1");
+    let cp = m.rail.spine_mut().open(
+        magistr_domain::workflow::CheckpointReason::Iteration,
+        "iter 1",
+    );
     agent(
         &mut m,
         AgentEvent::ToolCall {
@@ -6279,7 +6293,7 @@ fn reviewing() -> Model {
     {
         let spine = m.rail_mut().spine_mut();
         for label in ["iter 1", "iter 2", "iter 3"] {
-            let id = spine.open(magistr_engine::CheckpointReason::Iteration, label);
+            let id = spine.open(magistr_domain::workflow::CheckpointReason::Iteration, label);
             spine.saved(&id, Some("abc123".to_owned()), true);
         }
     }
@@ -7590,15 +7604,17 @@ fn a_gates_bytes_arrive_as_engine_frames_and_are_kept_by_the_gate() {
         &b"\x1b[32m   Compiling\x1b[0m foo\r\n"[..],
         b"   Finished\r\n",
     ] {
-        let output = magistr_engine::GateOutput {
+        let output = magistr_workflow_contracts::GateOutput {
             gate: "check".to_owned(),
             bytes: chunk.to_vec(),
         };
         let cmds = update(
             &mut m,
-            Msg::Engine(EngineEvent::local(magistr_engine::NativeEvent::Magistr(
-                magistr_engine::MagistrFrame::GateOutput(output),
-            ))),
+            Msg::Engine(EngineEvent::local(
+                magistr_workflow_contracts::NativeEvent::Magistr(
+                    magistr_workflow_contracts::MagistrFrame::GateOutput(output),
+                ),
+            )),
         );
         assert!(cmds.is_empty(), "{cmds:?}");
     }
@@ -7704,15 +7720,17 @@ fn an_open_run_card_shows_its_pane_and_a_completion_freezes_it() {
 #[test]
 fn a_recorded_check_freezes_its_gates_pane_and_seats_it_on_the_card() {
     let mut m = model();
-    let output = magistr_engine::GateOutput {
+    let output = magistr_workflow_contracts::GateOutput {
         gate: "check".to_owned(),
         bytes: b"\x1b[32m   Compiling\x1b[0m foo\r\n".to_vec(),
     };
     update(
         &mut m,
-        Msg::Engine(EngineEvent::local(magistr_engine::NativeEvent::Magistr(
-            magistr_engine::MagistrFrame::GateOutput(output),
-        ))),
+        Msg::Engine(EngineEvent::local(
+            magistr_workflow_contracts::NativeEvent::Magistr(
+                magistr_workflow_contracts::MagistrFrame::GateOutput(output),
+            ),
+        )),
     );
     let check = |name: &str, extra: serde_json::Value| {
         let mut check = serde_json::json!({"name": name, "passed": true});
@@ -8261,15 +8279,17 @@ fn the_chunk_chip_rises_to_the_sky_with_the_card_framed() {
     );
     update(
         &mut m,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            chunks: crate::harness::fixtures::chunks_from(vec![serde_json::json!({
-                "id": "gui2-2a",
-                "title": "The design language",
-                "status": "in_progress",
-                "priority": 100
-            })]),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                chunks: crate::harness::fixtures::chunks_from(vec![serde_json::json!({
+                    "id": "gui2-2a",
+                    "title": "The design language",
+                    "status": "in_progress",
+                    "priority": 100
+                })]),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     let _ = update(&mut m, click(Widget::SessionChunk.id()));
     assert_eq!(m.place(), Some(Place::Sky), "the chip rises to the Sky");
@@ -8892,7 +8912,7 @@ fn a_window_paints_between_rows_while_a_notch_glides_and_a_terminal_never_does()
 fn folding_the_same_seed_and_events_rebuilds_the_same_projection_and_a_duplicate_changes_nothing() {
     use crate::engine::EngineEvent;
     use crate::harness::fixtures;
-    use magistr_engine::Delivery;
+    use magistr_workflow_contracts::Delivery;
 
     let seed = || {
         fixtures::snapshot(

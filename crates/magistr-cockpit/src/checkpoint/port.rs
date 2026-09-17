@@ -1,6 +1,6 @@
 //! Where a checkpoint is actually taken.
 
-use magistr_engine::CheckpointReason;
+use magistr_domain::workflow::CheckpointReason;
 
 /// The three verbs of the ledger rail, behind a port.
 ///

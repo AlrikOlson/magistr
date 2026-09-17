@@ -156,9 +156,20 @@ jobs and checkpoint dispatch they own. `magistr-cockpit-runtime` supplies shared
 inbox/command channels, arrival stamps and background job execution to both the
 host and terminal. It depends on semantic cockpit values and Tokio, with no
 terminal or provider dependency. The cockpit declares no Tokio dependency and
-retains only job result values and semantic effect ports. Its workflow projections
-still depend on engine-owned contracts; removing that concrete dependency remains
-separate work, so the entire cockpit crate is not yet effect-free.
+retains only job result values and semantic effect ports. Workflow records, typed
+frames, freshness cursors and snapshots belong to `magistr-workflow-contracts`;
+the cockpit depends on those canonical values directly, without engine or store
+crates. The engine and workflow producers re-export the same Rust types for
+compatibility. `DisplayPhase` is the cockpit's inferred presentation of progress;
+`magistr-domain::workflow::WorkflowPhase` remains the workflow phase contract.
+
+The reducers and selectors are effect-free; some adjacent helpers perform I/O.
+`Theme::from_os` reads environment options at startup, while `Theme::from_lookup`
+and `Theme::detect` accept supplied inputs. Shelf loading/export reads image files
+and writes bundles when explicitly called by a host. Golden-directory helpers read
+and write test captures. These helpers live outside the reducer/selector modules;
+the purity guards prevent reducers from using them. Theme color roles stay shared,
+with terminal cell/icon choices and desktop pixel geometry resolved by each surface.
 
 The driver coalesces input and producer updates before rendering. Jobs, engine
 calls, and agent transport work run outside the state-update function. Engine

@@ -1,4 +1,4 @@
-use magistr_engine::NativeEvent;
+use magistr_workflow_contracts::NativeEvent;
 use serde_json::json;
 
 use super::*;
@@ -10,35 +10,39 @@ fn frame(family: &str, kind: &str, payload: serde_json::Value) -> NativeEvent {
 
 #[test]
 fn phases_are_ordered_named_and_parsed_back() {
-    assert!(Phase::Research < Phase::Plan);
-    assert!(Phase::Plan < Phase::Execute);
-    assert!(Phase::Execute < Phase::Verify);
-    assert!(Phase::Verify < Phase::Done);
-    for phase in Phase::ALL {
-        assert_eq!(Phase::from_name(phase.label()), Some(phase));
+    assert!(DisplayPhase::Research < DisplayPhase::Plan);
+    assert!(DisplayPhase::Plan < DisplayPhase::Execute);
+    assert!(DisplayPhase::Execute < DisplayPhase::Verify);
+    assert!(DisplayPhase::Verify < DisplayPhase::Done);
+    for phase in DisplayPhase::ALL {
+        assert_eq!(DisplayPhase::from_name(phase.label()), Some(phase));
         assert_eq!(phase.to_string(), phase.label());
     }
     assert_eq!(
-        Phase::from_name("Research"),
-        Some(Phase::Research),
+        DisplayPhase::from_name("Research"),
+        Some(DisplayPhase::Research),
         "case-insensitive"
     );
-    assert_eq!(Phase::from_name(" verify "), Some(Phase::Verify), "trimmed");
-    assert_eq!(Phase::from_name("ship"), None);
+    assert_eq!(
+        DisplayPhase::from_name(" verify "),
+        Some(DisplayPhase::Verify),
+        "trimmed"
+    );
+    assert_eq!(DisplayPhase::from_name("ship"), None);
 }
 
 #[test]
 fn engine_events_imply_the_phase() {
     assert_eq!(
-        Phase::from_event(&frame(
+        DisplayPhase::from_event(&frame(
             "roadmap",
             "chunk_changed",
             json!({"chunk": {"id": "a", "status": "in_progress"}})
         )),
-        Some(Phase::Research)
+        Some(DisplayPhase::Research)
     );
     assert_eq!(
-        Phase::from_event(&frame(
+        DisplayPhase::from_event(&frame(
             "roadmap",
             "chunk_changed",
             json!({"chunk": {"id": "a", "status": "done"}})
@@ -47,24 +51,24 @@ fn engine_events_imply_the_phase() {
         "only a chunk being started means research"
     );
     assert_eq!(
-        Phase::from_event(&frame("ship", "objective_set", json!({"objective": {}}))),
-        Some(Phase::Plan)
+        DisplayPhase::from_event(&frame("ship", "objective_set", json!({"objective": {}}))),
+        Some(DisplayPhase::Plan)
     );
     assert_eq!(
-        Phase::from_event(&frame("ship", "task_started", json!({"task_id": "t1"}))),
-        Some(Phase::Execute)
+        DisplayPhase::from_event(&frame("ship", "task_started", json!({"task_id": "t1"}))),
+        Some(DisplayPhase::Execute)
     );
     assert_eq!(
-        Phase::from_event(&frame(
+        DisplayPhase::from_event(&frame(
             "ship",
             "check_recorded",
             json!({"task_id": "t1", "check": {"name": "test", "passed": true}})
         )),
-        Some(Phase::Verify)
+        Some(DisplayPhase::Verify)
     );
     assert_eq!(
-        Phase::from_event(&frame("ship", "objective_shipped", json!({"warnings": []}))),
-        Some(Phase::Done)
+        DisplayPhase::from_event(&frame("ship", "objective_shipped", json!({"warnings": []}))),
+        Some(DisplayPhase::Done)
     );
 }
 
@@ -74,14 +78,14 @@ fn engine_events_imply_the_phase() {
 #[test]
 fn the_announced_phase_is_read_typed_and_never_out_of_an_actions_words() {
     for (name, phase) in [
-        ("researching", Phase::Research),
-        ("planning", Phase::Plan),
-        ("executing", Phase::Execute),
-        ("verifying", Phase::Verify),
-        ("complete", Phase::Done),
+        ("researching", DisplayPhase::Research),
+        ("planning", DisplayPhase::Plan),
+        ("executing", DisplayPhase::Execute),
+        ("verifying", DisplayPhase::Verify),
+        ("complete", DisplayPhase::Done),
     ] {
         assert_eq!(
-            Phase::from_event(&frame("magistr", "phase_set", json!({"phase": name}))),
+            DisplayPhase::from_event(&frame("magistr", "phase_set", json!({"phase": name}))),
             Some(phase)
         );
     }
@@ -92,10 +96,13 @@ fn the_announced_phase_is_read_typed_and_never_out_of_an_actions_words() {
             json!({"task_id": "t1", "action": {"description": description, "tools_used": ["magistr_set_phase"]}}),
         )
     };
-    assert_eq!(Phase::from_event(&action("workflow phase → verify")), None);
-    assert_eq!(Phase::from_event(&action("wrote the tests")), None);
     assert_eq!(
-        Phase::from_event(&frame(
+        DisplayPhase::from_event(&action("workflow phase → verify")),
+        None
+    );
+    assert_eq!(DisplayPhase::from_event(&action("wrote the tests")), None);
+    assert_eq!(
+        DisplayPhase::from_event(&frame(
             "think",
             "step_appended",
             json!({"step": {"step_number": 1}})
@@ -103,7 +110,7 @@ fn the_announced_phase_is_read_typed_and_never_out_of_an_actions_words() {
         None
     );
     assert_eq!(
-        Phase::from_event(&frame(
+        DisplayPhase::from_event(&frame(
             "ship",
             "task_added",
             json!({"task_id": "t1", "title": "t"})
@@ -111,7 +118,7 @@ fn the_announced_phase_is_read_typed_and_never_out_of_an_actions_words() {
         None
     );
     assert_eq!(
-        Phase::from_event(&frame(
+        DisplayPhase::from_event(&frame(
             "magistr",
             "gate_output",
             json!({"gate": "test", "bytes": [1]})
@@ -122,10 +129,25 @@ fn the_announced_phase_is_read_typed_and_never_out_of_an_actions_words() {
 
 #[test]
 fn every_domain_phase_maps_onto_the_cockpits() {
-    use magistr_engine::WorkflowPhase;
-    assert_eq!(Phase::from(WorkflowPhase::Researching), Phase::Research);
-    assert_eq!(Phase::from(WorkflowPhase::Planning), Phase::Plan);
-    assert_eq!(Phase::from(WorkflowPhase::Executing), Phase::Execute);
-    assert_eq!(Phase::from(WorkflowPhase::Verifying), Phase::Verify);
-    assert_eq!(Phase::from(WorkflowPhase::Complete), Phase::Done);
+    use magistr_domain::workflow::WorkflowPhase;
+    assert_eq!(
+        DisplayPhase::from(WorkflowPhase::Researching),
+        DisplayPhase::Research
+    );
+    assert_eq!(
+        DisplayPhase::from(WorkflowPhase::Planning),
+        DisplayPhase::Plan
+    );
+    assert_eq!(
+        DisplayPhase::from(WorkflowPhase::Executing),
+        DisplayPhase::Execute
+    );
+    assert_eq!(
+        DisplayPhase::from(WorkflowPhase::Verifying),
+        DisplayPhase::Verify
+    );
+    assert_eq!(
+        DisplayPhase::from(WorkflowPhase::Complete),
+        DisplayPhase::Done
+    );
 }

@@ -19,11 +19,13 @@ fn sky(chunks: Vec<serde_json::Value>) -> Model {
         .with_tab(StageTab::Roadmap);
     update(
         &mut model,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(211, 306),
-            chunks: crate::harness::fixtures::chunks_from(chunks),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(211, 306),
+                chunks: crate::harness::fixtures::chunks_from(chunks),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     model
 }

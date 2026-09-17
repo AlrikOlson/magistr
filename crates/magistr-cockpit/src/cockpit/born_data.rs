@@ -1,6 +1,6 @@
 //! What accepting the proposal left behind.
 
-use magistr_engine::native::Chunk;
+use magistr_workflow_contracts::Chunk;
 
 /// The roadmap as written (Birth F5): the chunks the entry point put
 /// in the new project's think-and-ship store through

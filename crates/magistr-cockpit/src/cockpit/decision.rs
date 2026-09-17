@@ -22,7 +22,7 @@
 //! are other cards with other owners, and an answer here cannot stand
 //! in for either.
 
-use magistr_engine::{CheckpointReason, policy::RiskTier};
+use magistr_domain::{policy::RiskTier, workflow::CheckpointReason};
 
 use super::charter_rule::CharterRule;
 use super::checkpoint_cmd::CheckpointCmd;

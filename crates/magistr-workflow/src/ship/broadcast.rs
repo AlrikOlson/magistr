@@ -8,27 +8,11 @@
 
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::infra::{Broadcaster as EngineBroadcaster, Family};
-use crate::ship::domain::action::Action;
-use crate::ship::domain::check::Check;
-use crate::ship::domain::objective::Objective;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum BroadcastFrame {
-    ObjectiveSet { objective: Objective },
-    TaskAdded { task_id: String, title: String },
-    TaskStarted { task_id: String },
-    ActionRecorded { task_id: String, action: Action },
-    CheckRecorded { task_id: String, check: Check },
-    TaskCompleted { task_id: String },
-    TaskBlocked { task_id: String, reason: String },
-    ObjectiveShipped { warnings: Vec<String> },
-    Cleared,
-}
+pub use magistr_workflow_contracts::ship::ShipFrame as BroadcastFrame;
 
 /// Cheaply cloneable handle that wraps the shared [`engine::Broadcaster`](crate::infra::Broadcaster)
 /// and tags every emitted frame with `family: "ship"`.

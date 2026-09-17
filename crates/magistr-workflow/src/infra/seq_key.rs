@@ -3,4 +3,4 @@
 //! decodes the line; written by the broadcaster.
 
 /// The wire key of the publisher's per-frame counter.
-pub const SEQ_KEY: &str = "seq";
+pub use magistr_workflow_contracts::SEQ_KEY;

@@ -1,7 +1,7 @@
 //! The ship objective and its plan, as the rail shows them.
 
-use magistr_engine::ShipFrame;
-use magistr_engine::native::{Objective, ObjectiveStatus, Task};
+use magistr_workflow_contracts::ShipFrame;
+use magistr_workflow_contracts::{Objective, ObjectiveStatus, Task};
 
 use super::plan_task::PlanTask;
 use super::task_state::TaskState;

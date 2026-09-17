@@ -1,6 +1,6 @@
 //! One state on the session's spine, as the rail shows it.
 
-use magistr_engine::CheckpointReason;
+use magistr_domain::workflow::CheckpointReason;
 
 use super::checkpoint_state::CheckpointState;
 use crate::theme::Icons;

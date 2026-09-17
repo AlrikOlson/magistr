@@ -1,4 +1,4 @@
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
 
 use super::*;
 use crate::cockpit::{Msg, Permission, Size, StageTab, Surface, Widget, update};
@@ -88,13 +88,15 @@ fn the_path_at_a_record_is_four_stops_with_the_record_here() {
     let mut w = window();
     update(
         &mut w,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(1, 2),
-            chunks: vec![crate::harness::fixtures::chunk_from(
-                serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
-            )],
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(1, 2),
+                chunks: vec![crate::harness::fixtures::chunk_from(
+                    serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
+                )],
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     for (place, label) in [(Place::Trace, "trace"), (Place::Changes, "changes")] {
         w.place = place;
@@ -135,20 +137,22 @@ fn the_signals_path_hangs_off_the_project_never_the_session() {
     let mut w = window();
     update(
         &mut w,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            progress: crate::harness::fixtures::progress(1, 2),
-            chunks: vec![crate::harness::fixtures::chunk_from(
-                serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
-            )],
-            signals: (0..2)
-                .map(|n| {
-                    crate::harness::fixtures::signal_from(
-                        serde_json::json!({"id": format!("s{n}"), "status": "new"}),
-                    )
-                })
-                .collect(),
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                progress: crate::harness::fixtures::progress(1, 2),
+                chunks: vec![crate::harness::fixtures::chunk_from(
+                    serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
+                )],
+                signals: (0..2)
+                    .map(|n| {
+                        crate::harness::fixtures::signal_from(
+                            serde_json::json!({"id": format!("s{n}"), "status": "new"}),
+                        )
+                    })
+                    .collect(),
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     w.place = Place::Signals;
     let path = w.path();
@@ -420,12 +424,14 @@ fn the_session_stop_names_when_the_session_started() {
     );
     update(
         &mut w,
-        Msg::Engine(EngineEvent::Seed(magistr_engine::NativeSnapshot {
-            chunks: vec![crate::harness::fixtures::chunk_from(
-                serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
-            )],
-            ..magistr_engine::NativeSnapshot::default()
-        })),
+        Msg::Engine(EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot {
+                chunks: vec![crate::harness::fixtures::chunk_from(
+                    serde_json::json!({"id": "gui2-2a", "status": "in_progress"}),
+                )],
+                ..magistr_workflow_contracts::NativeSnapshot::default()
+            },
+        )),
     );
     let path = w.path();
     let stops: Vec<(Widget, &str, bool)> = path

@@ -1,6 +1,6 @@
 //! One entry of the ship timeline.
 
-use magistr_engine::native::{Action, Check};
+use magistr_workflow_contracts::{Action, Check};
 
 /// One moment on the ship half of the reasoning model: an action the agent
 /// recorded, or a quality-gate check with its exit code and duration —

@@ -8,6 +8,7 @@ description = "Magistr session and workflow orchestration, cost governance, and 
 license = "MIT"
 
 [dependencies]
+magistr-workflow-contracts = { path = "../magistr-workflow-contracts" }
 magistr-domain = { path = "../magistr-domain" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }

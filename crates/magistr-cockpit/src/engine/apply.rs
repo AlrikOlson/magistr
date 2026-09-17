@@ -1,7 +1,7 @@
 //! Carrying an engine command out on a port.
 
-use magistr_engine::native::{Chunk, Signal};
-use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
+use magistr_workflow_contracts::{Chunk, Signal};
+use magistr_workflow_contracts::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::describe::describe;
 use super::event::EngineEvent;

@@ -1,6 +1,6 @@
 //! One reasoning step as the Trace tab holds it.
 
-use magistr_engine::native::{DepEdge, NextAction, ThinkStep};
+use magistr_workflow_contracts::{DepEdge, NextAction, ThinkStep};
 
 /// One think step as the Trace tab shows it, read off the store's own
 /// [`ThinkStep`] record — from a snapshot or a `step_appended` event:

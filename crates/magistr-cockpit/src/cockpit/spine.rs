@@ -1,6 +1,6 @@
 //! The rail's chain of checkpoints.
 
-use magistr_engine::CheckpointReason;
+use magistr_domain::workflow::CheckpointReason;
 
 use super::checkpoint::Checkpoint;
 

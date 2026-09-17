@@ -8,6 +8,58 @@ table cells are relative to `crates/`.
 See [terminal architecture](../architecture/terminal.md) for the data flow and
 [desktop architecture](../architecture/desktop.md) for the native interface.
 
+
+## Canonical workflow contracts
+
+These modules define the records used by producers and surfaces. Compatibility
+and dependency guards are `magistr-engine/tests/workflow_contracts.rs` and
+`magistr-cockpit/tests/boundary.rs`. Native wire, cursor and owner-file tests
+remain in the engine crate, where they also exercise the real publisher.
+
+| Module | Responsibility | Tests |
+| --- | --- | --- |
+| `magistr-workflow-contracts/src/broadcast_frame.rs` | Supplied wire-line decoding | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/content.rs` | Structured record content and validation | `magistr-workflow-contracts/src/content.tests.rs` |
+| `magistr-workflow-contracts/src/delivery.rs` | Arrival ordering and freshness consequences | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/event_cursor.rs` | Publisher epoch and sequence | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/family.rs` | Family names and wire stamps | `magistr-workflow-contracts/src/family.tests.rs` |
+| `magistr-workflow-contracts/src/feed_cursor.rs` | Duplicate, gap and epoch classification | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/feed_status.rs` | Connection observation | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/gate_output.rs` | Captured gate bytes | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/lib.rs` | Canonical values and compatibility surface | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/magistr_frame.rs` | Typed host phase and output events | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/native_event.rs` | One typed workflow or host event | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/native_snapshot.rs` | One per-family coherent snapshot | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/owner_generation.rs` | Observed nonzero owner generation; no allocation | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/roadmap/frame.rs` | Typed family mutation events | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/roadmap/mod.rs` | Public family facade | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/roadmap/name.rs` | Short work-item names | `magistr-workflow-contracts/src/roadmap/name.tests.rs` |
+| `magistr-workflow-contracts/src/roadmap/records.rs` | Family records and deterministic merge rules | `magistr-workflow-contracts/src/roadmap/records.tests.rs` |
+| `magistr-workflow-contracts/src/roadmap_progress.rs` | Aggregate completion values | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/ship/action.rs` | Recorded action and kind | `magistr-workflow-contracts/src/ship/action.tests.rs` |
+| `magistr-workflow-contracts/src/ship/artifact.rs` | Produced artifact reference and kind | `magistr-workflow-contracts/src/ship/artifact.tests.rs` |
+| `magistr-workflow-contracts/src/ship/check.rs` | Recorded check and evidence origin | `magistr-workflow-contracts/src/ship/check.tests.rs` |
+| `magistr-workflow-contracts/src/ship/frame.rs` | Typed family mutation events | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/ship/mod.rs` | Public family facade | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/ship/objective.rs` | Objective, verification mode and acceptance revision | `magistr-workflow-contracts/src/ship/objective.tests.rs` |
+| `magistr-workflow-contracts/src/ship/report.rs` | Report parsing outcome and test summary values | `magistr-workflow-contracts/src/ship/report.tests.rs` |
+| `magistr-workflow-contracts/src/ship/task.rs` | Task status and recorded evidence | `magistr-workflow-contracts/src/ship/task.tests.rs` |
+| `magistr-workflow-contracts/src/ship/verification_mode.rs` | Focused or full verification | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/signal/frame.rs` | Typed family mutation events | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/signal/mod.rs` | Public family facade | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/signal/records.rs` | Family records and deterministic merge rules | `magistr-workflow-contracts/src/signal/records.tests.rs` |
+| `magistr-workflow-contracts/src/snapshot_cursor.rs` | Supplied store observation stamp | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/think/branch.rs` | Reasoning branch and lifecycle | `magistr-workflow-contracts/src/think/branch.tests.rs` |
+| `magistr-workflow-contracts/src/think/dep_edge.rs` | Reasoning dependency reference | `magistr-workflow-contracts/src/think/dep_edge.tests.rs` |
+| `magistr-workflow-contracts/src/think/frame.rs` | Typed family mutation events | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/think/history.rs` | Persisted trace and metadata | `magistr-workflow-contracts/src/think/history.tests.rs` |
+| `magistr-workflow-contracts/src/think/mod.rs` | Public family facade | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/think/recorded_step.rs` | Recorded reasoning response | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/think/session.rs` | Supplied session history entry | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/think/step.rs` | Reasoning step, next action and stable identity | `magistr-workflow-contracts/src/think/step.tests.rs` |
+| `magistr-workflow-contracts/src/think/step_error.rs` | Reasoning validation error | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/think_branch.rs` | Recorded branch metadata | `magistr-engine/tests/workflow_contracts.rs` |
+
 ## Motion registry
 
 | Motion | Means | Night | Day |
@@ -39,6 +91,7 @@ See [terminal architecture](../architecture/terminal.md) for the data flow and
 | the theme reads the environment in exactly one place | `magistr-cockpit/tests/purity.rs` |
 | terminal bytes and neutral input share draft behavior; replies affect capabilities without input or effects; resizing preserves measurement precedence | `magistr-tui/tests/boundary.rs`, `magistr-tui/src/runtime/driver.tests.rs` |
 | the host opens engines before the terminal is taken over | `magistr-cli/tests/host_clients.rs` |
+| shared records have one canonical owner and the cockpit dependency closure excludes concrete stores and runtime clients | `magistr-cockpit/tests/boundary.rs`, `magistr-engine/tests/workflow_contracts.rs` |
 | concrete workflow and workspace clients stay in the host | `magistr-cockpit/tests/boundary.rs` |
 | terminal dependencies exclude the legacy GUI, with `deny(dead_code, unused)` enabled | `magistr-tui/tests/boundary.rs` |
 | no cockpit surface names a terminal protocol or the terminal crate, and the cockpit crate's root keeps `deny(dead_code, unused)` | `magistr-cockpit/tests/boundary.rs` |

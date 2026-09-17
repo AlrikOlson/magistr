@@ -1,23 +1,24 @@
 //! Where the iteration stands, as the engines' typed events tell it.
 
+use magistr_domain::workflow::WorkflowPhase;
 use std::fmt;
 
-use magistr_engine::native::ChunkStatus;
-use magistr_engine::{MagistrFrame, NativeEvent, RoadmapFrame, ShipFrame, WorkflowPhase};
+use magistr_workflow_contracts::ChunkStatus;
+use magistr_workflow_contracts::{MagistrFrame, NativeEvent, RoadmapFrame, ShipFrame};
 
-/// The workflow phase of the running iteration — research, plan, execute,
-/// verify, done — ordered, so the cockpit can refuse to fall back to an
+/// The displayed phase of the running iteration — research, plan, execute,
+/// verify, done — inferred from observations, so the cockpit can refuse to fall back to an
 /// earlier phase within one iteration.
 ///
 /// The phase is read off the typed events the engines emit while the
-/// agent works ([`Phase::from_event`]): the roadmap chunk being started,
+/// agent works ([`DisplayPhase::from_event`]): the roadmap chunk being started,
 /// the ship objective set, the first task started, the first check
 /// recorded, the objective shipped — and the phase the agent announced
 /// through `magistr_set_phase`, which the host publishes typed
 /// ([`MagistrFrame::PhaseSet`]) and which is honoured when it comes but
 /// never waited for. Nothing is read out of an action's words.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Phase {
+pub enum DisplayPhase {
     /// The chunk is being read and the world researched.
     Research,
     /// The objective and its plan are being written.
@@ -30,7 +31,7 @@ pub enum Phase {
     Done,
 }
 
-impl Phase {
+impl DisplayPhase {
     /// Every phase, in order.
     pub const ALL: [Self; 5] = [
         Self::Research,
@@ -79,7 +80,7 @@ impl Phase {
     }
 }
 
-impl From<WorkflowPhase> for Phase {
+impl From<WorkflowPhase> for DisplayPhase {
     fn from(phase: WorkflowPhase) -> Self {
         match phase {
             WorkflowPhase::Researching => Self::Research,
@@ -91,7 +92,7 @@ impl From<WorkflowPhase> for Phase {
     }
 }
 
-impl fmt::Display for Phase {
+impl fmt::Display for DisplayPhase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.label())
     }

@@ -34,12 +34,13 @@ tiny-skia = { version = "0.12", default-features = false, features = ["std", "si
 zune-jpeg = "0.5"
 image-webp = "0.2"
 # Workflow projection values and application-owned session contracts.
-magistr-engine = { path = "../magistr-engine" }
+magistr-workflow-contracts = { path = "../magistr-workflow-contracts" }
+magistr-domain = { path = "../magistr-domain" }
 magistr-application = { path = "../magistr-application" }
 # Native-frame payloads.
 serde_json = "1"
 # A signal's `created` stamp (RFC 3339) read back into an age for the
-# Signals view — the same chrono magistr-engine already pins.
+# Signals view; only deterministic timestamp parsing is needed.
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 # The two palettes (Catppuccin Mocha and Latte) and the WCAG luminance the
 # dark/light decision is made with.

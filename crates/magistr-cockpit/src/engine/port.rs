@@ -1,6 +1,6 @@
 //! What the cockpit asks of the native workflow engines.
 
-use magistr_engine::native::{Chunk, Signal};
+use magistr_workflow_contracts::{Chunk, Signal};
 
 use crate::cockpit::ProposalKind;
 

@@ -1,4 +1,4 @@
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
 use std::fmt::Write as _;
 use std::time::Duration;
 
@@ -340,7 +340,7 @@ fn page_model(size: Size, cell_width: u16, cell_height: u16) -> Model {
     }))).collect();
     let mut model = Model::new(size)
         .with_surface(crate::cockpit::Surface::Terminal)
-        .with_snapshot(&magistr_engine::NativeSnapshot {
+        .with_snapshot(&magistr_workflow_contracts::NativeSnapshot {
             chunks,
             ..Default::default()
         });
@@ -1617,9 +1617,9 @@ fn snap_minimal_text_120x40() {
 
 #[test]
 fn the_status_strip_shows_the_iteration_the_phases_the_gates_and_the_clock() {
-    use crate::cockpit::{LoopEvent, Phase};
+    use crate::cockpit::{DisplayPhase, LoopEvent};
     let m = Scenes::looping(Size::new(80, 24));
-    assert_eq!(m.phase(), Some(Phase::Execute));
+    assert_eq!(m.phase(), Some(DisplayPhase::Execute));
     let root = view(&m, &clock());
     let mut lines = Vec::new();
     texts(&root, &mut lines);
@@ -3778,9 +3778,9 @@ fn a_settled_gate_a_completed_task_and_a_completed_chunk_each_pop_once() {
     update(
         &mut m,
         Msg::Engine(crate::engine::EngineEvent::Seed(
-            magistr_engine::NativeSnapshot {
+            magistr_workflow_contracts::NativeSnapshot {
                 progress: crate::harness::fixtures::progress(3, 10),
-                ..magistr_engine::NativeSnapshot::default()
+                ..magistr_workflow_contracts::NativeSnapshot::default()
             },
         )),
     );
@@ -3815,9 +3815,9 @@ fn the_progress_bar_eases_to_its_new_value() {
     update(
         &mut m,
         Msg::Engine(crate::engine::EngineEvent::Seed(
-            magistr_engine::NativeSnapshot {
+            magistr_workflow_contracts::NativeSnapshot {
                 progress: crate::harness::fixtures::progress(2, 8),
-                ..magistr_engine::NativeSnapshot::default()
+                ..magistr_workflow_contracts::NativeSnapshot::default()
             },
         )),
     );
@@ -4202,9 +4202,9 @@ mod pixel_chrome {
         update(
             &mut m,
             Msg::Engine(crate::engine::EngineEvent::Seed(
-                magistr_engine::NativeSnapshot {
+                magistr_workflow_contracts::NativeSnapshot {
                     progress: crate::harness::fixtures::progress(1, 4),
-                    ..magistr_engine::NativeSnapshot::default()
+                    ..magistr_workflow_contracts::NativeSnapshot::default()
                 },
             )),
         );
@@ -4257,9 +4257,9 @@ fn long_roadmap(size: Size) -> Model {
     update(
         &mut m,
         Msg::Engine(crate::engine::EngineEvent::Seed(
-            magistr_engine::NativeSnapshot {
+            magistr_workflow_contracts::NativeSnapshot {
                 chunks: crate::harness::fixtures::chunks_from(chunks),
-                ..magistr_engine::NativeSnapshot::default()
+                ..magistr_workflow_contracts::NativeSnapshot::default()
             },
         )),
     );

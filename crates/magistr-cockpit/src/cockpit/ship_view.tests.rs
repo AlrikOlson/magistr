@@ -1,5 +1,5 @@
-use magistr_engine::ShipFrame;
-use magistr_engine::native::{Objective, Task};
+use magistr_workflow_contracts::ShipFrame;
+use magistr_workflow_contracts::{Objective, Task};
 use serde_json::json;
 
 use super::*;
@@ -79,7 +79,7 @@ fn an_empty_description_and_scope_read_as_none() {
 #[test]
 fn a_completed_objective_reads_as_shipped() {
     let mut objective = objective();
-    objective.status = magistr_engine::native::ObjectiveStatus::Completed;
+    objective.status = magistr_workflow_contracts::ObjectiveStatus::Completed;
     assert!(ShipView::from_ship(Some(&objective), &tasks()).is_shipped());
 }
 

@@ -294,10 +294,10 @@ fn supervisor_outcomes_are_consumed_by_reference() {
         Some(crate::turn::LineKind::Check { name, .. }) if name == "cargo test"
     ));
 
-    let cp = m
-        .rail_mut()
-        .spine_mut()
-        .open(magistr_engine::CheckpointReason::Iteration, "iter 1");
+    let cp = m.rail_mut().spine_mut().open(
+        magistr_domain::workflow::CheckpointReason::Iteration,
+        "iter 1",
+    );
     agent(
         &mut m,
         AgentEvent::ToolCall {

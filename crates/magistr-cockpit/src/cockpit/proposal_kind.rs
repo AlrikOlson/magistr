@@ -1,6 +1,6 @@
 //! Which field of a chunk an open proposal wants to change.
 
-use magistr_engine::native::Chunk;
+use magistr_workflow_contracts::Chunk;
 
 /// The kind of an open roadmap proposal on a chunk, mirroring the three
 /// the engine records: re-prioritization, status, title.

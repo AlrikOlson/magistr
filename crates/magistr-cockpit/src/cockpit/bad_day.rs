@@ -8,7 +8,7 @@ use super::fault_verb::FaultVerb;
 use super::model::Model;
 use super::widget::Widget;
 use crate::theme::Severity;
-use magistr_engine::FeedStatus;
+use magistr_workflow_contracts::FeedStatus;
 
 /// Faults presented as cards over the current workspace.
 ///

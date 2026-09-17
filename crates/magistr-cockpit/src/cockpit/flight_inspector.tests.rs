@@ -6,7 +6,7 @@ use serde_json::json;
 #[test]
 fn check_cards_keep_reported_results_distinct_and_warn_when_updates_are_missing() {
     use crate::cockpit::{FlightRecords, StageTab};
-    use magistr_engine::FeedStatus;
+    use magistr_workflow_contracts::FeedStatus;
     for verified in [false, true] {
         for passed in [false, true] {
             let mut model = model();

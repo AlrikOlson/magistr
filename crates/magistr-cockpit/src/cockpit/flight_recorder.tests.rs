@@ -2,7 +2,7 @@ use super::*;
 use crate::cockpit::{Msg, Size, Surface, update};
 use crate::harness::fixtures;
 use crate::input::{Button, MouseEvent, MouseKind};
-use magistr_engine::NativeSnapshot;
+use magistr_workflow_contracts::NativeSnapshot;
 use serde_json::json;
 
 fn model(steps: Vec<serde_json::Value>) -> Model {

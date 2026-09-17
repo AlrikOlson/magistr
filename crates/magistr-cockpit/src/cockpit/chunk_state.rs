@@ -1,6 +1,6 @@
 //! The state a chunk is in, as every surface of the cockpit reads it.
 
-use magistr_engine::native::{Chunk, ChunkStatus};
+use magistr_workflow_contracts::{Chunk, ChunkStatus};
 
 /// A chunk's state as the Roadmap tab, the sky and every card read it:
 /// the store's six statuses, plus the one the store spells as two fields

@@ -89,7 +89,7 @@ impl Proposal {
 
     /// Every chunk as the store will record it.
     #[must_use]
-    pub fn records(&self) -> Vec<magistr_engine::native::Chunk> {
+    pub fn records(&self) -> Vec<magistr_workflow_contracts::Chunk> {
         self.chunks.iter().map(ProposedChunk::record).collect()
     }
 

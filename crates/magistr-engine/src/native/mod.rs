@@ -14,7 +14,8 @@
 //! per project and store, cooperatively — and receive the write capability
 //! [`NativeEngines`]; anyone may open the read capability [`NativeReader`].
 //!
-//! What a surface shows is produced here too, typed, and nowhere else: a
+//! Canonical values live in `magistr-workflow-contracts`; this adapter produces
+//! facts from the native store using those exact types. A
 //! [`NativeSnapshot`] is the store read whole off a reader, a [`NativeEvent`]
 //! is one change as the engines say it (the workflow's own frame enums plus
 //! the host's [`MagistrFrame`]), and the socket line every publisher writes
