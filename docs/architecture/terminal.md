@@ -143,6 +143,16 @@ unchanged input, hover and frame updates reuse it instead of scanning history.
 
 ## Runtime and effects
 
+The CLI host's `application::workflow_client` owns store admission, attached
+owner clients, concrete workflow ports, live feeds and snapshot refresh tasks.
+Its `application::workspace_client` owns the MCP subprocess connection and
+journal adapter. The cockpit retains semantic ports, commands and events;
+reducers receive the same outcomes regardless of the concrete client.
+The live terminal example belongs to the CLI (`cargo run -p magistr-cli --example
+cockpit`), so the terminal crate never depends on its host. Session relays,
+channels and projection contracts are still tracked for a later ownership move;
+this boundary does not yet make the entire cockpit crate effect-free.
+
 The driver coalesces input and producer updates before rendering. Jobs, engine
 calls, and agent transport work run outside the state-update function. Engine
 startup happens before terminal takeover, so startup errors can use normal

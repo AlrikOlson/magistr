@@ -89,6 +89,45 @@ fn no_cockpit_surface_names_a_terminal_protocol_or_the_terminal_crate() {
 }
 
 #[test]
+fn concrete_service_clients_belong_to_the_host() {
+    let mut files = Vec::new();
+    walk(&crate_root().join("src"), &mut files);
+    let forbidden = [
+        "struct EngineClient",
+        "struct NativeEnginePort",
+        "struct AttachedEnginePort",
+        "struct McpClient",
+        "struct McpWorkbench",
+        "ProjectAuthority::admit",
+        "OwnerClient::attach",
+        "std::process::",
+        "tokio::net::",
+    ];
+    let mut found = Vec::new();
+    for file in files {
+        if file.to_string_lossy().ends_with(".tests.rs") {
+            continue;
+        }
+        let source = std::fs::read_to_string(&file).expect("read production source");
+        for (line, text) in source.lines().enumerate() {
+            if text.trim_start().starts_with("//") {
+                continue;
+            }
+            for token in forbidden {
+                if text.contains(token) {
+                    found.push(format!("{}:{}: {token}", file.display(), line + 1));
+                }
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "host adapters in cockpit:\n{}",
+        found.join("\n")
+    );
+}
+
+#[test]
 fn the_crate_root_denies_dead_and_unused_code() {
     let lib = std::fs::read_to_string(crate_root().join("src/lib.rs")).expect("read lib.rs");
     assert!(

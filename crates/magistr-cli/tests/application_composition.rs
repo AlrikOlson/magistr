@@ -13,7 +13,8 @@
 use std::path::{Path, PathBuf};
 
 use magistr::application::AdmittedCheck;
-use magistr_cockpit::engine::{EnginePort, NativeEnginePort};
+use magistr::application::workflow_client::NativeEnginePort;
+use magistr_cockpit::engine::EnginePort;
 use magistr_engine::native::ProjectAuthority;
 use magistr_engine::native::{
     CheckExecution, CheckSettlement, ChunkStatus, NativeConfig, NativeEngines, NativeReader,

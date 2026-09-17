@@ -50,7 +50,7 @@ listed separately so capability is not mistaken for integration.
 | Bare/roadmap cockpit, launcher, `roadmap show|next|status|export`, guard | `EngineClient::observe` / `open_native_reader` subscribe, reseed and read a `NativeReader`. | Observers: no lease, no writer, so they run beside any admitted host. Rendered controls alone do not establish a working writer. |
 | Library escape hatches | None. `NativeEngines` is constructed only by `ProjectAuthority::open`; `with_*` callbacks and public constructors were removed by `arch-10-project-authority`, `open_engines` is crate-private, and the `native-write-path` gate pins that engines and services are composed only in `magistr-engine/src/native`, that only the writer and the reader take an engine lock, and that the transport never calls its own wire. | The historical row named public `NativeEngines::{open,open_for_project,with_*}` with no lease; readers are the only unadmitted opening and cannot mutate. Desktop: no `gui2` crate exists on main, so there is no desktop writer to route. |
 
-Writer anchors: [native port](../../crates/magistr-cockpit/src/engine/native_port.rs),
+Writer anchors: [native port](../../crates/magistr-cli/src/application/workflow_client/native_port.rs),
 [apply](../../crates/magistr-cockpit/src/engine/apply.rs),
 [run wiring](../../crates/magistr-cli/src/orchestration/commands/run/cmd_run_cockpit.rs),
 [loop driver](../../crates/magistr-cli/src/orchestration/loop_driver/driver.rs),

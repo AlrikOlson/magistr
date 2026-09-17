@@ -5,10 +5,10 @@ use std::path::PathBuf;
 use magistr_engine::FeedStatus;
 use tokio::task::JoinHandle;
 
-use super::event::EngineEvent;
 use super::feed_link::FeedLink;
-use crate::channel::Inbox;
-use crate::cockpit::Msg;
+use magistr_cockpit::channel::Inbox;
+use magistr_cockpit::cockpit::Msg;
+use magistr_cockpit::engine::EngineEvent;
 
 /// How long to wait before trying the socket again.
 #[cfg(unix)]

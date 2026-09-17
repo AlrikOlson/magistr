@@ -158,7 +158,7 @@ while IFS= read -r f; do
         crates/magistr-cli/src/mcp_tools/service.rs)
             grep -qE 'evidence\(\)\.is_none\(\)' "$f" || fail "$f admits the MCP service without refusing a config that lacks the evidence capability"
             ;;
-        crates/magistr-cockpit/src/engine/client.rs)
+        crates/magistr-cli/src/application/workflow_client/client.rs)
             grep -qE 'evidence\(\)\.is_none\(\)' "$f" || fail "$f admits a cockpit host without refusing a config that lacks the evidence capability"
             ;;
         *)
@@ -191,7 +191,7 @@ while IFS= read -r f; do
         crates/magistr-cli/src/mcp_tools/service.rs) continue ;;
         crates/magistr-cli/src/orchestration/roadmap/admit_native_host.rs) continue ;;
         crates/magistr-core/src/workflow/iteration.rs) continue ;;
-        crates/magistr-cockpit/src/engine/client.rs) continue ;;
+        crates/magistr-cli/src/application/workflow_client/client.rs) continue ;;
     esac
     hits=$(grep -nE 'ProjectAuthority::(admit|admit_for_project)\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)
     if [[ -n "$hits" ]]; then
@@ -204,7 +204,7 @@ done < <(production_sources)
 while IFS= read -r f; do
     case "$f" in
         crates/magistr-engine/src/native/*) continue ;;
-        crates/magistr-cockpit/src/engine/client.rs) continue ;;
+        crates/magistr-cli/src/application/workflow_client/client.rs) continue ;;
         crates/magistr-cli/src/mcp_tools/owner_attach.rs) continue ;;
         crates/magistr-cli/src/workspace_mcp/connection.rs) continue ;;
     esac

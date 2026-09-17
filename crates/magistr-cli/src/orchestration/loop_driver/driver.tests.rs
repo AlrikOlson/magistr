@@ -596,7 +596,7 @@ async fn local_project_controls_work_before_any_agent_is_connected() {
         AgentConfig::new("", dir.path()),
         Connector::new(|_| async { panic!("local controls must not launch an agent") }),
         inbox,
-        Some(magistr_cockpit::engine::EngineClient::attach(
+        Some(crate::application::workflow_client::EngineClient::attach(
             engines.clone(),
         )),
     )

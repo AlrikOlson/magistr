@@ -8,8 +8,8 @@ use magistr_engine::{
     ThinkCommand,
 };
 
-use super::port::EnginePort;
-use crate::cockpit::ProposalKind;
+use magistr_cockpit::cockpit::ProposalKind;
+use magistr_cockpit::engine::EnginePort;
 
 /// The [`EnginePort`] a second cockpit holds: every verb is sent to the
 /// project's running host over its owner endpoint and carried out by

@@ -3,8 +3,8 @@
 use magistr_engine::NativeEngines;
 use magistr_engine::native::{Chunk, Signal};
 
-use super::port::EnginePort;
-use crate::cockpit::ProposalKind;
+use magistr_cockpit::cockpit::ProposalKind;
+use magistr_cockpit::engine::EnginePort;
 
 /// The production [`EnginePort`]: the same admitted in-process
 /// [`NativeEngines`] the entry point opened for the store snapshot,

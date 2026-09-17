@@ -6,12 +6,13 @@ use std::time::{Duration, Instant};
 
 use crate::agent::cockpit_session::CockpitSession;
 use crate::agent::session_supervisor::SessionControl;
+use crate::application::workflow_client::NativeEnginePort;
 use magistr_acp::AcpEvent;
 use magistr_cockpit::agent::{AgentEvent, SessionOptions, TurnEnd, spawn_session};
 use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::checkpoint::{CheckpointPort, detach};
 use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, LoopStage, Msg};
-use magistr_cockpit::engine::{EngineEvent, NativeEnginePort};
+use magistr_cockpit::engine::EngineEvent;
 use magistr_cockpit::job::Jobs;
 use magistr_engine::native::{BlockerKind, CheckSettlement, Chunk};
 use magistr_engine::{ChunkStatus, NativeEngines, NativeEvent, RoadmapFrame};
@@ -561,7 +562,7 @@ impl LoopDriver {
                 self.iter_loop
                     .native()
                     .cloned()
-                    .map(magistr_cockpit::engine::EngineClient::attach),
+                    .map(crate::application::workflow_client::EngineClient::attach),
                 self.checkpoints.as_ref().map(|port| {
                     Box::new(crate::orchestration::shared_checkpoint::SharedCheckpoint(
                         Arc::clone(port),

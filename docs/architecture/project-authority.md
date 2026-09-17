@@ -511,7 +511,7 @@ writer and the role free, the MCP hand-off after the welcome, an MCP-only owner
 refusing typed commands, a live endpoint refused and a stale socket reclaimed,
 and generations growing per role; `native::owner_generation::tests` and
 `native::owner_socket::tests` cover the counter and the derived path. The
-cockpit's `engine::client::tests` cover a refused second host, an attached
+host's `application::workflow_client::client::tests` cover a refused second host, an attached
 writer, an observer beside it, a second cockpit acting through the running
 host, a held host without an endpoint failing closed, and an attached port
 reporting a gone owner without opening anything. The CLI integrations
