@@ -54,8 +54,15 @@ an admitted owner may reclaim an abandoned socket. Contenders share a
 five-second attach-or-admit budget while an owner opens its service and
 publishes the endpoint; each connect and greeting exchange has one absolute
 deadline, capped at 250 ms per attempt. Startup with no reachable owner and no
-admissible workspace is a startup error (exit 75), without a second service or
-a synthetic successful MCP initialization. Non-Unix remains exclusive.
+admissible workspace never opens a second service. When the refusal is of the
+temporary kind (`EX_TEMPFAIL`, 75: the lock is held by an owner that has
+published no endpoint, or the marker awaits migration) the bridge process
+does not exit either: it serves discovery itself, as described under
+[the bridge](#the-bridge), and reconnects on its next request. Every other
+refusal — a missing root (66), durable data written by a newer binary (65),
+`--config` overrides against a live owner (a policy refusal) — is still a
+startup error with its exit code, since no later request can outlive it.
+Non-Unix remains exclusive.
 
 The owner's resolved policy governs all connections. An invocation carrying
 explicit `--config` values refuses attachment rather than silently dropping
@@ -79,22 +86,42 @@ looks at three things:
 - **Requests in flight and the last listing.** Outstanding request ids are
   tracked, and the last successful `tools/list` result is kept.
 
+**One capability definition.** What the server *is* — the `initialize`
+result (tools and the SEP-2663 tasks extension, the instructions, this
+binary's name and version, the served protocol eras and the negotiation that
+caps 2026-07-28+ to 2025-06-18, echoes a served era and otherwise answers the
+default) and the core tool listing — lives in one place
+(`workspace_mcp::capability`). The rmcp handler over an admitted workspace
+serves from it, and so does the bridge when no owner is reachable, so a
+client discovers the same server either way; only plugin tools, which an
+owner alone can enumerate, are appended by the handler. A bridge that reaches
+its first owner later initializes it on the client's behalf exactly as after
+an owner change.
+
 **Embedded owner.** The owning invocation serves its own client the same way,
 over an in-process duplex to the rmcp handler, so both paths are one code path
 and every client gets a stamped identity.
 
-**Owner loss.** When an attached owner's socket ends, every request still
-waiting is answered at once: a `tools/call` receives the retained
-`ENGINE_UNAVAILABLE` envelope with recovery `retry` (text and
-`structuredContent` alike), `tools/list` the cached listing, `ping` an empty
+**No owner reachable.** Whether an attached owner's socket ended or none was
+reachable when the bridge started, every request that needs an answer gets
+one at once: `initialize` the shared capability negotiated for that request,
+`tools/list` the last listing an owner gave or the core definition, a
+`tools/call` the retained `ENGINE_UNAVAILABLE` envelope with recovery `retry`
+(text and `structuredContent` alike) whose message names the refusal and the
+action that lifts it — `magistr workspace migrate` for a legacy marker, the
+timed-out attachment for a lock held without an endpoint — `ping` an empty
 result, anything else a JSON-RPC error naming the reason. The tool surface
 never disappears and the bridge process never exits on owner loss. The next
 request that needs an answer runs one bounded attach-or-admit attempt: it
 attaches to whoever admitted the workspace meanwhile, or admits the workspace
 itself and becomes the embedded owner for its peers — the embedded-owner
 analog of ADR-018's connect-or-spawn, with no daemon. If neither is possible
-(for example a marker that needs migration), the request is answered with the
-typed refusal and the next request tries again.
+the request is answered with the typed refusal and the next request tries
+again; a workspace migrated while the bridge waited is admitted on that next
+request, without a restart. Nothing that was in flight is replayed: a call
+the owner may or may not have applied is answered refused with the
+read-back note, the identity the bridge stamps survives, and a confirmation
+minted under the lost owner stays fenced by the new generation.
 
 **Client EOF.** When the client closes its side, the bridge half-closes the
 link so the owner sees EOF and answers what was in flight; those answers are
@@ -152,7 +179,9 @@ owner's own client ends it, and its peers reconnect.
 
 A workspace whose `.workbench/server.lock` still holds the retained legacy
 server's record is refused until `magistr workspace migrate` runs with that
-server stopped. This repository's own `.mcp.json` keeps its explicit legacy
+server stopped; a bridge launched against it meanwhile serves discovery,
+refuses calls with that command named, and admits on its first call after
+the migration. This repository's own `.mcp.json` keeps its explicit legacy
 entry until that migration is performed offline; nothing here runs the native
 owner against a live legacy workspace.
 
@@ -189,7 +218,7 @@ supply actual execution results (macOS host).
 | 18: permissions | Shared endpoint enforces private directory/socket and peer credentials | Cross-UID and non-host platform evidence |
 | 19: version skew | `owner_endpoint.tests.rs`: a `Hello` from another build is refused with `AttachRefusal::Build` naming both identities — another checkout's contract digest and the other profile of one tree are told apart from an equal package version, a copy of the same build attaches, and a protocol-3 `Hello` is answered with an explicit `Protocol` refusal; a bridge answers typed refusals until the owner of the other build ends, then admits | A real two-binary process fixture (the identities are exercised over the wire from one test process) |
 | 20: legacy overlap | d1 native/Bun mutual-refusal oracle; `migrate` refuses a live legacy pid and a foreign host | None |
-| 21: unreachable owner | Post-startup: typed refusals, cached listing, bounded retry per request. Startup: exit 75 | Always-available `initialize` before any owner was ever reached |
+| 21: unreachable owner | `attachment`: a bridge started against an unmigrated marker answers `initialize` and the listing from the shared capability definition, refuses calls `ENGINE_UNAVAILABLE`/`retry` naming `magistr workspace migrate`, mints nothing, and admits on its next call after the migration with a handshake and listing equal to a live owner's; a bridge started against a lock held without an endpoint answers within the bounded windows, opens no store, and admits once the lock is released. Non-temporary refusals still exit (66, 65, policy) | Startup against a lock held without an endpoint costs one bounded window per request until it is released |
 | 22: statelessness | Existing native served-schema/envelope tests use the same adapter through every path | Retained gate replayed through two bridges |
 | 23: Codex parent/subagent | `scripts/codex-subagent-check.py` passed on 2026-09-12 with codex-cli 0.154.0: parent and subagent `read` ok, two launches, zero exit-75, all nine tool names in the subagent's inventory | The gate is optional (needs `codex` and auth) |
 | 24: cockpit | `launcher_tests`: the cockpit port built from the project's `.mcp.json` maps, reads and lists the journal through the live owner without admitting | Live `magistr run` Changes-tab acceptance |

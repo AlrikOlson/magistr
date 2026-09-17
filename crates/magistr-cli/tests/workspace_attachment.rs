@@ -8,8 +8,8 @@ use serde_json::json;
 use std::{process::Stdio, sync::Arc};
 use tokio::{sync::Barrier, task::JoinSet};
 use workspace_attachment_support::{
-    Connection, WAIT, assert_ok, binary, command, deny_admission, edit, file_text, generation,
-    hostname, magistr, read_text, restore_admission, workspace,
+    Connection, WAIT, assert_ok, binary, command, dead_legacy_record, deny_admission, edit,
+    file_text, generation, hostname, magistr, migrate, read_text, restore_admission, workspace,
 };
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -502,8 +502,13 @@ async fn an_attached_client_cannot_change_the_live_owners_configuration() {
     owner.close().await;
 }
 
+/// The lock is held by an owner that never publishes an endpoint: each
+/// attachment attempt is bounded by the fixed deadline, the bridge serves
+/// discovery meanwhile instead of exiting, opens no store, and admits the
+/// workspace itself once the lock is released.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_native_owner_without_an_endpoint_refuses_attachment_within_a_fixed_deadline() {
+async fn a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_the_lock_is_released()
+{
     let dir = workspace();
     let state = dir.path().join(".workbench");
     std::fs::create_dir(&state).expect("owner state directory");
@@ -511,27 +516,26 @@ async fn a_native_owner_without_an_endpoint_refuses_attachment_within_a_fixed_de
         .expect("hold native admission without an attachment listener");
     let marker = std::fs::read(held.path()).expect("native marker");
     let admitted_generation = held.generation().get();
-    let output = tokio::time::timeout(
-        std::time::Duration::from_secs(8),
-        command(dir.path())
-            .kill_on_drop(true)
-            .stdin(Stdio::null())
-            .output(),
-    )
-    .await
-    .expect("attachment to a non-serving owner is bounded")
-    .expect("attachment contender exits");
-    assert_eq!(output.status.code(), Some(75));
+    let started = std::time::Instant::now();
+    // Startup's attempt and the one the client's `initialize` triggers are
+    // each bounded by the five-second attachment deadline.
+    let mut deferred = Connection::open(dir.path()).await;
     assert!(
-        output.stdout.is_empty(),
-        "admission diagnostics never reach MCP stdout"
+        started.elapsed() < std::time::Duration::from_secs(20),
+        "initialize was answered after {:?}",
+        started.elapsed()
     );
-    let diagnostic = String::from_utf8_lossy(&output.stderr);
-    assert!(diagnostic.contains("attach"), "{diagnostic}");
+    let refused = deferred.call("workbench_status", json!({})).await;
+    assert_eq!(refused["ok"], false, "{refused}");
+    assert_eq!(refused["error"]["code"], "ENGINE_UNAVAILABLE", "{refused}");
+    assert_eq!(refused["error"]["recovery"], "retry", "{refused}");
+    let message = refused["error"]["message"].as_str().expect("message");
+    assert!(message.contains("attach"), "{message}");
     assert!(
-        diagnostic.contains("timed out") || diagnostic.contains("timeout"),
-        "{diagnostic}"
+        message.contains("timed out") || message.contains("timeout"),
+        "{message}"
     );
+    deferred.assert_alive();
     assert_eq!(generation(dir.path()), admitted_generation);
     assert_eq!(
         std::fs::read(held.path()).expect("preserved marker"),
@@ -550,6 +554,76 @@ async fn a_native_owner_without_an_endpoint_refuses_attachment_within_a_fixed_de
         );
     }
     drop(held);
+    assert_ok(&deferred.call("workbench_status", json!({})).await);
+    assert_eq!(generation(dir.path()), admitted_generation + 1);
+    deferred.assert_tools().await;
+    deferred.close().await;
+}
+
+/// The marker still holds the legacy server's record: the bridge starts,
+/// answers `initialize` and the tool listing from the shared definition,
+/// refuses calls typed with the migration as the named action, and after
+/// `magistr workspace migrate` its next call admits — the handshake and the
+/// listing it gave are the ones a live owner gives.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_bridge_against_an_unmigrated_marker_serves_discovery_and_admits_after_migration() {
+    let dir = workspace();
+    let state = dir.path().join(".workbench");
+    std::fs::create_dir(&state).expect("state");
+    let lock = state.join("server.lock");
+    let record = dead_legacy_record();
+    std::fs::write(&lock, &record).expect("legacy record");
+    let mut deferred = Connection::open(dir.path()).await;
+    deferred.assert_tools().await;
+    let listed_before = tokio::time::timeout(WAIT, deferred.client.peer().list_tools(None))
+        .await
+        .expect("bounded tools/list")
+        .expect("the shared definition lists");
+    let refused = deferred.call("workbench_status", json!({})).await;
+    assert_eq!(refused["ok"], false, "{refused}");
+    assert_eq!(refused["error"]["code"], "ENGINE_UNAVAILABLE", "{refused}");
+    assert_eq!(refused["error"]["recovery"], "retry", "{refused}");
+    let message = refused["error"]["message"].as_str().expect("message");
+    assert!(message.contains("magistr workspace migrate"), "{message}");
+    deferred.assert_alive();
+    assert!(
+        !state.join("server.generation").exists(),
+        "a refused admission mints nothing"
+    );
+    assert_eq!(std::fs::read_to_string(&lock).expect("preserved"), record);
+
+    let migrated = migrate(dir.path()).await;
+    assert_eq!(
+        migrated.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&migrated.stderr)
+    );
+    assert_ok(&deferred.call("workbench_status", json!({})).await);
+    assert_eq!(
+        generation(dir.path()),
+        1,
+        "the bridge admitted on its next call"
+    );
+    assert_ok(&deferred.call("read", json!({"file": "shared.txt"})).await);
+
+    let live = Connection::open(dir.path()).await;
+    assert_eq!(
+        deferred.client.peer().peer_info(),
+        live.client.peer().peer_info(),
+        "the deferred handshake is the owner's handshake"
+    );
+    let listed_after = tokio::time::timeout(WAIT, live.client.peer().list_tools(None))
+        .await
+        .expect("bounded tools/list")
+        .expect("the owner lists");
+    assert_eq!(
+        serde_json::to_value(&listed_before).expect("listing"),
+        serde_json::to_value(&listed_after).expect("listing"),
+        "the deferred listing is the owner's listing"
+    );
+    live.close().await;
+    deferred.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

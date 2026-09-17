@@ -26,23 +26,30 @@ use rmcp::transport::Transport;
 /// Claude Code pairing negotiates.
 const SERVED: ProtocolVersion = ProtocolVersion::V_2025_06_18;
 
+/// The version a client's request is admitted as: itself below 2026-07-28,
+/// the served era from there on. The one rule behind [`ProtocolCap`], also
+/// applied by the workspace bridge when it answers `initialize` itself.
+pub(crate) fn capped(requested: ProtocolVersion) -> ProtocolVersion {
+    if requested.as_str() >= ProtocolVersion::V_2026_07_28.as_str() {
+        SERVED
+    } else {
+        requested
+    }
+}
+
 /// Clamp `message`'s requested MCP protocol version below 2026-07-28: the
 /// `initialize` params, and the per-request `_meta` version that can re-raise
 /// the era on any later request.
 fn clamp(message: &mut ClientJsonRpcMessage) {
-    let boundary = ProtocolVersion::V_2026_07_28;
     let ClientJsonRpcMessage::Request(request) = message else {
         return;
     };
-    if let ClientRequest::InitializeRequest(init) = &mut request.request
-        && init.params.protocol_version.as_str() >= boundary.as_str()
-    {
-        init.params.protocol_version = SERVED;
+    if let ClientRequest::InitializeRequest(init) = &mut request.request {
+        init.params.protocol_version = capped(init.params.protocol_version.clone());
     }
     let meta = request.request.get_meta_mut();
-    if meta
-        .protocol_version()
-        .is_some_and(|v| v.as_str() >= boundary.as_str())
+    if let Some(version) = meta.protocol_version()
+        && capped(version.clone()) != version
     {
         meta.set_protocol_version(SERVED);
     }

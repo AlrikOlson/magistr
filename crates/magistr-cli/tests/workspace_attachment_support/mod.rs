@@ -140,6 +140,31 @@ pub(super) fn command(root: &Path) -> tokio::process::Command {
     command
 }
 
+/// `magistr workspace migrate <root>`: the explicit offline migration, run
+/// to completion.
+pub(super) async fn migrate(root: &Path) -> std::process::Output {
+    tokio::time::timeout(
+        WAIT,
+        magistr()
+            .args(["workspace", "migrate"])
+            .arg(root)
+            .stdin(Stdio::null())
+            .output(),
+    )
+    .await
+    .expect("bounded")
+    .expect("migrate runs")
+}
+
+/// The legacy server's lock record for a process of this host that has
+/// already exited: the record `magistr workspace migrate` moves aside.
+pub(super) fn dead_legacy_record() -> String {
+    let mut exited = std::process::Command::new("true").spawn().expect("spawn");
+    let dead = exited.id();
+    exited.wait().expect("reaped");
+    format!(r#"{{"pid":{dead},"host":"{}"}}"#, hostname())
+}
+
 /// The binary under test with the workspace environment every fixture uses.
 pub(super) fn magistr() -> tokio::process::Command {
     let mut command = magistr_command::magistr_command();

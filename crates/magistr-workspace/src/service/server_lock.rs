@@ -236,9 +236,10 @@ fn migration_refusal(path: &Path) -> io::Error {
     io::Error::new(
         io::ErrorKind::AlreadyExists,
         format!(
-            "workspace owner lock {} uses a legacy or unrecognized format; startup refused \
-             before opening workspace stores. Stop every workspace owner for offline migration of the \
-             obsolete lock before restarting; never remove a live owner's lock",
+            "workspace owner lock {} uses a legacy or unrecognized format; admission refused \
+             before opening workspace stores. Stop every workspace owner, then run the offline \
+             migration `magistr workspace migrate` on this root; a waiting bridge admits on its \
+             next request. Never remove a live owner's lock",
             path.display()
         ),
     )

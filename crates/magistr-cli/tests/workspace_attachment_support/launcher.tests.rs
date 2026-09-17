@@ -90,10 +90,7 @@ async fn workspace_migrate_refuses_a_live_legacy_record_and_moves_a_dead_one_asi
     assert!(String::from_utf8_lossy(&refused.stderr).contains("alive"));
     assert_eq!(std::fs::read_to_string(&lock).expect("preserved"), live);
 
-    let mut exited = std::process::Command::new("true").spawn().expect("spawn");
-    let dead = exited.id();
-    exited.wait().expect("reaped");
-    let record = format!(r#"{{"pid":{dead},"host":"{}"}}"#, hostname());
+    let record = dead_legacy_record();
     std::fs::write(&lock, &record).expect("dead legacy record");
     let migrated = migrate(dir.path()).await;
     assert_eq!(
@@ -121,18 +118,4 @@ async fn workspace_migrate_refuses_a_live_legacy_record_and_moves_a_dead_one_asi
     let owner = Connection::open(dir.path()).await;
     assert_eq!(generation(dir.path()), 1);
     owner.close().await;
-}
-
-async fn migrate(root: &std::path::Path) -> std::process::Output {
-    tokio::time::timeout(
-        WAIT,
-        magistr()
-            .args(["workspace", "migrate"])
-            .arg(root)
-            .stdin(Stdio::null())
-            .output(),
-    )
-    .await
-    .expect("bounded")
-    .expect("migrate runs")
 }
