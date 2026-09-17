@@ -8,7 +8,7 @@ use super::workbench_event::WorkbenchEvent;
 use crate::agent::AgentEvent;
 use crate::capability::Mode;
 use crate::engine::EngineEvent;
-use crate::input::{KeyEvent, MouseEvent, Reply};
+use crate::input::{KeyEvent, MouseEvent};
 use crate::job::{JobId, JobOutput};
 use crate::widget_id::WidgetId;
 
@@ -69,8 +69,12 @@ pub enum Msg {
     /// its phase is zero and its curves are sampled exactly where they
     /// always were. A window sends one per display frame.
     Phase(f32),
-    /// The terminal answered a startup query.
-    Reply(Reply),
+    /// The surface's observed background color.
+    Background(crate::render::Color),
+    /// Whether the input surface reports when a key is released.
+    KeyReleases(bool),
+    /// The surface's measured cell size, or unavailable.
+    CellSize(Option<crate::pixel::CellSize>),
     /// The runtime decided how this session renders, once the probe
     /// window closed: pixels, or plain text with a banner to show.
     Mode(Mode),

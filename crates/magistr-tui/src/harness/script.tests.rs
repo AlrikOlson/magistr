@@ -36,7 +36,7 @@ fn a_click_is_an_sgr_press_and_release_one_based() {
 #[test]
 fn the_startup_replies_end_the_probe_and_answer_every_query() {
     use crate::graphics::{Passthrough, Probe};
-    use magistr_cockpit::input::{Decoder, Event, Reply};
+    use crate::input::{Decoder, Event, Reply};
     use magistr_cockpit::render::Color;
 
     let steps = Script::new().startup_replies(MS(0)).into_steps();

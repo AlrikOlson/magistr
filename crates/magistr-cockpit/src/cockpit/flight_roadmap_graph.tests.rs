@@ -2,7 +2,7 @@ use super::*;
 use crate::cockpit::{Msg, Selected, Size, StageTab, update};
 use crate::harness::fixtures;
 use crate::hit::HitRegistry;
-use crate::input::{Button, MouseEvent, MouseKind, Reply};
+use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree};
 use serde_json::json;
 
@@ -35,10 +35,10 @@ fn physical_points_labels_and_hits_share_fractional_placement_after_resize() {
         let mut model = model(3, false);
         update(
             &mut model,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: cell.0,
                 height: cell.1,
-            }),
+            })),
         );
         let root = FlightRoadmapGraph::view(&model, width, height);
         let mut typography = Typography::default();
@@ -255,10 +255,10 @@ fn physical_wheel_and_drag_preserve_exact_camera_motion() {
     let mut model = model(66, false);
     update(
         &mut model,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: 13,
             height: 29,
-        }),
+        })),
     );
     model.set_roadmap_graph_px(Some(PxRect::new(20.5, 110.25, 700.5, 200.5)));
     let event = |kind, x, y| MouseEvent::new(kind, 0, 0).at_px(x, y);

@@ -14,10 +14,10 @@ fn model(tab: StageTab, cell: (u16, u16)) -> Model {
     model.session.prompt.insert("Keep my draft");
     update(
         &mut model,
-        Msg::Reply(crate::input::Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: cell.0,
             height: cell.1,
-        }),
+        })),
     );
     model
 }

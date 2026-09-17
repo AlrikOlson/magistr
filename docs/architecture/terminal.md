@@ -45,6 +45,32 @@ with pointer-shape support, or plain text with a reason. Terminal protocol types
 such as Kitty and passthrough never cross that boundary. The screen-reader
 environment variable is defined once as `Mode::SCREEN_READER_ENV`.
 
+## Input and terminal replies
+
+`magistr-tui::input` owns the incremental byte decoder, Kitty keyboard fields,
+SGR mouse reports, bracketed-paste delimiters and query replies. Its private
+`wire` module supplies the escape-sequence walker used by the decoder and
+graphics probe. The shared `input` module contains only key and pointer values.
+
+The terminal driver translates replies before calling `update`. Background
+color becomes `Msg::Background`, keyboard event reporting becomes
+`Msg::KeyReleases`, and measurements become `Msg::CellSize`. The runtime's
+`TerminalReplies` retains direct cell and window replies: the direct answer
+wins; otherwise the window's pixels are divided by the current rows and columns.
+Resizing recomputes that fallback. Unavailable or zero measurements leave the
+shared model using its existing initial cell-size estimate.
+
+The runtime resolves pointer positions against the current hit registry before
+sending `Msg::Mouse` with its widget anchor. Paste reaches the model as text,
+without delimiters. Query replies neither edit the draft nor request effects.
+Behavioral boundary tests exercise fragmented bytes, equivalent neutral input,
+measurement precedence and resize, alongside the existing pointer harnesses.
+
+The embedded program-output model (`cockpit::Term`) remains separate from
+terminal input. Shared session cards, transcript copying, scrolling and program
+completion consume its screen and scrollback. This change creates no extra VT
+crate and moves no layout, viewport or rendering responsibility.
+
 ## State and rendering
 
 ```rust

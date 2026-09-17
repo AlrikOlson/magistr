@@ -2,8 +2,9 @@ use std::time::Duration;
 
 use super::*;
 use crate::harness::{FakeTerminal, Script};
+use crate::input::Event;
 use crate::term::Terminal;
-use magistr_cockpit::input::{Event, KeyCode, KeyEvent};
+use magistr_cockpit::input::{KeyCode, KeyEvent};
 
 const MS: fn(u64) -> Duration = Duration::from_millis;
 

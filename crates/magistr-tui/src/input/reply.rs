@@ -1,6 +1,6 @@
 //! The terminal's answers to the cockpit's startup queries.
 
-use crate::render::Color;
+use magistr_cockpit::render::Color;
 
 /// A reply to a query the session sent at startup.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

@@ -46,9 +46,7 @@ impl KeyEvent {
         self.kind == KeyKind::Press
     }
 
-    /// Whether this is a release — what a held key's binding answers
-    /// (the kitty keyboard protocol's event types on a terminal, the
-    /// window's own key-up).
+    /// Whether this is a release — what a held key's binding answers.
     #[must_use]
     pub fn is_release(self) -> bool {
         self.kind == KeyKind::Release

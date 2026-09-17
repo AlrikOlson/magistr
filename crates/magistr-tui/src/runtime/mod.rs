@@ -26,6 +26,8 @@ pub use activity::Activity;
 pub use error::RuntimeError;
 pub use options::Options;
 pub use runner::Runtime;
+mod terminal_replies;
+
 pub use scheduler::FrameScheduler;
 pub(crate) use surfaces::Surfaces;
 pub use tier::Tier;

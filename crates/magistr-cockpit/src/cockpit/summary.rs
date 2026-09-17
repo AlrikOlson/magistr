@@ -49,13 +49,14 @@ impl<'a> Summary<'a> {
         }
     }
 
-    /// `kitty <flags>` when the terminal speaks the keyboard protocol,
-    /// else `legacy`.
+    /// Whether keys can be held and released on this surface.
     #[must_use]
     pub fn keyboard(&self) -> String {
-        self.model
-            .keyboard_flags()
-            .map_or("legacy".to_owned(), |flags| format!("kitty {flags}"))
+        if self.model.reports_key_releases() {
+            "press and release".to_owned()
+        } else {
+            "press only".to_owned()
+        }
     }
 
     /// One cell's size in pixels, once known.

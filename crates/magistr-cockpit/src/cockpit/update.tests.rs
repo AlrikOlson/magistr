@@ -346,16 +346,13 @@ fn resize_frames_focus_and_replies_update_state() {
     update(&mut m, Msg::FrameDue);
     update(&mut m, Msg::FrameDue);
     update(&mut m, Msg::Focus(false));
-    update(
-        &mut m,
-        Msg::Reply(Reply::Background(Color::Rgb(30, 30, 46))),
-    );
-    update(&mut m, Msg::Reply(Reply::KeyboardFlags(3)));
+    update(&mut m, Msg::Background(Color::Rgb(30, 30, 46)));
+    update(&mut m, Msg::KeyReleases(true));
     assert_eq!(m.size(), Size::new(120, 40));
     assert_eq!(m.frames(), 2);
     assert!(!m.is_focused());
     assert_eq!(m.background(), Some(Color::Rgb(30, 30, 46)));
-    assert_eq!(m.keyboard_flags(), Some(3));
+    assert!(m.reports_key_releases());
     assert_eq!(m.recent().count(), 0);
 }
 
@@ -614,16 +611,13 @@ fn the_agents_priced_usage_fills_the_rails_budget_meter_across_sessions() {
 
 #[test]
 fn a_background_reply_moves_a_detected_theme_and_leaves_a_forced_one() {
-    let latte = Msg::Reply(Reply::Background(Color::Rgb(239, 241, 245)));
+    let latte = Msg::Background(Color::Rgb(239, 241, 245));
     let mut m = model();
     assert_eq!(m.theme().mode(), ThemeMode::Dark);
     update(&mut m, latte.clone());
     assert_eq!(m.theme().mode(), ThemeMode::Light);
     assert!(!m.theme().is_forced());
-    update(
-        &mut m,
-        Msg::Reply(Reply::Background(Color::Rgb(30, 30, 46))),
-    );
+    update(&mut m, Msg::Background(Color::Rgb(30, 30, 46)));
     assert_eq!(m.theme().mode(), ThemeMode::Dark);
 
     let mut forced = model().with_theme(Theme::forced(ThemeMode::Dark));
@@ -634,34 +628,27 @@ fn a_background_reply_moves_a_detected_theme_and_leaves_a_forced_one() {
 }
 
 #[test]
-fn cell_pixels_come_from_the_cell_reply_or_the_window_reply() {
+fn measured_cell_size_is_a_surface_value_and_can_become_unavailable() {
     let mut m = model();
     assert_eq!(m.cell_pixels(), None);
+    for (width, height) in [(10, 20), (9, 18)] {
+        assert!(
+            update(
+                &mut m,
+                Msg::CellSize(Some(crate::pixel::CellSize::new(width, height)))
+            )
+            .is_empty()
+        );
+        assert_eq!(m.cell_pixels(), Some((width, height)));
+    }
+    update(&mut m, Msg::CellSize(None));
+    assert_eq!(m.cell_pixels(), None);
+    assert_eq!(m.cell_size(), crate::pixel::CellSize::DEFAULT);
     update(
         &mut m,
-        Msg::Reply(Reply::WindowPixels {
-            width: 800,
-            height: 480,
-        }),
+        Msg::CellSize(Some(crate::pixel::CellSize::new(0, 20))),
     );
-    assert_eq!(m.cell_pixels(), Some((10, 20)), "800/80 by 480/24");
-    update(
-        &mut m,
-        Msg::Reply(Reply::CellPixels {
-            width: 9,
-            height: 18,
-        }),
-    );
-    assert_eq!(m.cell_pixels(), Some((9, 18)), "the direct answer wins");
-    let mut zero = Model::new(Size::new(0, 0));
-    update(
-        &mut zero,
-        Msg::Reply(Reply::WindowPixels {
-            width: 800,
-            height: 480,
-        }),
-    );
-    assert_eq!(zero.cell_pixels(), None);
+    assert_eq!(m.cell_pixels(), None);
 }
 
 #[test]
@@ -4765,10 +4752,10 @@ fn on_a_window(mut model: Model) -> Model {
     model.set_surface(crate::cockpit::Surface::Native);
     update(
         &mut model,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: 10,
             height: 20,
-        }),
+        })),
     );
     model
 }
@@ -5094,10 +5081,10 @@ fn a_late_cell_size_answer_re_measures_the_images_in_the_turn() {
     assert_eq!(m.turn().len(), 3, "measured against the 10x20 guess");
     update(
         &mut m,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: 20,
             height: 40,
-        }),
+        })),
     );
     assert_eq!(m.turn().cell_size(), crate::pixel::CellSize::new(20, 40));
     assert_eq!(m.turn().len(), 2, "bigger cells, fewer of them");
@@ -8427,7 +8414,7 @@ fn the_chunk_chip_rises_to_the_sky_with_the_card_framed() {
 /// protocol's event types), so `k` may be held.
 fn pane_holdable(size: Size) -> Model {
     let mut m = pane_at(size);
-    update(&mut m, Msg::Reply(Reply::KeyboardFlags(3)));
+    update(&mut m, Msg::KeyReleases(true));
     m
 }
 

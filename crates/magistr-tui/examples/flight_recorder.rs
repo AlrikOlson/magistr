@@ -12,7 +12,7 @@ use magistr_cockpit::cockpit::{
 };
 use magistr_cockpit::harness::fixtures;
 use magistr_cockpit::hit::HitRegistry;
-use magistr_cockpit::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind, Reply};
+use magistr_cockpit::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use magistr_cockpit::theme::{Theme, ThemeMode};
 use magistr_cockpit::widget_id::WidgetId;
 use magistr_engine::NativeSnapshot;
@@ -133,10 +133,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             "large-font" => {
                 update(
                     &mut model,
-                    Msg::Reply(Reply::CellPixels {
+                    Msg::CellSize(Some(magistr_cockpit::pixel::CellSize {
                         width: 12,
                         height: 28,
-                    }),
+                    })),
                 );
             }
             "large-trace" => {
@@ -192,10 +192,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         if large_text {
             update(
                 &mut model,
-                Msg::Reply(Reply::CellPixels {
+                Msg::CellSize(Some(magistr_cockpit::pixel::CellSize {
                     width: 12,
                     height: 28,
-                }),
+                })),
             );
         }
         match name {
@@ -257,10 +257,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             if large_text {
                 update(
                     &mut model,
-                    Msg::Reply(Reply::CellPixels {
+                    Msg::CellSize(Some(magistr_cockpit::pixel::CellSize {
                         width: 12,
                         height: 28,
-                    }),
+                    })),
                 );
             }
             let conversation = model.top_row();
@@ -385,10 +385,10 @@ fn capture_requests(data: &Value, output: &Path) -> Result<(), Box<dyn Error>> {
             if large {
                 update(
                     &mut current,
-                    Msg::Reply(Reply::CellPixels {
+                    Msg::CellSize(Some(magistr_cockpit::pixel::CellSize {
                         width: 12,
                         height: 28,
-                    }),
+                    })),
                 );
             }
             requests::seed(&mut current, state)?;

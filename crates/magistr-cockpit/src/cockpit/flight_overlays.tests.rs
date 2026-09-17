@@ -108,7 +108,7 @@ fn secondary_controls_remain_inside_a_small_window_with_larger_text() {
         update(&mut model, Msg::Resize(size));
         update(
             &mut model,
-            Msg::Reply(crate::input::Reply::CellPixels { width: 10, height }),
+            Msg::CellSize(Some(crate::pixel::CellSize { width: 10, height })),
         );
         for query in ["Settings", "Search recorded work", "Keyboard help"] {
             model.settings = None;

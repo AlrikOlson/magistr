@@ -10,8 +10,8 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::input::TerminalInput;
 use super::input_event::InputEvent;
+use crate::input::{Decoder, Event};
 use magistr_cockpit::cockpit::Size;
-use magistr_cockpit::input::{Decoder, Event};
 
 /// A thread that reads a [`TerminalInput`] with a short timeout, decodes
 /// what arrives and sends [`InputEvent`]s down a channel.

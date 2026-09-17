@@ -36,8 +36,11 @@
 pub mod flat;
 pub mod graphics;
 pub mod harness;
+pub mod input;
 pub mod pixel;
 pub mod render;
 pub mod runtime;
 pub mod screenshot;
 pub mod term;
+
+mod wire;

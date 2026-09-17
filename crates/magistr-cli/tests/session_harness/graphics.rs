@@ -37,7 +37,6 @@ async fn stop_at_its_native_pixel_position_cancels_acp_and_keeps_the_draft() {
 
 use super::*;
 use magistr_cockpit::agent::{PermissionChoice, PermissionKind};
-use magistr_cockpit::input::Reply;
 use magistr_cockpit::layout::PxRect;
 use magistr_tui::screenshot::{Profile, layout};
 
@@ -48,10 +47,10 @@ fn locator() -> Model {
     let mut model = Model::new(GRAPHICS_SIZE);
     update(
         &mut model,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(magistr_cockpit::pixel::CellSize {
             width: 13,
             height: 29,
-        }),
+        })),
     );
     update(
         &mut model,

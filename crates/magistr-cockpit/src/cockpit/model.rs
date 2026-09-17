@@ -225,8 +225,8 @@ pub struct Model {
     pub(super) quit_requested: bool,
     pub(super) focused: bool,
     pub(super) background: Option<Color>,
-    pub(super) keyboard_flags: Option<u8>,
-    pub(super) cell_pixels: Option<(u16, u16)>,
+    pub(super) key_releases: bool,
+    pub(super) cell_pixels: Option<CellSize>,
     pub(super) banner: Option<&'static str>,
     pub(super) pixels: bool,
     pub(super) surface: Surface,
@@ -240,7 +240,6 @@ pub struct Model {
     /// other half.
     pub(super) token_size: Option<u64>,
     pub(super) token_mark: u64,
-    pub(super) window_pixels: Option<(u16, u16)>,
     pub(super) recent: VecDeque<Msg>,
     pub(super) agent_events: u64,
     pub(super) engine_frames: u64,
@@ -582,10 +581,9 @@ impl Model {
             quit_requested: false,
             focused: true,
             background: None,
-            keyboard_flags: None,
+            key_releases: false,
             cell_pixels: None,
             banner: None,
-            window_pixels: None,
             pixels: false,
             surface: Surface::Terminal,
             pointer_shapes: false,
@@ -1432,7 +1430,7 @@ impl Model {
     /// Where a mouse report puts the pointer, in cells — fractional.
     ///
     /// On a window the report carries the pointer's physical pixel and
-    /// the model knows the cell it was declared (`Reply::CellPixels`),
+    /// the model knows the cell it was declared (`Msg::CellSize`),
     /// so the answer is exact: `x / cell_width`, `y / cell_height`,
     /// which is what a drag and a pan need on a surface whose rows are
     /// not all one cell tall. Without a pixel — every terminal report —
@@ -2696,28 +2694,17 @@ impl Model {
         self.focused
     }
 
-    /// The terminal's background colour, once it answered OSC 11.
+    /// The surface's observed background color.
     #[must_use]
     pub const fn background(&self) -> Option<Color> {
         self.background
     }
 
-    /// The kitty keyboard flags in effect, once the terminal answered.
-    #[must_use]
-    pub const fn keyboard_flags(&self) -> Option<u8> {
-        self.keyboard_flags
-    }
-
-    /// Whether this surface reports a key's release: a window always;
-    /// a terminal once it answered the keyboard query with the kitty
-    /// protocol's event types (flag 2). A hold that could never be let
-    /// go of would complete on the timer, so [`Binding::KILL`] answers
-    /// only here.
-    ///
-    /// [`Binding::KILL`]: super::Binding::KILL
+    /// Whether this surface can report release, so a held action can be
+    /// cancelled when the user lets go. Native windows always can.
     #[must_use]
     pub fn reports_key_releases(&self) -> bool {
-        self.surface.is_native() || self.keyboard_flags.is_some_and(|flags| flags & 2 != 0)
+        self.surface.is_native() || self.key_releases
     }
 
     /// The held kill, while one is held.
@@ -2770,32 +2757,16 @@ impl Model {
         self.banner
     }
 
-    /// One cell's `(width, height)` in pixels: the terminal's own answer
-    /// when it gave one, else the text area in pixels divided by the size
-    /// in cells, else nothing yet (see [`CellSize::measured`]).
+    /// One cell's measured width and height in pixels, supplied by the surface.
     #[must_use]
     pub fn cell_pixels(&self) -> Option<(u16, u16)> {
-        CellSize::measured(
-            self.cell_pixels,
-            self.window_pixels,
-            self.size.cols,
-            self.size.rows,
-        )
-        .map(|cell| (cell.width, cell.height))
+        self.cell_pixels.map(|cell| (cell.width, cell.height))
     }
 
-    /// The cell size a pixel surface scales by: [`Model::cell_pixels`]
-    /// when the terminal established one, else the 10×20 guess — a
-    /// surface is drawn immediately and re-sized when a late `CSI 16 t`
-    /// answer lands (see [`CellSize::resolve`]).
+    /// The measured cell size, or the shared initial estimate.
     #[must_use]
     pub fn cell_size(&self) -> CellSize {
-        CellSize::resolve(
-            self.cell_pixels,
-            self.window_pixels,
-            self.size.cols,
-            self.size.rows,
-        )
+        self.cell_pixels.unwrap_or(CellSize::DEFAULT)
     }
 
     /// Whether the pixel layer is live: the startup probe found a

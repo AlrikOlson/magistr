@@ -3,7 +3,7 @@ use magistr_engine::FeedStatus;
 use super::*;
 use crate::cockpit::{Msg, Size, update};
 use crate::engine::EngineEvent;
-use crate::input::{KeyCode, KeyEvent, Reply};
+use crate::input::{KeyCode, KeyEvent};
 use crate::job::JobId;
 use crate::theme::ThemeMode;
 
@@ -12,7 +12,7 @@ fn a_fresh_model_summarises_to_two_lines_of_unknowns_and_zeros() {
     let model = Model::new(Size::new(80, 24));
     assert_eq!(
         Summary::of(&model).to_string(),
-        "magistr cockpit — 80×24 cells · theme dark · background unknown · keyboard legacy\n\
+        "magistr cockpit — 80×24 cells · theme dark · background unknown · keyboard press only\n\
          0 frames · 0 inputs · 0 agent events · turn idle (0 rows) · 0 engine frames (no feed) · 0 jobs"
     );
 }
@@ -20,17 +20,14 @@ fn a_fresh_model_summarises_to_two_lines_of_unknowns_and_zeros() {
 #[test]
 fn the_summary_carries_what_the_terminal_answered_and_what_the_cockpit_counted() {
     let mut model = Model::new(Size::new(100, 40)).with_theme(Theme::forced(ThemeMode::Light));
+    update(&mut model, Msg::Background(Color::Rgb(30, 30, 46)));
+    update(&mut model, Msg::KeyReleases(true));
     update(
         &mut model,
-        Msg::Reply(Reply::Background(Color::Rgb(30, 30, 46))),
-    );
-    update(&mut model, Msg::Reply(Reply::KeyboardFlags(3)));
-    update(
-        &mut model,
-        Msg::Reply(Reply::CellPixels {
+        Msg::CellSize(Some(crate::pixel::CellSize {
             width: 10,
             height: 20,
-        }),
+        })),
     );
     for _ in 0..3 {
         update(&mut model, Msg::FrameDue);
@@ -50,13 +47,13 @@ fn the_summary_carries_what_the_terminal_answered_and_what_the_cockpit_counted()
     let summary = Summary::of(&model);
     assert_eq!(summary.theme(), "light (MAGISTR_THEME)");
     assert_eq!(summary.background(), "#1e1e2e");
-    assert_eq!(summary.keyboard(), "kitty 3");
+    assert_eq!(summary.keyboard(), "press and release");
     assert_eq!(summary.cell().as_deref(), Some("cell 10×20px"));
     assert_eq!(summary.feed(), "feed reattached");
     assert_eq!(summary.last_job().as_deref(), Some("job 4: gate green"));
     assert_eq!(
         summary.to_string(),
-        "magistr cockpit — 100×40 cells · theme light (MAGISTR_THEME) · background #1e1e2e · keyboard kitty 3 · cell 10×20px\n\
+        "magistr cockpit — 100×40 cells · theme light (MAGISTR_THEME) · background #1e1e2e · keyboard press and release · cell 10×20px\n\
          3 frames · 1 inputs · 0 agent events · turn idle (0 rows) · 0 engine frames (feed reattached) · 1 jobs · last job 4: gate green"
     );
 }

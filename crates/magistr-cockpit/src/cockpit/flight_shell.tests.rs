@@ -114,7 +114,7 @@ use crate::agent::{AgentEvent, PermissionChoice, PermissionKind, TurnEnd};
 use crate::cockpit::{Cmd, Msg, Selected, Size, Surface, update};
 use crate::harness::fixtures;
 use crate::hit::HitRegistry;
-use crate::input::{Button, MouseEvent, MouseKind, Reply};
+use crate::input::{Button, MouseEvent, MouseKind};
 use crate::layout::{Basis, LayoutTree, Resolved};
 use crate::pixel::Typography;
 use magistr_engine::{FeedStatus, NativeSnapshot};
@@ -258,10 +258,10 @@ fn reasoning_starts_minimized_and_pointer_toggle_preserves_the_reading_position(
         let mut model = model(Size::new(cols, rows));
         update(
             &mut model,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: cw,
                 height: ch,
-            }),
+            })),
         );
         update(
             &mut model,
@@ -486,10 +486,10 @@ fn a_pending_request_keeps_every_answer_and_the_message_box_inside_the_window() 
         let mut model = model(Size::new(cols, rows));
         update(
             &mut model,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: cw,
                 height: ch,
-            }),
+            })),
         );
         update(
             &mut model,
@@ -572,10 +572,10 @@ fn starting_actions_fit_completely_in_a_short_conversation() {
             crate::harness::Scenes::launcher(Size::new(cols, rows)).with_tab(StageTab::Turn);
         update(
             &mut model,
-            Msg::Reply(Reply::CellPixels {
+            Msg::CellSize(Some(crate::pixel::CellSize {
                 width: cw,
                 height: ch,
-            }),
+            })),
         );
         update(
             &mut model,
@@ -605,10 +605,10 @@ fn compact_records_and_details_stay_between_header_and_composer() {
             let mut model = model(Size::new(cols, rows));
             update(
                 &mut model,
-                Msg::Reply(Reply::CellPixels {
+                Msg::CellSize(Some(crate::pixel::CellSize {
                     width: cw,
                     height: ch,
-                }),
+                })),
             );
             model.show(tab);
             if tab == StageTab::Turn {

@@ -52,7 +52,7 @@ use super::work::{self, open_chunk};
 use super::workbench_cmd::WorkbenchCmd;
 use crate::agent::{AgentEvent, TurnEnd};
 use crate::engine::EngineEvent;
-use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind, Reply};
+use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
 use crate::job::JobOutput;
 use crate::theme::MotionMode;
 use crate::turn::{Viewport, Voice};
@@ -204,7 +204,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 model.pressed = None;
             }
         }
-        Msg::Reply(Reply::Background(colour)) => {
+        Msg::Background(colour) => {
             model.background = Some(colour);
             model.theme = model.theme.observe(colour);
             model.session.turn.set_mode(model.theme.mode());
@@ -235,13 +235,9 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.session.turn.rewrap(model.turn_width());
         }
         Msg::TextSizing(sizing) => model.text_sizing = sizing,
-        Msg::Reply(Reply::KeyboardFlags(flags)) => model.keyboard_flags = Some(flags),
-        Msg::Reply(Reply::CellPixels { width, height }) => {
-            model.cell_pixels = Some((width, height));
-            model.session.turn.set_cell_size(model.cell_size());
-        }
-        Msg::Reply(Reply::WindowPixels { width, height }) => {
-            model.window_pixels = Some((width, height));
+        Msg::KeyReleases(reports) => model.key_releases = reports,
+        Msg::CellSize(cell) => {
+            model.cell_pixels = cell.filter(|cell| cell.width > 0 && cell.height > 0);
             model.session.turn.set_cell_size(model.cell_size());
         }
         Msg::Key(key) => {
