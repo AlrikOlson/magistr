@@ -238,6 +238,10 @@ impl Driver {
         let period = self.scheduler.period(now);
         if self.interpolates() {
             period.min(super::tier::Tier::Interactive.period())
+        } else if self.flat.is_none() && self.model.has_activity_motion() {
+            // Only the small activity mark needs these intermediate samples.
+            // Keep ambient feedback at 30 fps; gestures retain their 60 fps budget.
+            period.min(Duration::from_millis(32))
         } else {
             period
         }
@@ -546,7 +550,9 @@ impl Driver {
                     if self.scheduler.tick_due(Instant::now()) {
                         self.tick();
                     }
-                    if self.interpolates() {
+                    if self.interpolates()
+                        || (self.flat.is_none() && self.model.has_activity_motion())
+                    {
                         self.fold(Msg::Phase(self.scheduler.phase(Instant::now())));
                         self.scheduler.request();
                     }

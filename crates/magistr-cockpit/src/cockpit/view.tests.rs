@@ -5,6 +5,31 @@ use std::time::Duration;
 use super::*;
 
 #[test]
+fn a_program_with_unknown_progress_has_a_segment_instead_of_an_empty_gauge() {
+    let mut model = Model::new(Size::new(120, 40))
+        .with_theme(Theme::default().with_motion(crate::theme::MotionMode::Reduced));
+    update(
+        &mut model,
+        Msg::Mode(crate::capability::Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    let pen = Pen::for_theme(&model.theme());
+    let node = strip_row(Progress::Indeterminate, 60, &pen.stage, &model, &pen);
+    let marks: Vec<_> = node.child_nodes().iter().flat_map(Node::marks).collect();
+    assert!(
+        marks
+            .iter()
+            .any(|mark| matches!(mark, Mark::Indeterminate { position: 500, .. }))
+    );
+    assert!(!marks.iter().any(|mark| matches!(mark, Mark::Bar { .. })));
+    let mut labels = Vec::new();
+    texts(&node, &mut labels);
+    assert!(labels.iter().any(|text| text.contains("working")));
+    assert!(labels.iter().all(|text| !text.contains('%')));
+}
+
+#[test]
 fn roadmap_proposal_actions_live_inside_shared_inspector() {
     for pixels in [false, true] {
         let mut m = Scenes::roadmapped(Size::new(132, 42));

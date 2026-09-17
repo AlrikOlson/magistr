@@ -148,7 +148,7 @@ fn header(model: &Model, s: &S) -> Node {
         - face.advance(heading, TextRole::Heading)
         - face.advance(nav_labels, TextRole::Label)
         - face.advance(status(model), TextRole::Label)
-        - 128.0)
+        - 168.0)
         .max(0.0);
     let title = if title_width < 70.0 {
         String::new()
@@ -195,14 +195,14 @@ fn header(model: &Model, s: &S) -> Node {
                     .shrink(1.0),
             )
             .child(S::flex())
-            .child(status_label(model, s))
+            .child(status_label(model, s, true))
             .child(S::hspace(20.0))
             .child(navigation),
         s.root,
     )
 }
 
-fn status_label(model: &Model, s: &S) -> Node {
+fn status_label(model: &Model, s: &S, leading: bool) -> Node {
     let text = status(model);
     let pen = Pen::for_theme(&model.theme());
     let ink = match text {
@@ -212,31 +212,31 @@ fn status_label(model: &Model, s: &S) -> Node {
         "Stopped" | "Paused" | "Waiting for updates" => s.muted,
         _ => s.good,
     };
-    let activity = model.agent_activity();
-    if activity.active && model.dock().is_empty() {
-        let pulse = if !model.theme().motion().is_full() || model.ticks() % 8 < 4 {
-            ink
-        } else {
-            s.muted
-        };
-        Node::row()
-            .align_items(Align::Center)
-            .child(
-                Node::leaf()
-                    .width(Length::Px(16.0))
-                    .height(Length::Px(s.line_height))
-                    .shrink(0.0)
-                    .mark(crate::layout::Mark::Icon {
-                        icon: crate::pixel::Icon::Bullet,
-                        col: 0,
-                        cols: 1,
-                        ink: pulse,
-                    }),
-            )
-            .child(s.label(text, ink))
-    } else {
-        s.label(text, ink)
+    if !leading {
+        return s.label(text, ink);
     }
+    let activity = model.agent_activity();
+    // Keep this slot even after completion so the label never jumps sideways.
+    let mut indicator = Node::leaf()
+        .width(Length::Px(32.0))
+        .height(Length::Px(6.0))
+        .shrink(0.0);
+    if activity.active {
+        indicator = indicator.mark(crate::layout::Mark::Indeterminate {
+            position: if model.theme().motion().is_full() {
+                super::Motion::indeterminate_position(model.now())
+            } else {
+                500
+            },
+            line: ink,
+            ground: s.root,
+        });
+    }
+    Node::row()
+        .align_items(Align::Center)
+        .child(indicator)
+        .child(S::hspace(8.0))
+        .child(s.label(text, ink))
 }
 
 fn status(model: &Model) -> &'static str {
@@ -324,7 +324,7 @@ fn conversation(model: &Model, s: &S, pen: &Pen) -> Node {
     s.outlined(
         Node::column()
             .min_height(Length::Px(0.0))
-            .child(s.section_heading("Conversation", status_label(model, s)))
+            .child(s.section_heading("Conversation", status_label(model, s, false)))
             .child(s.inset(content, 20.0, 12.0).grow(1.0)),
         s.panel,
         s.line,

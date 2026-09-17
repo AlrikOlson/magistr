@@ -75,6 +75,14 @@ impl Motion {
     /// taken at the foot of the wave and no PNG golden moves.
     pub const GLOW_STEPS: u64 = 24;
 
+    /// A calm, continuous return sweep over 1.92 seconds. The segment slows
+    /// at each end without disappearing or jumping back to its start.
+    #[must_use]
+    pub fn indeterminate_position(now: f32) -> u16 {
+        let phase = now.rem_euclid(32.0) / 32.0;
+        ((1.0 - (phase * std::f32::consts::TAU).cos()) * 500.0).round() as u16
+    }
+
     /// Steps the pointer must rest on one widget before its tooltip
     /// appears: about 480 ms at the runtime's tick.
     ///

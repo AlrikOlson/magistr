@@ -1095,19 +1095,18 @@ async fn the_tick_stops_with_the_turn_and_the_quiet_second_after_is_free() {
     assert_eq!(capture.count(BSU) as u64, model.frames());
 }
 
-/// a loop is live and nothing else at all
-/// happens. The clocks still have to move, so the runtime keeps its tick
-/// — at the clock's second rather than the motion layer's sixty
-/// milliseconds. Over a quiet second and a half that is a frame or two,
-/// not the two dozen a 60 ms tick would have cost.
+/// With no producer updates, graphics still shows active work while the
+/// plain-terminal fallback retains its clock-only budget.
 #[tokio::test]
-async fn a_quiet_running_loop_paints_at_the_clocks_rate_and_no_faster() {
+async fn quiet_work_animates_on_graphics_and_keeps_plain_terminals_at_clock_rate() {
     let quiet = MS(1500);
-    let (model, capture) = run_with(
-        Script::new()
-            .startup_replies(MS(0))
-            .text(MS(30) + quiet, "\x04"),
-        |inbox| {
+    for graphics in [false, true] {
+        let startup = if graphics {
+            Script::new().startup_replies(MS(0))
+        } else {
+            Script::new().plain_replies(MS(0))
+        };
+        let (model, capture) = run_with(startup.text(MS(30) + quiet, "\x04"), |inbox| {
             tokio::spawn(async move {
                 tokio::time::sleep(MS(30)).await;
                 inbox.send(Msg::Loop(LoopEvent::Started {
@@ -1115,26 +1114,23 @@ async fn a_quiet_running_loop_paints_at_the_clocks_rate_and_no_faster() {
                     max: 4,
                 }));
             });
-        },
-    )
-    .await;
-
-    // One message, then silence: every step after it is the clock's own.
-    let want = quiet.as_millis() / Animation::Clock.period().as_millis();
-    let ticks = u128::from(model.ticks());
-    assert!(
-        (want / 2..=want + 2).contains(&ticks),
-        "{ticks} steps over {quiet:?} at {:?} a step (wanted about {want})",
-        Animation::Clock.period()
-    );
-    // What the chunk is about: the motion period would have cost this
-    // many, and the reconciled set spends a small fraction of it.
-    let motion = quiet.as_millis() / Model::TICK_PERIOD.as_millis();
-    assert!(
-        ticks * 4 < motion,
-        "{ticks} steps is not far enough below the motion period's {motion}"
-    );
-    assert_eq!(capture.count(BSU) as u64, model.frames());
+        })
+        .await;
+        assert_eq!(model.has_pixels(), graphics);
+        let period = if graphics {
+            Model::TICK_PERIOD
+        } else {
+            Animation::Clock.period()
+        };
+        let want = quiet.as_millis() / period.as_millis();
+        let ticks = u128::from(model.ticks());
+        assert!(
+            (want / 2..=want + 2).contains(&ticks),
+            "{ticks} ticks over {quiet:?} at {period:?}, graphics={graphics}"
+        );
+        assert_eq!(model.has_activity_motion(), graphics);
+        assert_eq!(capture.count(BSU) as u64, model.frames());
+    }
 }
 
 #[tokio::test]

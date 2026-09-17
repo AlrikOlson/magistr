@@ -19,6 +19,7 @@ const TRACK_ALPHA: f32 = 0.22;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Gauge {
     fill: f32,
+    start: f32,
     line: Color,
     background: Color,
 }
@@ -34,9 +35,19 @@ impl Gauge {
             } else {
                 0.0
             },
+            start: 0.0,
             line: Color::from_rgba8(122, 162, 247, 255),
             background: Color::from_rgba8(26, 27, 38, 255),
         }
+    }
+
+    /// Unknown progress uses a constant-length segment, never a growing fill.
+    /// `position` moves that segment between the ends of the track.
+    #[must_use]
+    pub fn indeterminate(position: u16) -> Self {
+        let mut gauge = Self::new(0.25);
+        gauge.start = f32::from(position.min(1000)) / 1000.0 * 0.75;
+        gauge
     }
 
     /// The bar's colour (the track is the same colour, faint).
@@ -82,23 +93,26 @@ impl Painter for Gauge {
             line_cap: LineCap::Round,
             ..Stroke::default()
         };
-        let bar = |to: f32| {
+        let bar = |from: f32, to: f32| {
             let mut path = PathBuilder::new();
-            path.move_to(inset, y);
+            path.move_to(from, y);
             path.line_to(to, y);
             path.finish()
         };
         let mut track = self.line;
         track.set_alpha(TRACK_ALPHA);
         paint.set_color(track);
-        if let Some(path) = bar(inset + span) {
+        if let Some(path) = bar(inset, inset + span) {
             pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
         }
         if self.fill <= 0.0 {
             return;
         }
         paint.set_color(self.line);
-        if let Some(path) = bar(inset + span * self.fill) {
+        if let Some(path) = bar(
+            inset + span * self.start,
+            inset + span * (self.start + self.fill),
+        ) {
             pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
         }
     }

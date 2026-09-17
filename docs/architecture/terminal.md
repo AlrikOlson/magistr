@@ -204,9 +204,14 @@ keep their graph/table navigation and text fallbacks.
 Motion is a function of model ticks. Graphics terminals sample the fractional
 position between 60ms model ticks on a 16ms frame schedule while scrolling,
 settling, or moving the roadmap camera; this preserves animation durations while
-drawing intermediate positions. The activity indicator changes on model ticks
-while waiting for the agent or following its work, without requesting interpolated
-frames. Plain terminals keep their existing tick cadence. The model reports its
+drawing intermediate positions. One indeterminate segment in the graphics header
+moves smoothly along a short track while waiting for the agent, running tools,
+starting agents, checking or reviewing work. It keeps a constant length and never
+implies a completion percentage. Its position uses model ticks with intermediate
+samples capped at 32ms; gestures retain the 16ms schedule. Status text stays steady
+and the conversation heading does not duplicate the animation. Reduced motion
+holds the segment at the center, and paused, completed or permission states remove
+it. Plain terminals keep their existing tick cadence. The model reports its
 active animations; an empty set removes the timer. Reduced motion suppresses
 movement, and activity awaiting the user's answer stays still. A screen has one
 leading animation, with new information taking priority over ambient effects. The checked
