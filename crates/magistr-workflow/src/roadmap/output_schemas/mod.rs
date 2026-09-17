@@ -304,17 +304,8 @@ pub struct TrackerSetupOutput {
     pub included: Vec<String>,
     /// Chunk ids that were already opted in.
     pub already_included: usize,
-    /// Always absent: the unattended push cadence belonged to the retired
-    /// standalone server. Retained so the schema stays stable.
-    pub auto_push_secs: Option<u64>,
-    /// Always absent, as `auto_push_secs`.
-    pub auto_push_written_to: Option<String>,
-    /// Always false, as `auto_push_secs`.
-    pub auto_push_unchanged: bool,
-    /// Always absent, as `auto_push_secs`.
-    pub auto_push_manual: Option<String>,
-    /// Follow-up a human must perform — notably that a requested push interval
-    /// was not applied.
+    /// Follow-up a human must perform — notably that nothing has been sent,
+    /// because this host runs no background push.
     pub next_steps: Vec<String>,
 }
 

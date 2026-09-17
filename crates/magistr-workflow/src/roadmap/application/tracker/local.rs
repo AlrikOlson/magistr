@@ -70,16 +70,8 @@ pub fn setup_local(
         outcome.included.push(id.clone());
     }
 
-    // ── 4. Auto-push ──────────────────────────────────────────────────────
-    //
-    // The unattended push cadence belonged to the retired standalone binary,
-    // which read THINK_AND_SHIP_TRACKER_PUSH_SECS from its own MCP entry.
-    // Magistr composes these engines in process and runs no cadence, so an
-    // interval is reported as not applied instead of being written somewhere
-    // nothing reads.
-    if req.push_secs > 0 {
-        outcome.auto_push_not_applied = true;
-    }
-
+    // There is no step 4. The unattended push cadence belonged to the retired
+    // standalone binary; Magistr composes these engines in process and runs
+    // no cadence, so setup records consent and scope and sends nothing.
     Ok(outcome)
 }

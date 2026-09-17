@@ -101,12 +101,78 @@ fn request() -> SetupRequest {
         name: Some("Widgets".into()),
         band: None,
         initiative: None,
-        push: false,
-        // No host configuration discovery or writes in these isolated tests.
-        push_secs: 0,
         yes: false,
         dry_run: false,
     }
+}
+
+fn draft_with_priority(id: &str, priority: u32) -> ChunkDraft {
+    ChunkDraft {
+        priority,
+        ..draft(id)
+    }
+}
+
+/// Every accepted setting has an effect on the served path: `band` narrows
+/// the bulk include to one priority band, and the rest stay out.
+#[tokio::test]
+async fn a_band_includes_only_the_chunks_in_that_band() {
+    let app = application();
+    app.add_chunk(draft_with_priority("urgent", 100)).unwrap();
+    app.add_chunk(draft_with_priority("someday", 400)).unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let port = ProbePort {
+        result: Ok(target("Widgets")),
+        ..ProbePort::missing()
+    };
+    let mut req = request();
+    req.band = Some("critical".into());
+
+    let report = app
+        .setup_tracker(&port, &req, false, directory.path())
+        .await
+        .unwrap();
+
+    assert_eq!(report.outcome.included, vec!["urgent"]);
+    let config = crate::tracker::config::load(directory.path(), "project");
+    let status = app.tracker_status(&config).unwrap();
+    assert_eq!((status.included, status.not_included), (1, 1));
+}
+
+/// `initiative` names the roof in the stored configuration; omitting it keeps
+/// whatever was configured before.
+#[tokio::test]
+async fn an_initiative_name_is_stored_and_an_omitted_one_keeps_the_prior() {
+    let app = application();
+    let directory = tempfile::tempdir().unwrap();
+    // One probe per setup: the probe port's release permit is consumed by a
+    // single probe, so each run gets its own present destination.
+    let present = || ProbePort {
+        result: Ok(target("Widgets")),
+        ..ProbePort::missing()
+    };
+    let mut named = request();
+    named.initiative = Some("Widgets Programme".into());
+    app.setup_tracker(&present(), &named, false, directory.path())
+        .await
+        .unwrap();
+    assert_eq!(
+        crate::tracker::config::load(directory.path(), "project")
+            .initiative
+            .as_deref(),
+        Some("Widgets Programme")
+    );
+
+    app.setup_tracker(&present(), &request(), false, directory.path())
+        .await
+        .unwrap();
+    assert_eq!(
+        crate::tracker::config::load(directory.path(), "project")
+            .initiative
+            .as_deref(),
+        Some("Widgets Programme"),
+        "a re-setup without a name must not clear the name a human chose"
+    );
 }
 
 #[tokio::test]

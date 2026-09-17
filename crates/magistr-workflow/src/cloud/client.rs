@@ -102,17 +102,10 @@ impl CloudClient {
         self.outbox.as_ref()
     }
 
-    /// The normalized backend base URL (no trailing slash). The realtime
-    /// subscriber derives its `wss://…/v1/events` endpoint from it.
+    /// The normalized backend base URL (no trailing slash).
     #[must_use]
     pub fn base_url(&self) -> &str {
         &self.base_url
-    }
-
-    /// The Bearer token, for sibling cloud transports (the WS upgrade request
-    /// carries the same credential as every HTTP call). Crate-internal.
-    pub(crate) fn token(&self) -> &str {
-        &self.token
     }
 
     /// Push one envelope to the cloud (`PUT /v1/records`, Bearer auth). Maps the
@@ -175,8 +168,8 @@ impl CloudClient {
     /// Replay the queued pushes oldest-first (sync-offline-queue). Stops at
     /// the first retryable failure (still offline — the rest stay queued); a
     /// 4xx rejection drops that entry (it would fail forever) and continues.
-    /// Concurrent flushes are coalesced (boot + realtime race). Returns how
-    /// many entries were drained.
+    /// Concurrent flushes are coalesced (two callers proving connectivity at
+    /// once). Returns how many entries were drained.
     pub async fn flush_outbox(&self) -> usize {
         let Some(outbox) = &self.outbox else { return 0 };
         if outbox.is_empty() || !outbox.begin_flush() {

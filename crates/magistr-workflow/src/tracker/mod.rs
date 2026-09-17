@@ -77,7 +77,6 @@ pub mod port;
 pub mod project;
 pub mod projects_v2;
 pub mod propose_consent;
-pub mod receipt;
 pub mod registry;
 pub mod seed;
 pub mod sweep;

@@ -2,16 +2,16 @@
 //! into the local engines. The cloud is the system-of-record the
 //! cache converges TOWARD, but per record the merge is NEWEST-wins (chunks:
 //! `updated_at`; signals: lifecycle progress) — a stale cloud copy must never
-//! clobber a fresher local mutation, the race a realtime refresh made live
-//! (the reconcile recency guard). Local-only records are preserved.
+//! clobber a fresher local mutation, the race a concurrent refresh would
+//! make live (the reconcile recency guard). Local-only records are preserved.
 //! The merge is SILENT (the engine's `upsert_*` does not re-emit), so a pull
 //! never loops back into a push.
 //!
 //! Split into an async **fetch** (no engine access) and a sync **apply**
-//! (`&mut Engine`, no awaits) so callers that share an engine behind a
-//! `std::sync::Mutex` — the realtime subscriber — never
-//! hold the guard across an await. The `reconcile_*` wrappers preserve the
-//! original one-call shape for exclusive-engine callers and tests.
+//! (`&mut Engine`, no awaits) so a caller that shares an engine behind a
+//! `std::sync::Mutex` never holds the guard across an await. The
+//! `reconcile_*` wrappers preserve the original one-call shape for
+//! exclusive-engine callers and tests.
 //!
 //! This slice covers the think + roadmap + signal families (think joined in
 //! sync-think-reconcile, which also added [`reconcile_all`] — the one-shot
@@ -238,8 +238,8 @@ pub async fn reconcile_think(
 /// One-shot reconcile of every pull-able family (think + roadmap + signal)
 /// into the shared engines — the startup hydrate (sync-think-reconcile): a
 /// fresh machine or empty data dir converges to the workspace on boot. Each
-/// family fetches BEFORE locking and applies synchronously (the cloud::events
-/// discipline — an engine mutex is never held across an await). A family
+/// family fetches BEFORE locking and applies synchronously (an engine mutex
+/// is never held across an await). A family
 /// that fails to fetch is logged and skipped; the others still reconcile.
 /// Returns (think, roadmap, signal) merge counts.
 pub async fn reconcile_all(

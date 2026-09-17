@@ -4,6 +4,15 @@
 //!
 //! The pure, network-free builder lives here; the `SyncTarget::Cloud` HTTP
 //! client (push/reconcile/offline) lives in the sibling modules.
+//!
+//! Every operation here is invoked by a caller: an engine wired with
+//! `with_cloud` pushes on its own mutations, `pull::reconcile_all` hydrates
+//! on request, and `CloudClient::flush_outbox` drains the offline queue when
+//! a caller proves connectivity. The standalone server's realtime WebSocket
+//! subscriber, its tracker doorbell and the tracker sweep/push schedules
+//! were retired by `audit-260912-37-integration-promises`: Magistr composes
+//! no background cadence, and a library that carried one nobody ran read as
+//! a shipped capability. Automatic cadences are deferred product work.
 
 pub mod backfill;
 pub mod build;
@@ -13,7 +22,6 @@ pub mod connection;
 pub mod credential;
 pub mod device_flow;
 pub mod envelope;
-pub mod events;
 pub mod outbox;
 pub mod pull;
 

@@ -112,10 +112,13 @@ schemas and versions, the cloud envelope contract, OTel `service.name`,
 scope name and `think_and_ship.*` attribute keys, the repo-sync tool name and
 the keychain service name. Two things did change with the module path:
 `tracing` targets follow the crate (`magistr_workflow::…`, and the OTLP log
-fence with them), and `tracker_setup` no longer writes a push interval into
-an MCP configuration — the cadence that read it belonged to the standalone
-server, so `push_secs` is reported as not applied
-(`workflow-host-cadences` decides whether Magistr owns that cadence).
+fence with them), and `tracker_setup` no longer accepts a push interval at
+all — the cadence that read it belonged to the standalone server, and
+`audit-260912-37-integration-promises` retired that cadence, the cloud
+realtime subscriber, the tracker doorbell, the sweep schedule and the push
+receipt store from the fork rather than carry a schedule Magistr never
+composes. A supplied `push_secs` is refused by name. Automatic cadences are
+deferred product work, recorded in `docs/architecture/owned-subsystems.md`.
 
 ## Test provenance and verification
 
