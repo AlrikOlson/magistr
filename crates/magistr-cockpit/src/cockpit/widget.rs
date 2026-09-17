@@ -297,11 +297,16 @@ pub enum Widget {
     RequestBody,
     /// Follow the newest reply in the roadmap request pane.
     RequestLatest,
+    /// Resize the adjacent panels.
+    PanelColumns,
+    PanelRoadmap,
+    PanelReasoning,
+    PanelGraph,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 115] = [
+    pub const ALL: [Self; 119] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -417,6 +422,10 @@ impl Widget {
         Self::RoadmapDetails,
         Self::RequestBody,
         Self::RequestLatest,
+        Self::PanelColumns,
+        Self::PanelRoadmap,
+        Self::PanelReasoning,
+        Self::PanelGraph,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -1340,6 +1349,10 @@ impl Widget {
             Self::RoadmapDetails => "Item details",
             Self::RequestBody => "Requests and responses",
             Self::RequestLatest => "Latest reply",
+            Self::PanelColumns => "Resize columns",
+            Self::PanelRoadmap => "Resize roadmap and details",
+            Self::PanelReasoning => "Resize conversation and reasoning",
+            Self::PanelGraph => "Resize graph and list",
         }
     }
 

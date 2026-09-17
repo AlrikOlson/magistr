@@ -166,10 +166,12 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/fault_verb.rs` | Failure card action label, widget ID, and emphasis | `magistr-cockpit/src/cockpit/fault.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_composer.rs` | Bounded pixel message editor with attachments, submission state, and complete border | `magistr-cockpit/src/cockpit/flight_composer.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_conversation.rs` | Proportional conversation, grouped speakers, and actionable work cards | `magistr-cockpit/src/cockpit/flight_conversation.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_divider.rs` | Shared divider geometry, minimums and visible grab areas | `magistr-cockpit/src/cockpit/flight_panels.tests.rs` · `magistr-tui/tests/panel_resize.rs` |
 | `magistr-cockpit/src/cockpit/flight_dock.rs` | Pixel permission requests and pinned command output above the message area | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_inspector.rs` | Selected reasoning steps and related work with independent pixel detail scrolling | `magistr-cockpit/src/cockpit/flight_inspector.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_layout.rs` | Shared physical allocations for the workspace, wrapping, and viewport calculations | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_overlays.rs` | Pixel permission cards, command palette, and hover help | `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_panels.rs` | Session proportions and captured mouse/keyboard panel resizing | `magistr-cockpit/src/cockpit/flight_panels.tests.rs` · `magistr-tui/tests/panel_resize.rs` |
 | `magistr-cockpit/src/cockpit/flight_recorder.rs` | Bounded dynamic reasoning graph, recorded question summaries, and selection controls | `magistr-cockpit/src/cockpit/flight_recorder.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_records.rs` | Recorded-work and roadmap lists with shared physical row geometry | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_roadmap.rs` | Readable roadmap neighborhood with shared physical points, labels, and hit targets | `magistr-cockpit/src/cockpit/flight_roadmap.tests.rs` |

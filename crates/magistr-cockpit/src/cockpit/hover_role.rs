@@ -211,7 +211,7 @@ impl HoverRole {
             // the pointer — the affordance a handle owes you.
             // The dock's grip is a drag handle like the divider:
             // raise the bar under the pointer.
-            Widget::RailDivider | Widget::TermDockGrip => Self::Surface,
+            Widget::RailDivider | Widget::TermDockGrip | Widget::PanelColumns | Widget::PanelRoadmap | Widget::PanelReasoning | Widget::PanelGraph => Self::Surface,
             // Everything else a layout node happens to carry an id for
             // is chrome, not a control.
             _ => Self::Inert,

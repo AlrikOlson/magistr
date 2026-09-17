@@ -36,6 +36,10 @@ pub struct PaletteRow {
 pub(crate) enum PaletteGo {
     /// Open application preferences.
     Settings,
+    /// Adjust visible panel boundaries with the keyboard.
+    ResizePanels,
+    /// Restore initial panel sizes.
+    ResetPanels,
     /// Search recorded project work.
     Search,
     /// Open keyboard help without changing the draft.

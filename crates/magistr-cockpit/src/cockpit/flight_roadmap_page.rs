@@ -1,4 +1,5 @@
 //! Dedicated roadmap browsing and requests, using live selection and draft state.
+use super::flight_divider::FlightDivider as D;
 use super::inspector::Inspector;
 use super::{
     FlightRecords, FlightRequests, FlightRoadmapGraph, FlightStyle as S, Model, Pane, Widget,
@@ -10,25 +11,12 @@ pub struct FlightRoadmapPage;
 impl FlightRoadmapPage {
     #[must_use]
     pub fn graph_height(model: &Model) -> f32 {
-        let l = model.flight_layout();
-        let minimum_list = f32::from(model.cell_size().height) * 6.0 + 116.0;
-        if l.body_height < minimum_list + 180.0 || l.left_width < 480.0 {
-            0.0
-        } else {
-            (l.body_height * 0.35).min(280.0)
-        }
+        model.flight_layout().graph_height
     }
 
     #[must_use]
     pub fn list_height(model: &Model) -> f32 {
-        let graph = Self::graph_height(model);
-        let nav = if model.flight_layout().compact {
-            Self::navigation_height(model)
-        } else {
-            0.0
-        };
-        (model.flight_layout().body_height - graph - nav - if graph > 0.0 { 16.0 } else { 0.0 })
-            .max(0.0)
+        model.flight_layout().graph_list_height
     }
 
     #[must_use]
@@ -109,7 +97,7 @@ impl FlightRoadmapPage {
         if graph_height > 0.0 {
             plan = plan
                 .child(FlightRoadmapGraph::view(model, l.left_width, graph_height))
-                .child(S::vspace(16.0));
+                .child(D::Graph.view(model));
         }
         plan = plan.child(
             FlightRecords::view(model, l.left_width, Self::list_height(model))
@@ -122,7 +110,7 @@ impl FlightRoadmapPage {
             .shrink(0.0)
             .child(plan);
         if !l.compact {
-            body = body.child(S::hspace(20.0)).child(
+            body = body.child(D::Columns.view(model)).child(
                 Node::column()
                     .width(Length::Px(l.right_width))
                     .height(Length::Px(l.body_height))

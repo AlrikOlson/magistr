@@ -199,7 +199,13 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         // frame cannot run the clock past the tick that has not
         // happened yet and skip a stamp's window.
         Msg::Phase(phase) => model.tick_phase = phase.clamp(0.0, 1.0),
-        Msg::Focus(focused) => model.focused = focused,
+        Msg::Focus(focused) => {
+            model.focused = focused;
+            if !focused {
+                model.flight_panels.cancel();
+                model.pressed = None;
+            }
+        }
         Msg::Reply(Reply::Background(colour)) => {
             model.background = Some(colour);
             model.theme = model.theme.observe(colour);
@@ -610,6 +616,9 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
 }
 
 fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
+    if super::flight_panels::FlightPanels::key(model, key) {
+        return Vec::new();
+    }
     if let Some(cmd) = quit_or_cancel(model, key) {
         return vec![cmd];
     }
@@ -1048,6 +1057,14 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
         return Vec::new();
     }
     match row.go {
+        PaletteGo::ResizePanels => {
+            super::flight_panels::FlightPanels::begin_keyboard(model);
+            Vec::new()
+        }
+        PaletteGo::ResetPanels => {
+            model.flight_panels.reset();
+            Vec::new()
+        }
         PaletteGo::Settings => {
             model.settings = Some(Settings::default());
             Vec::new()
@@ -2611,6 +2628,9 @@ fn pane_under(
 }
 
 fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<Cmd> {
+    if super::flight_panels::FlightPanels::mouse(model, event, target) {
+        return Vec::new();
+    }
     if model.uses_flight_recorder() && model.is_sheet_open() {
         if matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown) {
             let (total, height) = model.sheet_window();

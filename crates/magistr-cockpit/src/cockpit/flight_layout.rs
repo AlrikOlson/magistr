@@ -1,6 +1,9 @@
 //! Pixel allocations shared by the production view and its model viewports.
 
-use super::{FlightComposer, FlightRecorder, Model};
+use super::{
+    FlightComposer, FlightRecorder, Model, flight_divider::FlightDivider as D,
+    flight_panels::FlightPanels,
+};
 
 /// The same physical rectangles govern composition, wrapping and scrolling.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -12,10 +15,14 @@ pub struct FlightLayout {
     pub left_width: f32,
     pub right_width: f32,
     pub body_height: f32,
+    pub column_gap: f32,
+    pub row_gap: f32,
     pub conversation_height: f32,
     pub recorder_height: f32,
     pub roadmap_height: f32,
     pub detail_height: f32,
+    pub graph_height: f32,
+    pub graph_list_height: f32,
     pub composer_height: f32,
     pub extra_height: f32,
     pub compact: bool,
@@ -36,22 +43,71 @@ impl FlightLayout {
         let header = line.max(28.0);
         let body_height =
             (screen_height - 24.0 - header - 24.0 - composer_height - extra_height).max(0.0);
-        // The right list needs its controls and at least one complete work item.
-        let compact = width < 660.0 || body_height * 0.68 - 16.0 < line * 6.0 + 84.0;
-        let right_width = if compact {
-            0.0
-        } else if screen_width >= 1280.0 {
-            (400.0 + (screen_width - 1280.0) * 0.25).min(500.0)
+        let panels = &model.flight_panels;
+        // Cell-only mouse reports address cell centres: every grab area spans a cell.
+        let column_gap = f32::from(cell.width).max(20.0);
+        let row_gap = line.max(16.0);
+        let column_min = D::Columns.minimums(line);
+        let compact = width < column_min.0 + column_min.1 + column_gap
+            || body_height < row_gap + 160.0 + line * 6.0 + 84.0;
+        let columns = (width - column_gap).max(0.0);
+        let default_right = if screen_width >= 1280.0 {
+            400.0 + (screen_width - 1280.0) * 0.25
         } else {
             (width * 0.33).clamp(250.0, 400.0)
         };
-        let left_width = (width - right_width - if compact { 0.0 } else { 20.0 }).max(1.0);
-
-        let desired = FlightRecorder::height(model, left_width);
-        let recorder_height = desired.min((body_height * 0.48).max(0.0));
-        let conversation_height = (body_height - recorder_height - 16.0).max(0.0);
-        let roadmap_height = 148.0_f32.min(body_height * 0.32);
-        let detail_height = (body_height - roadmap_height - 16.0).max(0.0);
+        let left_width = if compact {
+            width
+        } else {
+            FlightPanels::split(
+                columns,
+                panels.fraction(D::Columns, 1.0 - default_right / columns.max(1.0)),
+                D::Columns.minimums(line),
+            )
+        };
+        let right_width = if compact { 0.0 } else { columns - left_width };
+        let stack = (body_height - row_gap).max(0.0);
+        let conversation_stack = (body_height
+            - if model.reasoning_expanded() {
+                row_gap
+            } else {
+                16.0
+            })
+        .max(0.0);
+        let desired = (FlightRecorder::height(model, left_width).min(body_height * 0.48)
+            - if model.reasoning_expanded() {
+                row_gap - 16.0
+            } else {
+                0.0
+            })
+        .max(0.0);
+        let conversation_height = if model.reasoning_expanded() {
+            FlightPanels::split(
+                stack,
+                panels.fraction(D::Reasoning, 1.0 - desired / stack.max(1.0)),
+                D::Reasoning.minimums(line),
+            )
+        } else {
+            (conversation_stack - desired).max(0.0)
+        };
+        let recorder_height = (conversation_stack - conversation_height).max(0.0);
+        let roadmap_height = FlightPanels::split(
+            stack,
+            panels.fraction(D::Roadmap, 0.48),
+            D::Roadmap.minimums(line),
+        );
+        let detail_height = (stack - roadmap_height).max(0.0);
+        let nav = if compact { line + 12.0 } else { 0.0 };
+        let graph_stack = (body_height - nav - row_gap).max(0.0);
+        let graph_min = D::Graph.minimums(line);
+        let graph_height = if graph_stack < graph_min.0 + graph_min.1 || left_width < 360.0 {
+            0.0
+        } else {
+            FlightPanels::split(graph_stack, panels.fraction(D::Graph, 0.55), graph_min)
+        };
+        let graph_list_height =
+            (body_height - nav - graph_height - if graph_height > 0.0 { row_gap } else { 0.0 })
+                .max(0.0);
         Self {
             screen_width,
             screen_height,
@@ -60,10 +116,14 @@ impl FlightLayout {
             left_width,
             right_width,
             body_height,
+            column_gap,
+            row_gap,
             conversation_height,
             recorder_height,
             roadmap_height,
             detail_height,
+            graph_height,
+            graph_list_height,
             composer_height,
             extra_height,
             compact,

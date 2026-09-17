@@ -146,9 +146,9 @@ fn every_named_widget_is_either_a_control_or_chrome() {
         .filter(|w| HoverRole::of(w.id()) == HoverRole::Inert)
         .count();
     assert_eq!(
-        lifting + linking + inert + 2,
+        lifting + linking + inert + 6,
         Widget::ALL.len(),
-        "the divider and the dock's grip are the two named widgets that raise; nothing else escapes"
+        "the six resize handles have surface feedback; nothing else escapes"
     );
     assert_eq!(
         HoverRole::of(Widget::TermDockGrip.id()),

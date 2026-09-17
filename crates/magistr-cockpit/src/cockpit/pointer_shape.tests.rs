@@ -37,6 +37,28 @@ fn the_hand_appears_over_buttons_chips_and_links_only() {
 /// empty name to hand the shape back.
 #[test]
 fn the_sequences_are_the_osc_22_strings() {
+    assert_eq!(
+        PointerShape::over(Some(Widget::PanelColumns.id())),
+        PointerShape::HorizontalResize
+    );
+    for widget in [
+        Widget::PanelRoadmap,
+        Widget::PanelReasoning,
+        Widget::PanelGraph,
+    ] {
+        assert_eq!(
+            PointerShape::over(Some(widget.id())),
+            PointerShape::VerticalResize
+        );
+    }
+    assert_eq!(
+        PointerShape::HorizontalResize.sequence(),
+        b"\x1b]22;ew-resize\x1b\\"
+    );
+    assert_eq!(
+        PointerShape::VerticalResize.sequence(),
+        b"\x1b]22;ns-resize\x1b\\"
+    );
     assert_eq!(PointerShape::Hand.sequence(), b"\x1b]22;pointer\x1b\\");
     assert_eq!(PointerShape::Default.sequence(), b"\x1b]22;\x1b\\");
 }

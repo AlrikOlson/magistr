@@ -58,7 +58,11 @@ impl FlightOverlays {
         if let Some(help) = model.tooltip() {
             root = root.child(tooltip(model, &style, &help));
         }
-        hover::answer(&mut root, model.hovered(), model.pressed(), pen);
+        // Dividers paint the same feedback for keyboard focus and captured dragging.
+        let hovered = model
+            .hovered()
+            .filter(|id| crate::cockpit::flight_divider::FlightDivider::from_id(*id).is_none());
+        hover::answer(&mut root, hovered, model.pressed(), pen);
         root
     }
 }

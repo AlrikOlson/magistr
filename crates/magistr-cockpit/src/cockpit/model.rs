@@ -178,6 +178,7 @@ pub struct Model {
     /// Where the tech-tree drag last read the pointer, in the
     /// fractional cells [`Model::pointer_at`] answers.
     pub(super) roadmap_drag: Option<(f32, f32)>,
+    pub(super) flight_panels: super::flight_panels::FlightPanels,
     pub(super) hovered: Option<WidgetId>,
     /// The widget the left button went down on and has not come up
     /// from — what wears the pressed treatment.
@@ -571,6 +572,7 @@ impl Model {
             rail_graph_rect: None,
             undock_rect: None,
             roadmap_drag: None,
+            flight_panels: super::flight_panels::FlightPanels::default(),
             hovered: None,
             pressed: None,
             pointer: None,
@@ -1627,8 +1629,11 @@ impl Model {
     /// The widget under the pointer — the hit registry's target on the
     /// last mouse move. How the launcher's session rows light up.
     #[must_use]
-    pub const fn hovered(&self) -> Option<WidgetId> {
-        self.hovered
+    pub fn hovered(&self) -> Option<WidgetId> {
+        self.flight_panels
+            .dragged()
+            .map(|divider| divider.widget().id())
+            .or(self.hovered)
     }
 
     /// The hover card the pointer has earned, if any.

@@ -13,23 +13,23 @@ expression: screen(&edit)
     Magistr
     Updating the retry limit.
 
-      edit src/retry.rs                                                        +1          Detai                             Les
+      edit src/retry.rs                                                        +1
       src/retry.rs
-                                                                                           src/retry.rs
-      Open  Undo                                                                           Completed
-      @@ -1 +1 @@                                                                          File change
+
+      Open  Undo
+      @@ -1 +1 @@
       -const RETRIES: usize = 2;
-      +const RETRIES: usize = 3;                                                           @@ -1 +1 @@
+      +const RETRIES: usize = 3;
+
+                                                                                           Detai                             Les
+
+                                                                                           src/retry.rs
+                                                                                           Completed
+                                                                                           File change
+
+                                                                                           @@ -1 +1 @@
                                                                                            -const RETRIES: usize = 2;
                                                                                            +const RETRIES: usize = 3;
-
-
-
-
-
-
-
-
 
 
 

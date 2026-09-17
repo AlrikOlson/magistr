@@ -1,4 +1,5 @@
 //! The production terminal workspace: conversation stays present during inspection.
+use super::flight_divider::FlightDivider as D;
 use super::inspector::Inspector;
 use super::{
     FlightComposer, FlightRecorder, FlightStyle as S, FrameClock, Model, Pane, StageTab, Widget,
@@ -29,7 +30,11 @@ impl FlightShell {
                     .height(Length::Px(l.conversation_height))
                     .shrink(0.0),
             )
-            .child(S::vspace(16.0))
+            .child(if model.reasoning_expanded() {
+                D::Reasoning.view(model)
+            } else {
+                S::vspace(16.0)
+            })
             .child(FlightRecorder::view_in(
                 model,
                 l.left_width,
@@ -41,7 +46,7 @@ impl FlightShell {
             .min_height(Length::Px(0.0))
             .child(left);
         if !l.compact {
-            body = body.child(S::hspace(20.0)).child(
+            body = body.child(D::Columns.view(model)).child(
                 Node::column()
                     .width(Length::Px(l.right_width))
                     .shrink(0.0)
@@ -51,7 +56,7 @@ impl FlightShell {
                             .height(Length::Px(l.roadmap_height))
                             .shrink(0.0),
                     )
-                    .child(S::vspace(16.0))
+                    .child(D::Roadmap.view(model))
                     .child(
                         details(model, &s, &pen, l.right_width, l.detail_height)
                             .height(Length::Px(l.detail_height))
@@ -104,6 +109,28 @@ impl FlightShell {
 }
 
 fn header(model: &Model, s: &S) -> Node {
+    if let Some(divider) = model.flight_panels.active() {
+        let dragging = model.flight_panels.dragged().is_some();
+        let arrows = if divider == D::Columns {
+            "←/→"
+        } else {
+            "↑/↓"
+        };
+        let help = if dragging {
+            "Drag to resize · Esc cancel".to_owned()
+        } else {
+            format!("{arrows} resize · Tab next · R reset · Enter done · Esc cancel")
+        };
+        let label = if model.flight_layout().width >= 900.0 {
+            format!("{} · {help}", divider.label())
+        } else {
+            help
+        };
+        return s
+            .ground(s.label(label, s.accent), s.root)
+            .height(Length::Px(f32::from(model.cell_size().height).max(28.0)))
+            .shrink(0.0);
+    }
     let title = model.title().unwrap_or("Your project");
     let mut face = Typography::default();
     face.set_cell(model.cell_size());
