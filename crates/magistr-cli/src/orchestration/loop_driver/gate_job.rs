@@ -2,10 +2,10 @@
 
 use std::path::PathBuf;
 
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
 use magistr_cockpit::engine::EngineEvent;
 use magistr_cockpit::job::JobOutput;
+use magistr_cockpit_runtime::channel::Inbox;
 use magistr_engine::{GateOutput, MagistrFrame, NativeEvent};
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::UnboundedSender;
@@ -19,7 +19,7 @@ use crate::utils::gate::run_gate;
 /// cargo commands the legacy runner's 300 s was sized for.
 const GATE_TIMEOUT_SECS: u64 = 1800;
 
-/// The closure [`Jobs::spawn_job`](magistr_cockpit::job::Jobs::spawn_job)
+/// The closure [`Jobs::spawn_job`](magistr_cockpit_runtime::Jobs::spawn_job)
 /// runs for the gate `name`: `command` under `sh -c` in `dir` through the
 /// shared gate runner — the same one `magistr_gate` goes through, so the
 /// two paths cannot disagree about what a gate did — driven on the

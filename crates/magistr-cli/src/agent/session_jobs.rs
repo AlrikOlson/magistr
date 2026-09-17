@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use tokio::task::JoinHandle;
 
-use crate::channel::Inbox;
-use crate::cockpit::Msg;
+use magistr_cockpit::cockpit::Msg;
+use magistr_cockpit_runtime::channel::Inbox;
 
 /// The port calls a session relay carries out for the cockpit — a
 /// workbench read or search, an engine mutation, a checkpoint — each on
@@ -81,13 +81,6 @@ impl SessionJobs {
             }
         }));
         Ok(())
-    }
-
-    /// Jobs still running.
-    #[must_use]
-    pub fn in_flight(&mut self) -> usize {
-        self.running.retain(|handle| !handle.is_finished());
-        self.running.len()
     }
 
     /// Close the fence — nothing posts from here on — and wait for the

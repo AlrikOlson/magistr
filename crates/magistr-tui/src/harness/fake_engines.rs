@@ -6,9 +6,9 @@ use magistr_engine::{FeedStatus, NativeEvent};
 use tokio::task::JoinHandle;
 
 use super::timeline::Timeline;
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
 use magistr_cockpit::engine::EngineEvent;
+use magistr_cockpit_runtime::channel::Inbox;
 
 /// Scripted feed events at scripted times, posted as `Msg::Engine`
 /// exactly as the live feed would post them.

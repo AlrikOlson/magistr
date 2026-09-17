@@ -3147,6 +3147,7 @@ dependencies = [
  "magistr-acp-agent",
  "magistr-application",
  "magistr-cockpit",
+ "magistr-cockpit-runtime",
  "magistr-core",
  "magistr-engine",
  "magistr-mcp",
@@ -3201,11 +3202,21 @@ dependencies = [
  "taffy",
  "tempfile",
  "tiny-skia",
- "tokio",
  "unicode-segmentation",
  "unicode-width",
  "vt100",
  "zune-jpeg",
+]
+
+[[package]]
+name = "magistr-cockpit-runtime"
+version = "0.1.0"
+dependencies = [
+ "magistr-application",
+ "magistr-cockpit",
+ "magistr-domain",
+ "tokio",
+ "toml 1.0.6+spec-1.1.0",
 ]
 
 [[package]]
@@ -3312,6 +3323,7 @@ dependencies = [
  "insta",
  "magistr-application",
  "magistr-cockpit",
+ "magistr-cockpit-runtime",
  "magistr-engine",
  "magistr-theme",
  "proptest",

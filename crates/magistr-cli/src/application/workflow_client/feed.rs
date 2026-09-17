@@ -6,9 +6,9 @@ use magistr_engine::FeedStatus;
 use tokio::task::JoinHandle;
 
 use super::feed_link::FeedLink;
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
 use magistr_cockpit::engine::EngineEvent;
+use magistr_cockpit_runtime::channel::Inbox;
 
 /// How long to wait before trying the socket again.
 #[cfg(unix)]

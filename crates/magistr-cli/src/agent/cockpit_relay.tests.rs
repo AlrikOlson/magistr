@@ -5,10 +5,9 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 
 use super::*;
-use crate::agent::SessionJobs;
-use crate::cockpit::{WorkbenchCmd, WorkbenchEvent};
-use crate::harness::FakeWorkbench;
 use magistr_application::sessions::{ToolRecord, TurnEnd};
+use magistr_cockpit::cockpit::{WorkbenchCmd, WorkbenchEvent};
+use magistr_cockpit::harness::FakeWorkbench;
 
 struct FakeSession {
     events: mpsc::UnboundedReceiver<AgentEvent>,
@@ -318,7 +317,7 @@ impl WorkbenchPort for BlockingWorkbench {
     fn undo(&mut self, _id: &str) -> Result<(), String> {
         Ok(())
     }
-    fn journal(&mut self) -> Result<Vec<crate::workbench::JournalEntry>, String> {
+    fn journal(&mut self) -> Result<Vec<magistr_cockpit::workbench::JournalEntry>, String> {
         Ok(Vec::new())
     }
     fn search(&mut self, query: &str) -> Result<Vec<String>, String> {
@@ -334,7 +333,7 @@ impl WorkbenchPort for BlockingWorkbench {
     fn map(&mut self) -> Result<Vec<String>, String> {
         Ok(Vec::new())
     }
-    fn run(&mut self, _command: &str) -> Result<Vec<crate::workbench::RunRow>, String> {
+    fn run(&mut self, _command: &str) -> Result<Vec<magistr_cockpit::workbench::RunRow>, String> {
         Ok(Vec::new())
     }
 }
@@ -414,24 +413,26 @@ async fn an_absent_port_is_refused_by_name_rather_than_answered_with_silence() {
         .send(Cmd::Workbench(WorkbenchCmd::Map))
         .expect("command sent");
     commands_tx
-        .send(Cmd::Engine(crate::cockpit::EngineCmd::Checkpoint))
+        .send(Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::Checkpoint))
         .expect("command sent");
     commands_tx
-        .send(Cmd::Checkpoint(crate::cockpit::CheckpointCmd::Restore {
-            id: "cp-2".to_owned(),
-        }))
+        .send(Cmd::Checkpoint(
+            magistr_cockpit::cockpit::CheckpointCmd::Restore {
+                id: "cp-2".to_owned(),
+            },
+        ))
         .expect("command sent");
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Workbench(WorkbenchEvent::Failed { cmd, error }) if cmd == crate::cockpit::WorkbenchCmd::Map && error.contains("no workbench")
+        Msg::Workbench(WorkbenchEvent::Failed { cmd, error }) if cmd == magistr_cockpit::cockpit::WorkbenchCmd::Map && error.contains("no workbench")
     ));
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Engine(crate::engine::EngineEvent::PortFailed { what, error, .. }) if what == "checkpoint" && error.contains("no engine port")
+        Msg::Engine(magistr_cockpit::engine::EngineEvent::PortFailed { what, error, .. }) if what == "checkpoint" && error.contains("no engine port")
     ));
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Checkpoint(crate::cockpit::CheckpointEvent::Failed { id: Some(id), what, error })
+        Msg::Checkpoint(magistr_cockpit::cockpit::CheckpointEvent::Failed { id: Some(id), what, error })
             if id == "cp-2" && what == "restore cp-2" && error.contains("no checkpoint ledger")
     ));
     drop(commands_tx);
@@ -466,7 +467,7 @@ async fn jobs_past_the_capacity_are_refused_and_a_late_answer_is_fenced() {
     assert!(matches!(
         next(&mut messages).await,
         Msg::Workbench(WorkbenchEvent::Failed { cmd, error })
-            if crate::workbench::describe(&cmd) == format!("search job {}", SessionJobs::CAPACITY)
+            if magistr_cockpit::workbench::describe(&cmd) == format!("search job {}", SessionJobs::CAPACITY)
                 && error.contains("already running")
     ));
     tokio::time::timeout(Duration::from_secs(2), async {

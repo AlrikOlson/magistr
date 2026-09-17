@@ -12,13 +12,13 @@
 //! vocabulary and the cell painter ([`render`]: a styled grapheme, a grid
 //! of them, and `paint` putting a laid-out view into the grid), the
 //! pixel chrome ([`pixel`]: the widgets that draw with tiny-skia into a
-//! surface sized in cells), the producers — [`job`]s off the loop thread,
-//! [`agent`] relay, the semantic [`engine`], [`workbench`] and
-//! [`checkpoint`] ports — and the
-//! [`channel`]s they post on. What a surface can show reaches the core
+//! surface sized in cells), job result values, tool-title presentation,
+//! and the semantic [`engine`], [`workbench`] and [`checkpoint`] ports.
+//! What a surface can show reaches the core
 //! as one value, the [`capability`] vocabulary; how it shows it is the
 //! renderer's business. Concrete workflow and workspace clients belong to
-//! the CLI host; the remaining relays and channels are separate from reducers.
+//! the CLI host. Shared channels and job dispatch live in magistr-cockpit-runtime;
+//! session relays belong to the CLI.
 //!
 //! Two renderers paint this core and fork none of it: magistr-tui (a
 //! cell buffer diffed and encoded for a terminal, plus the terminal's
@@ -36,7 +36,6 @@
 pub mod agent;
 pub mod base64;
 pub mod capability;
-pub mod channel;
 pub mod checkpoint;
 pub mod cockpit;
 pub mod engine;

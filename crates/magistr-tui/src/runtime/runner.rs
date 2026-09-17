@@ -12,8 +12,8 @@ use crate::input::{Decoder, Event};
 use crate::pixel::{Compression, IdSpace};
 use crate::render::Screen;
 use crate::term::{InputEvent, InputThread, PanicHook, Session, Terminal, TerminalInput};
-use magistr_cockpit::channel::{Commands, Inbox};
 use magistr_cockpit::cockpit::{Cmd, Model, Msg, update};
+use magistr_cockpit_runtime::channel::{Commands, Inbox};
 
 /// The cockpit's driver over a [`Terminal`].
 ///

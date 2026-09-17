@@ -3,7 +3,7 @@
 //! [`Runtime::run`] takes the terminal over, runs the startup queries in
 //! one raw-mode window, spawns the input thread, then loops over one
 //! merged stream — the thread's channel, the
-//! [`Inbox`](magistr_cockpit::channel::Inbox) every producer posts on,
+//! [`Inbox`](magistr_cockpit_runtime::channel::Inbox) every producer posts on,
 //! and the frame tick — folding every message into the model and
 //! painting only when something changed, at a cadence the
 //! [`FrameScheduler`] picks from recent activity. Quit leaves the session

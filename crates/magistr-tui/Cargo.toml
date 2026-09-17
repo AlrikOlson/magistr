@@ -8,8 +8,9 @@ rust-version = "1.89"
 
 [dependencies]
 # The cockpit this crate renders: its core, layout, theme, cell and pixel
-# painters and producers. This crate adds the terminal and forks none of it.
+# painters. Shared transport/jobs come from cockpit-runtime; this crate owns the terminal.
 magistr-cockpit = { path = "../magistr-cockpit" }
+magistr-cockpit-runtime = { path = "../magistr-cockpit-runtime" }
 magistr-application = { path = "../magistr-application" }
 # Incremental prompt echo must never split a composed character.
 unicode-segmentation = "1"

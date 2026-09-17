@@ -37,6 +37,7 @@ magistr-acp = { path = "../magistr-acp" }
 magistr-acp-agent = { path = "../magistr-acp-agent" }
 magistr-mcp = { path = "../magistr-mcp" }
 magistr-cockpit = { path = "../magistr-cockpit" }
+magistr-cockpit-runtime = { path = "../magistr-cockpit-runtime" }
 magistr-tui = { path = "../magistr-tui" }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }

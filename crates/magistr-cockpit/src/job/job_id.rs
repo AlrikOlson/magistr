@@ -2,8 +2,7 @@
 
 use std::fmt;
 
-/// Identifies a job spawned through a [`Jobs`](super::Jobs) handle: the
-/// `n`th job that handle family spawned.
+/// Identifies the `n`th job assigned by one runtime handle family.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct JobId(u64);
 

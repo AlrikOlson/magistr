@@ -5,10 +5,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use tokio::task::JoinError;
 
-use super::job_id::JobId;
-use super::output::JobOutput;
 use crate::channel::Inbox;
-use crate::cockpit::Msg;
+use magistr_cockpit::cockpit::Msg;
+use magistr_cockpit::job::{JobId, JobOutput};
 
 /// Spawns closures on tokio's blocking pool and posts each result on the
 /// runtime's inbox as [`Msg::Job`].

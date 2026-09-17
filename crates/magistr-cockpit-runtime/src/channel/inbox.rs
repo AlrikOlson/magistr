@@ -3,7 +3,7 @@
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::channel::Arrivals;
-use crate::cockpit::Msg;
+use magistr_cockpit::cockpit::Msg;
 
 /// A sender into the runtime's event loop, cloned out to every producer
 /// — jobs, the engine feed, the agent relay, the harness's fakes. What is

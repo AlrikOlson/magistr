@@ -1,4 +1,4 @@
-use magistr_engine::policy::RiskTier;
+use magistr_domain::policy::RiskTier;
 use std::time::Instant;
 
 use super::*;

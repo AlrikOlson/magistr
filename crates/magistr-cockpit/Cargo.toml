@@ -2,7 +2,7 @@
 name = "magistr-cockpit"
 version = "0.1.0"
 edition = "2024"
-description = "Magistr's mission-control cockpit, surface-agnostic: the Elm core, the flexbox layout tree, the theme, the cell and pixel painters, and the producers that feed it — painted by magistr-tui on a terminal and by magistr-gui2 in a window."
+description = "Magistr's mission-control cockpit, surface-agnostic: the Elm core, the flexbox layout tree, the theme, the cell and pixel painters, and semantic effect ports — painted by magistr-tui on a terminal and by magistr-gui2 in a window."
 license = "MIT"
 rust-version = "1.89"
 
@@ -33,9 +33,6 @@ tiny-skia = { version = "0.12", default-features = false, features = ["std", "si
 # same decoders `image` itself delegates to.
 zune-jpeg = "0.5"
 image-webp = "0.2"
-# Remaining runtime channels, jobs and session relay. Concrete store/socket
-# clients live in the CLI host; no direct network or async I/O feature here.
-tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
 # Workflow projection values and application-owned session contracts.
 magistr-engine = { path = "../magistr-engine" }
 magistr-application = { path = "../magistr-application" }
@@ -68,5 +65,3 @@ insta = "1"
 proptest = "1"
 # Temporary directories for shelf and golden fixtures.
 tempfile = "3"
-# Session relay tests hold blocking jobs while observing async events.
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

@@ -8,14 +8,16 @@ use magistr_application::sessions::SessionHandle;
 use tokio::task::JoinHandle;
 
 use super::session_jobs::SessionJobs;
-use crate::channel::{Commands, Inbox};
-use crate::checkpoint::CheckpointPort;
-use crate::cockpit::{CheckpointCmd, CheckpointEvent, EngineCmd, WorkbenchCmd, WorkbenchEvent};
-use crate::cockpit::{Cmd, KillCmd, Msg};
-use crate::engine::{EngineEvent, EnginePort};
-use crate::workbench::WorkbenchPort;
 use magistr_application::sessions::AgentEvent;
 use magistr_application::sessions::ToolStatus;
+use magistr_cockpit::checkpoint::CheckpointPort;
+use magistr_cockpit::cockpit::{
+    CheckpointCmd, CheckpointEvent, EngineCmd, WorkbenchCmd, WorkbenchEvent,
+};
+use magistr_cockpit::cockpit::{Cmd, KillCmd, Msg};
+use magistr_cockpit::engine::{EngineEvent, EnginePort};
+use magistr_cockpit::workbench::WorkbenchPort;
+use magistr_cockpit_runtime::channel::{Commands, Inbox};
 
 /// A port the relay holds for its owned jobs: shared with the blocking
 /// thread that runs the call, held by one relay, so never contended
@@ -189,7 +191,7 @@ impl Session {
     /// provider's events, and one asked of a session with no workbench is
     /// refused by name.
     fn workbench(&mut self, cmd: WorkbenchCmd) {
-        let what = crate::workbench::describe(&cmd);
+        let what = magistr_cockpit::workbench::describe(&cmd);
         let Some(port) = self.workbench.as_ref().map(Arc::clone) else {
             self.inbox.send(Msg::Workbench(WorkbenchEvent::Failed {
                 cmd,
@@ -200,7 +202,7 @@ impl Session {
         let asked = cmd.clone();
         if let Err(error) = self.jobs.run(&what, &self.inbox, move || {
             let mut port = port.lock().unwrap_or_else(PoisonError::into_inner);
-            Msg::Workbench(crate::workbench::apply(port.as_mut(), &cmd))
+            Msg::Workbench(magistr_cockpit::workbench::apply(port.as_mut(), &cmd))
         }) {
             self.inbox
                 .send(Msg::Workbench(WorkbenchEvent::Failed { cmd: asked, error }));
@@ -210,7 +212,7 @@ impl Session {
     /// An engine call is an owned job too: the store is on disk, and a
     /// session without an engine port says so.
     fn engine(&mut self, cmd: EngineCmd) {
-        let what = crate::engine::describe(&cmd);
+        let what = magistr_cockpit::engine::describe(&cmd);
         let Some(port) = self.engine.as_ref().map(Arc::clone) else {
             self.inbox.send(Msg::Engine(EngineEvent::PortFailed {
                 cmd,
@@ -222,7 +224,7 @@ impl Session {
         let refused = cmd.clone();
         if let Err(error) = self.jobs.run(&what, &self.inbox, move || {
             let mut port = port.lock().unwrap_or_else(PoisonError::into_inner);
-            Msg::Engine(crate::engine::apply(port.as_mut(), &cmd))
+            Msg::Engine(magistr_cockpit::engine::apply(port.as_mut(), &cmd))
         }) {
             self.inbox.send(Msg::Engine(EngineEvent::PortFailed {
                 cmd: refused,
@@ -235,7 +237,7 @@ impl Session {
     /// Git and worktree operations must not pause incoming agent events;
     /// a session that holds no ledger refuses rather than dropping the ask.
     fn checkpoint(&mut self, cmd: CheckpointCmd) {
-        let (id, what) = crate::checkpoint::describe(&cmd);
+        let (id, what) = magistr_cockpit::checkpoint::describe(&cmd);
         let Some(port) = self.checkpoints.as_ref().map(Arc::clone) else {
             self.inbox.send(Msg::Checkpoint(CheckpointEvent::Failed {
                 id: Some(id),
@@ -246,7 +248,7 @@ impl Session {
         };
         if let Err(error) = self.jobs.run(&what, &self.inbox, move || {
             let mut port = port.lock().unwrap_or_else(PoisonError::into_inner);
-            Msg::Checkpoint(crate::checkpoint::apply(port.as_mut(), &cmd))
+            Msg::Checkpoint(magistr_cockpit::checkpoint::apply(port.as_mut(), &cmd))
         }) {
             self.inbox.send(Msg::Checkpoint(CheckpointEvent::Failed {
                 id: Some(id),
@@ -258,5 +260,5 @@ impl Session {
 }
 
 #[cfg(test)]
-#[path = "session.tests.rs"]
+#[path = "cockpit_relay.tests.rs"]
 mod tests;

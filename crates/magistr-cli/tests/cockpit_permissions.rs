@@ -10,11 +10,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use agent_client_protocol::schema::v1::ToolKind;
+use magistr::agent::cockpit_relay::spawn_session;
 use magistr::agent::cockpit_session::CockpitSession;
 use magistr::permissions::{AuditEntry, CockpitPolicy, PermissionProfile};
 use magistr_acp::AcpTransport;
 use magistr_application::sessions::{SessionOptions, SessionPolicy};
-use magistr_cockpit::agent::spawn_session;
 use magistr_cockpit::cockpit::{Model, Size};
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{AcpObserved, FakeAcpAgent, FakeTerminal, Script};
