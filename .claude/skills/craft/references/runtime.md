@@ -64,6 +64,11 @@ remain the target; legacy search tool names describe a capability.
 - Append iteration receipts to `.magistr/iteration-log.md`; include the file
   in a commit only if Git already tracks it. Never force-add ignored local
   state. Stage and commit only the current iteration's changes.
+- A dirty checkout alone does not mean this work is unfinished. Stop hooks must
+  preserve unrelated edits and must not request roadmap exports. Once the task
+  is closed, the outer runner validates its recorded checks against the current
+  source; it must not widen focused verification or rerun green checks just to
+  obtain an active task. Missing or stale evidence requires the affected checks.
 
 If the required Magistr connection is unavailable, report that connection and
 preserve current state. Do not substitute another store or claim a native

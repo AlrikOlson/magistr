@@ -22,6 +22,7 @@ fn input() -> JudgeInput {
                 duration: Duration::from_secs(40),
             },
         ],
+        recorded_checks: Vec::new(),
         transcript_tail: "I ran the tests and they all pass.".to_owned(),
         iteration: (2, 5),
     }

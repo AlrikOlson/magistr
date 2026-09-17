@@ -1192,8 +1192,8 @@ mod tests;
 /// Which Claude Code hook `magistr guard` is answering.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum GuardEvent {
-    /// End of the assistant's turn (Stop hook): a shipped objective must be
-    /// committed and its roadmap chunk closed.
+    /// End of the assistant's turn (Stop hook): a shipped objective's own
+    /// roadmap chunk must be closed; unrelated worktree changes are preserved.
     Stop,
     /// A Bash tool call (PreToolUse hook): `git commit` needs green, verified gates.
     Commit,

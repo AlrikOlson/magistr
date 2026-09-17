@@ -2752,6 +2752,178 @@ async fn green_gates_leave_a_self_completed_chunk_done() {
     );
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn recorded_verification_survives_finalization_without_running_unrelated_gates() {
+    use magistr_workflow::ship::domain::objective::VerificationMode;
+    use magistr_workflow::ship::domain::task::TaskType;
+
+    for case in [
+        "focused-completed",
+        "full-completed",
+        "focused-active",
+        "stale",
+        "missing",
+        "foreign",
+        "failed-check",
+    ] {
+        let full = case == "full-completed";
+        let valid = matches!(
+            case,
+            "focused-completed" | "full-completed" | "focused-active"
+        );
+        let command = if full {
+            "true"
+        } else {
+            "echo unexpected > unexpected-gate; exit 9"
+        };
+        let dir = project(command, command, command);
+        std::fs::write(dir.path().join("work.txt"), "verified work").unwrap();
+        let engines = engines_with_work(dir.path());
+        let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+        let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("Work finished."));
+        let root = dir.path().to_path_buf();
+        let connector = Connector::new(move |config| {
+            agent_side.roadmap_start_chunk("work").unwrap();
+            agent_side
+                .ship_set_objective_with_verification(
+                    "do the work".into(),
+                    vec![],
+                    vec![],
+                    if case == "foreign" {
+                        "chunk:other"
+                    } else {
+                        "chunk:work"
+                    }
+                    .into(),
+                    if full {
+                        VerificationMode::Full
+                    } else {
+                        VerificationMode::Focused
+                    },
+                )
+                .unwrap();
+            agent_side
+                .ship_add_task("verify".into(), "verify".into(), TaskType::Test, None)
+                .unwrap();
+            agent_side.ship_start_task("verify").unwrap();
+            let names = if case == "missing" {
+                vec![]
+            } else if full {
+                vec!["check", "test", "lint"]
+            } else {
+                vec!["document links"]
+            };
+            for name in names {
+                crate::application::AdmittedCheck::admit(
+                    &agent_side,
+                    &root,
+                    Some("verify"),
+                    name,
+                    "true".into(),
+                    true,
+                )
+                .unwrap()
+                .settle(
+                    &agent_side,
+                    magistr_engine::native::CheckExecution::Exited {
+                        code: if case == "failed-check" { 1 } else { 0 },
+                    },
+                    String::new(),
+                )
+                .unwrap();
+            }
+            if case != "focused-active" {
+                agent_side.ship_complete_task("verify", vec![]).unwrap();
+                agent_side.ship_finalize(vec![], None).unwrap();
+                if valid {
+                    agent_side
+                        .roadmap_complete_chunk("work", Some("task:verify"))
+                        .unwrap();
+                }
+            }
+            if case == "stale" {
+                std::fs::write(root.join("work.txt"), "changed after verification").unwrap();
+            }
+            let inner = inner.clone();
+            async move { inner.connect(config).await }
+        });
+        let judge = Scripted::new([Verdict::met("acceptance satisfied")]);
+        let script = Script::new().startup_replies(MS(0));
+        let (model, report, _) = run_over(
+            dir.path(),
+            1,
+            script,
+            connector,
+            seen,
+            false,
+            Some(engines.clone()),
+            Some(judge.clone()),
+        )
+        .await;
+        let stage = stage_text(&model);
+        assert_eq!(model.jobs_done(), 0, "{case}: no gate command should run");
+        assert!(!dir.path().join("unexpected-gate").exists(), "{case}");
+        assert!(!stage.contains("gates not recorded"), "{case}: {stage}");
+        assert!(model.loop_status().unwrap().ended().is_some(), "{case}");
+        if valid {
+            assert!(
+                !matches!(report.end(), LoopEnd::Failed(_)),
+                "{case}: {report}"
+            );
+            assert!(
+                stage.contains("Recorded checks still verify this work"),
+                "{case}: {stage}"
+            );
+            assert!(
+                !stage.contains("no quality gates configured"),
+                "{case}: {stage}"
+            );
+            assert_eq!(
+                engines.roadmap_chunk("work").unwrap().status,
+                ChunkStatus::Done,
+                "{case}"
+            );
+            let expected_checks = if full { 3 } else { 1 };
+            assert_eq!(
+                recorded(&engines).len(),
+                expected_checks,
+                "{case}: no duplicate receipts"
+            );
+            if case == "focused-active" {
+                let asked = judge.asked();
+                assert_eq!(asked.len(), 1);
+                assert_eq!(asked[0].recorded_checks, ["document links"]);
+                assert!(asked[0].prompt().contains("recorded check; current source"));
+                assert!(!asked[0].prompt().contains("no gates are configured"));
+            } else {
+                assert!(
+                    judge.asked().is_empty(),
+                    "{case}: completed work is not judged twice"
+                );
+                assert!(engines.ship_active_task_id().is_none(), "{case}");
+            }
+        } else {
+            assert!(
+                matches!(report.end(), LoopEnd::Failed(_)),
+                "{case}: {report}"
+            );
+            assert!(
+                judge.asked().is_empty(),
+                "{case}: missing evidence never reaches the judge"
+            );
+            assert_ne!(
+                engines.roadmap_chunk("work").unwrap().status,
+                ChunkStatus::Done,
+                "{case}"
+            );
+            assert!(
+                !stage.contains("Recorded checks still verify this work"),
+                "{case}: {stage}"
+            );
+        }
+    }
+}
+
 /// A flake passed, so it is not evidence of anything to act on.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_flake_never_reopens_a_chunk() {

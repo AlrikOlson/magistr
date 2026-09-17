@@ -340,6 +340,40 @@ impl NativeEngines {
             .map(|result| result.cleared_stale_tasks)
     }
 
+    /// Define the objective with an explicit verification scope.
+    pub fn ship_set_objective_with_verification(
+        &self,
+        description: String,
+        acceptance_criteria: Vec<String>,
+        constraints: Vec<String>,
+        scope: String,
+        verification: magistr_workflow::ship::domain::objective::VerificationMode,
+    ) -> Result<usize, String> {
+        self.services
+            .ship
+            .set_objective_with_verification(
+                description,
+                acceptance_criteria,
+                constraints,
+                scope,
+                verification,
+            )
+            .map(|result| result.cleared_stale_tasks)
+    }
+
+    /// Validate existing receipts against current source and acceptance without
+    /// running commands or requiring the verification task to remain active.
+    pub fn ship_verify_completion(
+        &self,
+        scope: &str,
+        task_id: Option<&str>,
+    ) -> Result<
+        magistr_workflow::ship::application::CompletionEvidence,
+        magistr_workflow::ship::application::CompletionRefusal,
+    > {
+        self.services.ship.verify_completion(scope, task_id)
+    }
+
     /// Add a task to the plan (the `ship_plan` verb's `add`).
     pub fn ship_add_task(
         &self,

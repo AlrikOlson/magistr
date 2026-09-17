@@ -120,6 +120,82 @@ impl Project {
     }
 }
 
+#[test]
+fn stop_hook_allows_completed_work_with_unrelated_changes_and_exports_disabled() {
+    let project = Project::new(false);
+    let config_path = project.root.join(".magistr/project.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+    config["roadmap_exports"] = serde_json::json!(false);
+    std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+    for args in [
+        vec!["init", "-q"],
+        vec!["add", "."],
+        vec![
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.com",
+            "commit",
+            "-qm",
+            "baseline",
+        ],
+    ] {
+        assert!(
+            Command::new("git")
+                .args(args)
+                .current_dir(&project.root)
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+    }
+    let changed = project.root.join("crates/magistr-gui/src/App.svelte");
+    std::fs::write(&changed, "other session's work").unwrap();
+    std::fs::write(project.root.join("notes.txt"), "untracked notes").unwrap();
+    let status = || {
+        Command::new("git")
+            .args(["status", "--porcelain"])
+            .current_dir(&project.root)
+            .output()
+            .unwrap()
+            .stdout
+    };
+    let before = status();
+    assert!(!before.is_empty());
+    {
+        let engines = project.engines();
+        engines
+            .ship_set_objective(
+                "finished work".into(),
+                vec![],
+                vec![],
+                "fix:finished".into(),
+            )
+            .unwrap();
+        engines.ship_finalize(vec![], None).unwrap();
+    }
+    let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("templates/hooks/magistr-guard.sh");
+    let out = project.run(
+        Command::new("sh")
+            .arg(script)
+            .arg("stop")
+            .env("MAGISTR_BIN", env!("CARGO_BIN_EXE_magistr"))
+            .env("CLAUDE_PROJECT_DIR", &project.root),
+        "",
+    );
+    assert!(out.status.success(), "{}", stderr(&out));
+    assert!(!stderr(&out).contains("stage everything"));
+    assert_eq!(status(), before);
+    assert_eq!(
+        std::fs::read_to_string(changed).unwrap(),
+        "other session's work"
+    );
+    assert!(!project.root.join("ROADMAP.md").exists());
+    assert!(!project.root.join("ROADMAP.json").exists());
+}
+
 fn stderr(out: &Output) -> String {
     String::from_utf8_lossy(&out.stderr).into_owned()
 }

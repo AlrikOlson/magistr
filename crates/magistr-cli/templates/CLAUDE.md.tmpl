@@ -12,19 +12,19 @@
 
 ## Workflow — Plan, Execute, Verify
 
-Every change follows this strict loop. No exceptions. The roadmap, the plan and the gates live in think-and-ship (the `roadmap_*` / `ship_*` / `think_*` / `signal_*` tools on the `magistr` MCP server); `ROADMAP.md` is a generated view.
+Every change follows this strict loop. No exceptions. The roadmap, the plan and the gates live in think-and-ship (the `roadmap_*` / `ship_*` / `think_*` / `signal_*` tools on the `magistr` MCP server). Roadmap exports follow project policy; never generate `ROADMAP.md` or `ROADMAP.json` when `roadmap_exports` is false.
 
 1. **PLAN** — Read `roadmap_status` and `ship_status`; resume authorized in-progress work before selecting pending work with `roadmap_next`. Follow the selected chunk and next's recovery contract: keep its matching unfinished objective, plan, completed tasks, actions, and checks. Use `ship_set_objective` + `ship_plan` only for missing records, never to reset active work. Re-read the code and record material findings with `think_record_step`.
 2. **EXECUTE** — Implement with TDD (red-green-refactor). Follow `.claude/rules/conventions.md`. Record findings and changed conclusions as evidence arrives, using the reasoning guidance in `.claude/skills/craft/references/runtime.md`.
 3. **VERIFY** — All four steps are mandatory, in order:
-   - Run quality gates: `{{check_cmd}} && {{test_cmd}} && {{lint_cmd}}` — recorded through `ship_check`
+   - Choose `verification: "focused"` for bounded changes and record the relevant checks through named `magistr_gate` or server-executed `ship_check`. Use `"full"` and `magistr_gate(gate: "all")` only for an explicit full-suite request or a stated cross-cutting risk.
    - **Update the roadmap** — `roadmap_complete_chunk` for what you implemented, `roadmap_add_chunk` for anything new
    - **Commit** — one atomic commit per chunk
    - **Close** — synthesize the recorded findings with `think_record_step`, link the evidence used, then `ship_finalize`
 
 **These rules are NON-NEGOTIABLE:**
 - You MUST update the roadmap after every piece of work — no work is invisible
-- You MUST commit at the end — uncommitted work is unfinished work
+- Commit the requested work after verification; preserve pre-existing and unrelated edits. A dirty checkout alone is not unfinished work.
 - You MUST pass quality gates before committing — no broken commits
 - You MUST plan before executing — reading first, coding second
 

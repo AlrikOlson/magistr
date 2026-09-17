@@ -126,6 +126,8 @@ pub struct LoopDriver {
     /// judge grants names the task its evidence sits on. `None` when the
     /// trace had no task to record on (the gates then went unrecorded).
     verification_task: Option<String>,
+    /// Passing recorded checks revalidated against current source this iteration.
+    recorded_verification: Vec<String>,
     /// Why this iteration's gate set could not be resolved, when it could
     /// not: the iteration then failed, whatever ran. One-shot, read by the
     /// boundary that settles the set.
@@ -299,6 +301,7 @@ impl LoopDriver {
             completed: Vec::new(),
             target: None,
             verification_task: None,
+            recorded_verification: Vec::new(),
             gates_unresolved: None,
             transcript: String::new(),
             iterations: 0,
@@ -686,6 +689,9 @@ impl LoopDriver {
         let started = Instant::now();
         let mut ticks = ticker();
         self.completed.clear();
+        self.verification_task = None;
+        self.recorded_verification.clear();
+        self.gates_unresolved = None;
         self.metrics.push(IterationMetrics::default());
         self.tokens_seen = None;
         let delegated = if self.delegating() {
@@ -899,6 +905,12 @@ impl LoopDriver {
             gates: gates
                 .iter()
                 .map(|gate| (gate.name.clone(), gate.passed()))
+                .chain(
+                    self.recorded_verification
+                        .iter()
+                        .cloned()
+                        .map(|name| (name, true)),
+                )
                 .collect(),
         });
         let asked = tokio::time::sleep(LEDGER_ASK_GRACE);
@@ -1366,6 +1378,7 @@ impl LoopDriver {
             title: chunk.title.clone(),
             acceptance: chunk.acceptance.clone(),
             gates: evidence.clone(),
+            recorded_checks: self.recorded_verification.clone(),
             transcript_tail: std::mem::take(&mut self.transcript),
             iteration,
         };
@@ -1667,6 +1680,39 @@ impl LoopDriver {
         let engines = self.iter_loop.native().cloned();
         if let Some(engines) = &engines {
             engines.reload_ship();
+        }
+        // Focused work owns its chosen checks. A finalized objective has
+        // already closed its recording task. In both cases validate the
+        // existing receipts through the same authority as completion;
+        // never expand to the whole suite or run checks without a task.
+        if let Some(engines) = &engines
+            && let Some(objective) = engines.ship_objective()
+            && (objective.verification
+                == magistr_workflow::ship::domain::objective::VerificationMode::Focused
+                || objective.status
+                    == magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed)
+        {
+            let scope = self.target.as_ref().map(|id| format!("chunk:{id}"));
+            if scope.as_deref() != Some(objective.scope.as_str()) {
+                self.gates_unresolved = Some(
+                    "The recorded checks belong to different work. Restore this item's verification task before continuing.".to_owned(),
+                );
+                return Some(Vec::new());
+            }
+            match engines.ship_verify_completion(&objective.scope, None) {
+                Ok(evidence) if !evidence.accepted.is_empty() => {
+                    self.verification_task = Some(evidence.task_id);
+                    self.recorded_verification = evidence.accepted.into_iter()
+                        .map(|receipt| receipt.gate).collect();
+                }
+                Ok(_) => self.gates_unresolved = Some(
+                    "No passing checks are recorded for this work. Run and record the relevant checks before continuing.".to_owned(),
+                ),
+                Err(why) => self.gates_unresolved = Some(format!(
+                    "The recorded checks no longer verify this work. Review and rerun the affected checks: {why}"
+                )),
+            }
+            return Some(Vec::new());
         }
         // Named once for the set, before any gate runs: every record of
         // this set lands on this task, and the completion names it.
@@ -1974,6 +2020,12 @@ impl LoopDriver {
                     "quality gates not resolved: {why}"
                 )));
             }
+            return Some(LoopEnd::Failed(why));
+        } else if !self.recorded_verification.is_empty() {
+            self.note(format!(
+                "Recorded checks still verify this work: {}.",
+                self.recorded_verification.join(", ")
+            ));
         } else if gates.is_empty() {
             self.note("no quality gates configured");
         } else if failed.is_empty() {

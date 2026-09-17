@@ -43,7 +43,7 @@ pub(crate) struct CheckSummary {
 }
 
 /// Everything the guard evaluates. Built by `cmd_guard` from the engines,
-/// `git status` and the hook JSON; built by hand in tests.
+/// the hook JSON; built by hand in tests.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct GuardInput {
     /// `ship_status().objective.status`, lowercase (`defined` / `active` /
@@ -53,10 +53,8 @@ pub(crate) struct GuardInput {
     pub(crate) tasks_total: usize,
     /// Every recorded check on the objective.
     pub(crate) checks: Vec<CheckSummary>,
-    /// Some roadmap chunk is still `in_progress`.
+    /// The chunk named by this objective's scope is still `in_progress`.
     pub(crate) chunk_in_progress: bool,
-    /// `git status --porcelain` printed anything.
-    pub(crate) git_dirty: bool,
     /// Claude Code already continued once because of a Stop hook.
     pub(crate) stop_hook_active: bool,
     /// `tool_input.command` of a PreToolUse(Bash) hook.
@@ -139,38 +137,24 @@ fn evaluate_write(input: &GuardInput) -> GuardVerdict {
     ))
 }
 
-/// Stop: only once the objective is shipped does finishing become a claim
-/// that the iteration is complete — then the tree must be committed and the
-/// roadmap chunk closed. Mid-work (objective in flight) the hook is silent.
+/// Stop checks only the objective's own unfinished roadmap chunk. A dirty
+/// checkout cannot identify this run's work: it may contain pre-existing or
+/// concurrent changes, so it must never trigger staging or export instructions.
 fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
     if input.stop_hook_active {
         return GuardVerdict::Allow(Some(
             "stop hook already active for this turn; not blocking twice".to_owned(),
         ));
     }
-    if input.objective_status.as_deref() != Some("completed") {
-        return GuardVerdict::Allow(None);
-    }
-    let mut reasons = Vec::new();
-    if input.git_dirty {
-        reasons.push(
-            "the objective is shipped but the working tree has uncommitted changes — \
-             stage everything (including a regenerated ROADMAP.md) and make the \
-             chunk's conventional commit",
+    if input.objective_status.as_deref() == Some("completed") && input.chunk_in_progress {
+        return GuardVerdict::Block(
+            "This work is finished, but its roadmap item is still open. Complete that item \
+             with roadmap_complete_chunk using its recorded verification task, or record \
+             the work that remains. Preserve unrelated changes."
+                .to_owned(),
         );
     }
-    if input.chunk_in_progress {
-        reasons.push(
-            "the objective is shipped but a roadmap chunk is still in_progress — \
-             roadmap_complete_chunk(id, ship_ref: \"task:<verify task>\"), or \
-             roadmap_add_chunk what is left and roadmap_update_chunk the parent",
-        );
-    }
-    if reasons.is_empty() {
-        GuardVerdict::Allow(None)
-    } else {
-        GuardVerdict::Block(reasons.join("; "))
-    }
+    GuardVerdict::Allow(None)
 }
 
 /// Commit: a `git commit` while a required gate failed, or before any
@@ -197,7 +181,7 @@ fn evaluate_commit(input: &GuardInput) -> GuardVerdict {
     if latest.iter().any(|c| c.required && !c.passed) {
         return GuardVerdict::Block(
             "a required quality check is recorded as FAILED — fix it and re-run the \
-             gates (magistr_gate(gate: \"all\") or ship_check(command: …)) before \
+             affected checks (a named magistr_gate or ship_check(command: …)) before \
              git commit"
                 .to_owned(),
         );
@@ -206,7 +190,7 @@ fn evaluate_commit(input: &GuardInput) -> GuardVerdict {
     if !verified_pass && input.tasks_total > 0 {
         return GuardVerdict::Block(
             "no verified quality check is recorded for this objective — run \
-             magistr_gate(gate: \"all\") or ship_check(command: …) (a real exit \
+             a named magistr_gate or ship_check(command: …) (a real exit \
              code, not a self-reported pass) before git commit"
                 .to_owned(),
         );

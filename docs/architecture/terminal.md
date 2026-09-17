@@ -82,6 +82,15 @@ when work stops before the first agent starts, so the conversation shows the
 reason. The graphics header shows startup, work, checks, review, pause, and stop
 status independently of an older completed objective.
 
+For focused objectives and finalized work, the outer loop revalidates existing
+receipts against current source and acceptance through the native completion
+use case. It retains their task and check names for checkpoints and judging;
+it neither starts the full suite nor requires a closed task to be active.
+Missing, stale, failed, or foreign evidence stops the iteration with a reason.
+The stop hook checks only the objective's own open roadmap item. Worktree dirtiness
+cannot identify ownership and never authorizes staging unrelated files or exporting
+a roadmap.
+
 Gate resolution and gate execution are separate. The resolver reads project
 configuration, deduplicates equivalent command/directory pairs, and assigns
 their working directories. The runner executes those resolved commands and
