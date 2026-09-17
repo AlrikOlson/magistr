@@ -69,11 +69,63 @@ project/preset/provider/plugin/workspace portion and the
 [administrative change plan](#administrative-change-plan) the reviewable
 setup, repair and removal plan and its
 [application](#application-and-receipts) with revalidation and per-change
-receipts. Effective configuration/policy digests in verification
-applicability remain separate roadmap work. This configuration
-provenance is not a source digest, workflow revision, owner generation or
-receipt. Protected workspace edits and human-owned command admission remain
-enforced by their existing owners.
+receipts, and the [configuration evidence](#configuration-evidence) below
+binds the effective external policy to verification applicability. This
+configuration provenance is not a source digest, workflow revision, owner
+generation or receipt. Protected workspace edits and human-owned command
+admission remain enforced by their existing owners.
+
+## Configuration evidence
+
+A check's receipt certifies its inputs only while every identity it was
+taken under still applies. The external configuration is one of them: the
+workspace's organization policy and user layer (the paths
+`ResolveOptions::external_layer_paths` resolves from the captured
+[workspace inputs](#project-inputs) — `WORKBENCH_ORG_POLICY`,
+`WORKBENCH_USER_CONFIG` or the platform defaults) govern command admission
+and policy without touching a byte inside the tree. The workspace's own
+`workbench.toml` and `.magistr/project.json` are source inputs of the
+snapshot's selection policy, not external layers.
+
+[ConfigDigest](../../crates/magistr-workspace/src/config/config_digest.rs)
+observes those layers lock-free: per layer, whether a file stood at its
+resolved path and the SHA-256 of its bytes (absent and empty are different
+observations; a layer that exists but cannot be read refuses the
+observation), combined length-framed into one digest. Neither a path nor a
+byte of content is recorded — two hosts resolving the same policy share the
+digest, and nothing a layer says or where it lives enters a receipt.
+`WorkspaceEvidence` (built by `writer_config` / `writer_config_from_env`
+from the captured `ProjectInputs`) takes the digest beside every
+`SourceSnapshot`, so the `SourceObservation` a receipt records carries the
+identities below side by side; `SnapshotWitness::validate` re-reads the
+source first and then the same layers, answering `Reconfigured` with the
+layer names when a layer moved while the bytes did not.
+
+| Identity | Owner and meaning | Moves when | Judged at completion |
+| --- | --- | --- | --- |
+| Source revision (`SourceObservation::revision`) | The workspace snapshot's name for an observation: scheme, canonical root, owner generation, selection-policy digest and manifest digest. | Any of its parts moves, including a new owner of the same bytes. | Recorded and displayed, not compared: its parts are judged one by one. |
+| Source digest (`source_digest`) | The selected bytes under the policy (the manifest digest). | A selected file is added, removed or modified — `.magistr/project.json` and `workbench.toml` included. | Yes — "the source changed since the gate ran". |
+| Selection policy (`policy_digest`) | What the snapshot selects: version, ceiling, explicit inputs. | The policy is changed. | Yes — "the selection policy changed". |
+| Configuration digest (`config_digest`) | The applicable external layers by content. | An organization policy or user layer appears, disappears or changes. | Yes — "the applicable external configuration changed". |
+| Acceptance revision (`CheckReceipt::acceptance_revision`) | The objective's description, acceptance criteria, constraints and scope. | An in-flight `ship_set_objective`. | Yes — "the objective's acceptance changed". |
+| Owner generation (`workspace_generation`) | Which authority incarnation was durable ([workspace owner](workspace-owner.md)). | Every admission of a workspace owner; never a write. | No — a new owner of the same bytes is not a change of source. |
+| Workflow store stamp (`StoreStamp`) | Where a family's store file stands on disk (inode, mtime, length), a cache-freshness hint. | Any writer lands a store file. | No — it orders nothing and names no content. |
+| Applied mutation revision (`MutationReceipt::revision`) | What one journaled workspace mutation did to the files it touched. | Only for an applied mutation; indeterminate otherwise. | No — it names a mutation's effect, not the tree's state. |
+
+`SourceObservation::drift_to` judges a later observation in that order —
+workspace, scheme, selection policy, source, configuration — and names the
+first identity that differs as a typed `ObservationDrift`; a receipt
+recorded before a digest was bound is `Unbound` and refused by name. The
+completion refusal prints the drift verbatim beside the gate, the
+cross-process settlement path (no witness in the settling process) maps it
+to `Unchanged`, `Diverged` (source digests) or `Reconfigured` (layers
+unknown), and the latest attempt of each gate still governs: re-running the
+gate under the current configuration completes.
+
+Limits: the digest covers the workspace's two external layers; Magistr's
+own per-user `config.toml`, presets, models and plugin settings do not
+change what a gate certifies and are not bound. The effective layer is
+digested by bytes, so a comment-only edit moves the evidence.
 
 ## Project inputs
 

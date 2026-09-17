@@ -16,9 +16,8 @@
 # 8. Every production writer admission carries the verification evidence
 #    capability: a file that admits a ProjectAuthority builds its config
 #    through magistr_core::evidence::writer_config, except the composition
-#    of that capability itself, the MCP service (which attaches it in its
-#    constructor) and the cockpit client (which refuses a config without
-#    it before taking the lease) (arch-14-verification-receipts). This
+#    of that capability itself, and the MCP service and the cockpit client
+#    (which each refuse a config without it before taking the lease) (arch-14-verification-receipts). This
 #    rule is supplementary: the ship family is the roadmap's completion
 #    authority by construction and refuses every completion without the
 #    capability (audit-260912-05); the rule keeps a production writer
@@ -157,7 +156,7 @@ while IFS= read -r f; do
     [[ -z "$hits" ]] && continue
     case "$f" in
         crates/magistr-cli/src/mcp_tools/service.rs)
-            grep -qE 'with_evidence\(' "$f" || fail "$f admits the MCP service without attaching the evidence capability"
+            grep -qE 'evidence\(\)\.is_none\(\)' "$f" || fail "$f admits the MCP service without refusing a config that lacks the evidence capability"
             ;;
         crates/magistr-cockpit/src/engine/client.rs)
             grep -qE 'evidence\(\)\.is_none\(\)' "$f" || fail "$f admits a cockpit host without refusing a config that lacks the evidence capability"

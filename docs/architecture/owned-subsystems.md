@@ -268,8 +268,10 @@ for a pending intent after an interruption, a failed compensation or
 outcome persistence, and for legacy history that predates native intents.
 Verification consumes these workspace capabilities instead of a second
 scanner or fingerprint in workflow: `arch-14-verification-receipts`
-composes `WorkspaceEvidence` (the snapshot under the default policy plus
-the gate resolver) as the workflow's one `EvidencePort`, every
+composes `WorkspaceEvidence` (the snapshot under the default policy, the
+external configuration layers' `ConfigDigest` since
+`audit-260912-17-config-evidence`, plus the gate resolver) as the
+workflow's one `EvidencePort`, every
 server-executed check — `magistr_gate`, the loop's gates, native
 `ship_check` — carries a durable `CheckReceipt` bound to the observed
 revision, and completion validates run/task-instance/attempt identity,
@@ -309,6 +311,7 @@ recovered versus outstanding — informed the workflow-owned design.
 | `arch-14f3-client-audit-consistency` | The [client inventory](clients.md): every supported surface's workflow and workspace capability, admission path and test evidence; `native-write-path` rules 9–11 pinning where a `WorkspaceService` is opened, a writer admitted and an owner attached; the owner-command vocabulary left as is on the evidence that the attached cockpit is its only producer; the [consistency model](clients.md#workflow-consistency-model) stating read-through ship verbs against cached roadmap/signal/ship queries, backed by `tests/workflow_consistency.rs` |
 | `audit-260912-15-admin-plan` | The [administrative change plan](configuration.md#administrative-change-plan): one `ChangePlan` of `PlannedChange`s (expected hash or absence, ownership judged from policy and manifest, apply/skip/refuse intent with reasons) computed by setup, selective apply, presets/import, template plugins, startup repair and owned Codex removal and executed by the same writers; `CanonicalSource` rendering a Magistr source checkout's live workflow templates and refusing missing or unreadable canonical input; reset left separate; application-time revalidation and receipts deferred to `audit-260912-16-admin-apply` |
 | `audit-260912-16-admin-apply` | [Application and receipts](configuration.md#application-and-receipts): `scaffold::AdminService` as the one executor of setup/generation, selective apply, startup repair and owned Codex removal, revalidating each target's expected state at its write (`create_new` creates, temp-file-plus-rename overwrites, re-read removals) and answering an `ApplyReceipt` of per-change outcomes (applied / skipped / refused / failed with cause) plus the manifest outcome; partial receipts surfaced as errors naming what was applied; `native-write-path` rule 13 pinning administrative writes to the service; reset still separate |
+| `audit-260912-17-config-evidence` | [Configuration evidence](configuration.md#configuration-evidence): `magistr_workspace::config::ConfigDigest` over the external layers (org-policy, user; content only, absent distinct from empty, unreadable refused) taken by `WorkspaceEvidence` from the captured project inputs; `SourceObservation` carrying `source_digest` and `config_digest` beside the revision, selection policy and owner generation; typed `ObservationDrift` naming the first identity that moved (workspace, scheme, policy, source, configuration, unbound) and `SourceFreshness::Reconfigured`; completion and cross-process settlement judging digests, never the owner generation; the MCP service refusing a config without evidence; the loop resolving contracts through the admitted port |
 
 ## Standalone surface decisions
 

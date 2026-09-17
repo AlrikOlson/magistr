@@ -46,3 +46,4 @@ pub use source_export::SourceExport;
 pub use source_manifest::SourceManifest;
 pub use source_snapshot::SourceSnapshot;
 pub use workspace_identity::WorkspaceIdentity;
+pub(crate) use workspace_identity::frame;

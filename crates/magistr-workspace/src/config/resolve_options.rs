@@ -53,6 +53,19 @@ impl ResolveOptions {
         ]
     }
 
+    /// The layers that resolve outside the workspace tree, in precedence
+    /// order: the organization policy and the user layer. The workspace's
+    /// own `workbench.toml` is a source input of a snapshot, never an
+    /// external layer.
+    #[must_use]
+    pub fn external_layer_paths(&self) -> [(super::ConfigLayer, PathBuf); 2] {
+        use super::ConfigLayer;
+        [
+            (ConfigLayer::OrgPolicy, self.org_policy_path()),
+            (ConfigLayer::User, self.user_config_path()),
+        ]
+    }
+
     fn value(&self, key: &str) -> Option<&str> {
         self.env
             .get(key)

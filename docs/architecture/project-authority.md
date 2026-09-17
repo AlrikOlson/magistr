@@ -101,8 +101,10 @@ of description, acceptance criteria, constraints and scope — an in-flight
 `ship_set_objective` keeps the run id but moves the revision) and, when the
 writer carries the evidence capability, a `SourceObservation`: which
 workspace and owner generation, under which scheme and selection policy,
-the content-addressed revision of the selected bytes and what that
-observation may claim. Settlement rewrites the same receipt once with how
+the content-addressed revision of the selected bytes, the digest of those
+bytes alone, the digest of the applicable external configuration layers
+([configuration evidence](configuration.md#configuration-evidence)) and
+what that observation may claim. Settlement rewrites the same receipt once with how
 the command ended (`CheckExecution`: exited with a code, timed out,
 cancelled, launch failed, or self-reported), the timing, whether the source
 still matched (`SourceFreshness`) and how the workflow settled it.
@@ -113,12 +115,15 @@ settles, consumed once to validate — and `required_gates()` answers the
 `GateContract`s the project requires now. Magistr composes exactly one
 implementation, `magistr_core::evidence::WorkspaceEvidence`, from the
 workspace's lock-free `SourceSnapshot` under its default selection policy
-(which hashes `.magistr/project.json` as a config input) and the same gate
-resolver `magistr_gate all` runs. `writer_config` attaches it to the
+(which hashes `.magistr/project.json` as a config input), the workspace's
+`ConfigDigest` over the external layers the captured project inputs name,
+and the same gate resolver `magistr_gate all` runs (shared as
+`WorkspaceEvidence::gate_contracts` with a loop that runs without a
+writer). `writer_config` attaches it to the
 `NativeConfig` every production writer is admitted on — the MCP service, the
 loop host and the cockpit host — and the `native-write-path` gate (rule 8)
-refuses a production admission without it; the cockpit refuses a writer
-config that lacks it before taking the lease. Every observation and every
+refuses a production admission without it; the MCP service and the cockpit
+refuse a writer config that lacks it before taking the lease. Every observation and every
 command runs outside the engine lock, the ledger lock and any workspace
 mutation lock: admission holds the engine lock only to name the target,
 observes, then publishes; settlement validates the witness first and takes
@@ -151,8 +156,12 @@ receipt landed on, and the completion is stored with that reference so it
 always names its task. For every gate contract the project requires, and for
 every required verified receipt recorded on that instance, the latest receipt
 must have settled `Applied`, passed, been run by a server, run the configured
-command, seen the source unchanged during its run, and certify the source
-revision and the acceptance revision current now. Anything else is
+command, seen the source and the external configuration unchanged during
+its run, and certify the workspace, selection policy, source bytes,
+external configuration and acceptance revision current now — each judged
+on its own and named in the refusal; a new owner generation of the same
+bytes is not a change
+([configuration evidence](configuration.md#configuration-evidence)). Anything else is
 `outstanding` with its reason, and the refusal lists every outstanding gate
 and what re-running it would satisfy; earlier failures a later pass
 superseded are reported as `recovered`. A self-reported pass neither
@@ -165,8 +174,9 @@ outstanding ones.
 Limits: an optimistic observation certifies agreement of two reads, never
 isolation (`SourceExport` is the immutable path and is not consumed by
 checks yet); a `Changed` freshness names paths only when the admitting
-process settles the check, otherwise the revisions are compared
-(`Diverged`); receipts are never pruned. Engines opened without the
+process settles the check, otherwise the source digests are compared
+(`Diverged`) and a configuration drift is `Reconfigured` with no layer
+named; receipts are never pruned. Engines opened without the
 capability (tests that never complete a chunk) record source-less checks
 and are refused every completion with `NoEvidenceCapability`; the
 `native-write-path` gate's rule 8 is supplementary — it keeps a production

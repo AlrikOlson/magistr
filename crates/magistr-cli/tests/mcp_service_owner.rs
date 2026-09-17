@@ -12,7 +12,7 @@ fn config(root: &Path, data: &Path, id: &str) -> NativeConfig {
         serde_json::json!({"id":id}).to_string(),
     )
     .expect("identity");
-    NativeConfig::from_lookup(root, |_| None).with_data_dir(data)
+    magistr_core::evidence::writer_config(root, |_| None).with_data_dir(data)
 }
 
 async fn refused(root: &Path, config: &NativeConfig) -> io::Error {
@@ -84,7 +84,8 @@ async fn symlinked_project_and_data_paths_cannot_evade_owner_admission() {
     let data_alias = tmp.path().join("data-alias");
     std::os::unix::fs::symlink(&root, &alias).expect("project alias");
     std::os::unix::fs::symlink(&data, &data_alias).expect("data alias");
-    let aliased = NativeConfig::from_lookup(&alias, |_| None).with_data_dir(&data_alias);
+    let aliased =
+        magistr_core::evidence::writer_config(&alias, |_| None).with_data_dir(&data_alias);
     assert_eq!(
         refused(&alias, &aliased).await.kind(),
         io::ErrorKind::WouldBlock

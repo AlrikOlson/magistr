@@ -135,8 +135,8 @@ pub use magistr_workflow::roadmap::domain::{
 };
 pub use magistr_workflow::ship::application::{
     CheckAdmission, CheckExecution, CheckSettlement, CompletionEvidence, CompletionRefusal,
-    EvidencePort, GateContract, ShipReport, SourceFreshness, SourceObservation, SourceWitness,
-    TaskAdmission,
+    EvidencePort, GateContract, ObservationDrift, ShipReport, SourceFreshness, SourceObservation,
+    SourceWitness, TaskAdmission,
 };
 pub use magistr_workflow::ship::broadcast::BroadcastFrame as ShipFrame;
 pub use magistr_workflow::ship::domain::action::{Action, ActionType};

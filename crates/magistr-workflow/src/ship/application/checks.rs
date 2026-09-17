@@ -4,8 +4,8 @@ use crate::ship::domain::check::Check;
 use crate::ship::domain::check_receipt::CheckReceipt;
 
 use super::{
-    CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, ShipError,
-    ShipUseCases, SourceFreshness, TaskAdmission,
+    CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, ObservationDrift,
+    ShipError, ShipUseCases, SourceFreshness, TaskAdmission,
 };
 
 impl ShipUseCases {
@@ -92,18 +92,23 @@ impl ShipUseCases {
                     .validate()
                     .unwrap_or_else(|reason| SourceFreshness::Unobserved { reason }),
             ),
+            // Another process admitted the check: only the digests can be
+            // compared, each identity on its own — a new owner generation
+            // of the same bytes is not a change.
             (None, Some(port), Some(before)) => Some(match port.observe() {
-                Ok(now) => {
-                    let after = now.observation().revision;
-                    if after == before.revision {
-                        SourceFreshness::Unchanged
-                    } else {
-                        SourceFreshness::Diverged {
-                            before: before.revision.clone(),
-                            after,
-                        }
+                Ok(now) => match before.drift_to(&now.observation()) {
+                    None => SourceFreshness::Unchanged,
+                    Some(ObservationDrift::Configuration { .. }) => {
+                        SourceFreshness::Reconfigured { layers: Vec::new() }
                     }
-                }
+                    Some(ObservationDrift::Source { before, after }) => {
+                        SourceFreshness::Diverged { before, after }
+                    }
+                    Some(_) => SourceFreshness::Diverged {
+                        before: before.revision.clone(),
+                        after: now.observation().revision,
+                    },
+                },
                 Err(reason) => SourceFreshness::Unobserved { reason },
             }),
             _ => None,

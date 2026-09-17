@@ -799,6 +799,8 @@ impl magistr_engine::native::SourceWitness for FixedSource {
             scheme: "fake/1".into(),
             policy_digest: "p".into(),
             revision: "r1".into(),
+            source_digest: "r1".into(),
+            config_digest: "c".into(),
             consistency: "optimistic".into(),
             captured_at_ms: 0,
         }

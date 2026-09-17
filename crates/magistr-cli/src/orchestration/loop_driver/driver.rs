@@ -42,7 +42,6 @@ use crate::workflow::iteration::{
 };
 use crate::workflow::runtime_handle::RuntimeHandle;
 use magistr_core::evidence::WorkspaceEvidence;
-use magistr_engine::native::EvidencePort;
 
 /// How long a session gets to end its agent once its turn is over.
 const SESSION_GRACE: Duration = Duration::from_secs(5);
@@ -1726,10 +1725,17 @@ impl LoopDriver {
             .map(|target| target.task_id.clone());
         let mut said_why_not = false;
         // The same capability, on the same root, read the same way the
-        // completion reads it: the writer's evidence port is this type on
-        // this directory, and a loop without engines runs the identical
-        // set unrecorded.
-        let contracts = match WorkspaceEvidence::new(&self.wf.project_dir).required_gates() {
+        // completion reads it: the admitted writer's own evidence port; a
+        // loop without engines asks the one resolver behind that port and
+        // runs the identical set unrecorded.
+        let resolved = match engines
+            .as_ref()
+            .and_then(|engines| engines.authority().config().evidence())
+        {
+            Some(port) => port.required_gates(),
+            None => WorkspaceEvidence::gate_contracts(&self.wf.project_dir),
+        };
+        let contracts = match resolved {
             Ok(contracts) => contracts,
             Err(why) => {
                 self.gates_unresolved = Some(why);
