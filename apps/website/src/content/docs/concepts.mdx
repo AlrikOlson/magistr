@@ -20,7 +20,7 @@ Use **Commands** or `Ctrl+P` to start work, run checks, open saved sessions and 
 
 Click a tool call to inspect its input, output, status and duration. Select an edit to read its changes and use its Open or Undo action. Expand a command to follow its output.
 
-Write a message across multiple lines, add files and send when ready. Stop ends the current turn while keeping your draft. `Tab` and `Shift+Tab` move focus; `Ctrl+Tab` changes the records shown beside the conversation.
+Write a message across multiple lines, add files and send when ready. Stop ends the current turn while keeping your draft. `Tab` and `Shift+Tab` move focus; `Ctrl+Tab` switches between the conversation, recorded work and Roadmap.
 
 On small windows, details open over the workspace and close with `Esc`. Plain terminals and screen readers retain text controls and keyboard navigation.
 
@@ -30,15 +30,15 @@ The roadmap is the plan of work items. Each item has a title, a status, a priori
 
 The next ready item is the most urgent pending item whose dependencies are all done. The Roadmap screen gives the plan its own space. Filter and sort work items, then select one to read its acceptance criteria, dependencies and available actions. Follow its relationships to see what must finish first and what it makes possible.
 
-With an empty draft, **Request a change** starts a message with the selected item’s name; edit your request and **Send**, or use **Stop** to end current work while keeping your draft.
+With an empty draft, **Request a change** starts a message with the selected item’s name. Edit it and **Send**. Your request and the agent’s reply stay under **Requests** beside the plan; **Item details** returns to the selected work. If a work item is running, the request waits until it finishes. **Cancel** cancels that roadmap request. Updating the plan does not start another work item.
 
 The roadmap summary beside the conversation keeps the current work in view. Opening the full Roadmap screen and returning preserves your message draft and place in the conversation.
 
-An agent proposes changes to the roadmap — a new item, a different priority, a rewritten acceptance criterion — and the person directing the work decides what is applied.
+The activity message distinguishes **Updating roadmap** from work on an item. It shows when the agent is waiting for a response, thinking, reading, running a command, or needs your answer. If a message cannot be sent, Magistr explains the problem and keeps your draft. You can send another message after a work loop finishes.
 
 ## Sessions
 
-A session is one agent run against one work item. `magistr next` starts a session for the next ready item; `magistr next-loop` runs one item per fresh session, so context does not accumulate across items. The terminal interface shows the session's phases, its plan as a checklist, the agent's output, and any answer it needs from you.
+A session holds your conversation with an agent. It can cover a work item, changes to the roadmap, or an open-ended request. `magistr next` resumes an interrupted item or starts the next ready one; `magistr next-loop` runs one item per fresh session, so context does not accumulate across items. Roadmap requests have their own conversation, separate from implementing an item. The terminal interface shows what the agent is doing, its output, and any answer it needs from you.
 
 ## Recorded work
 

@@ -128,6 +128,8 @@ for (const word of ["Roadmap", "Sessions", "Recorded work", "Verification", "Pro
 assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "concepts page separates pin from checkpoint");
 assert(conceptsHtml.includes("separate screen with the full plan") && conceptsHtml.includes("roadmap summary"), "concepts distinguishes the full Roadmap from the conversation summary");
 assert(conceptsHtml.includes("preserves your message draft and place in the conversation"), "concepts explains returning to the same draft and conversation position");
+assert(conceptsHtml.includes("Requests") && conceptsHtml.includes("Updating roadmap") && conceptsHtml.includes("Cancel") && conceptsHtml.includes("after a work loop finishes"), "roadmap requests, activity, cancellation and post-loop messaging are explained");
+assert(roadmapSection.includes("follow the reply beside the plan") && roadmapSection.includes("queued"), "the public Roadmap description includes requests and delivery feedback");
 for (const slug of ["installation", "concepts"]) {
   assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
 }

@@ -52,7 +52,7 @@ magistr init . --agent codex --yes
 
 For Claude Code, run `magistr init . --yes`, then launch `claude` in the project.
 
-The setup installs the workflow commands the agent uses: `/next` (Codex: `$next`) carries one ready work item through the workflow and stops; `/roadmap-refresh` reshapes the roadmap without implementing anything; `/validate` runs the configured checks.
+The setup installs the workflow commands the agent uses: `/next` (Codex: `$next`) resumes an interrupted work item or starts the next ready one, then stops after that item; `/roadmap-refresh` reshapes the roadmap without implementing anything; `/validate` runs the configured checks.
 
 ## Run one work item
 
@@ -60,6 +60,6 @@ The setup installs the workflow commands the agent uses: `/next` (Codex: `$next`
 magistr next
 ```
 
-Runs the next ready work item in a session and records what happened. `magistr next-loop` continues through fresh agent sessions, one work item per session, up to `--max-iterations` (default 10).
+Resumes an interrupted work item or starts the next ready one, and records what happened. `magistr next-loop` continues through fresh agent sessions, one work item per session, up to `--max-iterations` (default 10).
 
 Continue with [concepts](/docs/concepts).
