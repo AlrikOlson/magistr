@@ -17,6 +17,7 @@ pub async fn cmd_init_interview(
     force: bool,
     yes: bool,
     agents: &[String],
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = dir
         .canonicalize()
@@ -69,9 +70,13 @@ pub async fn cmd_init_interview(
             .unwrap_or_default(),
         None => detect::detect_stack(&dir).suggest()?,
     };
-    let preset =
-        config::preset::load_preset_full(stack.language, stack.framework, stack.package_manager)
-            .unwrap_or_else(|_| config::preset::fallback_preset());
+    let preset = config::preset::load_preset_layered(
+        stack.language,
+        stack.framework,
+        stack.package_manager,
+        &inputs.preset_layers(),
+    )
+    .unwrap_or_else(|_| config::preset::fallback_preset());
 
     let result = if yes {
         // The defaults, widened by what the project already supports —
@@ -105,6 +110,7 @@ pub async fn cmd_init_interview(
         }
         None => scaffold::pipeline::ScaffoldPipeline::with_selections(stack.clone(), selections),
     }
+    .with_inputs(inputs)
     .with_agents(agents);
 
     eprintln!("{}", fmt::info("Scaffolding agent configuration..."));

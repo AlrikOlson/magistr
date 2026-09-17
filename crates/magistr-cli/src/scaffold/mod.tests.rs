@@ -510,8 +510,11 @@ fn apply_template_plugins_returns_empty_without_plugins() {
     let tmp = tempfile::TempDir::new().unwrap();
     let vars = test_vars().into_iter().collect::<HashMap<_, _>>();
 
-    // Without any installed plugins, should return empty
-    let result = apply_template_plugins(tmp.path(), &vars);
+    // Without any installed plugins (an empty captured plugins directory),
+    // nothing is applied
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None)
+        .with_config_dir(tmp.path().join("config"));
+    let result = apply_template_plugins(tmp.path(), &vars, &inputs);
     assert!(result.is_empty());
 }
 

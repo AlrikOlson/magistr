@@ -10,6 +10,7 @@ pub async fn cmd_init_smart(
     dir: &std::path::Path,
     force: bool,
     agents: &[String],
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = dir
         .canonicalize()
@@ -43,8 +44,9 @@ pub async fn cmd_init_smart(
 
     // Scaffold using the detected stack (stripping confidence metadata)
     let stack = smart.to_stack();
-    let pipeline =
-        scaffold::pipeline::ScaffoldPipeline::headless(stack.clone()).with_agents(agents);
+    let pipeline = scaffold::pipeline::ScaffoldPipeline::headless(stack.clone())
+        .with_inputs(inputs)
+        .with_agents(agents);
 
     eprintln!("{}", fmt::info("Scaffolding agent configuration..."));
     let written = pipeline.generate(&dir).suggest()?;

@@ -9,39 +9,38 @@ use std::path::Path;
 
 use tracing::{debug, instrument};
 
+use crate::config::inputs::ProjectInputs;
 use crate::error::Result;
 use crate::plugin;
 use crate::types::PluginDetection;
 
-/// Detect the full project stack, including plugin detections.
+/// Detect the full project stack, including plugin detections from the
+/// registry the captured inputs name.
 ///
 /// Wraps the core `detect_stack` from magistr-core and enriches the result
 /// with detections from installed plugins.
 #[instrument(skip_all, fields(dir = %dir.display()))]
-pub fn detect_stack_full(dir: &Path) -> Result<crate::types::Stack> {
-    let plugins = run_plugin_detections(dir);
+pub fn detect_stack_full(dir: &Path, inputs: &ProjectInputs) -> Result<crate::types::Stack> {
+    let plugins = run_plugin_detections(dir, inputs);
     magistr_core::detection::detect::detect_stack_with_plugins(dir, plugins)
 }
 
 /// Run all installed detection plugins against a project directory.
 ///
-/// Loads the plugin registry, iterates detection plugins, evaluates their rules
-/// against the project directory, and returns any matching detections.
-/// Failures (missing registry, bad plugin config) are silently ignored —
-/// plugin detection is best-effort and should never block built-in detection.
+/// Opens the captured plugin registry, iterates detection plugins, evaluates
+/// their rules against the project directory, and returns any matching
+/// detections. Failures (missing registry, bad plugin config) are silently
+/// ignored — plugin detection is best-effort and should never block built-in
+/// detection.
 #[instrument(skip_all, fields(dir = %dir.display()))]
-fn run_plugin_detections(dir: &Path) -> Vec<PluginDetection> {
-    let base_dir = match plugin::plugins_dir() {
-        Some(d) => d,
+fn run_plugin_detections(dir: &Path, inputs: &ProjectInputs) -> Vec<PluginDetection> {
+    let registry = match plugin::PluginRegistry::open(inputs) {
+        Some(Ok(r)) => r,
+        Some(Err(_)) => return Vec::new(),
         None => {
             debug!("no plugins directory found");
             return Vec::new();
         }
-    };
-
-    let registry = match plugin::PluginRegistry::load(&base_dir) {
-        Ok(r) => r,
-        Err(_) => return Vec::new(),
     };
 
     let mut detections = Vec::new();

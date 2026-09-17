@@ -13,14 +13,14 @@ pub async fn cmd_roadmap(
     action: Option<cli::RoadmapAction>,
     renderer: &dyn OutputRenderer,
     _env: &crate::env::MagistrEnv,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let default_dir = std::path::PathBuf::from(".");
     match action {
         None => {
             // Open the roadmap in the terminal cockpit.
             if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-                let root = std::env::current_dir()?;
-                crate::commands::cockpit_roadmap::cmd_cockpit_roadmap(&root).await
+                crate::commands::cockpit_roadmap::cmd_cockpit_roadmap(inputs.project_root()).await
             } else {
                 cmd_roadmap_show(&default_dir, renderer)
             }
@@ -31,8 +31,8 @@ pub async fn cmd_roadmap(
         Some(cli::RoadmapAction::Export { dir }) => cmd_roadmap_export(&dir),
         Some(cli::RoadmapAction::Migrate { dir }) => cmd_roadmap_migrate(&dir),
         Some(cli::RoadmapAction::Generate { goal, dir, backend }) => {
-            let backend = crate::commands::resolve_backend(backend)?;
-            cmd_roadmap_generate(&goal, &dir, backend).await
+            let backend = crate::commands::resolve_backend(backend, inputs)?;
+            cmd_roadmap_generate(&goal, &dir, backend, inputs).await
         }
     }
 }
@@ -347,8 +347,10 @@ async fn cmd_roadmap_generate(
     goal: &str,
     dir: &std::path::Path,
     backend: agent::Backend,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = dir.canonicalize()?;
+    let inputs = inputs.for_project(&dir);
 
     eprintln!("{}", fmt::info(&format!("Generating roadmap for: {goal}")));
     eprintln!(
@@ -357,14 +359,15 @@ async fn cmd_roadmap_generate(
 
     let prompt = build_roadmap_generation_prompt(goal);
 
-    let mut config = agent::AgentConfig::new(&prompt, &dir);
+    let mut config = agent::AgentConfig::new(&prompt, &dir).with_inputs(&inputs);
     config = config.backend(backend);
 
     config = config.with_project_context(&dir);
 
     // The generator's session writes source the way every host's does:
     // through the admitted workspace, or not at all.
-    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let workspace =
+        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;

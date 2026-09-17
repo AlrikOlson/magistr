@@ -80,8 +80,10 @@ async fn probe_runtime(runtime: &AgentRuntime) -> Vec<AcpConfigOption> {
 ///
 /// For Claude Code, model aliases (`default`, `sonnet`, `haiku`) are enriched
 /// with full display names and subscription-aware descriptions via `claude auth status`.
-pub async fn probe_all_providers() -> Vec<ProviderModelSet> {
-    let runtimes = AgentRuntime::detect_all();
+pub async fn probe_all_providers(
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> Vec<ProviderModelSet> {
+    let runtimes = AgentRuntime::detect_all_for(inputs);
     if runtimes.is_empty() {
         return vec![];
     }

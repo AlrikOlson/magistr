@@ -38,25 +38,23 @@ impl HeadlessOutcome {
 /// Respects `MAGISTR_BUDGET` env var for cost limits — aborts the session
 /// if cumulative cost exceeds the budget.
 pub async fn cmd_run_headless(
-    prompt: &str,
-    resume: Option<&str>,
-    continue_conversation: bool,
-    model: Option<&str>,
+    request: super::RunRequest<'_>,
     backend: agent::Backend,
     format: HeadlessFormat,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
-    let cwd = std::env::current_dir()?;
+    let cwd = inputs.project_root().to_path_buf();
 
-    let config = agent::AgentConfig::new(prompt, &cwd)
+    let config = request
+        .apply(agent::AgentConfig::new(request.prompt, &cwd).with_inputs(inputs))
         .backend(backend)
         .permission_profile(profile)
-        .with_run_args(model, resume, continue_conversation)
         .with_project_context(&cwd);
 
     // Admitted, the session's source writes run through the pipeline;
     // refused, they are refused (stderr carries the reason as metadata).
-    let workspace = super::admit_workspace(&cwd, |line| eprintln!("{line}")).await;
+    let workspace = super::admit_workspace(inputs, |line| eprintln!("{line}")).await;
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;

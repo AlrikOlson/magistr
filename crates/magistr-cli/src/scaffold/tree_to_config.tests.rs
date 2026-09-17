@@ -53,7 +53,7 @@ fn make_tree(projects: Vec<DetectedProject>, edges: Vec<ProjectEdge>) -> Project
 #[test]
 fn single_project_produces_one_archetype() {
     let tree = make_tree(vec![rust_project(".", "my-cli")], vec![]);
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     assert_eq!(result.archetypes.len(), 1);
     assert_eq!(result.archetypes[0].id, "my-cli");
@@ -73,7 +73,7 @@ fn polyglot_produces_multiple_archetypes() {
         ],
         vec![],
     );
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     assert_eq!(result.archetypes.len(), 2);
     assert_eq!(result.archetypes[0].id, "api");
@@ -96,7 +96,7 @@ fn edges_produce_relationships() {
             kind: EdgeKind::NpmWorkspaceRef,
         }],
     );
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     assert_eq!(result.relationships.len(), 1);
     assert_eq!(result.relationships[0].from, "web");
@@ -115,7 +115,7 @@ fn topology_is_preserved() {
     tree.topology = Topology::FlatMonorepo;
     tree.workspace = Workspace::Cargo;
 
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
     assert_eq!(result.topology, Topology::FlatMonorepo);
 }
 
@@ -124,7 +124,7 @@ fn unnamed_project_derives_id_from_path() {
     let mut project = rust_project("packages/shared-lib", "");
     project.metadata.name = None;
     let tree = make_tree(vec![project], vec![]);
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     assert_eq!(result.archetypes[0].id, "shared-lib");
     assert_eq!(result.archetypes[0].name, "shared-lib");
@@ -135,7 +135,7 @@ fn root_project_with_no_name_uses_default() {
     let mut project = rust_project(".", "");
     project.metadata.name = None;
     let tree = make_tree(vec![project], vec![]);
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     assert_eq!(result.archetypes[0].id, "default");
 }
@@ -143,7 +143,7 @@ fn root_project_with_no_name_uses_default() {
 #[test]
 fn preset_populates_quality_gate() {
     let tree = make_tree(vec![rust_project(".", "my-app")], vec![]);
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     let qg = &result.archetypes[0].quality_gate;
     assert!(
@@ -166,7 +166,7 @@ fn preset_populates_quality_gate() {
 #[test]
 fn typescript_preset_populates_format() {
     let tree = make_tree(vec![ts_project(".", "web-app", Framework::Next)], vec![]);
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     let fmt = &result.archetypes[0].format;
     assert!(
@@ -184,7 +184,7 @@ fn duplicate_ids_get_suffixed() {
         ],
         vec![],
     );
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     let ids: Vec<&str> = result.archetypes.iter().map(|a| a.id.as_str()).collect();
     assert_ne!(ids[0], ids[1], "ids must be unique: {:?}", ids);
@@ -213,7 +213,7 @@ fn dual_stack_root_gets_language_suffixed_id_and_real_commands() {
     );
     tree.root = tmp.path().to_path_buf();
 
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
 
     assert_eq!(result.archetypes.len(), 2);
     assert_eq!(result.archetypes[0].id, "myapp");
@@ -241,7 +241,7 @@ fn a_repo_without_bun_or_biome_keeps_the_preset_commands() {
         }],
         vec![],
     );
-    let result = tree_to_archetypes(&tree);
+    let result = tree_to_archetypes(&tree, None);
     assert_eq!(result.archetypes[0].quality_gate.test, "npm test");
     assert!(result.archetypes[0].format.command.contains("prettier"));
 }

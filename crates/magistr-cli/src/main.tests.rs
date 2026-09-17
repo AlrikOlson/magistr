@@ -1243,7 +1243,8 @@ fn command_dispatch_routes_to_correct_module() {
     assert!(commands::misc::completions_install_path(clap_complete::Shell::PowerShell).is_none());
 
     // Verify resolve_backend works for ACP
-    let backend = commands::resolve_backend(cli::BackendFlag::Acp).unwrap();
+    let inputs = magistr::config::inputs::ProjectInputs::from_lookup("/proj", |_| None);
+    let backend = commands::resolve_backend(cli::BackendFlag::Acp, &inputs).unwrap();
     assert!(matches!(backend, agent::Backend::Acp));
 }
 

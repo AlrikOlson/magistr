@@ -26,7 +26,7 @@ fn the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_pri
         4,
         "the store, the owner endpoint, the workspace admission's report and the agent failure are printed on a normal stdout"
     );
-    let workspace = position("admit_workspace(&root,");
+    let workspace = position("admit_workspace(&inputs,");
     assert!(
         SOURCE.contains(".with_source_route(workspace.source_route())"),
         "the session's source route is the admission's, admitted or refused"

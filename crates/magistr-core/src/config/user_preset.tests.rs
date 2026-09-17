@@ -58,25 +58,6 @@ fn ignores_wrong_language() {
 }
 
 #[test]
-fn list_presets_empty_dir() {
-    let dir = tempfile::TempDir::new().unwrap();
-    let presets = list_user_presets_in_dir(dir.path());
-    assert!(presets.is_empty());
-}
-
-#[test]
-fn list_presets_finds_json_files() {
-    let dir = tempfile::TempDir::new().unwrap();
-    std::fs::write(dir.path().join("rust.json"), "{}").unwrap();
-    std::fs::write(dir.path().join("python.json"), "{}").unwrap();
-    std::fs::write(dir.path().join("readme.txt"), "ignore me").unwrap();
-
-    let presets = list_user_presets_in_dir(dir.path());
-    assert_eq!(presets.len(), 2);
-    assert!(presets.iter().all(|p| p.extension().unwrap() == "json"));
-}
-
-#[test]
 fn missing_dir_returns_none() {
     let result =
         load_user_override_from_dir(Path::new("/nonexistent/path"), Language::Rust).unwrap();

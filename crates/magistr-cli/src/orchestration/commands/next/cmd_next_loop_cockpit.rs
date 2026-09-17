@@ -19,8 +19,10 @@ pub async fn cmd_next_loop_cockpit(
     max_iterations: u32,
     backend: Backend,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let inputs = inputs.for_project(&dir);
     // The reasoning server prints its load banner to stderr: admit the
     // host and open the engines before the terminal is taken over. `None`
     // on a yaml roadmap, which reads its spec file as before.
@@ -32,5 +34,5 @@ pub async fn cmd_next_loop_cockpit(
     let iter_loop =
         IterationLoop::start_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;
     iter_loop.persist().suggest()?;
-    super::run_cockpit_loop(&dir, wf, iter_loop, backend, true, profile).await
+    super::run_cockpit_loop(&dir, wf, iter_loop, backend, true, profile, &inputs).await
 }

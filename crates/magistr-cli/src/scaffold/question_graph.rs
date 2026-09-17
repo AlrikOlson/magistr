@@ -135,7 +135,7 @@ impl InterviewAnswers {
             database: self.effective_slug(QuestionId::Database),
             ci: self.effective_slug(QuestionId::CiCd),
             deployment: self.effective_slug(QuestionId::Deployment),
-            project_root: None,
+            ..LayerOptions::default()
         }
     }
 

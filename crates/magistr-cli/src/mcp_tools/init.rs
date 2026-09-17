@@ -6,8 +6,12 @@ use magistr_mcp::{SdkMcpTool, ToolResult};
 use serde_json::json;
 use tracing::debug;
 
+use crate::config::inputs::ProjectInputs;
+
 /// Build the `magistr_init` MCP tool for programmatic project initialization.
+/// The project inputs are captured once, when the tool is composed.
 pub(super) fn build_init_tool(project_root: PathBuf) -> SdkMcpTool {
+    let inputs = std::sync::Arc::new(ProjectInputs::from_env(&project_root));
     SdkMcpTool::new(
         "magistr_init",
         "Initialize or re-initialize a project for magistr. \
@@ -34,6 +38,7 @@ pub(super) fn build_init_tool(project_root: PathBuf) -> SdkMcpTool {
         }),
         move |input| {
             let root = project_root.clone();
+            let inputs = std::sync::Arc::clone(&inputs);
             Box::pin(async move {
                 let mode = input.get("mode").and_then(|v| v.as_str()).unwrap_or("init");
                 let force = input
@@ -45,8 +50,8 @@ pub(super) fn build_init_tool(project_root: PathBuf) -> SdkMcpTool {
 
                 match mode {
                     "check" => run_check(&root),
-                    "dry_run" => run_dry_run(&root),
-                    "init" => run_init(&root, force).await,
+                    "dry_run" => run_dry_run(&root, &inputs),
+                    "init" => run_init(&root, force, &inputs).await,
                     _ => Ok(ToolResult::error(format!(
                         "Unknown mode '{mode}'. Valid: init, check, dry_run"
                     ))),
@@ -107,11 +112,14 @@ fn run_check(root: &std::path::Path) -> Result<ToolResult, magistr_mcp::ToolErro
 }
 
 /// Run a dry-run preview and return structured results.
-fn run_dry_run(root: &std::path::Path) -> Result<ToolResult, magistr_mcp::ToolError> {
+fn run_dry_run(
+    root: &std::path::Path,
+    inputs: &ProjectInputs,
+) -> Result<ToolResult, magistr_mcp::ToolError> {
     let stack = crate::detect::detect_stack(root)
         .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Detection failed: {e}")))?;
 
-    let pipeline = crate::scaffold::pipeline::ScaffoldPipeline::headless(stack);
+    let pipeline = crate::scaffold::pipeline::ScaffoldPipeline::headless(stack).with_inputs(inputs);
     let preview = pipeline
         .preview(root)
         .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Preview failed: {e}")))?;
@@ -145,6 +153,7 @@ fn run_dry_run(root: &std::path::Path) -> Result<ToolResult, magistr_mcp::ToolEr
 async fn run_init(
     root: &std::path::Path,
     force: bool,
+    inputs: &ProjectInputs,
 ) -> Result<ToolResult, magistr_mcp::ToolError> {
     use crate::commands;
 
@@ -166,7 +175,8 @@ async fn run_init(
         .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Detection failed: {e}")))?;
 
     let (written, is_polyglot, archetype_count) = if tree.len() > 1 {
-        let pipeline = crate::scaffold::pipeline::ScaffoldPipeline::polyglot(&tree);
+        let pipeline =
+            crate::scaffold::pipeline::ScaffoldPipeline::polyglot(&tree).with_inputs(inputs);
         let written = pipeline
             .generate(root)
             .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Scaffold failed: {e}")))?;
@@ -174,7 +184,8 @@ async fn run_init(
     } else {
         let stack = crate::detect::detect_stack(root)
             .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Detection failed: {e}")))?;
-        let pipeline = crate::scaffold::pipeline::ScaffoldPipeline::headless(stack);
+        let pipeline =
+            crate::scaffold::pipeline::ScaffoldPipeline::headless(stack).with_inputs(inputs);
         let written = pipeline
             .generate(root)
             .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Scaffold failed: {e}")))?;

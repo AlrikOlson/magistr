@@ -45,6 +45,7 @@ pub(crate) async fn run_cockpit_loop(
     backend: Backend,
     persist: bool,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     // Served before raw mode so its refusal is readable; dropped after the
     // runtime, before the loop's writer.
@@ -54,10 +55,12 @@ pub(crate) async fn run_cockpit_loop(
     // writes run through its pipeline (or are refused when it could not be
     // admitted); the agents' bridges attach to it.
     let workspace =
-        crate::orchestration::commands::run::admit_workspace(dir, |line| println!("{line}")).await;
+        crate::orchestration::commands::run::admit_workspace(inputs, |line| println!("{line}"))
+            .await;
     let source = workspace.source_route();
-    let auto_pause = crate::config::user_config::load()
-        .map(|cfg| cfg.general.auto_pause_or_default())
+    let auto_pause = inputs
+        .user_config()
+        .map(|cfg| cfg.value.general.auto_pause_or_default())
         .unwrap_or(true);
     let (goal, goal_note) = GoalMode::from_env();
     let native = wf.is_native();
@@ -120,7 +123,8 @@ pub(crate) async fn run_cockpit_loop(
     // The rail is governed the way the driver's sessions are: the
     // project's profile under workflow mode — the terminal draws none
     // of it, but the one seeder binds every entry point alike.
-    let model = crate::orchestration::commands::run::seed_supervision(model, dir, profile, true);
+    let model =
+        crate::orchestration::commands::run::seed_supervision(model, dir, profile, true, inputs);
     let model = runtime.run(model).await;
     if let Some(feed) = feed {
         feed.abort();

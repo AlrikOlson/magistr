@@ -3,7 +3,8 @@ use super::*;
 #[test]
 fn a_resume_ask_becomes_a_session_load_config_with_no_opening_prompt() {
     let root = std::path::Path::new("/tmp/magistr-resume");
-    let config = resume_config(root, "sess-42".to_owned(), agent::Backend::Acp);
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(root, |_| None);
+    let config = resume_config(&inputs, "sess-42".to_owned(), agent::Backend::Acp);
 
     assert_eq!(
         config.resume.as_deref(),

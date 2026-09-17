@@ -6,7 +6,6 @@
 
 extern crate alloc;
 
-pub mod configuration;
 pub mod effects;
 pub mod permissions;
 pub mod sessions;

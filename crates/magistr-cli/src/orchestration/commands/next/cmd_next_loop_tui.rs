@@ -8,6 +8,7 @@ pub async fn cmd_next_loop_tui(
     backend: agent::Backend,
     profile: crate::permissions::PermissionProfile,
     _env: &crate::env::MagistrEnv,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
-    super::cmd_next_loop_cockpit(dir, max_iterations, backend, profile).await
+    super::cmd_next_loop_cockpit(dir, max_iterations, backend, profile, inputs).await
 }

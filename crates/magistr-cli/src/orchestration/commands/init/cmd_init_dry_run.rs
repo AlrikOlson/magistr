@@ -9,6 +9,7 @@ pub fn cmd_init_dry_run(
     dir: &std::path::Path,
     renderer: &dyn OutputRenderer,
     agents: &[String],
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     use std::io::IsTerminal;
 
@@ -18,7 +19,9 @@ pub fn cmd_init_dry_run(
         .suggest()?;
 
     let stack = detect::detect_stack(&dir).suggest()?;
-    let pipeline = scaffold::pipeline::ScaffoldPipeline::headless(stack).with_agents(agents);
+    let pipeline = scaffold::pipeline::ScaffoldPipeline::headless(stack)
+        .with_inputs(inputs)
+        .with_agents(agents);
     let preview = pipeline.preview(&dir).suggest()?;
 
     if renderer.is_machine_readable() {

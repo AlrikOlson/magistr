@@ -5,11 +5,16 @@ use crate::error::{self, ResultExt};
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
-pub async fn cmd_init_interactive(dir: &std::path::Path, force: bool) -> eyre::Result<()> {
+pub async fn cmd_init_interactive(
+    dir: &std::path::Path,
+    force: bool,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
     let dir = dir
         .canonicalize()
         .map_err(|e| error::MagistrError::io(dir, e))
         .suggest()?;
+    let inputs = inputs.for_project(&dir);
 
     commands::misc::ensure_no_existing_scaffold(&dir, force)?;
 
@@ -41,11 +46,13 @@ pub async fn cmd_init_interactive(dir: &std::path::Path, force: bool) -> eyre::R
 
     let config =
         agent::AgentConfig::new("Set up this project with AI-assisted configuration.", &dir)
+            .with_inputs(&inputs)
             .system_prompt(init_prompt);
 
     // The interview's session writes source the way every host's does:
     // through the admitted workspace, or not at all.
-    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let workspace =
+        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;

@@ -34,7 +34,7 @@ entrypoint = "plugin-bin"
 #[test]
 fn discover_empty_project_returns_empty() {
     let tmp = TempDir::new().expect("tempdir");
-    let plugins = discover_plugins(tmp.path());
+    let plugins = discover_plugins(tmp.path(), None);
     assert!(plugins.is_empty());
 }
 
@@ -48,7 +48,7 @@ fn discover_local_plugins_found() {
         .join("my-detect");
     write_manifest(&plugin_dir, "my-detect", "detection");
 
-    let plugins = discover_plugins(tmp.path());
+    let plugins = discover_plugins(tmp.path(), None);
     assert_eq!(plugins.len(), 1);
     assert_eq!(plugins[0].manifest.name, "my-detect");
     assert_eq!(plugins[0].manifest.kind, PluginKind::Detection);
@@ -63,7 +63,7 @@ fn discover_multiple_local_plugins() {
     write_manifest(&base.join("plugin-a"), "plugin-a", "detection");
     write_manifest(&base.join("plugin-b"), "plugin-b", "template");
 
-    let plugins = discover_plugins(tmp.path());
+    let plugins = discover_plugins(tmp.path(), None);
     assert_eq!(plugins.len(), 2);
 
     let names: Vec<&str> = plugins.iter().map(|p| p.manifest.name.as_str()).collect();
@@ -84,7 +84,7 @@ fn discover_skips_invalid_manifests() {
     std::fs::create_dir_all(&bad_dir).expect("create dir");
     std::fs::write(bad_dir.join("magistr-plugin.toml"), "not valid toml {{{{").expect("write");
 
-    let plugins = discover_plugins(tmp.path());
+    let plugins = discover_plugins(tmp.path(), None);
     assert_eq!(plugins.len(), 1);
     assert_eq!(plugins[0].manifest.name, "good");
 }
@@ -100,7 +100,7 @@ fn discover_skips_non_directories() {
 
     write_manifest(&base.join("real"), "real", "detection");
 
-    let plugins = discover_plugins(tmp.path());
+    let plugins = discover_plugins(tmp.path(), None);
     assert_eq!(plugins.len(), 1);
 }
 
@@ -120,7 +120,7 @@ fn discover_executable_plugin() {
         .join("my-backend");
     write_executable_manifest(&plugin_dir, "my-gate", "quality-gate");
 
-    let plugins = discover_plugins(tmp.path());
+    let plugins = discover_plugins(tmp.path(), None);
     assert_eq!(plugins.len(), 1);
     assert_eq!(plugins[0].manifest.kind, PluginKind::QualityGate);
     assert!(plugins[0].manifest.kind.is_executable());

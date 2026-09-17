@@ -2,25 +2,25 @@
 //!
 //! Scans two locations for plugins:
 //! 1. Project-local: `.magistr/plugins/` relative to the project root
-//! 2. Global: `~/.config/magistr/plugins/` (or `$XDG_CONFIG_HOME/magistr/plugins/`)
+//! 2. Global: the captured plugins directory (`ProjectInputs::plugins_dir`,
+//!    normally `~/.config/magistr/plugins/`)
 //!
 //! Project-local plugins take precedence over global plugins with the same name.
 
 use std::path::{Path, PathBuf};
 
 use super::loader;
-use super::registry::plugins_dir;
 use super::types::{DiscoveredPlugin, PluginScope};
 
 /// Discover all available plugins for a project.
 ///
 /// Scans both the project-local `.magistr/plugins/` directory and the global
-/// plugins directory. When the same plugin name appears in both locations,
-/// the project-local version takes precedence.
+/// plugins directory, when the caller resolved one. When the same plugin name
+/// appears in both locations, the project-local version takes precedence.
 ///
 /// Plugins with invalid manifests are silently skipped — discovery is
 /// best-effort and should never block the host.
-pub fn discover_plugins(project_dir: &Path) -> Vec<DiscoveredPlugin> {
+pub fn discover_plugins(project_dir: &Path, global_dir: Option<&Path>) -> Vec<DiscoveredPlugin> {
     let mut plugins = Vec::new();
 
     // Scan project-local first (higher priority)
@@ -28,8 +28,8 @@ pub fn discover_plugins(project_dir: &Path) -> Vec<DiscoveredPlugin> {
     scan_directory(&local_dir, PluginScope::ProjectLocal, &mut plugins);
 
     // Scan global directory
-    if let Some(global_dir) = plugins_dir() {
-        scan_directory(&global_dir, PluginScope::Global, &mut plugins);
+    if let Some(global_dir) = global_dir {
+        scan_directory(global_dir, PluginScope::Global, &mut plugins);
     }
 
     plugins
@@ -43,12 +43,10 @@ pub fn discover_local_plugins(project_dir: &Path) -> Vec<DiscoveredPlugin> {
     plugins
 }
 
-/// Discover only global plugins.
-pub fn discover_global_plugins() -> Vec<DiscoveredPlugin> {
+/// Discover only the plugins under the captured global directory.
+pub fn discover_global_plugins(global_dir: &Path) -> Vec<DiscoveredPlugin> {
     let mut plugins = Vec::new();
-    if let Some(global_dir) = plugins_dir() {
-        scan_directory(&global_dir, PluginScope::Global, &mut plugins);
-    }
+    scan_directory(global_dir, PluginScope::Global, &mut plugins);
     plugins
 }
 

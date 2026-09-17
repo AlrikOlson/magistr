@@ -10,10 +10,12 @@ pub async fn cmd_next_loop(
     max_iterations: u32,
     backend: agent::Backend,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     use workflow::iteration::{IterationLoop, PostCheckResult, PreCheckResult};
 
     let dir = super::canonicalize_dir(dir)?;
+    let inputs = inputs.for_project(&dir);
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
@@ -36,7 +38,8 @@ pub async fn cmd_next_loop(
     let _owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
     // The workspace this host owns for the loop: every iteration's session
     // writes through it, or is refused when it could not be admitted.
-    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let workspace =
+        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let source = workspace.source_route();
 
     eprintln!(

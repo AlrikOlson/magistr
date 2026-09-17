@@ -4,18 +4,16 @@ use color_eyre::eyre;
 
 /// Launch the terminal cockpit with the selected agent and permission profile.
 pub async fn cmd_run_tui(
-    prompt: &str,
-    resume: Option<&str>,
-    continue_conversation: bool,
-    model: Option<&str>,
+    request: super::RunRequest<'_>,
     backend: agent::Backend,
     profile: PermissionProfile,
     _env: &crate::env::MagistrEnv,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
-    let cwd = std::env::current_dir()?;
-    let config = agent::AgentConfig::new(prompt, &cwd)
+    let cwd = inputs.project_root().to_path_buf();
+    let config = request
+        .apply(agent::AgentConfig::new(request.prompt, &cwd).with_inputs(inputs))
         .backend(backend)
-        .with_run_args(model, resume, continue_conversation)
         .with_project_context(&cwd);
 
     super::cmd_run_cockpit(config, profile).await

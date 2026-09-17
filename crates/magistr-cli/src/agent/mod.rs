@@ -39,6 +39,9 @@ pub mod permission_mode;
 pub mod persistence;
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use crate::config::inputs::ProjectInputs;
 
 pub use auth_method::AuthMethod;
 pub use connect_transport::connect_transport;
@@ -152,17 +155,24 @@ pub struct AgentConfig {
     /// extend via [`allowed_tools`](Self::allowed_tools) or
     /// [`allow_tool`](Self::allow_tool).
     pub allowed_tools: Vec<String>,
+    /// The project, provider and user inputs captured when this configuration
+    /// was composed. Resolution reads only these; it never consults the
+    /// process environment again.
+    inputs: Arc<ProjectInputs>,
 }
 
 impl AgentConfig {
     /// Create a new `AgentConfig` for a prompt in the given project directory.
     ///
+    /// Composition captures the project inputs once here; a host that already
+    /// captured them at startup hands its set over with [`Self::with_inputs`].
     /// Permission profiles and the host policy are the only enforced authority.
     /// The legacy provider mode remains unset unless a caller explicitly asks
     /// for it, in which case resolution refuses before provider startup.
     pub fn new(prompt: impl Into<String>, cwd: impl AsRef<Path>) -> Self {
         Self {
             prompt: prompt.into(),
+            inputs: Arc::new(ProjectInputs::from_env(cwd.as_ref())),
             cwd: cwd.as_ref().to_path_buf(),
             system_prompt: None,
             max_turns: None,
@@ -265,17 +275,37 @@ impl AgentConfig {
         self
     }
 
-    /// Resolve this session's provider, using global defaults only when no
-    /// session override was supplied.
+    /// Use the host's captured inputs instead of the set captured at
+    /// construction, so a session resolves against the same capture as the
+    /// command that launched it.
+    #[must_use]
+    pub fn with_inputs(mut self, inputs: &ProjectInputs) -> Self {
+        self.inputs = Arc::new(inputs.clone());
+        self
+    }
+
+    /// The captured inputs this session resolves against.
+    #[must_use]
+    pub fn inputs(&self) -> &Arc<ProjectInputs> {
+        &self.inputs
+    }
+
+    /// Resolve this session's provider, using the captured user defaults only
+    /// when no session override was supplied.
     ///
     /// # Errors
     ///
     /// The provider is unsupported or its runtime cannot be found.
     pub fn resolve_runtime(&self) -> crate::error::Result<AgentRuntime> {
-        match self.provider.as_deref() {
-            Some(provider) => AgentRuntime::detect_with_preference(Some(provider)),
-            None => AgentRuntime::detect(),
-        }
+        let preferred = match self.provider.as_deref() {
+            Some(provider) => Some(provider.to_owned()),
+            None => self
+                .inputs
+                .user_config()
+                .ok()
+                .and_then(|cfg| cfg.value.session.provider().map(str::to_owned)),
+        };
+        AgentRuntime::detect_for(&self.inputs, preferred.as_deref())
     }
 
     /// Set the model to use for this session.
@@ -346,7 +376,7 @@ impl AgentConfig {
 
     /// Apply user-configured defaults to this config.
     ///
-    /// Loads `~/.config/magistr/config.toml`, pins the selected provider and
+    /// Loads the captured user config, pins the selected provider and
     /// applies only that provider's model default to new sessions. Resumed
     /// sessions retain the runtime model unless the caller supplied an override.
     /// Compatibility builder for callers inspecting unresolved configuration.
@@ -356,8 +386,9 @@ impl AgentConfig {
     /// report. Explicit unsupported providers are preserved for launch refusal.
     #[must_use]
     pub fn apply_user_defaults(self) -> Self {
-        match crate::config::user_config::load() {
-            Ok(defaults) => self.apply_defaults_from(&defaults),
+        let inputs = Arc::clone(&self.inputs);
+        match inputs.user_config() {
+            Ok(defaults) => self.apply_defaults_from(&defaults.value),
             Err(_) => self,
         }
     }
@@ -370,7 +401,7 @@ impl AgentConfig {
             .provider
             .as_deref()
             .is_none_or(|provider| provider == "auto")
-            && let Ok(runtime) = AgentRuntime::detect_with_preference(None)
+            && let Ok(runtime) = AgentRuntime::detect_for(&self.inputs, None)
         {
             self.provider = Some(runtime.provider);
         }

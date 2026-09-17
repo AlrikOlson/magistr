@@ -64,12 +64,52 @@ Relative paths retain filesystem-relative semantics, so explicit integrations
 should pass absolute roots. Engine trace metadata remains its own concern.
 
 This delivers the frozen native workflow portion of the project-configuration
-refactor. Project/preset/provider/plugin/workspace resolution, administrative
-setup and removal receipts, and effective configuration/policy digests in
-verification applicability remain separate dependent roadmap work. This
-configuration provenance is not a source digest, workflow revision, owner
-generation or receipt. Protected workspace edits and human-owned command
-admission remain enforced by their existing owners.
+refactor; the [project inputs](#project-inputs) below deliver the
+project/preset/provider/plugin/workspace portion. Administrative setup and
+removal receipts, and effective configuration/policy digests in verification
+applicability, remain separate roadmap work. This configuration provenance is
+not a source digest, workflow revision, owner generation or receipt. Protected
+workspace edits and human-owned command admission remain enforced by their
+existing owners.
+
+## Project inputs
+
+[ProjectInputs](../../crates/magistr-core/src/config/inputs/project_inputs.rs)
+is the composition-time capture for everything outside the native workflow
+store: the per-user configuration directory and the files under it, the
+provider environment, the plugin environment and the workspace's configuration
+environment. `from_env` is the production boundary — `main` captures once at
+startup and threads the set to every command; a command that takes `--dir`
+re-roots the same capture with `for_project`. `AgentConfig::new` captures for
+the session it composes, and a host that already holds the process capture
+hands it over with `with_inputs`, so session resolution, runtime detection and
+backend selection never consult the environment. The `magistr_init` MCP tool
+captures when the tool is composed, and the `workbench-mcp` launcher captures
+for the endpoint it serves. `from_lookup` accepts injected inputs for tests;
+each key is asked for at most once, and blank values count as unset, as the
+[XDG specification](https://specifications.freedesktop.org/basedir/latest/)
+prescribes.
+
+| Input | Resolution |
+| --- | --- |
+| User configuration directory | `XDG_CONFIG_HOME/magistr`, else `HOME/.config/magistr`, else unlocated. `config.toml`, `presets/`, `models.toml`, `plugins/` and `org-plugins.json` derive from it. |
+| Project files | `<root>/.magistr/project.json` and `<root>/.magistr/presets`. |
+| Provider | `MAGISTR_AGENT_BACKEND` (trimmed); `ANTHROPIC_API_KEY` recorded as present or absent only. |
+| Plugin index | `MAGISTR_PLUGIN_INDEX_URL` overrides the index URL in `org-plugins.json`. |
+| Workspace | The six keys the workspace's `ResolveOptions` reads (`WORKBENCH_ORG_POLICY`, `WORKBENCH_USER_CONFIG`, `ProgramData`, `XDG_CONFIG_HOME`, `HOME`, `USERPROFILE`), `WORKBENCH_NETWORK_FS` and `WORKBENCH_SESSION_ID`; the host builds `WorkspaceOpenOptions` from them. |
+
+Loaders on the captured set return a `CapturedInput` whose `InputOrigin` says
+whether the file was loaded, is absent (defaults apply) or could not be located
+(no configuration directory); an existing file that cannot be read or parsed is
+an error, never a default. `sources()` maps each setting to an `InputSource`
+(default, named environment variable or explicit override) without values. The
+preset pipeline's `LayerOptions::user_preset_dir` is the user override layer as
+the capture resolved it: composition never reads the environment, so a
+pipeline built without inputs composes built-in layers only.
+
+Ambient reads outside these families — `MAGISTR_*` flags in `MagistrEnv`,
+budget exports, cost and session storage paths, team identity, Codex home —
+are not captured here; they are tracked as follow-up work.
 
 Tests cover lookup isolation, exact compatibility parsing, default/builder
 provenance, rejected diagnostic payloads, admitted session identity, real engine

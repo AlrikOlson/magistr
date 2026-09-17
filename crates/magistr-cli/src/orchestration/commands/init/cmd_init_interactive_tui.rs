@@ -9,6 +9,7 @@ pub async fn cmd_init_interactive_tui(
     dir: &std::path::Path,
     force: bool,
     _env: &crate::env::MagistrEnv,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = dir
         .canonicalize()
@@ -24,6 +25,7 @@ pub async fn cmd_init_interactive_tui(
     let backend = agent::Backend::default();
     let config =
         agent::AgentConfig::new("Set up this project with AI-assisted configuration.", &dir)
+            .with_inputs(&inputs.for_project(&dir))
             .system_prompt(init_prompt)
             .backend(backend);
 

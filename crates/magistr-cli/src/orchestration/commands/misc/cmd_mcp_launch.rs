@@ -10,11 +10,16 @@ use crate::mcp_target::McpTarget;
 /// `workbench-mcp` is the retained name of the native workspace bridge —
 /// the same admitted owner every other Magistr surface reaches, never an
 /// external executable, a checkout or a runtime looked up on this machine.
+/// The launcher runs before the session's own capture, so it captures the
+/// project inputs itself, once, for the endpoint it serves.
 pub async fn cmd_mcp_launch(target: McpTarget, dir: &Path) -> eyre::Result<()> {
     let root = project_root(dir)?;
     match target {
         McpTarget::Magistr => super::cmd_mcp_serve(&root).await,
-        McpTarget::Workbench => crate::workspace_mcp::run_workspace_stdio_server(&root, &[]).await,
+        McpTarget::Workbench => {
+            let inputs = crate::config::inputs::ProjectInputs::from_env(&root);
+            crate::workspace_mcp::run_workspace_stdio_server(&inputs, &[]).await
+        }
     }
 }
 

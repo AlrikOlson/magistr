@@ -759,16 +759,17 @@ pub(crate) fn unified_diff(path: &str, old: &str, new: &str) -> String {
     output
 }
 
-/// Apply template files from installed template plugins.
-pub(crate) fn apply_template_plugins(dir: &Path, vars: &HashMap<String, String>) -> Vec<String> {
-    let base_dir = match crate::plugin::plugins_dir() {
-        Some(d) => d,
-        None => return Vec::new(),
-    };
-
-    let registry = match crate::plugin::PluginRegistry::load(&base_dir) {
-        Ok(r) => r,
-        Err(_) => return Vec::new(),
+/// Apply template files from the template plugins installed in the registry
+/// the captured inputs name. Best-effort: a missing or unreadable registry
+/// applies nothing.
+pub(crate) fn apply_template_plugins(
+    dir: &Path,
+    vars: &HashMap<String, String>,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> Vec<String> {
+    let registry = match crate::plugin::PluginRegistry::open(inputs) {
+        Some(Ok(r)) => r,
+        _ => return Vec::new(),
     };
 
     let mut written = Vec::new();

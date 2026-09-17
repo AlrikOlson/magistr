@@ -31,6 +31,9 @@ pub mod workspace_files;
 ///
 /// `BackendFlag::Auto` detects the best available backend.
 /// Explicit flags validate availability and feature compilation.
-pub fn resolve_backend(flag: cli::BackendFlag) -> eyre::Result<agent::Backend> {
-    flag.resolve().map_err(|msg| eyre::eyre!(msg))
+pub fn resolve_backend(
+    flag: cli::BackendFlag,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<agent::Backend> {
+    flag.resolve(inputs).map_err(|msg| eyre::eyre!(msg))
 }

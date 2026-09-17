@@ -8,5 +8,4 @@ pub enum Capability {
     CancelTurn,
     CloseSession,
     ResolvePermission,
-    ConfigureProject,
 }
