@@ -21,39 +21,50 @@ pub mod workbench;
 pub(crate) mod workbench_drift;
 pub mod workbench_toml;
 
+mod admin_operation;
+pub(crate) mod canonical;
+mod change_plan;
 mod codex_config;
 mod codex_emitter;
 mod codex_ownership;
 mod codex_setup;
 mod codex_skill_links;
 pub(crate) mod existing_config;
+mod expected;
 mod file_action;
-mod file_preview;
 mod generate;
+mod intent;
 mod managed_content;
 pub(crate) mod manifest;
 mod mcp_config;
 mod owned_removal;
+mod ownership;
+mod planned_change;
 mod preview;
 mod preview_context;
+mod refusal;
 mod remove_scaffold;
 pub mod repair;
-mod scaffold_preview;
 mod selections;
 mod substitute;
 mod update_policy;
 mod vars;
 mod workflow_skills;
 
+pub use admin_operation::AdminOperation;
+pub use change_plan::ChangePlan;
 pub use codex_setup::CodexSetup;
 pub use default_scaffolder::DefaultScaffolder;
 pub use emitters::agents_present;
+pub use expected::Expected;
 pub use file_action::FileAction;
-pub use file_preview::FilePreview;
 pub use generate::{GenerateResult, generate, generate_with_result};
+pub use intent::Intent;
+pub use ownership::Ownership;
+pub use planned_change::PlannedChange;
 pub use preview::preview;
+pub use refusal::Refusal;
 pub use remove_scaffold::remove_scaffold;
-pub use scaffold_preview::ScaffoldPreview;
 pub use scaffolder::Scaffolder;
 pub use selections::ScaffoldSelections;
 pub use substitute::substitute;
@@ -90,12 +101,8 @@ pub(crate) struct ScaffoldFile {
     pub(crate) path: &'static str,
     /// File content (already substituted or static).
     pub(crate) content: String,
-    /// Whether the file should be executable (shell scripts). Applied
-    /// only where the filesystem has a mode bit, so off Unix nothing
-    /// reads it but the tests.
-    #[cfg_attr(not(unix), allow(dead_code))]
-    pub(crate) executable: bool,
-    /// How this file should be handled during re-init.
+    /// How this file should be handled during re-init. Whether the file is
+    /// written executable is decided by [`is_executable_path`].
     pub(crate) policy: UpdatePolicy,
 }
 
@@ -108,61 +115,52 @@ pub(crate) fn scaffold_files(vars: &HashMap<String, String>) -> Vec<ScaffoldFile
         ScaffoldFile {
             path: ".magistr/.gitignore",
             content: STATIC_MAGISTR_DIR_GITIGNORE.to_string(),
-            executable: false,
             policy: UpdatePolicy::PreserveCustomized,
         },
         // ── Templated files ────────────────────────────────────────
         ScaffoldFile {
             path: ".magistr/project.json",
             content: substitute(TMPL_PROJECT_JSON, vars),
-            executable: false,
             policy: UpdatePolicy::NeverOverwrite,
         },
         ScaffoldFile {
             path: "CLAUDE.md",
             content: substitute(TMPL_CLAUDE_MD, vars),
-            executable: false,
             policy: UpdatePolicy::NeverOverwrite,
         },
         ScaffoldFile {
             path: ".claude/settings.local.json",
             content: substitute(TMPL_SETTINGS_LOCAL, vars),
-            executable: false,
             policy: UpdatePolicy::PreserveCustomized,
         },
         ScaffoldFile {
             path: ".claude/rules/conventions.md",
             content: resolve_conventions(vars).full_document(),
-            executable: false,
             policy: UpdatePolicy::PreserveCustomized,
         },
         ScaffoldFile {
             path: ".claude/settings.json",
             content: substitute(TMPL_SETTINGS, vars),
-            executable: false,
             policy: UpdatePolicy::PreserveCustomized,
         },
         // ── Hooks (the enforcement settings.json points at) ────────
         ScaffoldFile {
             path: ".claude/hooks/magistr-guard.sh",
             content: STATIC_HOOK_GUARD.to_string(),
-            executable: true,
             policy: UpdatePolicy::Overwrite,
         },
         // ── Static files ───────────────────────────────────────────
         ScaffoldFile {
             path: ".claude/rules/workflow.md",
             content: STATIC_WORKFLOW.to_string(),
-            executable: false,
             policy: UpdatePolicy::PreserveCustomized,
         },
         ScaffoldFile {
             path: ".claude/rules/tools.md",
             content: tool_guide::build_tool_guide(),
-            executable: false,
             policy: UpdatePolicy::Overwrite,
         },
-        // Note: .mcp.json is handled separately via merge_mcp_json() for idempotency.
+        // Note: .mcp.json is a shared merge (`mcp_json_change`), not a scaffold file.
     ];
 
     files.extend(workflow_skills::WorkflowSkills::claude_files());
@@ -182,32 +180,58 @@ pub(crate) fn scaffold_files(vars: &HashMap<String, String>) -> Vec<ScaffoldFile
     files
 }
 
-/// Files vendored verbatim from another repository, keyed by their canonical
-/// in-repo path. When the scaffold *target* carries that path, the target is
-/// the skill's home repository and the canonical file's own bytes are written
-/// — no provenance marker, and no vendoring staleness. workbench-mcp's lint
-/// rule R6 demands its dogfood copy byte-equal `skills/workbench-routing/SKILL.md`,
-/// so anything appended to the copy (or a copy older than the canonical) fails
-/// a required gate in exactly the repository the skill came from. The
-/// think-and-ship skills take the same rule with the same conventional layout.
-pub(crate) const CANONICAL_SOURCES: &[(&str, &str)] = &[
-    (
-        ".claude/skills/workbench-routing/SKILL.md",
-        "skills/workbench-routing/SKILL.md",
-    ),
-    (
-        ".agents/skills/workbench-routing/SKILL.md",
-        "skills/workbench-routing/SKILL.md",
-    ),
+/// Whether a scaffold path is written executable: shell scripts and the
+/// Codex launcher. The one rule for generation, repair and selective apply.
+pub(crate) fn is_executable_path(path: &str) -> bool {
+    path.ends_with(".sh") || path == ".codex/run"
+}
+
+/// The current text at a scaffold target for a plan: `None` when nothing is
+/// there, the content of a regular file, or the refusal that keeps the plan
+/// off a directory, a symlink or an unreadable file. Unreadable is not
+/// evidence of absence.
+pub(crate) fn read_target(dir: &Path, path: &str) -> std::result::Result<Option<String>, Refusal> {
+    let full = dir.join(path);
+    match std::fs::symlink_metadata(&full) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(Refusal::Unreadable {
+            cause: error.to_string(),
+        }),
+        Ok(metadata) if !metadata.is_file() => Err(Refusal::NotRegularFile),
+        Ok(_) => std::fs::read_to_string(&full)
+            .map(Some)
+            .map_err(|error| Refusal::Unreadable {
+                cause: error.to_string(),
+            }),
+    }
+}
+
+/// Rule files for retired navigation servers, replaced by `tools.md` and the
+/// workbench-routing skill; setup removes them.
+pub(crate) const LEGACY_RULES: &[&str] = &[
+    ".claude/rules/magistr-scope.md",
+    ".cursor/rules/magistr-scope.mdc",
+    ".claude/rules/iris-scope.md",
+    ".claude/rules/iris-playbook.md",
+    ".claude/rules/ministr-scope.md",
+    ".claude/rules/ministr-playbook.md",
 ];
 
-/// The canonical override for one scaffold path: the canonical file's bytes
-/// when the target repo carries it, `None` everywhere else. Consulted by both
-/// `generate` and `repair`, so a session's self-repair cannot undo what init
-/// wrote in the skill's home repository.
-pub(crate) fn canonical_content(dir: &Path, path: &str) -> Option<String> {
-    let source = CANONICAL_SOURCES.iter().find(|(p, _)| *p == path)?.1;
-    std::fs::read_to_string(dir.join(source)).ok()
+/// The removals of retired rule files a setup plans: one per file present.
+pub(crate) fn legacy_rule_removals(dir: &Path) -> Vec<PlannedChange> {
+    LEGACY_RULES
+        .iter()
+        .filter_map(|path| match read_target(dir, path) {
+            Ok(Some(content)) => Some(PlannedChange::removal(path, content, Ownership::Internal)),
+            Ok(None) => None,
+            Err(refusal) => Some(PlannedChange::refused(
+                path,
+                refusal,
+                None,
+                Ownership::Internal,
+            )),
+        })
+        .collect()
 }
 
 /// MCP server keys that magistr manages. Used for both merge and removal.
@@ -277,87 +301,59 @@ fn is_generated_mcp_entry(dir: &Path, key: &str, entry: &serde_json::Value) -> b
         .is_some_and(|root| root == "." || Path::new(root) == dir)
 }
 
-/// Remove legacy magistr-managed server entries from `.mcp.json`, if present.
-pub(crate) fn strip_legacy_mcp_entries(dir: &Path) -> Result<()> {
-    let mcp_path = dir.join(".mcp.json");
-    let Ok(content) = std::fs::read_to_string(&mcp_path) else {
-        return Ok(());
-    };
-    let Ok(mut doc) = serde_json::from_str::<serde_json::Value>(&content) else {
-        return Ok(());
-    };
-    let removed = doc
-        .get_mut("mcpServers")
-        .and_then(|v| v.as_object_mut())
-        .map(|servers| {
-            LEGACY_MCP_SERVERS
-                .iter()
-                .filter(|key| servers.remove(**key).is_some())
-                .count()
+/// The extra MCP entries the interview selected, keyed by server name.
+fn selected_mcp_entries(vars: &HashMap<String, String>) -> HashMap<String, serde_json::Value> {
+    vars.get("selected_mcp_servers")
+        .map(|selected| {
+            interview::build_extra_mcp_entries(
+                &selected
+                    .split(',')
+                    .filter(|s| !s.is_empty())
+                    .map(String::from)
+                    .collect::<Vec<_>>(),
+            )
         })
-        .unwrap_or(0);
-    if removed == 0 {
-        return Ok(());
-    }
-    let pretty = format!(
-        "{}\n",
-        serde_json::to_string_pretty(&doc).with_context(MagistrError::Config)?
-    );
-    std::fs::write(&mcp_path, pretty.as_bytes()).map_err(|e| MagistrError::io(&mcp_path, e))
+        .unwrap_or_default()
 }
 
-/// Merge magistr's MCP server entries into an existing `.mcp.json`, or create it if absent.
-pub(crate) fn merge_mcp_json(dir: &Path, vars: &HashMap<String, String>) -> Result<()> {
-    let mcp_path = dir.join(".mcp.json");
+/// The planned `.mcp.json`: magistr's server entries merged into the
+/// existing document (user entries and working-tree launches kept, stale
+/// generated entries rewritten, retired servers removed), or a fresh
+/// document when there is none. One computation serves preview and
+/// generation, so the two cannot disagree.
+pub(crate) fn mcp_json_change(dir: &Path, vars: &HashMap<String, String>) -> Result<PlannedChange> {
     let magistr_value = mcp_config::build(vars)?;
-
     let magistr_servers = magistr_value
         .get("mcpServers")
         .and_then(|v| v.as_object())
         .cloned()
         .unwrap_or_default();
 
-    if !mcp_path.exists() {
-        let mut create_doc = magistr_value.clone();
-        if let Some(selected) = vars.get("selected_mcp_servers") {
-            let extra = interview::build_extra_mcp_entries(
-                &selected
-                    .split(',')
-                    .filter(|s| !s.is_empty())
-                    .map(String::from)
-                    .collect::<Vec<_>>(),
-            );
-            if let Some(servers) = create_doc
-                .get_mut("mcpServers")
-                .and_then(|v| v.as_object_mut())
-            {
-                for (key, value) in extra {
-                    servers.entry(key).or_insert(value);
-                }
-            }
+    let existing = read_target(dir, ".mcp.json");
+    let existing_str = match existing {
+        Ok(existing) => existing,
+        Err(refusal) => {
+            return Ok(PlannedChange::refused(
+                ".mcp.json",
+                refusal,
+                None,
+                Ownership::Shared,
+            ));
         }
-        let pretty = format!(
-            "{}\n",
-            serde_json::to_string_pretty(&create_doc).with_context(MagistrError::Config)?
-        );
-        std::fs::write(&mcp_path, pretty.as_bytes()).map_err(|e| MagistrError::io(&mcp_path, e))?;
-        return Ok(());
-    }
+    };
 
-    let existing_str =
-        std::fs::read_to_string(&mcp_path).map_err(|e| MagistrError::io(&mcp_path, e))?;
-
-    let mut doc: serde_json::Value = serde_json::from_str(&existing_str)
-        .unwrap_or_else(|_| serde_json::json!({ "mcpServers": {} }));
-
+    let mut doc = match &existing_str {
+        None => serde_json::json!({ "mcpServers": {} }),
+        Some(text) => {
+            serde_json::from_str(text).unwrap_or_else(|_| serde_json::json!({ "mcpServers": {} }))
+        }
+    };
     let obj = doc
         .as_object_mut()
         .unwrap_or_else(|| unreachable!("parsed JSON is always an object due to fallback above"));
-
     let servers = obj
         .entry("mcpServers")
         .or_insert_with(|| serde_json::json!({}));
-
     let servers_map = match servers.as_object_mut() {
         Some(m) => m,
         None => {
@@ -367,137 +363,25 @@ pub(crate) fn merge_mcp_json(dir: &Path, vars: &HashMap<String, String>) -> Resu
     };
 
     for (key, value) in &magistr_servers {
-        if let Some(existing) = servers_map.get(key)
-            && (is_working_tree_entry(dir, existing) || !is_generated_mcp_entry(dir, key, existing))
+        if let Some(current) = servers_map.get(key)
+            && (is_working_tree_entry(dir, current) || !is_generated_mcp_entry(dir, key, current))
         {
             continue;
         }
         servers_map.insert(key.clone(), value.clone());
     }
-
-    if let Some(selected) = vars.get("selected_mcp_servers") {
-        let extra = interview::build_extra_mcp_entries(
-            &selected
-                .split(',')
-                .filter(|s| !s.is_empty())
-                .map(String::from)
-                .collect::<Vec<_>>(),
-        );
-        for (key, value) in extra {
-            servers_map.entry(key).or_insert(value);
-        }
+    for (key, value) in selected_mcp_entries(vars) {
+        servers_map.entry(key).or_insert(value);
+    }
+    for key in LEGACY_MCP_SERVERS {
+        servers_map.remove(*key);
     }
 
     let merged = format!(
         "{}\n",
         serde_json::to_string_pretty(&doc).with_context(MagistrError::Config)?
     );
-    std::fs::write(&mcp_path, merged.as_bytes()).map_err(|e| MagistrError::io(&mcp_path, e))?;
-    Ok(())
-}
-
-/// Build the merged `.mcp.json` content for preview (without writing).
-pub(crate) fn preview_mcp_json(
-    dir: &Path,
-    vars: &HashMap<String, String>,
-) -> Result<(String, FileAction)> {
-    let mcp_path = dir.join(".mcp.json");
-    let magistr_value = mcp_config::build(vars)?;
-
-    let magistr_servers = magistr_value
-        .get("mcpServers")
-        .and_then(|v| v.as_object())
-        .cloned()
-        .unwrap_or_default();
-
-    if !mcp_path.exists() {
-        let mut create_doc = magistr_value.clone();
-        if let Some(selected) = vars.get("selected_mcp_servers") {
-            let extra = interview::build_extra_mcp_entries(
-                &selected
-                    .split(',')
-                    .filter(|s| !s.is_empty())
-                    .map(String::from)
-                    .collect::<Vec<_>>(),
-            );
-            if let Some(servers) = create_doc
-                .get_mut("mcpServers")
-                .and_then(|v| v.as_object_mut())
-            {
-                for (key, value) in extra {
-                    servers.entry(key).or_insert(value);
-                }
-            }
-        }
-        let pretty = format!(
-            "{}\n",
-            serde_json::to_string_pretty(&create_doc).with_context(MagistrError::Config)?
-        );
-        return Ok((pretty, FileAction::Create));
-    }
-
-    let existing_str =
-        std::fs::read_to_string(&mcp_path).map_err(|e| MagistrError::io(&mcp_path, e))?;
-
-    let mut doc: serde_json::Value = serde_json::from_str(&existing_str)
-        .unwrap_or_else(|_| serde_json::json!({ "mcpServers": {} }));
-
-    let obj = doc
-        .as_object_mut()
-        .unwrap_or_else(|| unreachable!("parsed JSON is always an object due to fallback above"));
-
-    let servers = obj
-        .entry("mcpServers")
-        .or_insert_with(|| serde_json::json!({}));
-
-    let servers_map = match servers.as_object_mut() {
-        Some(m) => m,
-        None => {
-            *servers = serde_json::json!({});
-            servers.as_object_mut().expect("just created")
-        }
-    };
-
-    for (key, value) in &magistr_servers {
-        if let Some(existing) = servers_map.get(key)
-            && (is_working_tree_entry(dir, existing) || !is_generated_mcp_entry(dir, key, existing))
-        {
-            continue;
-        }
-        servers_map.insert(key.clone(), value.clone());
-    }
-
-    if let Some(selected) = vars.get("selected_mcp_servers") {
-        let extra = interview::build_extra_mcp_entries(
-            &selected
-                .split(',')
-                .filter(|s| !s.is_empty())
-                .map(String::from)
-                .collect::<Vec<_>>(),
-        );
-        for (key, value) in extra {
-            servers_map.entry(key).or_insert(value);
-        }
-    }
-
-    let merged = format!(
-        "{}\n",
-        serde_json::to_string_pretty(&doc).with_context(MagistrError::Config)?
-    );
-
-    let existing_normalized = serde_json::from_str::<serde_json::Value>(&existing_str)
-        .ok()
-        .and_then(|v| serde_json::to_string_pretty(&v).ok())
-        .map(|pretty| format!("{pretty}\n"))
-        .unwrap_or_default();
-
-    let action = if merged == existing_normalized {
-        FileAction::Unchanged
-    } else {
-        FileAction::Overwrite
-    };
-
-    Ok((merged, action))
+    Ok(PlannedChange::merged(".mcp.json", existing_str, merged))
 }
 
 /// Remove only magistr-managed MCP server entries from `.mcp.json`.
@@ -610,19 +494,21 @@ fn build_gitignore_section(language: &str) -> String {
     patterns.join("\n")
 }
 
-pub(crate) fn merge_gitignore(dir: &Path, vars: &HashMap<String, String>) -> Result<()> {
-    let gi_path = dir.join(".gitignore");
+/// The planned `.gitignore`: magistr's managed section merged into the
+/// existing file, or a fresh file when there is none.
+pub(crate) fn gitignore_change(dir: &Path, vars: &HashMap<String, String>) -> PlannedChange {
     let language = vars
         .get("language")
         .map(|s| s.as_str())
         .unwrap_or("unknown");
     let section_body = build_gitignore_section(language);
-
-    let existing = std::fs::read_to_string(&gi_path).unwrap_or_default();
-
-    let result = merge_gitignore_content(&existing, &section_body);
-
-    std::fs::write(&gi_path, result.as_bytes()).map_err(|e| MagistrError::io(&gi_path, e))
+    match read_target(dir, ".gitignore") {
+        Ok(existing) => {
+            let merged = merge_gitignore_content(existing.as_deref().unwrap_or(""), &section_body);
+            PlannedChange::merged(".gitignore", existing, merged)
+        }
+        Err(refusal) => PlannedChange::refused(".gitignore", refusal, None, Ownership::Shared),
+    }
 }
 
 pub(crate) fn merge_gitignore_content(existing: &str, section_body: &str) -> String {
@@ -678,29 +564,6 @@ pub(crate) fn merge_gitignore_content(existing: &str, section_body: &str) -> Str
 
 fn format_gitignore_section(body: &str) -> String {
     format!("{GITIGNORE_SECTION_START}\n{body}\n{GITIGNORE_SECTION_END}\n")
-}
-
-pub(crate) fn preview_gitignore(
-    dir: &Path,
-    vars: &HashMap<String, String>,
-) -> Result<(String, FileAction)> {
-    let gi_path = dir.join(".gitignore");
-    let language = vars
-        .get("language")
-        .map(|s| s.as_str())
-        .unwrap_or("unknown");
-    let section_body = build_gitignore_section(language);
-
-    let existing = std::fs::read_to_string(&gi_path).ok();
-    let merged = merge_gitignore_content(existing.as_deref().unwrap_or(""), &section_body);
-
-    let action = match existing {
-        None => FileAction::Create,
-        Some(ref old) if *old == merged => FileAction::Unchanged,
-        Some(_) => FileAction::Overwrite,
-    };
-
-    Ok((merged, action))
 }
 
 pub(crate) fn remove_magistr_gitignore_entries(dir: &Path) -> Result<()> {
@@ -759,54 +622,87 @@ pub(crate) fn unified_diff(path: &str, old: &str, new: &str) -> String {
     output
 }
 
-/// Apply template files from the template plugins installed in the registry
-/// the captured inputs name. Best-effort: a missing or unreadable registry
-/// applies nothing.
-pub(crate) fn apply_template_plugins(
+/// The changes the template plugins installed in the registry the captured
+/// inputs name would make under `.claude/`. A missing or unreadable
+/// registry, or a plugin whose template configuration cannot be loaded,
+/// plans nothing; an unreadable template source is a refusal for its
+/// destination rather than a silent skip.
+pub(crate) fn plan_template_plugins(
     dir: &Path,
     vars: &HashMap<String, String>,
     inputs: &crate::config::inputs::ProjectInputs,
-) -> Vec<String> {
+) -> Vec<PlannedChange> {
     let registry = match crate::plugin::PluginRegistry::open(inputs) {
         Some(Ok(r)) => r,
         _ => return Vec::new(),
     };
 
-    let mut written = Vec::new();
-
+    let mut changes = Vec::new();
     for installed in registry.list() {
         if installed.manifest.kind != crate::plugin::PluginKind::Template {
             continue;
         }
-
         let plugin_dir = registry.plugin_dir(&installed.manifest.name);
-        let config = match crate::plugin::load_template_config(&plugin_dir) {
-            Ok(c) => c,
-            Err(_) => continue,
+        let Ok(config) = crate::plugin::load_template_config(&plugin_dir) else {
+            continue;
         };
-
         for tmpl_file in &config.files {
             let src_path = plugin_dir.join(&tmpl_file.src);
-            let dest_path = dir.join(".claude").join(&tmpl_file.dest);
-
-            let content = match std::fs::read_to_string(&src_path) {
-                Ok(c) => substitute(&c, vars),
-                Err(_) => continue,
+            let dest = format!(".claude/{}", tmpl_file.dest);
+            let existing = match read_target(dir, &dest) {
+                Ok(existing) => existing,
+                Err(refusal) => {
+                    changes.push(PlannedChange::refused(
+                        &dest,
+                        refusal,
+                        None,
+                        Ownership::Internal,
+                    ));
+                    continue;
+                }
             };
-
-            if let Some(parent) = dest_path.parent()
-                && std::fs::create_dir_all(parent).is_err()
-            {
-                continue;
-            }
-
-            if std::fs::write(&dest_path, &content).is_ok() {
-                let rel_path = format!(".claude/{}", tmpl_file.dest);
-                written.push(rel_path);
-            }
+            let ownership = if existing.is_some() {
+                Ownership::Internal
+            } else {
+                Ownership::Unclaimed
+            };
+            changes.push(match std::fs::read_to_string(&src_path) {
+                Ok(template) => {
+                    let mut change =
+                        PlannedChange::merged(&dest, existing, substitute(&template, vars));
+                    change.ownership = ownership;
+                    change
+                }
+                Err(error) => PlannedChange::refused(
+                    &dest,
+                    Refusal::UnreadableSource {
+                        source: src_path.display().to_string(),
+                        cause: error.to_string(),
+                    },
+                    existing,
+                    ownership,
+                ),
+            });
         }
     }
+    changes
+}
 
+/// Write the template-plugin changes a plan applies. Best-effort, as
+/// before: a destination that cannot be written is left out of the answer.
+pub(crate) fn apply_template_plugins(dir: &Path, changes: &[PlannedChange]) -> Vec<String> {
+    let mut written = Vec::new();
+    for change in changes.iter().filter(|c| c.action.is_applied()) {
+        let dest_path = dir.join(&change.path);
+        if let Some(parent) = dest_path.parent()
+            && std::fs::create_dir_all(parent).is_err()
+        {
+            continue;
+        }
+        if std::fs::write(&dest_path, &change.new_content).is_ok() {
+            written.push(change.path.clone());
+        }
+    }
     written
 }
 

@@ -25,7 +25,6 @@ use magistr_workspace::{config::SessionFlags, service::WorkspaceOpenError};
 pub use doctor::run_doctor;
 pub(crate) use exit::fail;
 pub use init::run_init;
-pub(crate) use init::seed_allowlist;
 pub use journal::run_journal;
 pub use journal_view::JournalView;
 pub use key::run_key_rotate;

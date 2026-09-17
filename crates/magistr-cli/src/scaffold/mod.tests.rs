@@ -1,5 +1,33 @@
 use super::*;
 
+/// The shared merges as the writers the older tests were written against:
+/// compute the planned change and write it when it applies.
+fn write_change(dir: &Path, change: &PlannedChange) {
+    if change.action.is_applied() {
+        std::fs::write(dir.join(&change.path), &change.new_content).unwrap();
+    }
+}
+
+fn merge_mcp_json(dir: &Path, vars: &HashMap<String, String>) -> Result<()> {
+    write_change(dir, &mcp_json_change(dir, vars)?);
+    Ok(())
+}
+
+fn preview_mcp_json(dir: &Path, vars: &HashMap<String, String>) -> Result<(String, FileAction)> {
+    let change = mcp_json_change(dir, vars)?;
+    Ok((change.new_content, change.action))
+}
+
+/// Retiring legacy servers is part of the merge now.
+fn strip_legacy_mcp_entries(dir: &Path) -> Result<()> {
+    merge_mcp_json(dir, &HashMap::new())
+}
+
+fn merge_gitignore(dir: &Path, vars: &HashMap<String, String>) -> Result<()> {
+    write_change(dir, &gitignore_change(dir, vars));
+    Ok(())
+}
+
 #[test]
 fn substitutes_single_placeholder() {
     let vars = vars([("name", "magistr")]);
@@ -406,8 +434,13 @@ fn preview_existing_scaffold_shows_unchanged() {
 
     assert_eq!(result.creates(), 0);
     assert_eq!(result.overwrites(), 0);
-    // CLAUDE.md and project.json are preserved (NeverOverwrite).
-    assert_eq!(result.preserved(), 2);
+    // project.json is preserved (NeverOverwrite); CLAUDE.md is the user's
+    // too, but its section is current so it is simply unchanged.
+    assert_eq!(result.preserved(), 1);
+    let claude = result.files.iter().find(|f| f.path == "CLAUDE.md").unwrap();
+    assert_eq!(claude.action, FileAction::Unchanged);
+    assert_eq!(claude.ownership, Ownership::User);
+    assert_eq!(result.refusals(), 0);
     // Everything else is unchanged (total minus preserved minus creates)
     assert!(
         result.unchanged() > 10,
@@ -426,9 +459,28 @@ fn preview_preserves_user_edited_files() {
 
     let result = preview(dir, &test_vars(), &HashMap::new()).unwrap();
 
+    // The user's text is kept and the think-and-ship section is appended:
+    // a shared merge the plan shows as an overwrite with its diff.
     let claude = result.files.iter().find(|f| f.path == "CLAUDE.md").unwrap();
-    assert_eq!(claude.action, FileAction::Preserved);
-    assert!(claude.diff.is_none());
+    assert_eq!(claude.action, FileAction::Overwrite);
+    assert_eq!(claude.ownership, Ownership::Shared);
+    assert!(
+        claude
+            .new_content
+            .starts_with("# My custom content\n\n<!-- think-and-ship -->")
+    );
+    assert!(
+        claude
+            .diff
+            .as_deref()
+            .is_some_and(|d| d.contains("+<!-- think-and-ship -->"))
+    );
+    let project = result
+        .files
+        .iter()
+        .find(|f| f.path == ".magistr/project.json")
+        .unwrap();
+    assert_eq!(project.action, FileAction::Create);
 }
 
 #[test]
@@ -493,8 +545,8 @@ fn preview_summary_counts() {
 
     let result = preview(dir, &tv, &HashMap::new()).unwrap();
 
-    // CLAUDE.md and project.json preserved, 1 overwrite, rest unchanged.
-    assert_eq!(result.preserved(), 2);
+    // project.json preserved, 1 overwrite, rest unchanged.
+    assert_eq!(result.preserved(), 1);
     assert_eq!(result.overwrites(), 1);
     assert_eq!(result.creates(), 0);
     let total = result.creates() + result.overwrites() + result.unchanged() + result.preserved();
@@ -514,7 +566,7 @@ fn apply_template_plugins_returns_empty_without_plugins() {
     // nothing is applied
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None)
         .with_config_dir(tmp.path().join("config"));
-    let result = apply_template_plugins(tmp.path(), &vars, &inputs);
+    let result = plan_template_plugins(tmp.path(), &vars, &inputs);
     assert!(result.is_empty());
 }
 
@@ -925,7 +977,10 @@ fn settings_json_snapshot_carries_the_guard_hooks() {
         .iter()
         .find(|f| f.path == ".claude/hooks/magistr-guard.sh")
         .expect("the guard hook is scaffolded");
-    assert!(hook.executable, "hook scripts must be executable");
+    assert!(
+        is_executable_path(hook.path),
+        "hook scripts must be executable"
+    );
     assert!(hook.content.contains("guard \"$event\""));
     assert!(
         hook.content.contains("unrecognized subcommand"),

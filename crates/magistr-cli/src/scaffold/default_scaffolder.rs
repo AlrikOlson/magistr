@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::error::Result;
 
-use super::ScaffoldPreview;
+use super::ChangePlan;
 use super::scaffolder::Scaffolder;
 
 /// Generates scaffold files by writing to the filesystem.
@@ -32,7 +32,7 @@ impl Scaffolder for DefaultScaffolder {
         dir: &Path,
         template_vars: &HashMap<String, String>,
         generated_overrides: &HashMap<String, String>,
-    ) -> Result<ScaffoldPreview> {
+    ) -> Result<ChangePlan> {
         super::preview(dir, template_vars, generated_overrides)
     }
 }

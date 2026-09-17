@@ -166,10 +166,12 @@ impl ScaffoldPipeline {
         let vars = self.template_vars();
         let mut written = scaffolder.generate(dir, &vars, self.overrides())?;
 
-        // Template plugins from the captured registry (best-effort — plugin
-        // failures don't block scaffolding).
+        // Template plugins from the captured registry: the same plan the
+        // preview shows, applied best-effort (plugin failures don't block
+        // scaffolding).
         if let Some(inputs) = &self.inputs {
-            written.extend(scaffold::apply_template_plugins(dir, &vars, inputs));
+            let plugins = scaffold::plan_template_plugins(dir, &vars, inputs);
+            written.extend(scaffold::apply_template_plugins(dir, &plugins));
         }
 
         // Enrich a newly seeded config only. Once present, project.json is
@@ -197,18 +199,25 @@ impl ScaffoldPipeline {
     }
 
     /// Preview scaffold output without writing to disk, using the default scaffolder.
-    pub fn preview(&self, dir: &Path) -> Result<scaffold::ScaffoldPreview> {
+    pub fn preview(&self, dir: &Path) -> Result<scaffold::ChangePlan> {
         self.preview_with(dir, &scaffold::DefaultScaffolder)
     }
 
-    /// Preview scaffold output with a custom scaffolder implementation.
+    /// Preview scaffold output with a custom scaffolder implementation. The
+    /// plan includes the template plugins the host's captured inputs name,
+    /// exactly as [`Self::generate_with`] applies them.
     pub fn preview_with(
         &self,
         dir: &Path,
         scaffolder: &dyn scaffold::Scaffolder,
-    ) -> Result<scaffold::ScaffoldPreview> {
+    ) -> Result<scaffold::ChangePlan> {
         let vars = self.template_vars();
-        scaffolder.preview(dir, &vars, self.overrides())
+        let mut plan = scaffolder.preview(dir, &vars, self.overrides())?;
+        if let Some(inputs) = &self.inputs {
+            plan.files
+                .extend(scaffold::plan_template_plugins(dir, &vars, inputs));
+        }
+        Ok(plan)
     }
 }
 

@@ -4,36 +4,20 @@ use crate::scaffold;
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
-/// Print dry-run preview as JSON.
-fn print_dry_run_json(preview: &scaffold::ScaffoldPreview) -> eyre::Result<()> {
-    let files: Vec<serde_json::Value> = preview
-        .files
-        .iter()
-        .map(|f| {
-            let action = match f.action {
-                scaffold::FileAction::Create => "create",
-                scaffold::FileAction::Overwrite => "overwrite",
-                scaffold::FileAction::Unchanged => "unchanged",
-                scaffold::FileAction::Preserved => "preserved",
-            };
-            let mut obj = serde_json::json!({
-                "path": f.path,
-                "action": action,
-            });
-            if let Some(ref diff) = f.diff {
-                obj["diff"] = serde_json::Value::String(diff.clone());
-            }
-            obj
-        })
-        .collect();
+/// Print the administrative change plan as JSON.
+fn print_dry_run_json(plan: &scaffold::ChangePlan) -> eyre::Result<()> {
+    let files: Vec<serde_json::Value> = plan.files.iter().map(planned_change_json).collect();
 
     let envelope = serde_json::json!({
+        "operation": plan.operation.label(),
         "summary": {
-            "create": preview.creates(),
-            "overwrite": preview.overwrites(),
-            "unchanged": preview.unchanged(),
-            "preserved": preview.preserved(),
-            "total": preview.files.len(),
+            "create": plan.creates(),
+            "overwrite": plan.overwrites(),
+            "remove": plan.removes(),
+            "unchanged": plan.unchanged(),
+            "preserved": plan.preserved(),
+            "refused": plan.refusals(),
+            "total": plan.files.len(),
         },
         "files": files,
     });
@@ -42,35 +26,72 @@ fn print_dry_run_json(preview: &scaffold::ScaffoldPreview) -> eyre::Result<()> {
     Ok(())
 }
 
-/// Print dry-run preview as colored plain text.
-fn print_dry_run_plain(preview: &scaffold::ScaffoldPreview) {
+/// One planned change as the JSON object every machine-readable preview
+/// (CLI `--json` and the `magistr_init` tool) prints: path, action,
+/// intent, the ownership judgement, the expected state and any reason.
+pub(crate) fn planned_change_json(f: &scaffold::PlannedChange) -> serde_json::Value {
+    let mut obj = serde_json::json!({
+        "path": f.path,
+        "action": f.action.label(),
+        "intent": f.intent().label(),
+        "ownership": f.ownership.label(),
+        "expected": f.expected().label(),
+    });
+    if let Some(reason) = f.reason() {
+        obj["reason"] = serde_json::Value::String(reason);
+    }
+    if let Some(ref diff) = f.diff {
+        obj["diff"] = serde_json::Value::String(diff.clone());
+    }
+    obj
+}
+
+/// Print the administrative change plan as colored plain text.
+fn print_dry_run_plain(plan: &scaffold::ChangePlan) {
     eprintln!(
         "{} (dry run — no files will be written)\n",
         fmt::bold("📋 Scaffold preview")
     );
 
-    for f in &preview.files {
-        match f.action {
+    for f in &plan.files {
+        let owner = f.ownership.label();
+        match &f.action {
             scaffold::FileAction::Create => {
                 eprintln!("  {}  (create)", fmt::green(&format!("+ {}", f.path)));
             }
             scaffold::FileAction::Overwrite => {
-                eprintln!("  {}  (overwrite)", fmt::yellow(&format!("~ {}", f.path)));
+                eprintln!(
+                    "  {}  (overwrite, {owner})",
+                    fmt::yellow(&format!("~ {}", f.path))
+                );
+            }
+            scaffold::FileAction::Remove => {
+                eprintln!(
+                    "  {}  (remove, {owner})",
+                    fmt::red(&format!("- {}", f.path))
+                );
             }
             scaffold::FileAction::Unchanged => {
                 eprintln!("  {}  (unchanged)", fmt::dim(&format!("= {}", f.path)));
             }
             scaffold::FileAction::Preserved => {
                 eprintln!(
-                    "  {}  (preserved — not overwritten)",
-                    fmt::cyan(&format!("● {}", f.path))
+                    "  {}  (preserved — {})",
+                    fmt::cyan(&format!("● {}", f.path)),
+                    f.reason().unwrap_or_default()
+                );
+            }
+            scaffold::FileAction::Refused(refusal) => {
+                eprintln!(
+                    "  {}  (refused — {refusal})",
+                    fmt::red(&format!("! {}", f.path))
                 );
             }
         }
     }
 
     // Print diffs for overwritten files
-    let diffs: Vec<_> = preview.files.iter().filter(|f| f.diff.is_some()).collect();
+    let diffs: Vec<_> = plan.files.iter().filter(|f| f.diff.is_some()).collect();
 
     if !diffs.is_empty() {
         eprintln!("\n{}\n", fmt::bold("── Diffs ──"));
@@ -93,12 +114,14 @@ fn print_dry_run_plain(preview: &scaffold::ScaffoldPreview) {
     }
 
     eprintln!(
-        "{} {} create, {} overwrite, {} unchanged, {} preserved",
+        "{} {} create, {} overwrite, {} remove, {} unchanged, {} preserved, {} refused",
         fmt::bold("Summary:"),
-        preview.creates(),
-        preview.overwrites(),
-        preview.unchanged(),
-        preview.preserved(),
+        plan.creates(),
+        plan.overwrites(),
+        plan.removes(),
+        plan.unchanged(),
+        plan.preserved(),
+        plan.refusals(),
     );
     eprintln!(
         "\nRun {} to apply these changes.",

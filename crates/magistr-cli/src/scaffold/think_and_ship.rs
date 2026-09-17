@@ -9,9 +9,6 @@
 //! (`NeverOverwrite`); only the marked block is ours.
 
 use std::collections::HashMap;
-use std::path::Path;
-
-use crate::error::{MagistrError, Result};
 
 /// Opening marker of the generated section (shared with `think-and-ship init`).
 pub(crate) const CLAUDE_MD_MARKER: &str = "<!-- think-and-ship -->";
@@ -19,22 +16,14 @@ pub(crate) const CLAUDE_MD_MARKER: &str = "<!-- think-and-ship -->";
 /// Closing marker of the generated section (shared with `think-and-ship init`).
 pub(crate) const CLAUDE_MD_END_MARKER: &str = "<!-- /think-and-ship -->";
 
-/// Write or refresh the think-and-ship section of `<dir>/CLAUDE.md`.
+/// `CLAUDE.md` with its think-and-ship section written or refreshed.
 ///
-/// Splices between the markers when they exist, appends the block when they
-/// don't, and creates the file when there is none. Returns whether the file
-/// changed. A `CLAUDE.md` whose section already matches is left untouched so
-/// re-running `magistr init` is a no-op.
-pub(crate) fn upsert_claude_md_section(dir: &Path, vars: &HashMap<String, String>) -> Result<bool> {
-    let path = dir.join("CLAUDE.md");
-    let existing = std::fs::read_to_string(&path).unwrap_or_default();
-    let section = build_section(vars);
-    let next = splice(&existing, &section);
-    if next == existing {
-        return Ok(false);
-    }
-    std::fs::write(&path, next).map_err(|e| MagistrError::io(&path, e))?;
-    Ok(true)
+/// Splices between the markers when they exist and appends the block when
+/// they don't. A document whose section already matches comes back
+/// unchanged, so the setup plan lists it as unchanged and re-running
+/// `magistr init` is a no-op.
+pub(crate) fn with_claude_md_section(document: &str, vars: &HashMap<String, String>) -> String {
+    splice(document, &build_section(vars))
 }
 
 /// The full marked section for a project, including the Verification block

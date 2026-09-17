@@ -1,5 +1,11 @@
 use super::*;
 use crate::scaffold::{apply::apply_approved, generate_with_result, pipeline::ScaffoldPipeline};
+
+/// Plan and apply the Codex repair, as the startup repair does for it.
+fn repair_codex(dir: &Path) -> Result<Vec<String>> {
+    let changes = CodexSetup::repair_plan(dir)?;
+    CodexSetup::apply_repair(dir, &changes)
+}
 use std::collections::BTreeMap;
 
 fn vars() -> HashMap<String, String> {
@@ -175,7 +181,7 @@ fn malformed_instruction_markers_reject_every_codex_mutation_before_writing() {
         assert_eq!(snapshot(dir), before);
         assert!(generate_with_result(dir, &vars(), &HashMap::new()).is_err());
         assert_eq!(snapshot(dir), before);
-        assert!(CodexSetup::repair(dir).is_err());
+        assert!(repair_codex(dir).is_err());
         assert_eq!(snapshot(dir), before);
         assert!(CodexSetup::remove_target(dir).is_err());
         assert_eq!(snapshot(dir), before);
@@ -223,7 +229,7 @@ fn native_only_denials_and_disabled_standalone_server_restore_original_user_valu
         write(dir, CONFIG, &original);
         setup(dir);
         setup(dir);
-        CodexSetup::repair(dir).unwrap();
+        repair_codex(dir).unwrap();
         let content = read(dir, CONFIG);
         let config: toml::Value = toml::from_str(&content).unwrap();
         assert_eq!(
@@ -271,7 +277,7 @@ fn customized_managed_instruction_block_survives_reinit_repair_and_removal() {
     write(dir, AGENTS, &customized);
     setup(dir);
     assert_eq!(read(dir, AGENTS), customized);
-    CodexSetup::repair(dir).unwrap();
+    repair_codex(dir).unwrap();
     assert_eq!(read(dir, AGENTS), customized);
     CodexSetup::remove_target(dir).unwrap();
     assert_eq!(read(dir, AGENTS), customized);
@@ -315,7 +321,7 @@ fn upgrades_and_repairs_persist_ownership_of_new_config_skills_and_instructions(
         manifest.save(dir).unwrap();
 
         if repair {
-            let repaired = CodexSetup::repair(dir).unwrap();
+            let repaired = repair_codex(dir).unwrap();
             for path in [CONFIG, AGENTS, skill] {
                 assert!(repaired.iter().any(|value| value == path), "{path}");
             }
@@ -330,7 +336,7 @@ fn upgrades_and_repairs_persist_ownership_of_new_config_skills_and_instructions(
             Some(60)
         );
         assert!(!ScaffoldManifest::load(dir).is_customized(skill, &expected_skill));
-        assert!(CodexSetup::repair(dir).unwrap().is_empty());
+        assert!(repair_codex(dir).unwrap().is_empty());
         CodexSetup::remove_target(dir).unwrap();
         assert!(!dir.join(skill).exists());
         assert!(!read(dir, AGENTS).contains(START));
@@ -481,7 +487,7 @@ fn customizing_either_transport_field_protects_command_and_args_as_one_unit() {
             for stage in ["upgrade", "repair", "removal"] {
                 match stage {
                     "repair" => {
-                        CodexSetup::repair(dir).unwrap();
+                        repair_codex(dir).unwrap();
                     }
                     "removal" => {
                         CodexSetup::remove_target(dir).unwrap();
@@ -560,7 +566,7 @@ fn metadata_only_server_settings_gain_a_transport_and_survive_target_removal() {
             assert_eq!(args, ["mcp-launch", server, "."]);
         }
         setup(dir);
-        CodexSetup::repair(dir).unwrap();
+        repair_codex(dir).unwrap();
         CodexSetup::remove_target(dir).unwrap();
         assert_eq!(read(dir, CONFIG), original);
     }
@@ -604,7 +610,7 @@ fn an_unchanged_owned_launcher_regains_execute_bits_during_repair_or_reinit() {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
         if repair {
             assert!(
-                CodexSetup::repair(dir)
+                repair_codex(dir)
                     .unwrap()
                     .contains(&".codex/run".to_owned())
             );
@@ -616,12 +622,12 @@ fn an_unchanged_owned_launcher_regains_execute_bits_during_repair_or_reinit() {
             std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
             0o755
         );
-        assert!(CodexSetup::repair(dir).unwrap().is_empty());
+        assert!(repair_codex(dir).unwrap().is_empty());
 
         write(dir, ".codex/run", "#!/bin/sh\n# User-managed wrapper\n");
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
         if repair {
-            CodexSetup::repair(dir).unwrap();
+            repair_codex(dir).unwrap();
         } else {
             setup(dir);
         }
@@ -674,4 +680,50 @@ fn default_reinit_rejects_corrupted_codex_ownership_before_selection_recovery() 
             result.is_err()
         );
     }
+}
+
+/// The removal plan says what the owned removal does before it does it:
+/// recorded, unchanged skills and the launcher are removals, a customized
+/// skill is preserved with its reason, the shared components are restored
+/// merges, and native project state is never in the plan.
+#[test]
+fn the_removal_plan_lists_removals_preserved_customizations_and_shared_restores() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path();
+    setup(dir);
+    write(
+        dir,
+        ".agents/skills/next/SKILL.md",
+        "# the team's own next\n",
+    );
+
+    let plan = CodexSetup::removal_plan(dir).unwrap();
+    assert_eq!(plan.operation, crate::scaffold::AdminOperation::Removal);
+    let customized = plan.get(".agents/skills/next/SKILL.md").unwrap();
+    assert_eq!(customized.action, FileAction::Preserved);
+    assert_eq!(customized.ownership, crate::scaffold::Ownership::Customized);
+    let launcher = plan.get(".codex/run").unwrap();
+    assert_eq!(launcher.action, FileAction::Remove);
+    assert_eq!(launcher.ownership, crate::scaffold::Ownership::Generated);
+    assert_eq!(
+        launcher.expected(),
+        crate::scaffold::Expected::of(Some(&read(dir, ".codex/run")))
+    );
+    let validate = plan.get(".agents/skills/validate/SKILL.md").unwrap();
+    assert_eq!(validate.action, FileAction::Remove);
+    let config = plan.get(".codex/config.toml").unwrap();
+    assert_eq!(config.ownership, crate::scaffold::Ownership::Shared);
+    assert!(plan.get(".magistr/project.json").is_none());
+    assert!(plan.get(".think-and-ship/project.json").is_none());
+    assert!(plan.get("CLAUDE.md").is_none());
+
+    let removed = CodexSetup::remove_target(dir).unwrap();
+    assert!(removed.contains(&".codex/run".to_owned()));
+    assert!(!removed.contains(&".agents/skills/next/SKILL.md".to_owned()));
+    assert_eq!(
+        read(dir, ".agents/skills/next/SKILL.md"),
+        "# the team's own next\n"
+    );
+    assert!(!dir.join(".agents/skills/validate").exists());
+    assert!(dir.join(".magistr/project.json").is_file());
 }

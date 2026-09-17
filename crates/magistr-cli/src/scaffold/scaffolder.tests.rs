@@ -1,16 +1,17 @@
 use super::*;
+use crate::scaffold::{AdminOperation, Ownership};
 
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Mutex;
 
 use crate::error::Result;
-use crate::scaffold::{FileAction, FilePreview, ScaffoldPreview};
+use crate::scaffold::{ChangePlan, FileAction, PlannedChange};
 
 /// Mock scaffolder that returns preconfigured results without filesystem access.
 pub struct MockScaffolder {
     generated_files: Mutex<Vec<String>>,
-    preview_result: Mutex<Option<ScaffoldPreview>>,
+    preview_result: Mutex<Option<ChangePlan>>,
 }
 
 impl MockScaffolder {
@@ -28,7 +29,7 @@ impl MockScaffolder {
     }
 
     /// Set the preview result.
-    pub fn with_preview(mut self, preview: ScaffoldPreview) -> Self {
+    pub fn with_preview(mut self, preview: ChangePlan) -> Self {
         self.preview_result = Mutex::new(Some(preview));
         self
     }
@@ -54,13 +55,13 @@ impl Scaffolder for MockScaffolder {
         _dir: &Path,
         _template_vars: &HashMap<String, String>,
         _generated_overrides: &HashMap<String, String>,
-    ) -> Result<ScaffoldPreview> {
+    ) -> Result<ChangePlan> {
         let preview = self
             .preview_result
             .lock()
             .expect("MockScaffolder lock poisoned")
             .clone()
-            .unwrap_or_else(|| ScaffoldPreview { files: Vec::new() });
+            .unwrap_or_else(|| ChangePlan::new(AdminOperation::Setup));
         Ok(preview)
     }
 }
@@ -89,8 +90,10 @@ fn mock_scaffolder_returns_empty_preview() {
 
 #[test]
 fn mock_scaffolder_returns_custom_preview() {
-    let preview = ScaffoldPreview {
-        files: vec![FilePreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
+        files: vec![PlannedChange {
+            ownership: Ownership::Unclaimed,
             ownership_context: None,
             path: "CLAUDE.md".to_string(),
             action: FileAction::Create,

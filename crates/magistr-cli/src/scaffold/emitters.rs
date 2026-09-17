@@ -152,7 +152,6 @@ impl AgentEmitter for CursorEmitter {
                     &["**/*"],
                     STATIC_WORKFLOW,
                 ),
-                executable: false,
                 policy: UpdatePolicy::Overwrite,
             },
             ScaffoldFile {
@@ -162,7 +161,6 @@ impl AgentEmitter for CursorEmitter {
                     &globs,
                     &conventions,
                 ),
-                executable: false,
                 policy: UpdatePolicy::Overwrite,
             },
             ScaffoldFile {
@@ -172,7 +170,6 @@ impl AgentEmitter for CursorEmitter {
                     &["**/*"],
                     &tool_guide::build_tool_guide(),
                 ),
-                executable: false,
                 policy: UpdatePolicy::Overwrite,
             },
         ]
@@ -204,7 +201,6 @@ impl AgentEmitter for CopilotEmitter {
         vec![ScaffoldFile {
             path: ".github/copilot-instructions.md",
             content: build_instructions(vars),
-            executable: false,
             policy: UpdatePolicy::Overwrite,
         }]
     }
@@ -231,7 +227,6 @@ impl AgentEmitter for ClineEmitter {
         vec![ScaffoldFile {
             path: ".clinerules",
             content: build_instructions(vars),
-            executable: false,
             policy: UpdatePolicy::Overwrite,
         }]
     }
@@ -258,7 +253,6 @@ impl AgentEmitter for WindsurfEmitter {
         vec![ScaffoldFile {
             path: ".windsurfrules",
             content: build_instructions(vars),
-            executable: false,
             policy: UpdatePolicy::Overwrite,
         }]
     }
@@ -297,7 +291,6 @@ impl AgentEmitter for AiderEmitter {
         vec![ScaffoldFile {
             path: ".aider.conf.yml",
             content,
-            executable: false,
             policy: UpdatePolicy::Overwrite,
         }]
     }

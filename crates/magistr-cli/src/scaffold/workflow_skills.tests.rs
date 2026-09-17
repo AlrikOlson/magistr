@@ -63,7 +63,11 @@ fn customized_codex_skills_and_their_reference_survive_reinit() {
             .iter()
             .all(|file| matches!(file.policy, UpdatePolicy::PreserveCustomized))
     );
-    assert!(files.iter().all(|file| !file.executable));
+    assert!(
+        files
+            .iter()
+            .all(|file| !crate::scaffold::is_executable_path(file.path))
+    );
 }
 
 #[test]

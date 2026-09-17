@@ -6,6 +6,13 @@ use std::collections::{BTreeMap, HashMap};
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 
+/// Plan and apply the Codex repair, as the startup repair does for it.
+#[cfg(unix)]
+fn repair_codex(dir: &Path) -> crate::error::Result<Vec<String>> {
+    let changes = CodexSetup::repair_plan(dir)?;
+    CodexSetup::apply_repair(dir, &changes)
+}
+
 const SKILLS: &[&str] = &[
     "craft",
     "init",
@@ -376,7 +383,7 @@ fn startup_repair_leaves_legacy_link_migration_to_explicit_initialization() {
     std::fs::remove_dir(dir.join(".agents/skills/next")).unwrap();
     link(dir, "next", None);
     let before = snapshot(dir);
-    assert!(CodexSetup::repair(dir).unwrap().is_empty());
+    assert!(repair_codex(dir).unwrap().is_empty());
     assert_eq!(snapshot(dir), before);
 }
 

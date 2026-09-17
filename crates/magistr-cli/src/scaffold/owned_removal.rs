@@ -55,6 +55,47 @@ impl<'a> OwnedRemoval<'a> {
         Ok(())
     }
 
+    /// What removing `path` would do, judged like [`Self::remove`] judges it:
+    /// nothing to say for an absent path, a removal for a recorded file
+    /// whose bytes are still the scaffold's, otherwise the reason the entry
+    /// is kept.
+    pub(crate) fn plan(&self, path: &str) -> Option<super::PlannedChange> {
+        use super::{Ownership, PlannedChange, Refusal};
+        if !self.manifest.files.contains_key(path) {
+            return super::read_target(self.dir, path)
+                .ok()
+                .flatten()
+                .map(|content| PlannedChange::preserved(path, Some(content), Ownership::User));
+        }
+        let Some(full) = self.regular_file(path) else {
+            let exists = Path::new(path)
+                .components()
+                .all(|c| matches!(c, Component::Normal(_)))
+                && std::fs::symlink_metadata(self.dir.join(path)).is_ok();
+            return exists.then(|| {
+                PlannedChange::refused(path, Refusal::NotRegularFile, None, Ownership::Generated)
+            });
+        };
+        let content = match std::fs::read_to_string(&full) {
+            Ok(content) => content,
+            Err(error) => {
+                return Some(PlannedChange::refused(
+                    path,
+                    Refusal::Unreadable {
+                        cause: error.to_string(),
+                    },
+                    None,
+                    Ownership::Generated,
+                ));
+            }
+        };
+        Some(if self.manifest.is_customized(path, &content) {
+            PlannedChange::preserved(path, Some(content), Ownership::Customized)
+        } else {
+            PlannedChange::removal(path, content, Ownership::Generated)
+        })
+    }
+
     /// Only directories that lost one of our files are candidates for pruning.
     pub(crate) fn prune(self) {
         for parent in self.parents.iter().rev() {

@@ -1,8 +1,10 @@
 use super::*;
+use crate::scaffold::{Ownership, is_executable_path};
 use tempfile::TempDir;
 
-fn make_preview(path: &str, action: FileAction, content: &str) -> FilePreview {
-    FilePreview {
+fn make_preview(path: &str, action: FileAction, content: &str) -> PlannedChange {
+    PlannedChange {
+        ownership: Ownership::Unclaimed,
         ownership_context: None,
         path: path.to_string(),
         action,
@@ -25,7 +27,8 @@ fn apply_rejects_every_stale_target_before_writing_any_selected_file() {
             std::fs::write(&target, content).unwrap();
         }
         let first = make_preview("new-directory/first.md", FileAction::Create, "first");
-        let stale = FilePreview {
+        let stale = PlannedChange {
+            ownership: Ownership::Unclaimed,
             ownership_context: None,
             path: "changed.md".to_owned(),
             action: if before.is_some() {
@@ -177,7 +180,8 @@ fn apply_overwrites_existing_files() {
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("settings.json"), "old").unwrap();
 
-    let f = FilePreview {
+    let f = PlannedChange {
+        ownership: Ownership::Unclaimed,
         ownership_context: None,
         path: ".claude/settings.json".to_string(),
         action: FileAction::Overwrite,
@@ -213,7 +217,8 @@ fn apply_skips_preserved_files() {
     let tmp = TempDir::new().unwrap();
     std::fs::write(tmp.path().join("CLAUDE.md"), "user content").unwrap();
 
-    let f = FilePreview {
+    let f = PlannedChange {
+        ownership: Ownership::Unclaimed,
         ownership_context: None,
         path: "CLAUDE.md".to_string(),
         action: FileAction::Preserved,

@@ -1,5 +1,5 @@
 use super::{
-    FileAction, FilePreview, codex_config::CodexConfig, managed_content::ManagedContent,
+    FileAction, PlannedChange, codex_config::CodexConfig, managed_content::ManagedContent,
     manifest::ScaffoldManifest,
 };
 use crate::error::{MagistrError, Result};
@@ -46,7 +46,7 @@ impl CodexSetup {
         dir: &Path,
         vars: &HashMap<String, String>,
         repair: bool,
-    ) -> Result<Vec<FilePreview>> {
+    ) -> Result<Vec<PlannedChange>> {
         // Selection recovery reads this evidence too. A broken manifest must
         // never turn an existing target into an unowned default reinit.
         Self::validate_manifest(dir)?;
@@ -120,7 +120,7 @@ impl CodexSetup {
             == Some(false))
     }
 
-    pub(super) fn record(manifest: &mut ScaffoldManifest, f: &FilePreview) -> Result<()> {
+    pub(super) fn record(manifest: &mut ScaffoldManifest, f: &PlannedChange) -> Result<()> {
         if f.path == CONFIG {
             CodexConfig::record(
                 f.existing_content.as_deref().unwrap_or_default(),
@@ -150,24 +150,19 @@ impl CodexSetup {
         path == CONFIG || path == AGENTS
     }
 
-    pub(super) fn repair(dir: &Path) -> Result<Vec<String>> {
+    /// The repair a present Codex target needs: its shared components
+    /// (repair mode, so nothing is added) and its owned files that exist,
+    /// each judged against the manifest and the canonical inputs. Repair
+    /// never creates; a customized file is preserved.
+    pub(super) fn repair_plan(dir: &Path) -> Result<Vec<PlannedChange>> {
         if !Self::is_present(dir) {
             return Ok(Vec::new());
         }
         let vars = HashMap::from([("selected_agents".into(), "codex".into())]);
-        let changes = Self::plan(dir, &vars, true)?;
+        let mut changes = Self::plan(dir, &vars, true)?;
         let links = super::codex_skill_links::CodexSkillLinks::capture(dir)?;
-        let mut manifest = ScaffoldManifest::load(dir);
-        let mut repaired = Vec::new();
-        for f in changes {
-            if f.action == FileAction::Overwrite {
-                let path = dir.join(&f.path);
-                std::fs::write(&path, &f.new_content).map_err(|e| MagistrError::io(&path, e))?;
-                Self::record(&mut manifest, &f)?;
-                manifest.save(dir)?;
-                repaired.push(f.path);
-            }
-        }
+        let manifest = ScaffoldManifest::load(dir);
+        let canonical = super::canonical::CanonicalSource::capture(dir);
         for f in super::scaffold_files(&vars)
             .into_iter()
             .filter(|f| Self::owned_path(f.path) && !links.covers(f.path))
@@ -175,43 +170,112 @@ impl CodexSetup {
             let Some(current) = Self::read(dir, f.path)? else {
                 continue;
             };
-            let content = super::canonical_content(dir, f.path).unwrap_or(f.content);
-            if manifest.is_customized(f.path, &current) {
-                continue;
-            }
-            if current == content {
-                if f.executable && Self::ensure_executable(&dir.join(f.path))? {
-                    repaired.push(f.path.to_owned());
+            let ownership = if canonical.is_canonical(f.path) {
+                super::Ownership::Canonical
+            } else {
+                super::Ownership::judge(f.policy, f.path, Some(&current), &manifest)
+            };
+            let content = match canonical.resolve(f.path, f.content) {
+                Ok(content) => content,
+                Err(refusal) => {
+                    changes.push(PlannedChange::refused(
+                        f.path,
+                        refusal,
+                        Some(current),
+                        ownership,
+                    ));
+                    continue;
                 }
+            };
+            if manifest.is_customized(f.path, &current) {
+                changes.push(PlannedChange::preserved(
+                    f.path,
+                    Some(current),
+                    super::Ownership::Customized,
+                ));
                 continue;
             }
-            let path = dir.join(f.path);
-            std::fs::write(&path, &content).map_err(|e| MagistrError::io(&path, e))?;
-            if f.executable {
-                Self::ensure_executable(&path)?;
+            changes.push(PlannedChange::merged(f.path, Some(current), content).owned_by(ownership));
+        }
+        Ok(changes)
+    }
+
+    /// Write a repair plan's Codex changes, recording ownership per write,
+    /// and answer the paths repaired (an unchanged launcher that regained
+    /// its execute bits counts).
+    pub(super) fn apply_repair(dir: &Path, changes: &[PlannedChange]) -> Result<Vec<String>> {
+        let mut manifest = ScaffoldManifest::load(dir);
+        let mut repaired = Vec::new();
+        for f in changes {
+            let path = dir.join(&f.path);
+            match f.action {
+                FileAction::Overwrite => {
+                    std::fs::write(&path, &f.new_content)
+                        .map_err(|e| MagistrError::io(&path, e))?;
+                    if super::is_executable_path(&f.path) {
+                        Self::ensure_executable(&path)?;
+                    }
+                    if Self::is_shared(&f.path) {
+                        Self::record(&mut manifest, f)?;
+                    } else {
+                        manifest.record(&f.path, &f.new_content);
+                    }
+                    manifest.save(dir)?;
+                    repaired.push(f.path.clone());
+                }
+                FileAction::Unchanged
+                    if super::is_executable_path(&f.path) && Self::ensure_executable(&path)? =>
+                {
+                    repaired.push(f.path.clone());
+                }
+                _ => {}
             }
-            manifest.record(f.path, &content);
-            manifest.save(dir)?;
-            repaired.push(f.path.to_owned());
         }
         Ok(repaired)
     }
 
+    /// The owned removal of a present Codex target: its shared components
+    /// restored to the user's values and its recorded, unchanged skills and
+    /// launcher removed; customized, unrecorded and non-regular paths are
+    /// kept and say so. Native project state is never part of this plan.
+    pub fn removal_plan(dir: &Path) -> Result<super::ChangePlan> {
+        Self::validate_manifest(dir)?;
+        let manifest = ScaffoldManifest::load(dir);
+        let mut plan = super::ChangePlan::new(super::AdminOperation::Removal);
+        let Some(owned) = manifest.codex.as_ref().filter(|o| o.selected) else {
+            return Ok(plan);
+        };
+        plan.files.extend(Self::shared_removal_changes(dir, owned)?);
+        let removal = super::owned_removal::OwnedRemoval::new(dir, &manifest);
+        for path in Self::removal_paths(&manifest) {
+            plan.files.extend(removal.plan(&path));
+        }
+        Ok(plan)
+    }
+
     /// Remove only recorded unchanged Codex components and skills; retain native project state.
     pub fn remove_target(dir: &Path) -> Result<Vec<String>> {
-        Self::validate_manifest(dir)?;
+        let plan = Self::removal_plan(dir)?;
         let mut manifest = ScaffoldManifest::load(dir);
         if !manifest.codex.as_ref().is_some_and(|o| o.selected) {
             return Ok(Vec::new());
         }
-        let mut changed = Self::remove_shared(dir, &manifest)?;
+        let mut changed = Vec::new();
+        for f in plan
+            .files
+            .iter()
+            .filter(|f| f.action == FileAction::Overwrite)
+        {
+            let path = dir.join(&f.path);
+            std::fs::write(&path, &f.new_content).map_err(|e| MagistrError::io(&path, e))?;
+            changed.push(f.path.clone());
+        }
         {
             let mut removal = super::owned_removal::OwnedRemoval::new(dir, &manifest);
-            for path in &Self::removal_paths(&manifest) {
-                let existed = dir.join(path).is_file();
-                removal.remove(path)?;
-                if existed && !dir.join(path).exists() {
-                    changed.push(path.clone());
+            for f in plan.files.iter().filter(|f| f.action == FileAction::Remove) {
+                removal.remove(&f.path)?;
+                if !dir.join(&f.path).exists() {
+                    changed.push(f.path.clone());
                 }
             }
             removal.prune();
@@ -253,11 +317,13 @@ impl CodexSetup {
                 .any(|f| f.path == path)
     }
 
-    pub(super) fn remove_shared(dir: &Path, manifest: &ScaffoldManifest) -> Result<Vec<String>> {
-        let Some(owned) = &manifest.codex else {
-            return Ok(Vec::new());
-        };
-        // Prepare both before writing either: malformed TOML/markers leave all artifacts intact.
+    /// The shared components with magistr's entries removed and the user's
+    /// original values restored. Both are prepared before either is written:
+    /// malformed TOML/markers leave all artifacts intact.
+    fn shared_removal_changes(
+        dir: &Path,
+        owned: &super::codex_ownership::CodexOwnership,
+    ) -> Result<Vec<PlannedChange>> {
         let mut changes = Vec::new();
         if let Some(old) = Self::read(dir, CONFIG)? {
             let new = CodexConfig::remove(&old, owned)?;
@@ -273,8 +339,15 @@ impl CodexSetup {
             }
             changes.push(preview(AGENTS, Some(old), new));
         }
+        Ok(changes)
+    }
+
+    pub(super) fn remove_shared(dir: &Path, manifest: &ScaffoldManifest) -> Result<Vec<String>> {
+        let Some(owned) = &manifest.codex else {
+            return Ok(Vec::new());
+        };
         let mut changed = Vec::new();
-        for f in changes {
+        for f in Self::shared_removal_changes(dir, owned)? {
             if f.action == FileAction::Overwrite {
                 let path = dir.join(&f.path);
                 std::fs::write(&path, &f.new_content).map_err(|e| MagistrError::io(&path, e))?;
@@ -382,23 +455,8 @@ fn instructions(native_only: bool) -> String {
     )
 }
 
-fn preview(path: &str, old: Option<String>, new: String) -> FilePreview {
-    let action = match old.as_deref() {
-        None => FileAction::Create,
-        Some(s) if s == new => FileAction::Unchanged,
-        Some(_) => FileAction::Overwrite,
-    };
-    let diff = if action == FileAction::Overwrite {
-        old.as_ref().map(|s| super::unified_diff(path, s, &new))
-    } else {
-        None
-    };
-    FilePreview {
-        path: path.into(),
-        action,
-        existing_content: old,
-        new_content: new,
-        diff,
-        ownership_context: None,
-    }
+/// The shared Codex files are merged, never owned whole: the plan keeps the
+/// user's values and instruction text around magistr's own entries.
+fn preview(path: &str, old: Option<String>, new: String) -> PlannedChange {
+    PlannedChange::merged(path, old, new)
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::scaffold::{AdminOperation, Ownership};
 
 #[test]
 fn parse_action_single_chars() {
@@ -32,7 +33,8 @@ fn parse_action_unknown_returns_none() {
 
 #[test]
 fn format_file_header_create() {
-    let f = FilePreview {
+    let f = PlannedChange {
+        ownership: Ownership::Unclaimed,
         ownership_context: None,
         path: ".magistr/project.json".to_string(),
         action: FileAction::Create,
@@ -48,7 +50,8 @@ fn format_file_header_create() {
 
 #[test]
 fn format_file_header_overwrite() {
-    let f = FilePreview {
+    let f = PlannedChange {
+        ownership: Ownership::Unclaimed,
         ownership_context: None,
         path: ".claude/settings.json".to_string(),
         action: FileAction::Overwrite,
@@ -63,7 +66,8 @@ fn format_file_header_overwrite() {
 
 #[test]
 fn print_file_detail_shows_content() {
-    let f = FilePreview {
+    let f = PlannedChange {
+        ownership: Ownership::Unclaimed,
         ownership_context: None,
         path: "test.txt".to_string(),
         action: FileAction::Create,
@@ -85,7 +89,8 @@ fn print_file_detail_shows_content() {
 
 #[test]
 fn print_file_detail_shows_existing_and_diff() {
-    let f = FilePreview {
+    let f = PlannedChange {
+        ownership: Ownership::Unclaimed,
         ownership_context: None,
         path: "test.txt".to_string(),
         action: FileAction::Overwrite,
@@ -107,8 +112,10 @@ fn print_file_detail_shows_existing_and_diff() {
 
 #[test]
 fn interactive_approve_apply_single() {
-    let preview = ScaffoldPreview {
-        files: vec![FilePreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
+        files: vec![PlannedChange {
+            ownership: Ownership::Unclaimed,
             ownership_context: None,
             path: ".magistr/project.json".to_string(),
             action: FileAction::Create,
@@ -129,8 +136,10 @@ fn interactive_approve_apply_single() {
 
 #[test]
 fn interactive_approve_skip_single() {
-    let preview = ScaffoldPreview {
-        files: vec![FilePreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
+        files: vec![PlannedChange {
+            ownership: Ownership::Unclaimed,
             ownership_context: None,
             path: ".magistr/project.json".to_string(),
             action: FileAction::Create,
@@ -151,9 +160,11 @@ fn interactive_approve_skip_single() {
 
 #[test]
 fn interactive_approve_quit_skips_remaining() {
-    let preview = ScaffoldPreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
         files: vec![
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "file1".to_string(),
                 action: FileAction::Create,
@@ -161,7 +172,8 @@ fn interactive_approve_quit_skips_remaining() {
                 existing_content: None,
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "file2".to_string(),
                 action: FileAction::Create,
@@ -183,9 +195,11 @@ fn interactive_approve_quit_skips_remaining() {
 
 #[test]
 fn interactive_approve_apply_all() {
-    let preview = ScaffoldPreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
         files: vec![
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "file1".to_string(),
                 action: FileAction::Create,
@@ -193,7 +207,8 @@ fn interactive_approve_apply_all() {
                 existing_content: None,
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "file2".to_string(),
                 action: FileAction::Overwrite,
@@ -201,7 +216,8 @@ fn interactive_approve_apply_all() {
                 existing_content: Some("old".to_string()),
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "file3".to_string(),
                 action: FileAction::Unchanged,
@@ -224,9 +240,11 @@ fn interactive_approve_apply_all() {
 
 #[test]
 fn interactive_approve_skips_unchanged_automatically() {
-    let preview = ScaffoldPreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
         files: vec![
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "unchanged".to_string(),
                 action: FileAction::Unchanged,
@@ -234,7 +252,8 @@ fn interactive_approve_skips_unchanged_automatically() {
                 existing_content: Some("same".to_string()),
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "new".to_string(),
                 action: FileAction::Create,
@@ -256,9 +275,11 @@ fn interactive_approve_skips_unchanged_automatically() {
 
 #[test]
 fn interactive_approve_skips_preserved_automatically() {
-    let preview = ScaffoldPreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
         files: vec![
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "CLAUDE.md".to_string(),
                 action: FileAction::Preserved,
@@ -266,7 +287,8 @@ fn interactive_approve_skips_preserved_automatically() {
                 existing_content: Some("user content".to_string()),
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "new.txt".to_string(),
                 action: FileAction::Create,
@@ -288,8 +310,10 @@ fn interactive_approve_skips_preserved_automatically() {
 
 #[test]
 fn interactive_approve_view_then_apply() {
-    let preview = ScaffoldPreview {
-        files: vec![FilePreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
+        files: vec![PlannedChange {
+            ownership: Ownership::Unclaimed,
             ownership_context: None,
             path: "test.txt".to_string(),
             action: FileAction::Create,
@@ -312,9 +336,11 @@ fn interactive_approve_view_then_apply() {
 
 #[test]
 fn interactive_approve_mixed_actions() {
-    let preview = ScaffoldPreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
         files: vec![
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "apply-me".to_string(),
                 action: FileAction::Create,
@@ -322,7 +348,8 @@ fn interactive_approve_mixed_actions() {
                 existing_content: None,
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "skip-me".to_string(),
                 action: FileAction::Create,
@@ -330,7 +357,8 @@ fn interactive_approve_mixed_actions() {
                 existing_content: None,
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "also-apply".to_string(),
                 action: FileAction::Overwrite,
@@ -352,9 +380,11 @@ fn interactive_approve_mixed_actions() {
 
 #[test]
 fn approval_result_approved_files() {
-    let preview = ScaffoldPreview {
+    let preview = ChangePlan {
+        operation: AdminOperation::Setup,
         files: vec![
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "first".to_string(),
                 action: FileAction::Create,
@@ -362,7 +392,8 @@ fn approval_result_approved_files() {
                 existing_content: None,
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "second".to_string(),
                 action: FileAction::Create,
@@ -370,7 +401,8 @@ fn approval_result_approved_files() {
                 existing_content: None,
                 diff: None,
             },
-            FilePreview {
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
                 ownership_context: None,
                 path: "third".to_string(),
                 action: FileAction::Create,

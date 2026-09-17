@@ -188,33 +188,52 @@ impl WorkbenchSeed {
         Some(out)
     }
 
-    /// Seed `<root>/workbench.toml`. A file that already declares
-    /// `[commands]` is never modified (returns `Ok(false)`). Otherwise the
-    /// native lockfile/manifest detection (`magistr workspace init`) seeds
-    /// the table first; then the gate keys are folded in. Returns whether the
-    /// file was written.
-    pub fn apply(&self, root: &Path) -> std::io::Result<bool> {
+    /// The `<root>/workbench.toml` body seeding would write, or `None` when
+    /// the file needs nothing: the current content read while planning and
+    /// the body to write. A file that already declares `[commands]` keeps
+    /// its table; otherwise the native lockfile/manifest detection
+    /// (`magistr workspace init`) seeds the table first and the gate keys
+    /// are folded in. The confirm mode is a separate question asked of every
+    /// project, appended last so a later `[commands]` merge never lands in
+    /// the `[edit]` table.
+    #[must_use]
+    pub fn plan(&self, root: &Path) -> (Option<String>, Option<String>) {
         let path = root.join("workbench.toml");
-        let before = std::fs::read_to_string(&path).unwrap_or_default();
-        let mut wrote = false;
-        // The commands table is a human's and is seeded once; the confirm
-        // mode below is a *separate* question and is asked of every project,
-        // because the common case is exactly a file that already declares
-        // `[commands]` and has never heard of `edit.confirm_mode`.
-        if !declares_commands(&before) {
-            // Best effort: a detection failure just means no manifest-detected
-            // rows, which the gate keys below cover.
-            let _ = crate::workspace_cli::seed_allowlist(root);
-            let current = std::fs::read_to_string(&path).unwrap_or_default();
-            if let Some(body) = self.merge_into(&current) {
-                std::fs::write(&path, body)?;
-                wrote = true;
+        let before = std::fs::read_to_string(&path).ok();
+        let mut body = before.clone().unwrap_or_default();
+        // The commands table is a human's and is seeded once.
+        if !declares_commands(&body) {
+            let detected = magistr_workspace::config::DetectedCommand::detect(root);
+            if !detected.is_empty() {
+                let block = magistr_workspace::config::DetectedCommand::render_table(&detected);
+                body = if body.is_empty() {
+                    block
+                } else {
+                    format!("{}\n\n{block}", body.trim_end_matches('\n'))
+                };
+            }
+            if let Some(merged) = self.merge_into(&body) {
+                body = merged;
             }
         }
-        // Appended last, so a later `[commands]` merge is never landed in
-        // this table — `merge_into` refuses to append when the file's last
-        // table is not `[commands]`, which is the same protection.
-        Ok(Self::ensure_confirm_mode(root)? || wrote)
+        if let Some(with_mode) = with_confirm_mode(&body) {
+            body = with_mode;
+        }
+        // A project with nothing to seed and no file gets no file.
+        let planned = (before.as_deref().unwrap_or_default() != body.as_str()).then_some(body);
+        (before, planned)
+    }
+
+    /// Seed `<root>/workbench.toml` as [`WorkbenchSeed::plan`] describes.
+    /// Returns whether the file was written.
+    pub fn apply(&self, root: &Path) -> std::io::Result<bool> {
+        match self.plan(root).1 {
+            Some(body) => {
+                std::fs::write(root.join("workbench.toml"), body)?;
+                Ok(true)
+            }
+            None => Ok(false),
+        }
     }
 
     /// Declare the unattended confirm mode on `root`'s `workbench.toml`,
@@ -226,15 +245,23 @@ impl WorkbenchSeed {
     /// and no idea that a confirm-gated write is about to ask a human who is
     /// not there. `scaffold::repair` is the caller that closes that.
     pub fn ensure_confirm_mode(root: &Path) -> std::io::Result<bool> {
-        let path = root.join("workbench.toml");
-        let current = std::fs::read_to_string(&path).unwrap_or_default();
-        match with_confirm_mode(&current) {
+        match Self::plan_confirm_mode(root).1 {
             Some(body) => {
-                std::fs::write(&path, body)?;
+                std::fs::write(root.join("workbench.toml"), body)?;
                 Ok(true)
             }
             None => Ok(false),
         }
+    }
+
+    /// The confirm-mode declaration as a planned change: the current
+    /// `workbench.toml` (none when there is no file) and the body declaring
+    /// the mode when the file does not already.
+    #[must_use]
+    pub fn plan_confirm_mode(root: &Path) -> (Option<String>, Option<String>) {
+        let current = std::fs::read_to_string(root.join("workbench.toml")).ok();
+        let planned = with_confirm_mode(current.as_deref().unwrap_or_default());
+        (current, planned)
     }
 }
 

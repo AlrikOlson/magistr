@@ -82,7 +82,11 @@ stack detector with the CLI's plugin results. Setup writes
 `.magistr/project.json` and agent-specific files from the CLI crate's templates
 and the core crate's presets. The project file supplies commands, custom gates,
 testing conventions, and native-roadmap settings. Generated files carry
-ownership rules so refresh and removal can preserve user changes.
+ownership rules so refresh and removal can preserve user changes; setup,
+repair and owned removal each compute one
+[administrative change plan](configuration.md#administrative-change-plan)
+(expected state, ownership, apply/skip/refuse intent per path) and execute
+exactly that plan, so the dry-run preview is what is written.
 
 ## Sessions and interfaces
 

@@ -65,12 +65,14 @@ should pass absolute roots. Engine trace metadata remains its own concern.
 
 This delivers the frozen native workflow portion of the project-configuration
 refactor; the [project inputs](#project-inputs) below deliver the
-project/preset/provider/plugin/workspace portion. Administrative setup and
-removal receipts, and effective configuration/policy digests in verification
-applicability, remain separate roadmap work. This configuration provenance is
-not a source digest, workflow revision, owner generation or receipt. Protected
-workspace edits and human-owned command admission remain enforced by their
-existing owners.
+project/preset/provider/plugin/workspace portion and the
+[administrative change plan](#administrative-change-plan) the reviewable
+setup, repair and removal plan. Application-time revalidation with
+partial-outcome receipts, and effective configuration/policy digests in
+verification applicability, remain separate roadmap work. This configuration
+provenance is not a source digest, workflow revision, owner generation or
+receipt. Protected workspace edits and human-owned command admission remain
+enforced by their existing owners.
 
 ## Project inputs
 
@@ -118,3 +120,56 @@ temporary projects/stores and child-process environments rather than mutating
 the test runner's process environment. The
 [Rust 2024 environment guidance](https://doc.rust-lang.org/stable/edition-guide/rust-2024/newly-unsafe-functions.html)
 explains why process-wide mutation is unsuitable for concurrent tests.
+
+## Administrative change plan
+
+Project administration — setup and re-initialization, presets and import,
+selective apply from a dry run, template plugins, startup repair and owned
+Codex removal — is computed before it is written, as one
+[ChangePlan](../../crates/magistr-cli/src/scaffold/change_plan.rs). The
+plan is what the preview shows and what the writer executes: `magistr init
+--dry-run` (plain, JSON and the interactive approval), the `magistr_init`
+tool's `dry_run` mode, `repair::plan` and `CodexSetup::removal_plan` all
+render it, and `generate_with_result`, `repair::repair` and
+`CodexSetup::remove_target` execute the plan they just computed. Explicit
+destructive reset (`magistr reset`, `remove_scaffold`) is deliberately not
+planned here and stays a separate act.
+
+Each [PlannedChange](../../crates/magistr-cli/src/scaffold/planned_change.rs)
+names one path with:
+
+| Field | Meaning |
+| --- | --- |
+| Expected state | `absent`, or the manifest content hash of the bytes read while planning (`expected()`); an application step revalidates against it. |
+| Ownership | Judged from the file's update policy and the scaffold manifest, never from a new persisted layer: `unclaimed` (nothing there), `internal` (magistr internals every setup rewrites), `generated` (magistr wrote it, unchanged), `customized` (magistr wrote it, edited since), `user` (never overwritten, or present without a record), `shared` (a merged file such as `.mcp.json`, `.gitignore`, `workbench.toml`, `AGENTS.md`, `.codex/config.toml` or the think-and-ship section of `CLAUDE.md`), `canonical` (the target repository is the file's home). |
+| Action and intent | `create`, `overwrite` or `remove` are applied; `unchanged` and `preserved` are skipped with a reason; `refused` carries why the plan will not act: a target that is not a regular file or cannot be read, a canonical input that is missing or unreadable, a missing runtime companion, or an unreadable plugin source. |
+
+The setup plan covers everything generation writes: the regular scaffold
+files under their policies, `.mcp.json` merged with the retired servers
+stripped, the `.gitignore` section, the `workbench.toml` seed (computed from
+the native command detection without writing), the retired rule files it
+removes, the shared Codex components and the template plugins the captured
+inputs name. `CLAUDE.md` stays the user's file, but its marked think-and-ship
+section is magistr's, so the plan shows the merged document as an overwrite
+with its diff rather than a preserved file that is then rewritten. A second
+plan over a freshly generated project applies nothing.
+
+Canonical inputs are read once per plan by
+[CanonicalSource](../../crates/magistr-cli/src/scaffold/canonical.rs). A
+skill's home repository (`skills/workbench-routing/SKILL.md` in workbench-mcp)
+supplies the vendored copy's bytes. Magistr's own source checkout — one that
+carries `crates/magistr-cli/templates/workflows` — supplies every workflow
+skill, the shared runtime with its host adapter and the vendored routing skill
+from the live templates, through the same rendering the embedded copies use;
+an installed binary older than the checkout therefore follows each later edit
+instead of downgrading the skills at `mcp-serve` startup. A canonical input
+that is missing or unreadable refuses its paths; the embedded copy is never
+written in its place. Ordinary projects carry no canonical inputs and keep
+the embedded upgrades.
+
+What this chunk does not do: execution still preflights the plan once and
+writes change by change without locking out concurrent writers or
+revalidating each target's expected state at write time, and generation
+reports created/updated/unchanged/preserved/removed/refused rather than a
+per-outcome receipt. Application with expected-state checks and partial
+outcome receipts is `audit-260912-16-admin-apply`.

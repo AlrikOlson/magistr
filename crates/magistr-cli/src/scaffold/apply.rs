@@ -1,11 +1,11 @@
 //! Selective file application from a scaffold preview.
 //!
-//! Given a set of approved [`FilePreview`] entries, writes only those files
+//! Given a set of approved [`PlannedChange`] entries, writes only those files
 //! to disk. Used by the interactive approval flow in `--dry-run` mode.
 
 use std::path::Path;
 
-use super::{FileAction, FilePreview};
+use super::{FileAction, PlannedChange};
 use crate::error::{MagistrError, Result};
 
 /// Apply only the approved files from a scaffold preview.
@@ -19,7 +19,7 @@ use crate::error::{MagistrError, Result};
 /// This preflight does not lock out concurrent writers or roll back IO failures.
 ///
 /// Returns the list of paths that were written.
-pub fn apply_approved(dir: &Path, files: &[&FilePreview]) -> Result<Vec<String>> {
+pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<Vec<String>> {
     let pending: Vec<_> = files
         .iter()
         .copied()
@@ -123,7 +123,7 @@ pub fn apply_approved(dir: &Path, files: &[&FilePreview]) -> Result<Vec<String>>
         }
 
         #[cfg(unix)]
-        if is_executable_path(&f.path) {
+        if super::is_executable_path(&f.path) {
             use std::os::unix::fs::PermissionsExt;
             let perms = std::fs::Permissions::from_mode(0o755);
             std::fs::set_permissions(&full, perms).map_err(|e| MagistrError::io(&full, e))?;
@@ -133,14 +133,6 @@ pub fn apply_approved(dir: &Path, files: &[&FilePreview]) -> Result<Vec<String>>
     }
 
     Ok(written)
-}
-
-/// Determine if a scaffold path should be executable.
-///
-/// Shell scripts (.sh) and scripts in the project root are executable.
-#[cfg(any(unix, test))]
-fn is_executable_path(path: &str) -> bool {
-    path.ends_with(".sh") || path == ".codex/run"
 }
 
 #[cfg(test)]
