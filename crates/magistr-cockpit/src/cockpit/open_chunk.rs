@@ -58,7 +58,7 @@ fn destination(model: &mut Model, id: &str) -> Place {
     match state {
         StarState::Executing if model.rail.chunk() == Some(id) => Place::Session,
         StarState::Stuck if matches!(model.dock.front(), Some(DockItem::Permission(_))) => {
-            model.stood_down = None;
+            model.decision.recall();
             Place::Session
         }
         StarState::Done => Place::Report,

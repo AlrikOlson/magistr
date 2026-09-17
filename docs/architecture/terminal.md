@@ -57,6 +57,19 @@ filesystem, database, standard streams, or process state, and they do not hold
 effectful producer handles. The runtime supplies a `FrameClock` once per frame.
 Purity and crate-boundary tests enforce these restrictions.
 
+Permission and confirmation interaction has one owner, `cockpit::decision`. It
+holds the decision state (the conditional-approval register, the card's scroll,
+the seen witness and the ask a Moment was stood down for), the semantic
+`DecisionIntent` vocabulary, the reducer, and the `moment`, `review` and `ask`
+selectors. The key fold, the pointer fold and `Msg::Decision` all become an
+intent before anything changes, so every route to an answer produces the same
+commands, and an answer the ask does not offer leaves the pending state as it
+was. The reducer emits only the provider's answer (`Cmd::Permission`), the
+policy owner's constraint (`Cmd::Constraint`) and the merge beside a review's
+approval; workspace confirmations (`Cmd::Workbench`) and workflow evidence
+(`Cmd::Engine`) are other cards with other owners, and no decision intent can
+stand in for them.
+
 Turn text retains both source lines and wrapped rows. Streaming updates rewrap
 the changed line; resizing recomputes wrapping. Flat mode can therefore read the
 same source text without reconstructing it from painted cells. Conversation

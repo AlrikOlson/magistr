@@ -1,6 +1,6 @@
 //! Folding one message into the model.
 
-use magistr_engine::{CheckpointReason, policy::RiskTier};
+use magistr_engine::CheckpointReason;
 
 use magistr_engine::{FeedStatus, MagistrFrame, NativeEvent, ShipFrame, ThinkFrame};
 
@@ -12,7 +12,7 @@ use super::checkpoint_cmd::CheckpointCmd;
 use super::checkpoint_event::CheckpointEvent;
 use super::cmd::Cmd;
 use super::completion::Completion;
-use super::copy::Copy;
+use super::decision::{self, DecisionIntent};
 use super::density::Density;
 use super::dock_item::DockItem;
 use super::engine_cmd::EngineCmd;
@@ -31,7 +31,6 @@ use super::open_chunk::open_chunk;
 use super::palette::Palette;
 use super::palette_row::{PaletteGo, PaletteRow};
 use super::pane::Pane;
-use super::permission::Permission;
 use super::phase::Phase;
 use super::place::Place;
 use super::progress::Progress;
@@ -55,7 +54,7 @@ use super::turn_state::TurnState;
 use super::widget::Widget;
 use super::workbench_cmd::WorkbenchCmd;
 use super::workbench_event::WorkbenchEvent;
-use crate::agent::{AgentEvent, ImageBlock, PermissionKind, ToolStatus, TurnEnd};
+use crate::agent::{AgentEvent, ImageBlock, ToolStatus, TurnEnd};
 use crate::engine::EngineEvent;
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind, Reply};
 use crate::job::JobOutput;
@@ -158,7 +157,10 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Cmd> {
 
 /// The fold proper; [`update`] wraps it with the animation declaration.
 fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
-    if matches!(msg, Msg::Key(_) | Msg::Mouse { .. } | Msg::Paste(_)) {
+    if matches!(
+        msg,
+        Msg::Key(_) | Msg::Mouse { .. } | Msg::Paste(_) | Msg::Decision(_)
+    ) {
         model.inputs += 1;
         // The tick rest is measured from.
         // Pointer motion counts: moving over the sky *is* intent, and a
@@ -270,6 +272,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             refresh_completion(model);
             model.remember(Msg::Paste(text));
         }
+        Msg::Decision(intent) => return decision::apply(model, intent),
         Msg::RoadmapRequestQueued => {
             if let Some(request) = model
                 .roadmap_requests
@@ -646,8 +649,7 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
         // A Moment is modal: the stage behind it is not navigable, and
         // `⇥` is the way into its conditional register.
         if model.moment().is_some() {
-            model.condition_open = true;
-            return Vec::new();
+            return decision::apply(model, DecisionIntent::OpenCondition);
         }
         // A terminal walks its tabs; a window walks its places.
         if model.surface().is_native() {
@@ -2207,177 +2209,14 @@ fn spine_palette(model: &mut Model, text: &str) -> Option<CheckpointCmd> {
     }
 }
 
-/// A key for the dock's front card. A permission takes every key — the
-/// agent is blocked on it: an accelerator, Enter (allow) or Esc (deny)
-/// answers it, anything else is swallowed. A proposal or blocker answers
-/// its accelerator only on an empty prompt — the prompt owns its
-/// letters — and lets every other key through. `None` when the dock is
-/// empty or the key was not the dock's to take.
+/// A key for the dock's front card. A permission is the decision
+/// feature's to answer ([`decision::key`]) and takes every key — the
+/// agent is blocked on it. A proposal or blocker answers its
+/// accelerator only on an empty prompt — the prompt owns its letters —
+/// and lets every other key through. `None` when the dock is empty or
+/// the key was not the dock's to take.
 fn dock_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if model.moment().is_some() {
-        return moment_key(model, key);
-    }
-    let option = match model.dock.front()? {
-        DockItem::Permission(p) => match key.code {
-            KeyCode::Enter => p.allow(),
-            KeyCode::Esc => p.deny(),
-            // SHIFT is allowed through because it is what *carries* the
-            // session-wide answers: the decoder delivers ⇧A as
-            // `Char('A')` with SHIFT set, and the accelerator table is
-            // keyed on the char the key actually produced.
-            KeyCode::Char(c) if key.mods.is_empty() || key.mods == Modifiers::SHIFT => {
-                PermissionKind::from_accelerator(c).and_then(|kind| p.choice(kind))
-            }
-            _ => None,
-        }
-        .map(str::to_owned),
-        DockItem::Proposal { .. } | DockItem::Blocker { .. } => return card_key(model, key),
-    };
-    Some(answer(model, option))
-}
-
-/// A key at a Moment — the centred plan card.
-///
-/// Two régimes, and which one is in force is decided by the
-/// conditional register alone: while it is empty the design's single
-/// letters answer (`A` allow, `⇧A` always, `D` deny, `⇧D` never,
-/// `space` show the pictures); once it holds anything the letters are
-/// *text* and the answer is Enter. That is the rule the dock's
-/// proposal cards already follow — the writing surface owns its
-/// letters — and it is what lets one card be both a one-keystroke exit
-/// and a place to write "allow, stop if other rows change".
-///
-/// Every key is taken either way: the agent is blocked on this
-/// question, so a Moment is modal by construction rather than by each
-/// surface behind it remembering to stand down. Quit and cancel are
-/// answered before this (`quit_or_cancel`), so a wedged card can
-/// always be left.
-fn moment_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    let typing = model.condition_open;
-    let plain = key.mods.is_empty() || key.mods == Modifiers::SHIFT;
-    let cmds = match key.code {
-        KeyCode::PageDown if model.uses_flight_recorder() => {
-            super::view::scroll_permission(model, 8);
-            Vec::new()
-        }
-        KeyCode::PageUp if model.uses_flight_recorder() => {
-            super::view::scroll_permission(model, -8);
-            Vec::new()
-        }
-        // `⇥` is the way in for a sentence that *starts* with one of
-        // the answers, which the documented example does.
-        KeyCode::Tab if !typing => {
-            model.condition_open = true;
-            Vec::new()
-        }
-        // The lit exit, whichever régime is in force: with an empty
-        // register Enter is plain Allow, with a written one it is the
-        // conditional approval.
-        KeyCode::Enter => moment_answer(model, PermissionKind::AllowOnce),
-        // Esc clears what was written before it denies — a reader who
-        // typed a condition and thought better of it should lose the
-        // sentence, not the decision.
-        KeyCode::Esc if typing => {
-            model.condition.take();
-            model.condition_open = false;
-            Vec::new()
-        }
-        KeyCode::Esc => moment_answer(model, PermissionKind::RejectOnce),
-        KeyCode::Backspace if typing => {
-            model.condition.backspace();
-            Vec::new()
-        }
-        KeyCode::Left if typing => {
-            model.condition.left();
-            Vec::new()
-        }
-        KeyCode::Right if typing => {
-            model.condition.right();
-            Vec::new()
-        }
-        KeyCode::Char(c) if plain => {
-            if !typing {
-                if c == ' ' && !moment_hidden_images(model) {
-                    // Nothing to show: the space is the first character
-                    // of a condition, not a dead key.
-                } else if c == ' ' {
-                    return Some(moment_images(model));
-                } else if let Some(kind) = PermissionKind::from_accelerator(c) {
-                    return Some(moment_answer(model, kind));
-                }
-            }
-            // Any key that answers nothing is the first character of a
-            // condition rather than a dead key.
-            model.condition_open = true;
-            model.condition.insert(c.encode_utf8(&mut [0; 4]));
-            Vec::new()
-        }
-        _ => Vec::new(),
-    };
-    Some(cmds)
-}
-
-/// Whether the Moment still has pictures the reader has not asked for.
-fn moment_hidden_images(model: &Model) -> bool {
-    model
-        .moment()
-        .is_some_and(|p| !p.hidden_images().is_empty())
-}
-
-/// *Show images*: the pictures the asking call carries go onto the feed
-/// through the one rendering route a picture has ever taken
-/// ([`picture`]), so a screenshot on a plan card is the same line, the
-/// same wrap and the same compositor placement as a screenshot in a
-/// tool result. The card keeps its place; only its button leaves.
-fn moment_images(model: &mut Model) -> Vec<Cmd> {
-    let images = match model.dock.front_mut() {
-        Some(DockItem::Permission(p)) => p.reveal_images(),
-        _ => Vec::new(),
-    };
-    for block in &images {
-        picture(model, block);
-    }
-    Vec::new()
-}
-
-/// Answer the Moment with `kind`, carrying whatever the register holds.
-///
-/// The answer itself is [`answer`] — the very command the dock strip
-/// and a click on the card's button both produce, so there is one way
-/// a permission is ever answered. What a Moment adds is the second
-/// half of conditional approval: a written condition,
-/// or the scope a `⇧A` covers, becomes a charter row the reader can
-/// read back, and the written words go to whoever owns the policy as a
-/// [`Cmd::Constraint`] *ahead of* the answer, while it still holds the
-/// request they are about. A `⇧A` sends no words: its scope is the
-/// request's own, read off the answer by the policy.
-fn moment_answer(model: &mut Model, kind: PermissionKind) -> Vec<Cmd> {
-    let Some(permission) = model.moment() else {
-        return Vec::new();
-    };
-    // A card offers only the choices the agent listed: a key naming one
-    // it did not offer is not an answer, and must not clear the
-    // register or take the card away.
-    let Some(option) = permission.choice(kind).map(str::to_owned) else {
-        return Vec::new();
-    };
-    let scope = permission.scope().map(str::to_owned);
-    let id = permission.id();
-    let condition = model.condition.take().trim().to_owned();
-    model.condition_open = false;
-    let mut cmds = Vec::new();
-    if !condition.is_empty() {
-        cmds.push(Cmd::Constraint {
-            id,
-            condition: condition.clone(),
-        });
-    }
-    cmds.extend(answer(model, Some(option)));
-    model.permission_scroll = 0;
-    if let Some((subject, mode)) = constraint(&condition, kind, scope.as_deref()) {
-        model.rail.note_charter(CharterRule::new(&subject, mode));
-    }
-    cmds
+    decision::key(model, key).or_else(|| card_key(model, key))
 }
 
 /// The charter's offer at `index` accepted: the row
@@ -2392,32 +2231,6 @@ fn delegate_offer(model: &mut Model, index: usize) -> Vec<Cmd> {
         .rail
         .note_charter(CharterRule::new(offer.subject(), RuleMode::Auto));
     vec![Cmd::Delegate(offer.key().to_owned())]
-}
-
-/// The standing constraint an answer leaves behind, if any: the written
-/// condition when there is one, else the scope a session-wide answer
-/// covers. A plain once-only answer leaves nothing — the whole point of
-/// "once" is that it is not a rule.
-fn constraint(
-    condition: &str,
-    kind: PermissionKind,
-    scope: Option<&str>,
-) -> Option<(String, RuleMode)> {
-    if !condition.is_empty() {
-        // A condition is written as a *reason to come back*, so the
-        // rule it records asks: the reader said what would make them
-        // want to be interrupted again.
-        return Some((condition.to_owned(), RuleMode::Ask));
-    }
-    let (verb, mode) = match kind {
-        PermissionKind::AllowAlways => ("always allow", RuleMode::Auto),
-        PermissionKind::RejectAlways => ("never allow", RuleMode::Off),
-        PermissionKind::AllowOnce | PermissionKind::RejectOnce => return None,
-    };
-    Some((
-        scope.map_or_else(|| verb.to_owned(), |scope| format!("{verb} · {scope}")),
-        mode,
-    ))
 }
 
 /// The empty-prompt accelerator of a front proposal (`y` accept, `n`
@@ -2445,43 +2258,6 @@ fn card_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         model.dock.answer_front(answer);
     }
     Some(vec![cmd])
-}
-
-/// Answer the front permission with `option_id`; without one (a key that
-/// answers nothing, a click elsewhere) the request stays.
-fn answer(model: &mut Model, option_id: Option<String>) -> Vec<Cmd> {
-    let Some(option_id) = option_id else {
-        return Vec::new();
-    };
-    // Read before the card is popped: whether this answer is a review's
-    // *Approve & merge* is a fact about the surface the answer came
-    // from, and popping the card takes it away.
-    let reviewing = model.review().is_some();
-    let since = model.review_since().map(str::to_owned);
-    let Some(permission) = model.dock.pop_permission() else {
-        return Vec::new();
-    };
-    let approved = [PermissionKind::AllowOnce, PermissionKind::AllowAlways]
-        .into_iter()
-        .any(|kind| permission.choice(kind) == Some(option_id.as_str()));
-    let mut cmds = vec![Cmd::Permission {
-        id: permission.id(),
-        option_id,
-    }];
-    // Approve merges the worktree. it rides *beside* the
-    // answer rather than replacing it, and it goes out from the one
-    // place a permission is ever answered, so the click on the button
-    // and the key that presses it cannot disagree about whether the
-    // work came home. A review scoped to the journal names no
-    // checkpoint and therefore asks for no merge — there is no branch a
-    // fork opened to bring back (`review-merge-needs-a-fork`).
-    if reviewing
-        && approved
-        && let Some(id) = since
-    {
-        cmds.push(Cmd::Checkpoint(CheckpointCmd::Merge { id }));
-    }
-    cmds
 }
 
 fn scroll_key(model: &mut Model, code: KeyCode) {
@@ -2676,23 +2452,17 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
     if model.uses_flight_recorder() && model.moment().is_some() {
         match event.kind {
             MouseKind::ScrollUp => {
-                super::view::scroll_permission(model, -(Viewport::WHEEL as isize));
-                return Vec::new();
+                return decision::apply(model, DecisionIntent::Scroll(-(Viewport::WHEEL as isize)));
             }
             MouseKind::ScrollDown => {
-                super::view::scroll_permission(model, Viewport::WHEEL as isize);
-                return Vec::new();
+                return decision::apply(model, DecisionIntent::Scroll(Viewport::WHEEL as isize));
             }
             MouseKind::Down(Button::Left) => {
                 model.pressed = target;
-                if target == Some(Widget::ShowImages.id()) {
-                    return moment_images(model);
-                }
-                if let Some(kind) = target.and_then(Widget::from_id).and_then(Widget::answers) {
-                    return moment_answer(model, kind);
-                }
-                model.condition_open = true;
-                return Vec::new();
+                // A button answers; a click anywhere else on the card
+                // is the way into its conditional register.
+                return decision::click(model, target)
+                    .unwrap_or_else(|| decision::apply(model, DecisionIntent::OpenCondition));
             }
             _ => {}
         }
@@ -2718,11 +2488,11 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             return Vec::new();
         }
         if target == Some(Widget::Dock.id()) {
-            model.permission_scroll = if down {
-                model.permission_scroll.saturating_add(1)
-            } else {
-                model.permission_scroll.saturating_sub(1)
-            };
+            // The strip's own scroll: a row at a time, unclamped — the
+            // strip measures no card end the way the Moment does.
+            model
+                .decision
+                .scroll_by(if down { 1 } else { -1 }, usize::MAX);
             return Vec::new();
         }
         let list = (model.tab() == StageTab::Roadmap
@@ -3327,27 +3097,11 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 model.turn.toggle_at_row(row);
                 return Vec::new();
             }
-            if target == Some(Widget::ShowImages.id()) {
-                return moment_images(model);
-            }
-            let kind = target.and_then(Widget::from_id).and_then(Widget::answers);
-            // A Moment's button answers through `moment_answer`, so a
-            // click and the key that presses the same button agree
-            // about the condition in the register. The *target* is
-            // untouched — it is the id the dock strip's own button
-            // carries — so nothing downstream can tell the two apart.
-            if let Some(kind) = kind
-                && model.moment().is_some()
-            {
-                return moment_answer(model, kind);
-            }
-            let option = kind
-                .and_then(|kind| match model.dock.front() {
-                    Some(DockItem::Permission(p)) => p.choice(kind),
-                    _ => None,
-                })
-                .map(str::to_owned);
-            return answer(model, option);
+            // An answer button or *Show images*, on the strip or the
+            // Moment's card: the decision feature's click, so a click
+            // and the key that presses the same button agree about the
+            // condition in the register.
+            return decision::click(model, target).unwrap_or_default();
         }
         // The divider follows the pointer's column, whichever side the
         // rail is on; the width it asks for is the surface's arithmetic.
@@ -4007,16 +3761,7 @@ fn change_approve(model: &mut Model, index: usize) -> Vec<Cmd> {
     else {
         return Vec::new();
     };
-    let Some(permission) = model.dock.take_edit(&path) else {
-        return Vec::new();
-    };
-    let Some(option_id) = permission.allow().map(str::to_owned) else {
-        return Vec::new();
-    };
-    vec![Cmd::Permission {
-        id: permission.id(),
-        option_id,
-    }]
+    decision::approve_edit(model, &path)
 }
 
 /// A click on the front proposal's Accept or Reject button — an ask for
@@ -4071,7 +3816,7 @@ fn decode_image(model: &Model, block: &ImageBlock) -> (Option<StreamImage>, Stri
 
 /// One image content block of a message chunk into the turn, as its own
 /// line — or one note row when it could not be decoded.
-fn picture(model: &mut Model, block: &ImageBlock) {
+pub(super) fn picture(model: &mut Model, block: &ImageBlock) {
     match decode_image(model, block) {
         (Some(image), alt) => model.turn.push_image(image, &alt),
         (None, alt) => model.turn.push_note(&format!("{alt} could not be shown")),
@@ -4373,70 +4118,13 @@ fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             edit,
             risk,
             plan,
-        } => {
-            model.permissions_seen += 1;
-            if model.moment().is_none() {
-                model.permission_scroll = 0;
-            }
-            let title = crate::agent::ToolTitle::display(&title);
-            let announce = Cmd::Announce(format!("needs you: {title}"));
-            let mut permission = Permission::new(id, title, choices);
-            if let Some(plan) = plan {
-                permission = permission.about(plan);
-            }
-            if edit {
-                permission = permission.edit();
-            }
-            // A risky allow names the state it can be
-            // undone to. The name is minted here, in the same fold that
-            // raises the card, because the card has to print it — see
-            // `Spine::open`. Only `High`: a checkpoint before every ask
-            // would put a chain of indistinguishable states on a rail
-            // whose whole value is that a state on it is worth going
-            // back to.
-            let mut cmds = vec![announce];
-            if risk == RiskTier::High {
-                let label = permission.title().to_owned();
-                let cp = model
-                    .rail
-                    .spine_mut()
-                    .open(CheckpointReason::Risk, label.clone());
-                permission = permission.at_checkpoint(&cp);
-                cmds.push(Cmd::Checkpoint(CheckpointCmd::Save {
-                    id: cp,
-                    reason: CheckpointReason::Risk,
-                    label,
-                }));
-            }
-            model.dock.push_permission(permission);
-            return cmds;
-        }
+        } => return decision::request(model, id, &title, choices, edit, risk, plan),
         AgentEvent::PermissionLapsed {
             id,
             title,
             after_secs,
-        } => {
-            let title = crate::agent::ToolTitle::display(&title);
-            // The transport denied an ask nobody answered (fail closed): the card comes down wherever it
-            // waited, and the denial is said where the wait was named.
-            if model.dock.remove_permission(id).is_some() {
-                if model.stood_down == Some(id) {
-                    model.stood_down = None;
-                }
-                let line = format!(
-                    "denied after {}: nobody answered {title}",
-                    Copy::duration(after_secs)
-                );
-                model.turn.push_note(&line);
-                return vec![Cmd::Announce(line)];
-            }
-        }
-        AgentEvent::PermissionCancelled { id } => {
-            model.dock.remove_permission(id);
-            if model.stood_down == Some(id) {
-                model.stood_down = None;
-            }
-        }
+        } => return decision::lapsed(model, id, &title, after_secs),
+        AgentEvent::PermissionCancelled { id } => decision::cancelled(model, id),
         AgentEvent::Image(block) => {
             model.turn_notice = None;
             model.turn_state = TurnState::Streaming;

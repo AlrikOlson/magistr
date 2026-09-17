@@ -25,10 +25,7 @@ impl FlightOverlays {
         };
         let (lines, visible, _) = permission_window(model, permission);
         let maximum = lines.len().saturating_sub(visible);
-        model.permission_scroll = model
-            .permission_scroll
-            .saturating_add_signed(delta)
-            .min(maximum);
+        model.decision.scroll_by(delta, maximum);
     }
 
     pub(super) fn finish(mut root: Node, model: &Model, pen: &Pen) -> Node {
@@ -157,7 +154,8 @@ fn permission_card(model: &Model, permission: &Permission, style: &FlightStyle) 
     let line = f32::from(model.cell_size().height);
     let (lines, visible, body_height) = permission_window(model, permission);
     let top = model
-        .permission_scroll
+        .decision()
+        .scroll()
         .min(lines.len().saturating_sub(visible));
     let body = Node::column()
         .viewport()

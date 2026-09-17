@@ -35,13 +35,11 @@ pub fn esc(model: &mut Model) -> Option<Vec<Cmd>> {
         return Some(Vec::new());
     }
     if model.moment().is_some() || model.review().is_some() {
-        if model.condition_open {
-            model.condition.take();
-            model.condition_open = false;
+        if model.decision.clear_condition() {
             return Some(Vec::new());
         }
         if let Some(DockItem::Permission(p)) = model.dock.front() {
-            model.stood_down = Some(p.id());
+            model.decision.stand_down(p.id());
         }
         model.place = Place::Session;
         return Some(Vec::new());
