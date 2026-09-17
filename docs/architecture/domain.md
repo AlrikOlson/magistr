@@ -13,6 +13,40 @@ filesystem, network client, or renderer.
 | `policy` | Existing governance rules, matching, severity composition, charter decisions and model tiers |
 | `gate` | Gate kinds, statuses and observed outcomes |
 
+### Cohesive modules
+
+The [file-structure convention](../../.claude/rules/conventions.md) admits a
+module that exports several public items when it is a facade internal: a
+private module its parent re-exports, opened by a `//!` doc that names what
+the items decide together and why they change together, with its companion
+test file. `scripts/lint-structure.sh` refuses each missing property by name;
+the one-item limit remains only for files reached through a public module
+path. The behavior and boundary fitness checks that carry the policy are the
+companion suites, the dependency-direction rule, and the `domain_boundary` /
+`application_boundary` suites below.
+
+The permission decision is the pilot grouping
+(`audit-260912-35-cohesive-conventions`). Its six single-item files
+(`permission_mode`, `permission_outcome`, `permission_source`,
+`permission_context`, `permission_resolution`, `permission_policy_service`)
+became one private module,
+[`policy/permission.rs`](../../crates/magistr-domain/src/policy/permission.rs),
+re-exported under the same names, so `magistr_domain::policy::*` and the
+`magistr_engine::policy` compatibility paths are unchanged; the move is
+mechanical and the tests moved verbatim. Navigation was measured on the real
+change that shaped these types, commit `1c88362` (shared permissions across
+session entry points):
+
+| | Before | After |
+| --- | --- | --- |
+| Files holding the permission decision | 7 (6 source + 1 test) | 2 (1 source + 1 test) |
+| Files that commit touched under `policy/` and the engine facade | 12 | 7 |
+| Public paths | flat re-exports from `policy` | the same names, one private module |
+
+Further groupings stay with their owning feature units
+(`audit-260912-26` decision, `-27` session, `-28` work objects); there is
+no workspace-wide mechanical migration and no crate-count target.
+
 The native think-and-ship library continues to own chunks, signals, reasoning,
 execution tasks and their durable records. These are not replicated in the
 domain. `magistr-engine::native` remains the native adapter. Engine and core still

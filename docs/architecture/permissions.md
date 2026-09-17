@@ -10,6 +10,9 @@ the presence of a screen supplies no additional authority.
 The domain `PermissionPolicyService` combines the normalized request, local
 policy context, remembered charter and governance. Its resolution carries
 Allow, Deny or Ask, risk, scope, reason and a deterministic policy version.
+The service, its context, mode, outcome, source and resolution are one
+[cohesive module](domain.md#cohesive-modules) behind the domain's `policy`
+facade.
 The CLI `SessionPermissionPolicy` supplies request classification, project path
 resolution, configuration, charter persistence and audit effects.
 `CockpitPolicy` remains a compatibility name for that implementation.

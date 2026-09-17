@@ -1,9 +1,82 @@
-use alloc::{format, string::ToString};
+//! One permission decision, reached through the `policy` facade.
+//!
+//! A host observes a request and normalizes it into a [`PermissionContext`]
+//! (its [`PermissionMode`] and the local allowances); the deterministic
+//! [`PermissionPolicyService`] folds the charter and governance over it and
+//! answers a [`PermissionResolution`], whose [`PermissionOutcome`] is what the
+//! responder does and whose [`PermissionSource`] names the layer that decided.
+//! These change together: a new source is produced by the service and carried
+//! in the resolution; a new observation is a context field the service reads.
+//! Classification, path resolution and configuration loading belong to the
+//! host adapter, not here.
 
-use super::{
-    Charter, PermissionContext, PermissionMode, PermissionOutcome, PermissionResolution,
-    PermissionSource, PolicyEffect, PolicyEngine, PolicyRequest, RiskTier,
+use alloc::{
+    format,
+    string::{String, ToString},
 };
+
+use serde::{Deserialize, Serialize};
+
+use super::{Charter, PolicyEffect, PolicyEngine, PolicyRequest, RiskTier};
+
+/// Explicit local allowance mode; neither mode bypasses remembered or organization rules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PermissionMode {
+    /// Apply profile defaults and the existing safe-operation allowances.
+    Standard,
+    /// Also allow the configured workflow's standard development operations.
+    Workflow,
+}
+
+/// The authorization outcome, independent of any UI or transport response.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PermissionOutcome {
+    /// The request may proceed.
+    Allow,
+    /// The request must be refused.
+    Deny,
+    /// A responder must explicitly resolve the request.
+    Ask,
+}
+
+/// The policy layer that determined an authorization outcome.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PermissionSource {
+    Profile,
+    LocalAllowance,
+    WorkflowAllowance,
+    ProtectedPath,
+    Charter(String),
+    Governance(String),
+}
+
+/// Normalized observations supplied by a host to the deterministic policy service.
+/// Classification, path resolution and configuration loading belong to the host.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PermissionContext {
+    pub mode: PermissionMode,
+    pub profile_effect: PolicyEffect,
+    pub profile_reason: String,
+    pub local_allowance: bool,
+    pub workflow_allowance: bool,
+    /// A protected-target refusal is an immutable floor.
+    pub protected: bool,
+    /// Exact request identity including project, model and operation context.
+    pub scope: String,
+    /// Host-supplied identity of every behavior-affecting policy input.
+    pub policy_version: u64,
+}
+
+/// One complete policy result, usable by every permission responder.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PermissionResolution {
+    pub outcome: PermissionOutcome,
+    pub risk: RiskTier,
+    pub reason: String,
+    pub source: PermissionSource,
+    pub scope: String,
+    pub policy_version: u64,
+}
 
 /// The common authorization contract. Hosts provide normalized observations;
 /// this service combines local allowances, standing answers and governance.
@@ -84,5 +157,5 @@ impl PermissionPolicyService {
 }
 
 #[cfg(test)]
-#[path = "permission_policy_service.tests.rs"]
+#[path = "permission.tests.rs"]
 mod tests;
