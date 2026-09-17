@@ -3,13 +3,12 @@
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use crate::cockpit::Msg;
 use magistr_application::sessions::AgentEvent;
+use magistr_cockpit::cockpit::Msg;
 
 /// A shared log of the instant every message posted on a stamped
 /// [`Inbox`](crate::channel::Inbox) reached it — the "event arrived" end
-/// of an event-to-paint measurement, the way [`Deliveries`](super::Deliveries)
-/// is the "input arrived" end. The stamp is taken inside `send`, ahead
+/// of an event-to-paint measurement. The stamp is taken inside `send`, ahead
 /// of the loop's own channel, so it is at or before the instant the loop
 /// can see the message — which is what lets a test say "the first write
 /// after this stamp" and mean the very next frame.

@@ -18,6 +18,7 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-acp-agent` | Coding-runtime and chat-API provider adapters |
 | `magistr-mcp` | In-process MCP tool definitions and request handling |
 | `magistr-cockpit` | Shared interface state, updates, layout vocabulary, and effect ports |
+| `magistr-cockpit-runtime` | Shared message channels, arrival measurements and background job dispatch for hosts and surfaces |
 | `magistr-tui` | Terminal input, rendering, graphics protocols, and runtime |
 | `magistr-theme` | Shared color and theme vocabulary |
 | `magistr-protocol` | Transport types |

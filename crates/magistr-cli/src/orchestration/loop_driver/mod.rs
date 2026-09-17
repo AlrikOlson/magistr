@@ -16,6 +16,7 @@
 //! `update` and `view` never see any of this: they fold messages. The
 //! driver owns every effect.
 
+mod checkpoint_detach;
 mod connector;
 mod driver;
 mod failure_brief;

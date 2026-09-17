@@ -4,10 +4,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use tokio::task::JoinHandle;
 
-use super::apply::apply;
-use super::port::CheckpointPort;
-use crate::channel::Inbox;
-use crate::cockpit::{CheckpointCmd, Msg};
+use magistr_cockpit::checkpoint::{CheckpointPort, apply};
+use magistr_cockpit::cockpit::{CheckpointCmd, Msg};
+use magistr_cockpit_runtime::channel::Inbox;
 
 /// Carry `cmd` out on `port` on a blocking thread and post the answer
 /// on `inbox` as [`Msg::Checkpoint`] — the one way a ledger verb runs.

@@ -5,8 +5,8 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
+use magistr_cockpit_runtime::channel::Inbox;
 
 /// A script for a producer: [`Msg`]s due at times measured from when
 /// [`Timeline::play`] starts. Steps are delivered in time order, ties in

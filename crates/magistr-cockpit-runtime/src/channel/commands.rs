@@ -2,19 +2,17 @@
 
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
-use crate::cockpit::Cmd;
+use magistr_cockpit::cockpit::Cmd;
 
 /// The receiver of every command `update` answers with except
 /// [`Cmd::Quit`] — prompts, cancels, permission answers, loop decisions
-/// — for whoever took it to act on. [`Runtime::commands`] hands it out
+/// — for whoever took it to act on. The surface hands it out
 /// once, before the run; it ends when the loop is gone.
 ///
 /// A driver that sits between the runtime and a session (the iteration
 /// loop, which runs one session per iteration) makes its own pair with
 /// [`Commands::channel`], hands the receiver to the session and forwards
 /// what the runtime's receiver yields onto the sender.
-///
-/// [`Runtime::commands`]: super::Runtime::commands
 #[derive(Debug)]
 pub struct Commands {
     rx: UnboundedReceiver<Cmd>,

@@ -107,7 +107,13 @@ fn concrete_service_clients_belong_to_the_host() {
         "ProjectAuthority::admit",
         "OwnerClient::attach",
         "std::process::",
-        "tokio::net::",
+        "tokio::",
+        "struct Jobs",
+        "struct SessionJobs",
+        "struct Inbox",
+        "struct Commands",
+        "struct Arrivals",
+        "fn spawn_session",
     ];
     let mut found = Vec::new();
     for file in files {
@@ -131,6 +137,17 @@ fn concrete_service_clients_belong_to_the_host() {
         "host adapters in cockpit:\n{}",
         found.join("\n")
     );
+}
+
+#[test]
+fn cockpit_declares_no_async_runtime_dependency() {
+    let manifest = std::fs::read_to_string(crate_root().join("Cargo.toml")).expect("manifest");
+    for line in manifest.lines() {
+        assert!(
+            !line.trim_start().starts_with("tokio ="),
+            "runtime dependency in cockpit: {line}"
+        );
+    }
 }
 
 #[test]

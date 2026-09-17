@@ -11,6 +11,7 @@ members = [
     "crates/magistr-mcp",
     "crates/magistr-theme",
     "crates/magistr-cockpit",
+    "crates/magistr-cockpit-runtime",
     "crates/magistr-tui",
     "crates/magistr-workflow",
     "crates/magistr-workspace",

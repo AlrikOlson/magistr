@@ -177,9 +177,9 @@ admits the next turn.
 
 ### Owned relay jobs
 
-The cockpit relay ([session](../../crates/magistr-cockpit/src/agent/session.rs))
+The cockpit relay ([session](../../crates/magistr-cli/src/agent/cockpit_relay.rs))
 carries workbench, engine and checkpoint commands out as its own jobs
-([`SessionJobs`](../../crates/magistr-cockpit/src/agent/session_jobs.rs)):
+([`SessionJobs`](../../crates/magistr-cli/src/agent/session_jobs.rs)):
 each call runs on a blocking thread against the shared port, so a slow
 search or a git read never stalls the task that observes the provider and
 forwards its cancellation. At most `SessionJobs::CAPACITY` (4) run at once;

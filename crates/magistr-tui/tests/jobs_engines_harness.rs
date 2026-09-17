@@ -6,9 +6,10 @@
 use std::time::Duration;
 
 use magistr_application::sessions::{AgentEvent, TurnEnd};
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::{Model, Size};
-use magistr_cockpit::job::{JobId, JobOutput, Jobs};
+use magistr_cockpit::job::{JobId, JobOutput};
+use magistr_cockpit_runtime::Jobs;
+use magistr_cockpit_runtime::channel::Inbox;
 use magistr_engine::FeedStatus;
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{Capture, FakeAgent, FakeEngines, FakeTerminal, Script};

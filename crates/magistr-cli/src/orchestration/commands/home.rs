@@ -4,7 +4,8 @@ use std::path::Path;
 
 use color_eyre::eyre;
 use magistr_cockpit::cockpit::{LaunchAction, StageTab, Summary};
-use magistr_cockpit::job::{JobOutput, Jobs};
+use magistr_cockpit::job::JobOutput;
+use magistr_cockpit_runtime::Jobs;
 
 use crate::agent;
 

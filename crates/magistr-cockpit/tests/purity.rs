@@ -82,22 +82,20 @@ fn update_and_view_are_the_only_entry_points() {
     assert!(view.contains("pub fn view(model: &Model, clock: &FrameClock) -> Node"));
 }
 
-/// The producers' modules run effects — a blocking pool, a
-/// socket, the store — but none of them spawns a process, opens a
-/// database or writes files itself, and the core never reaches their
-/// effectful handles: `update` and `view` see only the event types.
+/// Semantic effect ports and result values cannot execute runtime work.
 #[test]
-fn the_producers_run_no_process_no_database_and_write_no_files() {
+fn semantic_ports_and_results_own_no_runtime_effects() {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut files = Vec::new();
     for module in ["job", "engine", "agent"] {
         walk(&src.join(module), &mut files);
     }
-    assert!(files.len() >= 12, "walked only {} files", files.len());
+    assert!(files.len() >= 6, "walked only {} files", files.len());
     let forbidden = [
         "std::process",
         "Command::new",
         "rusqlite",
+        "tokio::",
         "std::fs::write",
         "File::create",
         "OpenOptions",

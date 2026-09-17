@@ -7,9 +7,9 @@
 use std::time::{Duration, Instant};
 
 use magistr_application::sessions::AgentEvent;
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::{Model, Size, TurnState};
 use magistr_cockpit::turn::{RowKind, Viewport};
+use magistr_cockpit_runtime::channel::Inbox;
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{Capture, Deliveries, FakeAgent, FakeEngines, FakeTerminal, Script};
 use magistr_tui::runtime::{Options, Runtime};

@@ -3,8 +3,8 @@
 //! The cockpit never captures a session or runs git itself: `update`
 //! answers a risky permission or a palette command with
 //! [`Cmd::Checkpoint`], whoever consumes the runtime's commands calls
-//! [`apply`] on a [`CheckpointPort`] — through [`detach`], on a blocking
-//! thread, never on the task that relays the agent — and the resulting
+//! [`apply`] on a [`CheckpointPort`] on a host-owned blocking thread,
+//! never on the task that relays the agent — and the resulting
 //! [`CheckpointEvent`] comes back through the inbox as
 //! [`Msg::Checkpoint`]. The harness fakes the port
 //! ([`FakeCheckpoints`](crate::harness::FakeCheckpoints)); the real one
@@ -21,10 +21,8 @@
 
 pub mod apply;
 pub mod describe;
-pub mod detach;
 pub mod port;
 
 pub use apply::apply;
 pub use describe::describe;
-pub use detach::detach;
 pub use port::CheckpointPort;

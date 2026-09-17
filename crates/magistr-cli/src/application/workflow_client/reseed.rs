@@ -7,9 +7,9 @@ use magistr_engine::{NativeReader, SnapshotCursor};
 use tokio::task::JoinHandle;
 
 use super::feed_link::FeedLink;
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
 use magistr_cockpit::engine::EngineEvent;
+use magistr_cockpit_runtime::channel::Inbox;
 
 /// Why the re-seed woke.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

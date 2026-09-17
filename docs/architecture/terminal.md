@@ -151,9 +151,14 @@ reducers receive the same outcomes regardless of the concrete client.
 The live terminal example belongs to the CLI (`cargo run -p magistr-cli --example
 cockpit`), so the terminal crate never depends on its host. Shared session events,
 startup options and permission contracts belong to `magistr-application::sessions`;
-ACP translation belongs to the CLI. Session relays, channels and projection
-contracts remain in the cockpit pending their later ownership move, so the entire
-cockpit crate is not yet effect-free.
+ACP translation and session relays belong to the CLI, including the bounded local
+jobs and checkpoint dispatch they own. `magistr-cockpit-runtime` supplies shared
+inbox/command channels, arrival stamps and background job execution to both the
+host and terminal. It depends on semantic cockpit values and Tokio, with no
+terminal or provider dependency. The cockpit declares no Tokio dependency and
+retains only job result values and semantic effect ports. Its workflow projections
+still depend on engine-owned contracts; removing that concrete dependency remains
+separate work, so the entire cockpit crate is not yet effect-free.
 
 The driver coalesces input and producer updates before rendering. Jobs, engine
 calls, and agent transport work run outside the state-update function. Engine

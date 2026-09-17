@@ -1,6 +1,6 @@
 //! The architecture doc names what is actually here:
 //! `docs/reference/cockpit-modules.md` carries a row per module of
-//! magistr-cockpit and of magistr-tui, and this test is what stops that
+//! magistr-cockpit, magistr-cockpit-runtime and magistr-tui, and this test is what stops that
 //! index from becoming a list of files that used to exist.
 //!
 //! Both directions matter. A module with no row is an undocumented
@@ -18,9 +18,10 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-/// The two crates the doc describes, as the doc spells them and where
+/// The interface crates the doc describes, as the doc spells them and where
 /// they are relative to this crate's manifest.
-const CRATES: [(&str, &str); 2] = [
+const CRATES: [(&str, &str); 3] = [
+    ("magistr-cockpit-runtime", "../magistr-cockpit-runtime"),
     ("magistr-cockpit", "../magistr-cockpit"),
     ("magistr-tui", "."),
 ];
@@ -80,14 +81,19 @@ fn named(doc: &str, prefix: &str) -> BTreeSet<String> {
 }
 
 #[test]
-fn the_index_names_every_module_of_both_crates_and_no_others() {
+fn the_index_names_every_module_of_all_interface_crates_and_no_others() {
     let doc = doc();
     let mut modules_seen = BTreeSet::new();
     let mut listed = BTreeSet::new();
     for (name, relative) in CRATES {
         let found = modules(name, relative);
         assert!(
-            found.len() > 20,
+            found.len()
+                >= if name == "magistr-cockpit-runtime" {
+                    6
+                } else {
+                    20
+                },
             "walked only {} modules of {name} — the walk is wrong, not the doc",
             found.len()
         );
@@ -100,7 +106,7 @@ fn the_index_names_every_module_of_both_crates_and_no_others() {
     }
     assert!(
         modules_seen.len() > 200,
-        "walked only {} modules across both crates",
+        "walked only {} modules across the interface crates",
         modules_seen.len()
     );
 
@@ -166,12 +172,19 @@ fn the_index_names_host_session_adapters_and_existing_guards() {
     let crates_dir = crate_dir("..");
     for path in [
         "magistr-cli/src/agent/translate.rs",
+        "magistr-cli/src/agent/cockpit_relay.rs",
+        "magistr-cli/src/agent/session_jobs.rs",
+        "magistr-cli/src/orchestration/loop_driver/checkpoint_detach.rs",
         "magistr-cli/src/agent/permission_request.rs",
         "magistr-cli/src/permissions/request_data.rs",
     ] {
         assert!(doc.contains(path), "host session adapter missing: {path}");
     }
-    for prefix in ["magistr-cli/src/agent/", "magistr-cli/src/permissions/"] {
+    for prefix in [
+        "magistr-cli/src/agent/",
+        "magistr-cli/src/permissions/",
+        "magistr-cli/src/orchestration/loop_driver/",
+    ] {
         for path in named(&doc, prefix) {
             assert!(
                 crates_dir.join(&path).is_file(),
@@ -216,7 +229,7 @@ fn every_companion_test_the_guard_column_names_exists() {
 }
 
 #[test]
-fn every_integration_test_of_both_crates_is_named_as_a_guard() {
+fn every_integration_test_of_all_interface_crates_is_named_as_a_guard() {
     let doc = doc();
     let crates_dir = crate_dir("..");
     let mut missing = Vec::new();
@@ -234,7 +247,12 @@ fn every_integration_test_of_both_crates_is_named_as_a_guard() {
             }
         }
         assert!(
-            harnesses.len() > 1,
+            harnesses.len()
+                >= if name == "magistr-cockpit-runtime" {
+                    1
+                } else {
+                    2
+                },
             "walked only {} integration tests of {name}",
             harnesses.len()
         );

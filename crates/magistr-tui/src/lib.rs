@@ -14,9 +14,9 @@
 //! Model, Msg, update, view), the [`flat`] cockpit (the same session as
 //! linear, append-only plain text for a screen reader), the [`runtime`]
 //! that drives the core over a
-//! terminal, the producers that feed it — [`job`]s off the loop thread,
-//! the think-and-ship [`engine`] client and feed, the [`agent`] relay
-//! over ACP — the [`turn`] (the agent's turn as source lines and the
+//! terminal. Shared transport and jobs live in magistr-cockpit-runtime;
+//! concrete clients and the agent relay belong to the CLI. The shared
+//! turn (the agent's turn as source lines and the
 //! rows they wrap to, kept current per delta), the [`theme`] (dark or
 //! light from the OSC 11 reply, the palette from magistr-theme, the pens
 //! the painter uses) and a scripted

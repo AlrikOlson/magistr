@@ -5,8 +5,6 @@
 
 use std::time::Duration;
 
-use magistr_cockpit::channel::Arrivals;
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::cockpit::{
     Animation, FrameClock, LoopEvent, Model, Msg, Size, Widget, update, view,
 };
@@ -14,6 +12,8 @@ use magistr_cockpit::hit::HitRegistry;
 use magistr_cockpit::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
 use magistr_cockpit::job::{JobId, JobOutput};
 use magistr_cockpit::layout::LayoutTree;
+use magistr_cockpit_runtime::channel::Arrivals;
+use magistr_cockpit_runtime::channel::Inbox;
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{Capture, FakeAgent, FakeTerminal, Script};
 use magistr_tui::runtime::{Options, Runtime};

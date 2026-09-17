@@ -1,0 +1,16 @@
+[package]
+name = "magistr-cockpit-runtime"
+version = "0.1.0"
+edition = "2024"
+description = "Shared cockpit message transport and background jobs"
+license = "MIT"
+
+[dependencies]
+magistr-cockpit = { path = "../magistr-cockpit" }
+magistr-application = { path = "../magistr-application" }
+tokio = { version = "1", features = ["rt", "sync"] }
+
+[dev-dependencies]
+toml = "1.0.6"
+magistr-domain = { path = "../magistr-domain" }
+tokio = { version = "1", features = ["macros", "time"] }

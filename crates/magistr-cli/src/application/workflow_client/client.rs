@@ -17,8 +17,8 @@ use super::feed::spawn_feed;
 use super::feed_link::FeedLink;
 use super::native_port::NativeEnginePort;
 use super::reseed::spawn_reseed;
-use magistr_cockpit::channel::Inbox;
 use magistr_cockpit::engine::EnginePort;
+use magistr_cockpit_runtime::channel::Inbox;
 
 /// The project's think-and-ship engines, in-process, and the socket their
 /// live feed attaches to.

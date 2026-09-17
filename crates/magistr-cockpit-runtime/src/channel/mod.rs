@@ -1,6 +1,6 @@
 //! The two channels between the core and whoever drives it: the
-//! [`Inbox`] every producer posts a [`Msg`](crate::cockpit::Msg) on, and
-//! the [`Commands`] a driver takes the core's [`Cmd`](crate::cockpit::Cmd)s
+//! [`Inbox`] every producer posts a [`Msg`](magistr_cockpit::cockpit::Msg) on, and
+//! the [`Commands`] a driver takes the core's [`Cmd`](magistr_cockpit::cockpit::Cmd)s
 //! from. Tokio unbounded channels underneath, with an optional tap (a
 //! second observer of everything sent) and an optional stamp
 //! ([`Arrivals`], the instant of every send, for event-to-paint

@@ -2,6 +2,7 @@
 
 pub mod auth_method;
 pub mod backend;
+pub mod cockpit_relay;
 pub mod cockpit_session;
 pub mod connect_transport;
 pub mod convert_acp_event;
@@ -25,6 +26,7 @@ pub mod retry_outcome;
 pub mod runtime;
 pub mod session;
 pub mod session_config_source;
+mod session_jobs;
 pub mod session_supervisor;
 pub mod system_prompt;
 pub mod tool_permissions;

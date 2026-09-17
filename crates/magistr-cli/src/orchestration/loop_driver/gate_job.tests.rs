@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use magistr_cockpit::job::Jobs;
+use magistr_cockpit_runtime::Jobs;
 use tokio::sync::mpsc::unbounded_channel;
 
 use super::*;
