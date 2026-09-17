@@ -19,6 +19,8 @@ pub struct JudgeInput {
     pub acceptance: Vec<String>,
     /// The gates, as they really ran.
     pub gates: Vec<GateEvidence>,
+    /// Previously executed checks whose receipts still certify the current source.
+    pub recorded_checks: Vec<String>,
     /// The last of the agent's own text this iteration.
     pub transcript_tail: String,
     /// Which iteration this is, of how many.
@@ -59,11 +61,17 @@ impl JudgeInput {
             let _ = writeln!(out, "{}. {criterion}", n + 1);
         }
         let _ = writeln!(out, "\n## Quality gates (real exit codes)");
-        if self.gates.is_empty() {
+        if self.gates.is_empty() && self.recorded_checks.is_empty() {
             let _ = writeln!(out, "(no gates are configured)");
         }
         for gate in &self.gates {
             let _ = writeln!(out, "{}", gate.line());
+        }
+        for name in &self.recorded_checks {
+            let _ = writeln!(
+                out,
+                "- {name}: PASSED (recorded check; current source and acceptance verified)"
+            );
         }
         let _ = writeln!(out, "\n## The agent's last words this iteration");
         let _ = writeln!(out, "{}", tail(&self.transcript_tail, Self::TAIL_BYTES));

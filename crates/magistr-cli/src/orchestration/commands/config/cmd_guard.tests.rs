@@ -27,7 +27,7 @@ fn hook_fields_are_inert_on_null_or_foreign_json() {
 #[test]
 fn apply_engine_state_reads_the_ship_and_roadmap_documents() {
     let ship = json!({
-        "objective": {"status": "completed", "description": "x"},
+        "objective": {"status": "completed", "description": "x", "scope": "chunk:b"},
         "tasks": {"total": 4, "completed": 4},
         "checks": [
             {"name": "cargo check", "passed": true, "required": true, "verified": true},
@@ -84,26 +84,65 @@ fn apply_engine_state_with_no_objective_and_no_chunks() {
 }
 
 #[test]
-fn git_dirty_is_false_outside_a_repository() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    // Not a git repo → `git status` fails → treated as clean.
-    assert!(!git_dirty(tmp.path()));
+fn stop_ignores_other_chunks_and_unscoped_objectives() {
+    for scope in ["chunk:finished", "chunk:ongoing-extra", "fix:hooks", ""] {
+        let mut input = GuardInput::default();
+        apply_engine_state(
+            &mut input,
+            &json!({"objective": {"status": "completed", "scope": scope}}),
+            &json!({"chunks": [
+                {"id": "finished", "status": "done"},
+                {"id": "ongoing", "status": "in_progress"}
+            ]}),
+        );
+        assert_eq!(
+            evaluate(GuardEvent::Stop, &input),
+            GuardVerdict::Allow(None),
+            "{scope}"
+        );
+    }
 }
 
 #[test]
-fn git_dirty_tracks_the_working_tree() {
+fn stop_preserves_preexisting_and_untracked_files_after_completion() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let run = |args: &[&str]| {
-        std::process::Command::new("git")
+        let result = std::process::Command::new("git")
             .args(args)
             .current_dir(tmp.path())
             .output()
-            .expect("git")
+            .expect("git");
+        assert!(result.status.success(), "{result:?}");
+        result.stdout
     };
     run(&["init", "-q"]);
-    assert!(!git_dirty(tmp.path()), "fresh repo is clean");
-    std::fs::write(tmp.path().join("a.txt"), "x").expect("write");
-    assert!(git_dirty(tmp.path()), "untracked file is dirty");
+    std::fs::write(tmp.path().join("workflow.md"), "old").expect("write");
+    run(&["add", "workflow.md"]);
+    run(&[
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@example.com",
+        "commit",
+        "-qm",
+        "baseline",
+    ]);
+    std::fs::write(tmp.path().join("workflow.md"), "other session").expect("write");
+    std::fs::write(tmp.path().join("notes.txt"), "untracked").expect("write");
+    let before = run(&["status", "--porcelain"]);
+    assert!(!before.is_empty());
+    let mut input = GuardInput::default();
+    apply_engine_state(
+        &mut input,
+        &json!({"objective": {"status": "completed", "scope": "chunk:work"}}),
+        &json!({"chunks": [{"id": "work", "status": "done"}]}),
+    );
+    assert_eq!(
+        evaluate(GuardEvent::Stop, &input),
+        GuardVerdict::Allow(None)
+    );
+    assert_eq!(run(&["status", "--porcelain"]), before);
+    assert!(!tmp.path().join("ROADMAP.md").exists());
 }
 
 // ── Write: hook fields, path resolution, frozen declaration ─────────

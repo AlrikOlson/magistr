@@ -33,9 +33,8 @@ fn in_flight() -> GuardInput {
 // ── Stop ────────────────────────────────────────────────────────────
 
 #[test]
-fn stop_is_silent_while_the_objective_is_in_flight_even_with_a_dirty_tree() {
+fn stop_is_silent_while_the_objective_is_in_flight() {
     let input = GuardInput {
-        git_dirty: true,
         chunk_in_progress: true,
         ..in_flight()
     };
@@ -48,7 +47,6 @@ fn stop_is_silent_while_the_objective_is_in_flight_even_with_a_dirty_tree() {
 #[test]
 fn stop_is_silent_without_an_objective() {
     let input = GuardInput {
-        git_dirty: true,
         ..GuardInput::default()
     };
     assert_eq!(
@@ -66,15 +64,11 @@ fn stop_allows_a_shipped_objective_with_a_clean_tree_and_closed_chunk() {
 }
 
 #[test]
-fn stop_blocks_a_shipped_objective_with_uncommitted_changes() {
-    let input = GuardInput {
-        git_dirty: true,
-        ..shipped()
-    };
-    match evaluate(GuardEvent::Stop, &input) {
-        GuardVerdict::Block(reason) => assert!(reason.contains("uncommitted"), "{reason}"),
-        other => panic!("expected Block, got {other:?}"),
-    }
+fn stop_allows_a_shipped_objective_without_claiming_ownership_of_worktree_changes() {
+    assert_eq!(
+        evaluate(GuardEvent::Stop, &shipped()),
+        GuardVerdict::Allow(None)
+    );
 }
 
 #[test]
@@ -85,7 +79,7 @@ fn stop_blocks_a_shipped_objective_whose_chunk_is_still_in_progress() {
     };
     match evaluate(GuardEvent::Stop, &input) {
         GuardVerdict::Block(reason) => {
-            assert!(reason.contains("in_progress"), "{reason}");
+            assert!(reason.contains("roadmap item is still open"), "{reason}");
             assert!(reason.contains("roadmap_complete_chunk"), "{reason}");
         }
         other => panic!("expected Block, got {other:?}"),
@@ -93,24 +87,22 @@ fn stop_blocks_a_shipped_objective_whose_chunk_is_still_in_progress() {
 }
 
 #[test]
-fn stop_joins_both_reasons() {
+fn stop_guidance_preserves_unrelated_changes_and_never_requests_exports() {
     let input = GuardInput {
-        git_dirty: true,
         chunk_in_progress: true,
         ..shipped()
     };
-    match evaluate(GuardEvent::Stop, &input) {
-        GuardVerdict::Block(reason) => {
-            assert!(reason.contains("uncommitted") && reason.contains("in_progress"));
-        }
-        other => panic!("expected Block, got {other:?}"),
-    }
+    let GuardVerdict::Block(reason) = evaluate(GuardEvent::Stop, &input) else {
+        panic!("the objective's own chunk must be closed");
+    };
+    assert!(reason.contains("Preserve unrelated changes"), "{reason}");
+    assert!(!reason.contains("stage everything"), "{reason}");
+    assert!(!reason.contains("ROADMAP"), "{reason}");
 }
 
 #[test]
 fn stop_never_blocks_twice_in_one_turn() {
     let input = GuardInput {
-        git_dirty: true,
         stop_hook_active: true,
         ..shipped()
     };

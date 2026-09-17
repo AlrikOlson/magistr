@@ -70,6 +70,7 @@ fn input() -> JudgeInput {
         title: "Refresh tokens rotate before expiry".to_owned(),
         acceptance: vec!["A token within 60s of expiry is refreshed".to_owned()],
         gates: Vec::new(),
+        recorded_checks: Vec::new(),
         transcript_tail: "done".to_owned(),
         iteration: (1, 3),
     }

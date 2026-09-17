@@ -381,6 +381,10 @@ fn legacy_workflow_upgrade_installs_only_its_missing_runtime_dependency() {
     );
     let manifest = super::super::manifest::ScaffoldManifest::load(tmp.path());
     assert!(!manifest.is_customized(runtime, &owned(runtime)));
+    let content = std::fs::read_to_string(tmp.path().join(runtime)).unwrap();
+    assert!(content.contains("verification: \"focused\""));
+    assert!(content.contains("preserve unrelated edits"));
+    assert!(content.contains("must not widen focused verification"));
     assert!(!tmp.path().join(".claude/skills/init/SKILL.md").exists());
     assert!(!tmp.path().join(".agents").exists());
     assert!(repair(tmp.path()).is_empty());

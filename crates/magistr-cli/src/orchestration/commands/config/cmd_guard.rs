@@ -3,7 +3,7 @@
 //!
 //! Reads the hook's JSON on stdin (only when stdin is not a terminal), the
 //! ship/roadmap state through the in-process think-and-ship engines, the
-//! working tree and the project's frozen-tree declaration
+//! project's frozen-tree declaration
 //! (`.magistr/legacy-gui-ratchet.json`), then exits 2 with the reason on
 //! stderr to block the event. A project without the native roadmap backend
 //! is never blocked.
@@ -36,7 +36,6 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
         .as_deref()
         .and_then(|raw| relative_write_path(&[&dir, &given_dir], raw));
     input.frozen = read_frozen(&dir);
-    input.git_dirty = git_dirty(&dir);
 
     match crate::roadmap::open_native_reader(&dir) {
         Some(engines) => {
@@ -214,22 +213,17 @@ pub(crate) fn apply_engine_state(
                 .collect()
         })
         .unwrap_or_default();
-    input.chunk_in_progress = roadmap["chunks"]
-        .as_array()
-        .is_some_and(|chunks| chunks.iter().any(|c| c["status"] == "in_progress"));
-}
-
-/// `git status --porcelain` printed anything. A missing git or a directory
-/// outside a repository counts as clean — the guard never blocks on its own
-/// inability to look.
-fn git_dirty(dir: &Path) -> bool {
-    std::process::Command::new("git")
-        .args(["status", "--porcelain"])
-        .current_dir(dir)
-        .output()
-        .ok()
-        .filter(|out| out.status.success())
-        .is_some_and(|out| !out.stdout.iter().all(u8::is_ascii_whitespace))
+    input.chunk_in_progress = input
+        .objective_scope
+        .as_deref()
+        .and_then(|scope| scope.strip_prefix("chunk:"))
+        .is_some_and(|id| {
+            roadmap["chunks"].as_array().is_some_and(|chunks| {
+                chunks
+                    .iter()
+                    .any(|c| c["id"] == id && c["status"] == "in_progress")
+            })
+        });
 }
 
 #[cfg(test)]
