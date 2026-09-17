@@ -1,4 +1,5 @@
 use super::*;
+use crate::scaffold::FileAction;
 
 use tempfile::TempDir;
 

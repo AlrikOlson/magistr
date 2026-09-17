@@ -5,28 +5,29 @@
 
 use std::path::Path;
 
-use super::{FileAction, PlannedChange};
+use super::{AdminOperation, AdminService, ApplyReceipt, FileAction, PlannedChange};
 use crate::error::{MagistrError, Result};
 
 /// Apply only the approved files from a scaffold preview.
 ///
-/// Checks every selected target against the captured preview before writing.
-/// A stale target rejects the whole batch without creating files or directories.
-/// Successful regular scaffold writes update the ownership manifest, so later
-/// initialization can distinguish template upgrades from user edits.
-///
-/// Creates necessary directories and sets shell-script permissions (Unix only).
-/// This preflight does not lock out concurrent writers or roll back IO failures.
-///
-/// Returns the list of paths that were written.
-pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<Vec<String>> {
+/// A reviewer approved this batch as one preview, so the whole batch is
+/// checked against the captured preview before anything is written: a
+/// selected target that changed since rejects the batch without creating
+/// files or directories, and the preview is regenerated and reviewed again.
+/// The approved changes are then applied through the [`AdminService`], which
+/// revalidates each target once more at its own write and answers a receipt
+/// per change; a write that fails is reported in the receipt and the rest
+/// still apply. Successful regular scaffold writes update the ownership
+/// manifest, so later initialization can distinguish template upgrades from
+/// user edits.
+pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<ApplyReceipt> {
     let pending: Vec<_> = files
         .iter()
         .copied()
         .filter(|f| matches!(f.action, FileAction::Create | FileAction::Overwrite))
         .collect();
     if pending.is_empty() {
-        return Ok(Vec::new());
+        return Ok(ApplyReceipt::new(AdminOperation::Setup));
     }
 
     super::CodexSetup::validate_manifest(dir)?;
@@ -53,86 +54,39 @@ pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<Vec<String
     let selected: Vec<_> = pending.iter().map(|f| f.path.as_str()).collect();
     links.validate_selection(&selected)?;
 
-    // Validate the entire selected batch before creating even a directory.
-    // Reading errors are not evidence of absence.
-    for f in &pending {
-        let full = dir.join(&f.path);
-        let observed = links.read(dir, &f.path)?;
-        if super::CodexSetup::is_shared(&f.path) {
-            super::CodexSetup::record(&mut preview_manifest, f)?;
-        }
-        match std::fs::symlink_metadata(&full) {
-            Ok(metadata) if !metadata.is_file() && !links.covers(&f.path) => {
-                return Err(MagistrError::Other(format!(
-                    "Scaffold preview target {} is not a regular file. Review the target and regenerate the preview; no selected files were written.",
-                    f.path
-                )));
-            }
-            Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
-                return Err(MagistrError::io(&full, error));
-            }
-            _ => {}
-        }
-        let current = observed;
-        let expected_presence = f.action == FileAction::Overwrite;
-        if f.existing_content.is_some() != expected_presence || current != f.existing_content {
-            return Err(MagistrError::Other(format!(
-                "Scaffold preview is stale for {}. Regenerate the preview and review it again; no selected files were written.",
-                f.path
-            )));
-        }
-    }
-
-    links.migrate(dir, &selected)?;
-
     // Only regular scaffold files have whole-file ownership. Merged shared
     // files such as .mcp.json and .gitignore keep their own merge policies.
-    let owned: std::collections::HashSet<_> =
+    let mut owned: std::collections::HashSet<_> =
         super::scaffold_files(&std::collections::HashMap::new())
             .into_iter()
             .map(|f| f.path)
             .collect();
-    let mut owned = owned;
     owned.extend(
         super::workflow_skills::WorkflowSkills::codex_files()
             .into_iter()
             .map(|f| f.path),
     );
     owned.insert(".codex/run");
-    let mut manifest = super::manifest::ScaffoldManifest::load(dir);
-    let mut written = Vec::new();
-    for f in pending {
-        let full = dir.join(&f.path);
-        if let Some(parent) = full.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| MagistrError::io(parent, e))?;
-        }
-        std::fs::write(&full, &f.new_content).map_err(|e| MagistrError::io(&full, e))?;
+    let mut service = AdminService::open(dir, AdminOperation::Setup, owned).with_links(links);
 
+    // Validate the entire selected batch before creating even a directory.
+    for f in &pending {
         if super::CodexSetup::is_shared(&f.path) {
-            super::CodexSetup::record(&mut manifest, f)?;
-            manifest.save(dir)?;
+            super::CodexSetup::record(&mut preview_manifest, f)?;
         }
-        if super::CodexSetup::owned_path(&f.path) {
-            super::CodexSetup::mark_file(&mut manifest, &f.path);
+        if let Err(failure) = service.revalidate(f) {
+            return Err(MagistrError::Other(format!(
+                "Scaffold preview is stale for {} ({failure}). Regenerate the preview and review it again; no selected files were written.",
+                f.path
+            )));
         }
-
-        // Save each successful write's ownership even if a later write fails.
-        if owned.contains(f.path.as_str()) {
-            manifest.record(&f.path, &f.new_content);
-            manifest.save(dir)?;
-        }
-
-        #[cfg(unix)]
-        if super::is_executable_path(&f.path) {
-            use std::os::unix::fs::PermissionsExt;
-            let perms = std::fs::Permissions::from_mode(0o755);
-            std::fs::set_permissions(&full, perms).map_err(|e| MagistrError::io(&full, e))?;
-        }
-
-        written.push(f.path.clone());
     }
 
-    Ok(written)
+    service.migrate_links(&selected)?;
+    for f in pending {
+        service.execute(f);
+    }
+    Ok(service.finish())
 }
 
 #[cfg(test)]

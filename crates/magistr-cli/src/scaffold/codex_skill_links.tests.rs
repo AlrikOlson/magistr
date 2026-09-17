@@ -10,7 +10,20 @@ use std::path::{Path, PathBuf};
 #[cfg(unix)]
 fn repair_codex(dir: &Path) -> crate::error::Result<Vec<String>> {
     let changes = CodexSetup::repair_plan(dir)?;
-    CodexSetup::apply_repair(dir, &changes)
+    let owned = changes
+        .iter()
+        .map(|c| c.path.as_str())
+        .filter(|p| CodexSetup::owned_path(p));
+    let mut service =
+        crate::scaffold::AdminService::open(dir, crate::scaffold::AdminOperation::Repair, owned);
+    for change in &changes {
+        service.execute(change);
+    }
+    let receipt = service.finish();
+    match receipt.partial_error() {
+        Some(error) => Err(error),
+        None => Ok(receipt.applied_paths()),
+    }
 }
 
 const SKILLS: &[&str] = &[
@@ -168,7 +181,10 @@ fn selected_link_migration_preserves_claude_sources_and_claims_only_approved_fil
     let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
     let path = ".agents/skills/next/SKILL.md";
     let selected = planned.files.iter().find(|file| file.path == path).unwrap();
-    assert_eq!(apply_approved(dir, &[selected]).unwrap(), [path]);
+    assert_eq!(
+        apply_approved(dir, &[selected]).unwrap().applied_paths(),
+        [path]
+    );
     assert_eq!(snapshot(&dir.join(".claude")), claude_before);
     assert!(
         std::fs::symlink_metadata(dir.join(".agents/skills/next"))
@@ -219,7 +235,10 @@ fn craft_link_migration_requires_skill_and_runtime_companion_approval_together()
         assert_eq!(snapshot(dir), before);
     }
     let claude_before = snapshot(&dir.join(".claude"));
-    assert_eq!(apply_approved(dir, &craft).unwrap().len(), 2);
+    assert_eq!(
+        apply_approved(dir, &craft).unwrap().applied_paths().len(),
+        2
+    );
     assert_eq!(snapshot(&dir.join(".claude")), claude_before);
     for file in craft {
         assert_eq!(

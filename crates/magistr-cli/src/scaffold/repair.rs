@@ -8,8 +8,8 @@ use super::manifest::ScaffoldManifest;
 use super::update_policy::UpdatePolicy;
 use super::workbench_toml::WorkbenchSeed;
 use super::workflow_skills::WorkflowSkills;
-use super::{AdminOperation, ChangePlan, FileAction, Ownership, PlannedChange, Refusal};
-use crate::error::{MagistrError, Result};
+use super::{AdminOperation, AdminService, ChangePlan, Ownership, PlannedChange, Refusal};
+use crate::error::Result;
 
 /// Repair the scaffold artifacts magistr owns outright in `dir`, answering
 /// the paths that were rewritten (empty when there was nothing to do).
@@ -65,28 +65,35 @@ use crate::error::{MagistrError, Result};
 #[must_use]
 pub fn repair(dir: &Path) -> Vec<String> {
     let plan = plan(dir);
-    let mut manifest = ScaffoldManifest::load(dir);
-    let mut repaired = Vec::new();
+    // The runtime companion and the Codex target's files carry ownership
+    // records; the project-independent sweep never did and still does not.
+    let owned = plan
+        .files
+        .iter()
+        .map(|change| change.path.as_str())
+        .filter(|path| *path == WORKFLOW_RUNTIME || super::CodexSetup::owned_path(path));
+    let mut service = AdminService::open(dir, plan.operation, owned);
     let mut runtime_ready = true;
     for change in &plan.files {
         let path = change.path.as_str();
         if WorkflowSkills::is_claude_workflow(path) && !runtime_ready {
             continue;
         }
-        match execute(dir, change, &mut manifest) {
-            Ok(true) => repaired.push(change.path.clone()),
-            Ok(false) => {}
-            Err(error) => {
-                tracing::warn!(target: "magistr", %error, path, "could not repair");
-                if path == WORKFLOW_RUNTIME {
-                    // The companion the skills refer to did not land; leave
-                    // the skills at the version that does not need it.
-                    runtime_ready = false;
-                }
+        let receipt = service.execute(change);
+        if receipt.outcome.is_failed() {
+            tracing::warn!(target: "magistr", receipt = %receipt.describe(), "could not repair");
+            if path == WORKFLOW_RUNTIME {
+                // The companion the skills refer to did not land; leave
+                // the skills at the version that does not need it.
+                runtime_ready = false;
             }
         }
     }
-    repaired
+    let receipt = service.finish();
+    if receipt.manifest.is_failed() {
+        tracing::warn!(target: "magistr", outcome = %receipt.manifest, "could not record the repair");
+    }
+    receipt.applied_paths()
 }
 
 /// The repair `dir` needs, without writing: every owned file that exists
@@ -162,40 +169,6 @@ fn owned_change(
         Ok(content) => PlannedChange::merged(path, Some(current), content).owned_by(ownership),
         Err(refusal) => PlannedChange::refused(path, refusal, Some(current), ownership),
     })
-}
-
-/// Execute one repair change; answers whether the path was repaired.
-fn execute(dir: &Path, change: &PlannedChange, manifest: &mut ScaffoldManifest) -> Result<bool> {
-    let path = change.path.as_str();
-    if super::CodexSetup::owned_path(path) || super::CodexSetup::is_shared(path) {
-        return Ok(!super::CodexSetup::apply_repair(dir, std::slice::from_ref(change))?.is_empty());
-    }
-    let target = dir.join(path);
-    match change.action {
-        FileAction::Create => {
-            use std::io::Write;
-            if let Some(parent) = target.parent() {
-                std::fs::create_dir_all(parent).map_err(|error| MagistrError::io(parent, error))?;
-            }
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&target)
-                .map_err(|error| MagistrError::io(&target, error))?;
-            file.write_all(change.new_content.as_bytes())
-                .map_err(|error| MagistrError::io(&target, error))?;
-        }
-        FileAction::Overwrite => {
-            std::fs::write(&target, &change.new_content)
-                .map_err(|error| MagistrError::io(&target, error))?;
-        }
-        _ => return Ok(false),
-    }
-    if path == WORKFLOW_RUNTIME {
-        manifest.record(path, &change.new_content);
-        manifest.save(dir)?;
-    }
-    Ok(true)
 }
 
 const WORKFLOW_RUNTIME: &str = ".claude/skills/craft/references/runtime.md";

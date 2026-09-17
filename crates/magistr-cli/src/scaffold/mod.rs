@@ -22,8 +22,13 @@ pub(crate) mod workbench_drift;
 pub mod workbench_toml;
 
 mod admin_operation;
+mod admin_service;
+mod apply_failure;
+mod apply_outcome;
+mod apply_receipt;
 pub(crate) mod canonical;
 mod change_plan;
+mod change_receipt;
 mod codex_config;
 mod codex_emitter;
 mod codex_ownership;
@@ -36,6 +41,7 @@ mod generate;
 mod intent;
 mod managed_content;
 pub(crate) mod manifest;
+mod manifest_outcome;
 mod mcp_config;
 mod owned_removal;
 mod ownership;
@@ -52,7 +58,12 @@ mod vars;
 mod workflow_skills;
 
 pub use admin_operation::AdminOperation;
+pub use admin_service::AdminService;
+pub use apply_failure::ApplyFailure;
+pub use apply_outcome::ApplyOutcome;
+pub use apply_receipt::ApplyReceipt;
 pub use change_plan::ChangePlan;
+pub use change_receipt::ChangeReceipt;
 pub use codex_setup::CodexSetup;
 pub use default_scaffolder::DefaultScaffolder;
 pub use emitters::agents_present;
@@ -60,6 +71,7 @@ pub use expected::Expected;
 pub use file_action::FileAction;
 pub use generate::{GenerateResult, generate, generate_with_result};
 pub use intent::Intent;
+pub use manifest_outcome::ManifestOutcome;
 pub use ownership::Ownership;
 pub use planned_change::PlannedChange;
 pub use preview::preview;
@@ -235,7 +247,7 @@ pub(crate) fn legacy_rule_removals(dir: &Path) -> Vec<PlannedChange> {
 }
 
 /// MCP server keys that magistr manages. Used for both merge and removal.
-const MAGISTR_MCP_SERVERS: &[&str] = &["magistr", "workbench-mcp"];
+pub(super) const MAGISTR_MCP_SERVERS: &[&str] = &["magistr", "workbench-mcp"];
 
 /// MCP server keys magistr used to manage — or never should have been
 /// configured beside it — stripped whenever `.mcp.json` is merged or the
@@ -244,7 +256,8 @@ const MAGISTR_MCP_SERVERS: &[&str] = &["magistr", "workbench-mcp"];
 /// the same store: a standalone `think-and-ship serve` on the same project
 /// is a second process holding its own copy of the execution and roadmap
 /// state (tas-ship-state-two-servers).
-const LEGACY_MCP_SERVERS: &[&str] = &["magistr-scope", "iris", "ministr", "think-and-ship"];
+pub(super) const LEGACY_MCP_SERVERS: &[&str] =
+    &["magistr-scope", "iris", "ministr", "think-and-ship"];
 
 /// Whether an MCP server entry launches something from inside the working
 /// tree: its command or one of its arguments names an existing *file* in the
@@ -253,7 +266,7 @@ const LEGACY_MCP_SERVERS: &[&str] = &["magistr-scope", "iris", "ministr", "think
 /// and a re-init must not replace it with the installed binary. A stale
 /// generated entry's path arguments are directories (the project root
 /// itself), so it is still rewritten to the portable form.
-fn is_working_tree_entry(dir: &Path, entry: &serde_json::Value) -> bool {
+pub(super) fn is_working_tree_entry(dir: &Path, entry: &serde_json::Value) -> bool {
     let mut candidates: Vec<&str> = Vec::new();
     if let Some(cmd) = entry.get("command").and_then(|v| v.as_str()) {
         candidates.push(cmd);
@@ -384,79 +397,11 @@ pub(crate) fn mcp_json_change(dir: &Path, vars: &HashMap<String, String>) -> Res
     Ok(PlannedChange::merged(".mcp.json", existing_str, merged))
 }
 
-/// Remove only magistr-managed MCP server entries from `.mcp.json`.
-pub(crate) fn remove_jig_mcp_entries(dir: &Path) -> Result<()> {
-    let mcp_path = dir.join(".mcp.json");
-    if !mcp_path.exists() {
-        return Ok(());
-    }
-
-    let content = match std::fs::read_to_string(&mcp_path) {
-        Ok(c) => c,
-        Err(_) => return Ok(()),
-    };
-
-    let mut doc: serde_json::Value = match serde_json::from_str(&content) {
-        Ok(v) => v,
-        Err(_) => return Ok(()),
-    };
-
-    let modified = if let Some(obj) = doc.as_object_mut() {
-        if let Some(servers) = obj.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
-            let before = servers.len();
-            for key in MAGISTR_MCP_SERVERS.iter().chain(LEGACY_MCP_SERVERS) {
-                // A managed key whose entry launches from the working tree
-                // (the dogfooding case) is the user's deliberate choice, not
-                // magistr's output — removal must leave it, or a re-init's
-                // merge never even sees the entry it is meant to preserve.
-                if servers
-                    .get(*key)
-                    .is_some_and(|e| is_working_tree_entry(dir, e))
-                {
-                    continue;
-                }
-                servers.remove(*key);
-            }
-            servers.len() != before
-        } else {
-            false
-        }
-    } else {
-        false
-    };
-
-    if !modified {
-        return Ok(());
-    }
-
-    let should_delete = doc
-        .as_object()
-        .map(|obj| {
-            let servers_empty = obj
-                .get("mcpServers")
-                .and_then(|v| v.as_object())
-                .is_some_and(|m| m.is_empty());
-            servers_empty && obj.len() == 1
-        })
-        .unwrap_or(false);
-
-    if should_delete {
-        let _ = std::fs::remove_file(&mcp_path);
-    } else {
-        let pretty = format!(
-            "{}\n",
-            serde_json::to_string_pretty(&doc).with_context(MagistrError::Config)?
-        );
-        std::fs::write(&mcp_path, pretty.as_bytes()).map_err(|e| MagistrError::io(&mcp_path, e))?;
-    }
-
-    Ok(())
-}
-
 // ── Gitignore merge ────────────────────────────────────────────────
 
-const GITIGNORE_SECTION_START: &str = "# ── magistr managed ── DO NOT EDIT between markers ──";
-const GITIGNORE_SECTION_END: &str = "# ── end magistr ──";
+pub(super) const GITIGNORE_SECTION_START: &str =
+    "# ── magistr managed ── DO NOT EDIT between markers ──";
+pub(super) const GITIGNORE_SECTION_END: &str = "# ── end magistr ──";
 
 fn gitignore_content(language: &str) -> &'static str {
     match language {
@@ -566,45 +511,6 @@ fn format_gitignore_section(body: &str) -> String {
     format!("{GITIGNORE_SECTION_START}\n{body}\n{GITIGNORE_SECTION_END}\n")
 }
 
-pub(crate) fn remove_magistr_gitignore_entries(dir: &Path) -> Result<()> {
-    let gi_path = dir.join(".gitignore");
-    if !gi_path.exists() {
-        return Ok(());
-    }
-
-    let content = match std::fs::read_to_string(&gi_path) {
-        Ok(c) => c,
-        Err(_) => return Ok(()),
-    };
-
-    let has_start = content.contains(GITIGNORE_SECTION_START);
-    let has_end = content.contains(GITIGNORE_SECTION_END);
-
-    if !has_start || !has_end {
-        return Ok(());
-    }
-
-    let start_pos = content.find(GITIGNORE_SECTION_START).unwrap();
-    let end_pos = content.find(GITIGNORE_SECTION_END).unwrap();
-    let end_line_end = content[end_pos..]
-        .find('\n')
-        .map(|i| end_pos + i + 1)
-        .unwrap_or(content.len());
-
-    let before = &content[..start_pos];
-    let after = &content[end_line_end..];
-    let result = format!("{before}{after}");
-    let trimmed = result.trim();
-
-    if trimmed.is_empty() {
-        let _ = std::fs::remove_file(&gi_path);
-    } else {
-        std::fs::write(&gi_path, result.as_bytes()).map_err(|e| MagistrError::io(&gi_path, e))?;
-    }
-
-    Ok(())
-}
-
 /// Generate a unified diff between old and new content for a given file path.
 pub(crate) fn unified_diff(path: &str, old: &str, new: &str) -> String {
     use similar::TextDiff;
@@ -686,24 +592,6 @@ pub(crate) fn plan_template_plugins(
         }
     }
     changes
-}
-
-/// Write the template-plugin changes a plan applies. Best-effort, as
-/// before: a destination that cannot be written is left out of the answer.
-pub(crate) fn apply_template_plugins(dir: &Path, changes: &[PlannedChange]) -> Vec<String> {
-    let mut written = Vec::new();
-    for change in changes.iter().filter(|c| c.action.is_applied()) {
-        let dest_path = dir.join(&change.path);
-        if let Some(parent) = dest_path.parent()
-            && std::fs::create_dir_all(parent).is_err()
-        {
-            continue;
-        }
-        if std::fs::write(&dest_path, &change.new_content).is_ok() {
-            written.push(change.path.clone());
-        }
-    }
-    written
 }
 
 #[cfg(test)]

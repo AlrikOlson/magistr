@@ -67,9 +67,10 @@ This delivers the frozen native workflow portion of the project-configuration
 refactor; the [project inputs](#project-inputs) below deliver the
 project/preset/provider/plugin/workspace portion and the
 [administrative change plan](#administrative-change-plan) the reviewable
-setup, repair and removal plan. Application-time revalidation with
-partial-outcome receipts, and effective configuration/policy digests in
-verification applicability, remain separate roadmap work. This configuration
+setup, repair and removal plan and its
+[application](#application-and-receipts) with revalidation and per-change
+receipts. Effective configuration/policy digests in verification
+applicability remain separate roadmap work. This configuration
 provenance is not a source digest, workflow revision, owner generation or
 receipt. Protected workspace edits and human-owned command admission remain
 enforced by their existing owners.
@@ -130,8 +131,9 @@ Codex removal — is computed before it is written, as one
 plan is what the preview shows and what the writer executes: `magistr init
 --dry-run` (plain, JSON and the interactive approval), the `magistr_init`
 tool's `dry_run` mode, `repair::plan` and `CodexSetup::removal_plan` all
-render it, and `generate_with_result`, `repair::repair` and
-`CodexSetup::remove_target` execute the plan they just computed. Explicit
+render it, and `generate_with_result`, `apply_approved`, `repair::repair` and
+`CodexSetup::remove_target` execute the plan they just computed through the
+one [administrative service](#application-and-receipts). Explicit
 destructive reset (`magistr reset`, `remove_scaffold`) is deliberately not
 planned here and stays a separate act.
 
@@ -167,9 +169,45 @@ that is missing or unreadable refuses its paths; the embedded copy is never
 written in its place. Ordinary projects carry no canonical inputs and keep
 the embedded upgrades.
 
-What this chunk does not do: execution still preflights the plan once and
-writes change by change without locking out concurrent writers or
-revalidating each target's expected state at write time, and generation
-reports created/updated/unchanged/preserved/removed/refused rather than a
-per-outcome receipt. Application with expected-state checks and partial
-outcome receipts is `audit-260912-16-admin-apply`.
+### Application and receipts
+
+Every plan is applied by
+[AdminService](../../crates/magistr-cli/src/scaffold/admin_service.rs), one
+change at a time, and answers an
+[ApplyReceipt](../../crates/magistr-cli/src/scaffold/apply_receipt.rs). An
+administrative write is therefore always an explicit act for a named
+operation (setup, repair or removal) on a plan that was computed first; an
+agent session's source writes never reach it, because they take the
+admitted workspace's [source route](clients.md) or are refused, and the
+`native-write-path` gate (rule 13) keeps every other file under the scaffold
+module from writing the filesystem at all. Human-owned `workbench.toml`
+`[commands]` tables, source policy, the legacy `.magistr`/`.jig` state
+namespaces and the roadmap export denials are outside every plan and stay
+untouched.
+
+Immediately before each write the service revalidates the target against
+the plan's expected state: a create opens the file with `create_new`, so a
+file that appeared since planning fails rather than being overwritten; an
+overwrite re-reads the target, writes a temporary file beside it and renames
+it into place, keeping the target's mode (or 0755 by the executable path
+rule), so a write that fails part-way leaves no half-written file; a removal
+re-reads the target first. A path a legacy Codex skill link covers is
+checked to hold nothing once the link is detached, since the Claude source
+the plan read it through may have been rewritten by the same plan.
+
+Each planned change gets one outcome — `applied`, `skipped` with the plan's
+reason, `refused` with the plan's reason, or `failed` with its cause: the
+target changed after planning (expected and found state), the target could
+no longer be revalidated (not a regular file, unreadable), or the write
+itself failed — and a failed change is left as found while the remaining
+changes are still applied. Ownership records are saved after every change
+that needs one; a save that fails is the receipt's manifest outcome, reported
+beside the file outcomes rather than lost. Nothing claims the batch was
+atomic: `generate`, the interactive approval and Codex removal answer a
+partial receipt as an error that names what failed, what the manifest did
+and what was applied before that; `generate_with_result` carries the same in
+its `failed` and `manifest` fields; startup repair logs it and stays
+non-fatal. Selective apply still checks a reviewed batch as a whole before
+the first write — a stale selected target sends the reviewer back to a fresh
+preview rather than applying part of what they approved — and then applies
+through the same service.

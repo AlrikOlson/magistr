@@ -86,7 +86,9 @@ ownership rules so refresh and removal can preserve user changes; setup,
 repair and owned removal each compute one
 [administrative change plan](configuration.md#administrative-change-plan)
 (expected state, ownership, apply/skip/refuse intent per path) and execute
-exactly that plan, so the dry-run preview is what is written.
+exactly that plan through one administrative service that revalidates each
+target at its write and answers a per-change receipt, so the dry-run preview
+is what is written and a partial outcome is reported as one.
 
 ## Sessions and interfaces
 

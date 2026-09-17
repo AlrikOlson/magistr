@@ -1,5 +1,5 @@
 use super::{
-    FileAction, PlannedChange, codex_config::CodexConfig, managed_content::ManagedContent,
+    PlannedChange, codex_config::CodexConfig, managed_content::ManagedContent,
     manifest::ScaffoldManifest,
 };
 use crate::error::{MagistrError, Result};
@@ -200,40 +200,6 @@ impl CodexSetup {
         Ok(changes)
     }
 
-    /// Write a repair plan's Codex changes, recording ownership per write,
-    /// and answer the paths repaired (an unchanged launcher that regained
-    /// its execute bits counts).
-    pub(super) fn apply_repair(dir: &Path, changes: &[PlannedChange]) -> Result<Vec<String>> {
-        let mut manifest = ScaffoldManifest::load(dir);
-        let mut repaired = Vec::new();
-        for f in changes {
-            let path = dir.join(&f.path);
-            match f.action {
-                FileAction::Overwrite => {
-                    std::fs::write(&path, &f.new_content)
-                        .map_err(|e| MagistrError::io(&path, e))?;
-                    if super::is_executable_path(&f.path) {
-                        Self::ensure_executable(&path)?;
-                    }
-                    if Self::is_shared(&f.path) {
-                        Self::record(&mut manifest, f)?;
-                    } else {
-                        manifest.record(&f.path, &f.new_content);
-                    }
-                    manifest.save(dir)?;
-                    repaired.push(f.path.clone());
-                }
-                FileAction::Unchanged
-                    if super::is_executable_path(&f.path) && Self::ensure_executable(&path)? =>
-                {
-                    repaired.push(f.path.clone());
-                }
-                _ => {}
-            }
-        }
-        Ok(repaired)
-    }
-
     /// The owned removal of a present Codex target: its shared components
     /// restored to the user's values and its recorded, unchanged skills and
     /// launcher removed; customized, unrecorded and non-regular paths are
@@ -253,39 +219,37 @@ impl CodexSetup {
         Ok(plan)
     }
 
-    /// Remove only recorded unchanged Codex components and skills; retain native project state.
+    /// Remove only recorded unchanged Codex components and skills; retain
+    /// native project state. The removal plan is applied through the
+    /// [`AdminService`](super::AdminService): each removal is revalidated
+    /// before it happens, and a path that changed since planning is left as
+    /// found and reported. Answers the paths changed; a partial removal is
+    /// an error that names what failed and what was removed before it.
     pub fn remove_target(dir: &Path) -> Result<Vec<String>> {
         let plan = Self::removal_plan(dir)?;
-        let mut manifest = ScaffoldManifest::load(dir);
-        if !manifest.codex.as_ref().is_some_and(|o| o.selected) {
+        let mut service = super::AdminService::open(dir, plan.operation, Vec::<String>::new());
+        if !service
+            .manifest()
+            .codex
+            .as_ref()
+            .is_some_and(|o| o.selected)
+        {
             return Ok(Vec::new());
         }
-        let mut changed = Vec::new();
-        for f in plan
-            .files
-            .iter()
-            .filter(|f| f.action == FileAction::Overwrite)
-        {
-            let path = dir.join(&f.path);
-            std::fs::write(&path, &f.new_content).map_err(|e| MagistrError::io(&path, e))?;
-            changed.push(f.path.clone());
+        for f in &plan.files {
+            service.execute(f);
         }
-        {
-            let mut removal = super::owned_removal::OwnedRemoval::new(dir, &manifest);
-            for f in plan.files.iter().filter(|f| f.action == FileAction::Remove) {
-                removal.remove(&f.path)?;
-                if !dir.join(&f.path).exists() {
-                    changed.push(f.path.clone());
-                }
-            }
-            removal.prune();
-        }
-        for path in Self::removal_paths(&manifest) {
+        let retired = Self::removal_paths(service.manifest());
+        let manifest = service.manifest_mut();
+        for path in retired {
             manifest.files.remove(&path);
         }
         manifest.codex = None;
-        manifest.save(dir)?;
-        Ok(changed)
+        let receipt = service.finish();
+        match receipt.partial_error() {
+            Some(error) => Err(error),
+            None => Ok(receipt.applied_paths()),
+        }
     }
 
     pub(super) fn mark_file(manifest: &mut ScaffoldManifest, path: &str) {
@@ -320,7 +284,7 @@ impl CodexSetup {
     /// The shared components with magistr's entries removed and the user's
     /// original values restored. Both are prepared before either is written:
     /// malformed TOML/markers leave all artifacts intact.
-    fn shared_removal_changes(
+    pub(super) fn shared_removal_changes(
         dir: &Path,
         owned: &super::codex_ownership::CodexOwnership,
     ) -> Result<Vec<PlannedChange>> {
@@ -340,46 +304,6 @@ impl CodexSetup {
             changes.push(preview(AGENTS, Some(old), new));
         }
         Ok(changes)
-    }
-
-    pub(super) fn remove_shared(dir: &Path, manifest: &ScaffoldManifest) -> Result<Vec<String>> {
-        let Some(owned) = &manifest.codex else {
-            return Ok(Vec::new());
-        };
-        let mut changed = Vec::new();
-        for f in Self::shared_removal_changes(dir, owned)? {
-            if f.action == FileAction::Overwrite {
-                let path = dir.join(&f.path);
-                std::fs::write(&path, &f.new_content).map_err(|e| MagistrError::io(&path, e))?;
-                changed.push(f.path);
-            }
-        }
-        Ok(changed)
-    }
-
-    pub(super) fn ensure_executable(path: &Path) -> Result<bool> {
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let metadata =
-                std::fs::symlink_metadata(path).map_err(|e| MagistrError::io(path, e))?;
-            if !metadata.is_file() {
-                return Err(MagistrError::Config(
-                    "launcher must be a regular file".into(),
-                ));
-            }
-            let mut permissions = metadata.permissions();
-            let mode = permissions.mode();
-            if mode & 0o111 != 0o111 {
-                permissions.set_mode(mode | 0o111);
-                std::fs::set_permissions(path, permissions)
-                    .map_err(|e| MagistrError::io(path, e))?;
-                return Ok(true);
-            }
-        }
-        #[cfg(not(unix))]
-        let _ = path;
-        Ok(false)
     }
 
     pub(super) fn validate_manifest(dir: &Path) -> Result<()> {
