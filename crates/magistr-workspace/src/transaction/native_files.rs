@@ -98,6 +98,9 @@ impl NativeFiles {
 
     /// Each replacement is atomic; an error after rename (for example directory
     /// sync) may nevertheless have changed the file and requires read-back.
+    /// Missing parents of a written file are created on the admitted path
+    /// first and appended to `created` (outermost first) before any swap, so
+    /// a failure after creation still leaves them recorded for compensation.
     pub fn replace(
         &self,
         policy: &WorkspacePolicy,
@@ -105,9 +108,18 @@ impl NativeFiles {
         admitted: &Path,
         content: Option<&FileContent>,
         permissions: Option<&fs::Permissions>,
+        created: &mut Vec<PathBuf>,
     ) -> Result<(), TransactionError> {
         if self.resolve(policy, path)? != admitted {
             return Err(TransactionError::StaleAnchor(path.into()));
+        }
+        let parent = admitted
+            .parent()
+            .ok_or_else(|| TransactionError::Io("missing target parent".into()))?;
+        if content.is_some() {
+            created.extend(
+                super::created_parents::create_missing_parents(&self.root, parent).map_err(io)?,
+            );
         }
         #[cfg(unix)]
         {
@@ -115,11 +127,7 @@ impl NativeFiles {
         }
         #[cfg(not(unix))]
         {
-            let parent = admitted
-                .parent()
-                .ok_or_else(|| TransactionError::Io("missing target parent".into()))?;
             if let Some(content) = content {
-                fs::create_dir_all(parent).map_err(io)?;
                 let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(io)?;
                 temporary.write_all(content.as_bytes()).map_err(io)?;
                 if let Some(permissions) = permissions {

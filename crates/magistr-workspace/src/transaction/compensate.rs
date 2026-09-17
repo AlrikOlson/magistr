@@ -2,11 +2,13 @@ use super::{
     FileDisposition, PreparedTransaction, TransactionOutcome, TransactionStatus,
     WorkspaceTransactions,
 };
+use std::path::{Path, PathBuf};
 
 pub(super) fn compensate(
     service: &WorkspaceTransactions<'_>,
     prepared: &PreparedTransaction,
     attempted: &[bool],
+    created: &[Vec<PathBuf>],
     result: &mut TransactionOutcome,
 ) {
     let mut observed_applied = vec![false; prepared.preview.len()];
@@ -52,6 +54,7 @@ pub(super) fn compensate(
             path,
             snapshot.content.as_ref(),
             snapshot.permissions.as_ref(),
+            &mut Vec::new(),
         );
         #[cfg(test)]
         let replacement = replacement.and_then(|()| {
@@ -70,6 +73,11 @@ pub(super) fn compensate(
             ));
         }
     }
+    #[cfg(test)]
+    if let Some(hook) = &service.faults.before_directory_cleanup {
+        hook();
+    }
+    remove_created_directories(&service.files.root, created, result);
     result.status = TransactionStatus::Failed;
     // Re-observe every target, including a failed rename and untouched siblings.
     // Never infer source state from the journal or from a compensation return code.
@@ -95,6 +103,33 @@ pub(super) fn compensate(
             Ok(_) | Err(_) => {
                 file.disposition = FileDisposition::Indeterminate;
                 result.status = TransactionStatus::Indeterminate;
+            }
+        }
+    }
+}
+/// Remove the directories this batch created, innermost first, only while
+/// they are still empty. The non-recursive removal refuses a directory that
+/// gained entries meanwhile, so a concurrent addition or an unrestored file
+/// keeps its parent; the first such directory in a chain is named and the
+/// chain's ancestors, which cannot be empty, are left without a second note.
+fn remove_created_directories(
+    root: &Path,
+    created: &[Vec<PathBuf>],
+    result: &mut TransactionOutcome,
+) {
+    for chain in created.iter().rev() {
+        for directory in chain.iter().rev() {
+            match std::fs::remove_dir(directory) {
+                Ok(()) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => {
+                    let relative = directory.strip_prefix(root).unwrap_or(directory);
+                    result.notes.push(format!(
+                        "{}: compensation left a directory it created: {error}",
+                        relative.display()
+                    ));
+                    break;
+                }
             }
         }
     }

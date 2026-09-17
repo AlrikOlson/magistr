@@ -548,8 +548,14 @@ intent before any per-file atomic publication. Existing permissions are preserve
 Failure triggers reverse compensation and live rereads, including the failed
 target. The result distinguishes applied, rolled-back, unchanged, not-applied and
 indeterminate files, and includes errors when compensation or durable outcome
-recording fails. Multi-file atomicity is not claimed. Parent directories must
-already exist; c7 owns directory/trash/move semantics above these file changes.
+recording fails. Multi-file atomicity is not claimed. Missing parents of a
+written file are created on the admitted path one component at a time and the
+swap records exactly the directories it made; compensation removes them
+innermost first with a non-recursive removal, so a directory that existed
+before the batch or that gained entries meanwhile is never removed, and every
+directory it could not remove is named in the outcome notes
+(`audit-260912-23-rollback-directories`). c7 owns directory/trash/move
+semantics above these file changes.
 
 The first native intent atomically migrates journal v2 to **native v3**, adding
 `native_write_intents` and `native_intent_undo` without rewriting retained rows

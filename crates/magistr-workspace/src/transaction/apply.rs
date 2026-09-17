@@ -78,13 +78,20 @@ pub(super) fn apply(
     result.notes.extend(appended.notes);
     result.notes.push("journal sequence records durable intent; the receipt and resolved outcome determine application".into());
     let mut attempted = vec![false; prepared.preview.len()];
+    let mut created = vec![Vec::new(); prepared.preview.len()];
     for (index, preview) in prepared.preview.iter().enumerate() {
         if preview.before == preview.after {
             continue;
         }
-        if let Err(error) = swap(service, &prepared, index, &mut attempted[index]) {
+        if let Err(error) = swap(
+            service,
+            &prepared,
+            index,
+            &mut attempted[index],
+            &mut created[index],
+        ) {
             result.error = Some(error);
-            compensate::compensate(service, &prepared, &attempted, &mut result);
+            compensate::compensate(service, &prepared, &attempted, &created, &mut result);
             let outcome = if result.status == TransactionStatus::Failed {
                 JournalWriteOutcome::RolledBack
             } else {
@@ -140,6 +147,7 @@ fn swap(
     prepared: &PreparedTransaction,
     index: usize,
     attempted: &mut bool,
+    created: &mut Vec<std::path::PathBuf>,
 ) -> Result<(), TransactionError> {
     let change = &prepared.request.changes[index];
     let snapshot = &prepared.snapshots[index];
@@ -159,6 +167,7 @@ fn swap(
         path,
         prepared.preview[index].after.as_ref(),
         snapshot.permissions.as_ref(),
+        created,
     )?;
     #[cfg(test)]
     if service.faults.after_swap_at == Some(index) {

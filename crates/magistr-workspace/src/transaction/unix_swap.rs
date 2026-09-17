@@ -11,9 +11,9 @@ use std::{
 };
 
 // Pin every directory component without following symlinks, then create and
-// rename the sibling temporary by descriptor. Missing parents of a written
-// file are created on the admitted path first; deletion never unlinks, it
-// renames into the workspace trash so the bytes remain a physical artifact.
+// rename the sibling temporary by descriptor. The caller has already created
+// and recorded any missing parents of a written file; deletion never unlinks,
+// it renames into the workspace trash so the bytes remain a physical artifact.
 pub(super) fn replace(
     root: &Path,
     path: &Path,
@@ -24,9 +24,6 @@ pub(super) fn replace(
     parent
         .strip_prefix(root)
         .map_err(|_| io::Error::other("outside root"))?;
-    if content.is_some() && !parent.exists() {
-        std::fs::create_dir_all(parent)?;
-    }
     let directory = open_parent(parent)?;
     let target = name(
         path.file_name()
