@@ -155,6 +155,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/dag_layout.rs` | Deterministic layered DAG layout with virtual routing vertices and crossing reduction | `magistr-cockpit/src/cockpit/dag_layout.tests.rs` |
 | `magistr-cockpit/src/cockpit/dag_node.rs` | One node of the roadmap's tech-tree, placed on the cell grid | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/dag_path.rs` | A routed dependency edge through the layered roadmap layout | `magistr-cockpit/src/cockpit/dag_layout.tests.rs` |
+| `magistr-cockpit/src/cockpit/decision.rs` | Permission and confirmation interaction: the decision state (conditional register, scroll, seen, stood-down), the semantic intents, the one reducer every key, click and `Msg::Decision` reaches, and the moment/review/ask selectors | `magistr-cockpit/src/cockpit/decision.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/diff_layout.rs` | Width thresholds for diff display modes | `magistr-cockpit/src/cockpit/diff_layout.tests.rs` |
 | `magistr-cockpit/src/cockpit/density.rs` | Row height and padding for comfortable and compact density | `magistr-cockpit/src/cockpit/settings.tests.rs` |
 | `magistr-cockpit/src/cockpit/dock.rs` | State for pending user actions in the dock | `magistr-cockpit/src/cockpit/dock.tests.rs` |

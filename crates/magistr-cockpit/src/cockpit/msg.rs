@@ -1,6 +1,7 @@
 //! Everything that can change the model.
 
 use super::checkpoint_event::CheckpointEvent;
+use super::decision::DecisionIntent;
 use super::loop_event::LoopEvent;
 use super::size::Size;
 use super::workbench_event::WorkbenchEvent;
@@ -35,6 +36,12 @@ pub enum Msg {
     },
     /// Pasted text.
     Paste(String),
+    /// A semantic action on the decision in front — what a key or a
+    /// button *means*, raised directly: a desktop's accessibility
+    /// action, a spoken command, a test. The key and pointer folds
+    /// produce the same intents, so every route to an answer is this
+    /// one.
+    Decision(DecisionIntent),
     /// A file or folder dropped on the window from the desktop — the
     /// Finder drag makes Birth's door: the path lands as
     /// the ground, wherever the camera was.

@@ -4066,11 +4066,11 @@ fn cancelling_a_permission_removes_its_card_without_claiming_a_timeout_denial() 
     let mut m = model();
     agent(&mut m, request(1, "Bash"));
     agent(&mut m, request(2, "Edit main.rs"));
-    m.stood_down = Some(2);
+    m.decision.stand_down(2);
     agent(&mut m, AgentEvent::PermissionCancelled { id: 2 });
     assert_eq!(m.permissions_pending(), 1);
     assert_eq!(front_title(&m), Some("Bash"));
-    assert_eq!(m.stood_down, None);
+    assert!(!m.decision().is_stood_down(2));
     assert!(!stage(&m).join(" ").contains("denied after"));
     agent(&mut m, AgentEvent::PermissionCancelled { id: 1 });
     assert_eq!(m.permissions_pending(), 0);

@@ -201,12 +201,12 @@ fn permission_scroll_is_bounded_and_the_answer_button_keeps_working_at_the_end()
     );
     let viewport = model.viewport;
     FlightOverlays::scroll_permission(&mut model, isize::MAX);
-    let last = model.permission_scroll;
+    let last = model.decision().scroll();
     assert!(last > 0);
     FlightOverlays::scroll_permission(&mut model, 1);
-    assert_eq!(model.permission_scroll, last);
+    assert_eq!(model.decision().scroll(), last);
     FlightOverlays::scroll_permission(&mut model, -1);
-    assert_eq!(model.permission_scroll, last - 1);
+    assert_eq!(model.decision().scroll(), last - 1);
     let node = permission_card(
         &model,
         model.moment().unwrap(),
@@ -215,7 +215,7 @@ fn permission_scroll_is_bounded_and_the_answer_button_keeps_working_at_the_end()
     let cmds = click(&mut model, node, Widget::Deny.id());
     assert!(!cmds.is_empty());
     assert!(model.moment().is_none());
-    assert_eq!(model.permission_scroll, 0);
+    assert_eq!(model.decision().scroll(), 0);
     assert_eq!(model.viewport, viewport);
     assert_eq!(model.prompt.text(), "Keep this draft");
 }

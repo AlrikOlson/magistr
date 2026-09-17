@@ -41,7 +41,7 @@ impl FlightDock {
             );
         }
         let text = lines(model, width);
-        let top = model.permission_scroll.min(text.len().saturating_sub(4));
+        let top = model.decision().scroll().min(text.len().saturating_sub(4));
         let mut body = Node::column().children(
             text.into_iter()
                 .skip(top)

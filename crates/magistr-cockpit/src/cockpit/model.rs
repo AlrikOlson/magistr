@@ -18,8 +18,8 @@ use super::chapter::Chapter;
 use super::checkpoint::Checkpoint;
 use super::completion::Completion;
 use super::dag_node::DagNode;
+use super::decision::Decision;
 use super::dock::Dock;
-use super::dock_item::DockItem;
 use super::galaxy_project::GalaxyProject;
 use super::hover_role::HoverRole;
 use super::kill_cmd::KillCmd;
@@ -33,7 +33,6 @@ use super::msg::Msg;
 use super::palette::Palette;
 use super::pane::Pane;
 use super::path_stop::PathStop;
-use super::permission::Permission;
 use super::phase::Phase;
 use super::place::Place;
 use super::projection::Projection;
@@ -143,9 +142,9 @@ pub struct Model {
     /// what it would kill and the step it was pressed at.
     pub(super) hold: Option<TermHold>,
     pub(super) prompt: Prompt,
-    pub(super) condition: Prompt,
-    pub(super) condition_open: bool,
-    pub(super) permission_scroll: usize,
+    /// The decision feature's state — the ask in front is on the dock,
+    /// everything the screen holds about answering it is here.
+    pub(super) decision: Decision,
     pub(super) completion: Option<Completion>,
     pub(super) workspace_files: Vec<String>,
     pub(super) dock: Dock,
@@ -198,7 +197,6 @@ pub struct Model {
     /// window shows [`Place::tab`], a terminal shows its tab and has no
     /// place.
     pub(super) place: Place,
-    pub(super) permissions_seen: u64,
     pub(super) frames: u64,
     pub(super) ticks: u64,
     /// How far into the current tick the frame being sampled is,
@@ -230,10 +228,6 @@ pub struct Model {
     /// The values the settings panes show and edit, whether or not
     /// the surface is up — the entry point fills them from the files.
     pub(super) settings_data: SettingsData,
-    /// The permission a Moment was stood down for (Esc on the card,
-    /// ): it waits on the dock's strip unanswered instead
-    /// of floating as the card, until it is answered from the strip.
-    pub(super) stood_down: Option<u64>,
     pub(super) quit_requested: bool,
     pub(super) focused: bool,
     pub(super) background: Option<Color>,
@@ -547,9 +541,7 @@ impl Model {
             term_dock: TermDock::new(),
             hold: None,
             prompt: Prompt::new(),
-            condition: Prompt::new(),
-            condition_open: false,
-            permission_scroll: 0,
+            decision: Decision::default(),
             completion: None,
             workspace_files: Vec::new(),
             dock: Dock::default(),
@@ -584,7 +576,6 @@ impl Model {
             reasoning_expanded: false,
             inspector_scroll: 0,
             place: Place::Session,
-            permissions_seen: 0,
             frames: 0,
             ticks: 0,
             tick_phase: 0.0,
@@ -601,7 +592,6 @@ impl Model {
             search: None,
             settings: None,
             settings_data: SettingsData::default(),
-            stood_down: None,
             quit_requested: false,
             focused: true,
             background: None,
@@ -1238,80 +1228,6 @@ impl Model {
         &self.dock
     }
 
-    /// The decision on screen, when one is: the front dock card, when
-    /// it is a permission that carries a plan.
-    ///
-    ///  third altitude. The Moment is a *decision*, not
-    /// every tool call — an ask with no plan stays the Needs-you dock's
-    /// one-line strip, which is what leaves every surface the cockpit
-    /// already draws exactly as it was.
-    #[must_use]
-    pub fn moment(&self) -> Option<&Permission> {
-        match self.dock.front() {
-            Some(DockItem::Permission(p)) if p.is_plan() && !self.is_stood_down(p) => Some(p),
-            _ => None,
-        }
-    }
-
-    /// Whether `p` is the ask a Moment was stood down for: it waits on
-    /// the dock's strip, not as the card.
-    fn is_stood_down(&self, p: &Permission) -> bool {
-        self.stood_down == Some(p.id())
-    }
-
-    /// The review on screen, when one is: the front dock card, when it
-    /// is an **edit** permission and the surface is a window.
-    ///
-    ///  "Review a change" — the other Moment. Two halves
-    /// to the predicate and each does a job the other cannot. *Edit* is
-    /// what makes the decision a review rather than an ask: a plan
-    /// approval is [`Model::moment`]'s card, and an edit is a diff
-    /// somebody has to read. *Native* is what leaves the terminal alone
-    /// — a cell cockpit has a Session view, a tab bar and the Needs-you
-    /// strip, so it is already steered at this altitude and its cell
-    /// diff is untouched; a window has none of those and the review is
-    /// the surface. Because the predicate itself is surface-gated,
-    /// "every terminal golden is byte-identical" is a property of the
-    /// wiring rather than of goldens agreeing.
-    #[must_use]
-    pub fn review(&self) -> Option<&Permission> {
-        if !self.surface.is_native() {
-            return None;
-        }
-        match self.dock.front() {
-            Some(DockItem::Permission(p)) if p.is_edit() && !self.is_stood_down(p) => Some(p),
-            _ => None,
-        }
-    }
-
-    /// The ask on screen, when one is: the front dock card, when it is
-    /// a **plain** permission — neither a plan nor an edit — the
-    /// surface is a window and the camera is at the Session.
-    ///
-    /// The third Moment. The terminal shows
-    /// a plain ask on its Needs-you strip; the window lays that strip
-    /// out nowhere, so without this an ask raised mid-loop
-    /// had no surface at all and sat until the transport's timeout.
-    /// Gated to the Session because that is the loop's stage and where
-    /// the answer keys already land; at the Galaxy and the Sky the ask
-    /// is the project's asking count and the star's *Stuck* — view 01's
-    /// capture carries a plan-less ask over a fully lit room, and a
-    /// scrim there would move it.
-    #[must_use]
-    pub fn ask(&self) -> Option<&Permission> {
-        if !self.surface.is_native() || self.place != Place::Session {
-            return None;
-        }
-        match self.dock.front() {
-            Some(DockItem::Permission(p))
-                if !p.is_plan() && !p.is_edit() && !self.is_stood_down(p) =>
-            {
-                Some(p)
-            }
-            _ => None,
-        }
-    }
-
     /// The checkpoint a review is scoped since — the row the reader is
     /// previewing when the port confirmed it (a checkpoint row's
     /// Preview, ), otherwise the newest state the port
@@ -1381,29 +1297,6 @@ impl Model {
     #[must_use]
     pub fn review_note(&self) -> Option<&str> {
         self.turn.last_thought()
-    }
-
-    /// The Moment's conditional-approval register — the line the
-    /// reader types a standing constraint into ("allow, stop if other
-    /// rows change").
-    ///
-    /// Its own buffer rather than the prompt's: the prompt is a turn
-    /// waiting to be sent to the agent, and a condition is an answer to
-    /// the question on screen. Sharing one would make Enter mean two
-    /// things at once.
-    #[must_use]
-    pub const fn condition(&self) -> &Prompt {
-        &self.condition
-    }
-
-    /// Whether keyboard input is being entered as a standing constraint.
-    ///
-    /// Tab opens the input explicitly, allowing text that starts with an approval
-    /// shortcut. Other non-shortcut keys open it directly. Once open, all keys
-    /// are treated as input text.
-    #[must_use]
-    pub const fn condition_open(&self) -> bool {
-        self.condition_open
     }
 
     /// The journal model's state: the journal, the last run, the viewer.
@@ -1942,19 +1835,6 @@ impl Model {
                 .saturating_sub(Self::NATIVE_IMAGE_MARGIN_ROWS)
                 .max(MAX_IMAGE_ROWS),
         }
-    }
-
-    /// How many permission requests wait for an answer.
-    #[must_use]
-    pub fn permissions_pending(&self) -> usize {
-        self.dock.permissions_pending()
-    }
-
-    /// Permission requests that reached the cockpit so far — the witness
-    /// that a session-wide *Always* kept the repeats away.
-    #[must_use]
-    pub const fn permissions_seen(&self) -> u64 {
-        self.permissions_seen
     }
 
     /// Show Session beside other views on wide terminals, without duplicating it.
