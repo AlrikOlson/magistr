@@ -1735,8 +1735,8 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
     );
     // The completion frame reached the cockpit's roadmap view.
     assert_eq!(
-        model.roadmap().chunk("work").map(|c| c.status.as_str()),
-        Some("done"),
+        model.roadmap().chunk("work").map(|c| c.state),
+        Some(magistr_cockpit::cockpit::ChunkState::Done),
         "the Roadmap tab folded the completion"
     );
     // A completion always names the task its evidence sits on: the one

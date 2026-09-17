@@ -1,6 +1,8 @@
 //! Browsable recorded work and roadmap items beside the conversation.
 use super::session_item::SessionItem;
-use super::{FlightStyle as S, Model, RoadmapSort, Selected, ShipMoment, StageTab, Widget};
+use super::{
+    ChunkState, FlightStyle as S, Model, RoadmapSort, Selected, ShipMoment, StageTab, Widget,
+};
 use crate::layout::{Align, Length, Node};
 
 /// Pixel list rows share their height with keyboard and wheel navigation.
@@ -205,13 +207,13 @@ fn work(model: &Model, s: &S, width: f32) -> Vec<Node> {
         .into_iter()
         .enumerate()
         .map(|(index, item)| {
-            let status = match item.status.as_str() {
-                "in_progress" => "In progress",
-                "done" => "Done",
-                "blocked" | "stuck" => "Blocked",
-                "backlog" => "Planned",
-                "obsoleted" => "Replaced",
-                _ => "Ready",
+            let status = match item.state {
+                ChunkState::InProgress => "In progress",
+                ChunkState::Done => "Done",
+                ChunkState::Blocked | ChunkState::Stuck => "Blocked",
+                ChunkState::Backlog => "Planned",
+                ChunkState::Obsoleted => "Replaced",
+                ChunkState::Pending => "Ready",
             };
             let note = item
                 .group
@@ -261,12 +263,21 @@ fn records(model: &Model, s: &S, width: f32) -> Vec<Node> {
                 SessionItem::Moment(_, ShipMoment::Action { description, .. }) => {
                     (description.clone(), "Action".into())
                 }
-                SessionItem::Moment(_, ShipMoment::Check { name, passed, .. }) => (
+                SessionItem::Moment(
+                    _,
+                    ShipMoment::Check {
+                        name,
+                        passed,
+                        verified,
+                        ..
+                    },
+                ) => (
                     name.clone(),
-                    if *passed {
-                        "Check passed".into()
-                    } else {
-                        "Check failed".into()
+                    match (*passed, *verified) {
+                        (true, true) => "Check passed".into(),
+                        (false, true) => "Check failed".into(),
+                        (true, false) => "Check passed · self-reported".into(),
+                        (false, false) => "Check failed · self-reported".into(),
                     },
                 ),
                 SessionItem::Change(_, change) => (

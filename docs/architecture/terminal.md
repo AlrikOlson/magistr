@@ -86,6 +86,29 @@ call's receipt reaches the spine's head by id, a call's terminal is held by id
 while its bytes stay with the terminals, and an edit asks the workbench for
 the journal rather than trusting the wire.
 
+Roadmap interaction has one owner, `cockpit::work`: opening and selecting work,
+graph movement, filtering and sorting, and start, complete, proposal and blocker
+commands. Selection persists by chunk id while row and graph positions are
+resolved at input time. `ChunkState` carries the six stored states and derives
+`Stuck` from in-progress work with a blocker; filters, cards, status words and
+graph rendering consume that enum.
+
+`cockpit::changes` owns the journal and its interaction. Expansion and review
+marks follow the journal's operation-and-path identity across refreshes and
+reordering. Undo names the whole operation; a refusal stays attached to that
+operation and appears in its details. An agent's proposed diff remains separate
+from the journal of applied changes. For the native workspace bridge,
+`McpWorkbench` lists through `undo action:list` on the same owner connection
+used for rewind; the legacy server retains its lock-free CLI listing.
+The live journal fixture proves agent writes, cockpit listing and rewind,
+external-edit conflict surfacing, and the agent's next write under the same
+owner generation.
+
+Recorded checks retain whether Magistr executed them. The details card and
+recorded-work list distinguish self-reported results, and details show when
+current results may be missing after a feed interruption. Refreshing the
+projection clears that notice without changing the check's evidence origin.
+
 Turn text retains both source lines and wrapped rows. Streaming updates rewrap
 the changed line; resizing recomputes wrapping. Flat mode can therefore read the
 same source text without reconstructing it from painted cells. Conversation

@@ -3,9 +3,9 @@
 use crate::cockpit::WorkbenchCmd;
 
 /// The ask behind `cmd` — `open <path>`, `undo <id>`, `journal`,
-/// `search <q>`, `map`, `run <command>` — as
-/// [`WorkbenchEvent::Failed`](crate::cockpit::WorkbenchEvent::Failed)
-/// carries it.
+/// `search <q>`, `map`, `run <command>` — the words a refusal
+/// ([`WorkbenchEvent::Failed`](crate::cockpit::WorkbenchEvent::Failed))
+/// is reported on the stage with, and the name a session job runs under.
 #[must_use]
 pub fn describe(cmd: &WorkbenchCmd) -> String {
     match cmd {

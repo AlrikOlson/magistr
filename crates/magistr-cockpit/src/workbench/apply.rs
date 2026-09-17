@@ -1,13 +1,12 @@
 //! One workbench command, carried out on a port.
 
-use super::describe::describe;
 use super::port::WorkbenchPort;
 use crate::cockpit::{WorkbenchCmd, WorkbenchEvent};
 
 /// Carry `cmd` out on `port` and say what happened — the event the
 /// consumer posts back to the cockpit as
 /// [`Msg::Workbench`](crate::cockpit::Msg::Workbench). A refusal
-/// becomes [`WorkbenchEvent::Failed`] naming what was asked.
+/// becomes [`WorkbenchEvent::Failed`] carrying what was asked.
 pub fn apply(port: &mut dyn WorkbenchPort, cmd: &WorkbenchCmd) -> WorkbenchEvent {
     let answer = match cmd {
         WorkbenchCmd::Open { path } => port.read(path).map(|content| WorkbenchEvent::Opened {
@@ -31,7 +30,7 @@ pub fn apply(port: &mut dyn WorkbenchPort, cmd: &WorkbenchCmd) -> WorkbenchEvent
         }),
     };
     answer.unwrap_or_else(|error| WorkbenchEvent::Failed {
-        what: describe(cmd),
+        cmd: cmd.clone(),
         error,
     })
 }

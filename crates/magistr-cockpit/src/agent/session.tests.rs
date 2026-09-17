@@ -424,7 +424,7 @@ async fn an_absent_port_is_refused_by_name_rather_than_answered_with_silence() {
         .expect("command sent");
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Workbench(WorkbenchEvent::Failed { what, error }) if what == "map" && error.contains("no workbench")
+        Msg::Workbench(WorkbenchEvent::Failed { cmd, error }) if cmd == crate::cockpit::WorkbenchCmd::Map && error.contains("no workbench")
     ));
     assert!(matches!(
         next(&mut messages).await,
@@ -466,8 +466,9 @@ async fn jobs_past_the_capacity_are_refused_and_a_late_answer_is_fenced() {
     // and count as running. The one past the capacity is refused now.
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Workbench(WorkbenchEvent::Failed { what, error })
-            if what == format!("search job {}", SessionJobs::CAPACITY) && error.contains("already running")
+        Msg::Workbench(WorkbenchEvent::Failed { cmd, error })
+            if crate::workbench::describe(&cmd) == format!("search job {}", SessionJobs::CAPACITY)
+                && error.contains("already running")
     ));
     tokio::time::timeout(Duration::from_secs(2), async {
         while searches.load(std::sync::atomic::Ordering::SeqCst) == 0 {

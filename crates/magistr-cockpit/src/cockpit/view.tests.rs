@@ -2568,6 +2568,24 @@ fn session_receipts_and_reports_share_the_inspector() {
 }
 
 #[test]
+fn plain_session_records_distinguish_self_reported_checks() {
+    for verified in [false, true] {
+        let mut m = Model::new(Size::new(120, 40)).with_tab(StageTab::Session);
+        Scenes::engine_frame(
+            &mut m,
+            "ship",
+            "check_recorded",
+            serde_json::json!({"check": {
+                "name":"Recovery checks", "passed":true, "verified":verified
+            }}),
+        );
+        let output = screen(&m);
+        assert!(output.contains("Recovery checks"));
+        assert_eq!(output.contains("self-reported"), !verified, "{output}");
+    }
+}
+
+#[test]
 fn snap_trace_ship_timeline_120x40() {
     let mut m = Model::new(Size::new(120, 40));
     Scenes::engine_frame(
@@ -2746,7 +2764,7 @@ fn a_tree_selected_done_chunk_shows_its_card_in_the_inspector() {
     let nodes = m.roadmap().dag_nodes();
     let done = nodes
         .iter()
-        .position(|node| node.status == "done")
+        .position(|node| node.status.is_done())
         .expect("the done chunk is on the tree");
     update(
         &mut m,

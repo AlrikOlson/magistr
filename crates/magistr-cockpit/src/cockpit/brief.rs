@@ -81,7 +81,7 @@ impl Brief {
             .roadmap()
             .rows()
             .into_iter()
-            .filter(|chunk| StarState::of(&chunk.status, false).alerts())
+            .filter(|chunk| StarState::of(chunk.state, false).alerts())
             .collect();
         let first = stopped.first()?;
         Some(BriefCard::new(
@@ -103,7 +103,7 @@ impl Brief {
             .changes()
             .entries()
             .iter()
-            .filter(|entry| !model.changes().is_approved(&entry.id))
+            .filter(|entry| !model.changes().is_approved(&entry.identity()))
             .collect();
         if waiting.is_empty() {
             return None;

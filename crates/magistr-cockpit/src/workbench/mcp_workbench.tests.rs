@@ -369,22 +369,45 @@ fn a_server_that_cannot_be_connected_to_is_refused_once_and_remembered() {
 
 #[cfg(unix)]
 #[test]
-fn magistrs_own_launch_line_derives_the_native_journal_verb() {
-    // `magistr mcp-launch workbench-mcp .` is the native workspace bridge;
-    // its journal lives under `magistr workspace journal`.
-    let tmp = tempfile::TempDir::new().expect("tempdir");
-    let cli = stub_cli(tmp.path(), r#"{"v":1,"ok":true,"results":[]}"#, "", 0);
-    let argv = tmp.path().join("argv.txt");
+fn magistrs_own_launch_line_lists_through_the_owner_connection() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cli = stub_cli(tmp.path(), "", "", 0);
+    let requests = tmp.path().join("requests.txt");
+    std::fs::write(&cli, format!(r#"#!/bin/sh
+[ "$1" = "mcp-launch" ] && [ "$2" = "workbench-mcp" ] || exit 64
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> "$REQUESTS"
+  case "$line" in
+    *'"method":"initialize"'*)
+      echo '{{"jsonrpc":"2.0","id":1,"result":{{"protocolVersion":"2025-06-18","capabilities":{{}}}}}}'
+      ;;
+    *'"method":"tools/call"'*)
+      printf '%s\n' '{{"jsonrpc":"2.0","id":2,"result":{{"structuredContent":{JOURNAL_BODY}}}}}'
+      ;;
+  esac
+done
+"#)).expect("bridge");
     let mut workbench = McpWorkbench::new(
         cli,
-        vec![
-            "mcp-launch".to_owned(),
-            "workbench-mcp".to_owned(),
-            ".".to_owned(),
-        ],
-        vec![("ARGS_FILE".to_owned(), argv.to_string_lossy().into_owned())],
+        vec!["mcp-launch".into(), "workbench-mcp".into(), ".".into()],
+        vec![("REQUESTS".into(), requests.to_string_lossy().into_owned())],
     );
-    workbench.journal().expect("the CLI answers");
-    let recorded = std::fs::read_to_string(&argv).expect("argv recorded");
-    assert_eq!(recorded.trim(), "workspace journal . --json --limit 200");
+    let entries = workbench.journal().expect("the owner's journal answers");
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].id, "1");
+    assert_eq!(entries[1].id, "2");
+    let calls: Vec<Value> = std::fs::read_to_string(requests)
+        .expect("requests")
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("request"))
+        .collect();
+    let call = calls
+        .iter()
+        .find(|call| call["method"] == "tools/call")
+        .expect("call");
+    assert_eq!(call["params"]["name"], "undo");
+    assert_eq!(call["params"]["arguments"]["action"], "list");
+    assert_eq!(call["params"]["arguments"]["scope"], "workspace");
+    assert_eq!(call["params"]["arguments"]["diff"], true);
+    assert_eq!(call["params"]["arguments"]["limit"], 200);
 }

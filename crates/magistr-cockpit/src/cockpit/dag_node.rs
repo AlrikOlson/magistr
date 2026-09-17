@@ -1,5 +1,6 @@
 //! One node of the roadmap's tech-tree, placed on the cell grid.
 
+use super::chunk_state::ChunkState;
 use super::star_state::StarState;
 
 /// A chunk placed by [`Roadmap::dag_nodes`](super::Roadmap::dag_nodes):
@@ -13,8 +14,8 @@ pub struct DagNode {
     pub x: f32,
     /// Row-cell y inside the graph block.
     pub y: f32,
-    /// The status wire name, for the colour.
-    pub status: String,
+    /// The chunk's state, for the colour.
+    pub status: ChunkState,
     /// What the chunk is doing, in the sky's own vocabulary — the
     /// decoration the native constellation reads. The cell painter
     /// keeps reading `status`: a dot on a terminal has one colour and

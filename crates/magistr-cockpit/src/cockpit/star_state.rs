@@ -1,5 +1,7 @@
 //! What a star on the sky is doing, in the design's own vocabulary.
 
+use super::chunk_state::ChunkState;
+
 /// The visual state of a roadmap node.
 ///
 /// The renderer uses the state for its core, ring, and animation. Visible
@@ -39,23 +41,28 @@ impl StarState {
         Self::Done,
     ];
 
-    /// The state a chunk with this wire `status` wears, given whether
-    /// everything it depends on has shipped.
+    /// The state a chunk in `state` wears, given whether everything it
+    /// depends on has shipped.
     ///
     /// `ready` only decides between [`StarState::Pending`] and
-    /// [`StarState::Ready`]: every other status names itself. An
-    /// unknown status reads as pending rather than as nothing, because
-    /// the engines' wire shape is theirs to grow and a star the sky
-    /// refused to draw would be a chunk the user cannot see.
+    /// [`StarState::Ready`]: every other state names itself. Backlog
+    /// and obsoleted work read as pending rather than as nothing — the
+    /// sky draws what the plan holds, and a star it refused to draw
+    /// would be a chunk the user cannot see.
     #[must_use]
-    pub fn of(status: &str, ready: bool) -> Self {
-        match status {
-            "done" => Self::Done,
-            "blocked" => Self::Blocked,
-            "stuck" => Self::Stuck,
-            "in_progress" => Self::Executing,
-            _ if ready => Self::Ready,
-            _ => Self::Pending,
+    pub const fn of(state: ChunkState, ready: bool) -> Self {
+        match state {
+            ChunkState::Done => Self::Done,
+            ChunkState::Blocked => Self::Blocked,
+            ChunkState::Stuck => Self::Stuck,
+            ChunkState::InProgress => Self::Executing,
+            ChunkState::Backlog | ChunkState::Pending | ChunkState::Obsoleted => {
+                if ready {
+                    Self::Ready
+                } else {
+                    Self::Pending
+                }
+            }
         }
     }
 

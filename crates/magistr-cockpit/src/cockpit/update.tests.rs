@@ -138,6 +138,7 @@ use magistr_engine::FeedStatus;
 use magistr_engine::policy::RiskTier;
 
 use super::*;
+use crate::cockpit::WorkbenchEvent;
 
 #[test]
 fn roadmap_table_controls_preserve_selected_identity_and_keyboard_walks_visible_order() {
@@ -2823,11 +2824,18 @@ fn a_workbench_refusal_is_an_error_line() {
     update(
         &mut m,
         Msg::Workbench(WorkbenchEvent::Failed {
-            what: "undo e9".to_owned(),
+            cmd: WorkbenchCmd::Undo {
+                id: "e9".to_owned(),
+            },
             error: "no journal entry for e9".to_owned(),
         }),
     );
     assert_eq!(stage(&m), ["workbench undo e9: no journal entry for e9"]);
+    assert_eq!(
+        m.changes().refusal("e9"),
+        None,
+        "an edit the journal never listed carries no refusal"
+    );
 }
 
 fn files_model() -> Model {
@@ -3108,7 +3116,10 @@ fn a_change_row_click_expands_and_approve_marks_reviewed() {
         ))
     );
     assert_eq!(change_click(&mut m, Widget::change_approve(0)), vec![]);
-    assert!(m.changes().is_approved("e1"));
+    assert!(
+        m.changes()
+            .is_approved(&journal_entry("e1", "src/main.rs").identity())
+    );
     change_click(&mut m, Widget::change_row(0));
     assert_eq!(
         m.selected(),
@@ -3256,7 +3267,10 @@ fn a_journal_refresh_keeps_approvals_for_surviving_entries() {
             entries: vec![journal_entry("e2", "src/b.rs")],
         }),
     );
-    assert!(m.changes().is_approved("e2"));
+    assert!(
+        m.changes()
+            .is_approved(&journal_entry("e2", "src/b.rs").identity())
+    );
     assert_eq!(m.changes().entries().len(), 1);
 }
 
@@ -3433,6 +3447,7 @@ fn ship_action_and_check_frames_join_the_timeline() {
             timestamp: String::new(),
             name: "test".to_owned(),
             passed: true,
+            verified: true,
             exit_code: Some(0),
             duration_ms: Some(5400),
         }
@@ -3787,8 +3802,8 @@ fn a_port_answer_updates_the_tab_and_the_rail_within_one_frame() {
         ))),
     );
     assert_eq!(
-        m.roadmap().chunk("mid").map(|c| c.status.as_str()),
-        Some("done"),
+        m.roadmap().chunk("mid").map(|c| c.state),
+        Some(crate::cockpit::ChunkState::Done),
         "the tab folded the answer"
     );
     assert_eq!(m.rail().chunk(), None, "the rail let go of you-are-here");
@@ -5124,7 +5139,10 @@ fn approve_answers_the_docks_diff_approval_card_for_the_same_file() {
         }],
         "reviewing the diff on the Changes tab answers the card"
     );
-    assert!(m.changes().is_approved("e1"));
+    assert!(
+        m.changes()
+            .is_approved(&journal_entry("e1", "src/main.rs").identity())
+    );
     assert!(m.dock().is_empty(), "the card left the dock");
 }
 
@@ -5139,7 +5157,11 @@ fn approve_with_a_card_for_another_file_leaves_it_alone() {
     );
     update(&mut m, Msg::Agent(edit_request(7, "src/other.rs")));
     assert_eq!(change_click(&mut m, Widget::change_approve(0)), vec![]);
-    assert!(m.changes().is_approved("e1"), "still the reviewed mark");
+    assert!(
+        m.changes()
+            .is_approved(&journal_entry("e1", "src/main.rs").identity()),
+        "still the reviewed mark"
+    );
     assert_eq!(m.dock().len(), 1, "the other file's card still waits");
 }
 

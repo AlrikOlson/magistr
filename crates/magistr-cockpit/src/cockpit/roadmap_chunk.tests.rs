@@ -104,7 +104,7 @@ fn work_in_progress_behind_a_blocker_reads_as_stuck() {
         "id": "s", "status": "in_progress",
         "blocked_by": {"kind": "awaiting_human", "reason": "needs a decision"},
     })));
-    assert_eq!(stuck.status, "stuck");
+    assert_eq!(stuck.state, ChunkState::Stuck);
     assert!(stuck.is_active());
     assert!(!stuck.is_in_progress(), "stuck is not plain progress");
     let pending = RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({
@@ -112,12 +112,13 @@ fn work_in_progress_behind_a_blocker_reads_as_stuck() {
         "blocked_by": {"kind": "external", "reason": "upstream"},
     })));
     assert_eq!(
-        pending.status, "pending",
+        pending.state,
+        ChunkState::Pending,
         "a blocker on pending work is not stuck"
     );
     let done =
         RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({"id": "d", "status": "done"})));
-    assert_eq!(done.status, "done");
+    assert_eq!(done.state, ChunkState::Done);
 }
 
 #[test]

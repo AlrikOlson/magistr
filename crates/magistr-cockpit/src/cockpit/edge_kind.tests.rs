@@ -3,9 +3,10 @@ use super::*;
 /// An edge is walked only when the chunk it leaves has shipped.
 #[test]
 fn only_a_shipped_dependency_draws_a_solid_edge() {
-    assert_eq!(EdgeKind::of("done"), EdgeKind::Done);
-    for status in ["pending", "in_progress", "blocked", "stuck", "backlog", ""] {
-        assert_eq!(EdgeKind::of(status), EdgeKind::Ahead, "{status}");
+    use crate::cockpit::ChunkState;
+    assert_eq!(EdgeKind::of(ChunkState::Done), EdgeKind::Done);
+    for state in ChunkState::ALL.into_iter().filter(|state| !state.is_done()) {
+        assert_eq!(EdgeKind::of(state), EdgeKind::Ahead, "{state:?}");
     }
 }
 

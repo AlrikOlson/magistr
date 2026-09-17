@@ -6,7 +6,7 @@ use tiny_skia::{
 };
 
 use crate::cockpit::dag_layout::DagLayout;
-use crate::cockpit::{DagNode, DagPath, StarState};
+use crate::cockpit::{ChunkState, DagNode, DagPath, StarState};
 
 /// The widest a node dot gets, as a fraction of one cell's height;
 /// dense trees shrink below it ([`dot_radius`]).
@@ -175,16 +175,18 @@ impl RoadmapDag {
         self
     }
 
-    fn status_ink(&self, status: &str) -> Color {
+    fn status_ink(&self, status: ChunkState) -> Color {
         if !self.light {
             return status_color(status);
         }
         match status {
-            "in_progress" => Color::from_rgba8(167, 72, 19, 255),
-            "done" => Color::from_rgba8(76, 110, 34, 255),
-            "blocked" => Color::from_rgba8(157, 34, 67, 255),
-            "backlog" => Color::from_rgba8(102, 109, 132, 255),
-            _ => Color::from_rgba8(53, 91, 157, 255),
+            ChunkState::InProgress => Color::from_rgba8(167, 72, 19, 255),
+            ChunkState::Done => Color::from_rgba8(76, 110, 34, 255),
+            ChunkState::Blocked => Color::from_rgba8(157, 34, 67, 255),
+            ChunkState::Backlog => Color::from_rgba8(102, 109, 132, 255),
+            ChunkState::Pending | ChunkState::Stuck | ChunkState::Obsoleted => {
+                Color::from_rgba8(53, 91, 157, 255)
+            }
         }
     }
 
@@ -209,7 +211,7 @@ impl RoadmapDag {
         let walked = self
             .nodes
             .get(from)
-            .is_some_and(|node| node.status == "done");
+            .is_some_and(|node| node.status.is_done());
         let lit = self.is_lit(from)
             && self.is_lit(to)
             && !(self.incident_ink.is_some() && self.focus.is_some());
@@ -272,15 +274,17 @@ fn wave(t: f32) -> f32 {
     0.5 - 0.5 * libm::cosf(std::f32::consts::TAU * t)
 }
 
-/// The colour of a status dot.
-fn status_color(status: &str) -> Color {
+/// The colour of a status dot. A stuck dot keeps the pending blue: the
+/// star's alert ring, not its colour, is what says it needs a person.
+fn status_color(status: ChunkState) -> Color {
     match status {
-        "in_progress" => Color::from_rgba8(255, 158, 100, 255),
-        "done" => Color::from_rgba8(158, 206, 106, 255),
-        "blocked" => Color::from_rgba8(247, 118, 142, 255),
-        "backlog" => Color::from_rgba8(86, 95, 137, 255),
-        // Pending, and anything the wire grows later.
-        _ => Color::from_rgba8(122, 162, 247, 255),
+        ChunkState::InProgress => Color::from_rgba8(255, 158, 100, 255),
+        ChunkState::Done => Color::from_rgba8(158, 206, 106, 255),
+        ChunkState::Blocked => Color::from_rgba8(247, 118, 142, 255),
+        ChunkState::Backlog => Color::from_rgba8(86, 95, 137, 255),
+        ChunkState::Pending | ChunkState::Stuck | ChunkState::Obsoleted => {
+            Color::from_rgba8(122, 162, 247, 255)
+        }
     }
 }
 
@@ -326,7 +330,7 @@ fn dot_radius(points: &[(f32, f32)], cell_height: f32) -> f32 {
 /// which is the only way the gradient can fail to build.
 fn glow(x: f32, y: f32, radius: f32, swell: f32) -> Option<Shader<'static>> {
     let reach = radius * GLOW_REACH * GLOW_SWELL.mul_add(swell, 1.0);
-    let mut core = status_color("in_progress");
+    let mut core = status_color(ChunkState::InProgress);
     core.set_alpha((GLOW_ALPHA * GLOW_LIFT.mul_add(swell, 1.0)).min(1.0));
     let mut edge = core;
     edge.set_alpha(0.0);
@@ -474,14 +478,14 @@ impl super::painter::Painter for RoadmapDag {
         // twice when it needs the eye. Everything outside the focus
         // fades back.
         for (at, (node, &(x, y))) in self.nodes.iter().zip(&points).enumerate() {
-            let mut color = self.status_ink(&node.status);
+            let mut color = self.status_ink(node.status);
             if !self.is_lit(at) {
                 color.set_alpha(DIM_ALPHA);
             }
             paint.set_color(color);
             let radius = match node.state {
                 StarState::Ghost => radius * 0.5,
-                _ if node.status == "backlog" => radius * 0.7,
+                _ if node.status == ChunkState::Backlog => radius * 0.7,
                 _ => radius,
             };
             let hollow = matches!(node.state, StarState::Pending);
@@ -523,7 +527,7 @@ impl super::painter::Painter for RoadmapDag {
             if node.here
                 && let Some(circle) = ring(ring_gap)
             {
-                paint.set_color(self.status_ink("in_progress"));
+                paint.set_color(self.status_ink(ChunkState::InProgress));
                 pixmap.stroke_path(&circle, &paint, &stroke, Transform::identity(), None);
             }
             if node.selected

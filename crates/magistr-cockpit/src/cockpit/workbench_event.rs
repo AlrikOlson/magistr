@@ -1,5 +1,6 @@
 //! What the workbench answered.
 
+use super::workbench_cmd::WorkbenchCmd;
 use crate::workbench::{JournalEntry, RunRow};
 
 /// The outcome of a [`WorkbenchCmd`](super::WorkbenchCmd), posted on
@@ -46,10 +47,14 @@ pub enum WorkbenchEvent {
         /// The structured rows, in the runner's order.
         rows: Vec<RunRow>,
     },
-    /// The workbench refused: an error line on the stage.
+    /// The workbench refused: an error line on the stage, and — for a
+    /// refused undo — a refusal on the journal entry it named, so a
+    /// conflict (a later change touched the file) is shown where the
+    /// change is.
     Failed {
-        /// What was asked (`open <path>`, `undo <id>`, `search <q>`, …).
-        what: String,
+        /// What was asked, as the command itself, so the fold can land
+        /// the refusal on the object the ask was about.
+        cmd: WorkbenchCmd,
         /// The workbench's reason.
         error: String,
     },

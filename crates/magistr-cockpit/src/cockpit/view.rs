@@ -2,6 +2,7 @@
 
 use super::animation::Animation;
 use super::binding::Binding;
+use super::chunk_state::ChunkState;
 use super::copy::Copy;
 use super::dock_item::DockItem;
 use super::frame_clock::FrameClock;
@@ -1064,7 +1065,7 @@ pub(super) fn session_body(model: &Model, pen: &Pen) -> Vec<Node> {
                     change_head(
                         entry,
                         selected,
-                        model.changes().is_approved(&entry.id),
+                        model.changes().is_approved(&entry.identity()),
                         model,
                         pen,
                     ),
@@ -1340,16 +1341,16 @@ fn roadmap_head(
     } else {
         style
     };
-    let icon = match chunk.status.as_str() {
-        "in_progress" => Icon::InProgress,
-        "blocked" | "stuck" => Icon::Blocked,
-        "done" => Icon::Done,
-        "backlog" => Icon::Planned,
-        _ => Icon::Pending,
+    let icon = match chunk.state {
+        ChunkState::InProgress => Icon::InProgress,
+        ChunkState::Blocked | ChunkState::Stuck => Icon::Blocked,
+        ChunkState::Done => Icon::Done,
+        ChunkState::Backlog => Icon::Planned,
+        ChunkState::Pending | ChunkState::Obsoleted => Icon::Pending,
     };
-    let status = match chunk.status.as_str() {
-        "in_progress" => "working",
-        status => status,
+    let status = match chunk.state {
+        ChunkState::InProgress => "working",
+        state => state.word(),
     };
     let widths = roadmap_columns(model);
     let name = Marked::new(model, pen)
@@ -1471,11 +1472,15 @@ fn moment_row(moment: &crate::cockpit::ShipMoment, model: &Model, pen: &Pen) -> 
         ShipMoment::Check {
             name,
             passed,
+            verified,
             exit_code,
             duration_ms,
             ..
         } => {
             let mut text = format!(" {name}");
+            if !verified {
+                text.push_str(" · self-reported");
+            }
             if let Some(code) = exit_code {
                 text.push_str(&format!(" · exit {code}"));
             }

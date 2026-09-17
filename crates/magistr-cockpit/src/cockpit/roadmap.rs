@@ -1,10 +1,11 @@
 //! The Roadmap tab's state.
 
 use super::RoadmapSort;
-use magistr_engine::native::{Chunk, ChunkStatus, Signal};
+use magistr_engine::native::{Chunk, Signal};
 use magistr_engine::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::camera::Camera;
+use super::chunk_state::ChunkState;
 use super::dag_layout::DagLayout;
 use super::dag_node::DagNode;
 use super::dag_path::DagPath;
@@ -77,7 +78,7 @@ pub struct Roadmap {
     signals: Vec<SignalRow>,
     selected: Option<String>,
     hovered: Option<String>,
-    filter: Option<ChunkStatus>,
+    filter: Option<ChunkState>,
     sort: RoadmapSort,
     descending: bool,
     camera: Camera,
@@ -114,11 +115,11 @@ impl Roadmap {
     /// Restrict table rows by status without changing the graph or selection.
     pub fn cycle_filter(&mut self) {
         self.filter = match self.filter {
-            None => Some(ChunkStatus::InProgress),
-            Some(ChunkStatus::InProgress) => Some(ChunkStatus::Pending),
-            Some(ChunkStatus::Pending) => Some(ChunkStatus::Blocked),
-            Some(ChunkStatus::Blocked) => Some(ChunkStatus::Backlog),
-            Some(ChunkStatus::Backlog) => Some(ChunkStatus::Done),
+            None => Some(ChunkState::InProgress),
+            Some(ChunkState::InProgress) => Some(ChunkState::Pending),
+            Some(ChunkState::Pending) => Some(ChunkState::Blocked),
+            Some(ChunkState::Blocked) => Some(ChunkState::Backlog),
+            Some(ChunkState::Backlog) => Some(ChunkState::Done),
             _ => None,
         };
     }
@@ -127,12 +128,13 @@ impl Roadmap {
     pub const fn filter_label(&self) -> &'static str {
         match self.filter {
             None => "Active",
-            Some(ChunkStatus::InProgress) => "In progress",
-            Some(ChunkStatus::Pending) => "Pending",
-            Some(ChunkStatus::Blocked) => "Blocked",
-            Some(ChunkStatus::Backlog) => "Backlog",
-            Some(ChunkStatus::Done) => "Done",
-            Some(ChunkStatus::Obsoleted) => "Obsoleted",
+            Some(ChunkState::InProgress) => "In progress",
+            Some(ChunkState::Stuck) => "Stuck",
+            Some(ChunkState::Pending) => "Pending",
+            Some(ChunkState::Blocked) => "Blocked",
+            Some(ChunkState::Backlog) => "Backlog",
+            Some(ChunkState::Done) => "Done",
+            Some(ChunkState::Obsoleted) => "Obsoleted",
         }
     }
 
@@ -249,11 +251,9 @@ impl Roadmap {
             .chunks
             .iter()
             .filter(|c| match self.filter {
-                None => c.is_active() && c.status != "done",
-                Some(ChunkStatus::InProgress) => {
-                    matches!(c.status.as_str(), "in_progress" | "stuck")
-                }
-                Some(status) => c.status == status.as_wire(),
+                None => c.is_active() && !c.state.is_done(),
+                Some(ChunkState::InProgress) => c.state.is_working(),
+                Some(state) => c.state == state,
             })
             .collect();
         rows.sort_by(|a, b| {
@@ -279,13 +279,13 @@ impl Roadmap {
     /// ids that shipped *since the reader left*.)
     #[must_use]
     pub fn chapters(&self) -> Vec<&RoadmapChunk> {
-        self.chunks.iter().filter(|c| c.status == "done").collect()
+        self.chunks.iter().filter(|c| c.state.is_done()).collect()
     }
 
     /// Chunks done — the list shows them as one count, not rows.
     #[must_use]
     pub fn done_count(&self) -> usize {
-        self.chunks.iter().filter(|c| c.status == "done").count()
+        self.chunks.iter().filter(|c| c.state.is_done()).count()
     }
 
     /// Chunks still in the plan — the launcher's progress denominator.
@@ -301,11 +301,11 @@ impl Roadmap {
     pub fn next_ready(&self) -> Option<&RoadmapChunk> {
         self.chunks
             .iter()
-            .filter(|c| c.status == "pending")
+            .filter(|c| c.state == ChunkState::Pending)
             .filter(|c| {
                 c.deps
                     .iter()
-                    .all(|dep| self.chunk(dep).is_none_or(|d| d.status == "done"))
+                    .all(|dep| self.chunk(dep).is_none_or(|d| d.state.is_done()))
             })
             .min_by_key(|c| c.priority)
     }
@@ -314,13 +314,13 @@ impl Roadmap {
     /// status, and the open proposals and signals when any wait.
     #[must_use]
     pub fn summary_line(&self) -> String {
-        let count = |status: &str| self.chunks.iter().filter(|c| c.status == status).count();
+        let count = |state: ChunkState| self.chunks.iter().filter(|c| c.state == state).count();
         let mut line = format!(
             "{} done · {} active · {} pending · {} backlog",
             self.done_count(),
-            count("in_progress"),
-            count("pending"),
-            count("backlog"),
+            count(ChunkState::InProgress),
+            count(ChunkState::Pending),
+            count(ChunkState::Backlog),
         );
         let proposals = self.proposals().len();
         if proposals > 0 {
@@ -347,7 +347,7 @@ impl Roadmap {
     pub fn star_state(&self, id: &str) -> Option<StarState> {
         let graph = self.graph_chunks();
         let chunk = graph.iter().find(|c| c.id == id)?;
-        Some(StarState::of(&chunk.status, is_ready(&graph, chunk)))
+        Some(StarState::of(chunk.state, is_ready(&graph, chunk)))
     }
 
     /// The active chunks still to come that stand on `id` directly —
@@ -356,7 +356,7 @@ impl Roadmap {
     pub fn unlocked_by(&self, id: &str) -> Vec<&RoadmapChunk> {
         self.chunks
             .iter()
-            .filter(|c| c.is_active() && c.status != "done" && c.deps.iter().any(|dep| dep == id))
+            .filter(|c| c.is_active() && !c.state.is_done() && c.deps.iter().any(|dep| dep == id))
             .collect()
     }
 
@@ -490,7 +490,7 @@ impl Roadmap {
     pub fn proposals(&self) -> Vec<(&RoadmapChunk, ProposalKind, &str, &str)> {
         self.chunks
             .iter()
-            .filter(|chunk| chunk.is_active() && chunk.status != "done")
+            .filter(|chunk| chunk.is_active() && !chunk.state.is_done())
             .flat_map(|chunk| {
                 chunk
                     .proposals
@@ -554,7 +554,7 @@ impl Roadmap {
         let mut bands: Vec<(&str, u32, usize, usize)> = Vec::new();
         for chunk in &graph {
             let group = chunk.group.as_deref().unwrap_or("");
-            let done = usize::from(chunk.status == "done");
+            let done = usize::from(chunk.state.is_done());
             match bands.iter_mut().find(|(name, ..)| *name == group) {
                 Some((_, best, done_count, total)) => {
                     *best = (*best).min(chunk.priority);
@@ -756,8 +756,8 @@ impl Roadmap {
             .map(|(chunk, (x, y, region))| DagNode {
                 x: self.margin() + x * sx - pan_x,
                 y: self.margin() + y * sy - pan_y,
-                state: StarState::of(&chunk.status, is_ready(&graph, chunk)),
-                status: chunk.status.clone(),
+                state: StarState::of(chunk.state, is_ready(&graph, chunk)),
+                status: chunk.state,
                 region,
                 here: chunk.is_in_progress(),
                 selected: self.selected.as_deref() == Some(chunk.id.as_str()),
@@ -827,7 +827,7 @@ impl Roadmap {
             .map(|(from, to)| {
                 let kind = graph
                     .get(from)
-                    .map_or(EdgeKind::Ahead, |chunk| EdgeKind::of(&chunk.status));
+                    .map_or(EdgeKind::Ahead, |chunk| EdgeKind::of(chunk.state));
                 (from, to, kind)
             })
             .collect()
@@ -873,7 +873,7 @@ impl Roadmap {
         let graph = self.graph_chunks();
         graph
             .iter()
-            .filter(|chunk| chunk.status != "done" && is_ready(&graph, chunk))
+            .filter(|chunk| !chunk.state.is_done() && is_ready(&graph, chunk))
             .map(|chunk| chunk.id.clone())
             .collect()
     }
@@ -902,21 +902,21 @@ impl Roadmap {
     /// edges vanish with it and no index dangles.
     fn graph_chunks(&self) -> Vec<&RoadmapChunk> {
         let active: Vec<&RoadmapChunk> = self.chunks.iter().filter(|c| c.is_active()).collect();
-        let ships = active.iter().filter(|c| c.status == "done").count();
+        let ships = active.iter().filter(|c| c.state.is_done()).count();
         if self.pixel_line.is_some() || ships <= SKY_RECENT_SHIPS {
             return active;
         }
         // What the living set stands on rides as context, however old.
         let context: std::collections::HashSet<&str> = active
             .iter()
-            .filter(|c| c.status != "done")
+            .filter(|c| !c.state.is_done())
             .flat_map(|c| c.deps.iter().map(String::as_str))
             .collect();
         // The newest ships, by store order from the tail.
         let mut recent_left = SKY_RECENT_SHIPS;
         let mut keep: Vec<bool> = vec![false; active.len()];
         for (index, chunk) in active.iter().enumerate().rev() {
-            if chunk.status != "done" || context.contains(chunk.id.as_str()) {
+            if !chunk.state.is_done() || context.contains(chunk.id.as_str()) {
                 keep[index] = true;
             } else if recent_left > 0 {
                 keep[index] = true;
@@ -956,8 +956,8 @@ impl Roadmap {
             .map(|(chunk, &(x, y, region))| DagNode {
                 x: MARGIN + x * sx,
                 y: MARGIN + y * sy,
-                state: StarState::of(&chunk.status, is_ready(&graph, chunk)),
-                status: chunk.status.clone(),
+                state: StarState::of(chunk.state, is_ready(&graph, chunk)),
+                status: chunk.state,
                 region,
                 here: chunk.is_in_progress(),
                 selected: false,
@@ -1042,8 +1042,8 @@ impl Roadmap {
                         } else {
                             height * 0.5
                         },
-                        state: StarState::of(&chunk.status, is_ready(&graph, chunk)),
-                        status: chunk.status.clone(),
+                        state: StarState::of(chunk.state, is_ready(&graph, chunk)),
+                        status: chunk.state,
                         region,
                         here: chunk.is_in_progress(),
                         selected: self.selected.as_deref() == Some(chunk.id.as_str()),
@@ -1078,7 +1078,10 @@ impl Roadmap {
     pub fn mini_glance(&self) -> [String; 2] {
         let graph = self.graph_chunks();
         let Some(here) = graph.iter().find(|c| c.is_in_progress()) else {
-            let pending = graph.iter().filter(|c| c.status == "pending").count();
+            let pending = graph
+                .iter()
+                .filter(|c| c.state == ChunkState::Pending)
+                .count();
             return [
                 "nothing in progress".to_owned(),
                 format!("{pending} pending"),
@@ -1253,11 +1256,11 @@ fn neighbours(graph: &[&RoadmapChunk], at: usize) -> Vec<usize> {
 
 /// List order of a status: the working set first.
 fn status_rank(chunk: &RoadmapChunk) -> usize {
-    match chunk.status.as_str() {
-        "in_progress" => 0,
-        "pending" => 1,
-        "blocked" => 2,
-        _ => 3,
+    match chunk.state {
+        ChunkState::InProgress => 0,
+        ChunkState::Pending => 1,
+        ChunkState::Blocked => 2,
+        ChunkState::Stuck | ChunkState::Backlog | ChunkState::Done | ChunkState::Obsoleted => 3,
     }
 }
 
@@ -1374,7 +1377,7 @@ fn is_ready(graph: &[&RoadmapChunk], chunk: &RoadmapChunk) -> bool {
         graph
             .iter()
             .find(|c| &c.id == dep)
-            .is_none_or(|c| c.status == "done")
+            .is_none_or(|c| c.state.is_done())
     })
 }
 

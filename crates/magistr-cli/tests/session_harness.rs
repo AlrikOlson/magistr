@@ -862,8 +862,8 @@ async fn roadmap_clicks_round_trip_through_the_session_engine_and_update_the_rai
         "both acts reached the engine"
     );
     assert_eq!(
-        model.roadmap().chunk("ui").map(|c| c.status.as_str()),
-        Some("in_progress"),
+        model.roadmap().chunk("ui").map(|c| c.state),
+        Some(magistr_cockpit::cockpit::ChunkState::InProgress),
         "the tab folded the port's answer"
     );
     assert_eq!(

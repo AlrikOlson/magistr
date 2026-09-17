@@ -24,14 +24,14 @@ const READ_BUDGET: u64 = 200_000;
 /// Tokens a search or a map may spend.
 const LIST_BUDGET: u64 = 8_000;
 
-/// How many journal rows one refresh asks the CLI for — plenty for the
+/// How many journal rows one refresh requests — plenty for the
 /// Changes tab, bounded so a long-lived workspace's journal does not
 /// arrive whole.
-const JOURNAL_LIMIT: &str = "200";
+const JOURNAL_LIMIT: usize = 200;
 
 /// A [`WorkbenchPort`] speaking MCP over stdio to the configured
 /// workbench-mcp server, with the write journal read through the same
-/// binary's `journal` CLI subcommand.
+/// owner connection for the native bridge, or the legacy binary's journal CLI.
 ///
 /// The server is spawned lazily, on the first call that needs it, and
 /// at most once. The native workspace bridge attaches to the agent's own
@@ -41,12 +41,10 @@ const JOURNAL_LIMIT: &str = "200";
 /// own words land on the stage — rather than retried, which would spawn a
 /// doomed child per click.
 ///
-/// [`journal`](WorkbenchPort::journal) deliberately does NOT go through
-/// the server: the CLI takes no lock, so it answers *during* a run —
-/// which is when the Changes tab most wants it. [`undo`](WorkbenchPort::undo)
-/// does: through the native owner it lands as a workspace-scoped rewind of
-/// one named op with the server's conflict surfacing; under the legacy
-/// server the exclusive lock's refusal is the enforcement.
+/// [`journal`](WorkbenchPort::journal) and [`undo`](WorkbenchPort::undo)
+/// share the native owner connection, so both see the agent's actual journal.
+/// The legacy server keeps its lock-free CLI listing; its exclusive lock
+/// still enforces refusal of a second writer.
 pub struct McpWorkbench {
     command: String,
     args: Vec<String>,
@@ -91,25 +89,27 @@ impl McpWorkbench {
     /// `bun run src/main.ts .` becomes
     /// `bun run src/main.ts journal . --json --limit 200` and the CLI
     /// can never point at a different workbench than the server. Magistr's
-    /// own launcher, `magistr mcp-launch workbench-mcp .`, names the native
-    /// workspace bridge; its journal verb is `magistr workspace journal`.
+    /// native launcher instead uses the owner connection below.
     fn journal_args(&self) -> Vec<String> {
         let (leading, root) = match self.args.split_last() {
             Some((root, leading)) => (leading, root.as_str()),
             None => (&[] as &[String], "."),
         };
-        let mut args: Vec<String> = match leading {
-            [verb, target] if verb == "mcp-launch" && target == "workbench-mcp" => {
-                vec!["workspace".to_owned()]
-            }
-            leading => leading.to_vec(),
-        };
+        let mut args = leading.to_vec();
         args.extend(
-            ["journal", root, "--json", "--limit", JOURNAL_LIMIT]
+            ["journal", root, "--json", "--limit"]
                 .into_iter()
                 .map(str::to_owned),
         );
+        args.push(JOURNAL_LIMIT.to_string());
         args
+    }
+
+    /// Whether the launch line names Magistr's native owner bridge.
+    fn is_native_bridge(&self) -> bool {
+        matches!(self.args.as_slice(),
+            [verb, target] | [verb, target, _]
+                if verb == "mcp-launch" && target == "workbench-mcp")
     }
 
     /// The connected server, connecting on the first call.
@@ -160,6 +160,17 @@ impl WorkbenchPort for McpWorkbench {
     }
 
     fn journal(&mut self) -> Result<Vec<JournalEntry>, String> {
+        if self.is_native_bridge() {
+            let envelope = self.client()?.call(
+                "undo",
+                json!({
+                    "action": "list", "scope": "workspace",
+                    "limit": JOURNAL_LIMIT, "diff": true, "budget": READ_BUDGET
+                }),
+                CALL,
+            )?;
+            return Ok(journal_rows(&envelope));
+        }
         let mut command = std::process::Command::new(&self.command);
         command
             .args(self.journal_args())
@@ -233,7 +244,12 @@ fn output_of(
 fn journal_entries(stdout: &str) -> Result<Vec<JournalEntry>, String> {
     let envelope: Value = serde_json::from_str(stdout.trim())
         .map_err(|err| format!("the journal listing was not the CLI's JSON: {err}"))?;
-    let mut entries: Vec<JournalEntry> = results(&envelope)
+    Ok(journal_rows(&envelope))
+}
+
+/// Native and legacy listings carry the same per-file operation rows.
+fn journal_rows(envelope: &Value) -> Vec<JournalEntry> {
+    let mut entries: Vec<JournalEntry> = results(envelope)
         .iter()
         .filter(|result| result["kind"] == json!("op"))
         .map(|op| JournalEntry {
@@ -247,7 +263,7 @@ fn journal_entries(stdout: &str) -> Result<Vec<JournalEntry>, String> {
         })
         .collect();
     entries.reverse();
-    Ok(entries)
+    entries
 }
 
 /// The unified diff without its `--- a/…` / `+++ b/…` file headers —
