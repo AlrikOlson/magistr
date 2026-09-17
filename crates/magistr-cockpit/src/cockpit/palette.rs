@@ -89,6 +89,19 @@ impl Palette {
             push(PaletteRow::place("Settings", PaletteGo::Settings));
             push(PaletteRow::place("Search recorded work", PaletteGo::Search));
             push(PaletteRow::place("Keyboard help", PaletteGo::Help));
+            if super::flight_divider::FlightDivider::ALL
+                .into_iter()
+                .any(|d| d.visible(model))
+            {
+                let mut row = PaletteRow::place("Resize panels", PaletteGo::ResizePanels);
+                row.verb = "Resize panels".into();
+                row.name = None;
+                push(row);
+            }
+            let mut row = PaletteRow::place("Reset panel sizes", PaletteGo::ResetPanels);
+            row.verb = "Reset panel sizes".into();
+            row.name = None;
+            push(row);
         }
         if !model.surface().is_native() {
             for tab in super::stage_tab::StageTab::ALL {

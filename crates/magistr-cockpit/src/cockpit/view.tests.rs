@@ -653,6 +653,10 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::RoadmapDetails
                 | Widget::RequestBody
                 | Widget::RequestLatest
+                | Widget::PanelColumns
+                | Widget::PanelRoadmap
+                | Widget::PanelReasoning
+                | Widget::PanelGraph
                 | Widget::RoadmapReset
                 | Widget::LaunchNext
                 | Widget::LaunchLoop

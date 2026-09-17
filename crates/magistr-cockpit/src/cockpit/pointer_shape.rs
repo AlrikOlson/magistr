@@ -7,7 +7,7 @@ use crate::widget_id::WidgetId;
 /// kitty's pointer-shape protocol takes W3C cursor names in
 /// an OSC 22 string — `OSC 22; pointer ST` for the hand, `OSC 22; ST`
 /// (an empty name) to hand the shape back to the terminal — so this is
-/// two names and nothing else.
+/// maps controls and panel boundaries to their standard cursor names.
 ///
 /// Only a surface that says so is asked
 /// ([`Mode::Graphics`](crate::capability::Mode::Graphics)'s
@@ -23,6 +23,10 @@ pub enum PointerShape {
     Default,
     /// The pointing hand, over a button, a chip, a tab or a link.
     Hand,
+    /// Resize adjacent columns.
+    HorizontalResize,
+    /// Resize stacked panels.
+    VerticalResize,
 }
 
 impl PointerShape {
@@ -30,6 +34,13 @@ impl PointerShape {
     /// anything clickable, the terminal's own shape everywhere else.
     #[must_use]
     pub fn over(hovered: Option<WidgetId>) -> Self {
+        if let Some(divider) = hovered.and_then(super::flight_divider::FlightDivider::from_id) {
+            return if divider == super::flight_divider::FlightDivider::Columns {
+                Self::HorizontalResize
+            } else {
+                Self::VerticalResize
+            };
+        }
         match hovered.map(HoverRole::of) {
             Some(role) if role.is_clickable() => Self::Hand,
             _ => Self::Default,
@@ -43,6 +54,8 @@ impl PointerShape {
         match self {
             Self::Default => b"\x1b]22;\x1b\\",
             Self::Hand => b"\x1b]22;pointer\x1b\\",
+            Self::HorizontalResize => b"\x1b]22;ew-resize\x1b\\",
+            Self::VerticalResize => b"\x1b]22;ns-resize\x1b\\",
         }
     }
 }

@@ -121,6 +121,22 @@ the recorder and details compact as the viewport shrinks. Narrow windows retain
 the conversation and open details without introducing another permanent column.
 The old rail/stage composition remains a plain-terminal fallback.
 
+Panel boundaries resize continuously: columns, roadmap/details, open
+conversation/reasoning, and the full Roadmap graph/list. `FlightPanels` keeps
+session proportions separately from clamped visible sizes, so compact windows and
+tab changes preserve preferences. `FlightDivider` shares geometry and minimums
+with `FlightLayout`; grab areas span at least one measured terminal cell for
+cell-only mouse reports. Pointer pixels remain exact when supported. A drag owns
+input until release; Escape or focus loss restores its starting proportions.
+Wrapping uses the existing source anchor to preserve the reading position.
+Roadmap heights now scale with available space instead of fixed pixel caps.
+
+Commands → Resize panels (Ctrl-P, then search) enables arrow-key adjustment.
+Tab or Shift-Tab chooses a visible boundary, Enter finishes, Escape cancels, and R
+restores the default layout. Home and End move to the minimum and maximum. Commands → Reset panel sizes restores defaults at
+any time. These preferences last for the current session. Resize cursors use the
+existing pointer-shape capability gate; the cockpit state remains protocol-free.
+
 The composer uses the real draft and submission path, with proportional text,
 a pixel caret, bounded multiline growth, attachments, and Send/Stop. Stop preserves
 the draft. Shift-Enter and Alt-Enter insert a newline. Add files opens the workspace
