@@ -521,6 +521,132 @@ async fn observed_swap_and_compensation_errors_still_report_verified_rollback() 
     );
 }
 
+fn nested_batch(root: &std::path::Path, failing: usize) -> TransactionRequest {
+    // `deep/` exists before the batch; `deep/new/` and `fresh/` do not.
+    std::fs::create_dir(root.join("deep")).unwrap();
+    let mut request = request(
+        "deep/new/inner/a.bin",
+        ExpectedState::Missing,
+        Some(binary(&[0, 2])),
+    );
+    let mut second = request.changes[0].clone();
+    second.path = "fresh/b.bin".into();
+    request.changes.push(second);
+    let mut third = request.changes[0].clone();
+    third.path = format!("failing-{failing}.bin");
+    request.changes.push(third);
+    request
+}
+#[tokio::test]
+async fn rolled_back_nested_creation_removes_only_the_directories_the_batch_created() {
+    let mut h = Harness::new();
+    let input = nested_batch(h.root.path(), 2);
+    let mut service = h.service();
+    service.faults.swap_at = Some(2);
+    let prepared = service.prepare(input).await.unwrap();
+    let token = prepared.confirmation_token().to_string();
+    let result = service.apply(prepared, &token).await;
+    assert_eq!(result.status, TransactionStatus::Failed);
+    assert_eq!(result.files[0].disposition, FileDisposition::RolledBack);
+    assert_eq!(result.files[1].disposition, FileDisposition::RolledBack);
+    assert_eq!(result.files[2].disposition, FileDisposition::NotApplied);
+    assert!(
+        h.root.path().join("deep").is_dir(),
+        "preexisting parent kept"
+    );
+    assert!(
+        !h.root.path().join("deep/new").exists(),
+        "batch-created chain removed"
+    );
+    assert!(
+        !h.root.path().join("fresh").exists(),
+        "batch-created parent removed"
+    );
+    assert!(
+        !result.notes.iter().any(|note| note.contains("directory")),
+        "{:?}",
+        result.notes
+    );
+}
+#[tokio::test]
+async fn compensation_keeps_a_created_directory_that_gained_entries_and_names_it() {
+    let mut h = Harness::new();
+    let input = nested_batch(h.root.path(), 2);
+    let foreign = h.root.path().join("fresh/foreign.txt");
+    let mut service = h.service();
+    service.faults.swap_at = Some(2);
+    service.faults.before_directory_cleanup = Some(Box::new(move || {
+        std::fs::write(&foreign, b"someone else's").unwrap();
+    }));
+    let prepared = service.prepare(input).await.unwrap();
+    let token = prepared.confirmation_token().to_string();
+    let result = service.apply(prepared, &token).await;
+    assert_eq!(result.status, TransactionStatus::Failed);
+    assert_eq!(result.files[1].disposition, FileDisposition::RolledBack);
+    assert!(!h.root.path().join("deep/new").exists());
+    assert!(!h.root.path().join("fresh/b.bin").exists());
+    assert_eq!(
+        std::fs::read(h.root.path().join("fresh/foreign.txt")).unwrap(),
+        b"someone else's"
+    );
+    assert!(
+        result
+            .notes
+            .iter()
+            .any(|note| note.starts_with("fresh: compensation left a directory it created")),
+        "{:?}",
+        result.notes
+    );
+}
+#[tokio::test]
+async fn failed_file_compensation_leaves_its_created_directories_and_names_them() {
+    let mut h = Harness::new();
+    let input = nested_batch(h.root.path(), 2);
+    let mut service = h.service();
+    service.faults.swap_at = Some(2);
+    service.faults.compensation_at = Some(0);
+    let prepared = service.prepare(input).await.unwrap();
+    let token = prepared.confirmation_token().to_string();
+    let result = service.apply(prepared, &token).await;
+    assert_eq!(result.status, TransactionStatus::Indeterminate);
+    assert_eq!(result.files[0].disposition, FileDisposition::Applied);
+    assert_eq!(
+        std::fs::read(h.root.path().join("deep/new/inner/a.bin")).unwrap(),
+        [0, 2]
+    );
+    assert!(!h.root.path().join("fresh").exists());
+    let left: Vec<_> = result
+        .notes
+        .iter()
+        .filter(|note| note.contains("compensation left a directory it created"))
+        .collect();
+    assert_eq!(left.len(), 1, "{:?}", result.notes);
+    assert!(left[0].starts_with("deep/new/inner: "), "{}", left[0]);
+}
+#[tokio::test]
+async fn a_directory_is_claimed_once_by_the_change_that_created_it() {
+    let mut h = Harness::new();
+    let mut input = request(
+        "shared/a.bin",
+        ExpectedState::Missing,
+        Some(binary(&[0, 2])),
+    );
+    let mut second = input.changes[0].clone();
+    second.path = "shared/b.bin".into();
+    input.changes.push(second);
+    let mut third = input.changes[0].clone();
+    third.path = "c.bin".into();
+    input.changes.push(third);
+    let mut service = h.service();
+    service.faults.swap_at = Some(2);
+    let prepared = service.prepare(input).await.unwrap();
+    let token = prepared.confirmation_token().to_string();
+    let result = service.apply(prepared, &token).await;
+    assert_eq!(result.status, TransactionStatus::Failed);
+    assert!(!h.root.path().join("shared").exists());
+    assert!(result.notes.iter().all(|note| !note.contains("directory")));
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn literal_backslash_filename_survives_preview_application_and_journal() {
