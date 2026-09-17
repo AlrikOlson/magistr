@@ -483,36 +483,11 @@ impl GeneralConfig {
     }
 }
 
-/// Resolve the user config file path.
-///
-/// Uses `$XDG_CONFIG_HOME/magistr/config.toml` if set, otherwise `~/.config/magistr/config.toml`.
-pub fn config_path() -> Option<PathBuf> {
-    config_dir().map(|dir| dir.join("config.toml"))
-}
-
-/// Resolve the user config directory.
-fn config_dir() -> Option<PathBuf> {
-    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
-        return Some(PathBuf::from(xdg).join("magistr"));
-    }
-    std::env::var("HOME")
-        .ok()
-        .map(|home| PathBuf::from(home).join(".config/magistr"))
-}
-
-/// Load user configuration from the default path.
-///
-/// Returns `UserConfig::default()` if the file does not exist.
-/// Returns an error only if the file exists but is invalid TOML.
-pub fn load() -> Result<UserConfig, UserConfigError> {
-    let path = match config_path() {
-        Some(p) => p,
-        None => return Ok(UserConfig::default()),
-    };
-    load_from(&path)
-}
-
-/// Load user configuration from a specific path (for testing).
+/// Load user configuration from an explicit path. The path comes from the
+/// captured [`ProjectInputs`](crate::config::inputs::ProjectInputs), which
+/// also reports whether the file was absent; this returns
+/// `UserConfig::default()` for a missing file and an error only when the
+/// file exists but cannot be read or parsed.
 pub fn load_from(path: &Path) -> Result<UserConfig, UserConfigError> {
     if !path.is_file() {
         return Ok(UserConfig::default());
@@ -525,16 +500,8 @@ pub fn load_from(path: &Path) -> Result<UserConfig, UserConfigError> {
     Ok(config)
 }
 
-/// Save user configuration to the default path.
-///
-/// Creates the parent directory if it does not exist.
-pub fn save(config: &UserConfig) -> Result<(), UserConfigError> {
-    let path = config_path()
-        .ok_or_else(|| UserConfigError::NoHome("cannot determine config directory".into()))?;
-    save_to(config, &path)
-}
-
-/// Save user configuration to a specific path (for testing).
+/// Save user configuration to an explicit path, creating the parent
+/// directory if it does not exist.
 pub fn save_to(config: &UserConfig, path: &Path) -> Result<(), UserConfigError> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| UserConfigError::Io(parent.to_owned(), e))?;

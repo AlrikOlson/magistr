@@ -1134,32 +1134,26 @@ pub enum BackendFlag {
 impl BackendFlag {
     /// Resolve this flag to a concrete `Backend`.
     ///
-    /// If `Auto`, checks `MAGISTR_AGENT_BACKEND` env var first, then falls back to
-    /// `Backend::detect()` auto-detection. Explicit flags bypass the env var.
+    /// If `Auto`, the captured `MAGISTR_AGENT_BACKEND` request is honoured
+    /// first, then `Backend::detect()` auto-detection. Explicit flags bypass
+    /// the captured request.
     ///
     /// Returns an error if the requested backend is not available.
-    pub fn resolve(self) -> Result<crate::agent::Backend, String> {
+    pub fn resolve(
+        self,
+        inputs: &crate::config::inputs::ProjectInputs,
+    ) -> Result<crate::agent::Backend, String> {
         match self {
             Self::Auto => {
-                // Check MAGISTR_AGENT_BACKEND env var before auto-detection
-                if let Some(backend) = Self::from_env() {
-                    return backend.resolve();
+                // Honour the captured MAGISTR_AGENT_BACKEND before auto-detection
+                if let Some(backend) = inputs.agent_backend().and_then(Self::parse_backend_str) {
+                    return backend.resolve(inputs);
                 }
                 crate::agent::detect_backend()
                     .ok_or_else(|| "No agent backend available. Install Claude Code (the `claude` command):\n  curl -fsSL https://claude.ai/install.sh | bash".to_string())
             }
             Self::Acp => Ok(crate::agent::Backend::Acp),
         }
-    }
-
-    /// Parse `MAGISTR_AGENT_BACKEND` env var into a `BackendFlag`.
-    ///
-    /// Accepts: `acp`, `claude-acp`, `auto`.
-    /// Returns `None` if the env var is unset or empty.
-    /// Ignores unrecognized values (falls through to auto-detection).
-    fn from_env() -> Option<Self> {
-        let val = std::env::var("MAGISTR_AGENT_BACKEND").ok()?;
-        Self::parse_backend_str(&val)
     }
 
     /// Parse a backend name string into a `BackendFlag`.

@@ -16,8 +16,11 @@ const LOOP_ITERATIONS: u32 = 10;
 /// A launch action quits the cockpit and is dispatched on the restored
 /// terminal: Alt-N starts one iteration, Alt-L a loop, Alt-G the gates.
 /// Palette session rows resume the selected conversation.
-pub async fn cmd_home(env: &crate::env::MagistrEnv) -> eyre::Result<()> {
-    let root = std::env::current_dir()?;
+pub async fn cmd_home(
+    env: &crate::env::MagistrEnv,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
+    let root = inputs.project_root().to_path_buf();
     let dir = root.clone();
     let model = super::cockpit::cockpit_model_on(&root, StageTab::Turn, move |runtime| {
         let jobs = Jobs::new(runtime.inbox());
@@ -26,31 +29,39 @@ pub async fn cmd_home(env: &crate::env::MagistrEnv) -> eyre::Result<()> {
     .await?;
     match model.launch().cloned() {
         Some(LaunchAction::Next) => {
-            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
+            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto, inputs)?;
             let profile = super::run::resolve_permission_profile(&root, None)
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
-            super::next::cmd_next_tui(&root, backend, profile, env).await
+            super::next::cmd_next_tui(&root, backend, profile, env, inputs).await
         }
         Some(LaunchAction::Loop) => {
-            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
+            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto, inputs)?;
             let profile = super::run::resolve_permission_profile(&root, None)?;
-            super::next::cmd_next_loop_tui(&root, LOOP_ITERATIONS, backend, profile, env).await
+            super::next::cmd_next_loop_tui(&root, LOOP_ITERATIONS, backend, profile, env, inputs)
+                .await
         }
         Some(LaunchAction::Gates) => super::validate::cmd_validate(&root).await,
         Some(LaunchAction::Resume(session_id)) => {
-            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
+            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto, inputs)?;
             let profile = super::run::resolve_permission_profile(&root, None)
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
-            super::run::cmd_run_cockpit(resume_config(&root, session_id, backend), profile).await
+            super::run::cmd_run_cockpit(resume_config(inputs, session_id, backend), profile).await
         }
         // Birth is the window's flow; a terminal never
         // raises the ask, but were it to, the claim is one iteration on
         // the new folder.
         Some(LaunchAction::Born { dir, .. }) => {
-            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto)?;
+            let backend = super::resolve_backend(crate::cli::BackendFlag::Auto, inputs)?;
             let profile = super::run::resolve_permission_profile(std::path::Path::new(&dir), None)
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
-            super::next::cmd_next_tui(std::path::Path::new(&dir), backend, profile, env).await
+            super::next::cmd_next_tui(
+                std::path::Path::new(&dir),
+                backend,
+                profile,
+                env,
+                &inputs.for_project(&dir),
+            )
+            .await
         }
         None => {
             println!("{}", Summary::of(&model));
@@ -66,8 +77,14 @@ pub async fn cmd_home(env: &crate::env::MagistrEnv) -> eyre::Result<()> {
 /// [`cmd_run_cockpit`] reports on stdout rather than panicking.
 ///
 /// [`cmd_run_cockpit`]: super::run::cmd_run_cockpit
-fn resume_config(root: &Path, session_id: String, backend: agent::Backend) -> agent::AgentConfig {
+fn resume_config(
+    inputs: &crate::config::inputs::ProjectInputs,
+    session_id: String,
+    backend: agent::Backend,
+) -> agent::AgentConfig {
+    let root: &Path = inputs.project_root();
     agent::AgentConfig::new("", root)
+        .with_inputs(inputs)
         .backend(backend)
         .resume(session_id)
         .with_project_context(root)

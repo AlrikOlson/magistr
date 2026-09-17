@@ -26,8 +26,15 @@ pub fn seed_supervision(
     project_dir: &Path,
     profile: PermissionProfile,
     workflow: bool,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> Model {
-    seed_with(model, project_dir, profile, workflow, requested_limit())
+    seed_with(
+        model,
+        project_dir,
+        profile,
+        workflow,
+        requested_limit(inputs),
+    )
 }
 
 /// [`seed_supervision`] with the developer's requested limit given
@@ -64,13 +71,14 @@ fn seed_with(
 }
 
 /// The developer's own limit: the flag or user-config limit `main`
-/// exported as `MAGISTR_BUDGET_REQUESTED`, else the user config read
-/// directly (an entry point that skipped `main`'s export).
-fn requested_limit() -> Option<f64> {
+/// exported as `MAGISTR_BUDGET_REQUESTED`, else the captured user config
+/// (an entry point that skipped `main`'s export).
+fn requested_limit(inputs: &crate::config::inputs::ProjectInputs) -> Option<f64> {
     dollars_in("MAGISTR_BUDGET_REQUESTED").or_else(|| {
-        crate::config::user_config::load()
+        inputs
+            .user_config()
             .ok()
-            .and_then(|cfg| cfg.budget.limit)
+            .and_then(|cfg| cfg.value.budget.limit)
             .filter(|limit| limit.is_finite() && *limit > 0.0)
     })
 }

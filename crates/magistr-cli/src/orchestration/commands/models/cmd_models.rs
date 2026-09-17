@@ -14,15 +14,20 @@ use color_eyre::eyre;
 /// when the advertised id resolves to a known entry, and stays silent when the
 /// agent advertised a bare alias (`sonnet`, `opus`) whose concrete model only
 /// the agent's own SDK knows.
-pub async fn cmd_models(renderer: &dyn OutputRenderer) -> eyre::Result<()> {
-    let user_file = models::load().map_err(|e| error::MagistrError::Config(e.to_string()))?;
+pub async fn cmd_models(
+    renderer: &dyn OutputRenderer,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
+    let config_path = inputs.models_config_path();
+    let user_file = models::load(config_path.as_deref())
+        .map_err(|e| error::MagistrError::Config(e.to_string()))?;
     let registry = models::ModelRegistry::from_config(&user_file);
-    let providers = probe_all_providers().await;
+    let providers = probe_all_providers(inputs).await;
 
     if renderer.is_machine_readable() {
         return render_json(renderer, &registry, &providers);
     }
-    render_text(&registry, &providers);
+    render_text(&registry, &providers, config_path.as_deref());
     Ok(())
 }
 
@@ -114,6 +119,7 @@ pub(crate) fn build_models_json(
 fn render_text(
     registry: &models::ModelRegistry,
     providers: &[crate::agent::probe::ProviderModelSet],
+    config_path: Option<&std::path::Path>,
 ) {
     eprintln!("{}\n", fmt::bold("🤖 Models your agents can run"));
 
@@ -155,7 +161,7 @@ fn render_text(
     render_pricing_reference(registry);
     render_backend_matrix();
 
-    if let Some(config_path) = models::config::models_config_path() {
+    if let Some(config_path) = config_path {
         eprintln!(
             "\n  {}",
             fmt::dim(&format!("Model config: {}", config_path.display()))

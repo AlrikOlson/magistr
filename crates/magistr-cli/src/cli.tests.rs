@@ -6,7 +6,8 @@ use super::*;
 
 #[test]
 fn backend_flag_resolve_acp_explicit() {
-    let result = BackendFlag::Acp.resolve();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup("/proj", |_| None);
+    let result = BackendFlag::Acp.resolve(&inputs);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), crate::agent::Backend::Acp);
 }

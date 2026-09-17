@@ -120,7 +120,8 @@ edition = "2024"
     .unwrap();
 
     let renderer = SilentRenderer::new();
-    let result = cmd_init_ci(tmp.path(), false, &renderer);
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
+    let result = cmd_init_ci(tmp.path(), false, &renderer, &inputs);
     assert!(result.is_ok(), "init --ci should succeed: {result:?}");
 
     // A workflow file should be created under .github/workflows/

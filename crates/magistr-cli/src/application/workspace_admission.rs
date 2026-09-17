@@ -1,9 +1,8 @@
-use std::path::Path;
-
 use magistr_application::effects::{SourceRefusal, SourceRoute};
 use magistr_workspace::{contracts::WorkspaceError, service::WorkspaceOpenError};
 
 use super::HostedWorkspace;
+use crate::config::inputs::ProjectInputs;
 
 /// What a source-writing host got when it tried to own the checkout for its
 /// run — the one composition every such host shares (`magistr run` on the
@@ -23,10 +22,10 @@ pub enum WorkspaceAdmission {
 }
 
 impl WorkspaceAdmission {
-    /// Try to admit `root` in this process the way [`HostedWorkspace::admit`]
-    /// does; a refusal is an answer, never an error.
-    pub async fn admit(root: &Path) -> Self {
-        Self::from_outcome(HostedWorkspace::admit(root).await)
+    /// Try to admit the captured project's root in this process the way
+    /// [`HostedWorkspace::admit`] does; a refusal is an answer, never an error.
+    pub async fn admit(inputs: &ProjectInputs) -> Self {
+        Self::from_outcome(HostedWorkspace::admit(inputs).await)
     }
 
     /// As [`Self::admit`] on explicit open options — the seam a test uses to

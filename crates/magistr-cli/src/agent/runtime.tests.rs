@@ -1,9 +1,14 @@
 use super::*;
 
+// A capture with nothing set: no API key, no home — detection sees only PATH.
+fn inputs() -> ProjectInputs {
+    ProjectInputs::from_lookup("/proj", |_| None)
+}
+
 #[test]
 fn an_unsupported_provider_never_falls_back_to_another_runtime() {
     for provider in ["cluade", "", "OPENAI"] {
-        let result = AgentRuntime::detect_with_preference(Some(provider));
+        let result = AgentRuntime::detect_for(&inputs(), Some(provider));
         assert!(
             result
                 .as_ref()
@@ -15,7 +20,7 @@ fn an_unsupported_provider_never_falls_back_to_another_runtime() {
 
 #[test]
 fn explicit_codex_resolves_to_the_coding_adapter_without_auth_probing() {
-    let runtime = AgentRuntime::detect_with_preference(Some("codex")).expect("Codex adapter");
+    let runtime = AgentRuntime::detect_for(&inputs(), Some("codex")).expect("Codex adapter");
     assert_eq!(
         runtime.path,
         std::env::current_exe().expect("current executable")
@@ -194,7 +199,7 @@ fn preferring_an_api_provider_lands_on_the_in_binary_agent_without_any_binary_on
         ("gemini", "Gemini"),
         ("ollama", "Ollama"),
     ] {
-        let rt = AgentRuntime::detect_with_preference(Some(name)).expect("served in-binary");
+        let rt = AgentRuntime::detect_for(&inputs(), Some(name)).expect("served in-binary");
         assert_eq!(rt.path, std::env::current_exe().expect("current_exe"));
         assert_eq!(rt.args, vec!["acp-agent", "--provider", name]);
         assert_eq!(rt.auth, AuthMethod::Implicit);

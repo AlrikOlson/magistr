@@ -6,8 +6,7 @@ use std::path::Path;
 
 use crate::error::Result;
 use crate::types::{
-    Framework, Language, PackageManager, Preset, PresetLayer, PresetLayerType, PresetOverride,
-    PresetPipeline,
+    Framework, Language, PackageManager, Preset, PresetLayer, PresetLayerType, PresetPipeline,
 };
 
 /// Parse a JSON overlay and add it to the pipeline if present.
@@ -31,20 +30,8 @@ fn add_json_overlay(
     Ok(())
 }
 
-/// Load a preset with full layering: built-in → framework → package-manager → user override.
-///
-/// This is the backwards-compatible entry point. For the full layered pipeline
-/// including database, CI/CD, deployment, and project-local layers, use
-/// [`load_preset_layered`].
-pub fn load_preset_full(
-    lang: Language,
-    framework: Framework,
-    package_manager: PackageManager,
-) -> Result<Preset> {
-    load_preset_layered(lang, framework, package_manager, &LayerOptions::default())
-}
-
-/// Options for the extended layered preset pipeline.
+/// Options for the layered preset pipeline. Every file-backed layer is
+/// named explicitly; nothing here consults the process environment.
 #[derive(Debug, Clone, Default)]
 pub struct LayerOptions {
     /// Database/ORM slug (e.g., "prisma", "diesel", "sqlx").
@@ -55,6 +42,9 @@ pub struct LayerOptions {
     pub deployment: Option<String>,
     /// Project root for loading `.magistr/presets/` fragments.
     pub project_root: Option<Box<Path>>,
+    /// The user's preset directory, as the captured inputs resolved it
+    /// (`ProjectInputs::preset_layers`). Absent, no user override applies.
+    pub user_preset_dir: Option<Box<Path>>,
 }
 
 /// Load a preset with the full layered composition pipeline.
@@ -67,23 +57,6 @@ pub fn load_preset_layered(
     framework: Framework,
     package_manager: PackageManager,
     options: &LayerOptions,
-) -> Result<Preset> {
-    load_preset_layered_with(
-        lang,
-        framework,
-        package_manager,
-        options,
-        super::user_preset::load_user_override,
-    )
-}
-
-/// Keep the layered composition independent of the user's config directory.
-fn load_preset_layered_with(
-    lang: Language,
-    framework: Framework,
-    package_manager: PackageManager,
-    options: &LayerOptions,
-    load_user_override: impl FnOnce(Language) -> Result<Option<PresetOverride>>,
 ) -> Result<Preset> {
     // Start with the base language preset
     let base = super::preset::load_preset(lang)?;
@@ -132,8 +105,10 @@ fn load_preset_layered_with(
         }
     }
 
-    // User-global override
-    if let Some(user_override) = load_user_override(lang)? {
+    // User-global override, from the captured preset directory only
+    if let Some(dir) = &options.user_preset_dir
+        && let Some(user_override) = super::user_preset::load_user_override_from_dir(dir, lang)?
+    {
         pipeline.add(PresetLayer {
             layer_type: PresetLayerType::UserOverride,
             name: format!("user-{}", lang.as_str()),

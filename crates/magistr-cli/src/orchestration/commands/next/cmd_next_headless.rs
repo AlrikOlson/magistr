@@ -19,8 +19,10 @@ pub async fn cmd_next_headless(
     backend: agent::Backend,
     format: HeadlessFormat,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let inputs = inputs.for_project(&dir);
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
     let summary_before = wf.spec_summary().suggest()?;
@@ -33,9 +35,12 @@ pub async fn cmd_next_headless(
     wf.cleanup().suggest()?;
     let prompt = wf.build_prompt().suggest()?;
 
-    let config = workflow_agent_config(&prompt, &dir, backend).permission_profile(profile);
+    let config = workflow_agent_config(&prompt, &dir, backend)
+        .with_inputs(&inputs)
+        .permission_profile(profile);
 
-    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let workspace =
+        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;

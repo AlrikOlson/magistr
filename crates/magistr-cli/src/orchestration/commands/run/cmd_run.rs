@@ -5,24 +5,23 @@ use crate::utils::format as fmt;
 use color_eyre::eyre;
 
 pub async fn cmd_run(
-    prompt: &str,
-    resume: Option<&str>,
-    continue_conversation: bool,
-    model: Option<&str>,
+    request: RunRequest<'_>,
     backend: agent::Backend,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
-    let cwd = std::env::current_dir()?;
-    let config = agent::AgentConfig::new(prompt, &cwd)
+    let cwd = inputs.project_root().to_path_buf();
+    let prompt = request.prompt;
+    let config = request
+        .apply(agent::AgentConfig::new(prompt, &cwd).with_inputs(inputs))
         .backend(backend)
         .permission_profile(profile)
-        .with_run_args(model, resume, continue_conversation)
         .with_project_context(&cwd);
 
     // The one workspace composition every source-writing host shares:
     // admitted, the session's writes run through the pipeline; refused,
     // they are refused — never written directly.
-    let workspace = admit_workspace(&cwd, |line| eprintln!("{line}")).await;
+    let workspace = admit_workspace(inputs, |line| eprintln!("{line}")).await;
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;

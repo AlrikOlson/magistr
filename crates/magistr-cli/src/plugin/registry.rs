@@ -1,7 +1,8 @@
 //! Plugin registry — manage installed plugins.
 //!
-//! The registry tracks which plugins are installed, stores them in
-//! `~/.config/magistr/plugins/`, and provides list/add/remove operations.
+//! The registry tracks which plugins are installed, stores them in the
+//! captured plugins directory (`ProjectInputs::plugins_dir`, normally
+//! `~/.config/magistr/plugins/`), and provides list/add/remove operations.
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -12,39 +13,15 @@ use super::index::{self, IndexEntry};
 use super::loader;
 use super::signing;
 use super::types::{InstalledPlugin, PluginError, PluginManifest, PluginSource};
-
-/// Default plugin storage directory relative to config dir.
-const PLUGINS_DIR: &str = "plugins";
+use crate::config::inputs::ProjectInputs;
 
 /// Registry metadata filename.
 const REGISTRY_FILENAME: &str = "registry.json";
 
-/// Resolve the plugins directory path.
-///
-/// Uses `$XDG_CONFIG_HOME/magistr/plugins/` if set, otherwise `~/.config/magistr/plugins/`.
-pub fn plugins_dir() -> Option<PathBuf> {
-    config_dir().map(|d| d.join(PLUGINS_DIR))
-}
-
-/// Resolve the registry file path.
-pub fn registry_path() -> Option<PathBuf> {
-    plugins_dir().map(|d| d.join(REGISTRY_FILENAME))
-}
-
-/// Resolve the config directory.
-fn config_dir() -> Option<PathBuf> {
-    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
-        return Some(PathBuf::from(xdg).join("magistr"));
-    }
-    std::env::var("HOME")
-        .ok()
-        .map(|home| PathBuf::from(home).join(".config/magistr"))
-}
-
 /// Org-managed plugin registry configuration.
 ///
-/// Loaded from `~/.config/magistr/org-plugins.json` or set via environment
-/// variable `MAGISTR_PLUGIN_INDEX_URL`. Allows organizations to:
+/// Loaded from the captured `org-plugins.json` path, with the captured
+/// `MAGISTR_PLUGIN_INDEX_URL` overriding the index URL. Allows organizations to:
 /// - Use a private plugin index URL instead of the default public one
 /// - Restrict which plugins are allowed to be installed (allowlist)
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -62,48 +39,43 @@ pub struct OrgPluginConfig {
     pub signing_key: Option<String>,
 }
 
-/// Filename for org plugin configuration.
-const ORG_CONFIG_FILENAME: &str = "org-plugins.json";
-
 impl OrgPluginConfig {
-    /// Load org config from disk, environment, or defaults.
+    /// Resolve org config from the captured inputs.
     ///
     /// Priority:
-    /// 1. `MAGISTR_PLUGIN_INDEX_URL` env var (index URL only)
-    /// 2. `~/.config/magistr/org-plugins.json` file
+    /// 1. The captured `MAGISTR_PLUGIN_INDEX_URL` (index URL only)
+    /// 2. The captured `org-plugins.json` file
     /// 3. Default (no restrictions)
-    pub fn load() -> Self {
-        let mut config = Self::load_file().unwrap_or_default();
+    #[must_use]
+    pub fn capture(inputs: &ProjectInputs) -> Self {
+        let mut config = inputs
+            .org_plugin_config_path()
+            .and_then(|path| Self::load_file(&path))
+            .unwrap_or_default();
 
-        // Environment variable overrides file config for index URL
-        if let Ok(url) = std::env::var("MAGISTR_PLUGIN_INDEX_URL") {
-            config.index_url = Some(url);
+        // The captured environment overrides the file's index URL
+        if let Some(url) = inputs.plugin_index_url() {
+            config.index_url = Some(url.to_owned());
         }
 
         config
     }
 
-    /// Load from the config file.
-    fn load_file() -> Option<Self> {
-        let path = config_dir()?.join(ORG_CONFIG_FILENAME);
+    /// Load from an org config file.
+    fn load_file(path: &Path) -> Option<Self> {
         let content = std::fs::read_to_string(path).ok()?;
         serde_json::from_str(&content).ok()
     }
 
-    /// Save to the config file.
-    pub fn save(&self) -> Result<(), PluginError> {
-        let dir = config_dir().ok_or_else(|| {
-            PluginError::Io(
-                "cannot resolve config directory".to_string(),
-                std::io::Error::new(std::io::ErrorKind::NotFound, "no config dir"),
-            )
-        })?;
-        std::fs::create_dir_all(&dir).map_err(|e| PluginError::Io(dir.display().to_string(), e))?;
-
-        let path = dir.join(ORG_CONFIG_FILENAME);
+    /// Save to the org config file at `path`, creating its directory.
+    pub fn save_to(&self, path: &Path) -> Result<(), PluginError> {
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)
+                .map_err(|e| PluginError::Io(dir.display().to_string(), e))?;
+        }
         let content = serde_json::to_string_pretty(self)
             .map_err(|e| PluginError::ManifestSerialize(e.to_string()))?;
-        std::fs::write(&path, content)
+        std::fs::write(path, content)
             .map_err(|e| PluginError::Io(path.display().to_string(), e))?;
 
         Ok(())
@@ -169,15 +141,15 @@ impl PluginRegistry {
         }
     }
 
-    /// Load registry from disk.
+    /// Load the registry stored under `base_dir` with the org-managed
+    /// configuration the caller resolved (`OrgPluginConfig::capture`).
     ///
     /// Returns an empty registry if the file doesn't exist.
-    /// Also loads org-managed configuration.
-    pub fn load(base_dir: &Path) -> Result<Self, PluginError> {
+    pub fn load(base_dir: &Path, org_config: OrgPluginConfig) -> Result<Self, PluginError> {
         let registry_path = base_dir.join(REGISTRY_FILENAME);
 
         if !registry_path.is_file() {
-            return Ok(Self::with_org_config(base_dir, OrgPluginConfig::load()));
+            return Ok(Self::with_org_config(base_dir, org_config));
         }
 
         let content = std::fs::read_to_string(&registry_path)
@@ -189,8 +161,16 @@ impl PluginRegistry {
         Ok(Self {
             plugins,
             base_dir: base_dir.to_path_buf(),
-            org_config: OrgPluginConfig::load(),
+            org_config,
         })
+    }
+
+    /// The installed registry at the captured plugins directory, with the
+    /// captured org configuration — what every plugin-consuming use case opens.
+    /// `None` when no plugins directory could be resolved.
+    pub fn open(inputs: &ProjectInputs) -> Option<Result<Self, PluginError>> {
+        let base_dir = inputs.plugins_dir()?;
+        Some(Self::load(&base_dir, OrgPluginConfig::capture(inputs)))
     }
 
     /// Get the org-managed configuration.

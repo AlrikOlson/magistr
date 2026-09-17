@@ -6,7 +6,12 @@ use crate::scaffold;
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
-pub async fn cmd_init(dir: &std::path::Path, force: bool, agents: &[String]) -> eyre::Result<()> {
+pub async fn cmd_init(
+    dir: &std::path::Path,
+    force: bool,
+    agents: &[String],
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
     let dir = dir
         .canonicalize()
         .map_err(|e| error::MagistrError::io(dir, e))
@@ -23,7 +28,7 @@ pub async fn cmd_init(dir: &std::path::Path, force: bool, agents: &[String]) -> 
     let tree = detect::build_project_tree(&dir).suggest()?;
 
     if tree.len() > 1 {
-        return cmd_init_polyglot(&dir, &tree, agents).await;
+        return cmd_init_polyglot(&dir, &tree, agents, inputs).await;
     }
 
     // Single project — use the standard path.
@@ -44,8 +49,9 @@ pub async fn cmd_init(dir: &std::path::Path, force: bool, agents: &[String]) -> 
         ))
     );
 
-    let pipeline =
-        scaffold::pipeline::ScaffoldPipeline::headless(stack.clone()).with_agents(agents);
+    let pipeline = scaffold::pipeline::ScaffoldPipeline::headless(stack.clone())
+        .with_inputs(inputs)
+        .with_agents(agents);
 
     eprintln!("{}", fmt::info("Scaffolding agent configuration..."));
     let written = pipeline.generate(&dir).suggest()?;
@@ -81,6 +87,7 @@ async fn cmd_init_polyglot(
     dir: &std::path::Path,
     tree: &magistr_core::types::ProjectTree,
     agents: &[String],
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     use magistr_core::types::Topology;
 
@@ -111,7 +118,9 @@ async fn cmd_init_polyglot(
         eprintln!("  {} {path} [{lang}{fw}] {name}", fmt::cyan("•"));
     }
 
-    let pipeline = scaffold::pipeline::ScaffoldPipeline::polyglot(tree).with_agents(agents);
+    let pipeline = scaffold::pipeline::ScaffoldPipeline::polyglot(tree)
+        .with_inputs(inputs)
+        .with_agents(agents);
 
     eprintln!(
         "{}",

@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use magistr_core::types::ProjectTree;
+
 use crate::commands;
 use crate::config;
+use crate::config::inputs::ProjectInputs;
 use crate::error::Result;
 use crate::scaffold;
 use crate::types::{Preset, Stack};
@@ -13,14 +16,19 @@ use super::tree_to_config::TreeToConfigResult;
 /// Encapsulates the preset → template vars → scaffold generation pipeline.
 ///
 /// Eliminates duplication across init paths by centralizing the
-/// load-preset → build-vars → generate/preview flow.
+/// load-preset → build-vars → generate/preview flow. A pipeline built from a
+/// stack alone composes built-in preset layers only; [`Self::with_inputs`]
+/// adds the user's preset override and the installed template plugins from
+/// the host's captured inputs.
 pub struct ScaffoldPipeline {
     pub stack: Stack,
     pub preset: Preset,
     pub selections: ScaffoldSelections,
     /// When set, the pipeline generates a multi-archetype project.json
     /// and per-archetype CLAUDE.md sections instead of the flat single-stack config.
-    polyglot: Option<TreeToConfigResult>,
+    tree: Option<ProjectTree>,
+    /// The host's captured inputs: user preset overrides and template plugins.
+    inputs: Option<ProjectInputs>,
 }
 
 impl ScaffoldPipeline {
@@ -29,12 +37,13 @@ impl ScaffoldPipeline {
     /// Used by headless init paths (`cmd_init`, `cmd_init_smart`, `cmd_init_dry_run`)
     /// that don't run the interview.
     pub fn headless(stack: Stack) -> Self {
-        let preset = load_preset_or_fallback(&stack);
+        let preset = load_preset(&stack, &ScaffoldSelections::default(), None);
         Self {
             stack,
             preset,
             selections: ScaffoldSelections::default(),
-            polyglot: None,
+            tree: None,
+            inputs: None,
         }
     }
 
@@ -43,13 +52,42 @@ impl ScaffoldPipeline {
     /// Uses adaptive interview answers to load layered presets (database,
     /// CI/CD, deployment layers) when available.
     pub fn with_selections(stack: Stack, selections: ScaffoldSelections) -> Self {
-        let preset = load_preset_with_answers(&stack, &selections);
+        let preset = load_preset(&stack, &selections, None);
         Self {
             stack,
             preset,
             selections,
-            polyglot: None,
+            tree: None,
+            inputs: None,
         }
+    }
+
+    /// Compose with the host's captured inputs: the preset is reloaded with
+    /// the user's override as its final layer, and installed template
+    /// plugins are applied after generation.
+    #[must_use]
+    pub fn with_inputs(mut self, inputs: &ProjectInputs) -> Self {
+        self.preset = load_preset(
+            &self.stack,
+            &self.selections,
+            inputs.user_preset_dir().as_deref(),
+        );
+        self.inputs = Some(inputs.clone());
+        self
+    }
+
+    /// The user's preset directory, when the host captured one.
+    fn user_preset_dir(&self) -> Option<std::path::PathBuf> {
+        self.inputs
+            .as_ref()
+            .and_then(ProjectInputs::user_preset_dir)
+    }
+
+    /// The multi-archetype configuration for a polyglot tree.
+    fn archetypes(&self) -> Option<TreeToConfigResult> {
+        self.tree.as_ref().map(|tree| {
+            super::tree_to_config::tree_to_archetypes(tree, self.user_preset_dir().as_deref())
+        })
     }
 
     /// Apply an explicit scaffold-target selection from the CLI.
@@ -71,9 +109,7 @@ impl ScaffoldPipeline {
     ///
     /// Uses the primary project's stack for the base scaffold, then overlays
     /// multi-archetype config derived from the full project tree.
-    pub fn polyglot(tree: &magistr_core::types::ProjectTree) -> Self {
-        let result = super::tree_to_config::tree_to_archetypes(tree);
-
+    pub fn polyglot(tree: &ProjectTree) -> Self {
         // Use the first (primary) project's stack for the base template vars.
         let stack = if let Some(first) = tree.projects.first() {
             let abs_dir = tree.root.join(&first.path);
@@ -82,12 +118,13 @@ impl ScaffoldPipeline {
             Stack::default()
         };
 
-        let preset = load_preset_or_fallback(&stack);
+        let preset = load_preset(&stack, &ScaffoldSelections::default(), None);
         Self {
             stack,
             preset,
             selections: ScaffoldSelections::default(),
-            polyglot: Some(result),
+            tree: Some(tree.clone()),
+            inputs: None,
         }
     }
 
@@ -127,7 +164,13 @@ impl ScaffoldPipeline {
     ) -> Result<Vec<String>> {
         let is_new_config = !crate::paths::project_json(dir).exists();
         let vars = self.template_vars();
-        let written = scaffolder.generate(dir, &vars, self.overrides())?;
+        let mut written = scaffolder.generate(dir, &vars, self.overrides())?;
+
+        // Template plugins from the captured registry (best-effort — plugin
+        // failures don't block scaffolding).
+        if let Some(inputs) = &self.inputs {
+            written.extend(scaffold::apply_template_plugins(dir, &vars, inputs));
+        }
 
         // Enrich a newly seeded config only. Once present, project.json is
         // user-owned: re-detection must not replace commands, hooks, topology
@@ -137,9 +180,9 @@ impl ScaffoldPipeline {
             if !hooks.is_empty() {
                 self.inject_hooks(dir, &hooks);
             }
-            if let Some(ref polyglot) = self.polyglot {
-                self.inject_polyglot(dir, polyglot);
-                self.upsert_archetype_conventions(dir, polyglot);
+            if let Some(polyglot) = self.archetypes() {
+                self.inject_polyglot(dir, &polyglot);
+                self.upsert_archetype_conventions(dir, &polyglot);
             }
         }
 
@@ -173,7 +216,7 @@ impl ScaffoldPipeline {
     /// Whether this pipeline produces multi-archetype config.
     #[must_use]
     pub fn is_polyglot(&self) -> bool {
-        self.polyglot.is_some()
+        self.tree.is_some()
     }
 
     /// Inject lifecycle hooks into the generated project.json.
@@ -303,31 +346,33 @@ fn upsert_marked_section(doc: &str, start_marker: &str, end_marker: &str, conten
     result
 }
 
-/// Load preset for a stack, falling back to the default preset on error.
-fn load_preset_or_fallback(stack: &Stack) -> Preset {
-    config::preset::load_preset_full(stack.language, stack.framework, stack.package_manager)
-        .unwrap_or_else(|_| config::preset::fallback_preset())
-}
-
-/// Load preset with adaptive interview answers feeding the layer pipeline.
-fn load_preset_with_answers(stack: &Stack, selections: &ScaffoldSelections) -> Preset {
-    let layer_options = selections.interview_answers.to_layer_options();
-
-    // Only use the layered path if the user actually provided answers
-    if layer_options.database.is_some()
-        || layer_options.ci.is_some()
-        || layer_options.deployment.is_some()
-    {
+/// Load the stack's preset: built-in layers, the interview's answer layers,
+/// then the user's override from `user_preset_dir` when one was captured.
+/// Answer layers that fail to compose fall back to the answerless
+/// composition, and that to the default preset.
+fn load_preset(
+    stack: &Stack,
+    selections: &ScaffoldSelections,
+    user_preset_dir: Option<&Path>,
+) -> Preset {
+    let mut layers = selections.interview_answers.to_layer_options();
+    layers.user_preset_dir = user_preset_dir.map(Into::into);
+    let compose = |layers: &config::preset::LayerOptions| {
         config::preset::load_preset_layered(
             stack.language,
             stack.framework,
             stack.package_manager,
-            &layer_options,
+            layers,
         )
-        .unwrap_or_else(|_| load_preset_or_fallback(stack))
-    } else {
-        load_preset_or_fallback(stack)
-    }
+    };
+    compose(&layers)
+        .or_else(|_| {
+            compose(&config::preset::LayerOptions {
+                user_preset_dir: layers.user_preset_dir.clone(),
+                ..Default::default()
+            })
+        })
+        .unwrap_or_else(|_| config::preset::fallback_preset())
 }
 
 #[cfg(test)]

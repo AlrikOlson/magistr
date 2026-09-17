@@ -25,10 +25,14 @@ pub struct TreeToConfigResult {
 
 /// Convert a `ProjectTree` into archetypes, topology, and relationships.
 ///
-/// For each `DetectedProject`, loads the language/framework preset to populate
-/// quality gate, format, and testing config. Derives a unique slug id from the
-/// project name or path.
-pub fn tree_to_archetypes(tree: &ProjectTree) -> TreeToConfigResult {
+/// For each `DetectedProject`, loads the language/framework preset — with the
+/// user's override from `user_preset_dir` when the caller captured one — to
+/// populate quality gate, format, and testing config. Derives a unique slug
+/// id from the project name or path.
+pub fn tree_to_archetypes(
+    tree: &ProjectTree,
+    user_preset_dir: Option<&std::path::Path>,
+) -> TreeToConfigResult {
     let mut archetypes: Vec<Archetype> = Vec::with_capacity(tree.projects.len());
     let mut used_ids: HashSet<String> = HashSet::new();
 
@@ -43,7 +47,8 @@ pub fn tree_to_archetypes(tree: &ProjectTree) -> TreeToConfigResult {
         let abs_dir = tree.root.join(&project.path);
         let pkg_mgr = magistr_core::detection::detect::detect_package_manager(&abs_dir, lang);
 
-        let (quality_gate, mut format, testing) = load_preset_config(lang, framework, pkg_mgr);
+        let (quality_gate, mut format, testing) =
+            load_preset_config(lang, framework, pkg_mgr, user_preset_dir);
         if let Some(command) = detected_format_command(&abs_dir, lang, pkg_mgr) {
             format.command = command;
         }
@@ -153,8 +158,13 @@ fn load_preset_config(
     lang: magistr_core::types::Language,
     framework: magistr_core::types::Framework,
     pkg_mgr: magistr_core::types::PackageManager,
+    user_preset_dir: Option<&std::path::Path>,
 ) -> (QualityGate, FormatConfig, TestingConfig) {
-    match magistr_core::config::preset::load_preset_full(lang, framework, pkg_mgr) {
+    let layers = magistr_core::config::preset::LayerOptions {
+        user_preset_dir: user_preset_dir.map(Into::into),
+        ..Default::default()
+    };
+    match magistr_core::config::preset::load_preset_layered(lang, framework, pkg_mgr, &layers) {
         Ok(preset) => (preset.quality_gate, preset.format, preset.testing),
         Err(_) => {
             let fallback = magistr_core::config::preset::fallback_preset();

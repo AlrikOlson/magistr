@@ -71,5 +71,6 @@ fn preset_list_includes_builtins() {
     let renderer = crate::output::PlainRenderer;
 
     // Should not error — just listing presets
-    cmd_preset_list(dir.path(), &renderer).unwrap();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None);
+    cmd_preset_list(dir.path(), &renderer, &inputs).unwrap();
 }

@@ -244,7 +244,11 @@ fn registry_save_load_round_trip() {
     }
 
     // Load fresh
-    let loaded = PluginRegistry::load(registry_dir.path()).unwrap();
+    let loaded = PluginRegistry::load(
+        registry_dir.path(),
+        magistr::plugin::OrgPluginConfig::default(),
+    )
+    .unwrap();
     assert_eq!(loaded.len(), 1);
     assert!(loaded.is_installed("test-detection"));
 }

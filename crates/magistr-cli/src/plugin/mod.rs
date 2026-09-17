@@ -61,7 +61,7 @@ pub use loader::{load_detection_config, load_manifest, load_template_config, val
 #[allow(unused_imports)]
 pub use process::PluginProcess;
 #[allow(unused_imports)]
-pub use registry::{OrgPluginConfig, PluginRegistry, plugins_dir};
+pub use registry::{OrgPluginConfig, PluginRegistry};
 #[allow(unused_imports)]
 pub use signing::verify_signature;
 #[allow(unused_imports)]

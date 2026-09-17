@@ -242,10 +242,6 @@ pub fn generate_with_result(
     super::merge_gitignore(dir, &vars)?;
     result.updated.push(".gitignore".to_string());
 
-    // Apply template plugin files (best-effort — plugin failures don't block scaffolding)
-    let plugin_files = super::apply_template_plugins(dir, &vars);
-    result.created.extend(plugin_files);
-
     // If the AI generated a roadmap.yaml, write it ONLY if one doesn't already exist.
     // An existing roadmap.yaml is user/tool-created data — never overwrite it.
     // A think-and-ship project (the scaffolded default) keeps its roadmap in

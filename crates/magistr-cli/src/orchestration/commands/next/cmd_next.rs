@@ -8,8 +8,10 @@ pub async fn cmd_next(
     dir: &std::path::Path,
     backend: agent::Backend,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let inputs = inputs.for_project(&dir);
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
     let summary = wf.spec_summary().suggest()?;
@@ -37,7 +39,8 @@ pub async fn cmd_next(
     );
 
     // Delegate to the workflow session with this run's workspace admission.
-    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let workspace =
+        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     // One turn with no loop checkpoint: nothing records the runtime.
     let ran = crate::commands::run::cmd_run_workflow(
         &prompt,

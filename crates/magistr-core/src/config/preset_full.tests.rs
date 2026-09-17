@@ -2,7 +2,7 @@ use super::*;
 
 use crate::types::{Framework, Language, PackageManager};
 
-// Every composition fixture supplies its user layer, so a developer's HOME or
+// No fixture names a user preset directory, so a developer's HOME or
 // XDG_CONFIG_HOME cannot replace the built-in commands under test.
 fn layered(
     lang: Language,
@@ -10,7 +10,7 @@ fn layered(
     package_manager: PackageManager,
     options: &LayerOptions,
 ) -> Result<Preset> {
-    load_preset_layered_with(lang, framework, package_manager, options, |_| Ok(None))
+    load_preset_layered(lang, framework, package_manager, options)
 }
 
 #[test]
@@ -176,20 +176,22 @@ fn layered_with_project_local() {
 
 #[test]
 fn the_supplied_user_override_is_the_final_layer() {
-    let preset = load_preset_layered_with(
+    let dir = tempfile::TempDir::new().unwrap();
+    std::fs::write(
+        dir.path().join("rust.json"),
+        r#"{
+            "quality_gate": { "check": "user-specific check" },
+            "extra_allowed_tools": ["Bash(user-tool:*)"]
+        }"#,
+    )
+    .unwrap();
+    let preset = load_preset_layered(
         Language::Rust,
         Framework::Axum,
         PackageManager::Cargo,
-        &LayerOptions::default(),
-        |lang| {
-            assert_eq!(lang, Language::Rust);
-            Ok(Some(
-                serde_json::from_value(serde_json::json!({
-                    "quality_gate": { "check": "user-specific check" },
-                    "extra_allowed_tools": ["Bash(user-tool:*)"],
-                }))
-                .unwrap(),
-            ))
+        &LayerOptions {
+            user_preset_dir: Some(dir.path().into()),
+            ..LayerOptions::default()
         },
     )
     .unwrap();
@@ -205,21 +207,18 @@ fn the_supplied_user_override_is_the_final_layer() {
 
 #[test]
 fn a_user_override_load_error_is_preserved() {
-    let err = load_preset_layered_with(
+    let dir = tempfile::TempDir::new().unwrap();
+    std::fs::write(dir.path().join("rust.json"), "not valid json").unwrap();
+    let err = load_preset_layered(
         Language::Rust,
         Framework::None,
         PackageManager::Cargo,
-        &LayerOptions::default(),
-        |_| {
-            Err(crate::error::MagistrError::Config(
-                "invalid user preset fixture".to_string(),
-            ))
+        &LayerOptions {
+            user_preset_dir: Some(dir.path().into()),
+            ..LayerOptions::default()
         },
     )
     .unwrap_err();
 
-    assert!(
-        err.to_string().contains("invalid user preset fixture"),
-        "{err}"
-    );
+    assert!(err.to_string().contains("invalid user preset at"), "{err}");
 }

@@ -67,7 +67,7 @@ fn new_registry_is_empty() {
 #[test]
 fn load_missing_registry_returns_empty() {
     let dir = TempDir::new().unwrap();
-    let registry = PluginRegistry::load(dir.path()).unwrap();
+    let registry = PluginRegistry::load(dir.path(), OrgPluginConfig::default()).unwrap();
     assert!(registry.is_empty());
 }
 
@@ -184,7 +184,7 @@ fn save_and_load_round_trip() {
     registry.add_local(src.path()).unwrap();
     registry.save().unwrap();
 
-    let loaded = PluginRegistry::load(base.path()).unwrap();
+    let loaded = PluginRegistry::load(base.path(), OrgPluginConfig::default()).unwrap();
     assert_eq!(loaded.len(), 1);
     assert!(loaded.is_installed("test-detect"));
     assert_eq!(loaded.get("test-detect").unwrap().manifest.version, "1.0.0");

@@ -21,6 +21,7 @@
 use std::path::PathBuf;
 
 use super::auth_method::AuthMethod;
+use crate::config::inputs::ProjectInputs;
 
 /// A resolved agent runtime — binary path, arguments, authentication and the
 /// provider it stands for.
@@ -90,13 +91,6 @@ const COPILOT_INSTALL: &str = "curl -fsSL https://gh.io/copilot-install | bash";
 
 // ── Detection helpers ────────────────────────────────────────────────────
 
-/// Check whether `ANTHROPIC_API_KEY` is set and non-empty.
-fn has_api_key() -> bool {
-    std::env::var("ANTHROPIC_API_KEY")
-        .ok()
-        .is_some_and(|v| !v.is_empty())
-}
-
 /// Check whether the Claude CLI at `claude` reports `loggedIn: true`.
 ///
 /// Runs `claude auth status` and parses the JSON output. Returns `false`
@@ -140,14 +134,17 @@ fn has_cli_login(claude: &std::path::Path) -> bool {
     }
 }
 
-/// The Claude auth the environment offers, given that `claude` is on PATH.
-fn claude_auth(claude: &std::path::Path) -> AuthMethod {
-    if has_api_key() {
-        AuthMethod::ApiKey
-    } else if has_cli_login(claude) {
-        AuthMethod::CliLogin
-    } else {
-        AuthMethod::Implicit
+/// The Claude auth the captured environment offers, given that `claude` is
+/// on PATH. `has_api_key` is the captured presence of `ANTHROPIC_API_KEY`.
+fn claude_auth(has_api_key: bool) -> impl Fn(&std::path::Path) -> AuthMethod {
+    move |claude| {
+        if has_api_key {
+            AuthMethod::ApiKey
+        } else if has_cli_login(claude) {
+            AuthMethod::CliLogin
+        } else {
+            AuthMethod::Implicit
+        }
     }
 }
 
@@ -158,24 +155,9 @@ impl AgentRuntime {
     /// agent card names when it is gone.
     pub const AGENT_BINARY: &str = CLAUDE_CLI;
 
-    /// Detect the best available agent runtime.
-    ///
-    /// Finds binaries and checks authentication in a single pass, ensuring
-    /// the binary we launch actually has working credentials.
-    ///
-    /// # Errors
-    ///
-    /// Returns an actionable error if no authenticated runtime is available.
-    pub fn detect() -> crate::error::Result<Self> {
-        // Check user config for a preferred provider
-        let preferred = crate::config::user_config::load()
-            .ok()
-            .and_then(|cfg| cfg.session.provider().map(str::to_string));
-
-        Self::detect_with_preference(preferred.as_deref())
-    }
-
-    /// Detect with an explicit provider preference.
+    /// Detect the best available agent runtime for the captured inputs,
+    /// finding binaries and checking authentication in a single pass so the
+    /// binary launched actually has working credentials.
     ///
     /// When `preferred` is `Some("copilot")`, Copilot is used exclusively.
     /// When `Some("claude")`, Claude Code is used exclusively (any auth method).
@@ -183,9 +165,21 @@ impl AgentRuntime {
     /// runtime discovery checks its installed CLI and ChatGPT login on startup.
     /// When it names an API provider (`openai`, `gemini`, `ollama`), the
     /// in-binary agent serves that API — nothing on PATH is needed.
-    /// When `None`, uses the standard priority order.
-    pub fn detect_with_preference(preferred: Option<&str>) -> crate::error::Result<Self> {
-        Self::detect_with(preferred, |name| which::which(name).ok(), claude_auth)
+    /// When `None`, uses the standard priority order. The Claude API key is
+    /// read from the captured inputs, never from the environment here.
+    ///
+    /// # Errors
+    ///
+    /// Returns an actionable error if no authenticated runtime is available.
+    pub fn detect_for(
+        inputs: &ProjectInputs,
+        preferred: Option<&str>,
+    ) -> crate::error::Result<Self> {
+        Self::detect_with(
+            preferred,
+            |name| which::which(name).ok(),
+            claude_auth(inputs.has_claude_api_key()),
+        )
     }
 
     /// Resolve using caller-owned discovery and auth facts. This keeps the
@@ -318,8 +312,11 @@ impl AgentRuntime {
     /// Returns one runtime per distinct provider. Used by the settings TUI
     /// to probe each provider's model list independently.
     #[must_use]
-    pub fn detect_all() -> Vec<Self> {
-        Self::detect_all_with(|name| which::which(name).ok(), claude_auth)
+    pub fn detect_all_for(inputs: &ProjectInputs) -> Vec<Self> {
+        Self::detect_all_with(
+            |name| which::which(name).ok(),
+            claude_auth(inputs.has_claude_api_key()),
+        )
     }
 
     fn detect_all_with(

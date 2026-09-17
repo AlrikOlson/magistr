@@ -20,9 +20,15 @@ use cases that now exist: the contract-only `workflow`, `checks` and
 `projections` facades — start/complete a chunk, run a configured gate, read a
 run projection — had no adapter and duplicated what the first-party family
 use cases and `NativeEngines` already do under real admission, so they were
-deleted together with the `Capability` variants only they named. What remains
-here is the contract layer live adapters implement: sessions, permissions,
-effects and configuration, plus the scope, command and receipt types they
+deleted together with the `Capability` variants only they named.
+`audit-260912-14-config-inputs` retired the contract-only `configuration`
+facade the same way: no adapter implemented its port, no native authority
+holds the project-configuration revision it promised, and integrating it would
+have required the speculative ownership layer the audit forbids. Project,
+preset, provider, plugin and workspace inputs are instead
+[captured once](configuration.md#project-inputs) in `magistr-core`. What
+remains here is the contract layer live adapters implement: sessions,
+permissions and effects, plus the scope, command and receipt types they
 share. The place where workflow and workspace capabilities are composed is
 the [composition boundary](#the-composition-boundary) in the entry-point crate.
 
@@ -33,7 +39,6 @@ the [composition boundary](#the-composition-boundary) in the entry-point crate.
 | `sessions` | Start or resume a session, submit a prompt, cancel a turn, close a session | Resolve provider capabilities and models, own live resources, maintain explicit provider bindings, observe terminal events |
 | `permissions` | Resolve a scoped decision by selecting an offered option or cancelling | Correlate the live request, enforce project policy before approval, map the option to the provider response |
 | `effects` | Read or write text files, create terminals, observe and release owned terminals | Resolve actual targets, authorize through the shared session policy, enforce cancellation and resource ownership, perform host I/O |
-| `configuration` | Read resolved settings, initialize project setup, and patch project settings | Resolve configuration layers, preserve file ownership and user changes, refuse setup over existing configuration |
 
 Each scoped facade borrows a `ProjectScope` and its own port. The public methods
 name use cases rather than exposing a universal message dispatcher or repository.
@@ -85,10 +90,9 @@ provide durable deduplication or make a dishonest adapter authoritative.
 
 `Revision` is comparable only within the same project authority history; it is
 neither the workflow owner generation nor a workspace generation nor a source
-revision (see the [identity map](#identity-map)). Configuration snapshots use
-that same authoritative project revision history. Setup requires absent project
-configuration; patches preserve unmentioned settings and the ownership of other
-configuration layers.
+revision (see the [identity map](#identity-map)). No configuration revision
+exists in this history: project settings are files the scaffold owns, read
+through the captured project inputs, not a revisioned application aggregate.
 
 ## Outcomes and recovery
 

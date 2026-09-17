@@ -1,14 +1,18 @@
 //! `magistr preset list` — show all available presets with type and source.
 
+use crate::config::inputs::ProjectInputs;
 use crate::config::project_preset::{self, PresetInfo};
-use crate::config::user_preset;
 use crate::output::OutputRenderer;
 use crate::types::Language;
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
 /// List all available presets: built-in, project-local, and user-global.
-pub fn cmd_preset_list(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
+pub fn cmd_preset_list(
+    dir: &std::path::Path,
+    renderer: &dyn OutputRenderer,
+    inputs: &ProjectInputs,
+) -> eyre::Result<()> {
     let mut all_presets: Vec<PresetInfo> = Vec::new();
 
     // Built-in language presets
@@ -25,14 +29,14 @@ pub fn cmd_preset_list(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> 
 
     // Project-local presets
     let dir = if dir.as_os_str() == "." {
-        std::env::current_dir().unwrap_or_else(|_| dir.to_path_buf())
+        inputs.project_root().to_path_buf()
     } else {
         dir.to_path_buf()
     };
     all_presets.extend(project_preset::list_project_presets(&dir));
 
-    // User-global presets
-    all_presets.extend(user_preset::list_user_preset_info());
+    // User-global presets, from the captured preset directory
+    all_presets.extend(inputs.user_preset_info());
 
     if renderer.is_machine_readable() {
         let json: Vec<serde_json::Value> = all_presets

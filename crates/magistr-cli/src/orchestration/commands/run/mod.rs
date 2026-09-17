@@ -123,6 +123,7 @@ mod drain_result;
 mod drain_session_turn;
 mod protected_paths_for_project;
 mod resolve_permission_profile;
+mod run_request;
 mod seed_supervision;
 
 pub use cmd_run::cmd_run;
@@ -138,4 +139,5 @@ pub use drain_result::DrainResult;
 pub use drain_session_turn::drain_session_turn;
 pub use protected_paths_for_project::protected_paths_for_project;
 pub use resolve_permission_profile::resolve_permission_profile;
+pub use run_request::RunRequest;
 pub use seed_supervision::seed_supervision;

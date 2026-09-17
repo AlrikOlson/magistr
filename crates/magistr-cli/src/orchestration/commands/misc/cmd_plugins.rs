@@ -10,16 +10,19 @@ use color_eyre::eyre;
 pub fn cmd_plugins(
     action: Option<cli::PluginAction>,
     renderer: &dyn OutputRenderer,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
-    let base_dir = plugin::plugins_dir().ok_or_else(|| {
+    let base_dir = inputs.plugins_dir().ok_or_else(|| {
         error::MagistrError::Config("could not determine config directory (HOME not set)".into())
     })?;
+    let load_registry = || {
+        plugin::PluginRegistry::load(&base_dir, plugin::OrgPluginConfig::capture(inputs))
+            .map_err(|e| error::MagistrError::Config(e.to_string()))
+    };
 
     match action.unwrap_or(cli::PluginAction::List) {
         cli::PluginAction::List => {
-            let registry = plugin::PluginRegistry::load(&base_dir)
-                .map_err(|e| error::MagistrError::Config(e.to_string()))
-                .suggest()?;
+            let registry = load_registry().suggest()?;
 
             if renderer.is_machine_readable() {
                 let plugins: Vec<serde_json::Value> = registry
@@ -81,9 +84,7 @@ pub fn cmd_plugins(
                 .map_err(|e| error::MagistrError::io(&path, e))
                 .suggest()?;
 
-            let mut registry = plugin::PluginRegistry::load(&base_dir)
-                .map_err(|e| error::MagistrError::Config(e.to_string()))
-                .suggest()?;
+            let mut registry = load_registry().suggest()?;
 
             let installed = registry
                 .add_local(&path)
@@ -117,9 +118,7 @@ pub fn cmd_plugins(
         }
 
         cli::PluginAction::Remove { name } => {
-            let mut registry = plugin::PluginRegistry::load(&base_dir)
-                .map_err(|e| error::MagistrError::Config(e.to_string()))
-                .suggest()?;
+            let mut registry = load_registry().suggest()?;
 
             let removed = registry
                 .remove(&name)
@@ -181,9 +180,7 @@ pub fn cmd_plugins(
                 );
             }
 
-            let mut registry = plugin::PluginRegistry::load(&base_dir)
-                .map_err(|e| error::MagistrError::Config(e.to_string()))
-                .suggest()?;
+            let mut registry = load_registry().suggest()?;
 
             let installed = registry
                 .install_from_index(&entry, public_key.as_deref())

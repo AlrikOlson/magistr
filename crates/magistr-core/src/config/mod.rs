@@ -5,6 +5,7 @@
 //! or JSON file that partially overrides the previous layer.
 
 pub mod fallback_preset;
+pub mod inputs;
 pub mod migration;
 pub mod migration_check;
 pub mod preset;

@@ -32,7 +32,8 @@ async fn a_refusal_routes_nothing_says_why_and_releases_nothing() {
 async fn a_missing_root_is_not_admitted_rather_than_an_error() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let missing = tmp.path().join("never-created");
-    let admission = WorkspaceAdmission::admit(&missing).await;
+    let inputs = ProjectInputs::from_lookup(&missing, |_| None);
+    let admission = WorkspaceAdmission::admit(&inputs).await;
     let WorkspaceAdmission::Refused(SourceRefusal::NotAdmitted(reason)) = &admission else {
         panic!(
             "a missing root is a refusal in the owner's words: {}",

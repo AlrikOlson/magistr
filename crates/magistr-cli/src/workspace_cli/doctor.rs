@@ -20,36 +20,40 @@ use magistr_workspace::{
 
 use super::{admitted_root, exit::EXIT_USAGE, fail, session_flags};
 use crate::cli::WorkspaceDoctorMode;
+use crate::config::inputs::ProjectInputs;
 
-/// Run one doctor form with the retained renderings and exit codes.
+/// Run one doctor form with the retained renderings and exit codes. The
+/// configuration environment is the one the host captured, so the doctor
+/// reads exactly what the server itself would.
 pub fn run_doctor(
     mode: Option<WorkspaceDoctorMode>,
     dir: &Path,
     config: &[String],
+    inputs: &ProjectInputs,
 ) -> eyre::Result<()> {
+    let env = inputs.workspace_env();
     match mode {
-        None => report(&admitted_root(dir), &session_flags(config), None),
-        Some(WorkspaceDoctorMode::Bundle { dir, out, config }) => {
-            report(&admitted_root(&dir), &session_flags(&config), Some(out))
-        }
+        None => report(&admitted_root(dir), &session_flags(config), env, None),
+        Some(WorkspaceDoctorMode::Bundle { dir, out, config }) => report(
+            &admitted_root(&dir),
+            &session_flags(&config),
+            env,
+            Some(out),
+        ),
         Some(WorkspaceDoctorMode::Config { dir, config }) => {
-            resolved_config(&admitted_root(&dir), &session_flags(&config))
+            resolved_config(&admitted_root(&dir), &session_flags(&config), env)
         }
     }
-}
-
-/// The configuration environment the server itself reads.
-fn environment(root: &Path) -> BTreeMap<String, String> {
-    ResolveOptions::from_environment(root).env
 }
 
 fn resolved_config(
     root: &Path,
     flags: &serde_json::Map<String, serde_json::Value>,
+    env: &BTreeMap<String, String>,
 ) -> eyre::Result<()> {
     let options = ResolveOptions {
         root: root.to_path_buf(),
-        env: environment(root),
+        env: env.clone(),
         session_flags: flags.clone(),
     };
     match ResolvedConfig::resolve(&options) {
@@ -72,10 +76,11 @@ fn resolved_config(
 fn report(
     root: &Path,
     flags: &serde_json::Map<String, serde_json::Value>,
+    env: &BTreeMap<String, String>,
     bundle: Option<Option<PathBuf>>,
 ) -> eyre::Result<()> {
     let options = DoctorOptions::new(root)
-        .with_env(environment(root))
+        .with_env(env.clone())
         .with_session_flags(flags.clone());
     let run = DoctorRun::observe(&options);
     match bundle {

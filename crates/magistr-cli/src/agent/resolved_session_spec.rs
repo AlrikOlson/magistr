@@ -27,17 +27,24 @@ pub struct ResolvedSessionSpec {
 }
 
 impl ResolvedSessionSpec {
+    /// Freeze the session from the inputs captured when `config` was
+    /// composed: the user defaults come from the captured config path and
+    /// the runtime is detected against the captured provider facts.
     pub(super) fn resolve(config: AgentConfig) -> Result<Self> {
-        let defaults = crate::config::user_config::load().map_err(|error| {
-            MagistrError::Config(format!("Cannot resolve session user defaults: {error}"))
-        })?;
+        let defaults = config
+            .inputs
+            .user_config()
+            .map_err(|error| {
+                MagistrError::Config(format!("Cannot resolve session user defaults: {error}"))
+            })?
+            .value;
         Self::resolve_with_defaults(config, &defaults)
     }
 
     fn resolve_with_defaults(config: AgentConfig, defaults: &UserConfig) -> Result<Self> {
         validate_continuation(&config)?;
         let selected = config.provider.as_deref().or(defaults.session.provider());
-        let runtime = AgentRuntime::detect_with_preference(selected)?;
+        let runtime = AgentRuntime::detect_for(&config.inputs, selected)?;
         Self::resolve_with_runtime(config, defaults, runtime)
     }
 

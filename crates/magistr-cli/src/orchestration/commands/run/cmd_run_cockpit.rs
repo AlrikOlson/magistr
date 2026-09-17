@@ -75,7 +75,8 @@ pub async fn cmd_run_cockpit(
             return Err(eyre::eyre!("Magistr could not start this session"));
         }
     };
-    let workspace = admit_workspace(&root, |line| println!("{line}")).await;
+    let inputs = std::sync::Arc::clone(config.inputs());
+    let workspace = admit_workspace(&inputs, |line| println!("{line}")).await;
     let config = config.permission_profile(profile);
     let followup_config = config.clone();
     let opening = !config.prompt.trim().is_empty();
@@ -134,6 +135,7 @@ pub async fn cmd_run_cockpit(
             &root,
             profile,
             workflow,
+            &inputs,
         ))
         .await;
     feed.abort();
@@ -161,16 +163,17 @@ pub async fn cmd_run_cockpit(
     Ok(())
 }
 
-/// Admit the run's workspace in this process — the composition every
-/// source-writing host shares — and `announce` one line saying what the
+/// Admit the run's workspace — the captured project's root, on the captured
+/// configuration layers — in this process (the composition every
+/// source-writing host shares) and `announce` one line saying what the
 /// session's source writes will do: run through the admitted pipeline, or
 /// be refused because a live owner holds the workspace or this binary
 /// cannot admit the root.
 pub(crate) async fn admit_workspace(
-    root: &std::path::Path,
+    inputs: &crate::config::inputs::ProjectInputs,
     announce: impl FnOnce(String),
 ) -> WorkspaceAdmission {
-    let admission = WorkspaceAdmission::admit(root).await;
+    let admission = WorkspaceAdmission::admit(inputs).await;
     announce(admission.report());
     admission
 }

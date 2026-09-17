@@ -2,12 +2,12 @@ use clap::Parser;
 use color_eyre::eyre;
 
 use magistr::cli::{Cli, Command};
-use magistr::{commands, config, output, utils};
+use magistr::{commands, output, utils};
 use magistr_engine::cost::BudgetConfig as EngineBudgetConfig;
 
 // Test-only imports: these modules are used in #[cfg(test)] tests below.
 #[cfg(test)]
-use magistr::{agent, cli, detect, scaffold, types};
+use magistr::{agent, cli, config, detect, scaffold, types};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -46,7 +46,12 @@ async fn main() -> eyre::Result<()> {
     let use_tui = should_use_tui(cli.no_tui || cli.json);
     let renderer = output::create_renderer(json_output, false);
 
-    let budget_decision = propagate_env_flags(&cli);
+    // The project, preset, provider, plugin and workspace inputs, captured
+    // once for this process and threaded to every use case; commands that
+    // take a `--dir` re-root the same capture at that project.
+    let inputs = magistr::config::inputs::ProjectInputs::from_env(std::env::current_dir()?);
+
+    let budget_decision = propagate_env_flags(&cli, &inputs);
     init_tracing(&cli);
     // Every run records which scope bound its budget and what each scope
     // had left. Enforcement nobody can reconstruct afterwards is
@@ -61,7 +66,7 @@ async fn main() -> eyre::Result<()> {
         Some(cmd) => cmd,
         None => {
             if use_tui {
-                return commands::home::cmd_home(&env).await;
+                return commands::home::cmd_home(&env, &inputs).await;
             }
             // No TUI: print help and exit
             use clap::CommandFactory;
@@ -96,27 +101,27 @@ async fn main() -> eyre::Result<()> {
             if check {
                 commands::init::cmd_init_check(&dir)
             } else if ci {
-                commands::config::cmd_init_ci(&dir, force, &*renderer)
+                commands::config::cmd_init_ci(&dir, force, &*renderer, &inputs)
             } else if let Some(preset_source) = from {
                 commands::config::cmd_init_from_preset(&dir, &preset_source, force, &agents)
             } else if dry_run {
-                commands::init::cmd_init_dry_run(&dir, &*renderer, &agents)
+                commands::init::cmd_init_dry_run(&dir, &*renderer, &agents, &inputs)
             } else if interactive {
                 if use_tui {
-                    commands::init::cmd_init_interactive_tui(&dir, force, &env).await
+                    commands::init::cmd_init_interactive_tui(&dir, force, &env, &inputs).await
                 } else {
-                    commands::init::cmd_init_interactive(&dir, force).await
+                    commands::init::cmd_init_interactive(&dir, force, &inputs).await
                 }
             } else if smart {
-                commands::init::cmd_init_smart(&dir, force, &agents).await
+                commands::init::cmd_init_smart(&dir, force, &agents, &inputs).await
             } else if yes {
-                commands::init::cmd_init_interview(&dir, force, true, &agents).await
+                commands::init::cmd_init_interview(&dir, force, true, &agents, &inputs).await
             } else if !agents.is_empty() {
-                commands::init::cmd_init(&dir, force, &agents).await
+                commands::init::cmd_init(&dir, force, &agents, &inputs).await
             } else if use_tui && std::io::IsTerminal::is_terminal(&std::io::stdin()) {
-                commands::init::cmd_init_interview(&dir, force, false, &agents).await
+                commands::init::cmd_init_interview(&dir, force, false, &agents, &inputs).await
             } else {
-                commands::init::cmd_init(&dir, force, &agents).await
+                commands::init::cmd_init(&dir, force, &agents, &inputs).await
             }
         }
         Command::Reset { dir } => commands::misc::cmd_reset(&dir),
@@ -146,43 +151,24 @@ async fn main() -> eyre::Result<()> {
             if let Some(ref m) = model {
                 unsafe { std::env::set_var("MAGISTR_MODEL", m) };
             }
-            let agent_backend = commands::resolve_backend(backend)?;
+            let agent_backend = commands::resolve_backend(backend, &inputs)?;
             let profile = commands::run::resolve_permission_profile(
-                &std::env::current_dir()?,
+                inputs.project_root(),
                 cli.trust.as_deref(),
             )?;
+            let request = commands::run::RunRequest {
+                prompt: &prompt,
+                resume: resume.as_deref(),
+                continue_conversation: r#continue,
+                model: model.as_deref(),
+            };
             if headless {
-                commands::run::cmd_run_headless(
-                    &prompt,
-                    resume.as_deref(),
-                    r#continue,
-                    model.as_deref(),
-                    agent_backend,
-                    format,
-                    profile,
-                )
-                .await
+                commands::run::cmd_run_headless(request, agent_backend, format, profile, &inputs)
+                    .await
             } else if use_tui {
-                commands::run::cmd_run_tui(
-                    &prompt,
-                    resume.as_deref(),
-                    r#continue,
-                    model.as_deref(),
-                    agent_backend,
-                    profile,
-                    &env,
-                )
-                .await
+                commands::run::cmd_run_tui(request, agent_backend, profile, &env, &inputs).await
             } else {
-                commands::run::cmd_run(
-                    &prompt,
-                    resume.as_deref(),
-                    r#continue,
-                    model.as_deref(),
-                    agent_backend,
-                    profile,
-                )
-                .await
+                commands::run::cmd_run(request, agent_backend, profile, &inputs).await
             }
         }
         Command::Next {
@@ -196,17 +182,18 @@ async fn main() -> eyre::Result<()> {
             if gate_only {
                 commands::next::cmd_next_gate_only(&dir, format).await
             } else {
-                let agent_backend = commands::resolve_backend(backend)?;
+                let agent_backend = commands::resolve_backend(backend, &inputs)?;
                 let profile =
                     commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
                 if headless {
-                    commands::next::cmd_next_headless(&dir, agent_backend, format, profile).await
+                    commands::next::cmd_next_headless(&dir, agent_backend, format, profile, &inputs)
+                        .await
                 } else if continue_plan {
-                    commands::next::cmd_next_continue(&dir, agent_backend, profile).await
+                    commands::next::cmd_next_continue(&dir, agent_backend, profile, &inputs).await
                 } else if use_tui {
-                    commands::next::cmd_next_tui(&dir, agent_backend, profile, &env).await
+                    commands::next::cmd_next_tui(&dir, agent_backend, profile, &env, &inputs).await
                 } else {
-                    commands::next::cmd_next(&dir, agent_backend, profile).await
+                    commands::next::cmd_next(&dir, agent_backend, profile, &inputs).await
                 }
             }
         }
@@ -218,7 +205,7 @@ async fn main() -> eyre::Result<()> {
             format,
             max_cost,
         } => {
-            let agent_backend = commands::resolve_backend(backend)?;
+            let agent_backend = commands::resolve_backend(backend, &inputs)?;
             let profile = commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
             if headless {
                 commands::next::cmd_next_loop_headless(
@@ -228,6 +215,7 @@ async fn main() -> eyre::Result<()> {
                     format,
                     max_cost,
                     profile,
+                    &inputs,
                 )
                 .await
             } else if use_tui {
@@ -237,10 +225,12 @@ async fn main() -> eyre::Result<()> {
                     agent_backend,
                     profile,
                     &env,
+                    &inputs,
                 )
                 .await
             } else {
-                commands::next::cmd_next_loop(&dir, max_iterations, agent_backend, profile).await
+                commands::next::cmd_next_loop(&dir, max_iterations, agent_backend, profile, &inputs)
+                    .await
             }
         }
         Command::Migrate { dir } => commands::config::cmd_migrate(&dir),
@@ -253,7 +243,7 @@ async fn main() -> eyre::Result<()> {
         }
         Command::ManPages { dir } => commands::misc::cmd_man_pages(&dir),
         Command::Config { action } => {
-            commands::config_manage::cmd_config(action, use_tui, &env).await
+            commands::config_manage::cmd_config(action, use_tui, &env, &inputs).await
         }
         Command::Archetypes { dir, detail, json } => {
             commands::archetypes::cmd_archetypes(&dir, detail, json)
@@ -321,15 +311,15 @@ async fn main() -> eyre::Result<()> {
             export,
             &*renderer,
         ),
-        Command::Models => commands::models::cmd_models(&*renderer).await,
+        Command::Models => commands::models::cmd_models(&*renderer, &inputs).await,
         Command::Learn { dir } => commands::misc::cmd_learn(&dir, &*renderer),
         Command::Memory { dir, action } => commands::misc::cmd_memory(&dir, action, &*renderer),
-        Command::Plugins { action } => commands::misc::cmd_plugins(action, &*renderer),
+        Command::Plugins { action } => commands::misc::cmd_plugins(action, &*renderer, &inputs),
         Command::Preset { action, dir } => {
             use magistr::cli::PresetAction;
             match action {
                 Some(PresetAction::List) | None => {
-                    commands::preset::cmd_preset_list(&dir, &*renderer)
+                    commands::preset::cmd_preset_list(&dir, &*renderer, &inputs)
                 }
                 Some(PresetAction::Create { output }) => {
                     commands::preset::cmd_preset_create(&dir, output.as_deref())
@@ -339,7 +329,7 @@ async fn main() -> eyre::Result<()> {
         }
         Command::McpProxy { cmd } => commands::misc::cmd_mcp_proxy(cmd),
         Command::McpServe { dir } => commands::misc::cmd_mcp_serve(&dir).await,
-        Command::Workspace { action } => commands::misc::cmd_workspace(action).await,
+        Command::Workspace { action } => commands::misc::cmd_workspace(action, &inputs).await,
         Command::McpLaunch { target, dir } => commands::misc::cmd_mcp_launch(target, &dir).await,
         Command::CodexLaunch { .. } => unreachable!("Codex launch dispatches before session setup"),
         Command::CodexRemove { dir } => {
@@ -354,7 +344,9 @@ async fn main() -> eyre::Result<()> {
             provider,
             allow_tool,
         } => commands::misc::cmd_acp_agent(&provider, &allow_tool).await,
-        Command::Roadmap { action } => commands::misc::cmd_roadmap(action, &*renderer, &env).await,
+        Command::Roadmap { action } => {
+            commands::misc::cmd_roadmap(action, &*renderer, &env, &inputs).await
+        }
     };
 
     // An interrupted run has settled on its own terms by now — its cost,
@@ -412,7 +404,10 @@ fn should_use_tui(no_tui: bool) -> bool {
 /// Returns the budget decision it made, for the caller to log *after*
 /// tracing is initialized — this runs before `init_tracing`, so logging
 /// from in here would write to a subscriber that does not exist yet.
-fn propagate_env_flags(cli: &Cli) -> magistr_engine::cost::BudgetDecision {
+fn propagate_env_flags(
+    cli: &Cli,
+    inputs: &magistr::config::inputs::ProjectInputs,
+) -> magistr_engine::cost::BudgetDecision {
     // SAFETY: This runs at startup in main() before any threads are spawned,
     // so there are no concurrent readers of these environment variables.
 
@@ -442,7 +437,10 @@ fn propagate_env_flags(cli: &Cli) -> magistr_engine::cost::BudgetDecision {
     // their user config); the roster is not, which is what makes the cap
     // enforceable rather than advisory.
     {
-        let user_cfg = config::user_config::load().unwrap_or_default();
+        let user_cfg = inputs
+            .user_config()
+            .map(|captured| captured.value)
+            .unwrap_or_default();
         let local = EngineBudgetConfig {
             limit: cli.budget.or(user_cfg.budget.limit),
             warn_threshold: cli.budget_warn.or(user_cfg.budget.warn_threshold),

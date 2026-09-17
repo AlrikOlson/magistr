@@ -8,6 +8,7 @@ use color_eyre::eyre;
 
 use crate::cli;
 use crate::config;
+use crate::config::inputs::{InputOrigin, ProjectInputs};
 use crate::env::MagistrEnv;
 use crate::error::{self, ResultExt};
 use crate::paths;
@@ -22,11 +23,12 @@ pub async fn cmd_config(
     action: Option<cli::ConfigAction>,
     _use_tui: bool,
     _env: &MagistrEnv,
+    inputs: &ProjectInputs,
 ) -> eyre::Result<()> {
     match action {
-        None => cmd_config_check(&std::path::PathBuf::from(".")),
-        Some(cli::ConfigAction::Check { dir }) => cmd_config_check(&dir),
-        Some(cli::ConfigAction::Show { dir }) => cmd_config_show(&dir),
+        None => cmd_config_check(&std::path::PathBuf::from("."), inputs),
+        Some(cli::ConfigAction::Check { dir }) => cmd_config_check(&dir, inputs),
+        Some(cli::ConfigAction::Show { dir }) => cmd_config_show(&dir, inputs),
         Some(cli::ConfigAction::Migrate { dir }) => super::config::cmd_migrate(&dir),
     }
 }
@@ -34,7 +36,7 @@ pub async fn cmd_config(
 // ─── CLI-only commands ──────────────────────────────────────────────────────
 
 /// Validate all configuration files and report issues.
-fn cmd_config_check(dir: &std::path::Path) -> eyre::Result<()> {
+fn cmd_config_check(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Result<()> {
     let dir = dir
         .canonicalize()
         .map_err(|e| error::MagistrError::io(dir, e))
@@ -75,19 +77,26 @@ fn cmd_config_check(dir: &std::path::Path) -> eyre::Result<()> {
         );
     }
 
-    // 2. Check user config
-    match config::user_config::load() {
-        Ok(_) => {
+    // 2. Check user config: a loaded file, an absent one (defaults apply),
+    // an unlocatable one (no config directory) and an unreadable one are
+    // four different answers.
+    match inputs.user_config() {
+        Ok(captured) => {
             ok_count += 1;
-            let path = config::user_config::config_path()
-                .map(|p| p.display().to_string())
-                .unwrap_or_else(|| "~/.config/magistr/config.toml".to_string());
-            eprintln!("  {} {path}", fmt::green("✓"));
-        }
-        Err(config::user_config::UserConfigError::Io(_, _)) => {
-            // File doesn't exist — that's fine, defaults apply
-            ok_count += 1;
-            eprintln!("  {} user config (using defaults)", fmt::green("✓"));
+            match captured.origin {
+                InputOrigin::Loaded(path) => {
+                    eprintln!("  {} {}", fmt::green("✓"), path.display());
+                }
+                InputOrigin::Absent(path) => eprintln!(
+                    "  {} user config (using defaults; none at {})",
+                    fmt::green("✓"),
+                    path.display()
+                ),
+                InputOrigin::Unlocated => eprintln!(
+                    "  {} user config (using defaults; no config directory — set HOME or XDG_CONFIG_HOME)",
+                    fmt::yellow("!")
+                ),
+            }
         }
         Err(e) => {
             errors.push(format!("user config: {e}"));
@@ -136,14 +145,17 @@ fn cmd_config_check(dir: &std::path::Path) -> eyre::Result<()> {
 }
 
 /// Print the effective merged configuration.
-fn cmd_config_show(dir: &std::path::Path) -> eyre::Result<()> {
+fn cmd_config_show(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Result<()> {
     let dir = dir
         .canonicalize()
         .map_err(|e| error::MagistrError::io(dir, e))
         .suggest()?;
 
     // User config
-    let user_config = config::user_config::load().unwrap_or_default();
+    let user_config = inputs
+        .user_config()
+        .map(|captured| captured.value)
+        .unwrap_or_default();
     eprintln!("{}", fmt::bold("User Config"));
     eprintln!(
         "  theme:        {}",

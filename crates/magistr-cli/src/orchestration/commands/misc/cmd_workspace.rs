@@ -9,13 +9,17 @@ use crate::{
 };
 
 /// Dispatch one `magistr workspace` action.
-pub async fn cmd_workspace(action: WorkspaceAction) -> eyre::Result<()> {
+pub async fn cmd_workspace(
+    action: WorkspaceAction,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
     match action {
         WorkspaceAction::Serve { dir, config } => {
-            crate::workspace_mcp::run_workspace_stdio_server(&dir, &config).await
+            crate::workspace_mcp::run_workspace_stdio_server(&inputs.for_project(dir), &config)
+                .await
         }
         WorkspaceAction::Doctor { mode, dir, config } => {
-            workspace_cli::run_doctor(mode, &dir, &config)
+            workspace_cli::run_doctor(mode, &dir, &config, inputs)
         }
         WorkspaceAction::Journal {
             dir,

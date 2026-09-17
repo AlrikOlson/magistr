@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::sync::Arc;
 
 use magistr_application::effects::SourceWriter;
@@ -8,6 +7,7 @@ use magistr_workspace::{
 };
 
 use super::WorkspaceSourceWriter;
+use crate::config::inputs::ProjectInputs;
 
 /// The workspace this host admitted for its run: the one native owner of
 /// the checkout for as long as the run lasts. The host opens the service
@@ -25,15 +25,15 @@ pub struct HostedWorkspace {
 }
 
 impl HostedWorkspace {
-    /// Admit `root` in this process and serve the owner endpoint. `Ok(None)`
-    /// when a live owner holds the workspace.
+    /// Admit the captured project's root in this process and serve the owner
+    /// endpoint. `Ok(None)` when a live owner holds the workspace.
     ///
     /// # Errors
     /// The root cannot be admitted for another reason: a missing root, a
     /// marker that needs migration, durable data from a newer binary, a
     /// configuration refusal, or an endpoint that could not be served.
-    pub async fn admit(root: &Path) -> Result<Option<Self>, WorkspaceOpenError> {
-        let options = crate::workspace_mcp::open_options(root, serde_json::Map::new())?;
+    pub async fn admit(inputs: &ProjectInputs) -> Result<Option<Self>, WorkspaceOpenError> {
+        let options = crate::workspace_mcp::open_options(inputs, serde_json::Map::new())?;
         Self::admit_with(options).await
     }
 

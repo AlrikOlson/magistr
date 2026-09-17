@@ -323,6 +323,7 @@ The adopted trees carried surfaces that were products in their own right.
 | Workbench reference source (`subsystems/workspace/reference`, including the Bun server and vendored guests) | Retain | The parity oracle behind the required `workspace-reference` gate; never in the production dependency graph |
 | Workbench `conformance/`, `bench/`, `SUPPORT_MATRIX.md` | Retain | Executed evidence of the native port |
 | `magistr-application` `workflow`, `checks`, `projections` facades | Deleted by `arch-14f` | No adapter; duplicated the native family use cases |
+| `magistr-application` `configuration` facade (`ConfigurationPort`, `Capability::ConfigureProject`) | Deleted by `audit-260912-14-config-inputs` | No adapter and no native configuration revision to bind to; project, preset, provider, plugin and workspace inputs are [captured once](configuration.md#project-inputs) in `magistr-core` instead |
 | Hypothetical Service-owner typed attachment (`arch-11b`) | Retired, not built | No consumer; the Service already holds the writer its session serves |
 
 The native refactor continues with the split integration chunks and

@@ -67,8 +67,10 @@ async fn force_reinit_preserves_state_config_and_customized_scaffold() {
     write(dir, ".mcp.json", &mcp.to_string());
     std::fs::remove_file(dir.join(".claude/skills/next/SKILL.md")).unwrap();
 
+    // A capture with no home: the interview composes built-in layers only.
+    let inputs = magistr::config::inputs::ProjectInputs::from_lookup(dir, |_| None);
     for _ in 0..2 {
-        init::cmd_init_interview(dir, true, true, &[])
+        init::cmd_init_interview(dir, true, true, &[], &inputs)
             .await
             .unwrap();
         assert_eq!(

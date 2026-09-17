@@ -8,7 +8,6 @@ pub use super::load::load;
 pub use super::load_from::load_from;
 pub use super::model_config::ModelConfig;
 pub use super::model_config_error::ModelConfigError;
-pub use super::models_config_path::models_config_path;
 pub use super::models_file::ModelsFile;
 pub use super::provider::Provider;
 pub use super::save_to::save_to;

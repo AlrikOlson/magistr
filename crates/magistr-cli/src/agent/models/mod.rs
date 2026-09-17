@@ -13,7 +13,6 @@ pub mod load;
 pub mod load_from;
 pub mod model_config;
 pub mod model_config_error;
-pub mod models_config_path;
 pub mod models_file;
 pub mod provider;
 pub mod save_to;

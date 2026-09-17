@@ -1,6 +1,6 @@
 pub use super::fallback_preset::fallback_preset;
 pub use super::preset_framework::load_preset_with_framework;
-pub use super::preset_full::{LayerOptions, load_preset_full, load_preset_layered};
+pub use super::preset_full::{LayerOptions, load_preset_layered};
 
 use crate::error::{MagistrError, Result};
 use crate::types::{Language, Preset};

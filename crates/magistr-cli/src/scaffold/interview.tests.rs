@@ -301,10 +301,11 @@ fn generate_single(fixture: &[(&str, &str)], result: &InterviewResult) -> (Vec<S
 
 fn scripted_defaults_interview(dir: &std::path::Path) -> InterviewResult {
     let stack = crate::detect::detect_stack(dir).expect("detect");
-    let preset = crate::config::preset::load_preset_full(
+    let preset = crate::config::preset::load_preset_layered(
         stack.language,
         stack.framework,
         stack.package_manager,
+        &crate::config::preset::LayerOptions::default(),
     )
     .unwrap_or_else(|_| crate::config::preset::fallback_preset());
     let mut reader = Cursor::new(Vec::new());

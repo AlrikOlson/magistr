@@ -8,8 +8,10 @@ pub async fn cmd_next_continue(
     dir: &std::path::Path,
     backend: agent::Backend,
     profile: crate::permissions::PermissionProfile,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let inputs = inputs.for_project(&dir);
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
@@ -65,7 +67,8 @@ pub async fn cmd_next_continue(
         fmt::info("Continuing research-plan-execute-verify cycle...")
     );
 
-    let workspace = crate::commands::run::admit_workspace(&dir, |line| eprintln!("{line}")).await;
+    let workspace =
+        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let ran = crate::commands::run::cmd_run_workflow(
         &prompt,
         &dir,
