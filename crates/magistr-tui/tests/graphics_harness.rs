@@ -517,6 +517,101 @@ async fn a_sixel_only_terminal_gets_the_same_surfaces_as_a_dcs_image() {
     assert_eq!(capture.count(DELETE), 0, "and nothing stored to delete");
 }
 
+/// Read sixel payloads at the cursor positions tracked by an independent VT
+/// parser. Sixel does not move our encoder's cursor: each DCS is saved/restored.
+fn sixel_updates(parser: &mut vt100::Parser, mut bytes: &[u8]) -> Vec<((u16, u16), Vec<u8>)> {
+    let mut images = Vec::new();
+    while let Some(start) = bytes.windows(SIXEL.len()).position(|w| w == SIXEL) {
+        parser.process(&bytes[..start]);
+        let rest = &bytes[start..];
+        let end = rest
+            .windows(2)
+            .position(|w| w == b"\x1b\\")
+            .expect("terminated DCS")
+            + 2;
+        images.push((parser.screen().cursor_position(), rest[..end].to_vec()));
+        bytes = &rest[end..];
+    }
+    parser.process(bytes);
+    images
+}
+
+#[tokio::test]
+async fn a_sixel_session_selection_re_emits_only_changed_strips() {
+    use magistr_cockpit::cockpit::Selected;
+    use magistr_cockpit::theme::{MotionMode, Theme, ThemeMode};
+
+    for theme in [ThemeMode::Dark, ThemeMode::Light] {
+        let script = Script::new()
+            .bytes(MS(0), b"\x1b[?62;4c".as_slice())
+            .text(MS(300), "\x1b[B")
+            .text(MS(400), "\x1b")
+            .text(MS(500), "\x1b[B")
+            .text(MS(750), "\x04");
+        let terminal = FakeTerminal::new(SIZE, script);
+        let capture = terminal.capture();
+        let deliveries = terminal.deliveries();
+        let runtime = Runtime::new(terminal, options().probe_timeout(MS(100)));
+        branched_trace().play(runtime.inbox());
+        let model = runtime
+            .run(
+                Model::new(SIZE)
+                    .with_tab(StageTab::Session)
+                    .with_theme(Theme::forced(theme).with_motion(MotionMode::Reduced)),
+            )
+            .await
+            .expect("the session succeeds");
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Step(2)),
+            "the selection actually moved"
+        );
+
+        let input = deliveries.instants();
+        assert_eq!(input.len(), 5);
+        let (moved, quit) = (input[3], input[4]);
+        let mut parser = vt100::Parser::new(SIZE.rows, SIZE.cols, 0);
+        let mut cache = std::collections::HashMap::new();
+        let bytes = capture.bytes();
+        let mut offset = 0;
+        let mut changed = 0;
+        for (at, len) in capture.writes() {
+            let frame = &bytes[offset..offset + len];
+            offset += len;
+            if at >= quit {
+                break;
+            }
+            if at >= moved {
+                assert!(
+                    !frame.windows(4).any(|w| w == b"\x1b[2J"),
+                    "selection never clears the display"
+                );
+            }
+            for (position, image) in sixel_updates(&mut parser, frame) {
+                if at >= moved {
+                    assert_ne!(
+                        cache.get(&position),
+                        Some(&image),
+                        "unchanged strip at {position:?} was emitted again in {theme:?}"
+                    );
+                    changed += 1;
+                }
+                cache.insert(position, image);
+            }
+        }
+        assert_eq!(
+            cache.len(),
+            usize::from(SIZE.rows.div_ceil(4)),
+            "the entire screen was captured"
+        );
+        assert!(
+            changed > 0 && changed < cache.len(),
+            "{changed} changed strips of {}",
+            cache.len()
+        );
+    }
+}
+
 #[tokio::test]
 async fn an_idle_sixel_cockpit_re_emits_nothing() {
     // Everything happens at 500 ms and later — past the sweeps the

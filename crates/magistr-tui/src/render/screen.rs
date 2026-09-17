@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use super::change::Change;
 use super::diff::diff;
 use super::encode::Encoder;
 use crate::graphics::Protocol;
@@ -26,8 +27,8 @@ use magistr_cockpit::widget_id::WidgetId;
 /// everything and places every surface again.
 ///
 /// A sixel surface covers the cells it sits on, so when one moves or
-/// leaves the frame the backend says so and the next frame is a full
-/// redraw — the only way to get those cells back.
+/// leaves the frame its old cells are repaired before this frame's images.
+/// Cached images outside the cell damage remain on the terminal.
 #[derive(Debug)]
 pub struct Screen {
     front: Buffer,
@@ -108,7 +109,7 @@ impl Screen {
     /// and the pen is reset before ESU.
     ///
     /// A headline that leaves the frame takes the next frame's full
-    /// redraw with it, the way a departing sixel surface does: our
+    /// redraw with it: our
     /// buffer holds blanks where the terminal holds the scaled block, so
     /// a diff that happened to agree with those blanks would leave the
     /// glyphs on screen.
@@ -289,25 +290,59 @@ impl Screen {
         if self.redraw {
             self.front.resize(self.back.width(), self.back.height());
         }
-        let changes = diff(&self.front, &self.back);
+        let vacated = self
+            .graphics
+            .as_mut()
+            .map(Backend::prepare)
+            .unwrap_or_default();
+        let changes = Self::changes(&self.front, &self.back, &vacated);
         self.encoder
             .begin_frame(self.back.width(), self.redraw, &changes, out);
-        let vacated = match &mut self.graphics {
-            Some(graphics) => graphics.finish(&mut self.encoder, out),
-            None => false,
-        };
+        if let Some(graphics) = &mut self.graphics {
+            graphics.finish(&mut self.encoder, out, &changes);
+        }
         let left = self.write_headline(out);
         out.append(&mut self.enclosed);
         Encoder::end_frame(out);
         self.redraw = false;
         std::mem::swap(&mut self.front, &mut self.back);
         self.back.fill(&magistr_cockpit::render::Cell::blank());
-        if vacated || left {
-            // A surface or a headline left cells holding what it drew;
-            // nothing short of a redraw puts the text back under where
-            // it was.
+        if left {
             self.invalidate();
         }
+    }
+
+    /// Merge cell damage with the ordinary diff, clipped to the visible grid.
+    /// Include a wide glyph's head when a vacated rect covers its continuation.
+    fn changes<'a>(front: &Buffer, back: &'a Buffer, vacated: &[Rect]) -> Vec<Change<'a>> {
+        let mut changes = diff(front, back);
+        if vacated.is_empty() {
+            return changes;
+        }
+        for rect in vacated {
+            for row in rect.y..rect.bottom().min(back.height()) {
+                for col in rect.x..rect.right().min(back.width()) {
+                    let mut head = col;
+                    while head > 0
+                        && back
+                            .get(head, row)
+                            .is_some_and(|cell| cell.is_continuation())
+                    {
+                        head -= 1;
+                    }
+                    if let Some(cell) = back.get(head, row) {
+                        changes.push(Change {
+                            col: head,
+                            row,
+                            cell,
+                        });
+                    }
+                }
+            }
+        }
+        changes.sort_unstable_by_key(|change| (change.row, change.col));
+        changes.dedup_by_key(|change| (change.row, change.col));
+        changes
     }
 
     /// Emit this frame's headline when it differs from what the

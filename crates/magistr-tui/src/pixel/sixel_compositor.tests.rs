@@ -36,17 +36,18 @@ fn surface(rect: Rect) -> PixelSurface {
 }
 
 /// Show every surface, finish the frame, and return the bytes together
-/// with whether a rect was vacated.
+/// with the rects that need cell repair.
 fn frame(
     compositor: &mut SixelCompositor,
     encoder: &mut Encoder,
     shows: &mut [(u32, &mut PixelSurface)],
-) -> (Vec<u8>, bool) {
+) -> (Vec<u8>, Vec<Rect>) {
     for (id, surface) in shows.iter_mut() {
         compositor.show(WidgetId::new(*id), surface);
     }
     let mut out = Vec::new();
-    let vacated = compositor.finish(encoder, &mut out);
+    let vacated = compositor.prepare();
+    compositor.finish(encoder, &mut out, &[]);
     (out, vacated)
 }
 
@@ -67,7 +68,7 @@ fn the_first_frame_moves_the_cursor_and_emits_the_whole_image() {
         images(&out)[0].starts_with(b"\x1bP0;1;0q\"1;1;10;4"),
         "raster size"
     );
-    assert!(!vacated, "nothing left the frame");
+    assert!(vacated.is_empty(), "nothing left the frame");
 }
 
 #[test]
@@ -80,7 +81,7 @@ fn an_unchanged_surface_costs_nothing() {
     let (out, vacated) = frame(&mut compositor, &mut encoder, &mut [(1, &mut s)]);
 
     assert!(out.is_empty(), "{out:?}");
-    assert!(!vacated);
+    assert!(vacated.is_empty());
 }
 
 #[test]
@@ -99,7 +100,11 @@ fn a_moved_surface_is_re_emitted_unchanged_and_vacates_its_old_rect() {
         images(&first),
         "a move re-emits the cached image, it does not re-encode"
     );
-    assert!(vacated, "the old rect's cells are stale");
+    assert_eq!(
+        vacated,
+        vec![Rect::new(0, 0, 4, 2)],
+        "the old rect's cells are stale"
+    );
 }
 
 #[test]
@@ -118,7 +123,7 @@ fn a_repainted_surface_is_encoded_again() {
         images(&first),
         "different pixels, different DCS"
     );
-    assert!(!vacated, "the surface never left its rect");
+    assert!(vacated.is_empty(), "the surface never left its rect");
 }
 
 #[test]
@@ -131,7 +136,11 @@ fn a_surface_that_leaves_the_frame_vacates_its_rect() {
     let (out, vacated) = frame(&mut compositor, &mut encoder, &mut []);
 
     assert!(out.is_empty(), "there is no delete command to send");
-    assert!(vacated, "the cells it covered have to be painted again");
+    assert_eq!(
+        vacated,
+        vec![Rect::new(0, 0, 4, 2)],
+        "the cells it covered have to be painted again"
+    );
 }
 
 #[test]
@@ -143,7 +152,7 @@ fn an_empty_rect_is_not_shown() {
     let (out, vacated) = frame(&mut compositor, &mut encoder, &mut [(1, &mut s)]);
 
     assert!(out.is_empty(), "{out:?}");
-    assert!(!vacated);
+    assert!(vacated.is_empty());
 }
 
 #[test]
@@ -158,7 +167,7 @@ fn a_cleared_display_re_emits_without_re_encoding_and_vacates_nothing() {
     let (out, vacated) = frame(&mut compositor, &mut encoder, &mut [(1, &mut s)]);
 
     assert_eq!(images(&out), images(&first));
-    assert!(!vacated, "the clear already repainted the cells");
+    assert!(vacated.is_empty(), "the clear already repainted the cells");
 }
 
 #[test]

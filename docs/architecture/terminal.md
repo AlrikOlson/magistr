@@ -96,7 +96,12 @@ rectangles. The same glyph metrics drive layout, wrapping and painting. Code and
 terminal output retain column alignment; labels and prose use proportional type.
 The renderer composes backgrounds, vector marks, images and text into opaque
 four-row strips, transmitting only strips whose pixels changed through Kitty or
-Sixel. No interface glyphs are painted by the terminal in this mode. The terminal
+Sixel. No interface glyphs are painted by the terminal in this mode. When a sixel
+surface moves or disappears, the screen repaints its former cells before emitting
+images in that same synchronized frame. Repair includes wide-glyph heads and stays
+within the grid. Only images touched by cell writes or overlapping image updates
+are restored; unrelated cached images stay on screen. Kitty keeps its placement
+deletes and does not require cell repair. The terminal
 driver negotiates physical mouse reports where supported and
 registers the same pixel rectangles used for drawing. A terminal that reports
 only cells resolves the cell center against that registry. Window input carries
