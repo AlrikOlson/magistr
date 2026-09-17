@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "verb", rename_all = "snake_case")]
 pub enum ShipCommand {
+    /// Explicitly remove settled check history outside the current run.
+    CompactReceipts,
     /// `ship_set_objective`.
     SetObjective {
         description: String,

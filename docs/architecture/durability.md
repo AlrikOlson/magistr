@@ -121,6 +121,13 @@ cannot be asked about and stays open. A dispatch recorded before this
 generation (`pid:<pgid>` with no start identity) still parses: its liveness
 is the id's alone.
 
+Receipt compaction preserves exact IDs referenced by unresolved operations in the
+active checkpoint, including receipts already settled in the workflow store.
+It reads those references under the ledger lock, after pinning the current
+objective; the loop must persist its reference before receipt settlement.
+See [receipt retention](project-authority.md#receipt-retention). A corrupt or
+unreadable checkpoint refuses compaction.
+
 ## Per-family atomicity
 
 | Family | Store | Atomic unit | Cross-family atomicity |

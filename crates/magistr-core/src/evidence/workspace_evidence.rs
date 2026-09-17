@@ -14,8 +14,9 @@ use crate::types::ProjectConfig;
 /// configuration layers (the workspace's organization policy and user
 /// layer, resolved from the inputs captured at composition) observed
 /// beside it, and gate contracts resolved from the project configuration
-/// as it is at the moment of asking. Everything reads without any lock
-/// and without touching a configuration file.
+/// as it is at the moment of asking. Source and configuration observations
+/// are lock-free. Receipt retention reads the loop checkpoint under the caller's
+/// ledger lock, without acquiring another lock or writing any file.
 #[derive(Debug, Clone)]
 pub struct WorkspaceEvidence {
     root: PathBuf,
@@ -88,6 +89,39 @@ impl WorkspaceEvidence {
 }
 
 impl EvidencePort for WorkspaceEvidence {
+    fn retained_receipts(&self) -> Result<std::collections::BTreeSet<String>, String> {
+        use crate::workflow::iteration::IterationState;
+        use magistr_domain::workflow::OperationKind;
+        let path = self.root.join(".magistr/loop-state.json");
+        let bytes = match std::fs::read(&path) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Default::default());
+            }
+            Err(error) => {
+                return Err(format!(
+                    "Cannot read the saved loop before clearing check history: {error}"
+                ));
+            }
+        };
+        let state: IterationState = serde_json::from_slice(&bytes).map_err(|error| {
+            format!("Cannot read the saved loop before clearing check history: {error}")
+        })?;
+        Ok(state
+            .operations
+            .records()
+            .iter()
+            .filter(|record| record.kind == OperationKind::Receipt && !record.outcome.is_settled())
+            .filter_map(|record| {
+                record
+                    .external
+                    .as_deref()?
+                    .strip_prefix("receipt:")
+                    .map(str::to_owned)
+            })
+            .collect())
+    }
+
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
         let snapshot = SourceSnapshot::capture(&self.root, self.policy.clone())
             .map_err(|error| error.to_string())?;

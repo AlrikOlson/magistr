@@ -7,8 +7,9 @@ use super::{GateContract, SourceWitness};
 /// and its gate resolver, and every server-executed check — the host's own
 /// gate runner, its loop, and the native `ship_check` — goes through it.
 ///
-/// Every call runs outside the workflow's engine lock; an observation may
-/// hash a whole tree and must never wait on a mutation.
+/// Source observations and gate resolution run outside the engine lock.
+/// Retention reads run inside the receipt lock and must never call back into
+/// the workflow or wait for a receipt writer.
 pub trait EvidencePort: Send + Sync {
     /// Observe the workspace now, lock-free.
     ///
@@ -22,4 +23,13 @@ pub trait EvidencePort: Send + Sync {
     /// # Errors
     /// The configuration cannot be read or resolved.
     fn required_gates(&self) -> Result<Vec<GateContract>, String>;
+
+    /// Exact receipt IDs still referenced by unresolved host operations.
+    /// Called under the ledger lock, after the current run is pinned. Hosts
+    /// must persist references before settling receipts, and must override
+    /// this method when they keep an external recovery checkpoint.
+    /// An unreadable checkpoint must return an error, never an empty set.
+    fn retained_receipts(&self) -> Result<std::collections::BTreeSet<String>, String> {
+        Ok(std::collections::BTreeSet::new())
+    }
 }

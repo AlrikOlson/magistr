@@ -103,6 +103,53 @@ fn step(n: u32, purpose: &str) -> ThinkStep {
 }
 
 #[test]
+fn compaction_owner_command_keeps_current_receipts_and_removes_old_settled_history() {
+    use crate::native::{OwnerCommand, OwnerReply, ShipCommand};
+    let temp = tempfile::tempdir().unwrap();
+    let cfg = temp_config(&temp);
+    let engines = host(&cfg, "compaction");
+    assert!(engines.ship_compact_receipts().is_err());
+    let mut old_id = String::new();
+    for n in 0..2 {
+        engines
+            .ship_set_objective(format!("Run {n}"), vec![], vec![], String::new())
+            .unwrap();
+        engines
+            .ship_add_task("verify".into(), "Verify".into(), TaskType::Test, None)
+            .unwrap();
+        engines.ship_start_task("verify").unwrap();
+        let admission = engines
+            .ship_admit_gate(None, "test", "true".into(), true)
+            .unwrap();
+        let receipt_id = admission.receipt_id.clone();
+        engines
+            .ship_settle_gate(
+                admission,
+                CheckExecution::Exited { code: 0 },
+                String::new(),
+                None,
+            )
+            .unwrap();
+        if n == 0 {
+            old_id = receipt_id;
+            engines.ship_complete_task("verify", vec![]).unwrap();
+            engines.ship_finalize(vec![], None).unwrap();
+        }
+    }
+    assert!(engines.ship_receipt(&old_id).unwrap().is_some());
+    let command: OwnerCommand = serde_json::from_value(
+        serde_json::to_value(OwnerCommand::Ship(ShipCommand::CompactReceipts)).unwrap(),
+    )
+    .unwrap();
+    let OwnerReply::Report(report) = engines.apply(command).unwrap() else {
+        panic!("compaction report")
+    };
+    assert_eq!(report["removed"], 1);
+    assert_eq!(report["retained_current"], 1);
+    assert!(engines.ship_receipt(&old_id).unwrap().is_none());
+}
+
+#[test]
 fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
     use crate::native::BranchStatus;
 

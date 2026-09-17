@@ -9,6 +9,19 @@ use super::{
 };
 
 impl ShipUseCases {
+    /// Explicitly discard settled receipts outside the current objective run.
+    /// Protects the persisted run for the entire pass; no command is executed.
+    pub fn compact_receipts(
+        &self,
+    ) -> Result<crate::ship::receipt_compaction::ReceiptCompaction, String> {
+        self.lock()?.compact_receipts(|| {
+            self.evidence.as_ref().map_or_else(
+                || Ok(std::collections::BTreeSet::new()),
+                |port| port.retained_receipts(),
+            )
+        })
+    }
+
     pub fn admit_task(&self, task_id: Option<&str>) -> Result<TaskAdmission, String> {
         self.snapshot()?.admit_task(task_id)
     }

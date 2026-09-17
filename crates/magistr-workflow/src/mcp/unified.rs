@@ -54,7 +54,7 @@ for the namespace it mirrors itself through:
   tracker_* (2 tools)    roadmap's mirroring namespace — project the plan into an
                          issue tracker through one provider-agnostic port
   think_*   (11 tools)   reasoning trace
-  ship_*    (13 tools)   execution trace (incl. approval gates: gate_open/gate_wait)
+  ship_*    (14 tools)   execution trace (incl. approval gates: gate_open/gate_wait)
   signal_*  (10 tools)   stakeholder signals (capture/research/surface/promote + inbox verbs)
 
 roadmap_* sits above ship_*: a roadmap chunk is realized by a ship objective,

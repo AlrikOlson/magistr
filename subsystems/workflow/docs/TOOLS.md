@@ -29,7 +29,7 @@ think_record_step → think_pin_step → think_trace_checkpoint
 | `think_export_trace`          | Export in markdown / JSON / console                  |
 | `think_wipe_trace`            | Wipe everything (destructive)                        |
 
-## `ship_*` — the doing track (13 tools)
+## `ship_*` — the doing track (14 tools)
 
 Records structured execution: objectives, task plans, actions, quality
 gates, artifacts. The agent tracks *what* it did, *whether it passed*,
@@ -52,6 +52,7 @@ ship_set_objective → ship_plan → ship_start → ship_record → ship_check �
 | `ship_status`         | Full state snapshot (recovery after context loss)      |
 | `ship_export`         | Export the execution trace                             |
 | `ship_reset`          | Wipe everything (destructive)                          |
+| `ship_compact_receipts` | Permanently clear settled checks from older objectives; keep current checks, unfinished checks, and checks needed to recover unfinished work |
 
 ## `roadmap_*` — the planning track (17 tools)
 

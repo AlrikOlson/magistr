@@ -13,6 +13,7 @@ pub mod gate;
 pub mod mcp;
 pub mod output_schemas;
 pub mod persistence;
+pub mod receipt_compaction;
 pub mod receipt_ledger;
 pub mod report;
 

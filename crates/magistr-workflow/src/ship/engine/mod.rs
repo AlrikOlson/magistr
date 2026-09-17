@@ -301,6 +301,23 @@ impl ShipEngine {
         &self.receipts
     }
 
+    pub(crate) fn compact_receipts(
+        &self,
+        retained: impl FnOnce() -> Result<std::collections::BTreeSet<String>, String>,
+    ) -> Result<crate::ship::receipt_compaction::ReceiptCompaction, String> {
+        if let Some(persistence) = &self.persistence
+            && persistence.enabled()
+        {
+            return persistence
+                .compact_receipts(&self.project_id, retained)
+                .map_err(|e| e.to_string());
+        }
+        if self.objective.is_none() {
+            return Err("Set an objective before clearing old check history.".into());
+        }
+        self.receipts.compact(&self.execution.run_id, retained)
+    }
+
     /// The revision of the current objective's acceptance, `None` without one.
     #[must_use]
     pub fn acceptance_revision(&self) -> Option<String> {

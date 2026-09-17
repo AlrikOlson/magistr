@@ -52,6 +52,20 @@ fn rig() -> (tempfile::TempDir, PathBuf, WorkspaceEvidence) {
 }
 
 #[test]
+fn receipt_retention_refuses_unreadable_or_malformed_checkpoints() {
+    let (_dir, root, evidence) = rig();
+    assert!(evidence.retained_receipts().unwrap().is_empty());
+    let path = root.join(".magistr/loop-state.json");
+    fs::write(&path, b"{broken").unwrap();
+    assert!(evidence.retained_receipts().is_err());
+    fs::write(&path, b"{}").unwrap();
+    assert!(evidence.retained_receipts().is_err());
+    fs::remove_file(&path).unwrap();
+    fs::create_dir(&path).unwrap();
+    assert!(evidence.retained_receipts().is_err());
+}
+
+#[test]
 fn observation_is_content_addressed_and_validation_names_the_changed_path() {
     let (_dir, root, evidence) = rig();
     let witness = evidence.observe().unwrap();

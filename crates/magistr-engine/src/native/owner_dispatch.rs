@@ -130,6 +130,9 @@ impl NativeEngines {
 
     fn apply_ship(&self, command: ShipCommand) -> Result<OwnerReply, String> {
         Ok(match command {
+            ShipCommand::CompactReceipts => OwnerReply::Report(
+                serde_json::to_value(self.ship_compact_receipts()?).map_err(|e| e.to_string())?,
+            ),
             ShipCommand::SetObjective {
                 description,
                 acceptance_criteria,

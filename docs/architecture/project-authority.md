@@ -140,6 +140,52 @@ runners report an unrecorded result. An observation that cannot be taken
 refuses the admission before anything runs: an unobservable gate is never
 recorded as evidence.
 
+### Receipt retention
+
+Receipts remain available across objective changes until explicitly compacted.
+`ship_compact_receipts` (also `NativeEngines::ship_compact_receipts` and the
+attached owner's `ShipCommand::CompactReceipts`) permanently removes only
+settled receipts outside the persisted current run. It keeps every current-run
+attempt, every receipt with incomplete settlement, and every exact receipt ID
+referenced by an unresolved loop operation. The report counts these disjoint
+groups as `retained_current`, `retained_unsettled`, and `retained_referenced`,
+alongside `removed`. There is no age threshold, automatic pruning, or archive.
+A missing current objective refuses compaction.
+
+The canonical payload stays `ship/receipts/<project>/<id>.json`. A derived
+`runs-v1/<sha256(run_id)>/<id>.ref` membership index makes completion and
+attempt allocation read only that run's receipts; exact-ID reads and settlement
+open just that payload. Existing stores build the index once under the ledger
+lock before publishing its ready marker. An interrupted build is retried.
+Steady-state reads do not enumerate or decode lifetime receipt history; the
+first index build and explicit compaction still do. Work within one long-lived
+run grows with that run's receipts, all of which must be kept.
+
+Membership and its directories are synced before an atomic payload publication.
+Readers, admissions, settlements and compaction share the ledger lock, held only
+for storage work. An interrupted admission may leave an empty membership with no
+payload; it is not evidence and never advances an attempt. An acknowledged
+receipt cannot be omitted from its run's index. All concurrent writers must
+support this index; do not run an older, unindexed writer against an indexed
+store. Payloads stay readable in their original format.
+
+Compaction holds the persisted cycle lock before the ledger lock, so an objective
+rollover cannot change which run is protected during deletion. Under the ledger
+lock, the host's `EvidencePort::retained_receipts` reads the typed
+`.magistr/loop-state.json` checkpoint. The loop persists its `receipt:<id>`
+reference before settling the receipt; this ordering prevents compaction from
+missing the crash window between receipt settlement and operation settlement.
+An unreadable or malformed checkpoint refuses compaction. A settled receipt is
+eligible only after its referring operation is durably reconciled. Other hosts
+with recovery references must implement this port method with the same ordering.
+
+Compaction validates history before deleting any payload; corrupt history
+refuses the pass. Each deletion is synced before removing its membership.
+An I/O failure can leave a partially pruned history, but retained receipts remain
+intact and the operation can be retried. Temporary files and diagnostic logs
+never become receipts. Command output and parsed diagnostic reports remain on
+ordinary session checks; they are not copied into the evidence ledger.
+
 ### Completion is governed by receipts
 
 `roadmap_complete_chunk` is the one route to `done`, and every adapter lands
@@ -176,7 +222,7 @@ isolation (`SourceExport` is the immutable path and is not consumed by
 checks yet); a `Changed` freshness names paths only when the admitting
 process settles the check, otherwise the source digests are compared
 (`Diverged`) and a configuration drift is `Reconfigured` with no layer
-named; receipts are never pruned. Engines opened without the
+named; receipt pruning follows the explicit retention policy above. Engines opened without the
 capability (tests that never complete a chunk) record source-less checks
 and are refused every completion with `NoEvidenceCapability`; the
 `native-write-path` gate's rule 8 is supplementary — it keeps a production
