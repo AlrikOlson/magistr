@@ -3,6 +3,8 @@
 
 #[path = "support/harbor.rs"]
 mod harbor;
+#[path = "support/requests.rs"]
+mod requests;
 
 use magistr_cockpit::agent::{AgentEvent, AskPlan, PermissionChoice, PermissionKind, TurnEnd};
 use magistr_cockpit::cockpit::{
@@ -37,6 +39,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("captures require fictional records".into());
     }
     let mut manifest = Vec::new();
+    if std::env::args().any(|arg| arg == "--requests-only") {
+        return capture_requests(&data, &output);
+    }
     let roadmap_only = std::env::args()
         .nth(2)
         .is_some_and(|arg| arg == "--roadmap-only");
@@ -293,6 +298,64 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_json::to_vec_pretty(&json!({
             "renderer":"Production cockpit view → runtime Surfaces → terminal graphics → decoded PNG",
             "synthetic":true,"production_shell":true,"captures":manifest
+        }))?,
+    )?;
+    Ok(())
+}
+
+fn capture_requests(data: &Value, output: &Path) -> Result<(), Box<dyn Error>> {
+    let mut manifest = Vec::new();
+    for (theme_name, theme) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
+        for state in [
+            "waiting",
+            "queued",
+            "working",
+            "complete",
+            "failed",
+            "permission",
+        ] {
+            let mut current = model_with_roadmap(Size::new(144, 50), data, theme, true)?;
+            requests::seed(&mut current, state)?;
+            capture(
+                &current,
+                output,
+                &format!("request-{state}-{theme_name}"),
+                &mut manifest,
+            )?;
+        }
+    }
+    for (name, size, large) in [
+        ("small", Size::new(64, 24), false),
+        ("large-font", Size::new(110, 34), true),
+    ] {
+        for state in ["waiting", "permission"] {
+            let mut current = model_with_roadmap(size, data, ThemeMode::Dark, true)?;
+            if large {
+                update(
+                    &mut current,
+                    Msg::Reply(Reply::CellPixels {
+                        width: 12,
+                        height: 28,
+                    }),
+                );
+            }
+            requests::seed(&mut current, state)?;
+            capture(
+                &current,
+                output,
+                &format!("request-{state}-{name}"),
+                &mut manifest,
+            )?;
+        }
+    }
+    let mut current = model(Size::new(128, 40), data, ThemeMode::Dark)?;
+    requests::seed(&mut current, "waiting")?;
+    requests::click(&mut current, Widget::TabTurn.id())?;
+    capture(&current, output, "conversation-waiting", &mut manifest)?;
+    std::fs::write(
+        output.join("native-captures.json"),
+        serde_json::to_vec_pretty(&json!({
+            "synthetic": true, "production_shell": true, "captures": manifest
         }))?,
     )?;
     Ok(())

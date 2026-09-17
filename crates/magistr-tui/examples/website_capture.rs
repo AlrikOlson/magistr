@@ -8,6 +8,8 @@ use std::time::Duration;
 
 #[path = "support/harbor.rs"]
 mod harbor;
+#[path = "support/requests.rs"]
+mod requests;
 use magistr_cockpit::cockpit::{FrameClock, Model, Msg, Size, StageTab, Surface, Widget, update};
 use magistr_cockpit::harness::fixtures;
 use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
@@ -156,6 +158,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     {
                         return Err("roadmap work did not remain on the Roadmap page".into());
                     }
+                    requests::seed(&mut model, "complete")?;
                 }
                 // Startup already selects the latest recorded step while reasoning stays closed.
                 _ => {

@@ -499,7 +499,7 @@ async fn ctrl_c_cancels_the_turn_in_flight_and_the_second_ctrl_c_quits() {
         .filter(|r| r.kind == RowKind::Note)
         .map(|r| r.text.as_str())
         .collect();
-    assert_eq!(notes, ["cancelling…", "Stopped."]);
+    assert_eq!(notes, ["Stopping…", "Stopped."]);
 }
 
 #[tokio::test]
@@ -1130,8 +1130,12 @@ async fn flat_prompt_echo_is_visible_before_enter_and_keeps_edits_within_a_burst
         .text(MS(450), "lx\x7fo")
         .text(MS(600), "\r")
         .close(MS(900));
-    let (model, observed, capture, deliveries, _arrivals) =
-        run_flat(script, Model::new(SIZE), "received the corrected prompt").await;
+    let (model, observed, capture, deliveries, _arrivals) = run_flat(
+        script,
+        Model::new(SIZE).with_tab(StageTab::Turn),
+        "received the corrected prompt",
+    )
+    .await;
     let instants = deliveries.instants();
     let before_enter = screen_before(&capture, instants[3]);
     assert!(
@@ -1174,8 +1178,12 @@ async fn flat_prompt_echo_follows_multiline_unicode_edits_and_history() {
         .text(MS(1950), "\x1b[200~👨‍👩‍👧\x1b[201~")
         .text(MS(2100), "\x7f")
         .close(MS(2250));
-    let (model, observed, capture, deliveries, _arrivals) =
-        run_flat(script, Model::new(SIZE), "unicode received").await;
+    let (model, observed, capture, deliveries, _arrivals) = run_flat(
+        script,
+        Model::new(SIZE).with_tab(StageTab::Turn),
+        "unicode received",
+    )
+    .await;
     let instants = deliveries.instants();
     let pasted = screen_before(&capture, instants[2]);
     assert!(pasted.contains("input 2/2: second"), "{pasted}");
@@ -1255,7 +1263,11 @@ async fn flat_prompt_echo_accepts_completion_and_restores_the_unsent_draft() {
         None,
     );
     let model = runtime
-        .run(Model::new(SIZE).with_workspace_files(vec!["src/café.rs".to_owned()]))
+        .run(
+            Model::new(SIZE)
+                .with_tab(StageTab::Turn)
+                .with_workspace_files(vec!["src/café.rs".to_owned()]),
+        )
         .await
         .unwrap();
     session.await.unwrap().unwrap();

@@ -184,7 +184,14 @@ impl Driver {
                     }
                 }
                 other => {
-                    let _ = self.commands.send(other);
+                    if let Err(error) = self.commands.send(other)
+                        && let Cmd::Prompt(text) | Cmd::RoadmapPrompt(text) = error.0
+                    {
+                        self.fold(Msg::Agent(magistr_cockpit::agent::AgentEvent::PromptRejected {
+                            text,
+                            error: "Your message could not be sent because the agent connection closed. Your draft has been kept. Restart Magistr to reconnect.".into(),
+                        }));
+                    }
                 }
             }
         }
@@ -221,6 +228,10 @@ impl Driver {
             && self.model.has_pixels()
             && self.model.theme().motion().is_full()
             && self.model.animates(Animation::Motion)
+            && (self.model.is_scrolling()
+                || self.model.motion().is_settling(self.model.now())
+                || self.model.roadmap().is_gliding(self.model.now())
+                || self.model.term_dock().is_settling(self.model.now()))
     }
 
     fn frame_period(&self, now: Instant) -> Duration {

@@ -80,6 +80,7 @@ pub(crate) async fn run_cockpit_loop(
         Connector::live(source),
     )
     .permission_profile(profile)
+    .keep_open(true)
     .persisting(persist)
     .auto_pause(auto_pause)
     .goal(goal, judge(goal, native, dir, backend), goal_note);

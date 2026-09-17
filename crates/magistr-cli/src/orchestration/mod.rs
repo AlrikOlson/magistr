@@ -5,7 +5,11 @@
 
 pub mod commands;
 pub mod goal;
+pub(crate) mod interactive_session;
 pub mod ledger;
+mod local_session;
 pub mod loop_driver;
 pub mod roadmap;
+pub(crate) mod roadmap_request;
+mod shared_checkpoint;
 pub mod workflow;

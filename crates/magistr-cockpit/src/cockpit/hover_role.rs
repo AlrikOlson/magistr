@@ -145,6 +145,9 @@ impl HoverRole {
             | Widget::RoadmapSortPriority
             | Widget::RoadmapSortWorkstream
             | Widget::RoadmapRequest
+            | Widget::RequestLatest
+            | Widget::RoadmapRequests
+            | Widget::RoadmapDetails
             | Widget::RoadmapReset
             | Widget::RoadmapStart
             | Widget::RoadmapComplete

@@ -26,6 +26,55 @@ fn model() -> Model {
     model
 }
 
+#[test]
+fn a_closed_command_owner_restores_messages_in_both_views() {
+    for roadmap in [false, true] {
+        let mut driver = driver(model(), false);
+        if roadmap {
+            mouse(
+                &mut driver,
+                MouseKind::Down(Button::Left),
+                Some(Widget::TabRoadmap.id()),
+            );
+            mouse(
+                &mut driver,
+                MouseKind::Up(Button::Left),
+                Some(Widget::TabRoadmap.id()),
+            );
+        }
+        driver.fold(Msg::Paste("Please add recovery checks".into()));
+        mouse(
+            &mut driver,
+            MouseKind::Down(Button::Left),
+            Some(Widget::PromptAction.id()),
+        );
+        mouse(
+            &mut driver,
+            MouseKind::Up(Button::Left),
+            Some(Widget::PromptAction.id()),
+        );
+        assert_eq!(driver.model.prompt().text(), "Please add recovery checks");
+        assert_ne!(
+            driver.model.turn_state(),
+            magistr_cockpit::cockpit::TurnState::Streaming
+        );
+        assert!(
+            driver
+                .model
+                .turn()
+                .lines()
+                .iter()
+                .any(|line| line.text().contains("connection closed"))
+                || driver
+                    .model
+                    .roadmap_requests()
+                    .last()
+                    .and_then(|request| request.error.as_deref())
+                    .is_some_and(|error| error.contains("connection closed"))
+        );
+    }
+}
+
 fn driver(model: Model, flat: bool) -> Driver {
     let (commands, _) = tokio::sync::mpsc::unbounded_channel();
     Driver::new(model, Screen::new(144, 50), commands, None, false, flat)
@@ -180,6 +229,22 @@ fn fractional_retirement_returns_to_the_running_loops_clock_period() {
     );
     assert!(!driver.interpolates());
     assert_eq!(driver.model.now().fract(), 0.0);
+}
+
+#[test]
+fn waiting_for_a_response_ticks_without_continuous_interpolation() {
+    let mut driver = driver(model(), false);
+    driver.fold(Msg::Agent(magistr_cockpit::agent::AgentEvent::UserText(
+        "Review the plan".into(),
+    )));
+    for _ in 0..24 {
+        driver.tick();
+    }
+    assert!(driver.model.agent_activity().active);
+    assert!(driver.model.is_animating());
+    assert!(!driver.interpolates());
+    mouse(&mut driver, MouseKind::ScrollUp, Some(Widget::Stage.id()));
+    assert!(driver.interpolates());
 }
 
 #[test]

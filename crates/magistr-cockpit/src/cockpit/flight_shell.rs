@@ -1,8 +1,7 @@
 //! The production terminal workspace: conversation stays present during inspection.
 use super::inspector::Inspector;
 use super::{
-    FlightComposer, FlightRecorder, FlightStyle as S, FrameClock, Model, Pane, StageTab, TurnState,
-    Widget,
+    FlightComposer, FlightRecorder, FlightStyle as S, FrameClock, Model, Pane, StageTab, Widget,
 };
 use crate::layout::{Align, Inset, Length, Node, TextMetrics, TextRole};
 use crate::pixel::Typography;
@@ -106,6 +105,29 @@ impl FlightShell {
 
 fn header(model: &Model, s: &S) -> Node {
     let title = model.title().unwrap_or("Your project");
+    let mut face = Typography::default();
+    face.set_cell(model.cell_size());
+    let nav_labels = if model.flight_layout().compact && model.tab() != StageTab::Roadmap {
+        "RoadmapRecordsCommands"
+    } else {
+        "RecordsCommands"
+    };
+    let heading = if model.tab() == StageTab::Roadmap {
+        "← Conversation"
+    } else {
+        "MAGISTR"
+    };
+    let title_width = (model.flight_layout().width
+        - face.advance(heading, TextRole::Heading)
+        - face.advance(nav_labels, TextRole::Label)
+        - face.advance(status(model), TextRole::Label)
+        - 128.0)
+        .max(0.0);
+    let title = if title_width < 70.0 {
+        String::new()
+    } else {
+        S::fit_label(title, title_width, &face)
+    };
     let mut navigation = Node::row().align_items(Align::Center);
     if model.flight_layout().compact && model.tab() != StageTab::Roadmap {
         navigation = navigation
@@ -157,56 +179,41 @@ fn status_label(model: &Model, s: &S) -> Node {
     let text = status(model);
     let pen = Pen::for_theme(&model.theme());
     let ink = match text {
-        "Connection error" | "Agent unavailable" | "Disconnected" | "Work failed" => {
-            pen.gate_fail.fg
-        }
+        "Connection error" | "Agent unavailable" | "Disconnected" | "Work failed"
+        | "Could not finish" => pen.gate_fail.fg,
         "Needs your answer" | "Limit reached" | "Request declined" => s.accent,
         "Stopped" | "Paused" | "Waiting for updates" => s.muted,
         _ => s.good,
     };
-    s.label(text, ink)
+    let activity = model.agent_activity();
+    if activity.active && model.dock().is_empty() {
+        let pulse = if !model.theme().motion().is_full() || model.ticks() % 8 < 4 {
+            ink
+        } else {
+            s.muted
+        };
+        Node::row()
+            .align_items(Align::Center)
+            .child(
+                Node::leaf()
+                    .width(Length::Px(16.0))
+                    .height(Length::Px(s.line_height))
+                    .shrink(0.0)
+                    .mark(crate::layout::Mark::Icon {
+                        icon: crate::pixel::Icon::Bullet,
+                        col: 0,
+                        cols: 1,
+                        ink: pulse,
+                    }),
+            )
+            .child(s.label(text, ink))
+    } else {
+        s.label(text, ink)
+    }
 }
 
 fn status(model: &Model) -> &'static str {
-    if !model.dock().is_empty() {
-        "Needs your answer"
-    } else if model.turn_notice == Some("Work failed")
-        && model.loop_status().is_none_or(|s| s.ended().is_some())
-    {
-        "Work failed"
-    } else if model.loop_status().is_some_and(|s| s.ended().is_some()) {
-        "Stopped"
-    } else if model.feed() == Some(magistr_engine::FeedStatus::Disconnected)
-        && !model
-            .loop_status()
-            .is_some_and(|s| s.stage().is_between_agents())
-    {
-        "Disconnected"
-    } else if model.projection().freshness() == super::Freshness::Stale {
-        "Waiting for updates"
-    } else if model.agent_missing().is_some() {
-        "Agent unavailable"
-    } else if let Some(loop_status) = model.loop_status() {
-        if loop_status.is_paused() {
-            "Paused"
-        } else {
-            match loop_status.stage() {
-                super::LoopStage::Connecting => "Starting agent",
-                super::LoopStage::Agent => "Working",
-                super::LoopStage::Gates => "Checking work",
-                super::LoopStage::Judge => "Reviewing work",
-            }
-        }
-    } else if model.turn_notice.is_some_and(|notice| notice != "Ready") {
-        model.turn_notice.unwrap_or("Ready")
-    } else if model.rail().ship().is_shipped() {
-        "Completed"
-    } else {
-        match model.turn_state() {
-            TurnState::Streaming => "Working",
-            TurnState::AwaitingInput | TurnState::Idle => "Ready",
-        }
-    }
+    model.agent_activity().status
 }
 
 fn conversation(model: &Model, s: &S, pen: &Pen) -> Node {
@@ -224,7 +231,11 @@ fn conversation(model: &Model, s: &S, pen: &Pen) -> Node {
     );
     if l.conversation_height >= 380.0 {
         content = content.child(S::vspace(4.0)).child(s.label(
-            format!("{} reasoning steps recorded", model.trace().steps().len()),
+            format!(
+                "{} · {}",
+                model.agent_activity().task,
+                model.agent_activity().status
+            ),
             s.muted,
         ));
     }

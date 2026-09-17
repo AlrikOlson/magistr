@@ -130,7 +130,26 @@ impl Session {
 
     fn command(&mut self, cmd: Cmd) {
         let result = match cmd {
-            Cmd::Prompt(text) => self.handle.submit_turn(&text),
+            Cmd::Prompt(text) => {
+                if let Err(error) = self.handle.submit_turn(&text) {
+                    self.inbox
+                        .send(Msg::Agent(AgentEvent::PromptRejected { text, error }));
+                }
+                Ok(())
+            }
+            Cmd::RoadmapPrompt(text) => {
+                self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
+                    text,
+                    error:
+                        "This session cannot update the roadmap. Open a new session to try again."
+                            .to_owned(),
+                }));
+                Ok(())
+            }
+            Cmd::CancelRoadmapPrompt => {
+                self.inbox.send(Msg::RoadmapRequestCancelled);
+                Ok(())
+            }
             Cmd::Cancel => self.handle.cancel_turn(),
             Cmd::Permission { id, option_id } => self.handle.answer_permission(id, &option_id),
             Cmd::Constraint { id, condition } => self.handle.constrain_permission(id, &condition),

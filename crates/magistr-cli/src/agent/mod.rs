@@ -131,6 +131,8 @@ pub struct AgentConfig {
     pub permission_profile: Option<crate::permissions::PermissionProfile>,
     /// Whether the shared policy should admit normal workflow operations.
     pub workflow_permissions: bool,
+    /// Restrict this session to native planning and read-only source context.
+    pub planning_only: bool,
     /// Whether to continue from the previous conversation
     pub continue_conversation: bool,
     /// Session ID to resume from
@@ -167,6 +169,7 @@ impl AgentConfig {
             permission_mode: None,
             permission_profile: None,
             workflow_permissions: false,
+            planning_only: false,
             continue_conversation: false,
             resume: None,
             provider: None,

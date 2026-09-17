@@ -1,6 +1,6 @@
 //! Readable summaries of recorded work in the conversation.
 use super::{Line, LineKind, Turn};
-use crate::agent::ToolStatus;
+use crate::agent::{ToolStatus, ToolTitle};
 use crate::layout::{TextMetrics, TextRole};
 use crate::pixel::Typography;
 
@@ -19,7 +19,7 @@ impl ConversationCard {
     pub fn of(turn: &Turn, line: &Line) -> Option<Self> {
         let (title, detail, status, failed, running) = match line.kind() {
             LineKind::Tool { status, .. } => (
-                line.text().to_owned(),
+                ToolTitle::display(line.text()),
                 line.record()
                     .locations
                     .first()

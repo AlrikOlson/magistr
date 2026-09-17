@@ -127,6 +127,10 @@ pub struct Model {
     pub(super) roadmap_viewport: Viewport,
     pub(super) sheet_viewport: Viewport,
     pub(super) turn_state: TurnState,
+    pub(super) agent_activity: super::AgentActivity,
+    pub(super) roadmap_requests: Vec<super::RoadmapRequest>,
+    pub(super) roadmap_requests_open: bool,
+    pub(super) roadmap_request_scroll: usize,
     pub(super) phase: Option<Phase>,
     pub(super) rail: Rail,
     pub(super) loop_status: Option<LoopStatus>,
@@ -332,6 +336,128 @@ impl Model {
         outer.saturating_sub(2 + 2 * Space::PAD)
     }
 
+    /// Requests kept on Roadmap, including their original wording and response range.
+    #[must_use]
+    pub fn roadmap_requests(&self) -> &[super::RoadmapRequest] {
+        &self.roadmap_requests
+    }
+
+    /// Whether Roadmap shows requests instead of the selected item's details.
+    #[must_use]
+    pub const fn roadmap_requests_open(&self) -> bool {
+        self.roadmap_requests_open
+    }
+
+    /// The request pane's independent scroll position.
+    #[must_use]
+    pub const fn roadmap_request_scroll(&self) -> usize {
+        self.roadmap_request_scroll
+    }
+
+    /// Whether a roadmap request still awaits admission or a response.
+    #[must_use]
+    pub fn roadmap_request_pending(&self) -> bool {
+        self.roadmap_requests
+            .last()
+            .is_some_and(|request| request.phase.is_active())
+    }
+
+    /// Whether the current agent response belongs to a roadmap request.
+    #[must_use]
+    pub fn roadmap_request_running(&self) -> bool {
+        self.roadmap_requests
+            .last()
+            .is_some_and(|request| request.phase == super::RequestPhase::Working)
+    }
+
+    /// The observed activity; live requests take precedence over saved completion state.
+    #[must_use]
+    pub fn agent_activity(&self) -> super::AgentActivity {
+        let mut activity = self.agent_activity.clone();
+        let implementation = self
+            .loop_status
+            .as_ref()
+            .filter(|status| status.ended().is_none());
+        if !self.roadmap_request_running() {
+            if let Some(status) = implementation {
+                let work = self
+                    .rail
+                    .chunk()
+                    .and_then(|id| self.roadmap.chunk(id))
+                    .map(|chunk| {
+                        if chunk.title.is_empty() {
+                            chunk.name.as_str()
+                        } else {
+                            chunk.title.as_str()
+                        }
+                    });
+                activity.task = work.map_or_else(
+                    || "Working on a work item".to_owned(),
+                    |name| format!("Working on {name}"),
+                );
+                activity.active = true;
+                if status.is_paused() {
+                    activity.status = "Paused";
+                    activity.active = false;
+                } else {
+                    match status.stage() {
+                        super::LoopStage::Connecting => activity.status = "Starting agent",
+                        super::LoopStage::Gates => activity.status = "Checking work",
+                        super::LoopStage::Judge => activity.status = "Reviewing work",
+                        super::LoopStage::Agent if !self.agent_activity.active => {
+                            activity.status = "Waiting for response"
+                        }
+                        super::LoopStage::Agent => {}
+                    }
+                }
+            } else if !activity.active {
+                if let Some(request) = self
+                    .roadmap_requests
+                    .last()
+                    .filter(|request| request.phase == super::RequestPhase::Waiting)
+                {
+                    activity.task = "Updating roadmap".to_owned();
+                    activity.status = request.phase.label();
+                    activity.active = true;
+                } else if self.turn_notice == Some("Work failed") {
+                    activity.status = "Work failed";
+                } else if self.turn_notice == Some("Connection error") {
+                    activity.status = "Connection error";
+                } else if self
+                    .loop_status
+                    .as_ref()
+                    .is_some_and(|status| status.ended().is_some())
+                    && activity.status == "Ready"
+                {
+                    activity.status = "Stopped";
+                }
+            }
+        }
+        if !self.dock.is_empty() {
+            activity.status = "Needs your answer";
+            activity.active = false;
+        } else if self.agent_missing.is_some() {
+            activity.status = "Agent unavailable";
+            activity.active = false;
+        } else if !activity.active
+            && activity.status != "Work failed"
+            && self.feed == Some(FeedStatus::Disconnected)
+            && !implementation.is_some_and(|status| status.stage().is_between_agents())
+            && self
+                .loop_status
+                .as_ref()
+                .is_none_or(|status| status.ended().is_none())
+        {
+            activity.status = "Disconnected";
+        } else if !activity.active
+            && activity.status == "Ready"
+            && self.projection.freshness() == super::Freshness::Stale
+        {
+            activity.status = "Waiting for updates";
+        }
+        activity
+    }
+
     /// The stable object identity shared by every terminal view.
     #[must_use]
     pub const fn selected(&self) -> Option<&Selected> {
@@ -409,6 +535,10 @@ impl Model {
             roadmap_viewport: Viewport::at_top(),
             sheet_viewport: Viewport::at_top(),
             turn_state: TurnState::Idle,
+            agent_activity: super::AgentActivity::default(),
+            roadmap_requests: Vec::new(),
+            roadmap_requests_open: false,
+            roadmap_request_scroll: 0,
             phase: None,
             rail,
             loop_status: None,
@@ -1064,6 +1194,7 @@ impl Model {
     /// reads as one session), the window goes back to the tail, the turn
     /// is idle until the new session speaks, and the phase starts over.
     pub(super) fn next_iteration(&mut self) {
+        self.agent_activity.begin("Working on a work item");
         // A scene change rather than a scroll: the window is simply at
         // the tail again, with nothing for the paint to catch up on.
         let (total, height) = (self.turn.len(), self.stage_rows());
@@ -2409,6 +2540,7 @@ impl Model {
             .with_if(
                 Animation::Motion,
                 streaming
+                    || (self.uses_flight_recorder() && self.roadmap_request_pending() && self.dock.is_empty())
                     || holding
                     || self.has_running_gate()
                     || self.motion.is_settling(self.now())
@@ -2623,7 +2755,8 @@ impl Model {
     /// A disconnected feed during the gap between agents is not itself a fault.
     #[must_use]
     pub fn is_working(&self) -> bool {
-        matches!(self.turn_state, TurnState::Streaming)
+        self.roadmap_request_pending()
+            || matches!(self.turn_state, TurnState::Streaming)
             || self.has_running_gate()
             || self
                 .loop_status
@@ -2635,7 +2768,9 @@ impl Model {
     /// scroll. Each glide is a pure function of
     /// [`Model::ticks`] like the rest of the motion layer, so this is
     /// what keeps the tick alive for exactly as long as one runs.
-    fn is_scrolling(&self) -> bool {
+    /// Whether an independently scrolling surface still has a curve in flight.
+    #[must_use]
+    pub fn is_scrolling(&self) -> bool {
         [
             self.viewport,
             self.session_viewport,

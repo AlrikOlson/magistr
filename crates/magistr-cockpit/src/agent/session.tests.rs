@@ -184,12 +184,37 @@ async fn routes_commands_to_the_owner_and_reports_admission_errors() {
         assert_eq!(next(&mut calls).await, expected);
     }
     assert!(
-        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::Error(error)) if error == "turn admission refused")
+        matches!(next(&mut messages).await, Msg::Agent(AgentEvent::PromptRejected { text, error }) if text == "refused" && error == "turn admission refused")
     );
     drop(commands_tx);
     task.await
         .expect("relay task joins")
         .expect("session cleanup succeeds");
+}
+
+#[tokio::test]
+async fn unrouted_roadmap_requests_fail_visibly_without_implementation_submission() {
+    let (handle, _events, mut calls) = fake();
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
+    commands_tx
+        .send(Cmd::RoadmapPrompt("Add checks".to_owned()))
+        .expect("command sent");
+    assert!(matches!(next(&mut messages).await,
+        Msg::Agent(AgentEvent::PromptRejected { text, error })
+        if text == "Add checks" && error.contains("cannot update the roadmap")));
+    assert!(calls.try_recv().is_err());
+    commands_tx
+        .send(Cmd::CancelRoadmapPrompt)
+        .expect("cancel sent");
+    assert_eq!(next(&mut messages).await, Msg::RoadmapRequestCancelled);
+    assert!(
+        calls.try_recv().is_err(),
+        "a roadmap cancellation never stops implementation"
+    );
+    drop(commands_tx);
+    task.await.expect("relay joins").expect("cleanup");
 }
 
 #[tokio::test]

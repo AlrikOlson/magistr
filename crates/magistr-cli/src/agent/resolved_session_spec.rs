@@ -152,7 +152,11 @@ impl ResolvedSessionSpec {
     /// no source-write authority.
     #[must_use]
     pub fn with_source_route(mut self, source: SourceRoute) -> Self {
-        self.source = source;
+        self.source = if self.config.planning_only {
+            SourceRoute::Refused(SourceRefusal::NoAuthority)
+        } else {
+            source
+        };
         self
     }
 

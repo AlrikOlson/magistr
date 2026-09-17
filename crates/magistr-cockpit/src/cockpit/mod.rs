@@ -8,6 +8,7 @@
 //! sneaks in. Time reaches `view` only through the [`FrameClock`] the
 //! runtime hands it.
 
+pub mod agent_activity;
 pub mod agent_missing;
 pub mod animation;
 pub mod animations;
@@ -52,6 +53,7 @@ pub mod flight_dock;
 pub mod flight_layout;
 pub mod flight_recorder;
 pub mod flight_records;
+pub mod flight_requests;
 pub mod flight_roadmap;
 pub mod flight_roadmap_graph;
 pub mod flight_roadmap_page;
@@ -103,9 +105,11 @@ pub mod proposal_kind;
 pub mod proposed_chunk;
 pub mod rail;
 pub mod rail_mark;
+pub mod request_phase;
 pub mod rise_chunk;
 pub mod roadmap;
 pub mod roadmap_chunk;
+pub mod roadmap_request;
 pub mod roadmap_sort;
 pub mod rule_mode;
 pub mod scaffold_kind;
@@ -160,6 +164,7 @@ pub mod widget;
 pub mod workbench_cmd;
 pub mod workbench_event;
 
+pub use agent_activity::AgentActivity;
 pub use agent_missing::AgentMissing;
 pub use animation::Animation;
 pub use animations::Animations;
@@ -203,6 +208,7 @@ pub use flight_dock::FlightDock;
 pub use flight_layout::FlightLayout;
 pub use flight_recorder::FlightRecorder;
 pub use flight_records::FlightRecords;
+pub use flight_requests::FlightRequests;
 pub use flight_roadmap::FlightRoadmap;
 pub use flight_roadmap_graph::FlightRoadmapGraph;
 pub use flight_roadmap_page::FlightRoadmapPage;
@@ -250,8 +256,10 @@ pub use proposal_kind::ProposalKind;
 pub use proposed_chunk::ProposedChunk;
 pub use rail::Rail;
 pub use rail_mark::RailMark;
+pub use request_phase::RequestPhase;
 pub use roadmap::Roadmap;
 pub use roadmap_chunk::RoadmapChunk;
+pub use roadmap_request::RoadmapRequest;
 pub use roadmap_sort::RoadmapSort;
 pub use rule_mode::RuleMode;
 pub use scaffold_kind::ScaffoldKind;

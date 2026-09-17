@@ -289,11 +289,19 @@ pub enum Widget {
     RoadmapReset,
     /// Show or hide the reasoning graph beneath the conversation.
     ReasoningToggle,
+    /// Show requests and responses on Roadmap.
+    RoadmapRequests,
+    /// Show the selected roadmap item's details.
+    RoadmapDetails,
+    /// Independently scroll the roadmap request history.
+    RequestBody,
+    /// Follow the newest reply in the roadmap request pane.
+    RequestLatest,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 111] = [
+    pub const ALL: [Self; 115] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -405,6 +413,10 @@ impl Widget {
         Self::RoadmapRequest,
         Self::RoadmapReset,
         Self::ReasoningToggle,
+        Self::RoadmapRequests,
+        Self::RoadmapDetails,
+        Self::RequestBody,
+        Self::RequestLatest,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -1324,6 +1336,10 @@ impl Widget {
             Self::RoadmapRequest => "Request a change",
             Self::RoadmapReset => "Reset view",
             Self::ReasoningToggle => "Show or hide reasoning",
+            Self::RoadmapRequests => "Requests",
+            Self::RoadmapDetails => "Item details",
+            Self::RequestBody => "Requests and responses",
+            Self::RequestLatest => "Latest reply",
         }
     }
 

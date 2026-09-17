@@ -24,6 +24,10 @@ impl Tooltip {
             Widget::ReasoningToggle => {
                 "Show or hide reasoning. With Reasoning focused, press Enter."
             }
+            Widget::RoadmapRequests | Widget::RoadmapDetails => {
+                "Switch between roadmap requests and item details with Alt+M"
+            }
+            Widget::RequestLatest => "Follow the latest reply",
             Widget::LatestDecision => "Show the latest recorded step",
             Widget::TracePrevious => "Show the previous step",
             Widget::TraceNext => "Show the next step",

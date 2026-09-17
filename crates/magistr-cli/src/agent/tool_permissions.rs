@@ -118,6 +118,37 @@ impl ToolPermissions {
         Self::base().with(CODEBASE_READ).with(THINK_AND_SHIP_MCP)
     }
 
+    /// Planning requests may inspect sources and update the native plan, without
+    /// implementation, completion, export, shell, or source-write tools.
+    #[must_use]
+    pub fn for_roadmap_request() -> Self {
+        Self::base().with(CODEBASE_READ).with(&[
+            "WebSearch",
+            "WebFetch",
+            "search",
+            "map",
+            "read",
+            "workbench_status",
+            "roadmap_status",
+            "roadmap_next",
+            "roadmap_get",
+            "roadmap_add_chunk",
+            "roadmap_update_chunk",
+            "roadmap_obsolete_chunk",
+            "roadmap_reprioritize",
+            "roadmap_link",
+            "think_record_step",
+            "think_engine_status",
+            "think_search_trace",
+            "think_get_step",
+            "think_set_branch_status",
+            "think_step_impact",
+            "think_revise_estimate",
+            "ship_status",
+            "signal_pending",
+        ])
+    }
+
     /// Workflow iteration context: base + full dev tools + MCP tools.
     ///
     /// Pre-approving at the ACP level eliminates interactive permission prompts
