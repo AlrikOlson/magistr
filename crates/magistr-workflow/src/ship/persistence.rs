@@ -290,6 +290,27 @@ impl Persistence {
         crate::ship::receipt_ledger::ReceiptLedger::on_disk(root.join("receipts").join(project_id))
     }
 
+    /// Pin the persisted current run against rollover for the whole pruning pass.
+    /// Lock order is cycle then ledger, matching check settlement.
+    pub(crate) fn compact_receipts(
+        &self,
+        project_id: &str,
+        retained: impl FnOnce() -> Result<std::collections::BTreeSet<String>, String>,
+    ) -> std::io::Result<crate::ship::receipt_compaction::ReceiptCompaction> {
+        self.locked(project_id, || {
+            let (current, _) = self.current_stamped(project_id)?;
+            let state = current.filter(|s| s.objective.is_some()).ok_or_else(|| {
+                std::io::Error::other("Set an objective before clearing old check history.")
+            })?;
+            let identity = state.execution.unwrap_or_else(|| {
+                ExecutionIdentity::legacy(project_id, &state.objective, &state.tasks)
+            });
+            self.receipt_ledger(project_id)
+                .compact(&identity.run_id, retained)
+                .map_err(std::io::Error::other)
+        })
+    }
+
     /// Persist the cycle under the locked merge-on-save discipline (see
     /// `merge_states`) so a concurrent process's acked tasks — or its newer
     /// cycle — are never erased by a stale writer.

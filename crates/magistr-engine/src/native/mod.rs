@@ -146,6 +146,7 @@ pub use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
 pub use magistr_workflow::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
 pub use magistr_workflow::ship::domain::receipt_settlement::ReceiptSettlement;
 pub use magistr_workflow::ship::domain::task::{Task, TaskStatus, TaskType};
+pub use magistr_workflow::ship::receipt_compaction::ReceiptCompaction;
 pub use magistr_workflow::ship::report::{ReportRecord, TestResults};
 pub use magistr_workflow::signal::broadcast::SignalFrame;
 pub use magistr_workflow::signal::domain::{Enrichment, Signal, SignalKind, SignalStatus};

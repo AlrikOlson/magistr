@@ -649,6 +649,163 @@ fn a_refused_observation_refuses_admission_before_anything_runs() {
 }
 
 #[test]
+fn explicit_compaction_preserves_completion_and_late_results_across_rollover() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let old = stored(temp.path(), &world);
+    planned(&old);
+    let finished = run(
+        &old,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    let pending = old.admit_check(request("test", "cargo test")).unwrap();
+    let original = old
+        .engine()
+        .lock()
+        .unwrap()
+        .receipts()
+        .get(&pending.receipt_id)
+        .unwrap()
+        .unwrap();
+    let newer = stored(temp.path(), &world);
+    newer.reset().unwrap();
+    planned(&newer);
+    run(
+        &newer,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 1 },
+    );
+    run(
+        &newer,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    let before = newer.verify_completion("chunk:c1", None).unwrap();
+    // The stale owner must preserve the newer persisted run, not its old cache.
+    let report = old.compact_receipts().unwrap();
+    assert_eq!(
+        (
+            report.removed,
+            report.retained_current,
+            report.retained_unsettled
+        ),
+        (1, 2, 1)
+    );
+    let ledger = newer.engine().lock().unwrap().receipts().clone();
+    assert!(ledger.get(&finished.receipt().id).unwrap().is_none());
+    assert_eq!(
+        ledger.get(&pending.receipt_id).unwrap(),
+        Some(original.clone())
+    );
+    let late = old
+        .settle_check(
+            pending,
+            outcome(CheckExecution::Exited { code: 0 }, "cargo test"),
+        )
+        .unwrap();
+    assert!(matches!(late, CheckSettlement::Stale { .. }));
+    assert_eq!(late.receipt().attempt, original.attempt);
+    assert_eq!(late.receipt().target, original.target);
+    assert_eq!(
+        serde_json::to_value(newer.verify_completion("chunk:c1", None).unwrap()).unwrap(),
+        serde_json::to_value(before).unwrap()
+    );
+    assert_eq!(newer.compact_receipts().unwrap().removed, 1);
+}
+
+#[test]
+fn completion_never_reads_poisoned_receipts_from_an_older_run() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    planned(&cases);
+    let old = run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    let directory = cases
+        .engine()
+        .lock()
+        .unwrap()
+        .receipts()
+        .directory()
+        .unwrap()
+        .to_owned();
+    cases.reset().unwrap();
+    planned(&cases);
+    run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    std::fs::write(
+        directory.join(format!("{}.json", old.receipt().id)),
+        b"damaged old receipt",
+    )
+    .unwrap();
+    let reopened = stored(temp.path(), &world);
+    assert!(reopened.verify_completion("chunk:c1", None).is_ok());
+}
+
+#[tokio::test]
+async fn compaction_is_explicit_through_the_mcp_surface() {
+    use magistr_workflow::ship::mcp::{ShipService, handlers::NoArgs};
+    use rmcp::handler::server::wrapper::Parameters;
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    let service = ShipService::from_use_cases(cases.clone());
+    let refused = service
+        .ship_compact_receipts(Parameters(NoArgs {}))
+        .await
+        .unwrap();
+    assert_eq!(refused.is_error, Some(true));
+    planned(&cases);
+    let old = run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    cases.reset().unwrap();
+    planned(&cases);
+    run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    assert!(
+        cases
+            .engine()
+            .lock()
+            .unwrap()
+            .receipts()
+            .get(&old.receipt().id)
+            .unwrap()
+            .is_some()
+    );
+    let result = service
+        .ship_compact_receipts(Parameters(NoArgs {}))
+        .await
+        .unwrap();
+    assert_ne!(result.is_error, Some(true));
+    assert_eq!(
+        result.structured_content.unwrap(),
+        serde_json::json!({
+            "removed": 1, "retained_current": 1, "retained_unsettled": 0, "retained_referenced": 0
+        })
+    );
+}
+
+#[test]
 fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_governs() {
     let temp = tempfile::tempdir().unwrap();
     let world = world();

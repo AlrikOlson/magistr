@@ -231,6 +231,64 @@ fn admit_receipt(
 }
 
 #[test]
+fn compaction_keeps_a_settled_receipt_until_its_operation_is_reconciled() {
+    use magistr_engine::native::{CheckExecution, NativeConfig, ProjectAuthority, WriterRole};
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None);
+    let config = NativeConfig::from_lookup(dir.path(), |_| None)
+        .with_data_dir(dir.path().join("store"))
+        .with_evidence(std::sync::Arc::new(
+            crate::evidence::WorkspaceEvidence::from_inputs(&inputs),
+        ));
+    let engines =
+        ProjectAuthority::admit_for_project(&config, "retention".into(), WriterRole::Host)
+            .unwrap()
+            .open();
+    engines
+        .ship_set_objective("Old".into(), vec![], vec![], String::new())
+        .unwrap();
+    engines
+        .ship_add_task("verify".into(), "Verify".into(), TaskType::Test, None)
+        .unwrap();
+    engines.ship_start_task("verify").unwrap();
+    let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    il.pre_iteration_check().unwrap();
+    let (operation, admission) = admit_receipt(&mut il, &engines, "test");
+    il.persist().unwrap();
+    let id = admission.receipt_id.clone();
+    engines
+        .ship_settle_gate(
+            admission,
+            CheckExecution::Exited { code: 0 },
+            String::new(),
+            None,
+        )
+        .unwrap();
+    engines.ship_complete_task("verify", vec![]).unwrap();
+    engines.ship_finalize(vec![], None).unwrap();
+    engines
+        .ship_set_objective("New".into(), vec![], vec![], String::new())
+        .unwrap();
+    drop(il); // Crash before acknowledging the applied receipt in the checkpoint.
+    assert_eq!(
+        engines.ship_compact_receipts().unwrap().retained_referenced,
+        1
+    );
+    assert!(
+        engines.ship_receipt(&id).unwrap().is_some(),
+        "unresolved operation must retain its authority"
+    );
+    let recovered = recover(dir.path(), &spec, Some(engines.clone()));
+    assert_eq!(
+        outcome_of(&recovered, &operation),
+        OperationOutcome::Completed
+    );
+    recovered.persist().unwrap();
+    assert_eq!(engines.ship_compact_receipts().unwrap().removed, 1);
+    assert!(engines.ship_receipt(&id).unwrap().is_none());
+}
+
+#[test]
 fn a_receipt_is_reconciled_against_its_own_receipt_never_a_same_named_check() {
     use magistr_engine::native::CheckExecution;
     let (dir, spec) = setup_project("- [ ] item\n");

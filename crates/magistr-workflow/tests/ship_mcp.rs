@@ -7,18 +7,17 @@ fn service() -> ShipService {
 }
 
 #[test]
-fn tools_list_has_13_canonical_entries() {
+fn tools_list_has_14_canonical_entries() {
     let svc = service();
     let tools = svc.list_tools_view();
     assert_eq!(
         tools.len(),
-        13,
-        "expected 13 ship_* tools (the two approval-gate verbs joined in \
-         webapp-approval-gates), got {}",
+        14,
+        "expected 14 ship_* tools, including explicit receipt compaction, got {}",
         tools.len()
     );
     let ship_count = tools.iter().filter(|t| t.name.starts_with("ship_")).count();
-    assert_eq!(ship_count, 13);
+    assert_eq!(ship_count, 14);
 }
 
 #[test]
@@ -48,7 +47,7 @@ fn every_tool_has_output_schema() {
 #[test]
 fn destructive_tools_are_marked() {
     let svc = service();
-    let destructive_names = ["ship_reset"];
+    let destructive_names = ["ship_reset", "ship_compact_receipts"];
     for tool in svc.list_tools_view() {
         let annotations = tool.annotations.as_ref().unwrap();
         if destructive_names.contains(&tool.name.as_ref()) {

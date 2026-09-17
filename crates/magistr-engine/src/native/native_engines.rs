@@ -374,6 +374,11 @@ impl NativeEngines {
         self.services.ship.verify_completion(scope, task_id)
     }
 
+    /// Explicitly prune older settled check receipts through the shared use case.
+    pub fn ship_compact_receipts(&self) -> Result<super::ReceiptCompaction, String> {
+        self.services.ship.compact_receipts()
+    }
+
     /// Add a task to the plan (the `ship_plan` verb's `add`).
     pub fn ship_add_task(
         &self,

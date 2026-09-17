@@ -238,7 +238,7 @@ use crate::ship::application::command_runner::{CHECK_OUTPUT_TAIL, run_check_comm
 impl ShipService {
     #[tool(
         name = "ship_set_objective",
-        description = "Define what 'done' means for this development cycle. Sets the goal, acceptance criteria, constraints, scope, and verification mode. Call this before planning any tasks.\n\nInputs: description (required), acceptance_criteria (string[]), constraints (string[]), scope (string), verification (explicitly select 'focused' for bounded changes including code; 'full' is the compatibility default, for an explicit full-suite request or a concrete cross-cutting risk). constraints/acceptance_criteria also accept a single string (coerced to a one-element list).\n\nReturns: the objective as set; plus cleared_stale_tasks + note when a fresh cycle was started.\n\nPitfalls: focused verification still requires every recorded acceptance check to pass; it only omits unrelated project-wide gates. Overwriting an IN-FLIGHT objective preserves its tasks. But if the previous objective was already shipped (completed/abandoned), this starts a FRESH cycle and clears the old tasks — so a new chunk never inherits the prior cycle's explore/implement/verify tasks.",
+        description = "Define the objective before planning tasks. Choose focused verification for bounded changes, including code: all recorded acceptance checks must pass, while unrelated project gates are omitted. Full is the compatibility default; use it only for an explicit full-suite request or concrete cross-cutting risk. Updating an unfinished objective preserves tasks. Replacing a completed or abandoned objective starts a fresh cycle and clears old tasks, reported as cleared_stale_tasks. Criteria and constraints accept arrays or a single string.",
         annotations(
             title = "Set objective",
             read_only_hint = false,
@@ -377,7 +377,7 @@ impl ShipService {
 
     #[tool(
         name = "ship_check",
-        description = "Record a quality gate result — a test run, lint pass, type check, build, code review, or manual verification.\n\nPREFER passing `command`: the server runs it, captures the real exit code, and sets passed/details/exit_code from the result. Such a check is `verified:true` and cannot be faked. Use self-reported `passed` only for gates that can't be expressed as a command (e.g. manual review).\n\nOptional `report` {format, path}: a machine-readable report file the runner was asked to emit (formats: 'junit'), parsed after the run into `results` (counts + failing test names) stored next to the exit code. Additive only — a missing or unparseable report never fails the check and never affects `verified`; the record says parsing did not happen. Never scrape stdout; ask the runner for a report file (e.g. cargo nextest's junit output, pytest --junit-xml).\n\nInputs: task_id (optional — defaults to active task), type ('test'|'lint'|'typecheck'|'build'|'review'|'manual'), name (required — e.g. 'cargo test'), command (optional shell command to run and verify), report (optional {format, path}), passed (bool — required only when no command is given), details (string), required (bool, default true).\n\nReturns: the recorded check incl. verified + exit_code (+ report/results when a report was requested).\n\nPitfalls: required checks that failed — or that passed but are only self-reported (verified:false) — are flagged when ship_finalize is called.",
+        description = "Record a quality check on task_id (defaults to the active task). PREFER passing `command`: the server runs it and records the real exit code, details and verified:true. Without command, passed is required and remains self-reported; use this only for checks that cannot run as commands. Optional report {format:'junit', path} parses a runner-produced report into counts and failing test names. A missing or malformed report does not change pass/fail or verified; the response reports the parsing error. Request a report from the runner instead of scraping stdout. Returns the recorded check and report/results when requested. Failed required checks and self-reported passes are flagged at finalization.",
         annotations(
             title = "Record check",
             read_only_hint = false,
@@ -504,6 +504,23 @@ impl ShipService {
         )
     }
 
+    #[tool(
+        name = "ship_compact_receipts",
+        description = "Permanently remove settled checks from older objectives. Keeps all current checks, unfinished checks, and checks needed for recovery. Requires an objective. Nothing is removed automatically. Returns removed and retained counts.",
+        annotations(
+            title = "Clear old check history",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+            open_world_hint = false,
+        )
+    )]
+    pub async fn ship_compact_receipts(
+        &self,
+        Parameters(_): Parameters<NoArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        Self::application_result(self.use_cases.compact_receipts())
+    }
     #[tool(
         name = "ship_status",
         description = "Full state snapshot of the current execution cycle. Call this after context compaction to reconstruct where you are — objective, plan progress, active task, recent actions, pending checks, produced artifacts, and think_* cross-references.\n\nInputs: none.\n\nReturns: complete state including objective, tasks with status counts, active task details, recent actions, all checks, all artifacts.\n\nPitfalls: none — this is the recovery tool. Call it whenever you're unsure of the current state.",

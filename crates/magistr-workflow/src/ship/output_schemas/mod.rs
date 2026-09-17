@@ -232,6 +232,9 @@ pub fn output_schema_for(tool_name: &str) -> Option<Arc<JsonObject>> {
         "ship_gate_open" => schema_for!(GateOpenOutput).to_value(),
         "ship_gate_wait" => schema_for!(GateWaitOutput).to_value(),
         "ship_finalize" => schema_for!(ShipReport).to_value(),
+        "ship_compact_receipts" => {
+            schema_for!(crate::ship::receipt_compaction::ReceiptCompaction).to_value()
+        }
         "ship_status" => schema_for!(StatusOutput).to_value(),
         "ship_export" => schema_for!(ExportOutput).to_value(),
         "ship_reset" => schema_for!(ClearOutput).to_value(),

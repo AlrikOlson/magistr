@@ -103,14 +103,14 @@ async fn pair() -> (
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn tools_list_returns_53_via_real_client() {
+async fn tools_list_returns_54_via_real_client() {
     let (client_service, server_handle) = pair().await;
 
     let tools: ListToolsResult = client_service.peer().list_tools(None).await.unwrap();
     assert_eq!(
         tools.tools.len(),
-        53,
-        "expected 11 think_* + 13 ship_* + 17 roadmap_* + 2 tracker_* + 10 signal_* = 53 entries, got {}",
+        54,
+        "expected 11 think_* + 14 ship_* + 17 roadmap_* + 2 tracker_* + 10 signal_* = 54 entries, got {}",
         tools.tools.len()
     );
 
