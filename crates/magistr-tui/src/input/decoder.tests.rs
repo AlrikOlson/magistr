@@ -2,6 +2,49 @@ use proptest::prelude::*;
 
 use super::*;
 
+#[test]
+fn navigation_journey_through_terminal_bytes_preserves_the_work_and_draft() {
+    use magistr_cockpit::cockpit::{Msg, Selected, Size, StageTab, update};
+    use magistr_cockpit::harness::Scenes;
+    let mut model = Scenes::navigation(Size::new(120, 40));
+    update(
+        &mut model,
+        Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    let prompt = model.prompt().clone();
+    for (query, tab) in [
+        ("Retry delivery", StageTab::Roadmap),
+        ("Roadmap", StageTab::Roadmap),
+        ("Recorded work", StageTab::Session),
+        ("Conversation", StageTab::Turn),
+    ] {
+        for event in decode(format!("\x10{query}\r").as_bytes()) {
+            let Event::Key(key) = event else {
+                panic!("expected a key");
+            };
+            update(&mut model, Msg::Key(key));
+        }
+        assert!(model.palette().is_none());
+        assert_eq!(model.tab(), tab);
+        assert_eq!(model.shown_tab(), tab);
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Chunk("retry-work".into()))
+        );
+        assert_eq!(model.prompt(), &prompt);
+    }
+    for event in decode(b"\x1b[9;5u") {
+        let Event::Key(key) = event else {
+            panic!("expected a key");
+        };
+        update(&mut model, Msg::Key(key));
+    }
+    assert_eq!(model.tab(), StageTab::Session);
+    assert_eq!(model.prompt(), &prompt);
+}
+
 fn decode(bytes: &[u8]) -> Vec<Event> {
     let mut decoder = Decoder::new();
     let mut out = Vec::new();

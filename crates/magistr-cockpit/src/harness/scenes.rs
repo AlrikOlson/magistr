@@ -31,6 +31,56 @@ fn agent(m: &mut Model, event: AgentEvent) {
 }
 
 impl Scenes {
+    /// Shared navigation corpus for terminal and native adapter journeys.
+    /// Sparse identities, recorded evidence, a journal and a nonempty draft
+    /// ensure a journey cannot pass by comparing two empty screens.
+    pub fn navigation(size: Size) -> Model {
+        use magistr_workflow_contracts::NativeSnapshot;
+        use serde_json::json;
+        let mut model = Self::changed(size)
+            .with_tab(StageTab::Turn)
+            .with_workspace_files(vec!["src/retry.rs".into()])
+            .with_snapshot(&NativeSnapshot {
+                chunks: fixtures::chunks_from(vec![
+                    json!({"id":"retry-work","name":"Retry delivery","title":"Retry delivery",
+                        "status":"in_progress","priority":100,"cross_refs":["think:917"]}),
+                    json!({"id":"saved-work","name":"Saved results","title":"Saved results",
+                        "status":"done","priority":200})
+                ]),
+                steps: fixtures::steps_from(vec![
+                    json!({"step_number":917,"purpose":"Keep retry limits separate",
+                        "thought":"Each customer keeps a separate allowance.",
+                        "outcome":"Save the remaining attempts.","execution_ref":"chunk:retry-work"}),
+                    json!({"step_number":941,"purpose":"Confirm recovery",
+                        "outcome":"The saved schedule survives restart."})
+                ]),
+                tasks: vec![fixtures::task_from(json!({"id":"verify-retry",
+                    "title":"Check retry recovery", "checks":[{"name":"recovery",
+                    "passed":true,"verified":true,"timestamp":"2026-09-17T10:00:00Z"}]}))],
+                signals: vec![fixtures::signal_from(json!({"id":"retry-signal",
+                    "title":"Explain retry limits","description":"Show the remaining attempts.",
+                    "status":"new"}))],
+                ..NativeSnapshot::default()
+            });
+        for index in 0..100 {
+            agent(
+                &mut model,
+                AgentEvent::Text(format!("Reviewing delivery {index}.\n\n")),
+            );
+        }
+        agent(
+            &mut model,
+            AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
+        );
+        update(
+            &mut model,
+            Msg::Paste("Check recovery with @src/retry.rs ".into()),
+        );
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::PageUp)));
+        Self::settle(&mut model);
+        model
+    }
+
     pub fn streaming(size: Size) -> Model {
         let mut m = Model::new(size).with_tab(StageTab::Turn);
         agent(

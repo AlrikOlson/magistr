@@ -55,6 +55,42 @@ centering, so window resizing and display scaling cannot separate it from its
 node. Animation advances through model ticks. Reduced motion selects settled
 frames; repainting does not advance time.
 
+## Shared navigation
+
+The cockpit owns destinations through `Model::show`, `nav::open_record` and
+`work::open_chunk`. Conversation, Roadmap and Recorded work update the same
+tab and selected identity on both surfaces. Native places choose composition;
+terminal pixel capability chooses geometry. Neither decides which work is opened.
+
+Opening a chunk selects its Roadmap details regardless of status. Reports remain
+explicit destinations for completed work. Steps, changes and receipts open Recorded
+work; signals open the inbox. These links retain stable identities when records
+disappear, allowing details to report unavailability instead of selecting a
+different row. Selected older steps remain visible in the desktop trace. Saved
+sessions use the shared resume command; unsupported choices do not fabricate success.
+
+View changes preserve the shared prompt, attachment tokens, selected object and
+conversation source anchor. Native Escape retains its overlay and parent-view
+behavior. Projects, saved sessions, reports, trace, changes, signals and settings
+remain reachable through the palette and existing controls.
+
+`Scenes::navigation` supplies real chunks, reasoning, receipts, changes, a signal,
+a scrolled conversation and an attachment-bearing draft. Cockpit journeys check
+identity, linked navigation, stale records, refused answers and retained context.
+Terminal decoder and native input tests drive equivalent palette and tab journeys
+through their actual adapters. They share the corpus, not a renderer or input bus.
+
+For the real-window check, run:
+
+```sh
+cargo run --manifest-path crates/magistr-gui2/Cargo.toml --locked --example navigation_probe
+```
+
+Use Cmd-K to open Retry delivery, Recorded work and Conversation, in that order;
+exercise both Return and a pointer selection, then close the window. The example
+checks the final selection and unchanged draft, including its attachment. This
+fixture check does not claim a live provider session or accessibility actions.
+
 ## Focused verification
 
 Run the desktop checks explicitly:

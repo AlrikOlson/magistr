@@ -311,14 +311,12 @@ pub(super) fn fold(model: &mut Model, event: WorkbenchEvent) {
     }
 }
 
-/// A click on the journal row at `index`: on a window its diff toggles;
-/// on a terminal the entry becomes the inspector's selection by its
-/// journal identity, and the session list scrolls to show it.
+/// Select a journal row by its stable identity and reveal its details.
+/// Each surface draws that selection in its own layout.
 pub(super) fn row_click(model: &mut Model, index: usize) {
-    if model.surface().is_native() {
-        model.changes.toggle(index);
-    } else if let Some(entry) = model.changes.entries().get(index) {
+    if let Some(entry) = model.changes.entries().get(index) {
         let selected = Selected::Change(entry.identity());
+        model.changes.toggle(index);
         model.inspect(selected);
         if !model.uses_flight_recorder() {
             model.pane = Pane::Stage;

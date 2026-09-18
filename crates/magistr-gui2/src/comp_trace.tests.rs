@@ -20,6 +20,65 @@ fn ids(root: &Element) -> Vec<ElementId> {
     ids
 }
 
+#[test]
+fn selected_receipt_and_stale_identity_are_visible() {
+    use magistr_cockpit::cockpit::session_item::SessionItem;
+    use magistr_cockpit::cockpit::{Msg, StageTab, Surface, update};
+    use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+    let mut model = magistr_cockpit::harness::Scenes::navigation(Size::new(120, 40))
+        .with_surface(Surface::Native)
+        .with_tab(StageTab::Session);
+    let index = SessionItem::collect(model.trace(), model.changes())
+        .iter()
+        .position(|row| matches!(row, SessionItem::Moment(_, _)))
+        .unwrap();
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::session_row(index)),
+        },
+    );
+    let selected = model.selected().cloned();
+    let text = texts(&TraceComposition::el(&model, Medium::Night)).join("\n");
+    assert!(text.contains("recovery"), "{text}");
+    assert!(text.contains("Passed"), "{text}");
+    update(
+        &mut model,
+        Msg::Engine(magistr_cockpit::engine::EngineEvent::Seed(
+            magistr_workflow_contracts::NativeSnapshot::default(),
+        )),
+    );
+    assert_eq!(model.selected(), selected.as_ref());
+    let text = texts(&TraceComposition::el(&model, Medium::Night)).join("\n");
+    assert!(text.contains("This record is unavailable."), "{text}");
+}
+
+#[test]
+fn opening_an_older_step_keeps_it_in_the_visible_trace_window() {
+    use magistr_cockpit::cockpit::{Msg, update};
+    use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+    let mut model = view();
+    let number = model.trace().steps()[0].number;
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::trace_row(0)),
+        },
+    );
+    assert!(
+        TraceComposition::window(&model)
+            .iter()
+            .any(|(_, step)| step.number == number)
+    );
+    assert!(
+        TraceComposition::lane(&model)
+            .iter()
+            .any(|stop| model.trace().steps()[stop.index].number == number)
+    );
+}
+
 fn view() -> Model {
     Fixture::mock("11", Size::new(120, 40)).expect("view 11 has a fixture")
 }

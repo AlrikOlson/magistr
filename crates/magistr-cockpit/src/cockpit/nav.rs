@@ -1,9 +1,27 @@
-//! Escape-key navigation: close overlays, then move up.
+//! Navigation owns shared view and record destinations. Native overlays keep
+//! their own escape order, without replacing selection or session state.
 
 use super::cmd::Cmd;
 use super::dock_item::DockItem;
 use super::model::Model;
 use super::place::Place;
+use super::{Selected, StageTab};
+
+/// Open the existing record by identity. Missing records retain their identity
+/// so the details can explain unavailability rather than showing another row.
+pub(super) fn open_record(model: &mut Model, selected: Selected) {
+    let tab = match &selected {
+        Selected::Chunk(_) | Selected::Signal(_) => StageTab::Roadmap,
+        Selected::Tool(_) => StageTab::Turn,
+        _ => StageTab::Session,
+    };
+    model.show(tab);
+    if matches!(selected, Selected::Signal(_)) {
+        model.show_place(Place::Signals);
+    }
+    model.inspect(selected);
+    super::update::reveal_session_selection(model);
+}
 
 /// Esc on a window, in the navigation order. The topmost overlay
 /// goes first — the Brief here; the ⌘K palette, the accelerator sheet
@@ -41,7 +59,7 @@ pub fn esc(model: &mut Model) -> Option<Vec<Cmd>> {
         if let Some(DockItem::Permission(p)) = model.dock.front() {
             model.decision.stand_down(p.id());
         }
-        model.place = Place::Session;
+        model.show(StageTab::Turn);
         return Some(Vec::new());
     }
     // The terminal dock lowers ahead of any altitude move — it stands over the
@@ -64,7 +82,7 @@ pub fn esc(model: &mut Model) -> Option<Vec<Cmd>> {
         return Some(Vec::new());
     }
     if let Some(up) = model.place.up() {
-        model.place = up;
+        model.show_place(up);
     }
     Some(Vec::new())
 }

@@ -1,7 +1,6 @@
 use super::*;
 use crate::cockpit::{
-    LauncherData, LauncherSession, Msg, Place, SessionOutcome, Size, StageTab, Surface, Widget,
-    update,
+    LauncherData, LauncherSession, Msg, Place, SessionOutcome, Size, Surface, Widget, update,
 };
 use crate::engine::EngineEvent;
 use crate::input::{Button, KeyCode, KeyEvent, Modifiers, MouseEvent, MouseKind};
@@ -311,7 +310,7 @@ fn the_choice_walks_within_the_rows_and_snaps_back_when_the_query_changes() {
 }
 
 #[test]
-fn enter_opens_a_chapter_through_the_open_chunk_fold() {
+fn enter_opens_completed_work_through_the_open_chunk_fold() {
     let mut model = seeded();
     model.place = Place::Session;
     chord(&mut model);
@@ -320,8 +319,8 @@ fn enter_opens_a_chapter_through_the_open_chunk_fold() {
     assert!(model.search().is_none());
     assert_eq!(
         model.place(),
-        Some(Place::Report),
-        "a shipped chunk opens as its chapter"
+        Some(Place::Sky),
+        "completed work opens its roadmap details"
     );
     assert_eq!(
         model.roadmap().selected().map(|c| c.id.as_str()),
@@ -349,7 +348,7 @@ fn enter_opens_a_step_on_the_trace_expanded_and_a_receipt_on_the_trace() {
 }
 
 #[test]
-fn enter_opens_a_session_on_the_launchers_row() {
+fn enter_requests_the_saved_session_through_the_shared_resume_path() {
     let mut model = seeded();
     chord(&mut model);
     // `shipped the palette` would also find every chapter with a `the`
@@ -364,10 +363,11 @@ fn enter_opens_a_session_on_the_launchers_row() {
         "Aug 30 14:02 \u{b7} 12m \u{b7} shipped the palette"
     );
     key(&mut model, KeyCode::Enter, Modifiers::NONE);
-    // The launcher's slot on a window is the Sky (`Place::of_tab`), the
-    // row selected — exactly where the palette's Resume lands.
-    assert_eq!(model.place(), Some(Place::of_tab(StageTab::Roadmap)));
-    assert_eq!(model.session_selected(), Some(0));
+    assert_eq!(
+        model.launch,
+        Some(crate::cockpit::LaunchAction::Resume("sess-1".into()))
+    );
+    assert!(model.quit_requested());
 }
 
 #[test]

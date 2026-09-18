@@ -597,14 +597,8 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
         if model.moment().is_some() {
             return decision::apply(model, DecisionIntent::OpenCondition);
         }
-        // A terminal walks its tabs; a window walks its places.
-        if model.surface().is_native() {
-            model.place = if key.mods == Modifiers::SHIFT {
-                model.place.prev()
-            } else {
-                model.place.next()
-            };
-        } else if key.mods.contains(Modifiers::CTRL) {
+        // View navigation has one meaning; each surface owns focus geometry.
+        if key.mods.contains(Modifiers::CTRL) {
             let tab = if key.mods.contains(Modifiers::SHIFT) {
                 model.tab.prev()
             } else {
@@ -753,7 +747,11 @@ fn brief_click(model: &mut Model, widget: Widget) -> Vec<Cmd> {
     }
     if let Some(id) = target {
         open_chunk(model, &id);
-        return work::shelf_collect(model);
+        return if widget == Widget::BriefReports {
+            work::open_report(model)
+        } else {
+            work::shelf_collect(model)
+        };
     }
     Vec::new()
 }
@@ -915,23 +913,16 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
             model.show(tab);
             Vec::new()
         }
+        PaletteGo::Place(Place::Report) => work::open_report(model),
         PaletteGo::Place(place) => {
-            model.place = place;
+            model.show_place(place);
             Vec::new()
         }
         PaletteGo::Chunk(id) => {
             open_chunk(model, &id);
             work::shelf_collect(model)
         }
-        PaletteGo::Session(index) => {
-            if model.surface().is_native() {
-                model.place = Place::Sky;
-                model.session_sel = Some(index);
-                Vec::new()
-            } else {
-                resume_session(model, index)
-            }
-        }
+        PaletteGo::Session(index) => resume_session(model, index),
         PaletteGo::Key(code, mods) => fold(model, Msg::Key(KeyEvent::new(code).with(mods))),
         // The loop's verbs are the verb, not a keystroke: a row that
         // typed `s` into the prompt would not be a row that steps.
@@ -1112,28 +1103,9 @@ fn search_confirm(model: &mut Model, hit: SearchHit) -> Vec<Cmd> {
             open_chunk(model, &id);
             return work::shelf_collect(model);
         }
-        SearchGo::Step(number) => {
-            if model.uses_flight_recorder() {
-                model.inspect(Selected::Step(number));
-            } else {
-                model.place = Place::Trace;
-                model.trace.expand_step(number);
-            }
-        }
-        SearchGo::Receipt(identity) => {
-            if model.uses_flight_recorder() {
-                model.inspect(Selected::Receipt(identity));
-            } else {
-                model.place = Place::Trace;
-            }
-        }
-        SearchGo::Session(index) => {
-            if model.uses_flight_recorder() {
-                return resume_session(model, index);
-            }
-            model.place = Place::Sky;
-            model.session_sel = Some(index);
-        }
+        SearchGo::Step(number) => nav::open_record(model, Selected::Step(number)),
+        SearchGo::Receipt(identity) => nav::open_record(model, Selected::Receipt(identity)),
+        SearchGo::Session(index) => return resume_session(model, index),
     }
     Vec::new()
 }
@@ -2207,7 +2179,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     if let Some(Selected::Step(number)) = model.selected()
                         && let Some((_, selected)) = Inspector::linked_work(model, *number)
                     {
-                        model.inspect(selected);
+                        nav::open_record(model, selected);
                     }
                     return Vec::new();
                 }
@@ -2404,7 +2376,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     // A crumb is the altitude path,
                     // laid out on a window only: it moves the camera.
                     if let Some(place) = widget.place_target(model.place) {
-                        model.place = place;
+                        model.show_place(place);
                         return Vec::new();
                     }
                     if let Some(tab) = widget.tab_target() {
@@ -2482,9 +2454,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 return Vec::new();
             }
             if let Some(index) = target.and_then(Widget::trace_row_index) {
-                if model.surface().is_native() {
-                    model.trace.toggle(index);
-                } else if let Some(step) = model.trace.steps().get(index) {
+                if let Some(step) = model.trace.steps().get(index) {
                     let selected = Selected::Step(step.number);
                     model.inspect(selected);
                     if !model.uses_flight_recorder() {
@@ -2655,7 +2625,7 @@ fn birth_open(model: &mut Model, armed: bool) {
         return;
     }
     model.birth.open(armed);
-    model.place = Place::Birth;
+    model.show_place(Place::Birth);
 }
 
 /// A folder dropped from the desktop: the flow opens if it was not
@@ -2737,7 +2707,7 @@ fn birth_click(model: &mut Model, widget: Widget) -> Vec<Cmd> {
             model.birth.edit(0);
         }
         Widget::BirthClaim => return birth_claim(model),
-        Widget::BirthLater => model.place = Place::Sky,
+        Widget::BirthLater => model.show(StageTab::Roadmap),
         _ => {}
     }
     Vec::new()
@@ -2988,9 +2958,9 @@ fn report_trace(model: &mut Model) -> Vec<Cmd> {
     let first = model
         .shelf()
         .and_then(|shelf| shelf.think_refs.first().copied());
-    model.place = Place::Trace;
+    model.show(StageTab::Session);
     if let Some(number) = first {
-        model.trace.expand_step(number);
+        model.inspect(Selected::Step(number));
     }
     Vec::new()
 }
