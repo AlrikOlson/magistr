@@ -13,11 +13,11 @@ pub enum FlightDivider {
 }
 
 impl FlightDivider {
-    pub(crate) const ALL: [Self; 4] = [Self::Columns, Self::Roadmap, Self::Reasoning, Self::Graph];
-    pub(crate) const fn index(self) -> usize {
+    pub const ALL: [Self; 4] = [Self::Columns, Self::Roadmap, Self::Reasoning, Self::Graph];
+    pub const fn index(self) -> usize {
         self as usize
     }
-    pub(crate) const fn widget(self) -> Widget {
+    pub const fn widget(self) -> Widget {
         match self {
             Self::Columns => Widget::PanelColumns,
             Self::Roadmap => Widget::PanelRoadmap,
@@ -31,6 +31,9 @@ impl FlightDivider {
             .find(|divider| divider.widget().id() == id)
     }
     pub(crate) fn visible(self, model: &Model) -> bool {
+        if model.surface().is_native() {
+            return model.flight_panels.native[self.index()].is_some();
+        }
         if !model.uses_flight_recorder() {
             return false;
         }
@@ -54,6 +57,10 @@ impl FlightDivider {
     }
     /// Origin, usable extent and current first-panel extent, in physical pixels.
     pub(crate) fn geometry(self, model: &Model) -> (f32, f32, f32) {
+        if model.surface().is_native() {
+            return model.flight_panels.native[self.index()]
+                .map_or((0.0, 1.0, 0.0), |p| (p.origin, p.total, p.first));
+        }
         let l = model.flight_layout();
         let top = 24.0 + f32::from(model.cell_size().height).max(28.0);
         match self {

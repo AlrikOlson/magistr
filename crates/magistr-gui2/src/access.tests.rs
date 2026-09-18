@@ -79,7 +79,7 @@ fn the_roles_and_names_come_from_the_widget_ids() {
         Role::TextInput
     );
     assert_eq!(
-        tree.find(Widget::RailDivider).expect("divider").role,
+        tree.find(Widget::PanelColumns).expect("divider").role,
         Role::Splitter
     );
     let crumb = tree.find(Widget::CrumbProjects).expect("the crumb");

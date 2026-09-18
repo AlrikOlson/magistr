@@ -374,7 +374,15 @@ fn a_streaming_turn_puts_the_stage_in_its_own_scissored_batch() {
     for line in 0..120 {
         let _ = update(
             &mut model,
-            Msg::Agent(AgentEvent::Text(format!("overflow row {line}\n"))),
+            Msg::Agent(AgentEvent::ToolCall {
+                id: format!("tool-{line}"),
+                title: format!("Review delivery {line}"),
+                verb: magistr_application::sessions::ToolVerb::Tool,
+                status: magistr_application::sessions::ToolStatus::InProgress,
+                diff: None,
+                images: Vec::new(),
+                record: Default::default(),
+            }),
         );
     }
     let (w, h) = (
@@ -391,9 +399,9 @@ fn a_streaming_turn_puts_the_stage_in_its_own_scissored_batch() {
     let scissored: Vec<_> = list
         .batches
         .iter()
-        .filter(|b| b.scissor.is_some())
+        .filter(|b| b.scissor == super::scissor_of(stage, [w, h]))
         .collect();
-    assert_eq!(scissored.len(), 1, "one scissored batch: the stage's");
+    assert_eq!(scissored.len(), 1, "the stage has its own scissored batch");
     let [sx, sy, sw, sh] = scissored[0].scissor.expect("a scissor");
     // Origin floors and extent ceils — the clip never shaves a content
     // edge pixel — so each measure sits within 2 px of the stage box.
@@ -607,7 +615,11 @@ fn the_divider_resolves_to_the_rail_divider() {
     let (tree, layout) = frame.placed().expect("a frame was built");
     let mut divider = None;
     tree.each(&mut |index, element| {
-        if element.id == Some(crate::comp_root::RootComposition::DIVIDER) {
+        if element.id
+            == Some(crate::comp_workspace::WorkspaceComposition::id(
+                Widget::PanelColumns.id(),
+            ))
+        {
             divider = Some(layout.rect(index));
         }
     });
@@ -616,7 +628,7 @@ fn the_divider_resolves_to_the_rail_divider() {
         .hits()
         .hit_at(f64::from(x + w / 2.0), f64::from(y + h / 2.0))
         .expect("the divider answers");
-    assert_eq!(hit, Widget::RailDivider.id());
+    assert_eq!(hit, Widget::PanelColumns.id());
 }
 
 /// A zero-sided viewport is refused, never painted — a window reports

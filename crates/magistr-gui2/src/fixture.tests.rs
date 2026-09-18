@@ -87,7 +87,10 @@ fn view_05_has_a_fixture_and_an_unknown_view_has_none() {
         text.contains("Steer"),
         "the composer is at the foot: {text}"
     );
-    assert!(text.contains("Checkpoints"), "the rail rides: {text}");
+    assert!(
+        text.contains("Nearby work"),
+        "the nearby work stays visible: {text}"
+    );
     assert!(text.contains("38,204 tok"), "the foot counts: {text}");
     let size = model.size();
     assert!(Fixture::mock("99", size).is_none());
@@ -110,10 +113,10 @@ fn view_06_is_the_moment_and_the_session_chrome_stands_down() {
     );
     // The session is dimmed behind it, never blanked.
     assert!(text.contains("The vocabulary is 48 static ids"), "{text}");
-    // And altitude 2's chrome is gone: no rail sections, no composer.
+    // The draft remains in its place behind the modal decision.
     assert!(!text.contains("Checkpoints"), "{text}");
     assert!(!text.contains("Charter"), "{text}");
-    assert!(!text.contains("Steer"), "{text}");
+    assert!(text.contains("Steer"), "{text}");
 }
 
 /// View 13 is the search: the float over the dimmed session — the

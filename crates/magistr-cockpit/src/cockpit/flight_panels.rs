@@ -8,6 +8,9 @@ use crate::widget_id::WidgetId;
 pub struct FlightPanels {
     proportions: [Option<f32>; 4],
     interaction: Option<Interaction>,
+    pub(super) native: [Option<super::panel_allocation::PanelAllocation>; 4],
+    pub(super) native_stage: Option<(u16, usize)>,
+    pub(super) native_details: Option<(usize, usize)>,
 }
 
 #[cfg(test)]
@@ -76,7 +79,13 @@ impl FlightPanels {
         let first = Self::split(
             total,
             value / total,
-            divider.minimums(f32::from(model.cell_size().height)),
+            if model.surface().is_native() {
+                model.flight_panels.native[divider.index()]
+                    .expect("visible native boundary")
+                    .minimums
+            } else {
+                divider.minimums(f32::from(model.cell_size().height))
+            },
         );
         model.flight_panels.proportions[divider.index()] = Some(first / total);
     }
@@ -128,7 +137,7 @@ impl FlightPanels {
             }
         }
         if event.kind != MouseKind::Down(Button::Left)
-            || !model.uses_flight_recorder()
+            || !(model.uses_flight_recorder() || model.surface().is_native())
             || model.is_sheet_open()
             || model.settings.is_some()
             || model.search.is_some()

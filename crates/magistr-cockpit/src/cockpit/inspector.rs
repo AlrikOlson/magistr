@@ -119,17 +119,7 @@ fn work_names(model: &Model, refs: &[String]) -> String {
 /// Inspector rendering and its scroll extent share the same card rows.
 pub struct Inspector;
 
-struct Card {
-    title: String,
-    status: String,
-    icon: Icon,
-    metadata: String,
-    actions: Vec<(&'static str, WidgetId)>,
-    fields: Vec<(String, String)>,
-    diff: Option<String>,
-    viewer: Option<Vec<String>>,
-    proposals: Vec<(usize, String)>,
-}
+use super::inspection::Inspection as Card;
 
 impl Inspector {
     fn full_roadmap_details(model: &Model) -> bool {
@@ -294,6 +284,17 @@ impl Inspector {
 
     /// Scroll within the current field set, clamped to its visible extent.
     pub fn scroll(model: &mut Model, delta: isize) {
+        if model.surface().is_native()
+            && let Some((total, visible)) = model.flight_panels.native_details
+        {
+            model.inspector_scroll = model
+                .inspector_scroll
+                .saturating_add_signed(
+                    delta.saturating_mul(isize::try_from(model.cell_size().height).unwrap_or(1)),
+                )
+                .min(total.saturating_sub(visible));
+            return;
+        }
         if model.has_pixels() && !model.surface().is_native() {
             Self::flight_scroll(model, delta);
             return;
@@ -327,7 +328,8 @@ impl Inspector {
 }
 
 impl Card {
-    fn of(model: &Model) -> Option<Self> {
+    #[must_use]
+    pub fn of(model: &Model) -> Option<Self> {
         let mut card = Self {
             title: String::new(),
             status: String::new(),

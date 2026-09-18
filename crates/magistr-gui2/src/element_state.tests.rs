@@ -103,7 +103,7 @@ fn the_arrows_walk_the_walkable_run_and_stop_at_its_ends() {
     let layout = ElementLayout::compute(&tree, 200.0, 100.0, &mut text).expect("layout");
     let arrow = |code: KeyCode| Msg::Key(KeyEvent::new(code).kind(KeyKind::Press));
     let mut state = ElementState::default();
-    assert!(!state.walks(&tree), "no focus, no walk");
+    assert!(!state.walks(&tree, &layout), "no focus, no walk");
     assert!(!state.fold(&arrow(KeyCode::Down), &tree, &layout));
     assert_eq!(state.focus(), None, "the arrows never enter the run");
     // Click the first head: focus lands on it.
@@ -113,7 +113,7 @@ fn the_arrows_walk_the_walkable_run_and_stop_at_its_ends() {
         &layout
     ));
     assert_eq!(state.focus(), Some(ElementId(1)));
-    assert!(state.walks(&tree));
+    assert!(state.walks(&tree, &layout));
     assert!(state.fold(&arrow(KeyCode::Down), &tree, &layout));
     assert_eq!(state.focus(), Some(ElementId(2)));
     assert!(
@@ -134,7 +134,7 @@ fn the_arrows_walk_the_walkable_run_and_stop_at_its_ends() {
         &layout
     ));
     assert_eq!(state.focus(), Some(ElementId(9)));
-    assert!(!state.walks(&tree));
+    assert!(!state.walks(&tree, &layout));
     assert!(!state.fold(&arrow(KeyCode::Down), &tree, &layout));
     assert_eq!(state.focus(), Some(ElementId(9)));
 }

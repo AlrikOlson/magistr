@@ -1,4 +1,52 @@
 use super::*;
+
+#[test]
+fn native_geometry_controls_resizing_without_enabling_the_terminal_view() {
+    use crate::cockpit::{Surface, panel_allocation::PanelAllocation};
+    let mut m = model(StageTab::Turn, (10, 20)).with_surface(Surface::Native);
+    let bounds = PanelAllocation {
+        origin: 20.0,
+        total: 1000.0,
+        first: 640.0,
+        minimums: (360.0, 280.0),
+    };
+    m.report_native_workspace([Some(bounds), None, None, None], Some((60, 12)), None);
+    assert!(!m.uses_flight_recorder());
+    assert_eq!(m.stage_rows(), 12);
+    assert_eq!(m.turn_width(), 60);
+    FlightPanels::begin_keyboard(&mut m);
+    key(&mut m, KeyCode::Home);
+    assert_eq!(m.panel_fraction(D::Columns, 0.0), 0.36);
+    key(&mut m, KeyCode::End);
+    assert_eq!(m.panel_fraction(D::Columns, 0.0), 0.72);
+    key(&mut m, KeyCode::Esc);
+    assert_eq!(m.panel_fraction(D::Columns, 0.64), 0.64);
+    mouse(
+        &mut m,
+        MouseKind::Down(Button::Left),
+        (665.0, 100.0),
+        Some(Widget::PanelColumns.id()),
+        true,
+    );
+    mouse(
+        &mut m,
+        MouseKind::Drag(Button::Left),
+        (765.0, 100.0),
+        None,
+        true,
+    );
+    assert_eq!(m.panel_fraction(D::Columns, 0.0), 0.72);
+    update(&mut m, Msg::Focus(false));
+    assert_eq!(m.panel_fraction(D::Columns, 0.64), 0.64);
+    let invalid = PanelAllocation {
+        total: f32::NAN,
+        ..bounds
+    };
+    m.report_native_workspace([Some(invalid), None, None, None], None, None);
+    assert!(!D::Columns.visible(&m));
+    assert_eq!(m.session.prompt.text(), "Keep my draft");
+}
+
 use crate::cockpit::{FlightShell, FrameClock, Msg, Size, StageTab, Widget, update};
 use crate::hit::HitRegistry;
 use crate::layout::{Basis, LayoutTree};

@@ -43,9 +43,10 @@ The shared model owns semantic state and typed updates. Renderer geometry is
 not a new workflow event.
 
 `Frame::build` measures text, lays out the element tree and emits a draw list.
-It may report only surface and layout facts: cell size, mono wrapping width and
-graph allocations. It must not call the broad application update function,
-dispatch commands, perform I/O or change durable state. Geometry can request
+It may report only surface and layout facts: cell size, mono wrapping width,
+graph and panel allocations, and conversation/detail viewport extents. It must
+not call the broad application update function, dispatch commands, perform I/O
+or change durable state. Geometry can request
 another frame. CPU stills converge within an eight-pass bound; the stability
 test verifies unchanged time, workflow data, pending decisions and settled state.
 
@@ -90,6 +91,42 @@ Use Cmd-K to open Retry delivery, Recorded work and Conversation, in that order;
 exercise both Return and a pointer selection, then close the window. The example
 checks the final selection and unchanged draft, including its attachment. This
 fixture check does not claim a live provider session or accessibility actions.
+
+## Conversation workspace
+
+`WorkspaceComposition` keeps the conversation and initially collapsed reasoning
+on the left, nearby work and shared `Inspection` content on the right, and the
+composer below both. Narrow windows stack details below the conversation and
+retain Roadmap and Commands controls. Selecting reasoning never replaces the
+conversation. Previous, Next, Latest and linked work use cockpit identities.
+
+The native layout reports `PanelAllocation`, conversation wrapping capacity and
+detail scroll extent through `Model::report_native_workspace`. These are bounded
+layout facts, not workflow events. `FlightPanels` owns the shared proportions and
+input transaction: dragging, minimum sizes, Escape/focus-loss cancellation, and
+the Resize panels / Reset panel sizes commands. It reads reported native pixels;
+the desktop never activates the terminal renderer's `uses_flight_recorder` switch.
+
+`FrameClips` supplies the same viewport intersections to painting, pointer hits,
+Tab focus and accessibility. Detail scrolling moves only its content. Partial
+image reservations retain pictures whose leading rows are above the viewport.
+Geometry changes preserve the shared conversation source anchor and draft.
+
+`tests/workspace.rs` drives actual native targets, linked inspection/return,
+incoming records, keyboard and pointer resizing at 1×, 1.5× and 2×, and compact
+focus. `tests/workspace_screens.rs` renders empty, streaming, tools, permission,
+stale evidence and completed states in both themes, compact/wide layouts,
+display scale and reduced motion.
+
+For an interactive check:
+
+```sh
+cargo run --manifest-path crates/magistr-gui2/Cargo.toml --locked --example workspace_probe
+```
+
+Open reasoning, choose Latest then Previous, drag the column boundary, and close
+the window. The example verifies selection, resized proportions and the unchanged
+draft and attachment.
 
 ## Focused verification
 
