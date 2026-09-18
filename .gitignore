@@ -45,6 +45,8 @@ node_modules/
 dist/
 
 # Temporary/generated
+# Browser inspection output
+/.playwright-mcp/
 # Generated roadmap views
 /ROADMAP.md
 /ROADMAP.json
