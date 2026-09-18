@@ -12,8 +12,7 @@ use super::checkpoint::Checkpoint;
 /// Append-only within a session: a restore does not truncate what came
 /// after it, because what came after it happened, and a spine that
 /// rewrote itself on every restore would lose the state a user wants to
-/// come *back* to after looking at an older one. The same reason
-/// [`StreamRelay::delivered`] is append-only across attempts.
+/// come *back* to after looking at an older one.
 ///
 /// Ids are *given*, not minted here, and [`next_id`] is the one mint.
 /// That split is load-bearing: a permission card has to print "cp-4
@@ -25,8 +24,6 @@ use super::checkpoint::Checkpoint;
 /// session even if the spine is restored to `cp-2` and grows again.
 ///
 /// [`next_id`]: CheckpointSpine::next_id
-///
-/// [`StreamRelay::delivered`]: magistr_engine::fleet::StreamRelay::delivered
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CheckpointSpine {
     entries: Vec<Checkpoint>,

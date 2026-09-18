@@ -1,5 +1,7 @@
-//! Immutable peer plans, exact dual approvals and bounded reconciliation.
-//! Authentication and dispatch belong to the host; see docs/architecture/peers.md.
+//! Experimental peer plans, exact dual approvals and bounded reconciliation.
+//! Available only to unit tests or the opt-in `experimental-peer` feature.
+//! No production host enables it; authentication and dispatch are not implemented.
+//! See docs/architecture/peers.md for the tested reasoning contract.
 
 mod agreement_error;
 mod authority_action;

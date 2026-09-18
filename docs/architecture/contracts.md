@@ -136,9 +136,12 @@ second is the emergency exit — see
 
 ## Integrated and experimental surfaces
 
-Main integrates terminal and headless session paths. Peer/fleet authority types
-and tests are implemented domain capabilities, but production authenticated
-dispatch and durable remote ownership are not wired; see [peers](peers.md).
+Main integrates terminal and headless session paths. Peer reasoning remains a
+tested experiment behind the engine's opt-in `experimental-peer` feature; no
+production host enables it. The unserved engine protocol, unused client wrappers,
+fleet/batch scheduler and multi-agent supervisor have been retired after a
+consumer audit. See [host API inventory](clients.md#host-api-inventory) and
+[peers](peers.md).
 
 At the pinned gui2 snapshot, the [desktop guide][gui-guide] and
 [window startup][gui-window] select busy/mock/catalogue fixtures. The reusable

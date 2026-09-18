@@ -53,6 +53,34 @@ the `think-and-ship` name in `scaffold/codex_config.rs` only recognizes an
 entry a user wrote before the cutover. There is no row for a daemon, a remote
 endpoint, a Bun or NAPI path, or an internal MCP round trip.
 
+## Host API inventory
+
+The September 2026 retirement audit followed public constructors and aliases
+through their callers, including tests and examples. A test of a disconnected
+implementation was not counted as a production caller.
+
+| Entrance or alias | Consumer and decision |
+| --- | --- |
+| Agent `SessionSupervisor::start*`, `AgentSession`, `CockpitSession` | Headless, cockpit and judge sessions; retain the shared admission, bounded message and settlement paths. |
+| Workflow `EngineClient::with_config`, `admit_or_attach_config`, `observe`, `observe_config`, `attach` | Host admission, attachment, observation and loop reuse are distinct capabilities. All writes reach `ProjectAuthority`; readers never create writers. Retain. |
+| `NativeEnginePort::new`, `AttachedEnginePort::new` | The workflow client's two admitted command routes. Both translate the same interface commands to canonical use cases. Retain. |
+| `ProjectAuthority::admit` / `admit_for_project`, `open` / `serve`; `NativeReader::open` / `open_for_project`; `OwnerClient::attach*` | Host, Service, reader and bridge entrances listed above. Explicit project/config variants preserve captured inputs; no alternate store bootstrap. Retain. |
+| `HostedWorkspace::admit` / `admit_with`, `WorkspaceAdmission::admit` / `admit_with`, `WorkspaceSourceWriter::new` | Host composition, configured options, refusal reporting and generation-checked source writes. Retain. |
+| `AdmittedCheck::admit` | MCP and loop checks share admission, source observation and settlement. Retain. |
+| `McpWorkbench::new` / `with_workspace` | Cockpit bridge from project configuration. Accept the native `mcp-launch workbench-mcp` launch shape; refuse old standalone settings before spawning. Journal and undo use one owner connection. |
+| `EngineHandle::new` / `with_run_mode` / `with_native` | Session checkpoint capture/recovery and its underlying run semantics. Retain; this is not the deleted agent client facade. |
+| CLI foundation, model and persistence aliases; core/engine domain and workflow value reexports | Refer to owning definitions used by live callers and compatibility fixtures; they introduce no independent state or implementation. Retain. |
+| `agent::engine`, its root alias, local/channel/remote clients, reconnect and transport task | No caller outside their own tests. Removed together with the unserved `magistr-protocol` crate and its stdio/Unix/TCP/WebSocket transports. |
+| Engine fleet/batch modules and reexports; CLI `agent::multi` constructors and aliases | Only simulated integration tests and internal callers. Removed; no distributed execution is advertised. |
+| Engine `peer` | Preserve the tested bounded agreement/replay rules as an opt-in experiment. Production dependency resolution must not enable `experimental-peer`. |
+
+The application dependency test checks that the retired wire crate is absent
+and the peer feature is disabled in production resolution. The workspace port
+tests exercise refusal before process launch and journal reads through the owner.
+Existing session, checkpoint, admission and canonical command tests cover the
+retained entrances. Owned subsystem licenses, provenance and compatibility
+inputs remain in `subsystems/`.
+
 ## Duplicate ownership is refused
 
 - **A second writer of a role.** `ProjectAuthority::admit` takes the role's

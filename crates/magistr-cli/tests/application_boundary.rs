@@ -20,8 +20,7 @@ fn application_sources_cannot_access_effects() {
     );
 }
 
-#[test]
-fn application_dependencies_are_only_the_domain_contract() {
+fn workspace_metadata() -> serde_json::Value {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let output = Command::new(env!("CARGO"))
         .args(["metadata", "--format-version", "1", "--locked", "--offline"])
@@ -33,8 +32,12 @@ fn application_dependencies_are_only_the_domain_contract() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let metadata = serde_json::from_slice(&output.stdout).expect("Cargo metadata JSON");
-    let errors = dependencies::check(&metadata);
+    serde_json::from_slice(&output.stdout).expect("Cargo metadata JSON")
+}
+
+#[test]
+fn application_dependencies_are_only_the_domain_contract() {
+    let errors = dependencies::check(&workspace_metadata());
     assert!(
         errors.is_empty(),
         "application dependency boundary:\n{}",
@@ -46,3 +49,32 @@ fn application_dependencies_are_only_the_domain_contract() {
 mod dependency_tests;
 #[path = "application_boundary_support/source.tests.rs"]
 mod source_tests;
+#[test]
+fn production_hosts_exclude_retired_transport_and_experimental_peer() {
+    let metadata = workspace_metadata();
+    let packages = metadata["packages"].as_array().expect("packages");
+    assert!(
+        packages
+            .iter()
+            .all(|package| package["name"] != "magistr-protocol"),
+        "the unserved engine-wire contract must not return to production"
+    );
+    let engine = packages
+        .iter()
+        .find(|package| package["name"] == "magistr-engine")
+        .expect("engine");
+    let node = metadata["resolve"]["nodes"]
+        .as_array()
+        .expect("nodes")
+        .iter()
+        .find(|node| node["id"] == engine["id"])
+        .expect("resolved engine");
+    assert!(
+        node["features"]
+            .as_array()
+            .expect("engine features")
+            .iter()
+            .all(|feature| feature != "experimental-peer"),
+        "production hosts must not enable the peer experiment"
+    );
+}

@@ -4,7 +4,6 @@ members = [
     "crates/magistr-engine",
     "crates/magistr-domain",
     "crates/magistr-application",
-    "crates/magistr-protocol",
     "crates/magistr-acp",
     "crates/magistr-acp-agent",
     "crates/magistr-core",

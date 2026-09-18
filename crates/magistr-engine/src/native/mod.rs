@@ -4,11 +4,11 @@
 //! think-and-ship, see `subsystems/workflow/PROVENANCE.md`) and runs its four engines —
 //! roadmap, think (reasoning trace), ship (execution trace) and signal — in
 //! this process. State lives in the same XDG store, keyed by the same
-//! `.think-and-ship/project.json` identity, that an external
-//! `think-and-ship` MCP server uses, so agent writes over MCP and Magistr's
-//! native views see one roadmap. Concurrent writers are safe by the
-//! library's locked merge-on-save discipline (advisory lock, merge, atomic
-//! rename); nothing here re-implements persistence or identity.
+//! `.think-and-ship/project.json` identity retained from the owned fork.
+//! Agent tools and native views use Magistr's admitted owners; no standalone
+//! think-and-ship service is launched. The fork preserves its locked merge-on-save
+//! discipline (advisory lock, merge, atomic rename); nothing here re-implements
+//! persistence or identity.
 //!
 //! Writers are admitted by a [`ProjectAuthority`] — one per [`WriterRole`]
 //! per project and store, cooperatively — and receive the write capability

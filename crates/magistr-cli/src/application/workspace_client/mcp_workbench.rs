@@ -29,34 +29,21 @@ const LIST_BUDGET: u64 = 8_000;
 /// arrive whole.
 const JOURNAL_LIMIT: usize = 200;
 
-/// A [`WorkbenchPort`] speaking MCP over stdio to the configured
-/// workbench-mcp server, with the write journal read through the same
-/// owner connection for the native bridge, or the legacy binary's journal CLI.
+/// A workspace port over Magistr's admitted native owner connection.
 ///
-/// The server is spawned lazily, on the first call that needs it, and
-/// at most once. The native workspace bridge attaches to the agent's own
-/// owner during `magistr run`, so the cockpit and the agent act through one
-/// admitted writer; the retained legacy server still takes an exclusive
-/// lock and refuses. A refusal is remembered and answered — the server's
-/// own words land on the stage — rather than retried, which would spawn a
-/// doomed child per click.
-///
-/// [`journal`](WorkbenchPort::journal) and [`undo`](WorkbenchPort::undo)
-/// share the native owner connection, so both see the agent's actual journal.
-/// The legacy server keeps its lock-free CLI listing; its exclusive lock
-/// still enforces refusal of a second writer.
+/// The bridge connects lazily and shares the workspace owner with the agent.
+/// Journal reads and undo use that same connection. Legacy launch settings
+/// are refused before spawning; connection refusals are remembered.
 pub struct McpWorkbench {
     command: String,
     args: Vec<String>,
     env: Vec<(String, String)>,
-    /// The directory the journal CLI runs in, so a portable "." root in
-    /// the launch line resolves against the project rather than
-    /// wherever the cockpit process happens to sit.
+    /// Project directory for the bridge's portable workspace root.
     workspace: Option<std::path::PathBuf>,
     client: Option<McpClient>,
     /// The reason the server could not be connected to, once one was
     /// given: every later call answers it without spawning again. The
-    /// CLI path never reads or writes this — it is about the transport.
+    /// refusal is shared by every operation.
     refused: Option<String>,
 }
 
@@ -75,34 +62,11 @@ impl McpWorkbench {
         }
     }
 
-    /// The port with the journal CLI's working directory pinned to the
-    /// project.
+    /// Pin the bridge's working directory to the project.
     #[must_use]
     pub fn with_workspace(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
         self.workspace = Some(dir.into());
         self
-    }
-
-    /// The `journal` CLI's argument list, derived from the server's own
-    /// launch line: the trailing argument is the workspace root and
-    /// everything before it is the launcher prefix, so
-    /// `bun run src/main.ts .` becomes
-    /// `bun run src/main.ts journal . --json --limit 200` and the CLI
-    /// can never point at a different workbench than the server. Magistr's
-    /// native launcher instead uses the owner connection below.
-    fn journal_args(&self) -> Vec<String> {
-        let (leading, root) = match self.args.split_last() {
-            Some((root, leading)) => (leading, root.as_str()),
-            None => (&[] as &[String], "."),
-        };
-        let mut args = leading.to_vec();
-        args.extend(
-            ["journal", root, "--json", "--limit"]
-                .into_iter()
-                .map(str::to_owned),
-        );
-        args.push(JOURNAL_LIMIT.to_string());
-        args
     }
 
     /// Whether the launch line names Magistr's native owner bridge.
@@ -116,6 +80,11 @@ impl McpWorkbench {
     fn client(&mut self) -> Result<&mut McpClient, String> {
         if let Some(refused) = &self.refused {
             return Err(refused.clone());
+        }
+        if !self.is_native_bridge() {
+            let reason = "Workspace access requires Magistr's workspace service. Run magistr init to update this project's setup.".to_owned();
+            self.refused = Some(reason.clone());
+            return Err(reason);
         }
         if self.client.is_none() {
             match McpClient::connect(
@@ -160,40 +129,15 @@ impl WorkbenchPort for McpWorkbench {
     }
 
     fn journal(&mut self) -> Result<Vec<JournalEntry>, String> {
-        if self.is_native_bridge() {
-            let envelope = self.client()?.call(
-                "undo",
-                json!({
-                    "action": "list", "scope": "workspace",
-                    "limit": JOURNAL_LIMIT, "diff": true, "budget": READ_BUDGET
-                }),
-                CALL,
-            )?;
-            return Ok(journal_rows(&envelope));
-        }
-        let mut command = std::process::Command::new(&self.command);
-        command
-            .args(self.journal_args())
-            .envs(self.env.iter().map(|(key, value)| (key, value)))
-            .stdin(std::process::Stdio::null());
-        if let Some(dir) = &self.workspace {
-            command.current_dir(dir);
-        }
-        let output = output_of(command, &self.command)?;
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let said = stderr.lines().last().unwrap_or_default().trim();
-        match output.status.code() {
-            Some(0) => journal_entries(&String::from_utf8_lossy(&output.stdout)),
-            // The CLI's own taxonomy: 65 is durable data this binary
-            // cannot read, 66 is no such workspace. Words, not codes.
-            Some(65) => Err(format!(
-                "the journal here was written by a newer workbench-mcp than the one \
-                 magistr launches — upgrade it ({said})"
-            )),
-            Some(66) => Err(format!("no workbench journal to list — {said}")),
-            Some(code) => Err(format!("the journal listing failed (exit {code}): {said}")),
-            None => Err("the journal listing was killed before it answered".to_owned()),
-        }
+        let envelope = self.client()?.call(
+            "undo",
+            json!({
+                "action": "list", "scope": "workspace",
+                "limit": JOURNAL_LIMIT, "diff": true, "budget": READ_BUDGET
+            }),
+            CALL,
+        )?;
+        Ok(journal_rows(&envelope))
     }
 
     fn search(&mut self, query: &str) -> Result<Vec<String>, String> {
@@ -227,27 +171,7 @@ fn results(envelope: &Value) -> &[Value] {
     envelope["results"].as_array().map_or(&[], Vec::as_slice)
 }
 
-/// Run a prepared command to completion, with its own words when it
-/// cannot start.
-fn output_of(
-    mut command: std::process::Command,
-    name: &str,
-) -> Result<std::process::Output, String> {
-    command
-        .output()
-        .map_err(|err| format!("{name} did not start: {err}"))
-}
-
-/// The CLI's journal envelope as the port's entries — one per `op` row,
-/// reversed, because the CLI answers newest first and the port's
-/// contract is oldest first.
-fn journal_entries(stdout: &str) -> Result<Vec<JournalEntry>, String> {
-    let envelope: Value = serde_json::from_str(stdout.trim())
-        .map_err(|err| format!("the journal listing was not the CLI's JSON: {err}"))?;
-    Ok(journal_rows(&envelope))
-}
-
-/// Native and legacy listings carry the same per-file operation rows.
+/// The owner's per-file operation rows, oldest first for the Changes view.
 fn journal_rows(envelope: &Value) -> Vec<JournalEntry> {
     let mut entries: Vec<JournalEntry> = results(envelope)
         .iter()

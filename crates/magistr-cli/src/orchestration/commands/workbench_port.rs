@@ -42,8 +42,8 @@ pub fn workbench_port(project_dir: &Path) -> Option<Box<dyn WorkbenchPort>> {
                 .collect()
         })
         .unwrap_or_default();
-    // The journal CLI runs with the project as its working directory,
-    // so the portable "." root in the launch line resolves against it.
+    // The bridge resolves its portable "." workspace root against the project.
+    // Legacy launch settings are refused by the port before any process starts.
     Some(Box::new(
         McpWorkbench::new(command, args, env).with_workspace(project_dir),
     ))

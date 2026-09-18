@@ -1,8 +1,8 @@
-//! magistr-core — frontend-agnostic domain types for Magistr.
+//! Magistr project configuration, presets, compatibility values and host services.
 //!
-//! This crate defines shared types used by both the TUI (`magistr-cli`)
-//! and GUI (`magistr-gui`) frontends. It has zero rendering dependencies —
-//! no ratatui, no crossterm, no web framework.
+//! Deterministic rules live in `magistr-domain`; exports here retain their
+//! owning definitions. Workflow and evidence adapters compose the admitted
+//! native capabilities. This crate has no rendering dependencies.
 
 // ── Core foundation (types, paths, env, error, detection) ───────────────────
 
