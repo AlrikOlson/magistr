@@ -84,7 +84,7 @@ fn view_05_has_a_fixture_and_an_unknown_view_has_none() {
     assert!(text.contains("+ pub enum Surface"), "{text}");
     assert!(text.contains("inside cp-4\u{2019}s reach"), "{text}");
     assert!(
-        text.contains("Steer"),
+        text.contains("Message Magistr"),
         "the composer is at the foot: {text}"
     );
     assert!(
@@ -116,7 +116,7 @@ fn view_06_is_the_moment_and_the_session_chrome_stands_down() {
     // The draft remains in its place behind the modal decision.
     assert!(!text.contains("Checkpoints"), "{text}");
     assert!(!text.contains("Charter"), "{text}");
-    assert!(text.contains("Steer"), "{text}");
+    assert!(text.contains("Message Magistr"), "{text}");
 }
 
 /// View 13 is the search: the float over the dimmed session — the
@@ -144,7 +144,7 @@ fn view_13_is_the_search_over_the_dimmed_session_with_the_chrome_gone() {
     // And the chrome is gone: no path, no rail, no composer, no foot.
     assert!(!text.contains("projects"), "{text}");
     assert!(!text.contains("Checkpoints"), "{text}");
-    assert!(!text.contains("Steer"), "{text}");
+    assert!(!text.contains("Message Magistr"), "{text}");
     assert!(!text.contains("tok"), "{text}");
 }
 

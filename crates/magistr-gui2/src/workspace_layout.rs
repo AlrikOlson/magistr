@@ -4,6 +4,7 @@ use magistr_cockpit::cockpit::{Model, flight_divider::FlightDivider as D};
 pub struct WorkspaceLayout {
     pub body: f32,
     pub status: f32,
+    pub composer: f32,
     pub margin: f32,
     pub left: f32,
     pub right: f32,
@@ -16,7 +17,6 @@ pub struct WorkspaceLayout {
 
 impl WorkspaceLayout {
     pub const GAP: f32 = 12.0;
-    pub const COMPOSER: f32 = 66.0;
     pub const COLUMNS_MIN: (f32, f32) = (360.0, 280.0);
     pub const REASONING_MIN: (f32, f32) = (110.0, 112.0);
     pub const DETAILS_MIN: (f32, f32) = (116.0, 170.0);
@@ -25,7 +25,8 @@ impl WorkspaceLayout {
         let margin = if width < 720.0 { 12.0 } else { 20.0 };
         let width = (width - margin * 2.0).max(1.0);
         let status = if width >= 860.0 { 32.0 } else { 0.0 };
-        let body = (height - margin - Self::COMPOSER - status).max(0.0);
+        let composer = crate::comp_composer::ComposerComposition::height(model, width, height);
+        let body = (height - margin - composer - status).max(0.0);
         let compact = width < 700.0 || body < 300.0;
         let left = if compact {
             width
@@ -71,6 +72,7 @@ impl WorkspaceLayout {
         Self {
             body,
             status,
+            composer,
             margin,
             left,
             right,

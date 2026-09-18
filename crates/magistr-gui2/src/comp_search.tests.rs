@@ -126,7 +126,7 @@ fn the_root_floats_the_search_over_the_dimmed_room_without_its_chrome_and_routes
     assert!(
         !texts
             .iter()
-            .any(|t| t == "projects" || t == "Steer" || t == "Checkpoints"),
+            .any(|t| t == "projects" || t == "Message Magistr" || t == "Checkpoints"),
         "the chrome stands down: {texts:?}"
     );
     assert_eq!(

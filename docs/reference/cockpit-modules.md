@@ -141,6 +141,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-application/src/sessions/permission_kind.rs` | What choosing a permission option means | `magistr-application/src/sessions/permission_kind.tests.rs` |
 | `magistr-application/src/sessions/policy_decision.rs` | What a policy says about one permission request | `magistr-cli/tests/session_harness.rs` |
 | `magistr-application/src/sessions/policy_request.rs` | Full tool identity and encoded input for host permission decisions | `magistr-cli/src/permissions/request_data.tests.rs` |
+| `magistr-application/src/sessions/prompt_files.rs` | File-reference anchoring and deduplication with adapter-supplied quoted-path decoding | `magistr-application/src/sessions/prompt_files.tests.rs`, `magistr-acp/src/transport/prompt_content.tests.rs` |
 | `magistr-application/src/sessions/service.rs` | Scoped session use cases and command/outcome validation | `magistr-application/src/sessions/service.tests.rs` |
 | `magistr-application/src/sessions/session_command.rs` | Commands addressed to domain session and turn identities | `magistr-application/src/sessions/service.tests.rs` |
 | `magistr-application/src/sessions/session_handle.rs` | Live session operations and application-owned event observations | `magistr-cli/tests/cockpit_session_contract.rs` |

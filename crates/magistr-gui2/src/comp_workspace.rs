@@ -88,13 +88,12 @@ impl WorkspaceComposition {
             .pad_y(l.margin / 2.0)
             .min_height(0.0)
             .child(body.height(l.body).no_shrink().id(Self::BODY))
-            .child(
-                Element::surface()
-                    .height(L::COMPOSER)
-                    .no_shrink()
-                    .justify_center()
-                    .child(ComposerComposition::el(model, medium).stretch()),
-            )
+            .child(ComposerComposition::sized(
+                model,
+                medium,
+                viewport.0 - 2.0 * l.margin,
+                l.composer,
+            ))
     }
 }
 

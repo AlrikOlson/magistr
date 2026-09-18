@@ -36,7 +36,10 @@ pub fn access_of(root: &Element, layout: &ElementLayout) -> Vec<AccessNode> {
             id: NodeId(index as u64),
             role: element.role,
             label,
-            value: None,
+            value: element.editor_cursor.and_then(|_| match &element.kind {
+                Kind::Text { content, .. } => Some(content.clone()),
+                _ => None,
+            }),
             bounds: Some((
                 f64::from(x),
                 f64::from(y),

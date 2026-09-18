@@ -1,5 +1,8 @@
 //! Provider-neutral session commands and observations.
 
+mod prompt_files;
+pub use prompt_files::prompt_file_references;
+
 mod ask_everything;
 mod ask_plan;
 mod edit_diff;

@@ -1486,7 +1486,7 @@ fn ctrl_c_cancels_a_streaming_turn_and_quits_otherwise_and_q_only_on_an_empty_pr
     let note = m.turn().rows().last().expect("a note");
     assert_eq!(
         (note.kind, note.text.as_str()),
-        (RowKind::Note, "Stopping…")
+        (RowKind::Note, "Stopping. Your draft is kept.")
     );
     agent(
         &mut m,

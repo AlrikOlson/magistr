@@ -63,6 +63,7 @@ pub struct Frame {
     targets: Vec<Option<WidgetId>>,
     /// Hover, press and focus — folded from the cockpit's own `Msg`.
     state: ElementState,
+    preedit: String,
     hits: HitRegistry,
     metrics: CellMetrics,
     generation: u64,
@@ -115,6 +116,7 @@ impl Frame {
             layout: None,
             targets: Vec::new(),
             state: ElementState::default(),
+            preedit: String::new(),
             hits: HitRegistry::new(),
             metrics,
             generation: 0,
@@ -203,7 +205,15 @@ impl Frame {
         );
         #[allow(clippy::cast_precision_loss)]
         let viewport = (width as f32 / factor, height as f32 / factor);
-        let root = RootComposition::el(model, medium, cell_logical, viewport, clock);
+        let mut root = RootComposition::el(model, medium, cell_logical, viewport, clock);
+        if !self.preedit.is_empty() && model.active_panel().is_none() {
+            root.preview_editor(
+                crate::comp_composer::ComposerComposition::PILL,
+                model.prompt().text(),
+                model.prompt().cursor(),
+                &self.preedit,
+            );
+        }
         let tree = scaled(root, factor);
 
         self.text.begin_frame();
@@ -649,6 +659,138 @@ impl Frame {
             return false;
         };
         self.state.fold(msg, tree, layout)
+    }
+
+    /// Transient platform composition; never changes the shared draft.
+    pub fn set_preedit(&mut self, text: &str) -> bool {
+        if self.preedit == text {
+            return false;
+        }
+        self.preedit = text.to_owned();
+        true
+    }
+
+    /// Resolve a pointer against the same proportional rows the editor paints.
+    fn editor_at(&mut self, at: (u32, u32)) -> Option<usize> {
+        let tree = self.tree.as_ref()?;
+        let layout = self.layout.as_ref()?;
+        let mut editor = None;
+        tree.each(&mut |index, element| {
+            if element.id == Some(crate::comp_composer::ComposerComposition::PILL) {
+                editor = Some((index, element));
+            }
+        });
+        let (index, element) = editor?;
+        let crate::element::Kind::Text { voice, content } = &element.kind else {
+            return None;
+        };
+        let cursor = element.editor_cursor?;
+        let [x, y, w, h] = layout.rect(index);
+        let rows = layout.text_rows(index);
+        let (line, _) = crate::element_layout::line_box(&mut self.text, voice);
+        let current = rows
+            .iter()
+            .rposition(|(start, _)| *start <= cursor)
+            .unwrap_or(0);
+        let visible = (h / line).floor().max(1.0) as usize;
+        let top = (current + 1).saturating_sub(visible);
+        let row =
+            (top + ((at.1 as f32 - y).max(0.0) / line) as usize).min(rows.len().saturating_sub(1));
+        let &(start, end) = rows.get(row)?;
+        let dx = (at.0 as f32 - x).clamp(0.0, w);
+        content[start..end]
+            .char_indices()
+            .map(|(offset, _)| start + offset)
+            .chain(std::iter::once(end))
+            .min_by(|a, b| {
+                let measure = |at: usize, text: &mut TextEngine| {
+                    (crate::element_layout::shape_voice(text, voice, &content[start..at]).width()
+                        - dx)
+                        .abs()
+                };
+                measure(*a, &mut self.text).total_cmp(&measure(*b, &mut self.text))
+            })
+    }
+
+    /// Resolve native focus before the shared model consumes input. Tests and the
+    /// real window use this same route; completion owns Enter/Tab while open.
+    pub fn input(&mut self, model: &Model, msg: Msg) -> Vec<Msg> {
+        use magistr_cockpit::input::{Button, KeyCode, Modifiers, MouseEvent, MouseKind};
+        if model.active_panel().is_none()
+            && model.completion().is_none()
+            && let Msg::Key(key) = &msg
+            && key.is_press()
+        {
+            if key.code == KeyCode::Enter
+                && key.mods.is_empty()
+                && let Some(target) = self.focus_target()
+                && target != Widget::Composer.id()
+            {
+                return [MouseKind::Down(Button::Left), MouseKind::Up(Button::Left)]
+                    .into_iter()
+                    .map(|kind| Msg::Mouse {
+                        event: MouseEvent::new(kind, 0, 0),
+                        target: Some(target),
+                    })
+                    .collect();
+            }
+            if (key.code == KeyCode::Tab && !key.mods.contains(Modifiers::CTRL))
+                || (matches!(key.code, KeyCode::Up | KeyCode::Down) && self.focus_walks())
+            {
+                self.fold_state(&msg);
+                return Vec::new();
+            }
+        }
+        let accepting_file = model.completion().is_some_and(|completion| match &msg {
+            Msg::Key(key) => {
+                key.is_press()
+                    && matches!(key.code, KeyCode::Enter | KeyCode::Tab)
+                    && key.mods.is_empty()
+            }
+            Msg::Mouse {
+                event,
+                target: Some(target),
+            } => {
+                event.kind == MouseKind::Down(Button::Left)
+                    && (0..completion.items().len()).any(|i| Widget::completion(i) == *target)
+            }
+            _ => false,
+        });
+        let pasting = matches!(&msg, Msg::Key(key)
+            if key.is_press() && key.code == KeyCode::Char('v')
+                && key.mods.contains(Modifiers::SUPER));
+        let editing = accepting_file
+            || pasting
+            || matches!(&msg, Msg::Paste(_))
+            || matches!(&msg, Msg::Key(key)
+            if key.is_press() && matches!(key.code, KeyCode::Char(_) | KeyCode::Backspace | KeyCode::Delete)
+                && (key.mods.is_empty() || key.mods == Modifiers::SHIFT));
+        if editing
+            && model.active_panel().is_none()
+            && self
+                .rect_of(crate::comp_composer::ComposerComposition::PILL)
+                .is_some()
+        {
+            self.state
+                .focus_on(crate::comp_composer::ComposerComposition::PILL);
+        }
+        self.fold_state(&msg);
+        if accepting_file {
+            self.state
+                .focus_on(crate::comp_composer::ComposerComposition::PILL);
+        }
+        if let Msg::Mouse {
+            event,
+            target: Some(target),
+        } = &msg
+            && *target == Widget::Composer.id()
+            && event.kind == MouseKind::Down(Button::Left)
+            && let Some(at) = event.px
+            && let Some(cursor) = self.editor_at(at)
+        {
+            return vec![msg, Msg::PromptCursor(cursor)];
+        }
+        vec![msg]
     }
 
     /// The cockpit widget behind the element holding keyboard focus —

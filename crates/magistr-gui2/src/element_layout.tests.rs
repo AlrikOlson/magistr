@@ -30,6 +30,23 @@ fn cap() -> Voice {
 }
 
 #[test]
+fn editor_wrapping_preserves_graphemes_spaces_and_final_insertion_rows() {
+    let mut text = TextEngine::embedded();
+    let voice = prose();
+    let content = "a e\u{301}👨‍👩‍👧   \n\n";
+    let rows = editor_ranges(&mut text, &voice, content, 8.0);
+    let lines: Vec<_> = rows
+        .iter()
+        .map(|(start, end)| &content[*start..*end])
+        .collect();
+    assert_eq!(lines.concat(), content.replace('\n', ""));
+    assert!(lines.contains(&"e\u{301}"));
+    assert!(lines.contains(&"👨‍👩‍👧"));
+    assert_eq!(&lines[lines.len() - 2..], &["", ""]);
+    assert_eq!(editor_ranges(&mut text, &voice, "", 100.0), vec![(0, 0)]);
+}
+
+#[test]
 fn fixed_boxes_land_on_their_own_pixels_with_no_quantization() {
     let mut text = TextEngine::embedded();
     let tree = Element::row()

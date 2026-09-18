@@ -256,6 +256,13 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             }
             return cmds;
         }
+        Msg::PromptCursor(at) => {
+            if model.active_panel().is_none() {
+                model.session.prompt.set_cursor(at);
+                model.session.completion = None;
+                model.pane = Pane::Stage;
+            }
+        }
         Msg::Paste(text) => {
             session::paste(model, &text);
             model.remember(Msg::Paste(text));
@@ -2201,21 +2208,10 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     return Vec::new();
                 }
                 Some(Widget::PromptAction) if model.moment().is_none() => {
-                    if model.tab == StageTab::Roadmap {
-                        if model.roadmap_request_pending() {
-                            if model.roadmap_request_running() {
-                                model.agent_activity.stopping();
-                            }
-                            return vec![Cmd::CancelRoadmapPrompt];
-                        }
-                        if !model.session.prompt.text().trim().is_empty() {
-                            model.session.completion = None;
-                            return session::send(model);
-                        }
-                        return Vec::new();
-                    }
-                    if model.session.state == TurnState::Streaming {
-                        return vec![session::stop(model, "Stopping. Your draft is kept.")];
+                    if (model.tab != StageTab::Roadmap || model.roadmap_request_pending())
+                        && let Some(command) = session::composer_stop(model)
+                    {
+                        return vec![command];
                     }
                     if !model.session.prompt.text().trim().is_empty() {
                         model.session.completion = None;

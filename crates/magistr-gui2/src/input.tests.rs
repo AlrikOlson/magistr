@@ -1,6 +1,74 @@
 use super::*;
 
 #[test]
+fn native_text_payload_keeps_combined_scalars_and_ignores_composition_enter() {
+    let input = Input::default();
+    let result = input.text_key(
+        &Key::Character("e".into()),
+        Some("e\u{301}"),
+        KeyKind::Press,
+    );
+    assert!(matches!(result, Some(Msg::Paste(text)) if text == "e\u{301}"));
+}
+
+#[test]
+fn composed_unicode_and_paste_commit_once_without_submitting() {
+    use magistr_cockpit::cockpit::{StageTab, update};
+    use winit::event::Ime;
+    let mut input = Input::default();
+    let hits = HitRegistry::default();
+    let mut model =
+        magistr_cockpit::cockpit::Model::new(Size::new(80, 24)).with_tab(StageTab::Turn);
+    for event in [Ime::Enabled, Ime::Preedit("ni".into(), Some((2, 2)))] {
+        for msg in fold(&mut input, WindowEvent::Ime(event), &hits) {
+            assert!(update(&mut model, msg).is_empty());
+        }
+    }
+    assert!(
+        input
+            .keyed(&Key::Named(NamedKey::Enter), KeyKind::Press)
+            .is_none()
+    );
+    assert!(model.prompt().is_empty());
+    for event in [
+        Ime::Preedit(String::new(), None),
+        Ime::Commit("你好".into()),
+    ] {
+        for msg in fold(&mut input, WindowEvent::Ime(event), &hits) {
+            assert!(update(&mut model, msg).is_empty());
+        }
+    }
+    let msg = input
+        .keyed(&Key::Character("e\u{301} 👩‍💻".into()), KeyKind::Press)
+        .unwrap();
+    assert!(update(&mut model, msg).is_empty());
+    assert_eq!(model.prompt().text(), "你好e\u{301} 👩‍💻");
+}
+
+#[test]
+fn modified_return_keeps_a_multiline_draft() {
+    use magistr_cockpit::cockpit::{StageTab, update};
+    let mut model =
+        magistr_cockpit::cockpit::Model::new(Size::new(80, 24)).with_tab(StageTab::Turn);
+    for mods in [Modifiers::SHIFT, Modifiers::ALT] {
+        let input = Input {
+            mods,
+            ..Input::default()
+        };
+        assert!(
+            update(
+                &mut model,
+                input
+                    .keyed(&Key::Named(NamedKey::Enter), KeyKind::Press)
+                    .unwrap()
+            )
+            .is_empty()
+        );
+    }
+    assert_eq!(model.prompt().text(), "\n\n");
+}
+
+#[test]
 fn navigation_journey_through_native_keys_preserves_the_work_and_draft() {
     use magistr_cockpit::cockpit::{Selected, StageTab, Surface, update};
     use magistr_cockpit::harness::Scenes;

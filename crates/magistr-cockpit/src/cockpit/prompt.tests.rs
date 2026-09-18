@@ -30,6 +30,19 @@ fn typing_and_pasting_insert_at_the_cursor() {
 }
 
 #[test]
+fn pointer_offsets_snap_to_graphemes_and_clamp_to_the_draft() {
+    let mut p = typed("aé👨‍👩‍👧b");
+    for at in 4..p.text().len() - 1 {
+        p.set_cursor(at);
+        assert_eq!(p.cursor(), 3);
+    }
+    p.set_cursor(2);
+    assert_eq!(p.cursor(), 1);
+    p.set_cursor(usize::MAX);
+    assert_eq!(p.cursor(), p.text().len());
+}
+
+#[test]
 fn the_cursor_and_the_deletions_move_by_grapheme() {
     let mut p = typed("aé👨‍👩‍👧b");
     assert_eq!(p.cursor(), p.text().len());

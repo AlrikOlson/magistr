@@ -131,43 +131,15 @@ fn image_mime(bytes: &[u8]) -> Option<&'static str> {
 }
 
 fn references(text: &str) -> Result<Vec<String>, String> {
-    let mut files = Vec::new();
-    let mut cursor = 0;
-    while let Some(offset) = text[cursor..].find('@') {
-        let at = cursor + offset;
-        cursor = at + 1;
-        if at > 0
-            && !text[..at]
-                .chars()
-                .next_back()
-                .is_some_and(char::is_whitespace)
-        {
-            continue;
-        }
-        let tail = &text[cursor..];
-        if tail.starts_with('"') {
-            let mut stream = serde_json::Deserializer::from_str(tail).into_iter::<String>();
-            let name = stream
-                .next()
-                .transpose()
-                .map_err(|_| {
-                    "A file name has an unfinished quote. Choose the file again.".to_owned()
-                })?
-                .ok_or_else(|| "Choose a file after @.".to_owned())?;
-            cursor += stream.byte_offset();
-            if !name.is_empty() && !files.contains(&name) {
-                files.push(name);
-            }
-        } else {
-            let length = tail.find(char::is_whitespace).unwrap_or(tail.len());
-            let name = &tail[..length];
-            cursor += length;
-            if !name.is_empty() && !files.iter().any(|file| file == name) {
-                files.push(name.to_owned());
-            }
-        }
-    }
-    Ok(files)
+    magistr_application::sessions::prompt_file_references(text, |tail| {
+        let mut stream = serde_json::Deserializer::from_str(tail).into_iter::<String>();
+        let name = stream
+            .next()
+            .transpose()
+            .map_err(|_| "A file name has an unfinished quote. Choose the file again.".to_owned())?
+            .ok_or_else(|| "Choose a file after @.".to_owned())?;
+        Ok((name, stream.byte_offset()))
+    })
 }
 
 #[cfg(test)]

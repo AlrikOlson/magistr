@@ -1,4 +1,29 @@
 use super::*;
+
+#[test]
+fn failed_delivery_restores_text_and_files_in_both_destinations() {
+    use magistr_cockpit::cockpit::{RequestPhase, StageTab};
+    for tab in [StageTab::Turn, StageTab::Roadmap] {
+        let (tx, commands) = Commands::channel();
+        drop(commands);
+        let route = Route::new(tx);
+        let mut m = model().with_tab(tab);
+        route.fold(
+            &mut m,
+            Msg::Paste("Review @src/main.rs\nand explain".into()),
+        );
+        route.fold(&mut m, key(KeyCode::Enter));
+        assert_eq!(m.prompt().text(), "Review @src/main.rs\nand explain");
+        if tab == StageTab::Roadmap {
+            assert_eq!(
+                m.roadmap_requests().last().unwrap().phase,
+                RequestPhase::Failed
+            );
+        }
+        assert!(!m.agent_activity().active);
+    }
+}
+
 use magistr_application::sessions::{AgentEvent, PermissionChoice, PermissionKind};
 use magistr_cockpit::cockpit::Size;
 use magistr_cockpit::input::{KeyCode, KeyEvent, Modifiers};
@@ -91,8 +116,10 @@ fn ctrl_d_on_an_empty_prompt_is_the_quit_and_a_gone_session_is_not_an_error() {
     assert!(!route.fold(&mut m, key(KeyCode::Char('x'))));
     assert!(
         !route.fold(&mut m, key(KeyCode::Enter)),
-        "a prompt to nobody is dropped"
+        "a refused prompt keeps the window open"
     );
+    assert_eq!(m.prompt().text(), "x");
+    route.fold(&mut m, key(KeyCode::Backspace));
     assert!(route.fold(
         &mut m,
         Msg::Key(KeyEvent::new(KeyCode::Char('d')).with(Modifiers::CTRL))
