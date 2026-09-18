@@ -24,7 +24,6 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-tui` | Terminal input, rendering, graphics protocols, and runtime |
 | `magistr-gui2` | Independent desktop fixture renderer, native window, pixel layout, GPU/CPU painting and accessibility bounds; separate Cargo workspace |
 | `magistr-theme` | Shared color and theme vocabulary |
-| `magistr-protocol` | Transport types |
 
 The [domain boundary](domain.md) enforces effect-free dependencies and preserves
 engine compatibility exports while application and session ownership migrate.
@@ -112,9 +111,10 @@ shows of the store arrives as typed [projections](projections.md): one
 producer, a whole snapshot and a sequenced live feed, decoded only at the
 transport edge.
 
-The [peer protocol](peers.md) is a separate engine API for two-party plan agreement
-and worker admission. Its domain types are implemented, but production runtime
-authentication and governed dispatch are not wired into the CLI or interfaces.
+The [peer protocol](peers.md) is a tested experiment for two-party plan agreement
+and worker admission. It is available only to unit tests or with the explicit
+`experimental-peer` engine feature; production hosts do not enable it. Runtime
+authentication and governed dispatch are not implemented.
 
 ## Applications and resources
 

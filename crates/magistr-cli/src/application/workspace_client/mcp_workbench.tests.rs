@@ -1,5 +1,25 @@
 use super::*;
 
+#[cfg(unix)]
+#[test]
+fn legacy_launch_is_refused_before_any_process_starts() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let marker = tmp.path().join("launched");
+    let cli = stub_cli(tmp.path(), JOURNAL_BODY, "", 0);
+    let mut workbench = McpWorkbench::new(
+        cli,
+        vec!["run".into(), "src/main.ts".into(), ".".into()],
+        vec![("ARGS_FILE".into(), marker.to_string_lossy().into_owned())],
+    );
+    let error = workbench.journal().expect_err("legacy server is refused");
+    assert!(error.contains("magistr init"), "{error}");
+    assert!(
+        !marker.exists(),
+        "must not launch a standalone journal process"
+    );
+    assert_eq!(workbench.map().expect_err("same refusal"), error);
+}
+
 /// The envelope a real workbench-mcp answered `read {file: "README.md"}`
 /// with — captured from the server, not invented.
 fn read_envelope() -> Value {
@@ -169,7 +189,7 @@ fn a_run_that_timed_out_says_so_rather_than_naming_an_exit_code() {
     assert_eq!(rows[0].detail, "timed out");
 }
 
-// ── The journal, through the CLI (workbench-journal-and-undo-via-cli) ──
+// ── Workspace owner journal and refusal fixtures ──
 
 /// A stub `workbench-mcp` CLI: prints `body` on stdout, `stderr` on
 /// stderr, exits with `code`, and appends its argv to `$ARGS_FILE`
@@ -201,106 +221,7 @@ fn stub_cli(dir: &std::path::Path, body: &str, stderr: &str, code: i32) -> Strin
 #[cfg(unix)]
 const JOURNAL_BODY: &str = r#"{"v":1,"ok":true,"freshness":"warm","budget":{"requested":0,"used":311},"results":[{"kind":"op","seq":2,"at":1787417454700,"tool":"undo","sessionId":"","undoable":false,"undoOf":[1],"parseOk":true,"path":"src/b.ts","change":"write","added":1,"removed":1,"diff":"--- a/src/b.ts\n+++ b/src/b.ts\n@@ -1 +1 @@\n-old\n+new\n"},{"kind":"op","seq":1,"at":1787417442181,"tool":"edit","sessionId":"","undoable":false,"undoneBy":2,"parseOk":true,"path":"src/a.ts","change":"write","added":2,"removed":0,"diff":"--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1,2 @@\n hello\n+world\n"}]}"#;
 
-#[cfg(unix)]
-#[test]
-fn the_journal_lists_ops_oldest_first_through_the_cli() {
-    let tmp = tempfile::TempDir::new().expect("tempdir");
-    let cli = stub_cli(tmp.path(), JOURNAL_BODY, "", 0);
-    let mut workbench = McpWorkbench::new(cli, vec![".".to_owned()], Vec::new());
-
-    let entries = workbench.journal().expect("the CLI answers");
-    assert_eq!(entries.len(), 2);
-    // The CLI is newest-first; the port's contract is oldest-first.
-    assert_eq!(entries[0].id, "1");
-    assert_eq!(entries[0].path, "src/a.ts");
-    assert_eq!(entries[0].added, 2);
-    assert_eq!(entries[0].removed, 0);
-    assert!(entries[0].parse_ok);
-    // The diff keeps its documented @@-body shape — no file headers.
-    assert_eq!(entries[0].diff, "@@ -1 +1,2 @@\n hello\n+world");
-    assert_eq!(entries[1].id, "2");
-    assert_eq!(entries[1].path, "src/b.ts");
-}
-
-#[cfg(unix)]
-#[test]
-fn the_journal_cli_is_derived_from_the_server_launch_line() {
-    // The server entry `bun run src/main.ts .` becomes
-    // `bun run src/main.ts journal . --json --limit 200` — one source of
-    // truth, so the CLI and the server cannot point at different
-    // workbenches.
-    let tmp = tempfile::TempDir::new().expect("tempdir");
-    let cli = stub_cli(tmp.path(), r#"{"v":1,"ok":true,"results":[]}"#, "", 0);
-    let argv = tmp.path().join("argv.txt");
-    let mut workbench = McpWorkbench::new(
-        cli,
-        vec!["run".to_owned(), "src/main.ts".to_owned(), ".".to_owned()],
-        vec![("ARGS_FILE".to_owned(), argv.to_string_lossy().into_owned())],
-    );
-    workbench.journal().expect("the CLI answers");
-    let recorded = std::fs::read_to_string(&argv).expect("argv recorded");
-    assert_eq!(
-        recorded.trim(),
-        "run src/main.ts journal . --json --limit 200"
-    );
-}
-
-#[cfg(unix)]
-#[test]
-fn a_journal_written_by_a_newer_binary_is_told_apart() {
-    let tmp = tempfile::TempDir::new().expect("tempdir");
-    let cli = stub_cli(
-        tmp.path(),
-        "",
-        "workbench-mcp: journal schema v9 is newer than this binary",
-        65,
-    );
-    let mut workbench = McpWorkbench::new(cli, vec![".".to_owned()], Vec::new());
-    let refused = workbench.journal().expect_err("exit 65 is a refusal");
-    assert!(
-        refused.contains("newer workbench-mcp"),
-        "65 is the newer-binary case in words: {refused:?}"
-    );
-    assert!(
-        refused.contains("journal schema v9"),
-        "the CLI's own words ride along: {refused:?}"
-    );
-}
-
-#[cfg(unix)]
-#[test]
-fn a_missing_workspace_is_told_apart() {
-    let tmp = tempfile::TempDir::new().expect("tempdir");
-    let cli = stub_cli(
-        tmp.path(),
-        "",
-        "workbench-mcp: workspace root does not exist: /nowhere",
-        66,
-    );
-    let mut workbench = McpWorkbench::new(cli, vec![".".to_owned()], Vec::new());
-    let refused = workbench.journal().expect_err("exit 66 is a refusal");
-    assert!(
-        refused.contains("no workbench journal"),
-        "66 is the no-workspace case in words: {refused:?}"
-    );
-    assert!(refused.contains("/nowhere"), "got {refused:?}");
-}
-
-#[test]
-fn a_journal_failure_does_not_poison_the_servers_refusal_memo() {
-    // The CLI is not the server: a workspace whose listing failed can
-    // still connect for a read, and the journal must keep answering
-    // while the agent's server holds the exclusive lock.
-    let mut workbench =
-        McpWorkbench::new("magistr-no-such-workbench-server", Vec::new(), Vec::new());
-    let _ = workbench.journal();
-    assert!(
-        workbench.refused.is_none(),
-        "the CLI path never touches the transport memo"
-    );
-}
-
-// ── Undo, by op seq (workbench-journal-and-undo-via-cli) ────────────
+// ── Undo, by operation sequence ──
 
 #[test]
 fn an_undo_of_a_non_seq_id_is_refused_in_words() {
@@ -359,8 +280,11 @@ fn an_undo_answer_that_reverted_is_ok() {
 
 #[test]
 fn a_server_that_cannot_be_connected_to_is_refused_once_and_remembered() {
-    let mut workbench =
-        McpWorkbench::new("magistr-no-such-workbench-server", Vec::new(), Vec::new());
+    let mut workbench = McpWorkbench::new(
+        "magistr-no-such-workbench-server",
+        vec!["mcp-launch".into(), "workbench-mcp".into(), ".".into()],
+        Vec::new(),
+    );
     let first = workbench.map().expect_err("the command does not exist");
     assert!(workbench.refused.is_some(), "the refusal is remembered");
     let second = workbench.map().expect_err("the refusal is answered again");
@@ -395,7 +319,13 @@ done
     let entries = workbench.journal().expect("the owner's journal answers");
     assert_eq!(entries.len(), 2);
     assert_eq!(entries[0].id, "1");
+    assert_eq!(entries[0].path, "src/a.ts");
+    assert_eq!(entries[0].added, 2);
+    assert_eq!(entries[0].removed, 0);
+    assert!(entries[0].parse_ok);
+    assert_eq!(entries[0].diff, "@@ -1 +1,2 @@\n hello\n+world");
     assert_eq!(entries[1].id, "2");
+    assert_eq!(entries[1].path, "src/b.ts");
     let calls: Vec<Value> = std::fs::read_to_string(requests)
         .expect("requests")
         .lines()

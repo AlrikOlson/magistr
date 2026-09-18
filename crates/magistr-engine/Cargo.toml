@@ -7,6 +7,10 @@ rust-version = "1.89"
 description = "Magistr session and workflow orchestration, cost governance, and native store integration"
 license = "MIT"
 
+[features]
+# Domain experiment only; never enabled by the production hosts.
+experimental-peer = []
+
 [dependencies]
 magistr-workflow-contracts = { path = "../magistr-workflow-contracts" }
 magistr-domain = { path = "../magistr-domain" }

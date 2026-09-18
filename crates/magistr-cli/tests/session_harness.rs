@@ -503,7 +503,7 @@ async fn ctrl_c_cancels_the_turn_in_flight_and_the_second_ctrl_c_quits() {
         .filter(|r| r.kind == RowKind::Note)
         .map(|r| r.text.as_str())
         .collect();
-    assert_eq!(notes, ["Stopping…", "Stopped."]);
+    assert_eq!(notes, ["Stopping. Your draft is kept.", "Stopped."]);
 }
 
 #[tokio::test]

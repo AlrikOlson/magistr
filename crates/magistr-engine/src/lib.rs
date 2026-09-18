@@ -10,8 +10,6 @@
 //! - **Workflow orchestration** — `WorkflowEngine`, `WorkflowPhase`, `WorkflowConfig`
 //! - **Cost governance** — `CostGovernor`, `BudgetConfig`, `BudgetStatus`, `CostEvent`
 //! - **Workflow policies** — `GovernancePolicy`, `PolicyEngine`, `PolicyRule`, `PolicyEffect`
-//! - **Multi-project batches** — `BatchRun`, `ProjectGraph`, `ProjectDep`, `BatchStatus`
-//! - **Fleet operations** — `FleetRegistry`, `FleetNode`, `NodeHealth`, `PolicyBundle`, `FleetStatus`
 //! - **Roadmap tracking** — `RoadmapManager`, `RoadmapProgress`, `RoadmapEvent`
 //! - **Project context** — `ProjectContext` (immutable snapshot)
 //! - **Engine handle** — `EngineHandle` (thread-safe entry point composing all services)
@@ -27,14 +25,14 @@
 //! Infrastructure adapters in `magistr-cli` bridge these domain types
 //! to the concrete ACP protocol and terminal UI.
 
-pub mod batch;
 pub mod cost;
 pub mod error;
-pub mod fleet;
 pub mod gate;
 pub mod guard;
 pub mod handle;
 pub mod native;
+/// Experimental peer reasoning only; no runtime authentication or dispatch.
+#[cfg(any(test, feature = "experimental-peer"))]
 pub mod peer;
 pub mod policy;
 pub mod project;
@@ -45,16 +43,11 @@ pub mod spec;
 pub mod workflow;
 
 // Re-export primary types for convenience.
-pub use batch::{BatchRow, BatchRun, BatchState, BatchStatus, ProjectDep, ProjectGraph};
 pub use cost::{
     BudgetConfig, BudgetDecision, BudgetStatus, CostAttribution, CostEvent, CostGovernor,
     CostSample, TokenType,
 };
 pub use error::EngineError;
-pub use fleet::{
-    FleetNode, FleetRegistry, FleetStatus, Job, JobState, NodeHealth, PolicyBundle, StreamRelay,
-    WorkQueue, WorkUnit,
-};
 pub use gate::{GateKind, GateOutcome, GateStatus};
 pub use guard::{
     GuardAction, GuardContext, GuardResult, GuardsConfig, ShipGuardState, WorkflowGuard,

@@ -24,7 +24,6 @@ pub use self::orchestration::{commands, roadmap, workflow};
 pub mod agent;
 pub mod application;
 
-pub use self::agent::engine;
 pub use self::agent::models;
 pub use self::agent::persistence as session;
 

@@ -1,4 +1,8 @@
-# Peer protocol
+# Peer protocol experiment
+
+The engine exposes this API only with the opt-in `experimental-peer` Cargo
+feature or in its unit tests. Production Magistr hosts do not enable it.
+It provides no supported distributed execution or remote server.
 
 `magistr_engine::peer` implements agreement between two fixed peer sessions,
 task objections, instruction leases, and worker admission. It is an engine

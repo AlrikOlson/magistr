@@ -35,9 +35,7 @@ pub mod types;
 
 // ── Consolidated sub-domains ────────────────────────────────────────────
 
-pub mod engine;
 pub mod models;
-pub mod multi;
 pub mod noninteractive_response;
 pub mod permission_mode;
 pub mod persistence;
