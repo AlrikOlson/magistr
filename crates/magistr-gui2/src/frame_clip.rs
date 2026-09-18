@@ -12,6 +12,7 @@ impl FrameClips {
     pub fn of(tree: &Element, layout: &ElementLayout) -> Self {
         let mut regions: Vec<_> = [
             RootComposition::STAGE,
+            crate::comp_composer::ComposerComposition::PILL,
             W::REASONING,
             W::NEARBY,
             W::DETAILS,

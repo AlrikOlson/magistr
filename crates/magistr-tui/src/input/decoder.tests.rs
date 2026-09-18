@@ -45,6 +45,81 @@ fn navigation_journey_through_terminal_bytes_preserves_the_work_and_draft() {
     assert_eq!(model.prompt(), &prompt);
 }
 
+#[test]
+fn composer_journey_through_terminal_bytes_keeps_files_and_draft() {
+    use magistr_cockpit::cockpit::{Cmd, Model, Msg, Size, StageTab, update};
+    fn feed(model: &mut Model, bytes: &[u8]) -> Vec<Cmd> {
+        decode(bytes)
+            .into_iter()
+            .flat_map(|event| match event {
+                Event::Key(key) => update(model, Msg::Key(key)),
+                Event::Paste(text) => update(model, Msg::Paste(text)),
+                _ => panic!("unexpected terminal event"),
+            })
+            .collect()
+    }
+    for tab in [StageTab::Turn, StageTab::Roadmap] {
+        let mut model = Model::new(Size::new(120, 40))
+            .with_tab(tab)
+            .with_workspace_files(vec!["résumé draft.md".into()]);
+        update(
+            &mut model,
+            Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+                pointer_shapes: true,
+            }),
+        );
+        feed(&mut model, "Review @".as_bytes());
+        feed(&mut model, b"\r");
+        let attached = model.prompt().text().to_owned();
+        assert!(attached.contains("@\"résumé draft.md\""));
+        feed(&mut model, b"\x1b[13;2u");
+        feed(&mut model, b"\x1b[200~second\nline\x1b[201~");
+        let draft = model.prompt().clone();
+        for query in [
+            "Recorded work",
+            if tab == StageTab::Turn {
+                "Conversation"
+            } else {
+                "Roadmap"
+            },
+        ] {
+            feed(&mut model, format!("\x10{query}\r").as_bytes());
+        }
+        assert_eq!(model.prompt(), &draft);
+        let commands = feed(&mut model, b"\r");
+        assert!(commands.contains(&if tab == StageTab::Turn {
+            Cmd::Prompt(draft.text().into())
+        } else {
+            Cmd::RoadmapPrompt(draft.text().into())
+        }));
+        feed(&mut model, b"Keep @file.rs ");
+        let newer = model.prompt().clone();
+        assert!(
+            feed(&mut model, b"\x03").contains(&if tab == StageTab::Turn {
+                Cmd::Cancel
+            } else {
+                Cmd::CancelRoadmapPrompt
+            })
+        );
+        assert_eq!(model.prompt(), &newer);
+        update(
+            &mut model,
+            Msg::Agent(magistr_application::sessions::AgentEvent::PromptRejected {
+                text: draft.text().into(),
+                error: "This session cannot accept files.".into(),
+            }),
+        );
+        assert_eq!(model.prompt(), &newer);
+        assert!(
+            model
+                .prompt()
+                .history()
+                .iter()
+                .any(|text| text == draft.text())
+        );
+    }
+}
+
 fn decode(bytes: &[u8]) -> Vec<Event> {
     let mut decoder = Decoder::new();
     let mut out = Vec::new();

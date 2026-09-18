@@ -182,6 +182,14 @@ impl Walk<'_> {
                     (true, _) | (false, true) => word,
                     (false, false) => said.clone(),
                 };
+                let (role, label) = match widget {
+                    Some(Widget::Composer) if element.editor_cursor.is_some() => (
+                        Role::MultilineTextInput,
+                        element.label.clone().unwrap_or(label),
+                    ),
+                    Some(Widget::PromptAction) => (role, said.clone()),
+                    _ => (role, label),
+                };
                 let value =
                     matches!(widget, Some(Widget::Prompt | Widget::Composer)).then_some(said);
                 let point = |v: f32| f64::from(v) / self.scale;

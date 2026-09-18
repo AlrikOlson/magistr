@@ -94,6 +94,10 @@ impl ElementState {
         *self != before
     }
 
+    pub(crate) fn focus_on(&mut self, id: ElementId) {
+        self.focus = Some(id);
+    }
+
     /// Whether the arrow keys are this state's to spend: focus is on a
     /// walkable element of `root`.
     #[must_use]

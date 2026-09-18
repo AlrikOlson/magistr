@@ -24,7 +24,7 @@ use crate::metrics::CellMetrics;
 /// divider and the tech-tree's pan. A scroll is quantized to notches the
 /// same way a terminal's wheel reports are, so one gesture is one
 /// `ScrollUp` however the trackpad phrases it.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Input {
     /// Where the pointer last was, in physical pixels.
     at: (f64, f64),
@@ -36,6 +36,9 @@ pub struct Input {
     /// Accumulated pixel scroll, for turning a trackpad's continuous
     /// delta into the discrete notches the cockpit's viewports expect.
     scrolled: f64,
+    /// A composition owns keys until its text is committed or cancelled.
+    composing: bool,
+    preedit: String,
 }
 
 impl Input {
@@ -64,7 +67,28 @@ impl Input {
     ) {
         match event {
             WindowEvent::ModifiersChanged(mods) => self.mods = modifiers(mods.state()),
-            WindowEvent::Focused(focused) => out.push(Msg::Focus(*focused)),
+            WindowEvent::Focused(focused) => {
+                if !focused {
+                    self.composing = false;
+                    self.preedit.clear();
+                }
+                out.push(Msg::Focus(*focused));
+            }
+            WindowEvent::Ime(winit::event::Ime::Preedit(text, _)) => {
+                self.composing = !text.is_empty();
+                self.preedit.clone_from(text);
+            }
+            WindowEvent::Ime(winit::event::Ime::Commit(text)) => {
+                self.composing = false;
+                self.preedit.clear();
+                if !text.is_empty() {
+                    out.push(Msg::Paste(text.clone()));
+                }
+            }
+            WindowEvent::Ime(winit::event::Ime::Disabled) => {
+                self.composing = false;
+                self.preedit.clear();
+            }
             WindowEvent::CursorMoved { position, .. } => {
                 self.at = (position.x, position.y);
                 let kind = match self.held {
@@ -127,10 +151,28 @@ impl Input {
                     (ElementState::Pressed, false) => KeyKind::Press,
                     (ElementState::Released, _) => KeyKind::Release,
                 };
-                out.extend(self.keyed(&event.logical_key, kind));
+                out.extend(self.text_key(&event.logical_key, event.text.as_deref(), kind));
             }
             _ => {}
         }
+    }
+
+    pub fn preedit(&self) -> &str {
+        &self.preedit
+    }
+
+    /// Winit's committed text may contain more than its logical key (dead keys).
+    pub fn text_key(&self, key: &Key, text: Option<&str>, kind: KeyKind) -> Option<Msg> {
+        if !self.mods.contains(Modifiers::CTRL)
+            && !self.mods.contains(Modifiers::SUPER)
+            && matches!(key, Key::Character(_) | Key::Named(NamedKey::Space))
+            && let Some(text) = text.filter(|s| !s.is_empty() && !s.chars().any(char::is_control))
+        {
+            let mut input = self.clone();
+            input.mods = Modifiers::NONE;
+            return input.keyed(&Key::Character(text.into()), kind);
+        }
+        self.keyed(key, kind)
     }
 
     /// One key report, with the modifiers this input has been told are
@@ -143,6 +185,15 @@ impl Input {
     /// window still only calls it from `fold`.
     #[must_use]
     pub fn keyed(&self, key: &Key, kind: KeyKind) -> Option<Msg> {
+        if self.composing {
+            return None;
+        }
+        if let Key::Character(text) = key
+            && text.chars().count() > 1
+            && (self.mods.is_empty() || self.mods == Modifiers::SHIFT)
+        {
+            return (kind != KeyKind::Release).then(|| Msg::Paste(text.to_string()));
+        }
         let code = self::key(key)?;
         Some(Msg::Key(KeyEvent::new(code).with(self.mods).kind(kind)))
     }

@@ -119,7 +119,12 @@ impl RoadmapComposition {
             .pad_y(l.margin / 2.0)
             .child(navigation)
             .child(body.height(l.body).no_shrink().id(Self::BODY))
-            .child(request_editor(model, &lex))
+            .child(ComposerComposition::sized(
+                model,
+                medium,
+                viewport.0 - 2.0 * l.margin,
+                l.composer,
+            ))
             .claim(Component::Prose)
     }
 }
@@ -301,51 +306,4 @@ fn work_row(title: &str, status: &str, id: ElementId, selected: bool, lex: &Lexi
         .focus_ring(lex.mauve)
         .label(title);
     if selected { row.fill(lex.s0) } else { row }
-}
-
-fn request_editor(model: &Model, lex: &Lexicon) -> Element {
-    let prompt = model.prompt().text();
-    let editor = if prompt.is_empty() {
-        crate::Composer::hinted(
-            "›",
-            "Describe what you want to add or change…",
-            "",
-            ComposerComposition::PILL,
-            lex,
-        )
-    } else {
-        crate::Composer::hinted_filled("›", prompt, "", ComposerComposition::PILL, lex)
-    };
-    let mut row = Element::row().center().gap(10.0).child(
-        Element::surface()
-            .grow(1.0)
-            .min_width(0.0)
-            .id(RoadmapComposition::INPUT)
-            .child(editor),
-    );
-    if model.roadmap_request_pending() || !prompt.trim().is_empty() {
-        row = row.child(control(
-            if model.roadmap_request_pending() {
-                "Cancel request"
-            } else {
-                "Send"
-            },
-            Widget::PromptAction.id(),
-            lex,
-        ));
-    }
-    Element::surface()
-        .height(L::COMPOSER)
-        .no_shrink()
-        .justify_center()
-        .child(
-            Element::text(
-                Voice::HINT,
-                lex.sb0,
-                "Request roadmap changes · Enter to send",
-            )
-            .claim(Component::Label)
-            .nowrap(),
-        )
-        .child(row)
 }

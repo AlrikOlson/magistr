@@ -165,7 +165,7 @@ fn every_composition_is_a_golden_in_both_media() {
             &golden,
         );
         still(
-            ComposerComposition::el(&typed, medium),
+            ComposerComposition::el(&typed, medium).width(WIDTH as f32),
             medium,
             &format!("composer-{tag}"),
             &golden,

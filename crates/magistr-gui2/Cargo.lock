@@ -1470,6 +1470,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ttf-parser",
+ "unicode-segmentation",
  "wgpu",
  "winit",
 ]

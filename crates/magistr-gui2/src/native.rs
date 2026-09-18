@@ -8,7 +8,6 @@ use accesskit::{ActionHandler, ActionRequest, ActivationHandler, DeactivationHan
 
 use magistr_cockpit::capability::Mode;
 use magistr_cockpit::cockpit::{Animation, Cmd, FrameClock, Model, Msg, Widget, update};
-use magistr_cockpit::input::{Button, KeyCode, MouseEvent, MouseKind};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
 use qs_gpu::batcher::Renderer;
 use qs_gpu::device::{Acquired, GpuContext, SurfaceRecovery, acquire, new_instance};
@@ -307,6 +306,15 @@ impl App {
             gpu.window.request_redraw();
         }
 
+        if let Some([x, y, w, h]) = self
+            .frame
+            .rect_of(crate::comp_composer::ComposerComposition::PILL)
+        {
+            gpu.window.set_ime_cursor_area(
+                winit::dpi::PhysicalPosition::new(x, y + h),
+                winit::dpi::PhysicalSize::new(w.max(1.0), 1.0),
+            );
+        }
         let uploads = self.frame.text().take_uploads();
         let images = self.frame.text().take_image_uploads();
         gpu.renderer.upload_glyphs(&gpu.context, &uploads);
@@ -396,6 +404,7 @@ impl ApplicationHandler<Msg> for App {
             NoActions,
             self.listening.clone(),
         );
+        window.set_ime_allowed(true);
         window.set_visible(true);
 
         let instance = new_instance(RenderPath::Primary);
@@ -548,47 +557,12 @@ impl ApplicationHandler<Msg> for App {
         let size = self.model.size();
         self.input
             .fold(&event, &metrics, size, self.frame.hits(), &mut messages);
-        let mut redraw = !messages.is_empty();
+        let preedit_changed = self.frame.set_preedit(self.input.preedit());
+        let redraw = !messages.is_empty() || preedit_changed;
         for message in messages {
-            // The keyboard's two element-side meanings, decided before the cockpit
-            // reads the key. ↵ on a focused element that stands for a cockpit widget is
-            // that widget's click — folded as the Down/Up the pointer would send, so
-            // the shared update sees a gesture it already understands — unless the
-            // composer holds text, in which case ↵ is the send it always was. ↑/↓ while
-            // focus is on a walkable run move the focus and stop there: the prompt's
-            // history never sees them.
-            if let Msg::Key(key) = &message
-                && key.is_press()
-                && key.mods.is_empty()
-                && self.model.active_panel().is_none()
-            {
-                if key.code == KeyCode::Enter
-                    && let Some(widget) = self.frame.focus_target()
-                    && (self.model.prompt().is_empty() || widget != Widget::Composer.id())
-                {
-                    for kind in [MouseKind::Down(Button::Left), MouseKind::Up(Button::Left)] {
-                        self.fold(
-                            event_loop,
-                            Msg::Mouse {
-                                event: MouseEvent::new(kind, 0, 0),
-                                target: Some(widget),
-                            },
-                        );
-                    }
-                    redraw = true;
-                    continue;
-                }
-                if matches!(key.code, KeyCode::Up | KeyCode::Down) && self.frame.focus_walks() {
-                    redraw |= self.frame.fold_state(&message);
-                    continue;
-                }
+            for message in self.frame.input(&self.model, message) {
+                self.fold(event_loop, message);
             }
-            // The same message, folded twice on purpose: once over the
-            // element tree for hover/press/focus (the window's own
-            // visual state), once through the shared update (the
-            // cockpit's). One event system, two readers.
-            redraw |= self.frame.fold_state(&message);
-            self.fold(event_loop, message);
         }
         if redraw {
             self.request_redraw();

@@ -255,16 +255,16 @@ impl Model {
 /// letters.
 pub(super) fn quit_or_cancel(model: &mut Model, key: KeyEvent) -> Option<Cmd> {
     let ctrl = key.mods == Modifiers::CTRL;
+    let native_stop = model.surface().is_native()
+        && key.code == KeyCode::Char('.')
+        && key.mods == Modifiers::SUPER;
     match key.code {
+        _ if native_stop => {
+            return composer_stop(model);
+        }
         KeyCode::Char('c') if ctrl => {
-            if model.tab == StageTab::Roadmap && model.roadmap_request_pending() {
-                if model.roadmap_request_running() {
-                    model.agent_activity.stopping();
-                }
-                return Some(Cmd::CancelRoadmapPrompt);
-            }
-            if model.session.state == TurnState::Streaming {
-                return Some(stop(model, "Stopping…"));
+            if let Some(command) = composer_stop(model) {
+                return Some(command);
             }
         }
         KeyCode::Char('d') if ctrl && model.session.prompt.is_empty() => {}
@@ -272,6 +272,20 @@ pub(super) fn quit_or_cancel(model: &mut Model, key: KeyEvent) -> Option<Cmd> {
     }
     model.quit_requested = true;
     Some(Cmd::Quit)
+}
+
+/// Cancel the work associated with the current composer without changing its draft or view.
+pub(super) fn composer_stop(model: &mut Model) -> Option<Cmd> {
+    if model.tab == StageTab::Roadmap && model.roadmap_request_pending() {
+        if model.roadmap_request_running() {
+            model.agent_activity.stopping();
+        }
+        Some(Cmd::CancelRoadmapPrompt)
+    } else if model.session.state == TurnState::Streaming {
+        Some(stop(model, "Stopping. Your draft is kept."))
+    } else {
+        None
+    }
 }
 
 /// Stop the streaming turn: `note` goes on the stage, the draft stays

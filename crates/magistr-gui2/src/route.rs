@@ -27,6 +27,22 @@ impl Route {
     /// `true` when the core asked to quit.
     pub fn fold(&self, model: &mut Model, msg: Msg) -> bool {
         let mut quit = false;
+        let msg = match msg {
+            Msg::Key(key)
+                if key.is_press()
+                    && key.code == magistr_cockpit::input::KeyCode::Char('v')
+                    && key.mods == magistr_cockpit::input::Modifiers::SUPER =>
+            {
+                match arboard::Clipboard::new().and_then(|mut clip| clip.get_text()) {
+                    Ok(text) => Msg::Paste(text),
+                    Err(error) => {
+                        tracing::warn!(target: "magistr-gui2", "Could not paste: {error}");
+                        return false;
+                    }
+                }
+            }
+            other => other,
+        };
         for cmd in update(model, msg) {
             match cmd {
                 Cmd::Quit => quit = true,
@@ -47,7 +63,19 @@ impl Route {
                     // A receiver that is gone is a session that ended;
                     // the cockpit keeps painting, as it does on a
                     // terminal whose session hung up.
-                    let _ = self.commands.send(other);
+                    if let Err(error) = self.commands.send(other) {
+                        match error.0 {
+                            Cmd::Prompt(text) | Cmd::RoadmapPrompt(text) => {
+                                update(model, Msg::Agent(magistr_application::sessions::AgentEvent::PromptRejected {
+                                    text,
+                                    error: "This session is unavailable. Your message was not sent.".to_owned(),
+                                }));
+                            }
+                            _ => {
+                                tracing::warn!(target: "magistr-gui2", "The session could not receive the action.")
+                            }
+                        }
+                    }
                 }
             }
         }

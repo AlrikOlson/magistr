@@ -158,7 +158,11 @@ impl ElementLayout {
             // without it a word would wrap that the measure said fits.
             // A nowrap run never breaks at all: squeezed, it clips.
             let limit = (!element.nowrap).then_some(layout.size.width + 0.5);
-            self.rows[at] = wrap_ranges(text, voice, content, limit);
+            self.rows[at] = if element.editor_cursor.is_some() {
+                editor_ranges(text, voice, content, limit.unwrap_or(f32::MAX))
+            } else {
+                wrap_ranges(text, voice, content, limit)
+            };
         }
         let children = taffy.children(id).map_err(elements)?;
         for (child, child_id) in element.children.iter().zip(children) {
@@ -351,6 +355,44 @@ pub(crate) fn wrap_ranges(
             end = at + word.len();
         }
         rows.push((base + start, base + end));
+    }
+    rows
+}
+
+/// Grapheme-safe, pixel-measured editor rows, retaining spaces and final newlines.
+pub(crate) fn editor_ranges(
+    text: &mut TextEngine,
+    voice: &Voice,
+    content: &str,
+    width: f32,
+) -> Vec<(usize, usize)> {
+    use unicode_segmentation::UnicodeSegmentation;
+    let limit = (width - 2.0).max(1.0);
+    let mut rows = Vec::new();
+    let mut base = 0;
+    for line in content.split('\n') {
+        if line.is_empty() {
+            rows.push((base, base));
+        }
+        let mut start = 0;
+        while start < line.len() {
+            let mut end = start;
+            let mut space = None;
+            for (at, grapheme) in line[start..].grapheme_indices(true) {
+                let next = start + at + grapheme.len();
+                if end > start && shape_voice(text, voice, &line[start..next]).width() > limit {
+                    end = space.unwrap_or(end);
+                    break;
+                }
+                end = next;
+                if grapheme.chars().all(char::is_whitespace) {
+                    space = Some(end);
+                }
+            }
+            rows.push((base + start, base + end));
+            start = end;
+        }
+        base += line.len() + 1;
     }
     rows
 }

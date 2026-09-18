@@ -321,6 +321,9 @@ impl RootComposition {
         if let Some(palette) = PaletteComposition::el(model, medium) {
             root = root.child(palette);
         }
+        if let Some(completion) = ComposerComposition::completion(model, medium, viewport) {
+            root = root.child(completion);
+        }
         root
     }
 

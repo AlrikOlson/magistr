@@ -128,6 +128,38 @@ Open reasoning, choose Latest then Previous, drag the column boundary, and close
 the window. The example verifies selection, resized proportions and the unchanged
 draft and attachment.
 
+## Message editing
+
+Conversation and Roadmap share the cockpit's `Prompt`, attachment references
+and Send/Stop commands. `ComposerComposition` supplies a bounded multiline
+editor, workspace file chooser, attached-file summary and observed activity.
+`Frame::input` owns native focus and pointer-to-caret geometry; it forwards
+semantic messages to the shared update function. Shaped proportional text
+determines wrapping and caret placement. The visible rows follow the caret
+without changing the shared draft or conversation scroll anchor.
+
+The native input adapter keeps IME preedit local to the window, displays it in
+the editor and commits it once as a paste. Shift/Alt-Return inserts a newline;
+Return accepts an open completion before it can send. A closed command channel
+routes prompt rejection back through the shared owner, retaining the draft.
+The application-level file-reference scanner owns anchoring and deduplication;
+edge adapters supply JSON quoted-path decoding without adding a serialization
+dependency to the application crate.
+
+`tests/composer.rs` exercises file choice, navigation, keyboard/pointer actions,
+refusal recovery, focus, caret placement and preedit through the native frame.
+The terminal decoder drives the matching draft and command scenario. To check
+a real window, run:
+
+```sh
+cargo run --manifest-path crates/magistr-gui2/Cargo.toml --locked --example composer_probe
+```
+
+Type a message with Shift-Return, choose `résumé draft.md` from Add files,
+visit Roadmap and return to Conversation, then Send. Type `Keep this draft`,
+Stop and close the window. The probe checks the delivered text, file,
+cancellation and retained draft using a deterministic producer.
+
 ## Roadmap planning
 
 `RoadmapComposition` keeps the complete dependency graph and filtered work list
@@ -176,9 +208,9 @@ The normal suite includes CPU screenshots in both themes, contrast and icon
 checks, accessibility bounds, display scale, hit geometry, model-tick motion,
 reduced motion and render purity. The explicit GPU check runs the real shader
 pipeline and reads the texture back. It checks an opaque canvas, CPU/GPU pixel
-agreement for conversation, Roadmap and request views, plus uploaded image content
-in both themes, saving captures in the
-desktop `target/` directory. Missing GPU support fails that check.
+agreement for conversation, Roadmap, request and message/file-chooser views,
+plus uploaded image content in both themes, saving captures in the desktop
+`target/` directory. Missing GPU support fails that check.
 
 Two inherited, ignored `mock_parity` tests compare against historical browser
 design references with known differences. Those reference targets are retained

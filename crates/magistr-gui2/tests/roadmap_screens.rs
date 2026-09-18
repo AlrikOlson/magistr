@@ -75,6 +75,7 @@ fn roadmap_state_matrix_has_stable_frames_and_usable_controls() {
 }
 #[test]
 fn reviewed_roadmap_goldens() {
+    let mut mismatches = Vec::new();
     let golden = magistr_cockpit::golden::Golden::new(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/roadmap"),
     );
@@ -95,9 +96,12 @@ fn reviewed_roadmap_goldens() {
                     h,
                 )
                 .unwrap();
-            golden.assert_matches(&format!("{name}-{layout}-{theme}"), &image);
+            if let Err(error) = golden.check(&format!("{name}-{layout}-{theme}"), &image) {
+                mismatches.push(error.to_string());
+            }
         }
     }
+    assert!(mismatches.is_empty(), "Review candidates: {mismatches:#?}");
 }
 
 #[test]

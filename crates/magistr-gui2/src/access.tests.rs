@@ -76,7 +76,7 @@ fn the_roles_and_names_come_from_the_widget_ids() {
     let tree = frame.access(1.0);
     assert_eq!(
         tree.find(Widget::Composer).expect("composer").role,
-        Role::TextInput
+        Role::MultilineTextInput
     );
     assert_eq!(
         tree.find(Widget::PanelColumns).expect("divider").role,

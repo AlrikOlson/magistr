@@ -36,6 +36,8 @@ pub enum Msg {
     },
     /// Pasted text.
     Paste(String),
+    /// Move the draft insertion point to a grapheme boundary selected by a surface.
+    PromptCursor(usize),
     /// A semantic action on the decision in front — what a key or a
     /// button *means*, raised directly: a desktop's accessibility
     /// action, a spoken command, a test. The key and pointer folds

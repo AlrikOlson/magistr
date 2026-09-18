@@ -2,6 +2,22 @@ use magistr_cockpit::cockpit::{Model, Msg, Size, update};
 use magistr_cockpit::input::{KeyCode, KeyEvent};
 
 use super::*;
+
+#[test]
+fn composer_exposes_files_send_and_observed_activity() {
+    use crate::comp_workspace::WorkspaceComposition as W;
+    use magistr_cockpit::cockpit::{StageTab, Surface, Widget};
+    let model = Model::new(Size::new(120, 40))
+        .with_surface(Surface::Native)
+        .with_tab(StageTab::Turn);
+    let tree = ComposerComposition::el(&model, Medium::Night);
+    let mut ids = Vec::new();
+    tree.each(&mut |_, el| ids.extend(el.id));
+    assert!(ids.contains(&W::id(Widget::PromptFiles.id())));
+    assert!(ids.contains(&W::id(Widget::PromptAction.id())));
+    assert!(runs(&tree).iter().any(|(s, _)| s == "Message Magistr"));
+}
+
 use crate::element::Kind;
 
 fn runs(root: &Element) -> Vec<(String, qs_gpu::color::Srgba)> {
@@ -27,9 +43,9 @@ fn typing_through_update_fills_the_pill() {
     let resting = ComposerComposition::el(&model, Medium::Night);
     let steer = runs(&resting)
         .into_iter()
-        .find(|(text, _)| text == "Steer\u{2026}")
+        .find(|(text, _)| text == "Describe what you want to add or change…")
         .expect("the resting prompt");
-    assert_eq!(steer.1, lex.ov0, "resting is the faint ink");
+    assert_eq!(steer.1, lex.sb0, "resting remains readable");
     for key in ['h', 'i'] {
         update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char(key))));
     }
@@ -41,7 +57,9 @@ fn typing_through_update_fills_the_pill() {
         .expect("the typed text is on the pill");
     assert_eq!(typed.1, lex.tx, "typed is the full ink");
     assert!(
-        !runs(&filled).iter().any(|(t, _)| t == "Steer\u{2026}"),
+        !runs(&filled)
+            .iter()
+            .any(|(t, _)| t == "Describe what you want to add or change…"),
         "the placeholder stands down"
     );
 }
@@ -61,6 +79,11 @@ fn the_pill_is_the_one_focusable_control_in_both_faces() {
                 ids.extend(element.id);
             }
         });
-        assert_eq!(ids, vec![ComposerComposition::PILL]);
+        assert!(ids.contains(&ComposerComposition::PILL));
+        assert!(
+            ids.contains(&crate::comp_workspace::WorkspaceComposition::id(
+                Widget::PromptFiles.id()
+            ))
+        );
     }
 }

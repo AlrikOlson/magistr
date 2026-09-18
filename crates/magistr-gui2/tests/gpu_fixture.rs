@@ -15,7 +15,7 @@ fn gpu_renders_fixture_images_in_both_themes() {
         .expect("desktop GPU required");
     eprintln!("GPU: {:?}", ctx.capabilities);
     for (tag, mode) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
-        for scene in ["adoption", "roadmap", "requests"] {
+        for scene in ["adoption", "roadmap", "requests", "composer"] {
             let mut frame = Frame::new().expect("embedded fonts");
             let cell = frame.metrics();
             let size = Fixture::capture_grid((cell.width(), cell.height()));
@@ -27,6 +27,20 @@ fn gpu_renders_fixture_images_in_both_themes() {
                 _ => Fixture::with_pixels(Fixture::imaged(size, 120, 80)),
             }
             .with_theme(Theme::forced(mode));
+            if scene == "composer" {
+                use magistr_cockpit::cockpit::{Msg, Widget, update};
+                use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+                model = model
+                    .with_workspace_files(vec!["src/main.rs".into(), "résumé draft.md".into()]);
+                update(&mut model, Msg::Paste("Review @src/main.rs\n".repeat(16)));
+                update(
+                    &mut model,
+                    Msg::Mouse {
+                        event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                        target: Some(Widget::PromptFiles.id()),
+                    },
+                );
+            }
             let mut cpu_model = model.clone();
             let mut cpu_frame = Frame::new().expect("CPU fonts");
             let clock = FrameClock::new(0, std::time::Duration::ZERO);

@@ -149,7 +149,7 @@ fn the_session_cap_names_the_wait_while_a_plain_ask_fronts_the_dock() {
     assert!(has(&root, "4 / 12"), "beside the iteration");
     assert!(has(&root, "needs you"), "the ask card is up");
     assert!(
-        has(&root, "Steer\u{2026}"),
+        has(&root, "Message Magistr"),
         "the composer stays under the card"
     );
     assert_eq!(
@@ -235,7 +235,7 @@ fn the_session_root_arranges_header_turn_rail_and_foot() {
     let (_, root) = root_of("05");
     assert!(has(&root, "projects"), "the altitude path");
     assert!(has(&root, "4 / 12"), "the session cap: the identity band");
-    assert!(has(&root, "Steer\u{2026}"), "the composer at rest");
+    assert!(has(&root, "Message Magistr"), "the composer at rest");
     assert!(has(&root, "Nearby work"), "nearby work rides right");
     assert!(has(&root, "38,204 tok"), "the foot's total");
     assert!(
@@ -291,7 +291,7 @@ fn a_review_replaces_the_session_under_the_same_path() {
     assert!(model.review().is_some(), "view 07 is a review");
     assert!(has(&root, "projects"), "the path stays");
     assert!(has(&root, "Review"), "the review surface");
-    assert!(!has(&root, "Steer\u{2026}"), "the composer stands down");
+    assert!(!has(&root, "Message Magistr"), "the composer stands down");
 }
 
 /// The element ids the compositions mint resolve to the cockpit's own

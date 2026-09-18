@@ -85,6 +85,8 @@ pub struct Element {
     /// the volume puts on every chip. A squeezed run clips; it does
     /// not become two rows.
     pub(crate) nowrap: bool,
+    /// Insertion byte offset for a text editor, owned by the shared draft.
+    pub(crate) editor_cursor: Option<usize>,
     /// A row that breaks its children into lines — CSS
     /// `flex-wrap: wrap`, the inline box a line of word runs needs so a
     /// marked word can sit inside a sentence that still wraps.
@@ -187,6 +189,7 @@ impl Element {
             label: None,
             pin: [None; 4],
             nowrap: false,
+            editor_cursor: None,
             wrap: false,
             owner: None,
             exact: false,
@@ -308,6 +311,32 @@ impl Element {
     pub fn nowrap(mut self) -> Self {
         self.nowrap = true;
         self
+    }
+
+    /// Render this text as a bounded editor with a proportional insertion caret.
+    #[must_use]
+    pub fn editor_cursor(mut self, cursor: usize) -> Self {
+        self.editor_cursor = Some(cursor);
+        self
+    }
+
+    pub(crate) fn preview_editor(
+        &mut self,
+        id: ElementId,
+        draft: &str,
+        cursor: usize,
+        preedit: &str,
+    ) {
+        if self.id == Some(id)
+            && let Kind::Text { content, .. } = &mut self.kind
+        {
+            *content = draft.to_owned();
+            content.insert_str(cursor, preedit);
+            self.editor_cursor = Some(cursor + preedit.len());
+        }
+        for child in &mut self.children {
+            child.preview_editor(id, draft, cursor, preedit);
+        }
     }
 
     /// This row breaks its children into lines when they overflow —

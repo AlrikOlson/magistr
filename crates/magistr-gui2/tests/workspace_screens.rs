@@ -76,6 +76,7 @@ fn scene(name: &str, size: Size) -> Model {
 
 #[test]
 fn workspace_states_render_in_both_themes_compact_wide_and_scaled() {
+    let mut mismatches = Vec::new();
     let output = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target");
     for (theme, mode) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
         for (layout, w, h, scale) in [
@@ -114,11 +115,14 @@ fn workspace_states_render_in_both_themes_compact_wide_and_scaled() {
                 assert_eq!(image.data(), again.data());
                 assert_eq!(model, stable);
                 if layout != "scaled" && matches!(name, "stream" | "stale") {
-                    magistr_cockpit::golden::Golden::new(
+                    let result = magistr_cockpit::golden::Golden::new(
                         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                             .join("tests/golden/workspace"),
                     )
-                    .assert_matches(&format!("{name}-{layout}-{theme}"), &image);
+                    .check(&format!("{name}-{layout}-{theme}"), &image);
+                    if let Err(error) = result {
+                        mismatches.push(error.to_string());
+                    }
                 }
                 if layout != "scaled" {
                     image
@@ -128,4 +132,5 @@ fn workspace_states_render_in_both_themes_compact_wide_and_scaled() {
             }
         }
     }
+    assert!(mismatches.is_empty(), "Review candidates: {mismatches:#?}");
 }

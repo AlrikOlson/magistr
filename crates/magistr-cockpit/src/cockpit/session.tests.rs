@@ -116,7 +116,10 @@ fn stopping_by_key_and_by_button_is_one_stop_that_keeps_the_draft() {
     assert_eq!(update(&mut by_key, ctrl('c')), vec![Cmd::Cancel]);
     assert_eq!(by_key.session().prompt().text(), "next");
     assert_eq!(by_key.session().state(), TurnState::Streaming);
-    assert_eq!(last_row(&by_key), (RowKind::Note, "Stopping…".to_owned()));
+    assert_eq!(
+        last_row(&by_key),
+        (RowKind::Note, "Stopping. Your draft is kept.".to_owned())
+    );
 
     let mut by_button = model();
     agent(&mut by_button, AgentEvent::Text("working…".to_owned()));

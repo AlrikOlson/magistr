@@ -102,9 +102,24 @@ pub fn emit(
             Kind::Text { voice, content } => {
                 let ink = element.fill.unwrap_or(Srgba::new(0.0, 0.0, 0.0, 1.0));
                 let (line, baseline) = line_box(text, voice);
-                for (row, (start, end)) in layout.text_rows(index).iter().enumerate() {
+                let rows = layout.text_rows(index);
+                let cursor = element
+                    .editor_cursor
+                    .map(|cursor| cursor.min(content.len()));
+                let cursor_row = cursor.map(|cursor| {
+                    rows.iter()
+                        .rposition(|(start, _)| *start <= cursor)
+                        .unwrap_or(0)
+                });
+                let visible = (h / line).floor().max(1.0) as usize;
+                let top_row = cursor_row.map_or(0, |row| (row + 1).saturating_sub(visible));
+                for (row, (start, end)) in rows.iter().enumerate().skip(top_row) {
+                    if cursor.is_some() && row >= top_row + visible {
+                        break;
+                    }
+
                     #[allow(clippy::cast_precision_loss)]
-                    let top = y + row as f32 * line;
+                    let top = y + (row - top_row) as f32 * line;
                     run(
                         text,
                         voice,
@@ -115,6 +130,22 @@ pub fn emit(
                         ink,
                         list,
                     );
+                }
+                if let (Some(cursor), Some(row)) = (cursor, cursor_row) {
+                    let (start, end) = rows[row];
+                    let at = cursor.min(end).max(start);
+                    let dx = shape_voice(text, voice, &content[start..at])
+                        .width()
+                        .min((w - 2.0).max(0.0));
+                    let caret_top = y + (row - top_row) as f32 * line;
+                    list.instances.push(Instance::rect(
+                        x + dx,
+                        caret_top,
+                        (voice.px / 10.0).max(1.0),
+                        line.min(h),
+                        0.0,
+                        element.focus_ring.unwrap_or(ink),
+                    ));
                 }
             }
         }
