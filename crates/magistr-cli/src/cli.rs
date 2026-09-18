@@ -238,6 +238,31 @@ pub enum Command {
         max_cost: Option<f64>,
     },
 
+    /// Record what happened to an interrupted agent attempt
+    ResolveDispatch {
+        /// Project directory
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+        /// Saved run ID shown by workspace doctor
+        #[arg(long)]
+        run: String,
+        /// Command ID shown by workspace doctor
+        #[arg(long)]
+        command: String,
+        /// Attempt number shown by workspace doctor
+        #[arg(long)]
+        attempt: std::num::NonZeroU32,
+        /// What happened: completed work is not retried; failed or cancelled work can be retried
+        #[arg(long, value_parser = ["completed", "failed", "cancelled"])]
+        outcome: String,
+        /// Explain how you checked the work and its outcome
+        #[arg(long)]
+        reason: String,
+        /// Confirm the loop and every agent it started have stopped
+        #[arg(long, required = true)]
+        confirm_stopped: bool,
+    },
+
     /// Check for and report Bash-era config migration needs
     Migrate {
         /// Project directory (defaults to current directory)

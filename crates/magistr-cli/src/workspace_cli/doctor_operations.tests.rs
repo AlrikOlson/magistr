@@ -80,6 +80,28 @@ fn states(section: &DoctorSection) -> Vec<String> {
 }
 
 #[test]
+fn a_pending_dispatch_is_recoverable_without_claiming_a_runtime() {
+    let dir = tempfile::tempdir().unwrap();
+    let run = format!("run-1-{}", gone_pid());
+    let mut pending = record(
+        &run,
+        "0/dispatch",
+        "provider_dispatch",
+        "dispatch",
+        "accepted",
+        Value::Null,
+    );
+    pending["dispatch_phase"] = "pending".into();
+    write_checkpoint(dir.path(), &run, vec![pending], Value::Null);
+    let path = dir.path().join(".magistr/loop-state.json");
+    let before = std::fs::read(&path).unwrap();
+    let section = operations_section(dir.path(), None);
+    assert_eq!(states(&section), ["recoverable"]);
+    assert_eq!(rows(&section)[0]["dispatch_phase"], "pending");
+    assert_eq!(std::fs::read(path).unwrap(), before);
+}
+
+#[test]
 fn no_checkpoint_is_an_info_finding_and_a_torn_one_is_unhealthy() {
     let dir = tempfile::tempdir().expect("tempdir");
     let section = operations_section(dir.path(), None);
@@ -225,7 +247,7 @@ fn a_lost_loop_explains_stalled_recoverable_settled_and_indeterminate_records() 
         no_handle["explanation"]
             .as_str()
             .expect("text")
-            .contains("no runtime handle")
+            .contains("magistr resolve-dispatch")
     );
 
     let summary = &section.findings[0];

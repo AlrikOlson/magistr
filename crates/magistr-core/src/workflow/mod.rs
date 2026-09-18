@@ -16,6 +16,7 @@ pub mod gate_guard;
 pub mod gates_check;
 pub mod guards;
 pub mod iteration;
+pub mod loop_lease;
 pub mod native_summary;
 pub mod plan;
 pub mod plan_guard;

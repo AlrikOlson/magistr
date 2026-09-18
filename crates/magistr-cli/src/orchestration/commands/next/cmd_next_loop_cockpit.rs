@@ -22,6 +22,7 @@ pub async fn cmd_next_loop_cockpit(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let _loop_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
     let inputs = inputs.for_project(&dir);
     // The reasoning server prints its load banner to stderr: admit the
     // host and open the engines before the terminal is taken over. `None`

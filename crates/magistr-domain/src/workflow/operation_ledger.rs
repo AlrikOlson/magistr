@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::identity::{AttemptId, CommandId};
 
-use super::{OperationAdmission, OperationError, OperationKind, OperationOutcome, OperationRecord};
+use super::{
+    DispatchPhase, OperationAdmission, OperationError, OperationKind, OperationOutcome,
+    OperationRecord,
+};
 
 /// The run's own record of the operations it dispatched, one entry per
 /// attempt. It is written before an effect and settled after it; it is not
@@ -69,6 +72,9 @@ impl OperationLedger {
             target,
             outcome: OperationOutcome::Accepted,
             external: None,
+            dispatch_phase: (kind == OperationKind::ProviderDispatch)
+                .then_some(DispatchPhase::Pending),
+            resolution: None,
         });
         Ok(OperationAdmission::Accepted(attempt))
     }
@@ -80,6 +86,17 @@ impl OperationLedger {
         external: Option<String>,
     ) -> Result<(), OperationError> {
         let record = self.record_mut(attempt)?;
+        // A dispatch checkpoints Running before spawn, then attaches its handle.
+        // Never replace a runtime identity or revive a settled attempt.
+        if record.kind == OperationKind::ProviderDispatch
+            && record.outcome == OperationOutcome::Running
+            && (record.external.is_none() || record.external == external)
+        {
+            if external.is_some() {
+                record.external = external;
+            }
+            return Ok(());
+        }
         Self::transition(
             record,
             OperationOutcome::Running,
@@ -113,6 +130,30 @@ impl OperationLedger {
     ) -> Result<(), OperationError> {
         let record = self.record_mut(attempt)?;
         Self::transition(record, outcome, OperationOutcome::can_reconcile_to)
+    }
+
+    /// Apply an explicit operator decision to one unsettled dispatch only.
+    /// The adapter must first exclude live owners and confirm external settlement.
+    pub fn resolve_dispatch(
+        &mut self,
+        attempt: &AttemptId,
+        outcome: OperationOutcome,
+        reason: &str,
+    ) -> Result<(), OperationError> {
+        let record = self.record_mut(attempt)?;
+        if record.kind != OperationKind::ProviderDispatch || record.is_settled() {
+            return Err(OperationError::Resolution(
+                "Only an unfinished agent launch can be resolved.",
+            ));
+        }
+        if !outcome.is_settled() || reason.trim().is_empty() {
+            return Err(OperationError::Resolution(
+                "Choose a final outcome and explain what happened.",
+            ));
+        }
+        record.outcome = outcome;
+        record.resolution = Some(reason.trim().into());
+        Ok(())
     }
 
     /// The owner is gone: every attempt it had in flight is `Indeterminate`
@@ -161,6 +202,14 @@ impl OperationLedger {
     /// command has at most one unsettled attempt.
     pub fn validate(&self) -> Result<(), &'static str> {
         for (index, record) in self.records.iter().enumerate() {
+            if record.dispatch_phase.is_some() && record.kind != OperationKind::ProviderDispatch {
+                return Err("launch phase belongs only to provider dispatches");
+            }
+            if record.dispatch_phase == Some(DispatchPhase::Pending)
+                && (record.external.is_some() || record.outcome == OperationOutcome::Running)
+            {
+                return Err("a pending dispatch cannot have a runtime or be running");
+            }
             let same_command = self.records[..index]
                 .iter()
                 .filter(|earlier| earlier.attempt.command() == record.attempt.command());
@@ -199,6 +248,9 @@ impl OperationLedger {
             });
         }
         record.outcome = to;
+        if to == OperationOutcome::Running && record.kind == OperationKind::ProviderDispatch {
+            record.dispatch_phase = Some(DispatchPhase::Started);
+        }
         Ok(())
     }
 }

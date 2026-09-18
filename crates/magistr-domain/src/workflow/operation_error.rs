@@ -15,6 +15,8 @@ pub enum OperationError {
     Conflict(Box<OperationRecord>),
     /// No such attempt in the ledger.
     Unknown(AttemptId),
+    /// An operator decision must identify unsettled dispatch work and an explanation.
+    Resolution(&'static str),
     /// The requested outcome cannot follow the recorded one.
     Transition {
         attempt: AttemptId,
@@ -26,6 +28,7 @@ pub enum OperationError {
 impl fmt::Display for OperationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Resolution(message) => f.write_str(message),
             Self::Unsettled(record) => write!(
                 f,
                 "operation {} attempt {} of {} is {}: reconcile it before retrying",

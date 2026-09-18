@@ -28,6 +28,56 @@ fn outcome_of(il: &IterationLoop, attempt: &AttemptId) -> OperationOutcome {
     il.operations().record(attempt).expect("recorded").outcome
 }
 
+#[test]
+fn an_accepted_dispatch_that_never_connected_recovers_failed_and_retries() {
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+    let dispatch = il
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+        .unwrap()
+        .unwrap();
+    il.persist().unwrap();
+    drop(il);
+
+    let mut recovered = recover(dir.path(), &spec, None);
+    assert_eq!(outcome_of(&recovered, &dispatch), OperationOutcome::Failed);
+    assert!(recovered.reconciliation().open.is_empty());
+    let retry = recovered
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+        .unwrap()
+        .unwrap();
+    assert_eq!(retry.command(), dispatch.command());
+    assert_eq!(retry.number().get(), 2);
+}
+
+#[test]
+fn a_legacy_accepted_dispatch_remains_unknown_across_repeated_recovery() {
+    let (dir, spec) = setup_project("- [ ] item\n");
+    let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
+    il.pre_iteration_check().unwrap();
+    let dispatch = il
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+        .unwrap()
+        .unwrap();
+    il.persist().unwrap();
+    let checkpoint = dir.path().join(".magistr/loop-state.json");
+    let mut json = serde_json::to_value(il.state()).unwrap();
+    for record in json["operations"]["records"].as_array_mut().unwrap() {
+        record.as_object_mut().unwrap().remove("dispatch_phase");
+    }
+    std::fs::write(&checkpoint, serde_json::to_vec(&json).unwrap()).unwrap();
+    drop(il);
+    for _ in 0..2 {
+        let recovered = recover(dir.path(), &spec, None);
+        assert_eq!(
+            outcome_of(&recovered, &dispatch),
+            OperationOutcome::Indeterminate
+        );
+        recovered.persist().unwrap();
+    }
+}
+
 fn commit(dir: &Path, message: &str) {
     let out = std::process::Command::new("git")
         .args(["commit", "--allow-empty", "-m", message])
@@ -488,7 +538,7 @@ fn a_provider_dispatch_waits_for_its_runtime_then_settles_by_the_git_baseline() 
         .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
         .unwrap()
         .unwrap();
-    il.persist().unwrap();
+    il.checkpoint_dispatch_launch(&dispatch).unwrap();
     il.start_operation(&dispatch, Some(handle.to_string()))
         .unwrap();
     il.persist().unwrap();
@@ -575,14 +625,13 @@ fn a_dispatch_without_a_runtime_handle_stays_open_whatever_head_did() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
     il.pre_iteration_check().unwrap();
-    // Accepted and persisted; the process died between the intent and the
-    // handle — or launched a runtime that offers none. Either way a commit
-    // meanwhile says nothing about this dispatch.
+    // The pre-spawn marker landed, but the handle did not. A commit by
+    // another process cannot establish what happened to this dispatch.
     let dispatch = il
         .begin_operation(OperationKind::ProviderDispatch, "dispatch", "provider:test")
         .unwrap()
         .unwrap();
-    il.persist().unwrap();
+    il.checkpoint_dispatch_launch(&dispatch).unwrap();
     drop(il);
     commit(dir.path(), "feat: a commit from nobody the loop knows");
     let mut recovered = recover(dir.path(), &spec, None);

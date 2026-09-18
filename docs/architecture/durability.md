@@ -124,7 +124,7 @@ opening prompt and displayed iteration limit.
 
 `open_or_recover` reads the checkpoint, marks every `Accepted`/`Running`
 record `Indeterminate`, and reconciles each against the authority on its
-effect, never against the record:
+effect. A dispatch's persisted launch phase also establishes whether the transport could have spawned:
 
 | Kind | Authority asked | Established outcome |
 | --- | --- | --- |
@@ -132,14 +132,14 @@ effect, never against the record:
 | `NativeMutation` | the chunk as the native store holds it now (`roadmap_chunk` after reload) | `Completed` when the verb's effect is visible (`start_chunk`: in progress or done; `complete_chunk`: done; `set_blocked_by`: a blocker; `set_status`: that status), else `Failed`; an unknown verb stays open |
 | `Receipt` | the durable receipt the record names (`ship_receipt` by the `receipt:<id>` handle) | `Completed` when that receipt is settled and applied; `Failed` when it is unsettled, settled stale, absent from the ledger, or the record carries no id — nothing was applied, since application needs the live loop's settlement, which always follows the persisted `Running`; a receipt naming another gate or task than the record does stays open. No check of the same name on the task is consulted |
 | `Publication` | none needed | `Cancelled`: attached surfaces reseed from the store, where the announced mutation already is |
-| `ProviderDispatch` | the particular runtime the handle names (`is_live`: the id alive and holding the recorded start identity), then the attempt's Git baseline | open without a handle (nothing says whether a runtime exists or existed: the intent is written before the launch), open while that runtime is alive or the host cannot say; once it is gone — or its id is held by another process — `Completed` when HEAD advanced from the baseline (the baseline is an ancestor of HEAD, `git merge-base --is-ancestor`), else `Failed`. A reset, a rebase or a branch switch is movement, not an advance |
+| `ProviderDispatch` | the particular runtime the handle names (`is_live`: the id alive and holding the recorded start identity), then the attempt's Git baseline | `Failed` when its phase is `pending` and it has no handle; open without a handle when its phase is `started` or absent on an older checkpoint; open while the runtime is alive or the host cannot say; once it is gone — or its id is held by another process — `Completed` when HEAD advanced from the baseline (the baseline is an ancestor of HEAD, `git merge-base --is-ancestor`), else `Failed`. A reset, a rebase or a branch switch is movement, not an advance |
 
 What stays open refuses the next attempt: `pre_iteration_check` answers
 `Unreconciled` with the records, the loop driver ends with
 `LoopEnd::Unreconciled` and the headless and plain loops return an error
 naming them. No terminal reason is latched — the run is waiting, not stopped —
-so the same command retries once the runtime is gone, or the checkpoint is
-explicitly set aside for a new run. A `Failed` dispatch keeps the attempt's
+so the same command retries once the runtime is gone or an operator records
+its outcome with `magistr resolve-dispatch`. A `Failed` dispatch keeps the attempt's
 Git baseline; its retry is attempt number two of the same command. Without
 engines (a yaml project, or an attached reader) a native mutation or receipt
 cannot be asked about and stays open. A dispatch recorded before this
@@ -152,6 +152,42 @@ It reads those references under the ledger lock, after pinning the current
 objective; the loop must persist its reference before receipt settlement.
 See [receipt retention](project-authority.md#receipt-retention). A corrupt or
 unreadable checkpoint refuses compaction.
+
+## Resolving an interrupted agent
+
+Every new dispatch starts with `dispatch_phase: pending`. The ACP transport
+calls a fallible checkpoint callback immediately before spawning, recording
+`started` and `Running` before a provider can exist. The phase survives
+interruption and repeated recovery. The handle is attached afterward without
+replacing an existing runtime identity. All plain, headless, cockpit and
+delegated loop launch paths use that boundary; checkpoint failure prevents
+spawn. Older checkpoints have no phase and remain conservatively unknown.
+
+Inspect saved work with `magistr workspace doctor . --json`. After checking
+that the loop and every agent it started have stopped, resolve one attempt
+using the run, command and attempt reported there:
+
+```sh
+magistr resolve-dispatch . --run run-… --command 0/dispatch --attempt 1 \
+  --outcome failed --reason "The agent stopped before completing the work." \
+  --confirm-stopped
+```
+
+`failed` and `cancelled` allow the next attempt of the same command.
+`completed` suppresses another dispatch for that command; it does not complete
+a roadmap item or manufacture gate evidence. The explanation is retained as
+`resolution` on that record. Other records, run limits, budget, terminal status,
+Git baseline and saved plan/task files are preserved.
+
+The command refuses a changed run ID, an unknown attempt, a non-dispatch or
+already settled record, a blank explanation, and a known live loop or agent.
+An OS-held `.magistr/loop-owner.lock` excludes all three loop command entries
+while resolution reads and atomically replaces the checkpoint. The lock file
+is stable and never deleted; process exit releases the lock. Older loop clients
+do not take this lock, so the saved owner PID is checked too. An absent handle
+cannot establish that an unrecorded agent stopped: `--confirm-stopped` is the
+operator's assertion after checking it, not automatic process settlement.
+No provider is killed and no workflow server is opened by this command.
 
 ## Diagnostics versus evidence
 
@@ -175,8 +211,11 @@ runtime it dispatched is alive — the next loop start waits for it,
 says to wait for or end that runtime, since nothing is signalled or
 replayed for you); `recoverable` (the loop and any runtime are gone — the
 next start reconciles it against the authority named for its kind);
-`indeterminate` (no runtime handle, or a host that cannot say — open until
-the checkpoint is set aside explicitly). Session and turn identities are
+`indeterminate` (a started or legacy dispatch with no runtime handle, or a
+host that cannot say; requires checking the runtime and explicit resolution).
+A pending dispatch with no handle is recoverable without launching again
+during recovery: it settles Failed. The report includes launch phase and any
+operator explanation. Session and turn identities are
 declared *not persisted*: a provider session and its turns exist only in
 the live host's session feed and end with it; live clients are the
 `owner` section's connections.
@@ -190,7 +229,8 @@ receipts under [receipt retention](project-authority.md#receipt-retention),
 the store for good — while a doctor report or bundle lives exactly as long
 as its reader keeps it, and a bundle passes the same redaction as every
 other member. What the doctor explains as stalled or recoverable is what
-the next loop start will find; only that start performs the reconciliation.
+the next loop start will find; that start performs automatic reconciliation,
+while `resolve-dispatch` records the operator's explicit decision.
 
 Fixtures: `doctor_operations.tests.rs` (a lost loop with a live runtime is
 stalled, then recoverable once the runtime is killed, beside settled,
@@ -227,8 +267,10 @@ elsewhere a live id is evidence, not proof. Git attributes nothing to a
 process: a commit that descends from the attempt's baseline, made by someone
 else after the runtime died, reads as the runtime's. The window between the
 transport's spawn and the handle's checkpoint is real: a crash inside it leaves
-a dispatch with no handle, which stays open until the checkpoint is set aside
-by hand, and possibly an orphaned runtime nobody is waiting for. A native
+a started dispatch with no handle, which stays open until an operator checks
+the runtime and resolves the attempt. A crash before the persisted pre-spawn
+marker leaves a pending dispatch that safely retries; a crash after the marker
+can still leave an orphaned runtime whose identity was never saved. A native
 mutation that landed a second before the crash and one that never landed read
 the same way to recovery: by the store's current state, not by the moment. The
 peer journal's stronger permit rules are documented in [peers](peers.md) and
@@ -250,7 +292,7 @@ another gate's receipt stays open), publication, and provider dispatch against
 a real child process (open while alive, even after a commit; `Completed` once
 gone with HEAD advanced from the baseline, and then `Established` for the
 attempt; a launched runtime that died leaving no advance → `Failed` and
-retried as attempt two; no handle → open whatever HEAD did; the id reused
+retried as attempt two; pending with no launch → Failed and attempt two; started or legacy without a handle → open whatever HEAD did; the id reused
 under another start identity → gone, and HEAD moved back to an ancestor is no
 advance). The loop driver's suite checks that a judged iteration leaves every
 kind settled in the checkpoint under one run with every receipt record naming
@@ -264,6 +306,13 @@ cargo nextest run -p magistr-core -E 'test(iteration) | test(durable_write) | te
 cargo nextest run -p magistr-cli -E 'test(a_judged_iteration_leaves) | test(an_unreconciled_dispatch)'
 ```
 
-Formatting and every required gate in `.magistr/project.json` remain
-mandatory. This chunk changes no rendering, goldens, motion rules or roadmap
+Transport tests execute a child that observes its pre-spawn marker and prove
+checkpoint refusal prevents spawn. Driver fixtures verify the recovered retry
+number and persisted phase before connecting. Executable CLI tests cover all
+three loop entries, every explicit resolution outcome, confirmation and
+identity/liveness refusals, lock exclusion and saved-context preservation.
+
+Verification is focused on affected domain, core, ACP and CLI behavior,
+all-target compilation and Clippy, formatting and relevant architecture and
+custom gates. This change does not alter rendering, goldens, motion or roadmap
 export policy.

@@ -55,6 +55,15 @@ already in progress before starting another item, keeping its plan, completed
 tasks, and check results. It reports conflicting active work instead of
 replacing it. The MCP tools `roadmap_status` and `ship_status` report progress.
 
+If `magistr next-loop` stops because an earlier agent's outcome is unknown,
+inspect it with `magistr workspace doctor . --json`. Check that the loop and
+its agents have stopped, then use `magistr resolve-dispatch --help` to record
+what happened to the specific attempt. Mark failed work `failed` so it can be
+retried; mark finished work `completed` so it is not sent to another agent.
+Your saved plan, task and other progress are kept. See the
+[recovery guide](architecture/durability.md#resolving-an-interrupted-agent)
+for an example and the checks required before resolving work.
+
 ## Refresh or remove setup
 
 Refresh generated Codex files in place:

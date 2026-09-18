@@ -1,5 +1,41 @@
 use super::*;
 
+#[tokio::test]
+async fn a_failed_launch_checkpoint_prevents_spawn() {
+    let mut transport = unconnected();
+    let error = transport
+        .connect_checkpointed(|| Err(AcpError::connection("checkpoint refused")))
+        .await
+        .expect_err("refused before trying the nonexistent executable");
+    assert!(error.to_string().contains("checkpoint refused"), "{error}");
+    assert_eq!(transport.child_pgid(), 0);
+    assert!(transport.connection.is_none());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn launch_checkpoint_is_written_before_the_child_runs() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut transport = AcpTransport::new_with_args(
+        PathBuf::from("/bin/sh"),
+        vec!["-c".into(), "test -f before-spawn && touch observed".into()],
+        Some(dir.path().to_path_buf()),
+    )
+    .unwrap();
+    let result = transport
+        .connect_checkpointed(|| {
+            std::fs::write(dir.path().join("before-spawn"), b"started")
+                .map_err(|error| AcpError::connection(error.to_string()))
+        })
+        .await;
+    assert!(result.is_err(), "fixture deliberately speaks no ACP");
+    assert!(
+        dir.path().join("observed").exists(),
+        "child observed the durable marker"
+    );
+    transport.close().await.unwrap();
+}
+
 fn unconnected() -> AcpTransport {
     AcpTransport::new_with_args(PathBuf::from("/usr/bin/magistr"), vec![], None)
         .expect("constructing never fails")

@@ -31,6 +31,15 @@ impl AcpBackend {
         Ok((Self { supervisor }, messages))
     }
 
+    pub(crate) async fn start_checkpointed(
+        spec: super::ResolvedSessionSpec,
+        before_spawn: impl FnOnce() -> Result<()>,
+    ) -> Result<BackendStart> {
+        let (supervisor, messages) =
+            SessionSupervisor::start_checkpointed(spec, before_spawn).await?;
+        Ok((Self { supervisor }, messages))
+    }
+
     #[cfg(test)]
     async fn start_connected(
         prompt: &str,

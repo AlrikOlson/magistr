@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 pub enum OperationOutcome {
     /// Admitted and written durably; the effect has not been dispatched.
     Accepted,
-    /// The effect was dispatched by a live owner.
+    /// The owner began dispatching; the effect may already have started.
     Running,
     /// The effect is established as applied.
     Completed,

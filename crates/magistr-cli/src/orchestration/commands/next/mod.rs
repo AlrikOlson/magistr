@@ -11,7 +11,9 @@ mod cmd_next_loop_cockpit;
 mod cmd_next_loop_headless;
 mod cmd_next_loop_tui;
 mod cmd_next_tui;
+mod cmd_resolve_dispatch;
 mod run_cockpit_loop;
+pub use cmd_resolve_dispatch::cmd_resolve_dispatch;
 
 pub use cmd_next::cmd_next;
 pub use cmd_next_cockpit::cmd_next_cockpit;

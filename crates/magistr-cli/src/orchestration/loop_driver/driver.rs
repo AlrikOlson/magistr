@@ -726,7 +726,17 @@ impl LoopDriver {
             if let Some(dispatch) = dispatch {
                 let config = self.agent_config(&prompt, &cwd);
                 self.post(LoopEvent::Stage(LoopStage::Connecting));
-                let (transport, spec) = match self.connector.connect(config).await {
+                let (transport, spec) = match self
+                    .connector
+                    .connect_checkpointed(config, || {
+                        if self.persist {
+                            self.iter_loop.checkpoint_dispatch_launch(&dispatch)
+                        } else {
+                            self.iter_loop.start_operation(&dispatch, None)
+                        }
+                    })
+                    .await
+                {
                     Ok(connected) => connected,
                     Err(e) => {
                         self.settled(&dispatch, OperationOutcome::Failed);
@@ -1033,7 +1043,17 @@ impl LoopDriver {
         };
         let config = self.agent_config(objective, cwd);
         self.post(LoopEvent::Stage(LoopStage::Connecting));
-        let (mut transport, spec) = match self.connector.connect(config).await {
+        let (mut transport, spec) = match self
+            .connector
+            .connect_checkpointed(config, || {
+                if self.persist {
+                    self.iter_loop.checkpoint_dispatch_launch(&dispatch)
+                } else {
+                    self.iter_loop.start_operation(&dispatch, None)
+                }
+            })
+            .await
+        {
             Ok(connected) => connected,
             Err(e) => {
                 self.settled(&dispatch, OperationOutcome::Failed);
@@ -1526,7 +1546,11 @@ impl LoopDriver {
     fn intend(&mut self, kind: OperationKind, target: &str) -> Intent {
         match self.iter_loop.begin_operation(kind, target, target) {
             Ok(Some(attempt)) => {
-                self.checkpoint_operations();
+                if self.persist
+                    && let Err(error) = self.iter_loop.persist()
+                {
+                    return Intent::Unrecorded(error.to_string());
+                }
                 Intent::Attempt(attempt)
             }
             Ok(None) => Intent::Established,

@@ -244,6 +244,14 @@ impl ResolvedSessionSpec {
     ///
     /// Process startup, unsupported session choices, or ACP handshake failure.
     pub async fn connect_transport(&self) -> Result<AcpTransport> {
+        self.connect_transport_checkpointed(|| Ok(())).await
+    }
+
+    /// The transport persists launch intent before creating the provider.
+    pub(crate) async fn connect_transport_checkpointed(
+        &self,
+        before_spawn: impl FnOnce() -> Result<()>,
+    ) -> Result<AcpTransport> {
         let translated =
             super::translate_tools_for_runtime(&self.config.allowed_tools, &self.runtime.auth);
         let mut args = self.runtime.args.clone();
@@ -266,9 +274,14 @@ impl ResolvedSessionSpec {
         .session_effort(self.config.effort.clone())
         .session_system_prompt(self.config.system_prompt.clone())
         .local_effects(self.source.clone());
-        transport.connect().await.map_err(|error| {
-            MagistrError::Acp(format!("Failed to connect ACP transport: {error}"))
-        })?;
+        transport
+            .connect_checkpointed(|| {
+                before_spawn().map_err(|error| magistr_acp::AcpError::connection(error.to_string()))
+            })
+            .await
+            .map_err(|error| {
+                MagistrError::Acp(format!("Failed to connect ACP transport: {error}"))
+            })?;
         Ok(transport)
     }
 

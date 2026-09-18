@@ -3577,6 +3577,75 @@ async fn a_new_loop_request_after_cancellation_sends_the_opening_prompt() {
     assert_ne!(checkpoint(dir.path()).run_id, previous.state().run_id);
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_accepted_dispatch_retries_at_two_with_a_durable_marker_before_connect() {
+    use magistr_core::workflow::iteration::DispatchPhase;
+    let dir = project("true", "true", "true");
+    let spec = dir.path().join("ROADMAP.md");
+    let mut previous = IterationLoop::open(dir.path(), &spec, 1, None).unwrap();
+    previous.pre_iteration_check().unwrap();
+    let first = previous
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+        .unwrap()
+        .unwrap();
+    previous.persist().unwrap();
+    let recovered = IterationLoop::open_or_recover(dir.path(), &spec, 1, None).unwrap();
+    let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("recovered"));
+    let root = dir.path().to_path_buf();
+    let connector = Connector::new(move |config| {
+        let state = checkpoint(&root);
+        let dispatch = state.operations.records().last().unwrap();
+        assert_eq!(dispatch.attempt.command(), first.command());
+        assert_eq!(dispatch.attempt.number().get(), 2);
+        assert_eq!(dispatch.outcome, OperationOutcome::Running);
+        assert_eq!(dispatch.dispatch_phase, Some(DispatchPhase::Started));
+        assert!(dispatch.external.is_none());
+        let inner = inner.clone();
+        async move { inner.connect(config).await }
+    });
+    let script = Script::new().startup_replies(MS(0)).text(MS(2_500), "\x04");
+    let terminal = FakeTerminal::new(SIZE, script);
+    let options = Options::new(Env::new("xterm-kitty", false, None)).probe_timeout(MS(500));
+    let mut runtime = Runtime::new(terminal, options);
+    let commands = runtime.commands().unwrap();
+    let driver = LoopDriver::new(
+        recovered,
+        WorkflowConfig::load(dir.path()).unwrap(),
+        Backend::Acp,
+        runtime.inbox(),
+        commands,
+        connector,
+    )
+    .auto_pause(false);
+    let (_, report) = run_cockpit(runtime, driver).await;
+    assert_eq!(report.iterations(), 1);
+    assert_eq!(seen.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn a_failed_dispatch_checkpoint_never_calls_the_connector() {
+    let dir = project("true", "true", "true");
+    let il = IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 1, None).unwrap();
+    std::fs::create_dir(dir.path().join(".magistr/loop-state.json")).unwrap();
+    let (connector, seen) = fake_connector(FakeAcpAgent::new());
+    let terminal = FakeTerminal::new(SIZE, Script::new());
+    let mut runtime = Runtime::new(terminal, Options::new(Env::new("xterm-kitty", false, None)));
+    let commands = runtime.commands().unwrap();
+    let mut driver = LoopDriver::new(
+        il,
+        WorkflowConfig::load(dir.path()).unwrap(),
+        Backend::Acp,
+        runtime.inbox(),
+        commands,
+        connector,
+    );
+    assert!(matches!(
+        driver.intend(OperationKind::ProviderDispatch, "dispatch"),
+        Intent::Unrecorded(_)
+    ));
+    assert!(seen.lock().unwrap().is_empty());
+}
+
 /// A checkpoint whose provider dispatch is still owned by a live runtime:
 /// the loop over it ends with `Unreconciled`, launches nothing, and
 /// latches no terminal reason on the run — the same loop retries once the

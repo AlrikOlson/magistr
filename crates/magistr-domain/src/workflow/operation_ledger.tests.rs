@@ -1,4 +1,108 @@
 use super::*;
+
+#[test]
+fn dispatch_phase_survives_interruptions_and_handle_attachment_is_monotonic() {
+    let mut ledger = OperationLedger::new();
+    let pending = accepted(&mut ledger, "pending", OperationKind::ProviderDispatch);
+    let started = accepted(&mut ledger, "started", OperationKind::ProviderDispatch);
+    ledger.start(&started, None).unwrap();
+    ledger.start(&started, Some("pid:42".into())).unwrap();
+    assert!(ledger.start(&started, Some("pid:43".into())).is_err());
+    ledger.mark_interrupted();
+    ledger.mark_interrupted();
+    assert_eq!(
+        ledger.record(&pending).unwrap().dispatch_phase,
+        Some(DispatchPhase::Pending)
+    );
+    assert_eq!(
+        ledger.record(&started).unwrap().dispatch_phase,
+        Some(DispatchPhase::Started)
+    );
+    let restored: OperationLedger =
+        serde_json::from_str(&serde_json::to_string(&ledger).unwrap()).unwrap();
+    assert_eq!(restored, ledger);
+    assert!(ledger.start(&started, Some("pid:42".into())).is_err());
+}
+
+#[test]
+fn an_operator_resolves_only_one_open_dispatch_and_keeps_the_explanation() {
+    for outcome in [
+        OperationOutcome::Completed,
+        OperationOutcome::Failed,
+        OperationOutcome::Cancelled,
+    ] {
+        let mut ledger = OperationLedger::new();
+        let dispatch = accepted(&mut ledger, "dispatch", OperationKind::ProviderDispatch);
+        let other = accepted(&mut ledger, "receipt", OperationKind::Receipt);
+        assert!(ledger.resolve_dispatch(&other, outcome, "checked").is_err());
+        assert!(
+            ledger
+                .resolve_dispatch(&dispatch, OperationOutcome::Running, "checked")
+                .is_err()
+        );
+        assert!(ledger.resolve_dispatch(&dispatch, outcome, "  ").is_err());
+        ledger.start(&dispatch, None).unwrap();
+        ledger.mark_interrupted();
+        ledger
+            .resolve_dispatch(&dispatch, outcome, " Checked the stopped agent. ")
+            .unwrap();
+        assert_eq!(
+            ledger.record(&dispatch).unwrap().resolution.as_deref(),
+            Some("Checked the stopped agent.")
+        );
+        assert_eq!(
+            ledger.record(&other).unwrap().outcome,
+            OperationOutcome::Indeterminate
+        );
+        assert!(
+            ledger
+                .resolve_dispatch(&dispatch, outcome, "again")
+                .is_err()
+        );
+        if outcome != OperationOutcome::Completed {
+            assert_eq!(
+                accepted(&mut ledger, "dispatch", OperationKind::ProviderDispatch)
+                    .number()
+                    .get(),
+                2
+            );
+        } else {
+            assert!(matches!(
+                ledger
+                    .admit(
+                        command("dispatch"),
+                        OperationKind::ProviderDispatch,
+                        "target"
+                    )
+                    .unwrap(),
+                OperationAdmission::Established(_)
+            ));
+        }
+    }
+}
+
+#[test]
+fn impossible_dispatch_launch_evidence_is_rejected() {
+    let mut ledger = OperationLedger::new();
+    let dispatch = accepted(&mut ledger, "dispatch", OperationKind::ProviderDispatch);
+    ledger.record_mut(&dispatch).unwrap().external = Some("pid:42".into());
+    assert!(ledger.validate().is_err());
+}
+
+#[test]
+fn legacy_dispatches_have_unknown_launch_phase() {
+    let mut ledger = OperationLedger::new();
+    let attempt = accepted(&mut ledger, "legacy", OperationKind::ProviderDispatch);
+    let mut json = serde_json::to_value(ledger).unwrap();
+    json["records"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("dispatch_phase");
+    let mut restored: OperationLedger = serde_json::from_value(json).unwrap();
+    restored.mark_interrupted();
+    assert_eq!(restored.record(&attempt).unwrap().dispatch_phase, None);
+}
+
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -232,6 +336,8 @@ fn persisted_ledgers_are_validated_before_installation() {
         target: "target".into(),
         outcome: OperationOutcome::Running,
         external: None,
+        dispatch_phase: None,
+        resolution: None,
     });
     assert_eq!(
         two_open.validate(),
@@ -245,6 +351,8 @@ fn persisted_ledgers_are_validated_before_installation() {
         target: "target".into(),
         outcome: OperationOutcome::Completed,
         external: None,
+        dispatch_phase: None,
+        resolution: None,
     });
     assert_eq!(
         renamed.validate(),
