@@ -103,7 +103,7 @@ integrated session path.
 [AgentSession](../../crates/magistr-cli/src/agent/session.rs),
 [transport setup](../../crates/magistr-cli/src/agent/connect_transport.rs),
 [plain drain](../../crates/magistr-cli/src/orchestration/commands/run/mod.rs),
-[cockpit Session](../../crates/magistr-cli/src/agent/cockpit_relay.rs), and
+[cockpit Session](../../crates/magistr-cockpit-runtime/src/session.rs), and
 [direct Codex launcher](../reference/codex.md) define these paths.
 
 | Concern | Historical differences pinned by the baseline |

@@ -1,13 +1,12 @@
 //! The blocking effects a session relay owns, off its own task.
 
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use tokio::task::JoinHandle;
 
+use crate::channel::Inbox;
 use magistr_cockpit::cockpit::Msg;
-use magistr_cockpit_runtime::channel::Inbox;
 
 /// The port calls a session relay carries out for the cockpit — a
 /// workbench read or search, an engine mutation, a checkpoint — each on
@@ -17,14 +16,22 @@ use magistr_cockpit_runtime::channel::Inbox;
 /// Three rules make the jobs *owned* rather than merely spawned. A
 /// capacity ([`SessionJobs::CAPACITY`]) bounds how many run at once; one
 /// more is refused with the reason, for the caller to say on the stage.
-/// A fence closes before the relay terminates its session, so a result
+/// A fence closes before the relay terminates its session or when dropped, so a result
 /// that lands late posts nothing — the cockpit never sees an answer from
 /// a session that is gone. And the relay waits for its jobs under a
 /// grace ([`SessionJobs::JOIN_GRACE`]) before it ends, saying how many it
 /// had to leave behind; a blocking thread cannot be aborted, only fenced.
-pub struct SessionJobs {
-    fence: Arc<AtomicBool>,
+pub(super) struct SessionJobs {
+    fence: Arc<Mutex<bool>>,
     running: Vec<JoinHandle<()>>,
+}
+
+impl Drop for SessionJobs {
+    fn drop(&mut self) {
+        // Aborting a relay skips its async settlement. Running blocking jobs
+        // cannot be aborted, but they must lose permission to publish.
+        self.close();
+    }
 }
 
 impl Default for SessionJobs {
@@ -44,7 +51,7 @@ impl SessionJobs {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            fence: Arc::new(AtomicBool::new(true)),
+            fence: Arc::new(Mutex::new(true)),
             running: Vec::new(),
         }
     }
@@ -63,7 +70,7 @@ impl SessionJobs {
         job: impl FnOnce() -> Msg + Send + 'static,
     ) -> Result<(), String> {
         self.running.retain(|handle| !handle.is_finished());
-        if !self.fence.load(Ordering::Acquire) {
+        if !*self.fence.lock().unwrap_or_else(PoisonError::into_inner) {
             return Err(format!("{what}: the session is closing"));
         }
         if self.running.len() >= Self::CAPACITY {
@@ -76,18 +83,25 @@ impl SessionJobs {
         let inbox = inbox.clone();
         self.running.push(tokio::task::spawn_blocking(move || {
             let msg = job();
-            if fence.load(Ordering::Acquire) {
+            // Publish under the same lock as close, so no answer can slip
+            // through between observing an open fence and sending.
+            let open = fence.lock().unwrap_or_else(PoisonError::into_inner);
+            if *open {
                 inbox.send(msg);
             }
         }));
         Ok(())
     }
 
+    fn close(&self) {
+        *self.fence.lock().unwrap_or_else(PoisonError::into_inner) = false;
+    }
+
     /// Close the fence — nothing posts from here on — and wait for the
     /// jobs under [`SessionJobs::JOIN_GRACE`]. Answers how many were still
     /// running when the grace ran out.
     pub async fn settle(mut self) -> usize {
-        self.fence.store(false, Ordering::Release);
+        self.close();
         let deadline = tokio::time::Instant::now() + Self::JOIN_GRACE;
         let mut left = 0;
         for handle in self.running.drain(..) {

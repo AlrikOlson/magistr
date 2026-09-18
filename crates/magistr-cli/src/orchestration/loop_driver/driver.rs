@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use super::checkpoint_detach::detach;
-use crate::agent::cockpit_relay::spawn_session;
 use crate::agent::cockpit_session::CockpitSession;
 use crate::agent::session_supervisor::SessionControl;
 use crate::application::workflow_client::NativeEnginePort;
@@ -16,6 +15,7 @@ use magistr_cockpit::cockpit::{CheckpointCmd, Cmd, KillCmd, LoopCmd, LoopEvent, 
 use magistr_cockpit::engine::EngineEvent;
 use magistr_cockpit_runtime::Jobs;
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
+use magistr_cockpit_runtime::spawn_session;
 use magistr_engine::native::{BlockerKind, CheckSettlement, Chunk};
 use magistr_engine::{ChunkStatus, NativeEngines, NativeEvent, RoadmapFrame};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};

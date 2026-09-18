@@ -8,9 +8,9 @@ license = "MIT"
 [dependencies]
 magistr-cockpit = { path = "../magistr-cockpit" }
 magistr-application = { path = "../magistr-application" }
-tokio = { version = "1", features = ["rt", "sync"] }
+tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 
 [dev-dependencies]
 toml = "1.0.6"
 magistr-domain = { path = "../magistr-domain" }
-tokio = { version = "1", features = ["macros", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }

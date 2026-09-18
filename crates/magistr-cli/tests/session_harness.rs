@@ -12,7 +12,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use magistr::agent::cockpit_relay::spawn_session;
 use magistr_acp::AcpTransport;
 use magistr_application::sessions::{
     AgentEvent, AskEverything, PolicyDecision, SessionOptions, SessionPolicy,
@@ -26,6 +25,7 @@ use magistr_cockpit::layout::LayoutTree;
 use magistr_cockpit::turn::{RowKind, Voice};
 use magistr_cockpit::workbench::WorkbenchPort;
 use magistr_cockpit_runtime::channel::Arrivals;
+use magistr_cockpit_runtime::spawn_session;
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{AcpObserved, Capture, Deliveries, FakeAcpAgent, FakeTerminal, Script};
 use magistr_tui::runtime::{Options, Runtime};

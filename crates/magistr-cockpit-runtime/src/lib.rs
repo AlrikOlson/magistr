@@ -1,14 +1,17 @@
 //! Message transport and background jobs shared by cockpit hosts and surfaces.
 //!
-//! This crate owns channels and task dispatch, while magistr-cockpit owns their
-//! semantic messages, commands and job results. It owns no renderer, provider
-//! session, concrete store or workspace client. The CLI owns session relays;
-//! each surface owns its event loop and frame scheduling.
+//! This crate owns channels, task dispatch and the session relay over application
+//! handles and cockpit effect ports. magistr-cockpit owns semantic messages,
+//! commands and job results. Hosts supply provider handles and concrete service
+//! clients; each surface owns its event loop and frame scheduling.
 
 #![deny(dead_code, unused)]
 #![forbid(unsafe_code)]
 
 pub mod channel;
 mod jobs;
+mod session;
+mod session_jobs;
 
 pub use jobs::Jobs;
+pub use session::spawn_session;

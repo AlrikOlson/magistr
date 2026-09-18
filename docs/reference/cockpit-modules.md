@@ -169,8 +169,8 @@ test. The section headings separate the crates and their module families.
 | Module | Responsibility | Tests |
 | --- | --- | --- |
 | `magistr-cockpit/src/agent/mod.rs` | Tool-title presentation for shared session observations | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cli/src/agent/cockpit_relay.rs` | Relays application session events to the inbox and explicit commands to the shared owner; stamps presentation timing and serves local effect ports | `magistr-cli/tests/session_harness.rs`, `magistr-cli/src/agent/cockpit_relay.tests.rs` |
-| `magistr-cli/src/agent/session_jobs.rs` | The blocking port calls a session relay owns: a capacity, a fence closed before the session ends so late answers never post, a join grace | `magistr-cli/src/agent/cockpit_relay.tests.rs` |
+| `magistr-cockpit-runtime/src/session.rs` | Relays application session events to the inbox and explicit commands to the shared owner; stamps presentation timing and serves local effect ports | `magistr-cli/tests/session_harness.rs`, `magistr-cockpit-runtime/src/session.tests.rs` |
+| `magistr-cockpit-runtime/src/session_jobs.rs` | The blocking port calls a session relay owns: a capacity, a fence closed on settlement or drop so late answers never post, a join grace | `magistr-cockpit-runtime/src/session.tests.rs` |
 | `magistr-cockpit/src/agent/tool_title.rs` | Familiar tool titles shared by conversation cards, plain output, edits, and permission requests | `magistr-cockpit/src/agent/tool_title.tests.rs` |
 
 ### `capability` — what the surface can show
@@ -197,7 +197,7 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-cockpit/src/checkpoint/mod.rs` | Checkpoint operations for the session ledger | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/checkpoint/apply.rs` | One checkpoint command, carried out on a port | `magistr-cli/tests/session_harness.rs` |
-| `magistr-cockpit/src/checkpoint/describe.rs` | What a checkpoint command asked, in the words a refusal names | `magistr-cli/src/agent/cockpit_relay.tests.rs` |
+| `magistr-cockpit/src/checkpoint/describe.rs` | What a checkpoint command asked, in the words a refusal names | `magistr-cockpit-runtime/src/session.tests.rs` |
 | `magistr-cli/src/orchestration/loop_driver/checkpoint_detach.rs` | Runs checkpoint operations on a blocking thread and returns results through the inbox | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/checkpoint/port.rs` | Where a checkpoint is actually taken, resumed and forked | `magistr-cli/tests/session_harness.rs` |
 
@@ -382,7 +382,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/engine/apply.rs` | Carrying an engine command out on a port | `magistr-cockpit/src/engine/apply.tests.rs` |
 | `magistr-cli/src/application/workflow_client/attached_port.rs` | The engine port over an owner this process did not open | `magistr-cli/src/application/workflow_client/client.tests.rs` |
 | `magistr-cli/src/application/workflow_client/client.rs` | The engines, opened before the terminal is taken over | `magistr-cli/src/application/workflow_client/client.tests.rs` |
-| `magistr-cockpit/src/engine/describe.rs` | What an engine command asked, in the words a refusal names | `magistr-cli/src/agent/cockpit_relay.tests.rs` |
+| `magistr-cockpit/src/engine/describe.rs` | What an engine command asked, in the words a refusal names | `magistr-cockpit-runtime/src/session.tests.rs` |
 | `magistr-cli/src/application/workflow_client/error.rs` | Why the engines could not open | `magistr-cli/src/application/workflow_client/client.tests.rs` |
 | `magistr-cockpit/src/engine/event.rs` | What the feed — or the cockpit's own engine port — reports | `magistr-tui/tests/jobs_engines_harness.rs` |
 | `magistr-cli/src/application/workflow_client/feed.rs` | The broadcast socket decoded at the edge into typed events with their delivery, relayed onto the inbox | `magistr-cli/src/application/workflow_client/feed.tests.rs` |
@@ -562,7 +562,7 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-cockpit/src/workbench/mod.rs` | The workbench behind the cockpit's journal model, as a port | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cockpit/src/workbench/apply.rs` | One workbench command, carried out on a port | `magistr-cockpit/src/workbench/apply.tests.rs` |
-| `magistr-cockpit/src/workbench/describe.rs` | What a workbench command asked, in the words a refusal names | `magistr-cli/src/agent/cockpit_relay.tests.rs` |
+| `magistr-cockpit/src/workbench/describe.rs` | What a workbench command asked, in the words a refusal names | `magistr-cockpit-runtime/src/session.tests.rs` |
 | `magistr-cockpit/src/workbench/journal_entry.rs` | One journaled edit, as the workbench recorded it | `magistr-cli/tests/session_harness.rs` |
 | `magistr-cli/src/application/workspace_client/mcp_client.rs` | One MCP server on the other end of a pipe | `magistr-cli/src/application/workspace_client/mcp_client.tests.rs` |
 | `magistr-cli/src/application/workspace_client/mcp_workbench.rs` | Native journal listing and undo through one owner connection; legacy lock-free journal listing | `magistr-cli/src/application/workspace_client/mcp_workbench.tests.rs`, `magistr-cli/tests/cockpit_journal_owner.rs` |
