@@ -1,4 +1,5 @@
-use magistr_cockpit::cockpit::{Model, TraceStep};
+use magistr_cockpit::cockpit::session_item::SessionItem;
+use magistr_cockpit::cockpit::{Model, Selected, ShipMoment, TraceStep};
 use qs_gpu::color::Srgba;
 
 use crate::action::Action;
@@ -138,12 +139,27 @@ impl TraceComposition {
     }
 
     /// The steps the feed shows: the newest [`TraceComposition::TAIL`]
-    /// of the main line, oldest first.
+    /// of the main line, retaining the selected step even outside that tail.
     #[must_use]
     pub fn window(model: &Model) -> Vec<(usize, &TraceStep)> {
         let main = Self::main_steps(model);
         let from = main.len().saturating_sub(Self::TAIL);
-        main[from..].to_vec()
+        let mut window = main[from..].to_vec();
+        if let Some(Selected::Step(number)) = model.selected()
+            && !window.iter().any(|(_, step)| step.number == *number)
+            && let Some((index, step)) = model
+                .trace()
+                .steps()
+                .iter()
+                .enumerate()
+                .find(|(_, step)| step.number == *number)
+        {
+            if window.len() == Self::TAIL {
+                window.remove(0);
+            }
+            window.insert(0, (index, step));
+        }
+        window
     }
 
     /// The graph's stops, bottom first: the main step before the window
@@ -155,7 +171,11 @@ impl TraceComposition {
         let trace = model.trace();
         let main = Self::main_steps(model);
         let from = main.len().saturating_sub(Self::TAIL);
-        let anchor = from.checked_sub(1).map(|at| main[at]);
+        let window = Self::window(model);
+        let anchor = from
+            .checked_sub(1)
+            .map(|at| main[at])
+            .filter(|(_, step)| !window.iter().any(|(_, shown)| shown.number == step.number));
         let newest = main.last().map(|(_, step)| step.number);
         // Each branch's first step, and the main step it forked from.
         let mut seen: Vec<&str> = Vec::new();
@@ -174,7 +194,7 @@ impl TraceComposition {
             .collect();
         anchor
             .into_iter()
-            .chain(main[from..].iter().copied())
+            .chain(window)
             .map(|(index, step)| LaneStop {
                 index,
                 focused: trace.is_expanded(step.number),
@@ -235,6 +255,9 @@ fn feed(model: &Model, medium: Medium, lex: &Lexicon) -> Element {
         .stretch()
         .gap(TraceComposition::CARD_GAP)
         .align_start();
+    if let Some(record) = selected_record(model, lex) {
+        column = column.child(record.stretch());
+    }
     for (index, step) in window {
         let live = newest == Some(step.number) && !step.is_final;
         column = column.child(card(model, index, step, live, medium, lex).stretch());
@@ -246,6 +269,79 @@ fn feed(model: &Model, medium: Medium, lex: &Lexicon) -> Element {
         .pad_y(TraceComposition::FEED_PAD_Y)
         .align_start()
         .child(column)
+}
+
+/// Resolve selected evidence from the shared identities, including a removed record.
+/// The renderer owns only the text arrangement; it never changes selection.
+fn selected_record(model: &Model, lex: &Lexicon) -> Option<Element> {
+    let selected = model.selected()?;
+    let fields = match selected {
+        Selected::Receipt(_) => SessionItem::collect(model.trace(), model.changes())
+            .into_iter()
+            .find(|row| &row.selection() == selected)
+            .and_then(|row| match row {
+                SessionItem::Moment(
+                    _,
+                    ShipMoment::Check {
+                        name,
+                        passed,
+                        verified,
+                        timestamp,
+                        ..
+                    },
+                ) => Some(vec![
+                    name.clone(),
+                    if *passed { "Passed" } else { "Failed" }.into(),
+                    if *verified {
+                        "Executed by Magistr"
+                    } else {
+                        "Self-reported result"
+                    }
+                    .into(),
+                    timestamp.clone(),
+                ]),
+                SessionItem::Moment(
+                    _,
+                    ShipMoment::Action {
+                        description,
+                        files,
+                        timestamp,
+                        ..
+                    },
+                ) => Some(vec![
+                    description.clone(),
+                    files.join(", "),
+                    timestamp.clone(),
+                ]),
+                _ => None,
+            }),
+        Selected::Change(identity) => model
+            .changes()
+            .entries()
+            .iter()
+            .find(|entry| &entry.identity() == identity)
+            .map(|entry| vec![entry.path.clone(), entry.diff.clone()]),
+        Selected::Step(number) if model.trace().step(*number).is_none() => None,
+        _ => return None,
+    };
+    let fields = fields.unwrap_or_else(|| vec!["This record is unavailable.".into()]);
+    Some(
+        fields.into_iter().filter(|text| !text.is_empty()).fold(
+            Card::el(
+                TraceComposition::CARD_PAD_X,
+                TraceComposition::CARD_PAD_Y,
+                lex,
+            )
+            .gap(TraceComposition::HEAD_GAP),
+            |card, text| {
+                card.child(
+                    Element::text(TraceComposition::BODY, lex.sb1, text)
+                        .claim(Component::Prose)
+                        .min_width(0.0),
+                )
+            },
+        ),
+    )
 }
 
 /// One step's card: the head row (number and state, the refs), the

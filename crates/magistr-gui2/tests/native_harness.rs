@@ -262,44 +262,77 @@ fn a_permission_raised_on_the_inbox_is_a_card_answered_by_click_and_by_key() {
     );
 }
 
-/// Every place paints, and moving the camera to one changes what the frame says — the
-/// pane has no per-place renderer to have forgotten. The window has no tab bar to name
-/// a tab and no tab of its own to walk: Tab walks the places, seven presses from the
-/// Session walk the whole set and come back, and what is asserted is each place's own
-/// content — the Galaxy draws the Sky, never the launcher, and the Session draws the
-/// turn.
+/// Primary views and auxiliary destinations remain reachable through shared
+/// navigation, while the native frame paints its own composition and access tree.
 #[test]
 fn every_tab_paints_from_the_one_model() {
+    fn open(pane: &mut Pane, query: &str) {
+        pane.fold(Msg::Key(
+            KeyEvent::new(KeyCode::Char('k')).with(magistr_cockpit::input::Modifiers::SUPER),
+        ));
+        assert!(pane.model.palette().is_some(), "{query}: palette opened");
+        for c in query.chars() {
+            pane.fold(Msg::Key(KeyEvent::new(KeyCode::Char(c))));
+        }
+        assert!(
+            !magistr_cockpit::cockpit::Palette::rows(&pane.model).is_empty(),
+            "{query}: a destination is offered"
+        );
+        pane.fold(Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        assert!(pane.model.palette().is_none());
+    }
     let mut pane = Pane::new();
-    pane.inbox().send(Msg::Agent(AgentEvent::Text(
-        "the turn's own prose".to_owned(),
-    )));
-    pane.drain();
+    pane.model = magistr_cockpit::harness::Scenes::navigation(SIZE);
     // A window draws before any key reaches it, and the frame is what
     // declares the model native (`Frame::build`).
     let _ = pane.paint();
     assert_eq!(
         pane.model.tab(),
         StageTab::Turn,
-        "the tab is the terminal's"
+        "the primary view is shared"
     );
-    for place in [
-        Place::Changes,
-        Place::Trace,
-        Place::Report,
-        Place::Galaxy,
-        Place::Sky,
-        Place::Signals,
-        Place::Birth,
-        Place::Session,
+    open(&mut pane, "Search recorded work");
+    assert!(pane.model.search().is_some());
+    for c in "Saved results".chars() {
+        pane.fold(Msg::Key(KeyEvent::new(KeyCode::Char(c))));
+    }
+    pane.fold(Msg::Key(KeyEvent::new(KeyCode::Enter)));
+    assert_eq!(
+        pane.model
+            .roadmap()
+            .selected()
+            .map(|chunk| chunk.id.as_str()),
+        Some("saved-work")
+    );
+    for (query, place) in [
+        ("changes", Place::Changes),
+        ("trace", Place::Trace),
+        ("Report", Place::Report),
+        ("projects", Place::Galaxy),
+        ("Roadmap", Place::Sky),
+        ("signals", Place::Signals),
+        ("", Place::Birth),
+        ("Conversation", Place::Session),
     ] {
-        pane.fold(Msg::Key(KeyEvent::new(KeyCode::Tab)));
+        if place == Place::Birth {
+            pane.fold(Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::GalaxyNew.id()),
+            });
+        } else {
+            if place == Place::Report {
+                assert_eq!(
+                    pane.model
+                        .roadmap()
+                        .selected()
+                        .map(|chunk| chunk.id.as_str()),
+                    Some("saved-work")
+                );
+            }
+            open(&mut pane, query);
+        }
         assert_eq!(pane.model.place(), Some(place));
-        assert_eq!(
-            pane.model.tab(),
-            StageTab::Turn,
-            "{place:?}: the window never moves the terminal's tab"
-        );
+        assert_eq!(pane.model.tab(), place.tab());
         let rows = pane.paint();
         assert!(
             !rows.is_empty(),
@@ -319,7 +352,7 @@ fn every_tab_paints_from_the_one_model() {
             );
         }
         if place == Place::Session {
-            assert!(shows(&rows, "the turn's own prose"), "{rows:?}");
+            assert!(shows(&rows, "Reviewing delivery"), "{rows:?}");
         }
         // Publish an accessibility tree for every surface. Project navigation, inbox
         // counts, and supervision controls must reflect the selected view.

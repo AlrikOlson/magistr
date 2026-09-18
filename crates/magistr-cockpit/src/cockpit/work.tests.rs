@@ -87,18 +87,17 @@ fn an_unknown_chunk_moves_nothing() {
     assert_eq!(selected(&w), None);
     assert_eq!(
         w.tab(),
-        StageTab::Roadmap,
-        "and the terminal's tab is untouched"
+        StageTab::Session,
+        "and the shared view is untouched"
     );
 }
 
-/// Executing → its Session: the chunk the rail names is the one this
-/// window's session is on, so opening it lands on the turn.
+/// Opening active work selects its Roadmap details, including the current work.
 #[test]
-fn an_executing_chunk_the_rail_names_opens_its_session() {
+fn an_executing_chunk_opens_its_roadmap_details() {
     let mut w = window().with_place(Place::Sky);
     assert!(open_chunk(&mut w, "here"));
-    assert_eq!(w.place(), Some(Place::Session));
+    assert_eq!(w.place(), Some(Place::Sky));
     assert_eq!(
         selected(&w),
         Some("here"),
@@ -141,8 +140,8 @@ fn a_stuck_chunk_opens_its_decision() {
     assert!(open_chunk(&mut w, "stuck"));
     assert_eq!(
         w.place(),
-        Some(Place::Session),
-        "the decision lives on the Session"
+        Some(Place::Sky),
+        "the decision opens over the selected work"
     );
     assert!(w.moment().is_some(), "and the card is raised again");
     assert_eq!(w.dock().len(), 1, "raised, never answered");
@@ -170,15 +169,19 @@ fn a_blocked_chunk_opens_the_sky_card_where_its_blocker_is_cleared() {
     assert_eq!(selected(&w), Some("blocked"));
 }
 
-/// Done → its Report (view 09): the chapter and the shelf, from
-/// wherever the opener stood — and the chunk selected under it, which
-/// is what the chapter and the shelf are read off.
+/// Completed work opens its details; Report is a separate explicit destination.
 #[test]
-fn a_done_chunk_opens_its_report() {
+fn a_done_chunk_opens_details_and_its_report_is_explicit() {
     for from in [Place::Changes, Place::Galaxy, Place::Trace, Place::Sky] {
         let mut w = window().with_place(from);
         assert!(open_chunk(&mut w, "shipped"));
-        assert_eq!(w.place(), Some(Place::Report), "from {from:?}");
+        assert_eq!(w.place(), Some(Place::Sky), "from {from:?}");
+        open_report(&mut w);
+        assert_eq!(
+            w.place(),
+            Some(Place::Report),
+            "explicit report from {from:?}"
+        );
         assert_eq!(selected(&w), Some("shipped"));
     }
 }

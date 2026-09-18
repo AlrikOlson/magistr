@@ -138,10 +138,8 @@ fn a_selected_star_tells_its_chunk_and_offers_the_engines_verb() {
 #[test]
 fn the_resting_sky_keeps_no_selection_card() {
     let mut model = resting_sky();
-    // Select a star — which opens it, and a shipped star opens its
-    // Report (view 09), another place that never rests — then climb
-    // back to the Sky with the selection kept, and rest again: the
-    // ticks re-exhale the chrome.
+    // Selecting any star stays on the Roadmap. After idle ticks, its
+    // selection remains while the native chrome rests.
     if !model.roadmap().dag_nodes().is_empty() {
         update(
             &mut model,
@@ -149,12 +147,6 @@ fn the_resting_sky_keeps_no_selection_card() {
                 event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 10),
                 target: Some(Widget::sky_star(0)),
             },
-        );
-        update(
-            &mut model,
-            Msg::Key(magistr_cockpit::input::KeyEvent::new(
-                magistr_cockpit::input::KeyCode::Esc,
-            )),
         );
         assert!(
             model.roadmap().selected().is_some(),

@@ -6,6 +6,192 @@ use crate::harness::Scenes;
 use crate::input::{KeyCode, KeyEvent};
 use magistr_application::sessions::{AgentEvent, AskPlan, PermissionChoice, PermissionKind};
 
+#[test]
+fn shared_navigation_keeps_the_same_identity_and_destination_on_every_surface() {
+    use crate::cockpit::Selected;
+    use crate::harness::fixtures;
+    use magistr_workflow_contracts::NativeSnapshot;
+    for surface in [Surface::Terminal, Surface::Native] {
+        for pixels in [false, true] {
+            let mut model = Model::new(Size::new(120, 40))
+                .with_surface(surface)
+                .with_tab(StageTab::Turn)
+                .with_snapshot(&NativeSnapshot {
+                    chunks: fixtures::chunks_from(vec![
+                        serde_json::json!({"id":"work", "status":"in_progress"}),
+                        serde_json::json!({"id":"done", "status":"done"}),
+                    ]),
+                    ..NativeSnapshot::default()
+                });
+            model.pixels = pixels;
+            model.session.prompt.insert("Keep this draft");
+            for id in ["work", "done"] {
+                assert!(crate::cockpit::work::open_chunk(&mut model, id));
+                assert_eq!(model.selected(), Some(&Selected::Chunk(id.into())));
+                assert_eq!(model.tab(), StageTab::Roadmap);
+                assert_eq!(model.shown_tab(), StageTab::Roadmap);
+                model.show(StageTab::Session);
+                assert_eq!(model.tab(), StageTab::Session);
+                assert_eq!(model.shown_tab(), StageTab::Session);
+                model.show(StageTab::Turn);
+                assert_eq!(model.tab(), StageTab::Turn);
+                assert_eq!(model.shown_tab(), StageTab::Turn);
+                assert_eq!(model.selected(), Some(&Selected::Chunk(id.into())));
+                assert_eq!(model.prompt().text(), "Keep this draft");
+            }
+        }
+    }
+}
+
+#[test]
+fn switching_views_keeps_selected_reasoning_instead_of_replacing_it() {
+    use crate::cockpit::Selected;
+    for surface in [Surface::Terminal, Surface::Native] {
+        let mut model = Scenes::sky_working(Size::new(120, 40)).with_surface(surface);
+        model.pixels = true;
+        model.inspect(Selected::Step(917));
+        for tab in [StageTab::Roadmap, StageTab::Session, StageTab::Turn] {
+            model.show(tab);
+            assert_eq!(model.selected(), Some(&Selected::Step(917)));
+            assert_eq!(model.tab(), tab);
+        }
+    }
+}
+
+fn journey(surface: Surface) -> Model {
+    let mut model = Scenes::navigation(Size::new(120, 40)).with_surface(surface);
+    update(
+        &mut model,
+        Msg::Mode(crate::capability::Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    model
+}
+
+fn click(model: &mut Model, target: crate::widget_id::WidgetId) {
+    use crate::input::{Button, MouseEvent, MouseKind};
+    update(
+        model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(target),
+        },
+    );
+}
+
+#[test]
+fn navigation_journey_preserves_draft_attachment_and_source_anchor() {
+    use crate::cockpit::Selected;
+    use crate::cockpit::session_item::SessionItem;
+    for surface in [Surface::Terminal, Surface::Native] {
+        let mut model = journey(surface);
+        let prompt = model.prompt().clone();
+        let anchor = model
+            .stage_anchor()
+            .expect("the fixture is reading earlier text");
+        assert!(prompt.text().contains("@src/retry.rs"));
+        assert!(model.turn().len() > model.stage_rows());
+        let change = model.changes().entries()[0].identity();
+        let receipt = SessionItem::collect(model.trace(), model.changes())
+            .into_iter()
+            .map(|row| row.selection())
+            .find(|s| matches!(s, Selected::Receipt(_)))
+            .expect("real recorded check");
+        for selected in [
+            Selected::Chunk("retry-work".into()),
+            Selected::Step(917),
+            Selected::Change(change),
+            receipt,
+            Selected::Signal("retry-signal".into()),
+        ] {
+            open_record(&mut model, selected.clone());
+            assert_eq!(model.selected(), Some(&selected));
+            for tab in [
+                StageTab::Turn,
+                StageTab::Roadmap,
+                StageTab::Session,
+                StageTab::Turn,
+            ] {
+                model.show(tab);
+                assert_eq!(model.tab(), tab);
+                assert_eq!(model.shown_tab(), tab);
+                assert_eq!(model.selected(), Some(&selected));
+                assert_eq!(model.prompt(), &prompt);
+                assert_eq!(model.stage_anchor(), Some(anchor));
+            }
+        }
+    }
+}
+
+#[test]
+fn navigation_journey_resolves_rows_links_and_stale_records_by_identity() {
+    use crate::cockpit::{Selected, WorkbenchEvent};
+    for surface in [Surface::Terminal, Surface::Native] {
+        let mut model = journey(surface);
+        click(&mut model, Widget::trace_row(0));
+        assert_eq!(model.selected(), Some(&Selected::Step(917)));
+        click(&mut model, Widget::LinkedWork.id());
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Chunk("retry-work".into()))
+        );
+        assert_eq!(model.tab(), StageTab::Roadmap);
+        let identity = model.changes().entries()[0].identity();
+        click(&mut model, Widget::change_row(0));
+        assert_eq!(model.selected(), Some(&Selected::Change(identity.clone())));
+        update(
+            &mut model,
+            Msg::Workbench(WorkbenchEvent::Journal { entries: vec![] }),
+        );
+        assert_eq!(model.selected(), Some(&Selected::Change(identity)));
+        assert!(crate::cockpit::changes::open_click(&model, 0).is_empty());
+        assert!(!crate::cockpit::work::open_chunk(
+            &mut model,
+            "removed-work"
+        ));
+        assert!(matches!(model.selected(), Some(Selected::Change(_))));
+        click(&mut model, Widget::signal_row(0));
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Signal("retry-signal".into()))
+        );
+    }
+}
+
+#[test]
+fn navigation_journey_refuses_an_unoffered_answer_without_losing_context() {
+    use crate::cockpit::{DecisionIntent, Selected};
+    for surface in [Surface::Terminal, Surface::Native] {
+        let mut model = journey(surface);
+        open_record(&mut model, Selected::Step(917));
+        let prompt = model.prompt().clone();
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::PermissionRequest {
+                id: 73,
+                title: "Review this change".into(),
+                choices: vec![PermissionChoice::new("deny", PermissionKind::RejectOnce)],
+                edit: false,
+                risk: RiskTier::Medium,
+                plan: None,
+            }),
+        );
+        let commands = update(
+            &mut model,
+            Msg::Decision(DecisionIntent::Answer(PermissionKind::AllowOnce)),
+        );
+        assert!(
+            !commands
+                .iter()
+                .any(|cmd| matches!(cmd, Cmd::Permission { .. }))
+        );
+        assert_eq!(model.dock().len(), 1);
+        assert_eq!(model.prompt(), &prompt);
+        assert_eq!(model.selected(), Some(&Selected::Step(917)));
+    }
+}
+
 fn window() -> Model {
     Model::new(Size::new(120, 40)).with_surface(Surface::Native)
 }

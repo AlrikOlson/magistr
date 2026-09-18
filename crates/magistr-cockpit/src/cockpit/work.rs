@@ -28,7 +28,6 @@ use super::roadmap_sort::RoadmapSort;
 use super::selected::Selected;
 use super::shelf_cmd::ShelfCmd;
 use super::stage_tab::StageTab;
-use super::star_state::StarState;
 use super::surface::Surface;
 use super::update::{ZOOM_KEY_STEP, ZOOM_NOTCH};
 use super::widget::Widget;
@@ -36,84 +35,52 @@ use crate::input::{KeyCode, KeyEvent, MouseEvent};
 use crate::turn::Viewport;
 use crate::widget_id::WidgetId;
 
-/// Open the chunk `id`: the deep link every opener takes — the ⌘K
-/// palette's ↵, a star on the Sky, the Brief's verbs, the Trace's chunk
-/// jump, and whatever opens a chunk later — so "open a chunk" lands the
-/// same place from all of them. `false` when the roadmap has no such
-/// chunk, and then nothing moves.
-///
-/// The chunk is selected first, on both surfaces: the Sky's card and
-/// the star's framing follow the selection. A terminal has no Place and
-/// keeps what it always did — the stage turns to the Roadmap tab. A
-/// window decides the Place by the chunk's state, in the sky's own
-/// vocabulary ([`StarState`]) so the two cannot disagree:
-///
-/// - **Executing** → its Session, when the rail names this chunk (that
-///   is what makes the session *its*); an executing chunk this window
-///   has no session on gets the Sky card like any other star.
-/// - **Stuck** → its decision: the Session, with a Moment that was stood
-///   down to the dock raised again — unanswered, never an answer. With
-///   no decision on this window's dock there is nothing here to open,
-///   and the Sky card shows the ringed star.
-/// - **Blocked** → the Sky card, which carries the blocker and its Clear
-///   verb.
-/// - **Done** → its Report (view 09): the chapter and the deliverables
-///   shelf, at altitude 3. The shelf itself is asked for by the opener
-///   ([`shelf_collect`]), since a fold answers no `Cmd`.
-/// - anything else → the Sky's selection card.
-///
-/// ⌘↵ on a palette row is the one opener that does not come here by
-/// design: it acts on the row and the camera holds.
+/// Open a chunk by stable identity on the Roadmap, on either surface.
+/// Missing chunks leave navigation unchanged. A blocked decision may be
+/// recalled, but opening work never answers it. Reports are explicit destinations.
 pub(super) fn open_chunk(model: &mut Model, id: &str) -> bool {
     let (now, animate) = glide(model);
     if !model.roadmap.select(id, now, animate) {
         return false;
     }
-    if !model.surface().is_native() {
-        model.inspect(Selected::Chunk(id.to_owned()));
-        model.pane = Pane::Stage;
-        model.show(StageTab::Roadmap);
-        return true;
+    model.inspect(Selected::Chunk(id.to_owned()));
+    model.show(StageTab::Roadmap);
+    if model
+        .roadmap
+        .chunk(id)
+        .is_some_and(|chunk| chunk.state == super::ChunkState::Stuck)
+        && matches!(model.dock.front(), Some(DockItem::Permission(_)))
+    {
+        model.decision.recall();
     }
-    model.place = destination(model, id);
     true
 }
 
-/// The state → Place mapping, on a chunk the roadmap has.
-fn destination(model: &mut Model, id: &str) -> Place {
-    let state = model.roadmap.chunk(id).map_or(StarState::Pending, |chunk| {
-        StarState::of(chunk.state, false)
-    });
-    match state {
-        StarState::Executing if model.rail.chunk() == Some(id) => Place::Session,
-        StarState::Stuck if matches!(model.dock.front(), Some(DockItem::Permission(_))) => {
-            model.decision.recall();
-            Place::Session
-        }
-        StarState::Done => Place::Report,
-        _ => Place::Sky,
+/// Reports are explicit destinations; selecting completed work opens its details.
+pub(super) fn open_report(model: &mut Model) -> Vec<Cmd> {
+    if model
+        .roadmap
+        .selected()
+        .is_none_or(|chunk| !chunk.state.is_done())
+    {
+        return Vec::new();
     }
+    model.show_place(Place::Report);
+    shelf_collect(model)
 }
 
-/// The rise from a session's chunk chip to its roadmap node: the
-/// roadmap camera focuses the node and opens its card, whatever the
-/// chunk's state — the chip's point is the star, framed, which is why
-/// an executing chunk does not route back to the Session it is on the
-/// way [`open_chunk`] would send it. `false` when the roadmap has no
-/// such chunk.
+/// Focus a chunk's roadmap node without recalling a decision.
 pub(super) fn rise_to_chunk(model: &mut Model, id: &str) -> bool {
     let (now, animate) = glide(model);
     if !model.roadmap.select(id, now, animate) {
         return false;
     }
-    model.place = Place::Sky;
+    model.inspect(Selected::Chunk(id.to_owned()));
+    model.show(StageTab::Roadmap);
     true
 }
 
-/// The identity band's chunk chip: the rise to the chunk the rail
-/// names, framed ([`rise_to_chunk`] — not the open-chunk fold, which
-/// would route an executing chunk back to the Session it is on). No
-/// chunk on the rail moves nothing.
+/// Focus the work named by the session. A missing identity leaves it unchanged.
 pub(super) fn session_chunk_click(model: &mut Model) {
     let Some(id) = model.rail.chunk().map(str::to_owned) else {
         return;
@@ -121,9 +88,7 @@ pub(super) fn session_chunk_click(model: &mut Model) {
     rise_to_chunk(model, &id);
 }
 
-/// A click on a star of the native sky: the chunk it stands for is
-/// opened through the one open-chunk fold — its card, its Session or
-/// its decision by its state, exactly where ⌘K would land it.
+/// Resolve a graph hit through the shared chunk opener.
 ///
 /// The chunk is looked up by the graph index the star's id carries
 /// rather than remembered from the paint, so a roadmap re-seeded
@@ -172,14 +137,9 @@ pub(super) fn chunk_jump(model: &mut Model, number: u32) -> Vec<Cmd> {
     shelf_collect(model)
 }
 
-/// A click on the list row at visible `index`: on a window the row's
-/// detail toggles ([`Roadmap::toggle_row`](super::Roadmap::toggle_row));
-/// on a terminal the chunk becomes the inspector's selection, by id.
+/// Select the chunk at a visible list row by stable identity.
 pub(super) fn row_click(model: &mut Model, index: usize) {
-    let (now, animate) = glide(model);
-    if model.surface().is_native() {
-        model.roadmap.toggle_row(index, now, animate);
-    } else if let Some(chunk) = model.roadmap.rows().get(index) {
+    if let Some(chunk) = model.roadmap.rows().get(index) {
         let selected = Selected::Chunk(chunk.id.clone());
         model.inspect(selected);
         if !model.uses_flight_recorder() {

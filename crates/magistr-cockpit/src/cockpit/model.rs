@@ -1525,6 +1525,8 @@ impl Model {
     #[must_use]
     pub const fn with_place(mut self, place: Place) -> Self {
         self.place = place;
+        self.tab = place.tab();
+        self.tab_explicit = true;
         self
     }
 
@@ -1538,10 +1540,8 @@ impl Model {
         self.surface
     }
 
-    /// The stage tab the view draws — which is never [`Model::tab`] on
-    /// a window: the native surface routes by [`Place`], and draws the
-    /// surface the place names ([`Place::tab`]). A terminal shows
-    /// exactly the tab it always did.
+    /// The view drawn by this renderer. Shared navigation keeps the tab and
+    /// place together; desktop-only places use their corresponding shared tab.
     #[must_use]
     pub const fn shown_tab(&self) -> StageTab {
         if self.surface.is_native() {
@@ -1677,40 +1677,33 @@ impl Model {
 
     /// Open the journal's desktop place or the terminal's unified session.
     pub(super) const fn show_changes(&mut self) {
-        if self.surface.is_native() {
-            self.place = Place::Changes;
-        } else {
-            self.tab = StageTab::Session;
-        }
+        self.tab = StageTab::Session;
+        self.tab_explicit = true;
+        self.place = Place::Changes;
+    }
+
+    /// Keep a desktop destination and its shared view in agreement.
+    pub(super) fn show_place(&mut self, place: Place) {
+        self.show(place.tab());
+        self.place = place;
     }
 
     /// Open a terminal tab or its corresponding desktop place.
     pub(super) fn show(&mut self, tab: StageTab) {
-        if self.surface.is_native() {
-            self.place = Place::of_tab(tab);
-        } else {
-            self.tab = tab;
-            self.tab_explicit = true;
-            if self.uses_flight_recorder() {
-                self.pane = Pane::Stage;
-                if tab == StageTab::Roadmap
-                    && !matches!(
-                        self.selected,
-                        Some(Selected::Chunk(_) | Selected::Signal(_))
-                    )
-                {
-                    let selected = self
-                        .roadmap
-                        .selected()
-                        .or_else(|| self.roadmap.rows().first().copied())
-                        .map(|item| Selected::Chunk(item.id.clone()));
-                    if let Some(selected) = selected {
-                        self.inspect(selected);
-                    }
-                }
-                self.pane = Pane::Stage;
+        self.tab = tab;
+        self.tab_explicit = true;
+        self.place = Place::of_tab(tab);
+        if tab == StageTab::Roadmap && self.selected.is_none() {
+            let selected = self
+                .roadmap
+                .selected()
+                .or_else(|| self.roadmap.rows().first().copied())
+                .map(|item| Selected::Chunk(item.id.clone()));
+            if let Some(selected) = selected {
+                self.inspect(selected);
             }
         }
+        self.pane = Pane::Stage;
     }
 
     /// Draw this model for `surface`.

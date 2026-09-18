@@ -137,11 +137,10 @@ fn cmd_enter_acts_without_switching() {
 }
 
 #[test]
-fn every_binding_is_reachable_and_a_verb_row_dispatches_its_key() {
+fn offered_bindings_are_reachable_and_a_verb_row_dispatches_its_key() {
     for binding in Binding::ALL {
-        // Kill is press-and-hold: the sheet lists it,
-        // the palette never dispatches it — see below.
-        if *binding == Binding::KILL {
+        // Kill needs a hold; Roadmap has its shared destination row.
+        if matches!(*binding, Binding::KILL | Binding::ROADMAP) {
             continue;
         }
         let mut model = seeded();
@@ -280,8 +279,8 @@ fn enter_on_a_chunk_row_takes_the_fold_and_cmd_enter_holds_the_camera() {
     key(&mut model, KeyCode::Enter, Modifiers::NONE);
     assert_eq!(
         model.place(),
-        Some(Place::Session),
-        "executing → its Session"
+        Some(Place::Sky),
+        "opening work selects its roadmap details"
     );
     assert_eq!(
         model.roadmap().selected().map(|chunk| chunk.id.as_str()),

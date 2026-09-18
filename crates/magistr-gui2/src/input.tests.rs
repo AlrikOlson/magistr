@@ -1,5 +1,61 @@
 use super::*;
 
+#[test]
+fn navigation_journey_through_native_keys_preserves_the_work_and_draft() {
+    use magistr_cockpit::cockpit::{Selected, StageTab, Surface, update};
+    use magistr_cockpit::harness::Scenes;
+    let mut model = Scenes::navigation(Size::new(120, 40)).with_surface(Surface::Native);
+    let prompt = model.prompt().clone();
+    let mut input = Input::default();
+    for (query, tab) in [
+        ("Retry delivery", StageTab::Roadmap),
+        ("Roadmap", StageTab::Roadmap),
+        ("Recorded work", StageTab::Session),
+        ("Conversation", StageTab::Turn),
+    ] {
+        input.mods = Modifiers::SUPER;
+        update(
+            &mut model,
+            input
+                .keyed(&Key::Character("k".into()), KeyKind::Press)
+                .unwrap(),
+        );
+        assert!(model.palette().is_some());
+        input.mods = Modifiers::NONE;
+        for c in query.chars() {
+            update(
+                &mut model,
+                input
+                    .keyed(&Key::Character(c.to_string().into()), KeyKind::Press)
+                    .unwrap(),
+            );
+        }
+        update(
+            &mut model,
+            input
+                .keyed(&Key::Named(NamedKey::Enter), KeyKind::Press)
+                .unwrap(),
+        );
+        assert!(model.palette().is_none());
+        assert_eq!(model.tab(), tab);
+        assert_eq!(model.shown_tab(), tab);
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Chunk("retry-work".into()))
+        );
+        assert_eq!(model.prompt(), &prompt);
+    }
+    input.mods = Modifiers::CTRL;
+    update(
+        &mut model,
+        input
+            .keyed(&Key::Named(NamedKey::Tab), KeyKind::Press)
+            .unwrap(),
+    );
+    assert_eq!(model.tab(), StageTab::Session);
+    assert_eq!(model.prompt(), &prompt);
+}
+
 use magistr_cockpit::cockpit::{FrameClock, Widget};
 use winit::dpi::PhysicalPosition;
 use winit::event::DeviceId;

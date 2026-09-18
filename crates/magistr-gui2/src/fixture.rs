@@ -556,6 +556,14 @@ impl Fixture {
         );
         update(
             &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('k')).with(Modifiers::SUPER)),
+        );
+        for c in "Report".chars() {
+            update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char(c))));
+        }
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        update(
+            &mut model,
             Msg::Job {
                 id: JobId::new(7),
                 output: JobOutput::Shelf(Box::new(Self::shelf())),

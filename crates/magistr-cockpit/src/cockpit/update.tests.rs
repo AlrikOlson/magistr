@@ -7260,6 +7260,7 @@ fn the_reports_receipt_verbs_put_the_receipt_on_the_stage_or_open_the_trace() {
     let star = star_of(&w, "shipped");
     // Nothing moves without a shelf to read.
     update(&mut w, click(Widget::sky_star(star)));
+    work::open_report(&mut w);
     assert_eq!(w.place(), Some(Place::Report));
     update(&mut w, click(Widget::ReportCommit.id()));
     assert_eq!(

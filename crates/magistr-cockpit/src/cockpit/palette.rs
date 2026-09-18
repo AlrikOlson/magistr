@@ -85,10 +85,12 @@ impl Palette {
                 order += 1;
             }
         };
-        if model.uses_flight_recorder() {
+        if model.has_pixels() || model.surface().is_native() {
             push(PaletteRow::place("Settings", PaletteGo::Settings));
             push(PaletteRow::place("Search recorded work", PaletteGo::Search));
             push(PaletteRow::place("Keyboard help", PaletteGo::Help));
+        }
+        if model.uses_flight_recorder() {
             if super::flight_divider::FlightDivider::ALL
                 .into_iter()
                 .any(|d| d.visible(model))
@@ -103,12 +105,12 @@ impl Palette {
             row.name = None;
             push(row);
         }
-        if !model.surface().is_native() {
+        {
             for tab in super::stage_tab::StageTab::ALL {
-                let label = if model.uses_flight_recorder() {
+                let label = if model.has_pixels() || model.surface().is_native() {
                     match tab {
                         super::StageTab::Turn => "Conversation",
-                        super::StageTab::Session => "Records",
+                        super::StageTab::Session => "Recorded work",
                         super::StageTab::Roadmap => "Roadmap",
                     }
                 } else {
@@ -120,11 +122,7 @@ impl Palette {
         if let Some(project) = model.launcher().filter(|data| !data.project.is_empty()) {
             let mut row = PaletteRow::place(
                 project.project.clone(),
-                if model.surface().is_native() {
-                    PaletteGo::Place(Place::Sky)
-                } else {
-                    PaletteGo::Tab(super::stage_tab::StageTab::Roadmap)
-                },
+                PaletteGo::Tab(super::stage_tab::StageTab::Roadmap),
             );
             row.sigil = true;
             let pending = model.dock().len();
@@ -139,13 +137,18 @@ impl Palette {
         }
         for (name, place) in [
             ("projects", Place::Galaxy),
-            ("roadmap", Place::Sky),
             ("signals", Place::Signals),
-            ("session", Place::Session),
             ("changes", Place::Changes),
             ("trace", Place::Trace),
+            ("Report", Place::Report),
         ] {
-            if model.surface().is_native() {
+            if model.surface().is_native()
+                && (place != Place::Report
+                    || model
+                        .roadmap()
+                        .selected()
+                        .is_some_and(|chunk| chunk.state.is_done()))
+            {
                 push(PaletteRow::place(name, PaletteGo::Place(place)));
             }
         }
@@ -225,12 +228,12 @@ impl Palette {
             // with no release, and a hold nobody lets go of would
             // complete on the timer — so the sheet lists it and the
             // palette never dispatches it.
-            if *binding == Binding::KILL
+            if matches!(*binding, Binding::KILL | Binding::ROADMAP)
                 || (model.uses_flight_recorder() && *binding == Binding::SHEET)
                 || (!model.surface().is_native()
                     && matches!(
                         *binding,
-                        Binding::ROADMAP | Binding::RESUME | Binding::ZOOM | Binding::ZOOM_FIT
+                        Binding::RESUME | Binding::ZOOM | Binding::ZOOM_FIT
                     ))
             {
                 continue;

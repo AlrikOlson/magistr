@@ -365,6 +365,16 @@ screen-reader testing covers typing, deletion, submission, cancellation, and
 incoming output, with the terminal, OS, and reader settings recorded alongside
 the results.
 
+## Shared navigation
+
+Conversation, Roadmap and Recorded work use the cockpit's shared navigation
+owners on terminal and desktop. Opening a chunk selects its Roadmap details;
+linked records retain their stable identity across view changes. Drafts,
+attachment tokens and the conversation source anchor belong to the session
+and survive navigation. The [desktop contract](desktop.md#shared-navigation)
+describes the common scenario corpus and adapter checks. Terminal geometry,
+protocol decoding, pane focus and rendering remain in their existing owners.
+
 ## Verification
 
 The interface suites cover purity, crate boundaries, layout, input fuzzing,
