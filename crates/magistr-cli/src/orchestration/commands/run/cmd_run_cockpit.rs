@@ -14,7 +14,7 @@ use magistr_tui::term::{RealTerminal, Terminal as _};
 use crate::agent;
 use crate::agent::cockpit_session::CockpitSession;
 use crate::application::WorkspaceAdmission;
-use crate::orchestration::interactive_session::InteractiveSession;
+use crate::orchestration::interactive_session::interactive_session;
 use crate::orchestration::loop_driver::Connector;
 use crate::permissions::PermissionProfile;
 
@@ -113,13 +113,13 @@ pub async fn cmd_run_cockpit(
     // over its stdio; the server is only spawned once something is asked
     // of it. The engine port is the same in-process engines the rail
     // seed reads.
-    let mut session = InteractiveSession::new(
+    let mut session = interactive_session(
         followup_config,
         Connector::live(workspace.source_route()),
         runtime.inbox(),
         Some(engines.clone()),
     )
-    .connected(session_handle, opening)
+    .connected(Box::new(session_handle), opening)
     .spawn(commands);
     let model = runtime
         .run(super::seed_supervision(

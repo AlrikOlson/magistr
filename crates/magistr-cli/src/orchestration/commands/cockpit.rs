@@ -6,7 +6,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use crate::agent::AgentConfig;
-use crate::orchestration::interactive_session::InteractiveSession;
+use crate::orchestration::interactive_session::interactive_session;
 use crate::orchestration::loop_driver::Connector;
 use magistr_application::effects::{SourceRefusal, SourceRoute};
 
@@ -59,7 +59,7 @@ pub(crate) async fn cockpit_model_on(
     let commands = runtime
         .commands()
         .ok_or_else(|| eyre::eyre!("Magistr could not connect the session controls"))?;
-    let mut session = InteractiveSession::new(
+    let mut session = interactive_session(
         AgentConfig::new("", root).with_project_context(root),
         Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
         runtime.inbox(),

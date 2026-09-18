@@ -176,6 +176,36 @@ trimmed byte, and the terminal outcome still arrives. A lossless flood past
 a small bound ends observation behind its marker and leaves a session that
 admits the next turn.
 
+### Conversation and planning coordination
+
+The shared runtime's
+[InteractiveSession](../../crates/magistr-cockpit-runtime/src/interactive_session.rs)
+owns conversation/planning context switching, one queued roadmap request,
+connection retry and the lifetime of its local and provider relays. Hosts supply
+an asynchronous connector for the requested `SessionPurpose`, returning an
+application `SessionHandle`, plus admitted workbench, workflow and checkpoint
+ports. The runtime does not resolve provider configuration or acquire project
+authority.
+
+The CLI's [host factory](../../crates/magistr-cli/src/orchestration/interactive_session.rs)
+supplies that connector using the existing resolved provider setup and planning
+permission policy. Conversation and planning retain separate provider contexts.
+A queued planning request starts after the current turn ends; cancelling the
+queued request leaves the active conversation alone. Loop handoffs still belong
+to the loop driver, which waits for work and checks to settle before invoking
+this coordinator and receives its loop controls back without reopening settled
+iteration accounting.
+
+Normal closure waits for the active, parked and local relays with bounded
+deadlines. Dropping or aborting the coordinator cancels all three relays,
+including local work that has been queued but not dispatched. Already running
+blocking operations cannot be cancelled; the relay's result fence suppresses
+their late answers. Direct coordinator tests cover context reuse, queued
+cancellation, retry, provider death and owner cancellation with a running job.
+The desktop can consume this neutral coordinator, but its executable still
+runs fixtures: live host composition and native-window provider journeys remain
+unfinished.
+
 ### Owned relay jobs
 
 The shared runtime's cockpit relay ([session](../../crates/magistr-cockpit-runtime/src/session.rs))

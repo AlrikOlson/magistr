@@ -9,7 +9,10 @@
 #![forbid(unsafe_code)]
 
 pub mod channel;
+mod interactive_session;
 mod jobs;
+mod local_session;
+pub use interactive_session::{InteractiveSession, SessionPurpose};
 mod session;
 mod session_jobs;
 

@@ -34,8 +34,10 @@ dependency. The root workspace's check commands do not check this excluded crate
 
 The desktop consumes the shared `magistr-cockpit` model and neutral application
 session and workflow contracts. `magistr-cockpit-runtime` supplies channels and
-the shared relay over session handles and local effect ports. The relay is
-available without a CLI or terminal dependency; the desktop executable still
+the shared relay and conversation/planning coordinator over session handles and
+local effect ports. Hosts supply provider startup through a purpose-aware
+connector; queueing, context reuse, retry and relay shutdown belong to the shared
+runtime. These are available without a CLI or terminal dependency; the desktop executable still
 needs live host composition, provider setup and native-window verification.
 It depends on neither `magistr-tui` nor concrete engine, workflow, workspace,
 process, ACP or CLI implementations. The dependency-boundary test checks Cargo's
