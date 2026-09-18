@@ -103,7 +103,7 @@ fn workspace_states_render_in_both_themes_compact_wide_and_scaled() {
                 assert!(composer[2] > w as f32 * 0.85);
                 assert!(frame.rect_of(W::REASONING).is_some());
                 assert!(frame.rect_of(W::NEARBY).is_some() == (layout != "compact"));
-                let ids: Vec<_> = frame.access(scale).nodes().iter().map(|n| n.id).collect();
+                let ids: Vec<_> = frame.access().nodes().iter().map(|n| n.id).collect();
                 let unique: std::collections::HashSet<_> = ids.iter().collect();
                 assert_eq!(
                     ids.len(),

@@ -178,6 +178,8 @@ pub(crate) fn divider(model: &Model, divider: D, lex: &Lexicon) -> Element {
         .justify_center()
         .child(grip)
         .id(WorkspaceComposition::id(widget.id()))
+        .focusable()
+        .focus_ring(lex.mauve)
         .label(widget.label())
 }
 

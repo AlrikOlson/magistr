@@ -356,6 +356,9 @@ impl RootComposition {
             return Some(widget);
         }
         match id {
+            PaletteComposition::QUERY | SearchComposition::FIELD | SettingsComposition::QUERY => {
+                Some(Widget::OverlayQuery.id())
+            }
             HeaderComposition::PROJECTS => Some(Widget::CrumbProjects.id()),
             HeaderComposition::PROJECT => Some(Widget::CrumbProject.id()),
             HeaderComposition::SESSION => Some(Widget::CrumbSession.id()),

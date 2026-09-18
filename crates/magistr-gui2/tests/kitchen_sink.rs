@@ -60,6 +60,7 @@ const INFRASTRUCTURE: &[&str] = &[
     "fixture_roadmap",
     "roadmap_layout",
     "frame",
+    "frame_access",
     "frame_clip",
     "frame_workspace",
     "workspace_layout",

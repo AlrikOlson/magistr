@@ -5,10 +5,11 @@ Its [provenance](../../crates/magistr-gui2/PROVENANCE.md) records the reviewed
 source commit, licenses, assets and pinned private renderer dependency.
 
 This delivery runs interactive fixture windows. It does not connect a desktop
-session to a live project, provider or durable workflow writer. Accessible
-roles, names and bounds are published; assistive-technology actions are not
-implemented yet. Live session integration and semantic action completion remain
-separate roadmap work.
+session to a live project, provider or durable workflow writer. The native window
+publishes accessible roles, names, values, bounds, supported actions and current
+focus. Action delivery is verified through a separate macOS accessibility client
+driving the running window; live session integration remains separate roadmap work.
+The probe checks native controls and focus without requiring a screen reader.
 
 ## Build boundary
 
@@ -91,6 +92,63 @@ Use Cmd-K to open Retry delivery, Recorded work and Conversation, in that order;
 exercise both Return and a pointer selection, then close the window. The example
 checks the final selection and unchanged draft, including its attachment. This
 fixture check does not claim a live provider session or accessibility actions.
+
+## Accessible controls
+
+AccessKit callbacks enqueue requests on the native event loop. The window thread
+rebuilds the current frame before resolving a request, then sends the same semantic
+messages used by pointer and keyboard controls. Focus remains renderer state;
+application actions remain owned by the shared cockpit. The adapter is installed
+before the window becomes visible, receives window events before application
+handling, and publishes a complete tree after activation, following the
+[AccessKit adapter contract](https://docs.rs/accesskit_winit/0.33.2/accesskit_winit/struct.Adapter.html).
+
+Visible enabled controls advertise only their supported actions: Focus and Click,
+SetValue for the message editor and search fields, Increment/Decrement for panel
+boundaries, and scrolling for supported reading regions. Disabled controls expose
+their disabled state. Requests for retired controls, unsupported actions, invalid
+values or controls behind an open dialog are refused. Node identities follow the
+underlying work item or command; an old Send request cannot become Stop after a
+frame update.
+
+Keyboard focus, pointer targets and accessible bounds use the painted and clipped
+layout. AccessKit receives physical pixels and performs the platform's scale
+conversion; dividing the bounds first would misplace controls on Retina displays.
+Replacing the message value sends one complete draft edit to the shared session
+owner, retaining sent history and clearing completion anchors from the old text.
+Dialogs constrain focus to their controls. Return/Space activate a focused
+button; arrows adjust a focused panel boundary. Committed text in a search dialog
+edits its query without changing the message draft.
+
+The shared `InputJourney` fixture drives terminal decoding and native keyboard,
+pointer and AccessKit requests. It checks navigation, selected work, retained
+drafts and attachments, conversation reading position, send/stop, planning requests
+and permission refusal. Native action tests also check exact text, stale targets,
+focus, modal isolation and resizing.
+
+On macOS, run the platform check from the repository root in a graphical session:
+
+```sh
+cargo build --manifest-path crates/magistr-gui2/Cargo.toml --locked --example navigation_probe --example composer_probe
+swift crates/magistr-gui2/tests/native_accessibility.swift
+```
+
+The terminal running the check needs macOS Accessibility permission. The driver
+starts only its own fixture windows and uses AXUIElement actions and values,
+process-targeted keyboard events, and pointer events with a frontmost-window
+check. It waits for observed state changes and requires both fixtures to exit
+with their final model and command assertions passing. It restores the previous
+application and pointer position afterward. Pass the examples directory as the
+optional first argument when using a custom Cargo target directory.
+
+The journeys cover command search, navigation, Tab/Return focus, window resizing,
+pointer activation at published bounds, multiline replacement, Shift-Return,
+file choice, retained attachments, Send/Stop and a retained draft. A macOS
+26.5.2 run caught and verified fixes for double-scaled bounds and incomplete
+multiline replacement. Unsupported actions are omitted from advertised actions;
+native dispatch tests additionally check explicit stale/unsupported refusals.
+No screen capture or screen-reader process is required. Spoken announcements
+are outside this check; CPU screenshots and GPU readback remain separate gates.
 
 ## Conversation workspace
 
@@ -191,7 +249,7 @@ Send a request, cancel it, then send it again. Inspect Requests and Item details
 scroll the reply, drag the column boundary, type “Keep this draft”, and return to
 Conversation before closing the window. The example verifies command routing,
 request isolation and retained draft. It uses deterministic producers; live project
-sessions and accessibility actions remain separate work.
+sessions remain separate work.
 
 ## Focused verification
 

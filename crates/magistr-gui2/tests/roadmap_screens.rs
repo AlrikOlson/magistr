@@ -37,7 +37,7 @@ fn roadmap_state_matrix_has_stable_frames_and_usable_controls() {
                     .with_theme(Theme::forced(mode).with_motion(MotionMode::Reduced));
                 let clock = FrameClock::new(0, std::time::Duration::ZERO);
                 let image = frame.still(&mut model, &clock, w, h).unwrap();
-                let access = frame.access(scale);
+                let access = frame.access();
                 let ids: Vec<_> = access.nodes().iter().map(|n| n.id).collect();
                 assert_eq!(
                     ids.len(),
@@ -52,10 +52,7 @@ fn roadmap_state_matrix_has_stable_frames_and_usable_controls() {
                     let node = access.find(widget).expect("visible primary control");
                     let (x, y, right, bottom) = node.bounds.unwrap();
                     assert!(
-                        x >= 0.0
-                            && y >= 0.0
-                            && right <= w as f64 / scale + 1.0
-                            && bottom <= h as f64 / scale + 1.0,
+                        x >= 0.0 && y >= 0.0 && right <= w as f64 + 1.0 && bottom <= h as f64 + 1.0,
                         "{name} {layout} {widget:?}: {node:?}"
                     );
                 }
@@ -140,7 +137,7 @@ fn selected_blocker_and_proposal_are_visible_in_item_details() {
             .collect::<Vec<_>>()
             .join("\n");
         assert!(says.contains(text), "{says}");
-        assert!(frame.access(1.0).find(Widget::RoadmapStart).is_none());
+        assert!(frame.access().find(Widget::RoadmapStart).is_none());
         if id == "delivery-blocked" {
             assert_eq!(
                 model.roadmap().star_state(id),

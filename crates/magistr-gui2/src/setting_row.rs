@@ -51,7 +51,7 @@ impl SettingRow {
                             .nowrap(),
                     ),
             )
-            .child(control);
+            .child(control.label(name));
         if !divided {
             return row;
         }

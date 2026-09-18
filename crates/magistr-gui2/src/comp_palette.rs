@@ -26,6 +26,7 @@ impl PaletteComposition {
     /// The result rows' element ids: `ROWS + index` for the row at
     /// `index` in [`Palette::rows`], `ROWS_END` exclusive.
     pub const ROWS: u64 = 400;
+    pub const QUERY: ElementId = ElementId(433);
     /// One indexed space's width — far more rows than the palette cuts
     /// its list to.
     pub const ROWS_END: u64 = 432;
@@ -128,6 +129,11 @@ fn header(palette: &Palette, glass: Srgba, lex: &Lexicon) -> Element {
                                 palette.query(),
                             )
                             .claim(Component::Field)
+                            .min_width(12.0)
+                            .id(PaletteComposition::QUERY)
+                            .label("Commands")
+                            .focusable()
+                            .focus_ring(lex.mauve)
                             .nowrap(),
                         )
                         .child(

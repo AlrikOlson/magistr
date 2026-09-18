@@ -363,6 +363,14 @@ pub(super) fn accept_completion(model: &mut Model) {
     }
 }
 
+/// Replace the draft atomically; completion anchors belong to the old text.
+pub(super) fn replace_prompt(model: &mut Model, text: &str) {
+    let prompt = &mut model.session.prompt;
+    prompt.set_cursor(prompt.text().len());
+    prompt.complete(0, text);
+    model.session.completion = None;
+}
+
 /// Pasted text goes into the draft verbatim and sends nothing.
 pub(super) fn paste(model: &mut Model, text: &str) {
     model.session.prompt.insert(text);

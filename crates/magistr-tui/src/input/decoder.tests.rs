@@ -3,6 +3,37 @@ use proptest::prelude::*;
 use super::*;
 
 #[test]
+fn shared_input_journey_through_terminal_decoder() {
+    use magistr_cockpit::cockpit::{Cmd, Msg, Size, update};
+    use magistr_cockpit::harness::{Scenes, input_journey::InputJourney as J};
+    let mut model = Scenes::navigation(Size::new(120, 40));
+    update(
+        &mut model,
+        Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+            pointer_shapes: true,
+        }),
+    );
+    J::verify(&mut model, |model, gesture| {
+        let bytes = match gesture {
+            J::Navigate(query) => format!("\x10{query}\r"),
+            J::Text(text) => format!("\x1b[200~{text}\x1b[201~"),
+            J::Send => "\r".into(),
+            J::Stop => "\x03".into(),
+            J::AllowOnce => "a".into(),
+            J::AllowAlways => "A".into(),
+        };
+        decode(bytes.as_bytes())
+            .into_iter()
+            .flat_map(|event| match event {
+                Event::Key(key) => update(model, Msg::Key(key)),
+                Event::Paste(text) => update(model, Msg::Paste(text)),
+                _ => panic!("unexpected journey input"),
+            })
+            .collect::<Vec<Cmd>>()
+    });
+}
+
+#[test]
 fn navigation_journey_through_terminal_bytes_preserves_the_work_and_draft() {
     use magistr_cockpit::cockpit::{Msg, Selected, Size, StageTab, update};
     use magistr_cockpit::harness::Scenes;

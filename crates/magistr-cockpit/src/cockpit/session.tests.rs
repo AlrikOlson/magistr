@@ -34,6 +34,25 @@ fn click(target: crate::WidgetId) -> Msg {
     }
 }
 
+#[test]
+fn replacing_a_multiline_draft_preserves_history_and_discards_old_completion() {
+    let mut m = model().with_workspace_files(vec!["src/main.rs".into()]);
+    m.session.prompt.insert("already sent");
+    m.session.prompt.take();
+    update(&mut m, Msg::Paste("old\n".into()));
+    update(&mut m, key(KeyCode::Char('@')));
+    assert!(m.completion().is_some());
+    m.session.prompt.set_cursor(1);
+    for replacement in ["  café\ne\u{301} @\"résumé draft.md\"  ", ""] {
+        assert!(update(&mut m, Msg::PromptReplace(replacement.into())).is_empty());
+        assert_eq!(m.prompt().text(), replacement);
+        assert_eq!(m.prompt().cursor(), replacement.len());
+        assert_eq!(m.prompt().history(), &["already sent"]);
+        assert!(m.completion().is_none());
+        assert_eq!(m.turn_state(), TurnState::Idle);
+    }
+}
+
 fn type_text(m: &mut Model, text: &str) {
     for c in text.chars() {
         update(m, key(KeyCode::Char(c)));

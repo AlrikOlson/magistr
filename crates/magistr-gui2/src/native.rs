@@ -7,7 +7,7 @@ use std::time::Instant;
 use accesskit::{ActionHandler, ActionRequest, ActivationHandler, DeactivationHandler, TreeUpdate};
 
 use magistr_cockpit::capability::Mode;
-use magistr_cockpit::cockpit::{Animation, Cmd, FrameClock, Model, Msg, Widget, update};
+use magistr_cockpit::cockpit::{Animation, Cmd, FrameClock, Model, Msg, update};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
 use qs_gpu::batcher::Renderer;
 use qs_gpu::device::{Acquired, GpuContext, SurfaceRecovery, acquire, new_instance};
@@ -17,7 +17,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
 
 use crate::cadence::Cadence;
@@ -118,10 +118,11 @@ impl Native {
         // An untaken receiver is dropped here: the core's sends fail
         // quietly instead of queueing for nobody.
         drop(commands);
-        let event_loop = EventLoop::<Msg>::with_user_event()
+        let event_loop = EventLoop::<NativeEvent>::with_user_event()
             .build()
             .map_err(|e| Gui2Error::Window(e.to_string()))?;
         let proxy = event_loop.create_proxy();
+        let access_proxy = proxy.clone();
         // The runtime's own copy of the inbox goes away with it, so the
         // forwarder ends once every producer has hung up — or on the
         // first message after the loop is gone, whichever comes first.
@@ -130,7 +131,10 @@ impl Native {
             .name("gui2-inbox".to_owned())
             .spawn(move || {
                 while let Some(msg) = messages.blocking_recv() {
-                    if proxy.send_event(msg).is_err() {
+                    if proxy
+                        .send_event(NativeEvent::Message(Box::new(msg)))
+                        .is_err()
+                    {
                         break;
                     }
                 }
@@ -147,7 +151,11 @@ impl Native {
             started: Instant::now(),
             cadence: Cadence::new(),
             last_paint: Instant::now(),
-            listening: Listening::default(),
+            listening: Listening {
+                active: Arc::default(),
+                proxy: access_proxy.clone(),
+            },
+            access_proxy,
             published: false,
             gpu: None,
             outcome: Ok(()),
@@ -175,12 +183,15 @@ struct Gpu {
 /// [`AccessTree`](crate::AccessTree) only while something is listening,
 /// which is what keeps a cockpit nobody is reading with a screen reader
 /// exactly as cheap to paint as it was before.
-#[derive(Clone, Default)]
-struct Listening(Arc<AtomicBool>);
+#[derive(Clone)]
+struct Listening {
+    active: Arc<AtomicBool>,
+    proxy: EventLoopProxy<NativeEvent>,
+}
 
 impl Listening {
     fn is_on(&self) -> bool {
-        self.0.load(Ordering::Relaxed)
+        self.active.load(Ordering::Relaxed)
     }
 }
 
@@ -190,25 +201,32 @@ impl ActivationHandler for Listening {
     /// here would mean building one on a thread that does not own the
     /// frame.
     fn request_initial_tree(&mut self) -> Option<TreeUpdate> {
-        self.0.store(true, Ordering::Relaxed);
+        self.active.store(true, Ordering::Relaxed);
+        let _ = self.proxy.send_event(NativeEvent::AccessActivated);
         None
     }
 }
 
 impl DeactivationHandler for Listening {
     fn deactivate_accessibility(&mut self) {
-        self.0.store(false, Ordering::Relaxed);
+        self.active.store(false, Ordering::Relaxed);
     }
 }
 
-/// The cockpit publishes roles, names and bounds and answers no actions yet: a click
-/// delivered here would have to become a `Msg` on the inbox, which is its own chunk.
-/// Refusing silently is what AccessKit expects of an unsupported action, and no node
-/// advertises one.
-struct NoActions;
+/// Platform callbacks only enqueue; the window thread validates and executes.
+struct Actions(EventLoopProxy<NativeEvent>);
 
-impl ActionHandler for NoActions {
-    fn do_action(&mut self, _: ActionRequest) {}
+impl ActionHandler for Actions {
+    fn do_action(&mut self, request: ActionRequest) {
+        let _ = self.0.send_event(NativeEvent::Access(request));
+    }
+}
+
+#[derive(Debug)]
+enum NativeEvent {
+    Message(Box<Msg>),
+    Access(ActionRequest),
+    AccessActivated,
 }
 
 struct App {
@@ -229,6 +247,7 @@ struct App {
     last_paint: Instant,
     /// Set while assistive technology is reading the window.
     listening: Listening,
+    access_proxy: EventLoopProxy<NativeEvent>,
     /// Whether a real tree has reached the adapter since it activated.
     published: bool,
     gpu: Option<Gpu>,
@@ -341,11 +360,9 @@ impl App {
         // The tree is derived from the frame that was just painted, and
         // only while something is reading it — see `Listening`.
         if self.listening.is_on() {
-            let tree = self.frame.access(gpu.window.scale_factor());
-            // The window's prompt is the composer; the fallback-to-window rule covers a
-            // slot without one.
+            let tree = self.frame.access();
             gpu.access
-                .update_if_active(|| tree.update(Some(Widget::Composer)));
+                .update_if_active(|| tree.update(self.frame.focus_target()));
             self.published = true;
         } else {
             self.published = false;
@@ -377,7 +394,7 @@ impl App {
     }
 }
 
-impl ApplicationHandler<Msg> for App {
+impl ApplicationHandler<NativeEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.gpu.is_some() {
             return;
@@ -401,7 +418,7 @@ impl ApplicationHandler<Msg> for App {
             event_loop,
             &window,
             self.listening.clone(),
-            NoActions,
+            Actions(self.access_proxy.clone()),
             self.listening.clone(),
         );
         window.set_ime_allowed(true);
@@ -480,8 +497,25 @@ impl ApplicationHandler<Msg> for App {
     }
 
     /// A producer's message, forwarded off the inbox.
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, msg: Msg) {
-        self.fold(event_loop, msg);
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: NativeEvent) {
+        match event {
+            NativeEvent::Message(msg) => self.fold(event_loop, *msg),
+            NativeEvent::AccessActivated => {}
+            NativeEvent::Access(request) => {
+                // Reconcile with producer updates and resize events received since publication.
+                if let Err(error) = self.paint() {
+                    return self.fail(event_loop, error);
+                }
+                match self.frame.access_action(&self.model, request) {
+                    Ok(messages) => {
+                        for message in messages {
+                            self.fold(event_loop, message);
+                        }
+                    }
+                    Err(reason) => tracing::warn!(target: "magistr-gui2", "{reason}"),
+                }
+            }
+        }
         self.request_redraw();
     }
 

@@ -155,7 +155,7 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Cmd> {
 fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
     if matches!(
         msg,
-        Msg::Key(_) | Msg::Mouse { .. } | Msg::Paste(_) | Msg::Decision(_)
+        Msg::Key(_) | Msg::Mouse { .. } | Msg::Paste(_) | Msg::PromptReplace(_) | Msg::Decision(_)
     ) {
         model.inputs += 1;
         // The tick rest is measured from.
@@ -262,6 +262,10 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                 model.session.completion = None;
                 model.pane = Pane::Stage;
             }
+        }
+        Msg::PromptReplace(text) => {
+            session::replace_prompt(model, &text);
+            model.remember(Msg::PromptReplace(text));
         }
         Msg::Paste(text) => {
             session::paste(model, &text);
