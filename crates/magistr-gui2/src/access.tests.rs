@@ -1,6 +1,35 @@
 use super::*;
 
 #[test]
+fn conversation_access_includes_the_visible_action_failure() {
+    let mut model = Model::new(Size::new(122, 32))
+        .with_surface(magistr_cockpit::cockpit::Surface::Native)
+        .with_tab(magistr_cockpit::cockpit::StageTab::Turn);
+    update(
+        &mut model,
+        Msg::Agent(magistr_application::sessions::AgentEvent::Text(
+            "Working".into(),
+        )),
+    );
+    update(
+        &mut model,
+        Msg::CommandFailed {
+            cmd: magistr_cockpit::cockpit::Cmd::Cancel,
+            error: "The connection closed. Try again.".into(),
+        },
+    );
+    let frame = frame_of(&mut model);
+    let tree = frame.access();
+    let conversation = tree.find(Widget::Stage).unwrap();
+    assert_eq!(conversation.label, "Conversation");
+    let value = conversation.value.as_deref().unwrap();
+    assert!(value.contains("Working"));
+    assert!(value.contains("could not stop"));
+    assert!(value.contains("Try again"));
+    assert!(!conversation.actions.contains(&accesskit::Action::SetValue));
+}
+
+#[test]
 fn access_actions_edit_focus_navigate_and_refuse_without_mutation() {
     use accesskit::{Action, ActionData, ActionRequest, NodeId, TreeId};
     let mut model = Model::new(Size::new(122, 32))

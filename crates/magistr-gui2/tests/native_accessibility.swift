@@ -42,8 +42,9 @@ final class WindowProbe {
     let process = Process()
     var application: AXUIElement { AXUIElementCreateApplication(process.processIdentifier) }
 
-    init(_ binary: URL) throws {
+    init(_ binary: URL, arguments: [String] = []) throws {
         process.executableURL = binary
+        process.arguments = arguments
         try process.run()
         do {
             _ = try waitFor("window for \(binary.lastPathComponent)") { self.window }
@@ -261,6 +262,41 @@ do {
     try composer.value(pending, equals: "Keep this draft")
     try composer.close()
     print("PASS: native accessibility actions, keyboard focus/editing, pointer bounds, attachments and Send/Stop")
+    for drive in [Drive.accessibility, .keyboard, .pointer] {
+        let disconnected = try WindowProbe(directory.appendingPathComponent("composer_probe"),
+                                           arguments: ["--disconnect"])
+        let message = try disconnected.find("Message Magistr", role: kAXTextAreaRole)
+        let sent = "Review\n@\"résumé draft.md\""
+        try disconnected.set(message, kAXValueAttribute, sent as CFString)
+        try disconnected.value(message, equals: sent)
+        try disconnected.press(disconnected.find("Send", role: kAXButtonRole))
+        let stop = try disconnected.find("Stop", role: kAXButtonRole)
+        try disconnected.set(message, kAXValueAttribute, "Keep this draft" as CFString)
+        try disconnected.value(message, equals: "Keep this draft")
+        switch drive {
+        case .accessibility:
+            try disconnected.press(stop)
+        case .keyboard:
+            try disconnected.focus(stop)
+            try disconnected.key(36)
+        case .pointer:
+            try disconnected.click(stop)
+        }
+        do {
+            _ = try waitFor("visible stop failure") {
+                disconnected.elements.contains {
+                    label($0).contains("could not stop")
+                        || (attribute($0, kAXValueAttribute) as? String ?? "").contains("could not stop")
+                } ? true : nil
+            }
+        } catch {
+            print(disconnected.elements.map { "\(label($0)): \(attribute($0, kAXValueAttribute) ?? "" as CFString)" })
+            throw error
+        }
+        try disconnected.value(message, equals: "Keep this draft")
+        try disconnected.close()
+        print("PASS: \(drive) reports closed connection and preserves the draft")
+    }
 } catch {
     fputs("Native accessibility check failed: \(error)\n", stderr)
     exit(1)

@@ -4,6 +4,70 @@
 //! owner's rule, and the effects it produces keep their order.
 
 use super::*;
+
+#[test]
+fn failed_answers_restore_the_question_once_without_losing_the_draft() {
+    for event in [plain(17), plan(17), edit(17, "src/main.rs")] {
+        let mut m = model();
+        update(&mut m, Msg::Paste("Keep @src/main.rs".into()));
+        update(&mut m, Msg::Agent(event));
+        let commands = update(
+            &mut m,
+            intent(DecisionIntent::Answer(PermissionKind::AllowOnce)),
+        );
+        let cmd = commands
+            .into_iter()
+            .find(|cmd| matches!(cmd, Cmd::Permission { .. }))
+            .unwrap();
+        assert!(m.dock().is_empty());
+        let failure = Msg::CommandFailed {
+            cmd: cmd.clone(),
+            error: "The connection closed. Try again.".into(),
+        };
+        update(&mut m, failure.clone());
+        update(&mut m, failure);
+        assert_eq!(m.dock().permissions_pending(), 1);
+        assert!(matches!(m.dock().front(), Some(DockItem::Permission(ask)) if ask.id() == 17));
+        assert_eq!(m.prompt().text(), "Keep @src/main.rs");
+        assert!(
+            update(
+                &mut m,
+                intent(DecisionIntent::Answer(PermissionKind::RejectOnce))
+            )
+            .contains(&answered(17, "reject"))
+        );
+    }
+}
+
+#[test]
+fn settled_or_cancelled_questions_never_return_on_late_delivery_failure() {
+    for event in [
+        AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
+        AgentEvent::PermissionCancelled { id: 17 },
+        AgentEvent::Error("Connection ended".into()),
+        AgentEvent::Initialized {
+            session_id: "new".into(),
+            model: None,
+        },
+    ] {
+        let mut m = model();
+        update(&mut m, Msg::Agent(plain(17)));
+        update(
+            &mut m,
+            intent(DecisionIntent::Answer(PermissionKind::AllowOnce)),
+        );
+        update(&mut m, Msg::Agent(event));
+        update(
+            &mut m,
+            Msg::CommandFailed {
+                cmd: answered(17, "allow"),
+                error: "closed".into(),
+            },
+        );
+        assert!(m.dock().is_empty());
+    }
+}
+
 use crate::cockpit::update::update;
 use crate::cockpit::{
     CheckpointCmd, DockItem, EngineCmd, MotionName, Msg, Selected, Size, Surface, TurnState,

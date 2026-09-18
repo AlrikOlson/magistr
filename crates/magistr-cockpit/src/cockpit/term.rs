@@ -297,7 +297,7 @@ impl Term {
     /// Whether the program ended.
     #[must_use]
     pub fn is_finished(&self) -> bool {
-        self.finished
+        self.finished || self.killed
     }
 
     /// The reader ended the program with the held kill: the screen holds still as on any end, and the pane and
@@ -305,7 +305,11 @@ impl Term {
     /// program's own.
     pub fn kill(&mut self) {
         self.killed = true;
-        self.finished = true;
+    }
+
+    /// A refused kill cannot erase a separately observed process exit.
+    pub(super) fn kill_failed(&mut self) {
+        self.killed = false;
     }
 
     /// Whether the reader killed the program.
@@ -358,7 +362,7 @@ impl Term {
     #[must_use]
     pub fn window_cursor(&self) -> Option<(usize, u16)> {
         let screen = self.parser.screen();
-        if self.finished || screen.hide_cursor() || self.anchor.is_some() {
+        if self.is_finished() || screen.hide_cursor() || self.anchor.is_some() {
             return None;
         }
         let (_, col) = screen.cursor_position();
@@ -459,7 +463,7 @@ impl Term {
     /// down.
     #[must_use]
     pub fn progress(&self) -> Progress {
-        if self.finished {
+        if self.is_finished() {
             Progress::Cleared
         } else {
             self.parser.callbacks().progress()

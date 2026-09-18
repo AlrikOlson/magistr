@@ -1,4 +1,75 @@
 #[test]
+fn refused_kill_resumes_observation_without_reopening_an_observed_exit() {
+    for finished in [false, true] {
+        let mut m = model();
+        m.terminals.push("build", b"working", 1);
+        m.terminals.kill("build");
+        if finished {
+            m.terminals.finish("build");
+        }
+        update(
+            &mut m,
+            Msg::CommandFailed {
+                cmd: Cmd::Kill(KillCmd::Terminal("build".into())),
+                error: "The connection closed.".into(),
+            },
+        );
+        let term = m.terminals.term("build").unwrap();
+        assert!(!term.is_killed());
+        assert_eq!(term.is_finished(), finished);
+    }
+}
+
+#[test]
+fn failed_project_actions_keep_streaming_and_the_exact_undo_target() {
+    let mut m = model();
+    agent(&mut m, AgentEvent::Text("Still working".into()));
+    update(&mut m, Msg::Paste("Keep @src/main.rs".into()));
+    let entry = journal_entry("op-17", "src/main.rs");
+    update(
+        &mut m,
+        Msg::Workbench(WorkbenchEvent::Journal {
+            entries: vec![entry.clone()],
+        }),
+    );
+    m.inspect(Selected::Change(entry.identity()));
+    let activity = m.agent_activity();
+    update(
+        &mut m,
+        Msg::CommandFailed {
+            cmd: Cmd::Workbench(WorkbenchCmd::Undo { id: "op-17".into() }),
+            error: "The project connection closed.".into(),
+        },
+    );
+    assert_eq!(m.changes().entries(), std::slice::from_ref(&entry));
+    assert_eq!(
+        m.changes().refusal("op-17"),
+        Some("The project connection closed.")
+    );
+    assert_eq!(m.selected(), Some(&Selected::Change(entry.identity())));
+    assert_eq!(m.agent_activity(), activity);
+    assert_eq!(m.prompt().text(), "Keep @src/main.rs");
+    for cmd in [
+        Cmd::Engine(EngineCmd::Checkpoint),
+        Cmd::Checkpoint(CheckpointCmd::Restore {
+            id: "missing".into(),
+        }),
+        Cmd::Reconnect,
+    ] {
+        let before = m.turn().lines().len();
+        update(
+            &mut m,
+            Msg::CommandFailed {
+                cmd,
+                error: "This action is unavailable.".into(),
+            },
+        );
+        assert!(m.turn().lines().len() > before);
+        assert_eq!(m.agent_activity(), activity);
+    }
+}
+
+#[test]
 fn composer_action_sends_stops_and_preserves_a_waiting_draft() {
     let mut m = model();
     assert!(update(&mut m, left_click(Widget::PromptAction.id())).is_empty());

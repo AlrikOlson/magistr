@@ -200,6 +200,15 @@ The native input adapter keeps IME preedit local to the window, displays it in
 the editor and commits it once as a paste. Shift/Alt-Return inserts a newline;
 Return accepts an open completion before it can send. A closed command channel
 routes prompt rejection back through the shared owner, retaining the draft.
+Closed command receivers return `Msg::CommandFailed` with the undelivered action.
+Both surfaces use the cockpit's refusal handling: prompts retain their text,
+failed undo remains on its change, workflow decisions become available again,
+and failed permission answers restore their original question while its turn
+remains open. Stop reports failure without claiming the provider stopped.
+Local action failures do not finish unrelated conversation or planning work.
+The native conversation scroll area exposes its drawn text as a read-only
+accessibility value, including failure explanations.
+
 The application-level file-reference scanner owns anchoring and deduplication;
 edge adapters supply JSON quoted-path decoding without adding a serialization
 dependency to the application crate.
@@ -217,6 +226,11 @@ Type a message with Shift-Return, choose `résumé draft.md` from Add files,
 visit Roadmap and return to Conversation, then Send. Type `Keep this draft`,
 Stop and close the window. The probe checks the delivered text, file,
 cancellation and retained draft using a deterministic producer.
+The `--disconnect` variant closes that producer after Send. The macOS platform
+check repeats Stop through accessibility, keyboard and pointer controls, reads
+the failure through the conversation's accessible value, and verifies the
+retained draft and that no stop was delivered. These are real native-window
+checks with controlled producers; they do not demonstrate a live provider.
 
 ## Roadmap planning
 

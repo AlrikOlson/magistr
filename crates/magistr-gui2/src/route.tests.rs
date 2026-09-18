@@ -1,6 +1,29 @@
 use super::*;
 
 #[test]
+fn a_closed_command_owner_reports_stop_without_claiming_it_stopped() {
+    let (tx, commands) = Commands::channel();
+    drop(commands);
+    let route = Route::new(tx);
+    let mut m = model();
+    route.fold(&mut m, Msg::Agent(AgentEvent::Text("Working".into())));
+    route.fold(&mut m, Msg::Paste("Keep @src/main.rs".into()));
+    route.fold(
+        &mut m,
+        Msg::Key(KeyEvent::new(KeyCode::Char('c')).with(Modifiers::CTRL)),
+    );
+    assert!(m.agent_activity().active);
+    assert_ne!(m.agent_activity().status, "Stopping");
+    assert_eq!(m.prompt().text(), "Keep @src/main.rs");
+    assert!(
+        m.turn()
+            .lines()
+            .iter()
+            .any(|line| line.text().contains("could not stop"))
+    );
+}
+
+#[test]
 fn failed_delivery_restores_text_and_files_in_both_destinations() {
     use magistr_cockpit::cockpit::{RequestPhase, StageTab};
     for tab in [StageTab::Turn, StageTab::Roadmap] {

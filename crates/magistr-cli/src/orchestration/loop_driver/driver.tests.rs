@@ -25,6 +25,58 @@ use magistr_tui::harness::{AcpObserved, FakeAcpAgent, FakeTerminal, Script};
 use magistr_tui::runtime::{Options, Runtime};
 
 use super::*;
+
+#[tokio::test]
+async fn absent_provider_reports_every_failed_control_and_keeps_local_controls_available() {
+    let dir = tempfile::tempdir().unwrap();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+        AgentConfig::new("", dir.path()),
+        Connector::new(|_| async { panic!("controls must not launch an agent") }),
+        inbox,
+        None,
+    )
+    .spawn(receiver);
+    for command in [
+        Cmd::Cancel,
+        Cmd::Permission {
+            id: 9,
+            option_id: "allow".into(),
+        },
+        Cmd::Constraint {
+            id: 9,
+            condition: "only this file".into(),
+        },
+        Cmd::Delegate("read".into()),
+        Cmd::Reconnect,
+        Cmd::CancelRoadmapPrompt,
+        Cmd::Loop(magistr_cockpit::cockpit::LoopCmd::Pause),
+    ] {
+        commands.send(command.clone()).unwrap();
+        let event = tokio::time::timeout(Duration::from_secs(2), events.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            matches!(event, Msg::CommandFailed { cmd, error } if cmd == command && !error.is_empty())
+        );
+    }
+    commands
+        .send(Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::Checkpoint))
+        .unwrap();
+    let event = tokio::time::timeout(Duration::from_secs(2), events.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        event,
+        Msg::Engine(magistr_cockpit::engine::EngineEvent::PortFailed { .. })
+    ));
+    drop(commands);
+    session.await.unwrap().unwrap();
+}
+
 use crate::agent::Backend;
 use crate::error::MagistrError;
 use crate::orchestration::goal::{AgentGoal, GoalMode, Judge, JudgeInput, Verdict};

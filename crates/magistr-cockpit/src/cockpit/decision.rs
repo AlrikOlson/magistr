@@ -70,6 +70,8 @@ pub struct Decision {
     /// it waits on the dock's strip unanswered instead of floating as
     /// the card, until it is answered from the strip.
     stood_down: Option<u64>,
+    /// Answers retained until this turn settles, so failed delivery can be retried.
+    submitted: Vec<Permission>,
 }
 
 impl Default for Decision {
@@ -80,6 +82,7 @@ impl Default for Decision {
             scroll: 0,
             seen: 0,
             stood_down: None,
+            submitted: Vec::new(),
         }
     }
 }
@@ -133,9 +136,14 @@ impl Decision {
         self.stood_down = None;
     }
 
-    /// The ask `id` left the dock: nothing is stood down for it any
-    /// more.
+    /// A settled turn can no longer retry its submitted answers.
+    pub(super) fn settle(&mut self) {
+        self.submitted.clear();
+    }
+
+    /// The ask left the dock and cannot be restored by a late failure.
     fn forget(&mut self, id: u64) {
+        self.submitted.retain(|permission| permission.id() != id);
         if self.is_stood_down(id) {
             self.stood_down = None;
         }
@@ -576,6 +584,7 @@ fn answer(model: &mut Model, option_id: Option<String>) -> Vec<Cmd> {
     {
         cmds.push(Cmd::Checkpoint(CheckpointCmd::Merge { id }));
     }
+    model.decision.submitted.push(permission);
     cmds
 }
 
@@ -593,10 +602,9 @@ pub(super) fn approve_edit(model: &mut Model, path: &str) -> Vec<Cmd> {
     let Some(option_id) = permission.allow().map(str::to_owned) else {
         return Vec::new();
     };
-    vec![Cmd::Permission {
-        id: permission.id(),
-        option_id,
-    }]
+    let id = permission.id();
+    model.decision.submitted.push(permission);
+    vec![Cmd::Permission { id, option_id }]
 }
 
 /// A permission request arrived: the card goes onto the dock's queue
@@ -663,6 +671,20 @@ pub(super) fn lapsed(model: &mut Model, id: u64, title: &str, after_secs: u64) -
     );
     model.session.turn.push_note(&line);
     vec![Cmd::Announce(line)]
+}
+
+/// A failed answer returns its actual question, never a new permission.
+pub(super) fn delivery_failed(model: &mut Model, id: u64) {
+    if let Some(index) = model
+        .decision
+        .submitted
+        .iter()
+        .position(|permission| permission.id() == id)
+    {
+        let permission = model.decision.submitted.remove(index);
+        model.dock.push_permission(permission);
+        model.decision.recall();
+    }
 }
 
 /// The turn the ask belonged to was cancelled: the card leaves without

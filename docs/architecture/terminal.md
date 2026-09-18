@@ -289,6 +289,14 @@ During a loop, a roadmap request waits for the current item and its checks to se
 it can update the plan. Cancellation targets that queued or active request. These
 follow-ups do not reopen settled loop accounting or run another judge/gate cycle.
 Failed channel delivery and agent submission restore the draft with an explanation.
+`Msg::CommandFailed` retains the refused command through both surface adapters
+and the interactive host. The shared fold uses the existing project-operation
+failures for undo, workflow decisions and checkpoints; it does not mark a
+provider turn finished because an unrelated action failed. Failed permission
+answers return the original question until that turn settles or the question
+is cancelled. Unsupported relay actions and controls without a receiver report
+an explanation instead of silently succeeding. A failed Stop retains the draft
+and reports failure while the observed response remains active.
 
 `AgentActivity` folds observed text, thought, tool, permission and turn-end events.
 Its current request takes precedence over historical objective completion. The

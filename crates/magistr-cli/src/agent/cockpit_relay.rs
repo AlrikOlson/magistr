@@ -131,59 +131,40 @@ impl Session {
     }
 
     fn command(&mut self, cmd: Cmd) {
-        let result = match cmd {
+        let cmd = match cmd {
+            Cmd::Workbench(cmd) => return self.workbench(cmd),
+            Cmd::Engine(cmd) => return self.engine(cmd),
+            Cmd::Checkpoint(cmd) => return self.checkpoint(cmd),
             Cmd::Prompt(text) => {
                 if let Err(error) = self.handle.submit_turn(&text) {
                     self.inbox
                         .send(Msg::Agent(AgentEvent::PromptRejected { text, error }));
                 }
-                Ok(())
+                return;
             }
             Cmd::RoadmapPrompt(text) => {
                 self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
                     text,
                     error:
                         "This session cannot update the roadmap. Open a new session to try again."
-                            .to_owned(),
+                            .into(),
                 }));
-                Ok(())
+                return;
             }
-            Cmd::CancelRoadmapPrompt => {
-                self.inbox.send(Msg::RoadmapRequestCancelled);
-                Ok(())
-            }
+            cmd => cmd,
+        };
+        let result = match &cmd {
             Cmd::Cancel => self.handle.cancel_turn(),
-            Cmd::Permission { id, option_id } => self.handle.answer_permission(id, &option_id),
-            Cmd::Constraint { id, condition } => self.handle.constrain_permission(id, &condition),
-            Cmd::Delegate(key) => self.handle.delegate_permission(&key),
-            Cmd::Kill(KillCmd::Terminal(id)) => self.handle.kill_terminal(&id),
-            Cmd::Workbench(cmd) => {
-                self.workbench(cmd);
-                Ok(())
-            }
-            Cmd::Engine(cmd) => {
-                self.engine(cmd);
-                Ok(())
-            }
-            Cmd::Checkpoint(cmd) => {
-                self.checkpoint(cmd);
-                Ok(())
-            }
-            // The runtime and loop driver serve these before commands reach
-            // the session. A gate terminal belongs to the driver too.
-            Cmd::Kill(KillCmd::Gate(_))
-            | Cmd::Quit
-            | Cmd::Loop(_)
-            | Cmd::Shelf(_)
-            | Cmd::Birth(_)
-            | Cmd::Announce(_)
-            | Cmd::Clipboard(_)
-            | Cmd::Reconnect
-            | Cmd::Animate(_)
-            | Cmd::Still => Ok(()),
+            Cmd::Permission { id, option_id } => self.handle.answer_permission(*id, option_id),
+            Cmd::Constraint { id, condition } => self.handle.constrain_permission(*id, condition),
+            Cmd::Delegate(key) => self.handle.delegate_permission(key),
+            Cmd::Kill(KillCmd::Terminal(id)) => self.handle.kill_terminal(id),
+            // These need a different owner. Receiving them is not evidence
+            // that their requested effect happened.
+            _ => Err("This action is unavailable in this session.".into()),
         };
         if let Err(error) = result {
-            self.inbox.send(Msg::Agent(AgentEvent::Error(error)));
+            self.inbox.send(Msg::CommandFailed { cmd, error });
         }
     }
 

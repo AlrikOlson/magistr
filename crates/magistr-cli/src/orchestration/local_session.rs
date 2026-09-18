@@ -12,19 +12,19 @@ impl SessionHandle for LocalSession {
         Err("Connect to Magistr before sending a message.".into())
     }
     fn cancel_turn(&mut self) -> Result<(), String> {
-        Ok(())
+        Err("No agent is connected. Send a message to connect, then try again.".into())
     }
     fn answer_permission(&mut self, _: u64, _: &str) -> Result<(), String> {
-        Ok(())
+        Err("No agent is connected. Send a message to connect, then try again.".into())
     }
     fn constrain_permission(&mut self, _: u64, _: &str) -> Result<(), String> {
-        Ok(())
+        Err("No agent is connected. Send a message to connect, then try again.".into())
     }
     fn delegate_permission(&mut self, _: &str) -> Result<(), String> {
-        Ok(())
+        Err("No agent is connected. Send a message to connect, then try again.".into())
     }
     fn kill_terminal(&mut self, _: &str) -> Result<(), String> {
-        Ok(())
+        Err("No agent is connected. Send a message to connect, then try again.".into())
     }
     fn detach_client(&mut self) {}
     fn next_event(&mut self) -> Pin<Box<dyn Future<Output = Option<AgentEvent>> + Send + '_>> {

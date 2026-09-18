@@ -193,13 +193,8 @@ impl Driver {
                     }
                 }
                 other => {
-                    if let Err(error) = self.commands.send(other)
-                        && let Cmd::Prompt(text) | Cmd::RoadmapPrompt(text) = error.0
-                    {
-                        self.fold(Msg::Agent(magistr_application::sessions::AgentEvent::PromptRejected {
-                            text,
-                            error: "Your message could not be sent because the agent connection closed. Your draft has been kept. Restart Magistr to reconnect.".into(),
-                        }));
+                    if let Err(error) = self.commands.send(other) {
+                        self.fold(error.0.undelivered());
                     }
                 }
             }

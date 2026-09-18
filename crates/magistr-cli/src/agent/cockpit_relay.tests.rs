@@ -5,6 +5,56 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 
 use super::*;
+
+#[tokio::test]
+async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work() {
+    let (inbox, mut messages) = Inbox::channel();
+    let (commands_tx, commands) = Commands::channel();
+    let task = spawn_session(
+        Box::new(crate::orchestration::local_session::LocalSession),
+        inbox,
+        commands,
+        None,
+        None,
+        None,
+    );
+    let mut model =
+        magistr_cockpit::cockpit::Model::new(magistr_cockpit::cockpit::Size::new(80, 24));
+    magistr_cockpit::cockpit::update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text("Still working".into())),
+    );
+    for cmd in [
+        Cmd::Cancel,
+        Cmd::Permission {
+            id: 17,
+            option_id: "allow".into(),
+        },
+        Cmd::Constraint {
+            id: 17,
+            condition: "read only".into(),
+        },
+        Cmd::Delegate("read".into()),
+        Cmd::Kill(KillCmd::Terminal("build".into())),
+        Cmd::Kill(KillCmd::Gate("checks".into())),
+        Cmd::Reconnect,
+        Cmd::Loop(magistr_cockpit::cockpit::LoopCmd::Pause),
+    ] {
+        commands_tx.send(cmd.clone()).unwrap();
+        let event = next(&mut messages).await;
+        assert!(
+            matches!(&event, Msg::CommandFailed { cmd: refused, error } if refused == &cmd && !error.is_empty())
+        );
+        magistr_cockpit::cockpit::update(&mut model, event);
+        assert!(
+            model.agent_activity().active,
+            "an action refusal cannot finish unrelated work"
+        );
+    }
+    drop(commands_tx);
+    task.await.unwrap().unwrap();
+}
+
 use magistr_application::sessions::{ToolRecord, TurnEnd};
 use magistr_cockpit::cockpit::{WorkbenchCmd, WorkbenchEvent};
 use magistr_cockpit::harness::FakeWorkbench;
@@ -206,7 +256,13 @@ async fn unrouted_roadmap_requests_fail_visibly_without_implementation_submissio
     commands_tx
         .send(Cmd::CancelRoadmapPrompt)
         .expect("cancel sent");
-    assert_eq!(next(&mut messages).await, Msg::RoadmapRequestCancelled);
+    assert!(matches!(
+        next(&mut messages).await,
+        Msg::CommandFailed {
+            cmd: Cmd::CancelRoadmapPrompt,
+            ..
+        }
+    ));
     assert!(
         calls.try_recv().is_err(),
         "a roadmap cancellation never stops implementation"

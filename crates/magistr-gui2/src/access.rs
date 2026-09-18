@@ -243,12 +243,13 @@ impl Walk<'_> {
                         element.label.clone().unwrap_or(label),
                     ),
                     Some(Widget::PromptAction) => (role, said.clone()),
+                    Some(Widget::Stage) => (role, "Conversation".to_owned()),
                     _ => (role, label),
                 };
                 let label = element.label.clone().unwrap_or(label);
                 let value = matches!(
                     widget,
-                    Some(Widget::Prompt | Widget::Composer | Widget::OverlayQuery)
+                    Some(Widget::Prompt | Widget::Composer | Widget::OverlayQuery | Widget::Stage)
                 )
                 .then(|| match &element.kind {
                     Kind::Text { content, .. } => content.clone(),
