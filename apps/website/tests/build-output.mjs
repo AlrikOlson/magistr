@@ -40,7 +40,7 @@ assert(indexHtml.includes('id="roadmap"') && indexHtml.includes('href="/#roadmap
 assert(indexHtml.includes("cargo install --locked --path crates/magistr-cli"), "installation command present");
 assert(indexHtml.includes("git clone https://github.com/AlrikOlson/magistr.git"), "clone command targets the repository");
 assert(indexHtml.includes("magistr --version") && indexHtml.includes("magistr init") && indexHtml.includes("magistr next-loop"), "commands after install");
-assert(indexHtml.includes("0.1.0"), "the current release version is named");
+assert(indexHtml.includes("0.1.0"), "the current development version is named");
 assert(!indexHtml.includes("cargo install magistr"), "no registry installation command");
 assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);

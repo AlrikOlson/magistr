@@ -18,6 +18,18 @@ before choosing commands. Use the host's available web search and page-open
 tools for current external API documentation and prior art. Installed versions
 remain the target; legacy search tool names describe a capability.
 
+## Project release policy
+
+Follow the project's explicit release and backward-compatibility policy before
+using roadmap acceptance, older instructions, reference implementations, or
+existing tests as requirements. A project that forbids backward compatibility
+before official public release has no compatibility exceptions: make intended
+breaking changes directly and update current callers, configuration, docs and
+tests together. Correct conflicting preservation requirements instead of adding
+aliases, shims, fallbacks, dual paths, deprecations or old-format migrations.
+Do not infer an official public release from package versions, tags or release
+tooling.
+
 ## State and evidence
 
 - The native roadmap is authoritative and execution tasks live in `ship_plan`.
@@ -44,7 +56,7 @@ remain the target; legacy search tool names describe a capability.
   changes, including code and roadmap chunks, and record the relevant checks.
   Use `verification: "full"` and `magistr_gate(gate: "all")` only when the user
   requests the full suite or a concrete cross-cutting risk needs every gate;
-  state the reason first. The tool's compatibility default is not a scope
+  state the reason first. The tool's default is not a scope
   decision. An active ship task supplies recording context. Inspect `passed`,
   `recorded`, `note`, exit codes, and native errors; transport success is not evidence.
 - Run focused checks while implementing, then the chosen verification once on

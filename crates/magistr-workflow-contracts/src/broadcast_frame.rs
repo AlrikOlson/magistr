@@ -11,7 +11,7 @@ use super::owner_generation::OwnerGeneration;
 /// One line off the native store's broadcast socket, as the wire carries
 /// it: a JSON object with a `family` tag flattened onto a typed payload
 /// whose discriminator is `type`, plus the publisher's `seq` and `epoch`
-/// stamps. This is the compatibility shape at the transport edge, and
+/// stamps. This is the current serialized shape at the transport edge, and
 /// [`NativeFrame::decode`] is the only reader of its strings: everything
 /// past it holds a [`NativeEvent`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

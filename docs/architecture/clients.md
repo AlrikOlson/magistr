@@ -57,7 +57,9 @@ endpoint, a Bun or NAPI path, or an internal MCP round trip.
 
 The September 2026 retirement audit followed public constructors and aliases
 through their callers, including tests and examples. A test of a disconnected
-implementation was not counted as a production caller.
+implementation was not counted as a production caller. The decisions below
+record that audit; [pre-release policy](../../AGENTS.md#before-public-release) supersedes any
+requirement to retain names, aliases, old formats or migration paths.
 
 | Entrance or alias | Consumer and decision |
 | --- | --- |
@@ -69,7 +71,7 @@ implementation was not counted as a production caller.
 | `AdmittedCheck::admit` | MCP and loop checks share admission, source observation and settlement. Retain. |
 | `McpWorkbench::new` / `with_workspace` | Cockpit bridge from project configuration. Accept the native `mcp-launch workbench-mcp` launch shape; refuse old standalone settings before spawning. Journal and undo use one owner connection. |
 | `EngineHandle::new` / `with_run_mode` / `with_native` | Session checkpoint capture/recovery and its underlying run semantics. Retain; this is not the deleted agent client facade. |
-| CLI foundation, model and persistence aliases; core/engine domain and workflow value reexports | Refer to owning definitions used by live callers and compatibility fixtures; they introduce no independent state or implementation. Retain. |
+| CLI foundation, model and persistence aliases; core/engine domain and workflow value reexports | Currently re-export owning definitions. They impose no preservation requirement: remove redundant aliases and update current callers and tests directly. |
 | `agent::engine`, its root alias, local/channel/remote clients, reconnect and transport task | No caller outside their own tests. Removed together with the unserved `magistr-protocol` crate and its stdio/Unix/TCP/WebSocket transports. |
 | Engine fleet/batch modules and reexports; CLI `agent::multi` constructors and aliases | Only simulated integration tests and internal callers. Removed; no distributed execution is advertised. |
 | Engine `peer` | Preserve the tested bounded agreement/replay rules as an opt-in experiment. Production dependency resolution must not enable `experimental-peer`. |
@@ -78,7 +80,7 @@ The application dependency test checks that the retired wire crate is absent
 and the peer feature is disabled in production resolution. The workspace port
 tests exercise refusal before process launch and journal reads through the owner.
 Existing session, checkpoint, admission and canonical command tests cover the
-retained entrances. Owned subsystem licenses, provenance and compatibility
+retained entrances. Owned subsystem licenses, provenance and reference
 inputs remain in `subsystems/`.
 
 ## Duplicate ownership is refused

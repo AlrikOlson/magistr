@@ -1,5 +1,10 @@
 # Workspace owner
 
+This page describes the current implementation. Under the
+[pre-release policy](../../AGENTS.md#before-public-release), the separate `workbench-mcp` endpoint,
+old launch names, legacy lock formats and migration verbs are not requirements
+to preserve. Consolidate or replace them directly with current callers and tests.
+
 Every Magistr workspace client reaches one admitted native owner. `magistr
 workspace serve <root>` — and its retained production alias `magistr
 mcp-launch workbench-mcp <root>`, the line every scaffolded `.mcp.json` and
@@ -193,8 +198,8 @@ diagnostics: computed on request, retained nowhere.
 - `magistr mcp-launch workbench-mcp <dir>` selects the project root exactly as
   before (nearest `.magistr` or `.jig` project within the repository, else the
   directory) and runs the bridge. The scaffold's `.mcp.json` and Codex
-  `config.toml` entries are unchanged, so a project configured before the
-  cutover works the moment its binary is upgraded.
+  `config.toml` currently contain this launch entry. That records existing
+  configuration and does not require retaining the alias or the separate endpoint.
 - `magistr init` seeds `workbench.toml` through the native detection
   (`magistr workspace init`), never an installed `workbench-mcp init`.
 - The interview's temporary `.mcp.json` always includes the workspace entry.

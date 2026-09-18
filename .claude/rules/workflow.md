@@ -2,6 +2,18 @@
 
 These rules apply to **every project** regardless of language or framework. They are NON-NEGOTIABLE.
 
+## Project release policy
+
+Follow the project's explicit release and backward-compatibility policy before
+using roadmap acceptance, older instructions, reference implementations, or
+existing tests as requirements. A project that forbids backward compatibility
+before official public release has no compatibility exceptions: make intended
+breaking changes directly and update current callers, configuration, docs and
+tests together. Correct conflicting preservation requirements instead of adding
+aliases, shims, fallbacks, dual paths, deprecations or old-format migrations.
+Do not infer an official public release from package versions, tags or release
+tooling.
+
 ## Where state lives
 
 The roadmap, the plan and the quality gates live in **think-and-ship**, served by the `magistr` MCP server as four tool families:
@@ -97,7 +109,7 @@ The verification mode on the objective controls the scope:
   dependencies, and acceptance criteria through `ship_check` or named gates.
 - Select `full` and run `magistr_gate(gate: "all")` only for an explicit
   full-suite request or a concrete cross-cutting risk; state the reason first.
-  The tool's compatibility default is not a scope decision.
+  The tool's default is not a scope decision.
 
 Run the selected verification once against the final source. Diagnose failures
 and rerun affected checks; do not repeat a failing suite without new evidence

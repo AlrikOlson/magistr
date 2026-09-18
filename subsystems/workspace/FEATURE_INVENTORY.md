@@ -1,12 +1,20 @@
 # Workspace source-to-native inventory
 
+The [project pre-release policy](../../AGENTS.md#before-public-release) governs
+this material and every imported document, schema, fixture and test beneath
+this directory. They record source history and current behavior; they impose no
+backward-compatibility, old-format migration or API preservation requirement.
+When the intended Magistr design changes, update current contracts and tests
+together. Preserve attribution and accurate provenance without treating the
+imported behavior as frozen.
+
 Baseline: Workbench `2a2430bbcd5dcbed00920f92c6f3e6928f387d95`.
 [`UPSTREAM_MANIFEST.json`](UPSTREAM_MANIFEST.json) accounts for all 525 Git files:
 428 reference inputs retained and 97 exclusions with reasons. File bytes and
 modes are checked against that pinned tree; [`LOCAL_CHANGES.json`](LOCAL_CHANGES.json)
 names reviewed reference repairs. [`NATIVE_IMPORTS.json`](NATIVE_IMPORTS.json)
-maps native files back to their source. Reference source is a parity oracle,
-not a second production product or evidence of native service completion.
+maps native files back to their source. Reference source supplies historical comparison evidence. It is not a frozen
+production contract, a second product, or evidence of native service completion.
 
 `arch-14c-workbench-source-fork` adopts the engine into the root workspace as
 [`magistr-workspace`](../../crates/magistr-workspace/src/lib.rs), an ordinary Rust
@@ -72,7 +80,7 @@ registers the complete surface under `magistr workspace serve`, which the
 production alias `magistr mcp-launch workbench-mcp` runs as the bridge every
 client reaches the owner through.
 
-| Tool | Contract and behavior to preserve | Reference implementation and tests | Native completion boundary |
+| Tool | Recorded contract and behavior | Reference implementation and tests | Native completion boundary |
 | --- | --- | --- | --- |
 | `search` | Auto/lexical, structural, references, files; regex and glob validation; test/vendor ranking, kind/context filters, grouped deduped budgeted results and truncation manifest; reference confidence provenance; semantic is reserved and rejected | `src/tools/search.ts`, `ranking.ts`; `test/search-tool.test.ts`, `ranking.test.ts`, `ranking-shadow.test.ts`, `rust-structural.test.ts`, `freshness-fuzz.test.ts` | Typed c4 native queries, live admission/freshness, native engine matching and retained ranking goldens delivered; c8 extension enrichment; served by c10 with the request's cancellation token reaching the worker and the declaration compared with the reference server; since c10b references take candidates from the index (defining files plus content-index mentions) within the retained bounds — 200 definitions, 200 files, 50 occurrences per file, 1,000 in total — capped with a note rather than refused, measured at p95 29 ms over 506k LOC; audit-260912-25 excludes a live file over 1 MiB from the lexical/structural scan by name (one incomplete-coverage note per response) instead of aborting every small-file match, and the 64 MiB and 20,000-line ceilings name the file at which they were crossed |
 | `map` | Pruned tree, skeleton/outline/full, language census, index health and generation TTL, trusted/sideloaded plugin inventory, import graph, bounded Cargo workspace/crate/entry-point rows | `src/tools/map.ts`, `map-cargo.ts`; `test/map.test.ts`, `support/golden/map/cargo-workspace.expected.json` | Typed c4 tree, outlines, native index/import and bounded Cargo summaries delivered; c10 serves the installed-plugin inventory rows with the retained fail-closed trust labels and the untrusted note (compared with the reference server) beside the index row; audit-260912-25 decides the 512-file import-summary ceiling from the live inventory before any index read (unit-tested in isolation), states the actual count in the note and reports no fan-in/fan-out or unused-dependency number over the ceiling |
@@ -94,7 +102,7 @@ Paths in the tables are relative to [`reference/`](reference).
 | Error code → recovery and required payload; eight tool input schemas and schema generation | `schemas/error-taxonomy.json`, `schemas/tools/*`, `src/envelope/errors.ts`, `scripts/generate-schemas.ts`; `test/error-taxonomy.test.ts`, `generated-schemas.test.ts`, `skill-drift.test.ts` | Native 24-code typed taxonomy and required payloads in c1; c10 serves the eight input schemas byte-identical to the reference tree and the retained InvalidParams admission messages |
 | Five-layer config merge, key provenance, command allowlist, policy ceilings and detection | `src/config/*`, `workbench.toml`; `test/redteam-policy.test.ts`, `redteam-served.test.ts`, `doctor.test.ts` | Native five-layer config, provenance, command admission and suggestion-only detection in c1; composed policy protects all loaded layers |
 | Canonical jail, nonexistent in-root path handling, symlink/TOCTOU checks, protected configuration and metadata, secret-key creation | `src/jail/*`, `src/protocol/write-access.ts`; `test/redteam-jail.test.ts`, `jail-keys.test.ts`, `write-engine.test.ts` | Native c1 admission/private key lifecycle with malicious-path regressions; c6 adds application-time revalidation and key-bound confirmation grants |
-| Versioned port interfaces: engine 2, index 9, journal 4, watcher 1, sandbox 1, formatter 1, resolver 2 | `src/ports/*`, especially `versions.ts`; `test/import-graph.test.ts`, `inprocess-adapter.test.ts`, `wit-contracts.test.ts` | Rust primitives adopted; application-facing contracts and effect ownership c1–c10 must preserve these behaviors without internal JSON/tool dispatch |
+| Versioned port interfaces: engine 2, index 9, journal 4, watcher 1, sandbox 1, formatter 1, resolver 2 | `src/ports/*`, especially `versions.ts`; `test/import-graph.test.ts`, `inprocess-adapter.test.ts`, `wit-contracts.test.ts` | Rust primitives adopted; application-facing contracts and effect ownership c1–c10 use typed calls without internal JSON/tool dispatch; reference versions do not constrain future changes |
 | Tree-sitter parse/verify, grep regex search, ast-grep structural match/rewrite, ignored/vendor classification, bundled language registry | `crates/workbench-core/src/engine.rs`, `langs.rs`; inline source tests, `test/rust-structural.test.ts`, `inprocess-adapter.test.ts` | Adopted in `crates/magistr-workspace/src/{engine,langs}.rs`; service worker boundary c2 |
 | Symbols, imports, references, Rust trait/impl ambiguity, docs, test ranges and confidence provenance | `crates/workbench-core/src/indexer.rs`; inline tests, `test/indexer.test.ts`, `resolver-plugin.test.ts` | Extraction adopted in native `indexer.rs`; query/storage/freshness c3/c4 |
 | Engine process IPC frames, self-test admission, bounded queue, deadlines, restart/backoff, repeated-input quarantine, crash isolation | `src/adapters/engine-ipc/*`, `src/protocol/tasks.ts`; `test/ipc-frames.test.ts`, `engine-child.test.ts`, `engine-supervisor.test.ts`, `tasks.test.ts` | Native `worker` module and private Magistr executable role delivered in c2; real process acceptance covers framing, readiness, crash/restart, quarantine, cancellation, saturation and reaping; c10 serves the status row and the `index/build` task |
@@ -125,8 +133,8 @@ Paths in the tables are relative to [`reference/`](reference).
 | Write parse/format/staleness/confirmation failure | Whole-batch rejection and reviewable error payload, no partial success claim; re-derive against fresh content. `test/write-engine.test.ts`, `mrtr-confirm.test.ts` | c6/c7 |
 | Journal eviction/conflicting external edits | Surface missing undo blobs and current/expected/restore conflicts; never imply overwritten or evicted content can be recovered. `test/journal-db.test.ts`, `undo.test.ts` | c5/c7 |
 
-The complete retained taxonomy has 24 codes. Native parity must preserve each
-code's recovery and payload rather than flatten failures into strings:
+The current taxonomy has 24 codes. Keep failures typed and actionable; these
+recorded codes and payloads may change with current callers and tests:
 
 | Recovery | Codes and required extra payload |
 | --- | --- |

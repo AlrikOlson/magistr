@@ -129,8 +129,8 @@ impl ThinkConfigResolution {
             }
         }
 
-        // Keep the compatibility alias, but leave the project identity to the
-        // admitting host. Resolving it here would re-read ambient identity.
+        // Both names currently select the same setting; neither is protected.
+        // The admitting host supplies identity to avoid another ambient read.
         for variable in [
             "THINK_AND_SHIP_ENABLE_SESSIONS",
             "THINK_AND_SHIP_AUTO_SESSION",

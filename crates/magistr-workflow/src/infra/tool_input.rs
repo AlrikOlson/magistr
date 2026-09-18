@@ -10,7 +10,7 @@ pub struct ToolInput;
 
 impl ToolInput {
     /// Return all absent required top-level fields. Domain validation still
-    /// owns ranges, semantic prerequisites and supported compatibility coercions.
+    /// owns ranges, semantic prerequisites and supported input coercions.
     pub fn required(tool: &Tool, request: &CallToolRequestParams) -> Option<CallToolResult> {
         let required = tool
             .input_schema

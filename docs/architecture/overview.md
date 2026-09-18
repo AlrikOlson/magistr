@@ -1,5 +1,10 @@
 # Architecture
 
+Magistr is unreleased. The [pre-release policy](../../AGENTS.md#before-public-release) prohibits backward
+compatibility in every design decision until the owner declares official public
+release. Existing aliases, older formats and reference parity describe current
+or historical implementation; none is a requirement to retain that behavior.
+
 Magistr separates project configuration, workflow state, agent transport, and
 presentation. The root Cargo manifest groups the public Rust crates into one workspace.
 The desktop renderer has a separate workspace and lockfile for its private dependencies.
@@ -25,8 +30,8 @@ records the refactor's intended policies, and names executable behavior scenario
 | `magistr-gui2` | Independent desktop fixture renderer, native window, pixel layout, GPU/CPU painting and accessibility bounds; separate Cargo workspace |
 | `magistr-theme` | Shared color and theme vocabulary |
 
-The [domain boundary](domain.md) enforces effect-free dependencies and preserves
-engine compatibility exports while application and session ownership migrate.
+The [domain boundary](domain.md) enforces effect-free dependencies. Existing
+engine re-exports are implementation details that may be removed with their callers.
 The [application contracts](application.md) define project-scoped use cases and
 effect ports. The [host effect adapter](effects.md) routes ACP filesystem and
 terminal requests through configured capabilities; further host migration remains

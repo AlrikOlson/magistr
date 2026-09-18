@@ -853,8 +853,7 @@ fn pin_marks_step_and_recent_steps_promotes_it() {
 
 #[test]
 fn bare_u32_deps_still_deserialize() {
-    // Backward-compat: a ThinkStep persisted with `"dependencies": [1, 2]`
-    // must still load via the new untagged DepEdge enum.
+    // The current untagged DepEdge input accepts numeric dependency entries.
     let raw = r#"{
         "step_number": 2,
         "estimated_total": 3,

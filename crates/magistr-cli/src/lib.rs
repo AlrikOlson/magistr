@@ -9,7 +9,7 @@ pub mod core;
 pub mod detection;
 pub mod orchestration;
 
-// ── Backward-compatible re-exports ──────────────────────────────────────────
+// ── Current module re-exports ──────────────────────────────────────────────
 //
 // These re-exports preserve all existing `crate::X` import paths so that
 // moving modules into domain boundaries is a zero-churn migration.

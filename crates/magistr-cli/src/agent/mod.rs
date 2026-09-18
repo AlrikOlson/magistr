@@ -92,7 +92,7 @@ fn translate_tool_for_copilot(tool: &str) -> String {
 
 // ── Backend ──────────────────────────────────────────────────────────────
 
-// Canonical definitions live in magistr-core. Re-export for backward compatibility.
+// Canonical definitions live in magistr-core; these are current re-exports.
 pub use magistr_core::{Backend, BackendCapabilities};
 
 /// Detect the best available backend.

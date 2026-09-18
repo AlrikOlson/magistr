@@ -11,8 +11,9 @@ each.
 ## Canonical values
 
 `magistr-workflow-contracts` owns the records, family frame enums and pure
-projection values consumed by surfaces. The workflow and engine crates retain
-compatibility re-exports of these exact types; no conversion or duplicate model
+projection values consumed by surfaces. The workflow and engine crates currently
+re-export these exact types; those aliases may be removed with their callers.
+No conversion or duplicate model
 sits between the producer and the view. The contracts crate has no store, process,
 provider, workspace-client or async-runtime dependency and no feature-selected
 storage facade. It parses supplied wire bytes and timestamps without reading a

@@ -256,7 +256,7 @@ fn multi_archetype_project_json_roundtrip() {
 }
 
 #[test]
-fn backward_compat_legacy_json_no_archetypes() {
+fn omitted_archetypes_use_flat_project_fields() {
     // A project.json with no archetypes/topology/relationships must parse fine.
     let json = r#"{
         "project": {"name": "legacy", "description": "", "type": "cli"},

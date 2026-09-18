@@ -56,6 +56,78 @@
 			"sha256": "cc3a1564c191316d5afc4a5bbd676ef8e408624fdb8c558a89263bba9f68cb73",
 			"mode": "100644",
 			"reason": "Equivalent Clippy cleanup: initialize the single extension with alloc::vec!."
+		},
+		{
+			"path": "README.md",
+			"sha256": "210a69d465158454a19ff2740767fb1e85abfa21699825a70a5eb565e52b954f",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "workbench-mcp-sdd.md",
+			"sha256": "f8c00d8b2e54a54de781ad5d6a479f403541ebbe88c87747a873bd8f09d3e06f",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "wit/README.md",
+			"sha256": "5658ac25229f47e0f4705ff8798953cb622aa1ee754b40a015e2cb98bccc2f61",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/006-routing-skill/spec.md",
+			"sha256": "b0df8c3f60ea5d737412d4b4547d37fa0a1d980770c6930bbafab9bf9f5c67db",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/014-rust-cargo-workspace-map/plan.md",
+			"sha256": "918696cf003b87266268b544eb4100e09946388132f43c41fec882da1a61c158",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/005-tracing-ring-buffer/plan.md",
+			"sha256": "815d68967df3844144745a7eb4814146471c98b127eda159f874f991106c5002",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/007-resolver-server-pool/plan.md",
+			"sha256": "4a40cc220004f76bb3b21e5bb983ce9a80bf056b35ebbd0d089d9fa8bce19d41",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/004-doctor-bundles/data-model.md",
+			"sha256": "b06d4e7d3e78e30b938d4a11e48f5959e649b2a5d1d6f1d74327cbf0e5422996",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/005-tracing-ring-buffer/data-model.md",
+			"sha256": "27955b17894822c974c870c10ed6c40e71d9e5129e016771aad72a3220fb65f4",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/005-tracing-ring-buffer/spec.md",
+			"sha256": "abfab709826e32c581b02e6963fd9b88552a469661ba1f6b41bb661d36a9f317",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "specs/001-lsp-resolver-plugin/contracts/resolver-plugin.md",
+			"sha256": "0abb9b286e0f3c3bc19982938fcc427bb1c1916ed9bebbe7e182fa48aa0d9f93",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
+		},
+		{
+			"path": "schemas/README.md",
+			"sha256": "65f5e5302d58835eeaa489703c9aa294d8e5587e79d2148d05748517d0c855c8",
+			"mode": "100644",
+			"reason": "Withdraw inherited backward-compatibility, additive-only and deprecation obligations under Magistr's explicit no-backward-compatibility policy before official public release; reference implementation unchanged."
 		}
 	]
 }

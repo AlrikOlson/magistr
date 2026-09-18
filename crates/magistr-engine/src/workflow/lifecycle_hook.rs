@@ -17,9 +17,8 @@ pub enum OnFailure {
 
 /// What a lifecycle hook actually does when triggered.
 ///
-/// Either invokes an MCP tool (the original behavior) or runs a shell command
-/// directly. Uses `#[serde(untagged)]` for backward-compatible JSON: existing
-/// hooks with `"tool"` field continue to work, new shell hooks use `"command"`.
+/// Either invokes an MCP tool or runs a shell command directly.
+/// `#[serde(untagged)]` selects tool hooks by `"tool"` and shell hooks by `"command"`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum HookAction {

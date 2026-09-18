@@ -25,7 +25,7 @@ because first-party features are built on it (M5 gate).
 
 - **Primitives are duplicated per package, not shared.** A common types
   package would couple the five version stamps; independence of the stamps is
-  the point. The compatibility gate freezes each copy anyway.
+  the point. Existing baseline comparisons do not freeze the current design.
 - **`workbench:tool` payloads are envelope-versioned JSON strings.** The JSON
   Schemas under `schemas/` are the one source of truth for request and
   envelope shape (§4.2); re-modeling them as WIT types would freeze a second
@@ -39,29 +39,21 @@ because first-party features are built on it (M5 gate).
 
 ## Evolution rules
 
-A public WIT mistake is carried for years (SDD §14, highest severity) —
-so evolution is mechanical, not judgment:
-
-1. **Per-interface, independent semver.** Every package carries its own
-   `@major.minor.patch` stamp. Bumping one never obliges bumping another.
-2. **Within a major: additive only.** New interfaces, new functions, new
-   types, and new world items may be added — alongside a version bump. What
-   exists is frozen: no removal, no rename, no signature change.
-3. **Record fields and enum/variant cases are frozen too.** The canonical ABI
-   makes them part of the signature; a "harmless" added field is a breaking
-   ABI change, so it counts as a signature change and needs a major.
-4. **Any vocabulary change requires the stamp to move.** Same-version content
-   drift is refused by the gate.
-5. **A major bump is a deliberate act.** It requires re-blessing the
-   baseline, never happens as a side effect of an edit.
+Magistr is unreleased. The [project policy](../../../../AGENTS.md#before-public-release)
+supersedes this reference's former additive-only, frozen-signature and mandatory
+major-version rules. Change or remove interfaces, functions, fields and variants
+directly when the intended design requires it. Update current host and guest
+consumers, fixtures and baselines together; add no old-version adapters,
+deprecation periods or compatibility migrations.
 
 ## Enforcement
 
 `crates/workbench-core/tests/wit_contracts.rs` parses every package with the
 real component-model parser (`wit-parser`), renders the whole vocabulary to a
-canonical form, and enforces the rules above against `baseline.json` — the
-blessed snapshot. Removals, renames, signature changes, version regressions,
-same-version drift, and un-blessed major bumps all go red.
+canonical form, and compares it against `baseline.json`. The inherited test
+currently flags removals, renames, signature changes and version differences.
+Those checks do not impose a retention requirement: revise tests and baselines
+with intentional contract changes under the project policy.
 
 `test/wit-contracts.test.ts` holds the other end of the contract: the 1:1
 crosswalk between the WIT vocabulary and the live internal TypeScript

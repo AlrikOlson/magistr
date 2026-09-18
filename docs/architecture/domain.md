@@ -32,8 +32,9 @@ The permission decision is the pilot grouping
 became one private module,
 [`policy/permission.rs`](../../crates/magistr-domain/src/policy/permission.rs),
 re-exported under the same names, so `magistr_domain::policy::*` and the
-`magistr_engine::policy` compatibility paths are unchanged; the move is
-mechanical and the tests moved verbatim. Navigation was measured on the real
+`magistr_engine::policy` re-exports existed after that mechanical move, with
+tests moved verbatim. Their old names are not retention requirements under the
+[pre-release policy](../../AGENTS.md#before-public-release). Navigation was measured on the real
 change that shaped these types, commit `1c88362` (shared permissions across
 session entry points):
 
@@ -100,7 +101,8 @@ the [core notification adapter](../../crates/magistr-core/src/workflow_state.rs)
 adds progress punctuation. Equal and forward phase transitions remain accepted,
 and a completed phase can restart at any phase. Spec completion still requires
 a nonempty spec and checked count at least the total. Gate labels, icons,
-cached-pass behavior and serialization remain compatible.
+cached-pass behavior and serialization describe that implementation. They may
+change with the intended design and current tests.
 
 Architecture chunk `arch-03-run-semantics` implements the run-policy decisions
 recorded in the [contract baseline](contracts.md#implemented-run-consolidation).
@@ -138,7 +140,7 @@ Headless, plain and cockpit next-loop commands use core's `open_or_recover`.
 Recovered mode, limits, budget, settlement marker and terminal state remain
 authoritative. The persisted Git baseline belongs to an explicit attempt, so a
 restart cannot hide a commit made while the process was absent. Missing run
-evidence or inconsistent compatibility projections refuse recovery. Legacy
+evidence or inconsistent saved projections refuse recovery. Legacy
 `.magistr/loop-state.json` files without this evidence require an explicit new
 run: preserve the file elsewhere or remove it deliberately. Recovery never
 silently supplies a zero count or overwrites the invalid checkpoint. Completed
@@ -224,6 +226,8 @@ provider correlation, the phase transition matrix, stop boundaries, and negative
 dependency/source fixtures. Run suites cover duplicate settlement, two-attempt
 stopping, observed-commit reset, retained budgets and terminal outcomes, invalid
 legacy recovery, and full engine-governor restoration. Core context tests pass
-the gathered value directly to the engine; compatibility tests pin phase labels,
-API widths and every legacy iteration-status spelling. Formatting and every configured standard/custom gate
-remain required. This boundary changes no interface rendering or goldens.
+the gathered value directly to the engine. Existing serialization tests record
+phase labels, API widths and old iteration-status spellings; they must change
+with the intended design and impose no backward-compatibility requirement.
+Use focused verification for affected behavior and dependencies under the project
+verification policy. This boundary changes no interface rendering or goldens.

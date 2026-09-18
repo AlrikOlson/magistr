@@ -2,7 +2,7 @@
 //!
 //! In-process, all cross-references are values of [`CrossRef`]. The wire
 //! contract used by tool inputs and persisted traces is a `prefix:value`
-//! string preserved for backward compatibility with v0.1.x clients.
+//! string. Old clients impose no constraint on changing this representation.
 
 use std::fmt;
 

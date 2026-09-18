@@ -35,7 +35,8 @@ effort, permission policy, unattended response mode, and project MCP configurati
 Its fields are private; configuration accessors borrow the snapshot, and the
 session owner consumes it to take the same permission policy. CLI, cockpit,
 loop workers, and judge startup use this path. `connect_transport(&AgentConfig)`
-remains a compatibility entry point that resolves a specification internally.
+currently resolves a specification internally. It is not a protected API;
+update its callers directly if the intended session interface changes.
 
 An explicit provider takes precedence over user defaults; automatic detection
 pins one runtime. Missing models inherit only that provider's user default for
@@ -276,7 +277,8 @@ before cockpit presentation or noninteractive response selection. Headless
 supervision owns this handling at startup, including plain sessions. Profiles, rules,
 gates and governance use the selected project directory. Noninteractive Ask
 refuses by default; `.claude/permissions.toml` can explicitly select
-`noninteractive = "legacy-automatic-approval"` for compatibility.
+`noninteractive = "legacy-automatic-approval"` as an explicit current setting.
+The pre-release policy permits removing this setting with its callers and tests.
 
 ## Codex
 
@@ -337,7 +339,7 @@ MAGISTR_CODEX_LIVE=1 cargo run -p magistr-cli --example codex_transport_live
 
 It consumes a short provider turn and verifies streamed tool evidence, completion,
 file contents, and cleanup. Ordinary tests do not run it. The
-[direct Codex launcher](../reference/codex.md) has separate read-only compatibility
+[direct Codex launcher](../reference/codex.md) has separate read-only runtime integration
 tests and does not select this session provider.
 
 API sessions send their accumulated conversation history to the configured

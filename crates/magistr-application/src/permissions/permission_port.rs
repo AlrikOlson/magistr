@@ -7,7 +7,7 @@ use super::{PermissionCommand, PermissionResponse};
 /// Implementations verify that the selected option was offered on the live
 /// decision, apply policy Deny before any approval, and admit the expected
 /// revision before answering. Noninteractive Ask must refuse unless an explicit
-/// compatibility policy was selected. This contract introduces no automatic
+/// automatic response policy was selected. This contract introduces no automatic
 /// approval default and no provider response channel.
 pub trait PermissionPort: Send {
     fn resolve<'a>(

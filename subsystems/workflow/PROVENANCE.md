@@ -1,5 +1,13 @@
 # Workflow source provenance
 
+The [project pre-release policy](../../AGENTS.md#before-public-release) governs
+this material and every imported document, schema, fixture and test beneath
+this directory. They record source history and current behavior; they impose no
+backward-compatibility, old-format migration or API preservation requirement.
+When the intended Magistr design changes, update current contracts and tests
+together. Preserve attribution and accurate provenance without treating the
+imported behavior as frozen.
+
 Magistr owns this repository-local fork of
 [think-and-ship](https://github.com/AlrikOlson/think-and-ship). The source adoption
 is `arch-14a-workflow-source-fork`; typed use-case extraction is the separate

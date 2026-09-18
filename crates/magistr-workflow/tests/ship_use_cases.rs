@@ -1,4 +1,4 @@
-//! Typed Ship use cases, native persistence, and transport compatibility.
+//! Typed Ship use cases, native persistence, and transport behavior.
 
 use std::sync::{Arc, Mutex};
 

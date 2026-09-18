@@ -101,7 +101,6 @@ print correctly-separated command names in their own error messages — read one
 
 **3. Feature numbering** — `.specify/init-options.json` key `feature_numbering`:
 `sequential` (`NNN-slug`) or `timestamp` (`YYYYMMDD-HHMMSS-slug`). Affects chunk ids and sorting.
-`branch_numbering` is a deprecated alias.
 
 **4. Hooks** — `.specify/extensions.yml`, under `hooks.before_*` / `hooks.after_*`.
 **Do not run these yourself.** The slash commands dispatch them. Just know they exist so a

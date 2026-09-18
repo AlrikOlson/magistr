@@ -56,7 +56,7 @@ test_dir = "alongside"
 }
 
 #[test]
-fn parse_json_backward_compatible() {
+fn parse_json_fragment() {
     let json = r#"{
         "name": "legacy",
         "quality_gate": { "check": "npm run build" }

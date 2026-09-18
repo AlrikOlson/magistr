@@ -1,8 +1,7 @@
 //! Backend-agnostic message types for agent sessions.
 //!
-//! Canonical definitions now live in `magistr-core`. This module re-exports
-//! everything for backward compatibility so existing `crate::agent::message::*`
-//! imports continue to work.
+//! Canonical definitions live in `magistr-core`; this module currently re-exports
+//! them. Update callers directly when removing redundant import paths.
 
 // Re-export all message types from magistr-core.
 pub use magistr_core::{
@@ -20,7 +19,7 @@ pub use magistr_core::ToolLocation;
 
 // ─── ACP Plan types ─────────────────────────────────────────────────────────
 
-// Canonical definitions live in magistr-core. Re-export for backward compatibility.
+// Canonical definitions live in magistr-core; these are current re-exports.
 pub use magistr_core::{
     AcpConfigOption, AcpPlanEntry, AgentCommand, ConfigOptionCategory, ConfigSelectValue,
     PlanEntryPriority, PlanEntryStatus,

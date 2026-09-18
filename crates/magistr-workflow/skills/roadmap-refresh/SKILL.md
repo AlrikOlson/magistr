@@ -31,7 +31,7 @@ This skill is the **companion to `/roadmap`**:
 - `/roadmap` — advance the roadmap by implementing one chunk.
 - `/roadmap-refresh` — pause implementation; research; reshape the roadmap.
 
-> The think-and-ship server's reasoning family is `think_*` (the legacy `deliberate_*` names still work as deprecated aliases). This skill uses `think_*` and `roadmap_*`; it does not touch `ship_*` (no execution).
+> The connected server's reasoning family is `think_*`; use its advertised tool names. This skill uses `think_*` and `roadmap_*`; it does not touch `ship_*` (no execution).
 
 ## When to invoke this skill
 

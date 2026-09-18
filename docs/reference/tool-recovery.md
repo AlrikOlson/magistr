@@ -1,13 +1,14 @@
 # Tool input and recovery contract
 
 Workflow tool schemas publish unconditional required fields independently of
-serde compatibility defaults. Conditional requirements remain in the tool's
+serde defaults. Conditional requirements remain in the tool's
 description and native validation. The reasoning wire adapter validates all
 seven authored fields before entering the engine: estimated_total, purpose,
 context, thought, outcome, next_action and rationale. Missing, blank or wrongly
 typed values produce field-level problems. Embedded XML cannot substitute for
-an omitted field. Persisted ThinkStep defaults and native compatibility recovery
-remain unchanged.
+an omitted field. Persisted defaults and recovery describe the current
+implementation; the [pre-release policy](../../AGENTS.md#before-public-release) permits changing
+or removing old-format handling with the current consumers and tests.
 
 Known-tool argument failures return `isError:true`, stable `code` and
 `error_kind`, the original diagnostic, `problems`, `effect` and `recovery`.

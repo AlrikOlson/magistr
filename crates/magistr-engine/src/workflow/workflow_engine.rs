@@ -22,7 +22,7 @@ pub struct WorkflowEngine {
     config: WorkflowConfig,
     /// Iteration tracking (for loop mode).
     iteration: IterationState,
-    /// Shared run policy; the iteration value above is a compatibility view.
+    /// Shared run policy; the iteration value above is a derived view.
     run: RunState,
 }
 
@@ -202,7 +202,7 @@ impl WorkflowEngine {
         self.restore_run(iteration, run)
     }
 
-    /// Restore validated canonical run evidence and its compatibility view.
+    /// Restore validated canonical run evidence and its derived view.
     pub fn restore_run(&mut self, iteration: IterationState, run: RunState) -> Result<()> {
         run.validate()
             .map_err(|message| EngineError::Precondition(message.into()))?;

@@ -1,4 +1,4 @@
-//! Agent session — client observation and compatibility access to the supervisor.
+//! Agent session — client observation and access to the supervisor.
 //!
 //! Provider residency, turn admission and permission lifecycle belong to the
 //! backend's reusable supervisor; this facade tracks the observed session ID.
@@ -13,7 +13,7 @@ use crate::agent::observation::ObservationReceiver;
 use crate::agent::observation::{ObservationCapacity, ObservationSender};
 use crate::error::Result;
 
-// Canonical definition lives in magistr-core. Re-export for backward compatibility.
+// Canonical definition lives in magistr-core; this is a current re-export.
 pub use magistr_core::AcpSessionState;
 
 // ─── Backend enum ───────────────────────────────────────────────────────────

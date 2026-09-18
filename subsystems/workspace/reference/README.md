@@ -320,9 +320,10 @@ Budgets are parameters, not limits to fight. Need more, raise `budget`; need les
 `path` or `kind`. Because a cut is never silent, an agent never has to wonder whether it saw
 everything.
 
-The envelope carries `v`, its format version. Evolution within a major version is additive only
-(new optional fields), and a test compares the live schema against a frozen v1 baseline to hold
-that line. A client can pin what it accepts with `workbench/maxEnvelopeVersion` in `_meta`.
+The envelope carries `v`, its format version. The reference implements a baseline comparison
+and client version selection through `workbench/maxEnvelopeVersion` in `_meta`. Neither is a
+preservation requirement: Magistr's pre-release policy requires current schemas, callers,
+baselines and tests to change together when the intended design changes.
 
 ## How it works
 
@@ -472,9 +473,10 @@ conformance kit (`test/plugin-tck.test.ts`) a third-party plugin would. `example
 the smallest conforming plugins, kept as readable WAT text. Plugin tools cannot shadow, wrap or
 rename the eight core tools, and their writes queue into the same write engine.
 
-Each WIT package carries its own semver stamp and evolves additively within a major. The
-reasoning is that a public interface mistake is carried for years, so evolution is mechanical
-rather than a judgment call.
+Each WIT package carries a version stamp. The earlier additive-only evolution
+rule is superseded by Magistr's [pre-release policy](../../../AGENTS.md#before-public-release).
+Change interfaces directly with current hosts, guests, schemas and tests; no old
+signature, version or client imposes a backward-compatibility requirement.
 
 ### The routing skill
 

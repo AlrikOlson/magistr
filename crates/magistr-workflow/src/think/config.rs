@@ -55,7 +55,7 @@ pub struct FeaturesConfig {
     /// Resolved in this order at startup:
     ///   1. `THINK_AND_SHIP_DEFAULT_SESSION_ID` env var (explicit override)
     ///   2. Enabled sessions (`THINK_AND_SHIP_ENABLE_SESSIONS=true` or the
-    ///      compatibility `THINK_AND_SHIP_AUTO_SESSION=true`) use the admitted
+    ///      alternate `THINK_AND_SHIP_AUTO_SESSION=true`) use the admitted
     ///      project identity, stable across server spawns.
     ///   3. None (caller must pass `session_id` explicitly to use a session).
     ///

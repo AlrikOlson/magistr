@@ -219,7 +219,7 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
         "a mutation receipt revision and a source revision are different facts"
     );
 
-    // Storage compatibility: the check is in the native store the way the
+    // Storage evidence: the check is in the native store the way the
     // agent's own ship_check would leave it, visible to an unadmitted
     // reader, and the receipt is durable beside it.
     let reader = NativeReader::open_for_project(&config, PROJECT.into());

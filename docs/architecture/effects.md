@@ -59,7 +59,7 @@ For a read, write or terminal creation the local path is:
 4. Apply `SessionPermissionPolicy` with the session's profile, protected paths,
    charter, governance and explicit workflow context. Interactive Ask uses the
    existing permission UI; noninteractive Ask uses the documented
-   [refusal or compatibility setting](permissions.md#interactive-and-noninteractive-ask).
+   [refusal or automatic response setting](permissions.md#interactive-and-noninteractive-ask).
 5. Recheck cancellation and target resolution after authorization, then perform
    the admitted operation. A changed target is refused; approval does not follow
    a symlink that was retargeted while the decision was pending.
