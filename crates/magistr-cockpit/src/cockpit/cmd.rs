@@ -120,3 +120,85 @@ pub enum Cmd {
     /// read lets it pass.
     Birth(BirthCmd),
 }
+
+impl Cmd {
+    /// Report a closed surface-to-host connection with the unsent action intact.
+    #[must_use]
+    pub fn undelivered(self) -> super::Msg {
+        super::Msg::CommandFailed {
+            cmd: self,
+            error: "The session connection closed. Reopen the session and try again.".into(),
+        }
+    }
+
+    /// Return a refused effect through its semantic owner. A refusal is not a
+    /// provider turn ending and cannot manufacture successful project evidence.
+    pub(super) fn failed(self, model: &mut super::Model, error: String) -> Vec<Self> {
+        use super::{CheckpointEvent, Msg, WorkbenchEvent};
+        let message = match self {
+            Self::Prompt(text) | Self::RoadmapPrompt(text) => {
+                Msg::Agent(magistr_application::sessions::AgentEvent::PromptRejected {
+                    text,
+                    error,
+                })
+            }
+            Self::Workbench(cmd) => Msg::Workbench(WorkbenchEvent::Failed { cmd, error }),
+            Self::Engine(cmd) => Msg::Engine(crate::engine::EngineEvent::PortFailed {
+                what: crate::engine::describe(&cmd),
+                cmd,
+                error,
+            }),
+            Self::Checkpoint(cmd) => {
+                let (id, what) = crate::checkpoint::describe(&cmd);
+                Msg::Checkpoint(CheckpointEvent::Failed {
+                    id: Some(id),
+                    what,
+                    error,
+                })
+            }
+            other => {
+                let action = match other {
+                    Self::Cancel | Self::CancelRoadmapPrompt => {
+                        if model.agent_activity.active && model.agent_activity.status == "Stopping"
+                        {
+                            model.agent_activity.status = "Stop failed";
+                        }
+                        "Magistr could not stop the response."
+                    }
+                    Self::Permission { id, .. } => {
+                        super::decision::delivery_failed(model, id);
+                        "Your answer was not sent."
+                    }
+                    Self::Constraint { .. } => "Your condition was not saved.",
+                    Self::Delegate(_) => "Your permission setting was not saved.",
+                    Self::Loop(_) => "Magistr could not change the current work.",
+                    Self::Kill(target) => {
+                        if let Some(term) = model.terminals.term_mut(target.id()) {
+                            term.kill_failed();
+                        }
+                        "Magistr could not stop the command."
+                    }
+                    Self::Reconnect => "Magistr could not reconnect.",
+                    Self::Shelf(_) => "Magistr could not open or export the report.",
+                    Self::Birth(_) => "Magistr could not set up the project.",
+                    Self::Quit
+                    | Self::Animate(_)
+                    | Self::Still
+                    | Self::Announce(_)
+                    | Self::Clipboard(_) => "Magistr could not perform the action.",
+                    Self::Prompt(_)
+                    | Self::RoadmapPrompt(_)
+                    | Self::Workbench(_)
+                    | Self::Engine(_)
+                    | Self::Checkpoint(_) => {
+                        unreachable!("project and prompt failures are handled above")
+                    }
+                };
+                let text = format!("{action} {error}");
+                model.session.turn.push_error(&text);
+                return vec![Self::Announce(text)];
+            }
+        };
+        super::update(model, message)
+    }
+}

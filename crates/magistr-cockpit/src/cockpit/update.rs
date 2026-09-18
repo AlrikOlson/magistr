@@ -323,7 +323,14 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
                     .observe(&AgentEvent::TurnEnded(TurnEnd::Cancelled));
             }
         }
+        Msg::CommandFailed { cmd, error } => return cmd.failed(model, error),
         Msg::Agent(event) => {
+            if matches!(
+                event,
+                AgentEvent::TurnEnded(_) | AgentEvent::Error(_) | AgentEvent::Initialized { .. }
+            ) {
+                model.decision.settle();
+            }
             model.agent_events += 1;
             model.note_activity();
             return session::agent(model, event);

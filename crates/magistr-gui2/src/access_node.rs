@@ -16,7 +16,7 @@ pub struct AccessNode {
     /// What it is called.
     pub label: String,
     /// What it currently holds, for the widgets that hold something —
-    /// the prompt's text, and nothing else.
+    /// editable text and the conversation's visible text.
     pub value: Option<String>,
     /// Its rect in **physical** window pixels: `(x0, y0, x1, y1)`. `None`
     /// for the window itself, which has no rect of its own.

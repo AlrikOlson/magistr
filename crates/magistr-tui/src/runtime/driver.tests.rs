@@ -1,4 +1,28 @@
 use super::*;
+
+#[test]
+fn a_closed_command_owner_reports_stop_without_claiming_it_stopped() {
+    let mut driver = driver(model(), false);
+    driver.fold(Msg::Agent(magistr_application::sessions::AgentEvent::Text(
+        "Working".into(),
+    )));
+    driver.fold(Msg::Paste("Keep @src/main.rs".into()));
+    driver.fold(Msg::Key(
+        KeyEvent::new(KeyCode::Char('c')).with(magistr_cockpit::input::Modifiers::CTRL),
+    ));
+    assert!(driver.model.agent_activity().active);
+    assert_ne!(driver.model.agent_activity().status, "Stopping");
+    assert_eq!(driver.model.prompt().text(), "Keep @src/main.rs");
+    assert!(
+        driver
+            .model
+            .turn()
+            .lines()
+            .iter()
+            .any(|line| line.text().contains("could not stop"))
+    );
+}
+
 use magistr_cockpit::capability::Mode;
 use magistr_cockpit::cockpit::{LoopEvent, Size};
 use magistr_cockpit::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};

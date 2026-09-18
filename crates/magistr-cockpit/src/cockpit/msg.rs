@@ -89,6 +89,13 @@ pub enum Msg {
     TextSizing(bool),
     /// The agent's session reported something.
     Agent(AgentEvent),
+    /// An effect was not delivered or its owner refused it.
+    CommandFailed {
+        /// The exact action, retained for object-specific recovery.
+        cmd: super::Cmd,
+        /// Why it could not be performed and how to try again.
+        error: String,
+    },
     /// A roadmap request will run after the current work finishes.
     RoadmapRequestQueued,
     /// The roadmap request now owns the following agent response.

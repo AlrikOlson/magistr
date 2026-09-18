@@ -64,17 +64,7 @@ impl Route {
                     // the cockpit keeps painting, as it does on a
                     // terminal whose session hung up.
                     if let Err(error) = self.commands.send(other) {
-                        match error.0 {
-                            Cmd::Prompt(text) | Cmd::RoadmapPrompt(text) => {
-                                update(model, Msg::Agent(magistr_application::sessions::AgentEvent::PromptRejected {
-                                    text,
-                                    error: "This session is unavailable. Your message was not sent.".to_owned(),
-                                }));
-                            }
-                            _ => {
-                                tracing::warn!(target: "magistr-gui2", "The session could not receive the action.")
-                            }
-                        }
+                        self.fold(model, error.0.undelivered());
                     }
                 }
             }

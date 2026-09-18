@@ -116,7 +116,7 @@ impl Native {
             commands,
         } = self;
         // An untaken receiver is dropped here: the core's sends fail
-        // quietly instead of queueing for nobody.
+        // visibly instead of queueing for nobody.
         drop(commands);
         let event_loop = EventLoop::<NativeEvent>::with_user_event()
             .build()

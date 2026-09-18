@@ -18,6 +18,10 @@ use crate::agent::cockpit_session::CockpitSession;
 
 const CLOSE_GRACE: Duration = Duration::from_secs(5);
 
+#[cfg(test)]
+#[path = "interactive_session.tests.rs"]
+mod tests;
+
 struct Connection {
     task: JoinHandle<Result<(), String>>,
     commands: Option<UnboundedSender<Cmd>>,
@@ -243,12 +247,8 @@ impl InteractiveSession {
             self.inbox.send(Msg::RoadmapRequestStarted);
         }
         self.busy = true;
-        if !self.forward(Cmd::Prompt(text.clone())) {
+        if !self.forward(Cmd::Prompt(text)) {
             self.busy = false;
-            self.reject(
-                text,
-                "The agent connection closed. Send your message again to reconnect.",
-            );
             self.close().await;
         }
     }
@@ -261,13 +261,31 @@ impl InteractiveSession {
     }
 
     fn forward(&self, cmd: Cmd) -> bool {
-        if matches!(cmd, Cmd::Engine(_) | Cmd::Workbench(_) | Cmd::Checkpoint(_)) {
-            return self.local_commands.send(cmd).is_ok();
-        }
-        self.connection
-            .as_ref()
-            .and_then(|current| current.commands.as_ref())
-            .is_some_and(|commands| commands.send(cmd).is_ok())
+        let local = matches!(cmd, Cmd::Engine(_) | Cmd::Workbench(_) | Cmd::Checkpoint(_));
+        let sender = if local {
+            Some(&self.local_commands)
+        } else {
+            self.connection
+                .as_ref()
+                .and_then(|current| current.commands.as_ref())
+        };
+        let refused = match sender {
+            Some(sender) => match sender.send(cmd) {
+                Ok(()) => return true,
+                Err(error) => error.0,
+            },
+            None => cmd,
+        };
+        self.inbox.send(Msg::CommandFailed {
+            cmd: refused,
+            error: if local {
+                "The project connection closed. Reopen the session and try again."
+            } else {
+                "The agent connection closed. Send a message to reconnect, then try again."
+            }
+            .into(),
+        });
+        false
     }
 
     async fn close(&mut self) {
@@ -352,6 +370,11 @@ impl InteractiveSession {
                         && self.busy
                     {
                         self.forward(Cmd::Cancel);
+                    } else {
+                        self.inbox.send(Msg::CommandFailed {
+                            cmd: Cmd::CancelRoadmapPrompt,
+                            error: "There is no roadmap request to stop.".into(),
+                        });
                     }
                 }
                 Cmd::Loop(command) => {
@@ -366,6 +389,14 @@ impl InteractiveSession {
                 }
                 other => {
                     self.forward(other);
+                }
+            }
+            if !once {
+                for command in controls.drain(..) {
+                    self.inbox.send(Msg::CommandFailed {
+                        cmd: Cmd::Loop(command),
+                        error: "There is no running work loop for this action.".into(),
+                    });
                 }
             }
             if self.closed {
