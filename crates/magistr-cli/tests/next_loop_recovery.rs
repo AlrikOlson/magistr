@@ -1,0 +1,247 @@
+//! Exercise the real loop command handlers with isolated saved progress.
+//! The cockpit child has piped input: startup persists before terminal admission,
+//! while real ACP launch and rendering are covered by the loop-driver harness.
+
+use std::path::{Path, PathBuf};
+use std::process::Stdio;
+use std::time::Duration;
+
+use magistr::agent::Backend;
+use magistr::cli::HeadlessFormat;
+use magistr::commands::next::{cmd_next_loop, cmd_next_loop_cockpit, cmd_next_loop_headless};
+use magistr::config::inputs::ProjectInputs;
+use magistr::permissions::PermissionProfile;
+use magistr_core::workflow::iteration::{
+    IterationLoop, IterationState, OperationKind, OperationOutcome, PreCheckResult,
+};
+use magistr_engine::workflow::StopReason;
+
+const ENTRIES: [&str; 3] = ["interactive", "headless", "cockpit"];
+const PLAN: &str = "Continue the saved implementation plan.\n";
+const TASK: &str = "Finish the interrupted task.\n";
+
+fn project() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir(dir.path().join(".magistr")).unwrap();
+    let config = serde_json::json!({
+        "project": {"name": "loop-recovery"},
+        "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
+            "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"},
+        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "format": {"command": "true", "extensions": []},
+        "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
+        "reference_repos": [], "state_prefix": "loop-recovery",
+        "spec": {"file": "spec.md", "unchecked_pattern": "^\\s*- \\[ \\]"}
+    });
+    std::fs::write(
+        dir.path().join(".magistr/project.json"),
+        serde_json::to_vec(&config).unwrap(),
+    )
+    .unwrap();
+    std::fs::write(dir.path().join("spec.md"), "- [ ] saved work\n").unwrap();
+    std::fs::write(dir.path().join(".magistr/current-plan.md"), PLAN).unwrap();
+    std::fs::write(dir.path().join(".magistr/current-task.md"), TASK).unwrap();
+    dir
+}
+
+fn checkpoint(dir: &Path) -> PathBuf {
+    dir.join(".magistr/loop-state.json")
+}
+
+fn saved(dir: &Path) -> IterationState {
+    serde_json::from_slice(&std::fs::read(checkpoint(dir)).unwrap()).unwrap()
+}
+
+fn assert_context_kept(dir: &Path) {
+    assert_eq!(
+        std::fs::read_to_string(dir.join(".magistr/current-plan.md")).unwrap(),
+        PLAN
+    );
+    assert_eq!(
+        std::fs::read_to_string(dir.join(".magistr/current-task.md")).unwrap(),
+        TASK
+    );
+}
+
+fn previous(dir: &Path, stop: Option<StopReason>, unresolved: bool) -> IterationLoop {
+    let mut run = IterationLoop::open(dir, dir.join("spec.md"), 3, None).unwrap();
+    assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+    run.set_budget_limit(Some(2.0)).unwrap();
+    run.observe_budget(0.5);
+    let dispatch = run
+        .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+        .unwrap()
+        .unwrap();
+    run.start_operation(&dispatch, None).unwrap();
+    if !unresolved {
+        run.settle_operation(&dispatch, OperationOutcome::Completed)
+            .unwrap();
+        run.advance();
+    }
+    if let Some(stop) = stop {
+        run.stop(stop);
+    }
+    run.persist().unwrap();
+    run
+}
+
+async fn invoke(entry: &str, dir: &Path) -> String {
+    let mut command = tokio::process::Command::new(std::env::current_exe().unwrap());
+    command
+        .args(["--exact", "entry_fixture_child", "--nocapture"])
+        .env("MAGISTR_RECOVERY_FIXTURE", dir)
+        .env("MAGISTR_RECOVERY_ENTRY", entry)
+        .env("HOME", dir)
+        .env("XDG_CONFIG_HOME", dir.join("config"))
+        .env("PATH", "/usr/bin:/bin")
+        .current_dir(dir)
+        .stdin(Stdio::null())
+        .kill_on_drop(true);
+    let output = tokio::time::timeout(Duration::from_secs(30), command.output())
+        .await
+        .expect("loop startup must finish without an agent")
+        .unwrap();
+    let report = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.status.success(), "{entry}: {report}");
+    let result: String =
+        serde_json::from_slice(&std::fs::read(dir.join("entry-result.json")).expect(&report))
+            .unwrap();
+    result
+}
+
+#[tokio::test]
+async fn entry_fixture_child() {
+    let Some(dir) = std::env::var_os("MAGISTR_RECOVERY_FIXTURE") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let entry = std::env::var("MAGISTR_RECOVERY_ENTRY").unwrap();
+    let inputs = ProjectInputs::from_lookup(&dir, |_| None);
+    let profile = PermissionProfile::Cautious;
+    let result = match entry.as_str() {
+        "interactive" => cmd_next_loop(&dir, 8, Backend::Acp, profile, &inputs).await,
+        "headless" => {
+            cmd_next_loop_headless(
+                &dir,
+                8,
+                Backend::Acp,
+                HeadlessFormat::Json,
+                None,
+                profile,
+                &inputs,
+            )
+            .await
+        }
+        "cockpit" => cmd_next_loop_cockpit(&dir, 8, Backend::Acp, profile, &inputs).await,
+        _ => panic!("unknown fixture entry"),
+    };
+    let result = result.map_or_else(|error| format!("{error:#}"), |()| "ok".into());
+    std::fs::write(
+        dir.join("entry-result.json"),
+        serde_json::to_vec(&result).unwrap(),
+    )
+    .unwrap();
+}
+
+#[tokio::test]
+async fn settled_cancellation_archives_and_starts_with_the_requested_limit() {
+    for entry in ENTRIES {
+        let dir = project();
+        let previous = previous(dir.path(), Some(StopReason::Cancelled), false);
+        // Nothing can dispatch: the fixture's work is already complete.
+        std::fs::write(dir.path().join("spec.md"), "- [x] saved work\n").unwrap();
+        let result = invoke(entry, dir.path()).await;
+        if entry == "cockpit" {
+            assert!(result.contains("open Magistr in a terminal"), "{result}");
+        } else {
+            assert_eq!(result, "ok", "{entry}");
+        }
+        let fresh = saved(dir.path());
+        assert_ne!(fresh.run_id, previous.state().run_id, "{entry}");
+        assert_eq!(fresh.run.max_iterations, 8, "{entry}");
+        assert_eq!(fresh.run.budget_total_usd, 0.0, "{entry}");
+        assert!(fresh.operations.records().is_empty(), "{entry}");
+        let history: Vec<_> = std::fs::read_dir(dir.path().join(".magistr/loop-history"))
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect();
+        assert_eq!(history.len(), 1, "{entry}");
+        let archived: IterationState =
+            serde_json::from_slice(&std::fs::read(&history[0]).unwrap()).unwrap();
+        assert_eq!(&archived, previous.state(), "{entry}");
+        // Cancellation settles the run, not necessarily its saved task.
+        assert_context_kept(dir.path());
+    }
+}
+
+#[tokio::test]
+async fn paused_and_unfinished_runs_keep_identity_limits_and_context() {
+    for entry in ENTRIES {
+        for stop in [None, Some(StopReason::Paused)] {
+            let dir = project();
+            let previous = previous(dir.path(), stop, false);
+            // Finish the spec externally so the non-paused command cannot launch.
+            std::fs::write(dir.path().join("spec.md"), "- [x] saved work\n").unwrap();
+            let result = invoke(entry, dir.path()).await;
+            if entry == "cockpit" {
+                assert!(result.contains("open Magistr in a terminal"), "{result}");
+            } else {
+                assert_eq!(result, "ok", "{entry}");
+            }
+            let recovered = saved(dir.path());
+            assert_eq!(recovered.run_id, previous.state().run_id, "{entry}");
+            assert_eq!(recovered.run.max_iterations, 3, "{entry}");
+            assert_eq!(recovered.run.budget_limit_usd, Some(2.0), "{entry}");
+            assert_eq!(recovered.run.budget_total_usd, 0.5, "{entry}");
+            assert_eq!(recovered.operations, previous.state().operations, "{entry}");
+            if stop.is_some() {
+                assert_eq!(&recovered, previous.state(), "{entry}");
+            }
+            assert!(
+                !dir.path().join(".magistr/loop-history").exists(),
+                "{entry}"
+            );
+            assert_context_kept(dir.path());
+        }
+    }
+}
+
+#[tokio::test]
+async fn invalid_and_unresolved_checkpoints_refuse_without_discarding_context() {
+    for entry in ENTRIES {
+        for malformed in [false, true] {
+            let dir = project();
+            previous(dir.path(), Some(StopReason::Cancelled), true);
+            if malformed {
+                std::fs::write(checkpoint(dir.path()), "{invalid checkpoint").unwrap();
+            }
+            let before = std::fs::read(checkpoint(dir.path())).unwrap();
+            let result = invoke(entry, dir.path()).await;
+            if malformed {
+                assert!(
+                    result.contains("Cannot recover loop-state.json"),
+                    "{entry}: {result}"
+                );
+            } else {
+                assert!(
+                    result.contains("outcome is not yet known"),
+                    "{entry}: {result}"
+                );
+            }
+            assert_eq!(
+                std::fs::read(checkpoint(dir.path())).unwrap(),
+                before,
+                "{entry}"
+            );
+            assert!(
+                !dir.path().join(".magistr/loop-history").exists(),
+                "{entry}"
+            );
+            assert_context_kept(dir.path());
+        }
+    }
+}

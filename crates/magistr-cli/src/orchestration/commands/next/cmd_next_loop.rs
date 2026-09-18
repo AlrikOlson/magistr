@@ -19,9 +19,6 @@ pub async fn cmd_next_loop(
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
-    // Clean up leftover state
-    wf.cleanup()?;
-
     // Initialize iteration loop (native roadmap engines when the project
     // selects think-and-ship; the spec file otherwise)
     let mut iter_loop = IterationLoop::start_or_recover(

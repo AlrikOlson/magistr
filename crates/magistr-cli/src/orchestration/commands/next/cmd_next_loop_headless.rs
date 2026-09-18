@@ -31,7 +31,6 @@ pub async fn cmd_next_loop_headless(
     let inputs = inputs.for_project(&dir);
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
-    wf.cleanup()?;
 
     let mut iter_loop = IterationLoop::start_or_recover(
         &dir,

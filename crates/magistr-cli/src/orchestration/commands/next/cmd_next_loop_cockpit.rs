@@ -30,7 +30,6 @@ pub async fn cmd_next_loop_cockpit(
     let wf = WorkflowConfig::load(&dir)
         .suggest()?
         .with_native(native.as_ref().map(NativeEngines::reader));
-    wf.cleanup()?;
     let iter_loop =
         IterationLoop::start_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;
     iter_loop.persist().suggest()?;
