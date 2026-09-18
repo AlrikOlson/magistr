@@ -1,122 +1,50 @@
 use super::*;
-use magistr_cockpit::cockpit::{EngineCmd, WorkbenchCmd};
+use magistr_application::sessions::AgentEvent;
+use magistr_cockpit::cockpit::{Cmd, Msg};
 
 #[tokio::test]
-async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
-    let dir = tempfile::tempdir().unwrap();
-    let (inbox, mut events) = Inbox::channel();
-    let mut session = InteractiveSession::new(
-        AgentConfig::new("", dir.path()),
-        Connector::new(|_| async { panic!("forwarding must not start a provider") }),
-        inbox,
-        None,
-    );
-    session.local_task.abort();
-    let _ = (&mut session.local_task).await;
-    let (provider, receiver) = Commands::channel();
-    drop(receiver);
-    let (_, provider_events) = Inbox::channel();
-    session.connection = Some(Connection {
-        task: tokio::spawn(async { Ok(()) }),
-        commands: Some(provider),
-        events: provider_events,
-        roadmap: false,
-    });
-    for cmd in [
-        Cmd::Prompt("Keep @src/main.rs".into()),
-        Cmd::Cancel,
-        Cmd::Permission {
-            id: 5,
-            option_id: "allow".into(),
-        },
-        Cmd::Workbench(WorkbenchCmd::Undo { id: "op-2".into() }),
-        Cmd::Engine(EngineCmd::Checkpoint),
+async fn host_connector_preserves_choices_and_separates_planning_configuration() {
+    for (command, planning) in [
+        (Cmd::Prompt("Continue".into()), false),
+        (Cmd::RoadmapPrompt("Plan".into()), true),
     ] {
-        assert!(!session.forward(cmd.clone()));
-        assert!(matches!(events.recv().await,
-            Some(Msg::CommandFailed { cmd: refused, error }) if refused == cmd && error.contains("connection closed")));
-        assert!(
-            events.try_recv().is_err(),
-            "one outcome for one failed action"
-        );
-    }
-    session.close().await;
-}
-
-#[tokio::test]
-async fn delivery_to_an_open_receiver_does_not_emit_a_refusal() {
-    let dir = tempfile::tempdir().unwrap();
-    let (inbox, mut events) = Inbox::channel();
-    let mut session = InteractiveSession::new(
-        AgentConfig::new("", dir.path()),
-        Connector::new(|_| async { panic!("forwarding must not start a provider") }),
-        inbox,
-        None,
-    );
-    let (provider, mut receiver) = Commands::channel();
-    let (_, provider_events) = Inbox::channel();
-    session.connection = Some(Connection {
-        task: tokio::spawn(async { Ok(()) }),
-        commands: Some(provider),
-        events: provider_events,
-        roadmap: false,
-    });
-    assert!(session.forward(Cmd::Cancel));
-    assert_eq!(receiver.next().await, Some(Cmd::Cancel));
-    assert!(events.try_recv().is_err());
-    session.close().await;
-    session.local_task.abort();
-    let _ = (&mut session.local_task).await;
-}
-
-#[tokio::test]
-async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work() {
-    let (inbox, mut messages) = Inbox::channel();
-    let (commands_tx, commands) = Commands::channel();
-    let task = spawn_session(
-        Box::new(crate::orchestration::local_session::LocalSession),
-        inbox,
-        commands,
-        None,
-        None,
-        None,
-    );
-    let mut model =
-        magistr_cockpit::cockpit::Model::new(magistr_cockpit::cockpit::Size::new(80, 24));
-    magistr_cockpit::cockpit::update(
-        &mut model,
-        Msg::Agent(AgentEvent::Text("Still working".into())),
-    );
-    for cmd in [
-        Cmd::Cancel,
-        Cmd::Permission {
-            id: 17,
-            option_id: "allow".into(),
-        },
-        Cmd::Constraint {
-            id: 17,
-            condition: "read only".into(),
-        },
-        Cmd::Delegate("read".into()),
-        Cmd::Kill(magistr_cockpit::cockpit::KillCmd::Terminal("build".into())),
-        Cmd::Kill(magistr_cockpit::cockpit::KillCmd::Gate("checks".into())),
-        Cmd::Reconnect,
-        Cmd::Loop(magistr_cockpit::cockpit::LoopCmd::Pause),
-    ] {
-        commands_tx.send(cmd.clone()).unwrap();
-        let event = tokio::time::timeout(Duration::from_secs(2), messages.recv())
+        let dir = tempfile::tempdir().unwrap();
+        let mut config = AgentConfig::new("old opening", dir.path()).model("chosen");
+        config.resume = Some("old-session".into());
+        config.continue_conversation = true;
+        config.workflow_permissions = true;
+        let (observed, mut received) = tokio::sync::mpsc::unbounded_channel();
+        let connector = Connector::new(move |config| {
+            observed.send(config).unwrap();
+            async { Err(crate::error::MagistrError::Acp("connection refused".into())) }
+        });
+        let (inbox, mut events) = Inbox::channel();
+        let (commands, receiver) = magistr_cockpit_runtime::channel::Commands::channel();
+        let task = interactive_session(config, connector, inbox, None).spawn(receiver);
+        commands.send(command).unwrap();
+        let actual = tokio::time::timeout(std::time::Duration::from_secs(2), received.recv())
             .await
             .unwrap()
             .unwrap();
+        assert_eq!(actual.model.as_deref(), Some("chosen"));
         assert!(
-            matches!(&event, Msg::CommandFailed { cmd: refused, error } if refused == &cmd && !error.is_empty())
+            actual.prompt.is_empty() && actual.resume.is_none() && !actual.continue_conversation
         );
-        magistr_cockpit::cockpit::update(&mut model, event);
+        assert_eq!(actual.planning_only, planning);
+        assert_eq!(actual.workflow_permissions, !planning);
+        if planning {
+            assert!(
+                actual
+                    .allowed_tools
+                    .iter()
+                    .any(|tool| tool == "roadmap_add_chunk")
+            );
+            assert!(!actual.allowed_tools.iter().any(|tool| tool == "ship_start"));
+        }
         assert!(
-            model.agent_activity().active,
-            "an action refusal cannot finish unrelated work"
+            matches!(events.recv().await, Some(Msg::Agent(AgentEvent::PromptRejected { error, .. })) if error.contains("connection refused"))
         );
+        drop(commands);
+        task.await.unwrap().unwrap();
     }
-    drop(commands_tx);
-    task.await.unwrap().unwrap();
 }

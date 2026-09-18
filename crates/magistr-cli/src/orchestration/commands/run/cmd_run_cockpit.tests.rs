@@ -40,7 +40,7 @@ fn the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_pri
 #[test]
 fn the_session_is_attached_before_the_run_and_ended_after_it() {
     let commands = position(".commands()");
-    let session = position("InteractiveSession::new(");
+    let session = position("interactive_session(");
     let run = position(".run(");
     let ended = position("timeout(SESSION_GRACE, &mut session)");
     let summary = position("Summary::of(");

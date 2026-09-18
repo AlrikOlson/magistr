@@ -31,7 +31,7 @@ async fn absent_provider_reports_every_failed_control_and_keeps_local_controls_a
     let dir = tempfile::tempdir().unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
-    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+    let session = crate::orchestration::interactive_session::interactive_session(
         AgentConfig::new("", dir.path()),
         Connector::new(|_| async { panic!("controls must not launch an agent") }),
         inbox,
@@ -539,7 +539,7 @@ async fn interactive_roadmap_startup_failure_preserves_request_and_does_not_clai
     let dir = tempfile::tempdir().unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
-    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+    let session = crate::orchestration::interactive_session::interactive_session(
         AgentConfig::new("", dir.path()),
         Connector::new(|_| async { Err(MagistrError::Acp("offline".into())) }),
         inbox,
@@ -570,7 +570,7 @@ async fn active_roadmap_request_stop_reaches_the_provider_without_a_work_iterati
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
     let (connector, seen) = fake_connector(FakeAcpAgent::new().stalling());
-    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+    let session = crate::orchestration::interactive_session::interactive_session(
         AgentConfig::new("", dir.path()),
         connector,
         inbox,
@@ -606,7 +606,7 @@ async fn roadmap_connection_can_be_cancelled_or_closed_before_handshake_finishes
             signal.notify_one();
             std::future::pending()
         });
-        let session = crate::orchestration::interactive_session::InteractiveSession::new(
+        let session = crate::orchestration::interactive_session::interactive_session(
             AgentConfig::new("", dir.path()),
             connector,
             inbox,
@@ -644,7 +644,7 @@ async fn local_project_controls_work_before_any_agent_is_connected() {
     let engines = engines_with_work(dir.path());
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
-    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+    let session = crate::orchestration::interactive_session::interactive_session(
         AgentConfig::new("", dir.path()),
         Connector::new(|_| async { panic!("local controls must not launch an agent") }),
         inbox,
@@ -680,7 +680,7 @@ async fn plain_roadmap_keyboard_request_reaches_its_planning_session_and_stays_o
     );
     let commands = runtime.commands().unwrap();
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Testing work is ready."));
-    let session = crate::orchestration::interactive_session::InteractiveSession::new(
+    let session = crate::orchestration::interactive_session::interactive_session(
         AgentConfig::new("", dir.path()),
         connector,
         runtime.inbox(),

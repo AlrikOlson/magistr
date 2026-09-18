@@ -556,21 +556,20 @@ impl LoopDriver {
     /// its report, spend accounting, gates, judge evidence, or attempt number.
     async fn interact(&mut self, first: Option<Cmd>, once: bool) -> bool {
         let config = self.agent_config("", &self.wf.project_dir);
-        let session =
-            crate::orchestration::interactive_session::InteractiveSession::with_checkpoints(
-                config,
-                self.connector.clone(),
-                self.inbox.clone(),
-                self.iter_loop
-                    .native()
-                    .cloned()
-                    .map(crate::application::workflow_client::EngineClient::attach),
-                self.checkpoints.as_ref().map(|port| {
-                    Box::new(crate::orchestration::shared_checkpoint::SharedCheckpoint(
-                        Arc::clone(port),
-                    )) as _
-                }),
-            );
+        let session = crate::orchestration::interactive_session::session_with_checkpoints(
+            config,
+            self.connector.clone(),
+            self.inbox.clone(),
+            self.iter_loop
+                .native()
+                .cloned()
+                .map(crate::application::workflow_client::EngineClient::attach),
+            self.checkpoints.as_ref().map(|port| {
+                Box::new(crate::orchestration::shared_checkpoint::SharedCheckpoint(
+                    Arc::clone(port),
+                )) as _
+            }),
+        );
         let (open, controls) = session.run(&mut self.commands, first, once).await;
         for control in controls {
             self.decide(control);

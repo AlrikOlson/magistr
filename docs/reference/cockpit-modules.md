@@ -185,7 +185,10 @@ test. The section headings separate the crates and their module families.
 
 | Module | Responsibility | Tests |
 | --- | --- | --- |
-| `magistr-cockpit-runtime/src/lib.rs` | Shared message transport and job dispatch without a surface or provider owner | `magistr-cockpit-runtime/tests/boundary.rs` |
+| `magistr-cockpit-runtime/src/lib.rs` | Shared message transport, conversation coordination and job dispatch without concrete host dependencies | `magistr-cockpit-runtime/tests/boundary.rs` |
+| `magistr-cockpit-runtime/src/interactive_session.rs` | Purpose-aware connection, retained conversation/planning contexts, queued requests, retry and owned relay shutdown | `magistr-cockpit-runtime/src/interactive_session.tests.rs`, `magistr-cli/src/orchestration/loop_driver/driver.tests.rs` |
+| `magistr-cockpit-runtime/src/local_session.rs` | Provider-free handle for local project controls; refuses unavailable provider actions | `magistr-cockpit-runtime/src/interactive_session.tests.rs` |
+| `magistr-cli/src/orchestration/interactive_session.rs` | Host composition: resolved provider connector, planning policy and admitted concrete project ports for the shared coordinator | `magistr-cli/src/orchestration/interactive_session.tests.rs`, `magistr-cli/src/orchestration/loop_driver/driver.tests.rs` |
 | `magistr-cockpit-runtime/src/channel/mod.rs` | Producer inbox and runtime command channels | `magistr-tui/tests/runtime_harness.rs` |
 | `magistr-cockpit-runtime/src/channel/arrivals.rs` | When a message reached the runtime's inbox | `magistr-cockpit-runtime/src/channel/arrivals.tests.rs` |
 | `magistr-cockpit-runtime/src/channel/commands.rs` | The core's commands on their way to the session | `magistr-tui/tests/runtime_harness.rs` |
