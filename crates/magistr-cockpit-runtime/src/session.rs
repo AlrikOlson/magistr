@@ -8,6 +8,7 @@ use magistr_application::sessions::SessionHandle;
 use tokio::task::JoinHandle;
 
 use super::session_jobs::SessionJobs;
+use crate::channel::{Commands, Inbox};
 use magistr_application::sessions::AgentEvent;
 use magistr_application::sessions::ToolStatus;
 use magistr_cockpit::checkpoint::CheckpointPort;
@@ -17,7 +18,6 @@ use magistr_cockpit::cockpit::{
 use magistr_cockpit::cockpit::{Cmd, KillCmd, Msg};
 use magistr_cockpit::engine::{EngineEvent, EnginePort};
 use magistr_cockpit::workbench::WorkbenchPort;
-use magistr_cockpit_runtime::channel::{Commands, Inbox};
 
 /// A port the relay holds for its owned jobs: shared with the blocking
 /// thread that runs the call, held by one relay, so never contended
@@ -31,10 +31,14 @@ type Shared<P> = Arc<Mutex<Box<P>>>;
 /// the inbox, and forwards session commands. Opening transcript events come
 /// from the owner; later prompts are already echoed by the cockpit model.
 /// Workbench, engine and checkpoint requests run as the relay's owned jobs
-/// ([`SessionJobs`]) on their local ports, off this task and independently of
+/// on their local ports, off this task and independently of
 /// the provider; a request whose port is absent is refused by name rather
 /// than answered with silence. Once the runtime ends, the jobs are fenced and
-/// joined, then the session owner's cleanup is awaited.
+/// joined, then the session owner's cleanup is awaited. Aborting the relay also
+/// fences job results, but cannot stop a running blocking operation.
+///
+/// The caller owns the returned task: close the command channel and await it
+/// for graceful cleanup, or abort and await it. Dropping its handle detaches it.
 pub fn spawn_session(
     handle: Box<dyn SessionHandle>,
     inbox: Inbox,
@@ -241,5 +245,5 @@ impl Session {
 }
 
 #[cfg(test)]
-#[path = "cockpit_relay.tests.rs"]
+#[path = "session.tests.rs"]
 mod tests;

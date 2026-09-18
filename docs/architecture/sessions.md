@@ -2,8 +2,8 @@
 
 `AgentConfig` selects a provider for each session. The shared `connect_transport`
 path serves the CLI backend, terminal cockpit, and loop connector. The native
-desktop executable on the audited `gui2` branch runs fixtures; its live session
-connection is not integrated. See the [contract baseline](contracts.md) for
+desktop executable runs fixtures; its live session connection is not integrated.
+See the [contract baseline](contracts.md) for
 entry paths, behavioral differences, and intended consolidation policies.
 
 | Provider ID | Session type |
@@ -178,9 +178,9 @@ admits the next turn.
 
 ### Owned relay jobs
 
-The cockpit relay ([session](../../crates/magistr-cli/src/agent/cockpit_relay.rs))
+The shared runtime's cockpit relay ([session](../../crates/magistr-cockpit-runtime/src/session.rs))
 carries workbench, engine and checkpoint commands out as its own jobs
-([`SessionJobs`](../../crates/magistr-cli/src/agent/session_jobs.rs)):
+([`SessionJobs`](../../crates/magistr-cockpit-runtime/src/session_jobs.rs)):
 each call runs on a blocking thread against the shared port, so a slow
 search or a git read never stalls the task that observes the provider and
 forwards its cancellation. At most `SessionJobs::CAPACITY` (4) run at once;
@@ -190,7 +190,11 @@ port or a checkpoint ledger — is refused by name, never answered with
 silence. When the runtime ends the relay closes its fence before it asks
 the owner to terminate, waits `SessionJobs::JOIN_GRACE` (2 s) for its jobs,
 and reports how many it had to leave running; a fenced job's answer never
-posts on behalf of a session that is gone.
+posts on behalf of a session that is gone. Dropping the job owner, including
+when its relay task is aborted, also closes the fence. Closing and publishing
+share a lock, so a result cannot pass an open check and publish after closure.
+This suppresses late answers; it does not cancel blocking side effects. Hosts
+retain responsibility for provider cleanup and must await their relay tasks.
 
 ### Interrupts and shutdown
 

@@ -2,11 +2,11 @@
 
 use std::time::Duration;
 
-use crate::agent::cockpit_relay::spawn_session;
 use crate::application::workflow_client::EngineClient;
 use magistr_application::sessions::{AgentEvent, SessionOptions};
 use magistr_cockpit::cockpit::{Cmd, LoopCmd, Msg};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
+use magistr_cockpit_runtime::spawn_session;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
 

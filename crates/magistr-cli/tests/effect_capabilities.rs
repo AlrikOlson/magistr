@@ -11,7 +11,6 @@ use agent_client_protocol::schema::v1::{
     ToolCallUpdate, ToolCallUpdateFields, ToolKind, WriteTextFileRequest,
 };
 use agent_client_protocol::{Agent, Channel, on_receive_request};
-use magistr::agent::cockpit_relay::spawn_session;
 use magistr::agent::cockpit_session::CockpitSession;
 use magistr::application::WorkspaceAdmission;
 use magistr::permissions::{PermissionProfile, SessionPermissionPolicy};
@@ -20,6 +19,7 @@ use magistr_application::effects::{EffectFuture, SourceRoute, SourceWriteReceipt
 use magistr_application::sessions::{AgentEvent, PermissionKind, SessionOptions};
 use magistr_cockpit::cockpit::{Cmd, Msg};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
+use magistr_cockpit_runtime::spawn_session;
 #[cfg(unix)]
 use magistr_engine::policy::{Charter, PolicyCondition, PolicyEffect, PolicyEngine, PolicyRule};
 

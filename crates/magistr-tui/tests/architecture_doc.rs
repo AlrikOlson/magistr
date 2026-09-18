@@ -173,8 +173,8 @@ fn the_index_names_host_session_adapters_and_existing_guards() {
     let crates_dir = crate_dir("..");
     for path in [
         "magistr-cli/src/agent/translate.rs",
-        "magistr-cli/src/agent/cockpit_relay.rs",
-        "magistr-cli/src/agent/session_jobs.rs",
+        "magistr-cockpit-runtime/src/session.rs",
+        "magistr-cockpit-runtime/src/session_jobs.rs",
         "magistr-cli/src/orchestration/loop_driver/checkpoint_detach.rs",
         "magistr-cli/src/agent/permission_request.rs",
         "magistr-cli/src/permissions/request_data.rs",
