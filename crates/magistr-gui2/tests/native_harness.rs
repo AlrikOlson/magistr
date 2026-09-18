@@ -17,7 +17,7 @@ use magistr_cockpit::cockpit::{Cmd, FrameClock, Model, Msg, Place, Size, StageTa
 use magistr_cockpit::input::{Button, KeyCode, KeyEvent, MouseEvent, MouseKind};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
 use magistr_domain::policy::RiskTier;
-use magistr_gui2::{AccessTree, ElementId, Frame, MomentComposition};
+use magistr_gui2::{ElementId, Frame, MomentComposition};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 /// The grid the harness runs on — the measurement size, not the still
@@ -217,7 +217,7 @@ fn a_permission_raised_on_the_inbox_is_a_card_answered_by_click_and_by_key() {
         "the stage's cap names the wait: {rows:?}"
     );
     assert!(
-        pane.frame.access(1.0).find(Widget::Dock).is_none(),
+        pane.frame.access().find(Widget::Dock).is_none(),
         "the dock strip is still not placed"
     );
     // A click on the card's Allow verb, resolved by the registry the
@@ -339,10 +339,7 @@ fn every_tab_paints_from_the_one_model() {
             "{place:?}: the frame paints from the one model"
         );
         assert!(
-            pane.frame
-                .access(1.0)
-                .find(Widget::tab(place.tab()))
-                .is_none(),
+            pane.frame.access().find(Widget::tab(place.tab())).is_none(),
             "{place:?}: the window lays out no tab bar"
         );
         if matches!(place, Place::Galaxy | Place::Sky) {
@@ -364,7 +361,7 @@ fn every_tab_paints_from_the_one_model() {
         } else {
             4
         };
-        let tree = pane.frame.access(1.0);
+        let tree = pane.frame.access();
         assert!(
             tree.nodes().len() >= floor,
             "{place:?}: {} nodes",
@@ -383,7 +380,7 @@ fn the_published_tree_describes_the_frame_that_was_painted() {
         .send(Msg::Agent(AgentEvent::Text("streaming".to_owned())));
     pane.drain();
     let _ = pane.paint();
-    let tree = pane.frame.access(1.0);
+    let tree = pane.frame.access();
     for node in tree.nodes().iter().skip(1) {
         let (x0, y0, x1, y1) = node.bounds.expect("a placed node has bounds");
         assert!(
@@ -391,9 +388,9 @@ fn the_published_tree_describes_the_frame_that_was_painted() {
             "{node:?} names a box the layout did not place"
         );
     }
-    let update = tree.update(Some(Widget::Composer));
+    let update = tree.update(Some(Widget::Composer.id()));
     assert_eq!(update.nodes.len(), tree.nodes().len());
-    assert_eq!(update.focus, AccessTree::node_id(Widget::Composer.id()));
+    assert_eq!(update.focus, tree.find(Widget::Composer).unwrap().id);
 }
 
 /// The rail stands on the right of the window (the design's Session

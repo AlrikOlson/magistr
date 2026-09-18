@@ -34,6 +34,10 @@ pub fn access_of(root: &Element, layout: &ElementLayout) -> Vec<AccessNode> {
             });
         nodes.push(AccessNode {
             id: NodeId(index as u64),
+            target: None,
+            identity: String::new(),
+            actions: Vec::new(),
+            disabled: element.disabled,
             role: element.role,
             label,
             value: element.editor_cursor.and_then(|_| match &element.kind {

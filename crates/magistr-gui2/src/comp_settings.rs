@@ -37,6 +37,7 @@ impl SettingsComposition {
     pub const CLOSE: ElementId = ElementId(350);
     /// The open pane's `Open file`.
     pub const OPEN: ElementId = ElementId(351);
+    pub const QUERY: ElementId = ElementId(435);
     /// The sidebar items: `NAV + index` for the group at `index` in
     /// [`SettingsGroup::ALL`], `NAV_END` exclusive.
     pub const NAV: u64 = 1 << 28;
@@ -259,6 +260,10 @@ fn search_box(query: &str, lex: &Lexicon) -> Element {
                 ))
                 .child(
                     Element::text(SettingsComposition::SEARCH_VOICE, ink, text)
+                        .id(SettingsComposition::QUERY)
+                        .label("Search settings")
+                        .focusable()
+                        .focus_ring(lex.mauve)
                         .claim(Component::Field)
                         .nowrap(),
                 ),

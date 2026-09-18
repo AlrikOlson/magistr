@@ -11,6 +11,7 @@
 
 pub mod fake_workbench;
 pub mod fixtures;
+pub mod input_journey;
 pub mod scenes;
 
 pub use fake_workbench::FakeWorkbench;

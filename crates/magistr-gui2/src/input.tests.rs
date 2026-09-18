@@ -11,6 +11,238 @@ fn native_text_payload_keeps_combined_scalars_and_ignores_composition_enter() {
     assert!(matches!(result, Some(Msg::Paste(text)) if text == "e\u{301}"));
 }
 
+#[derive(Clone, Copy, Debug)]
+enum JourneyLane {
+    Keyboard,
+    Pointer,
+    Accessibility,
+}
+
+#[test]
+fn shared_input_journey_through_native_controls() {
+    use accesskit::{Action, ActionData, ActionRequest, TreeId};
+    use magistr_cockpit::cockpit::{Cmd, Model, Surface, update};
+    use magistr_cockpit::harness::{Scenes, input_journey::InputJourney as J};
+    fn paint(frame: &mut crate::Frame, model: &mut Model) {
+        for _ in 0..3 {
+            frame
+                .build(
+                    model,
+                    &FrameClock::new(0, std::time::Duration::ZERO),
+                    1200,
+                    800,
+                )
+                .unwrap();
+        }
+    }
+    fn dispatch(frame: &mut crate::Frame, model: &mut Model, msg: Msg) -> Vec<Cmd> {
+        let result = frame
+            .input(model, msg)
+            .into_iter()
+            .flat_map(|msg| update(model, msg))
+            .collect();
+        paint(frame, model);
+        result
+    }
+    fn key(frame: &mut crate::Frame, model: &mut Model, key: Key, mods: Modifiers) -> Vec<Cmd> {
+        let input = Input {
+            mods,
+            ..Input::default()
+        };
+        dispatch(frame, model, input.keyed(&key, KeyKind::Press).unwrap())
+    }
+    fn activate(
+        frame: &mut crate::Frame,
+        model: &mut Model,
+        target: magistr_cockpit::widget_id::WidgetId,
+        lane: JourneyLane,
+    ) -> Vec<Cmd> {
+        let node = frame
+            .access()
+            .nodes()
+            .iter()
+            .find(|n| n.target == Some(target))
+            .unwrap()
+            .clone();
+        if matches!(lane, JourneyLane::Accessibility) {
+            let request = ActionRequest {
+                action: Action::Click,
+                target_tree: TreeId::ROOT,
+                target_node: node.id,
+                data: None,
+            };
+            let msgs = frame.access_action(model, request).unwrap();
+            let result = msgs
+                .into_iter()
+                .flat_map(|msg| update(model, msg))
+                .collect();
+            paint(frame, model);
+            return result;
+        }
+        let (x0, y0, x1, y1) = node.bounds.unwrap();
+        let mut input = Input::default();
+        let mut result = Vec::new();
+        for event in [
+            moved((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+            clicked(ElementState::Pressed),
+            clicked(ElementState::Released),
+        ] {
+            let mut messages = Vec::new();
+            input.fold(
+                &event,
+                &frame.metrics(),
+                model.size(),
+                frame.hits(),
+                &mut messages,
+            );
+            for msg in messages {
+                result.extend(dispatch(frame, model, msg));
+            }
+        }
+        result
+    }
+    for lane in [
+        JourneyLane::Keyboard,
+        JourneyLane::Pointer,
+        JourneyLane::Accessibility,
+    ] {
+        let mut model = Scenes::navigation(Size::new(120, 40)).with_surface(Surface::Native);
+        let mut frame = crate::Frame::new().unwrap();
+        paint(&mut frame, &mut model);
+        J::verify(&mut model, |model, gesture| {
+            paint(&mut frame, model);
+            match gesture {
+                J::Navigate(query) => {
+                    key(
+                        &mut frame,
+                        model,
+                        Key::Character("k".into()),
+                        Modifiers::SUPER,
+                    );
+                    if matches!(lane, JourneyLane::Accessibility) {
+                        let node = frame.access().find(Widget::OverlayQuery).unwrap().id;
+                        let messages = frame
+                            .access_action(
+                                model,
+                                ActionRequest {
+                                    action: Action::SetValue,
+                                    target_tree: TreeId::ROOT,
+                                    target_node: node,
+                                    data: Some(ActionData::Value(query.into())),
+                                },
+                            )
+                            .unwrap();
+                        for msg in messages {
+                            update(model, msg);
+                        }
+                        paint(&mut frame, model);
+                    } else {
+                        let mut input = Input::default();
+                        let messages = fold(
+                            &mut input,
+                            WindowEvent::Ime(winit::event::Ime::Commit(query.into())),
+                            frame.hits(),
+                        );
+                        for msg in messages {
+                            dispatch(&mut frame, model, msg);
+                        }
+                    }
+                    if matches!(lane, JourneyLane::Keyboard) {
+                        key(
+                            &mut frame,
+                            model,
+                            Key::Named(NamedKey::Enter),
+                            Modifiers::NONE,
+                        )
+                    } else {
+                        activate(&mut frame, model, Widget::palette_row(0), lane)
+                    }
+                }
+                J::Text(text) => {
+                    if matches!(lane, JourneyLane::Accessibility) {
+                        let node = frame.access().find(Widget::Composer).unwrap().id;
+                        let value = format!("{}{text}", model.prompt().text());
+                        let messages = frame
+                            .access_action(
+                                model,
+                                ActionRequest {
+                                    action: Action::SetValue,
+                                    target_tree: TreeId::ROOT,
+                                    target_node: node,
+                                    data: Some(ActionData::Value(value.into())),
+                                },
+                            )
+                            .unwrap();
+                        let result = messages
+                            .into_iter()
+                            .flat_map(|msg| update(model, msg))
+                            .collect();
+                        paint(&mut frame, model);
+                        result
+                    } else {
+                        let mut input = Input::default();
+                        fold(
+                            &mut input,
+                            WindowEvent::Ime(winit::event::Ime::Commit(text.into())),
+                            frame.hits(),
+                        )
+                        .into_iter()
+                        .flat_map(|msg| dispatch(&mut frame, model, msg))
+                        .collect()
+                    }
+                }
+                J::Send | J::Stop if !matches!(lane, JourneyLane::Keyboard) => {
+                    activate(&mut frame, model, Widget::PromptAction.id(), lane)
+                }
+                J::AllowOnce if !matches!(lane, JourneyLane::Keyboard) => {
+                    activate(&mut frame, model, Widget::Allow.id(), lane)
+                }
+                J::AllowAlways if matches!(lane, JourneyLane::Accessibility) => {
+                    assert!(frame.access().find(Widget::Always).is_none());
+                    assert!(
+                        frame
+                            .access_action(
+                                model,
+                                ActionRequest {
+                                    action: Action::Click,
+                                    target_tree: TreeId::ROOT,
+                                    target_node: accesskit::NodeId(u64::MAX),
+                                    data: None,
+                                }
+                            )
+                            .is_err()
+                    );
+                    Vec::new()
+                }
+                J::Send => key(
+                    &mut frame,
+                    model,
+                    Key::Named(NamedKey::Enter),
+                    Modifiers::NONE,
+                ),
+                J::Stop => key(
+                    &mut frame,
+                    model,
+                    Key::Character("c".into()),
+                    Modifiers::CTRL,
+                ),
+                J::AllowOnce => key(
+                    &mut frame,
+                    model,
+                    Key::Character("a".into()),
+                    Modifiers::NONE,
+                ),
+                J::AllowAlways => key(
+                    &mut frame,
+                    model,
+                    Key::Character("A".into()),
+                    Modifiers::SHIFT,
+                ),
+            }
+        });
+    }
+}
+
 #[test]
 fn composed_unicode_and_paste_commit_once_without_submitting() {
     use magistr_cockpit::cockpit::{StageTab, update};

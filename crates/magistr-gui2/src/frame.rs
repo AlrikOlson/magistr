@@ -37,6 +37,8 @@ use crate::sky::Sky;
 use crate::text::TextEngine;
 use crate::trace_graph::TraceGraph;
 use crate::type_scale::TypeScale;
+#[path = "frame_access.rs"]
+mod accessible;
 #[path = "frame_workspace.rs"]
 mod workspace;
 
@@ -61,6 +63,8 @@ pub struct Frame {
     /// any — computed once per frame and read by both the hit
     /// registration and the accessibility tree.
     targets: Vec<Option<WidgetId>>,
+    access_tree: AccessTree,
+    next_access_id: u64,
     /// Hover, press and focus — folded from the cockpit's own `Msg`.
     state: ElementState,
     preedit: String,
@@ -115,6 +119,8 @@ impl Frame {
             tree: None,
             layout: None,
             targets: Vec::new(),
+            access_tree: AccessTree::default(),
+            next_access_id: 1,
             state: ElementState::default(),
             preedit: String::new(),
             hits: HitRegistry::new(),
@@ -214,6 +220,7 @@ impl Frame {
                 &self.preedit,
             );
         }
+        accessible::limit_controls(&mut root, model);
         let tree = scaled(root, factor);
 
         self.text.begin_frame();
@@ -232,7 +239,8 @@ impl Frame {
             self.targets.push(
                 element
                     .id
-                    .and_then(|id| RootComposition::target_of(model, id)),
+                    .and_then(|id| RootComposition::target_of(model, id))
+                    .filter(|target| accessible::is_available(model, *target)),
             );
         });
         // The stage clips its own subtree: DFS numbering is contiguous
@@ -426,8 +434,31 @@ impl Frame {
             model.set_rail_graph_rect(None);
             reported = true;
         }
+        let mut access = AccessTree::of(&tree, &layout, &self.targets);
+        access.reconcile(&self.access_tree, &mut self.next_access_id, model);
+        self.access_tree = access;
         self.tree = Some(tree);
         self.layout = Some(layout);
+        if self.focus_target().is_none()
+            && (self.state.focus().is_some()
+                || model.palette().is_some()
+                || model.search().is_some()
+                || model.settings().is_some()
+                || model.moment().is_some()
+                || model.review().is_some())
+        {
+            let preferred = if model.palette().is_some()
+                || model.search().is_some()
+                || model.settings().is_some()
+            {
+                Widget::OverlayQuery
+            } else if model.moment().is_some() || model.review().is_some() {
+                Widget::Allow
+            } else {
+                Widget::Composer
+            };
+            self.focus_widget(preferred.id());
+        }
         Ok(reported)
     }
 
@@ -715,24 +746,37 @@ impl Frame {
     /// Resolve native focus before the shared model consumes input. Tests and the
     /// real window use this same route; completion owns Enter/Tab while open.
     pub fn input(&mut self, model: &Model, msg: Msg) -> Vec<Msg> {
-        use magistr_cockpit::input::{Button, KeyCode, Modifiers, MouseEvent, MouseKind};
+        use magistr_cockpit::input::{Button, KeyCode, KeyEvent, Modifiers, MouseKind};
+        let query_open =
+            model.palette().is_some() || model.search().is_some() || model.settings().is_some();
+        if query_open && let Msg::Paste(text) = &msg {
+            self.focus_widget(Widget::OverlayQuery.id());
+            return text
+                .chars()
+                .filter(|c| !c.is_control())
+                .map(|c| Msg::Key(KeyEvent::new(KeyCode::Char(c))))
+                .collect();
+        }
+        if let Msg::Mouse {
+            target: Some(target),
+            ..
+        } = &msg
+            && (!accessible::is_available(model, *target)
+                || self
+                    .access_tree
+                    .nodes()
+                    .iter()
+                    .any(|n| n.target == Some(*target) && n.disabled))
+        {
+            return Vec::new();
+        }
         if model.active_panel().is_none()
             && model.completion().is_none()
             && let Msg::Key(key) = &msg
             && key.is_press()
         {
-            if key.code == KeyCode::Enter
-                && key.mods.is_empty()
-                && let Some(target) = self.focus_target()
-                && target != Widget::Composer.id()
-            {
-                return [MouseKind::Down(Button::Left), MouseKind::Up(Button::Left)]
-                    .into_iter()
-                    .map(|kind| Msg::Mouse {
-                        event: MouseEvent::new(kind, 0, 0),
-                        target: Some(target),
-                    })
-                    .collect();
+            if let Some(messages) = self.control_key(model, *key) {
+                return messages;
             }
             if (key.code == KeyCode::Tab && !key.mods.contains(Modifiers::CTRL))
                 || (matches!(key.code, KeyCode::Up | KeyCode::Down) && self.focus_walks())
@@ -765,7 +809,11 @@ impl Frame {
             || matches!(&msg, Msg::Key(key)
             if key.is_press() && matches!(key.code, KeyCode::Char(_) | KeyCode::Backspace | KeyCode::Delete)
                 && (key.mods.is_empty() || key.mods == Modifiers::SHIFT));
+        if editing && query_open {
+            self.focus_widget(Widget::OverlayQuery.id());
+        }
         if editing
+            && !query_open
             && model.active_panel().is_none()
             && self
                 .rect_of(crate::comp_composer::ComposerComposition::PILL)
@@ -802,11 +850,15 @@ impl Frame {
         let tree = self.tree.as_ref()?;
         let mut target = None;
         tree.each(&mut |index, element| {
-            if element.id == Some(focus) && target.is_none() {
+            if element.id == Some(focus) && !element.disabled && target.is_none() {
                 target = self.targets.get(index).copied().flatten();
             }
         });
-        target
+        target.filter(|target| {
+            self.access_tree.nodes().iter().any(|node| {
+                node.target == Some(*target) && node.actions.contains(&accesskit::Action::Focus)
+            })
+        })
     }
 
     /// Whether the arrow keys are the frame's to spend — focus is on a
@@ -881,11 +933,8 @@ impl Frame {
     /// emitter did not draw. Empty (the window node alone) before the
     /// first build.
     #[must_use]
-    pub fn access(&self, scale: f64) -> AccessTree {
-        match (&self.tree, &self.layout) {
-            (Some(tree), Some(layout)) => AccessTree::of(tree, layout, &self.targets, scale),
-            _ => AccessTree::default(),
-        }
+    pub fn access(&self) -> AccessTree {
+        self.access_tree.clone()
     }
 
     /// The engine that shaped this frame's text and owns its atlas.

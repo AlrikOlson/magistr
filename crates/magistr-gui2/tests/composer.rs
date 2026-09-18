@@ -176,7 +176,7 @@ fn bounded_editor_and_chooser_fit_both_themes_and_display_scales() {
                 .save_png(target.join(format!("composer-files-{layout}-{theme}.png")))
                 .unwrap();
             assert!(
-                f.access(scale)
+                f.access()
                     .nodes()
                     .iter()
                     .any(|node| node.label == "résumé draft.md")

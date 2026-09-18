@@ -413,6 +413,7 @@ test. The section headings separate the crates and their module families.
 | Module | Responsibility | Tests |
 | --- | --- | --- |
 | `magistr-cockpit/src/harness/mod.rs` | Shared mock services and interface test scenes | `magistr-cockpit/src/cockpit/view.tests.rs` |
+| `magistr-cockpit/src/harness/input_journey.rs` | Shared adapter journey for navigation, draft retention, send/stop and permission refusal | `magistr-tui/src/input/decoder.tests.rs`, `magistr-gui2/src/input.tests.rs` |
 | `magistr-cockpit/src/harness/fake_workbench.rs` | A scripted workbench for the harness | `magistr-cockpit/src/harness/fake_workbench.tests.rs` |
 | `magistr-cockpit/src/harness/fixtures.rs` | Typed store records and events for scenes and tests, filled from partial JSON at the wire's edge | `magistr-cockpit/src/cockpit/view.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/harness/scenes.rs` | Shared scenes for view tests, screenshots, and animation filmstrips | `magistr-tui/tests/goldens.rs` · `magistr-cockpit/src/cockpit/view.tests.rs` |

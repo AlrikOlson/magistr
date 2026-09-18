@@ -192,7 +192,7 @@ fn native_dividers_resize_cancel_and_retain_the_composer_at_multiple_scales() {
         assert_eq!(model.panel_fraction(D::Columns, 0.65), 0.65);
         assert_eq!(model.prompt(), &draft);
         paint(&mut frame, &mut model, size);
-        let access = frame.access(scale);
+        let access = frame.access();
         assert_eq!(
             access.find(Widget::PanelColumns).unwrap().role,
             accesskit::Role::Splitter
@@ -233,7 +233,7 @@ fn details_scroll_without_moving_the_conversation_or_reaching_hidden_controls() 
     }
     assert!(model.inspector_offset() > 0);
     assert!(frame.rect_of(W::DETAIL_CONTENT).unwrap()[1] < before);
-    assert!(frame.access(1.0).find(Widget::LinkedWork).is_none());
+    assert!(frame.access().find(Widget::LinkedWork).is_none());
     assert_eq!(model.visible_rows()[0].text, first);
     assert_eq!(model.prompt(), &draft);
 }
@@ -255,12 +255,12 @@ fn compact_panels_clip_focus_and_accessibility_to_the_visible_controls() {
     for _ in 0..30 {
         frame.fold_state(&Msg::Key(KeyEvent::new(KeyCode::Tab)));
         if let Some(target) = frame.focus_target() {
-            let access = frame.access(1.0);
+            let access = frame.access();
             assert!(
                 access
                     .nodes()
                     .iter()
-                    .any(|node| node.id == magistr_gui2::AccessTree::node_id(target)),
+                    .any(|node| node.target == Some(target)),
                 "focus must be published only for visible controls: {target:?}"
             );
         }

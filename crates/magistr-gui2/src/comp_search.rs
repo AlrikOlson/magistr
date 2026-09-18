@@ -29,6 +29,7 @@ impl SearchComposition {
     /// `index` in [`SearchResults::rows`](magistr_cockpit::cockpit::SearchResults::rows),
     /// `ROWS_END` exclusive — its own indexed space past the Signals'.
     pub const ROWS: u64 = 1 << 26;
+    pub const FIELD: ElementId = ElementId(434);
     /// One indexed space's width — far more rows than search cuts to.
     pub const ROWS_END: u64 = Self::ROWS + 64;
     /// The scope chips' element ids: `SCOPES + index` for the chip at
@@ -134,6 +135,11 @@ fn field(search: &Search, count: &str, glass: Srgba, lex: &Lexicon) -> Element {
                         .center()
                         .child(
                             Element::text(SearchComposition::QUERY, lex.tx, search.query())
+                                .id(SearchComposition::FIELD)
+                                .label("Search")
+                                .focusable()
+                                .focus_ring(lex.mauve)
+                                .min_width(12.0)
                                 .claim(Component::Field)
                                 .nowrap(),
                         )

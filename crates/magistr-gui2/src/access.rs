@@ -1,4 +1,4 @@
-use accesskit::{Node, NodeId, Role, Tree, TreeId, TreeUpdate};
+use accesskit::{Action, Node, NodeId, Role, Tree, TreeId, TreeUpdate};
 use magistr_cockpit::cockpit::Widget;
 use magistr_cockpit::widget_id::WidgetId;
 
@@ -9,24 +9,10 @@ use crate::element_layout::ElementLayout;
 /// The cockpit's accessibility tree, derived from the frame that was
 /// just painted.
 ///
-/// # Where every part of it comes from
-///
-/// Nothing here is a second description of the cockpit. The **ids** are
-/// the cockpit's own [`WidgetId`]s — resolved from the composition's
-/// element ids through the same seam the hit registry uses — so a node
-/// is the same thing a click answers with and cannot drift between
-/// frames the way an allocated id would. The **structure** is the
-/// element tree's own nesting: a node's parent is its nearest ancestor
-/// that resolves to a widget, which is exactly the containment a
-/// pointer already resolves through. The **bounds** are that element's
-/// placed pixel box. And the **names** are [`Widget::label`] where the
-/// cockpit already has a word for the widget, and otherwise the text
-/// the element actually holds — naming a row any other way would let a
-/// screen reader announce something the screen does not show.
-///
-/// The tree is recorded as [`AccessNode`]s and converted to a
-/// [`TreeUpdate`] on the way out, because AccessKit's `Node` cannot be
-/// read back.
+/// Structure, names and clipped bounds come from the placed element tree.
+/// Targets use the same widget resolution as pointer input. Published IDs are
+/// reconciled against object identities so delayed requests cannot act on a
+/// different row, permission, or command after the model changes.
 #[derive(Clone, Debug, Default)]
 pub struct AccessTree {
     nodes: Vec<AccessNode>,
@@ -37,7 +23,6 @@ pub struct AccessTree {
 struct Walk<'a> {
     layout: &'a ElementLayout,
     targets: &'a [Option<WidgetId>],
-    scale: f64,
     nodes: Vec<AccessNode>,
     ancestors: Vec<(usize, usize)>,
     next: usize,
@@ -45,45 +30,101 @@ struct Walk<'a> {
 }
 
 impl AccessTree {
+    /// Keep IDs only while the same control still names the same object.
+    pub(crate) fn reconcile(
+        &mut self,
+        previous: &Self,
+        next: &mut u64,
+        model: &magistr_cockpit::cockpit::Model,
+    ) {
+        let mut ids = std::collections::BTreeMap::new();
+        ids.insert(Self::WINDOW, Self::WINDOW);
+        for node in &mut self.nodes {
+            let Some(target) = node.target else { continue };
+            node.identity.push_str(&identity(model, target));
+            if target == Widget::OverlayQuery.id() {
+                node.value = model
+                    .palette()
+                    .map(|p| p.query())
+                    .or_else(|| model.search().map(|s| s.query()))
+                    .or_else(|| model.settings().map(|s| s.query()))
+                    .map(str::to_owned);
+            }
+            if let Some(index) = Widget::settings_switch_index(target) {
+                node.role = Role::Switch;
+                node.value = Some(
+                    if match index {
+                        0 => model.settings_data().heatmap,
+                        1 => model.settings_data().grain,
+                        2 => !model.theme().motion().is_full(),
+                        _ => false,
+                    } {
+                        "On"
+                    } else {
+                        "Off"
+                    }
+                    .into(),
+                );
+            }
+            let old_id = node.id;
+            node.id = previous
+                .nodes
+                .iter()
+                .find(|old| {
+                    old.target == node.target
+                        && old.identity == node.identity
+                        && old.label == node.label
+                        && old.role == node.role
+                        && old.actions == node.actions
+                        && old.disabled == node.disabled
+                })
+                .map(|old| old.id)
+                .unwrap_or_else(|| {
+                    let id = NodeId(*next);
+                    *next = next
+                        .checked_add(1)
+                        .expect("accessibility node lifetime exhausted");
+                    id
+                });
+            ids.insert(old_id, node.id);
+        }
+        for node in &mut self.nodes {
+            for child in &mut node.children {
+                *child = ids[child];
+            }
+        }
+    }
+
     /// The window: the tree's root, and the one node that is not a
     /// widget.
-    ///
-    /// Id 0 is free for it only because every widget id is offset by
-    /// one — `Widget::Header`'s raw id *is* 0, and a root sharing an id
-    /// with the header would make the header its own parent.
     pub const WINDOW: NodeId = NodeId(0);
 
-    /// The node id for a cockpit widget.
-    #[must_use]
-    pub const fn node_id(widget: WidgetId) -> NodeId {
+    /// Temporary construction ID; reconciliation replaces it before publication.
+    const fn node_id(widget: WidgetId) -> NodeId {
         NodeId(widget.raw() as u64 + 1)
     }
 
     /// The tree for a painted frame: `tree` is the frame's own placed
     /// elements, `layout` is where layout put each one, `targets` is
     /// the per-element widget resolution the frame computed (the same
-    /// vector the hit registration read), and `scale` is the window's
-    /// scale factor, which turns physical pixels into the logical
-    /// points a platform adapter expects (1.0 on a non-HiDPI display,
-    /// and on the headless path).
+    /// vector the hit registration read). Bounds remain in physical pixels;
+    /// the platform adapter performs the display-scale conversion.
     #[must_use]
-    pub fn of(
-        tree: &Element,
-        layout: &ElementLayout,
-        targets: &[Option<WidgetId>],
-        scale: f64,
-    ) -> Self {
+    pub fn of(tree: &Element, layout: &ElementLayout, targets: &[Option<WidgetId>]) -> Self {
         let mut walk = Walk {
             layout,
             targets,
-            scale: if scale > 0.0 { scale } else { 1.0 },
             nodes: vec![AccessNode {
                 id: Self::WINDOW,
+                target: None,
+                identity: String::new(),
                 role: Role::Window,
                 label: "magistr".to_owned(),
                 value: None,
                 bounds: None,
                 children: Vec::new(),
+                actions: Vec::new(),
+                disabled: false,
             }],
             ancestors: Vec::new(),
             next: 0,
@@ -102,8 +143,9 @@ impl AccessTree {
     /// The node published for `widget`, if it was on screen.
     #[must_use]
     pub fn find(&self, widget: Widget) -> Option<&AccessNode> {
-        let id = Self::node_id(widget.id());
-        self.nodes.iter().find(|node| node.id == id)
+        self.nodes
+            .iter()
+            .find(|node| node.target == Some(widget.id()))
     }
 
     /// The whole tree as one AccessKit update.
@@ -115,10 +157,10 @@ impl AccessTree {
     /// with its draw list — the cockpit is tens of nodes, not the
     /// million-row list a diff exists for.
     #[must_use]
-    pub fn update(&self, focus: Option<Widget>) -> TreeUpdate {
+    pub fn update(&self, focus: Option<WidgetId>) -> TreeUpdate {
         let focus = focus
-            .map(|widget| Self::node_id(widget.id()))
-            .filter(|id| self.nodes.iter().any(|node| node.id == *id))
+            .and_then(|target| self.nodes.iter().find(|node| node.target == Some(target)))
+            .map(|node| node.id)
             .unwrap_or(Self::WINDOW);
         let nodes = self
             .nodes
@@ -132,7 +174,20 @@ impl AccessTree {
                 if let Some((x0, y0, x1, y1)) = source.bounds {
                     node.set_bounds(accesskit::Rect { x0, y0, x1, y1 });
                 }
+                if source.role == Role::Switch {
+                    node.set_toggled(if source.value.as_deref() == Some("On") {
+                        accesskit::Toggled::True
+                    } else {
+                        accesskit::Toggled::False
+                    });
+                }
                 node.set_children(source.children.clone());
+                for action in &source.actions {
+                    node.add_action(*action);
+                }
+                if source.disabled {
+                    node.set_disabled();
+                }
                 (source.id, node)
             })
             .collect();
@@ -190,16 +245,27 @@ impl Walk<'_> {
                     Some(Widget::PromptAction) => (role, said.clone()),
                     _ => (role, label),
                 };
-                let value =
-                    matches!(widget, Some(Widget::Prompt | Widget::Composer)).then_some(said);
-                let point = |v: f32| f64::from(v) / self.scale;
+                let label = element.label.clone().unwrap_or(label);
+                let value = matches!(
+                    widget,
+                    Some(Widget::Prompt | Widget::Composer | Widget::OverlayQuery)
+                )
+                .then(|| match &element.kind {
+                    Kind::Text { content, .. } => content.clone(),
+                    _ => said,
+                });
+                let point = f64::from;
                 let node = AccessNode {
                     id: AccessTree::node_id(id),
+                    target: Some(id),
+                    identity: format!("{:?}", element.id),
                     role,
                     label,
                     value,
                     bounds: Some((point(x), point(y), point(x + w), point(y + h))),
                     children: Vec::new(),
+                    actions: actions_of(id, element),
+                    disabled: element.disabled,
                 };
                 let parent = self.ancestors.last().map_or(0, |(_, at)| *at);
                 self.nodes[parent].children.push(node.id);
@@ -227,6 +293,137 @@ fn subtree_text(element: &Element) -> String {
         }
     });
     said.join(" ")
+}
+
+/// Stable object identities, not row positions, guard delayed platform requests.
+fn identity(model: &magistr_cockpit::cockpit::Model, target: WidgetId) -> String {
+    use magistr_cockpit::cockpit::{Palette, Search};
+    if let Some(index) = Widget::roadmap_row_index(target) {
+        return format!("{:?}", model.roadmap().rows().get(index).map(|c| &c.id));
+    }
+    if let Some(index) = Widget::sky_star_index(target) {
+        return format!("{:?}", model.roadmap().graph_chunk(index).map(|c| &c.id));
+    }
+    if let Some(index) = Widget::palette_row_index(target) {
+        return format!("{:?}", Palette::rows(model).get(index));
+    }
+    if let Some(index) = Widget::search_row_index(target) {
+        return format!("{:?}", Search::results(model).rows.get(index));
+    }
+    if let Some(index) = Widget::trace_row_index(target) {
+        return format!("{:?}", model.trace().steps().get(index).map(|s| s.number));
+    }
+    if let Some(index) = Widget::change_row_index(target)
+        .or_else(|| Widget::change_open_index(target))
+        .or_else(|| Widget::change_undo_index(target))
+        .or_else(|| Widget::change_approve_index(target))
+        .or_else(|| Widget::review_file_index(target))
+    {
+        return format!("{:?}", model.changes().entries().get(index));
+    }
+    if let Some(index) = Widget::signal_row_index(target)
+        .or_else(|| Widget::signal_promote_index(target))
+        .or_else(|| Widget::signal_research_index(target))
+        .or_else(|| Widget::signal_snooze_index(target))
+        .or_else(|| Widget::signal_ignore_index(target))
+    {
+        return format!("{:?}", model.roadmap().signals().get(index));
+    }
+    if let Some(index) =
+        Widget::proposal_accept_index(target).or_else(|| Widget::proposal_reject_index(target))
+    {
+        return format!("{:?}", model.roadmap().proposals().get(index));
+    }
+    if let Some(index) = Widget::roadmap_dependency_index(target) {
+        let chunk = match model.selected() {
+            Some(magistr_cockpit::cockpit::Selected::Chunk(id)) => model.roadmap().chunk(id),
+            _ => None,
+        };
+        return format!(
+            "{:?}",
+            chunk.and_then(|c| c.deps.iter().chain(&c.cross_refs).nth(index))
+        );
+    }
+    if Widget::spine_row_index(target).is_some()
+        || Widget::spine_restore_index(target).is_some()
+        || Widget::spine_fork_index(target).is_some()
+    {
+        return format!("{:?}", model.rail().spine());
+    }
+    if Widget::session_row_index(target).is_some() {
+        return format!(
+            "{:?}",
+            magistr_cockpit::cockpit::session_item::SessionItem::collect(
+                model.trace(),
+                model.changes()
+            )
+        );
+    }
+    if let Some(index) = Widget::completion_index(target) {
+        return format!(
+            "{:?}",
+            model.completion().and_then(|c| c.items().get(index))
+        );
+    }
+    if let Some(index) = Widget::galaxy_cluster_index(target) {
+        return format!("{:?}", model.galaxy().projects().get(index));
+    }
+    if Widget::from_id(target).is_some_and(|w| w.answers().is_some()) {
+        return format!("{:?}", model.dock().front());
+    }
+    if matches!(
+        Widget::from_id(target),
+        Some(Widget::Composer | Widget::Prompt | Widget::OverlayQuery)
+    ) {
+        return format!("{:?}", model.tab());
+    }
+    // Context-sensitive buttons and indexed links include the selected object's identity.
+    format!("{:?}:{:?}", model.place(), model.selected())
+}
+
+fn actions_of(id: WidgetId, element: &Element) -> Vec<Action> {
+    if element.disabled {
+        return Vec::new();
+    }
+    let mut actions = Vec::new();
+    if element.focusable {
+        actions.push(Action::Focus);
+    }
+    let widget = Widget::from_id(id);
+    if matches!(
+        widget,
+        Some(Widget::Composer | Widget::Prompt | Widget::OverlayQuery)
+    ) {
+        actions.push(Action::SetValue);
+    } else if element.focusable {
+        if matches!(
+            widget,
+            Some(
+                Widget::PanelColumns
+                    | Widget::PanelRoadmap
+                    | Widget::PanelReasoning
+                    | Widget::PanelGraph
+            )
+        ) {
+            actions.extend([Action::Increment, Action::Decrement]);
+        } else {
+            actions.push(Action::Click);
+        }
+    }
+    if matches!(
+        widget,
+        Some(
+            Widget::Stage
+                | Widget::Inspector
+                | Widget::InspectorDetail
+                | Widget::RequestBody
+                | Widget::RoadmapTable
+                | Widget::TraceDetail
+        )
+    ) {
+        actions.extend([Action::ScrollUp, Action::ScrollDown]);
+    }
+    actions
 }
 
 /// The role a named widget answers with.
@@ -282,7 +479,8 @@ fn role_of(widget: Widget) -> Role {
         | Widget::InspectorFields => Role::Group,
         Widget::InspectorTitle | Widget::InspectorStatus => Role::Label,
         Widget::RoadmapTable => Role::Table,
-        Widget::RoadmapFilter | Widget::OverlayQuery => Role::TextInput,
+        Widget::RoadmapFilter => Role::Button,
+        Widget::OverlayQuery => Role::TextInput,
         Widget::PanelColumns | Widget::PanelRoadmap | Widget::PanelReasoning
         | Widget::PanelGraph => Role::Splitter,
         Widget::ToolOpen | Widget::ToolUndo | Widget::RoadmapSortName
@@ -409,7 +607,7 @@ fn indexed_role(id: WidgetId) -> (Role, String) {
     if Widget::galaxy_cluster_index(id).is_some() {
         return (Role::Link, "project".to_owned());
     }
-    (Role::GenericContainer, "widget".to_owned())
+    (Role::Button, "Open".to_owned())
 }
 
 #[cfg(test)]
