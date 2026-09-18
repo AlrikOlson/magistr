@@ -12,7 +12,8 @@ use std::path::{Path, PathBuf};
 pub use magistr_domain::identity::AttemptId;
 use magistr_domain::identity::{ProjectId, RunId};
 pub use magistr_domain::workflow::{
-    IterationStatus, OperationKind, OperationLedger, OperationOutcome, OperationRecord,
+    DispatchPhase, IterationStatus, OperationKind, OperationLedger, OperationOutcome,
+    OperationRecord,
 };
 use magistr_domain::workflow::{RunMode, RunState, StopReason};
 use magistr_engine::NativeEngines;
@@ -26,6 +27,8 @@ use crate::workflow::spec::{self, SpecSummary};
 
 #[path = "iteration_operations.rs"]
 mod operations;
+#[path = "iteration_resolution.rs"]
+mod resolution;
 
 // ── Persisted state ─────────────────────────────────────────────────────────
 

@@ -3,8 +3,11 @@
 pub mod checkpoint_reason;
 pub use checkpoint_reason::CheckpointReason;
 
+pub mod dispatch_phase;
 pub mod iteration_state;
 pub mod iteration_status;
+pub use dispatch_phase::DispatchPhase;
+
 pub mod operation_admission;
 pub mod operation_error;
 pub mod operation_kind;

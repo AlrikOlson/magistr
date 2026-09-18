@@ -166,8 +166,15 @@ impl SessionSupervisor {
 
     /// Connect the frozen runtime and transfer its policy to the sole session owner.
     pub async fn start(spec: ResolvedSessionSpec) -> Result<(Self, Messages)> {
+        Self::start_checkpointed(spec, || Ok(())).await
+    }
+
+    pub(crate) async fn start_checkpointed(
+        spec: ResolvedSessionSpec,
+        before_spawn: impl FnOnce() -> Result<()>,
+    ) -> Result<(Self, Messages)> {
         let max_turns = spec.max_turns();
-        let transport = spec.connect_transport().await?;
+        let transport = spec.connect_transport_checkpointed(before_spawn).await?;
         let prompt = spec.prompt().to_owned();
         let (policy, handling) = spec.into_permission_policy();
         Self::start_connected_bounded_with_limit(

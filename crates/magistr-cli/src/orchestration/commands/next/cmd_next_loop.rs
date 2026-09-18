@@ -15,6 +15,7 @@ pub async fn cmd_next_loop(
     use workflow::iteration::{IterationLoop, PostCheckResult, PreCheckResult};
 
     let dir = super::canonicalize_dir(dir)?;
+    let _loop_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
     let inputs = inputs.for_project(&dir);
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
@@ -85,8 +86,8 @@ pub async fn cmd_next_loop(
                     eprintln!("magistr: workspace shutdown: {err}");
                 }
                 return Err(eyre::eyre!(
-                    "recovery could not establish what happened to: {} — reconcile before retrying, \
-                     or preserve/remove .magistr/loop-state.json for an explicit new run",
+                    "The outcome of this work is unknown: {}. Inspect it with magistr workspace doctor. \
+                     Once its agent has stopped, use magistr resolve-dispatch to record what happened.",
                     open.join("; ")
                 ));
             }

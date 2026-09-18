@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::identity::AttemptId;
 
-use super::{OperationKind, OperationOutcome};
+use super::{DispatchPhase, OperationKind, OperationOutcome};
 
 /// One attempt of one operation, as the ledger remembers it.
 ///
@@ -20,6 +20,12 @@ pub struct OperationRecord {
     pub outcome: OperationOutcome,
     #[serde(deserialize_with = "required_option")]
     pub external: Option<String>,
+    /// Missing on older checkpoints, whose launch progress is unknown.
+    #[serde(default)]
+    pub dispatch_phase: Option<DispatchPhase>,
+    /// An explicit operator decision, retained with this attempt.
+    #[serde(default)]
+    pub resolution: Option<String>,
 }
 
 fn required_option<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>

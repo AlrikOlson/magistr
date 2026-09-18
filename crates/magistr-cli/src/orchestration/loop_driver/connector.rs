@@ -22,7 +22,13 @@ type Connect = dyn Fn(
 /// closure that connects the transport over a channel to an in-process fake.
 #[derive(Clone)]
 pub struct Connector {
-    connect: Arc<Connect>,
+    connection: Connection,
+}
+
+#[derive(Clone)]
+enum Connection {
+    Live(SourceRoute),
+    Custom(Arc<Connect>),
 }
 
 impl Connector {
@@ -33,7 +39,7 @@ impl Connector {
         Fut: Future<Output = Result<(AcpTransport, ResolvedSessionSpec)>> + Send + 'static,
     {
         Self {
-            connect: Arc::new(move |config| Box::pin(connect(config))),
+            connection: Connection::Custom(Arc::new(move |config| Box::pin(connect(config)))),
         }
     }
 
@@ -42,14 +48,17 @@ impl Connector {
     /// admitted workspace, or the refusal a host without one holds.
     #[must_use]
     pub fn live(source: SourceRoute) -> Self {
-        Self::new(move |config| {
-            let source = source.clone();
-            async move {
-                let spec = config.resolve()?.with_source_route(source);
-                let transport = spec.connect_transport().await?;
-                Ok((transport, spec))
-            }
-        })
+        Self {
+            connection: Connection::Live(source),
+        }
+    }
+
+    /// Connect without a persisted loop operation (single sessions and fixtures).
+    pub async fn connect(
+        &self,
+        config: AgentConfig,
+    ) -> Result<(AcpTransport, ResolvedSessionSpec)> {
+        self.connect_checkpointed(config, || Ok(())).await
     }
 
     /// Connect for `config`.
@@ -57,11 +66,22 @@ impl Connector {
     /// # Errors
     ///
     /// Whatever the connection failed with.
-    pub async fn connect(
+    pub async fn connect_checkpointed(
         &self,
         config: AgentConfig,
+        before_spawn: impl FnOnce() -> Result<()>,
     ) -> Result<(AcpTransport, ResolvedSessionSpec)> {
-        (self.connect)(config).await
+        match &self.connection {
+            Connection::Live(source) => {
+                let spec = config.resolve()?.with_source_route(source.clone());
+                let transport = spec.connect_transport_checkpointed(before_spawn).await?;
+                Ok((transport, spec))
+            }
+            Connection::Custom(connect) => {
+                before_spawn()?;
+                connect(config).await
+            }
+        }
     }
 }
 

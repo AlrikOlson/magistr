@@ -17,6 +17,177 @@ use magistr_core::workflow::iteration::{
 use magistr_engine::workflow::StopReason;
 
 const ENTRIES: [&str; 3] = ["interactive", "headless", "cockpit"];
+
+fn stopped_dispatch(dir: &Path) -> IterationState {
+    previous(dir, None, true);
+    let mut json: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(checkpoint(dir)).unwrap()).unwrap();
+    // A stopped owner with a positive PID outside supported hosts' PID ranges.
+    let run = "run-1-2000000000";
+    json["run_id"]["local"] = run.into();
+    for record in json["operations"]["records"].as_array_mut().unwrap() {
+        record["attempt"]["command"]["run"]["local"] = run.into();
+    }
+    std::fs::write(checkpoint(dir), serde_json::to_vec(&json).unwrap()).unwrap();
+    saved(dir)
+}
+
+fn resolve_command(dir: &Path, state: &IterationState, outcome: &str) -> std::process::Command {
+    let dispatch = state
+        .operations
+        .records()
+        .iter()
+        .find(|record| record.kind == OperationKind::ProviderDispatch)
+        .unwrap();
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_magistr"));
+    command
+        .args(["resolve-dispatch"])
+        .arg(dir)
+        .args([
+            "--run",
+            state.run_id.local(),
+            "--command",
+            dispatch.attempt.command().local(),
+            "--attempt",
+            &dispatch.attempt.number().to_string(),
+            "--outcome",
+            outcome,
+            "--reason",
+            "Checked the agent has stopped and reviewed its work.",
+        ])
+        .env("HOME", dir)
+        .env("XDG_CONFIG_HOME", dir.join("config"))
+        .current_dir(dir);
+    command
+}
+
+#[test]
+fn resolve_dispatch_cli_preserves_saved_work_and_records_each_final_outcome() {
+    for outcome in ["failed", "cancelled", "completed"] {
+        let dir = project();
+        let before = stopped_dispatch(dir.path());
+        let output = resolve_command(dir.path(), &before, outcome)
+            .arg("--confirm-stopped")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let after = saved(dir.path());
+        let dispatch = after
+            .operations
+            .records()
+            .iter()
+            .find(|record| record.kind == OperationKind::ProviderDispatch)
+            .unwrap();
+        assert_eq!(dispatch.outcome.as_str(), outcome);
+        assert!(dispatch.resolution.as_deref().unwrap().contains("reviewed"));
+        assert_eq!(after.run, before.run);
+        assert_eq!(after.run_id, before.run_id);
+        assert_eq!(after.last_commit_sha, before.last_commit_sha);
+        assert_eq!(
+            after.operations.records()[0],
+            before.operations.records()[0]
+        );
+        assert_context_kept(dir.path());
+        let mut recovered =
+            IterationLoop::open_or_recover(dir.path(), dir.path().join("spec.md"), 9, None)
+                .unwrap();
+        let retry = recovered
+            .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
+            .unwrap();
+        if outcome == "completed" {
+            assert!(retry.is_none());
+        } else {
+            assert_eq!(retry.unwrap().number().get(), 2);
+        }
+        let settled = std::fs::read(checkpoint(dir.path())).unwrap();
+        assert!(
+            !resolve_command(dir.path(), &before, outcome)
+                .arg("--confirm-stopped")
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        assert_eq!(std::fs::read(checkpoint(dir.path())).unwrap(), settled);
+    }
+}
+
+#[test]
+fn resolve_dispatch_cli_refuses_missing_confirmation_stale_ids_and_live_work() {
+    let dir = project();
+    let state = stopped_dispatch(dir.path());
+    let original = std::fs::read(checkpoint(dir.path())).unwrap();
+    let output = resolve_command(dir.path(), &state, "failed")
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    let mut stale = state.clone();
+    stale.run_id = serde_json::from_value(serde_json::json!({
+        "project": state.run_id.project().as_str(), "local": "wrong-run"
+    }))
+    .unwrap();
+    assert!(
+        !resolve_command(dir.path(), &stale, "failed")
+            .arg("--confirm-stopped")
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    assert_eq!(std::fs::read(checkpoint(dir.path())).unwrap(), original);
+    let lease = magistr_core::workflow::loop_lease::LoopLease::acquire(dir.path()).unwrap();
+    assert!(
+        !resolve_command(dir.path(), &state, "failed")
+            .arg("--confirm-stopped")
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    drop(lease);
+    let mut json = serde_json::to_value(&state).unwrap();
+    let dispatch = json["operations"]["records"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|record| record["kind"] == "provider_dispatch")
+        .unwrap();
+    dispatch["external"] = format!("pid:{}", std::process::id()).into();
+    std::fs::write(checkpoint(dir.path()), serde_json::to_vec(&json).unwrap()).unwrap();
+    let live = std::fs::read(checkpoint(dir.path())).unwrap();
+    let output = resolve_command(dir.path(), &state, "failed")
+        .arg("--confirm-stopped")
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("agent is still running"));
+    assert_eq!(std::fs::read(checkpoint(dir.path())).unwrap(), live);
+    previous(dir.path(), None, true);
+    let live_owner = saved(dir.path());
+    let output = resolve_command(dir.path(), &live_owner, "failed")
+        .arg("--confirm-stopped")
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("process is still running"));
+}
+
+#[tokio::test]
+async fn every_loop_entry_refuses_a_concurrent_checkpoint_owner() {
+    for entry in ENTRIES {
+        let dir = project();
+        let _lease = magistr_core::workflow::loop_lease::LoopLease::acquire(dir.path()).unwrap();
+        let result = invoke(entry, dir.path()).await;
+        assert!(result.contains("already running"), "{entry}: {result}");
+        assert!(!checkpoint(dir.path()).exists());
+        assert_context_kept(dir.path());
+    }
+}
+
 const PLAN: &str = "Continue the saved implementation plan.\n";
 const TASK: &str = "Finish the interrupted task.\n";
 

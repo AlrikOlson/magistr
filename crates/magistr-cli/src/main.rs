@@ -233,6 +233,23 @@ async fn main() -> eyre::Result<()> {
                     .await
             }
         }
+        Command::ResolveDispatch {
+            dir,
+            run,
+            command,
+            attempt,
+            outcome,
+            reason,
+            confirm_stopped,
+        } => commands::next::cmd_resolve_dispatch(
+            &dir,
+            &run,
+            &command,
+            attempt,
+            &outcome,
+            &reason,
+            confirm_stopped,
+        ),
         Command::Migrate { dir } => commands::config::cmd_migrate(&dir),
         Command::Completions { shell, install } => {
             if install {

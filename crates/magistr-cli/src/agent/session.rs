@@ -67,9 +67,18 @@ impl AgentSession {
         config: super::AgentConfig,
         source: magistr_application::effects::SourceRoute,
     ) -> Result<Self> {
+        Self::start_checkpointed(config, source, || Ok(())).await
+    }
+
+    pub(crate) async fn start_checkpointed(
+        config: super::AgentConfig,
+        source: magistr_application::effects::SourceRoute,
+        before_spawn: impl FnOnce() -> Result<()>,
+    ) -> Result<Self> {
         let spec = config.resolve()?.with_source_route(source);
         let resolved_model = spec.model().map(str::to_owned);
-        let (backend, message_rx) = super::backend::AcpBackend::start_resolved(spec).await?;
+        let (backend, message_rx) =
+            super::backend::AcpBackend::start_checkpointed(spec, before_spawn).await?;
         Ok(Self {
             backend: SessionBackend::Acp(backend),
             message_rx,

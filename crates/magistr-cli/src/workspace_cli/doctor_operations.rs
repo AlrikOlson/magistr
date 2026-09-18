@@ -9,7 +9,7 @@
 use std::path::Path;
 
 use magistr_core::workflow::{
-    iteration::{IterationState, OperationKind, OperationRecord},
+    iteration::{DispatchPhase, IterationState, OperationKind, OperationRecord},
     process_alive::is_process_alive,
     runtime_handle::RuntimeHandle,
 };
@@ -189,6 +189,8 @@ fn row(state: &IterationState, record: &OperationRecord, loop_alive: Option<bool
         "kind": record.kind,
         "target": record.target,
         "external": record.external,
+        "dispatch_phase": record.dispatch_phase,
+        "resolution": record.resolution,
         "check": check,
         "runtime": runtime,
         "outcome": record.outcome,
@@ -245,10 +247,14 @@ fn classify(
         ),
         Some(false) => match record.kind {
             OperationKind::ProviderDispatch => match (handle, runtime_live) {
+                (None, _) if record.dispatch_phase == Some(DispatchPhase::Pending) => (
+                    SettlementState::Recoverable,
+                    "The agent never started. The next loop request can retry this work.".into(),
+                ),
                 (None, _) => (
                     SettlementState::Indeterminate,
                     format!(
-                        "{}: the loop is gone and the dispatch has no runtime handle, so nothing says whether a runtime exists or existed; it stays open until the checkpoint is set aside by hand",
+                        "{}: the loop has stopped, but whether its agent started is unknown. Check that the agent has stopped, then use magistr resolve-dispatch to record what happened",
                         record.outcome
                     ),
                 ),
@@ -336,7 +342,7 @@ fn summarize(
                     "indeterminate: attempt {} ({}) cannot be established from here",
                     row.detail["attempt"]["command"], row.detail["kind"]
                 ),
-                "a loop start reconciles what it can; an attempt with no runtime handle stays open until .magistr/loop-state.json is set aside explicitly",
+                "Check that the loop and its agents have stopped, then use magistr resolve-dispatch to record the outcome of an unfinished agent attempt.",
             )),
             SettlementState::Recoverable => findings.push(DoctorFinding::info(
                 "operations",

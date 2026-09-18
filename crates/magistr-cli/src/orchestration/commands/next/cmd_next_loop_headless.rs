@@ -28,6 +28,7 @@ pub async fn cmd_next_loop_headless(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
+    let _loop_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
     let inputs = inputs.for_project(&dir);
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
@@ -107,8 +108,8 @@ pub async fn cmd_next_loop_headless(
                     })
                     .collect();
                 return Err(eyre::eyre!(
-                    "recovery could not establish what happened to: {} — reconcile before retrying, \
-                     or preserve/remove .magistr/loop-state.json for an explicit new run",
+                    "The outcome of this work is unknown: {}. Inspect it with magistr workspace doctor. \
+                     Once its agent has stopped, use magistr resolve-dispatch to record what happened.",
                     open.join("; ")
                 ));
             }
@@ -158,23 +159,26 @@ pub async fn cmd_next_loop_headless(
             continue;
         };
         iter_loop.persist().suggest()?;
-        let mut session = match agent::session::AgentSession::start(config, source.clone())
+        let mut session =
+            match agent::session::AgentSession::start_checkpointed(config, source.clone(), || {
+                iter_loop.checkpoint_dispatch_launch(&dispatch)
+            })
             .await
             .suggest()
-        {
-            Ok(session) => session,
-            Err(error) => {
-                iter_loop
-                    .settle_operation(&dispatch, OperationOutcome::Failed)
-                    .suggest()?;
-                iter_loop.post_iteration_check();
-                iter_loop.advance();
-                iter_loop.mark_failed();
-                iter_loop.persist().suggest()?;
-                release_workspace(workspace).await;
-                return Err(error);
-            }
-        };
+            {
+                Ok(session) => session,
+                Err(error) => {
+                    iter_loop
+                        .settle_operation(&dispatch, OperationOutcome::Failed)
+                        .suggest()?;
+                    iter_loop.post_iteration_check();
+                    iter_loop.advance();
+                    iter_loop.mark_failed();
+                    iter_loop.persist().suggest()?;
+                    release_workspace(workspace).await;
+                    return Err(error);
+                }
+            };
         // The runtime's handle, pinned to the particular process by its
         // start identity: what recovery asks about if this loop dies.
         iter_loop

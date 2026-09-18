@@ -220,11 +220,21 @@ impl AcpTransport {
 
     /// Spawn the agent and complete the handshake.
     pub async fn connect(&mut self) -> Result<()> {
+        self.connect_checkpointed(|| Ok(())).await
+    }
+
+    /// Persist the caller's launch marker immediately before spawning.
+    /// A failed checkpoint must never create a provider process.
+    pub async fn connect_checkpointed(
+        &mut self,
+        before_spawn: impl FnOnce() -> Result<()>,
+    ) -> Result<()> {
         if self.is_ready() {
             return Ok(());
         }
         self.close_previous_connection().await?;
         let command = spawn::build_command(&self.cli_path, &self.cli_args, self.cwd.as_deref());
+        before_spawn()?;
         let spawned = spawn::spawn_agent(command)?;
         self.child_group = spawned.group;
         self.background_tasks

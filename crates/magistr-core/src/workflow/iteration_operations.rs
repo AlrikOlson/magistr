@@ -4,7 +4,8 @@
 
 use magistr_domain::identity::{AttemptId, CommandId};
 use magistr_domain::workflow::{
-    OperationAdmission, OperationKind, OperationLedger, OperationOutcome, OperationRecord,
+    DispatchPhase, OperationAdmission, OperationKind, OperationLedger, OperationOutcome,
+    OperationRecord,
 };
 use magistr_engine::NativeEngines;
 
@@ -54,6 +55,22 @@ impl IterationLoop {
             .map_err(operation_error)
     }
 
+    /// The transport must call this before spawn. Failure refuses the launch.
+    pub fn checkpoint_dispatch_launch(&mut self, attempt: &AttemptId) -> Result<()> {
+        if self
+            .state
+            .operations
+            .record(attempt)
+            .is_none_or(|record| record.kind != OperationKind::ProviderDispatch)
+        {
+            return Err(MagistrError::Workflow(
+                "This operation is not an agent launch.".into(),
+            ));
+        }
+        self.start_operation(attempt, None)?;
+        self.persist()
+    }
+
     /// The live owner's report on `attempt`. Persist after it.
     pub fn settle_operation(
         &mut self,
@@ -89,11 +106,10 @@ impl IterationLoop {
     ///   published → `Failed`. No check of the same name stands in for it;
     /// - a publication is cancelled — attached surfaces reseed from the store
     ///   and there is nothing to redo;
-    /// - a provider dispatch stays open while the particular runtime its
-    ///   handle names is still alive, and open for good without a handle
-    ///   (nothing says whether a runtime exists or existed); once that
-    ///   runtime is gone, HEAD having advanced from the attempt's baseline
-    ///   establishes `Completed` and anything else `Failed`.
+    /// - a provider dispatch still Pending never launched and fails. A
+    ///   Started or legacy dispatch stays open without a handle, or while
+    ///   that runtime lives. Once the runtime is gone, HEAD advancing from
+    ///   the attempt's baseline establishes Completed, otherwise Failed.
     ///
     /// Anything the loop cannot ask about stays open, and an open attempt
     /// refuses the next admission.
@@ -112,9 +128,7 @@ impl IterationLoop {
                     .native
                     .as_ref()
                     .and_then(|engines| receipt_outcome(engines, &record)),
-                OperationKind::ProviderDispatch => {
-                    self.dispatch_outcome(record.external.as_deref())
-                }
+                OperationKind::ProviderDispatch => self.dispatch_outcome(&record),
             };
             match established {
                 Some(outcome)
@@ -134,14 +148,14 @@ impl IterationLoop {
         reconciliation
     }
 
-    /// A runtime still alive is nobody's to judge; the particular runtime
-    /// the handle names, gone, is judged by whether HEAD advanced from the
-    /// attempt's Git baseline while it lived. Without a handle there is no
-    /// runtime to ask and nothing that says one never existed — the intent
-    /// was written before the launch, and the process may have died between
-    /// the two — so the dispatch stays open; a commit meanwhile is not its.
-    fn dispatch_outcome(&self, external: Option<&str>) -> Option<OperationOutcome> {
-        let handle = RuntimeHandle::parse(external?)?;
+    /// Pending proves the transport never crossed its pre-spawn checkpoint.
+    /// Otherwise only the particular runtime's handle can establish its exit;
+    /// a handle-less or legacy dispatch remains open even if HEAD advanced.
+    fn dispatch_outcome(&self, record: &OperationRecord) -> Option<OperationOutcome> {
+        if record.dispatch_phase == Some(DispatchPhase::Pending) && record.external.is_none() {
+            return Some(OperationOutcome::Failed);
+        }
+        let handle = RuntimeHandle::parse(record.external.as_deref()?)?;
         if handle.is_live()? {
             return None;
         }
