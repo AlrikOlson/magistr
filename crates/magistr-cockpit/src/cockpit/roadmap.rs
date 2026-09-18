@@ -85,6 +85,8 @@ pub struct Roadmap {
     viewport: Option<(f32, f32)>,
     /// A physical graph uses pixel camera units and font-sized spacing.
     pixel_line: Option<f32>,
+    /// A dedicated native roadmap keeps the complete dependency graph.
+    full_graph: bool,
     /// The ship moment in flight, if one is — recorded by
     /// [`Roadmap::apply`] and read back through [`Roadmap::ship_run`].
     shipped: Option<Shipped>,
@@ -112,6 +114,10 @@ struct Shipped {
 }
 
 impl Roadmap {
+    pub(super) fn set_full_graph(&mut self, full: bool) {
+        self.full_graph = full;
+    }
+
     /// Restrict table rows by status without changing the graph or selection.
     pub fn cycle_filter(&mut self) {
         self.filter = match self.filter {
@@ -310,6 +316,24 @@ impl Roadmap {
             .min_by_key(|c| c.priority)
     }
 
+    /// Whether the selected work can ask to start from the current snapshot.
+    /// The command owner still validates permissions and freshness at execution.
+    #[must_use]
+    pub fn can_start(&self, chunk: &RoadmapChunk) -> bool {
+        chunk.state == ChunkState::Pending
+            && chunk.blocker.is_none()
+            && chunk
+                .deps
+                .iter()
+                .all(|id| self.chunk(id).is_none_or(|dep| dep.state.is_done()))
+    }
+
+    /// Whether the selected work can ask to complete; verification remains authoritative.
+    #[must_use]
+    pub fn can_complete(&self, chunk: &RoadmapChunk) -> bool {
+        chunk.state == ChunkState::InProgress && chunk.blocker.is_none()
+    }
+
     /// The heading's one-line accounting: done, the working set by
     /// status, and the open proposals and signals when any wait.
     #[must_use]
@@ -347,7 +371,7 @@ impl Roadmap {
     pub fn star_state(&self, id: &str) -> Option<StarState> {
         let graph = self.graph_chunks();
         let chunk = graph.iter().find(|c| c.id == id)?;
-        Some(StarState::of(chunk.state, is_ready(&graph, chunk)))
+        Some(star_state(&graph, chunk))
     }
 
     /// The active chunks still to come that stand on `id` directly —
@@ -756,7 +780,7 @@ impl Roadmap {
             .map(|(chunk, (x, y, region))| DagNode {
                 x: self.margin() + x * sx - pan_x,
                 y: self.margin() + y * sy - pan_y,
-                state: StarState::of(chunk.state, is_ready(&graph, chunk)),
+                state: star_state(&graph, chunk),
                 status: chunk.state,
                 region,
                 here: chunk.is_in_progress(),
@@ -903,7 +927,7 @@ impl Roadmap {
     fn graph_chunks(&self) -> Vec<&RoadmapChunk> {
         let active: Vec<&RoadmapChunk> = self.chunks.iter().filter(|c| c.is_active()).collect();
         let ships = active.iter().filter(|c| c.state.is_done()).count();
-        if self.pixel_line.is_some() || ships <= SKY_RECENT_SHIPS {
+        if self.full_graph || self.pixel_line.is_some() || ships <= SKY_RECENT_SHIPS {
             return active;
         }
         // What the living set stands on rides as context, however old.
@@ -956,7 +980,7 @@ impl Roadmap {
             .map(|(chunk, &(x, y, region))| DagNode {
                 x: MARGIN + x * sx,
                 y: MARGIN + y * sy,
-                state: StarState::of(chunk.state, is_ready(&graph, chunk)),
+                state: star_state(&graph, chunk),
                 status: chunk.state,
                 region,
                 here: chunk.is_in_progress(),
@@ -1042,7 +1066,7 @@ impl Roadmap {
                         } else {
                             height * 0.5
                         },
-                        state: StarState::of(chunk.state, is_ready(&graph, chunk)),
+                        state: star_state(&graph, chunk),
                         status: chunk.state,
                         region,
                         here: chunk.is_in_progress(),
@@ -1367,11 +1391,16 @@ fn depths(graph: &[&RoadmapChunk]) -> Vec<usize> {
         .collect()
 }
 
-/// Whether every chunk `chunk` depends on has shipped — what separates
-/// a star that can be claimed from one that is merely planned. A
-/// dependency the graph does not hold is not a reason to hold a chunk
-/// back: it was obsoleted or never seeded, and `roadmap_next` would
-/// offer the chunk anyway.
+/// A recorded pending blocker overrides dependency readiness.
+fn star_state(graph: &[&RoadmapChunk], chunk: &RoadmapChunk) -> StarState {
+    if chunk.state == ChunkState::Pending && chunk.blocker.is_some() {
+        StarState::Blocked
+    } else {
+        StarState::of(chunk.state, is_ready(graph, chunk))
+    }
+}
+
+/// Dependencies absent from the snapshot do not hold work back; the command owner validates them.
 fn is_ready(graph: &[&RoadmapChunk], chunk: &RoadmapChunk) -> bool {
     chunk.deps.iter().all(|dep| {
         graph

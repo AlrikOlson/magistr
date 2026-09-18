@@ -219,21 +219,16 @@ fn money_is_two_places_and_the_code() {
     assert!(seen >= 2, "only {seen} amounts on every window");
 }
 
-/// controls name chunk ids: the sky card's verb says which chunk it starts, the way
-/// Birth's `Claim <id>` does.
+/// Roadmap actions use familiar verbs beside the selected work title.
 #[test]
-fn the_sky_cards_verb_names_the_chunk() {
-    let mut model = native(Fixture::mock("04", SIZE).expect("view 04"));
-    // Click the ready star through the shared update's own star arm,
-    // exactly as a real click arrives, so the card opens.
-    let ready = (0..model.roadmap().dag_nodes().len())
-        .find(|&i| {
-            model
-                .roadmap()
-                .graph_chunk(i)
-                .is_some_and(|c| c.state == magistr_cockpit::cockpit::ChunkState::Pending)
-        })
-        .expect("view 04 holds a claimable star");
+fn roadmap_actions_name_the_action_and_show_the_selected_work() {
+    let mut model = Fixture::roadmap(SIZE);
+    let ready = model
+        .roadmap()
+        .graph_ids()
+        .iter()
+        .position(|id| *id == "delivery-ready")
+        .unwrap();
     update(
         &mut model,
         Msg::Mouse {
@@ -241,22 +236,17 @@ fn the_sky_cards_verb_names_the_chunk() {
             target: Some(Widget::sky_star(ready)),
         },
     );
-    let id = model
-        .roadmap()
-        .selected()
-        .expect("the click selected")
-        .id
-        .clone();
-    let verbs: Vec<String> = runs(&model, Medium::Night)
-        .into_iter()
-        .filter(|run| run.owner == Some(Component::Button))
-        .map(|run| run.text)
-        .filter(|text| text.starts_with("Start ") || text.starts_with("Complete "))
-        .collect();
-    assert!(!verbs.is_empty(), "view 04's card offers a verb");
-    for verb in verbs {
-        assert!(verb.ends_with(&id), "{verb} does not name {id}");
-    }
+    let chunk = model.roadmap().selected().expect("selected work");
+    let text = runs(&model, Medium::Night);
+    assert!(text.iter().any(|run| run.text == chunk.title));
+    assert!(
+        text.iter()
+            .any(|run| run.owner == Some(Component::Button) && run.text == "Start")
+    );
+    assert!(
+        !text.iter().any(|run| run.text.contains(&chunk.id)),
+        "internal identifiers stay out of the controls"
+    );
 }
 
 /// a scope is named by an identity row: Settings' `This project` is followed by the row

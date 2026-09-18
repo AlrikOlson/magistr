@@ -3502,14 +3502,12 @@ fn roadmap_rows_toggle_and_the_detail_buttons_ask_the_engine() {
             id: "mid".to_owned(),
         })]
     );
-    // Row 1 is the pending chunk; its card offers [Start].
+    // Row 1 is pending behind unfinished work; no Start request is available.
     update(&mut m, left_click(Widget::roadmap_row(1)));
     assert_eq!(m.roadmap().selected().map(|c| c.id.as_str()), Some("ui"));
     assert_eq!(
         update(&mut m, left_click(Widget::RoadmapStart.id())),
-        vec![Cmd::Engine(EngineCmd::StartChunk {
-            id: "ui".to_owned(),
-        })]
+        vec![]
     );
     // Repeating a selection keeps the inspector stable.
     update(&mut m, left_click(Widget::roadmap_row(1)));

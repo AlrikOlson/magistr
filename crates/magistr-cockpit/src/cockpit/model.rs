@@ -309,6 +309,27 @@ impl Model {
         changed
     }
 
+    /// Native roadmap list capacity and request text extent, reported after layout.
+    /// None clears hidden geometry; these facts never submit work or alter a request.
+    pub fn report_native_roadmap(
+        &mut self,
+        rows: Option<usize>,
+        requests: Option<(usize, usize)>,
+    ) -> bool {
+        if !self.surface.is_native() {
+            return false;
+        }
+        let rows = rows.map(|rows| rows.min(u16::MAX as usize));
+        let requests =
+            requests.map(|(total, visible)| (total.min(1_000_000), visible.min(1_000_000)));
+        let changed = self.flight_panels.native_roadmap_rows != rows
+            || self.flight_panels.native_requests != requests;
+        self.flight_panels.native_roadmap_rows = rows;
+        self.flight_panels.native_requests = requests;
+        self.roadmap.set_full_graph(rows.is_some());
+        changed
+    }
+
     #[must_use]
     pub fn panel_fraction(
         &self,
@@ -2279,6 +2300,14 @@ impl Model {
     /// wheel move are this same pair.
     #[must_use]
     pub fn roadmap_window(&self) -> (usize, usize) {
+        if self.surface.is_native()
+            && let Some(rows) = self.flight_panels.native_roadmap_rows
+        {
+            return (
+                self.roadmap.rows().len() + self.roadmap.signals().len(),
+                rows,
+            );
+        }
         if self.uses_flight_recorder() {
             let height = super::FlightRoadmapPage::list_height(self);
             return (

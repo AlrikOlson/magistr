@@ -22,6 +22,17 @@ pub struct RoadmapRequest {
 mod tests;
 
 impl RoadmapRequest {
+    /// Only this request's admitted source lines, independent of later turns.
+    #[must_use]
+    pub fn response<'a>(&self, turn: &'a crate::turn::Turn) -> &'a [crate::turn::Line] {
+        let Some(start) = self.source_start else {
+            return &[];
+        };
+        let lines = turn.lines();
+        let end = self.source_end.unwrap_or(lines.len()).min(lines.len());
+        lines.get(start..end).unwrap_or(&[])
+    }
+
     pub(super) fn new(text: String) -> Self {
         Self {
             text,

@@ -1,7 +1,10 @@
 //! Native workspace measurement and clipped emission, after the element layout.
 use super::{Element, ElementLayout, Frame, Model, RootComposition, emit, index_of, scissor_of};
+use crate::comp_roadmap::RoadmapComposition as R;
+use crate::comp_sky::SkyComposition;
 use crate::comp_workspace::WorkspaceComposition as W;
 use crate::frame_clip::FrameClips;
+use crate::roadmap_layout::RoadmapLayout as RL;
 use crate::workspace_layout::WorkspaceLayout as L;
 use magistr_cockpit::cockpit::{
     flight_divider::FlightDivider as D, panel_allocation::PanelAllocation,
@@ -36,6 +39,24 @@ impl Frame {
                 minimums: (minimums.0 * factor, minimums.1 * factor),
             });
         }
+        for (divider, owner, first, minimums) in [
+            (D::Columns, R::BODY, R::PLAN, RL::COLUMNS_MIN),
+            (D::Graph, R::PLAN, R::GRAPH, RL::GRAPH_MIN),
+        ] {
+            let (Some(owner), Some(first)) = (rect(owner), rect(first)) else {
+                continue;
+            };
+            if rect(W::id(divider.widget().id())).is_none() {
+                continue;
+            }
+            let axis = if divider == D::Columns { 0 } else { 1 };
+            panels[divider.index()] = Some(PanelAllocation {
+                origin: owner[axis],
+                total: (owner[axis + 2] - RL::GAP * factor).max(1.0),
+                first: first[axis + 2],
+                minimums: (minimums.0 * factor, minimums.1 * factor),
+            });
+        }
         let stage = rect(RootComposition::STAGE).map(|r| {
             (
                 (r[2] / self.metrics.width())
@@ -47,7 +68,13 @@ impl Frame {
         let details = rect(W::DETAILS)
             .zip(rect(W::DETAIL_CONTENT))
             .map(|(view, content)| (content[3].ceil() as usize, view[3].floor() as usize));
-        model.report_native_workspace(panels, stage, details)
+        let rows = rect(R::BODY)
+            .map(|_| rect(R::LIST).map_or(0, |r| (r[3] / (RL::ROW * factor)).floor() as usize));
+        let requests = rect(R::REQUESTS)
+            .zip(rect(R::REQUEST_CONTENT))
+            .map(|(view, content)| (content[3].ceil() as usize, view[3].floor() as usize));
+        let roadmap_changed = model.report_native_roadmap(rows, requests);
+        model.report_native_workspace(panels, stage, details) || roadmap_changed
     }
 
     pub(super) fn paint_workspace(
@@ -57,8 +84,10 @@ impl Frame {
         layout: &ElementLayout,
         clips: &FrameClips,
         viewport: [u32; 2],
-    ) {
+        presentation: (crate::Medium, f32),
+    ) -> Option<magistr_cockpit::layout::Rect> {
         let mut from = 0;
+        let mut field = None;
         for (range, rect) in &clips.0 {
             emit(
                 tree,
@@ -78,6 +107,9 @@ impl Frame {
                     &mut self.list,
                     range.clone(),
                 );
+                if tree_id(tree, range.start) == Some(SkyComposition::FIELD) {
+                    field = self.sky(model, presentation.0, presentation.1, tree, layout);
+                }
                 if tree_id(tree, range.start) == Some(RootComposition::STAGE) {
                     self.pictures(model, tree, layout);
                 }
@@ -93,6 +125,7 @@ impl Frame {
             &mut self.list,
             from..tree.count(),
         );
+        field
     }
 }
 

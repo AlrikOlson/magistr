@@ -944,6 +944,20 @@ impl Sink {
                         .expect("the settings model holds an open surface"),
                 ),
             ),
+            (
+                &["comp_roadmap", "comp_roadmap_requests"],
+                Element::surface().width(620.0).height(520.0).child(
+                    crate::comp_roadmap::RoadmapComposition::el(
+                        &crate::fixture::Fixture::roadmap_request(
+                            magistr_cockpit::cockpit::Size::new(110, 32),
+                            magistr_cockpit::cockpit::RequestPhase::Complete,
+                        ),
+                        medium,
+                        cell,
+                        (620.0, 520.0),
+                    ),
+                ),
+            ),
             // The whole window as one tree — the a6 composition root,
             // exhibited at a small viewport so the sheet stays a sheet.
             (

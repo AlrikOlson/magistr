@@ -57,6 +57,8 @@ const INFRASTRUCTURE: &[&str] = &[
     "text_run",
     // the cockpit-Model frame and its machinery
     "fixture",
+    "fixture_roadmap",
+    "roadmap_layout",
     "frame",
     "frame_clip",
     "frame_workspace",

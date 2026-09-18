@@ -44,6 +44,7 @@ pub(super) fn open_chunk(model: &mut Model, id: &str) -> bool {
         return false;
     }
     model.inspect(Selected::Chunk(id.to_owned()));
+    model.roadmap_requests_open = false;
     model.show(StageTab::Roadmap);
     if model
         .roadmap
@@ -76,6 +77,7 @@ pub(super) fn rise_to_chunk(model: &mut Model, id: &str) -> bool {
         return false;
     }
     model.inspect(Selected::Chunk(id.to_owned()));
+    model.roadmap_requests_open = false;
     model.show(StageTab::Roadmap);
     true
 }
@@ -270,6 +272,14 @@ pub(super) fn roadmap_chunk_click(model: &Model, complete: bool) -> Vec<Cmd> {
     let Some(chunk) = model.roadmap.selected() else {
         return Vec::new();
     };
+    let allowed = if complete {
+        model.roadmap.can_complete(chunk)
+    } else {
+        model.roadmap.can_start(chunk)
+    };
+    if !allowed {
+        return Vec::new();
+    }
     let id = chunk.id.clone();
     vec![Cmd::Engine(if complete {
         EngineCmd::CompleteChunk { id }

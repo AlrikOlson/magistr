@@ -94,21 +94,18 @@ fn the_session_cap_is_the_identity_band_and_names_the_gap_between_agents() {
     assert!(has(&root, "loop ended"));
 }
 
-/// The Sky (altitude 1, views 03/04) sheds the supervision rail: the
-/// constellation is the field full-bleed, with no divider and no
-/// ledger beside it — a session is supervised from its own altitude,
-/// which keeps them.
+/// Roadmap keeps its graph/list and item views beside a resizable boundary.
 #[test]
-fn the_sky_sheds_the_supervision_rail() {
+fn roadmap_keeps_its_own_resizable_columns() {
     for view in ["03", "04"] {
         let (model, root) = root_of(view);
         assert_eq!(model.place(), Some(Place::Sky), "view {view} is the Sky");
         assert!(
-            !has_id(
+            has_id(
                 &root,
                 crate::comp_workspace::WorkspaceComposition::id(Widget::PanelColumns.id())
             ),
-            "no rail divider on view {view}"
+            "roadmap columns on view {view}"
         );
         assert!(!has(&root, "Checkpoints"), "no ledger on view {view}");
     }
@@ -254,10 +251,9 @@ fn the_session_root_arranges_header_turn_rail_and_foot() {
     );
 }
 
-/// View 03 — the room at rest: constellation and murmur only, the
-/// chrome exhaled. No path, no composer, no foot.
+/// Becoming idle never removes Roadmap navigation or the request composer.
 #[test]
-fn the_resting_root_is_the_sky_and_its_murmur_alone() {
+fn idle_roadmap_keeps_navigation_and_request_controls() {
     use magistr_cockpit::cockpit::{Motion, Msg, update};
     let mut model = Fixture::mock("03", Size::new(120, 40)).expect("view 03 has a fixture");
     model.set_surface(magistr_cockpit::cockpit::Surface::Native);
@@ -266,9 +262,14 @@ fn the_resting_root_is_the_sky_and_its_murmur_alone() {
     }
     assert!(model.sky_at_rest(), "view 03 is at rest");
     let root = RootComposition::el(&model, Medium::Night, CELL, VIEWPORT, &clock());
-    assert!(!has(&root, "projects"), "no header at rest");
-    assert!(!has(&root, "Steer\u{2026}"), "no composer at rest");
-    assert!(!has(&root, "research"), "no foot at rest");
+    for label in [
+        "projects",
+        "Work items",
+        "Requests",
+        "Request roadmap changes",
+    ] {
+        assert!(has(&root, label), "idle Roadmap retains {label}");
+    }
 }
 
 /// View 06 — a Moment: the card floats on a scrim, the rail stands

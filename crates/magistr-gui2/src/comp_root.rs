@@ -17,6 +17,7 @@ use crate::comp_moment::MomentComposition;
 use crate::comp_palette::PaletteComposition;
 use crate::comp_rail::RailComposition;
 use crate::comp_report::ReportComposition;
+use crate::comp_roadmap::RoadmapComposition;
 use crate::comp_search::SearchComposition;
 use crate::comp_settings::SettingsComposition;
 use crate::comp_shelf::ShelfComposition;
@@ -154,7 +155,21 @@ impl RootComposition {
         }
         // Rest: the chrome has exhaled and the window is the constellation and its
         // murmur — nothing else stands.
-        let mut root = if model.sky_at_rest() {
+        let mut root = if RoadmapComposition::active(model) {
+            Element::surface()
+                .fill(lex.base)
+                .child(header(model, medium, clock, &lex))
+                .child(RoadmapComposition::el(
+                    model,
+                    medium,
+                    cell,
+                    (
+                        viewport.0,
+                        (viewport.1 - header_height(model) - FootComposition::HEIGHT).max(0.0),
+                    ),
+                ))
+                .child(FootComposition::el(model, medium))
+        } else if model.sky_at_rest() {
             Element::surface()
                 .fill(lex.base)
                 .child(SkyComposition::el(model, medium))
@@ -316,6 +331,15 @@ impl RootComposition {
     /// for anything unminted.
     #[must_use]
     pub fn target_of(model: &Model, id: ElementId) -> Option<WidgetId> {
+        if id == RoadmapComposition::LIST {
+            return Some(Widget::RoadmapTable.id());
+        }
+        if id == RoadmapComposition::REQUESTS {
+            return Some(Widget::RequestBody.id());
+        }
+        if (RoadmapComposition::BODY.0..=RoadmapComposition::INPUT.0).contains(&id.0) {
+            return None;
+        }
         if id == WorkspaceComposition::DETAILS {
             return Some(Widget::Inspector.id());
         }

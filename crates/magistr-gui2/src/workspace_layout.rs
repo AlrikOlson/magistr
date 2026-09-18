@@ -83,7 +83,7 @@ impl WorkspaceLayout {
     }
 }
 
-fn split(total: f32, fraction: f32, minimums: (f32, f32)) -> f32 {
+pub(crate) fn split(total: f32, fraction: f32, minimums: (f32, f32)) -> f32 {
     let total = total.max(0.0);
     let scale = (total / (minimums.0 + minimums.1)).min(1.0);
     (total * fraction).clamp(minimums.0 * scale, (total - minimums.1 * scale).max(0.0))

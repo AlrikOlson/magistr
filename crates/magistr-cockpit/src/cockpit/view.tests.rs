@@ -58,11 +58,14 @@ fn roadmap_proposal_actions_live_inside_shared_inspector() {
                 .rect
         };
         let inspector = rect(Widget::Inspector.id());
-        for id in [
-            Widget::RoadmapStart.id(),
-            Widget::proposal_accept(0),
-            Widget::proposal_reject(0),
-        ] {
+        assert!(
+            !resolved
+                .placed()
+                .iter()
+                .any(|p| p.id == Some(Widget::RoadmapStart.id())),
+            "unfinished dependency keeps Start unavailable"
+        );
+        for id in [Widget::proposal_accept(0), Widget::proposal_reject(0)] {
             let action = rect(id);
             assert!(
                 action.x >= inspector.x && action.x + action.width <= inspector.x + inspector.width
@@ -2702,7 +2705,6 @@ fn snap_roadmap_detail_120x40() {
         "priority → 100 · sooner",
         "Accept",
         "Reject",
-        "Start",
         "Title · Recover delivery",
         "Description · Resume saved",
         "Success condition 1 · saved",

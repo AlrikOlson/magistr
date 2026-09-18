@@ -380,6 +380,7 @@ fn join(panels: &[Pixmap], lex: &Lexicon) -> Pixmap {
 /// two stills a reviewer can hold beside the volume.
 #[test]
 fn the_whole_sink_is_a_golden_in_both_media() {
+    let mut failures = Vec::new();
     for medium in Medium::ALL {
         let mut text = engine();
         let sink = Sink::new(medium);
@@ -394,8 +395,16 @@ fn the_whole_sink_is_a_golden_in_both_media() {
             height,
         )
         .expect("the sink renders");
-        golden().assert_matches(&format!("sink-{medium}"), &still);
+        if std::panic::catch_unwind(|| golden().assert_matches(&format!("sink-{medium}"), &still))
+            .is_err()
+        {
+            failures.push(medium);
+        }
     }
+    assert!(
+        failures.is_empty(),
+        "review both theme candidates: {failures:?}"
+    );
 }
 
 /// The working breath as a filmstrip: four panels five ticks apart on the GLOW_STEPS

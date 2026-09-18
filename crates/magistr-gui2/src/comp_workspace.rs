@@ -160,7 +160,7 @@ pub(crate) fn control(label: &str, widget: WidgetId, lex: &Lexicon) -> Element {
         .label(label)
 }
 
-fn divider(model: &Model, divider: D, lex: &Lexicon) -> Element {
+pub(crate) fn divider(model: &Model, divider: D, lex: &Lexicon) -> Element {
     let widget = divider.widget();
     let active = model.active_panel() == Some(divider) || model.hovered() == Some(widget.id());
     let ink = if active { lex.mauve } else { lex.ov0 };

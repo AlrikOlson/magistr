@@ -11,6 +11,8 @@ pub struct FlightPanels {
     pub(super) native: [Option<super::panel_allocation::PanelAllocation>; 4],
     pub(super) native_stage: Option<(u16, usize)>,
     pub(super) native_details: Option<(usize, usize)>,
+    pub(super) native_requests: Option<(usize, usize)>,
+    pub(super) native_roadmap_rows: Option<usize>,
 }
 
 #[cfg(test)]
