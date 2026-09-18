@@ -46,6 +46,17 @@ fn has_id(root: &Element, id: ElementId) -> bool {
     found
 }
 
+#[test]
+fn session_workspace_keeps_conversation_reasoning_work_and_details_together() {
+    let (model, root) = root_of("05");
+    assert!(!model.reasoning_expanded());
+    for heading in ["Conversation", "Reasoning", "Nearby work", "Details"] {
+        assert!(has(&root, heading), "missing {heading}");
+    }
+    assert!(has_id(&root, ComposerComposition::PILL));
+    assert!(!model.uses_flight_recorder());
+}
+
 /// The session's cap is the identity band: the chunk chip, the agent's identity, the
 /// iteration pair and the stage word — which says where the loop stands between agents
 /// (the gates, the judge) instead of the feed's hangup being read as a fault
@@ -93,14 +104,20 @@ fn the_sky_sheds_the_supervision_rail() {
         let (model, root) = root_of(view);
         assert_eq!(model.place(), Some(Place::Sky), "view {view} is the Sky");
         assert!(
-            !has_id(&root, RootComposition::DIVIDER),
+            !has_id(
+                &root,
+                crate::comp_workspace::WorkspaceComposition::id(Widget::PanelColumns.id())
+            ),
             "no rail divider on view {view}"
         );
         assert!(!has(&root, "Checkpoints"), "no ledger on view {view}");
     }
     let (_, root) = root_of("05");
     assert!(
-        has_id(&root, RootComposition::DIVIDER),
+        has_id(
+            &root,
+            crate::comp_workspace::WorkspaceComposition::id(Widget::PanelColumns.id())
+        ),
         "the session keeps its rail"
     );
 }
@@ -156,7 +173,8 @@ fn the_session_cap_names_the_wait_while_a_plain_ask_fronts_the_dock() {
 #[test]
 fn the_ledger_heads_verbs_resolve_to_the_loop_widgets_and_click_through() {
     use magistr_cockpit::cockpit::{Cmd, LoopCmd};
-    let (mut model, root) = root_of("05");
+    let (mut model, _) = root_of("05");
+    let root = RailComposition::el(&model, Medium::Night, CELL.0);
     for id in [
         LedgerVerbs::PAUSE,
         LedgerVerbs::STEP,
@@ -221,9 +239,15 @@ fn the_session_root_arranges_header_turn_rail_and_foot() {
     assert!(has(&root, "projects"), "the altitude path");
     assert!(has(&root, "4 / 12"), "the session cap: the identity band");
     assert!(has(&root, "Steer\u{2026}"), "the composer at rest");
-    assert!(has(&root, "Checkpoints"), "the rail rides right");
+    assert!(has(&root, "Nearby work"), "nearby work rides right");
     assert!(has(&root, "38,204 tok"), "the foot's total");
-    assert!(has_id(&root, RootComposition::DIVIDER), "the drag handle");
+    assert!(
+        has_id(
+            &root,
+            crate::comp_workspace::WorkspaceComposition::id(Widget::PanelColumns.id())
+        ),
+        "the drag handle"
+    );
     assert!(
         has_id(&root, RootComposition::STAGE),
         "the feed's viewport id"
@@ -367,7 +391,8 @@ fn the_rails_rows_and_raise_resolve_to_their_widgets_and_click_through() {
     use crate::spine_ledger::SpineLedger;
     use magistr_cockpit::cockpit::{CheckpointCmd, Cmd};
     use magistr_cockpit::input::{MouseEvent, MouseKind};
-    let (mut model, root) = root_of("05");
+    let (mut model, _) = root_of("05");
+    let root = RailComposition::el(&model, Medium::Night, CELL.0);
     let newest = model.rail().spine().len() - 1;
     let row = ElementId(SpineLedger::ROWS + newest as u64);
     assert!(has_id(&root, row), "the newest row is a control");
@@ -410,6 +435,6 @@ fn the_rails_rows_and_raise_resolve_to_their_widgets_and_click_through() {
             target: Some(Widget::spine_row(newest)),
         },
     );
-    let root = RootComposition::el(&model, Medium::Night, CELL, VIEWPORT, &clock());
+    let root = RailComposition::el(&model, Medium::Night, CELL.0);
     assert!(has_id(&root, ElementId(SpineLedger::FORK + newest as u64)));
 }

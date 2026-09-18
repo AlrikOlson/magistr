@@ -274,6 +274,60 @@ impl Model {
         super::FlightLayout::of(self)
     }
 
+    /// Native allocations are layout feedback only; they cannot dispatch effects.
+    /// Hidden panels report None. Sizes are bounded and invalid boundaries are ignored.
+    pub fn report_native_workspace(
+        &mut self,
+        panels: [Option<super::panel_allocation::PanelAllocation>; 4],
+        stage: Option<(u16, usize)>,
+        details: Option<(usize, usize)>,
+    ) -> bool {
+        if !self.surface.is_native() {
+            return false;
+        }
+        let panels = panels.map(|p| p.filter(|p| p.valid()));
+        let stage = stage.map(|(cols, rows)| (cols.max(1), rows.min(u16::MAX as usize)));
+        let details =
+            details.map(|(total, visible)| (total.min(1_000_000), visible.min(1_000_000)));
+        let changed = self.flight_panels.native != panels
+            || stage.is_some_and(|stage| self.flight_panels.native_stage != Some(stage))
+            || self.flight_panels.native_details != details;
+        if !changed {
+            return false;
+        }
+        let anchor = self.stage_anchor();
+        self.flight_panels.native = panels;
+        // A temporarily hidden conversation keeps its last wrapping and reading position.
+        if let Some(stage) = stage {
+            self.flight_panels.native_stage = Some(stage);
+            self.session.turn.rewrap(stage.0);
+        }
+        self.flight_panels.native_details = details;
+        if let Some(anchor) = anchor {
+            self.hold_stage_anchor(anchor);
+        }
+        changed
+    }
+
+    #[must_use]
+    pub fn panel_fraction(
+        &self,
+        divider: super::flight_divider::FlightDivider,
+        default: f32,
+    ) -> f32 {
+        self.flight_panels.fraction(divider, default)
+    }
+
+    #[must_use]
+    pub fn active_panel(&self) -> Option<super::flight_divider::FlightDivider> {
+        self.flight_panels.active()
+    }
+
+    #[must_use]
+    pub const fn inspector_offset(&self) -> usize {
+        self.inspector_scroll
+    }
+
     /// Keep row storage measured by the same fonts and allocation as the pixel painter.
     pub(super) fn sync_flight_wrap(&mut self) {
         let cell = self.cell_size();
@@ -1812,6 +1866,11 @@ impl Model {
     /// Paragraphs in the Flight Recorder use the separate shared glyph measure.
     #[must_use]
     pub fn turn_width(&self) -> u16 {
+        if self.surface.is_native()
+            && let Some((cols, _)) = self.flight_panels.native_stage
+        {
+            return cols;
+        }
         self.stage_width()
             .saturating_sub(if self.uses_flight_recorder() {
                 0
@@ -1839,8 +1898,12 @@ impl Model {
         if self.mono_cols == cols {
             return;
         }
+        let anchor = self.stage_anchor();
         self.mono_cols = cols;
         self.session.turn.set_mono_width(cols);
+        if let Some(anchor) = anchor {
+            self.hold_stage_anchor(anchor);
+        }
     }
 
     /// Rows the chrome takes around the stage, on the surface this
@@ -1888,6 +1951,11 @@ impl Model {
     /// the feed keeps its tail above the raised screen.
     #[must_use]
     pub fn stage_rows(&self) -> usize {
+        if self.surface.is_native()
+            && let Some((_, rows)) = self.flight_panels.native_stage
+        {
+            return rows;
+        }
         if self.uses_flight_recorder() {
             return self.flight_layout().conversation_rows(self);
         }

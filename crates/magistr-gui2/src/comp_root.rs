@@ -24,6 +24,7 @@ use crate::comp_signals::SignalsComposition;
 use crate::comp_sky::SkyComposition;
 use crate::comp_term_dock::TermDockComposition;
 use crate::comp_trace::TraceComposition;
+use crate::comp_workspace::WorkspaceComposition;
 use crate::element::Element;
 use crate::element_id::ElementId;
 use crate::ledger_verbs::LedgerVerbs;
@@ -228,6 +229,20 @@ impl RootComposition {
                 .fill(lex.base)
                 .child(header(model, medium, clock, &lex))
                 .child(SignalsComposition::el(model, medium, clock))
+        } else if WorkspaceComposition::active(model) {
+            Element::surface()
+                .fill(lex.base)
+                .child(header(model, medium, clock, &lex))
+                .child(WorkspaceComposition::el(
+                    model,
+                    medium,
+                    cell,
+                    (
+                        viewport.0,
+                        (viewport.1 - header_height(model) - FootComposition::HEIGHT).max(0.0),
+                    ),
+                ))
+                .child(FootComposition::el(model, medium))
         } else {
             let deciding = model.moment().is_some();
             // min-height 0 all the way down the feed chain: flex's automatic minimum
@@ -301,6 +316,15 @@ impl RootComposition {
     /// for anything unminted.
     #[must_use]
     pub fn target_of(model: &Model, id: ElementId) -> Option<WidgetId> {
+        if id == WorkspaceComposition::DETAILS {
+            return Some(Widget::Inspector.id());
+        }
+        if (WorkspaceComposition::BODY.0..=WorkspaceComposition::RIGHT.0).contains(&id.0) {
+            return None;
+        }
+        if let Some(widget) = WorkspaceComposition::target(id) {
+            return Some(widget);
+        }
         if let Some(widget) = birth_target(id) {
             return Some(widget);
         }

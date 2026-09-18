@@ -118,7 +118,11 @@ fn the_feed_ends_where_the_grip_begins_and_the_composer_stands_under_it() {
     let _ = frame
         .build(&mut down, &clock, width, height)
         .expect("builds");
-    let divider_before = frame.rect_of(RootComposition::DIVIDER).expect("divider");
+    let divider_before = frame
+        .rect_of(crate::comp_workspace::WorkspaceComposition::id(
+            magistr_cockpit::cockpit::Widget::PanelColumns.id(),
+        ))
+        .expect("divider");
     let composer_before = frame.rect_of(ComposerComposition::PILL).expect("composer");
     let mut docked = Fixture::with_pixels(Fixture::pane_docked(size));
     let _ = frame
@@ -142,7 +146,11 @@ fn the_feed_ends_where_the_grip_begins_and_the_composer_stands_under_it() {
     );
     assert_eq!(composer, composer_before, "the composer never moved");
     assert_eq!(
-        frame.rect_of(RootComposition::DIVIDER).expect("divider"),
+        frame
+            .rect_of(crate::comp_workspace::WorkspaceComposition::id(
+                magistr_cockpit::cockpit::Widget::PanelColumns.id()
+            ))
+            .expect("divider"),
         divider_before,
         "the rail stays"
     );

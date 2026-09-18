@@ -57,7 +57,7 @@ impl ElementState {
                 }
             }
             Msg::Key(key) if key.is_press() && key.code == KeyCode::Tab => {
-                let order = focus_order(root);
+                let order = focus_order(root, layout);
                 if order.is_empty() {
                     self.focus = None;
                 } else if key.mods.contains(Modifiers::SHIFT) {
@@ -74,7 +74,7 @@ impl ElementState {
             // and stop at either end. With focus elsewhere the arrows
             // are not this state's, and the caller passes them on.
             Msg::Key(key) if key.is_press() && matches!(key.code, KeyCode::Up | KeyCode::Down) => {
-                let walk = walk_order(root);
+                let walk = walk_order(root, layout);
                 if let Some(at) = self
                     .focus
                     .and_then(|id| walk.iter().position(|&other| other == id))
@@ -97,8 +97,9 @@ impl ElementState {
     /// Whether the arrow keys are this state's to spend: focus is on a
     /// walkable element of `root`.
     #[must_use]
-    pub fn walks(&self, root: &Element) -> bool {
-        self.focus.is_some_and(|id| walk_order(root).contains(&id))
+    pub fn walks(&self, root: &Element, layout: &ElementLayout) -> bool {
+        self.focus
+            .is_some_and(|id| walk_order(root, layout).contains(&id))
     }
 
     /// The element under the pointer, if it wears an id.
@@ -128,12 +129,15 @@ fn hit(
     at: (f32, f32),
     wants: impl Fn(&Element) -> bool,
 ) -> Option<ElementId> {
+    let clips = crate::frame_clip::FrameClips::of(root, layout);
     let mut found = None;
     root.each(&mut |index, element| {
         if element.disabled || !wants(element) {
             return;
         }
-        let [x, y, w, h] = layout.rect(index);
+        let Some([x, y, w, h]) = clips.visible(index, layout.rect(index)) else {
+            return;
+        };
         if at.0 >= x && at.0 < x + w && at.1 >= y && at.1 < y + h {
             found = element.id;
         }
@@ -143,9 +147,13 @@ fn hit(
 
 /// Every focusable, enabled element's id, in tree order — the Tab
 /// ring.
-fn focus_order(root: &Element) -> Vec<ElementId> {
+fn focus_order(root: &Element, layout: &ElementLayout) -> Vec<ElementId> {
+    let clips = crate::frame_clip::FrameClips::of(root, layout);
     let mut order = Vec::new();
-    root.each(&mut |_, element| {
+    root.each(&mut |index, element| {
+        if clips.visible(index, layout.rect(index)).is_none() {
+            return;
+        }
         if element.focusable && !element.disabled {
             order.extend(element.id);
         }
@@ -155,9 +163,13 @@ fn focus_order(root: &Element) -> Vec<ElementId> {
 
 /// Every walkable, enabled element's id, in tree order — the run the
 /// arrows move along.
-fn walk_order(root: &Element) -> Vec<ElementId> {
+fn walk_order(root: &Element, layout: &ElementLayout) -> Vec<ElementId> {
+    let clips = crate::frame_clip::FrameClips::of(root, layout);
     let mut order = Vec::new();
-    root.each(&mut |_, element| {
+    root.each(&mut |index, element| {
+        if clips.visible(index, layout.rect(index)).is_none() {
+            return;
+        }
         if element.walkable && !element.disabled {
             order.extend(element.id);
         }

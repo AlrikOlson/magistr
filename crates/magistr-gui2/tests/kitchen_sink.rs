@@ -58,6 +58,9 @@ const INFRASTRUCTURE: &[&str] = &[
     // the cockpit-Model frame and its machinery
     "fixture",
     "frame",
+    "frame_clip",
+    "frame_workspace",
+    "workspace_layout",
     "metrics",
     "sky",
     // the Galaxy's field: a drawing, its layout, its derivation, and the

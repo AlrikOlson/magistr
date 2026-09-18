@@ -90,7 +90,7 @@ impl Palette {
             push(PaletteRow::place("Search recorded work", PaletteGo::Search));
             push(PaletteRow::place("Keyboard help", PaletteGo::Help));
         }
-        if model.uses_flight_recorder() {
+        if model.uses_flight_recorder() || model.surface().is_native() {
             if super::flight_divider::FlightDivider::ALL
                 .into_iter()
                 .any(|d| d.visible(model))

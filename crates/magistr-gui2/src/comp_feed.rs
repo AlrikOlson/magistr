@@ -925,10 +925,19 @@ fn buttons(at: usize, medium: Medium) -> Element {
 /// already counted by the footprint, so they reserve nothing.
 fn image_slot(model: &Model, at: usize, cell: (f32, f32)) -> Element {
     match model.turn().image_at_row(at) {
-        Some((_, 0, (cols, rows))) => Element::surface()
-            .width(f32::from(cols) * cell.0)
-            .height(f32::from(rows) * cell.1)
-            .id(ElementId(FeedComposition::IMAGES + at as u64)),
+        Some((_, offset, (cols, rows))) if offset == 0 || at == model.top_row() => {
+            let head = at.saturating_sub(usize::from(offset));
+            Element::surface()
+                .height(f32::from(rows.saturating_sub(offset)) * cell.1)
+                .child(
+                    Element::surface()
+                        .width(f32::from(cols) * cell.0)
+                        .height(f32::from(rows) * cell.1)
+                        .pin_left(0.0)
+                        .pin_top(-f32::from(offset) * cell.1)
+                        .id(ElementId(FeedComposition::IMAGES + head as u64)),
+                )
+        }
         _ => Element::surface().height(0.0),
     }
 }

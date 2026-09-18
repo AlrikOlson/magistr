@@ -285,7 +285,9 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/loop_status.rs` | Where the iteration loop stands | `magistr-cockpit/src/cockpit/loop_status.tests.rs` |
 | `magistr-cockpit/src/cockpit/loop_verdict.rs` | Iteration review outcome | `magistr-cockpit/src/cockpit/loop_verdict.tests.rs` |
 | `magistr-cockpit/src/cockpit/marked.rs` | A line of text with vocabulary glyphs in it, built once for both kinds of terminal | `magistr-cockpit/src/cockpit/marked.tests.rs` |
-| `magistr-cockpit/src/cockpit/inspector.rs` | Shared terminal object card, disclosure and field scrolling | `magistr-cockpit/src/cockpit/view.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
+| `magistr-cockpit/src/cockpit/inspection.rs` | Renderer-neutral selected-record text and actions | `magistr-cockpit/src/cockpit/flight_inspector.tests.rs` · `magistr-gui2/tests/workspace.rs` |
+| `magistr-cockpit/src/cockpit/panel_allocation.rs` | Bounded native panel measurements for shared resizing | `magistr-cockpit/src/cockpit/flight_panels.tests.rs` |
+| `magistr-cockpit/src/cockpit/inspector.rs` | Shared selected-record content, disclosure and field scrolling | `magistr-cockpit/src/cockpit/view.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/pane.rs` | Terminal keyboard focus across rail, stage and inspector | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/selected.rs` | Stable shared chunk, step or change selection | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/model.rs` | The cockpit's state | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |

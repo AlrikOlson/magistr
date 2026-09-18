@@ -41,6 +41,7 @@ struct Walk<'a> {
     nodes: Vec<AccessNode>,
     ancestors: Vec<(usize, usize)>,
     next: usize,
+    clips: crate::frame_clip::FrameClips,
 }
 
 impl AccessTree {
@@ -86,6 +87,7 @@ impl AccessTree {
             }],
             ancestors: Vec::new(),
             next: 0,
+            clips: crate::frame_clip::FrameClips::of(tree, layout),
         };
         walk.descend(tree, 0);
         Self { nodes: walk.nodes }
@@ -156,7 +158,10 @@ impl Walk<'_> {
         let index = self.next;
         self.next += 1;
         let widget = self.targets.get(index).copied().flatten();
-        let [x, y, w, h] = self.layout.rect(index);
+        let [x, y, w, h] = self
+            .clips
+            .visible(index, self.layout.rect(index))
+            .unwrap_or([0.0; 4]);
         while self.ancestors.last().is_some_and(|(d, _)| *d >= depth) {
             self.ancestors.pop();
         }

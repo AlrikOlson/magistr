@@ -947,7 +947,12 @@ impl Sink {
             // The whole window as one tree — the a6 composition root,
             // exhibited at a small viewport so the sheet stays a sheet.
             (
-                &["comp_root"],
+                &[
+                    "comp_root",
+                    "comp_workspace",
+                    "comp_workspace_details",
+                    "comp_workspace_reasoning",
+                ],
                 Element::surface().width(900.0).height(520.0).child(
                     RootComposition::el(
                         &views.session,

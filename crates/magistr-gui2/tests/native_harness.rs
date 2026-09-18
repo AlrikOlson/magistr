@@ -415,25 +415,30 @@ fn dragging_the_divider_on_the_window_resizes_the_rail_from_the_right() {
         .expect("the stage is placed");
     let [dx, dy, dw, dh] = pane
         .frame
-        .rect_of(magistr_gui2::RootComposition::DIVIDER)
+        .rect_of(magistr_gui2::comp_workspace::WorkspaceComposition::id(
+            Widget::PanelColumns.id(),
+        ))
         .expect("the divider is placed");
     assert!(
         dx > stage_x,
         "the divider (and the rail) sit right of the stage"
     );
-    let was = pane.model.rail().width();
+    let was = pane.model.panel_fraction(
+        magistr_cockpit::cockpit::flight_divider::FlightDivider::Columns,
+        0.65,
+    );
 
     // Press on the divider's own pixels, resolved by the registry.
     let x = f64::from(dx + dw / 2.0);
     let y = f64::from(dy + dh / 2.0);
     let target = pane.frame.hits().hit_at(x, y);
-    assert_eq!(target, Some(Widget::RailDivider.id()));
+    assert_eq!(target, Some(Widget::PanelColumns.id()));
     let (col, row) = cell.cell_at(x, y, SIZE);
     pane.fold(Msg::Mouse {
         event: MouseEvent::new(MouseKind::Down(Button::Left), col, row).at_px(x as u32, y as u32),
         target,
     });
-    assert!(pane.model.rail().is_dragging());
+    assert!(pane.model.active_panel().is_some());
 
     // Drag eight columns and a third of a cell leftwards, in pixels.
     let to_x = x - f64::from(cell.width()) * 8.0 - f64::from(cell.width()) / 3.0;
@@ -443,29 +448,28 @@ fn dragging_the_divider_on_the_window_resizes_the_rail_from_the_right() {
             .at_px(to_x as u32, y as u32),
         target: None,
     });
-    let column = (to_x / f64::from(cell.width())).floor() as u16;
-    assert_eq!(
-        pane.model.rail().width(),
-        SIZE.cols - column - 1,
-        "the rail is the columns right of the pixel's column"
+    assert!(
+        pane.model.panel_fraction(
+            magistr_cockpit::cockpit::flight_divider::FlightDivider::Columns,
+            0.65
+        ) < was
     );
-    assert_eq!(pane.model.rail().width(), was + 8);
     pane.fold(Msg::Mouse {
         event: MouseEvent::new(MouseKind::Up(Button::Left), col, row).at_px(to_x as u32, y as u32),
         target: None,
     });
-    assert!(!pane.model.rail().is_dragging());
+    assert!(pane.model.active_panel().is_none());
 
-    // The next frame places the divider the dragged columns over — the rail is the
-    // volume's own 248 moved by whole cells, so eight columns of drag is exactly eight
-    // advances of divider, whatever column a 248-px rail's seam happens to fall in.
+    // The next frame puts the native boundary at the pointer, preserving grab offset.
     let _ = pane.paint();
     let [moved_x, _, _, _] = pane
         .frame
-        .rect_of(magistr_gui2::RootComposition::DIVIDER)
+        .rect_of(magistr_gui2::comp_workspace::WorkspaceComposition::id(
+            Widget::PanelColumns.id(),
+        ))
         .expect("the divider is placed");
     assert!(
-        (moved_x - (dx - 8.0 * cell.width())).abs() < 0.5,
+        (moved_x - (to_x as f32 - dw / 2.0)).abs() < 1.0,
         "{moved_x} vs {dx} less eight cells of {}",
         cell.width()
     );
@@ -551,8 +555,11 @@ fn a_long_streaming_turn_keeps_its_tail_above_the_composer() {
         .batches
         .iter()
         .filter_map(|batch| batch.scissor)
+        .filter(|clip| {
+            (clip[1] as f32 - stage_y).abs() < 1.0 && (clip[3] as f32 - stage_h).abs() < 2.0
+        })
         .collect();
-    assert_eq!(scissors.len(), 1, "one scissored batch: the stage's");
+    assert_eq!(scissors.len(), 1, "the stage has its own scissored batch");
     #[allow(clippy::cast_precision_loss)]
     let clip_top = scissors[0][1] as f32;
     assert!(

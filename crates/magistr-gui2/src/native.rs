@@ -560,10 +560,11 @@ impl ApplicationHandler<Msg> for App {
             if let Msg::Key(key) = &message
                 && key.is_press()
                 && key.mods.is_empty()
+                && self.model.active_panel().is_none()
             {
                 if key.code == KeyCode::Enter
-                    && self.model.prompt().is_empty()
                     && let Some(widget) = self.frame.focus_target()
+                    && (self.model.prompt().is_empty() || widget != Widget::Composer.id())
                 {
                     for kind in [MouseKind::Down(Button::Left), MouseKind::Up(Button::Left)] {
                         self.fold(

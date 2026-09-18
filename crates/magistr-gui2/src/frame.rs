@@ -17,11 +17,13 @@ use crate::comp_galaxy::GalaxyComposition;
 use crate::comp_root::RootComposition;
 use crate::comp_sky::SkyComposition;
 use crate::comp_trace::TraceComposition;
+use crate::comp_workspace::WorkspaceComposition;
 use crate::element::{Element, scaled};
 use crate::element_emit::emit;
 use crate::element_layout::ElementLayout;
 use crate::element_state::ElementState;
 use crate::error::Gui2Error;
+use crate::frame_clip::FrameClips;
 use crate::galaxy::Galaxy;
 use crate::galaxy_layout::GalaxyLayout;
 use crate::image_quad::ImageQuad;
@@ -34,6 +36,8 @@ use crate::sky::Sky;
 use crate::text::TextEngine;
 use crate::trace_graph::TraceGraph;
 use crate::type_scale::TypeScale;
+#[path = "frame_workspace.rs"]
+mod workspace;
 
 /// A rendered native frame and its hit registry.
 ///
@@ -242,10 +246,21 @@ impl Frame {
             }
         }
 
+        if let Some(range) = subtree_of(&tree, WorkspaceComposition::DETAILS) {
+            let content = index_of(&tree, WorkspaceComposition::DETAIL_CONTENT)
+                .map(|i| layout.rect(i)[3])
+                .unwrap_or(0.0);
+            let max = (content - layout.rect(range.start)[3]).max(0.0);
+            let shift = -(model.inspector_offset() as f32).min(max);
+            layout.translate(range.start + 1..range.end, shift);
+        }
+        let clips = FrameClips::of(&tree, &layout);
         self.hits.clear();
         for (index, target) in self.targets.iter().enumerate() {
             let Some(widget) = target else { continue };
-            let mut rect = layout.rect(index);
+            let Some(mut rect) = clips.visible(index, layout.rect(index)) else {
+                continue;
+            };
             // A control on an overflowed feed row is clipped out of the
             // paint by the stage's scissor; its hit box clamps the same
             // way, or a click on the header band would press it.
@@ -274,7 +289,11 @@ impl Frame {
             Lexicon::of(medium).base,
             self.generation,
         );
-        let field = if let (Some(range), Some(scissor)) = (&stage, clip) {
+        let workspace = index_of(&tree, WorkspaceComposition::BODY).is_some();
+        let field = if workspace {
+            self.paint_workspace(model, &tree, &layout, &clips, [width, height]);
+            None
+        } else if let (Some(range), Some(scissor)) = (&stage, clip) {
             emit(
                 &tree,
                 &layout,
@@ -353,7 +372,7 @@ impl Frame {
         // report the terminal driver makes — because the roadmap's dag
         // placement is computed against it; a changed report asks for
         // the follow-up frame that reads it.
-        let mut reported = false;
+        let mut reported = self.workspace_report(model, &tree, &layout, factor);
         // The turn's mono content is cut to the column the window
         // actually gave it: the model counts in columns, the
         // composition measures in pixels, so the frame converts what it
@@ -627,9 +646,8 @@ impl Frame {
     /// than reaching the cockpit.
     #[must_use]
     pub fn focus_walks(&self) -> bool {
-        self.tree
-            .as_ref()
-            .is_some_and(|tree| self.state.walks(tree))
+        self.placed()
+            .is_some_and(|(tree, layout)| self.state.walks(tree, layout))
     }
 
     /// The draw list the last [`Frame::build`] produced.
@@ -855,7 +873,10 @@ fn index_of(tree: &Element, id: crate::element_id::ElementId) -> Option<usize> {
 /// The DFS index range of the subtree rooted at the element wearing
 /// `id` — contiguous by [`Element::each`]'s own numbering, which is
 /// what lets the frame emit it as one batch.
-fn subtree_of(tree: &Element, id: crate::element_id::ElementId) -> Option<std::ops::Range<usize>> {
+pub(crate) fn subtree_of(
+    tree: &Element,
+    id: crate::element_id::ElementId,
+) -> Option<std::ops::Range<usize>> {
     let mut found = None;
     tree.each(&mut |index, element| {
         if element.id == Some(id) && found.is_none() {
@@ -902,7 +923,7 @@ fn scissor_of(rect: [f32; 4], viewport: [u32; 2]) -> Option<[u32; 4]> {
 
 /// The overlap of two layout boxes, `None` when they only touch or
 /// miss — the hit clamp's arithmetic.
-fn intersect(a: [f32; 4], b: [f32; 4]) -> Option<[f32; 4]> {
+pub(crate) fn intersect(a: [f32; 4], b: [f32; 4]) -> Option<[f32; 4]> {
     let x0 = a[0].max(b[0]);
     let y0 = a[1].max(b[1]);
     let x1 = (a[0] + a[2]).min(b[0] + b[2]);

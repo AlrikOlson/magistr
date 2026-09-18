@@ -2020,7 +2020,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             return Vec::new();
         }
     }
-    if !model.surface().is_native()
+    if (!model.surface().is_native() || model.flight_panels.native_details.is_some())
         && target.is_some_and(|id| Inspector::contains_target(id) || id == Widget::RequestBody.id())
     {
         if matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown) {
