@@ -128,6 +128,39 @@ Open reasoning, choose Latest then Previous, drag the column boundary, and close
 the window. The example verifies selection, resized proportions and the unchanged
 draft and attachment.
 
+## Roadmap planning
+
+`RoadmapComposition` keeps the complete dependency graph and filtered work list
+beside separate Requests and Item details views. Compact windows switch between
+Plan, Requests and Item details. Shared identities own graph/list selection,
+dependency and related-record links, proposals, blockers and available actions.
+Start and Complete are requests to the workflow owner; the view rechecks known
+status and dependencies and never changes durable state itself.
+
+`Model::report_native_roadmap` accepts bounded visible-row and request-scroll
+measurements. Requests and details retain independent offsets. Each request reads
+only its admitted `RoadmapRequest::response` slice; queued requests show no
+implementation output. The native composer emits `Cmd::RoadmapPrompt` and
+`CancelRoadmapPrompt` through the existing owner channel. Conversation updates,
+drafts, attachments, reasoning and reading position survive a Roadmap visit.
+
+`tests/roadmap.rs` covers native targets, retained context, full graph history,
+related links and deterministic queued/admitted/cancelled producer sequences.
+`tests/roadmap_screens.rs` covers eight empty/request states, two themes, compact
+and wide layouts, scaling, reduced motion and stable frames.
+
+For an interactive check:
+
+```sh
+cargo run --manifest-path crates/magistr-gui2/Cargo.toml --locked --example roadmap_probe
+```
+
+Send a request, cancel it, then send it again. Inspect Requests and Item details,
+scroll the reply, drag the column boundary, type “Keep this draft”, and return to
+Conversation before closing the window. The example verifies command routing,
+request isolation and retained draft. It uses deterministic producers; live project
+sessions and accessibility actions remain separate work.
+
 ## Focused verification
 
 Run the desktop checks explicitly:
@@ -143,7 +176,8 @@ The normal suite includes CPU screenshots in both themes, contrast and icon
 checks, accessibility bounds, display scale, hit geometry, model-tick motion,
 reduced motion and render purity. The explicit GPU check runs the real shader
 pipeline and reads the texture back. It checks an opaque canvas, CPU/GPU pixel
-agreement and uploaded image content in both themes, saving captures in the
+agreement for conversation, Roadmap and request views, plus uploaded image content
+in both themes, saving captures in the
 desktop `target/` directory. Missing GPU support fails that check.
 
 Two inherited, ignored `mock_parity` tests compare against historical browser

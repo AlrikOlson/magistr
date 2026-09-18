@@ -122,6 +122,24 @@ impl FlightRequests {
     }
 
     pub fn scroll(model: &mut Model, delta: isize) {
+        if model.surface().is_native()
+            && let Some((total, visible)) = model.flight_panels.native_requests
+        {
+            let max = total.saturating_sub(visible);
+            let top = model
+                .roadmap_request_scroll
+                .min(max)
+                .saturating_add_signed(
+                    delta.saturating_mul(isize::try_from(model.cell_size().height).unwrap_or(1)),
+                )
+                .min(max);
+            model.roadmap_request_scroll = if top == max && delta > 0 {
+                usize::MAX
+            } else {
+                top
+            };
+            return;
+        }
         let s = S::for_model(model);
         let l = model.flight_layout();
         let width = if l.compact { l.width } else { l.right_width };

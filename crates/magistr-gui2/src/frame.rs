@@ -14,6 +14,7 @@ use crate::chart::Chart;
 use crate::comp_birth::BirthComposition;
 use crate::comp_feed::FeedComposition;
 use crate::comp_galaxy::GalaxyComposition;
+use crate::comp_roadmap::RoadmapComposition;
 use crate::comp_root::RootComposition;
 use crate::comp_sky::SkyComposition;
 use crate::comp_trace::TraceComposition;
@@ -254,6 +255,14 @@ impl Frame {
             let shift = -(model.inspector_offset() as f32).min(max);
             layout.translate(range.start + 1..range.end, shift);
         }
+        if let Some(range) = subtree_of(&tree, RoadmapComposition::REQUESTS) {
+            let content = index_of(&tree, RoadmapComposition::REQUEST_CONTENT)
+                .map(|i| layout.rect(i)[3])
+                .unwrap_or(0.0);
+            let max = (content - layout.rect(range.start)[3]).max(0.0);
+            let shift = -(model.roadmap_request_scroll() as f32).min(max);
+            layout.translate(range.start + 1..range.end, shift);
+        }
         let clips = FrameClips::of(&tree, &layout);
         self.hits.clear();
         for (index, target) in self.targets.iter().enumerate() {
@@ -289,10 +298,17 @@ impl Frame {
             Lexicon::of(medium).base,
             self.generation,
         );
-        let workspace = index_of(&tree, WorkspaceComposition::BODY).is_some();
+        let workspace = index_of(&tree, WorkspaceComposition::BODY).is_some()
+            || index_of(&tree, RoadmapComposition::BODY).is_some();
         let field = if workspace {
-            self.paint_workspace(model, &tree, &layout, &clips, [width, height]);
-            None
+            self.paint_workspace(
+                model,
+                &tree,
+                &layout,
+                &clips,
+                [width, height],
+                (medium, factor),
+            )
         } else if let (Some(range), Some(scissor)) = (&stage, clip) {
             emit(
                 &tree,
@@ -448,7 +464,17 @@ impl Frame {
         // after it.
         let star_z = u16::try_from(index + 1).unwrap_or(u16::MAX);
         for (star, rect) in stars {
-            self.hits.register_px(rect, star_z, Widget::sky_star(star));
+            let left = rect.x.max(x);
+            let top = rect.y.max(y);
+            let right = (rect.x + rect.width).min(x + w);
+            let bottom = (rect.y + rect.height).min(y + h);
+            if right > left && bottom > top {
+                self.hits.register_px(
+                    PxRect::new(left, top, right - left, bottom - top),
+                    star_z,
+                    Widget::sky_star(star),
+                );
+            }
         }
         let (cw, ch) = (self.metrics.width(), self.metrics.height());
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]

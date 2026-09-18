@@ -42,6 +42,38 @@ fn window() -> Model {
     seeded(Surface::Native, None)
 }
 
+#[test]
+fn unavailable_work_actions_do_not_dispatch_and_valid_actions_remain_requests() {
+    for surface in [Surface::Terminal, Surface::Native] {
+        let mut model = seeded(surface, None);
+        for id in ["shipped", "blocked", "stuck"] {
+            assert!(open_chunk(&mut model, id));
+            assert!(
+                roadmap_chunk_click(&model, false).is_empty(),
+                "{id} cannot start"
+            );
+            assert!(
+                roadmap_chunk_click(&model, true).is_empty(),
+                "{id} cannot complete"
+            );
+        }
+        assert!(open_chunk(&mut model, "next"));
+        assert_eq!(
+            roadmap_chunk_click(&model, false),
+            vec![Cmd::Engine(EngineCmd::StartChunk { id: "next".into() })]
+        );
+        assert_eq!(
+            model.roadmap().chunk("next").unwrap().state,
+            super::super::ChunkState::Pending
+        );
+        assert!(open_chunk(&mut model, "here"));
+        assert_eq!(
+            roadmap_chunk_click(&model, true),
+            vec![Cmd::Engine(EngineCmd::CompleteChunk { id: "here".into() })]
+        );
+    }
+}
+
 fn selected(model: &Model) -> Option<&str> {
     model.roadmap().selected().map(|chunk| chunk.id.as_str())
 }
@@ -305,9 +337,14 @@ fn start_and_complete_ask_the_engine_for_the_selected_chunk() {
         roadmap_chunk_click(&w, false),
         vec![Cmd::Engine(EngineCmd::StartChunk { id: "next".into() })]
     );
+    assert!(
+        roadmap_chunk_click(&w, true).is_empty(),
+        "pending work cannot complete"
+    );
+    assert!(open_chunk(&mut w, "here"));
     assert_eq!(
         roadmap_chunk_click(&w, true),
-        vec![Cmd::Engine(EngineCmd::CompleteChunk { id: "next".into() })]
+        vec![Cmd::Engine(EngineCmd::CompleteChunk { id: "here".into() })]
     );
 }
 

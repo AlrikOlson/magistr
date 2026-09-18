@@ -123,7 +123,7 @@ use super::inspection::Inspection as Card;
 
 impl Inspector {
     fn full_roadmap_details(model: &Model) -> bool {
-        model.uses_flight_recorder()
+        (model.uses_flight_recorder() || model.surface().is_native())
             && model.tab() == super::StageTab::Roadmap
             && matches!(model.selected(), Some(Selected::Chunk(_)))
     }
@@ -136,9 +136,42 @@ impl Inspector {
         let Selected::Chunk(id) = model.selected()? else {
             return None;
         };
-        let reference = model.roadmap().chunk(id)?.deps.get(index)?;
-        let dependency = model.roadmap().chunk_for_ref(reference)?;
-        Some(Selected::Chunk(dependency.id.clone()))
+        let chunk = model.roadmap().chunk(id)?;
+        let reference = chunk.deps.iter().chain(&chunk.cross_refs).nth(index)?;
+        Self::work_reference(model, reference).map(|(_, selected)| selected)
+    }
+
+    /// Dependency and related-record controls share the displayed order and resolver.
+    #[must_use]
+    pub fn roadmap_links(model: &Model) -> Vec<(String, Option<WidgetId>)> {
+        let Some(Selected::Chunk(id)) = model.selected() else {
+            return Vec::new();
+        };
+        let Some(chunk) = model.roadmap().chunk(id) else {
+            return Vec::new();
+        };
+        chunk
+            .deps
+            .iter()
+            .chain(&chunk.cross_refs)
+            .enumerate()
+            .map(|(index, reference)| {
+                let relation = if index < chunk.deps.len() {
+                    "Depends on"
+                } else {
+                    "Related"
+                };
+                Self::work_reference(model, reference).map_or_else(
+                    || (format!("{relation}: record unavailable"), None),
+                    |(name, _)| {
+                        (
+                            format!("{relation}: {name}"),
+                            Some(Widget::roadmap_dependency(index)),
+                        )
+                    },
+                )
+            })
+            .collect()
     }
 
     /// Render the selected object with a fixed header and scrolling fields.
@@ -472,13 +505,13 @@ impl Card {
                         (index, format!("{} → {suggestion} · {reason}", kind.label()))
                     })
                     .collect();
-                if chunk.state.is_working() {
+                if let Some(reason) = &chunk.blocker {
+                    card.fields.push(("Blocked".into(), reason.clone()));
+                }
+                if model.roadmap().can_complete(chunk) {
                     card.actions
                         .push(("Complete", Widget::RoadmapComplete.id()));
-                } else if matches!(
-                    chunk.state,
-                    ChunkState::Pending | ChunkState::Blocked | ChunkState::Backlog
-                ) {
+                } else if model.roadmap().can_start(chunk) {
                     card.actions.push(("Start", Widget::RoadmapStart.id()));
                 }
             }

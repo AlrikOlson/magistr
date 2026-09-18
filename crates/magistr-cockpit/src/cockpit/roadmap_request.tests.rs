@@ -35,6 +35,65 @@ fn click(model: &mut Model, widget: Widget) -> Vec<Cmd> {
 }
 
 #[test]
+fn native_request_extent_scrolls_independently_and_tracks_only_admitted_output() {
+    let mut model = model().with_surface(crate::cockpit::Surface::Native);
+    model.pixels = false;
+    submit(&mut model, "Describe the plan");
+    update(&mut model, Msg::RoadmapRequestQueued);
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text("Implementation output".into())),
+    );
+    assert!(
+        model.roadmap_requests()[0]
+            .response(model.turn())
+            .is_empty()
+    );
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)),
+    );
+    update(&mut model, Msg::RoadmapRequestStarted);
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text("Planning output".into())),
+    );
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)),
+    );
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text("Later implementation output".into())),
+    );
+    assert_eq!(model.roadmap_requests()[0].response(model.turn()).len(), 1);
+    assert_eq!(
+        model.roadmap_requests()[0].response(model.turn())[0].text(),
+        "Planning output"
+    );
+    let before = model.roadmap_requests().to_vec();
+    assert!(model.report_native_roadmap(Some(4), Some((900, 300))));
+    model.inspector_scroll = 73;
+    click(&mut model, Widget::RoadmapRequests);
+    update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Home)));
+    assert_eq!(model.roadmap_request_scroll(), 0);
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::ScrollDown, 0, 0),
+            target: Some(Widget::RequestBody.id()),
+        },
+    );
+    assert!(model.roadmap_request_scroll() > 0);
+    assert!(model.roadmap_request_scroll() < 600);
+    assert_eq!(model.inspector_scroll, 73);
+    update(&mut model, Msg::Key(KeyEvent::new(KeyCode::End)));
+    assert_eq!(model.roadmap_request_scroll(), usize::MAX);
+    assert_eq!(model.roadmap_requests(), before);
+    assert!(!model.uses_flight_recorder());
+}
+
+#[test]
 fn request_owns_only_its_admitted_response_across_iteration_boundaries() {
     let mut model = model();
     update(

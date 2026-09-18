@@ -60,10 +60,21 @@ fn still_of(view: &str, mode: ThemeMode) -> (Pixmap, Frame, Model) {
 const MEDIA: [(&str, ThemeMode); 2] = [("night", ThemeMode::Dark), ("day", ThemeMode::Light)];
 
 fn shots(view: &str) {
+    let mut failures = Vec::new();
     for (medium, mode) in MEDIA {
         let (pixmap, _, _) = still_of(view, mode);
-        golden().assert_matches(&format!("view{view}-{medium}"), &pixmap);
+        if std::panic::catch_unwind(|| {
+            golden().assert_matches(&format!("view{view}-{medium}"), &pixmap)
+        })
+        .is_err()
+        {
+            failures.push(medium);
+        }
     }
+    assert!(
+        failures.is_empty(),
+        "review both theme candidates: {failures:?}"
+    );
 }
 
 #[test]
@@ -536,14 +547,17 @@ fn the_turn_column_report_settles() {
     assert!(!reported, "a settled frame re-reports nothing");
 }
 
-/// The Sky altitude has no stage viewport, and its frame stays one
-/// unscissored run — the split only exists where the feed does.
+/// Roadmap clips graph, list and details separately from its fixed navigation.
 #[test]
-fn the_sky_frame_stays_unscissored() {
+fn roadmap_frames_clip_their_independent_panes() {
     let (_, frame, _) = still_of("03", ThemeMode::Dark);
     assert!(
-        frame.list().batches.iter().all(|b| b.scissor.is_none()),
-        "no batch on the sky frame carries a scissor"
+        frame.list().batches.iter().any(|b| b.scissor.is_some()),
+        "roadmap content is clipped"
+    );
+    assert!(
+        frame.list().batches.iter().any(|b| b.scissor.is_none()),
+        "fixed navigation stays outside scrolling clips"
     );
 }
 

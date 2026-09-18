@@ -34,6 +34,8 @@ pub struct RoadmapChunk {
     pub acceptance: Vec<String>,
     /// The `think:`/`task:`/… cross-refs.
     pub cross_refs: Vec<String>,
+    /// The recorded reason work cannot proceed, including pending items.
+    pub blocker: Option<String>,
     /// Every open proposal: its kind, the suggested value and the reason.
     pub proposals: Vec<(ProposalKind, String, String)>,
     /// When the record last changed, in seconds since the Unix epoch —
@@ -64,6 +66,10 @@ impl RoadmapChunk {
             description: chunk.description.clone(),
             acceptance: chunk.acceptance.clone(),
             cross_refs: chunk.cross_refs.clone(),
+            blocker: chunk
+                .blocked_by
+                .as_ref()
+                .map(|blocker| blocker.reason.clone()),
             proposals: ProposalKind::ALL
                 .into_iter()
                 .filter_map(|kind| {

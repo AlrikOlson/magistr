@@ -1149,7 +1149,10 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         model.reasoning_expanded = !model.reasoning_expanded;
         return Some(Vec::new());
     }
-    if model.surface().is_native() || !model.session.prompt.is_empty() || !key.mods.is_empty() {
+    if (model.surface().is_native() && model.tab() != StageTab::Roadmap)
+        || !model.session.prompt.is_empty()
+        || !key.mods.is_empty()
+    {
         return None;
     }
     if key.code == KeyCode::Esc
@@ -2020,7 +2023,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             return Vec::new();
         }
     }
-    if (!model.surface().is_native() || model.flight_panels.native_details.is_some())
+    if (!model.surface().is_native()
+        || model.flight_panels.native_details.is_some()
+        || model.flight_panels.native_requests.is_some())
         && target.is_some_and(|id| Inspector::contains_target(id) || id == Widget::RequestBody.id())
     {
         if matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown) {
@@ -2380,6 +2385,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                         return Vec::new();
                     }
                     if let Some(tab) = widget.tab_target() {
+                        if tab == StageTab::Roadmap && model.tab == StageTab::Roadmap {
+                            model.roadmap_requests_open = false;
+                        }
                         model.show(tab);
                         model.pane = Pane::Stage;
                         return Vec::new();
@@ -2478,7 +2486,11 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             }
             if let Some(index) = target.and_then(Widget::roadmap_dependency_index) {
                 if let Some(selected) = Inspector::roadmap_dependency(model, index) {
-                    model.inspect(selected);
+                    if matches!(selected, Selected::Chunk(_)) {
+                        model.inspect(selected);
+                    } else {
+                        nav::open_record(model, selected);
+                    }
                 }
                 return Vec::new();
             }
@@ -2980,8 +2992,7 @@ fn pin_click(model: &Model, number: u32) -> Vec<Cmd> {
 
 /// Scroll the visible detail surface without moving the conversation or work list.
 fn detail_scroll(model: &mut Model, delta: isize) {
-    if model.uses_flight_recorder() && model.tab == StageTab::Roadmap && model.roadmap_requests_open
-    {
+    if model.tab == StageTab::Roadmap && model.roadmap_requests_open {
         super::FlightRequests::scroll(model, delta);
     } else {
         Inspector::scroll(model, delta);

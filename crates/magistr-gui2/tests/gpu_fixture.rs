@@ -15,72 +15,85 @@ fn gpu_renders_fixture_images_in_both_themes() {
         .expect("desktop GPU required");
     eprintln!("GPU: {:?}", ctx.capabilities);
     for (tag, mode) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
-        let mut frame = Frame::new().expect("embedded fonts");
-        let cell = frame.metrics();
-        let size = Fixture::capture_grid((cell.width(), cell.height()));
-        let mut model =
-            Fixture::with_pixels(Fixture::imaged(size, 120, 80)).with_theme(Theme::forced(mode));
-        let mut cpu_model = model.clone();
-        let mut cpu_frame = Frame::new().expect("CPU fonts");
-        let clock = FrameClock::new(0, std::time::Duration::ZERO);
-        let (width, height) = Fixture::CAPTURE;
-        let cpu = cpu_frame
-            .still(&mut cpu_model, &clock, width, height)
-            .expect("CPU frame");
-        let mut renderer =
-            Renderer::with_colour_page(&ctx, frame.text().atlas_size(), frame.text().colour_size());
-        let mut settled = false;
-        for _ in 0..8 {
-            let reported = frame
-                .build(&mut model, &clock, width, height)
-                .expect("GPU layout");
-            let glyphs = frame.text().take_uploads();
-            let images = frame.text().take_image_uploads();
-            renderer.upload_glyphs(&ctx, &glyphs);
-            renderer.upload_images(&ctx, &images);
-            if !reported && glyphs.is_empty() && images.is_empty() {
-                settled = true;
-                break;
+        for scene in ["adoption", "roadmap", "requests"] {
+            let mut frame = Frame::new().expect("embedded fonts");
+            let cell = frame.metrics();
+            let size = Fixture::capture_grid((cell.width(), cell.height()));
+            let mut model = match scene {
+                "roadmap" => Fixture::roadmap(size),
+                "requests" => {
+                    Fixture::roadmap_request(size, magistr_cockpit::cockpit::RequestPhase::Complete)
+                }
+                _ => Fixture::with_pixels(Fixture::imaged(size, 120, 80)),
             }
+            .with_theme(Theme::forced(mode));
+            let mut cpu_model = model.clone();
+            let mut cpu_frame = Frame::new().expect("CPU fonts");
+            let clock = FrameClock::new(0, std::time::Duration::ZERO);
+            let (width, height) = Fixture::CAPTURE;
+            let cpu = cpu_frame
+                .still(&mut cpu_model, &clock, width, height)
+                .expect("CPU frame");
+            let mut renderer = Renderer::with_colour_page(
+                &ctx,
+                frame.text().atlas_size(),
+                frame.text().colour_size(),
+            );
+            let mut settled = false;
+            for _ in 0..8 {
+                let reported = frame
+                    .build(&mut model, &clock, width, height)
+                    .expect("GPU layout");
+                let glyphs = frame.text().take_uploads();
+                let images = frame.text().take_image_uploads();
+                renderer.upload_glyphs(&ctx, &glyphs);
+                renderer.upload_images(&ctx, &images);
+                if !reported && glyphs.is_empty() && images.is_empty() {
+                    settled = true;
+                    break;
+                }
+            }
+            assert!(
+                settled,
+                "layout and atlas must converge within eight passes"
+            );
+            assert_eq!(model.now(), cpu_model.now());
+            let gpu = readback(&ctx, &mut renderer, &frame, width, height);
+            assert!(
+                gpu.data().chunks_exact(4).all(|p| p[3] == 255),
+                "opaque canvas"
+            );
+            // Compare real output across the whole viewport while allowing text edge
+            // coverage to differ between the CPU and GPU rasterizers.
+            let matching = gpu
+                .data()
+                .chunks_exact(4)
+                .zip(cpu.data().chunks_exact(4))
+                .filter(|(a, b)| a.iter().zip(*b).all(|(x, y)| x.abs_diff(*y) <= 4))
+                .count();
+            let pixels = (width * height) as usize;
+            assert!(
+                matching * 100 >= pixels * 95,
+                "{scene}-{tag}: CPU/GPU agreement {matching}/{pixels} below 95%"
+            );
+            let red = gpu
+                .data()
+                .chunks_exact(4)
+                .filter(|p| {
+                    p[0].abs_diff(200) <= 2 && p[1].abs_diff(40) <= 2 && p[2].abs_diff(40) <= 2
+                })
+                .count();
+            eprintln!("{scene}-{tag}: {matching}/{pixels} pixels agree; {red} image pixels");
+            let output = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target");
+            gpu.save_png(output.join(format!("{scene}-gpu-{tag}.png")))
+                .expect("GPU capture");
+            cpu.save_png(output.join(format!("{scene}-cpu-{tag}.png")))
+                .expect("CPU capture");
+            assert!(
+                scene != "adoption" || red >= (120 - 2) * (80 - 2), // exclude the subpixel coverage at the border
+                "{scene}-{tag}: image atlas content missing ({red} pixels)"
+            );
         }
-        assert!(
-            settled,
-            "layout and atlas must converge within eight passes"
-        );
-        assert_eq!(model.now(), cpu_model.now());
-        let gpu = readback(&ctx, &mut renderer, &frame, width, height);
-        assert!(
-            gpu.data().chunks_exact(4).all(|p| p[3] == 255),
-            "opaque canvas"
-        );
-        // Compare real output across the whole viewport while allowing text edge
-        // coverage to differ between the CPU and GPU rasterizers.
-        let matching = gpu
-            .data()
-            .chunks_exact(4)
-            .zip(cpu.data().chunks_exact(4))
-            .filter(|(a, b)| a.iter().zip(*b).all(|(x, y)| x.abs_diff(*y) <= 4))
-            .count();
-        let pixels = (width * height) as usize;
-        assert!(
-            matching * 100 >= pixels * 95,
-            "{tag}: CPU/GPU agreement {matching}/{pixels} below 95%"
-        );
-        let red = gpu
-            .data()
-            .chunks_exact(4)
-            .filter(|p| p[0].abs_diff(200) <= 2 && p[1].abs_diff(40) <= 2 && p[2].abs_diff(40) <= 2)
-            .count();
-        eprintln!("{tag}: {matching}/{pixels} pixels agree; {red} image pixels");
-        let output = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target");
-        gpu.save_png(output.join(format!("adoption-gpu-{tag}.png")))
-            .expect("GPU capture");
-        cpu.save_png(output.join(format!("adoption-cpu-{tag}.png")))
-            .expect("CPU capture");
-        assert!(
-            red >= (120 - 2) * (80 - 2), // exclude the subpixel coverage at the border
-            "{tag}: image atlas content missing ({red} pixels)"
-        );
     }
 }
 

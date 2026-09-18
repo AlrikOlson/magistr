@@ -52,6 +52,23 @@ impl DetailsComposition {
                     },
                 );
             }
+            if model.tab() == magistr_cockpit::cockpit::StageTab::Roadmap
+                && matches!(model.selected(), Some(Selected::Chunk(_)))
+            {
+                body = body.child(control(
+                    "Request a change",
+                    Widget::RoadmapRequest.id(),
+                    lex,
+                ));
+                for (label, target) in Inspector::roadmap_links(model) {
+                    let link = Element::text(Voice::STEER, lex.mauve, label).min_width(0.0);
+                    body = body.child(if let Some(target) = target {
+                        link.id(W::id(target)).focusable().focus_ring(lex.mauve)
+                    } else {
+                        link.fill(lex.sb0)
+                    });
+                }
+            }
             for (label, value) in card
                 .fields
                 .iter()

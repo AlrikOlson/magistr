@@ -82,6 +82,27 @@ impl Inspector {
     #[must_use]
     pub fn linked_work(model: &Model, number: u32) -> Option<(String, Selected)> {
         let reference = model.trace().step(number)?.execution_ref.as_deref()?;
+        Self::work_reference(model, reference).or_else(|| {
+            model
+                .roadmap()
+                .chunk_for_ref(reference)
+                .and_then(|chunk| Self::work_reference(model, &chunk.id))
+        })
+    }
+
+    /// Resolve a recorded reference without guessing from a display name.
+    pub(super) fn work_reference(model: &Model, reference: &str) -> Option<(String, Selected)> {
+        if let Some(number) = reference
+            .strip_prefix("think:")
+            .or_else(|| reference.strip_prefix("step:"))
+        {
+            let number = number.parse().ok()?;
+            let step = model.trace().step(number)?;
+            return Some((
+                format!("Step {number} — {}", step.purpose),
+                Selected::Step(number),
+            ));
+        }
         if let Some(id) = reference.strip_prefix("task:")
             && let Some(task) = model.rail().ship().task(id)
         {
@@ -120,16 +141,19 @@ impl Inspector {
         if first.is_some() && matches.next().is_none() {
             return first;
         }
-        model.roadmap().chunk_for_ref(reference).map(|chunk| {
-            (
-                if chunk.title.is_empty() {
-                    chunk.name.clone()
-                } else {
-                    chunk.title.clone()
-                },
-                Selected::Chunk(chunk.id.clone()),
-            )
-        })
+        model
+            .roadmap()
+            .chunk(reference.strip_prefix("chunk:").unwrap_or(reference))
+            .map(|chunk| {
+                (
+                    if chunk.title.is_empty() {
+                        chunk.name.clone()
+                    } else {
+                        chunk.title.clone()
+                    },
+                    Selected::Chunk(chunk.id.clone()),
+                )
+            })
     }
 
     /// A bounded details area with the same frame and independent scrolling for every record.
