@@ -95,6 +95,31 @@ loop from its supervisor's provider pid, and the plain loop through the
 The cockpit's `magistr next` and headless `magistr next` run one turn with no
 loop checkpoint and record nothing new.
 
+## Explicit loop requests
+
+The plain, headless and cockpit `next-loop` commands all call
+`IterationLoop::start_or_recover`. A settled terminal run is archived in
+`.magistr/loop-history` before the caller persists a fresh checkpoint with
+the newly requested iteration limit. Its budget and operation records start
+fresh; its selected unfinished roadmap item remains selected. The archive
+keeps the previous run identity and its settled records.
+
+A paused or unfinished run retains its identity, limits, budget observations
+and operations. Malformed checkpoints and terminal runs with unresolved
+effects refuse a fresh start without replacing the saved checkpoint.
+Archival failure also leaves the previous checkpoint in place.
+
+Starting a command does not delete `current-plan.md` or `current-task.md`:
+even a cancelled run can have unfinished work. Their existing cleanup stays
+at the iteration boundary. Refused recovery therefore preserves both the
+checkpoint and the context needed to continue it.
+
+`tests/next_loop_recovery.rs` executes all three command handlers in isolated
+child processes and checks their checkpoint, archive and saved context.
+The cockpit startup fixture stops at terminal admission using piped input;
+the loop-driver fake-terminal/ACP fixture verifies the subsequent fresh
+opening prompt and displayed iteration limit.
+
 ## Recovery and reconciliation
 
 `open_or_recover` reads the checkpoint, marks every `Accepted`/`Running`
