@@ -10,6 +10,13 @@ implemented; every workspace client reaches one admitted native owner. This docu
 adopted source from the target behavior and migration constraints. The native
 roadmap remains authoritative for delivery status.
 
+The [pre-release policy](../../AGENTS.md#before-public-release) supersedes every backward-compatibility
+constraint in this decision, its linked plans, and imported reference material.
+There is no obligation to retain old tool names, separate MCP endpoints, aliases,
+configuration, protocols, schemas or stored formats. Reference comparisons are
+historical evidence; change current contracts and their tests together when the
+intended design changes.
+
 ## Source baselines
 
 Both repositories were inspected locally with clean working trees. Imports must
@@ -45,7 +52,7 @@ tools, contracts, storage and degraded paths to native implementation chunks.
 The upstream package declares Apache-2.0 but omits a root license file;
 [third-party notices](../../subsystems/workspace/THIRD_PARTY_NOTICES.md) record
 that limitation and retained guest/grammar attribution. Magistr owns these
-forks' tests, compatibility, and release cadence; future upstream changes are
+forks' design, tests and release cadence; future upstream changes are
 reviewed imports.
 
 ## Why change ownership now?
@@ -346,7 +353,8 @@ module gates, and final acceptance inherit the applicable dependencies.
 The former request for an upstream synchronous handler API is absorbed by
 the owned workflow extraction.
 
-Workflow adoption preserves behavior and persistence before changing semantics.
+Workflow adoption targets the intended current behavior directly. Do not stage
+changes around support for older behavior or persisted formats.
 Continue to use repository-local dependencies and reproducible lockfiles; a
 temporary
 [Cargo override](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html)

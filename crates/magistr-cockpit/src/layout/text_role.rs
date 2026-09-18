@@ -28,7 +28,7 @@
 /// paint and `the_role_changes_nothing_on_a_terminal` pins the
 /// measure.
 ///
-/// The enum's compatibility default is Data. New text leaves use Label:
+/// The enum currently defaults to Data. New text leaves use Label:
 /// interface words are proportional in the graphics renderer. Code, diffs,
 /// aligned tables and ready-made cell bands select Data explicitly, preserving
 /// their column alignment. The plain cell renderer ignores these roles.

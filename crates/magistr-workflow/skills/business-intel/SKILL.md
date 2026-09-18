@@ -41,7 +41,7 @@ This skill sits **above** the roadmap family — it is the layer that decides *w
 
 The handoff is explicit and one-directional into action: this skill **proposes** (re-prioritizations, strategic bets, risks); the human disposes; `/roadmap-refresh` researches the bets it raises; `/roadmap` builds the chunks it greenlights; `/signals` captures the demand it spots. It never reorders the roadmap or writes code on its own.
 
-> The think-and-ship reasoning family is `think_*` (legacy `deliberate_*` names still work as deprecated aliases). This skill reads `ship_status` for delivery velocity but does **not** run a `ship` objective — there's no execution here.
+> The connected server's reasoning family is `think_*`; use its advertised tool names. This skill reads `ship_status` for delivery velocity but does **not** run a `ship` objective — there's no execution here.
 
 ## When to invoke this skill
 

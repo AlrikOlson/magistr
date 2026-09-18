@@ -7,6 +7,18 @@ Those files define shared state, tool routing, roadmap export policy, recorded
 verification, recovery, and commit scope. The runtime includes the Claude host
 adapter; other hosts use their own generated adapter.
 
+## Project release policy
+
+Follow the project's explicit release and backward-compatibility policy before
+using roadmap acceptance, older instructions, reference implementations, or
+existing tests as requirements. A project that forbids backward compatibility
+before official public release has no compatibility exceptions: make intended
+breaking changes directly and update current callers, configuration, docs and
+tests together. Correct conflicting preservation requirements instead of adding
+aliases, shims, fallbacks, dual paths, deprecations or old-format migrations.
+Do not infer an official public release from package versions, tags or release
+tooling.
+
 Use the skill matching the user’s request:
 
 - `/next` or `/roadmap`: resume an authorized in-progress chunk first, otherwise

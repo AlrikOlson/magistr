@@ -2,7 +2,7 @@
 
 ## Toolchain
 
-- Scala 3 preferred for new projects. Scala 2.13 for legacy compatibility.
+- Prefer Scala 3 for new projects. Use the project's explicitly selected Scala version.
 - sbt for build management. Use `build.sbt` with explicit dependency versions.
 - Scalafmt for formatting — enforce via `sbt scalafmtCheckAll` in CI.
 - Scalafix for linting and automated refactoring rules.

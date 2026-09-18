@@ -44,7 +44,7 @@ Section payloads:
 
 | Field | Type | Notes |
 |---|---|---|
-| `bundleFormatVersion` | 1 | Constitution V: versioned from day one; additive evolution within major |
+| `bundleFormatVersion` | 1 | Versioned from day one; no preservation constraint before Magistr's public release |
 | `toolVersion` | string | package.json version |
 | `createdAt` | string | ISO timestamp |
 | `workspaceLabel` | string | `<workspace>` placeholder identity, not the absolute path |

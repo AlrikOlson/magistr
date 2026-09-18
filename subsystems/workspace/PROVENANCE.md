@@ -1,5 +1,13 @@
 # Workbench source fork
 
+The [project pre-release policy](../../AGENTS.md#before-public-release) governs
+this material and every imported document, schema, fixture and test beneath
+this directory. They record source history and current behavior; they impose no
+backward-compatibility, old-format migration or API preservation requirement.
+When the intended Magistr design changes, update current contracts and tests
+together. Preserve attribution and accurate provenance without treating the
+imported behavior as frozen.
+
 This directory preserves the Workbench implementation used to establish
 Magistr's native workspace subsystem. It is an internal source fork, not a new
 deployment of the standalone Workbench server.

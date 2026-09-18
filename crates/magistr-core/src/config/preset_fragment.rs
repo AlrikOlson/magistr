@@ -3,7 +3,7 @@
 //! A preset fragment is a partial preset override with metadata:
 //! name, description, layer type, optional inheritance via `extends`,
 //! and merge strategy. Supports both TOML (recommended for authoring)
-//! and JSON (backward-compatible).
+//! and JSON.
 
 use std::path::Path;
 

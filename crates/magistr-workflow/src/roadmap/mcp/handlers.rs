@@ -1522,8 +1522,7 @@ mod tests {
         );
     }
 
-    /// The compatibility promise: the two tools that took no input still take
-    /// none, and still answer identically.
+    /// Caller focus does not change the unscoped next/status query results.
     #[tokio::test]
     async fn roadmap_next_and_status_keep_their_no_input_behaviour() {
         let svc = svc_with_workstreams();

@@ -34,7 +34,7 @@ Always-on local flight recorder: OTel-shaped span records (vocabulary, not SDK) 
 - **II (rank, don't dump)**: no envelope or tool-surface changes. Span status reuses the taxonomy's one-code-one-recovery vocabulary rather than inventing a second error language.
 - **III (verified writes)**: trace.jsonl is not workspace data and is written outside the write engine by design — same class as the shadow log and quarantine log, under the jail-protected state dir the served surface cannot write.
 - **IV (typed escape hatches)**: none added.
-- **V (versioned contracts)**: each record line carries a format version from day one; additive-only within the major. Cache-class rules apply (discard on unreadable, never migrate). Server opens no outbound connection — reinforced by a structural no-network-import sweep test over the tracing module.
+- **V (versioned contracts)**: each record line carries a format version from day one; no additive-only constraint applies before Magistr's public release. Cache-class rules apply (discard on unreadable, never migrate). Server opens no outbound connection — reinforced by a structural no-network-import sweep test over the tracing module.
 - **VI (no number, no merge)**: SC-005 is a recorded measurement; the misuse-pattern claim (acceptance 3) is a test that extracts the pattern, not an assertion that it could be.
 - **Security section**: telemetry stays opt-in and metadata-only — this feature writes metadata locally and cannot upload; `telemetry.consent` untouched; `tracing.enabled` is deliberately not a security-lattice key (the privacy boundary is the non-configurable attribute allowlist).
 

@@ -30,7 +30,7 @@ pub struct SetObjectiveArgs {
     pub constraints: Vec<String>,
     #[serde(default)]
     pub scope: String,
-    /// `full` (compatibility default) requires every configured project gate.
+    /// `full` (the default) requires every configured project gate.
     /// Explicitly select `focused` for bounded changes, including code, with
     /// recorded checks covering their behavior, dependencies, and acceptance.
     #[serde(default)]
@@ -238,7 +238,7 @@ use crate::ship::application::command_runner::{CHECK_OUTPUT_TAIL, run_check_comm
 impl ShipService {
     #[tool(
         name = "ship_set_objective",
-        description = "Define the objective before planning tasks. Choose focused verification for bounded changes, including code: all recorded acceptance checks must pass, while unrelated project gates are omitted. Full is the compatibility default; use it only for an explicit full-suite request or concrete cross-cutting risk. Updating an unfinished objective preserves tasks. Replacing a completed or abandoned objective starts a fresh cycle and clears old tasks, reported as cleared_stale_tasks. Criteria and constraints accept arrays or a single string.",
+        description = "Define the objective before planning tasks. Choose focused verification for bounded changes, including code: all recorded acceptance checks must pass, while unrelated project gates are omitted. Full is the default; use it only for an explicit full-suite request or concrete cross-cutting risk. Updating an unfinished objective preserves tasks. Replacing a completed or abandoned objective starts a fresh cycle and clears old tasks, reported as cleared_stale_tasks. Criteria and constraints accept arrays or a single string.",
         annotations(
             title = "Set objective",
             read_only_hint = false,

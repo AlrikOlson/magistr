@@ -11,7 +11,7 @@ use super::attach_refusal::AttachRefusal;
 /// compiled, so it is independent of the package version alone, of any
 /// workspace source snapshot and of the owner generation an admission mints.
 ///
-/// The compatibility rule is exact build: every field equal. Two binaries
+/// Admission requires an exact build: every field equal. Two binaries
 /// compiled from one source tree at one profile for one target carry the
 /// same identity wherever and whenever they were built, so a copied install
 /// attaches to a running owner of the same build; a rebuilt tree, another

@@ -48,7 +48,7 @@ budget for a server whose cold handshake exceeds it; reuse adds no measurable pe
 over today's per-invoke path (one map lookup + queue drain).
 
 **Constraints**: host stays protocol-unaware; no new error code; no new crate in either lock
-file; additive-only on WIT, napi, IPC; the guest stays `no_std` with `workbench:subprocess`
+file; change WIT, napi, IPC and their current callers together; the guest stays `no_std` with `workbench:subprocess`
 as its only import; TCK unmodified; the per-request budget/breaker untouched.
 
 **Scale/Scope**: one session per (root, spec); ≤4 sessions per invoke (existing cap); idle
@@ -134,8 +134,9 @@ No constitution violations; table intentionally empty.
    `wit_contracts` additive test passes 0.1.0→0.2.0 without a bless, but the
    TS crosswalk (`test/wit-contracts.test.ts`) asserts `baseline.json` equals
    the live stamps exactly, so `WIT_BASELINE_BLESS=1` was run to capture the
-   new stamp and the two added functions — the deliberate, additive-only act
-   the README describes (version + `reused`/`release`, nothing removed).
+   new stamp and the two added functions — the recorded change
+   (version + `reused`/`release`, nothing removed). This historical change does not
+   constrain future interfaces under Magistr's pre-release policy.
 
 2. **Guest `MAX_FRAMES_PER_RESPONSE` raised 64 → 4096 (a real finding).**
    rust-analyzer floods `$/progress`, `publishDiagnostics`, and

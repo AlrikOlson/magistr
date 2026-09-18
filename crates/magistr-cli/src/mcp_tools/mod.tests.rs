@@ -813,7 +813,7 @@ async fn gate_unknown_includes_custom_names() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn gate_backward_compat_no_custom_gates() {
+async fn gate_without_custom_gates() {
     // Config without custom_gates field should work fine
     let (_tmp, root) = setup_gate_project();
     let server = build_server(root);

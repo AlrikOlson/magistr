@@ -9,11 +9,18 @@ motivates consolidating ownership. The observations below come from these source
 snapshots and executable scenarios. **The pinned observations are historical;
 implemented changes are identified separately below.**
 
+The [pre-release policy](../../AGENTS.md#before-public-release) supersedes every
+requirement in this baseline to preserve earlier interfaces or behavior for
+backward compatibility. Old API shapes, wire names, persisted
+formats and migration decisions impose no obligations on the current design.
+Update current consumers and tests when changing them.
+
 The subsequent [domain extraction and run consolidation](domain.md) establish
 shared pure values and implement the run-policy decisions in `arch-03-run-semantics`.
 The [implementation record](#implemented-run-consolidation) identifies the
 changed behavior without replacing the original observations. Scoped identities
-remain available to application adapters; existing session wire IDs stay compatible.
+remain available to application adapters; the session wire IDs describe the
+recorded implementation and are free to change.
 
 ## Objects and owners
 
@@ -175,14 +182,12 @@ explicit decision update and acceptance tests.
    count require explicit recovery acknowledgment or a new run; do not silently
    manufacture zero. Implemented in `arch-03-run-semantics`; the engine's
    three-count behavior remains a historical observation, not an active policy.
-3. **Permissions and compatibility:** use one project policy for every surface.
-   Policy Deny always wins. Interactive Ask is presented; noninteractive Ask
-   cancels/refuses unless an explicitly selected compatibility policy permits it.
-   Preserve the current headless behavior during migration behind a clearly
-   named legacy automatic-approval setting, with documented selection and tests;
-   do not silently remove it or make it the new shared default. Legacy first-option
-   selection is characterized, not a policy rule to generalize. Configuration
-   spelling and rollout belong to the shared permission implementation.
+3. **Permissions:** use one project policy for every surface. Policy Deny
+   always wins. Interactive Ask is presented; noninteractive Ask defaults to
+   refusal. Any automatic response must follow an explicit current policy.
+   The earlier requirement to preserve headless approval behind a legacy
+   setting is withdrawn. Change or remove obsolete settings and their callers
+   directly; older behavior supplies no justification for keeping them.
 4. **Execution cycles:** allow only one native objective/execution cycle per
    project/store until the native library provides true run isolation. Independent
    provider conversations may coexist but cannot replace an active objective.
@@ -207,7 +212,7 @@ Current primary constraints checked on 9 September 2026:
 requires declared loading support and history replay;
 [Tokio shutdown](https://tokio.rs/tokio/topics/shutdown) separates notifying
 tasks from waiting for their termination. These support decisions 4–5;
-they do not choose Magistr's no-progress threshold or compatibility policy.
+they do not choose Magistr's no-progress threshold or permission policy.
 [SQLite isolation](https://sqlite.org/isolation.html) describes serialized
 database writes, not coherence of Magistr's current cached native engines.
 
@@ -235,8 +240,9 @@ for `Committed`. Core and engine also share
 and [`ProjectContext`](../../crates/magistr-domain/src/project.rs). Phase labels
 are explicit; notification punctuation belongs to the
 [presentation adapter](../../crates/magistr-core/src/workflow_state.rs).
-The core phase index and context/spec counts retain `usize` API compatibility;
-the domain iteration projection retains its existing `u32` fields.
+The core phase index and context/spec counts currently use `usize`;
+the domain iteration projection uses `u32`. These are current type choices,
+not frozen API requirements.
 
 [Headless](../../crates/magistr-cli/src/orchestration/commands/next/cmd_next_loop_headless.rs),
 [plain](../../crates/magistr-cli/src/orchestration/commands/next/cmd_next_loop.rs)
@@ -268,14 +274,16 @@ The [domain guide](domain.md#recovery-boundaries) records the adapter boundaries
 with the [shared permission service](permissions.md). Cockpit and AgentSession
 construct the same project policy; next/loop and pool use explicit workflow
 context. Noninteractive Ask defaults to refusal, and the named
-`legacy-automatic-approval` compatibility setting can resolve only an Ask.
+`legacy-automatic-approval` setting currently resolves only an Ask.
+Its presence records the implementation; the pre-release policy allows removal
+with its current callers and tests.
 Policy Deny wins. The historical arbitrary first-option fallback is retired.
 
 Remembered answers now belong solely to policy and retain their scope. Workflow
 shortcuts cannot bypass remembered refusals or written constraints. Pending
 cockpit decisions receive Cancelled on turn cancellation or session teardown;
 invalid and stale responses cannot grant permission. The guide identifies policy
-metadata, compatibility selection, executable tests and provider-effect limits.
+metadata, response policy, executable tests and provider-effect limits.
 
 ## Implemented project authority
 
@@ -362,11 +370,11 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 
 | Scenario | Executable evidence |
 | --- | --- |
-| Shared core decisions, project context, noninteractive refusal/compatibility, scoped remembered answers | CLI integration `shared_permissions`; CLI `agent::session::tests`, noninteractive response and configuration tests |
+| Shared core decisions, project context, noninteractive refusal/automatic response, scoped remembered answers | CLI integration `shared_permissions`; CLI `agent::session::tests`, noninteractive response and configuration tests |
 | Shared mode policy, two no-commits stop, repeated settlement remains idempotent | [Domain run-state tests](../../crates/magistr-domain/src/workflow/run_state.tests.rs); engine `workflow::workflow_engine::tests::should_stop_on_repeated_no_commits` and `a_restored_no_commit_count_still_stops_the_loop` |
 | Recovery retains stopping count, Git baseline, budget and terminal reason; unknown legacy state is refused | [Core iteration tests](../../crates/magistr-core/src/workflow/iteration.tests.rs), including `recovery_retains_no_commit_stop_before_another_attempt`, `repeated_post_check_settles_each_attempt_once_even_after_recovery` and `recovery_observes_commit_against_the_persisted_attempt_baseline` |
 | Version 2 requires consistent run/governor evidence; restored budget, pause, abort and cancellation remain enforceable | [Session snapshot tests](../../crates/magistr-engine/src/session/session_snapshot.tests.rs) and [engine-handle recovery tests](../../crates/magistr-engine/src/handle/mod.tests.rs) |
-| Phase/status compatibility and one project-context value across core/engine | [Core phase tests](../../crates/magistr-core/src/workflow_phase.tests.rs), [iteration status compatibility](../../crates/magistr-core/src/workflow/iteration.tests.rs) and `gathered_context_is_accepted_by_the_engine_without_conversion` in [context builder tests](../../crates/magistr-core/src/workflow/context_builder.tests.rs) |
+| Phase/status serialization and one project-context value across core/engine | [Core phase tests](../../crates/magistr-core/src/workflow_phase.tests.rs), [iteration status serialization](../../crates/magistr-core/src/workflow/iteration.tests.rs) and `gathered_context_is_accepted_by_the_engine_without_conversion` in [context builder tests](../../crates/magistr-core/src/workflow/context_builder.tests.rs) |
 | Shared objective/active task, independent projects, weak completion/phase/finalize evidence | CLI integration `architecture_contracts` (temporary native store and actual failing child command) |
 | Policy Allow/Deny/Ask, protected edit/delete, remembered workflow refusal and precedence | CLI integration `cockpit_permissions`; domain permission-service and CLI session-policy companion tests |
 | Permission round trips, no title-only bypass, invalid/stale options, pending cancellation and first Ctrl-C cancel then quit | CLI supervisor permission tests and CLI integration `session_harness` through the real TUI renderer |

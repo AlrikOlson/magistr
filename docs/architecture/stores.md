@@ -44,7 +44,9 @@ workflow server is not opened by any current code.
   `SQLITE_READONLY`, and the writer's `wal_checkpoint(TRUNCATE)` completing
   with both views intact. Migration fixtures (`pinned_v1_and_v2_sqlite_history_migrates_without_rewriting_blobs_or_records`,
   `first_intent_migrates_atomically_without_rewriting_retained_blobs`) keep
-  on-disk compatibility with reference-produced files.
+  currently read reference-produced files. These fixtures record existing
+  behavior; the [pre-release policy](../../AGENTS.md#before-public-release) imposes no requirement
+  to retain those formats or their migrations.
 - **Index cache.** `live_owner_refuses_second_open_without_rebuilding_and_releases_on_drop`
   proves the single-connection topology; corruption rebuilds only the four
   expendable cache paths.

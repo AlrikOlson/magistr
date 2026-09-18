@@ -6,7 +6,7 @@
 //!
 //! TOML files are parsed as `UserPresetFragment` (the new schema with
 //! metadata). JSON files are parsed as either `UserPresetFragment` or
-//! plain `PresetOverride` (backward-compatible).
+//! plain `PresetOverride`.
 
 use std::path::Path;
 

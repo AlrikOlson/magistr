@@ -6,7 +6,7 @@ use std::{
 
 use super::{LegacyMigration, LockRecord, WorkspaceGeneration};
 
-/// Immutable compatibility marker. The retained exclusive-create owner sees
+/// Current immutable marker. The retained exclusive-create owner sees
 /// a foreign host and refuses it, even after this native owner has exited.
 /// Native ownership is decided only by the OS lock, never this dummy pid.
 const NATIVE_MARKER: &[u8] = b"{\"pid\":0,\"host\":\"magistr-native-os-lock/v1\"}\n";

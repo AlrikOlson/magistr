@@ -4,9 +4,9 @@
 
 [Website](https://magistr.dev) · [Documentation](https://magistr.dev/docs/installation) · [Architecture](docs/architecture/overview.md) · [Issues](https://github.com/AlrikOlson/magistr/issues) · [Repository](https://github.com/AlrikOlson/magistr)
 
-> **Early development release · v0.1.0**
+> **Pre-release · v0.1.0**
 >
-> Magistr is an early release and still changing. Review the work it performs before using it on an important checkout.
+> Magistr has not been publicly released. Interfaces and stored formats can change without backward compatibility.
 
 Magistr keeps a project's roadmap, runs one focused work item at a time, and records the reasoning, the changes and the checks along the way — in the project, not in a chat transcript.
 

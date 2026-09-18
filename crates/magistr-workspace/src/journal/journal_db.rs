@@ -224,8 +224,7 @@ fn store_blob(db: &Connection, content: &FileContent, seq: i64) -> Result<String
         |row| row.get(0),
     )?;
     if exists {
-        // Retained compressed bytes are part of the compatibility contract.
-        // Reusing content only advances recency; no codec work or blob rewrite.
+        // Reusing an existing blob only advances its recency.
         db.execute(
             "UPDATE blobs SET last_ref_seq=? WHERE hash=? AND last_ref_seq<?",
             params![seq, hash, seq],

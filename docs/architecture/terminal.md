@@ -163,8 +163,8 @@ terminal or provider dependency. The cockpit declares no Tokio dependency and
 retains only job result values and semantic effect ports. Workflow records, typed
 frames, freshness cursors and snapshots belong to `magistr-workflow-contracts`;
 the cockpit depends on those canonical values directly, without engine or store
-crates. The engine and workflow producers re-export the same Rust types for
-compatibility. `DisplayPhase` is the cockpit's inferred presentation of progress;
+crates. The engine and workflow producers currently re-export the same Rust
+types; old import paths impose no retention requirement. `DisplayPhase` is the cockpit's inferred presentation of progress;
 `magistr-domain::workflow::WorkflowPhase` remains the workflow phase contract.
 
 The reducers and selectors are effect-free; some adjacent helpers perform I/O.

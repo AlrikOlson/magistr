@@ -336,7 +336,7 @@ generation an admission mints. It has four fields:
 | `profile` | `debug` or `release` |
 | `target` | The target triple |
 
-The compatibility rule is exact build: an owner serves a client only when all
+Admission requires an exact build: an owner serves a client only when all
 four fields are equal (`BuildIdentity::admits`), and `AttachRefusal::Build`
 names both identities so the difference — another checkout, a rebuilt tree,
 the other profile, a stale install on `PATH` — is visible in the refusal.

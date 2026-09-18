@@ -25,8 +25,9 @@ bound by these contract rules:
   timeout); no errno leakage.
 - Import name of this interface in a plugin world IS the grant name; host requires
   inventory tier `blessed` in addition to the grant (data-model rule).
-- Additive-only within major; new package requires blessing `wit/baseline.json`
-  (`WIT_BASELINE_BLESS=1 cargo test --test wit_contracts`) in the same change.
+- Change interfaces, current hosts/guests and `wit/baseline.json` together.
+  No additive-only or major-version preservation constraint applies before
+  Magistr's public release.
 
 ## 3. `src/ports/resolver.ts` — v2 additive
 

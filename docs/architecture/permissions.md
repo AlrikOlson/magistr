@@ -15,7 +15,8 @@ The service, its context, mode, outcome, source and resolution are one
 facade.
 The CLI `SessionPermissionPolicy` supplies request classification, project path
 resolution, configuration, charter persistence and audit effects.
-`CockpitPolicy` remains a compatibility name for that implementation.
+`CockpitPolicy` currently aliases that implementation. The alias may be removed
+with its callers under the [pre-release policy](../../AGENTS.md#before-public-release).
 
 The application owns `sessions::SessionPolicy`, its request and decision types,
 and the meaning of offered permission choices. The CLI converts ACP requests to
@@ -33,7 +34,7 @@ The decision order is:
    A refusal still applies when a workflow shortcut would otherwise allow.
    Remembered permission for one path does not authorize additional targets.
 4. Governance tightens the result. A protected or governed Deny cannot be
-   changed into an Ask or an Allow by remembered permission or compatibility.
+   changed into an Ask or an Allow by remembered permission or automatic response settings.
 
 Workflow is explicit context. The existing development-tool and project-MCP
 allowances remain available in workflow mode and are capped by protected paths,
@@ -62,7 +63,7 @@ fresh turn. Legacy `AgentSession::cancel` ends the usable session. See the
 
 Sessions without a permission UI refuse Ask by default. This includes plain
 terminal sessions whose text input is for conversation, not a permission picker.
-An explicitly opted-in compatibility mode permits automatic approval of Ask:
+The current implementation has an explicit automatic response setting for Ask:
 
 ```toml
 # <project>/.claude/permissions.toml
@@ -70,23 +71,24 @@ noninteractive = "legacy-automatic-approval"
 ```
 
 Omitting the field, or setting `noninteractive = "refuse"`, selects the default.
-The compatibility option does not change the core decision. Deny remains Deny,
+The automatic response option does not change the core decision. Deny remains Deny,
 and an absent compatible response option is Cancelled. Automatic responses select
 only the matching once option; standing Always
 choices require an explicit user answer. A missing once option is Cancelled,
 even if the provider offers a standing choice. The historical first-option
 fallback is retired rather than generalized.
 
-This is an intentional migration from unconditional headless approval. Existing
-unattended users can select the named compatibility mode; new sessions default
-to policy refusal for unresolved Ask. Selecting a permissive profile is a
-separate policy choice and remains subject to protected targets and governance.
+The earlier requirement to preserve unconditional headless approval is withdrawn.
+This setting describes existing behavior and may be removed or redesigned with
+its callers and tests; older behavior supplies no reason to retain it. Selecting
+a permissive profile is a separate current policy choice and remains subject to
+protected targets and governance.
 
 ## Evidence and limits
 
 The policy companion suites cover profile, workflow, protection, charter and
 governance precedence, exact scope and policy-version behavior. AgentSession
-tests cover noninteractive handling, explicit compatibility, receiver ownership
+tests cover noninteractive handling, automatic response settings, receiver ownership
 and cancellation. The cockpit integration suite exercises actual ACP transport
 and terminal response handling, including remembered workflow refusal and a
 protected delete. Session tests cover stale and invalid answers and cancellation

@@ -2,7 +2,7 @@ use super::*;
 use magistr_process::ChildRegistry;
 
 #[test]
-fn compatibility_registry_uses_process_membership() {
+fn child_guard_registry_uses_process_membership() {
     register_child_pgid(20001);
     register_child_pgid(20001);
     assert!(ChildRegistry::contains(20001));

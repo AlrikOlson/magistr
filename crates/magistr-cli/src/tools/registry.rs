@@ -83,7 +83,7 @@ pub enum Choice {
         #[serde(default)]
         description: Option<String>,
     },
-    /// Plain string choice (backward-compatible).
+    /// Choice containing only its display text.
     Plain(String),
 }
 

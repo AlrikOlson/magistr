@@ -40,7 +40,8 @@ optional field.
 the index is warm; no source files read by map.
 
 **Constraints**: no TOML parser; no new dependency; tools do not import config; the port
-evolves additively (v9); `map`'s tree/outline/plugin/TTL/budget behavior unchanged.
+and its current callers change together; `map`'s tree/outline/plugin/TTL/budget behavior is
+outside this chunk's scope. No additive-only constraint applies before Magistr's public release.
 
 **Scale/Scope**: one new pure module, one row kind + summary in map.ts, one additive port
 field with its child and IPC handling, one test fixture + golden, one schema sentence, one

@@ -1,7 +1,7 @@
 //! Magistr orchestration and native workflow integration.
 //!
 //! Deterministic policy, run rules and gate values live in `magistr-domain`;
-//! compatibility exports here preserve existing callers. This crate also owns
+//! this crate currently re-exports those values for its callers. It also owns
 //! runtime and native-store adapters and is not an effect-free boundary.
 //!
 //! It provides backend-agnostic services and values for:

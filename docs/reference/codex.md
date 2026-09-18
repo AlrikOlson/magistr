@@ -64,7 +64,7 @@ personal configuration, skills, or the trust database.
 
 ## Skill selection
 
-The compatibility baseline is Codex CLI `0.153.4`. At that version, project
+The tested runtime is Codex CLI `0.153.4`. At that version, project
 skill-disable entries appear in `config/read` but are not applied by `skills/list`.
 The launcher supplies process-local `-c skills.config=...` overrides so both
 views observe project selections.

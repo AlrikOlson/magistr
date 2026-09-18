@@ -156,9 +156,15 @@ Every tool — core or plugin — returns the same envelope. It is a **one-way d
 }
 ```
 
-**Versioning & negotiation.** Evolution within a major envelope version is strictly additive (new optional fields only); anything else bumps `v`. Clients may declare `workbench/maxEnvelopeVersion` and feature flags in `_meta` on any request — statelessly, per request, consistent with §5.1; the server responds in the highest mutually supported version and mirrors the resolved version in `v`. A client that declares nothing gets the latest, which is correct for freshly-prompted agents; harnesses that pin get stability. Tool input/output schemas are generated from `schemas/` (one source of truth) and carry a `schemaVersion` in tool annotations with the same additive rule. The deprecation policy is published before 1.0 and is expressed in releases, not calendar time: a deprecated surface survives at minimum through the next two minor releases and one major, warning in `notes` on every use.
+**Versioning & negotiation.** This imported specification records the reference
+implementation's envelope and schema versions. Its additive-only, pinned-client
+stability and multi-release deprecation requirements are withdrawn for Magistr.
+Until official public release, [project policy](../../../AGENTS.md#before-public-release)
+requires direct changes to the intended contract and its current clients,
+schemas, documentation and tests. Do not retain older versions, negotiation
+paths or deprecated surfaces for backward compatibility.
 
-Rationale: the Entire result (§2) shows output shape is where the tokens go. Budgeting is a *parameter*, truncation is a *manifest*, every error tells the model what class of next action recovers, and the version field is what lets all of that evolve for years without breaking the agents already depending on it.
+Rationale: the Entire result (§2) shows output shape is where the tokens go. Budgeting is a *parameter*, truncation is a *manifest*, every error tells the model what class of next action recovers, and the version field identifies the format in use. Earlier agent integrations impose no preservation requirement before Magistr's official public release.
 
 ### 4.3 Error taxonomy
 
@@ -502,7 +508,7 @@ M1+M2 remain the usable daily driver, exactly as v1.0 intended; the public-SDK l
 
 | Risk | Sev | Mitigation |
 |---|---|---|
-| SDK interface freeze — public WIT mistakes carried for years | High | WIT per-interface versioning with additive evolution; first-party code forced through the public SDK before any third party (M5 gate); deprecation policy in releases |
+| SDK interface changes | High | Update current host/guest interfaces, schemas and tests together. The former additive-only and deprecation requirements are superseded by Magistr's pre-release policy. |
 | MRTR client support uneven (spec is weeks old) | High | Token-based two-call fallback is a first-class path, tested equally; rides the same version-negotiation machinery |
 | Bun↔napi-rs compat breaks on a target | Med (was High) | Blast radius confined to the restartable engine child; WASM fallback auto-selected; startup self-test |
 | WASM parse cost for third-party languages | Med | Bundled grammars stay native (hot path unchanged); blessing/promotion path to native for audited packs |

@@ -8,7 +8,7 @@ use super::observation::ObservationSender;
 use super::session::AgentSession;
 use crate::error::Result;
 
-// Re-export for backwards compatibility (tests use `super::*`)
+// Test helpers currently imported through `super::*`.
 pub use super::mock_followups::mock_session_with_followups;
 
 /// Create a mock session and a sender for pushing messages.

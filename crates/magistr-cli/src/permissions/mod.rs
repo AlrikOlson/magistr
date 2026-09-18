@@ -48,7 +48,7 @@ pub mod suggest_trust_upgrade;
 pub mod summarize;
 pub mod violation_report;
 
-// ── Backward-compat shims (host test files) ────────────────────────
+// ── Current host test module exports ─────────────────────────────
 pub mod audit;
 pub mod config;
 pub mod rules;

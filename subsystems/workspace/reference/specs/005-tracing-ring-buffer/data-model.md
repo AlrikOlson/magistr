@@ -6,7 +6,7 @@ One new cache-class artifact (`.workbench/trace.jsonl`); everything else is in-m
 
 | Field | Type | Notes |
 |---|---|---|
-| `v` | 1 | Record format version (Constitution V); additive-only within the major |
+| `v` | 1 | Record format version; no preservation constraint before Magistr's public release |
 | `traceId` | string (hex) | Request-scoped; shared by a root and its children |
 | `spanId` | string (hex) | Unique per record |
 | `parentSpanId` | string? | Present on child spans only |

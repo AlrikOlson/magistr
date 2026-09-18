@@ -68,7 +68,7 @@ impl GenerateResult {
         all
     }
 
-    /// All paths involved (for backward compat with code expecting Vec<String>).
+    /// All paths involved, collected as strings.
     pub fn all_paths(&self) -> Vec<String> {
         let mut all = self.created.clone();
         all.extend(self.updated.iter().cloned());

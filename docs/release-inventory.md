@@ -1,10 +1,12 @@
 # Release inventory
 
-This page is the source of truth for what the public Magistr release contains. It is
-reviewed with each release so the website, README, and installation guidance describe
-the same product. v0.1.0 is an early, source-first development release; crates.io publication is not available yet.
+Magistr has not been officially publicly released. v0.1.0 is the current
+development version, not evidence of a public release. This inventory describes
+current capabilities and planned package contents. The
+[pre-release policy](../AGENTS.md#before-public-release) governs all interfaces,
+configuration and stored formats until the owner declares official public release.
 
-## Shipped in v0.1.0
+## Current development capabilities
 
 | Surface | What is available |
 | --- | --- |
@@ -16,12 +18,12 @@ the same product. v0.1.0 is an early, source-first development release; crates.i
 | API providers | OpenAI, Gemini, and Ollama chat adapters; provider authentication and credentials remain the caller's responsibility |
 | Release package | Host-targeted `magistr` binary, shell completions for bash/zsh/fish, generated man pages, MIT license, and bundled font notices |
 
-## Experimental or compatibility-only
+## Experimental and limited surfaces
 
 | Surface | Status and limits |
 | --- | --- |
-| Desktop interface | Experimental and maintained on the [`gui2` branch](https://github.com/AlrikOlson/magistr/tree/gui2); no desktop binary ships from `main` |
-| Peer protocol | Compatibility-only engine API. Production runtime authentication, transport, metering, persistence, and dispatch are not wired into the CLI or interfaces |
+| Desktop interface | Experimental fixture renderer in `crates/magistr-gui2` on `main`; live desktop integration remains pending |
+| Peer protocol | Opt-in engine experiment, disabled in production; runtime authentication and governed dispatch are not implemented |
 | Live provider sessions | Fixtures and adapters are covered by tests; a local install still needs the selected runtime or API credentials and no live provider is implied by this release |
 | Roadmap export | Disabled by project policy (`roadmap_exports = false`). Native roadmap state remains the source of truth and no `ROADMAP.md` or `ROADMAP.json` export is generated |
 

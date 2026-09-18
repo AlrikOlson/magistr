@@ -122,4 +122,4 @@ The skill's value is judgment: which habit maps where, when the shell is still t
 - "Agent harness" means any runtime that loads a skill file by convention (the repository's own sessions are one); harness-specific installers and packaging are out of scope.
 - Plugin tools are out of the routing table's scope by design; they are routed by discovery.
 - Iterating the skill from trace data is a human activity this feature enables (by naming the data), not automates.
-- The SDD's deprecation policy governs future removal of selection values; a deprecated value stays routed (marked) until removed from the schema, at which point the check forces the row's removal.
+- Magistr's pre-release policy supersedes the SDD's deprecation requirement. Remove obsolete selection values and update schemas, routing guidance and tests in the same change; no deprecated value needs a grace period.

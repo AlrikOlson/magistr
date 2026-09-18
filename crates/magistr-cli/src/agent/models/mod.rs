@@ -37,7 +37,7 @@ pub mod model_response;
 pub mod render_comparison;
 pub mod render_comparison_json;
 
-// ── Backward-compat shims (host test files) ────────────────────────
+// ── Current host test module exports ─────────────────────────────
 pub mod compare;
 pub mod config;
 pub mod registry;

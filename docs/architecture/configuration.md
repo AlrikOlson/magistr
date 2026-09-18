@@ -11,13 +11,15 @@ The captured object supplies the store, socket policy, sanitized project-name
 override and typed think settings. Reader/writer admission and attachment use
 that same identity input. Opening engines materializes think settings from the
 captured object, the admitted project ID and native persistence. It does not
-call the workflow compatibility loader again. The native publisher owns the
+call the workflow's ambient loader again. The native publisher owns the
 socket, so the think engine receives no broadcast path.
 
-## Compatibility and precedence
+## Current input precedence
 
-Existing names and on-disk locations remain compatible. These are input
-compatibility rules inside Magistr, not separate configuration authorities.
+These names and on-disk locations describe the current resolver. The
+[pre-release policy](../../AGENTS.md#before-public-release) permits replacing them directly and
+updating current callers; old settings and formats impose no preservation or
+migration requirement.
 
 | Setting | Resolution |
 | --- | --- |
@@ -27,7 +29,7 @@ compatibility rules inside Magistr, not separate configuration authorities.
 | Native persistence | On by default. Trimmed `THINK_AND_SHIP_PERSIST=false` (case insensitive) or `0` disables it. |
 | Publisher socket | Nonblank, trimmed `THINK_AND_SHIP_BROADCAST_PATH`, otherwise the existing project socket default when requested. |
 | Short-socket directory | Trimmed `XDG_RUNTIME_DIR`, then `TMPDIR`, then `/tmp`. Existing Unix socket length limits and final short-path fallback remain. |
-| Strict validation, no color, sessions | Existing switches require exact `true`. `THINK_AND_SHIP_AUTO_SESSION` remains a compatibility alias enabling sessions. |
+| Strict validation, no color, sessions | Existing switches require exact `true`. `THINK_AND_SHIP_AUTO_SESSION` currently also enables sessions; its old name imposes no retention requirement. |
 | History, branch, timeout and rollup limits | Existing integer variables accept trimmed values of at least one. Invalid, zero and out-of-range values keep defaults. Rollup pinned-floor enforcement remains in its owning engine. |
 | Think output format | `THINK_AND_SHIP_OUTPUT_FORMAT` accepts console, JSON or Markdown case insensitively. |
 | Default think session | A valid explicit `THINK_AND_SHIP_DEFAULT_SESSION_ID` wins and enables sessions. Otherwise enabled sessions use the admitted project ID. Session namespacing remains the workflow engine's responsibility. |
@@ -51,9 +53,9 @@ The shared
 [ThinkConfigResolution](../../crates/magistr-workflow/src/think/config_resolution.rs)
 parser uses explicit persistence and injected input lookup. Its
 `ThinkConfig::with_persistence` initializer is independent of the environment.
-The legacy `load_config()` and `ThinkConfig::default()` remain compatibility
-entry points for existing library callers; native engine composition uses the
-explicit path.
+`load_config()` and `ThinkConfig::default()` currently read ambient inputs;
+native engine composition uses the explicit path. These entry points may be
+removed with their callers; they are not protected interfaces.
 
 ## Guarantees and remaining boundaries
 
@@ -166,7 +168,7 @@ Ambient reads outside these families — `MAGISTR_*` flags in `MagistrEnv`,
 budget exports, cost and session storage paths, team identity, Codex home —
 are not captured here; they are tracked as follow-up work.
 
-Tests cover lookup isolation, exact compatibility parsing, default/builder
+Tests cover lookup isolation, current input parsing, default/builder
 provenance, rejected diagnostic payloads, admitted session identity, real engine
 opens and reader/writer identity precedence. They use injected inputs,
 temporary projects/stores and child-process environments rather than mutating

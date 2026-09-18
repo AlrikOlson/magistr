@@ -26,7 +26,7 @@ remain in the engine crate, where they also exercise the real publisher.
 | `magistr-workflow-contracts/src/feed_cursor.rs` | Duplicate, gap and epoch classification | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/feed_status.rs` | Connection observation | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/gate_output.rs` | Captured gate bytes | `magistr-engine/tests/workflow_contracts.rs` |
-| `magistr-workflow-contracts/src/lib.rs` | Canonical values and compatibility surface | `magistr-engine/tests/workflow_contracts.rs` |
+| `magistr-workflow-contracts/src/lib.rs` | Canonical values and current re-exports | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/magistr_frame.rs` | Typed host phase and output events | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/native_event.rs` | One typed workflow or host event | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/native_snapshot.rs` | One per-family coherent snapshot | `magistr-engine/tests/workflow_contracts.rs` |

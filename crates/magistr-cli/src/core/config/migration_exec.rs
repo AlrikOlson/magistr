@@ -47,8 +47,8 @@ pub fn run_migration(project_dir: &Path, check: &MigrationCheck) -> Result<Vec<S
                 completed.push(action.description().to_string());
             }
             MigrationAction::RemoveJigVersionKey => {
-                // Handled by core's run_simple_migrations, but for backward compat
-                // we handle it here too via the simple path.
+                // Core's run_simple_migrations performs this action; this arm
+                // currently records completion. The duplicate path is not required.
                 completed.push(action.description().to_string());
             }
         }

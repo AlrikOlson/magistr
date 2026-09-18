@@ -554,14 +554,13 @@ fn a_chunk_without_a_blocker_serializes_no_blocked_by_key() {
 /// deliberately NOT among them, and the tests assert that.
 const BACKFILLED_ON_RESAVE: [&str; 3] = ["description", "notes", "acceptance"];
 
-/// The load-bearing compatibility claim, checked against real stored JSON:
-/// a record written before the field existed still loads, keeps every value
-/// it had, and does NOT grow a `blocked_by` key.
+/// Current optional-field behavior, checked against recorded JSON.
+/// This fixture is not an obligation to retain older persisted formats.
 #[test]
-fn real_stored_chunks_predating_the_field_keep_every_value_and_gain_no_blocker() {
+fn stored_chunks_without_blocker_round_trip_without_inventing_one() {
     let original: Vec<serde_json::Value> = serde_json::from_str(REAL_STORED_CHUNKS).unwrap();
     let chunks: Vec<Chunk> = serde_json::from_str(REAL_STORED_CHUNKS)
-        .expect("chunks written before blocked_by existed must still load");
+        .expect("current optional blocked_by field may be absent");
     assert_eq!(chunks.len(), 2);
 
     for c in &chunks {

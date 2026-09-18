@@ -1,4 +1,4 @@
-//! Magistr project configuration, presets, compatibility values and host services.
+//! Magistr project configuration, presets, shared values and host services.
 //!
 //! Deterministic rules live in `magistr-domain`; exports here retain their
 //! owning definitions. Workflow and evidence adapters compose the admitted

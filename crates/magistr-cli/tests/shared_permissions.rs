@@ -115,7 +115,7 @@ fn project_policy_decisions_match_between_cockpit_and_agent_session_for_both_run
 }
 
 #[test]
-fn noninteractive_compatibility_changes_only_ask_presentation_and_never_denial() {
+fn noninteractive_automatic_response_changes_only_ask_presentation_and_never_denial() {
     let dir = project();
     let (policy, _) = AgentConfig::new("fixture", dir.path()).session_permission_policy();
     let mut policy = policy.audit_to(None);

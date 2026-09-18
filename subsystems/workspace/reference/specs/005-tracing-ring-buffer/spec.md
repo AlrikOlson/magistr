@@ -93,7 +93,7 @@ The trace records structure and symptoms, never content: no query text, no file 
 - **FR-006**: Tracing MUST never fail, block, or alter a request: all trace IO is swallowed; an unwritable destination leaves the served surface byte-identical.
 - **FR-007**: Records MUST NOT contain: tool arguments, query text, file contents, environment variable values, or absolute paths outside the workspace. Attribute keys are an allowlist; nothing free-form from the request may enter.
 - **FR-008**: Nothing in the feature may open an outbound network connection or provide an upload mechanism; the trace never leaves the machine on its own. Upload-by-explicit-CLI-action is out of scope (a later chunk) and MUST NOT be partially implemented here.
-- **FR-009**: The record format itself MUST be versioned from its first release (a format version stamped per file or per line), with additive-only evolution within the major version.
+- **FR-009**: The record format itself MUST be versioned from its first release (a format version stamped per file or per line), with current readers, writers and tests updated together when the format changes. No additive-only constraint applies before Magistr's public release.
 - **FR-010**: A documented read path (test-level is sufficient for this feature) MUST demonstrate reconstructing a request tree and extracting a misuse pattern from the record alone.
 
 ### Key Entities

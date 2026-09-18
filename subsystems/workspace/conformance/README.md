@@ -1,5 +1,10 @@
 # Native consumer fixtures
 
+These fixtures compare recorded behavior. They do not require backward
+compatibility with old Workbench or Magistr versions. The
+[project pre-release policy](../../../AGENTS.md#before-public-release) governs
+all reference comparisons; update expected behavior with the intended design.
+
 `engine.json` records the inputs and observable outputs of the pinned Workbench
 `engine.rs` parse/search/rewrite cases and `indexer.rs::rust_symbols_and_imports`.
 The WAT files are verbatim fixture strings from the pinned `sandbox.rs` suite.
@@ -21,7 +26,7 @@ These fixtures preserve behavior at the native boundary. They do not claim
 conformance for the TypeScript MCP orchestration, loader or service lifecycle,
 which remain retained reference source in this adoption chunk.
 
-## Policy compatibility fixtures
+## Policy comparison fixtures
 
 The `config.json`, `jail.json`, `responses.json` and `content.json` vectors
 extend this corpus for `arch-14c1-workspace-policy`. Each has an ordinary Rust
@@ -113,6 +118,7 @@ sidecars are removed; the interoperability test records that reference limit
 instead of changing the pinned reader.
 No journal fixture runner needs the native addon or starts a workspace server.
 
-These fixtures establish storage and pure restoration-plan compatibility.
+These fixtures compare storage and pure restoration plans against recorded
+inputs; the old formats are not requirements for future changes.
 They do not apply restoration plans to the filesystem or certify the later
 atomic write pipeline.

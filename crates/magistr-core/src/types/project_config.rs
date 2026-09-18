@@ -76,9 +76,9 @@ impl ProjectConfig {
     /// Return the effective archetype list.
     ///
     /// If `archetypes` is non-empty, returns it directly. Otherwise synthesizes
-    /// a single archetype from the legacy flat fields (`stack`, `quality_gate`,
-    /// `format`, `testing`), preserving backward compatibility with single-language
-    /// `project.json` files.
+    /// a single archetype from the flat fields (`stack`, `quality_gate`,
+    /// `format`, `testing`). This describes the current resolver, not a requirement
+    /// to retain older configuration formats.
     #[must_use]
     pub fn effective_archetypes(&self) -> Vec<Archetype> {
         if !self.archetypes.is_empty() {

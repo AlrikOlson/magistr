@@ -564,10 +564,8 @@ fn build_with(sel: FamilySelection) -> UnifiedService {
 
 /// THE DEFAULT IS EVERY FAMILY, and it is byte-identical.
 ///
-/// This is the compatibility contract: an install that sets nothing must not be
-/// able to tell that selection exists. Asserting equal *bytes* rather than equal
-/// counts is deliberate — a filter that reordered families would pass a count
-/// check and still change every existing client's payload.
+/// The default selects every family. Byte comparison checks both contents and
+/// ordering against an explicit all-family selection.
 #[test]
 fn default_selection_is_byte_identical_to_no_selection() {
     let plain = build_unified();
