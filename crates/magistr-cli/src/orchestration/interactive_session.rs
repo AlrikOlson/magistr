@@ -37,8 +37,8 @@ pub(crate) fn session_with_checkpoints(
 ) -> InteractiveSession {
     let workbench = super::commands::workbench_port::workbench_port(&config.cwd);
     InteractiveSession::new(
-        move |purpose| {
-            let config = match purpose {
+        move |purpose, resume| {
+            let mut config = match purpose {
                 SessionPurpose::Roadmap => super::roadmap_request::config(&config),
                 SessionPurpose::Conversation => {
                     let mut config = config.clone();
@@ -48,6 +48,9 @@ pub(crate) fn session_with_checkpoints(
                     config
                 }
             };
+            // The coordinator owns one observed identity per purpose. Restore it
+            // through the normal provider loader, which refuses unsupported loads.
+            config.resume = resume;
             let connector = connector.clone();
             async move {
                 let (transport, spec) = connector

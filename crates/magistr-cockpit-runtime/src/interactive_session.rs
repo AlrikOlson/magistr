@@ -24,6 +24,7 @@ pub enum SessionPurpose {
 
 type Connect = dyn Fn(
         SessionPurpose,
+        Option<String>,
     ) -> Pin<Box<dyn Future<Output = Result<Box<dyn SessionHandle>, String>> + Send>>
     + Send
     + Sync;
@@ -39,6 +40,7 @@ struct Connection {
     commands: Option<UnboundedSender<Cmd>>,
     events: UnboundedReceiver<Msg>,
     roadmap: bool,
+    replaying: bool,
 }
 
 impl Drop for Connection {
@@ -68,6 +70,8 @@ pub struct InteractiveSession {
     local_commands: Option<UnboundedSender<Cmd>>,
     connection: Option<Connection>,
     parked: Option<Connection>,
+    conversation_id: Option<String>,
+    roadmap_id: Option<String>,
     busy: bool,
     queued: Option<String>,
     closed: bool,
@@ -84,6 +88,9 @@ impl Drop for InteractiveSession {
 
 impl InteractiveSession {
     /// Build an owner with the host's provider connector and admitted local ports.
+    /// The connector restores the supplied session identity, or opens a new
+    /// session when it is absent. A failed restore must not open a new context.
+    /// Restored history precedes the handle's `Initialized` event.
     pub fn new<F, Fut>(
         connect: F,
         inbox: Inbox,
@@ -92,7 +99,7 @@ impl InteractiveSession {
         checkpoints: Option<Box<dyn CheckpointPort>>,
     ) -> Self
     where
-        F: Fn(SessionPurpose) -> Fut + Send + Sync + 'static,
+        F: Fn(SessionPurpose, Option<String>) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = Result<Box<dyn SessionHandle>, String>> + Send + 'static,
     {
         let (commands, receiver) = Commands::channel();
@@ -105,12 +112,14 @@ impl InteractiveSession {
             checkpoints,
         );
         Self {
-            connect: Arc::new(move |purpose| Box::pin(connect(purpose))),
+            connect: Arc::new(move |purpose, resume| Box::pin(connect(purpose, resume))),
             inbox,
             local_task: task,
             local_commands: Some(commands),
             connection: None,
             parked: None,
+            conversation_id: None,
+            roadmap_id: None,
             busy: false,
             queued: None,
             closed: false,
@@ -119,12 +128,12 @@ impl InteractiveSession {
 
     /// Adopt the opening conversation connected before the interface starts.
     pub fn connected(mut self, handle: Box<dyn SessionHandle>, busy: bool) -> Self {
-        self.attach(handle, false);
+        self.attach(handle, false, false);
         self.busy = busy;
         self
     }
 
-    fn attach(&mut self, handle: Box<dyn SessionHandle>, roadmap: bool) {
+    fn attach(&mut self, handle: Box<dyn SessionHandle>, roadmap: bool, replaying: bool) {
         let (commands, receiver) = Commands::channel();
         let (inbox, events) = Inbox::channel();
         let task = spawn_session(handle, inbox, receiver, None, None, None);
@@ -133,6 +142,7 @@ impl InteractiveSession {
             commands: Some(commands),
             events,
             roadmap,
+            replaying,
         });
     }
 
@@ -178,7 +188,15 @@ impl InteractiveSession {
             } else {
                 SessionPurpose::Conversation
             };
-            let connect = tokio::time::timeout(Duration::from_secs(30), (self.connect)(purpose));
+            let resume = if roadmap {
+                &self.roadmap_id
+            } else {
+                &self.conversation_id
+            }
+            .clone();
+            let replaying = resume.is_some();
+            let connect =
+                tokio::time::timeout(Duration::from_secs(30), (self.connect)(purpose, resume));
             tokio::pin!(connect);
             let connected = loop {
                 tokio::select! {
@@ -226,7 +244,7 @@ impl InteractiveSession {
                 }
             };
             match connected {
-                Ok(handle) => self.attach(handle, roadmap),
+                Ok(handle) => self.attach(handle, roadmap, replaying),
                 Err(error) => {
                     self.reject(text, &format!("Magistr could not connect: {error}"));
                     return;
@@ -241,6 +259,28 @@ impl InteractiveSession {
             self.busy = false;
             self.close().await;
         }
+    }
+
+    // Retain identities even after their connection has closed. Replay belongs
+    // to the provider's restored context, not to a second displayed response.
+    fn observe(&mut self, event: &Msg) -> bool {
+        let Some(connection) = self.connection.as_mut() else {
+            return true;
+        };
+        if let Msg::Agent(AgentEvent::Initialized { session_id, .. }) = event {
+            let saved = if connection.roadmap {
+                &mut self.roadmap_id
+            } else {
+                &mut self.conversation_id
+            };
+            *saved = Some(session_id.clone());
+            connection.replaying = false;
+        }
+        !connection.replaying
+            || matches!(
+                event,
+                Msg::Agent(AgentEvent::Error(_) | AgentEvent::PromptRejected { .. })
+            )
     }
 
     fn reject(&self, text: String, error: &str) {
@@ -323,6 +363,9 @@ impl InteractiveSession {
                             }
                             continue;
                         };
+                        if !self.observe(&event) {
+                            continue;
+                        }
                         self.inbox.send(event.clone());
                         if matches!(event, Msg::Agent(
                             AgentEvent::TurnEnded(_) | AgentEvent::Error(_)

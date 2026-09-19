@@ -29,6 +29,9 @@ class Provider(BaseHTTPRequestHandler):
         assert self.path == "/api/chat", self.path
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         requests.append(body)
+        if body["messages"][-1]["content"] == "disconnect now":
+            self.send_error(503, "Controlled connection failure")
+            return
         content = b'{"message":{"content":"desktop native response"},"done":false}\n'
         content += b'{"done":true,"done_reason":"stop","prompt_eval_count":4,"eval_count":3}\n'
         self.send_response(200)
@@ -54,10 +57,13 @@ with tempfile.TemporaryDirectory(prefix="magistr-desktop-native-") as directory:
         )
         print(result.stdout, end="")
         assert result.returncode == 0, result.stderr
-        assert len(requests) == 1, requests
+        assert len(requests) == 2, requests
         assert requests[0]["model"] == "desktop-test", requests
         assert requests[0]["messages"][-1] == {
             "role": "user", "content": "desktop native request",
+        }, requests
+        assert requests[1]["messages"][-1] == {
+            "role": "user", "content": "disconnect now",
         }, requests
         # Reopening the same project's owner verifies release after native close.
         subprocess.run(
@@ -68,5 +74,5 @@ with tempfile.TemporaryDirectory(prefix="magistr-desktop-native-") as directory:
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
-print("PASS: native Send, streamed reply, retained draft, window close and project reopen")
+print("PASS: native Send, reply, provider failure, refused restoration, retained request, close and reopen")
 

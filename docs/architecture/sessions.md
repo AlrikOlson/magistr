@@ -191,6 +191,15 @@ authority.
 The CLI's [host factory](../../crates/magistr-cli/src/orchestration/interactive_session.rs)
 supplies that connector using the existing resolved provider setup and planning
 permission policy. Conversation and planning retain separate provider contexts.
+After a provider failure, the coordinator retains the initialized session ID
+for each purpose and asks the host to restore that exact context on the next
+request. Unsupported or failed restoration rejects the request visibly and keeps
+its ID for another attempt; it never opens an empty conversation behind existing
+history. Restored messages before the provider's initialization marker are not
+appended again. An initial explicit resume still displays saved history. The
+coordinator retains this state only for its own lifetime; window close is not a
+background-session or draft-persistence mechanism.
+
 A queued planning request starts after the current turn ends; cancelling the
 queued request leaves the active conversation alone. Loop handoffs still belong
 to the loop driver, which waits for work and checks to settle before invoking
@@ -204,8 +213,11 @@ blocking operations cannot be cancelled; the relay's result fence suppresses
 their late answers. Direct coordinator tests cover context reuse, queued
 cancellation, retry, provider death and owner cancellation with a running job.
 The desktop launcher consumes this coordinator through the host below.
-Its native launch is verified with a controlled provider peer; full live-provider
-and recovery journeys remain unfinished.
+A real ACP channel test restores both purposes after provider failure and checks
+that loaded history does not duplicate the next response. The native desktop
+check uses a controlled Ollama peer to verify failure, unsupported restoration
+and the retained request. Full live-provider and recovery journeys remain
+unfinished.
 
 ### Live interface host
 
