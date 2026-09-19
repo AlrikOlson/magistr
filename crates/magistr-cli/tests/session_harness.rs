@@ -29,6 +29,8 @@ use magistr_cockpit_runtime::spawn_session;
 use magistr_tui::graphics::Env;
 use magistr_tui::harness::{AcpObserved, Capture, Deliveries, FakeAcpAgent, FakeTerminal, Script};
 use magistr_tui::runtime::{Options, Runtime};
+use magistr_tui::term::Session;
+use tokio_util::sync::CancellationToken;
 
 const MS: fn(u64) -> Duration = Duration::from_millis;
 const SIZE: Size = Size::new(80, 24);
@@ -504,6 +506,52 @@ async fn ctrl_c_cancels_the_turn_in_flight_and_the_second_ctrl_c_quits() {
         .map(|r| r.text.as_str())
         .collect();
     assert_eq!(notes, ["Stopping. Your draft is kept.", "Stopped."]);
+}
+
+/// An external interrupt — the process-wide shutdown a SIGINT requests,
+/// bridged to the runtime as its quit signal — closes the cockpit through
+/// the runtime's own leave sequence: no key was pressed and the core never
+/// answered `Cmd::Quit`, the draft is still on the model, the session
+/// relay joins behind the closed commands, and the alternate screen is
+/// left exactly the way a ctrl-D leaves it.
+#[tokio::test]
+async fn an_external_interrupt_closes_the_cockpit_through_its_own_leave_sequence() {
+    let quit = CancellationToken::new();
+    let signal = quit.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(MS(700)).await;
+        signal.cancel();
+    });
+    let script = Script::new()
+        .startup_replies(MS(0))
+        .text(MS(400), "a draft that stays");
+    let (model, observed, capture, _deliveries, _arrivals) = run_seeded(
+        options().quit_on(quit),
+        script,
+        FakeAcpAgent::new().reply("Hello there"),
+        SessionOptions::new().opening_prompt("the first"),
+        Box::new(AskEverything),
+        None,
+        None,
+        None,
+        Model::new(SIZE).with_tab(StageTab::Turn),
+    )
+    .await;
+    assert_eq!(observed.prompts(), ["the first"]);
+    assert_eq!(observed.cancels(), 0, "nothing was cancelled by a key");
+    assert!(
+        !model.quit_requested(),
+        "the quit came from outside: the core answered no Cmd::Quit"
+    );
+    assert_eq!(model.prompt().text(), "a draft that stays");
+    assert_eq!(model.turn_state(), TurnState::AwaitingInput);
+    let mut leave = Vec::new();
+    Session::cockpit().leave(&mut leave);
+    assert!(
+        capture.bytes().ends_with(&leave),
+        "the session left through its own sequence: {:?}",
+        String::from_utf8_lossy(&capture.bytes()[capture.bytes().len().saturating_sub(120)..])
+    );
 }
 
 #[tokio::test]

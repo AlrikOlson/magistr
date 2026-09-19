@@ -26,6 +26,9 @@ fontdue = "0.9"
 # The runtime's event loop: the input thread's channel, the frame interval
 # and select! over them.
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+# The runtime's external quit signal (`Options::quit_on`): the host's
+# process-wide shutdown token, observed by the loop beside its input.
+tokio-util = "0.7"
 # The producer behind Msg::Engine: the in-process think-and-ship engines
 # and their broadcast-socket feed. The live ACP session belongs to the CLI
 # host, which owns the supervisor and the real session harness.

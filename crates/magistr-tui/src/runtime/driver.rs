@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::time::{Instant, Interval, MissedTickBehavior};
+use tokio_util::sync::CancellationToken;
 
 use super::activity::Activity;
 use super::error::RuntimeError;
@@ -506,14 +507,19 @@ impl Driver {
     /// not held back. It is polled at all only while the scheduler
     /// [`wants_frame`](FrameScheduler::wants_frame) — a still, clean
     /// cockpit parks on its two channels and paints nothing. A closed
-    /// input quits; a closed inbox only stops being polled. A frame is
-    /// painted only after both channels are drained, so a message that
-    /// reached the inbox before the tick is in the frame the tick paints.
+    /// input quits, and so does the host's `quit` signal firing
+    /// ([`Options::quit_on`](super::Options::quit_on)) — the external
+    /// interrupt is treated exactly like a closed input: the core is not
+    /// asked, the loop just ends and the session leaves as it always
+    /// does. A closed inbox only stops being polled. A frame is painted
+    /// only after both channels are drained, so a message that reached
+    /// the inbox before the tick is in the frame the tick paints.
     pub(crate) async fn run<T: Terminal>(
         &mut self,
         terminal: &mut T,
         rx: &mut UnboundedReceiver<InputEvent>,
         inbox: &mut UnboundedReceiver<Msg>,
+        quit: Option<&CancellationToken>,
     ) -> Result<(), RuntimeError> {
         if self.flat.is_some() {
             self.compose_flat();
@@ -524,6 +530,7 @@ impl Driver {
         let mut producers = true;
         while !self.quit {
             tokio::select! {
+                () = external_quit(quit) => self.quit = true,
                 event = rx.recv() => match event {
                     Some(event) => {
                         self.event(event);
@@ -598,6 +605,16 @@ fn announce(out: &mut Vec<u8>, text: &str) {
 fn write_line(out: &mut Vec<u8>, line: &str) {
     out.extend_from_slice(line.as_bytes());
     out.extend_from_slice(b"\r\n");
+}
+
+/// The host's quit signal as one awaitable: resolves when `quit` fires,
+/// and never when the host armed none — the branch then costs the loop
+/// one poll per turn and nothing else.
+async fn external_quit(quit: Option<&CancellationToken>) {
+    match quit {
+        Some(token) => token.cancelled().await,
+        None => std::future::pending().await,
+    }
 }
 
 fn interval_for(period: Duration) -> Interval {

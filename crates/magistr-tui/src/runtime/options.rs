@@ -2,17 +2,21 @@
 
 use std::time::Duration;
 
+use tokio_util::sync::CancellationToken;
+
 use crate::graphics::Env;
 
 /// What the runtime needs to know before it takes the terminal over: the
 /// environment the graphics mode is decided from, how long the startup
-/// window waits for the terminal's replies, and — for the harness only —
-/// a frame on which the view is made to panic.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// window waits for the terminal's replies, the external quit signal the
+/// loop observes beside its input, and — for the harness only — a frame
+/// on which the view is made to panic.
+#[derive(Clone, Debug)]
 pub struct Options {
     env: Env,
     probe_timeout: Duration,
     panic_on_frame: Option<u64>,
+    quit: Option<CancellationToken>,
 }
 
 impl Options {
@@ -21,13 +25,15 @@ impl Options {
     /// slow SSH link is the reason for the margin).
     pub const DEFAULT_PROBE_TIMEOUT: Duration = Duration::from_secs(2);
 
-    /// Options for `env` with the default probe timeout.
+    /// Options for `env` with the default probe timeout and no external
+    /// quit signal.
     #[must_use]
     pub const fn new(env: Env) -> Self {
         Self {
             env,
             probe_timeout: Self::DEFAULT_PROBE_TIMEOUT,
             panic_on_frame: None,
+            quit: None,
         }
     }
 
@@ -53,6 +59,17 @@ impl Options {
         self
     }
 
+    /// End the run when `quit` fires — the host's process-wide shutdown
+    /// request, so an external interrupt closes the cockpit the way a
+    /// closed input does: the loop stops, the core is never asked, and
+    /// the session leaves through its own sequence. A token already fired
+    /// when the run starts ends it on the loop's first turn.
+    #[must_use]
+    pub fn quit_on(mut self, quit: CancellationToken) -> Self {
+        self.quit = Some(quit);
+        self
+    }
+
     /// The environment the graphics mode is decided from.
     #[must_use]
     pub const fn env(&self) -> &Env {
@@ -69,5 +86,11 @@ impl Options {
     #[must_use]
     pub const fn probe_timeout_duration(&self) -> Duration {
         self.probe_timeout
+    }
+
+    /// The external quit signal, if the host armed one.
+    #[must_use]
+    pub const fn quit_signal(&self) -> Option<&CancellationToken> {
+        self.quit.as_ref()
     }
 }

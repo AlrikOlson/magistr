@@ -617,6 +617,87 @@ async fn the_pointer_is_handed_back_at_the_exit() {
     assert_eq!(capture.count(POINTER_RESET), 1, "handed back at the exit");
 }
 
+/// An external quit — the process-wide shutdown a SIGINT requests — ends
+/// the loop the way a closed input does: no key was pressed and the core
+/// never answered `Cmd::Quit`, yet the session leaves through its own
+/// sequence, with the pointer handed back first, and the model comes out.
+#[tokio::test]
+async fn an_external_quit_signal_leaves_the_session_like_a_closed_input() {
+    let tab = widget_rect(Widget::Commands.id());
+    let quit = tokio_util::sync::CancellationToken::new();
+    let script = Script::new()
+        .startup_replies(MS(0))
+        .mouse_move(MS(20), tab.x + 1, tab.y + tab.height / 2)
+        .text(MS(60), "a draft that stays");
+    let terminal = FakeTerminal::new(SIZE, script);
+    let capture = terminal.capture();
+    let runtime = Runtime::new(terminal, options().quit_on(quit.clone()));
+    let signal = quit.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(MS(200)).await;
+        signal.cancel();
+    });
+    let model = tokio::time::timeout(
+        MS(2_000),
+        runtime.run(Model::new(SIZE).with_tab(magistr_cockpit::cockpit::StageTab::Turn)),
+    )
+    .await
+    .expect("the external quit ends the run before any deadline")
+    .expect("the run succeeds");
+    assert!(
+        !model.quit_requested(),
+        "the quit came from outside: the core answered no Cmd::Quit"
+    );
+    assert_eq!(model.prompt().text(), "a draft that stays");
+    assert_eq!(capture.count(POINTER_HAND), 1);
+    assert_eq!(capture.count(POINTER_RESET), 1, "handed back at the exit");
+    assert!(
+        capture.bytes().ends_with(&leave_sequence()),
+        "the session left through its own sequence"
+    );
+}
+
+/// A quit signal that is already fired when the run starts still ends
+/// the loop on its first turn — a SIGINT that lands during the startup
+/// window is not lost.
+#[tokio::test]
+async fn a_quit_signal_fired_before_the_run_ends_it_at_once() {
+    let quit = tokio_util::sync::CancellationToken::new();
+    quit.cancel();
+    let terminal = FakeTerminal::new(SIZE, Script::new().startup_replies(MS(0)));
+    let capture = terminal.capture();
+    let runtime = Runtime::new(terminal, options().quit_on(quit));
+    let model = tokio::time::timeout(MS(2_000), runtime.run(Model::new(SIZE)))
+        .await
+        .expect("the run ends without any input")
+        .expect("the run succeeds");
+    assert!(!model.quit_requested());
+    assert!(capture.bytes().ends_with(&leave_sequence()));
+}
+
+/// An armed signal that never fires changes nothing: the keyboard's
+/// ctrl-D still quits, and the run still waits for it.
+#[tokio::test]
+async fn an_armed_quit_signal_that_never_fires_leaves_the_keyboard_in_charge() {
+    let quit = tokio_util::sync::CancellationToken::new();
+    let terminal = FakeTerminal::new(
+        SIZE,
+        Script::new().startup_replies(MS(0)).text(MS(300), "\x04"),
+    );
+    let capture = terminal.capture();
+    let runtime = Runtime::new(terminal, options().quit_on(quit.clone()));
+    let model = runtime
+        .run(Model::new(SIZE))
+        .await
+        .expect("the run succeeds");
+    assert!(model.quit_requested(), "ctrl-D quit it");
+    assert!(
+        !quit.is_cancelled(),
+        "the runtime never fires the signal itself"
+    );
+    assert!(capture.bytes().ends_with(&leave_sequence()));
+}
+
 /// A terminal that never answered the kitty query is never sent a
 /// pointer-shape string — it would print it.
 #[tokio::test]

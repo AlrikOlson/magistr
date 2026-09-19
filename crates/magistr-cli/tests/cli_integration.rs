@@ -678,6 +678,114 @@ fn a_second_sigint_is_the_emergency_exit_and_still_ends_a_term_ignoring_child() 
     }
 }
 
+/// The bare cockpit on a real pty: the first SIGINT closes it through the
+/// runtime's own leave sequence — the alternate screen left, the graceful
+/// request announced in the replayed scrollback, exit 130 well inside the
+/// settle deadline and never the emergency line.
+#[cfg(unix)]
+#[test]
+fn a_sigint_to_the_cockpit_leaves_the_alternate_screen_and_exits_130_gracefully() {
+    use std::io::{Read as _, Write as _};
+    use std::time::{Duration, Instant};
+
+    let dir = interrupt_project("true");
+    let pty = magistr_process::Pty::open(100, 30).expect("a pty pair");
+    let mut child = magistr_command::magistr_command()
+        .arg("roadmap")
+        .current_dir(dir.path())
+        .env("HOME", dir.path())
+        .env("XDG_CONFIG_HOME", dir.path().join("config"))
+        .env("TERM", "xterm-256color")
+        .env_remove("TMUX")
+        .stdin(pty.stdio().expect("stdin on the pty"))
+        .stdout(pty.stdio().expect("stdout on the pty"))
+        .stderr(pty.stdio().expect("stderr on the pty"))
+        .spawn()
+        .expect("failed to spawn the cockpit");
+    // The slave stays open until the master is drained: macOS discards a
+    // slave's unread output when its last descriptor closes.
+    let (master, _slave) = pty.into_parts();
+    let mut master = std::fs::File::from(master);
+    let mut wire = Vec::new();
+    let drain = |master: &mut std::fs::File, wire: &mut Vec<u8>| {
+        let mut buf = [0_u8; 4096];
+        loop {
+            match master.read(&mut buf) {
+                Ok(0) => return,
+                Ok(n) => wire.extend_from_slice(&buf[..n]),
+                Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => return,
+                Err(err) if err.raw_os_error() == Some(5) => return,
+                Err(err) => panic!("reading the pty: {err}"),
+            }
+        }
+    };
+    let contains = |wire: &[u8], needle: &[u8]| wire.windows(needle.len()).any(|w| w == needle);
+
+    // Wait for the cockpit to be on the alternate screen with a frame
+    // painted — the loop is running, the startup window is over.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut answered = false;
+    loop {
+        drain(&mut master, &mut wire);
+        if !answered && contains(&wire, b"\x1b[c") {
+            // Answer DA1 so the startup window closes without its timeout.
+            master.write_all(b"\x1b[?62;4c").expect("answer the probe");
+            answered = true;
+        }
+        if contains(&wire, b"\x1b[?1049h") && contains(&wire, b"\x1b[?2026l") {
+            break;
+        }
+        if let Some(status) = child.try_wait().expect("poll the child") {
+            panic!(
+                "the cockpit exited before it was interrupted: {status}\n{}",
+                String::from_utf8_lossy(&wire)
+            );
+        }
+        assert!(
+            Instant::now() < deadline,
+            "the cockpit never painted a frame on the alternate screen:\n{}",
+            String::from_utf8_lossy(&wire)
+        );
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let entered = wire.len();
+
+    let interrupted_at = Instant::now();
+    signal(child.id(), "-INT");
+    let status = loop {
+        drain(&mut master, &mut wire);
+        if let Some(status) = child.try_wait().expect("poll the child") {
+            break status;
+        }
+        assert!(
+            interrupted_at.elapsed() < Duration::from_secs(20),
+            "the cockpit never exited after SIGINT:\n{}",
+            String::from_utf8_lossy(&wire)
+        );
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    let took = interrupted_at.elapsed();
+    drain(&mut master, &mut wire);
+    let text = String::from_utf8_lossy(&wire);
+    assert_eq!(status.code(), Some(130), "{text}");
+    assert!(
+        contains(&wire[entered..], b"\x1b[?1049l"),
+        "the alternate screen was left through the runtime's own sequence: {text}"
+    );
+    assert!(
+        !text.contains("emergency exit"),
+        "the graceful path never needs the emergency exit: {text}"
+    );
+    assert!(
+        text.contains("interrupted; settling"),
+        "the graceful request is announced in the replayed scrollback: {text}"
+    );
+    assert!(
+        took < Duration::from_secs(6),
+        "closed well inside the settle deadline, not on it: {took:?}"
+    );
+}
+
 // ── NO_COLOR support ───────────────────────────────────────────────
 
 #[test]

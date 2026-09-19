@@ -55,7 +55,12 @@ pub(crate) async fn cockpit_model_on(
     let (title, debug) = super::chrome::chrome(root, None, None);
     let terminal = RealTerminal::stdio().context("open Magistr in a terminal to use this view")?;
     let size = terminal.size()?;
-    let mut runtime = Runtime::new(terminal, Options::from_os());
+    // The process-wide interrupt closes the cockpit through its own leave
+    // sequence, never through the settle deadline's emergency exit.
+    let mut runtime = Runtime::new(
+        terminal,
+        Options::from_os().quit_on(crate::utils::shutdown::Shutdown::token()),
+    );
     let commands = runtime
         .commands()
         .ok_or_else(|| eyre::eyre!("Magistr could not connect the session controls"))?;

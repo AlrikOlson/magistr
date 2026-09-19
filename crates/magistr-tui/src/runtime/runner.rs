@@ -25,9 +25,10 @@ use magistr_cockpit_runtime::channel::{Commands, Inbox};
 /// [`Runtime::run`] is otherwise the whole session: enter (alternate screen, mouse,
 /// paste, focus, kitty keyboard), the startup queries — graphics probe,
 /// OSC 11, keyboard flags, cell size — answered in one window before
-/// anything else is read, then the loop until `Cmd::Quit` or the input
-/// closes, then leave in reverse order. The model comes back out so a
-/// caller (a test, the example) can look at what the session did.
+/// anything else is read, then the loop until `Cmd::Quit`, the input
+/// closing or the host's quit signal ([`Options::quit_on`]) firing, then
+/// leave in reverse order. The model comes back out so a caller (a test,
+/// the example) can look at what the session did.
 ///
 /// Producers — jobs, the engine feed, the agent session — post on the
 /// [`Inbox`] handed out by [`Runtime::inbox`] before the run; their
@@ -179,7 +180,9 @@ impl<T: Terminal> Runtime<T> {
         for event in events {
             driver.event(InputEvent::Event(event));
         }
-        let result = driver.run(&mut terminal, &mut rx, &mut messages).await;
+        let result = driver
+            .run(&mut terminal, &mut rx, &mut messages, options.quit_signal())
+            .await;
         // The runtime's own sender kept the inbox open for the whole run;
         // producers learn the loop is gone from here on.
         drop(inbox);
