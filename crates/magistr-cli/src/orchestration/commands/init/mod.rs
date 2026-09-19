@@ -133,6 +133,7 @@ mod cmd_init;
 mod cmd_init_check;
 mod cmd_init_dry_run;
 mod cmd_init_interactive;
+#[cfg(feature = "terminal")]
 mod cmd_init_interactive_tui;
 mod cmd_init_interview;
 mod cmd_init_smart;
@@ -141,6 +142,7 @@ pub use cmd_init::cmd_init;
 pub use cmd_init_check::cmd_init_check;
 pub use cmd_init_dry_run::cmd_init_dry_run;
 pub use cmd_init_interactive::cmd_init_interactive;
+#[cfg(feature = "terminal")]
 pub use cmd_init_interactive_tui::cmd_init_interactive_tui;
 pub use cmd_init_interview::cmd_init_interview;
 pub use cmd_init_smart::cmd_init_smart;

@@ -112,9 +112,12 @@ async fn drain_session_interactive(
 #[path = "mod.tests.rs"]
 mod tests;
 
+mod admit_workspace;
 mod cmd_run;
+#[cfg(feature = "terminal")]
 mod cmd_run_cockpit;
 mod cmd_run_headless;
+#[cfg(feature = "terminal")]
 mod cmd_run_tui;
 mod cmd_run_workflow;
 mod cockpit_policy_for_project;
@@ -126,11 +129,13 @@ mod resolve_permission_profile;
 mod run_request;
 mod seed_supervision;
 
+pub(crate) use admit_workspace::admit_workspace;
 pub use cmd_run::cmd_run;
-pub(crate) use cmd_run_cockpit::admit_workspace;
+#[cfg(feature = "terminal")]
 pub use cmd_run_cockpit::cmd_run_cockpit;
 pub use cmd_run_headless::cmd_run_headless;
 pub(crate) use cmd_run_headless::{HeadlessOutcome, drain_headless, drain_headless_observing};
+#[cfg(feature = "terminal")]
 pub use cmd_run_tui::cmd_run_tui;
 pub use cmd_run_workflow::cmd_run_workflow;
 pub use cockpit_policy_for_project::cockpit_policy_for_project;

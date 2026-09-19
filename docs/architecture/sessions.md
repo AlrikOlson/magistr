@@ -202,9 +202,46 @@ including local work that has been queued but not dispatched. Already running
 blocking operations cannot be cancelled; the relay's result fence suppresses
 their late answers. Direct coordinator tests cover context reuse, queued
 cancellation, retry, provider death and owner cancellation with a running job.
-The desktop can consume this neutral coordinator, but its executable still
-runs fixtures: live host composition and native-window provider journeys remain
-unfinished.
+The desktop can consume this neutral coordinator; its executable still runs
+fixtures. The reusable host described below is available, while desktop launch
+and native-window provider journeys remain unfinished.
+
+### Live interface host
+
+[InteractiveHost](../../crates/magistr-cli/src/application/interactive_host.rs)
+composes the existing workflow client, workspace admission, resolved provider,
+shared coordinator and projection feeds. `magistr run` uses this host. Its
+`start` method accepts an initial model, inbox and command receiver and returns
+the running host plus the seeded model. It opens or attaches to the workflow
+owner and preserves the workspace's admitted or refused source route. It does
+not open a terminal or window.
+
+Create the channels before opening a surface. Provider startup errors then
+arrive before terminal raw mode; messages received during startup stay queued.
+The terminal consumes those channels through `Runtime::with_channels` and
+resizes the model to the actual terminal before drawing.
+
+Call `shutdown().await` when the surface closes. Dropping the host also requests
+closure; its cleanup task retains the project until the coordinator settles,
+then joins the feeds, stops owner endpoints and shuts down the workspace. The
+coordinator gets five seconds before it is aborted and joined. Keep the Tokio
+runtime alive through cleanup. Startup failure releases source references
+before closing the workspace, and failed command forwarding returns the
+undelivered action to the surface.
+
+The `magistr-cli` package exposes the `magistr` host library with
+`default-features = false`. Its normal dependency graph then excludes
+`magistr-tui`; the default `terminal` feature enables terminal commands and
+the CLI binary. Provider and workspace implementations remain in the host,
+not the neutral runtime or desktop renderer. Test harnesses may still depend
+on the terminal crate.
+
+A new executable must also supply the host's existing process entry roles:
+provider startup can invoke the executable's ACP-agent command, and workspace
+workers invoke its private worker role. Disabling terminal features alone does
+not provide that dispatch. The desktop launcher still needs that composition,
+provider setup and live process/window acceptance; this host is not a desktop
+launch command.
 
 ### Owned relay jobs
 
