@@ -26,7 +26,21 @@ pub struct WriteReport {
     pub disposition: String,
 }
 
+/// Stands in for a diff the response budget could not carry; the row's
+/// outcome fields stay authoritative.
+const DIFF_OMITTED: &str = "[diff omitted to fit budget]";
+
 impl WriteReport {
+    /// Drop the diff, the only part of a receipt that is not its outcome.
+    /// False when there was nothing left to omit.
+    pub(super) fn omit_diff(&mut self) -> bool {
+        if self.diff.is_empty() || self.diff == DIFF_OMITTED {
+            return false;
+        }
+        self.diff = DIFF_OMITTED.into();
+        true
+    }
+
     pub(super) fn from_preview(
         preview: &FilePreview,
         disposition: FileDisposition,

@@ -155,7 +155,8 @@ async fn gated(
             confirm: input.confirm.as_deref(),
             dry_run: input.dry_run,
             auto_apply: input.auto_apply,
-            budget: input.budget,
+            // The script answer below fits the rows once, script row included.
+            budget: u64::MAX,
             format: FormatMode::Enabled,
         },
         resolved,
@@ -230,16 +231,21 @@ fn success(
     requested: u64,
     notes: Vec<String>,
 ) -> WorkspaceResponse<ScriptRow> {
-    budget::success(
+    // The script ran and its writes settled: a small budget omits diffs,
+    // never the script row or a write's outcome.
+    budget::receipt(
         rows,
         requested,
         Freshness::Warm,
         notes,
         |row| match row {
+            ScriptRow::Script(_) => false,
+            ScriptRow::Write(write) => write.omit_diff(),
+        },
+        |row| match row {
             ScriptRow::Script(_) => "script".into(),
             ScriptRow::Write(write) => format!("path:{}", write.path),
         },
-        vec!["raise budget".into()],
     )
 }
 

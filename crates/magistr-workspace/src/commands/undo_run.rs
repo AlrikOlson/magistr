@@ -303,17 +303,21 @@ fn join(seqs: &[i64]) -> String {
 }
 
 fn finish(requested: u64, rows: Vec<UndoRow>, notes: Vec<String>) -> WorkspaceResponse<UndoRow> {
-    budget::success(
+    // Settled rows are a receipt: a small budget omits diffs, never a row.
+    budget::receipt(
         rows,
         requested,
         Freshness::Warm,
         notes,
+        |row| match row {
+            UndoRow::Write(report) => report.omit_diff(),
+            UndoRow::Conflict { .. } | UndoRow::Evicted { .. } | UndoRow::Kept { .. } => false,
+        },
         |row| match row {
             UndoRow::Write(report) => format!("path:{}", report.path),
             UndoRow::Conflict { path, .. }
             | UndoRow::Evicted { path, .. }
             | UndoRow::Kept { path, .. } => format!("path:{path}"),
         },
-        vec!["raise budget".into()],
     )
 }

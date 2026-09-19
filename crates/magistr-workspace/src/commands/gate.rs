@@ -219,17 +219,20 @@ fn nothing_to_change(requested: u64, mut notes: Vec<String>) -> WorkspaceRespons
     success(Vec::new(), requested, notes)
 }
 
+/// A settled outcome is a receipt, never a budget refusal: by the time rows
+/// exist the write happened (or the dry run provably did not), so a small
+/// budget costs the diffs, not the answer.
 fn success(
     rows: Vec<WriteReport>,
     requested: u64,
     notes: Vec<String>,
 ) -> WorkspaceResponse<WriteReport> {
-    budget::success(
+    budget::receipt(
         rows,
         requested,
         Freshness::Warm,
         notes,
+        WriteReport::omit_diff,
         |row| format!("path:{}", row.path),
-        vec!["raise budget".into()],
     )
 }
