@@ -1,8 +1,9 @@
 # Sessions and providers
 
 `AgentConfig` selects a provider for each session. The shared `connect_transport`
-path serves the CLI backend, terminal cockpit, and loop connector. The native
-desktop executable runs fixtures; its live session connection is not integrated.
+path serves the CLI backend, terminal cockpit, desktop launcher and loop connector.
+The desktop's production composition and its separate fixture viewer are described
+in the [desktop guide](desktop.md).
 See the [contract baseline](contracts.md) for
 entry paths, behavioral differences, and intended consolidation policies.
 
@@ -202,15 +203,16 @@ including local work that has been queued but not dispatched. Already running
 blocking operations cannot be cancelled; the relay's result fence suppresses
 their late answers. Direct coordinator tests cover context reuse, queued
 cancellation, retry, provider death and owner cancellation with a running job.
-The desktop can consume this neutral coordinator; its executable still runs
-fixtures. The reusable host described below is available, while desktop launch
-and native-window provider journeys remain unfinished.
+The desktop launcher consumes this coordinator through the host below.
+Its native launch is verified with a controlled provider peer; full live-provider
+and recovery journeys remain unfinished.
 
 ### Live interface host
 
 [InteractiveHost](../../crates/magistr-cli/src/application/interactive_host.rs)
 composes the existing workflow client, workspace admission, resolved provider,
-shared coordinator and projection feeds. `magistr run` uses this host. Its
+shared coordinator and projection feeds. `magistr run` and `magistr-desktop`
+use this host. Its
 `start` method accepts an initial model, inbox and command receiver and returns
 the running host plus the seeded model. It opens or attaches to the workflow
 owner and preserves the workspace's admitted or refused source route. It does
@@ -239,9 +241,11 @@ on the terminal crate.
 A new executable must also supply the host's existing process entry roles:
 provider startup can invoke the executable's ACP-agent command, and workspace
 workers invoke its private worker role. Disabling terminal features alone does
-not provide that dispatch. The desktop launcher still needs that composition,
-provider setup and live process/window acceptance; this host is not a desktop
-launch command.
+not provide that dispatch. The separate `magistr-desktop` executable provides
+these roles and both native MCP launch targets, preserving the renderer's
+dependency boundary. Its main thread runs the native window and awaits this
+host's shutdown on every returned window outcome. See the desktop guide for
+the distinction between launcher checks and the remaining live-provider matrix.
 
 ### Owned relay jobs
 

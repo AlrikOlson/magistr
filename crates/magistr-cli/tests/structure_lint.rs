@@ -69,6 +69,29 @@ fn cohesive_tree() -> TempDir {
 }
 
 #[test]
+fn nested_build_output_is_skipped_but_long_source_functions_are_refused() {
+    let tmp = cohesive_tree();
+    let source = format!("fn too_long()\n{{\n{}\n}}\n", "    step();\n".repeat(155));
+    for crate_name in ["magistr-gui2", "magistr-desktop"] {
+        write(
+            tmp.path(),
+            &format!("crates/{crate_name}/target/debug/build/dependency/out/generated.rs"),
+            &source,
+        );
+    }
+    let generated = run(tmp.path());
+    assert!(generated.status.success(), "{}", text(&generated));
+
+    let path = "crates/magistr-desktop/src/long.rs";
+    write(tmp.path(), path, &source);
+    let authored = run(tmp.path());
+    assert!(!authored.status.success(), "long source was admitted");
+    let log = text(&authored);
+    assert!(log.contains(path) && log.contains("too_long"), "{log}");
+    assert!(!log.contains("/target/"), "{log}");
+}
+
+#[test]
 fn a_cohesive_module_behind_a_private_facade_with_rationale_and_tests_passes() {
     let tmp = cohesive_tree();
     let out = run(tmp.path());

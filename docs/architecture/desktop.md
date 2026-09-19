@@ -4,16 +4,19 @@ The maintained desktop renderer lives in `crates/magistr-gui2` on `main`.
 Its [provenance](../../crates/magistr-gui2/PROVENANCE.md) records the reviewed
 source commit, licenses, assets and pinned private renderer dependency.
 
-This delivery runs interactive fixture windows. It does not connect a desktop
-session to a live project, provider or durable workflow writer. The native window
-publishes accessible roles, names, values, bounds, supported actions and current
-focus. Action delivery is verified through a separate macOS accessibility client
-driving the running window; live session integration remains separate roadmap work.
-The probe checks native controls and focus without requiring a screen reader.
+The `magistr-desktop` executable connects this renderer to a project through
+the same admitted session host as the terminal. The `magistr-gui2` executable
+remains the explicit fixture viewer. The native window publishes accessible
+roles, names, values, bounds, supported actions and current focus.
+
+Launcher acceptance uses the actual executable, provider adapter and project
+owners with a controlled HTTP peer. It does not establish the complete
+live-provider permission, cancellation, reconnect, source-editing and evidence
+journeys; those remain required by the live desktop roadmap chunk.
 
 ## Build boundary
 
-The desktop is a separate Cargo workspace with its own committed lockfile,
+The renderer and launcher are separate Cargo workspaces with committed lockfiles,
 excluded from the public root workspace. Rust 1.95 and read access to the private
 `AlrikOlson/qs-framework` repository are required. Cargo must be able to use
 your Git credentials. The three `qs-*` dependencies share one exact revision;
@@ -30,6 +33,68 @@ The argument selects a fixture; omit it for a busy session or use `sink` for
 the developer component catalogue. Public CLI builds resolve no private desktop
 dependency. The root workspace's check commands do not check this excluded crate.
 
+## Open a project
+
+Build and run the launcher explicitly:
+
+```sh
+cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project --provider codex
+```
+
+Choose any provider supported by the shared session host. Omitting `--provider`
+uses the configured default and the host's detection rules. Provider setup and
+credentials are the same as for [terminal sessions](sessions.md). For example,
+Codex needs its installed CLI and ChatGPT login; Ollama needs a running daemon
+and a downloaded model. The project should already have its Magistr setup;
+the desktop does not run project initialization. Project-configured MCP commands
+must be executable, including `magistr` on PATH when the configuration names it.
+
+An optional positional message starts the first turn. `--model`, `--resume`,
+`--continue`, `--trust` and `--reduce-motion` select the session and presentation
+choices; `--resume` and `--continue` cannot be combined. With no message, the
+session opens idle. Invalid project paths and permission choices fail before
+admission; provider startup errors are reported before a window opens.
+
+The launcher runs the native event loop on the main thread while a multithread
+Tokio runtime services the host. After normal window close or a window error,
+it awaits host shutdown before dropping the runtime. If both the window and
+shutdown fail, the returned error includes both causes. Native close ends this
+host lifetime; it does not claim to persist an unsent draft for another launch.
+
+Provider adapters and workspace workers invoke the current executable. The
+launcher dispatches `acp-agent`, `mcp-launch` and the exact private
+`--workspace-worker` invocation to the existing implementations before window
+setup or session logging. Protocol stdout stays separate from diagnostics.
+These child roles do not create another desktop session.
+
+### Launch evidence and platforms
+
+| Platform | Evidence for this launcher |
+| --- | --- |
+| macOS 26.5.2, Apple silicon, Rust 1.95 | Build, process roles and native window exercised locally |
+| Linux | Not built or exercised in this iteration |
+| Windows | Not built or exercised in this iteration; full process-tree settlement remains separate work |
+
+The regular launcher tests cover options, cleanup errors, its terminal-free
+dependency graph, workspace worker readiness/shutdown, a scripted ACP turn,
+both MCP endpoints and source reads. The macOS driver additionally starts the
+production launcher in a disposable project, sends through native Accessibility,
+observes a reply from the real Ollama adapter against a local controlled HTTP
+peer, verifies a draft remains in the editor, closes the window and reopens the
+project. It requires a graphical session, Python 3, Swift and Accessibility
+permission for the terminal. It neither contacts a model service nor spends a
+provider subscription.
+
+```sh
+cargo test --manifest-path crates/magistr-desktop/Cargo.toml --locked
+python3 crates/magistr-desktop/tests/native_launch.py crates/magistr-desktop/target/debug/magistr-desktop
+```
+
+Use the actual executable path if building with a custom target directory.
+CPU screenshots, GPU readback and the broader renderer input driver below remain
+separate checks. No desktop packaging was added.
+
 ## Ownership and rendering
 
 The desktop consumes the shared `magistr-cockpit` model and neutral application
@@ -39,9 +104,9 @@ local effect ports. Hosts supply provider startup through a purpose-aware
 connector; queueing, context reuse, retry and relay shutdown belong to the shared
 runtime. These are available without a CLI or terminal dependency. The concrete
 [interactive host](sessions.md#live-interface-host) can now build without the
-terminal renderer. A separate desktop launcher still needs to compose that
-host, its provider/worker executable roles and the native window, then verify
-real provider and window journeys.
+terminal renderer. The separate `magistr-desktop` launcher composes that host,
+its provider/worker executable roles and the native window. Full real-provider
+journeys remain an explicit acceptance requirement.
 The desktop renderer depends on neither `magistr-tui` nor concrete engine, workflow, workspace,
 process, ACP or CLI implementations. The dependency-boundary test checks Cargo's
 resolved host graph, as well as the root workspace's exclusion.

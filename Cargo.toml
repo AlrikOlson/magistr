@@ -18,7 +18,7 @@ members = [
     "crates/magistr-process",
 ]
 # Desktop has a separate lockfile and private renderer dependency.
-exclude = ["crates/magistr-gui2"]
+exclude = ["crates/magistr-gui2", "crates/magistr-desktop"]
 default-members = ["crates/magistr-cli"]
 resolver = "3"
 
