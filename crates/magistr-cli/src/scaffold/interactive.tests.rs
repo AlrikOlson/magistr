@@ -378,6 +378,66 @@ fn interactive_approve_mixed_actions() {
     assert!(!result.quit_early);
 }
 
+fn removal_plan() -> ChangePlan {
+    ChangePlan {
+        operation: AdminOperation::Setup,
+        files: vec![
+            PlannedChange::removal(
+                ".claude/rules/retired.md",
+                "retired\n".to_owned(),
+                Ownership::Generated,
+            ),
+            PlannedChange {
+                ownership: Ownership::Unclaimed,
+                ownership_context: None,
+                path: "new.txt".to_string(),
+                action: FileAction::Create,
+                new_content: "hi".to_string(),
+                existing_content: None,
+                diff: None,
+            },
+        ],
+    }
+}
+
+#[test]
+fn interactive_approve_prompts_for_a_removal_like_a_write() {
+    let preview = removal_plan();
+    for (answers, approved) in [
+        (b"a\ns\n" as &[u8], vec![0]),
+        (b"s\na\n", vec![1]),
+        (b"A\n", vec![0, 1]),
+    ] {
+        let mut input = std::io::Cursor::new(answers);
+        let mut output = Vec::new();
+
+        let result = interactive_approve(&preview, &mut input, &mut output).unwrap();
+
+        assert_eq!(result.approved_indices, approved);
+        assert!(!result.quit_early);
+        let output = String::from_utf8(output).unwrap();
+        assert!(output.contains("[REMOVE]"), "{output}");
+        assert!(output.contains("Action [a/s/v/A/q]"), "{output}");
+        assert!(!output.contains("not selectable"), "{output}");
+    }
+}
+
+#[test]
+fn interactive_approve_view_shows_what_a_removal_deletes() {
+    let preview = removal_plan();
+    let mut input = std::io::Cursor::new(b"v\na\nq\n" as &[u8]);
+    let mut output = Vec::new();
+
+    let result = interactive_approve(&preview, &mut input, &mut output).unwrap();
+
+    assert_eq!(result.approved_indices, vec![0]);
+    let output = String::from_utf8(output).unwrap();
+    assert!(output.contains("Existing content"), "{output}");
+    assert!(output.contains("retired"), "{output}");
+    assert!(output.contains("will be removed"), "{output}");
+    assert!(!output.contains("New content"), "{output}");
+}
+
 #[test]
 fn approval_result_approved_files() {
     let preview = ChangePlan {

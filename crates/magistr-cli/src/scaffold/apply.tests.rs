@@ -280,6 +280,113 @@ fn apply_empty_list_is_noop() {
 }
 
 #[test]
+fn apply_removes_an_approved_removal_and_drops_its_ownership_record() {
+    use super::super::manifest::ScaffoldManifest;
+
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path();
+    let retired = ".claude/rules/retired.md";
+    std::fs::create_dir_all(dir.join(".claude/rules")).unwrap();
+    std::fs::write(dir.join(retired), "retired\n").unwrap();
+    let mut manifest = ScaffoldManifest::new();
+    manifest.record(retired, "retired\n");
+    manifest.record("kept.md", "kept\n");
+    manifest.save(dir).unwrap();
+
+    let removal = PlannedChange::removal(retired, "retired\n".to_owned(), Ownership::Generated);
+    let created = make_preview(".claude/rules/new.md", FileAction::Create, "new\n");
+    let receipt = apply_approved(dir, &[&removal, &created]).unwrap();
+
+    assert_eq!(
+        receipt.applied_paths(),
+        vec![retired.to_owned(), ".claude/rules/new.md".to_owned()]
+    );
+    assert!(receipt.failed().next().is_none());
+    assert!(!dir.join(retired).exists());
+    assert!(dir.join(".claude/rules").is_dir(), "setup keeps the parent");
+    assert_eq!(
+        std::fs::read_to_string(dir.join(".claude/rules/new.md")).unwrap(),
+        "new\n"
+    );
+    let manifest = ScaffoldManifest::load(dir);
+    assert!(!manifest.files.contains_key(retired));
+    assert!(manifest.files.contains_key("kept.md"));
+}
+
+#[test]
+fn apply_rejects_a_stale_removal_before_writing_any_selected_file() {
+    let retired = ".claude/rules/retired.md";
+    for found in [Some("edited after review\n"), None] {
+        let tmp = TempDir::new().unwrap();
+        let dir = tmp.path();
+        std::fs::create_dir_all(dir.join(".claude/rules")).unwrap();
+        if let Some(content) = found {
+            std::fs::write(dir.join(retired), content).unwrap();
+        }
+        let first = make_preview("new-directory/first.md", FileAction::Create, "first");
+        let removal = PlannedChange::removal(retired, "retired\n".to_owned(), Ownership::Generated);
+        let error = apply_approved(dir, &[&first, &removal]).unwrap_err();
+        assert!(error.to_string().contains(retired), "{error}");
+        assert!(error.to_string().contains("preview"), "{error}");
+        assert!(!dir.join("new-directory").exists());
+        assert_eq!(
+            std::fs::read_to_string(dir.join(retired)).ok().as_deref(),
+            found
+        );
+    }
+}
+
+#[test]
+fn apply_leaves_an_unapproved_removal_in_place() {
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path();
+    let retired = ".claude/rules/retired.md";
+    std::fs::create_dir_all(dir.join(".claude/rules")).unwrap();
+    std::fs::write(dir.join(retired), "retired\n").unwrap();
+    let created = make_preview(".claude/rules/new.md", FileAction::Create, "new\n");
+
+    let written = apply_approved(dir, &[&created]).unwrap().applied_paths();
+
+    assert_eq!(written, vec![".claude/rules/new.md"]);
+    assert_eq!(
+        std::fs::read_to_string(dir.join(retired)).unwrap(),
+        "retired\n"
+    );
+}
+
+/// The setup plan's retired rule file, approved on its own from a dry run,
+/// is the only thing selective apply touches.
+#[test]
+fn selective_apply_removes_only_the_approved_retired_rule() {
+    use super::super::pipeline::ScaffoldPipeline;
+
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path();
+    let retired = ".claude/rules/ministr-scope.md";
+    std::fs::create_dir_all(dir.join(".claude/rules")).unwrap();
+    std::fs::write(dir.join(retired), "retired\n").unwrap();
+    let pipeline = ScaffoldPipeline::headless(crate::types::Stack::default());
+    let plan = pipeline.preview(dir).unwrap();
+    let removal = plan.get(retired).unwrap();
+    assert_eq!(removal.action, FileAction::Remove);
+    assert!(plan.creates() > 0, "the plan has writes the reviewer skips");
+
+    let written = apply_approved(dir, &[removal]).unwrap().applied_paths();
+
+    assert_eq!(written, vec![retired]);
+    assert!(!dir.join(retired).exists());
+    assert!(!dir.join(".magistr/project.json").exists());
+    assert!(!dir.join(".claude/settings.json").exists());
+    assert_eq!(
+        std::fs::read_dir(dir.join(".claude/rules"))
+            .unwrap()
+            .count(),
+        0,
+        "no skipped rule file was written"
+    );
+}
+
+#[test]
 fn codex_apply_rejects_revoked_ownership_before_any_selected_write() {
     use super::super::{manifest::ScaffoldManifest, pipeline::ScaffoldPipeline};
     use std::collections::HashMap;

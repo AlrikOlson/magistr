@@ -8,23 +8,29 @@ use std::path::Path;
 use super::{AdminOperation, AdminService, ApplyReceipt, FileAction, PlannedChange};
 use crate::error::{MagistrError, Result};
 
-/// Apply only the approved files from a scaffold preview.
+/// Apply only the approved changes from a scaffold preview.
 ///
 /// A reviewer approved this batch as one preview, so the whole batch is
 /// checked against the captured preview before anything is written: a
-/// selected target that changed since rejects the batch without creating
-/// files or directories, and the preview is regenerated and reviewed again.
-/// The approved changes are then applied through the [`AdminService`], which
-/// revalidates each target once more at its own write and answers a receipt
-/// per change; a write that fails is reported in the receipt and the rest
-/// still apply. Successful regular scaffold writes update the ownership
-/// manifest, so later initialization can distinguish template upgrades from
-/// user edits.
+/// selected target that changed since rejects the batch without creating or
+/// removing anything, and the preview is regenerated and reviewed again.
+/// The approved creates, overwrites and removals are then applied through
+/// the [`AdminService`], which revalidates each target once more at its own
+/// write and answers a receipt per change; a change that fails is reported
+/// in the receipt and the rest still apply. Successful regular scaffold
+/// writes update the ownership manifest and an applied removal drops its
+/// record, so later initialization can distinguish template upgrades from
+/// user edits. A removal the reviewer did not approve is left in place.
 pub fn apply_approved(dir: &Path, files: &[&PlannedChange]) -> Result<ApplyReceipt> {
     let pending: Vec<_> = files
         .iter()
         .copied()
-        .filter(|f| matches!(f.action, FileAction::Create | FileAction::Overwrite))
+        .filter(|f| {
+            matches!(
+                f.action,
+                FileAction::Create | FileAction::Overwrite | FileAction::Remove
+            )
+        })
         .collect();
     if pending.is_empty() {
         return Ok(ApplyReceipt::new(AdminOperation::Setup));
