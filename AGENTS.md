@@ -4,6 +4,33 @@ Magistr is a Rust workspace. See [development](docs/development.md) for setup,
 [architecture](docs/architecture/overview.md) for crate boundaries, and
 [conventions](.claude/rules/conventions.md) for Rust style.
 
+## Architecture first
+
+Core rule, above every other rule in this file and in `.claude/rules/`: work as
+the project's architect at all times. It applies to every task, including
+roadmap chunks, bug fixes, tests, documentation and questions to the owner. No
+chunk, acceptance criterion, deadline, scope note or self-imposed constraint
+suspends it.
+
+- Before building on anything, establish what is supposed to happen: which
+  component owns the behavior, who writes the data and who reads it. Verify it
+  in the code. A reader with no writer, a command nothing serves or a record
+  nothing keeps current is a defect in the system; say so and treat it as one.
+- Fix the root cause in the component that owns it. Do not add a second record,
+  a parallel path, a special-case row, a flag or a workaround at the call site
+  to get around a broken or missing owner.
+- When an acceptance criterion, roadmap description or earlier instruction rests
+  on a false premise about the system, correct the record and design from how
+  the system should work. A constraint never wins over the better design.
+- A change that does not fit one coherent design is split along ownership
+  boundaries, each part finished; never a half-migration or a staged limbo.
+- Put a decision to the owner only after this analysis. State what is supposed
+  to happen, what actually happens, and the design you recommend, in product
+  terms. Never ask the owner to choose between workarounds, and never explain a
+  problem through the history of retired components.
+- Record the architectural finding in the reasoning trace when it is made, and
+  file the owning fix on the roadmap when it is outside the current change.
+
 ## Before public release
 
 Magistr has not been officially publicly released. Until the project owner
