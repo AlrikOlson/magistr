@@ -1,4 +1,4 @@
-use magistr_cockpit::cockpit::{CharterOffer, LoopStatus, Model, RuleMode, Spine, Widget};
+use magistr_cockpit::cockpit::{CharterOffer, Model, RuleMode, Spine, Widget};
 use qs_gpu::color::Srgba;
 
 use crate::budget_meter::BudgetMeter;
@@ -6,7 +6,6 @@ use crate::component::Component;
 use crate::element::Element;
 use crate::element_id::ElementId;
 use crate::icon::Icon;
-use crate::ledger_verbs::LedgerVerbs;
 use crate::lexicon::Lexicon;
 use crate::mark::Mark;
 use crate::medium::Medium;
@@ -14,6 +13,7 @@ use crate::mode_badge::ModeBadge;
 use crate::receipt_row::ReceiptRow;
 use crate::spine_ledger::SpineLedger;
 use crate::voice::Voice;
+use crate::work_controls::WorkControls;
 
 /// The supervision rail — three questions, composed from the model on the volume's own
 /// geometry: the checkpoint spine under its cap, the charter's rules with their mode
@@ -94,11 +94,16 @@ impl RailComposition {
         // being previewed.
         let spine = rail.spine();
         column = column.child(cap(Some(Icon::Checkpoint), "Checkpoints", &lex));
+        // The head's verbs are the work the window can steer now: the loop's own while
+        // one is live, the two starts while none is and the host starts work in place.
+        let verbs = WorkControls::rail(model, medium, lex.base, &lex);
         column = column.child(if spine.is_empty() {
-            empty("No checkpoints yet", &lex)
+            let mut none = empty("No checkpoints yet", &lex);
+            if let Some(verbs) = verbs {
+                none = none.child(air(Voice::RAIL_CAP_GAP)).child(verbs);
+            }
+            none
         } else {
-            let paused = model.loop_status().is_some_and(LoopStatus::is_paused);
-            let verbs = LedgerVerbs::el(paused, medium, lex.base, &lex);
             let revealed = revealed_row(model, spine);
             Element::surface()
                 .width(inner)
@@ -106,7 +111,7 @@ impl RailComposition {
                 .child(SpineLedger::el(
                     spine,
                     Self::SPINE_ROWS,
-                    Some(verbs),
+                    verbs,
                     revealed,
                     &lex,
                 ))

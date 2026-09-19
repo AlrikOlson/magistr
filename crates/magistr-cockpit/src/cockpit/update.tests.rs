@@ -4420,7 +4420,9 @@ fn a_hosted_session_refuses_a_second_start_while_work_is_live_and_allows_one_aft
         "{cmds:?}"
     );
     assert!(!m.quit_requested());
+    assert!(m.loop_is_live(), "a started loop is live");
     update(&mut m, loop_msg(LoopEvent::Ended("finished".to_owned())));
+    assert!(!m.loop_is_live(), "an ended loop is not");
     assert!(update(&mut m, alt_n()).contains(&Cmd::Launch(LaunchAction::Next)));
 }
 

@@ -15,7 +15,15 @@ fn gpu_renders_fixture_images_in_both_themes() {
         .expect("desktop GPU required");
     eprintln!("GPU: {:?}", ctx.capabilities);
     for (tag, mode) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
-        for scene in ["adoption", "roadmap", "requests", "composer", "projects"] {
+        for scene in [
+            "adoption",
+            "roadmap",
+            "requests",
+            "composer",
+            "projects",
+            "work-idle",
+            "work-running",
+        ] {
             let mut frame = Frame::new().expect("embedded fonts");
             let cell = frame.metrics();
             let size = Fixture::capture_grid((cell.width(), cell.height()));
@@ -25,6 +33,9 @@ fn gpu_renders_fixture_images_in_both_themes() {
                     .with_surface(magistr_cockpit::cockpit::Surface::Native)
                     .with_place(magistr_cockpit::cockpit::Place::Galaxy),
                 "roadmap" => Fixture::roadmap(size),
+                // The session window with the starts drawn, and with a loop live.
+                "work-idle" => Fixture::rail_idle(size),
+                "work-running" => Fixture::rail_offer(size).with_hosted_work(),
                 "requests" => {
                     Fixture::roadmap_request(size, magistr_cockpit::cockpit::RequestPhase::Complete)
                 }

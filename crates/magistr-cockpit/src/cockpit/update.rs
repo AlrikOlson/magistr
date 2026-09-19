@@ -1544,11 +1544,7 @@ fn launch(model: &mut Model, action: LaunchAction) -> Vec<Cmd> {
     // and the session stays. One run at a time — a start while work is
     // live says so and sends nothing.
     if model.hosted_work && matches!(action, LaunchAction::Next | LaunchAction::Loop) {
-        if model
-            .loop_status
-            .as_ref()
-            .is_some_and(|status| status.ended().is_none())
-        {
+        if model.loop_is_live() {
             model
                 .session
                 .turn

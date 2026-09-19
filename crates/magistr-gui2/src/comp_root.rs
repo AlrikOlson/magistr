@@ -34,6 +34,7 @@ use crate::medium::Medium;
 use crate::pill::DataPill;
 use crate::spine_ledger::SpineLedger;
 use crate::voice::Voice;
+use crate::work_controls::WorkControls;
 
 /// Map the shared model into the native element tree.
 ///
@@ -399,6 +400,9 @@ impl RootComposition {
             LedgerVerbs::STEP => Some(Widget::LoopStep.id()),
             LedgerVerbs::CHECKPOINT => Some(Widget::LoopCheckpoint.id()),
             LedgerVerbs::ABORT => Some(Widget::LoopAbort.id()),
+            // The starts that sit there while no loop is live.
+            WorkControls::NEXT => Some(Widget::LaunchNext.id()),
+            WorkControls::LOOP => Some(Widget::LaunchLoop.id()),
             // The meter's Raise on the rail's foot line.
             BudgetMeter::RAISE => Some(Widget::BudgetRaise.id()),
             // The identity band's chunk chip.

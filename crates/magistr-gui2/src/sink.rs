@@ -142,6 +142,8 @@ pub struct Sink {
 struct Views {
     /// View 05's session: chunk, spine, charter, budget, a turn.
     session: Model,
+    /// The same session after its loop ended, in a window that starts work in place.
+    idle: Model,
     /// A streaming turn — prose, list, fence.
     turn: Model,
     /// The same empty-prompt model with a steer typed into it.
@@ -281,6 +283,7 @@ impl Views {
         );
         Self {
             session,
+            idle: Fixture::rail_idle(size),
             turn: Fixture::turn(size),
             typed,
             briefed,
@@ -725,6 +728,12 @@ impl Sink {
             (
                 &["comp_rail"],
                 RailComposition::el(&views.session, medium, cell.0),
+            ),
+            // The idle rail: no loop live, so the ledger head wears the two starts where
+            // the running rail above wears the loop's verbs.
+            (
+                &["work_controls"],
+                RailComposition::el(&views.idle, medium, cell.0),
             ),
             (
                 &["comp_composer"],

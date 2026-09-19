@@ -113,12 +113,16 @@ fn conversation(
     if RootComposition::feed_at_its_tail(model) {
         feed = feed.justify_end();
     }
+    // The work this window can start or steer sits ahead of the two destinations: the
+    // starts while no loop is live, the loop's verbs while one is.
+    let mut head = heading("Conversation", lex).child(Element::row().grow(1.0));
+    for (widget, label, _) in crate::work_controls::WorkControls::verbs(model) {
+        head = head.child(control(label, widget.id(), lex));
+    }
     let mut panel = panel(height, lex)
         .id(WorkspaceComposition::CONVERSATION)
         .child(
-            heading("Conversation", lex)
-                .child(Element::row().grow(1.0))
-                .child(control("Roadmap", Widget::TabRoadmap.id(), lex))
+            head.child(control("Roadmap", Widget::TabRoadmap.id(), lex))
                 .child(control("Commands", Widget::Commands.id(), lex)),
         )
         .child(feed);

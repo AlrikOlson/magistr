@@ -154,6 +154,7 @@ pub mod verdict;
 pub mod voice;
 pub mod voice_run;
 pub mod window;
+pub mod work_controls;
 mod workspace_layout;
 
 pub use access::AccessTree;
@@ -274,3 +275,4 @@ pub use verdict::Verdict;
 pub use voice::Voice;
 pub use voice_run::VoiceRun;
 pub use window::open;
+pub use work_controls::WorkControls;

@@ -236,6 +236,20 @@ impl Fixture {
         model
     }
 
+    /// View 05's session after its loop ended, in a window whose host starts work in
+    /// place: the rail and the conversation heading offer the two starts where the
+    /// loop's verbs were.
+    #[must_use]
+    pub fn rail_idle(size: Size) -> Model {
+        let mut model = Self::mock("05", size).expect("view 05 has a fixture");
+        model.set_surface(Surface::Native);
+        update(
+            &mut model,
+            Msg::Loop(LoopEvent::Ended("finished".to_owned())),
+        );
+        model.with_hosted_work()
+    }
+
     /// [`Self::pane_docked`] maximized by `⌘⇧↵`: the dock takes the
     /// stage's rows, the rail stays.
     #[must_use]
