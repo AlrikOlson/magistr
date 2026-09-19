@@ -2,25 +2,73 @@
 //!
 //! Generates `.github/workflows/quality-gates.yml` based on detected language,
 //! package manager, and quality gate commands. Supports Rust, TypeScript/JavaScript,
-//! Python, Go, Ruby, Java, Kotlin, and generic stacks.
+//! Python, Go, Ruby, Java, Kotlin, and generic stacks. The file is planned as
+//! an administrative change and written by [`AdminService`], like every other
+//! administrative write.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
+use super::{
+    AdminOperation, AdminService, ApplyOutcome, ApplyReceipt, ChangePlan, FileAction, Ownership,
+    PlannedChange,
+};
 use crate::error::{MagistrError, Result};
 use crate::types::{Language, PackageManager, QualityGate};
 
 /// Output path for the generated CI workflow file.
 pub(crate) const WORKFLOW_PATH: &str = ".github/workflows/quality-gates.yml";
 
-/// Result of writing a CI workflow file.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum CiWriteResult {
-    /// File was created successfully.
-    Created(PathBuf),
-    /// File already exists — use `--force` to overwrite.
-    AlreadyExists(PathBuf),
-    /// File was overwritten (force mode).
-    Overwritten(PathBuf),
+/// What `magistr init --ci` did to the workflow file, read from the receipt
+/// of its plan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CiOutcome {
+    /// The file was created.
+    Created,
+    /// The file was overwritten (`--force`).
+    Overwritten,
+    /// The file already held the generated content (`--force`).
+    Unchanged,
+    /// The user's file was kept; `--force` overwrites it.
+    AlreadyExists,
+}
+
+impl CiOutcome {
+    /// The outcome the receipt reports for the workflow file. A change the
+    /// service could not apply — the target changed after planning, could
+    /// not be revalidated or could not be written — and a path the plan
+    /// refused are answered as errors naming the cause; the target is left
+    /// as it was found.
+    pub(crate) fn of(receipt: &ApplyReceipt) -> Result<Self> {
+        if let Some(error) = receipt.partial_error() {
+            return Err(error);
+        }
+        let change = receipt.get(WORKFLOW_PATH).ok_or_else(|| {
+            MagistrError::Other(format!("{WORKFLOW_PATH} was not part of the CI plan"))
+        })?;
+        match (&change.action, &change.outcome) {
+            (FileAction::Create, ApplyOutcome::Applied) => Ok(Self::Created),
+            (FileAction::Overwrite, ApplyOutcome::Applied) => Ok(Self::Overwritten),
+            (FileAction::Unchanged, _) => Ok(Self::Unchanged),
+            (FileAction::Preserved, _) => Ok(Self::AlreadyExists),
+            (_, outcome) => Err(MagistrError::Other(format!(
+                "cannot write {WORKFLOW_PATH}: {}",
+                outcome
+                    .detail()
+                    .unwrap_or_else(|| change.action.label().to_owned())
+            ))),
+        }
+    }
+
+    /// The lower-case label machine-readable output uses.
+    #[must_use]
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Self::Created => "created",
+            Self::Overwritten => "overwritten",
+            Self::Unchanged => "unchanged",
+            Self::AlreadyExists => "already_exists",
+        }
+    }
 }
 
 /// Generate GitHub Actions workflow YAML from stack metadata.
@@ -248,31 +296,42 @@ fn append_java_cache(yaml: &mut String, package_manager: PackageManager) {
     }
 }
 
-/// Write the CI workflow file to the project directory.
-///
-/// Creates `.github/workflows/` directory if needed.
-/// Returns `AlreadyExists` if the file already exists and `force` is false.
-pub(crate) fn write_workflow(dir: &Path, content: &str, force: bool) -> Result<CiWriteResult> {
-    let full_path = dir.join(WORKFLOW_PATH);
+/// The plan for the workflow file in `dir`, without writing: created when
+/// nothing is there, preserved as the user's file when something is and
+/// `force` is not set, overwritten (or unchanged) with `force`, and refused
+/// when the target is not a readable regular file. The file is never among
+/// the scaffold's ownership records: a setup neither repairs nor removes it.
+#[must_use]
+pub(crate) fn plan_workflow(dir: &Path, content: String, force: bool) -> ChangePlan {
+    let mut plan = ChangePlan::new(AdminOperation::Setup);
+    plan.files
+        .push(match super::read_target(dir, WORKFLOW_PATH) {
+            Err(refusal) => PlannedChange::refused(WORKFLOW_PATH, refusal, None, Ownership::User),
+            Ok(None) => {
+                PlannedChange::merged(WORKFLOW_PATH, None, content).owned_by(Ownership::Unclaimed)
+            }
+            Ok(Some(existing)) if force => {
+                PlannedChange::merged(WORKFLOW_PATH, Some(existing), content)
+                    .owned_by(Ownership::User)
+            }
+            Ok(Some(existing)) => {
+                PlannedChange::preserved(WORKFLOW_PATH, Some(existing), Ownership::User)
+            }
+        });
+    plan
+}
 
-    if full_path.exists() && !force {
-        return Ok(CiWriteResult::AlreadyExists(full_path));
+/// Apply `plan` through the administrative service and answer its receipt:
+/// the target is revalidated against the plan's expected state right before
+/// the write, so a file that appeared or changed since planning is reported
+/// failed and left as found.
+#[must_use]
+pub(crate) fn apply_workflow(dir: &Path, plan: &ChangePlan) -> ApplyReceipt {
+    let mut service = AdminService::open(dir, plan.operation, Vec::<String>::new());
+    for change in &plan.files {
+        service.execute(change);
     }
-
-    let is_overwrite = full_path.exists();
-
-    // Create parent directories
-    if let Some(parent) = full_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| MagistrError::io(parent, e))?;
-    }
-
-    std::fs::write(&full_path, content).map_err(|e| MagistrError::io(&full_path, e))?;
-
-    if is_overwrite {
-        Ok(CiWriteResult::Overwritten(full_path))
-    } else {
-        Ok(CiWriteResult::Created(full_path))
-    }
+    service.finish()
 }
 
 #[cfg(test)]

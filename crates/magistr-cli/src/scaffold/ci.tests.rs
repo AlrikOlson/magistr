@@ -1,4 +1,6 @@
 use super::*;
+use crate::scaffold::{ApplyFailure, Expected, Intent, ManifestOutcome, Refusal};
+use std::path::PathBuf;
 use tempfile::TempDir;
 
 fn rust_gate() -> QualityGate {
@@ -234,59 +236,230 @@ fn unknown_language_has_no_setup_steps() {
     assert!(!yaml.contains("setup-python"));
 }
 
-// ── write_workflow tests ───────────────────────────────────
+// ── plan_workflow tests ────────────────────────────────────
 
-#[test]
-fn write_creates_file_and_directories() {
-    let tmp = TempDir::new().unwrap();
-    let result = write_workflow(tmp.path(), "test content", false).unwrap();
-
-    let expected = tmp.path().join(WORKFLOW_PATH);
-    assert_eq!(result, CiWriteResult::Created(expected.clone()));
-    assert!(expected.is_file());
-    assert_eq!(std::fs::read_to_string(&expected).unwrap(), "test content");
-}
-
-#[test]
-fn write_returns_already_exists_without_force() {
-    let tmp = TempDir::new().unwrap();
-    let path = tmp.path().join(WORKFLOW_PATH);
-
-    // Create the file first
+fn seed_existing(dir: &Path, content: &str) -> PathBuf {
+    let path = dir.join(WORKFLOW_PATH);
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    std::fs::write(&path, "existing").unwrap();
+    std::fs::write(&path, content).unwrap();
+    path
+}
 
-    let result = write_workflow(tmp.path(), "new content", false).unwrap();
-    assert_eq!(result, CiWriteResult::AlreadyExists(path.clone()));
-
-    // Content should NOT be overwritten
-    assert_eq!(std::fs::read_to_string(&path).unwrap(), "existing");
+fn the_change(plan: &ChangePlan) -> &PlannedChange {
+    assert_eq!(plan.operation, AdminOperation::Setup);
+    assert_eq!(plan.files.len(), 1, "one path is planned: {plan:?}");
+    plan.get(WORKFLOW_PATH)
+        .expect("the workflow file is planned")
 }
 
 #[test]
-fn write_overwrites_with_force() {
+fn plan_creates_an_absent_workflow_and_claims_the_path() {
     let tmp = TempDir::new().unwrap();
-    let path = tmp.path().join(WORKFLOW_PATH);
-
-    // Create the file first
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    std::fs::write(&path, "existing").unwrap();
-
-    let result = write_workflow(tmp.path(), "new content", true).unwrap();
-    assert_eq!(result, CiWriteResult::Overwritten(path.clone()));
-
-    // Content should be overwritten
-    assert_eq!(std::fs::read_to_string(&path).unwrap(), "new content");
+    let plan = plan_workflow(tmp.path(), "content\n".to_owned(), false);
+    let change = the_change(&plan);
+    assert_eq!(change.action, FileAction::Create);
+    assert_eq!(change.ownership, Ownership::Unclaimed);
+    assert_eq!(change.expected(), Expected::Absent);
+    assert_eq!(change.new_content, "content\n");
+    assert!(
+        !tmp.path().join(".github").exists(),
+        "planning writes nothing"
+    );
 }
 
 #[test]
-fn write_creates_nested_directories() {
+fn plan_preserves_an_existing_workflow_as_the_users_without_force() {
+    let tmp = TempDir::new().unwrap();
+    seed_existing(tmp.path(), "existing\n");
+    let plan = plan_workflow(tmp.path(), "new content\n".to_owned(), false);
+    let change = the_change(&plan);
+    assert_eq!(change.action, FileAction::Preserved);
+    assert_eq!(change.ownership, Ownership::User);
+    assert_eq!(change.intent(), Intent::Skip);
+    assert_eq!(change.reason().as_deref(), Some("user-owned file"));
+    assert_eq!(change.expected(), Expected::of(Some("existing\n")));
+}
+
+#[test]
+fn plan_overwrites_an_existing_workflow_with_force_and_shows_the_diff() {
+    let tmp = TempDir::new().unwrap();
+    seed_existing(tmp.path(), "existing\n");
+    let plan = plan_workflow(tmp.path(), "new content\n".to_owned(), true);
+    let change = the_change(&plan);
+    assert_eq!(change.action, FileAction::Overwrite);
+    assert_eq!(change.ownership, Ownership::User);
+    assert_eq!(change.expected(), Expected::of(Some("existing\n")));
+    let diff = change
+        .diff
+        .as_deref()
+        .expect("an overwrite carries its diff");
+    assert!(diff.contains("-existing"), "{diff}");
+    assert!(diff.contains("+new content"), "{diff}");
+}
+
+#[test]
+fn plan_leaves_an_identical_workflow_unchanged_with_force() {
+    let tmp = TempDir::new().unwrap();
+    seed_existing(tmp.path(), "same\n");
+    let plan = plan_workflow(tmp.path(), "same\n".to_owned(), true);
+    let change = the_change(&plan);
+    assert_eq!(change.action, FileAction::Unchanged);
+    assert_eq!(change.intent(), Intent::Skip);
+}
+
+#[test]
+fn plan_refuses_a_target_that_is_not_a_regular_file() {
+    let tmp = TempDir::new().unwrap();
+    std::fs::create_dir_all(tmp.path().join(WORKFLOW_PATH)).unwrap();
+    let plan = plan_workflow(tmp.path(), "content\n".to_owned(), true);
+    let change = the_change(&plan);
+    assert_eq!(change.action, FileAction::Refused(Refusal::NotRegularFile));
+    assert_eq!(change.ownership, Ownership::User);
+    assert_eq!(plan.refusals(), 1);
+}
+
+// ── apply_workflow tests ───────────────────────────────────
+
+#[test]
+fn apply_creates_the_workflow_and_its_directories_without_a_manifest() {
     let tmp = TempDir::new().unwrap();
     assert!(!tmp.path().join(".github").exists());
+    let plan = plan_workflow(tmp.path(), "test content\n".to_owned(), false);
+    let receipt = apply_workflow(tmp.path(), &plan);
 
-    write_workflow(tmp.path(), "content", false).unwrap();
+    assert_eq!(receipt.operation, AdminOperation::Setup);
+    assert!(!receipt.is_partial(), "{}", receipt.summary());
+    assert_eq!(receipt.applied_paths(), vec![WORKFLOW_PATH.to_owned()]);
+    assert_eq!(receipt.manifest, ManifestOutcome::Untouched);
+    assert!(
+        !crate::paths::scaffold_manifest(tmp.path()).exists(),
+        "the CI file is outside the scaffold's ownership records"
+    );
+    let full = tmp.path().join(WORKFLOW_PATH);
+    assert!(full.is_file());
+    assert_eq!(std::fs::read_to_string(&full).unwrap(), "test content\n");
+    assert_eq!(CiOutcome::of(&receipt).unwrap(), CiOutcome::Created);
+}
 
-    assert!(tmp.path().join(".github/workflows").is_dir());
+#[test]
+fn apply_skips_a_preserved_workflow_and_reports_it_as_already_there() {
+    let tmp = TempDir::new().unwrap();
+    let path = seed_existing(tmp.path(), "existing\n");
+    let plan = plan_workflow(tmp.path(), "new content\n".to_owned(), false);
+    let receipt = apply_workflow(tmp.path(), &plan);
+
+    assert!(!receipt.is_partial());
+    assert!(receipt.applied_paths().is_empty());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "existing\n");
+    assert_eq!(CiOutcome::of(&receipt).unwrap(), CiOutcome::AlreadyExists);
+}
+
+#[test]
+fn apply_overwrites_with_force_and_reports_it() {
+    let tmp = TempDir::new().unwrap();
+    let path = seed_existing(tmp.path(), "existing\n");
+    let plan = plan_workflow(tmp.path(), "new content\n".to_owned(), true);
+    let receipt = apply_workflow(tmp.path(), &plan);
+
+    assert!(!receipt.is_partial(), "{}", receipt.summary());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "new content\n");
+    assert_eq!(CiOutcome::of(&receipt).unwrap(), CiOutcome::Overwritten);
+}
+
+#[test]
+fn apply_reports_an_identical_workflow_as_unchanged() {
+    let tmp = TempDir::new().unwrap();
+    seed_existing(tmp.path(), "same\n");
+    let plan = plan_workflow(tmp.path(), "same\n".to_owned(), true);
+    let receipt = apply_workflow(tmp.path(), &plan);
+
+    assert!(!receipt.is_partial());
+    assert_eq!(CiOutcome::of(&receipt).unwrap(), CiOutcome::Unchanged);
+}
+
+#[test]
+fn a_workflow_edited_after_planning_fails_and_is_left_as_found() {
+    let tmp = TempDir::new().unwrap();
+    let path = seed_existing(tmp.path(), "existing\n");
+    let plan = plan_workflow(tmp.path(), "new content\n".to_owned(), true);
+    std::fs::write(&path, "edited meanwhile\n").unwrap();
+    let receipt = apply_workflow(tmp.path(), &plan);
+
+    assert!(receipt.is_partial());
+    let change = receipt.get(WORKFLOW_PATH).unwrap();
+    assert!(
+        matches!(
+            &change.outcome,
+            ApplyOutcome::Failed(ApplyFailure::Stale { expected, found })
+                if *expected == Expected::of(Some("existing\n"))
+                    && *found == Expected::of(Some("edited meanwhile\n"))
+        ),
+        "{:?}",
+        change.outcome
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "edited meanwhile\n"
+    );
+    let error = CiOutcome::of(&receipt).unwrap_err().to_string();
+    assert!(error.contains("changed after planning"), "{error}");
+    assert!(error.contains(WORKFLOW_PATH), "{error}");
+}
+
+#[test]
+fn a_workflow_created_after_planning_fails_and_is_left_as_found() {
+    let tmp = TempDir::new().unwrap();
+    let plan = plan_workflow(tmp.path(), "new content\n".to_owned(), false);
+    let path = seed_existing(tmp.path(), "appeared meanwhile\n");
+    let receipt = apply_workflow(tmp.path(), &plan);
+
+    let change = receipt.get(WORKFLOW_PATH).unwrap();
+    assert!(
+        matches!(
+            &change.outcome,
+            ApplyOutcome::Failed(ApplyFailure::Stale {
+                expected: Expected::Absent,
+                ..
+            })
+        ),
+        "{:?}",
+        change.outcome
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "appeared meanwhile\n"
+    );
+    assert!(CiOutcome::of(&receipt).is_err());
+}
+
+#[test]
+fn a_refused_target_is_answered_as_an_error_with_its_reason() {
+    let tmp = TempDir::new().unwrap();
+    std::fs::create_dir_all(tmp.path().join(WORKFLOW_PATH)).unwrap();
+    let plan = plan_workflow(tmp.path(), "content\n".to_owned(), false);
+    let receipt = apply_workflow(tmp.path(), &plan);
+
+    assert!(!receipt.is_partial(), "a refusal is not a failure");
+    let change = receipt.get(WORKFLOW_PATH).unwrap();
+    assert!(matches!(change.outcome, ApplyOutcome::Refused { .. }));
+    let error = CiOutcome::of(&receipt).unwrap_err().to_string();
+    assert!(error.contains("not a regular file"), "{error}");
+    assert!(tmp.path().join(WORKFLOW_PATH).is_dir());
+}
+
+#[test]
+fn a_receipt_without_the_workflow_is_an_error() {
+    let receipt = ApplyReceipt::new(AdminOperation::Setup);
+    let error = CiOutcome::of(&receipt).unwrap_err().to_string();
+    assert!(error.contains(WORKFLOW_PATH), "{error}");
+}
+
+#[test]
+fn outcome_labels_are_the_machine_readable_statuses() {
+    assert_eq!(CiOutcome::Created.label(), "created");
+    assert_eq!(CiOutcome::Overwritten.label(), "overwritten");
+    assert_eq!(CiOutcome::Unchanged.label(), "unchanged");
+    assert_eq!(CiOutcome::AlreadyExists.label(), "already_exists");
 }
 
 // ── YAML validity check ────────────────────────────────────

@@ -135,3 +135,76 @@ edition = "2024"
     let content = std::fs::read_to_string(&workflow).unwrap();
     assert!(content.contains("cargo"), "workflow should reference cargo");
 }
+
+fn rust_project() -> tempfile::TempDir {
+    let tmp = tempfile::TempDir::new().unwrap();
+    std::fs::write(
+        tmp.path().join("Cargo.toml"),
+        "[package]\nname = \"ci-test\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+    )
+    .unwrap();
+    tmp
+}
+
+fn seed_workflow(dir: &std::path::Path, content: &str) -> std::path::PathBuf {
+    let workflow = dir.join(".github/workflows/quality-gates.yml");
+    std::fs::create_dir_all(workflow.parent().unwrap()).unwrap();
+    std::fs::write(&workflow, content).unwrap();
+    workflow
+}
+
+#[test]
+fn cmd_init_ci_keeps_an_existing_workflow_without_force() {
+    let tmp = rust_project();
+    let workflow = seed_workflow(tmp.path(), "user's own workflow\n");
+
+    let renderer = SilentRenderer::new();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
+    let result = cmd_init_ci(tmp.path(), false, &renderer, &inputs);
+    assert!(result.is_ok(), "a kept file is not an error: {result:?}");
+    assert_eq!(
+        std::fs::read_to_string(&workflow).unwrap(),
+        "user's own workflow\n"
+    );
+}
+
+#[test]
+fn cmd_init_ci_overwrites_an_existing_workflow_with_force() {
+    let tmp = rust_project();
+    let workflow = seed_workflow(tmp.path(), "user's own workflow\n");
+
+    let renderer = SilentRenderer::new();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
+    let result = cmd_init_ci(tmp.path(), true, &renderer, &inputs);
+    assert!(
+        result.is_ok(),
+        "init --ci --force should succeed: {result:?}"
+    );
+    let content = std::fs::read_to_string(&workflow).unwrap();
+    assert!(
+        content.contains("cargo"),
+        "workflow was regenerated: {content}"
+    );
+    assert!(
+        !crate::paths::scaffold_manifest(tmp.path()).exists(),
+        "the CI file is outside the scaffold's ownership records"
+    );
+}
+
+#[test]
+fn cmd_init_ci_refuses_a_workflow_path_that_is_a_directory() {
+    let tmp = rust_project();
+    std::fs::create_dir_all(tmp.path().join(".github/workflows/quality-gates.yml")).unwrap();
+
+    let renderer = SilentRenderer::new();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
+    let error = cmd_init_ci(tmp.path(), true, &renderer, &inputs)
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("not a regular file"), "{error}");
+    assert!(
+        tmp.path()
+            .join(".github/workflows/quality-gates.yml")
+            .is_dir()
+    );
+}
