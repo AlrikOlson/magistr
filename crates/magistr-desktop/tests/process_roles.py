@@ -114,16 +114,21 @@ def acp(root):
         assert any(n.get("method") == "session/update" for n in rpc.notifications)
 
 
-with tempfile.TemporaryDirectory(prefix="magistr-desktop-roles-") as directory:
-    root = Path(directory)
-    for args, code in [(["--help"], 0), (["--workspace-worker", "extra"], 2)]:
-        result = subprocess.run([BINARY, *args], cwd=root, capture_output=True, timeout=15)
-        assert result.returncode == code, result.stderr
-    assert not list(root.iterdir()), "argument handling must not admit a project"
-    worker(root)
-    acp(root)
-    (root / "sample.rs").write_text("pub fn desktop_source() {}\n")
-    mcp(root, "magistr", "roadmap_status")
-    mcp(root, "workbench-mcp", "read")
-print("PASS: desktop argv, worker readiness/shutdown, ACP turn and both MCP endpoints")
+def main():
+    with tempfile.TemporaryDirectory(prefix="magistr-desktop-roles-") as directory:
+        root = Path(directory)
+        for args, code in [(["--help"], 0), (["--workspace-worker", "extra"], 2)]:
+            result = subprocess.run([BINARY, *args], cwd=root, capture_output=True, timeout=15)
+            assert result.returncode == code, result.stderr
+        assert not list(root.iterdir()), "argument handling must not admit a project"
+        worker(root)
+        acp(root)
+        (root / "sample.rs").write_text("pub fn desktop_source() {}\n")
+        mcp(root, "magistr", "roadmap_status")
+        mcp(root, "workbench-mcp", "read")
+    print("PASS: desktop argv, worker readiness/shutdown, ACP turn and both MCP endpoints")
+
+
+if __name__ == "__main__":
+    main()
 

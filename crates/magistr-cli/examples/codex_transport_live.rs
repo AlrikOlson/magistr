@@ -2,8 +2,8 @@
 //!
 //! MAGISTR_CODEX_LIVE=1 cargo run --example codex_transport_live
 //!
-//! Requires an installed Codex CLI with a ChatGPT login. Spends one short
-//! gpt-5.6-sol turn in a disposable directory; never runs in the checkout.
+//! Requires an installed Codex CLI with a ChatGPT login. Spends two short
+//! gpt-5.6-sol turns in a disposable directory; never runs in the checkout.
 
 use std::path::Path;
 use std::time::Duration;
@@ -67,6 +67,7 @@ async fn main() -> eyre::Result<()> {
         .await
         .map_err(|_| eyre::eyre!("child process group survived close"))?;
     }
+    exercise_detach(&cwd).await?;
     eprintln!(
         "PASS: Codex via connect_transport; {MODEL}; approved marker write; streamed completed tool; EndTurn; exact file; child closed"
     );
@@ -167,6 +168,56 @@ async fn exercise(transport: &mut AcpTransport, cwd: &Path) -> eyre::Result<()> 
         std::fs::read_to_string(cwd.join("codex-live-proof.txt"))? == "codex-live-ok\n",
         "marker file did not match"
     );
+    Ok(())
+}
+
+async fn exercise_detach(cwd: &Path) -> eyre::Result<()> {
+    use magistr::agent::cockpit_session::CockpitSession;
+    use magistr_application::sessions::{AgentEvent, SessionHandle};
+
+    let config = AgentConfig::new("Do not use any tools. Reply exactly DETACHED_DONE.", cwd)
+        .provider("codex")
+        .with_run_args(Some(MODEL), None, false);
+    let mut session =
+        tokio::time::timeout(WAIT, CockpitSession::start(config.resolve()?)).await??;
+    let result = tokio::time::timeout(WAIT, async {
+        // Detach after the real owner admits the turn, while it is still active.
+        loop {
+            match session.next_event().await {
+                Some(AgentEvent::UserText(_)) => break,
+                Some(AgentEvent::Error(error)) => return Err(eyre::eyre!(error)),
+                None => return Err(eyre::eyre!("session ended before turn admission")),
+                _ => {}
+            }
+        }
+        while session.snapshot().active_turn.is_none() {
+            tokio::time::sleep(Duration::from_millis(1)).await;
+        }
+        session.detach_client();
+        ensure!(
+            session.next_event().await.is_none(),
+            "detached observer stayed open"
+        );
+        loop {
+            let snapshot = session.snapshot();
+            ensure!(!snapshot.client_attached, "observer reattached itself");
+            if let Some(outcome) = snapshot.last_outcome {
+                ensure!(
+                    outcome.stop_reason == Some(StopReason::EndTurn),
+                    "{outcome:?}"
+                );
+                ensure!(outcome.error.is_none() && snapshot.active_turn.is_none());
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        Ok::<_, eyre::Report>(())
+    })
+    .await;
+    let closed = session.terminate_session().await.map_err(eyre::Report::msg);
+    result??;
+    closed?;
+    eprintln!("PASS: real Codex turn settled after observation detached; owner shutdown completed");
     Ok(())
 }
 

@@ -711,7 +711,7 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
     if let Some(cmds) = launcher_key(model, key) {
         return cmds;
     }
-    if let Some(cmds) = native_trace_key(model, key) {
+    if let Some(cmds) = native_trace_key(model, key).or_else(|| native_changes_key(model, key)) {
         return cmds;
     }
     if let Some(cmds) = work::roadmap_key(model, key) {
@@ -934,7 +934,11 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
         PaletteGo::Place(Place::Report) => work::open_report(model),
         PaletteGo::Place(place) => {
             model.show_place(place);
-            Vec::new()
+            if place == Place::Changes {
+                vec![Cmd::Workbench(super::workbench_cmd::WorkbenchCmd::Journal)]
+            } else {
+                Vec::new()
+            }
         }
         PaletteGo::Chunk(id) => {
             open_chunk(model, &id);
@@ -1354,12 +1358,40 @@ fn native_trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     }
 }
 
+/// Move through the native journal without changing the conversation or its draft.
+fn native_changes_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    if model.place() != Some(Place::Changes)
+        || !key.mods.is_empty()
+        || model.changes.viewer().is_some()
+        || !matches!(key.code, KeyCode::Up | KeyCode::Down)
+    {
+        return None;
+    }
+    let rows = model.changes.entries();
+    let current = rows
+        .iter()
+        .position(|row| model.selected() == Some(&Selected::Change(row.identity())));
+    let at = selection_index(current, rows.len(), key.code == KeyCode::Down)?;
+    model.inspect(Selected::Change(rows[at].identity()));
+    model.pane = Pane::Stage;
+    reveal_session_selection(model);
+    Some(Vec::new())
+}
+
 /// Scroll the timeline so its selected item remains visible.
 pub(super) fn reveal_session_selection(model: &mut Model) {
-    let Some(row) = super::session_item::SessionItem::collect(&model.trace, &model.changes)
-        .iter()
-        .position(|row| Some(&row.selection()) == model.selected())
-    else {
+    let row = if model.place() == Some(Place::Changes) {
+        model
+            .changes
+            .entries()
+            .iter()
+            .position(|entry| model.selected() == Some(&Selected::Change(entry.identity())))
+    } else {
+        super::session_item::SessionItem::collect(&model.trace, &model.changes)
+            .iter()
+            .position(|row| Some(&row.selection()) == model.selected())
+    };
+    let Some(row) = row else {
         return;
     };
     let (total, height) = model.session_window();
@@ -2389,7 +2421,11 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     // laid out on a window only: it moves the camera.
                     if let Some(place) = widget.place_target(model.place) {
                         model.show_place(place);
-                        return Vec::new();
+                        return if place == Place::Changes {
+                            vec![Cmd::Workbench(super::workbench_cmd::WorkbenchCmd::Journal)]
+                        } else {
+                            Vec::new()
+                        };
                     }
                     if let Some(tab) = widget.tab_target() {
                         if tab == StageTab::Roadmap && model.tab == StageTab::Roadmap {

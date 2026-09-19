@@ -56,12 +56,12 @@ impl MomentComposition {
 fn answers(permission: &Permission, medium: Medium) -> Element {
     let mut primary = None;
     let mut rest = Vec::new();
-    for (kind, label) in permission.buttons() {
+    for (kind, _) in permission.buttons() {
         let slot = PermissionKind::ALL
             .iter()
             .position(|k| *k == kind)
             .unwrap_or(0) as u64;
-        let action = Action::new(label, ElementId(MomentComposition::ANSWERS + slot));
+        let action = Action::new(kind.label(), ElementId(MomentComposition::ANSWERS + slot));
         match kind {
             PermissionKind::AllowOnce if primary.is_none() => primary = Some(action),
             PermissionKind::RejectOnce | PermissionKind::RejectAlways => {

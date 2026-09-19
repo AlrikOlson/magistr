@@ -9,10 +9,11 @@ the same admitted session host as the terminal. The `magistr-gui2` executable
 remains the explicit fixture viewer. The native window publishes accessible
 roles, names, values, bounds, supported actions and current focus.
 
-Launcher acceptance uses the actual executable, provider adapter and project
-owners with a controlled HTTP peer. It does not establish the complete
-live-provider permission, cancellation, reconnect, source-editing and evidence
-journeys; those remain required by the live desktop roadmap chunk.
+Acceptance uses the production executable and admitted project owners. The
+controlled HTTP journey checks restoration refusal; the opt-in Codex journeys
+check live permissions, cancellation, separate planning, restored context,
+source editing and check freshness. The platform matrix below distinguishes
+these from deterministic renderer fixtures.
 
 ## Build boundary
 
@@ -72,7 +73,7 @@ These child roles do not create another desktop session.
 
 | Platform | Evidence for this launcher |
 | --- | --- |
-| macOS 26.5.2, Apple silicon, Rust 1.95 | Build, process roles and native window exercised locally |
+| macOS 26.5.2, Apple M5 Max / Metal, Rust 1.95 | Build, process roles, native controls, GPU readback and live Codex journeys exercised locally (2026-09-18) |
 | Linux | Not built or exercised in this iteration |
 | Windows | Not built or exercised in this iteration; full process-tree settlement remains separate work |
 
@@ -98,6 +99,40 @@ Use the actual executable path if building with a custom target directory.
 CPU screenshots, GPU readback and the broader renderer input driver below remain
 separate checks. No desktop packaging was added.
 
+### Live Codex acceptance
+
+The opt-in driver requires Codex CLI 0.155.0 or a currently supported App Server,
+a ChatGPT login, an available model, Python 3, Swift, a graphical session and
+Accessibility permission for the terminal. It spends subscription turns only in
+temporary projects. The recorded run used `gpt-5.6-sol`; set
+`MAGISTR_DESKTOP_MODEL` to select another available model.
+
+```sh
+MAGISTR_DESKTOP_LIVE=1 PYTHONDONTWRITEBYTECODE=1 python3 crates/magistr-desktop/tests/native_live.py crates/magistr-desktop/target/debug/magistr-desktop
+MAGISTR_DESKTOP_LIVE=1 MAGISTR_DESKTOP_JOURNEY=project PYTHONDONTWRITEBYTECODE=1 python3 crates/magistr-desktop/tests/native_live.py crates/magistr-desktop/target/debug/magistr-desktop
+```
+
+The session journey sends through native controls, allows and denies commands,
+visits Recorded work during an active turn, queues and cancels planning, verifies
+separate responses, stops a command while preserving the draft, and kills only
+its disposable provider adapter. A later turn restores the original conversation
+and recalls a phrase from before the failure.
+
+The project journey attaches both MCP peers to the desktop's existing owners.
+It reads source, refuses an undeclared command, confirms and undoes a move,
+executes a recorded check, then approves a real Codex read and edit. Native pointer
+selection opens the recorded diff, Open reads the file and keyboard Undo restores
+it. Completion refuses the earlier check after the edit; a newly executed check
+permits completion. Both journeys assert one unchanged workspace worker and
+reopen the project after normal window close.
+
+The shared transport's separate `codex_transport_live` example checks detached
+observation through actual Codex: the client stream closes while the retained
+owner observes the turn finish, then explicit termination settles the session.
+Detaching is not a window-close or background-persistence feature.
+Closed GUI command receivers remain covered by the deterministic native
+`composer_probe --disconnect` journey described below.
+
 ### Connection recovery
 
 Conversation and Roadmap keep separate provider sessions. Switching views or
@@ -118,8 +153,8 @@ connector; queueing, context reuse, retry and relay shutdown belong to the share
 runtime. These are available without a CLI or terminal dependency. The concrete
 [interactive host](sessions.md#live-interface-host) can now build without the
 terminal renderer. The separate `magistr-desktop` launcher composes that host,
-its provider/worker executable roles and the native window. Full real-provider
-journeys remain an explicit acceptance requirement.
+its provider/worker executable roles and the native window. The live journeys
+above exercise that production path without introducing another host.
 The desktop renderer depends on neither `magistr-tui` nor concrete engine, workflow, workspace,
 process, ACP or CLI implementations. The dependency-boundary test checks Cargo's
 resolved host graph, as well as the root workspace's exclusion.
@@ -272,6 +307,17 @@ Open reasoning, choose Latest then Previous, drag the column boundary, and close
 the window. The example verifies selection, resized proportions and the unchanged
 draft and attachment.
 
+## Source changes
+
+Changes reads the admitted workspace journal when opened from Commands. Its list
+selects entries by stable identity, while the shared inspector supplies the diff,
+Open, Undo, approval and refusal text. Compact windows stack the file list above
+the details. Arrow navigation reveals the selected entry; the measured list
+height governs scrolling. Opening a file uses the existing source port and
+Escape returns to the selected diff. A refused undo keeps its explanation on the
+entry. `tests/changes.rs` checks both themes, compact/wide geometry, keyboard
+scrolling, pointer targets, accessible text and refused undo.
+
 ## Message editing
 
 Conversation and Roadmap share the cockpit's `Prompt`, attachment references
@@ -292,8 +338,9 @@ failed undo remains on its change, workflow decisions become available again,
 and failed permission answers restore their original question while its turn
 remains open. Stop reports failure without claiming the provider stopped.
 Local action failures do not finish unrelated conversation or planning work.
-The native conversation scroll area exposes its drawn text as a read-only
-accessibility value, including failure explanations.
+Conversation, Requests and Details expose their drawn text as read-only
+accessibility values, including failure explanations. Permission buttons use
+readable action labels while replies retain the provider's exact option IDs.
 
 The application-level file-reference scanner owns anchoring and deduplication;
 edge adapters supply JSON quoted-path decoding without adding a serialization
@@ -348,8 +395,8 @@ cargo run --manifest-path crates/magistr-gui2/Cargo.toml --locked --example road
 Send a request, cancel it, then send it again. Inspect Requests and Item details,
 scroll the reply, drag the column boundary, type “Keep this draft”, and return to
 Conversation before closing the window. The example verifies command routing,
-request isolation and retained draft. It uses deterministic producers; live project
-sessions remain separate work.
+request isolation and retained draft. It uses deterministic producers; the live
+Codex journeys above verify the production session path.
 
 ## Focused verification
 

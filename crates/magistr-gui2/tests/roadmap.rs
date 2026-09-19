@@ -274,6 +274,15 @@ fn queued_planning_routes_to_its_owner_and_never_borrows_implementation_output()
     paint(&mut frame, &mut model);
     assert!(!says(&frame).contains("IMPLEMENTATION"));
     assert!(says(&frame).contains("Queued"));
+    let access = frame.access();
+    let request = access.find(Widget::RequestBody).unwrap();
+    let value = request.value.as_deref().unwrap_or_default();
+    assert!(
+        value.contains("Queued"),
+        "queued state must be readable: {value}"
+    );
+    assert!(!value.contains("IMPLEMENTATION"));
+    assert!(!request.actions.contains(&accesskit::Action::SetValue));
     route.fold(&mut model, hit(&frame, Widget::PromptAction.id()));
     assert_eq!(commands.try_next(), Some(Cmd::CancelRoadmapPrompt));
     route.fold(&mut model, Msg::RoadmapRequestCancelled);
@@ -308,6 +317,15 @@ fn queued_planning_routes_to_its_owner_and_never_borrows_implementation_output()
     paint(&mut frame, &mut model);
     let text = says(&frame);
     assert!(text.contains("Recovery work is now planned."));
+    let access = frame.access();
+    let value = access
+        .find(Widget::RequestBody)
+        .unwrap()
+        .value
+        .as_deref()
+        .unwrap_or_default();
+    assert!(value.contains("Recovery work is now planned."));
+    assert!(!value.contains("IMPLEMENTATION"));
     assert!(!text.contains("IMPLEMENTATION"));
     assert_eq!(model.roadmap_requests(), requests);
     assert_eq!(model.loop_status(), accounting.as_ref());

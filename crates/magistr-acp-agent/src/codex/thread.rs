@@ -155,7 +155,12 @@ impl CodexThread {
                     let item = params["itemId"]
                         .as_str()
                         .and_then(|id| translator.items.get(id));
-                    let ask = match Approval::parse(&method, &params, item) {
+                    let parsed = if method == "mcpServer/elicitation/request" {
+                        Approval::elicitation(&request_id, &params)
+                    } else {
+                        Approval::parse(&method, &params, item)
+                    };
+                    let ask = match parsed {
                         Ok(ask) => ask,
                         Err(error) => {
                             process.write(&json!({"id":request_id,"error":{"code":-32602,"message":error.to_string()}})).await?;
@@ -168,7 +173,7 @@ impl CodexThread {
                     };
                     let answer = match &outcome {
                         Ok(outcome) => ask.answer(outcome),
-                        Err(_) => json!({"decision":"cancel"}),
+                        Err(_) => Approval::cancel(&method),
                     };
                     process
                         .write(&json!({"id":request_id,"result":answer}))
@@ -258,9 +263,9 @@ async fn receive(
 }
 
 async fn cancel_request(process: &CodexProcess, frame: &Frame) -> Result<(), AgentError> {
-    if let Frame::Request { id, .. } = frame {
+    if let Frame::Request { id, method, .. } = frame {
         process
-            .write(&json!({"id":id,"result":{"decision":"cancel"}}))
+            .write(&json!({"id":id,"result":Approval::cancel(method)}))
             .await?;
     }
     Ok(())

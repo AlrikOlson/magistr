@@ -6,6 +6,60 @@ fn selected(option: &str) -> RequestPermissionOutcome {
 }
 
 #[test]
+fn mcp_tool_approval_preserves_scope_and_never_grants_persistent_access() {
+    let params = json!({
+        "threadId": "thread-1", "turnId": "turn-1", "serverName": "workspace",
+        "mode": "form", "message": "Allow this file read?",
+        "requestedSchema": {"type": "object", "properties": {}},
+        "_meta": {"codex_approval_kind": "mcp_tool_call", "tool_params": {"file": "sample.txt"},
+                  "persist": ["session", "always"]}
+    });
+    assert!(Approval::is_tool_elicitation(&params));
+    let approval = Approval::elicitation(&json!(42), &params).unwrap();
+    assert_eq!(approval.tool_call().fields.raw_input, Some(params.clone()));
+    assert_eq!(
+        approval.answer(&selected("allow")),
+        json!({"action":"accept","content":{}})
+    );
+    assert_eq!(
+        approval.answer(&selected("reject")),
+        json!({"action":"decline"})
+    );
+    assert_eq!(
+        approval.answer(&selected("allow_always")),
+        json!({"action":"decline"})
+    );
+    assert_eq!(
+        approval.answer(&RequestPermissionOutcome::Cancelled),
+        json!({"action":"cancel"})
+    );
+    assert!(
+        !approval
+            .options()
+            .iter()
+            .any(|option| option.kind == PermissionOptionKind::AllowAlways)
+    );
+    for change in [
+        json!({"mode": "url"}),
+        json!({"_meta": {}}),
+        json!({"turnId": null}),
+        json!({"requestedSchema":{"type":"object","properties":{"secret":{"type":"string"}}}}),
+        json!({"requestedSchema":{"type":"object","properties":{},"required":["secret"]}}),
+    ] {
+        let mut unsupported = params.clone();
+        unsupported
+            .as_object_mut()
+            .unwrap()
+            .extend(change.as_object().unwrap().clone());
+        assert!(
+            !Approval::is_tool_elicitation(&unsupported),
+            "{unsupported}"
+        );
+        assert!(Approval::elicitation(&json!(42), &unsupported).is_err());
+    }
+}
+
+#[test]
 fn command_decisions_preserve_the_clients_selection_and_cancellation() {
     let approval = Approval::parse(
         "item/commandExecution/requestApproval",

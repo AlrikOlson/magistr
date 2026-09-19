@@ -31,6 +31,7 @@ pub mod comp_bad_day;
 pub mod comp_band;
 pub mod comp_birth;
 pub mod comp_brief;
+pub mod comp_changes;
 pub mod comp_composer;
 pub mod comp_feed;
 pub mod comp_foot;

@@ -203,6 +203,14 @@ impl RootComposition {
                 .child(header(model, medium, clock, &lex))
                 .child(GalaxyComposition::el(model, medium, field))
                 .child(GalaxyComposition::foot(model, medium))
+        } else if model.place() == Some(Place::Changes) {
+            let room = (viewport.0, (viewport.1 - header_height(model)).max(0.0));
+            Element::surface()
+                .fill(lex.base)
+                .child(header(model, medium, clock, &lex))
+                .child(crate::comp_changes::ChangesComposition::el(
+                    model, medium, cell, room,
+                ))
         } else if model.place() == Some(Place::Trace) {
             // Altitude 3, the Trace (view 11): the header with the
             // trace's chips, the step feed and the BRANCHES rail — no
