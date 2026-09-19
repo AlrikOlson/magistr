@@ -238,8 +238,12 @@ impl Palette {
             {
                 continue;
             }
+            // A hosted session starts an item or the loop in place; the
+            // checks stay the launcher's, which hands them to the shell.
+            let startable = model.hosts_work() && matches!(*binding, Binding::NEXT | Binding::LOOP);
             if matches!(*binding, Binding::NEXT | Binding::LOOP | Binding::GATES)
                 && model.launcher().is_none()
+                && !startable
             {
                 continue;
             }

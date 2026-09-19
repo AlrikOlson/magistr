@@ -1469,6 +1469,13 @@ fn launcher_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             _ => None,
         };
     }
+    if model.hosted_work && key.mods == Modifiers::ALT && model.moment().is_none() {
+        return match key.code {
+            KeyCode::Char('n') => Some(launch(model, LaunchAction::Next)),
+            KeyCode::Char('l') => Some(launch(model, LaunchAction::Loop)),
+            _ => None,
+        };
+    }
     if !model.is_launcher() || !model.session.prompt.is_empty() || !key.mods.is_empty() {
         return None;
     }
@@ -1533,6 +1540,23 @@ fn resume_session(model: &mut Model, index: usize) -> Vec<Cmd> {
 /// [`Model::launch`] once the terminal is handed back and starts the
 /// asked-for command.
 fn launch(model: &mut Model, action: LaunchAction) -> Vec<Cmd> {
+    // A hosted session starts work in place: its host takes the command
+    // and the session stays. One run at a time — a start while work is
+    // live says so and sends nothing.
+    if model.hosted_work && matches!(action, LaunchAction::Next | LaunchAction::Loop) {
+        if model
+            .loop_status
+            .as_ref()
+            .is_some_and(|status| status.ended().is_none())
+        {
+            model
+                .session
+                .turn
+                .push_note("work is already running — pause or abort it first");
+            return Vec::new();
+        }
+        return vec![Cmd::Launch(action)];
+    }
     model.launch = Some(action);
     model.quit_requested = true;
     vec![Cmd::Quit]

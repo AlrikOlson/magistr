@@ -29,6 +29,7 @@ pub mod judge_evidence;
 pub mod judge_input;
 pub mod no_tools;
 pub mod session_judge;
+mod session_judge_for;
 pub mod verdict;
 
 pub use agent_goal::AgentGoal;
@@ -43,4 +44,5 @@ pub use judge_evidence::JudgeEvidence;
 pub use judge_input::JudgeInput;
 pub use no_tools::NoTools;
 pub use session_judge::SessionJudge;
+pub(crate) use session_judge_for::session_judge_for;
 pub use verdict::Verdict;

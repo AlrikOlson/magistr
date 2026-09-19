@@ -3,19 +3,17 @@
 //! iteration's turn on the stage, the loop on the status strip.
 
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Duration;
 
 use crate::application::workflow_client::EngineClient;
 use color_eyre::eyre::{self, Context as _};
-use magistr_application::effects::{SourceRefusal, SourceRoute};
 use magistr_cockpit::cockpit::{Model, Summary};
 use magistr_cockpit::theme::Theme;
 use magistr_tui::runtime::{Options, Runtime};
 use magistr_tui::term::{RealTerminal, Terminal as _};
 
 use crate::agent::Backend;
-use crate::orchestration::goal::{GoalMode, Judge, SessionJudge};
+use crate::orchestration::goal::{GoalMode, session_judge_for};
 use crate::orchestration::ledger::{SpinePort, session_engine};
 use crate::orchestration::loop_driver::{Connector, LoopDriver};
 use crate::workflow::WorkflowConfig;
@@ -91,7 +89,11 @@ pub(crate) async fn run_cockpit_loop(
     .keep_open(true)
     .persisting(persist)
     .auto_pause(auto_pause)
-    .goal(goal, judge(goal, native, dir, backend), goal_note);
+    .goal(
+        goal,
+        session_judge_for(goal, native, dir, backend),
+        goal_note,
+    );
     // The ledger the loop checkpoints on at every iteration boundary —
     // served by the driver off its own thread, never by a session.
     let driver = match &engines {
@@ -151,31 +153,6 @@ pub(crate) async fn run_cockpit_loop(
         println!("{report}");
     }
     Ok(())
-}
-
-/// Who judges an iteration: magistr's own fresh session ([`SessionJudge`])
-/// on a roadmap-driven project under the native mode — and under the
-/// delegated modes too, as what an unconfirmed delivery falls back to;
-/// nobody under `off`, and nobody on a project with no chunk to judge.
-/// The judge is constrained: it holds no source-write authority, so its
-/// session advertises no write capability and refuses any write.
-pub(crate) fn judge(
-    goal: GoalMode,
-    native: bool,
-    dir: &Path,
-    backend: Backend,
-) -> Option<Arc<dyn Judge>> {
-    match goal {
-        GoalMode::Off => None,
-        GoalMode::Native | GoalMode::Extension | GoalMode::Command | GoalMode::Auto if native => {
-            Some(Arc::new(SessionJudge::new(
-                Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
-                dir,
-                backend,
-            )))
-        }
-        _ => None,
-    }
 }
 
 #[cfg(test)]
