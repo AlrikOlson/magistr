@@ -93,7 +93,7 @@ pub use event_cursor::EventCursor;
 pub use feed_cursor::FeedCursor;
 pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
-pub use identity::ensure_project_file;
+pub use identity::identity_declaration;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;
 pub use mcp_acceptor::McpAcceptor;
@@ -134,7 +134,7 @@ pub use magistr_workflow::content::{
     ContentFact, ContentListItem, ContentSection, StructuredContent,
 };
 pub use magistr_workflow::infra::{
-    Broadcaster, Family, IdSource, PROJECT_DIR, PROJECT_FILE, ProjectIdentity,
+    Broadcaster, Family, IdSource, PROJECT_DIR, PROJECT_FILE, ProjectIdentity, project_id_for_path,
     resolve_project_id_with,
 };
 // The workflow's own typed frames — what its engines hand their broadcaster

@@ -35,7 +35,13 @@ fn roadmap_exports_policy_survives_reinitialization_without_recreating_a_view() 
     let config = r#"{"roadmap_backend":"think-and-ship","roadmap_exports":false}"#;
     std::fs::write(root.path().join(".magistr/project.json"), config).expect("policy");
     let overrides = HashMap::from([("ROADMAP.md".to_owned(), "unrequested view".to_owned())]);
-    generate_with_result(root.path(), &test_vars(), &overrides).expect("reinitialize");
+    generate_with_result(
+        root.path(),
+        &test_vars(),
+        &overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .expect("reinitialize");
     assert!(!root.path().join("ROADMAP.md").exists());
     assert!(!root.path().join("ROADMAP.json").exists());
     assert_eq!(
@@ -51,7 +57,13 @@ fn assert_preview_outcomes(
     expected: &[(&str, super::super::FileAction)],
 ) {
     use super::super::FileAction;
-    let preview = super::super::preview(dir, vars, overrides).unwrap();
+    let preview = super::super::preview(
+        dir,
+        vars,
+        overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     for (path, action) in expected {
         let entry = preview.files.iter().find(|f| f.path == *path).unwrap();
         assert_eq!(&entry.action, action, "{path}");
@@ -63,7 +75,13 @@ fn assert_preview_outcomes(
             assert!(entry.diff.is_none(), "{path}");
         }
     }
-    let result = generate_with_result(dir, vars, overrides).unwrap();
+    let result = generate_with_result(
+        dir,
+        vars,
+        overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     for (path, action) in expected {
         let paths = match action {
             FileAction::Create => &result.created,
@@ -88,7 +106,13 @@ fn preview_preserves_customized_and_unowned_regular_files() {
     use super::super::FileAction::Preserved;
     let tmp = tempfile::tempdir().unwrap();
     let vars = test_vars();
-    generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     for path in [".claude/settings.json", ".claude/rules/conventions.md"] {
         std::fs::write(tmp.path().join(path), "user's own content\n").unwrap();
     }
@@ -128,7 +152,13 @@ fn custom_magistr_gitignore_survives_preview_and_reinit() {
     for recorded in [false, true] {
         let tmp = tempfile::tempdir().unwrap();
         if recorded {
-            generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+            generate_with_result(
+                tmp.path(),
+                &vars,
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default(),
+            )
+            .unwrap();
         } else {
             std::fs::create_dir(tmp.path().join(".magistr")).unwrap();
         }
@@ -193,7 +223,13 @@ fn preview_matches_regular_file_creation_noop_and_template_upgrade() {
 #[test]
 fn fresh_generate_creates_all_files() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let result = generate_with_result(tmp.path(), &test_vars(), &HashMap::new()).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert!(!result.created.is_empty(), "should create files");
     assert!(
@@ -213,10 +249,22 @@ fn reinit_skips_unchanged_files() {
     let no_overrides = HashMap::new();
 
     // First init
-    generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Second init (reinit) — same vars, everything should be unchanged
-    let result = generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert!(result.created.is_empty(), "no new files on reinit");
     assert!(
@@ -245,14 +293,26 @@ fn reinit_preserves_user_customized_settings() {
     let no_overrides = HashMap::new();
 
     // First init — creates manifest
-    generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // User customizes settings.local.json
     let settings_path = tmp.path().join(".claude/settings.local.json");
     std::fs::write(&settings_path, r#"{"my": "custom settings"}"#).unwrap();
 
     // Reinit — should preserve the user's customized file
-    let result = generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert!(
         result
@@ -274,7 +334,13 @@ fn reinit_preserves_user_customized_conventions() {
     let no_overrides = HashMap::new();
 
     // First init
-    generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // User customizes conventions.md
     let conventions_path = tmp.path().join(".claude/rules/conventions.md");
@@ -285,7 +351,13 @@ fn reinit_preserves_user_customized_conventions() {
     .unwrap();
 
     // Reinit — should preserve customizations
-    let result = generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert!(
         result
@@ -305,14 +377,26 @@ fn reinit_updates_overwrite_policy_files_when_template_changes() {
     let no_overrides = HashMap::new();
 
     // First init
-    generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Simulate a template change by modifying an Overwrite-policy file
     let tools_path = tmp.path().join(".claude/rules/tools.md");
     std::fs::write(&tools_path, "old version of tool guide").unwrap();
 
     // Reinit — should overwrite tools.md even though user "changed" it
-    let result = generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert!(
         result
@@ -329,14 +413,26 @@ fn reinit_updates_uncustomized_preserve_files_when_template_changes() {
     let no_overrides = HashMap::new();
 
     // First init with rust conventions
-    generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Change language → different conventions template
     vars.insert("language".to_string(), "python".to_string());
 
     // Reinit — conventions.md was not customized by the user (matches manifest),
     // so it should be updated to the new language's conventions
-    let result = generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert!(
         result
@@ -356,7 +452,13 @@ fn reinit_updates_uncustomized_preserve_files_when_template_changes() {
 fn manifest_saved_after_generate() {
     let tmp = tempfile::TempDir::new().unwrap();
     let vars = test_vars();
-    generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     let manifest_path = tmp.path().join(".magistr/scaffold-manifest.json");
     assert!(
@@ -394,14 +496,26 @@ fn reinit_never_overwrites_claude_md() {
     let no_overrides = HashMap::new();
 
     // First init
-    generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Even if we change the template vars, CLAUDE.md should never be overwritten
     let claude_path = tmp.path().join("CLAUDE.md");
     let original = std::fs::read_to_string(&claude_path).unwrap();
     std::fs::write(&claude_path, "# User's custom CLAUDE.md").unwrap();
 
-    let result = generate_with_result(tmp.path(), &vars, &no_overrides).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &vars,
+        &no_overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // The plan says what happens: the user's document is merged with the
     // section, so it is reported as updated, never as preserved-and-then-
@@ -440,7 +554,13 @@ fn the_setup_plan_is_what_generation_writes() {
     )
     .unwrap();
 
-    let plan = super::super::preview(dir, &vars, &HashMap::new()).unwrap();
+    let plan = super::super::preview(
+        dir,
+        &vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(plan.operation, super::super::AdminOperation::Setup);
     assert_eq!(plan.refusals(), 0, "{:?}", plan.refused());
     let rule = plan.get(".claude/rules/ministr-scope.md").unwrap();
@@ -478,7 +598,13 @@ fn the_setup_plan_is_what_generation_writes() {
         );
     }
 
-    let result = generate_with_result(dir, &vars, &HashMap::new()).unwrap();
+    let result = generate_with_result(
+        dir,
+        &vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert!(result.refused.is_empty());
     assert_eq!(result.removed, vec![".claude/rules/ministr-scope.md"]);
     assert!(!dir.join(".claude/rules/ministr-scope.md").exists());
@@ -500,7 +626,13 @@ fn the_setup_plan_is_what_generation_writes() {
         assert!(bucket.contains(&f.path), "{}: {result:?}", f.path);
     }
 
-    let again = super::super::preview(dir, &vars, &HashMap::new()).unwrap();
+    let again = super::super::preview(
+        dir,
+        &vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(
         again.applies(),
         0,
@@ -522,7 +654,13 @@ fn a_directory_at_a_scaffold_path_is_refused_not_overwritten() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
     std::fs::create_dir_all(dir.join(".claude/rules/tools.md")).unwrap();
-    let plan = super::super::preview(dir, &test_vars(), &HashMap::new()).unwrap();
+    let plan = super::super::preview(
+        dir,
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let tools = plan.get(".claude/rules/tools.md").unwrap();
     assert_eq!(
         tools.action,
@@ -530,7 +668,13 @@ fn a_directory_at_a_scaffold_path_is_refused_not_overwritten() {
     );
     assert_eq!(plan.refusals(), 1);
 
-    let result = generate_with_result(dir, &test_vars(), &HashMap::new()).unwrap();
+    let result = generate_with_result(
+        dir,
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(result.refused, vec![".claude/rules/tools.md"]);
     assert!(dir.join(".claude/rules/tools.md").is_dir());
     assert!(dir.join(".claude/rules/workflow.md").is_file());
@@ -545,7 +689,13 @@ fn a_directory_at_a_scaffold_path_is_refused_not_overwritten() {
 fn a_setup_with_one_failed_write_reports_the_partial_outcome() {
     let tmp = tempfile::TempDir::new().unwrap();
     let vars = test_vars();
-    generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+    generate_with_result(
+        tmp.path(),
+        &vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let settings = ".claude/settings.json";
     let before = std::fs::read_to_string(tmp.path().join(settings)).unwrap();
     let overrides = HashMap::from([
@@ -561,9 +711,14 @@ fn a_setup_with_one_failed_write_reports_the_partial_outcome() {
     )
     .unwrap();
 
-    let error = generate(tmp.path(), &vars, &overrides)
-        .unwrap_err()
-        .to_string();
+    let error = generate(
+        tmp.path(),
+        &vars,
+        &overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap_err()
+    .to_string();
     assert!(error.contains("setup did not complete"), "{error}");
     assert!(error.contains(".claude/settings.json: failed"), "{error}");
     assert!(error.contains("applied before that: "), "{error}");
@@ -578,7 +733,13 @@ fn a_setup_with_one_failed_write_reports_the_partial_outcome() {
     );
 
     // The same run, seen through the detailed result.
-    let result = generate_with_result(tmp.path(), &vars, &overrides).unwrap();
+    let result = generate_with_result(
+        tmp.path(),
+        &vars,
+        &overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(result.failed.len(), 1, "{:?}", result.failed);
     assert_eq!(result.failed[0].0, settings);
     assert!(

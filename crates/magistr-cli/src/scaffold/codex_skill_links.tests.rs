@@ -115,7 +115,13 @@ fn nine_legacy_skill_links_preview_without_writes_and_generate_native_codex_file
         "User's team workflow\n",
     );
     let before = snapshot(dir);
-    let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+    let planned = preview(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(snapshot(dir), before);
     let skills: Vec<_> = planned
         .files
@@ -134,7 +140,13 @@ fn nine_legacy_skill_links_preview_without_writes_and_generate_native_codex_file
             file.path
         );
     }
-    generate_with_result(dir, &vars(), &HashMap::new()).unwrap();
+    generate_with_result(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     for name in SKILLS {
         assert!(
             std::fs::symlink_metadata(dir.join(format!(".agents/skills/{name}")))
@@ -178,7 +190,13 @@ fn selected_link_migration_preserves_claude_sources_and_claims_only_approved_fil
     let dir = tmp.path();
     legacy_skills(dir);
     let claude_before = snapshot(&dir.join(".claude"));
-    let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+    let planned = preview(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let path = ".agents/skills/next/SKILL.md";
     let selected = planned.files.iter().find(|file| file.path == path).unwrap();
     assert_eq!(
@@ -213,7 +231,13 @@ fn craft_link_migration_requires_skill_and_runtime_companion_approval_together()
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path();
     legacy_skills(dir);
-    let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+    let planned = preview(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let craft: Vec<_> = planned
         .files
         .iter()
@@ -255,7 +279,13 @@ fn dangling_legacy_link_migrates_without_creating_a_claude_source() {
     let dir = tmp.path();
     link(dir, "next", None);
     let before = snapshot(dir);
-    let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+    let planned = preview(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(snapshot(dir), before);
     let selected = planned
         .files
@@ -276,7 +306,13 @@ fn dangling_legacy_link_migrates_without_creating_a_claude_source() {
 fn equal_content_still_previews_and_applies_legacy_link_replacement() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path();
-    let clean = preview(dir, &vars(), &HashMap::new()).unwrap();
+    let clean = preview(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let expected = clean
         .files
         .iter()
@@ -285,7 +321,13 @@ fn equal_content_still_previews_and_applies_legacy_link_replacement() {
         .new_content
         .clone();
     link(dir, "next", Some(&expected));
-    let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+    let planned = preview(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let selected = planned
         .files
         .iter()
@@ -320,7 +362,13 @@ fn retargeted_or_replaced_legacy_links_reject_selected_batch_even_when_text_matc
         let dir = tmp.path();
         let content = "Same existing text\n";
         link(dir, "next", Some(content));
-        let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+        let planned = preview(
+            dir,
+            &vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap();
         let selected = planned
             .files
             .iter()
@@ -359,9 +407,25 @@ fn malformed_config_rejects_setup_before_detaching_any_legacy_skill_link() {
         "[mcp_servers.magistr\ncommand = 'broken'\n",
     );
     let before = snapshot(dir);
-    assert!(preview(dir, &vars(), &HashMap::new()).is_err());
+    assert!(
+        preview(
+            dir,
+            &vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default()
+        )
+        .is_err()
+    );
     assert_eq!(snapshot(dir), before);
-    assert!(generate_with_result(dir, &vars(), &HashMap::new()).is_err());
+    assert!(
+        generate_with_result(
+            dir,
+            &vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default()
+        )
+        .is_err()
+    );
     assert_eq!(snapshot(dir), before);
 }
 
@@ -385,8 +449,24 @@ fn unsafe_link_among_recognized_skills_rejects_the_entire_migration_without_writ
         }
         let before = snapshot(dir);
         let external_before = snapshot(outside.path());
-        assert!(preview(dir, &vars(), &HashMap::new()).is_err());
-        assert!(generate_with_result(dir, &vars(), &HashMap::new()).is_err());
+        assert!(
+            preview(
+                dir,
+                &vars(),
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default()
+            )
+            .is_err()
+        );
+        assert!(
+            generate_with_result(
+                dir,
+                &vars(),
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default()
+            )
+            .is_err()
+        );
         assert_eq!(snapshot(dir), before);
         assert_eq!(snapshot(outside.path()), external_before);
     }
@@ -397,7 +477,13 @@ fn unsafe_link_among_recognized_skills_rejects_the_entire_migration_without_writ
 fn startup_repair_leaves_legacy_link_migration_to_explicit_initialization() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path();
-    generate_with_result(dir, &vars(), &HashMap::new()).unwrap();
+    generate_with_result(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     std::fs::remove_file(dir.join(".agents/skills/next/SKILL.md")).unwrap();
     std::fs::remove_dir(dir.join(".agents/skills/next")).unwrap();
     link(dir, "next", None);
@@ -410,7 +496,13 @@ fn startup_repair_leaves_legacy_link_migration_to_explicit_initialization() {
 fn native_skill_directories_are_not_legacy_links_and_survive_reinitialization() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path();
-    generate_with_result(dir, &vars(), &HashMap::new()).unwrap();
+    generate_with_result(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     write(
         dir,
         ".agents/skills/team/SKILL.md",
@@ -422,7 +514,13 @@ fn native_skill_directories_are_not_legacy_links_and_survive_reinitialization() 
         assert!(metadata.is_dir() && !metadata.is_symlink(), "{name}");
     }
     let before = snapshot(&dir.join(".agents/skills"));
-    let planned = preview(dir, &vars(), &HashMap::new()).unwrap();
+    let planned = preview(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(snapshot(&dir.join(".agents/skills")), before);
     for file in planned
         .files
@@ -439,6 +537,12 @@ fn native_skill_directories_are_not_legacy_links_and_survive_reinitialization() 
             file.path
         );
     }
-    generate_with_result(dir, &vars(), &HashMap::new()).unwrap();
+    generate_with_result(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(snapshot(&dir.join(".agents/skills")), before);
 }

@@ -47,8 +47,13 @@ edition = "2024"
         config::preset::load_preset_with_framework(stack.language, stack.framework).unwrap();
     let default_selections = scaffold::ScaffoldSelections::default();
     let template_vars = commands::misc::build_template_vars(&stack, &preset, &default_selections);
-    let written =
-        scaffold::generate(dir, &template_vars, &std::collections::HashMap::new()).unwrap();
+    let written = scaffold::generate(
+        dir,
+        &template_vars,
+        &std::collections::HashMap::new(),
+        &scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // At least 20 scaffold files (templates + mcp.json + gitignore + plugins).
     // Exact count changes as templates are added — assert a minimum, not exact.
@@ -434,7 +439,13 @@ fn generate_removal_fixture(dir: &std::path::Path) {
         &preset,
         &scaffold::ScaffoldSelections::default(),
     );
-    scaffold::generate(dir, &vars, &std::collections::HashMap::new()).unwrap();
+    scaffold::generate(
+        dir,
+        &vars,
+        &std::collections::HashMap::new(),
+        &scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 }
 
 #[test]

@@ -37,7 +37,13 @@ pub fn cmd_init_from_preset(
         vars.insert("selected_agents".to_owned(), agents.join(","));
     }
 
-    let files = scaffold::generate(&dir, &vars, &std::collections::HashMap::new()).suggest()?;
+    let files = scaffold::generate(
+        &dir,
+        &vars,
+        &std::collections::HashMap::new(),
+        &scaffold::SetupSeeds::default(),
+    )
+    .suggest()?;
 
     let source_label = match &preset_source {
         PresetSource::Local(_) => "file",

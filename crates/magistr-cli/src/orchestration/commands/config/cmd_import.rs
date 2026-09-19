@@ -29,7 +29,13 @@ pub fn cmd_import(dir: &std::path::Path, source: &str, force: bool) -> eyre::Res
     let project_name = detect::detect_project_name(&dir, lang);
     let vars = preset.to_template_vars(&project_name);
 
-    let files = scaffold::generate(&dir, &vars, &std::collections::HashMap::new()).suggest()?;
+    let files = scaffold::generate(
+        &dir,
+        &vars,
+        &std::collections::HashMap::new(),
+        &scaffold::SetupSeeds::default(),
+    )
+    .suggest()?;
 
     eprintln!(
         "{} Imported preset {} — {} files scaffolded",

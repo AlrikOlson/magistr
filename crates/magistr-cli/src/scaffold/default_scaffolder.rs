@@ -8,8 +8,8 @@ use std::path::Path;
 
 use crate::error::Result;
 
-use super::ChangePlan;
 use super::scaffolder::Scaffolder;
+use super::{ChangePlan, SetupSeeds};
 
 /// Generates scaffold files by writing to the filesystem.
 ///
@@ -23,8 +23,9 @@ impl Scaffolder for DefaultScaffolder {
         dir: &Path,
         template_vars: &HashMap<String, String>,
         generated_overrides: &HashMap<String, String>,
+        seeds: &SetupSeeds,
     ) -> Result<Vec<String>> {
-        super::generate(dir, template_vars, generated_overrides)
+        super::generate(dir, template_vars, generated_overrides, seeds)
     }
 
     fn preview(
@@ -32,8 +33,9 @@ impl Scaffolder for DefaultScaffolder {
         dir: &Path,
         template_vars: &HashMap<String, String>,
         generated_overrides: &HashMap<String, String>,
+        seeds: &SetupSeeds,
     ) -> Result<ChangePlan> {
-        super::preview(dir, template_vars, generated_overrides)
+        super::preview(dir, template_vars, generated_overrides, seeds)
     }
 }
 

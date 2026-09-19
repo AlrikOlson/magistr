@@ -126,7 +126,13 @@ fn repair_updates_reasoning_guidance_and_preserves_customized_files() {
             super::super::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
                 .with_agents(&["codex".to_owned(), "claude".to_owned()])
                 .template_vars();
-        super::super::generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+        super::super::generate_with_result(
+            tmp.path(),
+            &vars,
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap();
         let mut manifest = super::super::manifest::ScaffoldManifest::load(tmp.path());
         let runtimes = WorkflowSkills::codex_files()
             .into_iter()
@@ -205,7 +211,13 @@ fn repair_updates_iteration_recovery_but_preserves_customized_codex_skills() {
             super::super::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
                 .with_agents(&["codex".to_owned(), "claude".to_owned()])
                 .template_vars();
-        super::super::generate_with_result(tmp.path(), &vars, &HashMap::new()).unwrap();
+        super::super::generate_with_result(
+            tmp.path(),
+            &vars,
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap();
         let skills = WorkflowSkills::codex_files()
             .into_iter()
             .chain(WorkflowSkills::claude_files())

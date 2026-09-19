@@ -252,20 +252,134 @@ fn polyglot_generate_adds_archetype_section_to_claude_md() {
     );
 }
 
-#[test]
-fn upsert_marked_section_appends_when_absent() {
-    let doc = "# Hello\n\nSome content.\n";
-    let result = upsert_marked_section(doc, "<!-- start -->", "<!-- end -->", "New stuff\n");
-    assert!(result.contains("<!-- start -->\nNew stuff\n<!-- end -->"));
-    assert!(result.contains("# Hello"));
+const IDENTITY: &str = ".think-and-ship/project.json";
+
+fn read(dir: &std::path::Path, path: &str) -> String {
+    std::fs::read_to_string(dir.join(path)).unwrap()
 }
 
+/// A first init's plan is complete: the configuration it creates already
+/// carries the hooks and the archetypes, the document carries the archetype
+/// section beside the think-and-ship one, and the identity declaration is a
+/// planned create — and generation writes exactly those bytes.
 #[test]
-fn upsert_marked_section_replaces_when_present() {
-    let doc = "Before\n<!-- start -->\nOld stuff\n<!-- end -->\nAfter\n";
-    let result = upsert_marked_section(doc, "<!-- start -->", "<!-- end -->", "New stuff\n");
-    assert!(result.contains("<!-- start -->\nNew stuff\n<!-- end -->"));
-    assert!(result.contains("Before"));
-    assert!(result.contains("After"));
-    assert!(!result.contains("Old stuff"));
+fn a_first_init_plan_carries_the_seeded_config_the_archetype_section_and_the_identity() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let tree = make_polyglot_tree(tmp.path());
+    let pipeline = ScaffoldPipeline::polyglot(&tree);
+
+    let plan = pipeline.preview(tmp.path()).unwrap();
+    let config = plan.get(".magistr/project.json").unwrap();
+    assert_eq!(config.action, scaffold::FileAction::Create);
+    let parsed: crate::types::ProjectConfig = serde_json::from_str(&config.new_content).unwrap();
+    assert!(
+        !parsed.lifecycle_hooks.is_empty(),
+        "preset hooks are planted"
+    );
+    assert_eq!(parsed.archetypes.len(), 2);
+    assert_eq!(parsed.topology, Some(Topology::FlatMonorepo));
+
+    let claude = plan.get("CLAUDE.md").unwrap();
+    assert_eq!(claude.action, scaffold::FileAction::Create);
+    assert!(claude.new_content.contains("<!-- think-and-ship -->"));
+    assert!(claude.new_content.contains("<!-- archetypes -->"));
+    assert!(claude.new_content.contains("| api |"));
+    assert!(claude.new_content.contains("| web |"));
+
+    let identity = plan.get(IDENTITY).unwrap();
+    assert_eq!(identity.action, scaffold::FileAction::Create);
+    assert_eq!(identity.ownership, scaffold::Ownership::Unclaimed);
+    let declared: serde_json::Value = serde_json::from_str(&identity.new_content).unwrap();
+    assert_eq!(
+        declared["id"],
+        magistr_engine::native::project_id_for_path(&tmp.path().canonicalize().unwrap())
+    );
+    assert!(!tmp.path().join(".think-and-ship").exists());
+    assert!(!tmp.path().join(".magistr").exists());
+
+    let written = pipeline.generate(tmp.path()).unwrap();
+    assert!(written.iter().any(|path| path == IDENTITY));
+    for change in [config, claude, identity] {
+        assert_eq!(
+            read(tmp.path(), &change.path),
+            change.new_content,
+            "{}",
+            change.path
+        );
+    }
+}
+
+/// A second plan preserves the configuration and the identity the first
+/// wrote: they are the user's now, and re-detection never rewrites them.
+#[test]
+fn a_second_plan_preserves_the_configuration_and_the_identity() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let tree = make_polyglot_tree(tmp.path());
+    let pipeline = ScaffoldPipeline::polyglot(&tree);
+    pipeline.generate(tmp.path()).unwrap();
+    let before =
+        [".magistr/project.json", "CLAUDE.md", IDENTITY].map(|path| read(tmp.path(), path));
+
+    let plan = pipeline.preview(tmp.path()).unwrap();
+    let config = plan.get(".magistr/project.json").unwrap();
+    assert_eq!(config.action, scaffold::FileAction::Preserved);
+    assert_eq!(config.ownership, scaffold::Ownership::User);
+    let identity = plan.get(IDENTITY).unwrap();
+    assert_eq!(identity.action, scaffold::FileAction::Preserved);
+    assert_eq!(identity.ownership, scaffold::Ownership::User);
+    assert_eq!(identity.new_content, before[2]);
+    assert_eq!(
+        plan.get("CLAUDE.md").unwrap().action,
+        scaffold::FileAction::Unchanged
+    );
+    assert_eq!(
+        plan.applies(),
+        0,
+        "{:?}",
+        plan.applied().map(|c| &c.path).collect::<Vec<_>>()
+    );
+
+    pipeline.generate(tmp.path()).unwrap();
+    let after = [".magistr/project.json", "CLAUDE.md", IDENTITY].map(|path| read(tmp.path(), path));
+    assert_eq!(after, before);
+}
+
+/// An identity an ancestor declares is the project's identity already; the
+/// plan declares nothing at the root and generation writes nothing there.
+#[test]
+fn an_identity_declared_by_an_ancestor_plans_nothing_at_the_root() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    std::fs::create_dir_all(tmp.path().join(".think-and-ship")).unwrap();
+    std::fs::write(tmp.path().join(IDENTITY), "{\"id\":\"outer-a1b2c3\"}\n").unwrap();
+    let root = tmp.path().join("nested");
+    std::fs::create_dir_all(&root).unwrap();
+    let pipeline = ScaffoldPipeline::headless(test_stack());
+
+    let plan = pipeline.preview(&root).unwrap();
+    assert!(plan.get(IDENTITY).is_none());
+    pipeline.generate(&root).unwrap();
+    assert!(!root.join(".think-and-ship").exists());
+    assert_eq!(read(tmp.path(), IDENTITY), "{\"id\":\"outer-a1b2c3\"}\n");
+}
+
+/// A headless single-stack init plants the language preset's hooks.
+#[test]
+fn a_headless_first_init_plans_the_language_preset_hooks() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let pipeline = ScaffoldPipeline::headless(test_stack());
+    let plan = pipeline.preview(tmp.path()).unwrap();
+    let config = plan.get(".magistr/project.json").unwrap();
+    let parsed: crate::types::ProjectConfig = serde_json::from_str(&config.new_content).unwrap();
+    assert_eq!(
+        parsed.lifecycle_hooks,
+        magistr_engine::workflow::hook_presets::preset_for_language("rust")
+    );
+    assert!(parsed.archetypes.is_empty());
+    assert!(
+        !plan
+            .get("CLAUDE.md")
+            .unwrap()
+            .new_content
+            .contains("<!-- archetypes -->")
+    );
 }

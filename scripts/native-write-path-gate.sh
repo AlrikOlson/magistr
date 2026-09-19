@@ -40,12 +40,13 @@
 #    (admin_service.rs) and nowhere else. The other files allowed to touch
 #    the filesystem are the ownership manifest it saves, the explicit reset
 #    (remove_scaffold.rs, owned_removal.rs), the legacy link migration
-#    (codex_skill_links.rs), the post-generation enrichments of a fresh
-#    project.json/CLAUDE.md (pipeline.rs, backlog
-#    setup-plan-post-generate-enrichments), the CI workflow writer (ci.rs,
+#    (codex_skill_links.rs), the CI workflow writer (ci.rs,
 #    backlog ci-workflow-through-admin-plan), the legacy YAML roadmap seed
 #    (generate.rs) and the interview trace log (trace.rs)
-#    (audit-260912-16-admin-apply).
+#    (audit-260912-16-admin-apply). The seeds of a fresh project.json and
+#    CLAUDE.md and the think-and-ship identity declaration are planned
+#    changes (setup-plan-post-generate-enrichments): the pipeline writes
+#    nothing after generation.
 #
 # Doc comments are not code: rule 1 skips comment lines.
 #
@@ -232,7 +233,6 @@ while IFS= read -r f; do
         crates/magistr-cli/src/scaffold/remove_scaffold.rs) continue ;;
         crates/magistr-cli/src/scaffold/owned_removal.rs) continue ;;
         crates/magistr-cli/src/scaffold/codex_skill_links.rs) continue ;;
-        crates/magistr-cli/src/scaffold/pipeline.rs) continue ;;
         crates/magistr-cli/src/scaffold/ci.rs) continue ;;
         crates/magistr-cli/src/scaffold/generate.rs) continue ;;
         crates/magistr-cli/src/scaffold/trace.rs) continue ;;

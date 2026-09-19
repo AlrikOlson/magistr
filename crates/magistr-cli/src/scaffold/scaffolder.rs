@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::error::Result;
 
-use super::ChangePlan;
+use super::{ChangePlan, SetupSeeds};
 
 /// Generates scaffold files for a project.
 ///
@@ -16,7 +16,8 @@ use super::ChangePlan;
 /// uses the template engine and writes files to disk. Alternative implementations
 /// enable testing without filesystem side effects.
 pub trait Scaffolder: Send + Sync {
-    /// Generate the full scaffold in `dir`.
+    /// Generate the full scaffold in `dir`, planting `seeds` in a fresh
+    /// configuration.
     ///
     /// Returns paths of files that were written (created or updated).
     fn generate(
@@ -24,6 +25,7 @@ pub trait Scaffolder: Send + Sync {
         dir: &Path,
         template_vars: &HashMap<String, String>,
         generated_overrides: &HashMap<String, String>,
+        seeds: &SetupSeeds,
     ) -> Result<Vec<String>>;
 
     /// Preview what `generate()` would do without writing any files.
@@ -32,6 +34,7 @@ pub trait Scaffolder: Send + Sync {
         dir: &Path,
         template_vars: &HashMap<String, String>,
         generated_overrides: &HashMap<String, String>,
+        seeds: &SetupSeeds,
     ) -> Result<ChangePlan>;
 }
 

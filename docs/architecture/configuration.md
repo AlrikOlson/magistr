@@ -212,11 +212,22 @@ The setup plan covers everything generation writes: the regular scaffold
 files under their policies, `.mcp.json` merged with the retired servers
 stripped, the `.gitignore` section, the `workbench.toml` seed (computed from
 the native command detection without writing), the retired rule files it
-removes, the shared Codex components and the template plugins the captured
-inputs name. `CLAUDE.md` stays the user's file, but its marked think-and-ship
-section is magistr's, so the plan shows the merged document as an overwrite
-with its diff rather than a preserved file that is then rewritten. A second
-plan over a freshly generated project applies nothing.
+removes, the shared Codex components, the template plugins the captured
+inputs name, and the seeds of a first init. A `.magistr/project.json` the
+plan creates already carries the lifecycle hooks the interview or the
+language preset chose and, for a polyglot tree, its archetypes, topology and
+relationships ([SetupSeeds](../../crates/magistr-cli/src/scaffold/setup_seeds.rs),
+built by the pipeline and handed to the plan); an existing configuration is
+preserved as the user's and re-detection never rewrites it. `CLAUDE.md` stays
+the user's file, but its marked sections — think-and-ship, and the archetype
+table planted beside a fresh configuration — are magistr's, so the plan shows
+the merged document as an overwrite with its diff rather than a preserved
+file that is then rewritten. The think-and-ship identity declaration
+(`.think-and-ship/project.json`) is planned too: created with the id
+resolution answers today when nothing declares one, preserved when the root
+already declares it, absent when an ancestor's declaration covers the root.
+The pipeline writes nothing after generation, so a first-init preview is
+complete and a second plan over a freshly generated project applies nothing.
 
 Canonical inputs are read once per plan by
 [CanonicalSource](../../crates/magistr-cli/src/scaffold/canonical.rs). A

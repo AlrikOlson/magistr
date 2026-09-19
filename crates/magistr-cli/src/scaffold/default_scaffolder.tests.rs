@@ -43,7 +43,12 @@ edition = "2021""#
 
     let scaffolder = DefaultScaffolder;
     let result = scaffolder
-        .generate(tmp.path(), &vars, &HashMap::new())
+        .generate(
+            tmp.path(),
+            &vars,
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
         .unwrap();
 
     assert!(!result.is_empty(), "should generate at least some files");

@@ -397,7 +397,9 @@ fn open_resolves_identity_from_the_project_root() {
     let root = tmp.path().join("ident");
     std::fs::create_dir_all(&root).expect("mkdir");
     let cfg = NativeConfig::from_lookup(&root, |_| None).with_data_dir(tmp.path().join("data"));
-    let declared = super::super::identity::ensure_project_file(&root).expect("identity");
+    let declared =
+        magistr_workflow::infra::project_id_for_path(&root.canonicalize().expect("canonical"));
+    magistr_workflow::infra::write_project_file(&root, &declared, None).expect("identity");
     let engines = ProjectAuthority::admit(&cfg, WriterRole::Host)
         .expect("admitted")
         .open();

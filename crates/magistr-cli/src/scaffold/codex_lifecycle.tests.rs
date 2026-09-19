@@ -16,7 +16,13 @@ fn codex_setup_merges_shared_files_and_preview_matches_generation() {
         "# my setting\nmodel = 'chosen' # retain\n\n[mcp_servers.custom]\ncommand = 'mine'\n";
     std::fs::write(dir.join(".codex/config.toml"), existing).unwrap();
     std::fs::write(dir.join("AGENTS.md"), "# Team rules\nKeep this.\n").unwrap();
-    let p = preview(dir, &codex_vars(), &HashMap::new()).unwrap();
+    let p = preview(
+        dir,
+        &codex_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let config = p
         .files
         .iter()
@@ -31,7 +37,13 @@ fn codex_setup_merges_shared_files_and_preview_matches_generation() {
         .unwrap()
         .new_content
         .clone();
-    generate_with_result(dir, &codex_vars(), &HashMap::new()).unwrap();
+    generate_with_result(
+        dir,
+        &codex_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(
         std::fs::read_to_string(dir.join(".codex/config.toml")).unwrap(),
         config
@@ -68,7 +80,13 @@ fn codex_setup_merges_shared_files_and_preview_matches_generation() {
             "{name}"
         );
     }
-    let repeated = generate_with_result(dir, &codex_vars(), &HashMap::new()).unwrap();
+    let repeated = generate_with_result(
+        dir,
+        &codex_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert!(repeated.unchanged.contains(&".codex/config.toml".into()));
     assert!(repeated.unchanged.contains(&"AGENTS.md".into()));
 }
@@ -79,8 +97,24 @@ fn codex_malformed_config_rejects_all_scaffold_writes() {
     let dir = tmp.path();
     std::fs::create_dir(dir.join(".codex")).unwrap();
     std::fs::write(dir.join(".codex/config.toml"), "[broken").unwrap();
-    assert!(preview(dir, &codex_vars(), &HashMap::new()).is_err());
-    assert!(generate_with_result(dir, &codex_vars(), &HashMap::new()).is_err());
+    assert!(
+        preview(
+            dir,
+            &codex_vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default()
+        )
+        .is_err()
+    );
+    assert!(
+        generate_with_result(
+            dir,
+            &codex_vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default()
+        )
+        .is_err()
+    );
     assert!(!dir.join(".magistr").exists());
     assert!(!dir.join(".claude").exists());
     assert_eq!(
@@ -93,7 +127,13 @@ fn codex_malformed_config_rejects_all_scaffold_writes() {
 fn codex_selective_apply_records_ownership_and_preserves_customizations() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path();
-    let p = preview(dir, &codex_vars(), &HashMap::new()).unwrap();
+    let p = preview(
+        dir,
+        &codex_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let selected: Vec<_> = p
         .files
         .iter()
@@ -112,7 +152,13 @@ fn codex_selective_apply_records_ownership_and_preserves_customizations() {
     std::fs::write(&config_path, &config).unwrap();
     let skill = dir.join(".agents/skills/next/SKILL.md");
     std::fs::write(&skill, "my workflow").unwrap();
-    generate_with_result(dir, &codex_vars(), &HashMap::new()).unwrap();
+    generate_with_result(
+        dir,
+        &codex_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(std::fs::read_to_string(&skill).unwrap(), "my workflow");
     assert!(
         std::fs::read_to_string(&config_path)

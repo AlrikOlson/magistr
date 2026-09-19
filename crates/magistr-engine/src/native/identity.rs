@@ -1,24 +1,23 @@
 use std::path::Path;
 
-use magistr_workflow::infra::{IdSource, resolve_project_id_with, write_project_file};
+use magistr_workflow::infra::{IdSource, ProjectIdentity, resolve_project_id_with};
 
-/// Make sure `root` declares its think-and-ship identity, returning the id.
+/// The think-and-ship identity declaration a first init plants at
+/// `root/.think-and-ship/project.json`, or `None` when a repository file
+/// already declares one at `root` or an ancestor.
 ///
-/// Resolves the id exactly as the external server would — environment
+/// The id is resolved exactly as the server resolves it — environment
 /// override, then an existing `.think-and-ship/project.json` found walking
 /// up from `root`, then the deterministic `<basename>-<hash>` fallback — and
-/// only when nothing is declared writes that already-resolved id to
-/// `root/.think-and-ship/project.json`. The id is never minted here: every
-/// store the project already holds is keyed by what resolution returns
-/// today, and writing anything else would orphan it.
-///
-/// Called by `magistr init`; idempotent.
-pub fn ensure_project_file(root: &Path) -> std::io::Result<String> {
+/// the declaration carries that already-resolved id. The id is never minted
+/// here: every store the project already holds is keyed by what resolution
+/// returns today, and declaring anything else would orphan it. The bytes are
+/// the workflow's own rendering, so the setup plan shows the file that
+/// setup's administrative service writes.
+#[must_use]
+pub fn identity_declaration(root: &Path) -> Option<String> {
     let (id, source) = resolve_project_id_with(None, Some(root));
-    if source != IdSource::RepoFile {
-        write_project_file(root, &id, None)?;
-    }
-    Ok(id)
+    (source != IdSource::RepoFile).then(|| ProjectIdentity { id, name: None }.declaration())
 }
 
 #[cfg(test)]

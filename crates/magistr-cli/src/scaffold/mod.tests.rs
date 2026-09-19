@@ -107,7 +107,13 @@ fn generate_creates_all_scaffold_files() {
         ("allowed_tools", r#""Bash(cargo:*)""#),
     ]);
 
-    let written = generate(dir, &template_vars, &HashMap::new()).unwrap();
+    let written = generate(
+        dir,
+        &template_vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // All scaffold files + .mcp.json + .gitignore.
     assert!(
@@ -181,7 +187,13 @@ fn generate_substitutes_template_values() {
         ("allowed_tools", r#""Bash(npm:*)","Bash(npx:*)""#),
     ]);
 
-    generate(dir, &template_vars, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &template_vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // project.json should contain substituted values, not placeholders.
     let pj = std::fs::read_to_string(dir.join(".magistr/project.json")).unwrap();
@@ -228,7 +240,13 @@ fn mcp_json_has_project_root() {
         ("allowed_tools", ""),
     ]);
 
-    generate(dir, &template_vars, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &template_vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     let mcp = std::fs::read_to_string(dir.join(".mcp.json")).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&mcp).unwrap();
@@ -282,7 +300,13 @@ fn generate_preserves_existing_claude_md_and_roadmap() {
         ("project_type", "cli"),
     ]);
 
-    let written = generate(dir, &template_vars, &HashMap::new()).unwrap();
+    let written = generate(
+        dir,
+        &template_vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // CLAUDE.md is user-owned (NeverOverwrite); the only write is the
     // think-and-ship section appended between markers, which is reported.
@@ -317,7 +341,13 @@ fn generated_override_replaces_static_template_content() {
         "# AI-generated conventions\n\nCustom content here.".to_string(),
     );
 
-    generate(dir, &tv, &overrides).unwrap();
+    generate(
+        dir,
+        &tv,
+        &overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     let conventions = std::fs::read_to_string(dir.join(".claude/rules/conventions.md")).unwrap();
     assert_eq!(
@@ -334,7 +364,13 @@ fn roadmap_not_scaffolded() {
     let dir = tmp.path();
     let tv = test_vars();
 
-    generate(dir, &tv, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert!(
         !dir.join("ROADMAP.md").exists(),
@@ -362,7 +398,13 @@ fn generated_override_for_claude_md_respects_preserve() {
         "# AI-generated CLAUDE.md".to_string(),
     );
 
-    generate(dir, &tv, &overrides).unwrap();
+    generate(
+        dir,
+        &tv,
+        &overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Existing CLAUDE.md should be preserved (NeverOverwrite); the only
     // addition is the think-and-ship section appended after the user's text.
@@ -400,7 +442,13 @@ fn test_vars() -> HashMap<String, String> {
 #[test]
 fn preview_empty_dir_all_creates() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let result = preview(tmp.path(), &test_vars(), &HashMap::new()).unwrap();
+    let result = preview(
+        tmp.path(),
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // All files should be "create" in an empty directory
     assert!(
@@ -427,16 +475,35 @@ fn preview_existing_scaffold_shows_unchanged() {
     let tv = test_vars();
 
     // First, generate the scaffold
-    generate(tmp.path(), &tv, &HashMap::new()).unwrap();
+    generate(
+        tmp.path(),
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Preview should show all as unchanged (except preserved files)
-    let result = preview(tmp.path(), &tv, &HashMap::new()).unwrap();
+    let result = preview(
+        tmp.path(),
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     assert_eq!(result.creates(), 0);
     assert_eq!(result.overwrites(), 0);
-    // project.json is preserved (NeverOverwrite); CLAUDE.md is the user's
-    // too, but its section is current so it is simply unchanged.
-    assert_eq!(result.preserved(), 1);
+    // project.json is preserved (NeverOverwrite) and so is the identity
+    // declaration the first init wrote; CLAUDE.md is the user's too, but its
+    // section is current so it is simply unchanged.
+    assert_eq!(result.preserved(), 2);
+    let identity = result
+        .files
+        .iter()
+        .find(|f| f.path == ".think-and-ship/project.json")
+        .unwrap();
+    assert_eq!(identity.action, FileAction::Preserved);
     let claude = result.files.iter().find(|f| f.path == "CLAUDE.md").unwrap();
     assert_eq!(claude.action, FileAction::Unchanged);
     assert_eq!(claude.ownership, Ownership::User);
@@ -457,7 +524,13 @@ fn preview_preserves_user_edited_files() {
     // Create user-edited CLAUDE.md
     std::fs::write(dir.join("CLAUDE.md"), "# My custom content").unwrap();
 
-    let result = preview(dir, &test_vars(), &HashMap::new()).unwrap();
+    let result = preview(
+        dir,
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // The user's text is kept and the think-and-ship section is appended:
     // a shared merge the plan shows as an overwrite with its diff.
@@ -490,12 +563,24 @@ fn preview_detects_modified_files() {
     let tv = test_vars();
 
     // Generate scaffold first
-    generate(dir, &tv, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Modify a file
     std::fs::write(dir.join(".claude/settings.json"), r#"{"modified": true}"#).unwrap();
 
-    let result = preview(dir, &tv, &HashMap::new()).unwrap();
+    let result = preview(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     let settings = result
         .files
@@ -513,7 +598,13 @@ fn preview_does_not_write_files() {
     let dir = tmp.path();
 
     // Preview in an empty directory
-    let _result = preview(dir, &test_vars(), &HashMap::new()).unwrap();
+    let _result = preview(
+        dir,
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // No files should have been created
     assert!(!dir.join(".claude").exists());
@@ -539,14 +630,27 @@ fn preview_summary_counts() {
     let tv = test_vars();
 
     // Generate, then modify one file, add user files
-    generate(dir, &tv, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     // Modify settings.json to get an "overwrite"
     std::fs::write(dir.join(".claude/rules/tools.md"), "# modified").unwrap();
 
-    let result = preview(dir, &tv, &HashMap::new()).unwrap();
+    let result = preview(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
-    // project.json preserved, 1 overwrite, rest unchanged.
-    assert_eq!(result.preserved(), 1);
+    // project.json and the identity declaration preserved, 1 overwrite,
+    // rest unchanged.
+    assert_eq!(result.preserved(), 2);
     assert_eq!(result.overwrites(), 1);
     assert_eq!(result.creates(), 0);
     let total = result.creates() + result.overwrites() + result.unchanged() + result.preserved();
@@ -652,8 +756,20 @@ fn generate_is_idempotent() {
     let tv = test_vars();
 
     // Run generate twice — should not error.
-    let first = generate(dir, &tv, &HashMap::new()).unwrap();
-    let second = generate(dir, &tv, &HashMap::new()).unwrap();
+    let first = generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
+    let second = generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // First run should create files.
     assert!(
@@ -677,7 +793,13 @@ fn generate_is_idempotent() {
     let pj1 = std::fs::read_to_string(dir.join(".magistr/project.json")).unwrap();
 
     // Third run — still idempotent (same count as second).
-    let third = generate(dir, &tv, &HashMap::new()).unwrap();
+    let third = generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert_eq!(
         third.len(),
         second.len(),
@@ -697,7 +819,13 @@ fn remove_scaffold_preserves_user_mcp_entries() {
     let tv = test_vars();
 
     // Generate scaffold.
-    generate(dir, &tv, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // Add a user server to .mcp.json.
     let mcp_path = dir.join(".mcp.json");
@@ -729,7 +857,13 @@ fn remove_scaffold_deletes_mcp_json_when_only_jig_entries() {
     let tv = test_vars();
 
     // Generate scaffold (only magistr servers in .mcp.json).
-    generate(dir, &tv, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &tv,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert!(dir.join(".mcp.json").exists());
 
     // Remove scaffold — .mcp.json should be deleted entirely.
@@ -904,7 +1038,13 @@ fn magistr_dir_gitignore_in_scaffold_files() {
 #[test]
 fn preview_includes_gitignore() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let result = preview(tmp.path(), &test_vars(), &HashMap::new()).unwrap();
+    let result = preview(
+        tmp.path(),
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     let gi = result.files.iter().find(|f| f.path == ".gitignore");
     assert!(gi.is_some(), ".gitignore should be in preview");
     assert_eq!(gi.unwrap().action, FileAction::Create);
@@ -1074,7 +1214,13 @@ fn init_in_the_canonical_skill_repo_preserves_byte_equality() {
         ("state_prefix", "workbench-mcp"),
         ("allowed_tools", ""),
     ]);
-    generate(dir, &template_vars, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &template_vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     let written = std::fs::read_to_string(dir.join(".claude/skills/workbench-routing/SKILL.md"))
         .expect("dogfood copy written");
@@ -1108,7 +1254,13 @@ fn init_outside_the_canonical_repo_keeps_the_provenance_marker() {
         ("state_prefix", "other"),
         ("allowed_tools", ""),
     ]);
-    generate(dir, &template_vars, &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &template_vars,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     let written = std::fs::read_to_string(dir.join(".claude/skills/workbench-routing/SKILL.md"))
         .expect("skill written");
@@ -1334,8 +1486,8 @@ fn malformed_explicit_mcp_arguments_fail_before_scaffold_writes() {
         let tmp = tempfile::tempdir().unwrap();
         let mut vars = test_vars();
         vars.insert("workbench_args".into(), fragment.into());
-        assert!(preview(tmp.path(), &vars, &HashMap::new()).is_err());
-        assert!(generate(tmp.path(), &vars, &HashMap::new()).is_err());
+        assert!(preview(tmp.path(), &vars, &HashMap::new(), &SetupSeeds::default()).is_err());
+        assert!(generate(tmp.path(), &vars, &HashMap::new(), &SetupSeeds::default()).is_err());
         assert_eq!(std::fs::read_dir(tmp.path()).unwrap().count(), 0);
     }
 }
@@ -1362,7 +1514,13 @@ fn a_gitignore_ending_in_a_blank_line_gains_no_second_separator() {
 fn remove_scaffold_keeps_files_magistr_never_wrote() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
-    generate(dir, &test_vars(), &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     // The user's own skills, hook and rule, beside magistr's.
     let theirs = [
@@ -1401,7 +1559,13 @@ fn remove_scaffold_keeps_files_magistr_never_wrote() {
 fn remove_scaffold_prunes_the_directories_it_emptied() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
-    generate(dir, &test_vars(), &HashMap::new()).unwrap();
+    generate(
+        dir,
+        &test_vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 
     remove_scaffold(dir).unwrap();
 

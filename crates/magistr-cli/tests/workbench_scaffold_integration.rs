@@ -45,7 +45,13 @@ fn scaffolded_fixture_is_a_workbench_workspace() {
     .expect("Cargo.toml");
     std::fs::write(dir.join("src/main.rs"), "fn main() {}\n").expect("main.rs");
 
-    magistr::scaffold::generate(dir, &template_vars(), &HashMap::new()).expect("scaffold");
+    magistr::scaffold::generate(
+        dir,
+        &template_vars(),
+        &HashMap::new(),
+        &magistr::scaffold::SetupSeeds::default(),
+    )
+    .expect("scaffold");
 
     // The navigation substrate is workbench-mcp, and only workbench-mcp.
     let mcp: serde_json::Value =
