@@ -177,8 +177,11 @@ with terminal cell/icon choices and desktop pixel geometry resolved by each surf
 
 The driver coalesces input and producer updates before rendering. Jobs, engine
 calls, and agent transport work run outside the state-update function. Engine
-startup happens before terminal takeover, so startup errors can use normal
-diagnostics.
+and provider startup happen through the shared
+[interactive host](sessions.md#live-interface-host) before terminal takeover,
+so startup errors can use normal diagnostics. `Runtime::with_channels` consumes
+the host's already-created channels; startup messages and later commands use
+the same loop as `Runtime::new`.
 
 The terminal session controls output while it is active. Other parts of the
 process must not write directly to the screen. Shutdown restores the terminal;

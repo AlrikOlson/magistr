@@ -37,9 +37,12 @@ session and workflow contracts. `magistr-cockpit-runtime` supplies channels and
 the shared relay and conversation/planning coordinator over session handles and
 local effect ports. Hosts supply provider startup through a purpose-aware
 connector; queueing, context reuse, retry and relay shutdown belong to the shared
-runtime. These are available without a CLI or terminal dependency; the desktop executable still
-needs live host composition, provider setup and native-window verification.
-It depends on neither `magistr-tui` nor concrete engine, workflow, workspace,
+runtime. These are available without a CLI or terminal dependency. The concrete
+[interactive host](sessions.md#live-interface-host) can now build without the
+terminal renderer. A separate desktop launcher still needs to compose that
+host, its provider/worker executable roles and the native window, then verify
+real provider and window journeys.
+The desktop renderer depends on neither `magistr-tui` nor concrete engine, workflow, workspace,
 process, ACP or CLI implementations. The dependency-boundary test checks Cargo's
 resolved host graph, as well as the root workspace's exclusion.
 

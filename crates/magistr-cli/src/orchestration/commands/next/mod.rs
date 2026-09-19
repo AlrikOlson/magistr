@@ -2,29 +2,39 @@
 //! and headless/gate-only modes for CI pipelines.
 
 mod cmd_next;
+#[cfg(feature = "terminal")]
 mod cmd_next_cockpit;
 mod cmd_next_continue;
 mod cmd_next_gate_only;
 mod cmd_next_headless;
 mod cmd_next_loop;
+#[cfg(feature = "terminal")]
 mod cmd_next_loop_cockpit;
 mod cmd_next_loop_headless;
+#[cfg(feature = "terminal")]
 mod cmd_next_loop_tui;
+#[cfg(feature = "terminal")]
 mod cmd_next_tui;
 mod cmd_resolve_dispatch;
+#[cfg(feature = "terminal")]
 mod run_cockpit_loop;
 pub use cmd_resolve_dispatch::cmd_resolve_dispatch;
 
 pub use cmd_next::cmd_next;
+#[cfg(feature = "terminal")]
 pub use cmd_next_cockpit::cmd_next_cockpit;
 pub use cmd_next_continue::cmd_next_continue;
 pub use cmd_next_gate_only::cmd_next_gate_only;
 pub use cmd_next_headless::cmd_next_headless;
 pub use cmd_next_loop::cmd_next_loop;
+#[cfg(feature = "terminal")]
 pub use cmd_next_loop_cockpit::cmd_next_loop_cockpit;
 pub use cmd_next_loop_headless::cmd_next_loop_headless;
+#[cfg(feature = "terminal")]
 pub use cmd_next_loop_tui::cmd_next_loop_tui;
+#[cfg(feature = "terminal")]
 pub use cmd_next_tui::cmd_next_tui;
+#[cfg(feature = "terminal")]
 pub(crate) use run_cockpit_loop::run_cockpit_loop;
 
 /// Canonicalize a project directory path, converting IO errors to `MagistrError`.

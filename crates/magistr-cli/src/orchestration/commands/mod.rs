@@ -9,11 +9,15 @@ use crate::cli;
 
 pub mod archetypes;
 pub mod chrome;
+#[cfg(feature = "terminal")]
 pub mod cockpit;
+#[cfg(feature = "terminal")]
 pub mod cockpit_roadmap;
 pub mod config;
 pub mod config_manage;
+#[cfg(feature = "terminal")]
 pub mod home;
+#[cfg(feature = "terminal")]
 pub(crate) mod home_data;
 pub mod init;
 pub mod misc;

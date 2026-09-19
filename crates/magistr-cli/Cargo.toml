@@ -18,6 +18,11 @@ path = "src/lib.rs"
 [[bin]]
 name = "magistr"
 path = "src/main.rs"
+required-features = ["terminal"]
+
+[features]
+default = ["terminal"]
+terminal = ["dep:magistr-tui"]
 
 [dependencies]
 magistr-application = { path = "../magistr-application" }
@@ -37,7 +42,7 @@ magistr-acp-agent = { path = "../magistr-acp-agent" }
 magistr-mcp = { path = "../magistr-mcp" }
 magistr-cockpit = { path = "../magistr-cockpit" }
 magistr-cockpit-runtime = { path = "../magistr-cockpit-runtime" }
-magistr-tui = { path = "../magistr-tui" }
+magistr-tui = { path = "../magistr-tui", optional = true }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -70,6 +75,7 @@ name = "workspace_bench"
 harness = false
 
 [dev-dependencies]
+magistr-tui = { path = "../magistr-tui" }
 # Replay the supervised cockpit integration harness through a real VT emulator.
 vt100 = "0.16"
 assert_cmd = "2"

@@ -65,6 +65,26 @@ impl<T: Terminal> Runtime<T> {
         }
     }
 
+    /// Use channels created by a host before the terminal was opened.
+    /// The command receiver already belongs to that host, so `commands()`
+    /// returns `None`. Messages queued during startup enter the normal loop.
+    pub fn with_channels(
+        terminal: T,
+        options: Options,
+        inbox: Inbox,
+        messages: UnboundedReceiver<Msg>,
+        commands_tx: UnboundedSender<Cmd>,
+    ) -> Self {
+        Self {
+            terminal,
+            options,
+            inbox,
+            messages,
+            commands_tx,
+            commands: None,
+        }
+    }
+
     /// The inbox producers post on; clone it out before [`Runtime::run`].
     #[must_use]
     pub fn inbox(&self) -> Inbox {
