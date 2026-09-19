@@ -84,7 +84,11 @@ fn pair(
     ground: Srgba,
     lex: &Lexicon,
 ) -> Element {
-    KeyHint::in_voice(binding.keys, label, Voice::LEDGER_HINT, medium, ground, lex).id(id)
+    KeyHint::in_voice(binding.keys, label, Voice::LEDGER_HINT, medium, ground, lex)
+        .id(id)
+        .focusable()
+        .focus_ring(lex.mauve)
+        .label(label)
 }
 
 #[cfg(test)]

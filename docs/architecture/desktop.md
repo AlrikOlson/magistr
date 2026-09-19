@@ -406,12 +406,39 @@ left to start. The loop's agent sessions use the project's default provider
 configuration, as the terminal loop does, not the window's `--provider` or
 `--model` choice.
 
-The window does not yet draw start buttons; pointer and accessibility controls
-and the launcher-level process check are roadmap item
-`desktop-loop-window-controls`.
+The window draws the same two actions. `WorkControls` decides the offered verbs
+once for every place that shows them: **Start next item** and **Start loop** while
+no loop is live (`Model::loop_is_live`) in a session whose host starts work in
+place, and the loop's **Pause** (Resume while held), **Step**, **Checkpoint** and
+**Abort** only while one is. The conversation heading shows them ahead of Roadmap
+and Commands; the supervision rail's ledger head wears them as key-hint pairs
+with the registry's keys. Every control is the cockpit's own `LaunchNext`,
+`LaunchLoop` or `Loop*` widget: a pointer press, Tab then Return and an AccessKit
+click take one route, publish the Button role with Focus and Click, and keep the
+unsent draft. `frame.tests.rs` drives all three activations against the painted
+frame; `rail-idle-*` goldens, the sink's `work_controls` specimen and the GPU
+fixture's `work-idle` and `work-running` scenes cover the idle and running states.
+
 `orchestration/loop_driver/driver.tests.rs::a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conversation`
 and `orchestration/hosted_work.tests.rs` cover the host phases with a
-controlled provider.
+controlled provider. The launcher-level check starts the loop from the real
+window:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 crates/magistr-desktop/tests/native_work.py crates/magistr-desktop/target/debug/magistr-desktop
+```
+
+It needs the same graphical session, Swift and Accessibility permission as
+`native_launch.py`, and contacts no model service. A disposable native-roadmap
+project is seeded through the launcher's own `mcp-launch magistr` role with one
+item and the execution trace a tool-using agent would open itself, because the
+controlled Ollama peer only chats. The driver presses Start loop through
+Accessibility, sees the loop's verbs replace the starts, waits for the starts to
+return, and checks the kept draft and a clean close. The peer must have been
+asked exactly once as the agent and once as the judge; the loop checkpoint must
+record the reservation, dispatch, start and judged completion as completed with
+nothing unsettled; and the item must be done. A project configured with MCP
+servers cannot open under a chat-only provider, so this fixture declares none.
 
 ## Roadmap planning
 

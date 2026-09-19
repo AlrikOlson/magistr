@@ -439,3 +439,54 @@ fn the_rails_rows_and_raise_resolve_to_their_widgets_and_click_through() {
     let root = RailComposition::el(&model, Medium::Night, CELL.0);
     assert!(has_id(&root, ElementId(SpineLedger::FORK + newest as u64)));
 }
+
+/// The session workspace — the view the desktop opens on — draws the starts beside
+/// Roadmap and Commands while no loop is live and the loop's verbs while one is; each
+/// resolves to the cockpit's own widget, and a press on a start is the host's command.
+#[test]
+fn the_conversation_heading_starts_work_while_idle_and_steers_the_loop_while_live() {
+    use crate::comp_workspace::WorkspaceComposition;
+    use magistr_cockpit::cockpit::{Cmd, LaunchAction, LoopCmd};
+    let mut idle = Fixture::rail_idle(Size::new(120, 40));
+    let root = RootComposition::el(&idle, Medium::Night, CELL, VIEWPORT, &clock());
+    for (widget, label) in [
+        (Widget::LaunchNext, "Start next item"),
+        (Widget::LaunchLoop, "Start loop"),
+    ] {
+        let id = WorkspaceComposition::id(widget.id());
+        assert!(has_id(&root, id) && has(&root, label), "{label}");
+        assert_eq!(RootComposition::target_of(&idle, id), Some(widget.id()));
+    }
+    assert!(!has_id(
+        &root,
+        WorkspaceComposition::id(Widget::LoopAbort.id())
+    ));
+    assert_eq!(
+        update(&mut idle, click_target(Widget::LaunchLoop.id())),
+        vec![Cmd::Launch(LaunchAction::Loop)]
+    );
+    assert_eq!(
+        RootComposition::target_of(&idle, crate::work_controls::WorkControls::NEXT),
+        Some(Widget::LaunchNext.id())
+    );
+    assert_eq!(
+        RootComposition::target_of(&idle, crate::work_controls::WorkControls::LOOP),
+        Some(Widget::LaunchLoop.id())
+    );
+
+    let (live, _) = root_of("05");
+    let mut live = live.with_hosted_work();
+    let root = RootComposition::el(&live, Medium::Night, CELL, VIEWPORT, &clock());
+    for widget in Widget::LOOP_VERBS {
+        assert!(
+            has_id(&root, WorkspaceComposition::id(widget.id())),
+            "{widget:?}"
+        );
+    }
+    assert!(!has_id(
+        &root,
+        WorkspaceComposition::id(Widget::LaunchNext.id())
+    ));
+    let cmds = update(&mut live, click_target(Widget::LoopPause.id()));
+    assert!(cmds.contains(&Cmd::Loop(LoopCmd::Pause)), "{cmds:?}");
+}

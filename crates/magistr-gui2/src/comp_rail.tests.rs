@@ -4,6 +4,7 @@ use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
 use super::*;
 use crate::element::Kind;
 use crate::fixture::Fixture;
+use crate::ledger_verbs::LedgerVerbs;
 
 const CELL_W: f32 = 9.0;
 
@@ -268,4 +269,69 @@ fn a_charter_offer_is_a_row_with_delegate_at_its_edge() {
         crate::comp_root::RootComposition::target_of(&offered, ElementId(RailComposition::OFFER)),
         Some(Widget::charter_offer(0))
     );
+}
+
+/// With no loop live, a session whose host starts work in place wears the two starts
+/// where the loop's verbs sit — focusable, named, in the start ids — and none of the
+/// loop's verbs; a live loop wears its verbs and no start.
+#[test]
+fn the_ledger_head_offers_the_starts_while_idle_and_the_loops_verbs_only_while_live() {
+    use crate::work_controls::WorkControls;
+    let ids = |rail: &Element| {
+        let mut ids = Vec::new();
+        rail.each(&mut |_, element| {
+            if let Some(id) = element.id
+                && (LedgerVerbs::PAUSE.0..=WorkControls::LOOP.0).contains(&id.0)
+            {
+                ids.push((id, element.focusable, element.label.clone()));
+            }
+        });
+        ids
+    };
+    let idle = Fixture::rail_idle(Size::new(120, 40));
+    assert!(!idle.loop_is_live());
+    let rail = RailComposition::el(&idle, Medium::Night, CELL_W);
+    assert_eq!(
+        ids(&rail),
+        [
+            (WorkControls::NEXT, true, Some("Start next item".to_owned())),
+            (WorkControls::LOOP, true, Some("Start loop".to_owned())),
+        ]
+    );
+    assert!(
+        has(&rail, "alt-n") && has(&rail, "alt-l"),
+        "the registry's keys"
+    );
+    assert!(!has(&rail, "Pause") && !has(&rail, "Abort"));
+
+    let live = Fixture::mock("05", Size::new(120, 40))
+        .expect("view 05")
+        .with_hosted_work();
+    assert!(live.loop_is_live());
+    let rail = RailComposition::el(&live, Medium::Night, CELL_W);
+    let live_ids: Vec<_> = ids(&rail).into_iter().map(|(id, ..)| id).collect();
+    assert_eq!(
+        live_ids,
+        [
+            LedgerVerbs::PAUSE,
+            LedgerVerbs::STEP,
+            LedgerVerbs::CHECKPOINT,
+            LedgerVerbs::ABORT
+        ]
+    );
+    assert!(ids(&rail).iter().all(|(_, focusable, _)| *focusable));
+    assert!(!has(&rail, "Start loop"));
+
+    // An ended loop on a session no host starts work for: neither row.
+    let mut ended = Fixture::mock("05", Size::new(120, 40)).expect("view 05");
+    update(
+        &mut ended,
+        Msg::Loop(LoopEvent::Ended("finished".to_owned())),
+    );
+    assert_eq!(ids(&RailComposition::el(&ended, Medium::Night, CELL_W)), []);
+
+    // A fresh hosted session has no checkpoint yet and still offers the starts.
+    let fresh = Model::new(Size::new(120, 40)).with_hosted_work();
+    let rail = RailComposition::el(&fresh, Medium::Night, CELL_W);
+    assert!(has(&rail, "No checkpoints yet") && has(&rail, "Start next item"));
 }

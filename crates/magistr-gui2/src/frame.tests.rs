@@ -878,6 +878,130 @@ fn project_stars_labels_buttons_and_accessibility_open_the_same_project() {
     }
 }
 
+// ── Starting work ────────────────────────────────────
+
+/// The two starts on the session window, each reached by pointer at its painted box,
+/// by an accessibility click and by Tab then Return — one route, the cockpit's own
+/// widget, giving the host's command and keeping the draft. With a loop live the starts
+/// are gone and the loop's verbs answer the same three ways.
+#[test]
+fn the_starts_answer_pointer_keyboard_and_accessibility_and_yield_to_the_loops_verbs() {
+    use accesskit::{Action, ActionRequest, Role, TreeId};
+    use magistr_cockpit::cockpit::{Cmd, LaunchAction, LoopCmd};
+    use magistr_cockpit::input::{KeyCode, KeyEvent};
+
+    let (width, height) = (1100, 760);
+    let cases = [
+        (
+            false,
+            Widget::LaunchNext,
+            "Start next item",
+            Cmd::Launch(LaunchAction::Next),
+        ),
+        (
+            false,
+            Widget::LaunchLoop,
+            "Start loop",
+            Cmd::Launch(LaunchAction::Loop),
+        ),
+        (true, Widget::LoopStep, "Step", Cmd::Loop(LoopCmd::Step)),
+        (true, Widget::LoopAbort, "Abort", Cmd::Loop(LoopCmd::Abort)),
+    ];
+    for (live, widget, label, expected) in cases {
+        for activation in 0..3 {
+            let mut frame = Frame::new().unwrap();
+            let size = frame.metrics().grid(width, height);
+            let mut model = if live {
+                Fixture::mock("05", size).unwrap().with_hosted_work()
+            } else {
+                Fixture::rail_idle(size)
+            };
+            model.set_surface(magistr_cockpit::cockpit::Surface::Native);
+            update(&mut model, Msg::Paste("Keep my draft".into()));
+            let draft = model.prompt().clone();
+            frame.still(&mut model, &clock(), width, height).unwrap();
+            let target = widget.id();
+            let access = frame.access();
+            let node = access
+                .nodes()
+                .iter()
+                .find(|n| n.target == Some(target))
+                .unwrap_or_else(|| panic!("{label} is published"));
+            assert_eq!(node.label, label);
+            assert_eq!(node.role, Role::Button);
+            assert!(node.actions.contains(&Action::Click) && node.actions.contains(&Action::Focus));
+            let absent = if live {
+                Widget::LaunchLoop
+            } else {
+                Widget::LoopAbort
+            };
+            assert!(
+                access.nodes().iter().all(|n| n.target != Some(absent.id())),
+                "{absent:?} is not offered beside {label}"
+            );
+            let messages = match activation {
+                0 => {
+                    let (_, [x, y, w, h]) = frame
+                        .says()
+                        .into_iter()
+                        .find(|(text, _)| text == label)
+                        .unwrap();
+                    let (x, y) = (x + w / 2.0, y + h / 2.0);
+                    let hit = frame.hits().hit_at(x.into(), y.into());
+                    assert_eq!(hit, Some(target), "{label} under the pointer");
+                    frame.input(
+                        &model,
+                        Msg::Mouse {
+                            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0)
+                                .at_px(x as u32, y as u32),
+                            target: hit,
+                        },
+                    )
+                }
+                1 => frame
+                    .access_action(
+                        &model,
+                        ActionRequest {
+                            action: Action::Click,
+                            target_tree: TreeId::ROOT,
+                            target_node: node.id,
+                            data: None,
+                        },
+                    )
+                    .unwrap(),
+                _ => {
+                    for _ in 0..64 {
+                        if frame.focus_target() == Some(target) {
+                            break;
+                        }
+                        let messages = frame.input(&model, Msg::Key(KeyEvent::new(KeyCode::Tab)));
+                        assert!(messages.is_empty());
+                    }
+                    assert_eq!(
+                        frame.focus_target(),
+                        Some(target),
+                        "{label} takes Tab focus"
+                    );
+                    frame.input(&model, Msg::Key(KeyEvent::new(KeyCode::Enter)))
+                }
+            };
+            assert!(
+                !messages.is_empty(),
+                "{label}: activation {activation} was ignored"
+            );
+            let commands: Vec<_> = messages
+                .into_iter()
+                .flat_map(|msg| update(&mut model, msg))
+                .collect();
+            assert!(
+                commands.contains(&expected),
+                "{label} {activation}: {commands:?}"
+            );
+            assert_eq!(model.prompt(), &draft, "the draft is kept");
+        }
+    }
+}
+
 /// View 01 — the Galaxy: three clusters on the field, their labels
 /// pinned by the same layout, the chips in the header, the Galaxy's
 /// foot, and the ⌘K palette floated over it all.

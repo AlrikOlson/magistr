@@ -107,6 +107,7 @@ fn every_composition_is_a_golden_in_both_media() {
         },
     );
     let offered = Fixture::rail_offer(SIZE);
+    let idle = Fixture::rail_idle(SIZE);
     let turn = Fixture::turn(SIZE);
     let cards = Fixture::cards(Size::new(120, 400));
     let mut typed = Model::new(SIZE);
@@ -156,6 +157,13 @@ fn every_composition_is_a_golden_in_both_media() {
             RailComposition::el(&revealed, medium, CELL.0),
             medium,
             &format!("rail-revealed-{tag}"),
+            &golden,
+        );
+        // The idle rail: the two starts where the running rail wears the loop's verbs.
+        still(
+            RailComposition::el(&idle, medium, CELL.0),
+            medium,
+            &format!("rail-idle-{tag}"),
             &golden,
         );
         still(

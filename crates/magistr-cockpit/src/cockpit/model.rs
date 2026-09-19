@@ -1233,6 +1233,16 @@ impl Model {
         self.loop_status.as_ref()
     }
 
+    /// Whether a loop is running or held at a boundary: one started and
+    /// has not ended. The start verbs are offered only while this is
+    /// false, the loop's own verbs only while it is true.
+    #[must_use]
+    pub fn loop_is_live(&self) -> bool {
+        self.loop_status
+            .as_ref()
+            .is_some_and(|status| status.ended().is_none())
+    }
+
     /// Rows the prompt box takes: the text's lines, capped at
     /// [`PROMPT_MAX_ROWS`].
     #[must_use]
