@@ -6,13 +6,16 @@ use std::time::Duration;
 
 use color_eyre::eyre::{self, Context as _};
 use magistr_application::sessions::SessionHandle;
-use magistr_cockpit::cockpit::{Cmd, Model};
+use magistr_cockpit::cockpit::{Cmd, Model, ProjectSeed};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
 use magistr_engine::OwnerEndpoint;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
-use super::{WorkspaceAdmission, workflow_client::EngineClient};
+use super::{
+    WorkspaceAdmission,
+    workflow_client::{EngineClient, EngineError},
+};
 use crate::agent::{AgentConfig, ResolvedSessionSpec, cockpit_session::CockpitSession};
 use crate::orchestration::{
     hosted_work::HostedWork, interactive_session::interactive_session, loop_driver::Connector,
@@ -31,28 +34,90 @@ pub struct InteractiveHost {
 }
 
 impl InteractiveHost {
-    /// Admit or attach to the project, start the configured provider, and seed
-    /// the interface. No terminal or window is opened here.
+    /// [`Self::open`], with the interface's `model` seeded on the caller's thread.
     ///
     /// # Errors
-    /// Project admission, provider configuration or provider startup failed.
+    /// As [`Self::open`].
     pub async fn start(
         config: AgentConfig,
         model: Model,
         inbox: Inbox,
         commands: Commands,
     ) -> eyre::Result<(Self, Model)> {
+        let (host, seed) = Self::open(config, inbox, commands).await?;
+        Ok((host, seed.seed(model)))
+    }
+
+    /// Admit or attach to the project and start the configured provider. The
+    /// interface's seed comes back as data: a model cannot cross threads, so
+    /// whoever owns the surface builds it. No terminal or window is opened here.
+    ///
+    /// # Errors
+    /// Project admission, provider configuration or provider startup failed.
+    pub async fn open(
+        config: AgentConfig,
+        inbox: Inbox,
+        commands: Commands,
+    ) -> eyre::Result<(Self, ProjectSeed)> {
         let engines = EngineClient::admit_or_attach_config(
             magistr_core::evidence::writer_config_from_env(&config.cwd),
         )
         .context("Magistr could not open the project")?;
         let resources = Resources::open(engines, config.inputs()).await?;
+        Self::live(config, resources, inbox, commands).await
+    }
+
+    /// As [`Self::open`] for a project a window switches to: this process
+    /// becomes the project's host and owns its workspace, or the open is
+    /// refused in words and nothing of the project stays held. A window never
+    /// swaps a project it hosts for one it could only attach to.
+    ///
+    /// # Errors
+    /// The host lease or the workspace is held elsewhere, or as [`Self::open`].
+    pub async fn open_owned(
+        config: AgentConfig,
+        inbox: Inbox,
+        commands: Commands,
+    ) -> eyre::Result<(Self, ProjectSeed)> {
+        let engines =
+            EngineClient::with_config(magistr_core::evidence::writer_config_from_env(&config.cwd))
+                .map_err(|error| match &error {
+                    EngineError::Admission { source, .. }
+                        if source.kind() == std::io::ErrorKind::WouldBlock =>
+                    {
+                        eyre::eyre!("Another Magistr session has this project open.")
+                    }
+                    _ => eyre::Report::new(error).wrap_err("Magistr could not open the project"),
+                })?;
+        let resources = Resources::open(engines, config.inputs()).await?;
+        if let WorkspaceAdmission::Refused(refusal) = &resources.workspace {
+            use magistr_application::effects::SourceRefusal;
+            let held = match refusal {
+                SourceRefusal::NotAdmitted(reason) => {
+                    eyre::eyre!("Its source workspace could not be opened: {reason}")
+                }
+                SourceRefusal::OwnerElsewhere | SourceRefusal::NoAuthority => {
+                    eyre::eyre!("Another Magistr process holds this project's source workspace.")
+                }
+            };
+            let cleanup = resources.close().await;
+            return Err(startup_error(held, cleanup));
+        }
+        Self::live(config, resources, inbox, commands).await
+    }
+
+    /// The production provider behind admitted `resources`.
+    async fn live(
+        config: AgentConfig,
+        resources: Resources,
+        inbox: Inbox,
+        commands: Commands,
+    ) -> eyre::Result<(Self, ProjectSeed)> {
         let spec = config.clone().resolve();
         Self::connect(
             config,
             resources,
             spec,
-            model,
             inbox,
             commands,
             |spec| async {
@@ -73,12 +138,11 @@ impl InteractiveHost {
         config: AgentConfig,
         resources: Resources,
         spec: crate::error::Result<ResolvedSessionSpec>,
-        model: Model,
         inbox: Inbox,
         commands: Commands,
         connect: F,
         sessions: impl FnOnce(magistr_application::effects::SourceRoute) -> Connector,
-    ) -> eyre::Result<(Self, Model)>
+    ) -> eyre::Result<(Self, ProjectSeed)>
     where
         F: FnOnce(ResolvedSessionSpec) -> Fut,
         Fut: Future<Output = eyre::Result<Box<dyn SessionHandle>>>,
@@ -93,16 +157,9 @@ impl InteractiveHost {
             }
         };
         let (title, debug) = crate::commands::chrome::chrome(spec.cwd(), Some("acp"), spec.model());
-        let project = spec.cwd().file_name().map_or_else(
-            || spec.cwd().display().to_string(),
-            |name| name.to_string_lossy().into_owned(),
-        );
-        let model = crate::commands::run::seed_supervision(
-            model
-                .with_hosted_work()
-                .with_project(project, spec.cwd().display().to_string())
-                .with_title(title)
-                .with_debug(debug),
+        let project = crate::commands::galaxy_data::project_name(spec.cwd());
+        let dir = spec.cwd().display().to_string();
+        let supervision = crate::commands::run::supervision_seed(
             spec.cwd(),
             spec.permission_profile(),
             spec.workflow_permissions(),
@@ -119,9 +176,7 @@ impl InteractiveHost {
         };
         let opening = !config.prompt.trim().is_empty();
         let seed = resources.engines.reader().snapshot();
-        let model = model.with_snapshot(&seed).with_workspace_files(
-            crate::commands::workspace_files::workspace_files(&config.cwd),
-        );
+        let workspace_files = crate::commands::workspace_files::workspace_files(&config.cwd);
         // The feed is tapped for the work this host may be asked to start:
         // the loop driver counts completed chunks from it while it runs.
         let (feed_tap, tapped) = tokio::sync::mpsc::unbounded_channel();
@@ -161,7 +216,15 @@ impl InteractiveHost {
                 stop: Some(stop),
                 task,
             },
-            model,
+            ProjectSeed {
+                name: project,
+                dir,
+                title,
+                debug,
+                supervision,
+                snapshot: seed,
+                workspace_files,
+            },
         ))
     }
 
@@ -290,7 +353,7 @@ fn joined(result: Result<Result<(), String>, tokio::task::JoinError>) -> Result<
     result.map_err(|error| format!("The agent connection ended unexpectedly: {error}"))?
 }
 
-fn combine(first: Result<(), String>, second: Result<(), String>) -> Result<(), String> {
+pub(super) fn combine(first: Result<(), String>, second: Result<(), String>) -> Result<(), String> {
     match (first, second) {
         (Ok(()), result) | (result, Ok(())) => result,
         (Err(first), Err(second)) => Err(format!("{first}; {second}")),

@@ -180,3 +180,86 @@ fn the_field_and_the_verb_route_to_their_widgets() {
         Some(Widget::GalaxyNew.id())
     );
 }
+
+/// A hosted window opens its other projects in place: the control is live
+/// on a project whose directory is known, says so while the host opens it,
+/// and wears the host's refusal in words afterwards.
+#[test]
+fn another_project_opens_in_place_and_wears_the_hosts_answer() {
+    use magistr_cockpit::cockpit::{Cmd, GalaxyData, Model, Surface};
+    use magistr_cockpit::job::{JobId, JobOutput};
+    let enabled = |root: &Element, index: u64| {
+        // A disabled control wears no id: it takes no press and no focus.
+        let mut live = false;
+        root.each(&mut |_, element| {
+            if element.id == Some(ElementId(GalaxyComposition::PROJECTS + index)) {
+                live = !element.disabled;
+            }
+        });
+        live
+    };
+    let mut model = Model::new(Size::new(120, 40))
+        .with_hosted_work()
+        .with_project("here", "/projects/here")
+        .with_surface(Surface::Native)
+        .with_place(Place::Galaxy);
+    let data = GalaxyData {
+        projects: vec![
+            GalaxyProject {
+                name: "here".into(),
+                dir: Some("/projects/here".into()),
+                here: true,
+                ..GalaxyProject::default()
+            },
+            GalaxyProject {
+                name: "other".into(),
+                dir: Some("/projects/other".into()),
+                ..GalaxyProject::default()
+            },
+            GalaxyProject::named("nowhere"),
+        ],
+        spent_cents: 0,
+        cap_cents: None,
+        stop_cents: None,
+    };
+    update(
+        &mut model,
+        Msg::Job {
+            id: JobId::new(1),
+            output: JobOutput::Galaxy(Box::new(data)),
+        },
+    );
+    let field = GalaxyComposition::el(&model, Medium::Night, FIELD);
+    assert!(enabled(&field, 0) && enabled(&field, 1));
+    assert!(!enabled(&field, 2), "no directory, nothing to open");
+
+    let click = Msg::Mouse {
+        event: magistr_cockpit::input::MouseEvent::new(
+            magistr_cockpit::input::MouseKind::Down(magistr_cockpit::input::Button::Left),
+            0,
+            0,
+        ),
+        target: Some(Widget::galaxy_cluster(1)),
+    };
+    let cmds = update(&mut model, click);
+    assert!(cmds.contains(&Cmd::OpenProject("/projects/other".into())));
+    let field = GalaxyComposition::el(&model, Medium::Night, FIELD);
+    assert!(texts(&field).iter().any(|t| t == "Opening\u{2026}"));
+    assert!(!enabled(&field, 1), "one ask at a time");
+
+    update(
+        &mut model,
+        Msg::CommandFailed {
+            cmd: Cmd::OpenProject("/projects/other".into()),
+            error: "Another Magistr session has this project open.".into(),
+        },
+    );
+    let field = GalaxyComposition::el(&model, Medium::Night, FIELD);
+    assert!(
+        texts(&field).iter().any(|t| t
+            == "Magistr could not open the project. Another Magistr session has this project open."),
+        "{:?}",
+        texts(&field)
+    );
+    assert!(enabled(&field, 1), "and it can be tried again");
+}

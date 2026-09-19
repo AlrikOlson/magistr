@@ -1,8 +1,13 @@
-//! The supervision rail's construction-time seed.
+//! The supervision rail's construction-time seed: derived once as data
+//! ([`supervision_seed`]) and applied to a model ([`seed_supervision`]). The
+//! two change together — a host that opens a project off the surface's
+//! thread sends the data, every other entry point seeds its model directly.
 
 use std::path::Path;
 
-use magistr_cockpit::cockpit::{Budget, CharterOffer, CharterRule, Model, RuleMode};
+use magistr_cockpit::cockpit::{
+    Budget, CharterOffer, CharterRule, Model, RuleMode, SupervisionSeed,
+};
 use magistr_engine::cost::BudgetConfig;
 use magistr_engine::policy::{PolicyEffect, PolicyRule};
 
@@ -28,8 +33,18 @@ pub fn seed_supervision(
     workflow: bool,
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> Model {
-    seed_with(
-        model,
+    supervision_seed(project_dir, profile, workflow, inputs).seed(model)
+}
+
+/// What [`seed_supervision`] seeds, as data a host can send to the surface.
+#[must_use]
+pub fn supervision_seed(
+    project_dir: &Path,
+    profile: PermissionProfile,
+    workflow: bool,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> SupervisionSeed {
+    derive(
         project_dir,
         crate::cost::costs_path::costs_path(inputs).as_deref(),
         profile,
@@ -40,14 +55,25 @@ pub fn seed_supervision(
 
 /// [`seed_supervision`] with the ledger and the developer's requested
 /// limit given rather than captured — the seam the tests bind through.
+#[cfg(test)]
 fn seed_with(
-    mut model: Model,
+    model: Model,
     project_dir: &Path,
     ledger: Option<&Path>,
     profile: PermissionProfile,
     workflow: bool,
     requested: Option<f64>,
 ) -> Model {
+    derive(project_dir, ledger, profile, workflow, requested).seed(model)
+}
+
+fn derive(
+    project_dir: &Path,
+    ledger: Option<&Path>,
+    profile: PermissionProfile,
+    workflow: bool,
+    requested: Option<f64>,
+) -> SupervisionSeed {
     let engine = crate::team::TeamConfig::governance_for(project_dir).compile();
     let mut charter = if engine.rules.is_empty() {
         default_charter(profile, workflow)
@@ -63,13 +89,12 @@ fn seed_with(
         .into_iter()
         .map(|offer| CharterOffer::new(offer.key, offer.subject, offer.allowed, offer.asked))
         .collect();
-    let budget = governed(project_dir, ledger, requested);
-    let rail = model.rail_mut();
-    rail.set_charter(charter);
-    rail.set_offers(offers);
-    rail.set_budget(budget);
-    rail.set_mode(mode_word(profile, workflow));
-    model
+    SupervisionSeed {
+        charter,
+        offers,
+        budget: governed(project_dir, ledger, requested),
+        mode: mode_word(profile, workflow),
+    }
 }
 
 /// The developer's own limit: the flag or user-config limit the host

@@ -142,6 +142,7 @@ impl Native {
             .map_err(|e| Gui2Error::Window(e.to_string()))?;
 
         let mut app = App {
+            shown_title: window_title(&title, &model),
             title,
             logical,
             frame: Frame::new()?,
@@ -230,7 +231,10 @@ enum NativeEvent {
 }
 
 struct App {
+    /// The application's name, which the window wears until a project is open.
     title: String,
+    /// The title the window was last given.
+    shown_title: String,
     /// The window's logical size, honoured whatever the display's
     /// density is — see [`Native::with_logical_size`].
     logical: LogicalSize<f64>,
@@ -265,6 +269,20 @@ impl App {
     fn fold(&mut self, event_loop: &ActiveEventLoop, msg: Msg) {
         if self.route.fold(&mut self.model, msg) {
             event_loop.exit();
+        }
+        self.retitle();
+    }
+
+    /// Keep the window's own title on the project it has open, so the
+    /// window switcher and assistive technology name the same project the
+    /// cockpit shows — and follow it when the window opens another.
+    fn retitle(&mut self) {
+        let title = window_title(&self.title, &self.model);
+        if title != self.shown_title {
+            if let Some(gpu) = &self.gpu {
+                gpu.window.set_title(&title);
+            }
+            self.shown_title = title;
         }
     }
 
@@ -406,7 +424,7 @@ impl ApplicationHandler<NativeEvent> for App {
         // subclass the view before it is shown, and panics otherwise;
         // `set_visible` below is the first frame's own show.
         let attributes = Window::default_attributes()
-            .with_title(&self.title)
+            .with_title(&self.shown_title)
             .with_visible(false)
             .with_inner_size(self.logical);
         let window = match event_loop.create_window(attributes) {
@@ -640,6 +658,15 @@ impl ApplicationHandler<NativeEvent> for App {
         }
         let due = self.cadence.due().unwrap_or(now);
         event_loop.set_control_flow(ControlFlow::WaitUntil(due.max(now)));
+    }
+}
+
+/// The window's title: the open project ahead of the application's name.
+fn window_title(app: &str, model: &Model) -> String {
+    let galaxy = model.galaxy();
+    match galaxy.home().map(|index| &galaxy.projects()[index]) {
+        Some(project) if !project.name.is_empty() => format!("{} \u{2014} {app}", project.name),
+        _ => app.to_owned(),
     }
 }
 

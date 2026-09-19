@@ -135,6 +135,16 @@ impl Palette {
             }
             push(row);
         }
+        // The other projects this window's host can open in place: the
+        // same ask a press on the home page makes.
+        for (index, project) in model.galaxy().projects().iter().enumerate() {
+            if super::can_open_project(model, index) {
+                let mut row = PaletteRow::place(project.name.clone(), PaletteGo::Project(index));
+                row.verb = "Open project".to_owned();
+                row.sigil = true;
+                push(row);
+            }
+        }
         for (name, place) in [
             ("projects", Place::Galaxy),
             ("signals", Place::Signals),

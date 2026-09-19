@@ -53,7 +53,7 @@ uses the configured default and the host's detection rules. Provider setup and
 credentials are the same as for [terminal sessions](sessions.md). For example,
 Codex needs its installed CLI and ChatGPT login; Ollama needs a running daemon
 and a downloaded model. The project should already have its Magistr setup;
-the desktop does not run project initialization. Project-configured MCP commands
+the desktop does not run project initialization yet. Project-configured MCP commands
 must be executable, including `magistr` on PATH when the configuration names it.
 
 If startup reports that `workbench-mcp` could not initialize, check the project's
@@ -72,8 +72,9 @@ admission; provider startup errors are reported before a window opens.
 The launcher runs the native event loop on the main thread while a multithread
 Tokio runtime services the host. After normal window close or a window error,
 it awaits host shutdown before dropping the runtime. If both the window and
-shutdown fail, the returned error includes both causes. Native close ends this
-host lifetime; it does not claim to persist an unsent draft for another launch.
+shutdown fail, the returned error includes both causes. Native close ends the
+open project's host lifetime; it does not claim to persist an unsent draft for
+another launch. The window's title names the project it has open.
 
 Provider adapters and workspace workers invoke the current executable. The
 launcher dispatches `acp-agent`, `mcp-launch` and the exact private
@@ -190,6 +191,60 @@ The first-ready label uses the graph painter's placement, including camera
 centering, so window resizing and display scaling cannot separate it from its
 node. Animation advances through model ticks. Reduced motion selects settled
 frames; repainting does not advance time.
+
+## Opening another project
+
+`application::ProjectWindow` serves one window across the projects it opens. The
+window keeps a single inbox and command channel; each project gets its own
+`InteractiveHost` behind a fence, so a project that is settling can never post
+into the next project's view.
+
+The home page lists the open project and the projects this machine has recorded
+sessions in (`commands/galaxy_data.rs` reads the session database's recorded
+directories and keeps those that still hold a Magistr project). Another project's
+**Open project** control, Return on the walked selection, and an **Open project**
+row in Commands all ask the host once (`Cmd::OpenProject`). The window stays on
+the current project and says `Opening…` until the host answers.
+
+The host admits the chosen project first and settles the previous one only after
+that succeeded:
+
+- The directory must already have its Magistr setup. One that does not is
+  refused in words; setting a project up from the window is separate work.
+- The window must become the project's host and own its source workspace
+  (`InteractiveHost::open_owned`). A project another Magistr session has open,
+  or whose workspace is held, is refused in words and nothing of it stays held.
+  Only the first project of a launch may attach to a running host.
+- A refusal leaves the current project open and usable. The words are painted
+  beside the project and carried on its control's accessible name, and the
+  control can be tried again.
+- On success the previous host's sessions, owner endpoint and workspace are
+  settled, the window builds the new project's view from the seed the host sent
+  (`Msg::Rehosted` carries a `ProjectSeed`; a view model cannot cross threads)
+  and shows its roadmap. The window keeps what is its own: size, theme, focus,
+  zoom and the unsent message. A request sent while the project was changing
+  returns to the editor instead of reaching a project it was not meant for.
+- While a response or started work is in flight the window refuses the switch
+  before asking the host, because settling the project would end it.
+
+Session records currently have no writer, so a project first opened with `--dir`
+is not listed until finished sessions are saved again (`session-records-writer`).
+
+`project_switch.tests.rs` (cockpit), `project_window.tests.rs` and
+`galaxy_data.tests.rs` (host) and `frame.tests.rs` (pointer at the painted box,
+AccessKit click, Tab then Return, the refusal read from the control) cover the
+parts. The launcher-level check drives the real window:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 crates/magistr-desktop/tests/native_switch.py crates/magistr-desktop/target/debug/magistr-desktop
+```
+
+It needs the same graphical session, Swift and Accessibility permission as
+`native_launch.py`, opens two windows briefly and contacts no model service. A
+second window holds a third project, so switching to it is refused in words with
+the first project still open. Accessibility, keyboard and pointer switches then go
+between two projects with the draft kept, the second project's host answers a
+message, and after close every project's owner opens again.
 
 ## Shared navigation
 

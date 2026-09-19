@@ -128,11 +128,10 @@ async fn started(
     let (inbox, events) = Inbox::channel();
     let (sender, commands) = Commands::channel();
     let root = config.cwd.canonicalize().unwrap().display().to_string();
-    let (host, model) = InteractiveHost::connect(
+    let (host, seed) = InteractiveHost::connect(
         config,
         resources,
         spec,
-        Model::new(Size::new(80, 24)),
         inbox,
         commands,
         |_| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
@@ -140,6 +139,7 @@ async fn started(
     )
     .await
     .unwrap();
+    let model = seed.seed(Model::new(Size::new(80, 24)));
     assert!(
         model.hosts_work(),
         "the host runs started work in place, so the model offers the starts"
@@ -185,7 +185,6 @@ async fn startup_failure_releases_source_and_project_owners() {
             config,
             resources,
             spec,
-            Model::new(Size::new(80, 24)),
             inbox,
             commands,
             |_| async { Err(eyre::eyre!("provider unavailable")) },

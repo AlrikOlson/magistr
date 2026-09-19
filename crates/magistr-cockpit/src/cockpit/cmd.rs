@@ -125,6 +125,12 @@ pub enum Cmd {
     /// answer back through the inbox; a consumer with no folder to
     /// read lets it pass.
     Birth(BirthCmd),
+    /// Open the project in this directory in the same window. The host
+    /// admits it before it settles the current project, answers with
+    /// [`Msg::Rehosted`](super::Msg::Rehosted), and refuses in words
+    /// through [`Msg::CommandFailed`](super::Msg::CommandFailed) with the
+    /// current project still open.
+    OpenProject(String),
 }
 
 impl Cmd {
@@ -162,6 +168,7 @@ impl Cmd {
                     error,
                 })
             }
+            Self::OpenProject(dir) => return super::project_switch::refused(model, &dir, &error),
             other => {
                 let action = match other {
                     Self::Cancel | Self::CancelRoadmapPrompt => {
@@ -197,7 +204,8 @@ impl Cmd {
                     | Self::RoadmapPrompt(_)
                     | Self::Workbench(_)
                     | Self::Engine(_)
-                    | Self::Checkpoint(_) => {
+                    | Self::Checkpoint(_)
+                    | Self::OpenProject(_) => {
                         unreachable!("project and prompt failures are handled above")
                     }
                 };

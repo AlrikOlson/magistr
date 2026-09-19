@@ -54,6 +54,8 @@ pub(crate) enum PaletteGo {
     Chunk(String),
     /// Walk to the launcher's session row.
     Session(usize),
+    /// Open another known project in this window.
+    Project(usize),
     /// Dispatch the binding's key through the same fold.
     Key(KeyCode, Modifiers),
     /// A loop verb, dispatched as itself — never as its key, which is

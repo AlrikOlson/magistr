@@ -878,6 +878,199 @@ fn project_stars_labels_buttons_and_accessibility_open_the_same_project() {
     }
 }
 
+/// Another project's control on the home page, reached by pointer at its painted box,
+/// by an accessibility click and by Tab then Return: each asks the host once and keeps
+/// the draft. A refusal is then read from the window in words with the control live
+/// again, and the host's answer swaps the window onto the new project.
+#[test]
+fn another_project_opens_by_pointer_keyboard_and_accessibility_and_a_refusal_is_read() {
+    use accesskit::{Action, ActionRequest, Role, TreeId};
+    use magistr_cockpit::cockpit::{Cmd, GalaxyData, GalaxyProject, Place, ProjectSeed, Surface};
+    use magistr_cockpit::input::{KeyCode, KeyEvent};
+    use magistr_cockpit::job::{JobId, JobOutput};
+
+    let (width, height) = (1100, 760);
+    let target = Widget::galaxy_cluster(1);
+    let other = || Cmd::OpenProject("/projects/other".into());
+    for activation in 0..3 {
+        let mut frame = Frame::new().unwrap();
+        let mut model = Model::new(frame.metrics().grid(width, height))
+            .with_hosted_work()
+            .with_project("Delivery", "/projects/delivery")
+            .with_surface(Surface::Native)
+            .with_place(Place::Session);
+        update(&mut model, Msg::Paste("Keep my draft".into()));
+        let draft = model.prompt().clone();
+        model = model.with_place(Place::Galaxy);
+        update(
+            &mut model,
+            Msg::Job {
+                id: JobId::new(1),
+                output: JobOutput::Galaxy(Box::new(GalaxyData {
+                    projects: vec![
+                        GalaxyProject {
+                            name: "Delivery".into(),
+                            dir: Some("/projects/delivery".into()),
+                            here: true,
+                            ..GalaxyProject::default()
+                        },
+                        GalaxyProject {
+                            name: "Other".into(),
+                            dir: Some("/projects/other".into()),
+                            ..GalaxyProject::default()
+                        },
+                    ],
+                    spent_cents: 0,
+                    cap_cents: None,
+                    stop_cents: None,
+                })),
+            },
+        );
+        frame.still(&mut model, &clock(), width, height).unwrap();
+        let access = frame.access();
+        let link = access
+            .nodes()
+            .iter()
+            .find(|n| n.target == Some(target))
+            .expect("the other project's control is published");
+        assert_eq!(link.label, "Open project Other");
+        assert_eq!(
+            link.role,
+            Role::Link,
+            "a project is a place the window goes to"
+        );
+        assert!(link.actions.contains(&Action::Click) && link.actions.contains(&Action::Focus));
+        let messages = match activation {
+            0 => {
+                let [x, y, w, h] = frame
+                    .rect_of(crate::ElementId(GalaxyComposition::PROJECTS + 1))
+                    .unwrap();
+                let (x, y) = (x + w / 2.0, y + h / 2.0);
+                let hit = frame.hits().hit_at(x.into(), y.into());
+                assert_eq!(hit, Some(target));
+                frame.input(
+                    &model,
+                    Msg::Mouse {
+                        event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0)
+                            .at_px(x as u32, y as u32),
+                        target: hit,
+                    },
+                )
+            }
+            1 => frame
+                .access_action(
+                    &model,
+                    ActionRequest {
+                        action: Action::Click,
+                        target_tree: TreeId::ROOT,
+                        target_node: link.id,
+                        data: None,
+                    },
+                )
+                .unwrap(),
+            _ => {
+                for _ in 0..8 {
+                    assert!(
+                        frame
+                            .input(&model, Msg::Key(KeyEvent::new(KeyCode::Tab)))
+                            .is_empty()
+                    );
+                    if frame.focus_target() == Some(target) {
+                        break;
+                    }
+                }
+                assert_eq!(frame.focus_target(), Some(target));
+                frame.input(&model, Msg::Key(KeyEvent::new(KeyCode::Enter)))
+            }
+        };
+        let commands: Vec<Cmd> = messages
+            .into_iter()
+            .flat_map(|msg| update(&mut model, msg))
+            .collect();
+        assert_eq!(
+            commands.iter().filter(|cmd| **cmd == other()).count(),
+            1,
+            "activation {activation}: {commands:?}"
+        );
+        assert_eq!(
+            model.place(),
+            Some(Place::Galaxy),
+            "the window holds until the host answers"
+        );
+        assert_eq!(model.prompt(), &draft);
+        frame.still(&mut model, &clock(), width, height).unwrap();
+        assert!(
+            frame
+                .says()
+                .iter()
+                .any(|(text, _)| text == "Opening\u{2026}")
+        );
+        assert!(
+            !frame
+                .access()
+                .nodes()
+                .iter()
+                .any(|n| n.target == Some(target)),
+            "no second ask is offered while the project opens"
+        );
+
+        // The host refuses: the words are on the window and the control is back.
+        update(
+            &mut model,
+            Msg::CommandFailed {
+                cmd: other(),
+                error: "Another Magistr session has this project open.".into(),
+            },
+        );
+        frame.still(&mut model, &clock(), width, height).unwrap();
+        let refusal =
+            "Magistr could not open the project. Another Magistr session has this project open.";
+        assert!(
+            frame.says().iter().any(|(text, _)| text == refusal),
+            "activation {activation}: {:?}",
+            frame.says()
+        );
+        let access = frame.access();
+        let refused = access
+            .nodes()
+            .iter()
+            .find(|n| n.target == Some(target))
+            .expect("the control is offered again");
+        assert_eq!(
+            refused.label,
+            format!("Open project Other. {refusal}"),
+            "the refusal is read, not only painted"
+        );
+        assert_eq!(model.galaxy().home(), Some(0), "still on Delivery");
+        assert_eq!(model.prompt(), &draft);
+
+        // Asked again, the host admits it: the window is the other project's.
+        let again = frame.input(
+            &model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(target),
+            },
+        );
+        for msg in again {
+            update(&mut model, msg);
+        }
+        update(
+            &mut model,
+            Msg::Rehosted(Box::new(ProjectSeed {
+                name: "Other".into(),
+                dir: "/projects/other".into(),
+                title: "Other".into(),
+                ..ProjectSeed::default()
+            })),
+        );
+        frame.still(&mut model, &clock(), width, height).unwrap();
+        assert_eq!(model.place(), Some(Place::Sky));
+        assert_eq!(model.galaxy().projects()[0].name, "Other");
+        assert_eq!(model.prompt(), &draft, "the unsent message came along");
+    }
+}
+
 // ── Starting work ────────────────────────────────────
 
 /// The two starts on the session window, each reached by pointer at its painted box,

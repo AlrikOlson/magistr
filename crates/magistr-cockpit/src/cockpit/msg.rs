@@ -119,4 +119,8 @@ pub enum Msg {
     /// The checkpoint spine answered — a state taken, restored or
     /// forked.
     Checkpoint(CheckpointEvent),
+    /// The host settled this window's project and admitted another: what
+    /// it seeded for the new project. The window builds the model and
+    /// keeps what is its own — its size, theme, focus and the unsent draft.
+    Rehosted(Box<super::ProjectSeed>),
 }

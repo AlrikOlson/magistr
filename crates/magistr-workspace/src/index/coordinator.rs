@@ -16,9 +16,21 @@ use std::{
 
 use crate::diagnostics::now_unix_ms;
 
+/// How the watcher is started: the root, the requested mode, whether the root
+/// is on a network filesystem, and the polling interval.
+pub(super) type StartWatcher = Box<
+    dyn FnOnce(&std::path::Path, WatchMode, bool, Duration) -> notify::Result<IndexWatcher> + Send,
+>;
+
 pub(super) struct Coordinator;
 impl Coordinator {
-    pub async fn run(shared: Arc<Shared>) {
+    /// The cache opens first and is usable at once. Starting the operating
+    /// system's watcher is a separate blocking step beside the first scan: it
+    /// can take half a second alone and seconds when many start together, and
+    /// nothing here waits for it — not the first scan, not a stop. Once it is
+    /// installed the tree is scanned again, so a change made while it was
+    /// starting is not missed; until then the index never reads as warm.
+    pub async fn run(shared: Arc<Shared>, watch: StartWatcher) {
         let init = shared.clone();
         let opened = tokio::task::spawn_blocking(move || {
             let network = NetworkDetection::detect(&init.root, init.options.network_override.as_deref());
@@ -26,21 +38,16 @@ impl Coordinator {
             let mut notes = vec![format!("Filesystem detection: {}; requested journal mode {}.", network.method, network.journal_mode())];
             if let Some(reason) = &cache.rebuild_reason { notes.push(format!("Derived cache rebuilt: {reason}")); }
             notes.push(format!("Applied journal mode: {}.", cache.journal_mode));
-            let watcher = match IndexWatcher::start(&init.root, init.options.watch_mode, network.network_fs, init.options.poll_interval) {
-                Ok(watcher) => Some(watcher),
-                Err(error) => { notes.push(format!("Watcher unavailable: {error}; anchors require revalidation.")); None }
-            };
             if init.options.watch_mode == WatchMode::Off { notes.push("Watcher disabled; queries revalidate candidates and may miss newly added files until refresh.".into()); }
             let generation = cache.generation()?;
             *init.cache.lock().unwrap_or_else(|e| e.into_inner()) = Some(cache);
             let mut status = init.status.lock().unwrap_or_else(|e| e.into_inner());
             status.generation = generation;
             status.notes.extend(notes);
-            *init.watcher.lock().unwrap_or_else(|e| e.into_inner()) = watcher;
-            Ok::<_, IndexError>(())
+            Ok::<_, IndexError>(network.network_fs)
         }).await;
-        match opened {
-            Ok(Ok(())) => {}
+        let network_fs = match opened {
+            Ok(Ok(network_fs)) => network_fs,
             result => {
                 let message = match result {
                     Ok(Err(e)) => e.to_string(),
@@ -52,6 +59,15 @@ impl Coordinator {
                 return;
             }
         };
+        let starting = shared.clone();
+        let mut watcher_start = Some(tokio::task::spawn_blocking(move || {
+            watch(
+                &starting.root,
+                starting.options.watch_mode,
+                network_fs,
+                starting.options.poll_interval,
+            )
+        }));
         let mut requested = 0;
         let mut epoch = u64::MAX;
         let mut retry = false;
@@ -116,8 +132,24 @@ impl Coordinator {
             }
             tokio::select! {
                 _ = shared.stopped.cancelled() => break,
+                started = async { watcher_start.as_mut().expect("guarded").await }, if watcher_start.is_some() => {
+                    watcher_start = None;
+                    Self::install(&shared, started);
+                    // What changed while the watcher was starting is only
+                    // found by looking again.
+                    shared.requested.fetch_add(1, Ordering::AcqRel);
+                }
                 _ = tokio::time::sleep(if retry { Duration::from_secs(1) } else { shared.options.poll_interval }) => {}
             }
+        }
+        if let Some(start) = watcher_start.take() {
+            // The operating system call cannot be interrupted. Its result is
+            // torn down by its own step when it returns; a stop does not wait.
+            tokio::spawn(async move {
+                if let Ok(Ok(mut watcher)) = start.await {
+                    let _ = tokio::task::spawn_blocking(move || watcher.shutdown()).await;
+                }
+            });
         }
         let watcher = shared
             .watcher
@@ -136,6 +168,28 @@ impl Coordinator {
         let mut status = shared.status.lock().unwrap_or_else(|e| e.into_inner());
         status.building = false;
         status.freshness = Freshness::Cold;
+    }
+    /// Take the started watcher, or say why there is none.
+    fn install(
+        shared: &Shared,
+        started: Result<notify::Result<IndexWatcher>, tokio::task::JoinError>,
+    ) {
+        let failure = match started {
+            Ok(Ok(watcher)) => {
+                *shared.watcher.lock().unwrap_or_else(|e| e.into_inner()) = Some(watcher);
+                return;
+            }
+            Ok(Err(error)) => error.to_string(),
+            Err(error) => error.to_string(),
+        };
+        shared
+            .status
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .notes
+            .push(format!(
+                "Watcher unavailable: {failure}; anchors require revalidation."
+            ));
     }
     async fn build(shared: Arc<Shared>) -> Result<(), IndexError> {
         let scan = shared.clone();
@@ -279,3 +333,7 @@ impl Coordinator {
         .map_err(|e| IndexError::Unavailable(e.to_string()))?
     }
 }
+
+#[cfg(test)]
+#[path = "coordinator.tests.rs"]
+mod tests;
