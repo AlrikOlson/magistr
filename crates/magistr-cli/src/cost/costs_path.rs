@@ -2,12 +2,14 @@
 
 use std::path::PathBuf;
 
-use super::storage_paths::data_dir;
+use crate::config::inputs::ProjectInputs;
 
 /// Default filename for cost history.
 const COSTS_FILENAME: &str = "costs.json";
 
-/// Resolve the full path to the costs file.
-pub fn costs_path() -> Option<PathBuf> {
-    data_dir().map(|dir| dir.join(COSTS_FILENAME))
+/// The cost ledger, `<data_dir>/costs.json`, over the captured data
+/// directory; `None` when this machine has nowhere to keep one.
+#[must_use]
+pub fn costs_path(inputs: &ProjectInputs) -> Option<PathBuf> {
+    inputs.data_dir().map(|dir| dir.join(COSTS_FILENAME))
 }

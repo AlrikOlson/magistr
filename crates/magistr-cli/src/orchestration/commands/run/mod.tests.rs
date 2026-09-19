@@ -157,9 +157,14 @@ async fn interactive_drain_propagates_stream_error_and_unacknowledged_eof() {
         }
         drop(tx);
         let dir = tempfile::tempdir().unwrap();
-        let error = drain_session_interactive(&mut session, dir.path(), None)
-            .await
-            .unwrap_err();
+        let error = drain_session_interactive(
+            &mut session,
+            dir.path(),
+            &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
+            None,
+        )
+        .await
+        .unwrap_err();
         assert!(error.to_string().contains(if stream_error {
             "provider died"
         } else {
@@ -179,7 +184,12 @@ async fn interactive_drain_cancellation_settles_a_retained_session() {
     let dir = tempfile::tempdir().unwrap();
     let result = tokio::time::timeout(
         std::time::Duration::from_millis(100),
-        drain_session_interactive(&mut session, dir.path(), None),
+        drain_session_interactive(
+            &mut session,
+            dir.path(),
+            &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
+            None,
+        ),
     )
     .await
     .expect("cancelled turn must not wait for the retained session to close");

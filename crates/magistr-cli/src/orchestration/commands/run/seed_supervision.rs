@@ -31,17 +31,19 @@ pub fn seed_supervision(
     seed_with(
         model,
         project_dir,
+        crate::cost::costs_path::costs_path(inputs).as_deref(),
         profile,
         workflow,
         requested_limit(inputs),
     )
 }
 
-/// [`seed_supervision`] with the developer's requested limit given
-/// rather than read — the seam the tests bind through.
+/// [`seed_supervision`] with the ledger and the developer's requested
+/// limit given rather than captured — the seam the tests bind through.
 fn seed_with(
     mut model: Model,
     project_dir: &Path,
+    ledger: Option<&Path>,
     profile: PermissionProfile,
     workflow: bool,
     requested: Option<f64>,
@@ -61,7 +63,7 @@ fn seed_with(
         .into_iter()
         .map(|offer| CharterOffer::new(offer.key, offer.subject, offer.allowed, offer.asked))
         .collect();
-    let budget = governed(project_dir, requested);
+    let budget = governed(project_dir, ledger, requested);
     let rail = model.rail_mut();
     rail.set_charter(charter);
     rail.set_offers(offers);
@@ -70,11 +72,12 @@ fn seed_with(
     model
 }
 
-/// The developer's own limit: the flag or user-config limit `main`
-/// exported as `MAGISTR_BUDGET_REQUESTED`, else the captured user config
-/// (an entry point that skipped `main`'s export).
+/// The developer's own limit: the flag or user-config limit the host
+/// bound (or the `MAGISTR_BUDGET_REQUESTED` export a child inherited) as
+/// captured in the inputs, else the captured user config (an entry point
+/// that decided no budget of its own).
 fn requested_limit(inputs: &crate::config::inputs::ProjectInputs) -> Option<f64> {
-    dollars_in("MAGISTR_BUDGET_REQUESTED").or_else(|| {
+    inputs.budget_requested().or_else(|| {
         inputs
             .user_config()
             .ok()
@@ -85,11 +88,11 @@ fn requested_limit(inputs: &crate::config::inputs::ProjectInputs) -> Option<f64>
 
 /// The rail's budget from the governor itself: the roster's policy
 /// over the ledger, tightened onto the requested limit by its `min()`.
-fn governed(project_dir: &Path, requested: Option<f64>) -> Option<Budget> {
+fn governed(project_dir: &Path, ledger: Option<&Path>, requested: Option<f64>) -> Option<Budget> {
     let local = requested.map_or_else(BudgetConfig::none, BudgetConfig::with_limit);
-    let resolved = match crate::cost::costs_path::costs_path() {
+    let resolved = match ledger {
         Some(ledger) => {
-            crate::cost::governed_budget(project_dir, &ledger, &local, chrono::Utc::now())
+            crate::cost::governed_budget(project_dir, ledger, &local, chrono::Utc::now())
         }
         None => magistr_engine::cost::BudgetPolicy::default()
             .resolve(&local, &magistr_engine::cost::ScopeSpend::new()),
@@ -113,14 +116,6 @@ fn budget_from(effective: Option<f64>, requested: Option<f64>, bound: bool) -> O
         }
         _ => Budget::capped(cents(effective)),
     }
-}
-
-/// A positive, finite dollar amount exported under `name`, or nothing.
-fn dollars_in(name: &str) -> Option<f64> {
-    std::env::var(name)
-        .ok()
-        .and_then(|dollars| dollars.parse::<f64>().ok())
-        .filter(|dollars| dollars.is_finite() && *dollars > 0.0)
 }
 
 fn cents(dollars: f64) -> u64 {

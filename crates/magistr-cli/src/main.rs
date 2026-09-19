@@ -35,7 +35,10 @@ async fn main() -> eyre::Result<()> {
     }) = cli.command
     {
         color_eyre::install()?;
-        return magistr::codex_launch::launch(project_root, args, diagnose);
+        // The launcher's own capture: the user's home and the Codex home,
+        // read once here and never again inside the launcher.
+        let inputs = magistr::config::inputs::ProjectInputs::from_env(project_root);
+        return magistr::codex_launch::launch(project_root, args, diagnose, &inputs);
     }
     utils::panic::install_panic_hook()?;
     utils::signal_handler::install_signal_handler();
@@ -57,6 +60,13 @@ async fn main() -> eyre::Result<()> {
     // had left. Enforcement nobody can reconstruct afterwards is
     // indistinguishable from no enforcement.
     budget_decision.log();
+    // The decided budget binds the captured inputs explicitly: the drains
+    // and the supervision rail read it from there, while the exports
+    // above remain for the child processes that inherit them.
+    let inputs = inputs.with_budget(
+        budget_decision.effective_limit,
+        budget_decision.requested_limit,
+    );
 
     // Snapshot all MAGISTR_* env vars into a struct — threaded through the app
     // instead of scattered std::env::var() reads.
@@ -274,7 +284,7 @@ async fn main() -> eyre::Result<()> {
         Command::Import { source, dir, force } => {
             commands::config::cmd_import(&dir, &source, force)
         }
-        Command::Costs { query } => commands::session::cmd_costs(&query),
+        Command::Costs { query } => commands::session::cmd_costs(&query, &inputs),
         Command::Plans { dir, status, limit } => {
             commands::misc::cmd_plans(&dir, status, limit, &*renderer)
         }
@@ -296,6 +306,7 @@ async fn main() -> eyre::Result<()> {
             purge,
             owner.as_deref(),
             handoff,
+            &inputs,
         ),
         Command::Login {
             provider,
@@ -312,10 +323,17 @@ async fn main() -> eyre::Result<()> {
             scope.as_deref(),
             status,
             &*renderer,
+            &inputs,
         ),
-        Command::Logout { provider } => commands::misc::cmd_logout(provider.as_deref(), &*renderer),
-        Command::Team { action, dir } => commands::misc::cmd_team(&dir, action, &*renderer),
-        Command::Policy { action, dir } => commands::misc::cmd_policy(&dir, action, &*renderer),
+        Command::Logout { provider } => {
+            commands::misc::cmd_logout(provider.as_deref(), &*renderer, &inputs)
+        }
+        Command::Team { action, dir } => {
+            commands::misc::cmd_team(&dir, &inputs, action, &*renderer)
+        }
+        Command::Policy { action, dir } => {
+            commands::misc::cmd_policy(&dir, &inputs, action, &*renderer)
+        }
         Command::Permissions {
             limit,
             project,
@@ -327,6 +345,7 @@ async fn main() -> eyre::Result<()> {
             actor.as_deref(),
             export,
             &*renderer,
+            &inputs,
         ),
         Command::Models => commands::models::cmd_models(&*renderer, &inputs).await,
         Command::Learn { dir } => commands::misc::cmd_learn(&dir, &*renderer),
@@ -466,7 +485,7 @@ fn propagate_env_flags(
         };
         let resolved = match (
             std::env::current_dir(),
-            magistr::cost::costs_path::costs_path(),
+            magistr::cost::costs_path::costs_path(inputs),
         ) {
             (Ok(dir), Some(ledger)) => {
                 magistr::cost::governed_budget(&dir, &ledger, &local, chrono::Utc::now())

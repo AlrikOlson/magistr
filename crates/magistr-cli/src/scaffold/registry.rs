@@ -45,12 +45,11 @@ impl InstallStatus {
 }
 
 impl InstallCheck {
-    /// Check whether the prerequisites for this server are met.
-    pub fn check(self) -> InstallStatus {
-        self.check_with(which_exists, |var| std::env::var(var).is_ok())
-    }
-
-    fn check_with(
+    /// Check whether the prerequisites for this server are met, over
+    /// injected probes: `binary_exists` answers for a name on PATH,
+    /// `env_exists` for a variable the caller captured. Nothing here
+    /// reads the process environment.
+    pub(crate) fn check_with(
         self,
         binary_exists: impl Fn(&str) -> bool,
         env_exists: impl Fn(&str) -> bool,
@@ -154,9 +153,11 @@ impl McpServerEntry {
         lang_match && fw_match
     }
 
-    /// Check whether this server's prerequisites are available.
-    pub fn check_available(&self) -> InstallStatus {
-        self.install_check.check()
+    /// Check whether this server's prerequisites are available: its binary
+    /// on PATH and its variable in the captured environment `env_exists`
+    /// answers for.
+    pub fn check_available(&self, env_exists: impl Fn(&str) -> bool) -> InstallStatus {
+        self.install_check.check_with(which_exists, env_exists)
     }
 }
 

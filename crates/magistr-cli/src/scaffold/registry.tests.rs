@@ -136,7 +136,10 @@ fn specific_results_come_first() {
 
 #[test]
 fn install_check_npx_always_available() {
-    assert_eq!(InstallCheck::Npx.check(), InstallStatus::Available);
+    assert_eq!(
+        InstallCheck::Npx.check_with(|_| false, |_| false),
+        InstallStatus::Available
+    );
 }
 
 #[test]
@@ -170,8 +173,20 @@ fn install_check_binary_with_env_missing_binary() {
 #[test]
 fn check_available_delegates_to_install_check() {
     let entry = find("context7").unwrap();
-    // Npx servers are always available
-    assert!(entry.check_available().is_available());
+    // Npx servers are always available, whatever the environment says.
+    assert!(entry.check_available(|_| false).is_available());
+    // An env-gated server answers from the injected probe, never the
+    // process environment.
+    let postgres = find("postgres").unwrap();
+    assert_eq!(
+        postgres.check_available(|_| false),
+        InstallStatus::MissingEnvVar("POSTGRES_URL")
+    );
+    assert!(
+        postgres
+            .check_available(|var| var == "POSTGRES_URL")
+            .is_available()
+    );
 }
 
 #[test]

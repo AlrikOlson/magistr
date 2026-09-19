@@ -12,13 +12,17 @@ use crate::utils::format as fmt;
 /// Naming a provider that is not cached is reported, not treated as an
 /// error: `logout` is idempotent by intent — the caller wants the
 /// credential gone, and it is.
-pub fn cmd_logout(provider: Option<&str>, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
-    let mut cache = IdentityCache::load();
+pub fn cmd_logout(
+    provider: Option<&str>,
+    renderer: &dyn OutputRenderer,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
+    let mut cache = IdentityCache::load(inputs);
     let (cleared, subject) = match provider {
         Some(key) => (usize::from(cache.remove(key)), key.to_string()),
         None => (cache.clear(), "all providers".to_string()),
     };
-    cache.save()?;
+    cache.save(inputs)?;
 
     let message = if cleared == 0 {
         format!("No cached login for {subject}")

@@ -32,7 +32,7 @@ pub(crate) use session_summary::SessionSummary;
 pub(crate) use session_turn::{SessionTurn, TurnRole};
 #[allow(unused_imports)] // Public API — some used by tests and future agent integration
 pub(crate) use storage::{
-    count_sessions, count_turns, default_db_path, delete_turns, get_session, insert_session,
-    insert_turn, open_db, purge_old_sessions, query_sessions, query_turns, set_session_owner,
+    count_sessions, count_turns, delete_turns, get_session, insert_session, insert_turn, open_db,
+    purge_old_sessions, query_sessions, query_turns, sessions_db_path, set_session_owner,
     tag_session,
 };

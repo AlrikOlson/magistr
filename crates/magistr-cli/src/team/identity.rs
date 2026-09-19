@@ -7,13 +7,16 @@ use chrono::Utc;
 
 use super::auth::{IdentityCache, VerifiedIdentity};
 use super::team_config::TeamConfig;
+use crate::config::inputs::ProjectInputs;
 
 /// The resolved identity of whoever is running magistr.
 ///
-/// Resolution precedence: the `MAGISTR_USER` environment variable
-/// (accepts `Name <email>`, a bare email, or a bare username), then an
-/// unexpired verified login from [`super::auth`], then git config
-/// `user.name` / `user.email`, then the OS username.
+/// Resolution precedence: the captured `MAGISTR_USER` override (accepts
+/// `Name <email>`, a bare email, or a bare username), then an unexpired
+/// verified login from [`super::auth`], then git config `user.name` /
+/// `user.email`, then the captured OS username. The environment values
+/// come from the [`ProjectInputs`] captured at composition, never from
+/// the process environment at resolution time.
 ///
 /// Only the verified branch is authentication; every other source is
 /// self-asserted, which [`provider`] is how a caller tells them apart.
@@ -34,19 +37,21 @@ pub struct Identity {
 }
 
 impl Identity {
-    /// Resolve the local identity for a project directory.
+    /// Resolve the local identity for a project directory over the
+    /// captured machine inputs.
     #[must_use]
-    pub fn resolve(dir: &Path) -> Self {
-        let env_user = std::env::var("MAGISTR_USER")
-            .ok()
-            .filter(|s| !s.trim().is_empty());
+    pub fn resolve(dir: &Path, inputs: &ProjectInputs) -> Self {
+        let env_user = inputs.user_override().map(str::to_owned);
         let git_name = git_config(dir, "user.name");
         let git_email = git_config(dir, "user.email");
-        let os_user = std::env::var("USER")
-            .ok()
-            .or_else(|| std::env::var("USERNAME").ok())
-            .filter(|s| !s.trim().is_empty());
-        from_parts(env_user, verified(dir), git_name, git_email, os_user)
+        let os_user = inputs.os_user().map(str::to_owned);
+        from_parts(
+            env_user,
+            verified(dir, inputs),
+            git_name,
+            git_email,
+            os_user,
+        )
     }
 
     /// The matching key against roster member ids: email when present,
@@ -63,13 +68,13 @@ impl Identity {
 /// logged into two providers resolves as the one this team asked for.
 /// A roster that will not load is treated as no roster: identity
 /// resolution must not fail, it has callers that cannot report.
-fn verified(dir: &Path) -> Option<VerifiedIdentity> {
+fn verified(dir: &Path, inputs: &ProjectInputs) -> Option<VerifiedIdentity> {
     let config = TeamConfig::load(dir).ok().flatten();
     let preferred = config
         .as_ref()
         .and_then(|config| config.identity_provider.as_ref())
         .map(super::auth::IdentityProvider::key);
-    IdentityCache::load()
+    IdentityCache::load(inputs)
         .select(preferred.as_deref(), Utc::now())
         .cloned()
 }

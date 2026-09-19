@@ -1,5 +1,3 @@
-use crate::in_env;
-
 use super::*;
 use crate::cost::session_spend::SessionSpend;
 use crate::cost::storage::load_entries;
@@ -16,6 +14,11 @@ fn spend() -> SessionSpend {
         })
 }
 
+/// A capture with nothing set: no identity override, no home.
+fn inputs(root: &Path) -> ProjectInputs {
+    ProjectInputs::from_lookup(root, |_| None)
+}
+
 #[test]
 fn a_finished_session_lands_in_the_ledger_stamped_with_actor_and_model() {
     let dir = tempfile::tempdir().expect("tempdir");
@@ -23,14 +26,12 @@ fn a_finished_session_lands_in_the_ledger_stamped_with_actor_and_model() {
     std::fs::create_dir_all(&project).expect("project dir");
     let ledger = dir.path().join("costs.json");
 
-    // MAGISTR_USER is the documented identity override and outranks git.
-    if !in_env::in_env(&[(
-        "MAGISTR_USER",
-        Some(std::ffi::OsStr::new("dev@example.com")),
-    )]) {
-        return;
-    }
-    let wrote = record_session_at(&ledger, &project, &spend());
+    // MAGISTR_USER is the documented identity override and outranks git —
+    // captured through the injected lookup, never the process environment.
+    let inputs = ProjectInputs::from_lookup(&project, |key| {
+        (key == "MAGISTR_USER").then(|| "dev@example.com".to_owned())
+    });
+    let wrote = record_session_at(&ledger, &project, &inputs, &spend());
     assert!(wrote);
 
     let entries = load_entries(&ledger).expect("ledger loads");
@@ -57,6 +58,7 @@ fn an_empty_session_writes_nothing() {
     assert!(!record_session_at(
         &ledger,
         dir.path(),
+        &inputs(dir.path()),
         &SessionSpend::new("sess-0", 0.0)
     ));
     assert!(
@@ -69,10 +71,12 @@ fn an_empty_session_writes_nothing() {
 fn entries_accumulate_rather_than_replace() {
     let dir = tempfile::tempdir().expect("tempdir");
     let ledger = dir.path().join("costs.json");
-    assert!(record_session_at(&ledger, dir.path(), &spend()));
+    let inputs = inputs(dir.path());
+    assert!(record_session_at(&ledger, dir.path(), &inputs, &spend()));
     assert!(record_session_at(
         &ledger,
         dir.path(),
+        &inputs,
         &SessionSpend::new("sess-43", 0.5)
     ));
 
@@ -90,5 +94,10 @@ fn an_unwritable_ledger_is_reported_but_not_fatal() {
     std::fs::write(&blocker, b"not a directory").expect("write blocker");
     let ledger = blocker.join("costs.json");
 
-    assert!(!record_session_at(&ledger, dir.path(), &spend()));
+    assert!(!record_session_at(
+        &ledger,
+        dir.path(),
+        &inputs(dir.path()),
+        &spend()
+    ));
 }

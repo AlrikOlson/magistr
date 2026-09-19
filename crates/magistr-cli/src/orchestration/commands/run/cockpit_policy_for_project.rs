@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::config::inputs::ProjectInputs;
 use crate::permissions::{CharterStore, CockpitPolicy, PermissionProfile};
 
 /// The cockpit session's permission policy for a project: `profile`
@@ -22,14 +23,17 @@ use crate::permissions::{CharterStore, CockpitPolicy, PermissionProfile};
 /// what the profile would ask about and written back as they answer.
 /// An unreadable charter runs the session on the profile alone rather
 /// than on an empty charter the next answer would save over it.
+///
+/// The actor and the audit log come from the captured `inputs`.
 pub fn cockpit_policy_for_project(
     project_dir: &Path,
+    inputs: &ProjectInputs,
     profile: PermissionProfile,
     workflow: bool,
     model: Option<&str>,
 ) -> CockpitPolicy {
     let config = crate::permissions::load_config(project_dir).unwrap_or_default();
-    let identity = crate::team::Identity::resolve(project_dir);
+    let identity = crate::team::Identity::resolve(project_dir, inputs);
     let store = CharterStore::at(project_dir);
     let charter = store.load().ok();
     CockpitPolicy::new(
@@ -42,6 +46,7 @@ pub fn cockpit_policy_for_project(
     .rooted_at(Some(project_dir.to_path_buf()))
     .governed_by(crate::team::TeamConfig::governance_for(project_dir).compile())
     .on_model(model.map(str::to_string))
+    .audit_to(crate::permissions::audit_log_path(inputs))
     .acting_as(Some(identity.id().to_string()))
     .retain(config.retention)
     .chartered(charter.clone().unwrap_or_default(), charter.map(|_| store))

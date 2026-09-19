@@ -135,6 +135,7 @@ impl ResolvedSessionSpec {
         let handling = permission_config.noninteractive;
         let policy = SessionPermissionPolicy::for_project_snapshot(
             &config.cwd,
+            config.inputs(),
             permission_config,
             governance,
             profile,

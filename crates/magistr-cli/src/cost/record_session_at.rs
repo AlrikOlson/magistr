@@ -18,17 +18,24 @@ use chrono::Utc;
 use super::append_entry::append_entry;
 use super::cost_entry::CostEntry;
 use super::session_spend::SessionSpend;
+use crate::config::inputs::ProjectInputs;
 use crate::team::Identity;
 
 /// Write `spend` to the ledger at `ledger` for a run in `dir`, stamping
-/// the resolved identity as the actor and the run's model.
+/// the identity resolved from `dir` and the captured `inputs` as the
+/// actor, and the run's model.
 ///
 /// Returns whether an entry was written.
-pub fn record_session_at(ledger: &Path, dir: &Path, spend: &SessionSpend) -> bool {
+pub fn record_session_at(
+    ledger: &Path,
+    dir: &Path,
+    inputs: &ProjectInputs,
+    spend: &SessionSpend,
+) -> bool {
     if spend.is_empty() {
         return false;
     }
-    let entry = cost_entry(dir, spend);
+    let entry = cost_entry(dir, inputs, spend);
     match append_entry(ledger, &entry) {
         Ok(()) => true,
         Err(err) => {
@@ -40,7 +47,7 @@ pub fn record_session_at(ledger: &Path, dir: &Path, spend: &SessionSpend) -> boo
 
 /// Build the ledger row for a session, resolving the actor and project
 /// the caller does not carry.
-fn cost_entry(dir: &Path, spend: &SessionSpend) -> CostEntry {
+fn cost_entry(dir: &Path, inputs: &ProjectInputs, spend: &SessionSpend) -> CostEntry {
     CostEntry {
         session_id: spend.session_id.clone(),
         project: dir
@@ -53,7 +60,7 @@ fn cost_entry(dir: &Path, spend: &SessionSpend) -> CostEntry {
         tokens: spend.tokens.clone(),
         turns: spend.turns,
         duration_ms: spend.duration_ms,
-        actor: Some(Identity::resolve(dir).id().to_owned()),
+        actor: Some(Identity::resolve(dir, inputs).id().to_owned()),
         model: spend.model.clone(),
     }
 }

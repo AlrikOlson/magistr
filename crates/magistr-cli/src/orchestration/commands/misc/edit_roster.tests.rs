@@ -5,11 +5,17 @@ use crate::team::directory::DirectoryConfig;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
+/// A capture with nothing set: the identity resolves from git config or
+/// falls back to "unknown", never from the test process environment.
+fn inputs(dir: &Path) -> ProjectInputs {
+    ProjectInputs::from_lookup(dir, |_| None)
+}
+
 /// A roster where the machine's own identity holds `mine`, alongside an
 /// Owner who is definitely somebody else. Writing the caller in by their
 /// resolved id keeps the test free of environment mutation.
 fn roster_with_me_as(dir: &Path, mine: TeamRole) -> Identity {
-    let me = Identity::resolve(dir);
+    let me = Identity::resolve(dir, &inputs(dir));
     let mut members = vec![TeamMember {
         id: "owner@example.dev".to_string(),
         name: Some("The Owner".to_string()),
@@ -76,6 +82,7 @@ fn an_admin_may_add_a_developer() {
 
     let config = edit_roster(
         tmp.path(),
+        &inputs(tmp.path()),
         "dev@example.dev",
         add(TeamRole::Developer),
         add_member("dev@example.dev", TeamRole::Developer),
@@ -99,6 +106,7 @@ fn an_admin_may_not_promote_themself_to_owner() {
 
     let err = edit_roster(
         tmp.path(),
+        &inputs(tmp.path()),
         &my_id,
         |config| {
             Ok(RosterChange::SetRole {
@@ -133,6 +141,7 @@ fn an_admin_may_not_demote_the_owner() {
 
     let err = edit_roster(
         tmp.path(),
+        &inputs(tmp.path()),
         "owner@example.dev",
         |config| {
             Ok(RosterChange::SetRole {
@@ -157,6 +166,7 @@ fn a_viewer_may_not_edit_the_roster_at_all() {
 
     let err = edit_roster(
         tmp.path(),
+        &inputs(tmp.path()),
         "dev@example.dev",
         add(TeamRole::Developer),
         add_member("dev@example.dev", TeamRole::Developer),
@@ -183,6 +193,7 @@ fn an_owner_may_transfer_ownership() {
 
     let config = edit_roster(
         tmp.path(),
+        &inputs(tmp.path()),
         "heir@example.dev",
         add(TeamRole::Owner),
         add_member("heir@example.dev", TeamRole::Owner),
@@ -206,6 +217,7 @@ fn the_integrity_rules_still_apply_to_an_owner() {
     // Authorized (Owner) but refused by TeamConfig's last-Owner rule.
     let err = edit_roster(
         tmp.path(),
+        &inputs(tmp.path()),
         &my_id,
         |config| Ok(RosterChange::Remove(config.role_of(&my_id).unwrap())),
         |config| config.remove_member(&my_id),
@@ -222,6 +234,7 @@ fn a_missing_roster_asks_for_init() {
     let tmp = TempDir::new().unwrap();
     let err = edit_roster(
         tmp.path(),
+        &inputs(tmp.path()),
         "dev@example.dev",
         add(TeamRole::Developer),
         add_member("dev@example.dev", TeamRole::Developer),

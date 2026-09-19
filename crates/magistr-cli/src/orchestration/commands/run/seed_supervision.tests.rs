@@ -89,6 +89,7 @@ fn a_project_with_no_rule_seeds_the_profiles_default_rows() {
     let model = seed_with(
         Model::new(Size::new(80, 24)),
         dir.path(),
+        Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         None,
@@ -117,6 +118,7 @@ fn the_default_rows_wear_each_profiles_tiers_and_all_auto_under_the_loop() {
         rows(&seed_with(
             Model::new(Size::new(80, 24)),
             dir.path(),
+            Some(&dir.path().join("costs.json")),
             profile,
             workflow,
             None,
@@ -153,6 +155,7 @@ fn the_mode_word_is_the_loops_or_the_profiles() {
     let mut model = seed_with(
         Model::new(Size::new(80, 24)),
         dir.path(),
+        Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         true,
         None,
@@ -176,6 +179,7 @@ fn a_roster_cap_binds_the_meter_with_no_env_var_and_no_local_limit() {
     let model = seed_with(
         Model::new(Size::new(80, 24)),
         dir.path(),
+        Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         None,
@@ -201,6 +205,7 @@ fn a_roster_cap_tighter_than_the_requested_limit_draws_the_breaker() {
     let model = seed_with(
         Model::new(Size::new(80, 24)),
         dir.path(),
+        Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         Some(12.0),
@@ -217,6 +222,7 @@ fn a_requested_limit_with_no_roster_is_the_whole_meter() {
     let model = seed_with(
         Model::new(Size::new(80, 24)),
         dir.path(),
+        Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         Some(5.0),
@@ -264,6 +270,7 @@ fn the_readers_delegations_seed_rows_and_a_clean_record_seeds_an_offer() {
     let model = seed_with(
         Model::new(Size::new(80, 24)),
         dir.path(),
+        Some(&dir.path().join("costs.json")),
         PermissionProfile::Standard,
         false,
         None,
