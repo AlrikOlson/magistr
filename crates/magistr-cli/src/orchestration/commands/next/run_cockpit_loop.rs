@@ -62,7 +62,7 @@ pub(crate) async fn run_cockpit_loop(
         .user_config()
         .map(|cfg| cfg.value.general.auto_pause_or_default())
         .unwrap_or(true);
-    let (goal, goal_note) = GoalMode::from_env();
+    let (goal, goal_note) = GoalMode::from_value(inputs.goal_mode());
     let native = wf.is_native();
 
     let theme = Theme::from_os();

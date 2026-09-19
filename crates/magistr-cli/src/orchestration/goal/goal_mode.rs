@@ -40,14 +40,10 @@ impl GoalMode {
         }
     }
 
-    /// The mode `MAGISTR_GOAL` names, and a note when it named none:
-    /// an unknown value is `Native` *and said so*, never silently.
-    #[must_use]
-    pub fn from_env() -> (Self, Option<String>) {
-        Self::from_value(std::env::var(Self::ENV).ok().as_deref())
-    }
-
-    /// [`Self::from_env`] over an explicit value, for tests.
+    /// The mode the captured `MAGISTR_GOAL` value names, and a note when
+    /// it named none: an unknown value is `Native` *and said so*, never
+    /// silently. The value comes from the project inputs captured at
+    /// composition; nothing here reads the process environment.
     #[must_use]
     pub fn from_value(value: Option<&str>) -> (Self, Option<String>) {
         match value {

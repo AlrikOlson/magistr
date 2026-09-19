@@ -8,6 +8,8 @@ use std::process::Command;
 
 use color_eyre::eyre::{self, WrapErr};
 
+use crate::config::inputs::ProjectInputs;
+
 const VERIFIED_VERSION: &str = "0.153.4";
 const PROJECT_SKILLS: [&str; 9] = [
     "craft",
@@ -45,20 +47,25 @@ struct Invocation {
 ///
 /// The installed CLI retains its authentication, MCP configuration, arguments,
 /// stdio, and process exit behavior. This does not select an ACP provider.
+/// The user's home and the Codex home come from the captured `inputs`.
 ///
 /// # Errors
 /// Returns an error if Codex, the project, or a configuration layer is invalid.
-pub fn launch(project_root: &Path, args: &[OsString], diagnose: bool) -> eyre::Result<()> {
+pub fn launch(
+    project_root: &Path,
+    args: &[OsString],
+    diagnose: bool,
+    inputs: &ProjectInputs,
+) -> eyre::Result<()> {
     let codex = which::which("codex").wrap_err(
         "Codex CLI is not on PATH. Install or activate Codex, then retry codex-launch.",
     )?;
-    let home = std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(PathBuf::from)
+    let home = inputs
+        .home_dir()
         .ok_or_else(|| eyre::eyre!("Cannot locate the home directory for Codex skill discovery"))?;
-    let codex_home = std::env::var_os("CODEX_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".codex"));
+    let codex_home = inputs
+        .codex_home()
+        .ok_or_else(|| eyre::eyre!("Cannot locate the Codex home for Codex skill discovery"))?;
     let locations = ConfigLocations {
         codex_home: std::path::absolute(codex_home)?,
         home: std::path::absolute(home)?,

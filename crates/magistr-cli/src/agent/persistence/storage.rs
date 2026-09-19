@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Duration, Utc};
 use rusqlite::{Connection, params};
 
+use crate::config::inputs::ProjectInputs;
 use crate::error::{MagistrError, Result};
 
 use super::retention_policy::RetentionPolicy;
@@ -25,35 +26,12 @@ const DB_FILENAME: &str = "sessions.db";
 /// migrate the same shared `sessions.db`.
 const SCHEMA_VERSION: i32 = 6;
 
-/// Resolve the default database path.
-///
-/// Uses `$XDG_DATA_HOME/magistr/sessions.db` if set, otherwise
-/// `~/.local/share/magistr/sessions.db`.
-pub fn default_db_path() -> Option<PathBuf> {
-    // Reuse the same data_dir logic as cost storage
-    let data_dir = std::env::var("XDG_DATA_HOME")
-        .ok()
-        .map(PathBuf::from)
-        .or_else(dirs_data_dir)?;
-    Some(data_dir.join("magistr").join(DB_FILENAME))
-}
-
-/// Fallback: ~/.local/share (Unix) or platform equivalent.
-fn dirs_data_dir() -> Option<PathBuf> {
-    #[cfg(unix)]
-    {
-        std::env::var("HOME")
-            .ok()
-            .map(|h| PathBuf::from(h).join(".local/share"))
-    }
-    #[cfg(windows)]
-    {
-        std::env::var("LOCALAPPDATA").ok().map(PathBuf::from)
-    }
-    #[cfg(not(any(unix, windows)))]
-    {
-        None
-    }
+/// The session database, `<data_dir>/sessions.db`, over the captured data
+/// directory — the same directory the cost ledger and the audit log share;
+/// `None` when this machine has nowhere to keep one.
+#[must_use]
+pub fn sessions_db_path(inputs: &ProjectInputs) -> Option<PathBuf> {
+    inputs.data_dir().map(|dir| dir.join(DB_FILENAME))
 }
 
 /// Open (or create) the session database at the given path.

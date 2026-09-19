@@ -1,10 +1,9 @@
-use std::path::Path;
-
 use crate::cli;
+use crate::config::inputs::ProjectInputs;
 use crate::error::{self, ResultExt};
 use crate::session;
 use crate::team::auth::require_verified;
-use crate::team::{Identity, TeamConfig, is_ci_env, resolve_role};
+use crate::team::{Identity, TeamConfig, resolve_role};
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
@@ -18,8 +17,9 @@ pub fn cmd_sessions(
     purge_days: Option<u32>,
     owner: Option<&str>,
     handoff_args: Option<Vec<String>>,
+    inputs: &ProjectInputs,
 ) -> eyre::Result<()> {
-    let db_path = session::default_db_path().ok_or_else(|| {
+    let db_path = session::sessions_db_path(inputs).ok_or_else(|| {
         error::MagistrError::Config("could not determine data directory (HOME not set)".into())
     })?;
 
@@ -43,14 +43,14 @@ pub fn cmd_sessions(
     if let Some(args) = handoff_args
         && args.len() == 2
     {
-        let dir = Path::new(".");
-        let identity = Identity::resolve(dir);
+        let dir = inputs.project_root();
+        let identity = Identity::resolve(dir, inputs);
         let config = TeamConfig::load(dir)?;
         // Ahead of the role, as in `attach`: a role resolved from an
         // identity nobody vouched for is no basis for a handoff.
         require_verified(config.as_ref(), &identity)?;
-        let role = resolve_role(config.as_ref(), &identity, is_ci_env());
-        let audit_log = crate::permissions::audit_log_path();
+        let role = resolve_role(config.as_ref(), &identity, inputs.is_ci());
+        let audit_log = crate::permissions::audit_log_path(inputs);
         let retention = crate::permissions::load_config(dir)
             .unwrap_or_default()
             .retention;

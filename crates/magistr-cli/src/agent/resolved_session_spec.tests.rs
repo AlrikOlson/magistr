@@ -87,7 +87,10 @@ fn snapshots_keep_provider_model_mcp_and_policy_after_configuration_changes() {
 #[test]
 fn inherited_models_pass_through_project_governance_before_launch() {
     let dir = tempfile::tempdir().expect("project");
-    let identity = crate::team::Identity::resolve(dir.path());
+    let identity = crate::team::Identity::resolve(
+        dir.path(),
+        &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
+    );
     let mut team = crate::team::TeamConfig::new_with_owner(&identity);
     team.policy = GovernancePolicy {
         approved_models: vec!["approved".into()],
@@ -212,7 +215,10 @@ fn unsupported_provider_and_continuation_are_refused_before_runtime_discovery() 
 #[test]
 fn unknown_runtime_and_resumed_models_cannot_bypass_project_model_governance() {
     let dir = tempfile::tempdir().expect("project");
-    let identity = crate::team::Identity::resolve(dir.path());
+    let identity = crate::team::Identity::resolve(
+        dir.path(),
+        &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
+    );
     let mut team = crate::team::TeamConfig::new_with_owner(&identity);
     team.policy = GovernancePolicy {
         approved_models: vec!["approved".into()],

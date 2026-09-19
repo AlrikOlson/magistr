@@ -258,10 +258,15 @@ fn tag_nonexistent_session_errors() {
 }
 
 #[test]
-fn default_db_path_is_some() {
-    // This test just verifies the function runs without panic.
-    // On CI it may be None if HOME isn't set, so we don't assert Some.
-    let _ = default_db_path();
+fn the_database_lives_in_the_captured_data_dir() {
+    let inputs =
+        ProjectInputs::from_lookup("/proj", |key| (key == "HOME").then(|| "/home/u".to_owned()));
+    assert_eq!(
+        sessions_db_path(&inputs),
+        Some(PathBuf::from("/home/u/.local/share/magistr/sessions.db"))
+    );
+    let nowhere = ProjectInputs::from_lookup("/proj", |_| None);
+    assert_eq!(sessions_db_path(&nowhere), None, "no home, no database");
 }
 
 #[test]

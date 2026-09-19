@@ -41,7 +41,8 @@ pub async fn cmd_run(
     }
     eprintln!();
 
-    let outcome = drain_session_interactive(&mut session, &cwd, model_name.as_deref()).await;
+    let outcome =
+        drain_session_interactive(&mut session, &cwd, inputs, model_name.as_deref()).await;
     let cleanup = session.terminate_session().await.suggest();
     drop(session);
     if let Err(err) = workspace.shutdown().await {

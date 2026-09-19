@@ -53,7 +53,6 @@ pub mod record_session;
 pub mod record_session_at;
 pub mod session_spend;
 pub mod storage;
-pub mod storage_paths;
 pub mod summarize_by_period;
 pub mod summarize_costs;
 pub mod time_bucket;

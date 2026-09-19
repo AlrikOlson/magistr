@@ -249,6 +249,7 @@ impl AgentConfig {
         let profile = self.permission_profile.unwrap_or(config.profile);
         let policy = crate::orchestration::commands::run::cockpit_policy_for_project(
             &self.cwd,
+            &self.inputs,
             profile,
             self.workflow_permissions,
             self.model.as_deref(),

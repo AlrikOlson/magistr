@@ -30,6 +30,7 @@ use super::permission_profile::PermissionProfile;
 use super::policy_request_for::policy_request_for;
 use super::profile_action::ProfileAction;
 use super::resolve_against::{checked_resolve_against, glob_spelling, resolve_against};
+use crate::config::inputs::ProjectInputs;
 
 /// Shared host adapter for the domain's deterministic permission service.
 /// Every surface supplies ACP requests to this owner of normalization, risk
@@ -68,20 +69,22 @@ pub struct SessionPermissionPolicy {
 impl SessionPermissionPolicy {
     /// Construct a host policy from already resolved project configuration.
     /// The session resolver passes the same governance snapshot that selected
-    /// its model; later file changes cannot replace either decision.
+    /// its model; later file changes cannot replace either decision. The
+    /// actor and the audit log come from the captured `inputs`.
     ///
     /// # Errors
     ///
     /// A configured charter cannot be read or decoded.
     pub fn for_project_snapshot(
         project_dir: &Path,
+        inputs: &ProjectInputs,
         config: super::PermissionConfig,
         governance: magistr_engine::policy::GovernancePolicy,
         profile: PermissionProfile,
         workflow: bool,
         model: Option<&str>,
     ) -> crate::error::Result<Self> {
-        let identity = crate::team::Identity::resolve(project_dir);
+        let identity = crate::team::Identity::resolve(project_dir, inputs);
         let store = CharterStore::at(project_dir);
         let charter = store.load()?;
         Ok(Self::new(
@@ -94,6 +97,7 @@ impl SessionPermissionPolicy {
         .rooted_at(Some(project_dir.to_path_buf()))
         .governed_by(governance.compile())
         .on_model(model.map(str::to_owned))
+        .audit_to(audit_log_path(inputs))
         .acting_as(Some(identity.id().to_string()))
         .retain(config.retention)
         .chartered(charter, Some(store)))
@@ -101,7 +105,8 @@ impl SessionPermissionPolicy {
 
     /// A policy over the given profile, rules and protected paths;
     /// `workflow` turns on the tool-kind auto-approval `magistr next`
-    /// runs under. Audit entries go to the default audit log.
+    /// runs under. Audit entries go nowhere until [`Self::audit_to`]
+    /// names the log — a host binds the captured one, a test its own.
     #[must_use]
     pub fn new(
         profile: PermissionProfile,
@@ -121,7 +126,7 @@ impl SessionPermissionPolicy {
             } else {
                 PermissionMode::Standard
             },
-            audit_path: audit_log_path(),
+            audit_path: None,
             actor: None,
             retention: AuditRetention::default(),
             governance: PolicyEngine::default(),

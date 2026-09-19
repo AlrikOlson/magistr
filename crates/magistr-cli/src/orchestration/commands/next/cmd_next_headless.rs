@@ -45,9 +45,7 @@ pub async fn cmd_next_headless(
         .await
         .suggest()?;
 
-    let budget_limit: Option<f64> = std::env::var("MAGISTR_BUDGET")
-        .ok()
-        .and_then(|v| v.parse().ok());
+    let budget_limit = inputs.budget_limit();
 
     // Fire OnIterationStart lifecycle hooks
     crate::workflow::hook_dispatch::run_hooks_headless(
@@ -78,7 +76,7 @@ pub async fn cmd_next_headless(
     }
     let outcome = drained?;
     if let Some(spend) = spend {
-        crate::cost::record_session(&dir, &spend);
+        crate::cost::record_session(&inputs, &dir, &spend);
     }
     cleanup?;
 

@@ -67,6 +67,7 @@ fn project_policy_decisions_match_between_cockpit_and_agent_session_for_both_run
         let mut session = session.audit_to(None);
         let mut cockpit = cockpit_policy_for_project(
             dir.path(),
+            config.inputs(),
             PermissionProfile::Standard,
             workflow,
             Some("fixture-model"),
@@ -165,13 +166,19 @@ fn remembered_answers_survive_a_surface_change_but_do_not_override_governance() 
         serde_json::json!({"file_path": "crates/a/src/lib.rs"}),
         Some(ToolKind::Edit),
     );
-    let mut cockpit =
-        cockpit_policy_for_project(dir.path(), PermissionProfile::Standard, false, None)
-            .audit_to(None);
+    let config = AgentConfig::new("fixture", dir.path());
+    let mut cockpit = cockpit_policy_for_project(
+        dir.path(),
+        config.inputs(),
+        PermissionProfile::Standard,
+        false,
+        None,
+    )
+    .audit_to(None);
     let before = cockpit.evaluate_request(&ask);
     assert_eq!(before.outcome, PermissionOutcome::Ask);
     cockpit.answered(&policy_request(&ask), PermissionKind::AllowAlways);
-    let (session, _) = AgentConfig::new("fixture", dir.path()).session_permission_policy();
+    let (session, _) = config.session_permission_policy();
     let mut session = session.audit_to(None);
     let after = session.evaluate_request(&ask);
     assert_eq!(after.outcome, PermissionOutcome::Allow);

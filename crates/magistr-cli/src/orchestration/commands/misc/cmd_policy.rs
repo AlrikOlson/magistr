@@ -14,6 +14,7 @@ use crate::utils::format as fmt;
 
 pub fn cmd_policy(
     dir: &Path,
+    inputs: &crate::config::inputs::ProjectInputs,
     action: Option<PolicyAction>,
     renderer: &dyn OutputRenderer,
 ) -> eyre::Result<()> {
@@ -26,7 +27,7 @@ pub fn cmd_policy(
             path,
             model,
         } => check(&policy, tool, command, path, model, renderer),
-        PolicyAction::Report { actor } => report(actor.as_deref(), renderer),
+        PolicyAction::Report { actor } => report(actor.as_deref(), renderer, inputs),
     }
 }
 
@@ -184,8 +185,12 @@ fn check(
     Ok(())
 }
 
-fn report(actor: Option<&str>, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
-    let path = crate::permissions::audit_log_path().ok_or_else(|| {
+fn report(
+    actor: Option<&str>,
+    renderer: &dyn OutputRenderer,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
+    let path = crate::permissions::audit_log_path(inputs).ok_or_else(|| {
         MagistrError::Config("could not determine data directory (HOME not set)".into())
     })?;
     let mut entries = crate::permissions::load_entries(&path).suggest()?;

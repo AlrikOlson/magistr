@@ -6,6 +6,7 @@ use std::path::Path;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::config::inputs::ProjectInputs;
 use crate::error::MagistrError;
 
 use super::cache_path::cache_path;
@@ -65,15 +66,15 @@ impl Default for IdentityCache {
 }
 
 impl IdentityCache {
-    /// Load the cache from the default location, treating an absent
-    /// file, an unset home and unreadable or corrupt contents alike as
-    /// an empty cache.
+    /// Load the cache from the captured state directory, treating an
+    /// absent file, an unlocated home and unreadable or corrupt contents
+    /// alike as an empty cache.
     ///
     /// A cache is derived state: refusing to start because it went bad
     /// would be worse than logging in again.
     #[must_use]
-    pub fn load() -> Self {
-        cache_path()
+    pub fn load(inputs: &ProjectInputs) -> Self {
+        cache_path(inputs)
             .and_then(|path| std::fs::read_to_string(path).ok())
             .and_then(|text| serde_json::from_str(&text).ok())
             .unwrap_or_default()
@@ -90,9 +91,9 @@ impl IdentityCache {
             .map_err(|e| MagistrError::parse("json", path.display().to_string(), e))
     }
 
-    /// Write the cache to the default location.
-    pub fn save(&self) -> Result<(), MagistrError> {
-        let path = cache_path().ok_or_else(|| {
+    /// Write the cache to the captured state directory.
+    pub fn save(&self, inputs: &ProjectInputs) -> Result<(), MagistrError> {
+        let path = cache_path(inputs).ok_or_else(|| {
             MagistrError::Other(
                 "cannot cache a login: neither MAGISTR_HOME nor HOME is set".to_string(),
             )

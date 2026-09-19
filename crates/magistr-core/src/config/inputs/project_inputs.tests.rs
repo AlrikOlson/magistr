@@ -293,3 +293,294 @@ fn preset_layers_apply_the_captured_user_override_directory() {
     assert_eq!(info.len(), 1);
     assert_eq!(info[0].source, "user-global");
 }
+
+// ── Remaining ambient reads (config-inputs-remaining-ambient-reads) ─────
+
+#[test]
+fn explicit_data_state_and_codex_variables_win_over_home() {
+    let inputs = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![
+            ("HOME", "/home/u"),
+            ("XDG_DATA_HOME", "/xdg-data"),
+            ("MAGISTR_HOME", "/state"),
+            ("CODEX_HOME", "/codex"),
+        ]),
+    );
+    assert_eq!(inputs.home_dir(), Some(Path::new("/home/u")));
+    assert_eq!(
+        inputs.sources()["user.home"],
+        InputSource::Environment("HOME")
+    );
+    assert_eq!(inputs.data_dir(), Some(Path::new("/xdg-data/magistr")));
+    assert_eq!(
+        inputs.sources()["user.data_dir"],
+        InputSource::Environment("XDG_DATA_HOME")
+    );
+    assert_eq!(inputs.state_dir(), Some(Path::new("/state")));
+    assert_eq!(
+        inputs.sources()["user.state_dir"],
+        InputSource::Environment("MAGISTR_HOME")
+    );
+    assert_eq!(inputs.codex_home(), Some(Path::new("/codex")));
+    assert_eq!(
+        inputs.sources()["codex.home"],
+        InputSource::Environment("CODEX_HOME")
+    );
+}
+
+#[test]
+fn data_state_and_codex_dirs_derive_from_the_captured_home() {
+    let inputs = ProjectInputs::from_lookup("/proj", lookup(vec![("HOME", "/home/u")]));
+    assert_eq!(
+        inputs.data_dir(),
+        Some(Path::new("/home/u/.local/share/magistr"))
+    );
+    assert_eq!(
+        inputs.sources()["user.data_dir"],
+        InputSource::Environment("HOME")
+    );
+    assert_eq!(inputs.state_dir(), Some(Path::new("/home/u/.magistr")));
+    assert_eq!(
+        inputs.sources()["user.state_dir"],
+        InputSource::Environment("HOME")
+    );
+    assert_eq!(inputs.codex_home(), Some(Path::new("/home/u/.codex")));
+    assert_eq!(
+        inputs.sources()["codex.home"],
+        InputSource::Environment("HOME")
+    );
+
+    // USERPROFILE is the home on Windows; it stands in wherever HOME would.
+    let windows = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![("USERPROFILE", "C:/Users/u"), ("HOME", " ")]),
+    );
+    assert_eq!(windows.home_dir(), Some(Path::new("C:/Users/u")));
+    assert_eq!(
+        windows.sources()["user.home"],
+        InputSource::Environment("USERPROFILE")
+    );
+    assert_eq!(
+        windows.config_dir(),
+        Some(Path::new("C:/Users/u/.config/magistr"))
+    );
+    assert_eq!(
+        windows.sources()["user.config_dir"],
+        InputSource::Environment("USERPROFILE")
+    );
+    assert_eq!(windows.state_dir(), Some(Path::new("C:/Users/u/.magistr")));
+    assert_eq!(windows.codex_home(), Some(Path::new("C:/Users/u/.codex")));
+}
+
+#[test]
+fn local_app_data_is_the_last_data_dir_fallback_and_nothing_means_unlocated() {
+    let local = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![("LOCALAPPDATA", "C:/Users/u/AppData/Local")]),
+    );
+    assert_eq!(
+        local.data_dir(),
+        Some(Path::new("C:/Users/u/AppData/Local/magistr"))
+    );
+    assert_eq!(
+        local.sources()["user.data_dir"],
+        InputSource::Environment("LOCALAPPDATA")
+    );
+    assert_eq!(local.home_dir(), None);
+    assert_eq!(local.state_dir(), None);
+    assert_eq!(local.codex_home(), None);
+
+    let nothing = ProjectInputs::from_lookup("/proj", lookup(vec![]));
+    assert_eq!(nothing.data_dir(), None);
+    assert_eq!(nothing.sources()["user.data_dir"], InputSource::Default);
+    assert_eq!(nothing.sources()["user.home"], InputSource::Default);
+    assert_eq!(nothing.sources()["user.state_dir"], InputSource::Default);
+    assert_eq!(nothing.sources()["codex.home"], InputSource::Default);
+}
+
+#[test]
+fn explicit_data_and_state_dirs_record_their_provenance() {
+    let inputs = ProjectInputs::from_lookup("/proj", lookup(vec![("HOME", "/home/u")]))
+        .with_data_dir("/tmp/data")
+        .with_state_dir("/tmp/state");
+    assert_eq!(inputs.data_dir(), Some(Path::new("/tmp/data")));
+    assert_eq!(inputs.sources()["user.data_dir"], InputSource::Explicit);
+    assert_eq!(inputs.state_dir(), Some(Path::new("/tmp/state")));
+    assert_eq!(inputs.sources()["user.state_dir"], InputSource::Explicit);
+    // The override moves only the directory it names.
+    assert_eq!(inputs.home_dir(), Some(Path::new("/home/u")));
+    assert_eq!(inputs.codex_home(), Some(Path::new("/home/u/.codex")));
+}
+
+#[test]
+fn identity_inputs_capture_the_override_the_os_user_and_ci() {
+    let inputs = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![
+            ("MAGISTR_USER", " Alice <alice@example.dev> "),
+            ("USER", "alice"),
+            ("USERNAME", "ALICE"),
+            ("CI", "true"),
+        ]),
+    );
+    assert_eq!(inputs.user_override(), Some("Alice <alice@example.dev>"));
+    assert_eq!(
+        inputs.sources()["identity.user"],
+        InputSource::Environment("MAGISTR_USER")
+    );
+    assert_eq!(inputs.os_user(), Some("alice"));
+    assert_eq!(
+        inputs.sources()["identity.os_user"],
+        InputSource::Environment("USER")
+    );
+    assert!(inputs.is_ci());
+    assert_eq!(
+        inputs.sources()["identity.ci"],
+        InputSource::Environment("CI")
+    );
+
+    let windows = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![("USER", ""), ("USERNAME", "ALICE"), ("CI", "0")]),
+    );
+    assert_eq!(windows.user_override(), None);
+    assert_eq!(windows.sources()["identity.user"], InputSource::Default);
+    assert_eq!(windows.os_user(), Some("ALICE"));
+    assert_eq!(
+        windows.sources()["identity.os_user"],
+        InputSource::Environment("USERNAME")
+    );
+    assert!(!windows.is_ci(), "CI=0 is not a CI runner");
+    assert_eq!(windows.sources()["identity.ci"], InputSource::Default);
+
+    for value in ["false", "FALSE", " ", ""] {
+        let inputs = ProjectInputs::from_lookup("/proj", lookup(vec![("CI", value)]));
+        assert!(!inputs.is_ci(), "CI={value:?} is not a CI runner");
+    }
+    for value in ["1", "yes", "github"] {
+        let inputs = ProjectInputs::from_lookup("/proj", lookup(vec![("CI", value)]));
+        assert!(inputs.is_ci(), "CI={value:?} is a CI runner");
+    }
+}
+
+#[test]
+fn session_inputs_capture_the_goal_mode_the_budget_exports_and_the_login_client() {
+    let inputs = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![
+            ("MAGISTR_GOAL", " Auto "),
+            ("MAGISTR_BUDGET", "5.50"),
+            ("MAGISTR_BUDGET_REQUESTED", "12"),
+            ("MAGISTR_GITHUB_CLIENT_ID", "Iv1.abc"),
+        ]),
+    );
+    assert_eq!(inputs.goal_mode(), Some("Auto"));
+    assert_eq!(
+        inputs.sources()["session.goal_mode"],
+        InputSource::Environment("MAGISTR_GOAL")
+    );
+    assert_eq!(inputs.budget_limit(), Some(5.5));
+    assert_eq!(
+        inputs.sources()["session.budget_limit"],
+        InputSource::Environment("MAGISTR_BUDGET")
+    );
+    assert_eq!(inputs.budget_requested(), Some(12.0));
+    assert_eq!(
+        inputs.sources()["session.budget_requested"],
+        InputSource::Environment("MAGISTR_BUDGET_REQUESTED")
+    );
+    assert_eq!(inputs.github_client_id(), Some("Iv1.abc"));
+    assert_eq!(
+        inputs.sources()["login.github_client_id"],
+        InputSource::Environment("MAGISTR_GITHUB_CLIENT_ID")
+    );
+}
+
+#[test]
+fn unparseable_or_nonpositive_budget_exports_are_defaults() {
+    for (limit, requested) in [("abc", "-1"), ("0", "inf"), ("NaN", " ")] {
+        let inputs = ProjectInputs::from_lookup(
+            "/proj",
+            lookup(vec![
+                ("MAGISTR_BUDGET", limit),
+                ("MAGISTR_BUDGET_REQUESTED", requested),
+            ]),
+        );
+        assert_eq!(inputs.budget_limit(), None, "MAGISTR_BUDGET={limit:?}");
+        assert_eq!(
+            inputs.sources()["session.budget_limit"],
+            InputSource::Default
+        );
+        assert_eq!(
+            inputs.budget_requested(),
+            None,
+            "MAGISTR_BUDGET_REQUESTED={requested:?}"
+        );
+        assert_eq!(
+            inputs.sources()["session.budget_requested"],
+            InputSource::Default
+        );
+    }
+    let nothing = ProjectInputs::from_lookup("/proj", lookup(vec![]));
+    assert_eq!(nothing.goal_mode(), None);
+    assert_eq!(nothing.sources()["session.goal_mode"], InputSource::Default);
+    assert_eq!(nothing.github_client_id(), None);
+    assert_eq!(
+        nothing.sources()["login.github_client_id"],
+        InputSource::Default
+    );
+}
+
+#[test]
+fn the_governed_budget_binds_explicitly_over_the_exports() {
+    let inputs = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![
+            ("MAGISTR_BUDGET", "5.50"),
+            ("MAGISTR_BUDGET_REQUESTED", "12"),
+        ]),
+    )
+    .with_budget(Some(2.0), Some(12.0));
+    assert_eq!(inputs.budget_limit(), Some(2.0));
+    assert_eq!(
+        inputs.sources()["session.budget_limit"],
+        InputSource::Explicit
+    );
+    assert_eq!(inputs.budget_requested(), Some(12.0));
+    assert_eq!(
+        inputs.sources()["session.budget_requested"],
+        InputSource::Explicit
+    );
+
+    // A decision with no limit clears what the environment exported: the
+    // host decided, and nothing capped the session.
+    let cleared = inputs.with_budget(None, Some(f64::NAN));
+    assert_eq!(cleared.budget_limit(), None);
+    assert_eq!(cleared.budget_requested(), None);
+    assert_eq!(
+        cleared.sources()["session.budget_limit"],
+        InputSource::Explicit
+    );
+}
+
+#[test]
+fn for_project_keeps_the_machine_inputs() {
+    let inputs = ProjectInputs::from_lookup(
+        "/proj",
+        lookup(vec![
+            ("HOME", "/home/u"),
+            ("MAGISTR_USER", "alice"),
+            ("CI", "1"),
+            ("MAGISTR_GOAL", "off"),
+        ]),
+    )
+    .with_budget(Some(3.0), None);
+    let other = inputs.for_project("/other");
+    assert_eq!(other.data_dir(), inputs.data_dir());
+    assert_eq!(other.state_dir(), inputs.state_dir());
+    assert_eq!(other.user_override(), Some("alice"));
+    assert!(other.is_ci());
+    assert_eq!(other.goal_mode(), Some("off"));
+    assert_eq!(other.budget_limit(), Some(3.0));
+}

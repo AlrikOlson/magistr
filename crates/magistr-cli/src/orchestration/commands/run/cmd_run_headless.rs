@@ -35,8 +35,9 @@ impl HeadlessOutcome {
 /// Metadata (tool calls, summary) goes to stderr in plain mode.
 /// Applies the shared project policy; unanswered approvals are refused by default.
 ///
-/// Respects `MAGISTR_BUDGET` env var for cost limits — aborts the session
-/// if cumulative cost exceeds the budget.
+/// Aborts the session when cumulative cost reaches the captured budget
+/// limit (the governed cap the host bound, or the `MAGISTR_BUDGET`
+/// export a child process inherited).
 pub async fn cmd_run_headless(
     request: super::RunRequest<'_>,
     backend: agent::Backend,
@@ -60,9 +61,7 @@ pub async fn cmd_run_headless(
         .suggest()?;
     let model = session.resolved_model().map(str::to_owned);
 
-    let budget_limit: Option<f64> = std::env::var("MAGISTR_BUDGET")
-        .ok()
-        .and_then(|v| v.parse().ok());
+    let budget_limit = inputs.budget_limit();
 
     let mut stdout = std::io::stdout().lock();
     let mut stderr = std::io::stderr().lock();
@@ -88,7 +87,7 @@ pub async fn cmd_run_headless(
     // rather than inside the drain so the drain stays a pure function of
     // its writers and its tests never touch the real ledger.
     if let Some(spend) = spend.map(|s| model.as_deref().map_or(s.clone(), |m| s.with_model(m))) {
-        record_session(&cwd, &spend);
+        record_session(inputs, &cwd, &spend);
     }
     cleanup?;
 

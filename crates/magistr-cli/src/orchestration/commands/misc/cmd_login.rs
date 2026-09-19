@@ -6,6 +6,7 @@ use std::time::Duration;
 use chrono::Utc;
 use color_eyre::eyre;
 
+use crate::config::inputs::ProjectInputs;
 use crate::error::MagistrError;
 use crate::output::OutputRenderer;
 use crate::team::TeamConfig;
@@ -21,6 +22,7 @@ use super::login_provider::login_provider;
 /// `status` short-circuits to a listing of what is already cached —
 /// the one way to see whether a login has expired without attempting
 /// another one.
+#[allow(clippy::too_many_arguments)] // mirrors the clap surface one-to-one, plus the captured inputs
 pub fn cmd_login(
     dir: &Path,
     kind: Option<&str>,
@@ -29,9 +31,10 @@ pub fn cmd_login(
     scope: Option<&str>,
     status: bool,
     renderer: &dyn OutputRenderer,
+    inputs: &ProjectInputs,
 ) -> eyre::Result<()> {
     if status {
-        return report_status(renderer);
+        return report_status(renderer, inputs);
     }
 
     let configured = TeamConfig::load(dir)?.and_then(|config| config.identity_provider);
@@ -41,7 +44,7 @@ pub fn cmd_login(
         issuer,
         client_id,
         scope,
-        std::env::var("MAGISTR_GITHUB_CLIENT_ID").ok().as_deref(),
+        inputs.github_client_id(),
     )?;
 
     let machine = renderer.is_machine_readable();
@@ -52,9 +55,9 @@ pub fn cmd_login(
         &mut |wait: Duration| std::thread::sleep(wait),
     )?;
 
-    let mut cache = IdentityCache::load();
+    let mut cache = IdentityCache::load(inputs);
     cache.put(identity.clone());
-    cache.save()?;
+    cache.save(inputs)?;
 
     report_login(&identity, &provider, renderer)
 }
@@ -123,8 +126,8 @@ fn report_login(
     Ok(())
 }
 
-fn report_status(renderer: &dyn OutputRenderer) -> eyre::Result<()> {
-    let cache = IdentityCache::load();
+fn report_status(renderer: &dyn OutputRenderer, inputs: &ProjectInputs) -> eyre::Result<()> {
+    let cache = IdentityCache::load(inputs);
     let now = Utc::now();
 
     if renderer.is_machine_readable() {

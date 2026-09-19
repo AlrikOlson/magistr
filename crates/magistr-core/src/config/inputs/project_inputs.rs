@@ -12,7 +12,23 @@ use crate::error::{MagistrError, Result};
 use crate::types::{Language, PresetOverride, ProjectConfig};
 
 const XDG_CONFIG_HOME: &str = "XDG_CONFIG_HOME";
+const XDG_DATA_HOME: &str = "XDG_DATA_HOME";
 const HOME: &str = "HOME";
+const USERPROFILE: &str = "USERPROFILE";
+const LOCALAPPDATA: &str = "LOCALAPPDATA";
+/// Overrides the whole per-user state directory, `GNUPGHOME`-style: the
+/// variable is the directory itself, so tests and sandboxes never touch a
+/// real home.
+const MAGISTR_HOME: &str = "MAGISTR_HOME";
+const CODEX_HOME: &str = "CODEX_HOME";
+const MAGISTR_USER: &str = "MAGISTR_USER";
+const USER: &str = "USER";
+const USERNAME: &str = "USERNAME";
+const CI: &str = "CI";
+const MAGISTR_GOAL: &str = "MAGISTR_GOAL";
+const MAGISTR_BUDGET: &str = "MAGISTR_BUDGET";
+const MAGISTR_BUDGET_REQUESTED: &str = "MAGISTR_BUDGET_REQUESTED";
+const MAGISTR_GITHUB_CLIENT_ID: &str = "MAGISTR_GITHUB_CLIENT_ID";
 const AGENT_BACKEND: &str = "MAGISTR_AGENT_BACKEND";
 const CLAUDE_API_KEY: &str = "ANTHROPIC_API_KEY";
 const PLUGIN_INDEX_URL: &str = "MAGISTR_PLUGIN_INDEX_URL";
@@ -36,18 +52,45 @@ const USER_PRESET_DIR: &str = "presets";
 const MODELS_FILE: &str = "models.toml";
 const PLUGINS_DIR: &str = "plugins";
 const ORG_PLUGIN_CONFIG_FILE: &str = "org-plugins.json";
+/// The per-user state directory under the home, `~/.magistr`.
+const STATE_DIR: &str = ".magistr";
+/// The Codex CLI's own home under the user's, `~/.codex`.
+const CODEX_DIR: &str = ".codex";
 
-/// Project, preset, provider, plugin and workspace inputs captured once at
-/// composition. Use cases resolve paths and load files from this set; they
-/// never consult the process environment again.
+/// Project, preset, provider, plugin, workspace, machine and session inputs
+/// captured once at composition. Use cases resolve paths and load files from
+/// this set; they never consult the process environment again.
 ///
 /// Secrets are never captured: the Claude API key is recorded only as
 /// present or absent.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ProjectInputs {
     project_root: PathBuf,
-    /// `$XDG_CONFIG_HOME/magistr`, else `$HOME/.config/magistr`, else none.
+    /// `$HOME`, else `$USERPROFILE`, else none.
+    home_dir: Option<PathBuf>,
+    /// `$XDG_CONFIG_HOME/magistr`, else `<home>/.config/magistr`, else none.
     config_dir: Option<PathBuf>,
+    /// `$XDG_DATA_HOME/magistr`, else `<home>/.local/share/magistr`, else
+    /// `$LOCALAPPDATA/magistr`, else none.
+    data_dir: Option<PathBuf>,
+    /// `$MAGISTR_HOME`, else `<home>/.magistr`, else none.
+    state_dir: Option<PathBuf>,
+    /// `$CODEX_HOME`, else `<home>/.codex`, else none.
+    codex_home: Option<PathBuf>,
+    /// `MAGISTR_USER`, the explicit identity override.
+    user_override: Option<String>,
+    /// `USER`, else `USERNAME`.
+    os_user: Option<String>,
+    /// `CI` set to a non-empty value other than `0` or `false`.
+    ci: bool,
+    /// `MAGISTR_GOAL`, unparsed.
+    goal_mode: Option<String>,
+    /// `MAGISTR_BUDGET`: the limit the session runs under, in dollars.
+    budget_limit: Option<f64>,
+    /// `MAGISTR_BUDGET_REQUESTED`: the developer's own limit, in dollars.
+    budget_requested: Option<f64>,
+    /// `MAGISTR_GITHUB_CLIENT_ID`, the GitHub OAuth app for `magistr login`.
+    github_client_id: Option<String>,
     agent_backend: Option<String>,
     claude_api_key: bool,
     plugin_index_url: Option<String>,
@@ -84,20 +127,101 @@ impl ProjectInputs {
         };
         let mut sources = BTreeMap::from([("project_root", InputSource::Explicit)]);
 
-        let config_dir = value(XDG_CONFIG_HOME)
-            .map(|xdg| {
-                sources.insert("user.config_dir", InputSource::Environment(XDG_CONFIG_HOME));
-                PathBuf::from(xdg).join(USER_DIR)
+        // The home and everything that hangs off it. Each derived directory
+        // records the variable that actually decided it: an explicit
+        // override, or the home it was derived from.
+        let home = value(HOME)
+            .map(|home| (home, HOME))
+            .or_else(|| value(USERPROFILE).map(|home| (home, USERPROFILE)));
+        sources.insert(
+            "user.home",
+            home.as_ref().map_or(InputSource::Default, |(_, key)| {
+                InputSource::Environment(key)
+            }),
+        );
+        let home_dir = home.as_ref().map(|(home, _)| PathBuf::from(home));
+        let under_home = |leaf: &[&str]| {
+            home.as_ref().map(|(home, key)| {
+                let mut path = PathBuf::from(home);
+                path.extend(leaf);
+                (path, *key)
             })
-            .or_else(|| {
-                value(HOME).map(|home| {
-                    sources.insert("user.config_dir", InputSource::Environment(HOME));
-                    PathBuf::from(home).join(".config").join(USER_DIR)
+        };
+        let resolved = |explicit: &'static str, leaf: &[&str], joined: bool| {
+            value(explicit)
+                .map(|dir| {
+                    let mut path = PathBuf::from(dir);
+                    if joined {
+                        path.push(USER_DIR);
+                    }
+                    (path, explicit)
                 })
-            });
-        sources
-            .entry("user.config_dir")
-            .or_insert(InputSource::Default);
+                .or_else(|| under_home(leaf))
+        };
+        let mut capture_dir =
+            |setting: &'static str, dir: Option<(PathBuf, &'static str)>| -> Option<PathBuf> {
+                sources.insert(
+                    setting,
+                    dir.as_ref().map_or(InputSource::Default, |(_, key)| {
+                        InputSource::Environment(key)
+                    }),
+                );
+                dir.map(|(path, _)| path)
+            };
+        let config_dir = capture_dir(
+            "user.config_dir",
+            resolved(XDG_CONFIG_HOME, &[".config", USER_DIR], true),
+        );
+        let data_dir = capture_dir(
+            "user.data_dir",
+            resolved(XDG_DATA_HOME, &[".local", "share", USER_DIR], true).or_else(|| {
+                value(LOCALAPPDATA).map(|dir| (PathBuf::from(dir).join(USER_DIR), LOCALAPPDATA))
+            }),
+        );
+        let state_dir = capture_dir(
+            "user.state_dir",
+            resolved(MAGISTR_HOME, &[STATE_DIR], false),
+        );
+        let codex_home = capture_dir("codex.home", resolved(CODEX_HOME, &[CODEX_DIR], false));
+
+        let user_override = value(MAGISTR_USER);
+        sources.insert(
+            "identity.user",
+            Self::source_for(user_override.is_some(), MAGISTR_USER),
+        );
+        let os_user = value(USER)
+            .map(|user| (user, USER))
+            .or_else(|| value(USERNAME).map(|user| (user, USERNAME)));
+        sources.insert(
+            "identity.os_user",
+            os_user.as_ref().map_or(InputSource::Default, |(_, key)| {
+                InputSource::Environment(key)
+            }),
+        );
+        let os_user = os_user.map(|(user, _)| user);
+        let ci = value(CI).is_some_and(|v| v != "0" && !v.eq_ignore_ascii_case("false"));
+        sources.insert("identity.ci", Self::source_for(ci, CI));
+
+        let goal_mode = value(MAGISTR_GOAL);
+        sources.insert(
+            "session.goal_mode",
+            Self::source_for(goal_mode.is_some(), MAGISTR_GOAL),
+        );
+        let budget_limit = value(MAGISTR_BUDGET).and_then(|v| Self::dollars(&v));
+        sources.insert(
+            "session.budget_limit",
+            Self::source_for(budget_limit.is_some(), MAGISTR_BUDGET),
+        );
+        let budget_requested = value(MAGISTR_BUDGET_REQUESTED).and_then(|v| Self::dollars(&v));
+        sources.insert(
+            "session.budget_requested",
+            Self::source_for(budget_requested.is_some(), MAGISTR_BUDGET_REQUESTED),
+        );
+        let github_client_id = value(MAGISTR_GITHUB_CLIENT_ID);
+        sources.insert(
+            "login.github_client_id",
+            Self::source_for(github_client_id.is_some(), MAGISTR_GITHUB_CLIENT_ID),
+        );
 
         let agent_backend = value(AGENT_BACKEND);
         sources.insert(
@@ -137,7 +261,18 @@ impl ProjectInputs {
 
         Self {
             project_root: project_root.into(),
+            home_dir,
             config_dir,
+            data_dir,
+            state_dir,
+            codex_home,
+            user_override,
+            os_user,
+            ci,
+            goal_mode,
+            budget_limit,
+            budget_requested,
+            github_client_id,
             agent_backend,
             claude_api_key,
             plugin_index_url,
@@ -154,6 +289,15 @@ impl ProjectInputs {
         } else {
             InputSource::Default
         }
+    }
+
+    /// A positive, finite dollar amount, or nothing: a budget that cannot
+    /// cap anything is no budget.
+    fn dollars(value: &str) -> Option<f64> {
+        value
+            .parse::<f64>()
+            .ok()
+            .filter(|dollars| dollars.is_finite() && *dollars > 0.0)
     }
 
     // ── Overrides ────────────────────────────────────────────────────
@@ -198,6 +342,42 @@ impl ProjectInputs {
         self
     }
 
+    /// Point the per-user data directory (the cost ledger, the sessions
+    /// database, the audit log) somewhere explicit — what a test does
+    /// instead of setting `XDG_DATA_HOME`.
+    #[must_use]
+    pub fn with_data_dir(mut self, dir: impl Into<PathBuf>) -> Self {
+        self.data_dir = Some(dir.into());
+        self.sources.insert("user.data_dir", InputSource::Explicit);
+        self
+    }
+
+    /// Point the per-user state directory (the verified-identity cache)
+    /// somewhere explicit — what a test does instead of setting
+    /// `MAGISTR_HOME`.
+    #[must_use]
+    pub fn with_state_dir(mut self, dir: impl Into<PathBuf>) -> Self {
+        self.state_dir = Some(dir.into());
+        self.sources.insert("user.state_dir", InputSource::Explicit);
+        self
+    }
+
+    /// Bind the budget the host decided: `limit` is what the session runs
+    /// under after governance, `requested` the developer's own flag or
+    /// user-config limit. Both replace whatever the environment exported —
+    /// the decision is the host's, and `None` means nothing capped it.
+    #[must_use]
+    pub fn with_budget(mut self, limit: Option<f64>, requested: Option<f64>) -> Self {
+        let positive = |dollars: Option<f64>| dollars.filter(|d| d.is_finite() && *d > 0.0);
+        self.budget_limit = positive(limit);
+        self.budget_requested = positive(requested);
+        self.sources
+            .insert("session.budget_limit", InputSource::Explicit);
+        self.sources
+            .insert("session.budget_requested", InputSource::Explicit);
+        self
+    }
+
     // ── Captured values ──────────────────────────────────────────────
 
     /// The project root the inputs are bound to.
@@ -206,10 +386,84 @@ impl ProjectInputs {
         &self.project_root
     }
 
+    /// The user's home directory (`HOME`, else `USERPROFILE`), when set.
+    #[must_use]
+    pub fn home_dir(&self) -> Option<&Path> {
+        self.home_dir.as_deref()
+    }
+
     /// Magistr's per-user configuration directory, when one could be resolved.
     #[must_use]
     pub fn config_dir(&self) -> Option<&Path> {
         self.config_dir.as_deref()
+    }
+
+    /// Magistr's per-user data directory (`$XDG_DATA_HOME/magistr`, else
+    /// `~/.local/share/magistr`, else `$LOCALAPPDATA/magistr`), when one
+    /// could be resolved.
+    #[must_use]
+    pub fn data_dir(&self) -> Option<&Path> {
+        self.data_dir.as_deref()
+    }
+
+    /// Magistr's per-user state directory (`$MAGISTR_HOME`, else
+    /// `~/.magistr`), when one could be resolved.
+    #[must_use]
+    pub fn state_dir(&self) -> Option<&Path> {
+        self.state_dir.as_deref()
+    }
+
+    /// The Codex CLI's home (`$CODEX_HOME`, else `~/.codex`), when one
+    /// could be resolved.
+    #[must_use]
+    pub fn codex_home(&self) -> Option<&Path> {
+        self.codex_home.as_deref()
+    }
+
+    /// `MAGISTR_USER`, the explicit identity override, trimmed and nonblank.
+    #[must_use]
+    pub fn user_override(&self) -> Option<&str> {
+        self.user_override.as_deref()
+    }
+
+    /// The OS user name (`USER`, else `USERNAME`), trimmed and nonblank.
+    #[must_use]
+    pub fn os_user(&self) -> Option<&str> {
+        self.os_user.as_deref()
+    }
+
+    /// Whether a CI environment was active at capture: `CI` set to a
+    /// non-empty value other than `0` or `false`.
+    #[must_use]
+    pub fn is_ci(&self) -> bool {
+        self.ci
+    }
+
+    /// `MAGISTR_GOAL` as written, trimmed and nonblank; the loop parses it.
+    #[must_use]
+    pub fn goal_mode(&self) -> Option<&str> {
+        self.goal_mode.as_deref()
+    }
+
+    /// The limit the session runs under, in dollars: the governed budget
+    /// the host bound, else the `MAGISTR_BUDGET` export it inherited.
+    #[must_use]
+    pub fn budget_limit(&self) -> Option<f64> {
+        self.budget_limit
+    }
+
+    /// The developer's own limit, in dollars: the flag or user-config limit
+    /// the host bound, else the `MAGISTR_BUDGET_REQUESTED` export it
+    /// inherited.
+    #[must_use]
+    pub fn budget_requested(&self) -> Option<f64> {
+        self.budget_requested
+    }
+
+    /// `MAGISTR_GITHUB_CLIENT_ID`, trimmed and nonblank.
+    #[must_use]
+    pub fn github_client_id(&self) -> Option<&str> {
+        self.github_client_id.as_deref()
     }
 
     /// `MAGISTR_AGENT_BACKEND`, trimmed and nonblank.

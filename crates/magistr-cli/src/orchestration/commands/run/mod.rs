@@ -11,13 +11,15 @@ use color_eyre::eyre;
 ///
 /// This is the full interactive loop used by `cmd_run` in no-TUI mode.
 ///
-/// Each completed turn is written to the cost ledger, stamped with the
-/// resolved identity and `model` — this and the headless drain are the
-/// only two places the agent's result message is seen, so they are the
-/// only two places the ledger can be fed.
+/// Each completed turn is written to the cost ledger (found through the
+/// captured `inputs`), stamped with the resolved identity and `model` —
+/// this and the headless drain are the only two places the agent's
+/// result message is seen, so they are the only two places the ledger
+/// can be fed.
 async fn drain_session_interactive(
     session: &mut agent::session::AgentSession,
     dir: &Path,
+    inputs: &crate::config::inputs::ProjectInputs,
     model: Option<&str>,
 ) -> eyre::Result<()> {
     loop {
@@ -54,7 +56,7 @@ async fn drain_session_interactive(
                         if let Some(model) = model {
                             spend = spend.with_model(model);
                         }
-                        record_session(dir, &spend);
+                        record_session(inputs, dir, &spend);
 
                         let duration_secs = *duration_ms as f64 / 1000.0;
                         let cost_str = total_cost_usd

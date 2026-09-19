@@ -6,11 +6,12 @@ use std::str::FromStr;
 use color_eyre::eyre;
 
 use crate::cli::TeamAction;
+use crate::config::inputs::ProjectInputs;
 use crate::error::MagistrError;
 use crate::output::OutputRenderer;
 use crate::permissions::AuditRetention;
 use crate::team::{
-    Capability, Identity, RosterChange, TeamConfig, TeamMember, TeamRole, is_ci_env, resolve_role,
+    Capability, Identity, RosterChange, TeamConfig, TeamMember, TeamRole, resolve_role,
 };
 use crate::utils::format as fmt;
 
@@ -18,16 +19,18 @@ use super::edit_roster;
 
 pub fn cmd_team(
     dir: &Path,
+    inputs: &ProjectInputs,
     action: Option<TeamAction>,
     renderer: &dyn OutputRenderer,
 ) -> eyre::Result<()> {
     match action.unwrap_or(TeamAction::Show) {
-        TeamAction::Show => show(dir, renderer),
-        TeamAction::Init => init(dir, renderer),
+        TeamAction::Show => show(dir, inputs, renderer),
+        TeamAction::Init => init(dir, inputs, renderer),
         TeamAction::Add { id, role, name } => {
             let role = parse_role(&role)?;
             mutate(
                 dir,
+                inputs,
                 renderer,
                 &id,
                 &format!("Added '{id}'"),
@@ -44,6 +47,7 @@ pub fn cmd_team(
         }
         TeamAction::Remove { id } => mutate(
             dir,
+            inputs,
             renderer,
             &id,
             &format!("Removed '{id}'"),
@@ -54,6 +58,7 @@ pub fn cmd_team(
             let to = parse_role(&role)?;
             mutate(
                 dir,
+                inputs,
                 renderer,
                 &id,
                 &format!("Set '{id}' to {to}"),
@@ -64,10 +69,10 @@ pub fn cmd_team(
     }
 }
 
-fn show(dir: &Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
-    let identity = Identity::resolve(dir);
+fn show(dir: &Path, inputs: &ProjectInputs, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
+    let identity = Identity::resolve(dir, inputs);
     let config = TeamConfig::load(dir)?;
-    let role = resolve_role(config.as_ref(), &identity, is_ci_env());
+    let role = resolve_role(config.as_ref(), &identity, inputs.is_ci());
 
     if renderer.is_machine_readable() {
         let data = serde_json::json!({
@@ -140,7 +145,7 @@ fn show(dir: &Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     Ok(())
 }
 
-fn init(dir: &Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
+fn init(dir: &Path, inputs: &ProjectInputs, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     if TeamConfig::path(dir).exists() {
         return Err(MagistrError::Other(
             ".magistr/team.json already exists — edit it with `magistr team add/remove/set-role`"
@@ -148,7 +153,7 @@ fn init(dir: &Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
         )
         .into());
     }
-    let identity = Identity::resolve(dir);
+    let identity = Identity::resolve(dir, inputs);
     let config = TeamConfig::new_with_owner(&identity);
     config.save(dir)?;
     report(
@@ -172,15 +177,17 @@ fn current_role(config: &TeamConfig, id: &str) -> Result<TeamRole, MagistrError>
 /// print the receipt. The decision itself lives in [`edit_roster`].
 fn mutate(
     dir: &Path,
+    inputs: &ProjectInputs,
     renderer: &dyn OutputRenderer,
     member_id: &str,
     done: &str,
     change: impl FnOnce(&TeamConfig) -> Result<RosterChange, MagistrError>,
     op: impl FnOnce(&mut TeamConfig) -> Result<(), MagistrError>,
 ) -> eyre::Result<()> {
-    let audit_log = crate::permissions::audit_log_path();
+    let audit_log = crate::permissions::audit_log_path(inputs);
     let config = edit_roster(
         dir,
+        inputs,
         member_id,
         change,
         op,

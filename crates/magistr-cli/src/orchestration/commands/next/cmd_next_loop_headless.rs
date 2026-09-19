@@ -219,7 +219,7 @@ pub async fn cmd_next_loop_headless(
         let cleanup = session.terminate_session().await.suggest();
         drop(session);
         if let Ok((_, Some(spend))) = &drained {
-            crate::cost::record_session(&dir, spend);
+            crate::cost::record_session(&inputs, &dir, spend);
         }
         let drained = drained.and_then(|result| cleanup.map(|()| result));
         let (outcome, _) = match drained {

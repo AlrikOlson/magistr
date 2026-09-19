@@ -1,7 +1,7 @@
 use super::*;
 use crate::cost::append_entry::append_entry;
 use crate::cost::cost_entry::CostEntry;
-use crate::cost::storage_paths::data_dir;
+use crate::cost::costs_path::costs_path;
 use crate::cost::types::TokenBreakdown;
 use chrono::Utc;
 use tempfile::TempDir;
@@ -70,10 +70,16 @@ fn append_creates_parent_dirs() {
 }
 
 #[test]
-fn data_dir_falls_back_to_home() {
-    // Just verify the function doesn't panic. The actual path depends
-    // on the environment, so we can't assert a specific value.
-    let _ = data_dir();
+fn the_ledger_lives_in_the_captured_data_dir() {
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup("/proj", |key| {
+        (key == "XDG_DATA_HOME").then(|| "/xdg-data".to_owned())
+    });
+    assert_eq!(
+        costs_path(&inputs),
+        Some(std::path::PathBuf::from("/xdg-data/magistr/costs.json"))
+    );
+    let nowhere = crate::config::inputs::ProjectInputs::from_lookup("/proj", |_| None);
+    assert_eq!(costs_path(&nowhere), None, "no home, no ledger");
 }
 
 #[test]

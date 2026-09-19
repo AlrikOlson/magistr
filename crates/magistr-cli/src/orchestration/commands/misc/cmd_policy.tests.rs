@@ -1,11 +1,17 @@
 use super::*;
 
+use crate::config::inputs::ProjectInputs;
 use crate::output::JsonRenderer;
 use magistr_engine::policy::ModelTier;
 
+/// A capture with nothing set — no identity override, no data directory.
+fn inputs(dir: &Path) -> ProjectInputs {
+    ProjectInputs::from_lookup(dir, |_| None)
+}
+
 fn governed_project() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
-    let identity = crate::team::Identity::resolve(dir.path());
+    let identity = crate::team::Identity::resolve(dir.path(), &inputs(dir.path()));
     let mut config = TeamConfig::new_with_owner(&identity);
     config.policy = GovernancePolicy {
         tool_denylist: vec!["WebFetch".into()],
@@ -23,7 +29,13 @@ fn governed_project() -> tempfile::TempDir {
 fn show_on_an_ungoverned_project_succeeds_and_says_so() {
     let dir = tempfile::tempdir().expect("tempdir");
     let renderer = JsonRenderer::new();
-    cmd_policy(dir.path(), Some(PolicyAction::Show), &renderer).expect("show");
+    cmd_policy(
+        dir.path(),
+        &inputs(dir.path()),
+        Some(PolicyAction::Show),
+        &renderer,
+    )
+    .expect("show");
     assert!(!TeamConfig::governance_for(dir.path()).is_set());
 }
 
@@ -34,7 +46,13 @@ fn show_compiles_the_roster_policy() {
     assert!(policy.is_set());
     // denylist + protected path + model allowlist = three rules.
     assert_eq!(policy.compile().len(), 3);
-    cmd_policy(dir.path(), Some(PolicyAction::Show), &JsonRenderer::new()).expect("show");
+    cmd_policy(
+        dir.path(),
+        &inputs(dir.path()),
+        Some(PolicyAction::Show),
+        &JsonRenderer::new(),
+    )
+    .expect("show");
 }
 
 #[test]
@@ -42,6 +60,7 @@ fn check_refuses_a_request_that_names_nothing() {
     let dir = governed_project();
     let result = cmd_policy(
         dir.path(),
+        &inputs(dir.path()),
         Some(PolicyAction::Check {
             tool: None,
             command: None,
@@ -58,6 +77,7 @@ fn check_reports_the_effect_for_a_denied_tool() {
     let dir = governed_project();
     cmd_policy(
         dir.path(),
+        &inputs(dir.path()),
         Some(PolicyAction::Check {
             tool: Some("WebFetch".into()),
             command: None,
@@ -91,6 +111,7 @@ fn check_sees_a_path_through_the_same_request_shape_enforcement_uses() {
 
     cmd_policy(
         dir.path(),
+        &inputs(dir.path()),
         Some(PolicyAction::Check {
             tool: Some("Write".into()),
             command: None,
@@ -114,6 +135,7 @@ fn check_reports_an_unapproved_model() {
 
     cmd_policy(
         dir.path(),
+        &inputs(dir.path()),
         Some(PolicyAction::Check {
             tool: None,
             command: None,
@@ -128,13 +150,14 @@ fn check_reports_an_unapproved_model() {
 #[test]
 fn show_is_the_default_action() {
     let dir = governed_project();
-    cmd_policy(dir.path(), None, &JsonRenderer::new()).expect("default action");
+    cmd_policy(dir.path(), &inputs(dir.path()), None, &JsonRenderer::new())
+        .expect("default action");
 }
 
 #[test]
 fn a_model_only_check_is_not_answered_by_the_tool_allowlist() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let identity = crate::team::Identity::resolve(dir.path());
+    let identity = crate::team::Identity::resolve(dir.path(), &inputs(dir.path()));
     let mut config = TeamConfig::new_with_owner(&identity);
     config.policy = GovernancePolicy {
         tool_allowlist: vec!["Read".into()],
@@ -147,6 +170,7 @@ fn a_model_only_check_is_not_answered_by_the_tool_allowlist() {
     // denied by the tool allowlist through an empty tool name.
     cmd_policy(
         dir.path(),
+        &inputs(dir.path()),
         Some(PolicyAction::Check {
             tool: None,
             command: None,

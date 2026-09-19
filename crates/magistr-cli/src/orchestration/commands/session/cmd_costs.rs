@@ -5,8 +5,11 @@ use crate::error::{self, ResultExt};
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
-pub fn cmd_costs(query: &cli::CostQuery) -> eyre::Result<()> {
-    let path = cost::costs_path::costs_path().ok_or_else(|| {
+pub fn cmd_costs(
+    query: &cli::CostQuery,
+    inputs: &crate::config::inputs::ProjectInputs,
+) -> eyre::Result<()> {
+    let path = cost::costs_path::costs_path(inputs).ok_or_else(|| {
         error::MagistrError::Config("could not determine data directory (HOME not set)".into())
     })?;
 

@@ -7,11 +7,14 @@ use std::path::Path;
 
 use magistr_cockpit::cockpit::{LauncherData, LauncherSession, SessionOutcome};
 
+use crate::config::inputs::ProjectInputs;
+
 /// How many recent sessions the launcher lists.
 const RECENT_SESSIONS: usize = 5;
 
-/// The launcher's card data for the project at `dir`.
-pub(crate) fn collect(dir: &Path) -> LauncherData {
+/// The launcher's card data for the project at `dir`; the session
+/// database is found through the captured `inputs`.
+pub(crate) fn collect(dir: &Path, inputs: &ProjectInputs) -> LauncherData {
     let has_config = crate::paths::project_json(dir).exists();
     let config = has_config
         .then(|| crate::validate::load_project_config(dir).ok())
@@ -33,7 +36,7 @@ pub(crate) fn collect(dir: &Path) -> LauncherData {
         stack,
         git: git_summary(dir),
         backend: backend_summary(),
-        sessions: recent_sessions(dir),
+        sessions: recent_sessions(dir, inputs),
     }
 }
 
@@ -130,8 +133,8 @@ fn backend_summary() -> String {
 /// pre-formatted; an unopenable database is an empty list, not an error.
 /// A record the database kept no session id for carries none here
 /// either — the launcher draws it and refuses to resume it.
-fn recent_sessions(dir: &Path) -> Vec<LauncherSession> {
-    let Some(db_path) = crate::session::storage::default_db_path() else {
+fn recent_sessions(dir: &Path, inputs: &ProjectInputs) -> Vec<LauncherSession> {
+    let Some(db_path) = crate::session::storage::sessions_db_path(inputs) else {
         return Vec::new();
     };
     let Ok(conn) = crate::session::storage::open_db(&db_path) else {

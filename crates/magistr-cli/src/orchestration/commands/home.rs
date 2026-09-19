@@ -23,9 +23,12 @@ pub async fn cmd_home(
 ) -> eyre::Result<()> {
     let root = inputs.project_root().to_path_buf();
     let dir = root.clone();
+    let captured = inputs.clone();
     let model = super::cockpit::cockpit_model_on(&root, StageTab::Turn, move |runtime| {
         let jobs = Jobs::new(runtime.inbox());
-        jobs.spawn_job(move || JobOutput::Launcher(Box::new(super::home_data::collect(&dir))));
+        jobs.spawn_job(move || {
+            JobOutput::Launcher(Box::new(super::home_data::collect(&dir, &captured)))
+        });
     })
     .await?;
     match model.launch().cloned() {

@@ -13,8 +13,9 @@ pub fn cmd_permissions(
     actor: Option<&str>,
     export: Option<ExportFormat>,
     renderer: &dyn OutputRenderer,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
-    let path = permissions::audit::audit_log_path().ok_or_else(|| {
+    let path = permissions::audit::audit_log_path(inputs).ok_or_else(|| {
         error::MagistrError::Config("could not determine data directory (HOME not set)".into())
     })?;
 
