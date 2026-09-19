@@ -64,12 +64,224 @@ async fn next<T>(receiver: &mut mpsc::UnboundedReceiver<T>) -> T {
 }
 
 #[tokio::test]
+async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (opened, mut connections) = mpsc::unbounded_channel();
+    let (handle, mut opening) = controlled(SessionPurpose::Conversation);
+    let task = InteractiveSession::new(
+        move |purpose, resume| {
+            let (handle, observed) = controlled(purpose);
+            opened.send((resume, observed)).unwrap();
+            async { Ok(handle) }
+        },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, false)
+    .spawn(receiver);
+    // Initial explicit resume must still show its history.
+    opening
+        .events
+        .send(AgentEvent::Text("Opening history".into()))
+        .unwrap();
+    assert!(
+        matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "Opening history")
+    );
+    opening
+        .events
+        .send(AgentEvent::Initialized {
+            session_id: "conversation".into(),
+            model: None,
+        })
+        .unwrap();
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::Agent(AgentEvent::Initialized { .. })
+    ));
+    // Park the conversation while planning acquires its own identity.
+    commands
+        .send(Cmd::RoadmapPrompt("First plan".into()))
+        .unwrap();
+    let (resume, mut planning) = next(&mut connections).await;
+    assert_eq!(resume, None);
+    assert_eq!(planning.purpose, SessionPurpose::Roadmap);
+    assert_eq!(next(&mut planning.prompts).await, "First plan");
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::RoadmapRequestStarted
+    ));
+    planning
+        .events
+        .send(AgentEvent::Initialized {
+            session_id: "planning".into(),
+            model: None,
+        })
+        .unwrap();
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::Agent(AgentEvent::Initialized { .. })
+    ));
+    planning
+        .events
+        .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
+        .unwrap();
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::Agent(AgentEvent::TurnEnded(_))
+    ));
+    commands
+        .send(Cmd::Prompt("Continue conversation".into()))
+        .unwrap();
+    assert_eq!(next(&mut opening.prompts).await, "Continue conversation");
+    let mut restored_sessions = Vec::new();
+    for (mut current, command, identity, purpose) in [
+        (
+            opening,
+            Cmd::Prompt("Retry conversation".into()),
+            "conversation",
+            SessionPurpose::Conversation,
+        ),
+        (
+            planning,
+            Cmd::RoadmapPrompt("Retry planning".into()),
+            "planning",
+            SessionPurpose::Roadmap,
+        ),
+    ] {
+        // The parked provider may fail before it is selected again.
+        current
+            .events
+            .send(AgentEvent::Error("provider died".into()))
+            .unwrap();
+        if purpose == SessionPurpose::Roadmap {
+            commands
+                .send(Cmd::RoadmapPrompt("Select planning".into()))
+                .unwrap();
+            assert!(matches!(
+                next(&mut events).await,
+                Msg::RoadmapRequestStarted
+            ));
+            assert_eq!(next(&mut current.prompts).await, "Select planning");
+        }
+        assert!(matches!(
+            next(&mut events).await,
+            Msg::Agent(AgentEvent::Error(_))
+        ));
+        commands.send(command).unwrap();
+        let (resume, mut restored) = next(&mut connections).await;
+        assert_eq!(resume.as_deref(), Some(identity));
+        assert_eq!(restored.purpose, purpose);
+        assert!(next(&mut restored.prompts).await.starts_with("Retry"));
+        if purpose == SessionPurpose::Roadmap {
+            assert!(matches!(
+                next(&mut events).await,
+                Msg::RoadmapRequestStarted
+            ));
+        }
+        restored
+            .events
+            .send(AgentEvent::UserText("Old request".into()))
+            .unwrap();
+        restored
+            .events
+            .send(AgentEvent::Text("Old response".into()))
+            .unwrap();
+        restored
+            .events
+            .send(AgentEvent::Initialized {
+                session_id: identity.into(),
+                model: None,
+            })
+            .unwrap();
+        // The first displayed event must be the new connection, not replay.
+        assert!(matches!(
+            next(&mut events).await,
+            Msg::Agent(AgentEvent::Initialized { .. })
+        ));
+        restored
+            .events
+            .send(AgentEvent::Text("New response".into()))
+            .unwrap();
+        assert!(
+            matches!(next(&mut events).await, Msg::Agent(AgentEvent::Text(text)) if text == "New response")
+        );
+        restored
+            .events
+            .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
+            .unwrap();
+        assert!(matches!(
+            next(&mut events).await,
+            Msg::Agent(AgentEvent::TurnEnded(_))
+        ));
+        // Keep the connection alive while the other purpose is selected.
+        restored_sessions.push(restored);
+    }
+    drop(commands);
+    task.await.unwrap().unwrap();
+}
+
+#[tokio::test]
+async fn failed_restoration_keeps_the_identity_and_rejects_the_unsent_request() {
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (attempted, mut attempts) = mpsc::unbounded_channel();
+    let (handle, opening) = controlled(SessionPurpose::Conversation);
+    let task = InteractiveSession::new(
+        move |purpose, resume| {
+            attempted.send((purpose, resume)).unwrap();
+            async { Err("This provider cannot restore the session".into()) }
+        },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, false)
+    .spawn(receiver);
+    opening
+        .events
+        .send(AgentEvent::Initialized {
+            session_id: "retained".into(),
+            model: None,
+        })
+        .unwrap();
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::Agent(AgentEvent::Initialized { .. })
+    ));
+    opening
+        .events
+        .send(AgentEvent::Error("provider disconnected".into()))
+        .unwrap();
+    drop(opening.events);
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::Agent(AgentEvent::Error(_))
+    ));
+    for prompt in ["Keep this request", "Try again"] {
+        commands.send(Cmd::Prompt(prompt.into())).unwrap();
+        assert_eq!(
+            next(&mut attempts).await,
+            (SessionPurpose::Conversation, Some("retained".into()))
+        );
+        assert!(matches!(next(&mut events).await,
+            Msg::Agent(AgentEvent::PromptRejected { text, error })
+                if text == prompt && error.contains("cannot restore")));
+    }
+    drop(commands);
+    task.await.unwrap().unwrap();
+}
+
+#[tokio::test]
 async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
     let (opened, mut connections) = mpsc::unbounded_channel();
     let task = InteractiveSession::new(
-        move |purpose| {
+        move |purpose, _resume| {
             let (handle, observed) = controlled(purpose);
             opened.send(observed).unwrap();
             async { Ok(handle) }
@@ -169,7 +381,7 @@ async fn connection_failure_and_provider_death_allow_a_new_attempt() {
     let attempts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let observed = Arc::clone(&attempts);
     let task = InteractiveSession::new(
-        move |purpose| {
+        move |purpose, _resume| {
             let result = if observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
                 Err("offline".into())
             } else {
@@ -252,7 +464,7 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
     let started = Arc::new(tokio::sync::Notify::new());
     let (release, gate) = std::sync::mpsc::channel();
     let task = InteractiveSession::new(
-        move |purpose| {
+        move |purpose, _resume| {
             let (handle, observed) = controlled(purpose);
             opened.send(observed).unwrap();
             async { Ok(handle) }
@@ -337,7 +549,7 @@ async fn dropping_the_owner_discards_buffered_local_actions() {
     let (inbox, mut messages) = Inbox::channel();
     let reads = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let session = InteractiveSession::new(
-        |_| async { panic!("local actions do not open a provider") },
+        |_, _| async { panic!("local actions do not open a provider") },
         inbox,
         Some(Box::new(ObservedWorkbench(Arc::clone(&reads)))),
         None,
@@ -369,7 +581,7 @@ use magistr_cockpit::cockpit::{EngineCmd, WorkbenchCmd};
 async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
     let (inbox, mut events) = Inbox::channel();
     let mut session = InteractiveSession::new(
-        |_| async { panic!("forwarding must not start a provider") },
+        |_, _| async { panic!("forwarding must not start a provider") },
         inbox,
         None,
         None,
@@ -385,6 +597,7 @@ async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
         commands: Some(provider),
         events: provider_events,
         roadmap: false,
+        replaying: false,
     });
     for cmd in [
         Cmd::Prompt("Keep @src/main.rs".into()),
@@ -411,7 +624,7 @@ async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
 async fn delivery_to_an_open_receiver_does_not_emit_a_refusal() {
     let (inbox, mut events) = Inbox::channel();
     let mut session = InteractiveSession::new(
-        |_| async { panic!("forwarding must not start a provider") },
+        |_, _| async { panic!("forwarding must not start a provider") },
         inbox,
         None,
         None,
@@ -424,6 +637,7 @@ async fn delivery_to_an_open_receiver_does_not_emit_a_refusal() {
         commands: Some(provider),
         events: provider_events,
         roadmap: false,
+        replaying: false,
     });
     assert!(session.forward(Cmd::Cancel));
     assert_eq!(receiver.next().await, Some(Cmd::Cancel));

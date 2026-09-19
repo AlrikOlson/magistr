@@ -71,7 +71,26 @@ func exercise() throws {
             (attribute($0, kAXValueAttribute) as? String)?.contains("desktop native response") == true
         } ? true : nil
     }
-    try set(editor, "Keep this draft")
+    try set(editor, "disconnect now")
+    try require(AXUIElementPerformAction(try find("Send", kAXButtonRole),
+                                         kAXPressAction as CFString) == .success, "Fail provider")
+    _ = try waitFor("provider failure") {
+        descendants(window).contains {
+            (attribute($0, kAXValueAttribute) as? String)?.contains("503") == true
+        } ? true : nil
+    }
+    let retry = "Keep this reconnect request"
+    try set(editor, retry)
+    try require(AXUIElementPerformAction(try find("Send", kAXButtonRole),
+                                         kAXPressAction as CFString) == .success, "Retry")
+    _ = try waitFor("unsupported restoration") {
+        descendants(window).contains {
+            (attribute($0, kAXValueAttribute) as? String)?.contains("does not support session resume") == true
+        } ? true : nil
+    }
+    _ = try waitFor("restored request") {
+        attribute(editor, kAXValueAttribute) as? String == retry ? true : nil
+    }
     guard let close = attribute(window, kAXCloseButtonAttribute) else {
         throw Failure(description: "Missing window close control")
     }
@@ -79,7 +98,7 @@ func exercise() throws {
                                          kAXPressAction as CFString) == .success, "Close window")
     _ = try waitFor("settled desktop exit") { process.isRunning ? nil : true }
     try require(process.terminationStatus == 0, "Desktop exited \(process.terminationStatus)")
-    print("PASS: native accessibility sent a request, read the reply and closed the desktop")
+    print("PASS: native accessibility read a reply and provider failure, retried, retained the refused request and closed")
 }
 do { try exercise() }
 catch { fputs("\(error)\n", stderr); exit(1) }

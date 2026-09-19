@@ -81,8 +81,11 @@ dependency graph, workspace worker readiness/shutdown, a scripted ACP turn,
 both MCP endpoints and source reads. The macOS driver additionally starts the
 production launcher in a disposable project, sends through native Accessibility,
 observes a reply from the real Ollama adapter against a local controlled HTTP
-peer, verifies a draft remains in the editor, closes the window and reopens the
-project. It requires a graphical session, Python 3, Swift and Accessibility
+peer, then induces a provider failure. Sending another request attempts to
+restore the same session; because Ollama cannot load a saved session, the window
+shows that refusal and retains the request in the editor. The driver verifies
+that no new inference request reached the peer, closes the window and reopens
+the project. It requires a graphical session, Python 3, Swift and Accessibility
 permission for the terminal. It neither contacts a model service nor spends a
 provider subscription.
 
@@ -94,6 +97,16 @@ python3 crates/magistr-desktop/tests/native_launch.py crates/magistr-desktop/tar
 Use the actual executable path if building with a custom target directory.
 CPU screenshots, GPU readback and the broader renderer input driver below remain
 separate checks. No desktop packaging was added.
+
+### Connection recovery
+
+Conversation and Roadmap keep separate provider sessions. Switching views or
+request purposes retains them. After a connection fails, sending another message
+asks the provider to restore the same session. If the provider cannot restore it,
+the request returns to the editor with the reason; Magistr does not silently
+start over. Restored history is kept in the provider context without being added
+twice to the window. This applies while the desktop remains open; closing it
+still ends the host lifetime described above.
 
 ## Ownership and rendering
 
