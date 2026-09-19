@@ -6,7 +6,7 @@ use magistr::agent::AgentConfig;
 use magistr::commands::run::resolve_permission_profile;
 use magistr::mcp_target::McpTarget;
 use std::ffi::{OsStr, OsString};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -65,25 +65,39 @@ pub(crate) fn is_worker(argv: &[OsString]) -> bool {
 }
 
 impl Desktop {
+    /// The session the window opens with: the project, the first message and
+    /// the resume choices given on the command line.
     pub(crate) fn config(&self) -> eyre::Result<AgentConfig> {
-        let root = self
-            .dir
+        Ok(self
+            .project(&self.dir, self.prompt.as_deref().unwrap_or(""))?
+            .with_run_args(
+                self.model.as_deref(),
+                self.resume.as_deref(),
+                self.continue_conversation,
+            ))
+    }
+
+    /// A project the window switches to: the same provider, model and
+    /// permission choice, with no opening message and nothing to resume.
+    pub(crate) fn config_for(&self, dir: &Path) -> eyre::Result<AgentConfig> {
+        Ok(self
+            .project(dir, "")?
+            .with_run_args(self.model.as_deref(), None, false))
+    }
+
+    fn project(&self, dir: &Path, prompt: &str) -> eyre::Result<AgentConfig> {
+        let root = dir
             .canonicalize()
-            .wrap_err_with(|| format!("Could not open project {}", self.dir.display()))?;
+            .wrap_err_with(|| format!("Could not open project {}", dir.display()))?;
         eyre::ensure!(
             root.is_dir(),
             "Project path is not a directory: {}",
             root.display()
         );
         let profile = resolve_permission_profile(&root, self.trust.as_deref())?;
-        let mut config = AgentConfig::new(self.prompt.as_deref().unwrap_or(""), &root)
+        let mut config = AgentConfig::new(prompt, &root)
             .with_project_context(&root)
-            .permission_profile(profile)
-            .with_run_args(
-                self.model.as_deref(),
-                self.resume.as_deref(),
-                self.continue_conversation,
-            );
+            .permission_profile(profile);
         if let Some(provider) = &self.provider {
             config = config.provider(provider);
         }

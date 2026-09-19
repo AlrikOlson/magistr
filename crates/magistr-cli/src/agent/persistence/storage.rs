@@ -19,6 +19,9 @@ use super::session_turn::{SessionTurn, TurnRole};
 /// Database filename.
 const DB_FILENAME: &str = "sessions.db";
 
+/// How long an opener waits for another process's write lock.
+const BUSY_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// Current schema version (for future migrations).
 ///
 /// Must stay in lock-step with the GUI's copy of these migrations
@@ -44,13 +47,64 @@ pub fn open_db(path: &Path) -> Result<Connection> {
 
     let conn =
         Connection::open(path).map_err(|e| MagistrError::sqlite("open session database", e))?;
+    // Several Magistr processes share this file. One that finds it busy waits
+    // its turn instead of failing: switching the journal mode and upgrading
+    // the schema both need the write lock.
+    conn.busy_timeout(BUSY_WAIT)
+        .map_err(|e| MagistrError::sqlite("set the session database's busy wait", e))?;
 
-    // Enable WAL mode for better concurrent read performance
-    conn.execute_batch("PRAGMA journal_mode=WAL;")
-        .map_err(|e| MagistrError::sqlite("set WAL mode", e))?;
-
-    migrate(&conn)?;
+    write_ahead(&conn)?;
+    upgrade(&conn)?;
     Ok(conn)
+}
+
+/// Write-ahead journaling, for readers beside a writer. The mode is a property
+/// of the file, so an opener that finds it set has nothing to do. Switching it
+/// needs the file to itself and SQLite does not apply the busy wait to that
+/// switch: two openers of a new file collide, and the loser tries again until
+/// it finds the winner's work done.
+fn write_ahead(conn: &Connection) -> Result<()> {
+    let deadline = std::time::Instant::now() + BUSY_WAIT;
+    loop {
+        let mode: String = conn
+            .pragma_query_value(None, "journal_mode", |row| row.get(0))
+            .map_err(|e| MagistrError::sqlite("read the journal mode", e))?;
+        if mode.eq_ignore_ascii_case("wal") {
+            return Ok(());
+        }
+        match conn.execute_batch("PRAGMA journal_mode=WAL;") {
+            Ok(()) => return Ok(()),
+            Err(rusqlite::Error::SqliteFailure(failure, _))
+                if matches!(
+                    failure.code,
+                    rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked
+                ) && std::time::Instant::now() < deadline =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            Err(e) => return Err(MagistrError::sqlite("set WAL mode", e)),
+        }
+    }
+}
+
+/// Bring the schema up to date as one exclusive step. The version is read
+/// under the write lock, so of two processes opening an older database at
+/// once the second finds the first's work done rather than repeating it and
+/// failing on a column that now exists; a failed step leaves the database as
+/// it was.
+fn upgrade(conn: &Connection) -> Result<()> {
+    conn.execute_batch("BEGIN IMMEDIATE;")
+        .map_err(|e| MagistrError::sqlite("lock the session database for its schema", e))?;
+    match migrate(conn) {
+        Ok(()) => conn
+            .execute_batch("COMMIT;")
+            .map_err(|e| MagistrError::sqlite("commit the session schema", e)),
+        Err(error) => {
+            // The original failure is the one worth reporting.
+            let _ = conn.execute_batch("ROLLBACK;");
+            Err(error)
+        }
+    }
 }
 
 /// Run schema migrations based on PRAGMA user_version.

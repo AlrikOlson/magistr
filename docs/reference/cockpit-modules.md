@@ -310,6 +310,8 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/plan_task.rs` | One task of the ship plan, as the rail lists it | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/pointer_shape.rs` | The mouse pointer's shape, as kitty's OSC 22 names it | `magistr-cockpit/src/cockpit/pointer_shape.tests.rs` |
 | `magistr-cockpit/src/cockpit/progress.rs` | What the terminal's own progress indicator is told | `magistr-cockpit/src/cockpit/progress.tests.rs` |
+| `magistr-cockpit/src/cockpit/project_seed.rs` | What a host knows about a project before its session starts, as data the surface builds its model from | `magistr-cockpit/src/cockpit/project_seed.tests.rs` · `magistr-cockpit/src/cockpit/project_switch.tests.rs` |
+| `magistr-cockpit/src/cockpit/project_switch.rs` | Opening another project in the same window: the ask, the refusal in words and the swap that keeps what the window owns | `magistr-cockpit/src/cockpit/project_switch.tests.rs` |
 | `magistr-cockpit/src/cockpit/projection.rs` | How the model stands to the store: freshness and the last delivery folded | `magistr-cockpit/src/cockpit/projection.tests.rs` |
 | `magistr-cockpit/src/cockpit/request_phase.rs` | Typed waiting, queued, active and terminal request states | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/prompt.rs` | The prompt: a multi-line editor with history | `magistr-cockpit/src/cockpit/prompt.tests.rs` |
@@ -352,6 +354,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/state_word.rs` | Shared status labels: Ready, Executing, Review, Stuck, Blocked, Done, and Idle | `magistr-cockpit/src/cockpit/state_word.tests.rs`
 | `magistr-cockpit/src/cockpit/still_kind.rs` | What kind of picture a shelf still is — a still, or a filmstrip from a `motion` golden directory | `magistr-cockpit/src/cockpit/still_kind.tests.rs` |
 | `magistr-cockpit/src/cockpit/summary.rs` | What a session amounted to, for the scrollback | `magistr-cockpit/src/cockpit/summary.tests.rs` |
+| `magistr-cockpit/src/cockpit/supervision_seed.rs` | The supervision rail's construction-time seed — charter, offers, budget and mode — as data | `magistr-cockpit/src/cockpit/supervision_seed.tests.rs` |
 | `magistr-cockpit/src/cockpit/surface.rs` | Which kind of screen the cockpit is drawn on — `view` arranges the same widget ids for a terminal or a window | `magistr-cockpit/src/cockpit/surface.tests.rs` · `magistr-cockpit/src/cockpit/view.tests.rs` |
 | `magistr-cockpit/src/cockpit/survey_kind.rs` | Project detection categories: stack, tests, Git, and agent | `magistr-cockpit/src/cockpit/survey_kind.tests.rs` |
 | `magistr-cockpit/src/cockpit/survey_report.rs` | Project detection results and suggested setup answers | `magistr-cockpit/src/cockpit/survey_report.tests.rs` |

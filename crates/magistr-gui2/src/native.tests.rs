@@ -81,3 +81,22 @@ fn the_window_is_asked_for_a_logical_size() {
     assert_eq!(native.logical, LogicalSize::new(1132.0, 641.0));
     assert!(SOURCE.contains(".with_inner_size(self.logical)"));
 }
+
+/// The window names the project it has open, and follows a switch.
+#[test]
+fn the_window_title_follows_the_open_project() {
+    use magistr_cockpit::cockpit::{Model, Msg, ProjectSeed, Size, update};
+    let mut model = Model::new(Size::new(80, 24));
+    assert_eq!(window_title("Magistr", &model), "Magistr");
+    model = model.with_project("first", "/projects/first");
+    assert_eq!(window_title("Magistr", &model), "first \u{2014} Magistr");
+    update(
+        &mut model,
+        Msg::Rehosted(Box::new(ProjectSeed {
+            name: "second".into(),
+            dir: "/projects/second".into(),
+            ..ProjectSeed::default()
+        })),
+    );
+    assert_eq!(window_title("Magistr", &model), "second \u{2014} Magistr");
+}

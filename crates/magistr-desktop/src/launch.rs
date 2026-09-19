@@ -1,8 +1,8 @@
-//! A native window borrows one admitted session lifetime.
+//! A native window over the projects it opens, one admitted host at a time.
 
 use crate::args::Desktop;
 use color_eyre::eyre;
-use magistr::application::InteractiveHost;
+use magistr::application::ProjectWindow;
 use magistr_cockpit::cockpit::{Model, Size, StageTab};
 use magistr_cockpit::theme::{MotionMode, Theme};
 use magistr_gui2::Native;
@@ -21,7 +21,9 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
     let model = Model::new(Size::new(80, 24))
         .with_tab(StageTab::Turn)
         .with_theme(theme);
-    let (host, model) = InteractiveHost::start(config, model, window.inbox(), commands).await?;
+    let configure = move |dir: &std::path::Path| cli.config_for(dir);
+    let (host, model) =
+        ProjectWindow::start(config, configure, model, window.inbox(), commands).await?;
     let result = window.run(model).map_err(eyre::Report::from);
     finish(result, host.shutdown()).await.map(|_| ())
 }

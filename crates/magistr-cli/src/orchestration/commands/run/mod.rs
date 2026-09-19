@@ -147,4 +147,4 @@ pub use drain_session_turn::drain_session_turn;
 pub use protected_paths_for_project::protected_paths_for_project;
 pub use resolve_permission_profile::resolve_permission_profile;
 pub use run_request::RunRequest;
-pub use seed_supervision::seed_supervision;
+pub use seed_supervision::{seed_supervision, supervision_seed};

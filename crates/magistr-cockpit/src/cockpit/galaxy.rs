@@ -18,6 +18,11 @@ pub struct Galaxy {
     current: Option<GalaxyProject>,
     selected: Option<usize>,
     zoom: f32,
+    /// The directory of the project the host was asked to open and has
+    /// not answered for yet.
+    opening: Option<String>,
+    /// The last refused open: the directory and why, in words.
+    refusal: Option<(String, String)>,
 }
 
 impl Default for Galaxy {
@@ -27,6 +32,8 @@ impl Default for Galaxy {
             current: None,
             selected: None,
             zoom: 1.0,
+            opening: None,
+            refusal: None,
         }
     }
 }
@@ -108,6 +115,38 @@ impl Galaxy {
             (Some(index), false) => index.saturating_sub(1),
         });
         true
+    }
+
+    /// The directory of the project being opened, until the host answers.
+    #[must_use]
+    pub fn opening(&self) -> Option<&str> {
+        self.opening.as_deref()
+    }
+
+    /// Why the project in `dir` could not be opened, until it is tried again.
+    #[must_use]
+    pub fn refusal(&self, dir: &str) -> Option<&str> {
+        self.refusal
+            .as_ref()
+            .filter(|(refused, _)| refused == dir)
+            .map(|(_, words)| words.as_str())
+    }
+
+    /// The host was asked for `dir`; an earlier refusal no longer stands.
+    pub(super) fn open(&mut self, dir: String) {
+        self.refusal = None;
+        self.opening = Some(dir);
+    }
+
+    /// The open of `dir` was refused with `words`.
+    pub(super) fn refuse(&mut self, dir: String, words: String) {
+        self.opening = None;
+        self.refusal = Some((dir, words));
+    }
+
+    /// Carry the window's zoom onto the next project's field.
+    pub(super) fn keep_zoom(&mut self, earlier: &Self) {
+        self.zoom = earlier.zoom;
     }
 
     /// The field's zoom, `1.0` at rest.

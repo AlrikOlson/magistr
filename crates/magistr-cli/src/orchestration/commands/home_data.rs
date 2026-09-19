@@ -19,7 +19,7 @@ pub(crate) fn collect(dir: &Path, inputs: &ProjectInputs) -> LauncherData {
     let config = has_config
         .then(|| crate::validate::load_project_config(dir).ok())
         .flatten();
-    let project = project_name(dir);
+    let project = super::galaxy_data::project_name(dir);
     let stack = config.as_ref().map_or_else(
         || "not detected".to_owned(),
         |c| {
@@ -38,25 +38,6 @@ pub(crate) fn collect(dir: &Path, inputs: &ProjectInputs) -> LauncherData {
         backend: backend_summary(),
         sessions: recent_sessions(dir, inputs),
     }
-}
-
-/// The project's name as every card and cluster spells it: the config's,
-/// or — without one, or with an empty one — the directory's own.
-pub(crate) fn project_name(dir: &Path) -> String {
-    crate::paths::project_json(dir)
-        .exists()
-        .then(|| crate::validate::load_project_config(dir).ok())
-        .flatten()
-        .map(|c| c.project.name)
-        .filter(|name| !name.is_empty())
-        .unwrap_or_else(|| directory_name(dir))
-}
-
-/// The directory's own name, the fallback project name.
-fn directory_name(dir: &Path) -> String {
-    dir.file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unknown".to_owned())
 }
 
 /// `Rust / Cargo`-style summary, skipping unknown parts.
@@ -141,7 +122,7 @@ fn recent_sessions(dir: &Path, inputs: &ProjectInputs) -> Vec<LauncherSession> {
         return Vec::new();
     };
     let filter = crate::session::session_filter::SessionFilter::new()
-        .with_project(directory_name(dir))
+        .with_project(super::galaxy_data::directory_name(dir))
         .with_limit(RECENT_SESSIONS);
     let Ok(records) = crate::session::storage::query_sessions(&conn, &filter) else {
         return Vec::new();

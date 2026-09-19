@@ -27,6 +27,24 @@ impl WorkspaceIndex {
         worker: Arc<WorkerSupervisor>,
         options: IndexOptions,
     ) -> Result<Self, IndexError> {
+        Self::start_with(
+            root,
+            state_dir,
+            worker,
+            options,
+            Box::new(super::watch::IndexWatcher::start),
+        )
+    }
+
+    /// [`Self::start`] with the watcher's start given: the seam a test holds
+    /// the operating system call through.
+    pub(super) fn start_with(
+        root: PathBuf,
+        state_dir: PathBuf,
+        worker: Arc<WorkerSupervisor>,
+        options: IndexOptions,
+        watch: super::coordinator::StartWatcher,
+    ) -> Result<Self, IndexError> {
         if options.max_files == 0
             || options.max_files > 1_000_000
             || options.max_file_bytes == 0
@@ -75,7 +93,7 @@ impl WorkspaceIndex {
             .map_err(|e| IndexError::Unavailable(e.to_string()))?;
         let task_shared = shared.clone();
         let task = runtime.spawn(async move {
-            super::coordinator::Coordinator::run(task_shared).await;
+            super::coordinator::Coordinator::run(task_shared, watch).await;
         });
         Ok(Self {
             shared,

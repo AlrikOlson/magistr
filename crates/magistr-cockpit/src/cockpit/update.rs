@@ -431,6 +431,7 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
         Msg::Loop(event) => return loop_event(model, event),
         Msg::Workbench(event) => changes::fold(model, event),
         Msg::Checkpoint(event) => checkpoint(model, event),
+        Msg::Rehosted(next) => return super::project_switch::rehosted(model, *next),
     }
     Vec::new()
 }
@@ -945,6 +946,10 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
             work::shelf_collect(model)
         }
         PaletteGo::Session(index) => resume_session(model, index),
+        PaletteGo::Project(index) => {
+            model.show_place(Place::Galaxy);
+            galaxy_dive(model, index)
+        }
         PaletteGo::Key(code, mods) => fold(model, Msg::Key(KeyEvent::new(code).with(mods))),
         // The loop's verbs are the verb, not a keystroke: a row that
         // typed `s` into the prompt would not be a row that steps.
@@ -1441,16 +1446,19 @@ fn galaxy_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 /// spine, the same move the palette's `Open` makes. Any other project
 /// is *selected* and the camera holds: this window is rooted on one
 /// project's engines, and a dive that showed this roadmap under another
-/// project's name would be a lie. Re-rooting the window is the runtime's
-/// to grow, not the view's to fake.
+/// project's name would be a lie. Where the host can admit another
+/// project in place the dive asks it to
+/// ([`project_switch`](super::project_switch)); the camera still holds
+/// until the host answers.
 fn galaxy_dive(model: &mut Model, index: usize) -> Vec<Cmd> {
     if !model.galaxy.select(index) {
         return Vec::new();
     }
     if model.galaxy.projects()[index].here {
         model.show(StageTab::Roadmap);
+        return Vec::new();
     }
-    Vec::new()
+    super::project_switch::open(model, index)
 }
 
 /// Host command chords on the terminal, or native launcher accelerators: `n`

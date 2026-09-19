@@ -561,3 +561,42 @@ fn concurrent_wal_writers_and_checkpointers_leave_the_sessions_store_intact() {
         "magistr"
     );
 }
+
+/// Two processes that open an older database at the same moment both get a
+/// migrated database: the upgrade is one exclusive step, never a race in
+/// which the loser fails on a column the winner just added.
+#[test]
+fn concurrent_opens_of_an_older_database_both_succeed() {
+    for _ in 0..20 {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sessions.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE sessions (
+                    session_id TEXT PRIMARY KEY, project TEXT NOT NULL,
+                    started_at TEXT NOT NULL, ended_at TEXT NOT NULL,
+                    cost_usd REAL NOT NULL, turns INTEGER NOT NULL,
+                    duration_ms INTEGER NOT NULL,
+                    files_changed TEXT NOT NULL DEFAULT '[]',
+                    tags TEXT NOT NULL DEFAULT '[]', summary TEXT);
+                 PRAGMA user_version = 1;",
+            )
+            .unwrap();
+        }
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(4));
+        let opened: Vec<_> = (0..4)
+            .map(|_| {
+                let (path, barrier) = (path.clone(), barrier.clone());
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    open_db(&path).map(|conn| count_sessions(&conn).unwrap())
+                })
+            })
+            .collect();
+        for handle in opened {
+            let count = handle.join().unwrap();
+            assert_eq!(count.expect("every opener gets a migrated database"), 0);
+        }
+    }
+}

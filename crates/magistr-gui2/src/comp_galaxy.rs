@@ -114,7 +114,8 @@ impl GalaxyComposition {
             .fill(lex.base)
             .id(Self::FIELD);
         for (index, (project, cluster)) in projects.iter().zip(&placed).enumerate() {
-            room = room.child(label(project, cluster, index, medium, &lex));
+            let opening = Opening::of(model, project, index);
+            room = room.child(label(project, cluster, index, &opening, medium, &lex));
         }
         room.child(
             ActionRow::new(None, vec![Action::new("+ New project", Self::NEW)])
@@ -226,28 +227,64 @@ impl GalaxyComposition {
     }
 }
 
+/// Where a project stands with the window's host: whether its control is
+/// live, and what the host last said about opening it.
+struct Opening<'a> {
+    live: bool,
+    words: Option<&'a str>,
+}
+
+impl<'a> Opening<'a> {
+    fn of(model: &'a Model, project: &GalaxyProject, index: usize) -> Self {
+        let galaxy = model.galaxy();
+        let dir = project.dir.as_deref();
+        let pending = dir.is_some() && galaxy.opening() == dir;
+        Self {
+            live: project.here
+                || (galaxy.opening().is_none()
+                    && magistr_cockpit::cockpit::can_open_project(model, index)),
+            words: if pending {
+                Some("Opening\u{2026}")
+            } else {
+                dir.and_then(|dir| galaxy.refusal(dir))
+            },
+        }
+    }
+}
+
 /// One cluster's label, pinned at the layout's anchor: the sigil and
 /// the name on one row, the status line under them.
 fn label(
     project: &GalaxyProject,
     cluster: &PlacedCluster,
     index: usize,
+    opening: &Opening<'_>,
     medium: Medium,
     lex: &Lexicon,
 ) -> Element {
     let (name_ink, status, status_ink) = status_line(project, lex);
+    let (status, status_ink) = match opening.words {
+        Some(words) => (words.to_owned(), lex.peach),
+        None => (status, status_ink),
+    };
     let action = Action::new(
         "Open project",
         ElementId(GalaxyComposition::PROJECTS + index as u64),
     );
-    let action = if project.here {
+    let action = if opening.live {
         action
     } else {
         action.disabled()
     };
     let mut open = ActionRow::new(None, vec![action]).el(medium);
+    // The control's name is what assistive technology reads: a refusal the
+    // host gave is part of it, as it is part of what is painted beside it.
+    let name = match opening.words.filter(|_| opening.live) {
+        Some(words) => format!("Open project {}. {words}", project.name),
+        None => format!("Open project {}", project.name),
+    };
     for button in &mut open.children {
-        button.label = Some(format!("Open project {}", project.name));
+        button.label = Some(name.clone());
     }
     Element::surface()
         .align_start()

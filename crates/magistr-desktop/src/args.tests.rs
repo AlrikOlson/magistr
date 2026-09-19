@@ -80,6 +80,42 @@ fn selected_project_and_session_choices_reach_the_shared_config() {
     );
 }
 
+/// A project the window switches to keeps the launch's provider, model and
+/// permission choice, and takes none of the first session's message or resume.
+#[test]
+fn a_switched_project_keeps_the_choices_and_drops_the_first_sessions_opening() {
+    let first = tempfile::tempdir().unwrap();
+    let other = tempfile::tempdir().unwrap();
+    let cli = Desktop::try_parse_from([
+        "desktop",
+        "--dir",
+        first.path().to_str().unwrap(),
+        "--provider",
+        "codex",
+        "--model",
+        "chosen-model",
+        "--resume",
+        "saved-thread",
+        "--trust",
+        "cautious",
+        "hello",
+    ])
+    .unwrap();
+    let config = cli.config_for(other.path()).unwrap();
+    assert_eq!(config.cwd, other.path().canonicalize().unwrap());
+    assert_eq!(config.inputs().project_root(), config.cwd);
+    assert_eq!(config.provider.as_deref(), Some("codex"));
+    assert_eq!(config.model.as_deref(), Some("chosen-model"));
+    assert_eq!(config.resume, None);
+    assert_eq!(config.prompt, "");
+    assert!(!config.continue_conversation);
+    assert_eq!(
+        config.permission_profile,
+        Some(magistr::permissions::PermissionProfile::Cautious)
+    );
+    assert!(cli.config_for(&other.path().join("missing")).is_err());
+}
+
 #[test]
 fn invalid_project_or_permission_choice_fails_before_admission() {
     let root = tempfile::tempdir().unwrap();
