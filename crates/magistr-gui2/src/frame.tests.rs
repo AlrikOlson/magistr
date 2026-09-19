@@ -770,6 +770,114 @@ fn an_unusable_scale_is_refused() {
 
 // ── The Galaxy ───────────────────────────────────────
 
+#[test]
+fn project_stars_labels_buttons_and_accessibility_open_the_same_project() {
+    use accesskit::{Action, ActionRequest, TreeId};
+    use magistr_cockpit::cockpit::{Place, Surface};
+    use magistr_cockpit::input::{KeyCode, KeyEvent};
+
+    for (width, height, scale) in [(1100, 760, 1.0), (800, 640, 1.0), (2200, 1520, 2.0)] {
+        for mode in [ThemeMode::Dark, ThemeMode::Light] {
+            for activation in 0..6 {
+                let mut frame = Frame::new().unwrap();
+                frame.rescale(scale).unwrap();
+                let mut model = Model::new(frame.metrics().grid(width, height))
+                    .with_project("Delivery", "/projects/delivery")
+                    .with_surface(Surface::Native)
+                    .with_place(Place::Session)
+                    .with_theme(Theme::forced(mode));
+                update(&mut model, Msg::Paste("Keep my draft".into()));
+                let draft = model.prompt().clone();
+                model = model.with_place(Place::Galaxy);
+                frame.still(&mut model, &clock(), width, height).unwrap();
+                let target = Widget::galaxy_cluster(0);
+                let access = frame.access();
+                let link = access
+                    .nodes()
+                    .iter()
+                    .find(|n| n.target == Some(target))
+                    .unwrap();
+                assert_eq!(link.label, "Open project Delivery");
+                assert!(link.actions.contains(&Action::Click));
+                assert!(link.actions.contains(&Action::Focus));
+                let request = ActionRequest {
+                    action: Action::Click,
+                    target_tree: TreeId::ROOT,
+                    target_node: link.id,
+                    data: None,
+                };
+                let messages = match activation {
+                    0..=2 => {
+                        let (x, y) = match activation {
+                            0 => {
+                                let [x, y, w, h] = frame.rect_of(GalaxyComposition::FIELD).unwrap();
+                                let projects = GalaxyComposition::projects(&model);
+                                let placed = GalaxyLayout::place(
+                                    &projects,
+                                    (w / scale as f32, h / scale as f32),
+                                    model.galaxy().zoom(),
+                                );
+                                let star = placed[0].stars[0];
+                                (x + star.0 * scale as f32, y + star.1 * scale as f32)
+                            }
+                            1 => {
+                                let (_, [x, y, w, h]) = frame
+                                    .says()
+                                    .into_iter()
+                                    .find(|(text, _)| text == "Delivery")
+                                    .unwrap();
+                                (x + w / 2.0, y + h / 2.0)
+                            }
+                            _ => {
+                                let [x, y, w, h] = frame
+                                    .rect_of(crate::ElementId(GalaxyComposition::PROJECTS))
+                                    .unwrap();
+                                (x + w / 2.0, y + h / 2.0)
+                            }
+                        };
+                        let hit = frame.hits().hit_at(x.into(), y.into());
+                        assert_eq!(hit, Some(target), "activation {activation}, scale {scale}");
+                        frame.input(
+                            &model,
+                            Msg::Mouse {
+                                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0)
+                                    .at_px(x as u32, y as u32),
+                                target: hit,
+                            },
+                        )
+                    }
+                    3 => frame.access_action(&model, request).unwrap(),
+                    4 => frame.input(&model, Msg::Key(KeyEvent::new(KeyCode::Enter))),
+                    _ => {
+                        for _ in 0..8 {
+                            let messages =
+                                frame.input(&model, Msg::Key(KeyEvent::new(KeyCode::Tab)));
+                            assert!(messages.is_empty());
+                            if frame.focus_target() == Some(target) {
+                                break;
+                            }
+                        }
+                        assert_eq!(frame.focus_target(), Some(target));
+                        frame.input(&model, Msg::Key(KeyEvent::new(KeyCode::Enter)))
+                    }
+                };
+                assert!(!messages.is_empty(), "activation {activation} was ignored");
+                for msg in messages {
+                    let commands = update(&mut model, msg);
+                    assert!(
+                        commands
+                            .iter()
+                            .all(|cmd| matches!(cmd, magistr_cockpit::cockpit::Cmd::Animate(_))),
+                        "activation {activation}: {commands:?}"
+                    );
+                }
+                assert_eq!(model.place(), Some(Place::Sky), "activation {activation}");
+                assert_eq!(model.prompt(), &draft);
+            }
+        }
+    }
+}
+
 /// View 01 — the Galaxy: three clusters on the field, their labels
 /// pinned by the same layout, the chips in the header, the Galaxy's
 /// foot, and the ⌘K palette floated over it all.

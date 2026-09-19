@@ -6832,10 +6832,36 @@ fn galaxy_window() -> Model {
     w
 }
 
-/// The Galaxy's job seeds the clusters through the one `update`, and
-/// `↵` with nothing selected dives into the window's own project — the
-/// camera moves to the Sky through the spine — and Esc climbs back to
-/// the Galaxy.
+#[test]
+fn the_hosts_project_opens_before_discovery_and_keeps_an_unsent_message() {
+    use crate::cockpit::{Place, Surface};
+    for open in [key(KeyCode::Enter), click(Widget::galaxy_cluster(0))] {
+        let mut model = Model::new(Size::new(120, 40))
+            .with_project("sample", "/projects/sample")
+            .with_surface(Surface::Native)
+            .with_place(Place::Session);
+        update(&mut model, Msg::Paste("Keep my draft".into()));
+        let draft = model.prompt().clone();
+        model = model.with_place(Place::Galaxy);
+        assert!(model.galaxy().data().is_none());
+        let commands = update(&mut model, open);
+        assert!(
+            commands.iter().all(|cmd| matches!(cmd, Cmd::Animate(_))),
+            "opening a project must not send the draft"
+        );
+        assert_eq!(model.place(), Some(Place::Sky));
+        assert_eq!(model.prompt(), &draft);
+        update(&mut model, key(KeyCode::Esc));
+        assert_eq!(model.place(), Some(Place::Galaxy));
+        assert_eq!(
+            model.galaxy().projects()[0].dir.as_deref(),
+            Some("/projects/sample")
+        );
+    }
+}
+
+/// `↵` with nothing selected opens the window's own project.
+/// Esc returns to the projects screen.
 #[test]
 fn a_galaxy_job_seeds_the_clusters_and_enter_dives_home_and_esc_returns() {
     use crate::cockpit::Place;

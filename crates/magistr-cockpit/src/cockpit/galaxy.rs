@@ -15,6 +15,7 @@ use super::galaxy_project::GalaxyProject;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Galaxy {
     data: Option<GalaxyData>,
+    current: Option<GalaxyProject>,
     selected: Option<usize>,
     zoom: f32,
 }
@@ -23,6 +24,7 @@ impl Default for Galaxy {
     fn default() -> Self {
         Self {
             data: None,
+            current: None,
             selected: None,
             zoom: 1.0,
         }
@@ -52,10 +54,23 @@ impl Galaxy {
         self.data.as_ref()
     }
 
-    /// Every known project — empty until the job returns.
+    /// The host's current project is available before the project list arrives.
+    pub(super) fn set_current(&mut self, name: String, dir: String) {
+        self.current = Some(GalaxyProject {
+            name,
+            dir: Some(dir),
+            here: true,
+            ..GalaxyProject::default()
+        });
+    }
+
+    /// Known projects, including the host's current project before discovery.
     #[must_use]
     pub fn projects(&self) -> &[GalaxyProject] {
-        self.data.as_ref().map_or(&[], |data| &data.projects)
+        self.data
+            .as_ref()
+            .filter(|data| !data.projects.is_empty())
+            .map_or_else(|| self.current.as_slice(), |data| &data.projects)
     }
 
     /// The window's own project, when the data names one.

@@ -86,8 +86,15 @@ impl InteractiveHost {
             }
         };
         let (title, debug) = crate::commands::chrome::chrome(spec.cwd(), Some("acp"), spec.model());
+        let project = spec.cwd().file_name().map_or_else(
+            || spec.cwd().display().to_string(),
+            |name| name.to_string_lossy().into_owned(),
+        );
         let model = crate::commands::run::seed_supervision(
-            model.with_title(title).with_debug(debug),
+            model
+                .with_project(project, spec.cwd().display().to_string())
+                .with_title(title)
+                .with_debug(debug),
             spec.cwd(),
             spec.permission_profile(),
             spec.workflow_permissions(),

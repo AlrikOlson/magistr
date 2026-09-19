@@ -21,13 +21,22 @@ The terminal interface is checked against golden images under `crates/magistr-tu
 
 ## Desktop
 
+Open the current project with Codex:
+
+```sh
+just desktop --provider codex
+```
+
+Use `--dir /path/to/project` to open another project. The desktop uses the same
+provider setup as the terminal.
+
 The native session launcher (`crates/magistr-desktop`) and renderer
-(`crates/magistr-gui2`) are excluded from the public workspace because the
-renderer uses a pinned private dependency. Each has its own lockfile and
-explicit checks. The launcher opens a project session; the renderer executable
-opens development fixtures. Follow the [desktop guide](architecture/desktop.md)
-for setup, launch, CPU screenshots, GPU readback and native-window checks.
-Root workspace checks do not cover either desktop workspace.
+(`crates/magistr-gui2`) have separate Cargo workspaces and lockfiles. Their
+rendering dependencies are public. The launcher opens a project session; the
+renderer executable opens development fixtures. Follow the
+[desktop guide](architecture/desktop.md) for setup, direct Cargo commands,
+CPU screenshots, GPU readback and native-window checks. Root workspace checks
+do not cover either desktop workspace.
 
 ## Website
 

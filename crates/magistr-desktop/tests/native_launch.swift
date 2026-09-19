@@ -33,6 +33,7 @@ func waitFor<T>(_ name: String, _ body: () -> T?) throws -> T {
 func exercise() throws {
     try require(AXIsProcessTrusted(), "Accessibility permission is required")
     let previous = NSWorkspace.shared.frontmostApplication
+    let pointer = CGEvent(source: nil)?.location
     let process = Process()
     process.executableURL = URL(fileURLWithPath: CommandLine.arguments[1])
     process.arguments = ["--dir", CommandLine.arguments[2], "--provider", "ollama",
@@ -42,6 +43,7 @@ func exercise() throws {
     try process.run()
     defer {
         if process.isRunning { process.terminate(); process.waitUntilExit() }
+        if let pointer { CGWarpMouseCursorPosition(pointer) }
         previous?.activate()
     }
     let app = AXUIElementCreateApplication(process.processIdentifier)
@@ -62,8 +64,68 @@ func exercise() throws {
             attribute(element, kAXValueAttribute) as? String == text ? true : nil
         }
     }
+    func press(_ element: AXUIElement) throws {
+        try require(AXUIElementPerformAction(element, kAXPressAction as CFString) == .success,
+                    "Press \(label(element))")
+    }
+    func key(_ code: CGKeyCode) throws {
+        for down in [true, false] {
+            guard let event = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: down) else {
+                throw Failure(description: "Cannot create key event")
+            }
+            event.postToPid(process.processIdentifier)
+        }
+    }
+    func click(_ element: AXUIElement) throws {
+        NSRunningApplication(processIdentifier: process.processIdentifier)?.activate()
+        _ = try waitFor("frontmost desktop") {
+            NSWorkspace.shared.frontmostApplication?.processIdentifier == process.processIdentifier ? true : nil
+        }
+        guard let position = attribute(element, kAXPositionAttribute),
+              let size = attribute(element, kAXSizeAttribute) else {
+            throw Failure(description: "Missing project button bounds")
+        }
+        var point = CGPoint.zero
+        var extent = CGSize.zero
+        try require(AXValueGetValue(unsafeBitCast(position, to: AXValue.self), .cgPoint, &point)
+                    && AXValueGetValue(unsafeBitCast(size, to: AXValue.self), .cgSize, &extent),
+                    "Invalid project bounds")
+        point.x += extent.width / 2
+        point.y += extent.height / 2
+        for type in [CGEventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
+            guard let event = CGEvent(mouseEventSource: nil, mouseType: type,
+                                      mouseCursorPosition: point, mouseButton: .left) else {
+                throw Failure(description: "Cannot create pointer event")
+            }
+            event.post(tap: .cghidEventTap)
+        }
+    }
+    let draft = "desktop native request"
+    try set(find("Message Magistr", kAXTextAreaRole), draft)
+    let projectName = URL(fileURLWithPath: CommandLine.arguments[2]).lastPathComponent
+    for method in ["pointer", "keyboard", "accessibility"] {
+        try press(find("projects", "AXLink"))
+        let open = try find("Open project " + projectName, "AXLink")
+        _ = try find("Commands", kAXButtonRole)
+        switch method {
+        case "pointer": try click(open)
+        case "keyboard":
+            try require(AXUIElementSetAttributeValue(open, kAXFocusedAttribute as CFString,
+                                                     kCFBooleanTrue) == .success, "Focus project")
+            _ = try waitFor("project focus") {
+                attribute(app, kAXFocusedUIElementAttribute).map { CFEqual($0, open) } == true ? true : nil
+            }
+            try key(36)
+        default: try press(open)
+        }
+        try press(find("Conversation", kAXRadioButtonRole))
+        let editor = try find("Message Magistr", kAXTextAreaRole)
+        _ = try waitFor("draft survived project navigation") {
+            attribute(editor, kAXValueAttribute) as? String == draft ? true : nil
+        }
+    }
+    print("PASS: project navigation by pointer, keyboard and accessibility retained the draft")
     let editor = try find("Message Magistr", kAXTextAreaRole)
-    try set(editor, "desktop native request")
     let send = try find("Send", kAXButtonRole)
     try require(AXUIElementPerformAction(send, kAXPressAction as CFString) == .success, "Send")
     _ = try waitFor("provider reply") {

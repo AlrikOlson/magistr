@@ -357,6 +357,11 @@ impl RootComposition {
         if (WorkspaceComposition::BODY.0..=WorkspaceComposition::RIGHT.0).contains(&id.0) {
             return None;
         }
+        if (GalaxyComposition::PROJECTS..GalaxyComposition::PROJECTS_END).contains(&id.0) {
+            return Some(Widget::galaxy_cluster(
+                (id.0 - GalaxyComposition::PROJECTS) as usize,
+            ));
+        }
         if let Some(widget) = WorkspaceComposition::target(id) {
             return Some(widget);
         }

@@ -15,11 +15,15 @@ fn gpu_renders_fixture_images_in_both_themes() {
         .expect("desktop GPU required");
     eprintln!("GPU: {:?}", ctx.capabilities);
     for (tag, mode) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
-        for scene in ["adoption", "roadmap", "requests", "composer"] {
+        for scene in ["adoption", "roadmap", "requests", "composer", "projects"] {
             let mut frame = Frame::new().expect("embedded fonts");
             let cell = frame.metrics();
             let size = Fixture::capture_grid((cell.width(), cell.height()));
             let mut model = match scene {
+                "projects" => magistr_cockpit::cockpit::Model::new(size)
+                    .with_project("Delivery", "/projects/delivery")
+                    .with_surface(magistr_cockpit::cockpit::Surface::Native)
+                    .with_place(magistr_cockpit::cockpit::Place::Galaxy),
                 "roadmap" => Fixture::roadmap(size),
                 "requests" => {
                     Fixture::roadmap_request(size, magistr_cockpit::cockpit::RequestPhase::Complete)

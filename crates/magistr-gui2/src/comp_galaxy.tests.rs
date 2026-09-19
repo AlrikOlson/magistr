@@ -65,7 +65,10 @@ fn every_project_wears_its_sigil_and_its_status_line() {
 fn the_chips_and_the_foot_read_the_galaxys_totals() {
     let model = Fixture::galaxy(Size::new(120, 40));
     let chips = texts(&GalaxyComposition::chips(&model, Medium::Day));
-    assert_eq!(chips, vec!["2 running", "1 action required", "\u{2318}K"]);
+    assert_eq!(
+        chips,
+        vec!["2 running", "1 action required", "Commands", "\u{2318}K"]
+    );
     let foot = texts(&GalaxyComposition::foot(&model, Medium::Day));
     assert!(foot.iter().any(|t| t == "3 projects"), "{foot:?}");
     assert!(foot.iter().any(|t| t == "2.45 / 12.00 USD"), "{foot:?}");
@@ -76,11 +79,12 @@ fn the_chips_and_the_foot_read_the_galaxys_totals() {
 /// Galaxy, and what the window knows about itself is laid over it: a
 /// pending question counts on its cluster and on the chips.
 #[test]
-fn an_unseeded_galaxy_is_the_windows_own_project_with_its_live_state() {
+fn the_hosts_project_is_shown_before_discovery_with_its_live_state() {
     use magistr_application::sessions::{AgentEvent, PermissionChoice, PermissionKind};
     use magistr_cockpit::cockpit::Surface;
     use magistr_domain::policy::RiskTier;
     let mut model = magistr_cockpit::cockpit::Model::new(Size::new(120, 40))
+        .with_project("sample", "/projects/sample")
         .with_surface(Surface::Native)
         .with_place(Place::Galaxy);
     let alone = GalaxyComposition::projects(&model);
