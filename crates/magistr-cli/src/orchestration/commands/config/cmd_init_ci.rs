@@ -33,21 +33,28 @@ pub fn cmd_init_ci(
         &preset.quality_gate,
     );
 
-    let result = scaffold::ci::write_workflow(&dir, &yaml, force).suggest()?;
+    // The workflow file is an administrative change like any other: planned
+    // first, then applied through the administrative service, which
+    // revalidates the target at its write and answers a receipt. A target
+    // that changed after planning is reported failed, never overwritten.
+    let plan = scaffold::ci::plan_workflow(&dir, yaml, force);
+    let receipt = scaffold::ci::apply_workflow(&dir, &plan);
+    let outcome = scaffold::ci::CiOutcome::of(&receipt).suggest()?;
+    let change = receipt
+        .get(scaffold::ci::WORKFLOW_PATH)
+        .expect("an outcome was read from the workflow's receipt");
+    let path = dir.join(scaffold::ci::WORKFLOW_PATH);
 
     if renderer.is_machine_readable() {
-        let (status, path) = match &result {
-            scaffold::ci::CiWriteResult::Created(p) => ("created", p.display().to_string()),
-            scaffold::ci::CiWriteResult::Overwritten(p) => ("overwritten", p.display().to_string()),
-            scaffold::ci::CiWriteResult::AlreadyExists(p) => {
-                ("already_exists", p.display().to_string())
-            }
-        };
         let data = serde_json::json!({
-            "status": status,
-            "path": path,
+            "status": outcome.label(),
+            "path": path.display().to_string(),
             "language": stack.language.as_str(),
             "package_manager": stack.package_manager.as_str(),
+            "operation": receipt.operation.label(),
+            "action": change.action.label(),
+            "ownership": change.ownership.label(),
+            "outcome": change.outcome.label(),
         });
         renderer
             .json(&mut std::io::stdout(), &data)
@@ -55,8 +62,8 @@ pub fn cmd_init_ci(
         return Ok(());
     }
 
-    match result {
-        scaffold::ci::CiWriteResult::Created(path) => {
+    match outcome {
+        scaffold::ci::CiOutcome::Created => {
             eprintln!(
                 "{}",
                 fmt::success(&format!("Generated CI workflow: {}", path.display()))
@@ -70,14 +77,23 @@ pub fn cmd_init_ci(
                 ))
             );
         }
-        scaffold::ci::CiWriteResult::Overwritten(path) => {
+        scaffold::ci::CiOutcome::Overwritten => {
             eprintln!(
                 "{} Overwrote CI workflow: {}",
                 fmt::yellow("⟳"),
                 path.display()
             );
         }
-        scaffold::ci::CiWriteResult::AlreadyExists(path) => {
+        scaffold::ci::CiOutcome::Unchanged => {
+            eprintln!(
+                "{}",
+                fmt::success(&format!(
+                    "CI workflow already up to date: {}",
+                    path.display()
+                ))
+            );
+        }
+        scaffold::ci::CiOutcome::AlreadyExists => {
             eprintln!(
                 "{} CI workflow already exists: {}",
                 fmt::yellow("!"),

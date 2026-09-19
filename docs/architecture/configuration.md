@@ -229,6 +229,17 @@ already declares it, absent when an ancestor's declaration covers the root.
 The pipeline writes nothing after generation, so a first-init preview is
 complete and a second plan over a freshly generated project applies nothing.
 
+`magistr init --ci` plans its one file the same way
+([ci.rs](../../crates/magistr-cli/src/scaffold/ci.rs)): the rendered
+`.github/workflows/quality-gates.yml` is a create when nothing is there, the
+user's preserved file when something is and `--force` is not given, an
+overwrite with its diff (or unchanged) under `--force`, and refused when the
+target is not a readable regular file. The plan is applied through the
+administrative service and the command answers its receipt, so a workflow
+that appeared or changed between planning and the write is reported failed
+and left as found. The file is never among the scaffold's ownership records:
+a setup neither repairs nor removes it.
+
 Canonical inputs are read once per plan by
 [CanonicalSource](../../crates/magistr-cli/src/scaffold/canonical.rs). A
 skill's home repository (`skills/workbench-routing/SKILL.md` in workbench-mcp)
