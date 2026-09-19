@@ -917,3 +917,32 @@ async fn a_cancelled_request_token_stops_the_search_instead_of_burning_on() {
         .await
         .expect("shutdown");
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_served_edit_over_a_tiny_budget_reports_the_applied_outcome_and_a_retry_cannot_repeat_it()
+{
+    let dir = workspace(&[("src/app.ts", APP_TS)]);
+    let root = dir.path();
+    let service = open(root, &[]).await;
+    let (client, server) = serve(&service, TestClient::plain()).await;
+    let edit = json!({"op": "replace_text", "file": "src/app.ts", "old": "return 1;", "new": "return 2;", "budget": 1});
+    let applied = call(&client, "edit", edit.clone()).await;
+    assert_eq!(applied["ok"], true, "{applied}");
+    let row = &applied["results"][0];
+    assert_eq!(row["applied"], true, "{applied}");
+    assert_eq!(row["disposition"], "applied");
+    assert!(row["journalSeq"].is_i64(), "{applied}");
+    assert!(
+        !row["diff"].as_str().expect("diff").contains("return 2;"),
+        "the diff is what the budget costs: {applied}"
+    );
+    assert_eq!(applied["truncation"]["dropped"], 1, "{applied}");
+    assert_eq!(applied["truncation"]["cursor"], "path:src/app.ts");
+    assert!(notes(&applied).contains("do not re-issue"), "{applied}");
+    assert!(read(root, "src/app.ts").contains("return 2;"));
+
+    let retried = call(&client, "edit", edit).await;
+    assert_eq!(error_code(&retried), "STALE_ANCHOR", "{retried}");
+    assert_eq!(read(root, "src/app.ts").matches("return 2;").count(), 1);
+    close(client, server, service).await;
+}

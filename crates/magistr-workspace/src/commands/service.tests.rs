@@ -693,3 +693,78 @@ async fn write_anchors_on_the_expected_hash_and_keeps_protected_paths_closed() {
     assert_eq!(kind, ErrorKind::PatternInvalid);
     assert_eq!(h.journal.list(0).unwrap().len(), 1);
 }
+
+#[tokio::test]
+async fn an_applied_edit_over_a_small_budget_answers_a_compact_receipt_and_a_retry_writes_nothing()
+{
+    let mut h = Harness::new();
+    h.write("notes/a.txt", "alpha one\nbeta\n");
+    let mut input = replace_text("notes/a.txt", "alpha one", "gamma two");
+    input.budget = 1;
+    let response = h.commands("s").edit(&input).await;
+    let WorkspaceResponse::Success { results, notes, .. } = response else {
+        panic!("a settled write is never a budget refusal: {response:?}");
+    };
+    let rows = results.rows();
+    assert_eq!(rows.len(), 1);
+    assert!(rows[0].applied);
+    assert_eq!(rows[0].disposition, "applied");
+    assert_eq!(rows[0].action, WriteAction::Modified);
+    assert!(rows[0].journal_seq.is_some());
+    assert_eq!(
+        rows[0].content_hash.as_deref(),
+        Some(&*FileContent::Text("gamma two\nbeta\n".into()).content_hash())
+    );
+    assert!(!rows[0].diff.contains("gamma"), "{}", rows[0].diff);
+    let manifest = results.truncation().expect("the omitted diff is declared");
+    assert_eq!(manifest.dropped(), 1);
+    assert_eq!(manifest.cursor(), "path:notes/a.txt");
+    let joined = notes.unwrap_or_default().join(" ");
+    assert!(
+        joined.contains("do not re-issue") && joined.contains("diff"),
+        "{joined}"
+    );
+    assert_eq!(h.read("notes/a.txt").unwrap(), b"gamma two\nbeta\n");
+    assert_eq!(h.journal.list(0).unwrap().len(), 1);
+
+    // The identical retry finds its anchor gone: no second write, no journal op.
+    let (kind, _) = refused(h.commands("s").edit(&input).await);
+    assert!(matches!(kind, ErrorKind::StaleAnchor { .. }));
+    assert_eq!(h.read("notes/a.txt").unwrap(), b"gamma two\nbeta\n");
+    assert_eq!(h.journal.list(0).unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn small_budgets_keep_every_settled_row_across_files_dry_runs_and_undo() {
+    let mut h = Harness::new();
+    h.write("src/a.txt", "content a\n");
+    let mut moved = files(FilesOp::Move, Some("src/a.txt"), Some("deep/moved.txt"));
+    moved.auto_apply = true;
+    moved.budget = 1;
+    let (rows, _) = ok(h.commands("s").files(&moved).await);
+    assert_eq!(rows.len(), 2, "no applied row is cut: {rows:?}");
+    assert!(rows.iter().all(|row| row.applied));
+    assert_eq!(h.read("deep/moved.txt").unwrap(), b"content a\n");
+
+    let mut preview = replace_text("deep/moved.txt", "content", "payload");
+    preview.dry_run = true;
+    preview.budget = 1;
+    let (rows, _) = ok(h.commands("s").edit(&preview).await);
+    assert_eq!(rows.len(), 1);
+    assert!(!rows[0].applied);
+    assert_eq!(rows[0].disposition, "not_applied");
+    assert_eq!(h.read("deep/moved.txt").unwrap(), b"content a\n");
+
+    let tiny = UndoInput {
+        budget: 1,
+        ..UndoInput::default()
+    };
+    let (rows, _) = ok(h.commands("s").undo(&tiny).await);
+    assert!(
+        rows.iter()
+            .all(|row| matches!(row, UndoRow::Write(report) if report.applied)),
+        "{rows:?}"
+    );
+    assert_eq!(rows.len(), 2);
+    assert_eq!(h.read("src/a.txt").unwrap(), b"content a\n");
+}
