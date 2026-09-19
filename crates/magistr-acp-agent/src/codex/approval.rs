@@ -1,4 +1,4 @@
-//! Codex command/file approvals are delegated to the ACP client's policy.
+//! Codex command, file and MCP tool approvals delegate to the ACP client's policy.
 
 use crate::AgentError;
 use agent_client_protocol::schema::v1::{
@@ -11,6 +11,7 @@ pub(crate) struct Approval {
     call: ToolCallUpdate,
     allow_once: bool,
     allow_session: bool,
+    elicitation: bool,
 }
 
 #[cfg(test)]
@@ -18,6 +19,48 @@ pub(crate) struct Approval {
 mod tests;
 
 impl Approval {
+    /// Codex's tool permission is an empty form, not a data-entry request.
+    pub fn is_tool_elicitation(params: &Value) -> bool {
+        params["mode"] == "form"
+            && params["_meta"]["codex_approval_kind"] == "mcp_tool_call"
+            && ["threadId", "turnId", "serverName", "message"]
+                .iter()
+                .all(|key| params[key].as_str().is_some_and(|value| !value.is_empty()))
+            && params["requestedSchema"]["type"] == "object"
+            && params["requestedSchema"]["properties"]
+                .as_object()
+                .is_some_and(|v| v.is_empty())
+            && params["requestedSchema"]
+                .get("required")
+                .is_none_or(|v| v.as_array().is_some_and(|v| v.is_empty()))
+    }
+
+    pub fn elicitation(id: &Value, params: &Value) -> Result<Self, AgentError> {
+        if !Self::is_tool_elicitation(params) {
+            return Err(AgentError::provider("unsupported Codex permission form"));
+        }
+        Ok(Self {
+            call: ToolCallUpdate::new(
+                format!("codex-permission-{id}"),
+                ToolCallUpdateFields::new()
+                    .title(params["message"].as_str().unwrap_or("Allow this action?"))
+                    .kind(ToolKind::Other)
+                    .raw_input(params.clone()),
+            ),
+            allow_once: true,
+            allow_session: false,
+            elicitation: true,
+        })
+    }
+
+    pub fn cancel(method: &str) -> Value {
+        if method == "mcpServer/elicitation/request" {
+            json!({"action":"cancel"})
+        } else {
+            json!({"decision":"cancel"})
+        }
+    }
+
     pub fn parse(method: &str, params: &Value, item: Option<&Value>) -> Result<Self, AgentError> {
         let id = params["itemId"]
             .as_str()
@@ -58,6 +101,7 @@ impl Approval {
             ),
             allow_once,
             allow_session,
+            elicitation: false,
         })
     }
 
@@ -100,7 +144,15 @@ impl Approval {
             }
             _ => "cancel",
         };
-        json!({"decision":decision})
+        if self.elicitation {
+            match decision {
+                "accept" => json!({"action":"accept","content":{}}),
+                "cancel" => json!({"action":"cancel"}),
+                _ => json!({"action":"decline"}),
+            }
+        } else {
+            json!({"decision":decision})
+        }
     }
 }
 

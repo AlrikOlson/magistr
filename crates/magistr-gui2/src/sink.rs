@@ -162,6 +162,8 @@ struct Views {
     galaxy: Model,
     /// View 11's Trace: 102 steps, eight pins, a kept branch, 388 opened.
     traced: Model,
+    /// A source edit selected for inspection.
+    changes: Model,
     /// View 12's Signals: one open, one researched, one promoted.
     signals: Model,
     /// View 13's search: `contrast floor` over the dimmed session.
@@ -194,6 +196,30 @@ struct Views {
 impl Views {
     fn new() -> Self {
         let size = Size::new(120, 40);
+        let mut changes = Model::new(size)
+            .with_surface(Surface::Native)
+            .with_place(magistr_cockpit::cockpit::Place::Changes);
+        cockpit_update(
+            &mut changes,
+            Msg::Workbench(magistr_cockpit::cockpit::WorkbenchEvent::Journal {
+                entries: vec![magistr_cockpit::workbench::JournalEntry {
+                    id: "1".into(),
+                    path: "notes.txt".into(),
+                    added: 1,
+                    removed: 1,
+                    parse_ok: true,
+                    diff: "-before\n+after".into(),
+                    ..magistr_cockpit::workbench::JournalEntry::default()
+                }],
+            }),
+        );
+        cockpit_update(
+            &mut changes,
+            Msg::Mouse {
+                event: magistr_cockpit::input::MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(magistr_cockpit::cockpit::Widget::change_row(0)),
+            },
+        );
         let mut typed = Model::new(size);
         for key in "allow, but stop if the gates fail".chars() {
             cockpit_update(
@@ -265,6 +291,7 @@ impl Views {
             shipped: Fixture::ship_08(size),
             galaxy: Fixture::galaxy(size),
             traced: Fixture::trace_11(size),
+            changes,
             signals: Fixture::signals_12(size),
             search: Fixture::search_13(size),
             settings: Fixture::settings_10(size),
@@ -976,6 +1003,17 @@ impl Sink {
                         &magistr_cockpit::cockpit::FrameClock::new(0, std::time::Duration::ZERO),
                     )
                     .grow(1.0),
+                ),
+            ),
+            (
+                &["comp_changes"],
+                Element::surface().width(900.0).height(400.0).child(
+                    crate::comp_changes::ChangesComposition::el(
+                        &views.changes,
+                        medium,
+                        cell,
+                        (900.0, 400.0),
+                    ),
                 ),
             ),
         ];

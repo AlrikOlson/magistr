@@ -249,7 +249,15 @@ impl Walk<'_> {
                 let label = element.label.clone().unwrap_or(label);
                 let value = matches!(
                     widget,
-                    Some(Widget::Prompt | Widget::Composer | Widget::OverlayQuery | Widget::Stage)
+                    Some(
+                        Widget::Prompt
+                            | Widget::Composer
+                            | Widget::OverlayQuery
+                            | Widget::Stage
+                            | Widget::RequestBody
+                            | Widget::Inspector
+                            | Widget::TraceDetail
+                    )
                 )
                 .then(|| match &element.kind {
                     Kind::Text { content, .. } => content.clone(),

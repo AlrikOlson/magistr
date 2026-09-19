@@ -216,8 +216,9 @@ The desktop launcher consumes this coordinator through the host below.
 A real ACP channel test restores both purposes after provider failure and checks
 that loaded history does not duplicate the next response. The native desktop
 check uses a controlled Ollama peer to verify failure, unsupported restoration
-and the retained request. Full live-provider and recovery journeys remain
-unfinished.
+and the retained request. The opt-in [live desktop journeys](desktop.md#live-codex-acceptance)
+also exercise Codex approval, separate planning, cancellation, provider death,
+restored conversation context and source/check operations on macOS.
 
 ### Live interface host
 
@@ -257,7 +258,7 @@ not provide that dispatch. The separate `magistr-desktop` executable provides
 these roles and both native MCP launch targets, preserving the renderer's
 dependency boundary. Its main thread runs the native window and awaits this
 host's shutdown on every returned window outcome. See the desktop guide for
-the distinction between launcher checks and the remaining live-provider matrix.
+the launcher checks, live-provider evidence and platform limits.
 
 ### Owned relay jobs
 
@@ -392,10 +393,13 @@ and steer the expected active turn with `steer`. Steering is a library API,
 not an ACP v1 request. Cancellation requests an interrupt and consumes the
 terminal turn event before the thread is reused.
 
-Command and file-change approvals are relayed to the ACP client. Unsupported
-server requests, including user-input questions, MCP elicitations, and dynamic
-tools, receive an explicit refusal. Session MCP configuration supports stdio and
-streamable HTTP and is merged by Codex with its own configuration. Legacy SSE
+Command, file-change and Codex MCP tool approvals are relayed to the ACP client.
+MCP tool permission accepts only the marked empty form for a named thread and
+turn, preserving the original tool metadata and arguments for policy. Allow is
+one call, Deny declines it, and cancellation returns the elicitation cancellation
+response; persistent grants are not offered. General data-entry or URL
+elicitations, user-input questions and dynamic tools receive explicit refusals.
+Session MCP configuration supports stdio and streamable HTTP and is merged by Codex with its own configuration. Legacy SSE
 entries are rejected.
 
 ## Testing and data
@@ -424,8 +428,9 @@ The opt-in live check uses the real transport and a disposable directory:
 MAGISTR_CODEX_LIVE=1 cargo run -p magistr-cli --example codex_transport_live
 ```
 
-It consumes a short provider turn and verifies streamed tool evidence, completion,
-file contents, and cleanup. Ordinary tests do not run it. The
+It consumes two short provider turns and verifies streamed tool evidence,
+completion, file contents, detached observation and cleanup. Ordinary tests do
+not run it. The
 [direct Codex launcher](../reference/codex.md) has separate read-only runtime integration
 tests and does not select this session provider.
 

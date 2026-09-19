@@ -11,6 +11,7 @@ use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::sync::{Mutex as AsyncMutex, mpsc, oneshot};
 use tokio::task::JoinHandle;
 
+use super::approval::Approval;
 use super::frame::Frame;
 use super::routing::Routing;
 use crate::AgentError;
@@ -325,9 +326,10 @@ async fn read_stdout(
                         method.as_str(),
                         "item/commandExecution/requestApproval" | "item/fileChange/requestApproval"
                     );
-                    if !approval
+                    let elicitation = method == "mcpServer/elicitation/request"
+                        && Approval::is_tool_elicitation(params);
+                    if !(approval && params["itemId"].as_str().is_some() || elicitation)
                         || receiver.is_none()
-                        || params["itemId"].as_str().is_none()
                         || frame.turn_id().is_none()
                     {
                         let response = json!({"id":id,"error":{"code":-32601,"message":format!("Magistr cannot serve Codex request {method} in this context")}});
@@ -350,7 +352,7 @@ async fn read_stdout(
                             .is_none_or(|id| Some(id) == frame.turn_id())
                     }) {
                         if let Err(error) =
-                            write_line(&writer, &json!({"id":id,"result":{"decision":"cancel"}}))
+                            write_line(&writer, &json!({"id":id,"result":Approval::cancel(method)}))
                                 .await
                         {
                             break error;
@@ -360,10 +362,13 @@ async fn read_stdout(
                 }
                 if let Some(receiver) = receiver
                     && let Err(failed) = receiver.send(Ok(frame))
-                    && let Ok(Frame::Request { id, .. }) = failed.0
+                    && let Ok(Frame::Request { id, method, .. }) = failed.0
                 {
-                    let _ =
-                        write_line(&writer, &json!({"id":id,"result":{"decision":"cancel"}})).await;
+                    let _ = write_line(
+                        &writer,
+                        &json!({"id":id,"result":Approval::cancel(&method)}),
+                    )
+                    .await;
                 }
             }
         }

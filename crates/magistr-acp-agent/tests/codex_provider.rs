@@ -880,6 +880,46 @@ async fn malformed_runtime_frames_fail_the_pending_turn_without_hanging() {
 }
 
 #[tokio::test]
+async fn mcp_tool_permissions_reach_the_client_and_answer_with_elicitation_actions() {
+    for (permission, action) in [
+        (PermissionAnswer::Select("allow"), "accept"),
+        (PermissionAnswer::Cancel, "cancel"),
+    ] {
+        let mut recording = Recording::new("turn_message");
+        let at = recording.response("turn/start") + 1;
+        let turn_id = recording.frames[at - 1]["result"]["turn"]["id"].clone();
+        // Protocol-shaped injection; the live window check covers the real runtime.
+        recording.frames.splice(at..at, [
+            json!({"id": "source-permission", "method": "mcpServer/elicitation/request", "params": {
+                "threadId": THREAD, "turnId": turn_id, "serverName": "workspace",
+                "mode": "form", "message": "Allow file read?",
+                "requestedSchema": {"type":"object","properties":{}},
+                "_meta": {"codex_approval_kind":"mcp_tool_call","tool_params":{"file":"sample.txt"}}
+            }}),
+            json!({"_sent":{"id":"source-permission","result": if action == "accept" { json!({"action":action,"content":{}}) } else { json!({"action":action}) }}}),
+        ]);
+        let (stop, observed) =
+            with_provider(recording.provider().await, permission, async |cx, _| {
+                initialize(&cx).await?;
+                let session = new_session(&cx).await?;
+                Ok(prompt_and_wait(&cx, &session.session_id, "pong")
+                    .await?
+                    .stop_reason)
+            })
+            .await;
+        assert_eq!(stop, StopReason::EndTurn);
+        assert_eq!(observed.messages(), "pong");
+        let answer = recording
+            .inputs()
+            .into_iter()
+            .find(|frame| frame["id"] == "source-permission")
+            .unwrap();
+        assert_eq!(answer["result"]["action"], action);
+        assert!(answer["result"].get("decision").is_none());
+    }
+}
+
+#[tokio::test]
 async fn unsupported_server_requests_receive_a_correlated_error_and_the_turn_continues() {
     let mut recording = Recording::new("turn_message");
     let at = recording.response("turn/start") + 1;

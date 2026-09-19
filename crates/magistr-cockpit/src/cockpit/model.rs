@@ -2174,6 +2174,12 @@ impl Model {
     /// same pair.
     #[must_use]
     pub fn session_window(&self) -> (usize, usize) {
+        if self.place() == Some(Place::Changes) {
+            return (
+                self.changes.entries().len().max(1),
+                self.stage_rows().max(1),
+            );
+        }
         if self.uses_flight_recorder() {
             let layout = self.flight_layout();
             let height = if layout.compact {

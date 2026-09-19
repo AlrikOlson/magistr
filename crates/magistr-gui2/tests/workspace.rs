@@ -92,6 +92,13 @@ fn inspection_and_arrivals_preserve_the_draft_disclosure_and_reading_position() 
         "Check recovery",
     ] {
         assert!(text(&frame).contains(field), "missing {field}");
+        let access = frame.access();
+        let details = access.find(Widget::Inspector).unwrap();
+        assert!(
+            details.value.as_deref().unwrap_or_default().contains(field),
+            "unreadable {field}"
+        );
+        assert!(!details.actions.contains(&accesskit::Action::SetValue));
     }
     step(&mut model, 980);
     update(

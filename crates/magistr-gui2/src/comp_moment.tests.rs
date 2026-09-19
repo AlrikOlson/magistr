@@ -54,8 +54,8 @@ fn a_plain_ask_is_the_ask_card_on_a_window_and_nothing_on_a_terminal() {
             id: 4,
             title: "mcp__workbench-mcp__read".to_owned(),
             choices: vec![
-                PermissionChoice::new("allow", PermissionKind::AllowOnce),
-                PermissionChoice::new("reject", PermissionKind::RejectOnce),
+                PermissionChoice::new("provider:yes-42", PermissionKind::AllowOnce),
+                PermissionChoice::new("provider:no-17", PermissionKind::RejectOnce),
             ],
             edit: false,
             risk: RiskTier::Medium,
@@ -76,11 +76,17 @@ fn a_plain_ask_is_the_ask_card_on_a_window_and_nothing_on_a_terminal() {
         assert!(texts.contains(&"needs you".to_owned()), "{texts:?}");
         assert!(texts.contains(&"Read files".to_owned()), "{texts:?}");
         assert!(
-            texts.iter().any(|t| t == "allow") && texts.iter().any(|t| t == "reject"),
+            texts.iter().any(|t| t == "Allow") && texts.iter().any(|t| t == "Deny"),
             "the answer verbs: {texts:?}"
         );
     }
-    update(&mut window, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+    let commands = update(&mut window, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+    assert!(
+        commands.contains(&magistr_cockpit::cockpit::Cmd::Permission {
+            id: 4,
+            option_id: "provider:yes-42".to_owned(),
+        })
+    );
     assert!(
         MomentComposition::el(&window, Medium::Night).is_none(),
         "answered, the card stands down"
@@ -99,7 +105,8 @@ fn the_review_moment_shows_the_scope_the_files_and_the_diff() {
         .buttons()
         .next()
         .expect("the review answers")
-        .1
+        .0
+        .label()
         .to_owned();
     let scope = model.review_scope();
     let file = model.review_file().expect("a file is selected");
