@@ -123,6 +123,13 @@ pub struct LoopDriver {
     completed: Vec<String>,
     /// The chunk the iteration's prompt was built for.
     target: Option<String>,
+    /// When this iteration began, on the wall clock the store stamps its
+    /// records with: an objective set after it is this iteration's work.
+    began: Option<chrono::DateTime<chrono::Utc>>,
+    /// The part the agent shipped instead, when it split the target and its
+    /// recorded checks verified that part: the target itself is then still
+    /// to do, and is not judged on the part's evidence.
+    split_part: Option<String>,
     /// The execution task this iteration's gates were recorded on — the
     /// one active in the trace as the set began — so a completion the
     /// judge grants names the task its evidence sits on. `None` when the
@@ -302,6 +309,8 @@ impl LoopDriver {
             pending: None,
             completed: Vec::new(),
             target: None,
+            began: None,
+            split_part: None,
             verification_task: None,
             recorded_verification: Vec::new(),
             gates_unresolved: None,
@@ -704,6 +713,8 @@ impl LoopDriver {
         let started = Instant::now();
         let mut ticks = ticker();
         self.completed.clear();
+        self.began = Some(chrono::Utc::now());
+        self.split_part = None;
         self.verification_task = None;
         self.recorded_verification.clear();
         self.gates_unresolved = None;
@@ -1383,6 +1394,15 @@ impl LoopDriver {
             ));
             return Step::Next;
         }
+        if let Some(part) = &self.split_part
+            && chunk.status != ChunkStatus::Done
+        {
+            self.note(format!(
+                "judge not asked: the agent split {} and shipped {part} this iteration; the rest is still to do",
+                chunk.id
+            ));
+            return Step::Next;
+        }
         match chunk.status {
             ChunkStatus::Done => {
                 self.note(format!(
@@ -1468,6 +1488,39 @@ impl LoopDriver {
             }
             Decision::Stop { reason } => self.stop(&engines, &chunk, &reason),
         }
+    }
+
+    /// Whether `objective` is the work this iteration did. The agent owns
+    /// that answer, not the prompt: it may ship the item it was given, or
+    /// split an item too large for one change and ship a part (`/next` tells
+    /// it to). Three witnesses, any of which is enough: the objective names
+    /// the item the prompt was built for (which also covers work resumed
+    /// from an earlier iteration), it names an item the feed saw completed
+    /// this iteration, or it was set after this iteration began for a roadmap
+    /// item the agent started or finished. An objective left over from
+    /// earlier work, or one that names no roadmap item, is none of these.
+    fn is_iteration_work(
+        &self,
+        engines: &NativeEngines,
+        objective: &magistr_workflow::ship::domain::objective::Objective,
+    ) -> bool {
+        let named = objective.scope.strip_prefix("chunk:");
+        if named.is_some() && named == self.target.as_deref() {
+            return true;
+        }
+        if named.is_some_and(|id| self.completed.iter().any(|done| done == id)) {
+            return true;
+        }
+        let set_at = objective
+            .created_at
+            .as_deref()
+            .and_then(|at| chrono::DateTime::parse_from_rfc3339(at).ok());
+        let worked = named
+            .and_then(|id| engines.roadmap_chunk(id))
+            .is_some_and(|chunk| {
+                matches!(chunk.status, ChunkStatus::Done | ChunkStatus::InProgress)
+            });
+        worked && matches!((set_at, self.began), (Some(set_at), Some(began)) if set_at >= began)
     }
 
     /// Judge the work selected for this iteration, even if another item is
@@ -1731,8 +1784,8 @@ impl LoopDriver {
                 || objective.status
                     == magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed)
         {
-            let scope = self.target.as_ref().map(|id| format!("chunk:{id}"));
-            if scope.as_deref() != Some(objective.scope.as_str()) {
+            engines.reload_roadmap();
+            if !self.is_iteration_work(engines, &objective) {
                 self.gates_unresolved = Some(
                     "The recorded checks belong to different work. Restore this item's verification task before continuing.".to_owned(),
                 );
@@ -1740,6 +1793,11 @@ impl LoopDriver {
             }
             match engines.ship_verify_completion(&objective.scope, None) {
                 Ok(evidence) if !evidence.accepted.is_empty() => {
+                    self.split_part = objective
+                        .scope
+                        .strip_prefix("chunk:")
+                        .filter(|part| self.target.as_deref() != Some(*part))
+                        .map(str::to_owned);
                     self.verification_task = Some(evidence.task_id);
                     self.recorded_verification = evidence.accepted.into_iter()
                         .map(|receipt| receipt.gate).collect();

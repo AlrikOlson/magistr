@@ -2978,6 +2978,115 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
     }
 }
 
+/// An agent may split the item it was given and ship one part (`/next`
+/// tells it to when the item is too large). The iteration's work is then
+/// the part the feed saw completed: its recorded checks verify it, and the
+/// judge is not asked whether the remaining item is met on the part's
+/// evidence.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
+    use magistr_workflow::ship::domain::objective::VerificationMode;
+    use magistr_workflow::ship::domain::task::TaskType;
+
+    let unexpected = "echo unexpected > unexpected-gate; exit 9";
+    let dir = project(unexpected, unexpected, unexpected);
+    let engines = engines_with_work(dir.path());
+    let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+    let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("Shipped the first part."));
+    let root = dir.path().to_path_buf();
+    let connector = Connector::new(move |config| {
+        agent_side
+            .roadmap_add_chunk(
+                "work-part".to_owned(),
+                "The first part of the work".to_owned(),
+                "work part".to_owned(),
+                ChunkStatus::Pending,
+                90,
+                String::new(),
+                vec!["the part works".to_owned()],
+                vec![],
+                None,
+                None,
+            )
+            .unwrap();
+        agent_side.roadmap_start_chunk("work-part").unwrap();
+        agent_side
+            .ship_set_objective_with_verification(
+                "do the first part".into(),
+                vec![],
+                vec![],
+                "chunk:work-part".into(),
+                VerificationMode::Focused,
+            )
+            .unwrap();
+        agent_side
+            .ship_add_task("verify".into(), "verify".into(), TaskType::Test, None)
+            .unwrap();
+        agent_side.ship_start_task("verify").unwrap();
+        crate::application::AdmittedCheck::admit(
+            &agent_side,
+            &root,
+            Some("verify"),
+            "part tests",
+            "true".into(),
+            true,
+        )
+        .unwrap()
+        .settle(
+            &agent_side,
+            magistr_engine::native::CheckExecution::Exited { code: 0 },
+            String::new(),
+        )
+        .unwrap();
+        agent_side.ship_complete_task("verify", vec![]).unwrap();
+        agent_side.ship_finalize(vec![], None).unwrap();
+        agent_side
+            .roadmap_complete_chunk("work-part", Some("task:verify"))
+            .unwrap();
+        let inner = inner.clone();
+        async move { inner.connect(config).await }
+    });
+    let judge = Scripted::new([Verdict::met("would wrongly close the whole item")]);
+    let script = Script::new().startup_replies(MS(0));
+    let (model, report, _) = run_over(
+        dir.path(),
+        1,
+        script,
+        connector,
+        seen,
+        false,
+        Some(engines.clone()),
+        Some(judge.clone()),
+    )
+    .await;
+    let stage = stage_text(&model);
+    assert!(
+        !matches!(report.end(), LoopEnd::Failed(_)),
+        "{report}: {stage}"
+    );
+    assert!(
+        stage.contains("Recorded checks still verify this work"),
+        "{stage}"
+    );
+    assert!(!stage.contains("belong to different work"), "{stage}");
+    assert!(!dir.path().join("unexpected-gate").exists());
+    engines.reload_roadmap();
+    assert_eq!(
+        engines.roadmap_chunk("work-part").unwrap().status,
+        ChunkStatus::Done
+    );
+    assert_ne!(
+        engines.roadmap_chunk("work").unwrap().status,
+        ChunkStatus::Done,
+        "the rest of the item is still to do"
+    );
+    assert!(
+        judge.asked().is_empty(),
+        "the remaining item is not judged on the part's evidence"
+    );
+    assert!(stage.contains("work-part"), "{stage}");
+}
+
 /// A flake passed, so it is not evidence of anything to act on.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_flake_never_reopens_a_chunk() {
