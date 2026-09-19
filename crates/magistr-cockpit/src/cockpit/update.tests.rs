@@ -4367,6 +4367,84 @@ fn launcher_buttons_click() {
 }
 
 #[test]
+fn a_hosted_session_starts_work_in_place_from_chord_palette_and_widget() {
+    let click = |widget: Widget| Msg::Mouse {
+        event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 10),
+        target: Some(widget.id()),
+    };
+    for (c, query, widget, action) in [
+        ('n', "next", Widget::LaunchNext, LaunchAction::Next),
+        ('l', "continue work", Widget::LaunchLoop, LaunchAction::Loop),
+    ] {
+        let mut m = model().with_hosted_work();
+        assert_eq!(
+            update(
+                &mut m,
+                Msg::Key(KeyEvent::new(KeyCode::Char(c)).with(Modifiers::ALT))
+            ),
+            vec![Cmd::Launch(action.clone())]
+        );
+        assert_eq!(m.launch(), None, "the window stays: nothing to re-dispatch");
+        assert!(!m.quit_requested());
+
+        let mut m = model().with_hosted_work();
+        type_text(&mut m, "keep this draft");
+        update(&mut m, ctrl('p'));
+        type_text(&mut m, query);
+        let cmds = update(&mut m, key(KeyCode::Enter));
+        assert!(cmds.contains(&Cmd::Launch(action.clone())), "{cmds:?}");
+        assert_eq!(m.prompt().text(), "keep this draft");
+
+        let mut m = model().with_hosted_work();
+        assert_eq!(
+            update(&mut m, click(widget)),
+            vec![Cmd::Launch(action.clone())]
+        );
+    }
+}
+
+#[test]
+fn a_hosted_session_refuses_a_second_start_while_work_is_live_and_allows_one_after_it_ends() {
+    let alt_n = || Msg::Key(KeyEvent::new(KeyCode::Char('n')).with(Modifiers::ALT));
+    let mut m = model().with_hosted_work();
+    update(
+        &mut m,
+        loop_msg(LoopEvent::Started {
+            iteration: 1,
+            max: 1,
+        }),
+    );
+    let cmds = update(&mut m, alt_n());
+    assert!(
+        !cmds.iter().any(|cmd| matches!(cmd, Cmd::Launch(_))),
+        "{cmds:?}"
+    );
+    assert!(!m.quit_requested());
+    update(&mut m, loop_msg(LoopEvent::Ended("finished".to_owned())));
+    assert!(update(&mut m, alt_n()).contains(&Cmd::Launch(LaunchAction::Next)));
+}
+
+#[test]
+fn a_refused_start_is_said_on_the_stage() {
+    let mut m = model().with_hosted_work();
+    let cmds = update(
+        &mut m,
+        Msg::CommandFailed {
+            cmd: Cmd::Launch(LaunchAction::Loop),
+            error: "Another Magistr session is running this project's work.".to_owned(),
+        },
+    );
+    assert!(
+        cmds.iter().any(|cmd| matches!(
+            cmd,
+            Cmd::Announce(text) if text.contains("could not start the work")
+                && text.contains("Another Magistr session")
+        )),
+        "{cmds:?}"
+    );
+}
+
+#[test]
 fn a_session_row_resumes_by_click_and_by_enter_on_the_selection() {
     // A left click on the row hands the entry point the row's session
     // id beside the quit.

@@ -157,6 +157,9 @@ pub struct Model {
     /// Galaxy.
     pub(super) birth: Birth,
     pub(super) launch: Option<LaunchAction>,
+    /// The session's host runs work in place: a start is a command, not
+    /// a quit for an entry point to re-dispatch.
+    pub(super) hosted_work: bool,
     pub(super) session_sel: Option<usize>,
     pub(super) review_sel: usize,
     pub(super) session_note: Option<String>,
@@ -619,6 +622,7 @@ impl Model {
             review_sel: 0,
             session_note: None,
             launch: None,
+            hosted_work: false,
             sheet: false,
             roadmap_graph_rect: None,
             roadmap_graph_px: None,
@@ -723,6 +727,21 @@ impl Model {
     pub fn with_settings(mut self, data: SettingsData) -> Self {
         self.settings_data = data;
         self
+    }
+
+    /// The host behind this session starts one item or the loop in place
+    /// when asked ([`Cmd::Launch`](super::Cmd::Launch)): the start verbs
+    /// are offered in a live session and never quit it.
+    #[must_use]
+    pub const fn with_hosted_work(mut self) -> Self {
+        self.hosted_work = true;
+        self
+    }
+
+    /// Whether a start is carried out in place by the session's host.
+    #[must_use]
+    pub const fn hosts_work(&self) -> bool {
+        self.hosted_work
     }
 
     /// Set the project this host has opened, before project discovery completes.

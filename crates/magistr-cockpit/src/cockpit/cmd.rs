@@ -6,6 +6,7 @@ use super::birth_cmd::BirthCmd;
 use super::checkpoint_cmd::CheckpointCmd;
 use super::engine_cmd::EngineCmd;
 use super::kill_cmd::KillCmd;
+use super::launch_action::LaunchAction;
 use super::loop_cmd::LoopCmd;
 use super::shelf_cmd::ShelfCmd;
 use super::workbench_cmd::WorkbenchCmd;
@@ -64,6 +65,11 @@ pub enum Cmd {
     Delegate(String),
     /// A decision for the iteration loop.
     Loop(LoopCmd),
+    /// Start work in place — one item or the loop — in a session whose
+    /// host can run it ([`Model::with_hosted_work`](super::Model::with_hosted_work)).
+    /// The host answers a start it cannot make with
+    /// [`Msg::CommandFailed`](super::Msg::CommandFailed), in words.
+    Launch(LaunchAction),
     /// A held kill completed: the session turns a terminal into
     /// `terminal/kill` on the ACP transport; the loop driver in front
     /// of it turns a gate into a cancel on that gate's own child. Sent
@@ -172,6 +178,7 @@ impl Cmd {
                     Self::Constraint { .. } => "Your condition was not saved.",
                     Self::Delegate(_) => "Your permission setting was not saved.",
                     Self::Loop(_) => "Magistr could not change the current work.",
+                    Self::Launch(_) => "Magistr could not start the work.",
                     Self::Kill(target) => {
                         if let Some(term) = model.terminals.term_mut(target.id()) {
                             term.kill_failed();

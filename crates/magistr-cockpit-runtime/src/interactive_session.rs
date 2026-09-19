@@ -9,7 +9,7 @@ use crate::channel::{Commands, Inbox};
 use crate::spawn_session;
 use magistr_application::sessions::{AgentEvent, SessionHandle};
 use magistr_cockpit::checkpoint::CheckpointPort;
-use magistr_cockpit::cockpit::{Cmd, LoopCmd, Msg};
+use magistr_cockpit::cockpit::{Cmd, LaunchAction, LoopCmd, Msg};
 use magistr_cockpit::engine::EnginePort;
 use magistr_cockpit::workbench::WorkbenchPort;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -22,6 +22,17 @@ pub enum SessionPurpose {
     Roadmap,
 }
 
+/// How a conversation phase ended, for the owner of its commands.
+#[derive(Debug, PartialEq, Eq)]
+pub struct SessionExit {
+    /// The cockpit is still there: its commands did not close or quit.
+    pub open: bool,
+    /// Loop decisions the phase received, returned to their owner.
+    pub controls: Vec<LoopCmd>,
+    /// The work the reader asked the host to start, when that ended the phase.
+    pub launch: Option<LaunchAction>,
+}
+
 type Connect = dyn Fn(
         SessionPurpose,
         Option<String>,
@@ -29,7 +40,13 @@ type Connect = dyn Fn(
     + Send
     + Sync;
 
+/// The host's answer to a start: `Ok` when it has the work ready to run once
+/// this phase ends, or the refusal in words. Asked before the conversation
+/// is given up, so a refused start costs the reader nothing.
+type Admit = dyn Fn(&LaunchAction) -> Result<(), String> + Send + Sync;
+
 const CLOSE_GRACE: Duration = Duration::from_secs(5);
+const START_WAITS: &str = "Wait for the current response before starting work.";
 
 #[cfg(test)]
 #[path = "interactive_session.tests.rs"]
@@ -68,6 +85,7 @@ pub struct InteractiveSession {
     inbox: Inbox,
     local_task: JoinHandle<Result<(), String>>,
     local_commands: Option<UnboundedSender<Cmd>>,
+    admit: Option<Arc<Admit>>,
     connection: Option<Connection>,
     parked: Option<Connection>,
     conversation_id: Option<String>,
@@ -116,6 +134,7 @@ impl InteractiveSession {
             inbox,
             local_task: task,
             local_commands: Some(commands),
+            admit: None,
             connection: None,
             parked: None,
             conversation_id: None,
@@ -124,6 +143,17 @@ impl InteractiveSession {
             queued: None,
             closed: false,
         }
+    }
+
+    /// Let this phase end on a start the host admits ([`Cmd::Launch`]).
+    /// Without it every start is refused: nothing behind the session runs work.
+    #[must_use]
+    pub fn admitting_work(
+        mut self,
+        admit: impl Fn(&LaunchAction) -> Result<(), String> + Send + Sync + 'static,
+    ) -> Self {
+        self.admit = Some(Arc::new(admit));
+        self
     }
 
     /// Adopt the opening conversation connected before the interface starts.
@@ -239,6 +269,7 @@ impl InteractiveSession {
                         Some(Cmd::Prompt(other) | Cmd::RoadmapPrompt(other)) => {
                             self.reject(other, "Wait for the connection before sending another message.");
                         }
+                        Some(Cmd::Launch(action)) => self.refuse_start(action, START_WAITS.to_owned()),
                         Some(other) => { self.forward(other); }
                     }
                 }
@@ -334,15 +365,21 @@ impl InteractiveSession {
 
     /// Run until the cockpit closes, or one requested turn ends at an iteration
     /// boundary. Loop controls are returned to their owner rather than discarded.
+    ///
+    /// A start ([`Cmd::Launch`]) the host admits ends an idle conversation
+    /// phase with the commands still open: the host runs the work and opens
+    /// the next phase. A follow-up owned by running work (`once`) refuses it,
+    /// as do a response in flight and a session nobody admits work for.
     pub async fn run(
         mut self,
         commands: &mut Commands,
         first: Option<Cmd>,
         once: bool,
-    ) -> (bool, Vec<LoopCmd>) {
+    ) -> SessionExit {
         let mut first = first;
         let mut controls = Vec::new();
         let mut closed = false;
+        let mut launch = None;
         loop {
             let command = if let Some(command) = first.take() {
                 Some(command)
@@ -416,6 +453,25 @@ impl InteractiveSession {
                     }
                     controls.push(command);
                 }
+                Cmd::Launch(action) => {
+                    let refusal = if once {
+                        Some("Work is already running.".to_owned())
+                    } else if self.busy || self.queued.is_some() {
+                        Some(START_WAITS.to_owned())
+                    } else {
+                        match &self.admit {
+                            Some(admit) => admit(&action).err(),
+                            None => Some("This session cannot start work.".to_owned()),
+                        }
+                    };
+                    match refusal {
+                        Some(error) => self.refuse_start(action, error),
+                        None => {
+                            launch = Some(action);
+                            break;
+                        }
+                    }
+                }
                 Cmd::Quit => {
                     closed = true;
                     break;
@@ -451,7 +507,18 @@ impl InteractiveSession {
             self.local_task.abort();
             let _ = (&mut self.local_task).await;
         }
-        (!closed, controls)
+        SessionExit {
+            open: !closed,
+            controls,
+            launch,
+        }
+    }
+
+    fn refuse_start(&self, action: LaunchAction, error: String) {
+        self.inbox.send(Msg::CommandFailed {
+            cmd: Cmd::Launch(action),
+            error,
+        });
     }
 
     pub fn spawn(self, mut commands: Commands) -> JoinHandle<Result<(), String>> {

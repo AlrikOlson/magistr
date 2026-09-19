@@ -384,6 +384,35 @@ the failure through the conversation's accessible value, and verifies the
 retained draft and that no stop was delivered. These are real native-window
 checks with controlled producers; they do not demonstrate a live provider.
 
+## Starting work
+
+The shared host (`application/interactive_host.rs`, also behind `magistr run`)
+marks its model `with_hosted_work`, so `alt-n` (start next item), `alt-l`
+(continue work) and their command-palette rows emit `Cmd::Launch` instead of
+quitting for an entry point to re-dispatch. The conversation asks the host to
+admit the start before it gives up its provider connection
+(`InteractiveSession::admitting_work`); `orchestration/hosted_work.rs` prepares
+the run at that moment and then runs the same `IterationLoop` and `LoopDriver`
+as `magistr next` and `next-loop` on the host's admitted writer, with the same
+gate contracts, judge and operation ledger. Pause, Step, Checkpoint, Abort and
+the loop's progress are the existing shared loop model. When the run ends the
+command channel returns to a fresh conversation, and further work can be
+started.
+
+A start is refused in words, with the conversation untouched, when this window
+only attached to another session's writer, when the loop-owner lock is held,
+when a response is in flight, when work is already running, or when nothing is
+left to start. The loop's agent sessions use the project's default provider
+configuration, as the terminal loop does, not the window's `--provider` or
+`--model` choice.
+
+The window does not yet draw start buttons; pointer and accessibility controls
+and the launcher-level process check are roadmap item
+`desktop-loop-window-controls`.
+`orchestration/loop_driver/driver.tests.rs::a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conversation`
+and `orchestration/hosted_work.tests.rs` cover the host phases with a
+controlled provider.
+
 ## Roadmap planning
 
 `RoadmapComposition` keeps the complete dependency graph and filtered work list

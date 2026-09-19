@@ -58,17 +58,12 @@ fn the_driver_is_spawned_before_the_run_on_a_tapped_feed_and_reported_after() {
 }
 
 #[test]
-fn the_judge_holds_no_source_write_authority() {
-    let judge = position("fn judge(");
-    let refused = position("Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority))");
-    assert!(
-        judge < refused,
-        "the judge's sessions are composed with the no-authority route, never the loop's writer"
-    );
+fn the_judge_is_the_shared_no_authority_one_and_the_loop_has_one_live_connector() {
+    position("session_judge_for(goal, native, dir, backend)");
     assert_eq!(
         SOURCE.matches("Connector::live(").count(),
-        2,
-        "exactly two live connectors: the loop's routed one and the judge's refused one"
+        1,
+        "the loop's routed connector only: the judge's refused one is composed in goal/session_judge_for.rs"
     );
 }
 

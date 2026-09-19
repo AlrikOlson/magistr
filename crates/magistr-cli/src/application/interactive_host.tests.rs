@@ -136,9 +136,14 @@ async fn started(
         inbox,
         commands,
         |_| async { Ok(Box::new(session) as Box<dyn SessionHandle>) },
+        Connector::live,
     )
     .await
     .unwrap();
+    assert!(
+        model.hosts_work(),
+        "the host runs started work in place, so the model offers the starts"
+    );
     assert_eq!(model.galaxy().home(), Some(0));
     assert_eq!(model.galaxy().projects()[0].name, "project");
     assert_eq!(
@@ -184,6 +189,7 @@ async fn startup_failure_releases_source_and_project_owners() {
             inbox,
             commands,
             |_| async { Err(eyre::eyre!("provider unavailable")) },
+            Connector::live,
         )
         .await;
         let error = result.err().expect("startup refused");

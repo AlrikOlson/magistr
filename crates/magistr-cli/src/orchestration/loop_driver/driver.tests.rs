@@ -3774,3 +3774,116 @@ async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_r
         OperationOutcome::Failed
     );
 }
+
+// ── Hosted work ─────────────────────────────────────────────────────
+
+/// A start taken inside a live hosted session — the desktop's and
+/// `magistr run`'s host — runs on this same driver: the judged iteration
+/// completes the chunk with every operation settled in the checkpoint, the
+/// session takes conversation again when the run ends, and a further start
+/// is answered on its own terms.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conversation() {
+    use crate::application::workflow_client::EngineClient;
+    use crate::orchestration::hosted_work::HostedWork;
+    use crate::orchestration::interactive_session::interactive_session;
+    use magistr_cockpit::cockpit::LaunchAction;
+
+    let dir = project("true", "true", "true");
+    let path = dir.path().join(".magistr/project.json");
+    let mut declared: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).expect("project.json")).expect("json");
+    declared["roadmap_backend"] = serde_json::json!("think-and-ship");
+    std::fs::write(&path, declared.to_string()).expect("project.json");
+    let engines = engines_with_active_task(dir.path());
+    let judge = Scripted::new([Verdict::met("both criteria hold")]);
+    let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("did the thing"));
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |key| {
+        (key == "MAGISTR_GOAL").then(|| "native".to_owned())
+    });
+    let config = AgentConfig::new("", dir.path()).with_inputs(&inputs);
+    let client = EngineClient::attach(engines.clone());
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (_feed, tapped) = unbounded_channel();
+    let session = interactive_session(
+        config.clone(),
+        connector.clone(),
+        inbox.clone(),
+        Some(client.clone()),
+    );
+    let scripted = Arc::clone(&judge);
+    let work = HostedWork::new(config, connector, inbox, client, tapped).judged_by(Box::new(
+        move |_, native, _, _| native.then(|| Arc::clone(&scripted) as Arc<dyn Judge>),
+    ));
+    let task = tokio::spawn(work.run(session, receiver));
+
+    commands.send(Cmd::Launch(LaunchAction::Loop)).unwrap();
+    let ended = tokio::time::timeout(Duration::from_secs(60), async {
+        loop {
+            if let Msg::Loop(LoopEvent::Ended(why)) = events.recv().await.expect("live inbox") {
+                return why;
+            }
+        }
+    })
+    .await
+    .expect("the started loop ends");
+    assert_eq!(
+        judge.asked().len(),
+        1,
+        "the shared judge was asked: {ended}"
+    );
+    engines.reload_roadmap();
+    assert_eq!(
+        engines.roadmap_chunk("work").expect("the chunk").status,
+        ChunkStatus::Done
+    );
+    let state = checkpoint(dir.path());
+    assert!(
+        state
+            .operations
+            .records()
+            .iter()
+            .any(|record| record.target == "complete_chunk:work"),
+        "the judged completion went through the operation ledger"
+    );
+    assert_eq!(state.operations.unsettled().count(), 0);
+    assert!(!task.is_finished(), "the session outlives the run");
+
+    // The same session converses again, on a fresh provider context.
+    commands.send(Cmd::Prompt("What changed?".into())).unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::Agent(AgentEvent::TurnEnded(TurnEnd::EndTurn)))
+    })
+    .await;
+    let conversed = seen
+        .lock()
+        .unwrap()
+        .last()
+        .expect("a conversation agent")
+        .prompts();
+    assert_eq!(conversed, ["What changed?"]);
+
+    // A further start is taken too; with nothing left it is said in words.
+    commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
+    let refused = next_matching(&mut events, |event| {
+        matches!(
+            event,
+            Msg::CommandFailed {
+                cmd: Cmd::Launch(_),
+                ..
+            }
+        )
+    })
+    .await;
+    assert!(
+        matches!(&refused, Msg::CommandFailed { error, .. } if error.contains("complete")),
+        "{refused:?}"
+    );
+    drop(commands);
+    tokio::time::timeout(Duration::from_secs(10), task)
+        .await
+        .expect("the host phase loop ends with its commands")
+        .unwrap()
+        .unwrap();
+}

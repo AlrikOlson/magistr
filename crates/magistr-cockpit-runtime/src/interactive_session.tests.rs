@@ -698,3 +698,119 @@ async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work(
     drop(commands_tx);
     task.await.unwrap().unwrap();
 }
+
+fn idle_session(inbox: Inbox) -> (InteractiveSession, Opened) {
+    let (handle, opening) = controlled(SessionPurpose::Conversation);
+    let session = InteractiveSession::new(
+        |purpose, _| {
+            let (handle, _) = controlled(purpose);
+            async { Ok(handle) }
+        },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, false)
+    .admitting_work(|action| match action {
+        magistr_cockpit::cockpit::LaunchAction::Gates => Err("The checks are not ready.".into()),
+        _ => Ok(()),
+    });
+    (session, opening)
+}
+
+#[tokio::test]
+async fn an_idle_session_yields_a_start_to_its_host_with_the_commands_still_open() {
+    use magistr_cockpit::cockpit::LaunchAction;
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, mut receiver) = Commands::channel();
+    let (session, _opening) = idle_session(inbox);
+    commands.send(Cmd::Launch(LaunchAction::Loop)).unwrap();
+    commands.send(Cmd::Prompt("after the work".into())).unwrap();
+    let exit = tokio::time::timeout(
+        Duration::from_secs(2),
+        session.run(&mut receiver, None, false),
+    )
+    .await
+    .expect("the start ends the conversation phase");
+    assert!(exit.open, "the cockpit is still there");
+    assert_eq!(exit.launch, Some(LaunchAction::Loop));
+    assert!(events.try_recv().is_err(), "a start is not a failure");
+    assert_eq!(
+        receiver.next().await,
+        Some(Cmd::Prompt("after the work".into())),
+        "what followed the start is the host's to route"
+    );
+}
+
+#[tokio::test]
+async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() {
+    use magistr_cockpit::cockpit::LaunchAction;
+    // A response in flight: the start waits for the reader to ask again.
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (session, mut opening) = idle_session(inbox);
+    let task = session.spawn(receiver);
+    commands.send(Cmd::Prompt("think".into())).unwrap();
+    assert_eq!(next(&mut opening.prompts).await, "think");
+    commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Next), error }
+            if error.contains("current response")
+    ));
+    drop(commands);
+    task.await.unwrap().unwrap();
+
+    // A start the host refuses, or nobody admits, leaves the conversation open.
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, mut receiver) = Commands::channel();
+    let (session, mut opening) = idle_session(inbox);
+    commands.send(Cmd::Launch(LaunchAction::Gates)).unwrap();
+    commands.send(Cmd::Prompt("still here".into())).unwrap();
+    let running = tokio::spawn(async move { session.run(&mut receiver, None, false).await });
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Gates), error }
+            if error == "The checks are not ready."
+    ));
+    assert_eq!(next(&mut opening.prompts).await, "still here");
+    drop(commands);
+    assert_eq!(running.await.unwrap().launch, None);
+
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let (handle, _unadmitted) = controlled(SessionPurpose::Conversation);
+    let task = InteractiveSession::new(
+        |purpose, _| {
+            let (handle, _) = controlled(purpose);
+            async { Ok(handle) }
+        },
+        inbox,
+        None,
+        None,
+        None,
+    )
+    .connected(handle, false)
+    .spawn(receiver);
+    commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::CommandFailed { cmd: Cmd::Launch(_), error } if error.contains("cannot start work")
+    ));
+    drop(commands);
+    task.await.unwrap().unwrap();
+
+    // A follow-up owned by running work never starts a second run.
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, mut receiver) = Commands::channel();
+    let (session, _opening) = idle_session(inbox);
+    commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
+    drop(commands);
+    let exit = session.run(&mut receiver, None, true).await;
+    assert_eq!(exit.launch, None);
+    assert!(matches!(
+        next(&mut events).await,
+        Msg::CommandFailed { cmd: Cmd::Launch(_), error } if error.contains("already running")
+    ));
+}

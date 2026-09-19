@@ -14,7 +14,9 @@ use tokio::task::JoinHandle;
 
 use super::{WorkspaceAdmission, workflow_client::EngineClient};
 use crate::agent::{AgentConfig, ResolvedSessionSpec, cockpit_session::CockpitSession};
-use crate::orchestration::{interactive_session::interactive_session, loop_driver::Connector};
+use crate::orchestration::{
+    hosted_work::HostedWork, interactive_session::interactive_session, loop_driver::Connector,
+};
 
 const CLOSE_GRACE: Duration = Duration::from_secs(5);
 
@@ -59,10 +61,14 @@ impl InteractiveHost {
                     .map(|session| Box::new(session) as Box<dyn SessionHandle>)
                     .map_err(eyre::Report::from)
             },
+            Connector::live,
         )
         .await
     }
 
+    /// `connect` opens the first conversation; `sessions` builds the connector
+    /// every later conversation and every started work run connects through.
+    #[allow(clippy::too_many_arguments)] // the composition seam names each collaborator once
     async fn connect<F, Fut>(
         config: AgentConfig,
         resources: Resources,
@@ -71,6 +77,7 @@ impl InteractiveHost {
         inbox: Inbox,
         commands: Commands,
         connect: F,
+        sessions: impl FnOnce(magistr_application::effects::SourceRoute) -> Connector,
     ) -> eyre::Result<(Self, Model)>
     where
         F: FnOnce(ResolvedSessionSpec) -> Fut,
@@ -92,6 +99,7 @@ impl InteractiveHost {
         );
         let model = crate::commands::run::seed_supervision(
             model
+                .with_hosted_work()
                 .with_project(project, spec.cwd().display().to_string())
                 .with_title(title)
                 .with_debug(debug),
@@ -114,17 +122,28 @@ impl InteractiveHost {
         let model = model.with_snapshot(&seed).with_workspace_files(
             crate::commands::workspace_files::workspace_files(&config.cwd),
         );
-        let feed = OwnedTask(resources.engines.subscribe(inbox.clone()));
+        // The feed is tapped for the work this host may be asked to start:
+        // the loop driver counts completed chunks from it while it runs.
+        let (feed_tap, tapped) = tokio::sync::mpsc::unbounded_channel();
+        let feed = OwnedTask(resources.engines.subscribe(inbox.tap(feed_tap)));
         let reseed = OwnedTask(resources.engines.reseed(inbox.clone(), seed.cursor));
+        let connector = sessions(source);
         let session = interactive_session(
-            config,
-            Connector::live(source),
+            config.clone(),
+            connector.clone(),
             inbox.clone(),
             Some(resources.engines.clone()),
         )
         .connected(handle, opening);
+        let work = HostedWork::new(
+            config,
+            connector,
+            inbox.clone(),
+            resources.engines.clone(),
+            tapped,
+        );
         let (forward, receiver) = Commands::channel();
-        let relay = OwnedTask(session.spawn(receiver));
+        let relay = OwnedTask(tokio::spawn(work.run(session, receiver)));
         let (stop, stopped) = oneshot::channel();
         let task = tokio::spawn(async move {
             let result = serve(commands, forward, stopped, relay, inbox).await;

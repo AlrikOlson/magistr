@@ -440,11 +440,22 @@ impl LoopDriver {
     }
 
     /// Run the loop as a task; the report comes back when it ends.
-    pub fn spawn(self) -> JoinHandle<LoopReport> {
-        tokio::spawn(self.run())
+    pub fn spawn(mut self) -> JoinHandle<LoopReport> {
+        tokio::spawn(async move { self.run().await })
     }
 
-    async fn run(mut self) -> LoopReport {
+    /// Run the loop in place and hand the cockpit's commands back with the
+    /// report: a host that starts work inside a live session goes on
+    /// serving that session when the work ends. The second value is `None`
+    /// when the cockpit closed meanwhile.
+    pub(crate) async fn run_to_end(mut self) -> (LoopReport, Option<Commands>) {
+        let report = self.run().await;
+        let open = *report.end() != LoopEnd::CockpitClosed
+            && !crate::utils::shutdown::Shutdown::is_requested();
+        (report, open.then_some(self.commands))
+    }
+
+    async fn run(&mut self) -> LoopReport {
         let end = loop {
             // An interrupt admits no further attempt: the one in flight
             // has already been wound down by its session owner.
@@ -570,11 +581,14 @@ impl LoopDriver {
                 )) as _
             }),
         );
-        let (open, controls) = session.run(&mut self.commands, first, once).await;
-        for control in controls {
+        let exit = session.run(&mut self.commands, first, once).await;
+        for control in exit.controls {
             self.decide(control);
         }
-        open
+        // No start is taken here: a follow-up inside the work refuses one, and
+        // the kept-open follow-up belongs to the terminal loop, whose model
+        // offers none (a hosted session gets its commands back instead).
+        exit.open
     }
 
     /// The boundary before an iteration: a skip or abort asked for

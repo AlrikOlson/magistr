@@ -5,6 +5,7 @@
 
 pub mod commands;
 pub mod goal;
+pub(crate) mod hosted_work;
 pub(crate) mod interactive_session;
 pub mod ledger;
 pub mod loop_driver;
