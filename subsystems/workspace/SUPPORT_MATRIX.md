@@ -62,7 +62,7 @@ and recorded in the reference's `specs/002-wasm-lang-pack/research.md` R2.
 | ast-grep-core | 0.45.2 | structural match and rewrite |
 | regex | 1.12.3 | patterns |
 | similar | 2.7.0 | unified diffs |
-| rusqlite | 0.33.0 (bundled, limits) | the derived index and the durable journal |
+| rusqlite | 0.40.2 (bundled, limits; raised by `audit-260912-22-sqlite-version`, checked 19 September 2026) | the derived index and the durable journal |
 | zstd | 0.13.3 | journal blobs |
 | flate2 | 1.1.9 | doctor bundles |
 | notify | 8.2.0 | native file watcher |

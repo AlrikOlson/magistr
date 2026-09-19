@@ -1331,3 +1331,44 @@ fn cli_roadmap_sync_is_an_alias_of_export_and_reset_is_gone() {
         "`roadmap reset` was removed with the YAML-only semantics"
     );
 }
+
+/// The maintained system-contract document, read from the repository.
+fn system_contracts_doc() -> (std::path::PathBuf, String) {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../docs/architecture/system-contracts.md");
+    let text = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("{} must exist: {e}", path.display()));
+    (path, text)
+}
+
+#[test]
+fn every_shipped_command_has_a_row_in_the_system_contract_entry_matrix() {
+    let (_, doc) = system_contracts_doc();
+    let missing: Vec<String> = <cli::Cli as clap::CommandFactory>::command()
+        .get_subcommands()
+        .map(|sub| sub.get_name().to_owned())
+        .filter(|name| name != "help")
+        .filter(|name| !doc.contains(&format!("`magistr {name}")))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "docs/architecture/system-contracts.md has no entry-matrix row for: {missing:?}"
+    );
+}
+
+#[test]
+fn every_relative_link_in_the_system_contract_document_resolves() {
+    let (path, doc) = system_contracts_doc();
+    let base = path.parent().expect("the document has a directory");
+    let broken: Vec<&str> = doc
+        .split("](")
+        .skip(1)
+        .filter_map(|rest| rest.split(')').next())
+        .filter(|target| !target.starts_with("http") && !target.starts_with('#'))
+        .filter(|target| {
+            let file = target.split('#').next().unwrap_or(target);
+            !base.join(file).exists()
+        })
+        .collect();
+    assert!(broken.is_empty(), "unresolved links: {broken:?}");
+}

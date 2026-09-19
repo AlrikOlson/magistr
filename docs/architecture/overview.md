@@ -11,6 +11,9 @@ The desktop renderer and session launcher have separate workspaces and lockfiles
 for their private renderer dependencies.
 The [contract baseline](contracts.md) maps current owners and entry paths,
 records the refactor's intended policies, and names executable behavior scenarios.
+The [system contracts](system-contracts.md) page is the maintained glossary,
+the dependency, runtime and deployment views, the end-to-end traces and the
+exercised entry, build and platform matrix.
 
 | Component | Responsibility |
 | --- | --- |
