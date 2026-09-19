@@ -109,6 +109,13 @@ pub(crate) fn print_file_detail<W: Write>(w: &mut W, file: &PlannedChange) -> st
         }
     }
 
+    // A removal has no new content: say what happens to the existing bytes.
+    if file.action == FileAction::Remove {
+        writeln!(w, "\n{}", fmt::red("→ the file will be removed"))?;
+        writeln!(w)?;
+        return Ok(());
+    }
+
     // Show new content
     writeln!(w, "\n{}", fmt::bold("── New content ──"))?;
     let lines: Vec<&str> = file.new_content.lines().collect();
@@ -151,8 +158,9 @@ pub(crate) fn print_file_detail<W: Write>(w: &mut W, file: &PlannedChange) -> st
 /// Reads from `reader` and writes to `writer` to support testing.
 /// In production, these are stdin and stderr.
 ///
-/// Only actionable files (Create, Overwrite) are prompted. Unchanged
-/// and Preserved files are shown as informational and auto-skipped.
+/// Only the changes the plan applies (Create, Overwrite, Remove) are
+/// prompted. Unchanged, Preserved and Refused files are shown as
+/// informational and auto-skipped.
 pub(crate) fn interactive_approve<R: BufRead, W: Write>(
     preview: &ChangePlan,
     reader: &mut R,
@@ -180,9 +188,10 @@ pub(crate) fn interactive_approve<R: BufRead, W: Write>(
     .ok();
 
     for (i, file) in preview.files.iter().enumerate() {
-        // Auto-skip non-actionable files with a status line. A removal is
-        // never approved file by file: selective apply writes approved
-        // content and leaves deletions to the operation that planned them.
+        // Auto-skip non-actionable files with a status line. Every change
+        // the plan applies — a create, an overwrite or a removal — is put to
+        // the reviewer the same way; application revalidates the expected
+        // state before acting on any of them.
         match file.action {
             FileAction::Unchanged => {
                 writeln!(writer, "{}", format_file_header(i, total, file)).ok();
@@ -207,12 +216,7 @@ pub(crate) fn interactive_approve<R: BufRead, W: Write>(
                 writeln!(writer, "  {}", fmt::red(&format!("→ refused ({refusal})"))).ok();
                 continue;
             }
-            FileAction::Remove => {
-                writeln!(writer, "{}", format_file_header(i, total, file)).ok();
-                writeln!(writer, "  {}", fmt::dim("→ not selectable here")).ok();
-                continue;
-            }
-            FileAction::Create | FileAction::Overwrite => {}
+            FileAction::Create | FileAction::Overwrite | FileAction::Remove => {}
         }
 
         // Prompt loop for actionable files
@@ -247,7 +251,10 @@ pub(crate) fn interactive_approve<R: BufRead, W: Write>(
                     // Approve all remaining actionable files
                     for j in (i + 1)..total {
                         let remaining = &preview.files[j];
-                        if matches!(remaining.action, FileAction::Create | FileAction::Overwrite) {
+                        if matches!(
+                            remaining.action,
+                            FileAction::Create | FileAction::Overwrite | FileAction::Remove
+                        ) {
                             approved.push(j);
                         }
                     }

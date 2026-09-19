@@ -261,7 +261,10 @@ atomic: `generate`, the interactive approval and Codex removal answer a
 partial receipt as an error that names what failed, what the manifest did
 and what was applied before that; `generate_with_result` carries the same in
 its `failed` and `manifest` fields; startup repair logs it and stays
-non-fatal. Selective apply still checks a reviewed batch as a whole before
-the first write — a stale selected target sends the reviewer back to a fresh
-preview rather than applying part of what they approved — and then applies
-through the same service.
+non-fatal. Selective apply puts every change the plan applies — a create, an
+overwrite or a removal such as a retired rule file — to the reviewer the same
+way, checks the approved batch as a whole before the first write (a stale
+selected target, including a retired file edited or already gone since the
+preview, sends the reviewer back to a fresh preview rather than applying part
+of what they approved) and then applies through the same service; a removal
+the reviewer skipped stays in place.
