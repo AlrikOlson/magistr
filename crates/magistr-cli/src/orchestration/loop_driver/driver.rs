@@ -137,6 +137,9 @@ pub struct LoopDriver {
     verification_task: Option<String>,
     /// Passing recorded checks revalidated against current source this iteration.
     recorded_verification: Vec<String>,
+    /// The passing checks an item the agent completed this iteration was
+    /// accepted on, read from its completion record rather than judged again.
+    completed_checks: Vec<String>,
     /// Why this iteration's gate set could not be resolved, when it could
     /// not: the iteration then failed, whatever ran. One-shot, read by the
     /// boundary that settles the set.
@@ -313,6 +316,7 @@ impl LoopDriver {
             split_part: None,
             verification_task: None,
             recorded_verification: Vec::new(),
+            completed_checks: Vec::new(),
             gates_unresolved: None,
             transcript: String::new(),
             iterations: 0,
@@ -717,6 +721,7 @@ impl LoopDriver {
         self.split_part = None;
         self.verification_task = None;
         self.recorded_verification.clear();
+        self.completed_checks.clear();
         self.gates_unresolved = None;
         self.metrics.push(IterationMetrics::default());
         self.tokens_seen = None;
@@ -1490,6 +1495,66 @@ impl LoopDriver {
         }
     }
 
+    /// Why recorded checks were refused, for a person: which checks, and what
+    /// to do. Receipt, run and task identifiers stay in the log.
+    fn plain_refusal(refusal: &magistr_workflow::ship::application::CompletionRefusal) -> String {
+        use magistr_workflow::ship::application::CompletionRefusal;
+        match refusal {
+            CompletionRefusal::Outstanding(evidence) if !evidence.outstanding.is_empty() => {
+                let names: Vec<&str> = evidence
+                    .outstanding
+                    .iter()
+                    .map(|gate| gate.gate.as_str())
+                    .collect();
+                format!(
+                    "The project's files changed after these checks ran, so they no longer prove this work: {}. Run them again, then continue.",
+                    names.join(", ")
+                )
+            }
+            CompletionRefusal::NoReceipts { .. } => {
+                "No checks were recorded for this work. Run and record the relevant checks, then continue.".to_owned()
+            }
+            other => format!(
+                "The recorded checks could not be confirmed. {}",
+                other.to_string().lines().next().unwrap_or_default()
+            ),
+        }
+    }
+
+    /// The verification task and passing required checks of the item `scope`
+    /// names, when the roadmap already reads it done on that task's evidence.
+    /// `None` for an item still open, one completed with no task behind it,
+    /// or a task with nothing passing: those are judged the ordinary way.
+    fn completed_on_record(engines: &NativeEngines, scope: &str) -> Option<(String, Vec<String>)> {
+        let chunk = engines.roadmap_chunk(scope.strip_prefix("chunk:")?)?;
+        if chunk.status != ChunkStatus::Done {
+            return None;
+        }
+        let tasks = engines.ship_tasks();
+        chunk
+            .cross_refs
+            .iter()
+            .filter_map(|reference| reference.strip_prefix("task:"))
+            .filter_map(|id| tasks.iter().find(|task| task.id == id))
+            .find_map(|task| {
+                let passed: Vec<String> = task
+                    .checks
+                    .iter()
+                    .filter(|check| check.required && check.passed)
+                    .map(|check| check.name.clone())
+                    .collect();
+                let failing = task.checks.iter().any(|check| {
+                    check.required
+                        && !check.passed
+                        && !task
+                            .checks
+                            .iter()
+                            .any(|later| later.name == check.name && later.passed)
+                });
+                (!passed.is_empty() && !failing).then(|| (task.id.clone(), passed))
+            })
+    }
+
     /// Whether `objective` is the work this iteration did. The agent owns
     /// that answer, not the prompt: it may ship the item it was given, or
     /// split an item too large for one change and ship a part (`/next` tells
@@ -1791,6 +1856,20 @@ impl LoopDriver {
                 );
                 return Some(Vec::new());
             }
+            // An item the agent already completed was judged at that moment:
+            // the completion authority accepted its evidence as current. What
+            // the tree did afterwards — the commit, and whatever the project's
+            // commit hooks regenerate — is not a second trial of finished work.
+            if let Some((task, checks)) = Self::completed_on_record(engines, &objective.scope) {
+                self.split_part = objective
+                    .scope
+                    .strip_prefix("chunk:")
+                    .filter(|part| self.target.as_deref() != Some(*part))
+                    .map(str::to_owned);
+                self.verification_task = Some(task);
+                self.completed_checks = checks;
+                return Some(Vec::new());
+            }
             match engines.ship_verify_completion(&objective.scope, None) {
                 Ok(evidence) if !evidence.accepted.is_empty() => {
                     self.split_part = objective
@@ -1805,9 +1884,11 @@ impl LoopDriver {
                 Ok(_) => self.gates_unresolved = Some(
                     "No passing checks are recorded for this work. Run and record the relevant checks before continuing.".to_owned(),
                 ),
-                Err(why) => self.gates_unresolved = Some(format!(
-                    "The recorded checks no longer verify this work. Review and rerun the affected checks: {why}"
-                )),
+                Err(why) => {
+                    // The full refusal, with its identifiers, is for the log.
+                    tracing::warn!(refusal = %why, "recorded checks were refused");
+                    self.gates_unresolved = Some(Self::plain_refusal(&why));
+                }
             }
             return Some(Vec::new());
         }
@@ -1836,7 +1917,8 @@ impl LoopDriver {
         let contracts = match resolved {
             Ok(contracts) => contracts,
             Err(why) => {
-                self.gates_unresolved = Some(why);
+                self.gates_unresolved =
+                    Some(format!("quality gates not resolved — nothing ran: {why}"));
                 return Some(Vec::new());
             }
         };
@@ -2115,16 +2197,17 @@ impl LoopDriver {
             .map(|gate| format!("{} {}", gate.name, gate.verdict.label()))
             .collect();
         if let Some(why) = self.gates_unresolved.take() {
-            self.post(LoopEvent::Failed(format!(
-                "quality gates not resolved — nothing ran: {why}"
-            )));
+            // Said once, by the end of the run; the pause only says it is one.
             if self.auto_pause {
                 self.paused = true;
-                self.post(LoopEvent::Paused(format!(
-                    "quality gates not resolved: {why}"
-                )));
+                self.post(LoopEvent::Paused("the checks need attention".to_owned()));
             }
             return Some(LoopEnd::Failed(why));
+        } else if !self.completed_checks.is_empty() {
+            self.note(format!(
+                "Completed on its recorded checks: {}.",
+                self.completed_checks.join(", ")
+            ));
         } else if !self.recorded_verification.is_empty() {
             self.note(format!(
                 "Recorded checks still verify this work: {}.",

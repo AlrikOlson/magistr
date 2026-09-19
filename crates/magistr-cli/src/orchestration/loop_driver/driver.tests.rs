@@ -2815,6 +2815,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
         "focused-completed",
         "full-completed",
         "focused-active",
+        "completed-then-committed",
         "stale",
         "missing",
         "foreign",
@@ -2823,7 +2824,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
         let full = case == "full-completed";
         let valid = matches!(
             case,
-            "focused-completed" | "full-completed" | "focused-active"
+            "focused-completed" | "full-completed" | "focused-active" | "completed-then-committed"
         );
         let command = if full {
             "true"
@@ -2895,7 +2896,10 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                         .unwrap();
                 }
             }
-            if case == "stale" {
+            // Stale: the source moved before anything accepted the evidence.
+            // Committed: the item was completed on current evidence, and then
+            // the commit's own hooks regenerated tracked files.
+            if matches!(case, "stale" | "completed-then-committed") {
                 std::fs::write(root.join("work.txt"), "changed after verification").unwrap();
             }
             let inner = inner.clone();
@@ -2925,7 +2929,13 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 "{case}: {report}"
             );
             assert!(
-                stage.contains("Recorded checks still verify this work"),
+                // Work still open is verified against the tree as it is now;
+                // work the agent completed was accepted at its completion.
+                stage.contains(if case == "focused-active" {
+                    "Recorded checks still verify this work"
+                } else {
+                    "Completed on its recorded checks"
+                }),
                 "{case}: {stage}"
             );
             assert!(
@@ -2974,6 +2984,18 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 !stage.contains("Recorded checks still verify this work"),
                 "{case}: {stage}"
             );
+            if case == "stale" {
+                // Said once, for a person: which checks and what to do, with
+                // no receipt, run or task identifier on the screen.
+                let said = "The project's files changed after these checks ran, so they no longer prove this work: document links. Run them again, then continue.";
+                assert_eq!(stage.matches("error:").count(), 1, "{stage}");
+                assert!(stage.contains(&format!("error: {said}")), "{stage}");
+                assert_eq!(stage.matches(said).count(), 1, "said once: {stage}");
+                assert!(stage.ends_with("Work stopped."), "{stage}");
+                for internal in ["receipt", "(run ", "task `"] {
+                    assert!(!stage.contains(internal), "{internal}: {stage}");
+                }
+            }
         }
     }
 }
@@ -3065,7 +3087,7 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
         "{report}: {stage}"
     );
     assert!(
-        stage.contains("Recorded checks still verify this work"),
+        stage.contains("Completed on its recorded checks: part tests"),
         "{stage}"
     );
     assert!(!stage.contains("belong to different work"), "{stage}");
@@ -3384,7 +3406,8 @@ async fn failures_before_the_first_iteration_are_reported_without_connecting_an_
             .collect();
         assert_eq!(errors.len(), 1, "one terminal failure is emitted");
         assert_eq!(errors[0].text(), format!("error: {reason}"));
-        assert!(notes(&model).contains(&format!("Work stopped: {reason}")));
+        // The reason is the error above; the closing note does not say it twice.
+        assert!(notes(&model).contains(&"Work stopped.".to_owned()));
         assert_eq!(
             model.turn_state(),
             magistr_cockpit::cockpit::TurnState::AwaitingInput
