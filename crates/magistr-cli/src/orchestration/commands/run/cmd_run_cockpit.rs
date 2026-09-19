@@ -39,7 +39,15 @@ pub async fn cmd_run_cockpit(
             }));
         }
     };
-    let runtime = Runtime::with_channels(terminal, Options::from_os(), inbox, messages, sender);
+    // The process-wide interrupt closes the cockpit through its own leave
+    // sequence; the host then drains the session it already owns.
+    let runtime = Runtime::with_channels(
+        terminal,
+        Options::from_os().quit_on(crate::utils::shutdown::Shutdown::token()),
+        inbox,
+        messages,
+        sender,
+    );
     let model = runtime.run(model).await;
     let closed = host.shutdown().await;
     let model = model.context("the session ended unexpectedly")?;

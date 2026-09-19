@@ -3320,6 +3320,7 @@ dependencies = [
  "tempfile",
  "tiny-skia",
  "tokio",
+ "tokio-util",
  "tracing",
  "tracing-subscriber",
  "unicode-segmentation",
