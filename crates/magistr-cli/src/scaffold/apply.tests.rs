@@ -93,9 +93,13 @@ fn selectively_applied_files_keep_ownership_through_upgrade_and_user_edits() {
     assert!(!manifest.files.contains_key(".claude/rules/conventions.md"));
 
     let overrides = HashMap::from([(settings.path.clone(), "{\"upgraded\": true}\n".to_owned())]);
-    let upgraded =
-        super::super::generate_with_result(tmp.path(), &pipeline.template_vars(), &overrides)
-            .unwrap();
+    let upgraded = super::super::generate_with_result(
+        tmp.path(),
+        &pipeline.template_vars(),
+        &overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert!(upgraded.updated.contains(&settings.path));
     assert_eq!(
         std::fs::read_to_string(tmp.path().join(&settings.path)).unwrap(),
@@ -406,7 +410,13 @@ fn codex_apply_rejects_revoked_ownership_before_any_selected_write() {
         let mut vars = pipeline.template_vars();
         vars.insert("project_root".into(), "upgraded-root".into());
         let overrides = HashMap::from([(skill.to_owned(), "Upgraded workflow\n".to_owned())]);
-        let preview = super::super::preview(dir, &vars, &overrides).unwrap();
+        let preview = super::super::preview(
+            dir,
+            &vars,
+            &overrides,
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap();
         let selected = preview
             .files
             .iter()
@@ -450,7 +460,13 @@ fn codex_apply_rejects_changed_project_policy_with_unchanged_target_bytes() {
         let mut vars = pipeline.template_vars();
         vars.insert("project_root".into(), "upgraded-root".into());
         let overrides = HashMap::from([(skill.to_owned(), "Upgraded workflow\n".to_owned())]);
-        let preview = super::super::preview(dir, &vars, &overrides).unwrap();
+        let preview = super::super::preview(
+            dir,
+            &vars,
+            &overrides,
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap();
         let selected = preview
             .files
             .iter()

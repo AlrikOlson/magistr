@@ -44,7 +44,13 @@ fn test_vars() -> HashMap<String, String> {
 
 fn generate_project(root: &Path) -> Value {
     std::fs::create_dir_all(root).expect("project directory");
-    scaffold::generate(root, &test_vars(), &HashMap::new()).expect("generate project");
+    scaffold::generate(
+        root,
+        &test_vars(),
+        &HashMap::new(),
+        &scaffold::SetupSeeds::default(),
+    )
+    .expect("generate project");
     read_config(root)
 }
 
@@ -140,7 +146,13 @@ fn generated_servers_are_portable_and_match_the_preview() {
         serde_json::to_vec(&json!({"mcpServers": {"custom": custom}})).expect("custom JSON"),
     )
     .expect("custom server");
-    let preview = scaffold::preview(&root, &test_vars(), &HashMap::new()).expect("preview");
+    let preview = scaffold::preview(
+        &root,
+        &test_vars(),
+        &HashMap::new(),
+        &scaffold::SetupSeeds::default(),
+    )
+    .expect("preview");
     let proposed = &preview
         .files
         .iter()

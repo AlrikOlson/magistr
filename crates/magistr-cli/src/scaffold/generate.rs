@@ -4,7 +4,7 @@ use std::path::Path;
 use crate::error::Result;
 
 use super::preview::SetupPlan;
-use super::{AdminService, ApplyReceipt, Expected, FileAction, ManifestOutcome};
+use super::{AdminService, ApplyReceipt, Expected, FileAction, ManifestOutcome, SetupSeeds};
 
 /// Result of a generate/reinit operation, with per-file outcome tracking.
 #[derive(Debug, Clone, Default)]
@@ -94,8 +94,9 @@ pub fn generate(
     dir: &Path,
     template_vars: &HashMap<String, String>,
     generated_overrides: &HashMap<String, String>,
+    seeds: &SetupSeeds,
 ) -> Result<Vec<String>> {
-    let (result, receipt) = generate_with_receipt(dir, template_vars, generated_overrides)?;
+    let (result, receipt) = generate_with_receipt(dir, template_vars, generated_overrides, seeds)?;
     match receipt.partial_error() {
         Some(error) => Err(error),
         None => Ok(result.written()),
@@ -112,21 +113,23 @@ pub fn generate_with_result(
     dir: &Path,
     template_vars: &HashMap<String, String>,
     generated_overrides: &HashMap<String, String>,
+    seeds: &SetupSeeds,
 ) -> Result<GenerateResult> {
-    Ok(generate_with_receipt(dir, template_vars, generated_overrides)?.0)
+    Ok(generate_with_receipt(dir, template_vars, generated_overrides, seeds)?.0)
 }
 
 fn generate_with_receipt(
     dir: &Path,
     template_vars: &HashMap<String, String>,
     generated_overrides: &HashMap<String, String>,
+    seeds: &SetupSeeds,
 ) -> Result<(GenerateResult, ApplyReceipt)> {
     let SetupPlan {
         plan,
         vars,
         links,
         owned,
-    } = SetupPlan::compute(dir, template_vars, generated_overrides)?;
+    } = SetupPlan::compute(dir, template_vars, generated_overrides, seeds)?;
 
     // All configuration and link preflights have passed. Detach legacy links
     // before creating directories or writing either host's generated files.

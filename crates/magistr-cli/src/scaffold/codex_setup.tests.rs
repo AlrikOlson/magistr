@@ -30,7 +30,13 @@ fn vars() -> HashMap<String, String> {
 }
 
 fn setup(dir: &Path) {
-    generate_with_result(dir, &vars(), &HashMap::new()).unwrap();
+    generate_with_result(
+        dir,
+        &vars(),
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
 }
 
 fn write(dir: &Path, path: &str, content: &str) {
@@ -77,7 +83,13 @@ fn recovered_codex_selection_keeps_all_headless_default_emitters() {
     setup(tmp.path());
     let mut defaults = vars();
     defaults.remove("selected_agents");
-    let preview = crate::scaffold::preview(tmp.path(), &defaults, &HashMap::new()).unwrap();
+    let preview = crate::scaffold::preview(
+        tmp.path(),
+        &defaults,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     for path in [
         CONFIG,
         ".cursor/rules/workflow.mdc",
@@ -192,9 +204,25 @@ fn malformed_instruction_markers_reject_every_codex_mutation_before_writing() {
         setup(dir);
         write(dir, AGENTS, &malformed);
         let before = snapshot(dir);
-        assert!(crate::scaffold::preview(dir, &vars(), &HashMap::new()).is_err());
+        assert!(
+            crate::scaffold::preview(
+                dir,
+                &vars(),
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default()
+            )
+            .is_err()
+        );
         assert_eq!(snapshot(dir), before);
-        assert!(generate_with_result(dir, &vars(), &HashMap::new()).is_err());
+        assert!(
+            generate_with_result(
+                dir,
+                &vars(),
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default()
+            )
+            .is_err()
+        );
         assert_eq!(snapshot(dir), before);
         assert!(repair_codex(dir).is_err());
         assert_eq!(snapshot(dir), before);
@@ -219,11 +247,23 @@ fn setup_rejects_symlinked_codex_and_shared_skill_ancestors_before_writing() {
         let before = snapshot(dir);
         let external_before = snapshot(outside.path());
         assert!(
-            crate::scaffold::preview(dir, &vars(), &HashMap::new()).is_err(),
+            crate::scaffold::preview(
+                dir,
+                &vars(),
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default()
+            )
+            .is_err(),
             "{path}"
         );
         assert!(
-            generate_with_result(dir, &vars(), &HashMap::new()).is_err(),
+            generate_with_result(
+                dir,
+                &vars(),
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default()
+            )
+            .is_err(),
             "{path}"
         );
         assert_eq!(snapshot(dir), before);
@@ -371,7 +411,13 @@ fn selective_apply_claims_only_the_approved_codex_component() {
     for approved in [CONFIG, AGENTS, skill] {
         let tmp = tempfile::tempdir().unwrap();
         let dir = tmp.path();
-        let preview = crate::scaffold::preview(dir, &vars(), &HashMap::new()).unwrap();
+        let preview = crate::scaffold::preview(
+            dir,
+            &vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap();
         let selected = preview
             .files
             .iter()
@@ -446,7 +492,13 @@ fn target_removal_keeps_native_state_until_an_explicit_reset() {
     assert!(!CodexSetup::is_present(dir));
     let mut defaults = vars();
     defaults.remove("selected_agents");
-    let preview = crate::scaffold::preview(dir, &defaults, &HashMap::new()).unwrap();
+    let preview = crate::scaffold::preview(
+        dir,
+        &defaults,
+        &HashMap::new(),
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
     assert!(!preview.files.iter().any(|file| file.path == CONFIG));
     crate::scaffold::remove_scaffold(dir).unwrap();
     assert!(!dir.join(".magistr").exists());
@@ -501,7 +553,13 @@ fn customizing_either_transport_field_protects_command_and_args_as_one_unit() {
             let customized: toml::Value = toml::from_str(&read(dir, CONFIG)).unwrap();
             let mut upgrade_vars = vars();
             upgrade_vars.insert("project_root".into(), "new-generated-root".into());
-            generate_with_result(dir, &upgrade_vars, &HashMap::new()).unwrap();
+            generate_with_result(
+                dir,
+                &upgrade_vars,
+                &HashMap::new(),
+                &crate::scaffold::SetupSeeds::default(),
+            )
+            .unwrap();
             for stage in ["upgrade", "repair", "removal"] {
                 match stage {
                     "repair" => {
@@ -602,8 +660,20 @@ fn a_partial_transport_fails_actionably_before_any_scaffold_write() {
         );
         write(dir, AGENTS, "# Existing instructions\n");
         let before = snapshot(dir);
-        let preview_error = crate::scaffold::preview(dir, &vars(), &HashMap::new()).unwrap_err();
-        let setup_error = generate_with_result(dir, &vars(), &HashMap::new()).unwrap_err();
+        let preview_error = crate::scaffold::preview(
+            dir,
+            &vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap_err();
+        let setup_error = generate_with_result(
+            dir,
+            &vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
+        .unwrap_err();
         for error in [preview_error, setup_error] {
             let message = error.to_string();
             assert!(message.contains(server), "{message}");
@@ -670,7 +740,12 @@ fn default_preview_rejects_corrupted_codex_ownership_before_selection_recovery()
         let before = snapshot(dir);
         let mut defaults = vars();
         defaults.remove("selected_agents");
-        let result = crate::scaffold::preview(dir, &defaults, &HashMap::new());
+        let result = crate::scaffold::preview(
+            dir,
+            &defaults,
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        );
         let unchanged = snapshot(dir) == before;
         assert!(
             result.is_err() && unchanged,
@@ -690,7 +765,12 @@ fn default_reinit_rejects_corrupted_codex_ownership_before_selection_recovery() 
         let before = snapshot(dir);
         let mut defaults = vars();
         defaults.remove("selected_agents");
-        let result = generate_with_result(dir, &defaults, &HashMap::new());
+        let result = generate_with_result(
+            dir,
+            &defaults,
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        );
         let unchanged = snapshot(dir) == before;
         assert!(
             result.is_err() && unchanged,

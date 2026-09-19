@@ -64,6 +64,18 @@ pub struct ProjectIdentity {
     pub name: Option<String>,
 }
 
+impl ProjectIdentity {
+    /// The bytes the identity file holds for this declaration: exactly what
+    /// [`write_project_file`] writes, so a plan that shows the declaration
+    /// before it is written shows the file that lands.
+    #[must_use]
+    pub fn declaration(&self) -> String {
+        let body = serde_json::to_string_pretty(self)
+            .expect("an identity of two strings always serializes");
+        format!("{body}\n")
+    }
+}
+
 /// Find the identity file by walking UP from `start`, the way git finds `.git`.
 ///
 /// `start` is a parameter rather than a read of the current directory because
@@ -215,9 +227,7 @@ pub fn write_project_file(
         id: id.to_string(),
         name: name.map(str::to_string),
     };
-    let body = serde_json::to_string_pretty(&identity)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-    std::fs::write(&path, format!("{body}\n"))?;
+    std::fs::write(&path, identity.declaration())?;
     Ok(path)
 }
 

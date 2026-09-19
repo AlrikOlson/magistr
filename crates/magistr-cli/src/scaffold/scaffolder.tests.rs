@@ -41,6 +41,7 @@ impl Scaffolder for MockScaffolder {
         _dir: &Path,
         _template_vars: &HashMap<String, String>,
         _generated_overrides: &HashMap<String, String>,
+        _seeds: &crate::scaffold::SetupSeeds,
     ) -> Result<Vec<String>> {
         let files = self
             .generated_files
@@ -55,6 +56,7 @@ impl Scaffolder for MockScaffolder {
         _dir: &Path,
         _template_vars: &HashMap<String, String>,
         _generated_overrides: &HashMap<String, String>,
+        _seeds: &crate::scaffold::SetupSeeds,
     ) -> Result<ChangePlan> {
         let preview = self
             .preview_result
@@ -73,7 +75,12 @@ fn mock_scaffolder_returns_configured_files() {
         ".claude/rules/workflow.md".to_string(),
     ]);
     let result = mock
-        .generate(Path::new("/fake"), &HashMap::new(), &HashMap::new())
+        .generate(
+            Path::new("/fake"),
+            &HashMap::new(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
         .unwrap();
     assert_eq!(result.len(), 2);
     assert!(result.contains(&"CLAUDE.md".to_string()));
@@ -83,7 +90,12 @@ fn mock_scaffolder_returns_configured_files() {
 fn mock_scaffolder_returns_empty_preview() {
     let mock = MockScaffolder::empty();
     let preview = mock
-        .preview(Path::new("/fake"), &HashMap::new(), &HashMap::new())
+        .preview(
+            Path::new("/fake"),
+            &HashMap::new(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
         .unwrap();
     assert_eq!(preview.files.len(), 0);
 }
@@ -104,7 +116,12 @@ fn mock_scaffolder_returns_custom_preview() {
     };
     let mock = MockScaffolder::empty().with_preview(preview);
     let result = mock
-        .preview(Path::new("/fake"), &HashMap::new(), &HashMap::new())
+        .preview(
+            Path::new("/fake"),
+            &HashMap::new(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
         .unwrap();
     assert_eq!(result.files.len(), 1);
     assert_eq!(result.files[0].action, FileAction::Create);
@@ -114,7 +131,12 @@ fn mock_scaffolder_returns_custom_preview() {
 fn mock_scaffolder_usable_as_trait_object() {
     let scaffolder: Box<dyn Scaffolder> = Box::new(MockScaffolder::empty());
     let result = scaffolder
-        .generate(Path::new("/fake"), &HashMap::new(), &HashMap::new())
+        .generate(
+            Path::new("/fake"),
+            &HashMap::new(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        )
         .unwrap();
     assert!(result.is_empty());
 }

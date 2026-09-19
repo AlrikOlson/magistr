@@ -8,20 +8,28 @@ use crate::error::Result;
 use super::canonical::CanonicalSource;
 use super::codex_skill_links::CodexSkillLinks;
 use super::manifest::ScaffoldManifest;
-use super::{AdminOperation, ChangePlan, FileAction, Ownership, PlannedChange, ScaffoldFile};
+use super::{
+    AdminOperation, ChangePlan, FileAction, Ownership, PlannedChange, ScaffoldFile, SetupSeeds,
+};
+
+/// The configuration a first init seeds and re-detection preserves.
+const PROJECT_JSON: &str = ".magistr/project.json";
 
 /// Preview what `generate()` would do without writing any files.
 ///
 /// Returns the setup [`ChangePlan`]: every scaffold file, the shared merges
 /// (`.mcp.json`, `.gitignore`, the think-and-ship section of `CLAUDE.md`,
-/// the `workbench.toml` seed), the retired rule files setup removes and the
-/// shared Codex components, each with its action, ownership and diff.
+/// the `workbench.toml` seed), the retired rule files setup removes, the
+/// shared Codex components and, for a first init, the `seeds` planted in the
+/// fresh configuration and the think-and-ship identity declaration, each
+/// with its action, ownership and diff.
 pub fn preview(
     dir: &Path,
     template_vars: &HashMap<String, String>,
     generated_overrides: &HashMap<String, String>,
+    seeds: &SetupSeeds,
 ) -> Result<ChangePlan> {
-    Ok(SetupPlan::compute(dir, template_vars, generated_overrides)?.plan)
+    Ok(SetupPlan::compute(dir, template_vars, generated_overrides, seeds)?.plan)
 }
 
 /// The setup plan together with the inputs generation needs to execute it.
@@ -41,6 +49,7 @@ impl SetupPlan {
         dir: &Path,
         template_vars: &HashMap<String, String>,
         generated_overrides: &HashMap<String, String>,
+        seeds: &SetupSeeds,
     ) -> Result<Self> {
         super::existing_config::ExistingConfig::validate(dir)?;
 
@@ -74,19 +83,35 @@ impl SetupPlan {
         let mut plan = ChangePlan::new(AdminOperation::Setup);
         for file in &files {
             let mut change = plan_file(dir, file, &links, &canonical, &manifest)?;
+            if file.path == PROJECT_JSON && change.action == FileAction::Create {
+                change.new_content = seeds.project_json(&change.new_content);
+            }
             if file.path == "CLAUDE.md" {
-                with_think_and_ship_section(&mut change, &vars);
+                with_managed_section(&mut change, |document| {
+                    super::think_and_ship::with_claude_md_section(document, &vars)
+                });
             }
             if super::CodexSetup::owned_path(file.path) {
                 change.ownership_context = ownership_context.clone();
             }
             plan.files.push(change);
         }
+        // The archetype section is planted beside a fresh configuration
+        // only: an existing project.json is the user's, and so is the
+        // document that describes it.
+        if plan
+            .get(PROJECT_JSON)
+            .is_some_and(|config| config.action == FileAction::Create)
+            && let Some(change) = plan.files.iter_mut().find(|c| c.path == "CLAUDE.md")
+        {
+            with_managed_section(change, |document| seeds.claude_md(document));
+        }
         plan.files.push(super::mcp_json_change(dir, &vars)?);
         plan.files.push(super::gitignore_change(dir, &vars));
         plan.files.extend(workbench_change(dir, &vars));
         plan.files.extend(super::legacy_rule_removals(dir));
         plan.files.extend(codex);
+        plan.files.extend(identity_change(dir));
         Ok(Self {
             plan,
             vars,
@@ -197,18 +222,16 @@ fn plan_file(
 }
 
 /// `CLAUDE.md` is the user's file (never overwritten as a whole), but the
-/// think-and-ship section between its markers is magistr's: the plan shows
-/// the document with that section written or refreshed, so the preview says
-/// exactly what generation writes.
-fn with_think_and_ship_section(change: &mut PlannedChange, vars: &HashMap<String, String>) {
+/// marked sections between magistr's markers — think-and-ship, and the
+/// archetypes of a polyglot init — are magistr's: the plan shows the document
+/// with that section written or refreshed by `render`, so the preview says
+/// exactly what generation writes. Sections chain: each renders over the
+/// document the plan holds so far.
+fn with_managed_section(change: &mut PlannedChange, render: impl FnOnce(&str) -> String) {
     if matches!(change.action, FileAction::Refused(_)) {
         return;
     }
-    let base = change
-        .existing_content
-        .clone()
-        .unwrap_or_else(|| change.new_content.clone());
-    let next = super::think_and_ship::with_claude_md_section(&base, vars);
+    let next = render(&change.new_content);
     match change.existing_content.as_deref() {
         None => {
             change.action = FileAction::Create;
@@ -225,6 +248,31 @@ fn with_think_and_ship_section(change: &mut PlannedChange, vars: &HashMap<String
             change.diff = Some(super::unified_diff("CLAUDE.md", existing, &next));
             change.new_content = next;
         }
+    }
+}
+
+/// The think-and-ship identity declaration as a planned change: preserved
+/// when the root already declares one (it is the key of every store the
+/// project holds), refused when the path is not a readable regular file,
+/// created with the id resolution answers today when nothing declares one,
+/// and absent when an ancestor's declaration already covers the root.
+fn identity_change(dir: &Path) -> Option<PlannedChange> {
+    use magistr_engine::native::{PROJECT_DIR, PROJECT_FILE};
+    let path = format!("{PROJECT_DIR}/{PROJECT_FILE}");
+    match super::read_target(dir, &path) {
+        Err(refusal) => Some(PlannedChange::refused(
+            &path,
+            refusal,
+            None,
+            Ownership::User,
+        )),
+        Ok(Some(existing)) => Some(PlannedChange::preserved(
+            &path,
+            Some(existing),
+            Ownership::User,
+        )),
+        Ok(None) => magistr_engine::native::identity_declaration(dir)
+            .map(|body| PlannedChange::merged(&path, None, body).owned_by(Ownership::Unclaimed)),
     }
 }
 
