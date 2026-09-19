@@ -253,10 +253,25 @@ fn cli_codex_launch_forwards_literal_arguments() {
 fn cli_codex_removal_addresses_the_selected_project() {
     let parsed = parse_cli(["magistr", "codex-remove", "/project with spaces"]).unwrap();
     match parsed.command.unwrap() {
-        cli::Command::CodexRemove { dir } => {
+        cli::Command::CodexRemove { dir, dry_run } => {
             assert_eq!(dir, std::path::PathBuf::from("/project with spaces"));
+            assert!(!dry_run, "a removal applies unless a preview is asked for");
         }
         other => panic!("expected CodexRemove, got {other:?}"),
+    }
+}
+
+#[test]
+fn cli_codex_removal_dry_run_is_a_preview() {
+    for flag in ["--dry-run", "-n"] {
+        let parsed = parse_cli(["magistr", "codex-remove", flag]).unwrap();
+        match parsed.command.unwrap() {
+            cli::Command::CodexRemove { dir, dry_run } => {
+                assert_eq!(dir, std::path::PathBuf::from("."));
+                assert!(dry_run, "{flag}");
+            }
+            other => panic!("expected CodexRemove, got {other:?}"),
+        }
     }
 }
 

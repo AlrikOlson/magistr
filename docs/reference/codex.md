@@ -139,6 +139,12 @@ match the generated version. Customized and unrecorded content survives; shared
 files and empty tables can remain. Project configuration and native workflow
 state are retained.
 
+`magistr codex-remove . --dry-run` prints the removal plan without writing:
+every path with its action (remove, overwrite, preserved, refused), who owns
+it and why it is kept when it is. `--json` prints the same plan as one
+object. `magistr init --check` likewise prints the startup repair plan the
+next `magistr mcp-serve` applies, including the Codex target's repair.
+
 `magistr reset` deletes local project configuration and workflow state, including
 legacy state directories, after confirmation.
 

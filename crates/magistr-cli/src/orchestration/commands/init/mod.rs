@@ -1,14 +1,38 @@
-//! Init-related commands: init, init --smart, init --dry-run, init TUI, init interactive.
+//! Init-related commands: init, init --smart, init --dry-run, init --check,
+//! init TUI, init interactive — and the one rendering every read-only
+//! preview of an administrative change plan shares (the setup dry run, the
+//! startup repair under `--check` and the Codex removal dry run).
 
 use crate::scaffold;
+use crate::scaffold::drift::DriftReport;
 use crate::utils::format as fmt;
-use color_eyre::eyre;
 
-/// Print the administrative change plan as JSON.
-fn print_dry_run_json(plan: &scaffold::ChangePlan) -> eyre::Result<()> {
-    let files: Vec<serde_json::Value> = plan.files.iter().map(planned_change_json).collect();
+/// How much of a planned change a machine-readable preview carries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PlanDetail {
+    /// Every field, including an overwrite's unified diff (the CLI).
+    Full,
+    /// The judgement without the diff (a tool answer is a summary).
+    Summary,
+}
 
-    let envelope = serde_json::json!({
+/// The administrative change plan as the JSON envelope every
+/// machine-readable preview prints: the operation, the per-intent summary
+/// and one [`planned_change_json`] object per path.
+pub(crate) fn plan_json(plan: &scaffold::ChangePlan, detail: PlanDetail) -> serde_json::Value {
+    let files: Vec<serde_json::Value> = plan
+        .files
+        .iter()
+        .map(|f| {
+            let mut entry = planned_change_json(f);
+            if detail == PlanDetail::Summary {
+                entry.as_object_mut().map(|obj| obj.remove("diff"));
+            }
+            entry
+        })
+        .collect();
+
+    serde_json::json!({
         "operation": plan.operation.label(),
         "summary": {
             "create": plan.creates(),
@@ -20,10 +44,47 @@ fn print_dry_run_json(plan: &scaffold::ChangePlan) -> eyre::Result<()> {
             "total": plan.files.len(),
         },
         "files": files,
-    });
+    })
+}
 
-    println!("{}", serde_json::to_string_pretty(&envelope)?);
-    Ok(())
+/// The `--check` report: the drift between the configured archetypes and
+/// the tree, and the startup repair the next `magistr mcp-serve` applies,
+/// as [`plan_json`]. The same object answers the CLI's `--json` and the
+/// `magistr_init` tool's `check` mode.
+pub(crate) fn check_report_json(
+    drift: &DriftReport,
+    repair: &scaffold::ChangePlan,
+    detail: PlanDetail,
+) -> serde_json::Value {
+    let new_projects: Vec<serde_json::Value> = drift
+        .new_projects
+        .iter()
+        .map(|p| {
+            serde_json::json!({
+                "path": p.path.display().to_string(),
+                "language": p.language.as_str(),
+                "framework": p.framework.map(|f| f.as_str()),
+            })
+        })
+        .collect();
+    let changes: Vec<serde_json::Value> = drift
+        .changes
+        .iter()
+        .map(|c| {
+            serde_json::json!({
+                "archetype": c.archetype_id,
+                "description": c.description,
+            })
+        })
+        .collect();
+    serde_json::json!({
+        "clean": drift.is_clean(),
+        "total_changes": drift.total(),
+        "new_projects": new_projects,
+        "removed_archetypes": drift.removed_archetypes,
+        "changes": changes,
+        "repair": plan_json(repair, detail),
+    })
 }
 
 /// One planned change as the JSON object every machine-readable preview
@@ -46,12 +107,12 @@ pub(crate) fn planned_change_json(f: &scaffold::PlannedChange) -> serde_json::Va
     obj
 }
 
-/// Print the administrative change plan as colored plain text.
-fn print_dry_run_plain(plan: &scaffold::ChangePlan) {
-    eprintln!(
-        "{} (dry run — no files will be written)\n",
-        fmt::bold("📋 Scaffold preview")
-    );
+/// Print an administrative change plan as colored plain text on stderr:
+/// every path with its action, ownership and reason, the diffs of the
+/// overwrites, and the summary line. `heading` names the preview and
+/// `footer`, when given, says how to apply it.
+pub(crate) fn print_plan_plain(plan: &scaffold::ChangePlan, heading: &str, footer: Option<&str>) {
+    eprintln!("{}\n", fmt::bold(heading));
 
     for f in &plan.files {
         let owner = f.ownership.label();
@@ -123,10 +184,9 @@ fn print_dry_run_plain(plan: &scaffold::ChangePlan) {
         plan.preserved(),
         plan.refusals(),
     );
-    eprintln!(
-        "\nRun {} to apply these changes.",
-        fmt::bold("magistr init")
-    );
+    if let Some(footer) = footer {
+        eprintln!("\n{footer}");
+    }
 }
 
 mod cmd_init;
@@ -146,3 +206,7 @@ pub use cmd_init_interactive::cmd_init_interactive;
 pub use cmd_init_interactive_tui::cmd_init_interactive_tui;
 pub use cmd_init_interview::cmd_init_interview;
 pub use cmd_init_smart::cmd_init_smart;
+
+#[cfg(test)]
+#[path = "mod.tests.rs"]
+mod tests;

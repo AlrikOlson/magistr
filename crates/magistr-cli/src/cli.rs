@@ -576,6 +576,11 @@ pub enum Command {
         /// Project directory containing the Codex setup
         #[arg(default_value = ".")]
         dir: PathBuf,
+
+        /// Preview the removal plan without writing — every path with its
+        /// action, ownership and reason (JSON with --json)
+        #[arg(long, short = 'n')]
+        dry_run: bool,
     },
 
     /// Run magistr's built-in MCP server (stdio) for file management tools.
