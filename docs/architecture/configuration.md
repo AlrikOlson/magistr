@@ -183,13 +183,21 @@ selective apply from a dry run, template plugins, startup repair and owned
 Codex removal — is computed before it is written, as one
 [ChangePlan](../../crates/magistr-cli/src/scaffold/change_plan.rs). The
 plan is what the preview shows and what the writer executes: `magistr init
---dry-run` (plain, JSON and the interactive approval), the `magistr_init`
-tool's `dry_run` mode, `repair::plan` and `CodexSetup::removal_plan` all
-render it, and `generate_with_result`, `apply_approved`, `repair::repair` and
-`CodexSetup::remove_target` execute the plan they just computed through the
-one [administrative service](#application-and-receipts). Explicit
-destructive reset (`magistr reset`, `remove_scaffold`) is deliberately not
-planned here and stays a separate act.
+--dry-run` (plain, JSON and the interactive approval) and the `magistr_init`
+tool's `dry_run` mode render the setup plan; `magistr init --check` (plain
+and `--json`) and the tool's `check` mode render the startup repair plan
+(`repair::plan`) beside the drift report, so what the next `magistr
+mcp-serve` applies is reviewable before it runs; `magistr codex-remove
+--dry-run` (plain and `--json`) renders the owned removal plan
+(`CodexSetup::removal_plan`). Every rendering is the same shape — one
+object per path with its action, intent, ownership, expected state and
+reason, plus the per-intent summary; the CLI adds an overwrite's diff and a
+tool answer omits it. `generate_with_result`, `apply_approved`,
+`repair::repair` and `CodexSetup::remove_target` execute the plan they just
+computed through the one
+[administrative service](#application-and-receipts). Explicit destructive
+reset (`magistr reset`, `remove_scaffold`) is deliberately not planned here
+and stays a separate act.
 
 Each [PlannedChange](../../crates/magistr-cli/src/scaffold/planned_change.rs)
 names one path with:

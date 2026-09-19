@@ -25,7 +25,7 @@ pub(super) fn build_init_tool(project_root: PathBuf) -> SdkMcpTool {
             "properties": {
                 "mode": {
                     "type": "string",
-                    "description": "Init mode: 'init' (default) scaffolds config, 'check' reports drift without changes, 'dry_run' previews what would be created.",
+                    "description": "Init mode: 'init' (default) scaffolds config, 'check' reports drift and the pending startup repair plan without changes, 'dry_run' previews what would be created.",
                     "enum": ["init", "check", "dry_run"],
                     "default": "init"
                 },
@@ -74,37 +74,15 @@ fn run_check(root: &std::path::Path) -> Result<ToolResult, magistr_mcp::ToolErro
         .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Detection failed: {e}")))?;
 
     let report = crate::scaffold::drift::detect_drift(&archetypes, &tree);
+    // The startup repair, planned and not applied: `magistr mcp-serve`
+    // applies it on its way in, so this is where a reviewer sees it first.
+    let repair = crate::scaffold::repair::plan(root);
 
-    let new_projects: Vec<serde_json::Value> = report
-        .new_projects
-        .iter()
-        .map(|p| {
-            json!({
-                "path": p.path.display().to_string(),
-                "language": p.language.as_str(),
-                "framework": p.framework.map(|f| f.as_str()),
-            })
-        })
-        .collect();
-
-    let changes: Vec<serde_json::Value> = report
-        .changes
-        .iter()
-        .map(|c| {
-            json!({
-                "archetype": c.archetype_id,
-                "description": c.description,
-            })
-        })
-        .collect();
-
-    let result = json!({
-        "clean": report.is_clean(),
-        "total_changes": report.total(),
-        "new_projects": new_projects,
-        "removed_archetypes": report.removed_archetypes,
-        "changes": changes,
-    });
+    let result = crate::commands::init::check_report_json(
+        &report,
+        &repair,
+        crate::commands::init::PlanDetail::Summary,
+    );
 
     Ok(ToolResult::text(
         serde_json::to_string_pretty(&result).unwrap_or_default(),
@@ -124,28 +102,10 @@ fn run_dry_run(
         .preview(root)
         .map_err(|e| magistr_mcp::ToolError::Mcp(format!("Preview failed: {e}")))?;
 
-    let files: Vec<serde_json::Value> = preview
-        .files
-        .iter()
-        .map(|f| {
-            let mut entry = crate::commands::init::planned_change_json(f);
-            // The tool answer is a summary; the diff is the CLI's to print.
-            entry.as_object_mut().map(|obj| obj.remove("diff"));
-            entry
-        })
-        .collect();
-
-    let result = json!({
-        "mode": "dry_run",
-        "operation": preview.operation.label(),
-        "creates": preview.creates(),
-        "overwrites": preview.overwrites(),
-        "removes": preview.removes(),
-        "unchanged": preview.unchanged(),
-        "preserved": preview.preserved(),
-        "refused": preview.refusals(),
-        "files": files,
-    });
+    // The tool answer is a summary; the diff is the CLI's to print.
+    let mut result =
+        crate::commands::init::plan_json(&preview, crate::commands::init::PlanDetail::Summary);
+    result["mode"] = json!("dry_run");
 
     Ok(ToolResult::text(
         serde_json::to_string_pretty(&result).unwrap_or_default(),

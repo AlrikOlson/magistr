@@ -109,7 +109,7 @@ async fn main() -> eyre::Result<()> {
             check,
         } => {
             if check {
-                commands::init::cmd_init_check(&dir)
+                commands::init::cmd_init_check(&dir, &*renderer)
             } else if ci {
                 commands::config::cmd_init_ci(&dir, force, &*renderer, &inputs)
             } else if let Some(preset_source) = from {
@@ -368,13 +368,8 @@ async fn main() -> eyre::Result<()> {
         Command::Workspace { action } => commands::misc::cmd_workspace(action, &inputs).await,
         Command::McpLaunch { target, dir } => commands::misc::cmd_mcp_launch(target, &dir).await,
         Command::CodexLaunch { .. } => unreachable!("Codex launch dispatches before session setup"),
-        Command::CodexRemove { dir } => {
-            let paths = magistr::scaffold::CodexSetup::remove_target(&dir)?;
-            eprintln!(
-                "Removed managed Codex setup from {} artifacts.",
-                paths.len()
-            );
-            Ok(())
+        Command::CodexRemove { dir, dry_run } => {
+            commands::misc::cmd_codex_remove(&dir, dry_run, &*renderer)
         }
         Command::AcpAgent {
             provider,

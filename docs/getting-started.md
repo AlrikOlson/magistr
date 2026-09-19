@@ -78,5 +78,8 @@ customized files. To preview files and diffs without applying them, use
 open the selective-apply interface; it cannot be combined with `--yes` or `--force`.
 
 `magistr codex-remove .` removes unchanged, recorded Codex integration files while
-retaining project state. `magistr reset` deletes local configuration and workflow
-state, including legacy state directories, after confirmation.
+retaining project state; `magistr codex-remove . --dry-run` prints that plan
+without writing. `magistr init . --check` reports configuration drift and the
+startup repair the next `magistr mcp-serve` would apply, also without
+writing. `magistr reset` deletes local configuration and workflow state,
+including legacy state directories, after confirmation.
