@@ -254,6 +254,126 @@ fn compaction_pulls_a_vertex_toward_its_earliest_dependent_and_leaves_sinks_and_
 
 #[test]
 fn the_dense_harbor_fixture_keeps_every_invariant() {
+    let (ranks, edges) = harbor();
+    assert!(
+        ranks.len() >= 50 && edges.len() >= 100,
+        "the fixture is dense"
+    );
+    let layout = layout(&ranks, &edges);
+    check_invariants(&layout, &ranks);
+    assert_eq!(layout, layout_again(&ranks, &edges));
+    let reduced = DagLayout::reduce_edges(edges.clone(), ranks.len());
+    assert!(
+        reduced.len() < edges.len(),
+        "the overview drops implied edges"
+    );
+    // The crossings the sweeps settle on for this fixture, pinned as a
+    // ceiling: a change to the ordering that tangles the dense graph
+    // further fails here before it reaches a capture.
+    assert!(
+        layout.crossings() <= HARBOR_CROSSINGS_CEILING,
+        "the dense fixture crossed {} times (ceiling {HARBOR_CROSSINGS_CEILING})",
+        layout.crossings()
+    );
+}
+
+/// Where the sweeps and the sifting leave the Harbor fixture today
+/// (96), with a little room for a legitimately different fixture;
+/// lower it when the layout improves. The barycentre sweeps alone
+/// settled at 105 under the old ceiling of 110.
+const HARBOR_CROSSINGS_CEILING: usize = 100;
+
+fn layout_again(ranks: &[usize], edges: &[(usize, usize)]) -> DagLayout {
+    layout(ranks, edges)
+}
+
+/// The rows of every vertex on `rank`, real and routing, top to bottom.
+fn rows_on(layout: &DagLayout, rank: usize) -> Vec<f32> {
+    let mut rows: Vec<f32> = layout
+        .points
+        .iter()
+        .filter(|(x, _)| (*x - rank as f32).abs() < 0.5)
+        .map(|&(_, y)| y)
+        .collect();
+    rows.sort_by(f32::total_cmp);
+    rows
+}
+
+#[test]
+fn a_layer_with_room_spreads_past_the_minimum_gap_without_growing_the_drawing() {
+    // One root feeding a pair on the next rank and four vertices pinned
+    // a rank further: every vertex wants the root's row, so without the
+    // balancing the pair would sit at the minimum gap. The last rank is
+    // the tallest at four vertices; the pair has three rows to share
+    // and spreads to the cap, the tallest rank stays at the minimum,
+    // and the drawing is no taller than that rank.
+    let ranks = [0, 1, 1, 2, 2, 2, 2];
+    let edges = [(0, 1), (0, 2), (1, 3), (1, 4), (1, 5), (1, 6)];
+    let layout = layout(&ranks, &edges);
+    check_invariants(&layout, &ranks);
+    let middle = rows_on(&layout, 1);
+    assert!(
+        (middle[1] - middle[0] - DagLayout::MAX_GAP).abs() < 1e-4,
+        "the pair with room sits a full cap apart: {middle:?}"
+    );
+    let last = rows_on(&layout, 2);
+    for pair in last.windows(2) {
+        assert!(
+            (pair[1] - pair[0] - DagLayout::MIN_GAP).abs() < 1e-4,
+            "the tallest rank stays at the minimum: {last:?}"
+        );
+    }
+    let bottom = layout.points.iter().map(|p| p.1).fold(0.0, f32::max);
+    assert!(
+        (bottom - 3.0 * DagLayout::MIN_GAP).abs() < 1e-4,
+        "the drawing is exactly the tallest rank tall: {bottom}"
+    );
+    assert_eq!(layout.crossings(), 0);
+}
+
+#[test]
+fn the_dense_harbor_fixture_spreads_every_rank_that_has_room() {
+    let (ranks, edges) = harbor();
+    let layout = layout(&ranks, &edges);
+    let tallest = (0..=ranks.iter().copied().max().unwrap_or(0))
+        .map(|rank| rows_on(&layout, rank).len())
+        .max()
+        .unwrap_or(0);
+    let height = (tallest - 1) as f32 * DagLayout::MIN_GAP;
+    let mut spread = 0;
+    for rank in 0..=ranks.iter().copied().max().unwrap_or(0) {
+        let rows = rows_on(&layout, rank);
+        if rows.len() < 2 {
+            continue;
+        }
+        let want = (height / (rows.len() - 1) as f32).min(DagLayout::MAX_GAP);
+        for pair in rows.windows(2) {
+            assert!(
+                pair[1] - pair[0] >= want - 1e-3,
+                "rank {rank} ({} vertices) packs a pair at {} under its share {want}",
+                rows.len(),
+                pair[1] - pair[0]
+            );
+        }
+        if want > DagLayout::MIN_GAP + 1e-3 {
+            spread += 1;
+        }
+    }
+    assert!(
+        spread >= 10,
+        "most of the fixture's ranks have room: {spread}"
+    );
+    // The balancing does not buy its room with height: the drawing is
+    // no taller than the aligned layout was before it (27.5 rows).
+    let bottom = layout.points.iter().map(|p| p.1).fold(0.0, f32::max);
+    assert!(
+        bottom <= 28.0,
+        "the drawing stays within its height: {bottom}"
+    );
+}
+
+/// The Harbor fixture's compacted ranks and dependency edges.
+fn harbor() -> (Vec<usize>, Vec<(usize, usize)>) {
     let json = std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../apps/website/fixtures/harbor.json"
@@ -275,34 +395,6 @@ fn the_dense_harbor_fixture_keeps_every_invariant() {
             edges.push((from, to));
         }
     }
-    assert!(
-        ids.len() >= 50 && edges.len() >= 100,
-        "the fixture is dense"
-    );
     let ranks = DagLayout::compact_ranks(&depths(ids.len(), &edges), &edges);
-    let layout = layout(&ranks, &edges);
-    check_invariants(&layout, &ranks);
-    assert_eq!(layout, layout_again(&ranks, &edges));
-    let reduced = DagLayout::reduce_edges(edges.clone(), ids.len());
-    assert!(
-        reduced.len() < edges.len(),
-        "the overview drops implied edges"
-    );
-    // The crossings the sweeps settle on for this fixture, pinned as a
-    // ceiling: a change to the ordering that tangles the dense graph
-    // further fails here before it reaches a capture.
-    assert!(
-        layout.crossings() <= HARBOR_CROSSINGS_CEILING,
-        "the dense fixture crossed {} times (ceiling {HARBOR_CROSSINGS_CEILING})",
-        layout.crossings()
-    );
-}
-
-/// Where the sweeps leave the Harbor fixture today, with a little room
-/// for a legitimately different fixture; lower it when the layout
-/// improves.
-const HARBOR_CROSSINGS_CEILING: usize = 110;
-
-fn layout_again(ranks: &[usize], edges: &[(usize, usize)]) -> DagLayout {
-    layout(ranks, edges)
+    (ranks, edges)
 }
