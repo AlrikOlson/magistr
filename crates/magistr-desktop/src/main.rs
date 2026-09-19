@@ -1,0 +1,52 @@
+//! Desktop composition and current-executable child roles.
+
+mod args;
+mod launch;
+
+use args::{Child, Desktop};
+use clap::Parser;
+use color_eyre::eyre;
+
+fn main() -> eyre::Result<()> {
+    // Parse before starting any runtime, window or project owner. Worker argv is
+    // exact; extra arguments must fail through the normal parser.
+    let argv: Vec<_> = std::env::args_os().collect();
+    let worker = args::is_worker(&argv);
+    let cli = if worker {
+        None
+    } else {
+        Some(Desktop::parse_from(argv))
+    };
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+    if worker {
+        return runtime
+            .block_on(magistr_workspace::worker::serve_worker())
+            .map_err(Into::into);
+    }
+    let cli = cli.expect("non-worker invocation was parsed");
+    if let Some(child) = cli.child {
+        return runtime.block_on(async {
+            match child {
+                Child::AcpAgent {
+                    provider,
+                    allow_tool,
+                } => magistr::commands::misc::cmd_acp_agent(&provider, &allow_tool).await,
+                Child::McpLaunch { target, dir } => {
+                    magistr::commands::misc::cmd_mcp_launch(target, &dir).await
+                }
+            }
+        });
+    }
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .with_writer(std::io::stderr)
+        .init();
+    // block_on polls this future on the calling (main) thread. The native loop
+    // stays here while the multithread scheduler services the admitted host.
+    runtime.block_on(launch::run(cli))
+}

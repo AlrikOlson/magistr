@@ -21,10 +21,13 @@ The terminal interface is checked against golden images under `crates/magistr-tu
 
 ## Desktop
 
-The desktop fixture renderer is excluded from the public workspace because it
-uses a pinned private renderer dependency. It has its own lockfile and explicit
-build, CPU screenshot and GPU readback checks. Follow the
-[desktop guide](architecture/desktop.md); root workspace checks do not cover it.
+The native session launcher (`crates/magistr-desktop`) and renderer
+(`crates/magistr-gui2`) are excluded from the public workspace because the
+renderer uses a pinned private dependency. Each has its own lockfile and
+explicit checks. The launcher opens a project session; the renderer executable
+opens development fixtures. Follow the [desktop guide](architecture/desktop.md)
+for setup, launch, CPU screenshots, GPU readback and native-window checks.
+Root workspace checks do not cover either desktop workspace.
 
 ## Website
 

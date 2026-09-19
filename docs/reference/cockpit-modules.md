@@ -11,7 +11,7 @@ See [terminal architecture](../architecture/terminal.md) for the data flow and
 
 ## Canonical workflow contracts
 
-These modules define the records used by producers and surfaces. Compatibility
+These modules define the records used by producers and surfaces. Contract
 and dependency guards are `magistr-engine/tests/workflow_contracts.rs` and
 `magistr-cockpit/tests/boundary.rs`. Native wire, cursor and owner-file tests
 remain in the engine crate, where they also exercise the real publisher.
@@ -724,6 +724,17 @@ test. The section headings separate the crates and their module families.
 | --- | --- | --- |
 | `magistr-tui/src/wire/mod.rs` | Escape-sequence parsing shared by graphics probes and input decoding | `magistr-tui/src/wire/sequence.tests.rs` |
 | `magistr-tui/src/wire/sequence.rs` | Finding one complete escape sequence at the head of a byte buffer | `magistr-tui/src/wire/sequence.tests.rs` |
+
+## Native desktop launcher
+
+The launcher composes concrete host capabilities without adding them to the
+renderer. Both desktop workspaces remain outside the root workspace.
+
+| Module | Responsibility | Tests |
+| --- | --- | --- |
+| `magistr-desktop/src/main.rs` | Main-thread window entry and protocol child dispatch | `magistr-desktop/tests/process.rs`, `magistr-desktop/tests/native_launch.py` |
+| `magistr-desktop/src/args.rs` | Project/session selection and strict child arguments | `magistr-desktop/src/args.tests.rs` |
+| `magistr-desktop/src/launch.rs` | Native window composition and awaited host shutdown | `magistr-desktop/src/launch.tests.rs`, `magistr-desktop/tests/native_launch.swift` |
 
 ## Additional test references
 

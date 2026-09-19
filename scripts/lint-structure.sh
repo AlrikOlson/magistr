@@ -162,8 +162,8 @@ done < <(owned_sources)
 # Domain layer ordering (lower layers must not import from higher layers):
 #   core (0) ← detection (1) ← agent (2) ← orchestration (3) ← tui (4)
 #
-# Backward-compat re-exports in lib.rs (e.g., `use crate::error`) are allowed
-# because they resolve to core — we only check direct domain module imports.
+# Re-exports in lib.rs (e.g., `use crate::error`) resolve to core;
+# this rule checks direct domain module imports.
 # Test files are excluded because test helpers may cross boundaries.
 
 # Returns forbidden higher-layer modules for a given domain.
@@ -243,7 +243,7 @@ while IFS= read -r f; do
                 print start ":" name ":" lines;
         }
     ' "$f" 2>/dev/null)
-done < <(find "$PROJECT_ROOT/crates/" -path "$PROJECT_ROOT/crates/magistr-workspace" -prune -o -path "$PROJECT_ROOT/crates/magistr-workflow" -prune -o -name '*.rs' -not -name '*.tests.rs' -print 2>/dev/null)
+done < <(find "$PROJECT_ROOT/crates/" -type d -name target -prune -o -path "$PROJECT_ROOT/crates/magistr-workspace" -prune -o -path "$PROJECT_ROOT/crates/magistr-workflow" -prune -o -name '*.rs' -not -name '*.tests.rs' -print 2>/dev/null)
 
 # Rule 5: No lint silencing under the cockpit crates
 #
