@@ -13,12 +13,12 @@ The adoption changes the desktop's dependency paths, typed fixture inputs, acces
 
 ## Renderer dependency
 
-`qs-gpu`, `qs-platform` and `qs-text` come from the private repository
+`qs-gpu`, `qs-platform` and `qs-text` come from the public repository
 https://github.com/AlrikOlson/qs-framework at
 `a788b7be2d1035c64f4387259f4c8b3fc670e9ec`.
-Authenticated retrieval of that commit, its Cargo manifest and LICENSE was verified on 17 September 2026. Its workspace declares Apache-2.0 and the pinned LICENSE contains the Apache License 2.0 terms. The dependency is fetched by Cargo; its source is not copied into Magistr. Any desktop distribution must retain its required license and notices.
+Retrieval of that commit, its Cargo manifest and LICENSE was verified on 17 September 2026. The repository became public on 19 September 2026. Its workspace declares Apache-2.0 and the pinned LICENSE contains the Apache License 2.0 terms. The dependency is fetched by Cargo; its source is not copied into Magistr. Any desktop distribution must retain its required license and notices.
 
-Desktop contributors need read access to that repository and Git credentials usable by Cargo. Anonymous CLI contributors do not: this package is excluded from the root workspace and owns its own workspace and Cargo.lock. No optional feature in the public workspace resolves the private source.
+No GitHub login is needed to fetch the renderer dependency. This package is excluded from the root workspace and owns its own workspace and Cargo.lock.
 
 ## Reproducible build
 

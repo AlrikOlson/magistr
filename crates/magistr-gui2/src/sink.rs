@@ -903,14 +903,14 @@ impl Sink {
             (
                 &["comp_galaxy"],
                 Element::surface()
-                    .width(560.0)
+                    .width(900.0)
                     .align_start()
                     .child(GalaxyComposition::chips(&views.galaxy, medium))
                     .child(
                         Element::surface()
-                            .width(560.0)
-                            .height(260.0)
-                            .child(GalaxyComposition::el(&views.galaxy, medium, (560.0, 260.0))),
+                            .width(900.0)
+                            .height(520.0)
+                            .child(GalaxyComposition::el(&views.galaxy, medium, (900.0, 520.0))),
                     )
                     .child(GalaxyComposition::foot(&views.galaxy, medium)),
             ),

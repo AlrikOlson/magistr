@@ -1411,18 +1411,14 @@ pub(super) fn reveal_session_selection(model: &mut Model) {
     }
 }
 
-/// A Galaxy accelerator on a window whose camera is at altitude 0, with
-/// an empty prompt: `↵` dives
-/// into the selected cluster — the window's own project when nothing
+/// Project navigation remains available while an unsent message is retained.
+/// `↵` opens the selected cluster — the window's own project when nothing
 /// is selected — the arrows walk the selection, `+`/`-`/`0` zoom the
 /// field as the Sky's keys zoom the tech-tree. `None` anywhere else, so
 /// a terminal (which has no Galaxy) and every other altitude keep the
 /// keys' meanings.
 fn galaxy_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if model.place() != Some(Place::Galaxy)
-        || !model.session.prompt.is_empty()
-        || !key.mods.is_empty()
-    {
+    if model.place() != Some(Place::Galaxy) || !key.mods.is_empty() {
         return None;
     }
     let handled = match key.code {

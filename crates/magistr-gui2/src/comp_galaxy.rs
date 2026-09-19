@@ -40,6 +40,9 @@ impl GalaxyComposition {
     pub const FIELD: ElementId = ElementId(330);
     /// The `＋ New project` verb.
     pub const NEW: ElementId = ElementId(331);
+    /// Project links use a separate element range from the other compositions.
+    pub const PROJECTS: u64 = 1 << 41;
+    pub const PROJECTS_END: u64 = Self::PROJECTS + (1 << 32);
 
     /// The Galaxy's own chrome bands, measured off view 01: the header
     /// is `padding:15px 20px 12px 92px` over its hairline (51 high, its
@@ -79,25 +82,11 @@ impl GalaxyComposition {
     /// The projects the Galaxy shows, in the order their cluster ids
     /// count: the job's list, with what this window knows better laid
     /// over its own project — the rail's shipped count, the dock's
-    /// pending questions, a running loop. Before the job delivers, the
-    /// window's own project alone: a window always knows the one
-    /// project it is rooted on.
+    /// pending questions, a running loop. Project identities come from the
+    /// shared model, including the current project supplied by the host.
     #[must_use]
     pub fn projects(model: &Model) -> Vec<GalaxyProject> {
         let mut projects = model.galaxy().projects().to_vec();
-        if projects.is_empty() {
-            let name = model
-                .launcher()
-                .map(|data| data.project.as_str())
-                .filter(|name| !name.is_empty())
-                .or_else(|| model.title())
-                .unwrap_or("magistr");
-            projects.push(GalaxyProject {
-                name: name.to_owned(),
-                here: true,
-                ..GalaxyProject::default()
-            });
-        }
         let (done, total) = model.rail().progress();
         let asking = u32::try_from(model.dock().len()).unwrap_or(u32::MAX);
         let running = u32::from(model.loop_status().is_some());
@@ -124,8 +113,8 @@ impl GalaxyComposition {
             .min_height(0.0)
             .fill(lex.base)
             .id(Self::FIELD);
-        for (project, cluster) in projects.iter().zip(&placed) {
-            room = room.child(label(project, cluster, &lex));
+        for (index, (project, cluster)) in projects.iter().zip(&placed).enumerate() {
+            room = room.child(label(project, cluster, index, medium, &lex));
         }
         room.child(
             ActionRow::new(None, vec![Action::new("+ New project", Self::NEW)])
@@ -153,7 +142,21 @@ impl GalaxyComposition {
                 &lex,
             ));
         }
-        row.child(DataPill::num("\u{2318}K", &lex))
+        row.child(
+            ActionRow::new(
+                None,
+                vec![
+                    Action::new(
+                        "Commands",
+                        crate::comp_workspace::WorkspaceComposition::id(
+                            magistr_cockpit::cockpit::Widget::Commands.id(),
+                        ),
+                    )
+                    .cap("\u{2318}K"),
+                ],
+            )
+            .el(medium),
+        )
     }
 
     /// The Galaxy's foot: the project count as a cap, the spend meter
@@ -225,8 +228,27 @@ impl GalaxyComposition {
 
 /// One cluster's label, pinned at the layout's anchor: the sigil and
 /// the name on one row, the status line under them.
-fn label(project: &GalaxyProject, cluster: &PlacedCluster, lex: &Lexicon) -> Element {
+fn label(
+    project: &GalaxyProject,
+    cluster: &PlacedCluster,
+    index: usize,
+    medium: Medium,
+    lex: &Lexicon,
+) -> Element {
     let (name_ink, status, status_ink) = status_line(project, lex);
+    let action = Action::new(
+        "Open project",
+        ElementId(GalaxyComposition::PROJECTS + index as u64),
+    );
+    let action = if project.here {
+        action
+    } else {
+        action.disabled()
+    };
+    let mut open = ActionRow::new(None, vec![action]).el(medium);
+    for button in &mut open.children {
+        button.label = Some(format!("Open project {}", project.name));
+    }
     Element::surface()
         .align_start()
         .pin_left(cluster.label.0)
@@ -251,6 +273,8 @@ fn label(project: &GalaxyProject, cluster: &PlacedCluster, lex: &Lexicon) -> Ele
                 .claim(Component::Cap)
                 .nowrap(),
         )
+        .child(Element::surface().height(8.0))
+        .child(open)
 }
 
 /// The one place the Galaxy's copy is written: the name's ink, the

@@ -725,6 +725,13 @@ impl Model {
         self
     }
 
+    /// Set the project this host has opened, before project discovery completes.
+    #[must_use]
+    pub fn with_project(mut self, name: impl Into<String>, dir: impl Into<String>) -> Self {
+        self.galaxy.set_current(name.into(), dir.into());
+        self
+    }
+
     /// Show `title` in the header — the entry point's session line
     /// (project · backend · model), instead of the generic name.
     #[must_use]

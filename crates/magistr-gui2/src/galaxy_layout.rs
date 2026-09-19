@@ -53,10 +53,10 @@ impl GalaxyLayout {
     /// averaged over its three).
     const LABEL_DX: f32 = -8.0;
     const LABEL_DY: f32 = 26.0;
-    /// The label block's measure, for the click box: two lines under a
-    /// project name.
+    /// The label block's measure, for the click box: the project name,
+    /// status, and Open project control.
     const LABEL_W: f32 = 150.0;
-    const LABEL_H: f32 = 36.0;
+    const LABEL_H: f32 = 80.0;
     /// The air a click box keeps around the stars.
     const REACH: f32 = 12.0;
 

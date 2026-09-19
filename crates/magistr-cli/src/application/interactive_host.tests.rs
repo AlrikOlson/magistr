@@ -127,7 +127,8 @@ async fn started(
     let spec = resolved(&config);
     let (inbox, events) = Inbox::channel();
     let (sender, commands) = Commands::channel();
-    let (host, _) = InteractiveHost::connect(
+    let root = config.cwd.canonicalize().unwrap().display().to_string();
+    let (host, model) = InteractiveHost::connect(
         config,
         resources,
         spec,
@@ -138,6 +139,13 @@ async fn started(
     )
     .await
     .unwrap();
+    assert_eq!(model.galaxy().home(), Some(0));
+    assert_eq!(model.galaxy().projects()[0].name, "project");
+    assert_eq!(
+        model.galaxy().projects()[0].dir.as_deref(),
+        Some(root.as_str())
+    );
+    assert!(model.galaxy().data().is_none(), "discovery has not run");
     (host, sender, events)
 }
 

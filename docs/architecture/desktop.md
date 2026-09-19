@@ -2,7 +2,7 @@
 
 The maintained desktop renderer lives in `crates/magistr-gui2` on `main`.
 Its [provenance](../../crates/magistr-gui2/PROVENANCE.md) records the reviewed
-source commit, licenses, assets and pinned private renderer dependency.
+source commit, licenses, assets and pinned renderer dependency.
 
 The `magistr-desktop` executable connects this renderer to a project through
 the same admitted session host as the terminal. The `magistr-gui2` executable
@@ -18,10 +18,10 @@ these from deterministic renderer fixtures.
 ## Build boundary
 
 The renderer and launcher are separate Cargo workspaces with committed lockfiles,
-excluded from the public root workspace. Rust 1.95 and read access to the private
-`AlrikOlson/qs-framework` repository are required. Cargo must be able to use
-your Git credentials. The three `qs-*` dependencies share one exact revision;
-review their pin and lockfile together.
+excluded from the root workspace. They require Rust 1.95 or newer. The
+`AlrikOlson/qs-framework` dependency is public; fetching it needs no GitHub login.
+The three `qs-*` dependencies share one exact revision; review their pin and
+lockfile together.
 
 From the repository root:
 
@@ -31,15 +31,20 @@ cargo run --manifest-path crates/magistr-gui2/Cargo.toml --locked -- 05
 ```
 
 The argument selects a fixture; omit it for a busy session or use `sink` for
-the developer component catalogue. Public CLI builds resolve no private desktop
-dependency. The root workspace's check commands do not check this excluded crate.
+the developer component catalogue. CLI builds do not include the renderer.
+The root workspace's check commands do not check this excluded crate.
 
 ## Open a project
 
-Build and run the launcher explicitly:
+From the repository root, open the current project:
 
 ```sh
-cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
+just desktop --provider codex
+```
+
+To open another project without `just`:
+
+```sh
 cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project --provider codex
 ```
 
@@ -50,6 +55,13 @@ Codex needs its installed CLI and ChatGPT login; Ollama needs a running daemon
 and a downloaded model. The project should already have its Magistr setup;
 the desktop does not run project initialization. Project-configured MCP commands
 must be executable, including `magistr` on PATH when the configuration names it.
+
+If startup reports that `workbench-mcp` could not initialize, check the project's
+`.mcp.json`. Its entries are passed to the provider and can override the provider's
+own configuration. The workspace entry should use `"command": "magistr"` with
+`"args": ["mcp-launch", "workbench-mcp", "."]`. Remove stale commands that point
+to a separate source checkout; the source tools are included in the installed
+binary.
 
 An optional positional message starts the first turn. `--model`, `--resume`,
 `--continue`, `--trust` and `--reduce-motion` select the session and presentation
@@ -80,7 +92,8 @@ These child roles do not create another desktop session.
 The regular launcher tests cover options, cleanup errors, its terminal-free
 dependency graph, workspace worker readiness/shutdown, a scripted ACP turn,
 both MCP endpoints and source reads. The macOS driver additionally starts the
-production launcher in a disposable project, sends through native Accessibility,
+production launcher in a disposable project, opens the project by pointer,
+keyboard and Accessibility while retaining a draft, sends through native Accessibility,
 observes a reply from the real Ollama adapter against a local controlled HTTP
 peer, then induces a provider failure. Sending another request attempts to
 restore the same session; because Ollama cannot load a saved session, the window
@@ -179,6 +192,12 @@ node. Animation advances through model ticks. Reduced motion selects settled
 frames; repainting does not advance time.
 
 ## Shared navigation
+
+The host supplies the current project's name and directory before opening the
+window. The home page draws that same project list used by navigation. Its
+constellation, name and Open project control open the current project's roadmap.
+Tab, Enter and accessibility activation take the same route and retain any unsent
+message. Commands is a visible button on the home page as well as a keyboard shortcut.
 
 The cockpit owns destinations through `Model::show`, `nav::open_record` and
 `work::open_chunk`. Conversation, Roadmap and Recorded work update the same

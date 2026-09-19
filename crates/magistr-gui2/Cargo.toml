@@ -24,7 +24,7 @@ path = "src/main.rs"
 [dependencies]
 # Pure Rust math keeps CPU-rendered pixels consistent across platforms.
 libm = "0.2"
-# These private Git dependencies require access to qs-framework.
+# These Git dependencies share one pinned qs-framework revision.
 # Keep their revisions and the wgpu/winit/AccessKit versions compatible.
 qs-gpu = { git = "https://github.com/AlrikOlson/qs-framework", rev = "a788b7be2d1035c64f4387259f4c8b3fc670e9ec" }
 qs-platform = { git = "https://github.com/AlrikOlson/qs-framework", rev = "a788b7be2d1035c64f4387259f4c8b3fc670e9ec" }
