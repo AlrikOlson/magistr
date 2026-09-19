@@ -148,6 +148,84 @@ fn roadmap_graph_and_table_share_a_wide_stage_and_stack_on_a_narrow_one() {
     }
 }
 
+/// The Harbor graph at capture size, in the cell and the pixel graph
+/// blocks alike: columns with room spread past the tightest pitch on
+/// screen, so no column packs more than half of its neighbouring
+/// pairs at that pitch — the dense right half stays readable.
+#[test]
+fn the_dense_harbor_graph_spreads_its_columns_at_capture_size() {
+    let data: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../apps/website/fixtures/harbor.json"
+    ))
+    .expect("the website's synthetic fixture");
+    let chunks =
+        crate::harness::fixtures::chunks_from(data["chunks"].as_array().expect("chunks").clone());
+    let snapshot = crate::harness::fixtures::snapshot(chunks, vec![]);
+    for pixels in [false, true] {
+        let mut m = Model::new(Size::new(132, 42))
+            .with_tab(StageTab::Roadmap)
+            .with_snapshot(&snapshot);
+        if pixels {
+            update(
+                &mut m,
+                Msg::Mode(crate::capability::Mode::Graphics {
+                    pointer_shapes: true,
+                }),
+            );
+            update(
+                &mut m,
+                Msg::Mouse {
+                    event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                    target: Some(Widget::TabRoadmap.id()),
+                },
+            );
+        }
+        let resolved = layout_for(&m);
+        let placed = resolved
+            .placed()
+            .iter()
+            .find(|p| p.id == Some(Widget::RoadmapGraph.id()))
+            .unwrap_or_else(|| panic!("a visible graph at 132x42, pixels={pixels}"));
+        if pixels {
+            m.set_roadmap_graph_px(Some(placed.px));
+        } else {
+            m.set_roadmap_graph_rect(Some(placed.rect));
+        }
+        let nodes = m.roadmap().dag_nodes();
+        assert!(nodes.len() >= 50, "the dense fixture is on screen");
+        let mut columns: Vec<(f32, Vec<f32>)> = Vec::new();
+        for node in &nodes {
+            match columns.iter_mut().find(|(x, _)| (*x - node.x).abs() < 1e-3) {
+                Some((_, ys)) => ys.push(node.y),
+                None => columns.push((node.x, vec![node.y])),
+            }
+        }
+        let mut gaps: Vec<Vec<f32>> = columns
+            .iter_mut()
+            .map(|(_, ys)| {
+                ys.sort_by(f32::total_cmp);
+                ys.windows(2).map(|pair| pair[1] - pair[0]).collect()
+            })
+            .collect();
+        gaps.retain(|column| !column.is_empty());
+        let tightest = gaps
+            .iter()
+            .flatten()
+            .copied()
+            .reduce(f32::min)
+            .expect("a column with two nodes");
+        assert!(tightest > 0.0, "no two nodes share a cell: {tightest}");
+        for (column, pairs) in gaps.iter().enumerate() {
+            let tight = pairs.iter().filter(|&&gap| gap <= tightest + 1e-3).count();
+            assert!(
+                tight * 2 <= pairs.len(),
+                "pixels={pixels}: column {column} packs {tight} of {} pairs at the tightest pitch {tightest:.3}: {pairs:?}",
+                pairs.len()
+            );
+        }
+    }
+}
+
 use crate::cockpit::{
     Eased, HoverRole, Motion, Msg, ShipRun, Size, TurnState, WorkbenchEvent, update,
 };

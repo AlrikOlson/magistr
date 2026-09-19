@@ -3,7 +3,7 @@
   "surface": "Terminal",
   "profile": "Kitty",
   "source_commit": "working-tree",
-  "captured_on": "2026-09-16",
+  "captured_on": "2026-09-19",
   "state": "Rendered from apps/website/fixtures/harbor.json",
   "columns": 144,
   "rows": 50,
@@ -12,56 +12,56 @@
     {
       "file": "terminal-overview-dark.png",
       "screen": "conversation",
-      "sha256": "0a01451816e32c6c646734808b7f6cba5996364a291ad15cd54437bacfc91313",
+      "sha256": "f53db7194d1c097103f4a7e3029e0ffc44090f72073498e5cfe9a54b0f06a841",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-overview-light.png",
       "screen": "conversation",
-      "sha256": "ac89756960ca4c35787250f603e54bdc0c6d9e492c20b4c4945e79308edb308b",
+      "sha256": "0c340b4f40a5ea9a299a0762ea461e79a557f4411239e3d9d01254d90960cc42",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-roadmap-dark.png",
       "screen": "roadmap",
-      "sha256": "aa403ccb7dfab10f583641150f3a75f08d400f4a1d962e1700bc45d5c8ca2ee9",
+      "sha256": "c6dce758fc827ae76962d3db8b26799c9a51dd10e08280c903b4ec449d8125fb",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-roadmap-light.png",
       "screen": "roadmap",
-      "sha256": "326a3a5aafdf0822f1f93b10db0af7f6b15ab412327cd35c9753fb2fa02796bc",
+      "sha256": "ebcbe2758b84076487d2fb9be86487bd2139ff63ce6d799a526d4179ffd4b679",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-session-dark.png",
       "screen": "conversation",
-      "sha256": "287842785623977d2fab343db1bcbd28e3c8fbb5b65cf0ed6e256e49e402dad3",
+      "sha256": "9991a2d2ec52c62ffb5dc0deb092deb896e085ad5c8c9004262a6e13c7da5269",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-session-light.png",
       "screen": "conversation",
-      "sha256": "6a9ae496571508e86e8fab5b124e9733564e9acbd80ac4629e0d1c3835049089",
+      "sha256": "85b8ffdd9281a8a0f171ea61597b936e1d341a69dc893d237c6e5b8f9e9f12bf",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-dark.png",
       "screen": "conversation",
-      "sha256": "ddb61259f45cdb32f02c4674c71428900db756f94e239ec690da1d4a0b3486e3",
+      "sha256": "e60938e45c03368160047a8c0c42d9bc531fb379f1689c648c26674e2c376764",
       "width": 1440,
       "height": 1000
     },
     {
       "file": "terminal-turn-light.png",
       "screen": "conversation",
-      "sha256": "ab3d5128ce8f7ab092500d1cabe2bcadbeb28a393d2a1303de1f07c7e65428e6",
+      "sha256": "e6d0385fd4ac16b47c453d104f8dd32e02097fcc54b117829da6a62d5e81144a",
       "width": 1440,
       "height": 1000
     }

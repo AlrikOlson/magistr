@@ -16,8 +16,12 @@
 //!   keeps a long edge out of every real vertex's body on the ranks it
 //!   crosses, and between ranks there is nothing to hit.
 //! * **Crossings are reduced**, never arbitrarily: alternating barycentre
-//!   sweeps plus adjacent swaps, and the best ordering seen is the one
-//!   kept ([`DagLayout::crossings`] reports it).
+//!   and median sweeps plus sifting, and the best ordering seen is the
+//!   one kept ([`DagLayout::crossings`] reports it).
+//! * **Layers are balanced.** The tallest rank sets the drawing's height
+//!   at the minimum gap; a shorter rank spreads its vertices over that
+//!   height (never past [`DagLayout::MAX_GAP`]) rather than packing them
+//!   at the minimum, so a column with room uses it.
 //! * **Determinism.** The same input yields the same output, and ties
 //!   break on the caller's `order`, so a re-seed that changes nothing
 //!   moves nothing.
@@ -43,6 +47,12 @@ pub(crate) struct DagLayout {
 impl DagLayout {
     /// The closest two vertices on one rank may sit, in rows.
     pub const MIN_GAP: f32 = 1.0;
+    /// The furthest apart the balancing spreads a rank's neighbours
+    /// when the rank has room. Past this a pair no longer reads as one,
+    /// and on the dense Harbor fixture a cap of two rows grew the whole
+    /// drawing from 27 to 31 rows (each spread layer centres on its own
+    /// neighbours) and shrank the fit; one and a half keeps the height.
+    const MAX_GAP: f32 = 1.5;
 
     /// Pull every vertex that has dependents toward them: a vertex's rank
     /// becomes the rank just before its earliest dependent when that is
@@ -179,30 +189,25 @@ impl DagLayout {
         let mut positions = orders(&layers, vertices);
         let mut best = layers.clone();
         let mut best_crossings = crossings(&segments, &vertex_ranks, &positions);
-        for _ in 0..8 {
-            for layer in &mut layers {
-                reorder(layer, &before, &mut positions);
-            }
-            for layer in layers.iter_mut().rev() {
-                reorder(layer, &after, &mut positions);
-            }
-            for layer in &mut layers {
-                for index in 1..layer.len() {
-                    let (a, b) = (layer[index - 1], layer[index]);
-                    if pair_cost(b, a, &before, &after, &positions)
-                        < pair_cost(a, b, &before, &after, &positions)
-                    {
-                        layer.swap(index - 1, index);
-                        positions[a] = index as f32;
-                        positions[b] = (index - 1) as f32;
-                    }
-                }
-            }
-            let score = crossings(&segments, &vertex_ranks, &positions);
+        let mut keep_best = |layers: &Vec<Vec<usize>>, positions: &[f32]| {
+            let score = crossings(&segments, &vertex_ranks, positions);
             if score < best_crossings {
                 best_crossings = score;
-                best.clone_from(&layers);
+                best.clone_from(layers);
             }
+        };
+        for sweep in 0..SWEEPS {
+            let median = sweep % 2 == 1;
+            for layer in &mut layers {
+                reorder(layer, &before, &mut positions, median);
+            }
+            transpose(&mut layers, &before, &after, &mut positions);
+            keep_best(&layers, &positions);
+            for layer in layers.iter_mut().rev() {
+                reorder(layer, &after, &mut positions, median);
+            }
+            transpose(&mut layers, &before, &after, &mut positions);
+            keep_best(&layers, &positions);
         }
         layers = best;
         let tallest = layers.iter().map(Vec::len).max().unwrap_or(0);
@@ -213,12 +218,27 @@ impl DagLayout {
                 positions[at] += offset;
             }
         }
+        // Layer-width balancing: the tallest layer fixes the drawing's
+        // height at the minimum gap, and every shorter layer spreads its
+        // vertices over that same height — capped at `MAX_GAP`, so a
+        // pair of siblings still reads as a pair and the spread layers,
+        // each centred on its own neighbours, do not push the drawing
+        // taller — instead of packing at the minimum wherever its
+        // neighbours' means happen to meet.
+        let height = tallest.saturating_sub(1) as f32 * Self::MIN_GAP;
+        let gaps: Vec<f32> = layers
+            .iter()
+            .map(|layer| match layer.len() {
+                0 | 1 => Self::MIN_GAP,
+                len => (height / (len - 1) as f32).clamp(Self::MIN_GAP, Self::MAX_GAP),
+            })
+            .collect();
         for _ in 0..4 {
-            for layer in &layers {
-                align(layer, &before, &mut positions);
+            for (layer, &gap) in layers.iter().zip(&gaps) {
+                align(layer, &before, &mut positions, gap);
             }
-            for layer in layers.iter().rev() {
-                align(layer, &after, &mut positions);
+            for (layer, &gap) in layers.iter().zip(&gaps).rev() {
+                align(layer, &after, &mut positions, gap);
             }
         }
         let top = positions.iter().copied().reduce(f32::min).unwrap_or(0.0);
@@ -305,24 +325,112 @@ fn orders(layers: &[Vec<usize>], count: usize) -> Vec<f32> {
     positions
 }
 
-fn reorder(layer: &mut [usize], neighbours: &[Vec<usize>], positions: &mut [f32]) {
-    let mean = |at: usize| {
-        let links = &neighbours[at];
-        if links.is_empty() {
-            positions[at]
-        } else {
-            links.iter().map(|&n| positions[n]).sum::<f32>() / links.len() as f32
-        }
-    };
+/// How many alternating down-and-up sweeps the ordering runs; each
+/// sweep alternates the barycentre and the median measure, and the
+/// best ordering any half-sweep reaches is the one kept.
+const SWEEPS: usize = 12;
+
+/// Where `at`'s neighbours on the adjacent rank sit: their mean, or
+/// their median, which ignores one far-flung neighbour where the mean
+/// would drag the vertex toward it. A vertex with no neighbours on
+/// that side keeps its row.
+fn measure(at: usize, neighbours: &[Vec<usize>], positions: &[f32], median: bool) -> f32 {
+    let links = &neighbours[at];
+    if links.is_empty() {
+        return positions[at];
+    }
+    if !median {
+        return links.iter().map(|&n| positions[n]).sum::<f32>() / links.len() as f32;
+    }
+    let mut rows: Vec<f32> = links.iter().map(|&n| positions[n]).collect();
+    rows.sort_by(f32::total_cmp);
+    let middle = rows.len() / 2;
+    if rows.len() % 2 == 1 {
+        rows[middle]
+    } else {
+        f32::midpoint(rows[middle - 1], rows[middle])
+    }
+}
+
+fn reorder(layer: &mut [usize], neighbours: &[Vec<usize>], positions: &mut [f32], median: bool) {
     layer.sort_by(|&a, &b| {
-        mean(a)
-            .total_cmp(&mean(b))
+        measure(a, neighbours, positions, median)
+            .total_cmp(&measure(b, neighbours, positions, median))
             .then(positions[a].total_cmp(&positions[b]))
     });
     for (row, &at) in layer.iter().enumerate() {
         positions[at] = row as f32;
     }
 }
+
+/// Sift every vertex of every layer to the row where its edges cross
+/// the fewest of its layer-mates' edges on both neighbouring ranks,
+/// until a full pass over every layer moves nothing. A vertex's
+/// crossings with a layer-mate depend only on which of the two is
+/// higher, so the cost of every row is one prefix sum over the
+/// layer and a move never worsens the total.
+fn transpose(
+    layers: &mut [Vec<usize>],
+    before: &[Vec<usize>],
+    after: &[Vec<usize>],
+    positions: &mut [f32],
+) {
+    let mut improved = true;
+    let mut rounds = 0;
+    while improved && rounds < SIFT_ROUNDS {
+        improved = false;
+        rounds += 1;
+        for layer in layers.iter_mut() {
+            for index in 0..layer.len() {
+                let at = layer[index];
+                // Crossings with each layer-mate when `at` is above it,
+                // and when it is below.
+                let (above, below): (Vec<usize>, Vec<usize>) = layer
+                    .iter()
+                    .map(|&other| {
+                        if other == at {
+                            (0, 0)
+                        } else {
+                            (
+                                pair_cost(at, other, before, after, positions),
+                                pair_cost(other, at, before, after, positions),
+                            )
+                        }
+                    })
+                    .unzip();
+                // Row `row` puts `at` below the layer-mates before it
+                // and above the rest; each row costs the previous row
+                // with one mate's relation flipped.
+                let mates: Vec<usize> = (0..layer.len()).filter(|&i| i != index).collect();
+                let mut costs = Vec::with_capacity(layer.len());
+                let mut cost = mates.iter().map(|&mate| above[mate]).sum::<usize>();
+                costs.push(cost);
+                for &mate in &mates {
+                    cost = cost + below[mate] - above[mate];
+                    costs.push(cost);
+                }
+                let (mut best_row, mut best_cost) = (index, costs[index]);
+                for (row, &cost) in costs.iter().enumerate() {
+                    if cost < best_cost {
+                        (best_row, best_cost) = (row, cost);
+                    }
+                }
+                if best_row != index {
+                    let vertex = layer.remove(index);
+                    layer.insert(best_row, vertex);
+                    for (row, &v) in layer.iter().enumerate() {
+                        positions[v] = row as f32;
+                    }
+                    improved = true;
+                }
+            }
+        }
+    }
+}
+
+/// How many full sifting passes the ordering allows before it settles
+/// for what it has — a bound on the per-frame work, not a target.
+const SIFT_ROUNDS: usize = 6;
 
 fn pair_cost(
     a: usize,
@@ -365,7 +473,10 @@ fn crossings(edges: &[(usize, usize)], ranks: &[usize], positions: &[f32]) -> us
         .sum()
 }
 
-fn align(layer: &[usize], neighbours: &[Vec<usize>], positions: &mut [f32]) {
+/// Pull each vertex of `layer` toward its neighbours' mean rows, then
+/// walk the layer top to bottom keeping consecutive vertices `gap`
+/// apart and recentre so the layer as a whole is not pushed down.
+fn align(layer: &[usize], neighbours: &[Vec<usize>], positions: &mut [f32], gap: f32) {
     let desired: Vec<_> = layer
         .iter()
         .map(|&at| {
@@ -380,7 +491,7 @@ fn align(layer: &[usize], neighbours: &[Vec<usize>], positions: &mut [f32]) {
     let mut previous = f32::NEG_INFINITY;
     let mut displacement = 0.0;
     for (&at, &want) in layer.iter().zip(&desired) {
-        positions[at] = want.max(previous + DagLayout::MIN_GAP);
+        positions[at] = want.max(previous + gap);
         displacement += positions[at] - want;
         previous = positions[at];
     }
