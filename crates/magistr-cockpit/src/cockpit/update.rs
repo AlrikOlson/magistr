@@ -538,10 +538,22 @@ fn loop_event(model: &mut Model, event: LoopEvent) -> Vec<Cmd> {
             if model.session.notice != Some("Work failed") {
                 model.session.notice = Some("Stopped");
             }
-            model
+            // A failure is said once: when the reason the work stopped is the
+            // error already on the screen, the closing note does not repeat it.
+            let shown = format!("error: {why}");
+            let repeats = model
                 .session
                 .turn
-                .push_note(&format!("Work stopped: {why}"));
+                .lines()
+                .iter()
+                .rev()
+                .find(|line| matches!(line.kind(), crate::turn::LineKind::Error))
+                .is_some_and(|line| line.text() == shown);
+            model.session.turn.push_note(&if repeats {
+                "Work stopped.".to_owned()
+            } else {
+                format!("Work stopped: {why}")
+            });
             return Vec::new();
         }
         other => other,

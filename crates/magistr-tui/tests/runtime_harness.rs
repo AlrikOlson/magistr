@@ -238,7 +238,12 @@ async fn an_early_loop_stop_survives_graphics_startup_with_its_reason_and_draft(
                     .map(|text| (text.text(), placed))
             })
             .collect();
-        let expected = format!("Work stopped: {reason}");
+        // A failure is said once, as the error; a plain stop in the closing note.
+        let expected = if failed {
+            format!("error: {reason}")
+        } else {
+            format!("Work stopped: {reason}")
+        };
         let (_, reason_place) = visible
             .iter()
             .find(|(text, _)| *text == expected)
