@@ -1221,7 +1221,9 @@ pub enum GuardEvent {
     /// End of the assistant's turn (Stop hook): a shipped objective's own
     /// roadmap chunk must be closed; unrelated worktree changes are preserved.
     Stop,
-    /// A Bash tool call (PreToolUse hook): `git commit` needs green, verified gates.
+    /// A Bash tool call (PreToolUse hook): `git commit` needs green, verified
+    /// gates, and grep, rg, find or sed over the workspace is routed to
+    /// workbench-mcp when the project declares it.
     Commit,
     /// A file-editing tool call (PreToolUse hook on Edit/Write/MultiEdit/
     /// NotebookEdit): a frozen tree (`.magistr/legacy-tui-ratchet.json`) is

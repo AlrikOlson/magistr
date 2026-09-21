@@ -202,6 +202,65 @@ fn commit_allows_a_shipped_objective_with_its_green_checks() {
     ));
 }
 
+// ── Bash routing to workbench ───────────────────────────────────────
+
+fn with_workbench(command: &str) -> GuardInput {
+    GuardInput {
+        command: Some(command.into()),
+        workbench: true,
+        project_dir: Some(PathBuf::from("/proj")),
+        ..in_flight()
+    }
+}
+
+#[test]
+fn a_workspace_grep_is_routed_to_workbench_whatever_the_gates_say() {
+    let input = GuardInput {
+        checks: vec![check(true, false, true)],
+        ..with_workbench("grep -rn foo src")
+    };
+    match evaluate(GuardEvent::Commit, &input) {
+        GuardVerdict::Block(reason) => assert!(reason.contains("workbench-mcp"), "{reason}"),
+        other => panic!("expected Block, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_search_outside_the_workspace_passes_even_with_workbench() {
+    let input = with_workbench("find /elsewhere -name speech");
+    assert_eq!(
+        evaluate(GuardEvent::Commit, &input),
+        GuardVerdict::Allow(None)
+    );
+}
+
+#[test]
+fn nothing_is_routed_without_workbench_or_a_project_root() {
+    let no_workbench = GuardInput {
+        workbench: false,
+        ..with_workbench("grep -rn foo src")
+    };
+    let no_root = GuardInput {
+        project_dir: None,
+        ..with_workbench("grep -rn foo src")
+    };
+    for input in [no_workbench, no_root] {
+        assert_eq!(
+            evaluate(GuardEvent::Commit, &input),
+            GuardVerdict::Allow(None)
+        );
+    }
+}
+
+#[test]
+fn a_git_commit_is_gated_and_not_routed() {
+    let input = with_workbench("git commit -m x");
+    match evaluate(GuardEvent::Commit, &input) {
+        GuardVerdict::Block(reason) => assert!(reason.contains("verified"), "{reason}"),
+        other => panic!("expected Block, got {other:?}"),
+    }
+}
+
 // ── is_git_commit ───────────────────────────────────────────────────
 
 #[test]

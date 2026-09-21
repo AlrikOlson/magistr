@@ -4,9 +4,9 @@
 //! Reads the hook's JSON on stdin (only when stdin is not a terminal), the
 //! ship/roadmap state through the in-process think-and-ship engines, the
 //! project's frozen-tree declaration
-//! (`.magistr/legacy-gui-ratchet.json`), then exits 2 with the reason on
-//! stderr to block the event. A project without the native roadmap backend
-//! is never blocked.
+//! (`.magistr/legacy-gui-ratchet.json`) and whether `.mcp.json` declares
+//! workbench-mcp, then exits 2 with the reason on stderr to block the event.
+//! A project without the native roadmap backend is never blocked.
 
 use std::io::{IsTerminal, Read};
 use std::path::{Component, Path, PathBuf};
@@ -26,6 +26,12 @@ const BLOCK_EXIT_CODE: i32 = 2;
 /// the next reader learns which.
 const RATCHET_FILE: &str = ".magistr/legacy-gui-ratchet.json";
 
+/// The Claude Code MCP declaration `magistr init` scaffolds.
+const MCP_FILE: &str = ".mcp.json";
+
+/// The server key under `mcpServers` for the workspace tools.
+const WORKBENCH_SERVER: &str = "workbench-mcp";
+
 pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
     let given_dir = dir.to_path_buf();
     let dir = dir.canonicalize().unwrap_or_else(|_| dir.to_path_buf());
@@ -36,6 +42,8 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
         .as_deref()
         .and_then(|raw| relative_write_path(&[&dir, &given_dir], raw));
     input.frozen = read_frozen(&dir);
+    input.workbench = workbench_declared(&dir);
+    input.project_dir = Some(dir.clone());
 
     match crate::roadmap::open_native_reader(&dir) {
         Some(engines) => {
@@ -182,6 +190,18 @@ pub(crate) fn read_frozen(dir: &Path) -> Option<FrozenTree> {
         unlock,
         replacement,
     })
+}
+
+/// Does the project's `.mcp.json` declare a `workbench-mcp` server? Only
+/// then is a workspace grep, rg, find or sed routed to it; a project without
+/// workbench keeps the shell tools, and an unreadable file counts as none.
+pub(crate) fn workbench_declared(dir: &Path) -> bool {
+    let Ok(raw) = std::fs::read_to_string(dir.join(MCP_FILE)) else {
+        return false;
+    };
+    serde_json::from_str::<serde_json::Value>(&raw)
+        .ok()
+        .is_some_and(|json| json["mcpServers"][WORKBENCH_SERVER].is_object())
 }
 
 /// Fold the engines' `ship_status` and `roadmap_status` documents — the same
