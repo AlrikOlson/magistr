@@ -264,6 +264,36 @@ fn this_repo_declares_the_tauri_gui_frozen() {
 }
 
 #[test]
+fn workbench_declared_reads_the_mcp_declaration() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    assert!(!workbench_declared(tmp.path()), "no file, no workbench");
+
+    let file = tmp.path().join(MCP_FILE);
+    std::fs::write(
+        &file,
+        r#"{"mcpServers": {"magistr": {"command": "magistr"}}}"#,
+    )
+    .expect("write");
+    assert!(
+        !workbench_declared(tmp.path()),
+        "magistr alone is not workbench"
+    );
+
+    std::fs::write(
+        &file,
+        r#"{"mcpServers": {"workbench-mcp": {"command": "magistr", "args": ["mcp-launch", "workbench-mcp", "."]}}}"#,
+    )
+    .expect("write");
+    assert!(workbench_declared(tmp.path()));
+
+    std::fs::write(&file, "not json").expect("write");
+    assert!(
+        !workbench_declared(tmp.path()),
+        "unreadable declaration routes nothing"
+    );
+}
+
+#[test]
 fn apply_engine_state_reads_the_objective_scope() {
     let ship = json!({
         "objective": {"status": "active", "scope": "chunk:gui2-0-freeze-tauri — legacy-gui freeze"},

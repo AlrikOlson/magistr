@@ -125,6 +125,7 @@ mod cmd_lint;
 mod cmd_migrate;
 mod cmd_validate_ci;
 mod guard_decision;
+mod guard_routing;
 mod parse_language_or_unknown;
 
 pub use cmd_doctor::cmd_doctor;
