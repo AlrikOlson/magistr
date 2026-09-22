@@ -70,11 +70,22 @@ pub async fn cmd_init_interview(
             .unwrap_or_default(),
         None => detect::detect_stack(&dir).suggest()?,
     };
+    let mut layers = inputs.preset_layers();
+    layers.project_root = Some(
+        tree.as_ref()
+            .and_then(|tree| {
+                tree.projects
+                    .first()
+                    .map(|project| tree.root.join(&project.path))
+            })
+            .unwrap_or_else(|| dir.clone())
+            .into_boxed_path(),
+    );
     let preset = config::preset::load_preset_layered(
         stack.language,
         stack.framework,
         stack.package_manager,
-        &inputs.preset_layers(),
+        &layers,
     )
     .unwrap_or_else(|_| config::preset::fallback_preset());
 
@@ -136,7 +147,7 @@ pub async fn cmd_init_interview(
         }
     }
 
-    commands::misc::print_post_scaffold_validation(&pipeline.preset.quality_gate, &dir).await;
+    commands::misc::print_post_scaffold_validation(&dir).await;
 
     eprintln!();
     eprintln!("{}", fmt::bold("magistr scaffolded successfully"));

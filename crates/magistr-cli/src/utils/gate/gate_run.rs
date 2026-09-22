@@ -69,6 +69,9 @@ impl GateRun {
                     code: self.exit_code,
                 }
             }
+            GateVerdict::Unconfigured => CheckExecution::LaunchFailed {
+                reason: "no command configured".into(),
+            },
             GateVerdict::TimedOut => CheckExecution::TimedOut,
             GateVerdict::Cancelled => CheckExecution::Cancelled,
         }
@@ -135,6 +138,7 @@ impl GateRun {
         let secs = self.duration.as_secs_f64();
         match self.verdict {
             GateVerdict::Passed => format!("{} passed in {secs:.1}s", self.name),
+            GateVerdict::Unconfigured => format!("{} is not configured; no check ran", self.name),
             GateVerdict::Failed => {
                 format!(
                     "{} failed (exit {}) in {secs:.1}s",

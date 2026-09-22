@@ -34,6 +34,22 @@ pub(crate) async fn run_gate(
     cancel: &CancellationToken,
     sink: impl FnMut(&[u8]) + Send,
 ) -> GateRun {
+    if command.trim().is_empty() {
+        let output = "not configured; no check ran".to_owned();
+        let mut sink = sink;
+        sink(output.as_bytes());
+        return GateRun {
+            name: name.to_owned(),
+            command: String::new(),
+            required,
+            verdict: GateVerdict::Unconfigured,
+            exit_code: -1,
+            first_exit_code: None,
+            output,
+            rows: Vec::new(),
+            duration: std::time::Duration::ZERO,
+        };
+    }
     let result = run_command_live(command, dir, timeout_secs, cancel, sink).await;
 
     let output = if result.stderr.is_empty() {

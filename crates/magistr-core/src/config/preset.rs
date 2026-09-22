@@ -21,7 +21,8 @@ const DART_PRESET: &str = include_str!("../../presets/dart.json");
 const PHP_PRESET: &str = include_str!("../../presets/php.json");
 const SCALA_PRESET: &str = include_str!("../../presets/scala.json");
 
-/// Load the embedded preset for a given language.
+/// Load proposed defaults for explicit setup choices, not observed project facts.
+/// Existing project setup must use `load_preset_layered` with `project_root`.
 pub fn load_preset(lang: Language) -> Result<Preset> {
     let json = preset_json(lang)?;
     serde_json::from_str(json).map_err(|e| MagistrError::Config(format!("preset parse error: {e}")))

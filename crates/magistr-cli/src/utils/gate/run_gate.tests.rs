@@ -13,6 +13,21 @@ fn never() -> CancellationToken {
 fn quiet(_: &[u8]) {}
 
 #[tokio::test]
+async fn unconfigured_gate_is_never_passing_evidence() {
+    for command in ["", "   "] {
+        let gate = run_gate("test", command, true, &dir(), 10, &never(), quiet).await;
+        assert_eq!(gate.verdict, GateVerdict::Unconfigured);
+        assert!(!gate.passed());
+        assert!(!gate.verdict.is_evidence());
+        assert!(gate.output.contains("no check ran"));
+        assert!(matches!(
+            gate.execution(),
+            magistr_engine::native::CheckExecution::LaunchFailed { .. }
+        ));
+    }
+}
+
+#[tokio::test]
 async fn a_clean_exit_passes_and_keeps_its_command() {
     let gate = run_gate("check", "true", true, &dir(), 10, &never(), quiet).await;
     assert_eq!(gate.verdict, GateVerdict::Passed);

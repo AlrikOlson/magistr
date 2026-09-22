@@ -96,7 +96,12 @@ fn standard_specs(config: &ProjectConfig, gate: &str) -> Vec<GateSpec> {
             "test" => &arch.quality_gate.test,
             _ => &arch.quality_gate.lint,
         };
-        if raw.is_empty() {
+        if raw.trim().is_empty() {
+            specs.push(GateSpec {
+                name: format!("{gate}:{}", arch.id),
+                command: String::new(),
+                required: true,
+            });
             continue;
         }
         let root = arch.root.to_string_lossy();
@@ -124,11 +129,6 @@ fn standard_specs(config: &ProjectConfig, gate: &str) -> Vec<GateSpec> {
             command,
             required: true,
         });
-    }
-    if specs.is_empty() {
-        // Every archetype left this gate blank — the top-level command is
-        // still the project's answer.
-        return vec![top_spec()];
     }
     specs
 }

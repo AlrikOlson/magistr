@@ -1,6 +1,5 @@
 use crate::scaffold;
 use crate::scaffold::ScaffoldSelections;
-use crate::scaffold::research::{RecommendedFormat, RecommendedQualityGate, RecommendedTesting};
 use crate::types;
 use crate::utils;
 
@@ -12,10 +11,21 @@ pub fn build_template_vars(
 ) -> std::collections::HashMap<String, String> {
     log_ai_fallback_status(selections, preset);
 
-    let (check_cmd, test_cmd, lint_cmd) =
-        resolve_quality_gate(&selections.quality_gate, &preset.quality_gate);
-    let (format_cmd, format_extensions) = resolve_format(&selections.format, &preset.format);
-    let (companion_pattern, test_dir) = resolve_testing(&selections.testing, &preset.testing);
+    let mut preset = preset.clone();
+    selections.apply_commands(
+        &mut preset.quality_gate,
+        &mut preset.format,
+        &mut preset.testing,
+    );
+    let (check_cmd, test_cmd, lint_cmd) = (
+        preset.quality_gate.check.as_str(),
+        preset.quality_gate.test.as_str(),
+        preset.quality_gate.lint.as_str(),
+    );
+    let format_cmd = preset.format.command.as_str();
+    let format_extensions = format_quoted_list(&preset.format.extensions, ", ");
+    let companion_pattern = preset.testing.companion_pattern.as_str();
+    let test_dir = preset.testing.test_dir.as_str();
 
     let allowed_tools = format_quoted_list(&preset.allowed_tools, ",\n      ");
     let selected_agents = selections.selected_agents.join(",");
@@ -55,60 +65,6 @@ pub fn build_template_vars(
         ("ai_tips", &ai_tips),
         ("reference_repos", &reference_repos),
     ])
-}
-
-// ── Resolution helpers ─────────────────────────────────────────────────
-
-/// Resolve quality gate commands: AI recommendation wins over preset.
-fn resolve_quality_gate<'a>(
-    ai: &'a Option<RecommendedQualityGate>,
-    preset: &'a types::QualityGate,
-) -> (&'a str, &'a str, &'a str) {
-    let check = ai
-        .as_ref()
-        .and_then(|qg| qg.check.as_deref())
-        .unwrap_or(&preset.check);
-    let test = ai
-        .as_ref()
-        .and_then(|qg| qg.test.as_deref())
-        .unwrap_or(&preset.test);
-    let lint = ai
-        .as_ref()
-        .and_then(|qg| qg.lint.as_deref())
-        .unwrap_or(&preset.lint);
-    (check, test, lint)
-}
-
-/// Resolve format config: AI recommendation wins over preset.
-fn resolve_format<'a>(
-    ai: &'a Option<RecommendedFormat>,
-    preset: &'a types::FormatConfig,
-) -> (&'a str, String) {
-    let cmd = ai
-        .as_ref()
-        .and_then(|f| f.command.as_deref())
-        .unwrap_or(&preset.command);
-    let exts = ai
-        .as_ref()
-        .and_then(|f| f.extensions.as_ref())
-        .unwrap_or(&preset.extensions);
-    (cmd, format_quoted_list(exts, ", "))
-}
-
-/// Resolve testing config: AI recommendation wins over preset.
-fn resolve_testing<'a>(
-    ai: &'a Option<RecommendedTesting>,
-    preset: &'a types::TestingConfig,
-) -> (&'a str, &'a str) {
-    let companion = ai
-        .as_ref()
-        .and_then(|t| t.companion_pattern.as_deref())
-        .unwrap_or(&preset.companion_pattern);
-    let dir = ai
-        .as_ref()
-        .and_then(|t| t.test_dir.as_deref())
-        .unwrap_or(&preset.test_dir);
-    (companion, dir)
 }
 
 // ── Formatting helpers ─────────────────────────────────────────────────

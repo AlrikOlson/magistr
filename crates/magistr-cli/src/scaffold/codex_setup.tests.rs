@@ -26,7 +26,7 @@ use std::collections::BTreeMap;
 fn vars() -> HashMap<String, String> {
     ScaffoldPipeline::headless(crate::types::Stack::default())
         .with_agents(&["codex".to_owned()])
-        .template_vars()
+        .template_vars(tempfile::tempdir().unwrap().path())
 }
 
 fn setup(dir: &Path) {

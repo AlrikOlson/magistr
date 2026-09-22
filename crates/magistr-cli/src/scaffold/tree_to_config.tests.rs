@@ -61,7 +61,7 @@ fn single_project_produces_one_archetype() {
     assert!(result.archetypes[0].framework.is_none());
     assert_eq!(result.archetypes[0].role, ProjectRole::Backend);
     assert_eq!(result.archetypes[0].root, PathBuf::from("."));
-    assert!(!result.archetypes[0].quality_gate.check.is_empty());
+    assert!(result.archetypes[0].quality_gate.check.is_empty());
 }
 
 #[test]
@@ -141,8 +141,15 @@ fn root_project_with_no_name_uses_default() {
 }
 
 #[test]
-fn preset_populates_quality_gate() {
-    let tree = make_tree(vec![rust_project(".", "my-app")], vec![]);
+fn manifest_populates_builtin_quality_gate() {
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(
+        tmp.path().join("Cargo.toml"),
+        "[package]\nname=\"my-app\"\nversion=\"0.1.0\"",
+    )
+    .unwrap();
+    let mut tree = make_tree(vec![rust_project(".", "my-app")], vec![]);
+    tree.root = tmp.path().into();
     let result = tree_to_archetypes(&tree, None);
 
     let qg = &result.archetypes[0].quality_gate;
@@ -164,15 +171,12 @@ fn preset_populates_quality_gate() {
 }
 
 #[test]
-fn typescript_preset_populates_format() {
+fn typescript_without_tool_evidence_leaves_format_unconfigured() {
     let tree = make_tree(vec![ts_project(".", "web-app", Framework::Next)], vec![]);
     let result = tree_to_archetypes(&tree, None);
 
     let fmt = &result.archetypes[0].format;
-    assert!(
-        !fmt.command.is_empty(),
-        "format command should be populated"
-    );
+    assert!(fmt.command.is_empty(), "no formatter was observed");
 }
 
 #[test]
@@ -221,8 +225,11 @@ fn dual_stack_root_gets_language_suffixed_id_and_real_commands() {
     // The twin is distinguished by its language, not a numeric suffix.
     assert_eq!(result.archetypes[1].id, "myapp-typescript");
     // Real commands: the repo's package manager is bun, not npm's defaults…
-    assert_eq!(result.archetypes[1].quality_gate.test, "bun test");
-    assert_eq!(result.archetypes[1].quality_gate.lint, "bun run lint");
+    assert!(result.archetypes[1].quality_gate.test.is_empty());
+    assert_eq!(
+        result.archetypes[1].quality_gate.lint,
+        "./node_modules/.bin/biome check ."
+    );
     // …and its formatter is biome — handing it prettier would rewrite the repo.
     assert!(
         result.archetypes[1].format.command.contains("biome"),
@@ -232,7 +239,7 @@ fn dual_stack_root_gets_language_suffixed_id_and_real_commands() {
 }
 
 #[test]
-fn a_repo_without_bun_or_biome_keeps_the_preset_commands() {
+fn a_repo_without_tool_evidence_leaves_commands_unconfigured() {
     let tree = make_tree(
         vec![{
             let mut p = ts_project("apps/web", "web", Framework::Next);
@@ -242,6 +249,6 @@ fn a_repo_without_bun_or_biome_keeps_the_preset_commands() {
         vec![],
     );
     let result = tree_to_archetypes(&tree, None);
-    assert_eq!(result.archetypes[0].quality_gate.test, "npm test");
-    assert!(result.archetypes[0].format.command.contains("prettier"));
+    assert!(result.archetypes[0].quality_gate.test.is_empty());
+    assert!(result.archetypes[0].format.command.is_empty());
 }

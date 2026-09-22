@@ -17,11 +17,11 @@ fn test_stack() -> Stack {
 #[test]
 fn headless_produces_template_vars() {
     let pipeline = ScaffoldPipeline::headless(test_stack());
-    let vars = pipeline.template_vars();
+    let vars = pipeline.template_vars(tempfile::tempdir().unwrap().path());
 
     assert_eq!(vars.get("project_name").unwrap(), "test-project");
     assert_eq!(vars.get("language").unwrap(), "rust");
-    assert!(!vars.get("check_cmd").unwrap().is_empty());
+    assert!(vars.get("check_cmd").unwrap().is_empty());
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn with_selections_includes_ai_overrides() {
     assert_eq!(pipeline.overrides().len(), 1);
     assert_eq!(pipeline.overrides().get("CLAUDE.md").unwrap(), "# Custom");
 
-    let vars = pipeline.template_vars();
+    let vars = pipeline.template_vars(tempfile::tempdir().unwrap().path());
     assert!(vars.get("ai_conventions").unwrap().contains("Use Result"));
 }
 

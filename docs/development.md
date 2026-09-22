@@ -56,6 +56,20 @@ wrangler pages deploy dist --project-name magistr --branch main
 
 Verify [magistr.dev](https://magistr.dev), `/docs/installation` and `/robots.txt` after a deploy.
 
+## Setting up project checks
+
+Setup reads project manifests, scripts and tool configuration before writing
+check commands. It does not assume npm or install test, lint or formatting tools.
+For JavaScript and TypeScript, a declared package manager, lockfile or Bun
+configuration identifies the runner. Declared check, test, lint and format scripts
+take priority over direct commands for observed tools.
+
+Checks without enough evidence remain empty in `.magistr/project.json` and are
+reported as not configured. They cannot provide passing verification. Choose
+commands in the setup interview or supply project/user preset overrides when
+the project uses a different command. Language presets are proposals; they are
+not evidence that a project provides those commands.
+
 ## Contributions
 
 Keep changes focused, preserve crate and client boundaries, and update the short public docs when a command or supported surface changes. See [CONTRIBUTING.md](../CONTRIBUTING.md).

@@ -244,9 +244,18 @@ pub(crate) fn run_interview(
         true,
     )?;
     eprintln!("  Quality gate commands:");
-    eprintln!("    check:  {}", fmt::cyan(&preset.quality_gate.check));
-    eprintln!("    test:   {}", fmt::cyan(&preset.quality_gate.test));
-    eprintln!("    lint:   {}", fmt::cyan(&preset.quality_gate.lint));
+    for (name, command) in [
+        ("check", &preset.quality_gate.check),
+        ("test", &preset.quality_gate.test),
+        ("lint", &preset.quality_gate.lint),
+    ] {
+        let display = if command.trim().is_empty() {
+            "not configured"
+        } else {
+            command
+        };
+        eprintln!("    {name}: {}", fmt::cyan(display));
+    }
     let quality_gate = if prompt_yes_no(reader, "Customize gate commands?", false)? {
         let check = prompt_text_default(reader, "check:", &preset.quality_gate.check)?;
         let test = prompt_text_default(reader, "test:", &preset.quality_gate.test)?;

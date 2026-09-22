@@ -125,7 +125,7 @@ fn repair_updates_reasoning_guidance_and_preserves_customized_files() {
         let vars =
             super::super::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
                 .with_agents(&["codex".to_owned(), "claude".to_owned()])
-                .template_vars();
+                .template_vars(tmp.path());
         super::super::generate_with_result(
             tmp.path(),
             &vars,
@@ -210,7 +210,7 @@ fn repair_updates_iteration_recovery_but_preserves_customized_codex_skills() {
         let vars =
             super::super::pipeline::ScaffoldPipeline::headless(crate::types::Stack::default())
                 .with_agents(&["codex".to_owned(), "claude".to_owned()])
-                .template_vars();
+                .template_vars(tmp.path());
         super::super::generate_with_result(
             tmp.path(),
             &vars,

@@ -11,6 +11,9 @@ This includes check, test, lint, and required custom gates; running only the
 three standard shell commands is incomplete. Honor explicitly requested
 narrower gates or archetypes and name that limitation in the result.
 
+An empty command means the check is not configured. Report the missing check;
+never substitute a passing no-op or count it as successful verification.
+
 Report each gate's actual result, exit code, actionable failure details, and
 whether it was recorded in ship state. Outside an active task, `recorded: false`
 is expected and does not negate the command result. Do not create or reset

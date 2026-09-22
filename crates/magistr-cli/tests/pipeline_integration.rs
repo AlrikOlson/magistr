@@ -68,6 +68,59 @@ fn sanitize_json_backslashes(input: &str) -> String {
     result
 }
 
+#[test]
+fn bun_without_lockfile_generates_only_declared_checks_and_explicit_choices() {
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path();
+    write_file(
+        dir,
+        "package.json",
+        r#"{"name":"partial-tools","packageManager":"bun@1.2","scripts":{"test":"bun test","release":"bun build index.ts"}}"#,
+    );
+    write_file(dir, "index.ts", "export const value = 1;");
+    let stack = detect_stack(dir).unwrap();
+    assert_eq!(stack.package_manager, magistr::types::PackageManager::Bun);
+    assert_eq!(stack.test_framework, magistr::types::TestFramework::Unknown);
+    let tree = magistr_core::detection::detect::build_project_tree(dir).unwrap();
+    let mut pipeline = ScaffoldPipeline::polyglot(&tree);
+    pipeline.selections.quality_gate = Some(magistr::scaffold::research::RecommendedQualityGate {
+        check: Some("bun run explicit-check.ts".into()),
+        test: None,
+        lint: None,
+    });
+    pipeline.generate(dir).unwrap();
+    let pj = read_project_json(dir);
+    for gates in [&pj["quality_gate"], &pj["archetypes"][0]["quality_gate"]] {
+        assert_eq!(gates["check"], "bun run explicit-check.ts");
+        assert_eq!(gates["test"], "bun run test");
+        assert_eq!(gates["lint"], "");
+    }
+    assert_eq!(pj["format"]["command"], "");
+}
+
+#[test]
+fn missing_project_tools_do_not_enter_generated_command_allowlist() {
+    let tmp = TempDir::new().unwrap();
+    write_file(
+        tmp.path(),
+        "package.json",
+        r#"{"name":"bare","scripts":{"smoke":"bun run index.ts"}}"#,
+    );
+    write_file(tmp.path(), "index.ts", "export const value = 1;");
+    ScaffoldPipeline::headless(detect_stack(tmp.path()).unwrap())
+        .generate(tmp.path())
+        .unwrap();
+    let pj = read_project_json(tmp.path());
+    assert_eq!(
+        pj["quality_gate"],
+        serde_json::json!({"check":"","test":"","lint":""})
+    );
+    assert_eq!(pj["format"]["command"], "");
+    let config = std::fs::read_to_string(tmp.path().join(".magistr/project.json")).unwrap();
+    assert!(!config.contains("npm test"));
+    assert!(!config.contains("npm run lint"));
+}
+
 // ── Multi-language pipeline: detect → scaffold → verify config ─────
 
 #[test]
@@ -222,7 +275,7 @@ fn pipeline_with_selection_overrides_applies_custom_files() {
     assert!(pipeline.overrides().contains_key("CLAUDE.md"));
 
     // Template vars include conventions.
-    let vars = pipeline.template_vars();
+    let vars = pipeline.template_vars(dir);
     assert!(
         vars.get("ai_conventions")
             .unwrap()

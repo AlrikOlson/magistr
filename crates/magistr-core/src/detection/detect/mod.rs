@@ -8,7 +8,9 @@ pub mod fs_detector;
 pub mod hierarchy;
 mod language;
 mod package_manager;
+mod project_commands;
 mod project_name;
+
 pub mod relationships;
 pub mod role;
 pub mod scanner;
@@ -31,6 +33,7 @@ use crate::error::{MagistrError, Result};
 use crate::types::{PluginDetection, Stack};
 
 pub use self::package_manager::detect_package_manager;
+pub use self::project_commands::configure_project_commands;
 pub use self::project_name::detect_project_name;
 pub use self::smart::detect_stack_smart;
 
