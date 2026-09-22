@@ -14,6 +14,24 @@ fn script(root: &Path, name: &str, body: &str) -> PathBuf {
 }
 
 #[tokio::test]
+async fn empty_documents_stay_empty_without_starting_a_formatter() {
+    let root = fixture();
+    let formatter = NativeFormatter::new(
+        root.path().into(),
+        FormatterOptions {
+            rustfmt: Some(root.path().join("missing")),
+            biome: Some(root.path().join("missing")),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    for path in ["new.rs", "new.ts", "new.json", "new.md"] {
+        assert_eq!(formatter.format(path, "").await.unwrap(), "");
+    }
+    assert!(formatter.format("../escape.rs", "").await.is_err());
+}
+
+#[tokio::test]
 async fn unsupported_files_do_not_start_a_formatter() {
     let root = fixture();
     let formatter = NativeFormatter::new(

@@ -210,16 +210,17 @@ async fn served_empty_file_population_keeps_diagnostics_and_undo() {
     let dir = workspace(&[]);
     let service = open(dir.path(), &[]).await;
     let (client, server) = serve(&service, TestClient::plain()).await;
-    for file in ["notes.md", "notes.txt", "empty.py"] {
+    for file in ["notes.md", "notes.txt", "empty.py", "empty.rs", "empty.js"] {
         let created = call(&client, "files", json!({"op":"create","to":file})).await;
         assert_eq!(created["ok"], true, "{created}");
         assert_eq!(read(dir.path(), file), "");
         let snapshot = call(&client, "read", json!({"file":file})).await;
         let hash = &snapshot["results"][0]["contentHash"];
-        let content = if file.ends_with(".py") {
-            "value = 1\n"
-        } else {
-            "Written through MCP\n"
+        let content = match file.rsplit('.').next().unwrap() {
+            "py" => "value = 1\n",
+            "rs" => "fn main() {}\n",
+            "js" => "export const value = 1;\n",
+            _ => "Written through MCP\n",
         };
         let edit = call(
             &client,
