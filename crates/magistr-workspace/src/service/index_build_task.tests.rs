@@ -45,6 +45,21 @@ fn building_is_working_with_progress_and_a_poll_interval() {
 }
 
 #[test]
+fn pending_refresh_is_working_even_between_builds() {
+    let task = IndexBuildTask::derive(&IndexStatus {
+        freshness: Freshness::Warming,
+        refresh_pending: true,
+        generation: 4,
+        reused: 117,
+        ..status()
+    })
+    .unwrap();
+    assert_eq!(task.state, IndexBuildState::Working);
+    assert_eq!(task.message, "index build in progress: 120/120 files");
+    assert!(task.poll_interval_ms.is_some());
+}
+
+#[test]
 fn a_failed_build_carries_the_error_verbatim() {
     let task = IndexBuildTask::derive(&IndexStatus {
         last_error: Some("scan blew up".into()),

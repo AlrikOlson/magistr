@@ -103,9 +103,13 @@ Start with `mode:auto`. Lexical runs at Tier 0 (no index), so you get an answer 
 cold start. When the query names a symbol and the index is warm, structural classification enriches
 and re-ranks the same results — you do not have to ask for it. Only `mode:references` *requires* the
 warm index; until then it answers `INDEX_UNAVAILABLE` with `recovery:retry` and build progress in
-`notes`. Do not loop on it: poll `tasks/get` for the `index/build` task or do something else and
-come back; five identical retries in a row is the misuse pattern the flight recorder was built to
-catch.
+`notes`. The same refusal can follow a file change while its outline refreshes.
+If your client exposes MCP task polling, poll `tasks/get` for `index/build` using
+its returned interval and inspect failed builds. Otherwise use `read` without a
+symbol, then `edit(op:"replace_text")` with a current anchor and `expectedHash`.
+A completed build does not guarantee every file has an outline; inspect the reply's
+notes for excluded, oversized or changed files. Do not repeat an unchanged request
+or add arbitrary waits.
 
 References are tree-sitter fidelity (name-resolution-free) unless a resolver plugin upgraded them;
 each edge carries `confidence` and the envelope says so. Treat `high` as real, `medium` as "verify
@@ -247,7 +251,7 @@ answers `PLUGIN_CRASHED` and the core tools keep working at full fidelity.
 | `SANDBOX_FUEL_EXCEEDED` | `narrow` | The script did too much in one round. Scope fewer files (`path`) or split the work across calls. |
 | `SANDBOX_CAP_DENIED` | `escalate` | The guest asked for a capability it does not have (network, ambient filesystem). By design; tell the human if the task truly needs it. |
 | `SANDBOX_MEMORY_EXCEEDED` | `narrow` | Reduce the working set: process fewer files per call, stream instead of accumulating. |
-| `INDEX_UNAVAILABLE` | `retry` | The index is not warm; `notes` carry progress. Use `mode:auto`/`mode:lexical` now, poll `tasks/get` for `index/build`, retry later — not five times in a row. |
+| `INDEX_UNAVAILABLE` | `retry` | A current outline is unavailable; inspect `notes`. Use lexical search or plain `read` plus anchored `replace_text`. If exposed by the client, poll `tasks/get` for `index/build` at its returned interval; inspect failures and do not loop on an unchanged refusal. |
 | `CONFIRM_REQUIRED` | `confirm` | Review the dry-run diff in the envelope. Re-issue the identical call with `confirm` = `confirmToken` (or accept the elicitation). Do not reach for `autoApply`. |
 | `CONFIRM_MISMATCH` | `confirm` | The token is not for this exact call. Redo the dry-run to mint a fresh token; never reuse tokens across calls. |
 | `UNSUPPORTED_VERSION` | `abort` | Envelope or on-disk format mismatch. Do not retry; tell the human to upgrade the client/binary. |

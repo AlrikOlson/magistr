@@ -163,6 +163,48 @@ async fn serve(
     (client, server)
 }
 
+#[tokio::test]
+async fn served_stale_outline_explains_refresh_and_recovers_through_task_polling() {
+    let dir = workspace(&[("app.py", "def answer():\n    return 1\n")]);
+    let service = open(dir.path(), &[("watcher.mode", json!("off"))]).await;
+    let (client, server) = serve(&service, TestClient::plain()).await;
+    async fn built(client: &Client) {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        loop {
+            let task = client
+                .peer()
+                .get_task(GetTaskParams::new("index/build"))
+                .await
+                .unwrap();
+            if task.task.status() == TaskStatus::Completed {
+                break;
+            }
+            assert_eq!(task.task.status(), TaskStatus::Working, "{task:?}");
+            assert!(Instant::now() < deadline, "{task:?}");
+            let interval = task.task.task.poll_interval_ms.unwrap_or(200);
+            tokio::time::sleep(Duration::from_millis(interval)).await;
+        }
+    }
+    built(&client).await;
+    write(dir.path(), "app.py", "def answer():\n    return 22\n");
+    let args = json!({"op":"replace_body","file":"app.py","symbol":"answer","content":"def answer():\n    return 3\n"});
+    let refused = call(&client, "edit", args.clone()).await;
+    assert_eq!(refused["error"]["code"], "INDEX_UNAVAILABLE", "{refused}");
+    assert!(
+        refused["notes"]
+            .to_string()
+            .contains("Stale or unvalidated anchors omitted; refresh requested"),
+        "{refused}"
+    );
+    assert!(refused["notes"].to_string().contains("reused"), "{refused}");
+    assert_eq!(read(dir.path(), "app.py"), "def answer():\n    return 22\n");
+    built(&client).await;
+    let applied = call(&client, "edit", args).await;
+    assert_eq!(applied["ok"], true, "{applied}");
+    assert_eq!(read(dir.path(), "app.py"), "def answer():\n    return 3\n");
+    close(client, server, service).await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn served_empty_file_population_keeps_diagnostics_and_undo() {
     let dir = workspace(&[]);

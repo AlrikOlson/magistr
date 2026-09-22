@@ -18,6 +18,14 @@ pub(super) struct Shared {
     pub stopped: CancellationToken,
 }
 impl Shared {
+    pub fn request_refresh(&self) {
+        let mut status = self.status.lock().unwrap_or_else(|e| e.into_inner());
+        self.requested
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+        status.refresh_pending = true;
+        status.freshness = crate::contracts::Freshness::Warming;
+    }
+
     /// One bounded read of `path` selecting its language through the owner's
     /// handle.
     pub fn observe(&self, path: &str) -> Result<Observation, IndexError> {

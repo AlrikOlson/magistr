@@ -49,6 +49,9 @@ impl IndexBuildTask {
                 poll_interval_ms: None,
             });
         }
+        if status.refresh_pending {
+            return Some(working());
+        }
         if status.freshness != Freshness::Cold {
             return Some(Self {
                 state: IndexBuildState::Completed,

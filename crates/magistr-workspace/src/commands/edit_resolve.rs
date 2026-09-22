@@ -237,34 +237,38 @@ fn outline(
     file: &str,
     before: &str,
 ) -> Result<Vec<WorkerSymbol>, Resolution> {
-    let unavailable = |progress: String| {
+    let unavailable = |notes: Vec<String>| {
         Resolution::Refused(
             WorkspaceError::new(
                 ErrorKind::IndexUnavailable,
-                "edit with a symbol address requires the Tier-1 index and it is not up yet; retry once the build completes, or use replace_text",
+                "a current outline is unavailable for this file; read the file and use replace_text, or poll tasks/get for index/build before retrying the symbol edit",
             ),
-            vec![progress],
+            notes,
         )
     };
     let Some(index) = service.index else {
-        return Err(unavailable("no index exists yet for this workspace".into()));
+        return Err(unavailable(vec![
+            "no index exists yet for this workspace".into(),
+        ]));
     };
     let status = index.status();
     let progress = format!(
-        "index progress: {}/{} parsed files, building={}",
-        status.parsed, status.files, status.building
+        "index progress: {} parsed + {} reused / {} files, building={}, refresh_pending={}",
+        status.parsed, status.reused, status.files, status.building, status.refresh_pending
     );
     let mut query = index
         .file(file)
-        .map_err(|error| unavailable(error.to_string()))?;
+        .map_err(|error| unavailable(vec![progress.clone(), error.to_string()]))?;
+    let mut notes = query.notes;
+    notes.insert(0, progress);
     if query.generation == 0 || query.truncated || query.rows.is_empty() {
-        return Err(unavailable(progress));
+        return Err(unavailable(notes));
     }
     let indexed = query.rows.remove(0);
     if indexed.content_hash != FileContent::Text(before.to_owned()).content_hash() {
-        return Err(unavailable(format!(
-            "{progress}; the outline and current file bytes differ, retry after refresh"
-        )));
+        index.request_refresh();
+        notes.push("the outline and current file bytes differ; refresh requested".into());
+        return Err(unavailable(notes));
     }
     let mut symbols = indexed.symbols;
     symbols.sort_by_key(|row| (row.start_line, row.start_col));

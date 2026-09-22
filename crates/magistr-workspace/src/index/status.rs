@@ -4,6 +4,8 @@ use crate::contracts::Freshness;
 pub struct IndexStatus {
     pub freshness: Freshness,
     pub building: bool,
+    /// A requested refresh or observed file change has not finished scanning.
+    pub refresh_pending: bool,
     pub generation: u64,
     pub files: usize,
     pub parsed: usize,
@@ -21,6 +23,7 @@ impl Default for IndexStatus {
         Self {
             freshness: Freshness::Cold,
             building: false,
+            refresh_pending: false,
             generation: 0,
             files: 0,
             parsed: 0,
