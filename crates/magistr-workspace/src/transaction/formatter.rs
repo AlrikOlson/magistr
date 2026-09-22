@@ -42,6 +42,11 @@ impl NativeFormatter {
         {
             return Err("formatter path must be a normalized relative file path".into());
         }
+        // Empty documents have no layout to normalize. Preserve creation and
+        // empty-anchor semantics regardless of which formatter is installed.
+        if source.is_empty() {
+            return Ok(String::new());
+        }
         let extension = relative
             .extension()
             .and_then(|value| value.to_str())
