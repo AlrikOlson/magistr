@@ -95,7 +95,7 @@ fn selectively_applied_files_keep_ownership_through_upgrade_and_user_edits() {
     let overrides = HashMap::from([(settings.path.clone(), "{\"upgraded\": true}\n".to_owned())]);
     let upgraded = super::super::generate_with_result(
         tmp.path(),
-        &pipeline.template_vars(),
+        &pipeline.template_vars(tmp.path()),
         &overrides,
         &crate::scaffold::SetupSeeds::default(),
     )
@@ -407,7 +407,7 @@ fn codex_apply_rejects_revoked_ownership_before_any_selected_write() {
             serde_json::from_slice(&std::fs::read(&project_path).unwrap()).unwrap();
         project["roadmap_exports"] = false.into();
         std::fs::write(&project_path, serde_json::to_vec(&project).unwrap()).unwrap();
-        let mut vars = pipeline.template_vars();
+        let mut vars = pipeline.template_vars(tmp.path());
         vars.insert("project_root".into(), "upgraded-root".into());
         let overrides = HashMap::from([(skill.to_owned(), "Upgraded workflow\n".to_owned())]);
         let preview = super::super::preview(
@@ -457,7 +457,7 @@ fn codex_apply_rejects_changed_project_policy_with_unchanged_target_bytes() {
         let pipeline = ScaffoldPipeline::headless(crate::types::Stack::default())
             .with_agents(&["codex".to_owned()]);
         pipeline.generate(dir).unwrap();
-        let mut vars = pipeline.template_vars();
+        let mut vars = pipeline.template_vars(tmp.path());
         vars.insert("project_root".into(), "upgraded-root".into());
         let overrides = HashMap::from([(skill.to_owned(), "Upgraded workflow\n".to_owned())]);
         let preview = super::super::preview(

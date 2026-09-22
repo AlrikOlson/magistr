@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 
 /// Parsed manifest data extracted from project config files.
@@ -11,7 +11,12 @@ pub(crate) struct ManifestData {
     /// Combined dependencies (all sections).
     pub dependencies: HashSet<String>,
     /// npm scripts (package.json "scripts" section).
-    pub scripts: HashSet<String>,
+    pub scripts: BTreeMap<String, String>,
+    /// Explicit JavaScript package manager and runtime declarations.
+    pub package_manager: Option<String>,
+    pub bun_engine: bool,
+    /// Tool configuration keys in package.json.
+    pub js_tools: HashSet<String>,
     /// Python tool sections present in pyproject.toml (e.g., "ruff", "pytest", "mypy").
     pub python_tools: HashSet<String>,
     /// Cargo features enabled in the default profile.
@@ -25,9 +30,8 @@ impl ManifestData {
     }
 
     /// Check if a script exists by name.
-    #[allow(dead_code)] // kept for future detection rules
     pub fn has_script(&self, name: &str) -> bool {
-        self.scripts.contains(name)
+        self.scripts.contains_key(name)
     }
 
     /// Check if a Python tool section exists.
@@ -78,10 +82,21 @@ fn parse_package_json(dir: &Path, data: &mut ManifestData) {
         }
     }
 
-    // Extract script names
+    data.package_manager = json
+        .get("packageManager")
+        .and_then(|v| v.as_str())
+        .map(str::to_owned);
+    data.bun_engine = json.get("engines").and_then(|v| v.get("bun")).is_some();
+    for key in ["jest", "eslintConfig", "prettier"] {
+        if json.get(key).is_some() {
+            data.js_tools.insert(key.to_owned());
+        }
+    }
     if let Some(scripts) = json.get("scripts").and_then(|v| v.as_object()) {
-        for key in scripts.keys() {
-            data.scripts.insert(key.clone());
+        for (key, value) in scripts {
+            if let Some(command) = value.as_str().filter(|command| !command.trim().is_empty()) {
+                data.scripts.insert(key.clone(), command.to_owned());
+            }
         }
     }
 }

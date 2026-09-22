@@ -3,7 +3,7 @@ use crate::utils::format as fmt;
 use crate::validate;
 
 /// Run post-scaffold validation and print results.
-pub async fn print_post_scaffold_validation(qg: &types::QualityGate, dir: &std::path::Path) {
+pub async fn print_post_scaffold_validation(dir: &std::path::Path) {
     eprintln!();
     eprintln!(
         "{}",
@@ -17,7 +17,23 @@ pub async fn print_post_scaffold_validation(qg: &types::QualityGate, dir: &std::
         .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
         .and_then(|doc| doc.get("quality_gate").cloned())
         .and_then(|value| serde_json::from_value::<types::QualityGate>(value).ok());
-    let results = validate::post_scaffold_check(configured.as_ref().unwrap_or(qg), dir).await;
+    let Some(configured) = configured else {
+        eprintln!(
+            "  {}",
+            fmt::warning("Could not read the project's check commands.")
+        );
+        return;
+    };
+    for (name, command) in [
+        ("check", &configured.check),
+        ("test", &configured.test),
+        ("lint", &configured.lint),
+    ] {
+        if command.trim().is_empty() {
+            eprintln!("  {name}: not configured");
+        }
+    }
+    let results = validate::post_scaffold_check(&configured, dir).await;
 
     if results.is_empty() {
         eprintln!("  {}", fmt::dim("(no quality gate commands configured)"));

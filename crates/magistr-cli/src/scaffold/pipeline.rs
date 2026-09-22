@@ -22,7 +22,6 @@ use super::tree_to_config::TreeToConfigResult;
 /// the host's captured inputs.
 pub struct ScaffoldPipeline {
     pub stack: Stack,
-    pub preset: Preset,
     pub selections: ScaffoldSelections,
     /// When set, the pipeline generates a multi-archetype project.json
     /// and per-archetype CLAUDE.md sections instead of the flat single-stack config.
@@ -37,10 +36,8 @@ impl ScaffoldPipeline {
     /// Used by headless init paths (`cmd_init`, `cmd_init_smart`, `cmd_init_dry_run`)
     /// that don't run the interview.
     pub fn headless(stack: Stack) -> Self {
-        let preset = load_preset(&stack, &ScaffoldSelections::default(), None);
         Self {
             stack,
-            preset,
             selections: ScaffoldSelections::default(),
             tree: None,
             inputs: None,
@@ -52,10 +49,8 @@ impl ScaffoldPipeline {
     /// Uses adaptive interview answers to load layered presets (database,
     /// CI/CD, deployment layers) when available.
     pub fn with_selections(stack: Stack, selections: ScaffoldSelections) -> Self {
-        let preset = load_preset(&stack, &selections, None);
         Self {
             stack,
-            preset,
             selections,
             tree: None,
             inputs: None,
@@ -67,11 +62,6 @@ impl ScaffoldPipeline {
     /// plugins are applied after generation.
     #[must_use]
     pub fn with_inputs(mut self, inputs: &ProjectInputs) -> Self {
-        self.preset = load_preset(
-            &self.stack,
-            &self.selections,
-            inputs.user_preset_dir().as_deref(),
-        );
         self.inputs = Some(inputs.clone());
         self
     }
@@ -86,7 +76,27 @@ impl ScaffoldPipeline {
     /// The multi-archetype configuration for a polyglot tree.
     fn archetypes(&self) -> Option<TreeToConfigResult> {
         self.tree.as_ref().map(|tree| {
-            super::tree_to_config::tree_to_archetypes(tree, self.user_preset_dir().as_deref())
+            let mut result =
+                super::tree_to_config::tree_to_archetypes(tree, self.user_preset_dir().as_deref());
+            if let (Some(primary), Some(project)) =
+                (result.archetypes.first_mut(), tree.projects.first())
+            {
+                let preset = load_preset(
+                    &self.stack,
+                    &self.selections,
+                    self.user_preset_dir().as_deref(),
+                    &tree.root.join(&project.path),
+                );
+                primary.quality_gate = preset.quality_gate;
+                primary.format = preset.format;
+                primary.testing = preset.testing;
+                self.selections.apply_commands(
+                    &mut primary.quality_gate,
+                    &mut primary.format,
+                    &mut primary.testing,
+                );
+            }
+            result
         })
     }
 
@@ -118,10 +128,8 @@ impl ScaffoldPipeline {
             Stack::default()
         };
 
-        let preset = load_preset(&stack, &ScaffoldSelections::default(), None);
         Self {
             stack,
-            preset,
             selections: ScaffoldSelections::default(),
             tree: Some(tree.clone()),
             inputs: None,
@@ -129,8 +137,23 @@ impl ScaffoldPipeline {
     }
 
     /// Build the template variable map.
-    pub fn template_vars(&self) -> HashMap<String, String> {
-        commands::misc::build_template_vars(&self.stack, &self.preset, &self.selections)
+    pub fn template_vars(&self, dir: &Path) -> HashMap<String, String> {
+        let root = self
+            .tree
+            .as_ref()
+            .and_then(|tree| {
+                tree.projects
+                    .first()
+                    .map(|project| tree.root.join(&project.path))
+            })
+            .unwrap_or_else(|| dir.to_path_buf());
+        let preset = load_preset(
+            &self.stack,
+            &self.selections,
+            self.user_preset_dir().as_deref(),
+            &root,
+        );
+        commands::misc::build_template_vars(&self.stack, &preset, &self.selections)
     }
 
     /// AI-generated file overrides from the selections.
@@ -174,7 +197,7 @@ impl ScaffoldPipeline {
         dir: &Path,
         scaffolder: &dyn scaffold::Scaffolder,
     ) -> Result<Vec<String>> {
-        let vars = self.template_vars();
+        let vars = self.template_vars(dir);
         let mut written = scaffolder.generate(dir, &vars, self.overrides(), &self.seeds())?;
 
         // Template plugins from the captured registry: the same plan the
@@ -213,7 +236,7 @@ impl ScaffoldPipeline {
         dir: &Path,
         scaffolder: &dyn scaffold::Scaffolder,
     ) -> Result<scaffold::ChangePlan> {
-        let vars = self.template_vars();
+        let vars = self.template_vars(dir);
         let mut plan = scaffolder.preview(dir, &vars, self.overrides(), &self.seeds())?;
         if let Some(inputs) = &self.inputs {
             plan.files
@@ -239,9 +262,11 @@ fn load_preset(
     stack: &Stack,
     selections: &ScaffoldSelections,
     user_preset_dir: Option<&Path>,
+    project_root: &Path,
 ) -> Preset {
     let mut layers = selections.interview_answers.to_layer_options();
     layers.user_preset_dir = user_preset_dir.map(Into::into);
+    layers.project_root = Some(project_root.into());
     let compose = |layers: &config::preset::LayerOptions| {
         config::preset::load_preset_layered(
             stack.language,
@@ -254,6 +279,7 @@ fn load_preset(
         .or_else(|_| {
             compose(&config::preset::LayerOptions {
                 user_preset_dir: layers.user_preset_dir.clone(),
+                project_root: layers.project_root.clone(),
                 ..Default::default()
             })
         })

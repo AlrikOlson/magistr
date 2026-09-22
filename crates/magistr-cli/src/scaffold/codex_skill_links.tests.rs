@@ -41,7 +41,7 @@ const SKILLS: &[&str] = &[
 fn vars() -> HashMap<String, String> {
     ScaffoldPipeline::headless(crate::types::Stack::default())
         .with_agents(&["codex".to_owned()])
-        .template_vars()
+        .template_vars(tempfile::tempdir().unwrap().path())
 }
 
 fn write(dir: &Path, relative: &str, content: &str) {

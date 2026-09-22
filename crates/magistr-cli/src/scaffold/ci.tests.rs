@@ -68,11 +68,29 @@ fn workflow_has_checkout_step() {
 fn workflow_has_quality_gate_steps() {
     let yaml = generate_workflow(Language::Rust, PackageManager::Cargo, &rust_gate());
     assert!(yaml.contains("- name: Check"));
-    assert!(yaml.contains("run: cargo check --workspace"));
+    assert!(yaml.contains("run: |\n          cargo check --workspace"));
     assert!(yaml.contains("- name: Test"));
-    assert!(yaml.contains("run: cargo test --workspace"));
+    assert!(yaml.contains("run: |\n          cargo test --workspace"));
     assert!(yaml.contains("- name: Lint"));
-    assert!(yaml.contains("run: cargo clippy --workspace -- -D warnings"));
+    assert!(yaml.contains("run: |\n          cargo clippy --workspace -- -D warnings"));
+}
+
+#[test]
+fn missing_checks_and_unknown_package_manager_cannot_pass_ci() {
+    let yaml = generate_workflow(
+        Language::TypeScript,
+        PackageManager::Unknown,
+        &QualityGate {
+            check: String::new(),
+            test: String::new(),
+            lint: String::new(),
+        },
+    );
+    for name in ["Check", "Test", "Lint"] {
+        assert!(yaml.contains(&format!("{name} is not configured; no check ran")));
+    }
+    assert_eq!(yaml.matches("exit 1").count(), 4);
+    assert!(!yaml.contains("npm ci"));
 }
 
 // ── Rust-specific tests ────────────────────────────────────
@@ -99,7 +117,9 @@ fn rust_preset_workflow_installs_nextest_before_its_test_gate() {
     let install = yaml
         .find("run: cargo install cargo-nextest --locked")
         .unwrap();
-    let tests = yaml.find("run: cargo nextest run --workspace").unwrap();
+    let tests = yaml
+        .find("run: |\n          cargo nextest run --workspace")
+        .unwrap();
     assert!(install < tests);
     assert!(yaml.find("uses: dtolnay/rust-toolchain@stable").unwrap() < install);
     assert!(yaml.contains("https://github.com/AlrikOlson/magistr"));
@@ -227,9 +247,9 @@ fn unknown_language_has_no_setup_steps() {
     let yaml = generate_workflow(Language::Unknown, PackageManager::Unknown, &gate);
     // Should still have checkout and gate steps
     assert!(yaml.contains("actions/checkout@v4"));
-    assert!(yaml.contains("run: make check"));
-    assert!(yaml.contains("run: make test"));
-    assert!(yaml.contains("run: make lint"));
+    assert!(yaml.contains("run: |\n          make check"));
+    assert!(yaml.contains("run: |\n          make test"));
+    assert!(yaml.contains("run: |\n          make lint"));
     // Should NOT have language-specific setup
     assert!(!yaml.contains("setup-node"));
     assert!(!yaml.contains("rust-toolchain"));

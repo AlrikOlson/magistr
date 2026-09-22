@@ -115,16 +115,22 @@ pub(crate) fn generate_workflow(
         yaml.push_str("        run: cargo install cargo-nextest --locked\n");
     }
 
-    // Quality gate steps
-    yaml.push('\n');
-    yaml.push_str("      - name: Check\n");
-    yaml.push_str(&format!("        run: {}\n", &quality_gate.check));
-    yaml.push('\n');
-    yaml.push_str("      - name: Test\n");
-    yaml.push_str(&format!("        run: {}\n", &quality_gate.test));
-    yaml.push('\n');
-    yaml.push_str("      - name: Lint\n");
-    yaml.push_str(&format!("        run: {}\n", &quality_gate.lint));
+    for (name, command) in [
+        ("Check", &quality_gate.check),
+        ("Test", &quality_gate.test),
+        ("Lint", &quality_gate.lint),
+    ] {
+        yaml.push_str(&format!("\n      - name: {name}\n        run: |\n"));
+        if command.trim().is_empty() {
+            yaml.push_str(&format!(
+                "          echo '{name} is not configured; no check ran'\n          exit 1\n"
+            ));
+        } else {
+            for line in command.lines() {
+                yaml.push_str(&format!("          {line}\n"));
+            }
+        }
+    }
 
     yaml
 }
@@ -239,11 +245,13 @@ fn append_node_setup(yaml: &mut String, package_manager: PackageManager) {
             yaml.push_str("      - name: Install dependencies\n");
             yaml.push_str("        run: bun install --frozen-lockfile\n");
         }
-        _ => {
-            // npm is the default for Node.js projects
+        PackageManager::Npm => {
             yaml.push('\n');
             yaml.push_str("      - name: Install dependencies\n");
             yaml.push_str("        run: npm ci\n");
+        }
+        _ => {
+            yaml.push_str("\n      - name: Choose a package manager\n        run: |\n          echo 'No package manager is configured'\n          exit 1\n");
         }
     }
 }

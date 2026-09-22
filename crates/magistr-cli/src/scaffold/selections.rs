@@ -44,6 +44,42 @@ pub struct ScaffoldSelections {
 }
 
 impl ScaffoldSelections {
+    /// Apply explicitly supplied setup choices to the resolved project configuration.
+    pub(crate) fn apply_commands(
+        &self,
+        gates: &mut crate::types::QualityGate,
+        format: &mut crate::types::FormatConfig,
+        testing: &mut crate::types::TestingConfig,
+    ) {
+        if let Some(choices) = &self.quality_gate {
+            if let Some(value) = &choices.check {
+                gates.check.clone_from(value);
+            }
+            if let Some(value) = &choices.test {
+                gates.test.clone_from(value);
+            }
+            if let Some(value) = &choices.lint {
+                gates.lint.clone_from(value);
+            }
+        }
+        if let Some(choices) = &self.format {
+            if let Some(value) = &choices.command {
+                format.command.clone_from(value);
+            }
+            if let Some(value) = &choices.extensions {
+                format.extensions.clone_from(value);
+            }
+        }
+        if let Some(choices) = &self.testing {
+            if let Some(value) = &choices.companion_pattern {
+                testing.companion_pattern.clone_from(value);
+            }
+            if let Some(value) = &choices.test_dir {
+                testing.test_dir.clone_from(value);
+            }
+        }
+    }
+
     /// Build selections from headless AI recommendations.
     ///
     /// Used by AI-assisted init paths to get `magistr_recommend` data into

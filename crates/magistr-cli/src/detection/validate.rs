@@ -80,12 +80,12 @@ fn truncate_output(output: &str, max_bytes: usize) -> String {
 /// Delegates to [`crate::utils::subprocess::run_command_with_timeout`] which handles
 /// process group management, SIGTERM→SIGKILL escalation, and orphan prevention.
 pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResult {
-    if command.is_empty() {
+    if command.trim().is_empty() {
         return GateResult {
             gate,
-            passed: true,
+            passed: false,
             duration: Duration::ZERO,
-            output: "skipped (no command configured)".into(),
+            output: "not configured; no check ran".into(),
             command: String::new(),
         };
     }

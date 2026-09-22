@@ -65,7 +65,7 @@ pub async fn cmd_init_smart(
     }
 
     // Post-scaffold validation: run quality gates to verify config
-    commands::misc::print_post_scaffold_validation(&pipeline.preset.quality_gate, &dir).await;
+    commands::misc::print_post_scaffold_validation(&dir).await;
 
     eprintln!();
     eprintln!("{}", fmt::bold("magistr scaffolded successfully"));

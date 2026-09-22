@@ -44,11 +44,11 @@ async fn run_gate_failure() {
 }
 
 #[tokio::test]
-async fn run_gate_empty_command_skips() {
+async fn run_gate_empty_command_is_unconfigured() {
     let dir = std::env::current_dir().unwrap();
     let result = run_single_gate(Gate::Lint, "", &dir).await;
-    assert!(result.passed);
-    assert!(result.output.contains("skipped"));
+    assert!(!result.passed);
+    assert!(result.output.contains("not configured"));
 }
 
 #[tokio::test]

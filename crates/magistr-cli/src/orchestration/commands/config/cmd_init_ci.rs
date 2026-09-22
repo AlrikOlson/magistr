@@ -19,11 +19,13 @@ pub fn cmd_init_ci(
         .suggest()?;
 
     let stack = detect::detect_stack(&dir).suggest()?;
+    let mut layers = inputs.preset_layers();
+    layers.project_root = Some(dir.clone().into_boxed_path());
     let preset = config::preset::load_preset_layered(
         stack.language,
         stack.framework,
         stack.package_manager,
-        &inputs.preset_layers(),
+        &layers,
     )
     .unwrap_or_else(|_| config::preset::fallback_preset());
 

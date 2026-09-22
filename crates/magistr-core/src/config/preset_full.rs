@@ -40,7 +40,8 @@ pub struct LayerOptions {
     pub ci: Option<String>,
     /// Deployment target slug (e.g., "docker", "kubernetes", "vercel").
     pub deployment: Option<String>,
-    /// Project root for loading `.magistr/presets/` fragments.
+    /// Existing project root: resolve evidenced commands before applying explicit
+    /// `.magistr/presets/` fragments. Without a root this loads proposed defaults.
     pub project_root: Option<Box<Path>>,
     /// The user's preset directory, as the captured inputs resolved it
     /// (`ProjectInputs::preset_layers`). Absent, no user override applies.
@@ -81,6 +82,19 @@ pub fn load_preset_layered(
         &format!("{package_manager:?}"),
         "pm",
     )?;
+
+    // Built-in proposals are not evidence that this project provides a command.
+    // Resolve the observed project before explicit setup and user layers.
+    let mut base = pipeline.apply(base);
+    if let Some(root) = &options.project_root {
+        crate::detection::detect::configure_project_commands(
+            &mut base,
+            root,
+            lang,
+            package_manager,
+        );
+    }
+    let mut pipeline = PresetPipeline::new();
 
     // Database/ORM layer
     if let Some(slug) = &options.database {

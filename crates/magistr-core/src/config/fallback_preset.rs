@@ -6,9 +6,9 @@ use crate::types::Preset;
 pub fn fallback_preset() -> Preset {
     Preset {
         quality_gate: crate::types::QualityGate {
-            check: "echo 'no check configured'".to_string(),
-            test: "echo 'no test configured'".to_string(),
-            lint: "echo 'no lint configured'".to_string(),
+            check: String::new(),
+            test: String::new(),
+            lint: String::new(),
         },
         format: crate::types::FormatConfig {
             extensions: vec![],

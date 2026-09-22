@@ -47,11 +47,8 @@ pub fn tree_to_archetypes(
         let abs_dir = tree.root.join(&project.path);
         let pkg_mgr = magistr_core::detection::detect::detect_package_manager(&abs_dir, lang);
 
-        let (quality_gate, mut format, testing) =
-            load_preset_config(lang, framework, pkg_mgr, user_preset_dir);
-        if let Some(command) = detected_format_command(&abs_dir, lang, pkg_mgr) {
-            format.command = command;
-        }
+        let (quality_gate, format, testing) =
+            load_preset_config(&abs_dir, lang, framework, pkg_mgr, user_preset_dir);
 
         let framework_str = project.framework.map(|f| f.as_str().to_string());
 
@@ -155,6 +152,7 @@ fn slug(name: &str) -> String {
 
 /// Load quality gate, format, and testing config from the preset for this language/framework.
 fn load_preset_config(
+    dir: &std::path::Path,
     lang: magistr_core::types::Language,
     framework: magistr_core::types::Framework,
     pkg_mgr: magistr_core::types::PackageManager,
@@ -162,6 +160,7 @@ fn load_preset_config(
 ) -> (QualityGate, FormatConfig, TestingConfig) {
     let layers = magistr_core::config::preset::LayerOptions {
         user_preset_dir: user_preset_dir.map(Into::into),
+        project_root: Some(dir.into()),
         ..Default::default()
     };
     match magistr_core::config::preset::load_preset_layered(lang, framework, pkg_mgr, &layers) {
@@ -170,29 +169,6 @@ fn load_preset_config(
             let fallback = magistr_core::config::preset::fallback_preset();
             (fallback.quality_gate, fallback.format, fallback.testing)
         }
-    }
-}
-
-/// The format command detection knows better than the preset, when it does.
-///
-/// A biome repo handed the preset's prettier would be *rewritten* by the first
-/// `magistr_format`; the detected formatter wins. Everything else keeps the
-/// preset's command.
-fn detected_format_command(
-    dir: &std::path::Path,
-    lang: magistr_core::types::Language,
-    pkg_mgr: magistr_core::types::PackageManager,
-) -> Option<String> {
-    use magistr_core::types::{Formatter, PackageManager};
-    match magistr_core::detection::detect::detect_formatter_in(dir, lang) {
-        Formatter::Biome => Some(
-            match pkg_mgr {
-                PackageManager::Bun => "bunx biome check --write .",
-                _ => "npx biome check --write .",
-            }
-            .to_string(),
-        ),
-        _ => None,
     }
 }
 

@@ -35,11 +35,11 @@ fn detects_full_ts_next_stack() {
 
     let stack = detect_stack(tmp.path()).unwrap();
     assert_eq!(stack.language, Language::TypeScript);
-    assert_eq!(stack.package_manager, PackageManager::Npm);
+    assert_eq!(stack.package_manager, PackageManager::Unknown);
     assert_eq!(stack.framework, Framework::Next);
     assert_eq!(stack.test_framework, TestFramework::Vitest);
-    assert_eq!(stack.linter, Linter::Eslint);
-    assert_eq!(stack.formatter, Formatter::Prettier);
+    assert_eq!(stack.linter, Linter::None);
+    assert_eq!(stack.formatter, Formatter::None);
     assert_eq!(stack.project_name, "my-app");
 }
 

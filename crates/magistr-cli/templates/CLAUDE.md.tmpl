@@ -5,10 +5,11 @@
 ## Quick Start
 
 ```bash
-# Quality gate (check + test + lint)
-# Or use /validate skill
-{{check_cmd}} && {{test_cmd}} && {{lint_cmd}}
+# Run the configured project checks
+magistr validate
 ```
+
+Check commands are stored in `.magistr/project.json`. An empty command means that check is not configured. Report it as missing; never replace it with a passing no-op.
 
 ## Workflow — Plan, Execute, Verify
 

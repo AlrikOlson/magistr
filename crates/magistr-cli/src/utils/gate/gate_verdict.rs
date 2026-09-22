@@ -1,6 +1,6 @@
 //! What a gate run decided.
 
-/// The five things a gate run can be.
+/// The outcome of a requested gate.
 ///
 /// The loop driver used to fold `timed_out || cancelled || exit != 0` into
 /// one `passed: bool`, so a gate killed at the 300-second ceiling and a
@@ -10,6 +10,8 @@
 pub(crate) enum GateVerdict {
     /// The command exited zero within the time allowed.
     Passed,
+    /// No command was configured, so no check ran.
+    Unconfigured,
     /// The command exited non-zero.
     Failed,
     /// The command was killed at the timeout.
@@ -32,13 +34,14 @@ impl GateVerdict {
     /// A cancelled gate does not: the cockpit is closing and nobody let
     /// the command finish. Nothing consequential may be decided on one.
     pub(crate) const fn is_evidence(self) -> bool {
-        !matches!(self, Self::Cancelled)
+        !matches!(self, Self::Cancelled | Self::Unconfigured)
     }
 
     /// The word for this verdict.
     pub(crate) const fn label(self) -> &'static str {
         match self {
             Self::Passed => "passed",
+            Self::Unconfigured => "not configured",
             Self::Failed => "failed",
             Self::TimedOut => "timed out",
             Self::Cancelled => "cancelled",
