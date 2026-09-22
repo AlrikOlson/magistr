@@ -117,8 +117,9 @@ impl Coordinator {
                         && !snapshot.stopped
                 });
                 drop(watcher_guard);
-                let current = shared.requested.load(Ordering::Acquire) == requested;
                 let mut status = shared.status.lock().unwrap_or_else(|e| e.into_inner());
+                let current = shared.requested.load(Ordering::Acquire) == requested;
+                status.refresh_pending = !current;
                 status.building = false;
                 status.build_updated_at_ms = Some(now_unix_ms());
                 status.freshness = if result.is_ok() && watcher_ok && current {
@@ -137,7 +138,7 @@ impl Coordinator {
                     Self::install(&shared, started);
                     // What changed while the watcher was starting is only
                     // found by looking again.
-                    shared.requested.fetch_add(1, Ordering::AcqRel);
+                    shared.request_refresh();
                 }
                 _ = tokio::time::sleep(if retry { Duration::from_secs(1) } else { shared.options.poll_interval }) => {}
             }

@@ -72,6 +72,7 @@ async fn warm(index: &WorkspaceIndex, after: Option<u64>) -> IndexStatus {
     loop {
         let status = index.status();
         if !status.building
+            && !status.refresh_pending
             && status.generation > 0
             && after.is_none_or(|generation| status.generation > generation)
         {
@@ -106,6 +107,30 @@ fn paths(index: &WorkspaceIndex) -> Vec<String> {
 }
 
 #[tokio::test]
+async fn refresh_request_is_working_until_a_new_scan_completes() {
+    use magistr_workspace::service::{IndexBuildState, IndexBuildTask};
+    let fixture = Fixture::new();
+    fixture.write("app.py", "value = 1\n");
+    let worker = native_worker();
+    let mut index = fixture.start(&worker, options(WatchMode::Off));
+    let first = warm(&index, None).await;
+    index.request_refresh();
+    let pending = index.status();
+    assert!(pending.refresh_pending);
+    assert_eq!(
+        IndexBuildTask::derive(&pending).unwrap().state,
+        IndexBuildState::Working
+    );
+    let next = warm(&index, Some(first.generation)).await;
+    assert!(!next.refresh_pending);
+    assert_eq!(
+        IndexBuildTask::derive(&next).unwrap().state,
+        IndexBuildState::Completed
+    );
+    stop(&mut index, &worker).await;
+}
+
+#[tokio::test]
 async fn native_extraction_fts_pagination_and_reopen_reuse_the_cache() {
     let fixture = Fixture::new();
     let source = "use std::fmt;\npub fn alpha() { /* cachetoken */ }\n#[cfg(test)]\nmod tests {\n    #[test]\n    fn alpha_test() {}\n}\n";
@@ -115,7 +140,7 @@ async fn native_extraction_fts_pagination_and_reopen_reuse_the_cache() {
     let mut index = fixture.start(&worker, options(WatchMode::Off));
     let first = warm(&index, None).await;
     assert_eq!(first.files, 2);
-    assert_eq!(first.parsed, 2);
+    assert_eq!(first.parsed + first.reused, 2);
 
     let query = index.symbols("alpha", 10).expect("symbol prefix query");
     assert_eq!(

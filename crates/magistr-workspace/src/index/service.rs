@@ -6,10 +6,7 @@ use super::{
 use crate::{contracts::Freshness, worker::WorkerSupervisor};
 use std::{
     path::PathBuf,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicU64, Ordering},
-    },
+    sync::{Arc, Mutex, atomic::AtomicU64},
 };
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -110,6 +107,7 @@ impl WorkspaceIndex {
         if let Ok(watcher) = self.shared.watcher.try_lock() {
             if let Some(watcher) = watcher.as_ref() {
                 let snapshot = watcher.snapshot();
+                status.refresh_pending |= snapshot.pending;
                 if snapshot.pending
                     || snapshot.mode == super::watch::WatchMode::Off
                     || snapshot.stopped
@@ -135,12 +133,7 @@ impl WorkspaceIndex {
         status
     }
     pub fn request_refresh(&self) {
-        self.shared.requested.fetch_add(1, Ordering::AcqRel);
-        self.shared
-            .status
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .freshness = Freshness::Warming;
+        self.shared.request_refresh();
     }
     pub fn symbols(
         &self,
