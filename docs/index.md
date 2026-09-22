@@ -13,5 +13,6 @@ Magistr is in early development. The public surface is kept small while the firs
 - [Development](development.md) — the contributor commands, the gates, the terminal goldens, the website and its deployment.
 - [Architecture](architecture/overview.md) — crate ownership, boundaries and the client and host contracts; the [terminal architecture](architecture/terminal.md) covers the interface.
 - [Release inventory](release-inventory.md) — what the release contains and the release checklist.
+- [Benchmark pilot](benchmark-pilot-september-2026.md) — September 2026 benchmark research, protocol, and evaluation evidence.
 
 Native roadmap state uses the `think-and-ship` backend. Keep `roadmap_exports: false`; do not create `ROADMAP.md` or `ROADMAP.json`.
