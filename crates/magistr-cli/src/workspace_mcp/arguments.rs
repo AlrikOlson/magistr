@@ -172,7 +172,9 @@ pub(crate) fn edit_input(args: &JsonObject) -> Result<EditInput, ErrorData> {
         }
     }
     if op == "replace_text" {
-        require_string(args, "old", "edit", op)?;
+        if !args.get("old").is_some_and(Value::is_string) {
+            return Err(invalid("edit: replace_text requires old"));
+        }
         if !args.get("new").is_some_and(Value::is_string) {
             return Err(invalid("edit: replace_text requires new"));
         }

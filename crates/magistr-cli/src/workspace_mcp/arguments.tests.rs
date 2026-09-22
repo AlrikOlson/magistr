@@ -106,6 +106,26 @@ fn edit_admission_mirrors_the_retained_checks() {
 }
 
 #[test]
+fn edit_admission_accepts_empty_anchors_but_requires_strings() {
+    let input = edit_input(&object(json!({
+        "op": "replace_text", "file": "notes.md", "old": "", "new": "content"
+    })))
+    .expect("empty anchor is valid");
+    assert_eq!(input.old.as_deref(), Some(""));
+    for old in [Value::Null, json!(7), json!(false)] {
+        assert_eq!(
+            message(
+                edit_input(&object(json!({
+                    "op": "replace_text", "file": "notes.md", "old": old, "new": "content"
+                })))
+                .unwrap_err()
+            ),
+            "edit: replace_text requires old"
+        );
+    }
+}
+
+#[test]
 fn files_admission_requires_the_paths_each_op_needs() {
     assert_eq!(
         message(files_input(&object(json!({"op": "rm"}))).unwrap_err()),

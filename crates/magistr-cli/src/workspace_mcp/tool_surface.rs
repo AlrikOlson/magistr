@@ -40,7 +40,7 @@ always carries a manifest.";
 const EDIT: &str = "Verified structural editing — replaces sed, awk and patch (SDD §9.4). Symbol \
 verbs (replace_body | insert_after | insert_before | rename) address code via the Tier-1 index; \
 rewrite applies an ast-grep pattern across a glob scope; replace_text is the anchored literal \
-fallback. Every verb runs the §7.5 write engine: a new syntax error rejects the whole call \
+fallback. Empty old populates an existing zero-byte file only. Every verb runs the §7.5 write engine: a new syntax error rejects the whole call \
 (PARSE_REJECTED with the parser message and rejected diff), applied diffs are the receipt, and \
 read's contentHash passed as expectedHash turns a changed file into STALE_ANCHOR with the fresh \
 hash. Single-file symbol/text edits auto-apply; rewrite, rename and anything touching >1 file or \
@@ -75,7 +75,7 @@ const SCRIPT: &str = "Typed Code Mode for the long tail — replaces ad-hoc bash
 Wasmtime host: fuel-metered, memory-capped, no ambient filesystem, network, or shell. The one \
 global is `workspace`: search(args) and read(args) answer the same envelopes as the tools, \
 glob(pattern) lists matching workspace paths — all live and jail-checked — while \
-workspace.edit.queue({file, old, new, occurrence?}) and workspace.files.queue({op: \
+workspace.edit.queue({file, old, new, occurrence?, expectedHash?}) and workspace.files.queue({op: \
 create|mkdir|delete, ...}) only QUEUE writes. Use `return` for the JSON-serializable result. \
 Queued writes resolve through the §7.5 write engine and are always confirm-gated: dryRun:true \
 (default) returns the value plus every dry-run diff and never applies; dryRun:false answers \
