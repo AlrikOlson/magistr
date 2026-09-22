@@ -99,7 +99,7 @@ fn schema_error(input: &EditInput) -> Option<WorkspaceError> {
     if input.op == EditOp::Rewrite && (empty(&input.pattern) || input.rewrite_pattern.is_none()) {
         return missing("pattern and rewritePattern");
     }
-    if input.op == EditOp::ReplaceText && (empty(&input.old) || input.new.is_none()) {
+    if input.op == EditOp::ReplaceText && (input.old.is_none() || input.new.is_none()) {
         return missing("old and new");
     }
     None
@@ -271,6 +271,24 @@ fn outline(
     Ok(symbols)
 }
 
+/// An empty anchor addresses one existing zero-byte file, never the boundaries
+/// between characters of a populated file. Direct and queued edits share this
+/// expected-state contract before doing literal matching.
+pub(super) fn check_empty_anchor(
+    file: &str,
+    before: &str,
+    old: &str,
+) -> Result<(), WorkspaceError> {
+    if old.is_empty() && !before.is_empty() {
+        return Err(WorkspaceError::new(
+            ErrorKind::StaleAnchor {
+                content_hash: FileContent::Text(before.to_owned()).content_hash(),
+            },
+            format!("{file:?} is not empty; re-read it and replace text from its current content"),
+        ));
+    }
+    Ok(())
+}
 fn replace_text(
     service: &WorkspaceCommands<'_>,
     input: &EditInput,
@@ -282,6 +300,9 @@ fn replace_text(
     };
     let old = input.old.as_deref().unwrap_or("");
     let replacement = input.new.as_deref().unwrap_or("");
+    if let Err(error) = check_empty_anchor(&file, &before, old) {
+        return Ok(Resolution::refuse(error));
+    }
     let indices: Vec<usize> = before.match_indices(old).map(|(at, _)| at).collect();
     let stale = |message: String| {
         Ok(Resolution::refuse(WorkspaceError::new(

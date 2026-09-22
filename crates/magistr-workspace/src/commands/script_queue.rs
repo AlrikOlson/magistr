@@ -140,11 +140,11 @@ fn resolve_edit(
 ) -> Result<(), Resolution> {
     let (Some(file), Some(old), Some(new)) = (
         field(op, "file"),
-        field(op, "old"),
+        op.get("old").and_then(Value::as_str),
         op.get("new").and_then(Value::as_str),
     ) else {
         return Err(cap_denied(format!(
-            "edit.queue #{i}: requires non-empty file, non-empty old, and new"
+            "edit.queue #{i}: requires non-empty file, old, and new"
         )));
     };
     let path = SourceReads::normalize(file);
@@ -154,6 +154,21 @@ fn resolve_edit(
             format!("edit.queue #{i}: {path} does not exist"),
         )));
     };
+    super::edit_resolve::check_empty_anchor(&path, &text, old).map_err(Resolution::refuse)?;
+    if let Some(expected) = op.get("expectedHash").filter(|value| !value.is_null()) {
+        let expected = expected
+            .as_str()
+            .ok_or_else(|| cap_denied(format!("edit.queue #{i}: expectedHash must be a string")))?;
+        let content_hash = FileContent::Text(text.clone()).content_hash();
+        if expected != content_hash {
+            return Err(Resolution::refuse(WorkspaceError::new(
+                ErrorKind::StaleAnchor { content_hash },
+                format!(
+                    "edit.queue #{i}: {path} changed; re-read it and use its current contentHash"
+                ),
+            )));
+        }
+    }
     let occurrence = match op.get("occurrence") {
         None | Some(Value::Null) => None,
         Some(value) => match value.as_u64().filter(|n| *n >= 1) {

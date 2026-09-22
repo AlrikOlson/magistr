@@ -105,6 +105,104 @@ fn files(op: FilesOp, from: Option<&str>, to: Option<&str>) -> FilesInput {
 }
 
 #[tokio::test]
+async fn empty_file_population_is_anchored_journaled_and_undoable() {
+    let mut h = Harness::new();
+    for path in ["notes/new.md", "notes/new.txt"] {
+        let (created, _) = ok(h
+            .commands("s")
+            .files(&files(FilesOp::Create, None, Some(path)))
+            .await);
+        assert_eq!(h.read(path).unwrap(), b"");
+        let mut input = replace_text(path, "", "New content\n");
+        input.expected_hash = created[0].content_hash.clone();
+        let mut preview = input.clone();
+        preview.dry_run = true;
+        let (rows, _) = ok(h.commands("s").edit(&preview).await);
+        assert!(!rows[0].applied);
+        assert_eq!(h.read(path).unwrap(), b"");
+        let (rows, _) = ok(h.commands("s").edit(&input).await);
+        assert!(rows[0].applied && rows[0].journal_seq.is_some());
+        assert_eq!(h.read(path).unwrap(), b"New content\n");
+        ok(h.commands("s").undo(&UndoInput::default()).await);
+        assert_eq!(h.read(path).unwrap(), b"");
+        ok(h.commands("s").undo(&UndoInput::default()).await);
+        assert!(h.read(path).is_none());
+    }
+}
+
+#[tokio::test]
+async fn empty_anchor_refuses_missing_populated_stale_and_out_of_range_targets() {
+    let mut h = Harness::new();
+    h.write("empty.txt", "");
+    h.write("populated.txt", "someone else's content");
+    let empty_hash = FileContent::Text(String::new()).content_hash();
+    let mut stale = replace_text("empty.txt", "", "new");
+    stale.expected_hash = Some("0".repeat(64));
+    assert_eq!(
+        refused(h.commands("s").edit(&stale).await).0,
+        ErrorKind::StaleAnchor {
+            content_hash: empty_hash
+        }
+    );
+    for occurrence in [0, 2] {
+        let mut input = replace_text("empty.txt", "", "new");
+        input.occurrence = Some(occurrence);
+        assert!(matches!(
+            refused(h.commands("s").edit(&input).await).0,
+            ErrorKind::StaleAnchor { .. }
+        ));
+    }
+    assert_eq!(
+        refused(
+            h.commands("s")
+                .edit(&replace_text("missing.txt", "", "new"))
+                .await
+        )
+        .0,
+        ErrorKind::FileNotFound
+    );
+    assert!(matches!(
+        refused(
+            h.commands("s")
+                .edit(&replace_text("populated.txt", "", "new"))
+                .await
+        )
+        .0,
+        ErrorKind::StaleAnchor { .. }
+    ));
+    assert_eq!(h.read("empty.txt").unwrap(), b"");
+    assert_eq!(h.read("populated.txt").unwrap(), b"someone else's content");
+    assert!(h.read("missing.txt").is_none());
+    assert!(h.journal.list(0).unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn large_empty_file_population_requires_confirmation_and_refuses_changed_content() {
+    let mut h = Harness::new();
+    h.write("empty.txt", "");
+    let big: String = (0..250).map(|i| format!("line {i}\n")).collect();
+    let mut input = replace_text("empty.txt", "", &big);
+    let (kind, notes) = refused(h.commands("s").edit(&input).await);
+    let ErrorKind::ConfirmRequired { confirm_token } = kind else {
+        panic!("gated")
+    };
+    assert!(notes.iter().any(|note| note.contains("+line 0")));
+    assert_eq!(h.read("empty.txt").unwrap(), b"");
+    assert!(h.journal.list(0).unwrap().is_empty());
+    input.confirm = Some(confirm_token);
+    h.write("empty.txt", "concurrent writer");
+    assert!(matches!(
+        refused(h.commands("s").edit(&input).await).0,
+        ErrorKind::StaleAnchor { .. }
+    ));
+    assert_eq!(h.read("empty.txt").unwrap(), b"concurrent writer");
+    h.write("empty.txt", "");
+    let (rows, _) = ok(h.commands("s").edit(&input).await);
+    assert!(rows[0].applied);
+    assert_eq!(h.read("empty.txt").unwrap(), big.as_bytes());
+}
+
+#[tokio::test]
 async fn replace_text_applies_the_addressed_occurrence_through_the_pipeline_and_journals_it() {
     let mut h = Harness::new();
     h.write("notes/a.txt", "one 1\ntwo 1\n");
@@ -177,7 +275,12 @@ async fn stale_anchors_and_missing_files_answer_the_retained_taxonomy_with_fresh
     );
     assert_eq!(kind, ErrorKind::FileNotFound);
     let (kind, _) = refused(h.commands("s").edit(&replace_text("a.txt", "", "b")).await);
-    assert_eq!(kind, ErrorKind::PatternInvalid);
+    assert_eq!(
+        kind,
+        ErrorKind::StaleAnchor {
+            content_hash: fresh
+        }
+    );
     let mut symbolic = EditInput::new(EditOp::ReplaceBody);
     symbolic.file = Some("a.txt".into());
     symbolic.symbol = Some("alpha".into());

@@ -164,6 +164,70 @@ async fn serve(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn served_empty_file_population_keeps_diagnostics_and_undo() {
+    let dir = workspace(&[]);
+    let service = open(dir.path(), &[]).await;
+    let (client, server) = serve(&service, TestClient::plain()).await;
+    for file in ["notes.md", "notes.txt", "empty.py"] {
+        let created = call(&client, "files", json!({"op":"create","to":file})).await;
+        assert_eq!(created["ok"], true, "{created}");
+        assert_eq!(read(dir.path(), file), "");
+        let snapshot = call(&client, "read", json!({"file":file})).await;
+        let hash = &snapshot["results"][0]["contentHash"];
+        let content = if file.ends_with(".py") {
+            "value = 1\n"
+        } else {
+            "Written through MCP\n"
+        };
+        let edit = call(
+            &client,
+            "edit",
+            json!({
+                "op":"replace_text","file":file,"old":"","new":content,"expectedHash":hash
+            }),
+        )
+        .await;
+        assert_eq!(edit["ok"], true, "{edit}");
+        assert_eq!(read(dir.path(), file), content);
+        assert!(edit["results"][0]["journalSeq"].is_number());
+        let stale = call(
+            &client,
+            "edit",
+            json!({
+                "op":"replace_text","file":file,"old":"","new":"overwrite"
+            }),
+        )
+        .await;
+        assert_eq!(stale["error"]["code"], "STALE_ANCHOR", "{stale}");
+        let restored = call(&client, "undo", json!({})).await;
+        assert_eq!(restored["ok"], true, "{restored}");
+        assert_eq!(read(dir.path(), file), "");
+    }
+    let invalid = call(
+        &client,
+        "edit",
+        json!({
+            "op":"replace_text","file":"empty.py","old":"","new":"def broken("
+        }),
+    )
+    .await;
+    assert_eq!(invalid["error"]["code"], "PARSE_REJECTED", "{invalid}");
+    assert!(invalid["error"]["parserMessage"].is_string());
+    assert_eq!(read(dir.path(), "empty.py"), "");
+    let absent = call(
+        &client,
+        "edit",
+        json!({
+            "op":"replace_text","file":"absent.md","old":"","new":"content"
+        }),
+    )
+    .await;
+    assert_eq!(absent["error"]["code"], "FILE_NOT_FOUND", "{absent}");
+    assert!(!dir.path().join("absent.md").exists());
+    close(client, server, service).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn separate_mcp_connections_have_independent_default_undo_sessions() {
     let dir = workspace(&[("src/app.ts", APP_TS)]);
     let service = open(dir.path(), &[]).await;

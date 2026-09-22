@@ -73,6 +73,74 @@ fn write_rows(rows: &[ScriptRow]) -> Vec<WriteReport> {
 }
 
 #[tokio::test]
+async fn empty_file_queue_uses_hashes_confirmation_and_atomic_refusal() {
+    use magistr_workspace::{commands::UndoInput, file_content::FileContent};
+    let mut fixture = rig();
+    fixture.write("empty.txt", "");
+    let hash = FileContent::Text(String::new()).content_hash();
+    let source = format!(
+        "workspace.edit.queue({{file:'empty.txt', old:'', new:'content', expectedHash:{}}}); return true;",
+        json!(hash)
+    );
+    let mut input = ScriptInput::new(source);
+    let (rows, _) = ok(run(&mut fixture, input.clone()).await);
+    assert!(!write_rows(&rows)[0].applied);
+    assert_eq!(fixture.read("empty.txt").unwrap(), "");
+    input.dry_run = false;
+    let (kind, _, _) = refused(run(&mut fixture, input.clone()).await);
+    let ErrorKind::ConfirmRequired { confirm_token } = kind else {
+        panic!("gated")
+    };
+    input.confirm = Some(confirm_token);
+    fixture.write("empty.txt", "changed");
+    assert!(matches!(
+        refused(run(&mut fixture, input.clone()).await).0,
+        ErrorKind::StaleAnchor { .. }
+    ));
+    assert_eq!(fixture.read("empty.txt").unwrap(), "changed");
+    fixture.write("empty.txt", "");
+    let (rows, _) = ok(run(&mut fixture, input).await);
+    assert!(write_rows(&rows)[0].journal_seq.is_some());
+    assert_eq!(fixture.read("empty.txt").unwrap(), "content");
+    ok(fixture.commands("suite").undo(&UndoInput::default()).await);
+    assert_eq!(fixture.read("empty.txt").unwrap(), "");
+
+    for (bad, kind) in [
+        ("{file:'missing.txt',old:'',new:'x'}", "FILE_NOT_FOUND"),
+        ("{file:'notes.md',old:'',new:'x'}", "STALE_ANCHOR"),
+        (
+            "{file:'empty.txt',old:'',new:'x',expectedHash:'stale'}",
+            "STALE_ANCHOR",
+        ),
+        (
+            "{file:'empty.txt',old:'',new:'x',occurrence:2}",
+            "STALE_ANCHOR",
+        ),
+    ] {
+        let source = format!(
+            "workspace.edit.queue({{file:'src/a.ts',old:'TODO',new:'CHANGED'}}); workspace.edit.queue({bad});"
+        );
+        let (error, _, _) = refused(run(&mut fixture, ScriptInput::new(source)).await);
+        assert_eq!(error.code(), kind);
+        assert!(fixture.read("src/a.ts").unwrap().contains("TODO"));
+        assert_eq!(fixture.read("empty.txt").unwrap(), "");
+        assert!(fixture.read("missing.txt").is_none());
+    }
+    // Parser rejection discards the entire queued batch, including text population.
+    fixture.write("empty.py", "");
+    let bad = ScriptInput::new(
+        "workspace.edit.queue({file:'empty.txt',old:'',new:'content'}); workspace.edit.queue({file:'empty.py',old:'',new:'def broken('});",
+    );
+    assert!(matches!(
+        refused(run(&mut fixture, bad).await).0,
+        ErrorKind::ParseRejected { .. }
+    ));
+    assert_eq!(fixture.read("empty.txt").unwrap(), "");
+    assert_eq!(fixture.read("empty.py").unwrap(), "");
+    fixture.shutdown().await;
+}
+
+#[tokio::test]
 async fn one_liners_search_glob_read_and_reduce() {
     let mut fixture = rig();
     assert_eq!(

@@ -171,6 +171,12 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
   apply: `$$$` carries macro arguments, modifiers are part of the shape, attributes rewrite alone.
 - Use `replace_text` for non-code files or when you truly want a literal anchor; pass `expectedHash`
   from your `read` so a file changed under you answers `STALE_ANCHOR` instead of clobbering.
+- To write a new text file, call `files` with `op:create`, then `edit` with
+  `op:replace_text`, `old:""` and `new` set to the content. An empty `old` matches
+  only an existing zero-byte file; a populated file returns `STALE_ANCHOR` and a
+  missing file returns `FILE_NOT_FOUND`. Pass the returned `contentHash` as
+  `expectedHash`. `workspace.edit.queue` supports the same empty anchor and
+  optional `expectedHash`; create missing files in a separate call first.
 - Single-file symbol/text edits auto-apply (parse-verify is the guard) and return the diff.
   Multi-file ops (`rewrite`, `rename`, `move`) and anything large answer `CONFIRM_REQUIRED` with the
   aggregated diff and a `confirmToken`. Read the diff. If it is right, re-issue the **identical**

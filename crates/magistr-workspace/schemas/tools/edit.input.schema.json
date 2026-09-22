@@ -53,7 +53,7 @@
     },
     "old": {
       "type": "string",
-      "description": "replace_text only: the exact literal text to replace. Not found (or occurrence out of range) answers STALE_ANCHOR with the fresh contentHash — re-read and re-anchor."
+      "description": "replace_text only: the exact literal text to replace. An empty old populates an existing zero-byte file; a nonempty file answers STALE_ANCHOR and a missing file answers FILE_NOT_FOUND. Not found (or occurrence out of range) answers STALE_ANCHOR with the fresh contentHash — re-read and re-anchor."
     },
     "new": {
       "type": "string",

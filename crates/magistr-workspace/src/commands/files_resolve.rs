@@ -295,7 +295,9 @@ fn resolve_create(service: &WorkspaceCommands<'_>, to: &str) -> Result<Resolutio
             content: Some(FileContent::Text(String::new())),
             baseline: None,
         }],
-        notes: vec![format!("create: new empty file {to:?}")],
+        notes: vec![format!(
+            "create: new empty file {to:?}; use edit with op:replace_text, old:\"\" and new set to its content"
+        )],
         always_gated: false,
     }))
 }
