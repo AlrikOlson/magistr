@@ -898,6 +898,10 @@ fn magistr_dir_gitignore_in_scaffold_files() {
     );
     let content = &magistr_gi.unwrap().content;
     assert!(content.contains("!project.json"), "whitelists project.json");
+    assert!(
+        content.lines().any(|line| line == "!agents.toml"),
+        "whitelists agent preferences"
+    );
     assert!(content.contains("!roadmap.yaml"), "whitelists roadmap.yaml");
 }
 

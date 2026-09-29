@@ -140,7 +140,7 @@ async fn main() -> eyre::Result<()> {
             prompt,
             resume,
             r#continue,
-            model,
+            agent,
             backend,
             headless,
             format,
@@ -148,9 +148,11 @@ async fn main() -> eyre::Result<()> {
             if r#continue || resume.is_some() {
                 unsafe { std::env::set_var("MAGISTR_CONTINUE", "1") };
             }
-            if let Some(ref m) = model {
-                unsafe { std::env::set_var("MAGISTR_MODEL", m) };
+            let inputs = agent.prepare(&inputs, false, resume.as_deref(), r#continue)?;
+            if agent.show_config {
+                return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
             }
+            magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
             let agent_backend = commands::resolve_backend(backend, &inputs)?;
             let profile = commands::run::resolve_permission_profile(
                 inputs.project_root(),
@@ -160,7 +162,7 @@ async fn main() -> eyre::Result<()> {
                 prompt: &prompt,
                 resume: resume.as_deref(),
                 continue_conversation: r#continue,
-                model: model.as_deref(),
+                model: agent.model.as_deref(),
             };
             if headless {
                 commands::run::cmd_run_headless(request, agent_backend, format, profile, &inputs)
@@ -172,6 +174,7 @@ async fn main() -> eyre::Result<()> {
             }
         }
         Command::Next {
+            agent,
             dir,
             r#continue: continue_plan,
             backend,
@@ -182,6 +185,11 @@ async fn main() -> eyre::Result<()> {
             if gate_only {
                 commands::next::cmd_next_gate_only(&dir, format).await
             } else {
+                let inputs = agent.prepare(&inputs.for_project(&dir), false, None, false)?;
+                if agent.show_config {
+                    return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
+                }
+                magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
                 let agent_backend = commands::resolve_backend(backend, &inputs)?;
                 let profile =
                     commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
@@ -198,6 +206,7 @@ async fn main() -> eyre::Result<()> {
             }
         }
         Command::NextLoop {
+            agent,
             dir,
             max_iterations,
             backend,
@@ -205,6 +214,11 @@ async fn main() -> eyre::Result<()> {
             format,
             max_cost,
         } => {
+            let inputs = agent.prepare(&inputs.for_project(&dir), true, None, false)?;
+            if agent.show_config {
+                return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
+            }
+            magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
             let agent_backend = commands::resolve_backend(backend, &inputs)?;
             let profile = commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
             if headless {

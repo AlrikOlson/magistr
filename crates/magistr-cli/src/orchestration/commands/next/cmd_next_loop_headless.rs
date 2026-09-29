@@ -28,7 +28,7 @@ pub async fn cmd_next_loop_headless(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
-    let inputs = inputs.for_project(&dir);
+    let inputs = super::workflow_inputs(&inputs.for_project(&dir), true)?;
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
     wf.cleanup()?;
@@ -40,6 +40,9 @@ pub async fn cmd_next_loop_headless(
         crate::roadmap::admit_native_host(&dir)?,
     )
     .suggest()?;
+    if let Some(selection) = inputs.session_selection() {
+        iter_loop.bind_session_selection(selection.clone())?;
+    }
     let max_iterations = iter_loop.max_iterations();
     iter_loop.set_budget_limit(max_cost).suggest()?;
     let max_cost = iter_loop.run_state().budget_limit_usd;
@@ -138,6 +141,7 @@ pub async fn cmd_next_loop_headless(
         // Run one iteration
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
         let config = super::cmd_next_headless::workflow_agent_config(&prompt, &dir, backend)
+            .with_inputs(&inputs)
             .permission_profile(profile);
 
         // The dispatch, durable before the launch. An outcome already

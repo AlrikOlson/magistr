@@ -336,3 +336,74 @@ fn legacy_provider_options_are_refused_before_runtime_start() {
     };
     assert!(legacy_permissions.to_string().contains("permission_mode"));
 }
+
+#[test]
+fn workflow_snapshots_require_the_exact_model_and_keep_unset_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let snapshot = crate::config::session_selection::SessionSelection {
+        agent: "codex".into(),
+        model: Some("saved-model".into()),
+        effort: None,
+        sources: Default::default(),
+    };
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None)
+        .with_session_selection(snapshot);
+    let spec = ResolvedSessionSpec::resolve_with_runtime(
+        AgentConfig::new("", dir.path()).with_inputs(&inputs),
+        &UserConfig::default(),
+        runtime("codex"),
+    )
+    .unwrap();
+    assert_eq!(
+        spec.session_model_choice(false).as_deref(),
+        Some("saved-model")
+    );
+    assert!(
+        spec.session_model_choice(true).is_none(),
+        "a frozen choice cannot negotiate a nearest alternative"
+    );
+    assert!(spec.effort().is_none());
+}
+#[test]
+fn changed_project_policy_cannot_substitute_a_workflows_saved_model() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut team =
+        crate::team::TeamConfig::new_with_owner(&crate::team::Identity::resolve(dir.path()));
+    team.policy = GovernancePolicy {
+        approved_models: vec!["approved-new-model".into()],
+        fallback_model: Some("approved-new-model".into()),
+        ..GovernancePolicy::default()
+    };
+    team.save(dir.path()).unwrap();
+    let config = AgentConfig::new("hello", dir.path()).model("old-model");
+    let initial = ResolvedSessionSpec::resolve_with_runtime(
+        config.clone(),
+        &UserConfig::default(),
+        runtime("codex"),
+    )
+    .unwrap();
+    assert_eq!(
+        initial.model(),
+        Some("approved-new-model"),
+        "a fresh selection still follows project routing"
+    );
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None)
+        .with_session_selection(crate::config::session_selection::SessionSelection {
+            agent: "codex".into(),
+            model: Some("old-model".into()),
+            effort: None,
+            sources: Default::default(),
+        });
+    let error = ResolvedSessionSpec::resolve_with_runtime(
+        config.with_inputs(&inputs),
+        &UserConfig::default(),
+        runtime("codex"),
+    )
+    .err()
+    .expect("a saved model cannot change silently");
+    assert!(
+        error
+            .to_string()
+            .contains("selected model is no longer allowed")
+    );
+}

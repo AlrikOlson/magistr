@@ -49,6 +49,7 @@ pub struct ProjectInputs {
     /// `$XDG_CONFIG_HOME/magistr`, else `$HOME/.config/magistr`, else none.
     config_dir: Option<PathBuf>,
     agent_backend: Option<String>,
+    session_selection: Option<crate::config::session_selection::SessionSelection>,
     claude_api_key: bool,
     plugin_index_url: Option<String>,
     workspace_env: BTreeMap<String, String>,
@@ -139,6 +140,7 @@ impl ProjectInputs {
             project_root: project_root.into(),
             config_dir,
             agent_backend,
+            session_selection: None,
             claude_api_key,
             plugin_index_url,
             workspace_env,
@@ -196,6 +198,21 @@ impl ProjectInputs {
         self.sources
             .insert("provider.claude_api_key", InputSource::Explicit);
         self
+    }
+
+    /// Freeze the same non-secret agent settings for every session in this run.
+    #[must_use]
+    pub fn with_session_selection(
+        mut self,
+        selection: crate::config::session_selection::SessionSelection,
+    ) -> Self {
+        self.session_selection = Some(selection);
+        self
+    }
+
+    #[must_use]
+    pub fn session_selection(&self) -> Option<&crate::config::session_selection::SessionSelection> {
+        self.session_selection.as_ref()
     }
 
     // ── Captured values ──────────────────────────────────────────────

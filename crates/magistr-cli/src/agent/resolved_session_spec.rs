@@ -31,19 +31,38 @@ impl ResolvedSessionSpec {
     /// composed: the user defaults come from the captured config path and
     /// the runtime is detected against the captured provider facts.
     pub(super) fn resolve(config: AgentConfig) -> Result<Self> {
-        let defaults = config
-            .inputs
-            .user_config()
-            .map_err(|error| {
-                MagistrError::Config(format!("Cannot resolve session user defaults: {error}"))
-            })?
-            .value;
+        let defaults = if config.inputs.session_selection().is_some() {
+            UserConfig::default()
+        } else {
+            config
+                .inputs
+                .user_config()
+                .map_err(|error| {
+                    MagistrError::Config(format!("Cannot resolve session user defaults: {error}"))
+                })?
+                .value
+        };
         Self::resolve_with_defaults(config, &defaults)
     }
 
     fn resolve_with_defaults(config: AgentConfig, defaults: &UserConfig) -> Result<Self> {
         validate_continuation(&config)?;
-        let selected = config.provider.as_deref().or(defaults.session.provider());
+        let project = if config.inputs.session_selection().is_some() {
+            crate::config::agent_preferences::AgentPreferences::default()
+        } else {
+            crate::config::agent_preferences::AgentPreferences::load(&config.cwd)?
+        };
+        let selected = config
+            .provider
+            .as_deref()
+            .or_else(|| {
+                config
+                    .inputs
+                    .session_selection()
+                    .map(|selection| selection.agent.as_str())
+            })
+            .or(project.agent.as_deref())
+            .or(defaults.session.provider());
         let runtime = AgentRuntime::detect_for(&config.inputs, selected)?;
         Self::resolve_with_runtime(config, defaults, runtime)
     }
@@ -55,61 +74,34 @@ impl ResolvedSessionSpec {
         defaults: &UserConfig,
         runtime: AgentRuntime,
     ) -> Result<Self> {
-        use SessionConfigSource::{
-            AutoDetected, Explicit, ProjectFile, ProjectPolicy, RuntimeDefault, RuntimeResume,
-            UserDefault,
-        };
+        use SessionConfigSource::{Explicit, ProjectFile, ProjectPolicy, RuntimeDefault};
         validate_continuation(&config)?;
         config.cwd = std::fs::canonicalize(&config.cwd)
             .map_err(|error| MagistrError::io(&config.cwd, error))?;
-        let mut provenance = BTreeMap::new();
-        let provider_source = match config.provider.as_deref() {
-            Some("auto") => AutoDetected,
-            Some(_) => Explicit,
-            None if defaults.session.provider().is_some() => UserDefault,
-            None => AutoDetected,
-        };
-        provenance.insert("provider", provider_source);
-        config.provider = Some(runtime.provider.clone());
-        let model_source = if config.model.is_some() {
-            Explicit
-        } else if config.resume.is_none()
-            && let Some(model) = defaults.models.for_provider(runtime.provider_id())
-        {
-            config.model = Some(model.to_owned());
-            UserDefault
-        } else if config.resume.is_some() {
-            RuntimeResume
-        } else {
-            RuntimeDefault
-        };
-        // "default" is a request to retain the provider's selected model.
-        config.model = config
-            .model
-            .filter(|model| !model.eq_ignore_ascii_case("default"));
+        let mut provenance =
+            super::session_defaults::session_defaults(&mut config, defaults, &runtime)?;
         let governance = crate::team::TeamConfig::load(&config.cwd)?
             .map(|team| team.policy)
             .unwrap_or_default();
         let model = resolve_model(&governance, config.model.as_deref())?;
+        if model != config.model
+            && config.inputs.session_selection().is_some_and(|selection| {
+                selection.agent == runtime.provider && selection.model == config.model
+            })
+        {
+            return Err(MagistrError::Config(
+                "This run's selected model is no longer allowed by the project's settings. Restore those settings or choose a different model for a new run after this one has ended".into(),
+            ));
+        }
         provenance.insert(
             "model",
             if model == config.model {
-                model_source
+                provenance["model"]
             } else {
                 ProjectPolicy
             },
         );
         config.model = model;
-        provenance.insert(
-            "effort",
-            if config.effort.is_some() {
-                Explicit
-            } else if config.resume.is_some() {
-                RuntimeResume
-            } else {
-                RuntimeDefault
-            },
-        );
         provenance.insert("project_root", Explicit);
         provenance.insert(
             "resume",
@@ -232,6 +224,21 @@ impl ResolvedSessionSpec {
         self.config.workflow_permissions
     }
 
+    /// The non-secret settings that a workflow freezes and checkpoints.
+    #[must_use]
+    pub fn selection(&self) -> crate::config::session_selection::SessionSelection {
+        crate::config::session_selection::SessionSelection {
+            agent: self.runtime.provider.clone(),
+            model: self.config.model.clone(),
+            effort: self.config.effort.clone(),
+            sources: self
+                .provenance
+                .iter()
+                .map(|(key, source)| ((*key).to_string(), source.label().to_string()))
+                .collect(),
+        }
+    }
+
     /// Non-secret evidence identifying which authority supplied each choice.
     #[must_use]
     pub fn provenance(&self) -> &BTreeMap<&'static str, SessionConfigSource> {
@@ -276,8 +283,8 @@ impl ResolvedSessionSpec {
     /// with its nearest offered model; an explicit or governance-routed model
     /// is a requirement the agent must apply exactly.
     fn session_model_choice(&self, preferred: bool) -> Option<String> {
-        let from_user_default =
-            self.provenance.get("model") == Some(&SessionConfigSource::UserDefault);
+        let from_user_default = self.config.inputs.session_selection().is_none()
+            && self.provenance.get("model") == Some(&SessionConfigSource::UserDefault);
         (from_user_default == preferred)
             .then(|| self.config.model.clone())
             .flatten()

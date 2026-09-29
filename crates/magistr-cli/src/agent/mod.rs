@@ -420,6 +420,7 @@ impl AgentConfig {
     }
 }
 
+mod session_defaults;
 #[cfg(test)]
 #[path = "mod.tests.rs"]
 mod tests;

@@ -22,7 +22,7 @@ pub async fn cmd_next_headless(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
-    let inputs = inputs.for_project(&dir);
+    let inputs = super::workflow_inputs(&inputs.for_project(&dir), false)?;
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
     let summary_before = wf.spec_summary().suggest()?;

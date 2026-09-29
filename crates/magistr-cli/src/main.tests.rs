@@ -580,7 +580,8 @@ fn cli_budget_flags_default_to_none() {
 fn cli_parses_model_flag() {
     let cli = parse_cli(["magistr", "run", "--model", "sonnet", "fix the bug"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { model, .. } => {
+        cli::Command::Run { agent, .. } => {
+            let model = agent.model;
             assert_eq!(model.as_deref(), Some("sonnet"));
         }
         _ => panic!("expected Run command"),
@@ -591,7 +592,8 @@ fn cli_parses_model_flag() {
 fn cli_parses_model_flag_short() {
     let cli = parse_cli(["magistr", "run", "-m", "opus", "refactor this"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { model, .. } => {
+        cli::Command::Run { agent, .. } => {
+            let model = agent.model;
             assert_eq!(model.as_deref(), Some("opus"));
         }
         _ => panic!("expected Run command"),
@@ -602,7 +604,8 @@ fn cli_parses_model_flag_short() {
 fn cli_run_model_defaults_to_none() {
     let cli = parse_cli(["magistr", "run", "hello"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { model, .. } => {
+        cli::Command::Run { agent, .. } => {
+            let model = agent.model;
             assert!(model.is_none());
         }
         _ => panic!("expected Run command"),
