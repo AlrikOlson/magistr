@@ -488,3 +488,34 @@ async fn external_writes_stay_unjournaled_and_are_reported_by_snapshot_validatio
 
     hosted.shutdown().await.expect("clean shutdown");
 }
+
+/// A loop takes its source route once and keeps it for every iteration.
+/// Releasing the admission together with that route shuts the owner down
+/// in order; a plain shutdown beside the live route is refused, which is
+/// how every loop used to end.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_loop_releases_its_route_with_the_admission_and_the_owner_shuts_down() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = workspace(&tmp);
+
+    let admission = WorkspaceAdmission::admit_with(options(&root)).await;
+    let route = admission.source_route();
+    assert!(route.is_admitted());
+    let refused = admission.shutdown().await;
+    assert!(
+        refused.is_err(),
+        "a live route keeps the service referenced"
+    );
+    drop(route);
+
+    let admission = WorkspaceAdmission::admit_with(options(&root)).await;
+    let route = admission.source_route();
+    assert!(route.is_admitted(), "{}", admission.report());
+    admission
+        .release(route)
+        .await
+        .expect("the route goes first, then the owner shuts down");
+    let again = WorkspaceAdmission::admit_with(options(&root)).await;
+    assert!(again.hosted().is_some(), "{}", again.report());
+    again.shutdown().await.expect("clean shutdown");
+}

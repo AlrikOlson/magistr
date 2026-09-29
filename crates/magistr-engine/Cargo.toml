@@ -32,3 +32,8 @@ sha2 = "0.10"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+# The owner endpoint's named pipe: its owner-only DACL, the peer token
+# check and the serving process's user.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Pipes", "Win32_System_Threading"] }

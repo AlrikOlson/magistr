@@ -87,6 +87,17 @@ impl WorkspaceAdmission {
         }
     }
 
+    /// Release what was admitted together with the route a host took from
+    /// it for its whole run: the route's writer holds the service, so it
+    /// goes first and the owner can then shut down in order.
+    ///
+    /// # Errors
+    /// As [`HostedWorkspace::shutdown`].
+    pub async fn release(self, route: SourceRoute) -> Result<(), WorkspaceError> {
+        drop(route);
+        self.shutdown().await
+    }
+
     /// Release what was admitted; a refusal held nothing.
     ///
     /// # Errors

@@ -1,16 +1,18 @@
 //! Native stdio processes share one admitted workspace owner, retain distinct
 //! sessions and outlive that owner: a bridge whose owner disappears answers
 //! its calls with the typed refusal and reconnects on the next request.
-#![cfg(unix)]
+#![cfg(any(unix, windows))]
 mod workspace_attachment_support;
 
 use serde_json::json;
 use std::{process::Stdio, sync::Arc};
 use tokio::{sync::Barrier, task::JoinSet};
 use workspace_attachment_support::{
-    Connection, WAIT, assert_ok, binary, command, dead_legacy_record, deny_admission, edit,
-    file_text, generation, hostname, magistr, migrate, read_text, restore_admission, workspace,
+    Connection, WAIT, assert_ok, binary, command, deny_admission, edit, file_text, generation,
+    magistr, read_text, restore_admission, workspace,
 };
+#[cfg(unix)]
+use workspace_attachment_support::{dead_legacy_record, hostname, migrate};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_second_process_initializes_against_the_live_workspace_owner() {
@@ -20,6 +22,27 @@ async fn a_second_process_initializes_against_the_live_workspace_owner() {
     attached.assert_tools().await;
     assert_eq!(generation(dir.path()), 1);
     attached.close().await;
+    assert_ok(&owner.call("workbench_status", json!({})).await);
+    owner.close().await;
+}
+
+/// An attached bridge whose client leaves ends as soon as its last answer
+/// is relayed, not after the drain deadline: on a transport without
+/// half-close (a Windows pipe) the owner never sees EOF, so the bridge
+/// must not wait for one.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn an_attached_bridge_exits_promptly_once_its_client_leaves() {
+    let dir = workspace();
+    let owner = Connection::open(dir.path()).await;
+    let attached = Connection::open(dir.path()).await;
+    assert_ok(&attached.call("workbench_status", json!({})).await);
+    let started = std::time::Instant::now();
+    attached.close().await;
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "the bridge waited {:?} after its client left",
+        started.elapsed()
+    );
     assert_ok(&owner.call("workbench_status", json!({})).await);
     owner.close().await;
 }
@@ -336,6 +359,7 @@ async fn owner_loss_answers_calls_typed_and_keeps_the_tool_surface_until_an_owne
     attached.close().await;
 }
 
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_killed_owner_takes_its_worker_with_it() {
     let dir = workspace();
@@ -378,6 +402,7 @@ async fn a_killed_owner_takes_its_worker_with_it() {
     .expect("the orphaned worker ends by itself");
 }
 
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn an_orphaned_worker_whose_stdin_stays_open_ends_by_itself() {
     // A shell parent stands in for a killed owner (the trailing command keeps
@@ -420,6 +445,7 @@ async fn an_orphaned_worker_whose_stdin_stays_open_ends_by_itself() {
 }
 
 /// The `--workspace-worker` child of `owner`, as the process table shows it.
+#[cfg(unix)]
 fn worker_of(owner: u32) -> Option<i32> {
     let table = std::process::Command::new("ps")
         .args(["-axo", "pid=,ppid=,command="])
@@ -565,6 +591,7 @@ async fn a_bridge_outlives_a_native_owner_without_an_endpoint_and_admits_once_th
 /// refuses calls typed with the migration as the named action, and after
 /// `magistr workspace migrate` its next call admits — the handshake and the
 /// listing it gave are the ones a live owner gives.
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_bridge_against_an_unmigrated_marker_serves_discovery_and_admits_after_migration() {
     let dir = workspace();
@@ -663,6 +690,7 @@ async fn attachment_rejects_a_confirmation_after_external_bytes_change() {
     owner.close().await;
 }
 
+#[cfg(unix)]
 #[path = "workspace_attachment_support/shutdown.tests.rs"]
 mod shutdown_tests;
 
@@ -671,6 +699,7 @@ mod launcher_tests;
 
 /// `magistr workspace doctor <root>` beside a live owner, as text and as
 /// the machine-readable owner section of a bundle.
+#[cfg(unix)]
 async fn doctor(root: &std::path::Path) -> (i32, String) {
     let output = tokio::time::timeout(
         WAIT,
@@ -693,6 +722,7 @@ async fn doctor(root: &std::path::Path) -> (i32, String) {
 /// the lock: it reports the owner's generation and build, and its attached
 /// connection count rises when a second bridge attaches and falls when that
 /// bridge's client closes.
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn doctor_reports_the_live_owner_and_counts_attached_bridges_as_they_come_and_go() {
     let dir = workspace();

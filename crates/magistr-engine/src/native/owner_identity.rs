@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use super::AttachRefusal;
 use super::WriterRole;
 
@@ -24,7 +24,7 @@ pub enum OwnerIdentity {
 }
 
 impl OwnerIdentity {
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     pub(crate) fn admit(&self, offered: &Self) -> Result<(), AttachRefusal> {
         match (self, offered) {
             (

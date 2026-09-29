@@ -143,12 +143,12 @@ impl OwnerClient {
     ///
     /// # Errors
     /// As [`Self::attach_with`], plus canonical-root resolution failures.
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     pub async fn attach_workspace(
         root: &Path,
         caller: CallerIdentity,
         deadline: Duration,
-    ) -> Result<(OwnerGeneration, tokio::net::UnixStream), AttachError> {
+    ) -> Result<(OwnerGeneration, super::LocalStream), AttachError> {
         super::owner_workspace_link::attach(root, caller, deadline).await
     }
 

@@ -14,10 +14,12 @@ use super::native_config::fits_sun_path;
 /// Locate a workspace endpoint without opening its state or taking its lock.
 /// The short path is in the workspace's private run directory. Deep roots
 /// use a private directory under `/tmp`, independent of a client's runtime
-/// environment so every client of the same user finds the same owner.
+/// environment so every client of the same user finds the same owner. On
+/// Windows it is a named pipe keyed by this user and the canonical root.
 ///
 /// # Errors
-/// The root cannot be canonicalized; local attachment is unsupported off Unix.
+/// The root cannot be canonicalized, or on Windows this process's user
+/// cannot be read; local attachment is unsupported elsewhere.
 pub fn workspace_socket_path(root: &Path) -> io::Result<PathBuf> {
     let root = root.canonicalize()?;
     let beside = root.join(".workbench/run/owner.sock");
@@ -36,7 +38,12 @@ pub fn workspace_socket_path(root: &Path) -> io::Result<PathBuf> {
             .collect();
         Ok(PathBuf::from(format!("/tmp/magistr-workspace-{uid}")).join(format!("{name}.sock")))
     }
-    #[cfg(not(unix))]
+    #[cfg(windows)]
+    {
+        let _ = beside;
+        super::owner_pipe::pipe_name("workspace", root.as_os_str().as_encoded_bytes())
+    }
+    #[cfg(not(any(unix, windows)))]
     {
         let _ = beside;
         Err(io::Error::new(
