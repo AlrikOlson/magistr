@@ -26,7 +26,7 @@ mod capability;
 mod connection;
 mod dispatch;
 mod elicitation;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 mod endpoint;
 mod serve;
 mod service;
@@ -34,7 +34,7 @@ mod session_lifetime;
 mod tasks;
 mod tool_surface;
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 pub(crate) use endpoint::serve as serve_owner_endpoint;
 pub(crate) use serve::open_options;
 pub use serve::run_workspace_stdio_server;

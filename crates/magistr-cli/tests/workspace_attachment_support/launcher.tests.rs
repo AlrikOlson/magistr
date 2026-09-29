@@ -73,6 +73,7 @@ async fn the_cockpit_port_reaches_the_live_owner_through_the_projects_mcp_json()
     owner.close().await;
 }
 
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn workspace_migrate_refuses_a_live_legacy_record_and_moves_a_dead_one_aside() {
     let dir = workspace();

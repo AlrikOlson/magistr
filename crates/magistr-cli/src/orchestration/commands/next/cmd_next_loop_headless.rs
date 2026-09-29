@@ -172,7 +172,7 @@ pub async fn cmd_next_loop_headless(
                 iter_loop.advance();
                 iter_loop.mark_failed();
                 iter_loop.persist().suggest()?;
-                release_workspace(workspace).await;
+                release_workspace(workspace, source).await;
                 return Err(error);
             }
         };
@@ -229,7 +229,7 @@ pub async fn cmd_next_loop_headless(
                 iter_loop.advance();
                 iter_loop.mark_failed();
                 iter_loop.persist().suggest()?;
-                release_workspace(workspace).await;
+                release_workspace(workspace, source).await;
                 return Err(error);
             }
         };
@@ -324,14 +324,18 @@ pub async fn cmd_next_loop_headless(
 
     iter_loop.persist().suggest()?;
     // Released before the exit code below can end the process.
-    release_workspace(workspace).await;
+    release_workspace(workspace, source).await;
     finish_loop(final_outcome)
 }
 
-/// Release the loop's workspace admission, reporting a refused shutdown on
-/// stderr rather than turning it into the loop's outcome.
-async fn release_workspace(workspace: crate::application::WorkspaceAdmission) {
-    if let Err(err) = workspace.shutdown().await {
+/// Release the loop's workspace admission and its source route, reporting
+/// a refused shutdown on stderr rather than turning it into the loop's
+/// outcome.
+async fn release_workspace(
+    workspace: crate::application::WorkspaceAdmission,
+    source: magistr_application::effects::SourceRoute,
+) {
+    if let Err(err) = workspace.release(source).await {
         eprintln!("magistr: workspace shutdown: {err}");
     }
 }

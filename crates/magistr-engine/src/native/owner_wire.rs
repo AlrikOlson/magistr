@@ -12,14 +12,14 @@
 use serde::{Deserialize, Serialize};
 
 use super::attach_kind::AttachKind;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use super::attach_refusal::AttachRefusal;
 use super::build_identity::BuildIdentity;
 use super::caller_identity::CallerIdentity;
 use super::owner_command::OwnerCommand;
 use super::owner_generation::OwnerGeneration;
 use super::owner_identity::OwnerIdentity;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use super::owner_reply::OwnerReply;
 
 /// The protocol this binary speaks. Exact match only — during development
@@ -57,7 +57,7 @@ impl Hello {
     /// version — the owner writes that refusal back so the client learns
     /// why; `Err(None)` for a line that is not a `Hello` of the served
     /// version at all, which is dropped.
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     pub(crate) fn parse(line: &[u8]) -> Result<Self, Option<AttachRefusal>> {
         let value: serde_json::Value = serde_json::from_slice(line).map_err(|_| None)?;
         let offered = value
@@ -78,7 +78,7 @@ impl Hello {
 /// The owner's answer to a [`Hello`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "greeting", rename_all = "snake_case")]
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 pub(crate) enum Greeting {
     Welcome {
         generation: OwnerGeneration,
@@ -109,7 +109,7 @@ pub(crate) enum CommandRefusal {
 
 /// The owner's answer to one command.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 pub(crate) struct ReplyFrame {
     pub(crate) id: u64,
     pub(crate) outcome: Result<OwnerReply, CommandRefusal>,

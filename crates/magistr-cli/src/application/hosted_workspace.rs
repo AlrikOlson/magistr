@@ -20,7 +20,7 @@ use crate::config::inputs::ProjectInputs;
 /// refused (see [`super::WorkspaceAdmission`]).
 pub struct HostedWorkspace {
     service: Arc<WorkspaceService>,
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     endpoint: Option<magistr_engine::native::OwnerEndpoint>,
 }
 
@@ -50,7 +50,7 @@ impl HostedWorkspace {
             Err(WorkspaceOpenError::Locked(_)) => return Ok(None),
             Err(error) => return Err(error),
         };
-        #[cfg(unix)]
+        #[cfg(any(unix, windows))]
         let endpoint = match crate::workspace_mcp::serve_owner_endpoint(Arc::clone(&service)).await
         {
             Ok(endpoint) => Some(endpoint),
@@ -63,7 +63,7 @@ impl HostedWorkspace {
         };
         Ok(Some(Self {
             service,
-            #[cfg(unix)]
+            #[cfg(any(unix, windows))]
             endpoint,
         }))
     }
@@ -99,7 +99,7 @@ impl HostedWorkspace {
     /// The endpoint or the service refused to shut down, or references to
     /// the service remain.
     pub async fn shutdown(self) -> Result<(), WorkspaceError> {
-        #[cfg(unix)]
+        #[cfg(any(unix, windows))]
         if let Some(endpoint) = self.endpoint {
             endpoint.shutdown().await.map_err(|error| {
                 WorkspaceError::new(

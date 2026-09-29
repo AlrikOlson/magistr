@@ -84,7 +84,7 @@ pub async fn cmd_next_loop(
                     .iter()
                     .map(|record| format!("{} {}", record.kind, record.target))
                     .collect();
-                if let Err(err) = workspace.shutdown().await {
+                if let Err(err) = workspace.release(source).await {
                     eprintln!("magistr: workspace shutdown: {err}");
                 }
                 return Err(eyre::eyre!(
@@ -158,7 +158,7 @@ pub async fn cmd_next_loop(
             iter_loop.advance();
             iter_loop.mark_failed();
             iter_loop.persist().suggest()?;
-            if let Err(err) = workspace.shutdown().await {
+            if let Err(err) = workspace.release(source).await {
                 eprintln!("magistr: workspace shutdown: {err}");
             }
             return Err(error);
@@ -188,7 +188,7 @@ pub async fn cmd_next_loop(
 
     // Clean up
     iter_loop.persist().suggest()?;
-    if let Err(err) = workspace.shutdown().await {
+    if let Err(err) = workspace.release(source).await {
         eprintln!("magistr: workspace shutdown: {err}");
     }
     eprintln!(
