@@ -5,6 +5,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 
 use super::service::ShipService;
+use super::task_result::TaskResult;
 use crate::ship::domain::action::ActionType;
 use crate::ship::domain::artifact::{Artifact, ArtifactType};
 use crate::ship::domain::check::CheckType;
@@ -309,7 +310,11 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<StartArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(self.use_cases.start_task(&args.task_id))
+        Self::application_result(
+            self.use_cases
+                .start_task(&args.task_id)
+                .map(TaskResult::from),
+        )
     }
 
     #[tool(
@@ -354,7 +359,11 @@ impl ShipService {
         Parameters(args): Parameters<CompleteArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let artifacts = args.artifacts.into_iter().map(Artifact::from).collect();
-        Self::application_result(self.use_cases.complete_task(&args.task_id, artifacts))
+        Self::application_result(
+            self.use_cases
+                .complete_task(&args.task_id, artifacts)
+                .map(TaskResult::from),
+        )
     }
 
     #[tool(
@@ -372,7 +381,11 @@ impl ShipService {
         &self,
         Parameters(args): Parameters<BlockArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Self::application_result(self.use_cases.block_task(&args.task_id, args.reason))
+        Self::application_result(
+            self.use_cases
+                .block_task(&args.task_id, args.reason)
+                .map(TaskResult::from),
+        )
     }
 
     #[tool(
