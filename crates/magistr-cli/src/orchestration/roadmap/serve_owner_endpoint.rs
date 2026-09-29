@@ -10,7 +10,9 @@ use color_eyre::eyre;
 use magistr_engine::{NativeEngines, OwnerEndpoint};
 
 /// The endpoint for `engines`, `None` when the project has no native
-/// writer (a YAML roadmap).
+/// writer (a YAML roadmap) or the platform has no Unix domain sockets
+/// (Windows): there the loop runs and a second cockpit is refused with
+/// the lease's own reason, as a second `magistr mcp-serve` is.
 ///
 /// # Errors
 /// The endpoint cannot be served: another listener is live at the
@@ -24,8 +26,19 @@ pub async fn serve_owner_endpoint(
     let Some(engines) = engines else {
         return Ok(None);
     };
+    if cfg!(not(unix)) {
+        tracing::debug!(
+            target: "magistr::roadmap",
+            "no owner endpoint on this platform: a second cockpit on this project is refused"
+        );
+        return Ok(None);
+    }
     OwnerEndpoint::serve(engines.clone())
         .await
         .map(Some)
         .map_err(|error| eyre::eyre!("{error}"))
 }
+
+#[cfg(test)]
+#[path = "serve_owner_endpoint.tests.rs"]
+mod tests;

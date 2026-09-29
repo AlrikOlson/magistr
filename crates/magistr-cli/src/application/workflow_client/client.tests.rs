@@ -252,3 +252,18 @@ async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
     EngineClient::with_config(attachable(&root, &data))
         .expect("the role is free: the attached cockpit held nothing");
 }
+
+#[cfg(not(unix))]
+#[tokio::test]
+async fn a_host_off_unix_serves_no_endpoint_and_still_starts() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("proj");
+    std::fs::create_dir_all(&root).expect("root");
+    let host = EngineClient::with_config(config(&root, &tmp.path().join("data"))).expect("host");
+    assert!(
+        host.serve_owner()
+            .await
+            .expect("the session starts without an endpoint")
+            .is_none()
+    );
+}

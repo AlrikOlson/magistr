@@ -223,7 +223,8 @@ impl EngineClient {
 
     /// Serve this host's owner endpoint, so a second cockpit on the project
     /// attaches to this writer instead of being refused. `None` when this
-    /// client holds no writer. The endpoint lives as long as the handle:
+    /// client holds no writer, or off Unix, where there is no socket to
+    /// attach through and the session runs without one. The endpoint lives as long as the handle:
     /// keep it beside the runtime and let it drop before the client does.
     ///
     /// # Errors
@@ -234,6 +235,9 @@ impl EngineClient {
         let Some(writer) = &self.writer else {
             return Ok(None);
         };
+        if cfg!(not(unix)) {
+            return Ok(None);
+        }
         OwnerEndpoint::serve(writer.clone())
             .await
             .map(Some)
