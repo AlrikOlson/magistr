@@ -85,7 +85,8 @@ One row names exactly one tool. `facet:value` picks a selection (`mode`, `op`, `
 | `sed -i` / `awk` across many files (a codemod) | `edit` `op:rewrite` — an ast-grep pattern → replacement over a glob scope; always dry-run first | `pattern`, `rewritePattern`, `path`, `lang`, `dryRun`, `confirm` |
 | `mv` | `files` `op:move` — import-aware: importer rewrites ride the same diff; always confirm-gated | `from`, `to`, `confirm`, `dryRun` |
 | `cp` | `files` `op:copy` | `from`, `to` |
-| `touch`, creating a new file | `files` `op:create` | `to` |
+| `touch`, an empty new file | `files` `op:create` | `to` |
+| creating a file with content, `cat > file`, replacing a whole file | `write` — exact bytes, parse-verified, journaled, undoable | `path`, `content`, `expectedHash` |
 | `mkdir -p` | `files` `op:mkdir` | `to` |
 | `rm` | `files` `op:delete` — a journal-backed move to trash, undoable | `from`, `expectedHash` |
 | running the tests / build / lint | `run` — one declared command from the [commands] table, parsed output, no shell | `command`, `args`, `timeout` |
@@ -170,11 +171,18 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
 - Use `replace_text` for non-code files or when you truly want a literal anchor; pass `expectedHash`
   from your `read` so a file changed under you answers `STALE_ANCHOR` instead of clobbering.
 - Single-file symbol/text edits auto-apply (parse-verify is the guard) and return the diff.
-  Multi-file ops (`rewrite`, `rename`, `move`) and anything large answer `CONFIRM_REQUIRED` with the
+  Multi-file ops (`rewrite`, `rename`, `move`) answer `CONFIRM_REQUIRED` with the
   aggregated diff and a `confirmToken`. Read the diff. If it is right, re-issue the **identical**
   call with `confirm` set to the token. If your harness supports elicitation the server may ask
   you in-call instead; answering accept does the same thing.
-- `autoApply: true` skips the human-approvable diff. Do not set it unless the human told you to.
+- A single-file `edit` or `write` over 200 changed lines is gated the same way when a human
+  confirms (`edit.confirm_mode = "elicit"`, the default). Under `edit.confirm_mode = "token"` you
+  are the confirmer, so it applies on the first call; `edit.force_confirm` puts the gate back.
+- `write` is how a new file gets its content and how a whole file is replaced: `path` plus
+  `content`, exact bytes, no formatter. Pass `expectedHash` from your `read` when replacing.
+  Prefer `edit` when only part of a file changes.
+- `autoApply: true` skips the reviewable diff. Set it only when the human or the project's rules
+  say to; an unattended run with nobody to answer a confirm is the case it exists for.
 - `dryRun: true` runs the whole pipeline through re-verify and applies nothing — use it liberally.
 
 ## Files, run, script, undo
@@ -231,7 +239,7 @@ answers `PLUGIN_CRASHED` and the core tools keep working at full fidelity.
 | `SANDBOX_CAP_DENIED` | `escalate` | The guest asked for a capability it does not have (network, ambient filesystem). By design; tell the human if the task truly needs it. |
 | `SANDBOX_MEMORY_EXCEEDED` | `narrow` | Reduce the working set: process fewer files per call, stream instead of accumulating. |
 | `INDEX_UNAVAILABLE` | `retry` | The index is not warm; `notes` carry progress. Use `mode:auto`/`mode:lexical` now, poll `tasks/get` for `index/build`, retry later — not five times in a row. |
-| `CONFIRM_REQUIRED` | `confirm` | Review the dry-run diff in the envelope. Re-issue the identical call with `confirm` = `confirmToken` (or accept the elicitation). Do not reach for `autoApply`. |
+| `CONFIRM_REQUIRED` | `confirm` | Review the dry-run diff in the envelope. Re-issue the identical call with `confirm` = `confirmToken` (or accept the elicitation). Use `autoApply` only where the human or the project's rules say to. |
 | `CONFIRM_MISMATCH` | `confirm` | The token is not for this exact call. Redo the dry-run to mint a fresh token; never reuse tokens across calls. |
 | `UNSUPPORTED_VERSION` | `abort` | Envelope or on-disk format mismatch. Do not retry; tell the human to upgrade the client/binary. |
 | `ENGINE_UNAVAILABLE` | `retry` | The engine child is restarting. Retry after a short pause; lexical search still answers meanwhile. |
@@ -274,6 +282,10 @@ One per tool. Each block is a complete, valid call.
 
 ```json workbench:files
 { "op": "move", "from": "src/utils/date.ts", "to": "src/lib/date.ts", "dryRun": true }
+```
+
+```json workbench:write
+{ "path": "src/lib/clock.ts", "content": "export const now = (): number => Date.now();\n" }
 ```
 
 ```json workbench:run

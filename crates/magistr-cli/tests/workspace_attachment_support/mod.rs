@@ -90,7 +90,8 @@ impl Connection {
                 "script",
                 "search",
                 "undo",
-                "workbench_status"
+                "workbench_status",
+                "write"
             ]
         );
     }

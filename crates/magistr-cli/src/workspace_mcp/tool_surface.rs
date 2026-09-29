@@ -10,7 +10,7 @@ use rmcp::model::{JsonObject, Tool};
 /// The instructions a client reads at `initialize`.
 pub(crate) const INSTRUCTIONS: &str = "magistr workspace — the native workspace tools for one \
 workspace. search, map and read answer over the live tree and the derived index; edit, files, \
-undo and script mutate through the verified write pipeline behind the confirm gate; run \
+write, undo and script mutate through the verified write pipeline behind the confirm gate; run \
 executes one declared command with no shell. Every result is a versioned ResponseEnvelope \
 (text and structuredContent carry the same sealed JSON); degradations ride its `notes`.";
 
@@ -46,8 +46,10 @@ read's contentHash passed as expectedHash turns a changed file into STALE_ANCHOR
 hash. Single-file symbol/text edits auto-apply; rewrite, rename and anything touching >1 file or \
 >200 changed lines is confirm-gated: MRTR clients approve the aggregated diff in-call via \
 elicitation, everyone else gets CONFIRM_REQUIRED carrying a confirmToken and re-invokes the \
-identical call with confirm to apply. A stale confirm answers STALE_ANCHOR, a forged or \
-mismatched one CONFIRM_MISMATCH.";
+identical call with confirm to apply. Under edit.confirm_mode = \"token\" the caller is the \
+confirmer, so the >200-line rule is off for single-file edits (edit.force_confirm puts it back); \
+multi-file verbs stay gated. A stale confirm answers STALE_ANCHOR, a forged or mismatched one \
+CONFIRM_MISMATCH.";
 
 const FILES: &str = "Typed file operations — replaces mv, cp, mkdir, touch and rm (SDD §9.5). \
 move is import-aware: import specifiers that resolve to the moved file are rewritten across the \
@@ -59,6 +61,15 @@ CONFIRM_REQUIRED + confirmToken as two calls). delete is a journal-backed move t
 (never overwrites); mkdir materializes the directory as a journaled .gitkeep. Every verb runs \
 the §7.5 write engine: dry-run diff, parse-verify, format, journal, atomic swap; read's \
 contentHash passed as expectedHash turns a changed source into STALE_ANCHOR.";
+
+const WRITE: &str = "Whole-file write — replaces the shell heredoc and touch-then-edit. Creates \
+`path` with `content` when it does not exist and replaces its whole content when it does; this \
+is how a new file gets its content. The bytes land exactly as given (no formatter) through the \
+§7.5 write engine: parse-verify (PARSE_REJECTED on a new syntax error), journal, atomic swap, \
+undoable. Pass read's contentHash as expectedHash when replacing a file you read; a changed file \
+answers STALE_ANCHOR. Gating follows edit's single-file rule: >200 changed lines is \
+confirm-gated, except under edit.confirm_mode = \"token\" where it applies on the first call. \
+Prefer edit for a change to part of an existing file.";
 
 const UNDO: &str = "The journal, read and rewound (SDD §9.8, §7.6). action \"list\" reads the \
 durable per-workspace op log — newest op first, one row per file an op touched, each carrying \
@@ -150,6 +161,7 @@ pub(crate) fn core_tools(offers_script: bool) -> Vec<Tool> {
         ),
         tool("edit", "Edit the workspace", EDIT, schema_of("edit")),
         tool("files", "File operations", FILES, schema_of("files")),
+        tool("write", "Write a whole file", WRITE, schema_of("write")),
         tool(
             "undo",
             "Read and rewind journaled ops",

@@ -123,10 +123,16 @@ fn remove_created_directories(
                 Ok(()) => {}
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
                 Err(error) => {
-                    let relative = directory.strip_prefix(root).unwrap_or(directory);
+                    // Workspace paths are `/`-separated on every platform.
+                    let relative = directory
+                        .strip_prefix(root)
+                        .unwrap_or(directory)
+                        .components()
+                        .map(|component| component.as_os_str().to_string_lossy())
+                        .collect::<Vec<_>>()
+                        .join("/");
                     result.notes.push(format!(
-                        "{}: compensation left a directory it created: {error}",
-                        relative.display()
+                        "{relative}: compensation left a directory it created: {error}"
                     ));
                     break;
                 }

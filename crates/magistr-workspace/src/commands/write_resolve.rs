@@ -13,9 +13,9 @@ use crate::{
 
 /// Resolve a whole-file write into one anchored change and run it through
 /// the shared pipeline: the current bytes (or their absence) are the
-/// anchor, the caller's bytes are the content, formatting is off so what
-/// lands is what was written, and the caller's authorization stands in for
-/// the confirm gate.
+/// anchor, the caller's bytes are the content and formatting is off so what
+/// lands is what was written. The input says whether the caller was already
+/// authorized past the confirm gate.
 pub(super) async fn run(
     service: &mut WorkspaceCommands<'_>,
     input: &WriteInput,
@@ -72,9 +72,9 @@ pub(super) async fn run(
         GateInput {
             operation: "write",
             intent,
-            confirm: None,
-            dry_run: false,
-            auto_apply: true,
+            confirm: input.confirm.as_deref(),
+            dry_run: input.dry_run,
+            auto_apply: input.auto_apply,
             budget: input.budget,
             format: FormatMode::Disabled,
         },

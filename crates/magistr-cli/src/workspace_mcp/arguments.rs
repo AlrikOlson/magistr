@@ -4,7 +4,7 @@
 //! envelope from the use case itself.
 
 use magistr_workspace::{
-    commands::{EditInput, FilesInput, ScriptInput, UndoInput},
+    commands::{EditInput, FilesInput, ScriptInput, UndoInput, WriteInput},
     execution::RunInput,
     query::{MapDetail, MapInput, ReadInput, ReadRange, ReadSurround, SearchInput},
     service::JournalListInput,
@@ -197,6 +197,17 @@ pub(crate) fn files_input(args: &JsonObject) -> Result<FilesInput, ErrorData> {
     }
     require_confirm_string(args, "files")?;
     decode("files", args)
+}
+
+pub(crate) fn write_input(args: &JsonObject) -> Result<WriteInput, ErrorData> {
+    if non_empty_string(args, "path").is_none() {
+        return Err(invalid("write: path must be a non-empty string"));
+    }
+    if !args.get("content").is_some_and(Value::is_string) {
+        return Err(invalid("write: content must be a string"));
+    }
+    require_confirm_string(args, "write")?;
+    decode("write", args)
 }
 
 pub(crate) fn script_input(args: &JsonObject) -> Result<ScriptInput, ErrorData> {

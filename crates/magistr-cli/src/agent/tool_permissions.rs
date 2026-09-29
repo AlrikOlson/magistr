@@ -74,6 +74,7 @@ const WORKBENCH_MCP: &[&str] = &[
     "read",
     "edit",
     "files",
+    "write",
     "run",
     "script",
     "undo",

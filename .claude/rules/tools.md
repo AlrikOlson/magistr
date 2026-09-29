@@ -10,6 +10,7 @@
 | `read` | cat/head/tail/sed -n | A file, a line range, or a symbol by name — with line anchors and a content hash. |
 | `edit` | sed -i/codemods | Parse-verified diff: replace body, insert around symbol, rename, structural rewrite, anchored replace. |
 | `files` | mv/cp/rm/mkdir | Import-aware moves and journaled deletes; undoable. |
+| `write` | cat > file/heredocs | A whole file as exact bytes: creates it with content or replaces it; journaled, undoable. |
 | `run` | running tests/build/lint | One declared command from `workbench.toml [commands]`, failures as rows. |
 | `script` | bash one-liners over many files | Typed Code Mode: reads live, writes queued into one reviewable diff. |
 | `undo` | git checkout -- (own edits) | Rewind the journal one or more steps. |
@@ -87,6 +88,7 @@ read while the work is happening.
 - Use workbench `run` for declared commands; `magistr_gate` runs the full gate set.
 - Use the `roadmap_*` tools instead of editing `ROADMAP.md` — it is a generated view (`roadmap_export`).
 - Record every gate through `ship_check` (`magistr_gate` forwards to it) — never a piped or self-reported result.
-- Pass `autoApply: true` on a workbench `edit`/`files`/`script` write you intend to make — a confirm-gated write left unanswered is a dangling CONFIRM_REQUIRED, and under `magistr next-loop` there is no human to answer one.
+- Use workbench `write` to create a file with content or replace a whole file; `files` `op:create` only makes an empty one.
+- Pass `autoApply: true` on a multi-file workbench write you intend to make (`rename`, `rewrite`, `move`, `script`) — a confirm-gated write left unanswered is a dangling CONFIRM_REQUIRED, and under `magistr next-loop` there is no human to answer one. Single-file `edit` and `write` calls apply on the first call in token confirm mode.
 - Use `magistr_delete` instead of `rm` in Bash.
 - Do not spawn sub-agents — work directly in the current session.
