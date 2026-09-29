@@ -535,11 +535,12 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
         .await
         .expect("project owner");
     let (server_tx, client_tx) = tokio::io::duplex(1 << 16);
-    let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<
-        rmcp::service::RoleServer,
-        std::io::Error,
-        _,
-    >::into_transport(server_tx));
+    let transport = ProtocolCap::new(
+        &service,
+        rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport(
+            server_tx,
+        ),
+    );
     let server = tokio::spawn(async move {
         let running = service.serve(transport).await.expect("server.serve");
         let _ = running.waiting().await;
@@ -626,6 +627,95 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
         "no modern era on offer: {advertised}"
     );
     assert!(advertised.contains("2025-06-18"), "{advertised}");
+
+    server.abort();
+}
+
+/// Claude Code opens with `server/discover`, is offered only the capped
+/// eras, and falls back to `initialize`. rmcp holds a session whose first
+/// message was not `initialize` to per-request `_meta` for good, so the cap
+/// answers that opening discover itself; the legacy requests that follow
+/// must be served.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_client_that_discovers_before_initialize_still_lists_tools() {
+    use magistr::mcp_tools::protocol_cap::ProtocolCap;
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("proj");
+    std::fs::create_dir_all(&root).expect("root");
+    write_fixture(&root);
+    let data_dir = tmp.path().join("data");
+
+    let tas = magistr_core::evidence::writer_config(&root, |_| None).with_data_dir(&data_dir);
+    let service = MagistrService::new(root.clone(), &tas)
+        .await
+        .expect("project owner");
+    let (server_tx, client_tx) = tokio::io::duplex(1 << 16);
+    let transport = ProtocolCap::new(
+        &service,
+        rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport(
+            server_tx,
+        ),
+    );
+    let server = tokio::spawn(async move {
+        let running = service.serve(transport).await.expect("server.serve");
+        let _ = running.waiting().await;
+    });
+
+    let (read, mut write) = tokio::io::split(client_tx);
+    let mut lines = BufReader::new(read).lines();
+    let mut replies = Vec::new();
+    for request in [
+        json!({"jsonrpc": "2.0", "id": 0, "method": "server/discover", "params": {"_meta": {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientInfo": {"name": "discover-first", "version": "0"},
+            "io.modelcontextprotocol/clientCapabilities": {}
+        }}}),
+        json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "discover-first", "version": "0"}
+        }}),
+        json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+        json!({"jsonrpc": "2.0", "id": 3, "method": "ping"}),
+    ] {
+        write
+            .write_all(
+                format!(
+                    "{request}
+"
+                )
+                .as_bytes(),
+            )
+            .await
+            .expect("write");
+        let reply = lines
+            .next_line()
+            .await
+            .expect("read")
+            .expect("a response line");
+        replies.push(serde_json::from_str::<Value>(&reply).expect("response json"));
+    }
+
+    let advertised = serde_json::to_string(&replies[0]["result"]).expect("discover json");
+    assert!(advertised.contains("2025-06-18"), "{advertised}");
+    assert!(!advertised.contains("2026-07-28"), "{advertised}");
+    assert_eq!(replies[1]["result"]["protocolVersion"], "2025-06-18");
+    let names: Vec<&str> = replies[2]["result"]["tools"]
+        .as_array()
+        .unwrap_or_else(|| panic!("tools/list is served: {}", replies[2]))
+        .iter()
+        .filter_map(|t| t["name"].as_str())
+        .collect();
+    for expected in ["magistr_gate", "roadmap_next", "ship_check"] {
+        assert!(names.contains(&expected), "{expected} in {names:?}");
+    }
+    assert!(
+        replies[3].get("error").is_none(),
+        "the legacy ping is served: {}",
+        replies[3]
+    );
 
     server.abort();
 }

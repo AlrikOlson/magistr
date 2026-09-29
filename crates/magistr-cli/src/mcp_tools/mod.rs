@@ -486,11 +486,12 @@ pub async fn run_stdio_server(project_root: PathBuf) -> eyre::Result<()> {
     // Cap the negotiated MCP protocol below 2026-07-28 — the Claude Agent
     // SDK's bundled CLI rejects that era's SEP-2322 result shapes and kills
     // the server after three failed tools/list attempts (see `protocol_cap`).
-    let transport = protocol_cap::ProtocolCap::new(rmcp::transport::IntoTransport::<
-        rmcp::service::RoleServer,
-        std::io::Error,
-        _,
-    >::into_transport(rmcp::transport::stdio()));
+    let transport = protocol_cap::ProtocolCap::new(
+        &service,
+        rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport(
+            rmcp::transport::stdio(),
+        ),
+    );
     let running = service.serve(transport).await?;
     running.waiting().await?;
     drop(owner_endpoint);
