@@ -56,12 +56,9 @@ impl OwnedProcess {
     /// The program could not be started (not found, refused, an empty
     /// argv): nothing ran.
     pub fn spawn(spec: ProcessSpec) -> io::Result<Self> {
-        let mut command = command_for(&spec.launch)?;
+        let mut command = command_for(&spec)?;
         if let Some(cwd) = &spec.cwd {
             command.current_dir(cwd);
-        }
-        for (name, value) in &spec.env {
-            command.env(name, value);
         }
         command.stdin(Stdio::null()).kill_on_drop(true);
         #[cfg(unix)]
@@ -245,46 +242,109 @@ impl OwnedProcess {
     }
 }
 
-/// The platform command for a launch; an empty argv is refused before
-/// anything runs.
-fn command_for(launch: &Launch) -> io::Result<Command> {
-    match launch {
+/// The platform command for a launch with the spec's environment; an
+/// empty argv is refused before anything runs.
+#[cfg(not(windows))]
+fn command_for(spec: &ProcessSpec) -> io::Result<Command> {
+    let mut command = match &spec.launch {
         Launch::Shell(line) => {
-            let (shell, flag) = shell_program();
-            let mut command = Command::new(shell);
-            command.arg(flag).arg(line);
-            Ok(command)
+            let mut command = Command::new("sh");
+            command.arg("-c").arg(line);
+            command
         }
         Launch::Argv(argv) => {
-            let (program, args) = argv.split_first().ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidInput, "empty argv: nothing to start")
-            })?;
+            let (program, args) = split_argv(argv)?;
             let mut command = Command::new(program);
             command.args(args);
-            Ok(command)
+            command
         }
+    };
+    for (name, value) in &spec.env {
+        command.env(name, value);
     }
+    Ok(command)
 }
 
-/// The interpreter a shell line runs under. A line is written in POSIX
-/// shell — every declared command, gate and hook in this workspace is —
-/// so Windows uses `sh` too when one is on `PATH` (Git for Windows ships
-/// it), and falls back to `cmd` only when there is none.
-fn shell_program() -> (&'static str, &'static str) {
-    #[cfg(windows)]
-    {
-        static SH: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-        let has_sh = *SH.get_or_init(|| {
-            std::env::var_os("PATH").is_some_and(|path| {
-                std::env::split_paths(&path).any(|dir| dir.join("sh.exe").is_file())
-            })
-        });
-        if has_sh { ("sh", "-c") } else { ("cmd", "/C") }
+/// The platform command for a launch with the spec's environment. A line
+/// is written in POSIX shell — every declared command, gate and hook in
+/// this workspace is — so it runs under the POSIX shell found on PATH (Git
+/// for Windows'), with that shell's directory first on the child's PATH:
+/// a nested `bash` or an `env bash` shebang then resolves beside it and
+/// never to a WSL launcher. A bare `bash` or `sh` argv runs that shell the
+/// same way. Without a POSIX shell a line runs under `cmd`, except one
+/// that starts with `bash` or `sh`, which is refused rather than handed to
+/// WSL; so is a bare `bash` or `sh` argv.
+#[cfg(windows)]
+fn command_for(spec: &ProcessSpec) -> io::Result<Command> {
+    use crate::posix_shell::{PosixShell, line_starts_with_posix_shell, names_posix_shell};
+
+    let path = spec
+        .env
+        .iter()
+        .rev()
+        .find(|(name, _)| name.eq_ignore_ascii_case("PATH"))
+        .map(|(_, value)| std::ffi::OsString::from(value))
+        .or_else(|| std::env::var_os("PATH"));
+    let system_root = std::env::var_os("SystemRoot");
+    let shell = PosixShell::locate(path.as_deref(), system_root.as_deref());
+    let refused = |what: &str| {
+        io::Error::new(
+            io::ErrorKind::NotFound,
+            format!(
+                "no POSIX shell on PATH (install Git for Windows); {what} was not run,                  because `bash` here would start WSL"
+            ),
+        )
+    };
+    let (mut command, runs_shell) = match &spec.launch {
+        Launch::Shell(line) => match &shell {
+            Some(shell) => {
+                let mut command = Command::new(shell.sh());
+                command.arg("-c").arg(line);
+                (command, true)
+            }
+            None if line_starts_with_posix_shell(line) => {
+                return Err(refused(&format!("`{line}`")));
+            }
+            None => {
+                let mut command = Command::new("cmd");
+                command.arg("/C").arg(line);
+                (command, false)
+            }
+        },
+        Launch::Argv(argv) => {
+            let (program, args) = split_argv(argv)?;
+            if names_posix_shell(program) {
+                let shell = shell
+                    .as_ref()
+                    .ok_or_else(|| refused(&format!("`{program}`")))?;
+                let program = if program.to_ascii_lowercase().starts_with("bash") {
+                    shell.bash()
+                } else {
+                    shell.sh()
+                };
+                let mut command = Command::new(program);
+                command.args(args);
+                (command, true)
+            } else {
+                let mut command = Command::new(program);
+                command.args(args);
+                (command, false)
+            }
+        }
+    };
+    for (name, value) in &spec.env {
+        command.env(name, value);
     }
-    #[cfg(not(windows))]
-    {
-        ("sh", "-c")
+    if let (true, Some(shell)) = (runs_shell, &shell) {
+        command.env("PATH", shell.path_for_child(path.as_deref()));
     }
+    Ok(command)
+}
+
+/// The program and its arguments; an empty argv starts nothing.
+fn split_argv(argv: &[String]) -> io::Result<(&String, &[String])> {
+    argv.split_first()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "empty argv: nothing to start"))
 }
 
 /// Both pipes until each has closed, every chunk to the sink and its
