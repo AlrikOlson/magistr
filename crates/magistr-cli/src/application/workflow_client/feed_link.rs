@@ -34,6 +34,8 @@ impl FeedLink {
     }
 
     /// Say whether the feed holds the socket right now.
+    // Only the Unix feed attaches; elsewhere nothing ever calls this.
+    #[cfg_attr(not(unix), allow(dead_code))]
     pub fn set(&self, attached: bool) {
         self.0.attached.store(attached, Ordering::Relaxed);
     }
@@ -45,6 +47,8 @@ impl FeedLink {
     }
 
     /// Ask for the store to be read again.
+    // Only the Unix feed attaches; elsewhere nothing ever calls this.
+    #[cfg_attr(not(unix), allow(dead_code))]
     pub fn request_snapshot(&self) {
         self.0.snapshot.notify_one();
     }
