@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magistr.dev/schemas/tools/write.input.schema.json",
+  "title": "write",
+  "description": "Whole-file write — replaces the shell heredoc and the touch-then-edit dance. Creates `path` with `content` when it does not exist, replaces its whole content when it does. The bytes land exactly as given (no formatter), through the same write engine as edit: parse-verify, journal, atomic swap, undoable. Confirm gating follows edit's single-file rule: over 200 changed lines answers CONFIRM_REQUIRED, except under edit.confirm_mode = \"token\" where the caller is the confirmer and the write applies on the first call.",
+  "x-workbench-status": "native",
+  "type": "object",
+  "required": ["path", "content"],
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Workspace-relative file to create or replace. Parent directories are created."
+    },
+    "content": {
+      "type": "string",
+      "description": "The file's whole new content. An empty string writes an empty file."
+    },
+    "expectedHash": {
+      "type": "string",
+      "description": "read's contentHash for `path`. A mismatch with the file's current content answers STALE_ANCHOR carrying the fresh hash. Pass it whenever you replace a file you read."
+    },
+    "dryRun": {
+      "type": "boolean",
+      "default": false,
+      "description": "Run the full pipeline through verification and return the diff, touching nothing."
+    },
+    "confirm": {
+      "type": "string",
+      "description": "The confirmToken from a prior CONFIRM_REQUIRED answer for this exact call."
+    },
+    "autoApply": {
+      "type": "boolean",
+      "default": false,
+      "description": "Trusted-harness bypass of the confirm gate. Skips the human-approvable diff entirely."
+    },
+    "budget": { "type": "integer", "minimum": 1, "default": 4000 }
+  }
+}

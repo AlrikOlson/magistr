@@ -16,7 +16,11 @@ fn tool_guide_contains_all_workbench_tools() {
             "tool guide should contain workbench tool row: {tool}"
         );
     }
-    assert_eq!(WORKBENCH_TOOLS.len(), 8, "the eight workbench tools");
+    assert_eq!(
+        WORKBENCH_TOOLS.len(),
+        9,
+        "the eight reference tools and the native write"
+    );
 }
 
 #[test]

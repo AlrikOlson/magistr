@@ -26,13 +26,14 @@ use serde_json::{Value, json};
 
 const IGNORE: &str =
     "release-profile smoke of the shipping binary: ./scripts/workspace-release-smoke.sh";
-const CORE_TOOLS: [&str; 9] = [
+const CORE_TOOLS: [&str; 10] = [
     "workbench_status",
     "map",
     "read",
     "search",
     "edit",
     "files",
+    "write",
     "undo",
     "script",
     "run",

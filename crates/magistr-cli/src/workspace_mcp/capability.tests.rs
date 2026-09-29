@@ -62,6 +62,7 @@ fn the_core_listing_is_the_served_wire_shape_with_or_without_script() {
             "search",
             "edit",
             "files",
+            "write",
             "undo",
             "script",
             "run"
@@ -76,6 +77,7 @@ fn the_core_listing_is_the_served_wire_shape_with_or_without_script() {
             "search",
             "edit",
             "files",
+            "write",
             "undo",
             "run"
         ]
