@@ -37,6 +37,7 @@ pub struct SessionJudge {
     cwd: PathBuf,
     backend: Backend,
     model: Option<String>,
+    inputs: Option<crate::config::inputs::ProjectInputs>,
     timeout: Duration,
 }
 
@@ -52,8 +53,15 @@ impl SessionJudge {
             cwd: cwd.into(),
             backend,
             model: None,
+            inputs: None,
             timeout: Self::TIMEOUT,
         }
+    }
+
+    #[must_use]
+    pub fn with_inputs(mut self, inputs: &crate::config::inputs::ProjectInputs) -> Self {
+        self.inputs = Some(inputs.clone());
+        self
     }
 
     /// Request this model id through the shared startup policy.
@@ -78,6 +86,9 @@ impl SessionJudge {
         let mut config = AgentConfig::new(prompt, &self.cwd)
             .backend(self.backend)
             .allowed_tools(Vec::<String>::new());
+        if let Some(inputs) = &self.inputs {
+            config = config.with_inputs(inputs);
+        }
         config.model.clone_from(&self.model);
         // The connector resolves the provider, the model and its
         // governance for this session; the permission policy it resolved

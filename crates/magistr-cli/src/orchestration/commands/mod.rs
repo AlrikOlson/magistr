@@ -12,6 +12,7 @@ pub mod chrome;
 pub mod cockpit;
 pub mod cockpit_roadmap;
 pub mod config;
+mod config_agent_set;
 pub mod config_manage;
 pub mod home;
 pub(crate) mod home_data;

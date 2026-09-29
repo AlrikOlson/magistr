@@ -30,6 +30,20 @@ pub async fn cmd_config(
         Some(cli::ConfigAction::Check { dir }) => cmd_config_check(&dir, inputs),
         Some(cli::ConfigAction::Show { dir }) => cmd_config_show(&dir, inputs),
         Some(cli::ConfigAction::Migrate { dir }) => super::config::cmd_migrate(&dir),
+        Some(cli::ConfigAction::Set {
+            key,
+            value,
+            project,
+            agent,
+            dir,
+        }) => super::config_agent_set::config_agent_set(
+            &key,
+            &value,
+            project,
+            agent.as_deref(),
+            &dir,
+            inputs,
+        ),
     }
 }
 
@@ -102,6 +116,10 @@ fn cmd_config_check(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Resu
             errors.push(format!("user config: {e}"));
             eprintln!("  {} user config — {}", fmt::red("✗"), e);
         }
+    }
+
+    if let Err(error) = crate::config::agent_preferences::AgentPreferences::load(&dir) {
+        errors.push(error.to_string());
     }
 
     // 3. Check migration needs
@@ -218,6 +236,29 @@ fn cmd_config_show(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Resul
             fmt::dim("project:")
         );
     }
+
+    let preferences = crate::config::agent_preferences::AgentPreferences::load(&dir)?;
+    eprintln!(
+        "Project agent preferences: {}",
+        serde_json::to_string_pretty(&preferences)?
+    );
+    eprintln!(
+        "Personal agent: {}",
+        user_config
+            .session
+            .default_provider
+            .as_deref()
+            .unwrap_or("auto")
+    );
+    eprintln!(
+        "Personal models: {}",
+        serde_json::to_string_pretty(&user_config.models)?
+    );
+    eprintln!(
+        "Personal effort: {}",
+        serde_json::to_string_pretty(&user_config.efforts)?
+    );
+    eprintln!("Use next --show-config to see the selected values and their sources.");
 
     // Migration status
     if let Ok(check) = config::migration::check_migration(&dir)

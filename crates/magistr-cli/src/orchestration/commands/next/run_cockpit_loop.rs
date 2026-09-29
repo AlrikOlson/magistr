@@ -82,11 +82,12 @@ pub(crate) async fn run_cockpit_loop(
         commands,
         Connector::live(source),
     )
+    .with_inputs(inputs)
     .permission_profile(profile)
     .keep_open(true)
     .persisting(persist)
     .auto_pause(auto_pause)
-    .goal(goal, judge(goal, native, dir, backend), goal_note);
+    .goal(goal, judge(goal, native, dir, backend, inputs), goal_note);
     // The ledger the loop checkpoints on at every iteration boundary —
     // served by the driver off its own thread, never by a session.
     let driver = match &engines {
@@ -154,20 +155,24 @@ pub(crate) async fn run_cockpit_loop(
 /// nobody under `off`, and nobody on a project with no chunk to judge.
 /// The judge is constrained: it holds no source-write authority, so its
 /// session advertises no write capability and refuses any write.
-pub(crate) fn judge(
+fn judge(
     goal: GoalMode,
     native: bool,
     dir: &Path,
     backend: Backend,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> Option<Arc<dyn Judge>> {
     match goal {
         GoalMode::Off => None,
         GoalMode::Native | GoalMode::Extension | GoalMode::Command | GoalMode::Auto if native => {
-            Some(Arc::new(SessionJudge::new(
-                Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
-                dir,
-                backend,
-            )))
+            Some(Arc::new(
+                SessionJudge::new(
+                    Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
+                    dir,
+                    backend,
+                )
+                .with_inputs(inputs),
+            ))
         }
         _ => None,
     }

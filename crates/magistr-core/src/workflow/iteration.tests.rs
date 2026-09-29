@@ -691,6 +691,7 @@ fn state_serializes_to_json() {
         operations: OperationLedger::new(),
         attempt_started: None,
         native_chunk_id: None,
+        session_selection: None,
         last_commit_sha: Some("abc1234".to_string()),
         last_status: IterationStatus::Committed,
         spec_checked: 5,
@@ -1132,4 +1133,25 @@ fn open_on_a_native_project_needs_no_spec_file() {
     assert_eq!(il.state().spec_total, 1);
     assert_eq!(il.state().spec_checked, 0);
     assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+}
+
+#[test]
+fn agent_settings_are_persisted_and_cannot_change_during_recovery() {
+    let (dir, spec) = setup_project("- [ ] one\n");
+    let mut running = IterationLoop::with_max(dir.path(), &spec, 3).unwrap();
+    let saved = crate::config::session_selection::SessionSelection {
+        agent: "codex".into(),
+        model: Some("saved-model".into()),
+        effort: Some("high".into()),
+        sources: Default::default(),
+    };
+    running.bind_session_selection(saved.clone()).unwrap();
+    running.persist().unwrap();
+    let mut recovered = IterationLoop::open_or_recover(dir.path(), &spec, 3, None).unwrap();
+    assert_eq!(recovered.state().session_selection.as_ref(), Some(&saved));
+    let mut changed = saved.clone();
+    changed.model = Some("changed".into());
+    assert!(recovered.bind_session_selection(changed).is_err());
+    recovered.bind_session_selection(saved.clone()).unwrap();
+    assert_eq!(recovered.state().session_selection.as_ref(), Some(&saved));
 }

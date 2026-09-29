@@ -19,9 +19,11 @@ pub async fn cmd_run_workflow(
     backend: agent::Backend,
     profile: PermissionProfile,
     source: SourceRoute,
+    inputs: &crate::config::inputs::ProjectInputs,
     launched: impl FnOnce(Option<u32>) -> eyre::Result<()>,
 ) -> eyre::Result<()> {
     let config = agent::AgentConfig::new(prompt, project_dir)
+        .with_inputs(inputs)
         .backend(backend)
         .permission_profile(profile)
         .workflow_permissions(true)

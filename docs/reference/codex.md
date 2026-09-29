@@ -42,6 +42,10 @@ the one admitted owner; a workspace whose `.workbench/server.lock` still holds
 the retained legacy server's record needs `magistr workspace migrate` once,
 with that server stopped.
 
+For native `magistr next` and `magistr next-loop`, see
+[agent settings](agent-settings.md). Those preferences select sessions Magistr
+launches; they do not change the model in an existing Codex host session.
+
 ## Launcher
 
 ```sh

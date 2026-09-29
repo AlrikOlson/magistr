@@ -166,9 +166,8 @@ pub enum Command {
         #[arg(long, short = 'c')]
         r#continue: bool,
 
-        /// Model to use (e.g., sonnet, opus, haiku, claude-opus-5)
-        #[arg(long, short = 'm')]
-        model: Option<String>,
+        #[command(flatten)]
+        agent: crate::workflow_agent_options::WorkflowAgentOptions,
 
         /// Agent backend to use
         #[arg(long, short = 'b', default_value = "auto")]
@@ -186,6 +185,8 @@ pub enum Command {
     /// Implement the next spec items (research-plan-execute-verify cycle)
     #[group(id = "headless_output", args = ["headless", "gate_only"], multiple = true)]
     Next {
+        #[command(flatten)]
+        agent: crate::workflow_agent_options::WorkflowAgentOptions,
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
@@ -207,12 +208,14 @@ pub enum Command {
         format: HeadlessFormat,
 
         /// Run quality gates only, without an AI iteration
-        #[arg(long, conflicts_with = "continue")]
+        #[arg(long, conflicts_with_all = ["continue", "agent", "model", "effort", "show_config"])]
         gate_only: bool,
     },
 
     /// Run continuous next iterations until spec is complete
     NextLoop {
+        #[command(flatten)]
+        agent: crate::workflow_agent_options::WorkflowAgentOptions,
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
@@ -974,6 +977,22 @@ pub enum PresetAction {
 /// Actions for the `magistr config` subcommand.
 #[derive(Debug, Subcommand)]
 pub enum ConfigAction {
+    /// Save an agent, model, or effort preference
+    Set {
+        /// Setting to save: agent, model, or effort
+        key: String,
+        /// Value to save; default clears a model or effort override
+        value: String,
+        /// Save for this project instead of your personal settings
+        #[arg(long)]
+        project: bool,
+        /// Agent whose model or effort to save (otherwise uses your selected agent)
+        #[arg(long)]
+        agent: Option<String>,
+        /// Project directory
+        #[arg(long, default_value = ".")]
+        dir: PathBuf,
+    },
     /// Validate all configuration files (project.json, user config, theme TOML)
     Check {
         /// Project directory (defaults to current directory)

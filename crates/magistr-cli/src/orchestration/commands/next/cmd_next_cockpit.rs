@@ -22,7 +22,7 @@ pub async fn cmd_next_cockpit(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
-    let inputs = inputs.for_project(&dir);
+    let inputs = super::workflow_inputs(&inputs.for_project(&dir), false)?;
     let native = crate::roadmap::admit_native_host(&dir)?;
     let wf = WorkflowConfig::load(&dir)
         .suggest()?
