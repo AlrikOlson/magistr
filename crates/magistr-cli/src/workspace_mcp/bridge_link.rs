@@ -95,14 +95,13 @@ impl Link {
         let (client_side, server_side) = tokio::io::duplex(64 * 1024);
         let (server_read, server_write) = tokio::io::split(server_side);
         let serving = tokio::spawn(async move {
-            let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<
-                rmcp::service::RoleServer,
-                std::io::Error,
-                _,
-            >::into_transport((
-                server_read,
-                server_write,
-            )));
+            let transport = ProtocolCap::new(
+                &handler,
+                rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport((
+                    server_read,
+                    server_write,
+                )),
+            );
             match handler.serve(transport).await {
                 Ok(running) => running
                     .waiting()
