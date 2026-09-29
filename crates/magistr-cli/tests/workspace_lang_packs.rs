@@ -106,12 +106,25 @@ async fn defining_files(service: &WorkspaceService, symbol: &str) -> Vec<String>
     }
 }
 
+#[cfg(unix)]
 fn kill(pid: u32) {
     // SAFETY: the pid is this test's own worker child, read from the owner a
     // moment ago; SIGKILL is the forced replacement the acceptance names.
     unsafe {
         libc::kill(pid as i32, libc::SIGKILL);
     }
+}
+
+/// The same forced end where there are no signals.
+#[cfg(windows)]
+fn kill(pid: u32) {
+    let status = std::process::Command::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/F"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .expect("taskkill runs");
+    assert!(status.success(), "taskkill ends worker {pid}");
 }
 
 #[tokio::test]
