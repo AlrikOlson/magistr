@@ -1,3 +1,4 @@
+#[cfg(not(unix))]
 use super::super::admit_native_host::admit_native_host_with;
 use super::*;
 
