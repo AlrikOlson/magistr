@@ -462,3 +462,43 @@ fn settlement_reaps_after_async_runtime_shutdown() {
         std::thread::sleep(Duration::from_millis(10));
     }
 }
+
+/// A PATH with the Windows system directory (and its WSL `bash.exe`)
+/// ahead of everything else, the order a process started outside Git Bash
+/// inherits.
+#[cfg(windows)]
+fn system_first_path() -> String {
+    let system = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
+    let path = std::env::var("PATH").unwrap_or_default();
+    format!(r"{system}\System32;{system};{path}")
+}
+
+#[cfg(windows)]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_shell_lines_bash_resolves_beside_the_shell_never_to_wsl() {
+    let spec = shell("command -v bash; command -v sh", 10_000)
+        .with_env([("PATH".to_owned(), system_first_path())]);
+    let outcome = run(spec).await;
+    assert_eq!(outcome.exit_code, Some(0), "{outcome:?}");
+    let resolved = outcome.stdout.to_lowercase();
+    assert!(
+        !resolved.contains("system32") && !resolved.contains("windowsapps"),
+        "a nested bash must not be the WSL launcher: {resolved}"
+    );
+    assert!(resolved.contains("/usr/bin/bash"), "{resolved}");
+}
+
+#[cfg(windows)]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_bare_bash_argv_runs_the_posix_shells_bash_never_wsl() {
+    let spec = argv(&["bash", "-c", "uname -o; command -v bash"], 10_000)
+        .with_env([("PATH".to_owned(), system_first_path())]);
+    let outcome = run(spec).await;
+    assert_eq!(outcome.exit_code, Some(0), "{outcome:?}");
+    let out = outcome.stdout.to_lowercase();
+    assert!(
+        out.starts_with("msys"),
+        "Git for Windows' bash, not Linux: {out}"
+    );
+    assert!(!out.contains("system32"), "{out}");
+}
