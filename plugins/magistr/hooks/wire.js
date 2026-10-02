@@ -318,6 +318,7 @@ export function initial() {
     notice: '',
     uncertain: false,
     findingInput: '',
+    checkTimeLimit: '300',
     filter: '',
     detailGeneration: 0,
   }
