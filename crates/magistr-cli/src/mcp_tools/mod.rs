@@ -35,6 +35,7 @@ pub mod protocol_cap;
 mod roadmap_export;
 mod service;
 mod set_phase;
+mod view_context;
 
 pub use service::MagistrService;
 

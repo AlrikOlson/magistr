@@ -1047,3 +1047,98 @@ async fn a_direct_gate_streams_its_bytes_on_the_feed_socket() {
     let _ = client.cancel().await;
     server.abort();
 }
+
+#[tokio::test]
+async fn context_reads_owner_phase_and_canonical_evidence_without_mutation() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("project");
+    std::fs::create_dir_all(&root).expect("root");
+    write_fixture(&root);
+    let (client, server) = pair(&root, &tmp.path().join("data")).await;
+    let listed = client.peer().list_all_tools().await.expect("tools");
+    assert!(listed.iter().any(|t| t.name == "magistr_context"));
+    let before = text_json(&call(&client, "ship_status", json!({})).await);
+    let empty = text_json(&call(&client, "magistr_context", json!({})).await);
+    assert_eq!(empty["version"], 1);
+    assert_eq!(
+        empty["project_root"],
+        root.canonicalize().unwrap().to_string_lossy().as_ref()
+    );
+    assert!(empty["phase"].is_null());
+    assert!(
+        empty["owner_epoch"]
+            .as_str()
+            .unwrap()
+            .parse::<u64>()
+            .is_ok()
+    );
+    assert_eq!(
+        before,
+        text_json(&call(&client, "ship_status", json!({})).await)
+    );
+    assert!(
+        empty["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|g| g["key"] == "diag")
+    );
+    call(
+        &client,
+        "ship_set_objective",
+        json!({"description": "Inspect evidence", "verification": "focused"}),
+    )
+    .await;
+    call(
+        &client,
+        "ship_plan",
+        json!({"action": "add", "task_id": "inspect", "title": "Inspect"}),
+    )
+    .await;
+    call(&client, "ship_start", json!({"task_id": "inspect"})).await;
+    call(&client, "magistr_set_phase", json!({"phase": "verify"})).await;
+    let context = text_json(
+        &call(
+            &client,
+            "magistr_context",
+            json!({"task_id": "inspect", "receipt_id": "absent"}),
+        )
+        .await,
+    );
+    assert_eq!(context["phase"], "verifying");
+    assert_eq!(context["phase_task"], "inspect");
+    assert_eq!(context["task"]["record"]["id"], "inspect");
+    assert_eq!(context["task"]["detail_limit"], 6000);
+    assert!(context["receipt"].is_null());
+    // Clearing the cycle invalidates its observation, even if a task id is reused.
+    call(
+        &client,
+        "ship_set_objective",
+        json!({"description": "Another cycle", "verification": "focused"}),
+    )
+    .await;
+    let changed = text_json(&call(&client, "magistr_context", json!({})).await);
+    assert!(changed["phase"].is_null());
+    client.cancel().await.expect("cancel");
+    server.await.expect("stopped");
+}
+
+#[tokio::test]
+async fn context_refuses_malformed_and_unknown_task_requests_over_mcp() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("project");
+    std::fs::create_dir_all(&root).expect("root");
+    write_fixture(&root);
+    let (client, server) = pair(&root, &tmp.path().join("data")).await;
+    for args in [
+        json!({"task_id": 1}),
+        json!({"run": true}),
+        json!({"task_id": "absent"}),
+    ] {
+        let mut request = CallToolRequestParams::new("magistr_context");
+        request.arguments = args.as_object().cloned();
+        assert!(client.peer().call_tool(request).await.is_err(), "{args}");
+    }
+    client.cancel().await.expect("cancel");
+    server.await.expect("stopped");
+}
