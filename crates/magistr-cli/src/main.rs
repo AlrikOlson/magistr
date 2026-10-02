@@ -43,7 +43,12 @@ async fn main() -> eyre::Result<()> {
     utils::sigterm_handler::install_sigterm_handler();
 
     let json_output = cli.json;
-    let use_tui = should_use_tui(cli.no_tui || cli.json);
+    use std::io::IsTerminal;
+    let use_tui = should_use_tui(
+        cli.no_tui || cli.json,
+        std::io::stdin().is_terminal(),
+        std::io::stdout().is_terminal(),
+    );
     let renderer = output::create_renderer(json_output, false);
 
     // The project, preset, provider, plugin and workspace inputs, captured
@@ -401,14 +406,10 @@ fn parse_cli() -> Cli {
     })
 }
 
-/// Whether interactive surfaces (the cockpit, the init interview) may take
-/// this terminal: an explicit opt-out wins, otherwise stdout must be a tty.
-fn should_use_tui(no_tui: bool) -> bool {
-    if no_tui {
-        return false;
-    }
-    use std::io::IsTerminal;
-    std::io::stdout().is_terminal()
+/// The cockpit needs its Unix terminal backend and terminal input and output.
+/// Other environments use the plain command path before opening workflow state.
+fn should_use_tui(no_tui: bool, stdin_terminal: bool, stdout_terminal: bool) -> bool {
+    cfg!(unix) && !no_tui && stdin_terminal && stdout_terminal
 }
 
 /// Propagate CLI flags to environment variables for downstream consumption.

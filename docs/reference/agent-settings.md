@@ -52,6 +52,10 @@ magistr next-loop --agent codex --model YOUR_MODEL --max-iterations 3
 magistr next --show-config
 ```
 
+On Windows, `run`, `next`, and `next-loop` use plain text automatically.
+Run the same commands in PowerShell; `--no-tui` is optional. Agent preferences
+and saved loop progress still apply.
+
 `--provider` is an alias for `--agent`; `-m` is short for `--model`.
 `--show-config` prints JSON with the selected values and their sources, then
 exits without opening an agent session or starting work. Startup also prints
