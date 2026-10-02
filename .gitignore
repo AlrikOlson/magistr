@@ -97,3 +97,8 @@ secrets.json
 *.key
 *.p12
 *.pfx
+
+# ── magistr managed ── DO NOT EDIT between markers ──
+*~
+**/*.rs.bk
+# ── end magistr ──
