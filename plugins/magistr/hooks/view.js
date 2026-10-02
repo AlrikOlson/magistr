@@ -390,6 +390,14 @@ export function pane(E, m, width, handlers) {
       )
     if (ship.active_task && !m.pending && !m.uncertain) {
       body.push(text('Choose only the checks needed for this change.', true))
+      body.push(
+        Input({
+          key: 'check-time-limit',
+          label: 'Time limit in seconds (1–1800)',
+          value: m.checkTimeLimit,
+          onInput: (value) => handlers.timeLimit(value),
+        }),
+      )
       for (const c of choices.filter((c) => c.commands.length).slice(0, 30)) {
         body.push(
           button(

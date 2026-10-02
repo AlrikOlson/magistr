@@ -308,6 +308,15 @@ async function action($, kind, target) {
       throw new Error(
         'Open a terminal or Desktop session to confirm this action.',
       )
+    const timeLimit = Number(model.checkTimeLimit)
+    if (
+      kind === 'gate' &&
+      (!/^\d+$/.test(model.checkTimeLimit) ||
+        !Number.isSafeInteger(timeLimit) ||
+        timeLimit < 1 ||
+        timeLimit > 1800)
+    )
+      throw new Error('Choose a time limit from 1 to 1800 seconds.')
     const label =
       kind === 'gate'
         ? 'Run check'
@@ -320,10 +329,17 @@ async function action($, kind, target) {
       kind === 'gate'
         ? target.commands.map((c) => c.command).join('; ')
         : target.title || target.group
-    const answer = await $.ui.ask(label + ': ' + clean(title, 400) + '?', [
-      'Cancel',
-      label,
-    ])
+    if (kind === 'gate' && title.length > 400)
+      throw new Error(
+        'This command is too long to review here. Inspect and run it with your usual workflow.',
+      )
+    const confirmation =
+      label +
+      ': ' +
+      clean(title, 400) +
+      '?' +
+      (kind === 'gate' ? '\nTime limit: ' + timeLimit + ' seconds.' : '')
+    const answer = await $.ui.ask(confirmation, ['Cancel', label])
     if (
       answer !== label ||
       epoch !== generation ||
@@ -413,7 +429,7 @@ async function action($, kind, target) {
             : 'mcp__magistr__roadmap_start_chunk'
     const args =
       kind === 'gate'
-        ? { gate: target.key, timeout_secs: 300 }
+        ? { gate: target.key, timeout_secs: timeLimit }
         : kind === 'task'
           ? { task_id: target.id }
           : kind === 'focus'
@@ -433,7 +449,8 @@ async function action($, kind, target) {
         label +
         '" for "' +
         clean(title, 400) +
-        '" in the Magistr pane.',
+        '" in the Magistr pane.' +
+        (kind === 'gate' ? ' Time limit: ' + timeLimit + ' seconds.' : ''),
     })
     if (reply?.deny || reply?.isError) {
       // Only an explicit permission refusal proves the tool was not submitted.
@@ -634,7 +651,8 @@ export function register(on) {
       })
       commandAvailable = true
     } catch (error) {
-      model.notice = 'The /magistr command is already in use. ' + fail(error)
+      model.notice =
+        'The /magistr command is unavailable in this session. ' + fail(error)
       try {
         await $.ui.log(model.notice)
       } catch {
@@ -675,6 +693,10 @@ export function register(on) {
       refresh: () => refresh($),
       select: (kind, item) => select($, kind, item),
       action: (kind, target) => action($, kind, target),
+      timeLimit: (value) => {
+        model.checkTimeLimit = clean(value, 6)
+        redraw($)
+      },
       findingInput: (value) => {
         model.findingInput = clean(value, 12)
         redraw($)

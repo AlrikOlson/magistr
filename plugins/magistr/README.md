@@ -45,7 +45,8 @@ an existing owner can use the normal startup path.
 - **Roadmap:** inspect readiness, blockers, acceptance criteria and dependencies.
   Choose a workstream for this Claude session or mark the next ready work as started. Other sessions keep their own workstream choices.
 - **Checks:** inspect recorded evidence or run a check selected for the current
-  change. Review the exact command before confirming.
+  change. Set a time limit from 1 to 1800 seconds (five minutes by default),
+  then review the exact command and limit before confirming.
 - **Findings:** inspect pinned or recent findings and their supporting findings.
 - **Changes:** inspect Workbench's recorded changes and read the affected files.
   File changes made outside Workbench may also exist.

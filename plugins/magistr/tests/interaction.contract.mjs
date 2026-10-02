@@ -446,3 +446,37 @@ test('the finding field keeps typed text and refuses invalid numbers before requ
   assert.match(textOf(await h.render()), /Reuse its matching rules/)
   await h.end()
 })
+
+test('check limits are reviewed exactly and invalid limits never submit', async () => {
+  const h = await host()
+  await h.start()
+  await h.command('')
+  await h.press('task-review')
+  await h.press('start-task')
+  await h.press('tab-checks')
+  const input = async () =>
+    flatten(await h.render()).find((x) => x?.props?.key === 'check-time-limit')
+  for (const value of ['0', '1801', '1.5', 'no']) {
+    await (await input()).props.onInput(value)
+    const calls = mutations(h).length
+    const asks = h.asks.length
+    await h.press('gate-check')
+    assert.equal(mutations(h).length, calls)
+    assert.equal(h.asks.length, asks)
+    assert.match(textOf(await h.render()), /from 1 to 1800 seconds/)
+  }
+  await (await input()).props.onInput('900')
+  await h.press('gate-check')
+  assert.equal(mutations(h).at(-1).mutation.timeout_secs, 900)
+  assert.match(mutations(h).at(-1).mutation.consent, /Time limit: 900 seconds/)
+  assert.match(h.asks.at(-1).question, /Time limit: 900 seconds/)
+  h.f.context.checks[0].commands[0].command = 'x'.repeat(401)
+  await h.command('refresh')
+  const calls = mutations(h).length
+  const asks = h.asks.length
+  await h.press('gate-check')
+  assert.equal(mutations(h).length, calls)
+  assert.equal(h.asks.length, asks)
+  assert.match(textOf(await h.render()), /too long to review/)
+  await h.end()
+})
