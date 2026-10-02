@@ -5,6 +5,23 @@ use cli_test_support::parse_cli;
 use super::*;
 
 #[test]
+fn terminal_view_requires_a_supported_platform_even_with_terminal_stdio() {
+    assert_eq!(should_use_tui(false, true, true), cfg!(unix));
+}
+
+#[test]
+fn terminal_view_respects_explicit_plain_output() {
+    assert!(!should_use_tui(true, true, true));
+}
+
+#[test]
+fn terminal_view_requires_both_input_and_output_terminals() {
+    for (stdin_terminal, stdout_terminal) in [(false, true), (true, false), (false, false)] {
+        assert!(!should_use_tui(false, stdin_terminal, stdout_terminal));
+    }
+}
+
+#[test]
 fn sanitize_prefix_basic() {
     assert_eq!(utils::slug::sanitize_prefix("My Project"), "my-project");
 }
