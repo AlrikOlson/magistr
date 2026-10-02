@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.contract.mjs",
+    "test:native": "node --test tests/native.native.mjs",
+    "format:check": "npx --yes prettier@3.9.9 --check \"hooks/*.js\" \"tests/*.{js,mjs,ts}\""
+  }
+}

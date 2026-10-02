@@ -478,8 +478,10 @@ across protocol versions (a mismatch is refused), and no shared writer
 routing. The lease must not be described as a distributed authority or a
 governed peer runtime; a `Revision` is still comparable only within one
 authority's history, and admission is not what makes reads coherent across
-the two roles — the store stamp is, per family. Off Unix there is no
-endpoint and no client; both report `Unsupported`.
+the two roles — the store stamp is, per family. Workflow command and MCP attachment require Unix sockets and report
+`Unsupported` elsewhere. Workspace MCP attachment has a separate authenticated
+Windows named-pipe path under the same owner protocol; it does not provide
+workflow attachment.
 
 The event publisher can outlive a dropped service inside a running async
 runtime. Admission continues to refuse a still-live endpoint; releasing an

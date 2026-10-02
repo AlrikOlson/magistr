@@ -1,0 +1,14 @@
+{
+  "name": "magistr",
+  "description": "Magistr tools for your Claude Code session.",
+  "owner": {
+    "name": "Magistr contributors"
+  },
+  "plugins": [
+    {
+      "name": "magistr",
+      "source": "./plugins/magistr",
+      "description": "Inspect your work, checks, findings and changes in Claude Code."
+    }
+  ]
+}
