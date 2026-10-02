@@ -1,0 +1,11 @@
+{
+  "name": "magistr",
+  "version": "0.1.5",
+  "description": "See your work, checks, findings and changes in Claude Code.",
+  "author": {
+    "name": "Magistr contributors"
+  },
+  "homepage": "https://magistr.dev",
+  "repository": "https://github.com/AlrikOlson/magistr",
+  "license": "MIT"
+}

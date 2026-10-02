@@ -116,6 +116,9 @@ The [peer protocol](peers.md) is a separate engine API for two-party plan agreem
 and worker admission. Its domain types are implemented, but production runtime
 authentication and governed dispatch are not wired into the CLI or interfaces.
 
+The optional [Claude Code adapter](claude-mod.md) presents native work through
+connected MCP tools; native services retain every workflow and source authority.
+
 ## Applications and resources
 
 `apps/website` contains the documentation website. Fixture descriptions, font

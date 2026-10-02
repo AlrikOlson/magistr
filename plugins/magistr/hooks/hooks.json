@@ -1,0 +1,4 @@
+{
+  "description": "Magistr work pane and optional progress band",
+  "modules": ["./register.js"]
+}
