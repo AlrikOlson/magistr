@@ -71,6 +71,7 @@ pub struct MagistrService {
     /// with the last clone.
     engines: NativeEngines,
     roadmap_export: RoadmapExport,
+    context: Arc<super::view_context::ContextState>,
     /// The admission this service runs under: the project identity, the
     /// service-role lease, and the live-feed socket the engines broadcast on
     /// (kept so a gate this server runs itself can stream its bytes there
@@ -117,6 +118,7 @@ impl MagistrService {
 
         Ok(Self {
             roadmap_export: RoadmapExport::new(&project_root),
+            context: Arc::default(),
             tools: Arc::new(super::build_server(project_root.clone())),
             project_root,
             unified,
@@ -168,6 +170,7 @@ impl MagistrService {
         let args = Value::Object(request.arguments.clone().unwrap_or_default());
         match name.as_str() {
             "magistr_gate" => self.gate(&args).await,
+            "magistr_context" => self.view_context(&args),
             "magistr_set_phase" => {
                 let Some(phase) = args.get("phase").and_then(Value::as_str) else {
                     return self.invoke(&name, args).await;
@@ -185,6 +188,56 @@ impl MagistrService {
             }
             _ => self.invoke(&name, args).await,
         }
+    }
+
+    /// A narrow owner query; no command or workflow mutation is performed.
+    fn view_context(&self, args: &Value) -> Result<CallToolResult, ErrorData> {
+        super::view_context::validate_args(args).map_err(|e| ErrorData::invalid_params(e, None))?;
+        let config = crate::validate::load_project_config(&self.project_root)
+            .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
+        let choices = super::view_context::check_choices(&config)
+            .map_err(|e| ErrorData::internal_error(e, None))?;
+        let cycle = self.engines.ship_objective().and_then(|o| o.created_at);
+        let task = self.engines.ship_active_task_id();
+        let detail = args
+            .get("task_id")
+            .and_then(Value::as_str)
+            .map(|id| {
+                self.engines
+                    .ship_tasks()
+                    .into_iter()
+                    .find(|t| t.id == id)
+                    .ok_or_else(|| {
+                        ErrorData::invalid_params("That task is no longer available.", None)
+                    })
+                    .map(super::view_context::bounded_task)
+            })
+            .transpose()?;
+        let receipt = args
+            .get("receipt_id")
+            .and_then(Value::as_str)
+            .map(|id| {
+                self.engines
+                    .ship_receipt(id)
+                    .map_err(|e| ErrorData::internal_error(e, None))
+            })
+            .transpose()?
+            .flatten();
+        let body = json!({
+            "version": 1,
+            "task": detail,
+            "receipt": receipt,
+            "project_id": self.authority.project_id(),
+            "project_root": self.project_root.to_string_lossy(),
+            "owner_epoch": self.authority.generation().get().to_string(),
+            "phase": self.context.phase(&cycle, &task),
+            "phase_task": task,
+            "phase_cycle": cycle,
+            "checks": choices
+        });
+        let mut result = CallToolResult::success(vec![ContentBlock::text(body.to_string())]);
+        result.structured_content = Some(body);
+        Ok(result)
     }
 
     /// `magistr_gate`: resolve the gate set from project.json, run each gate
@@ -356,6 +409,11 @@ impl MagistrService {
     /// listens to drops the frame, and without an active task there is
     /// nothing to record on.
     fn record_phase(&self, phase: WorkflowPhase) {
+        self.context.observe(
+            self.engines.ship_objective().and_then(|o| o.created_at),
+            self.engines.ship_active_task_id(),
+            phase,
+        );
         if let Some(feed) = self.authority.feed() {
             let _ = feed.emit(Family::Magistr, &MagistrFrame::PhaseSet { phase });
         }
@@ -491,6 +549,7 @@ impl ServerHandler for MagistrService {
         context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
         let mut tools = self.magistr_tools();
+        tools.push(super::view_context::tool());
         tools.extend(self.unified.list_tools(request, context).await?.tools);
         if let Some(tool) = tools.iter_mut().find(|tool| tool.name == "roadmap_export") {
             *tool = RoadmapExport::tool();
