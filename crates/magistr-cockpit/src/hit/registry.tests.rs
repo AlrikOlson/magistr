@@ -214,3 +214,42 @@ fn an_overlay_layer_outranks_every_in_flow_node_however_deep() {
         "beside the overlay the deep leaf answers as before"
     );
 }
+
+#[test]
+fn a_reported_area_reaches_control_edges_and_prefers_the_greater_visible_overlap() {
+    let mut registry = HitRegistry::new();
+    registry.register_px(PxRect::new(0.0, 0.0, 400.0, 200.0), 0, id(0));
+    registry.register_px(PxRect::new(97.0, 8.0, 74.0, 8.0), 0, id(1));
+    registry.register_px(PxRect::new(176.0, 8.0, 44.0, 8.0), 0, id(2));
+    assert_eq!(registry.hit_at(95.0, 10.0), Some(id(0)));
+    assert_eq!(
+        registry.hit_region(PxRect::new(90.0, 0.0, 10.0, 20.0)),
+        Some(id(1))
+    );
+    assert_eq!(
+        registry.hit_region(PxRect::new(170.0, 0.0, 10.0, 20.0)),
+        Some(id(2))
+    );
+    assert_eq!(
+        registry.hit_region(PxRect::new(300.0, 160.0, 10.0, 20.0)),
+        Some(id(0))
+    );
+    assert_eq!(
+        registry.hit_region(PxRect::new(400.0, 0.0, 10.0, 20.0)),
+        None
+    );
+    assert_eq!(registry.hit_region(PxRect::default()), None);
+}
+
+#[test]
+fn area_reports_cannot_activate_controls_covered_by_an_overlay() {
+    let mut registry = HitRegistry::new();
+    let bounds = PxRect::new(0.0, 0.0, 400.0, 200.0);
+    registry.register_px(bounds, 0, id(0));
+    registry.register_px(PxRect::new(90.0, 8.0, 100.0, 20.0), 0, id(1));
+    registry.register_px(bounds, 10, id(2));
+    let region = PxRect::new(90.0, 0.0, 10.0, 20.0);
+    assert_eq!(registry.hit_region(region), Some(id(2)));
+    registry.register_px(PxRect::new(97.0, 8.0, 74.0, 8.0), 10, id(3));
+    assert_eq!(registry.hit_region(region), Some(id(3)));
+}

@@ -115,6 +115,35 @@ impl HitRegistry {
             .map(|(_, entry)| entry.id)
     }
 
+    /// Resolve a position reported as an area rather than an exact point.
+    /// Visible children take precedence over their containing surfaces; between
+    /// neighboring controls, the greatest overlap wins. Paint layers and the
+    /// last registered control break ties just as they do for exact points.
+    #[must_use]
+    pub fn hit_region(&self, region: PxRect) -> Option<WidgetId> {
+        self.entries
+            .iter()
+            .enumerate()
+            .filter_map(|(index, entry)| {
+                let overlap = entry.rect.intersection(region);
+                (!overlap.is_empty()).then_some((index, entry, overlap.width * overlap.height))
+            })
+            .filter(|(index, entry, _)| {
+                !self.entries[index + 1..].iter().any(|child| {
+                    child.z >= entry.z
+                        && child.rect.x >= entry.rect.x
+                        && child.rect.y >= entry.rect.y
+                        && child.rect.right() <= entry.rect.right()
+                        && child.rect.bottom() <= entry.rect.bottom()
+                        && !child.rect.intersection(region).is_empty()
+                })
+            })
+            .max_by(|(ai, a, aa), (bi, b, ba)| {
+                a.z.cmp(&b.z).then(aa.total_cmp(ba)).then(ai.cmp(bi))
+            })
+            .map(|(_, entry, _)| entry.id)
+    }
+
     /// Number of registered rects.
     #[must_use]
     pub fn len(&self) -> usize {

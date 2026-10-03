@@ -552,3 +552,94 @@ fn keyboard_flags_are_interpreted_only_by_the_terminal_runtime() {
         assert_eq!(driver.model.reports_key_releases(), reports);
     }
 }
+
+#[test]
+fn rio_cell_mouse_reaches_visible_control_edges_across_font_sizes() {
+    use crate::input::Decoder;
+    use magistr_cockpit::layout::PxRect;
+    use magistr_cockpit::pixel::CellSize;
+    let mut tested = 0;
+    let mut edges = 0;
+    for (width, height) in [(10, 20), (16, 33), (22, 47)] {
+        let mut driver = driver(model(), false);
+        driver.fold(Msg::CellSize(Some(CellSize::new(width, height))));
+        let root = view(&driver.model, &FrameClock::new(0, Duration::ZERO));
+        let resolved = driver
+            .surfaces
+            .layout(&root, &driver.model, &mut driver.tree)
+            .unwrap();
+        for widget in [Widget::Commands, Widget::PromptFiles, Widget::PromptAction] {
+            let Some(place) = resolved
+                .placed()
+                .iter()
+                .find(|place| place.id == Some(widget.id()))
+            else {
+                continue; // Disabled controls have no interactive bounds.
+            };
+            let rect = place.px;
+            let col = ((rect.x + rect.width * 0.5) / f32::from(width)) as u16;
+            for row in [
+                ((rect.y + rect.height * 0.5) / f32::from(height)) as u16,
+                (rect.y / f32::from(height)) as u16,
+                ((rect.bottom() - 0.01) / f32::from(height)) as u16,
+            ] {
+                let region = PxRect::new(
+                    f32::from(col) * f32::from(width),
+                    f32::from(row) * f32::from(height),
+                    f32::from(width),
+                    f32::from(height),
+                );
+                let center = (
+                    f64::from(region.x + region.width * 0.5),
+                    f64::from(region.y + region.height * 0.5),
+                );
+                let edge = !rect.contains(center.0, center.1);
+                // A cell spanning two controls cannot locate a sub-cell click.
+                // Literal coverage and overlay tests pin that case separately.
+                let ambiguous = resolved.placed().iter().any(|other| {
+                    other.id != Some(widget.id())
+                        && PointerShape::over(other.id) == PointerShape::Hand
+                        && !other.px.intersection(region).is_empty()
+                });
+                if rect.intersection(region).height < 2.0 || (edge && ambiguous) {
+                    continue;
+                }
+                let report = format!("\x1b[<35;{};{}M", col + 1, row + 1);
+                let mut decoder = Decoder::new();
+                let mut events = Vec::new();
+                decoder.feed(report.as_bytes(), &mut events);
+                assert_eq!(events.len(), 1);
+                for event in events {
+                    driver.event(InputEvent::Event(event));
+                }
+                assert_eq!(
+                    driver.model.hovered(),
+                    Some(widget.id()),
+                    "{widget:?} at {width}x{height}, cell {col},{row}, bounds {rect:?}"
+                );
+                tested += 1;
+                edges += usize::from(edge);
+            }
+        }
+    }
+    assert!(tested >= 3, "exercise different measured font sizes");
+    assert!(edges > 0, "exercise painted edges beyond cell centers");
+}
+
+#[test]
+fn rio_cell_mouse_clicks_a_visible_header_edge_and_preserves_the_draft() {
+    use crate::input::Decoder;
+    let mut driver = driver(model(), false);
+    driver.fold(Msg::Paste("Keep this draft".into()));
+    let mut decoder = Decoder::new();
+    let mut events = Vec::new();
+    decoder.feed(b"\x1b[6;20;10t\x1b[<0;137;1M", &mut events);
+    for event in events {
+        driver.event(InputEvent::Event(event));
+    }
+    assert!(
+        driver.model.palette().is_some(),
+        "the visible Commands edge opens its menu"
+    );
+    assert_eq!(driver.model.prompt().text(), "Keep this draft");
+}

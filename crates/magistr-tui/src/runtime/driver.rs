@@ -22,7 +22,7 @@ use magistr_cockpit::cockpit::{
     view,
 };
 use magistr_cockpit::hit::HitRegistry;
-use magistr_cockpit::layout::{LayoutTree, Resolved};
+use magistr_cockpit::layout::{LayoutTree, PxRect, Resolved};
 use magistr_cockpit::render::paint;
 
 /// Everything the loop owns between the startup window and the shutdown.
@@ -120,20 +120,21 @@ impl Driver {
                 self.refresh_hits();
                 let target = if self.model.has_pixels() {
                     let cell = self.model.cell_size();
-                    let (x, y) = match event.px {
+                    match event.px {
                         Some((x, y)) => {
                             event.col =
                                 (x / u32::from(cell.width.max(1))).min(u32::from(u16::MAX)) as u16;
                             event.row =
                                 (y / u32::from(cell.height.max(1))).min(u32::from(u16::MAX)) as u16;
-                            (f64::from(x), f64::from(y))
+                            self.hits.hit_at(f64::from(x), f64::from(y))
                         }
-                        None => (
-                            (f64::from(event.col) + 0.5) * f64::from(cell.width),
-                            (f64::from(event.row) + 0.5) * f64::from(cell.height),
-                        ),
-                    };
-                    self.hits.hit_at(x, y)
+                        None => self.hits.hit_region(PxRect::new(
+                            f32::from(event.col) * f32::from(cell.width),
+                            f32::from(event.row) * f32::from(cell.height),
+                            f32::from(cell.width),
+                            f32::from(cell.height),
+                        )),
+                    }
                 } else {
                     self.hits.hit(event.col, event.row)
                 };
