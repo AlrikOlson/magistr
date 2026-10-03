@@ -70,6 +70,14 @@ without delimiters. Query replies neither edit the draft nor request effects.
 Behavioral boundary tests exercise fragmented bytes, equivalent neutral input,
 measurement precedence and resize, alongside the existing pointer harnesses.
 
+The terminal driver batches input and model messages fairly, bounded by both
+work count and a quarter of the interactive frame budget. Drawing and shutdown
+never wait for either producer to become idle. Small bursts still share a frame;
+continuous mouse reports or a busy feed leave time for the next frame and the
+host's cancellation signal. Consecutive hover reports within a batch collapse
+to the latest position before hit testing; clicks, drags, keys and messages
+retain their order. Driver regression checks keep that behavior live.
+
 The embedded program-output model (`cockpit::Term`) remains separate from
 terminal input. Shared session cards, transcript copying, scrolling and program
 completion consume its screen and scrollback. This change creates no extra VT
@@ -121,7 +129,11 @@ graph movement, filtering and sorting, and start, complete, proposal and blocker
 commands. Selection persists by chunk id while row and graph positions are
 resolved at input time. `ChunkState` carries the six stored states and derives
 `Stuck` from in-progress work with a blocker; filters, cards, status words and
-graph rendering consume that enum.
+graph rendering consume that enum. `Roadmap` retains derived dependency geometry
+for its full and frontier projections, shared by viewport clones. Chunk seed and
+event updates invalidate it when their data changes; selection, hover, pan, zoom
+and animation only transform the retained points and paths. Drawing and hit
+testing therefore share geometry without rerunning graph layout per interaction.
 
 `cockpit::changes` owns the journal and its interaction. Expansion and review
 marks follow the journal's operation-and-path identity across refreshes and

@@ -357,6 +357,148 @@ fn terminal_replies_reach_the_model_as_capabilities_without_commands_or_input() 
 }
 
 #[test]
+fn queued_mouse_motion_cannot_hold_back_a_message_or_the_next_frame() {
+    use crate::harness::{FakeTerminal, Script};
+
+    let mut driver = driver(Model::new(Size::new(144, 50)), false);
+    let (input, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let (messages, mut inbox) = tokio::sync::mpsc::unbounded_channel();
+    for index in 0..4096 {
+        input
+            .send(InputEvent::Event(Event::Mouse(MouseEvent::new(
+                MouseKind::Move,
+                index % 144,
+                1,
+            ))))
+            .unwrap();
+    }
+    messages
+        .send(Msg::Paste("Keep the screen responsive".into()))
+        .unwrap();
+
+    driver.drain(&mut rx, &mut inbox);
+
+    assert!(
+        !rx.is_empty(),
+        "drawing cannot wait for the entire input backlog"
+    );
+    assert_eq!(driver.model.prompt().text(), "Keep the screen responsive");
+    let mut terminal = FakeTerminal::new(Size::new(144, 50), Script::new());
+    let capture = terminal.capture();
+    driver.paint(&mut terminal).unwrap();
+    assert!(capture.count(b"Keep the screen responsive") > 0);
+}
+
+#[test]
+fn queued_messages_cannot_hold_back_the_next_frame() {
+    let mut driver = driver(Model::new(Size::new(144, 50)), false);
+    let (_input, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let (messages, mut inbox) = tokio::sync::mpsc::unbounded_channel();
+    for _ in 0..4096 {
+        messages.send(Msg::Focus(true)).unwrap();
+    }
+
+    driver.drain(&mut rx, &mut inbox);
+
+    assert!(
+        !inbox.is_empty(),
+        "a live feed must leave time to draw and check shutdown"
+    );
+    assert!(driver.scheduler.wants_frame());
+}
+
+#[test]
+fn consecutive_hover_positions_coalesce_without_reordering_other_input() {
+    let mut driver = driver(Model::new(Size::new(144, 50)), false);
+    let (input, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let (_messages, mut inbox) = tokio::sync::mpsc::unbounded_channel();
+    for (kind, col) in [
+        (MouseKind::Move, 1),
+        (MouseKind::Move, 2),
+        (MouseKind::Down(Button::Left), 2),
+        (MouseKind::Drag(Button::Left), 3),
+        (MouseKind::Drag(Button::Left), 4),
+        (MouseKind::Up(Button::Left), 4),
+        (MouseKind::Move, 5),
+        (MouseKind::Move, 6),
+    ] {
+        input
+            .send(InputEvent::Event(Event::Mouse(MouseEvent::new(
+                kind, col, 15,
+            ))))
+            .unwrap();
+    }
+    while !rx.is_empty() {
+        driver.drain(&mut rx, &mut inbox);
+    }
+    assert_eq!(
+        driver.model.inputs(),
+        6,
+        "both drags and the latest hover positions reach the model"
+    );
+    let positions: Vec<_> = driver
+        .model
+        .recent()
+        .filter_map(|msg| match msg {
+            Msg::Mouse { event, .. } => Some((event.kind, event.col)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        positions,
+        [
+            (MouseKind::Down(Button::Left), 2),
+            (MouseKind::Up(Button::Left), 4),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn shutdown_and_painting_remain_live_with_queued_mouse_motion() {
+    use crate::harness::{FakeTerminal, Script};
+
+    let mut driver = driver(Model::new(Size::new(144, 50)), false);
+    let (input, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let (_messages, mut inbox) = tokio::sync::mpsc::unbounded_channel();
+    for index in 0..16384 {
+        input
+            .send(InputEvent::Event(Event::Mouse(MouseEvent::new(
+                MouseKind::Move,
+                index % 144,
+                1,
+            ))))
+            .unwrap();
+    }
+    let mut terminal = FakeTerminal::new(Size::new(144, 50), Script::new());
+    let capture = terminal.capture();
+    let first_frame = capture.clone();
+    let quit = CancellationToken::new();
+    let cancellation = quit.clone();
+    let producer = std::thread::spawn(move || {
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while first_frame.count(b"\x1b[?2026h") == 0 && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        cancellation.cancel();
+    });
+
+    driver
+        .run(&mut terminal, &mut rx, &mut inbox, Some(&quit))
+        .await
+        .unwrap();
+    producer.join().unwrap();
+
+    assert!(
+        !rx.is_empty(),
+        "shutdown must not wait for input to become idle"
+    );
+    assert!(
+        capture.count(b"\x1b[?2026h") > 0,
+        "the busy cockpit still draws"
+    );
+}
+
+#[test]
 fn resize_recomputes_window_fallback_but_preserves_a_direct_measurement() {
     use crate::input::Reply;
     let mut driver = driver(Model::new(Size::new(80, 24)), false);
