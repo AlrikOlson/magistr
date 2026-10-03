@@ -90,7 +90,8 @@ impl Connection {
                 "script",
                 "search",
                 "undo",
-                "workbench_status"
+                "workbench_status",
+                "write"
             ]
         );
     }
@@ -142,6 +143,7 @@ pub(super) fn command(root: &Path) -> tokio::process::Command {
 
 /// `magistr workspace migrate <root>`: the explicit offline migration, run
 /// to completion.
+#[cfg(unix)]
 pub(super) async fn migrate(root: &Path) -> std::process::Output {
     tokio::time::timeout(
         WAIT,
@@ -158,6 +160,7 @@ pub(super) async fn migrate(root: &Path) -> std::process::Output {
 
 /// The legacy server's lock record for a process of this host that has
 /// already exited: the record `magistr workspace migrate` moves aside.
+#[cfg(unix)]
 pub(super) fn dead_legacy_record() -> String {
     let mut exited = std::process::Command::new("true").spawn().expect("spawn");
     let dead = exited.id();
@@ -181,6 +184,7 @@ pub(super) fn binary() -> &'static str {
 }
 
 /// This host's name as the legacy server recorded it.
+#[cfg(unix)]
 pub(super) fn hostname() -> String {
     let mut buffer = [0_u8; 256];
     // SAFETY: the buffer is valid for its length; gethostname writes within it.

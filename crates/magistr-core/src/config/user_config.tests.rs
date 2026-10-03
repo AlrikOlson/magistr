@@ -422,6 +422,7 @@ fn full_config_round_trip() {
         models: ModelDefaults {
             claude: Some("claude-sonnet-4".to_string()),
             copilot: Some("gpt-4o".to_string()),
+            ..Default::default()
         },
         session: SessionDefaults {
             default_provider: Some("claude".to_string()),
@@ -436,6 +437,7 @@ fn full_config_round_trip() {
             transition_delay_ms: None,
             ..Default::default()
         },
+        efforts: Default::default(),
     };
 
     save_to(&config, &path).unwrap();
@@ -448,6 +450,7 @@ fn for_provider_returns_model_when_set() {
     let models = ModelDefaults {
         claude: Some("claude-opus-4".to_string()),
         copilot: Some("gpt-4o".to_string()),
+        ..Default::default()
     };
     assert_eq!(models.for_provider("claude"), Some("claude-opus-4"));
     assert_eq!(models.for_provider("copilot"), Some("gpt-4o"));
@@ -458,6 +461,7 @@ fn for_provider_returns_none_for_default_sentinel() {
     let models = ModelDefaults {
         claude: Some("default".to_string()),
         copilot: Some("Default".to_string()),
+        ..Default::default()
     };
     assert_eq!(models.for_provider("claude"), None);
     assert_eq!(models.for_provider("copilot"), None);

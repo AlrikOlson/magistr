@@ -2,15 +2,12 @@
 
 use std::{io, path::Path, time::Duration};
 
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::UnixStream,
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use super::owner_wire::{Greeting, Hello, OWNER_PROTOCOL_VERSION};
 use super::{
-    AttachError, AttachKind, BuildIdentity, CallerIdentity, OwnerGeneration, OwnerIdentity,
-    workspace_socket_path,
+    AttachError, AttachKind, BuildIdentity, CallerIdentity, LocalStream, OwnerGeneration,
+    OwnerIdentity, workspace_socket_path,
 };
 
 /// Connect without an uncancellable blocking socket operation. The deadline
@@ -19,7 +16,7 @@ pub(super) async fn attach(
     root: &Path,
     caller: CallerIdentity,
     deadline: Duration,
-) -> Result<(OwnerGeneration, UnixStream), AttachError> {
+) -> Result<(OwnerGeneration, LocalStream), AttachError> {
     let root = root.canonicalize().map_err(AttachError::Unavailable)?;
     let path = workspace_socket_path(&root).map_err(AttachError::Unavailable)?;
     let hello = Hello {
@@ -34,13 +31,23 @@ pub(super) async fn attach(
         .map_err(|_| AttachError::Deadline(deadline))?
 }
 
+#[cfg(unix)]
+async fn connect(path: &Path) -> io::Result<LocalStream> {
+    tokio::net::UnixStream::connect(path).await
+}
+
+#[cfg(windows)]
+async fn connect(path: &Path) -> io::Result<LocalStream> {
+    super::owner_pipe::connect(path)
+        .await
+        .map(LocalStream::Client)
+}
+
 async fn exchange(
     path: &Path,
     hello: &Hello,
-) -> Result<(OwnerGeneration, UnixStream), AttachError> {
-    let mut stream = UnixStream::connect(path)
-        .await
-        .map_err(AttachError::Unavailable)?;
+) -> Result<(OwnerGeneration, LocalStream), AttachError> {
+    let mut stream = connect(path).await.map_err(AttachError::Unavailable)?;
     let mut bytes =
         serde_json::to_vec(hello).map_err(|error| AttachError::Wire(error.to_string()))?;
     bytes.push(b'\n');
@@ -83,6 +90,10 @@ fn link_error(error: io::Error) -> AttachError {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "owner_workspace_link.tests.rs"]
 mod tests;
+
+#[cfg(all(test, windows))]
+#[path = "owner_workspace_link_windows.tests.rs"]
+mod windows_tests;

@@ -21,6 +21,18 @@ Automatic detection chooses Claude Code or Copilot.
 
 ## Configuration and defaults
 
+Native command options are shared by `run`, `next`, and `next-loop` through
+[`WorkflowAgentOptions`](../../crates/magistr-cli/src/workflow_agent_options.rs).
+[`session_defaults`](../../crates/magistr-cli/src/agent/session_defaults.rs)
+applies command options, `.magistr/agents.toml`, personal settings, and provider
+defaults in order; model and effort preferences are scoped by provider.
+[`SessionSelection`](../../crates/magistr-core/src/config/session_selection.rs)
+is the non-secret snapshot carried by `ProjectInputs` and loop checkpoints.
+Recovery retains that selection, including unset values; a fresh settled run
+may select new defaults. The loop driver and judge receive the same captured
+inputs. Host-invoked skills retain host-owned selection instead.
+See [agent settings](../reference/agent-settings.md) for commands and examples.
+
 Resolve one specification before connecting:
 
 ```rust

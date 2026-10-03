@@ -46,7 +46,12 @@ async fn main() -> eyre::Result<()> {
     utils::sigterm_handler::install_sigterm_handler();
 
     let json_output = cli.json;
-    let use_tui = should_use_tui(cli.no_tui || cli.json);
+    use std::io::IsTerminal;
+    let use_tui = should_use_tui(
+        cli.no_tui || cli.json,
+        std::io::stdin().is_terminal(),
+        std::io::stdout().is_terminal(),
+    );
     let renderer = output::create_renderer(json_output, false);
 
     // The project, preset, provider, plugin and workspace inputs, captured
@@ -150,7 +155,7 @@ async fn main() -> eyre::Result<()> {
             prompt,
             resume,
             r#continue,
-            model,
+            agent,
             backend,
             headless,
             format,
@@ -158,9 +163,11 @@ async fn main() -> eyre::Result<()> {
             if r#continue || resume.is_some() {
                 unsafe { std::env::set_var("MAGISTR_CONTINUE", "1") };
             }
-            if let Some(ref m) = model {
-                unsafe { std::env::set_var("MAGISTR_MODEL", m) };
+            let inputs = agent.prepare(&inputs, false, resume.as_deref(), r#continue)?;
+            if agent.show_config {
+                return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
             }
+            magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
             let agent_backend = commands::resolve_backend(backend, &inputs)?;
             let profile = commands::run::resolve_permission_profile(
                 inputs.project_root(),
@@ -170,7 +177,7 @@ async fn main() -> eyre::Result<()> {
                 prompt: &prompt,
                 resume: resume.as_deref(),
                 continue_conversation: r#continue,
-                model: model.as_deref(),
+                model: agent.model.as_deref(),
             };
             if headless {
                 commands::run::cmd_run_headless(request, agent_backend, format, profile, &inputs)
@@ -182,6 +189,7 @@ async fn main() -> eyre::Result<()> {
             }
         }
         Command::Next {
+            agent,
             dir,
             r#continue: continue_plan,
             backend,
@@ -192,6 +200,11 @@ async fn main() -> eyre::Result<()> {
             if gate_only {
                 commands::next::cmd_next_gate_only(&dir, format).await
             } else {
+                let inputs = agent.prepare(&inputs.for_project(&dir), false, None, false)?;
+                if agent.show_config {
+                    return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
+                }
+                magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
                 let agent_backend = commands::resolve_backend(backend, &inputs)?;
                 let profile =
                     commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
@@ -208,6 +221,7 @@ async fn main() -> eyre::Result<()> {
             }
         }
         Command::NextLoop {
+            agent,
             dir,
             max_iterations,
             backend,
@@ -215,6 +229,11 @@ async fn main() -> eyre::Result<()> {
             format,
             max_cost,
         } => {
+            let inputs = agent.prepare(&inputs.for_project(&dir), true, None, false)?;
+            if agent.show_config {
+                return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
+            }
+            magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
             let agent_backend = commands::resolve_backend(backend, &inputs)?;
             let profile = commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
             if headless {
@@ -418,14 +437,10 @@ fn parse_cli() -> Cli {
     })
 }
 
-/// Whether interactive surfaces (the cockpit, the init interview) may take
-/// this terminal: an explicit opt-out wins, otherwise stdout must be a tty.
-fn should_use_tui(no_tui: bool) -> bool {
-    if no_tui {
-        return false;
-    }
-    use std::io::IsTerminal;
-    std::io::stdout().is_terminal()
+/// The cockpit needs its Unix terminal backend and terminal input and output.
+/// Other environments use the plain command path before opening workflow state.
+fn should_use_tui(no_tui: bool, stdin_terminal: bool, stdout_terminal: bool) -> bool {
+    cfg!(unix) && !no_tui && stdin_terminal && stdout_terminal
 }
 
 /// Propagate CLI flags to environment variables for downstream consumption.

@@ -126,6 +126,9 @@ and worker admission. It is available only to unit tests or with the explicit
 `experimental-peer` engine feature; production hosts do not enable it. Runtime
 authentication and governed dispatch are not implemented.
 
+The optional [Claude Code adapter](claude-mod.md) presents native work through
+connected MCP tools; native services retain every workflow and source authority.
+
 ## Applications and resources
 
 `apps/website` contains the documentation website. Fixture descriptions, font

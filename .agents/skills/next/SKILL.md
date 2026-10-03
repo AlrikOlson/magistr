@@ -9,6 +9,16 @@ Apply [craft](../craft/SKILL.md) and its runtime contract, including the host
 adapter. Perform this workflow in the current session. One invocation completes
 one chunk and stops; it does not launch another coding-agent runtime.
 
+## Choose the agent
+
+This skill uses the current host session's agent, model, and reasoning settings.
+Choose them when starting the host session. Magistr's saved settings and the
+native `magistr next --agent ... --model ... --effort ...` options apply to
+sessions Magistr launches. They do not change this host session. If the host
+does not expose its selected model or effort, report them as unknown rather
+than guessing. Honor an explicit selection request through the host's supported
+controls or include it in the fresh-session handoff.
+
 ## Recover and select
 
 Read project instructions, `.magistr/project.json`, relevant conventions, Git

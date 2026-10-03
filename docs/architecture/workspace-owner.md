@@ -67,7 +67,10 @@ does not exit either: it serves discovery itself, as described under
 refusal — a missing root (66), durable data written by a newer binary (65),
 `--config` overrides against a live owner (a policy refusal) — is still a
 startup error with its exit code, since no later request can outlive it.
-Non-Unix remains exclusive.
+Windows workspace attachment uses the existing named-pipe listener and
+canonical root identity, restricted to the current user's SID. Other platforms
+without a local transport remain exclusive. This workspace path does not imply
+Windows workflow MCP attachment; see [clients](clients.md#limits).
 
 The owner's resolved policy governs all connections. An invocation carrying
 explicit `--config` values refuses attachment rather than silently dropping

@@ -144,6 +144,35 @@ fn files_admission_requires_the_paths_each_op_needs() {
 }
 
 #[test]
+fn write_admission_requires_a_path_and_string_content_and_authorizes_nothing() {
+    assert_eq!(
+        message(write_input(&object(json!({"content": "x"}))).unwrap_err()),
+        "write: path must be a non-empty string"
+    );
+    assert_eq!(
+        message(write_input(&object(json!({"path": "a.txt"}))).unwrap_err()),
+        "write: content must be a string"
+    );
+    assert_eq!(
+        message(
+            write_input(&object(
+                json!({"path": "a.txt", "content": "", "confirm": 7})
+            ))
+            .unwrap_err()
+        ),
+        "write: confirm must be a string token"
+    );
+    let input = write_input(&object(json!({
+        "path": "a.txt", "content": "", "expectedHash": "h", "dryRun": true
+    })))
+    .expect("an empty file is a valid write");
+    assert_eq!(input.path, "a.txt");
+    assert_eq!(input.expected_hash.as_deref(), Some("h"));
+    assert!(input.dry_run);
+    assert!(!input.auto_apply, "a served write is not pre-authorized");
+}
+
+#[test]
 fn run_and_script_admission_refuse_schema_level_misuse() {
     assert_eq!(
         message(run_input(&object(json!({}))).unwrap_err()),

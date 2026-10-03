@@ -83,6 +83,24 @@ Existing session, checkpoint, admission and canonical command tests cover the
 retained entrances. Owned subsystem licenses, provenance and reference
 inputs remain in `subsystems/`.
 
+## Optional Claude interface
+
+The [Claude Code Mod](claude-mod.md) is an optional client of the agent's
+existing MCP connections in the first and Workbench bridge rows. It holds no
+native capability or lease itself. Read-only Mod MCP calls inspect canonical
+queries; confirmed actions use Claude's normal tool path and the same native
+application admission. It never opens stores, admits owners or writes source.
+Its disposable snapshots are independent observations per family, with no
+global cursor. The owner phase query reports only this service's explicitly
+announced phase, associated with the objective and task; it is not a new
+workflow engine.
+
+Evidence: `mcp_serve_integration.rs::context_reads_owner_phase_and_canonical_evidence_without_mutation`,
+`::context_refuses_malformed_and_unknown_task_requests_over_mcp`, and
+`plugins/magistr/tests/*.contract.mjs`. Official Claude tests are in
+`plugins/magistr/tests/mod.test.ts`; live acceptance is separately reported
+in [integration verification](../reference/claude-mod-verification.md).
+
 ## Duplicate ownership is refused
 
 - **A second writer of a role.** `ProjectAuthority::admit` takes the role's
@@ -253,6 +271,8 @@ transaction across the roadmap, ship, signal and think files, and a
 mutation is not serialized against a concurrent writer of the same record
 — the merge rule decides. [Projections](projections.md) made what a client
 reads typed and freshness-aware; the stamp decides when the engines behind
-them re-read. The consistency tables describe one machine, one user and
-Unix sockets; off Unix there is no attachment and no endpoint, and the
-stamp carries no inode.
+them re-read. The consistency tables describe one machine and one user. Workflow command
+and MCP attachment still require Unix sockets. Workspace attachment also has
+an authenticated Windows named-pipe path. Off Unix the store stamp carries
+no inode. See [the Claude adapter](claude-mod.md) for the difference between
+a reachable source connection and an unavailable workflow connection.

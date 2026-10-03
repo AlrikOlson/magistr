@@ -18,6 +18,15 @@ use magistr_engine::workflow::StopReason;
 
 const ENTRIES: [&str; 3] = ["interactive", "headless", "cockpit"];
 
+fn selection() -> magistr::config::session_selection::SessionSelection {
+    magistr::config::session_selection::SessionSelection {
+        agent: "codex".into(),
+        model: None,
+        effort: None,
+        sources: Default::default(),
+    }
+}
+
 fn stopped_dispatch(dir: &Path) -> IterationState {
     previous(dir, None, true);
     let mut json: serde_json::Value =
@@ -236,6 +245,7 @@ fn assert_context_kept(dir: &Path) {
 
 fn previous(dir: &Path, stop: Option<StopReason>, unresolved: bool) -> IterationLoop {
     let mut run = IterationLoop::open(dir, dir.join("spec.md"), 3, None).unwrap();
+    run.bind_session_selection(selection()).unwrap();
     assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
     run.set_budget_limit(Some(2.0)).unwrap();
     run.observe_budget(0.5);
@@ -291,7 +301,8 @@ async fn entry_fixture_child() {
     };
     let dir = PathBuf::from(dir);
     let entry = std::env::var("MAGISTR_RECOVERY_ENTRY").unwrap();
-    let inputs = ProjectInputs::from_lookup(&dir, |_| None);
+    // The command preflight has selected settings; these startup scenarios never launch an agent.
+    let inputs = ProjectInputs::from_lookup(&dir, |_| None).with_session_selection(selection());
     let profile = PermissionProfile::Cautious;
     let result = match entry.as_str() {
         "interactive" => cmd_next_loop(&dir, 8, Backend::Acp, profile, &inputs).await,

@@ -47,3 +47,5 @@ fn canonicalize_dir(dir: &std::path::Path) -> color_eyre::eyre::Result<std::path
         .map_err(|e| MagistrError::io(dir, e))
         .suggest()
 }
+mod workflow_inputs;
+use workflow_inputs::workflow_inputs;

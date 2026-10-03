@@ -27,6 +27,8 @@ mod child_registry;
 mod launch;
 mod output_mode;
 mod owned_process;
+#[cfg(windows)]
+mod posix_shell;
 mod process_group;
 mod process_outcome;
 mod process_spec;

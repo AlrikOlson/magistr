@@ -150,9 +150,14 @@ impl Bridge {
         let Some(mut link) = self.link.take() else {
             return Ok(());
         };
-        link.half_close().await;
+        let owner_sees_eof = link.half_close().await;
         let drained = tokio::time::timeout(DRAIN_DEADLINE, async {
-            while let Some(line) = link.next_line().await {
+            // Without EOF the owner never closes its side: stop once every
+            // request the client sent has its answer.
+            while owner_sees_eof || self.session.has_outstanding() {
+                let Some(line) = link.next_line().await else {
+                    break;
+                };
                 self.on_owner(&line, stdout).await?;
             }
             Ok::<(), eyre::Report>(())

@@ -215,3 +215,23 @@ fn unlinked_notifications_and_non_json_lines_are_dropped() {
         Inbound::Forward(line) if line == "not json"
     ));
 }
+
+#[test]
+fn a_request_is_outstanding_until_its_answer_and_notifications_never_are() {
+    let mut session = session();
+    assert!(!session.has_outstanding());
+    session.inbound(
+        &json!({"jsonrpc": "2.0", "method": "notifications/initialized"}).to_string(),
+        true,
+    );
+    assert!(!session.has_outstanding(), "a notification awaits nothing");
+    session.inbound(&call(7, None), true);
+    assert!(session.has_outstanding());
+    session.outbound(&json!({"jsonrpc": "2.0", "method": "notifications/progress"}).to_string());
+    assert!(
+        session.has_outstanding(),
+        "an owner notification answers nothing"
+    );
+    session.outbound(&json!({"jsonrpc": "2.0", "id": 7, "result": {}}).to_string());
+    assert!(!session.has_outstanding());
+}

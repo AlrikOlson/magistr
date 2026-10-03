@@ -70,6 +70,30 @@ commands in the setup interview or supply project/user preset overrides when
 the project uses a different command. Language presets are proposals; they are
 not evidence that a project provides those commands.
 
+## Claude Code plugin
+
+The optional adapter lives in `plugins/magistr`. Read its
+[installation and usage guide](../plugins/magistr/README.md),
+[architecture decision](architecture/claude-mod.md) and
+[verification report](reference/claude-mod-verification.md).
+Its runtime imports only local ES modules and uses documented Claude APIs;
+Node is needed for contributor checks, not inside hooks.
+
+```sh
+node --test plugins/magistr/tests/*.contract.mjs
+npx --yes prettier@3.9.9 --check "plugins/magistr/hooks/*.js" "plugins/magistr/tests/*.{js,mjs,ts}"
+claude plugin validate .
+claude plugin validate plugins/magistr
+claude plugin test plugins/magistr
+```
+
+The independent contracts do not substitute for Claude's official harness or
+live host acceptance. Run the native stdio test after building Magistr; it
+creates its own isolated fixture, never a second owner for this checkout.
+Installation lifecycle checks are explicitly opt-in because they temporarily
+remove and restore the user's Magistr installation. See the report for the
+Windows command wrapper and exact remaining host limitations.
+
 ## Contributions
 
 Keep changes focused, preserve crate and client boundaries, and update the short public docs when a command or supported surface changes. See [CONTRIBUTING.md](../CONTRIBUTING.md).

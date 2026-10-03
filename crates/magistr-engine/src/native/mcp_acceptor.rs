@@ -4,9 +4,9 @@ use std::{future::Future, pin::Pin, sync::Arc};
 
 use tokio_util::sync::CancellationToken;
 
-#[cfg(unix)]
-type Attached = tokio::net::UnixStream;
-#[cfg(not(unix))]
+#[cfg(any(unix, windows))]
+type Attached = super::LocalStream;
+#[cfg(not(any(unix, windows)))]
 type Attached = ();
 
 /// A complete attached MCP session. The endpoint owns this future and

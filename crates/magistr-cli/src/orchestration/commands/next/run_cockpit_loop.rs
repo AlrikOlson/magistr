@@ -85,13 +85,14 @@ pub(crate) async fn run_cockpit_loop(
         commands,
         Connector::live(source),
     )
+    .with_inputs(inputs)
     .permission_profile(profile)
     .keep_open(true)
     .persisting(persist)
     .auto_pause(auto_pause)
     .goal(
         goal,
-        session_judge_for(goal, native, dir, backend),
+        session_judge_for(goal, native, dir, backend, inputs),
         goal_note,
     );
     // The ledger the loop checkpoints on at every iteration boundary —

@@ -9,12 +9,16 @@ use std::{
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
+#[cfg(any(unix, windows))]
+use super::owner_connections::OwnerConnections;
+#[cfg(windows)]
+use super::owner_pipe::PipeListener;
+#[cfg(unix)]
+use super::owner_socket_file::OwnerSocketFile;
 use super::{
     McpAcceptor, NativeEngines, OwnerGeneration, OwnerIdentity, ProjectAuthority,
     workspace_socket_path,
 };
-#[cfg(unix)]
-use super::{owner_connections::OwnerConnections, owner_socket_file::OwnerSocketFile};
 
 /// A local endpoint backed by a workflow admission or an already admitted
 /// workspace. Each MCP connection is a complete session of the same owner.
@@ -31,7 +35,7 @@ pub struct OwnerEndpoint {
     accept: Option<JoinHandle<()>>,
     #[cfg(unix)]
     _socket: OwnerSocketFile,
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     _shared: Arc<OwnerConnections>,
 }
 
@@ -168,7 +172,46 @@ impl OwnerEndpoint {
         })
     }
 
-    #[cfg(not(unix))]
+    /// The Windows endpoint: a pipe granted to this process's user alone.
+    /// Only a workspace owner serves one; the workflow owner's clients
+    /// attach synchronously and have no pipe transport yet, so it is
+    /// refused rather than served to nobody.
+    #[cfg(windows)]
+    async fn serve_at(
+        identity: OwnerIdentity,
+        path: PathBuf,
+        generation: OwnerGeneration,
+        authority: Option<Arc<ProjectAuthority>>,
+        engines: Option<NativeEngines>,
+        mcp: Option<McpAcceptor>,
+    ) -> io::Result<Self> {
+        if !matches!(identity, OwnerIdentity::Workspace { .. }) {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "magistr: the workflow owner endpoint needs Unix domain sockets",
+            ));
+        }
+        let user = super::user_sid::current_user()?;
+        let listener = PipeListener::bind(&path, &user)?;
+        let shared = Arc::new(OwnerConnections::new(
+            identity, authority, engines, generation, user, mcp,
+        ));
+        let stop = CancellationToken::new();
+        let accept = tokio::spawn(OwnerConnections::serve(
+            listener,
+            Arc::downgrade(&shared),
+            stop.clone(),
+        ));
+        Ok(Self {
+            path,
+            generation,
+            stop,
+            accept: Some(accept),
+            _shared: shared,
+        })
+    }
+
+    #[cfg(not(any(unix, windows)))]
     async fn serve_at(
         _identity: OwnerIdentity,
         _path: PathBuf,
@@ -195,6 +238,10 @@ impl Drop for OwnerEndpoint {
 #[cfg(all(test, unix))]
 #[path = "owner_endpoint.tests.rs"]
 mod tests;
+
+#[cfg(all(test, windows))]
+#[path = "owner_workspace_windows.tests.rs"]
+mod windows_tests;
 
 #[cfg(all(test, unix))]
 #[path = "owner_workspace.tests.rs"]

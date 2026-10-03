@@ -11,7 +11,7 @@ pub async fn cmd_next_continue(
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
-    let inputs = inputs.for_project(&dir);
+    let inputs = super::workflow_inputs(&inputs.for_project(&dir), false)?;
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
@@ -75,6 +75,7 @@ pub async fn cmd_next_continue(
         backend,
         profile,
         workspace.source_route(),
+        &inputs,
         |_| Ok(()),
     )
     .await;

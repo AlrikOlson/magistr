@@ -34,7 +34,11 @@ must hand off explicitly instead of chaining in the current context.
 3. Confirm the chunk is done, required verification was recorded, its objective
    closed, and its commit exists.
 4. Write a handoff containing the completed chunk, commit, recorded checks, the
-   remaining iteration bound, and the next roadmap candidate. **Stop the
+   remaining iteration bound, and the next roadmap candidate. Include the
+   agent, model, and reasoning effort reported by the host, plus any requested
+   selection for the next session. Mark unavailable values as unknown. The host
+   must apply that selection when opening the next session; saved Magistr
+   preferences do not change an already-running host session. **Stop the
    current agent session.** Do not invoke `/next` or
    `/next-loop` again in this context, and do not use compaction as a
    substitute for a new session.

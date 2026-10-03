@@ -14,6 +14,7 @@ pub mod cockpit;
 #[cfg(feature = "terminal")]
 pub mod cockpit_roadmap;
 pub mod config;
+mod config_agent_set;
 pub mod config_manage;
 pub(crate) mod galaxy_data;
 #[cfg(feature = "terminal")]

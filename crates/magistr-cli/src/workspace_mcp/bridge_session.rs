@@ -64,6 +64,11 @@ impl ClientSession {
         &self.identity
     }
 
+    /// Whether a request forwarded to the owner still awaits its answer.
+    pub(super) fn has_outstanding(&self) -> bool {
+        !self.outstanding.is_empty()
+    }
+
     /// Whether this client has initialized against some owner already, so a
     /// new owner must be initialized on its behalf.
     pub(super) fn initialized(&self) -> bool {

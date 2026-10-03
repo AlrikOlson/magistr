@@ -39,6 +39,7 @@ pub mod feed_cursor;
 pub mod feed_status;
 pub mod gate_output;
 pub mod identity;
+mod local_stream;
 pub mod magistr_frame;
 pub mod mcp_acceptor;
 pub mod native_config;
@@ -50,7 +51,7 @@ mod open_engines;
 pub mod owner_client;
 pub mod owner_command;
 pub mod owner_connection_record;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 mod owner_connections;
 mod owner_dispatch;
 pub mod owner_endpoint;
@@ -58,6 +59,8 @@ pub mod owner_generation;
 pub mod owner_identity;
 mod owner_lease;
 pub mod owner_liveness;
+#[cfg(windows)]
+mod owner_pipe;
 pub mod owner_probe;
 pub mod owner_reply;
 pub mod owner_report;
@@ -65,7 +68,7 @@ pub mod owner_socket;
 #[cfg(unix)]
 mod owner_socket_file;
 pub mod owner_wire;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 mod owner_workspace_link;
 pub mod progress;
 pub mod project_authority;
@@ -78,6 +81,8 @@ pub mod snapshot;
 pub mod snapshot_cursor;
 pub mod think_branch;
 pub mod think_command;
+#[cfg(windows)]
+mod user_sid;
 pub mod workspace_socket_path;
 pub mod writer_role;
 
@@ -94,6 +99,7 @@ pub use feed_cursor::FeedCursor;
 pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use identity::identity_declaration;
+pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;
 pub use mcp_acceptor::McpAcceptor;

@@ -40,6 +40,10 @@ pub struct UserConfig {
     #[serde(default)]
     pub models: ModelDefaults,
 
+    /// Preferred reasoning effort, scoped to each agent.
+    #[serde(default)]
+    pub efforts: BTreeMap<String, String>,
+
     /// Session defaults (backend selection).
     #[serde(default)]
     pub session: SessionDefaults,
@@ -218,12 +222,16 @@ pub struct ModelDefaults {
     ///
     /// When `None`, the Copilot backend chooses its own default.
     pub copilot: Option<String>,
+
+    /// Model defaults for Codex and other explicitly selected agents.
+    #[serde(default, flatten)]
+    pub additional: BTreeMap<String, String>,
 }
 
 impl ModelDefaults {
     /// Look up the default model for a given provider ID.
     ///
-    /// Provider IDs match [`AgentRuntime::provider_id()`]: `"claude"` or `"copilot"`.
+    /// Provider IDs match the named agent (including `claude`, `copilot`, and `codex`).
     /// Returns `None` when no override is set or the value is `"default"` (meaning
     /// "let the provider choose").
     #[must_use]
@@ -231,7 +239,7 @@ impl ModelDefaults {
         let value = match provider_id {
             "claude" => self.claude.as_deref(),
             "copilot" => self.copilot.as_deref(),
-            _ => None,
+            _ => self.additional.get(provider_id).map(String::as_str),
         };
         // "default" is a sentinel meaning "no override"
         value.filter(|v| !v.eq_ignore_ascii_case("default"))
@@ -244,7 +252,13 @@ impl ModelDefaults {
         match provider_id {
             "claude" => self.claude = model,
             "copilot" => self.copilot = model,
-            _ => {}
+            _ => {
+                if let Some(model) = model {
+                    self.additional.insert(provider_id.into(), model);
+                } else {
+                    self.additional.remove(provider_id);
+                }
+            }
         }
     }
 }

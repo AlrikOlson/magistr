@@ -56,6 +56,9 @@ pub struct IterationState {
     /// carry one; recovery can then use an unambiguous unfinished item.
     #[serde(default)]
     pub native_chunk_id: Option<String>,
+    /// Agent settings frozen when this run began. Missing on older checkpoints.
+    #[serde(default)]
+    pub session_selection: Option<crate::config::session_selection::SessionSelection>,
     /// Git HEAD SHA before the current iteration started.
     /// Used to detect whether the iteration produced a commit.
     #[serde(deserialize_with = "required_option")]
@@ -224,6 +227,7 @@ impl IterationLoop {
             operations: OperationLedger::new(),
             attempt_started: None,
             native_chunk_id: None,
+            session_selection: None,
             last_commit_sha: git_head_sha(&project_dir),
             last_status: IterationStatus::None,
             spec_checked: summary.checked,
@@ -602,6 +606,24 @@ impl IterationLoop {
     #[must_use]
     pub fn display_iteration(&self) -> u32 {
         self.state.run.completed_attempts.saturating_add(1)
+    }
+
+    /// Bind a run's agent settings once; recovery cannot replace them with new defaults.
+    pub fn bind_session_selection(
+        &mut self,
+        selection: crate::config::session_selection::SessionSelection,
+    ) -> Result<()> {
+        if let Some(saved) = &self.state.session_selection {
+            if saved.agent != selection.agent
+                || saved.model != selection.model
+                || saved.effort != selection.effort
+            {
+                return Err(MagistrError::Workflow("This unfinished run uses different agent settings. Resume with its saved settings or start a new run after it has ended".into()));
+            }
+        } else {
+            self.state.session_selection = Some(selection);
+        }
+        Ok(())
     }
 
     /// Reference to the full persisted state.
