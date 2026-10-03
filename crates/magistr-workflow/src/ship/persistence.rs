@@ -9,6 +9,8 @@ use crate::ship::domain::execution_identity::ExecutionIdentity;
 use crate::ship::domain::objective::Objective;
 use crate::ship::domain::task::Task;
 
+use super::saved_cycle::SavedCycle;
+
 const SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +22,10 @@ pub(crate) struct PersistedState {
     pub(crate) next_action_id: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) execution: Option<ExecutionIdentity>,
+    #[serde(default)]
+    pub(crate) selection_revision: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) saved_cycles: Vec<SavedCycle>,
 }
 
 impl PersistedState {
@@ -35,7 +41,9 @@ impl PersistedState {
 /// (family-stores-merge-on-save). Ship state is CYCLE-shaped — one objective
 /// plus its tasks — so the cycle identity (`objective.created_at`) decides:
 ///
-/// - **Different cycles**: the newer cycle wins outright. A stale process
+/// - **Track selection**: a later selection revision wins, including its saved
+///   plans. A stale writer cannot reselect an earlier plan.
+/// - **Different cycles at the same revision**: the newer cycle wins outright. A stale process
 ///   still scribbling into a cycle another process has reset away loses by
 ///   design — that is exactly what keeps `reset` resurrection-proof against
 ///   stale writers. A state with no objective counts as oldest.
@@ -46,7 +54,7 @@ impl PersistedState {
 fn merge_states(memory: &PersistedState, disk: PersistedState) -> PersistedState {
     let mem_stamp = memory.cycle_stamp();
     let disk_stamp = disk.cycle_stamp();
-    if mem_stamp == disk_stamp {
+    if mem_stamp == disk_stamp && memory.selection_revision == disk.selection_revision {
         return merge_same_cycle(memory, disk);
     }
     let newer = |a: &str, b: &str| {
@@ -60,30 +68,23 @@ fn merge_states(memory: &PersistedState, disk: PersistedState) -> PersistedState
             _ => false,
         }
     };
-    let disk_is_newer = match (disk_stamp, mem_stamp) {
-        (Some(d), Some(m)) => newer(d, m),
-        (Some(_), None) => true,
-        _ => false,
-    };
-    if disk_is_newer {
-        disk
+    let disk_is_newer = if disk.selection_revision != memory.selection_revision {
+        disk.selection_revision > memory.selection_revision
     } else {
-        PersistedState {
-            schema_version: memory.schema_version,
-            project_id: memory.project_id.clone(),
-            objective: memory.objective.clone(),
-            tasks: memory.tasks.to_vec(),
-            next_action_id: memory.next_action_id,
-            execution: memory.execution.clone(),
+        match (disk_stamp, mem_stamp) {
+            (Some(d), Some(m)) => newer(d, m),
+            (Some(_), None) => true,
+            _ => false,
         }
-    }
+    };
+    if disk_is_newer { disk } else { memory.clone() }
 }
 
 fn merge_same_cycle(memory: &PersistedState, disk: PersistedState) -> PersistedState {
     let memory_identity = memory.execution.clone().unwrap_or_else(|| {
         ExecutionIdentity::legacy(&memory.project_id, &memory.objective, &memory.tasks)
     });
-    let disk_identity = disk.execution.unwrap_or_else(|| {
+    let disk_identity = disk.execution.clone().unwrap_or_else(|| {
         ExecutionIdentity::legacy(&disk.project_id, &disk.objective, &disk.tasks)
     });
     let mut identity = memory_identity.clone();
@@ -117,6 +118,8 @@ fn merge_same_cycle(memory: &PersistedState, disk: PersistedState) -> PersistedS
         objective: memory.objective.clone(),
         tasks,
         next_action_id: memory.next_action_id.max(disk.next_action_id),
+        saved_cycles: memory.saved_cycles.clone(),
+        selection_revision: memory.selection_revision,
         execution: Some(identity),
     }
 }
@@ -305,8 +308,23 @@ impl Persistence {
             let identity = state.execution.unwrap_or_else(|| {
                 ExecutionIdentity::legacy(project_id, &state.objective, &state.tasks)
             });
-            self.receipt_ledger(project_id)
-                .compact(&identity.run_id, retained)
+            let ledger = self.receipt_ledger(project_id);
+            let saved_receipts: std::collections::BTreeSet<_> = state
+                .saved_cycles
+                .iter()
+                .map(|cycle| ledger.for_run(&cycle.execution.run_id))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(std::io::Error::other)?
+                .into_iter()
+                .flatten()
+                .map(|receipt| receipt.id)
+                .collect();
+            ledger
+                .compact(&identity.run_id, || {
+                    let mut ids = retained()?;
+                    ids.extend(saved_receipts);
+                    Ok(ids)
+                })
                 .map_err(std::io::Error::other)
         })
     }
@@ -321,12 +339,15 @@ impl Persistence {
         tasks: &[Task],
         next_action_id: u32,
     ) {
-        self.save_state(project_id, objective, tasks, next_action_id, None);
+        self.save_state(project_id, objective, tasks, next_action_id, None, &[], 0);
     }
 
     /// [`Self::save`] with the run identity, answering what landed on disk
     /// and the stamp of the written file; `None` when persistence is off
     /// or the write failed (logged).
+    // These required fields describe one atomic plan selection; the private
+    // serialization boundary keeps identity, tasks and saved plans in one write.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn save_with_identity(
         &self,
         project_id: &str,
@@ -334,6 +355,8 @@ impl Persistence {
         tasks: &[Task],
         next_action_id: u32,
         execution: &ExecutionIdentity,
+        saved_cycles: &[SavedCycle],
+        selection_revision: u64,
     ) -> Option<MergedWrite<PersistedState>> {
         self.save_state(
             project_id,
@@ -341,9 +364,14 @@ impl Persistence {
             tasks,
             next_action_id,
             Some(execution.clone()),
+            saved_cycles,
+            selection_revision,
         )
     }
 
+    // These required fields describe one atomic plan selection; the private
+    // serialization boundary keeps identity, tasks and saved plans in one write.
+    #[allow(clippy::too_many_arguments)]
     fn save_state(
         &self,
         project_id: &str,
@@ -351,6 +379,8 @@ impl Persistence {
         tasks: &[Task],
         next_action_id: u32,
         execution: Option<ExecutionIdentity>,
+        saved_cycles: &[SavedCycle],
+        selection_revision: u64,
     ) -> Option<MergedWrite<PersistedState>> {
         if !self.enabled {
             return None;
@@ -362,6 +392,8 @@ impl Persistence {
             tasks: tasks.to_vec(),
             next_action_id,
             execution,
+            saved_cycles: saved_cycles.to_vec(),
+            selection_revision,
         };
         let path = self.sessions_dir.join(format!("{project_id}.json"));
         match crate::infra::persistence::locked_merge_write_stamped(&path, &state, merge_states) {

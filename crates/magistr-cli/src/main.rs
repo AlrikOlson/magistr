@@ -221,6 +221,7 @@ async fn main() -> eyre::Result<()> {
             }
         }
         Command::NextLoop {
+            track,
             agent,
             dir,
             max_iterations,
@@ -239,7 +240,10 @@ async fn main() -> eyre::Result<()> {
             if headless {
                 commands::next::cmd_next_loop_headless(
                     &dir,
-                    max_iterations,
+                    commands::next::LoopRequest {
+                        max_iterations,
+                        track: track.as_deref(),
+                    },
                     agent_backend,
                     format,
                     max_cost,
@@ -248,9 +252,11 @@ async fn main() -> eyre::Result<()> {
                 )
                 .await
             } else if use_tui {
+                let scope = track.map(magistr_cockpit::cockpit::LoopScope::Track);
                 commands::next::cmd_next_loop_tui(
                     &dir,
                     max_iterations,
+                    scope.as_ref(),
                     agent_backend,
                     profile,
                     &env,
@@ -258,8 +264,17 @@ async fn main() -> eyre::Result<()> {
                 )
                 .await
             } else {
-                commands::next::cmd_next_loop(&dir, max_iterations, agent_backend, profile, &inputs)
-                    .await
+                commands::next::cmd_next_loop(
+                    &dir,
+                    commands::next::LoopRequest {
+                        max_iterations,
+                        track: track.as_deref(),
+                    },
+                    agent_backend,
+                    profile,
+                    &inputs,
+                )
+                .await
             }
         }
         Command::ResolveDispatch {

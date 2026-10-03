@@ -556,9 +556,10 @@ impl RootComposition {
             ElementId(n)
                 if (PaletteComposition::ROWS..PaletteComposition::ROWS_END).contains(&n) =>
             {
-                Some(Widget::palette_row(
+                Some(Widget::palette_row(PaletteComposition::row_index(
+                    model,
                     usize::try_from(n - PaletteComposition::ROWS).ok()?,
-                ))
+                )?))
             }
             // A Brief card's verb: the card carries its own widget.
             ElementId(n) if n >= BriefComposition::VERBS => {

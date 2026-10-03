@@ -138,6 +138,20 @@ impl Roadmap {
         self.full_graph = full;
     }
 
+    /// Tracks containing unfinished work, independent of the visible row filter.
+    #[must_use]
+    pub fn loop_tracks(&self) -> Vec<String> {
+        let mut tracks: Vec<_> = self
+            .chunks
+            .iter()
+            .filter(|chunk| chunk.is_active())
+            .filter_map(|chunk| chunk.group.clone())
+            .collect();
+        tracks.sort();
+        tracks.dedup();
+        tracks
+    }
+
     /// Restrict table rows by status without changing the graph or selection.
     pub fn cycle_filter(&mut self) {
         self.filter = match self.filter {

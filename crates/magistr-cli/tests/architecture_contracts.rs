@@ -43,7 +43,7 @@ fn objective_with_task(engines: &NativeEngines, scope: &str, task: &str) {
 }
 
 #[test]
-fn a_project_shares_one_objective_and_active_task_while_another_project_is_independent() {
+fn a_project_shares_its_selected_objective_and_preserves_other_scopes() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let config = config(&tmp);
     let owner = host(&config, "project-a");
@@ -64,8 +64,7 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
     assert!(refusal.contains("first-verify"), "{refusal}");
     assert_eq!(shared.ship_status()["active_task"]["id"], "first-verify");
 
-    // A scope describes the one project objective; it does not isolate a
-    // second run. Replacing an unfinished objective keeps its existing tasks.
+    // Selecting another scope saves the first plan and selects its own tasks.
     assert_eq!(
         shared
             .ship_set_objective("Replacement".into(), vec![], vec![], "chunk:second".into())
@@ -73,8 +72,8 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
         0
     );
     assert_eq!(owner.ship_status()["objective"]["scope"], "chunk:second");
-    assert_eq!(owner.ship_status()["active_task"]["id"], "first-verify");
-    assert_eq!(owner.ship_tasks().len(), 2);
+    assert!(owner.ship_status()["active_task"].is_null());
+    assert!(owner.ship_tasks().is_empty());
 
     // Reopening the same project in the other admitted role reads the
     // persisted shared objective and task. This sequential observation is
@@ -85,6 +84,16 @@ fn a_project_shares_one_objective_and_active_task_while_another_project_is_indep
             .open();
     assert_eq!(reopened.ship_status()["objective"]["scope"], "chunk:second");
     assert!(reopened.ship_start_task("second-verify").is_err());
+    objective_with_task(&reopened, "chunk:second", "second-scope-verify");
+    assert_eq!(
+        owner.ship_status()["active_task"]["id"],
+        "second-scope-verify"
+    );
+    owner
+        .ship_set_objective("First plan".into(), vec![], vec![], "chunk:first".into())
+        .expect("restore first scope");
+    assert_eq!(reopened.ship_status()["active_task"]["id"], "first-verify");
+    assert_eq!(reopened.ship_tasks().len(), 2);
 
     let independent = host(&config, "project-b");
     assert!(independent.ship_status()["objective"].is_null());

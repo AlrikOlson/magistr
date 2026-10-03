@@ -27,7 +27,7 @@ recorded implementation and are free to change.
 | Object | Authority or owner at the pinned snapshot | Intended boundary |
 | --- | --- | --- |
 | Project | `NativeConfig` and native identity select the project/store; `MagistrService` owns cooperating MCP admission. Configuration resolution also lives in CLI/core. | One admitted project application handle supplies mutations to every supported host. Workbench retains its separate service ownership. |
-| Chunk, signal, reasoning, execution objective/task | The four native think-and-ship family engines behind `NativeEngines`; scope strings and cockpit selections do not create isolated execution cycles. | Keep native workflow canonical behind narrow commands and queries. |
+| Chunk, signal, reasoning, execution objective/task | The four native think-and-ship family engines behind `NativeEngines`; the selected scope owns its execution plan, and unfinished plans are saved when another scope is selected. | Keep native workflow canonical behind narrow commands and queries. |
 | Run/attempt | CLI/core `IterationLoop` owns production iteration limits, Git progress and recovery; `LoopDriver` coordinates cockpit execution. Engine `WorkflowEngine` separately models phase, stop counters and checkpoints. | One deterministic run policy; runtime coordinates effects and persists checkpoints. |
 | Session/turn | Headless/plain `AgentSession` and cockpit `agent::Session` are distinct lifecycle owners over the same `connect_transport` seam. Providers own opaque conversation IDs. | A shared supervisor owns live tasks, provider attempts and terminal outcomes; the interface observes and sends commands. |
 | Decision | `CockpitPolicy` evaluates protected paths, profile, charter and governance; cockpit Session correlates requests and answers. Headless has a separate option-selection worker. | Shared policy decides Allow/Deny/Ask; hosts resolve Ask according to an explicit interaction mode. |
@@ -188,11 +188,12 @@ explicit decision update and acceptance tests.
    The earlier requirement to preserve headless approval behind a legacy
    setting is withdrawn. Change or remove obsolete settings and their callers
    directly; older behavior supplies no justification for keeping them.
-4. **Execution cycles:** allow only one native objective/execution cycle per
-   project/store until the native library provides true run isolation. Independent
-   provider conversations may coexist but cannot replace an active objective.
-   A scope string or second session ID is not run isolation. All supported native
-   writers must acquire the same application capability; keep effects outside
+4. **Execution cycles:** keep one selected objective and active task per
+   project/store. Selecting another scope saves the unfinished objective, tasks,
+   checks and execution identity; selecting it again restores that plan.
+   Loops remain serialized by the project lease. Independent provider
+   conversations do not create concurrent execution ownership. All supported
+   native writers acquire the same application capability; effects stay outside
    the short mutation critical section.
 5. **Cancellation and resume:** distinguish cancel-turn, terminate-session and
    detach-viewer. A disconnect or cancelled result never certifies completed
@@ -341,8 +342,8 @@ contract's name and command, and a judged completion carries `task:<that
 task>`. Two direct
 engine calls remain, documented and pinned: `record_check_full` (the
 recording half of `ship_check`) and `propose_title` / `propose_status` (no
-MCP tool). Not claimed: native run isolation (one objective and active task
-per project, loops serialized), a production adapter for the application
+MCP tool). Not claimed: concurrent native run isolation (one selected objective and active task
+per project, saved plans per scope, loops serialized), a production adapter for the application
 crate's `CommandContext`, or any desktop writer on main.
 
 ## Implemented durable operations
@@ -375,7 +376,7 @@ baseline coverage. A changed contract requires updating its scenario explicitly.
 | Recovery retains stopping count, Git baseline, budget and terminal reason; unknown legacy state is refused | [Core iteration tests](../../crates/magistr-core/src/workflow/iteration.tests.rs), including `recovery_retains_no_commit_stop_before_another_attempt`, `repeated_post_check_settles_each_attempt_once_even_after_recovery` and `recovery_observes_commit_against_the_persisted_attempt_baseline` |
 | Version 2 requires consistent run/governor evidence; restored budget, pause, abort and cancellation remain enforceable | [Session snapshot tests](../../crates/magistr-engine/src/session/session_snapshot.tests.rs) and [engine-handle recovery tests](../../crates/magistr-engine/src/handle/mod.tests.rs) |
 | Phase/status serialization and one project-context value across core/engine | [Core phase tests](../../crates/magistr-core/src/workflow_phase.tests.rs), [iteration status serialization](../../crates/magistr-core/src/workflow/iteration.tests.rs) and `gathered_context_is_accepted_by_the_engine_without_conversion` in [context builder tests](../../crates/magistr-core/src/workflow/context_builder.tests.rs) |
-| Shared objective/active task, independent projects, weak completion/phase/finalize evidence | CLI integration `architecture_contracts` (temporary native store and actual failing child command) |
+| Shared selected objective/active task, restored scope plans, independent projects, completion/phase/finalize evidence | CLI integration `architecture_contracts` (temporary native store and actual failing child command) |
 | Policy Allow/Deny/Ask, protected edit/delete, remembered workflow refusal and precedence | CLI integration `cockpit_permissions`; domain permission-service and CLI session-policy companion tests |
 | Permission round trips, no title-only bypass, invalid/stale options, pending cancellation and first Ctrl-C cancel then quit | CLI supervisor permission tests and CLI integration `session_harness` through the real TUI renderer |
 | Cockpit FIFO admission with ordered transcript, cancellation kept active until the provider acknowledges, stream loss without a fabricated terminal, detach retaining the resident turn | CLI integration `cockpit_session_contract` over a real in-process ACP agent |

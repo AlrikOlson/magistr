@@ -3950,7 +3950,11 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     ));
     let task = tokio::spawn(work.run(session, receiver));
 
-    commands.send(Cmd::Launch(LaunchAction::Loop)).unwrap();
+    commands
+        .send(Cmd::Launch(LaunchAction::Loop(
+            magistr_cockpit::cockpit::LoopScope::AllTracks,
+        )))
+        .unwrap();
     let ended = tokio::time::timeout(Duration::from_secs(60), async {
         loop {
             if let Msg::Loop(LoopEvent::Ended(why)) = events.recv().await.expect("live inbox") {
@@ -4018,4 +4022,108 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         .expect("the host phase loop ends with its commands")
         .unwrap()
         .unwrap();
+}
+
+#[tokio::test]
+async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_work() {
+    use magistr_cockpit::cockpit::{LaunchAction, LoopScope};
+    let dir = project("true", "true", "true");
+    let engines = engines_with_work(dir.path());
+    engines
+        .roadmap_add_chunk(
+            "selected".into(),
+            "Selected".into(),
+            "Selected work".into(),
+            ChunkStatus::Pending,
+            1,
+            String::new(),
+            vec![],
+            vec![],
+            None,
+            None,
+        )
+        .unwrap();
+    engines
+        .roadmap_set_group("selected", Some("Chosen track".into()))
+        .unwrap();
+    let iteration = IterationLoop::open(
+        dir.path(),
+        dir.path().join("ROADMAP.md"),
+        1,
+        Some(engines.clone()),
+    )
+    .unwrap();
+    iteration.persist().unwrap();
+    let wf = WorkflowConfig::load(dir.path())
+        .unwrap()
+        .with_native(Some(engines.reader()));
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let captured = seen.clone();
+    let connector = Connector::new(move |config: AgentConfig| {
+        captured.lock().unwrap().push(config);
+        async { Err(MagistrError::Workflow("Test provider stopped".into())) }
+    });
+    let task = LoopDriver::new(iteration, wf, Backend::Acp, inbox, receiver, connector)
+        .choosing_track(true)
+        .spawn();
+
+    commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::CommandFailed { .. })
+    })
+    .await;
+    assert!(seen.lock().unwrap().is_empty());
+    assert!(checkpoint(dir.path()).operations.records().is_empty());
+    assert_eq!(checkpoint(dir.path()).native_chunk_id, None);
+
+    commands
+        .send(Cmd::Launch(LaunchAction::Loop(LoopScope::Track(
+            "Chosen track".into(),
+        ))))
+        .unwrap();
+    let report = tokio::time::timeout(Duration::from_secs(10), task)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(matches!(report.end(), LoopEnd::Failed(_)));
+    assert_eq!(seen.lock().unwrap().len(), 1);
+    let state = checkpoint(dir.path());
+    assert_eq!(state.native_track.as_deref(), Some("Chosen track"));
+    assert_eq!(state.native_chunk_id.as_deref(), Some("selected"));
+}
+
+#[tokio::test]
+async fn closing_the_track_picker_session_starts_no_work() {
+    let dir = project("true", "true", "true");
+    let iteration =
+        IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 1, None).unwrap();
+    let (inbox, mut events) = Inbox::channel();
+    let (commands, receiver) = Commands::channel();
+    let task = LoopDriver::new(
+        iteration,
+        WorkflowConfig::load(dir.path()).unwrap(),
+        Backend::Acp,
+        inbox,
+        receiver,
+        Connector::new(|_| async { panic!("no choice must start no provider") }),
+    )
+    .choosing_track(true)
+    .spawn();
+    commands
+        .send(Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Next))
+        .unwrap();
+    next_matching(&mut events, |event| {
+        matches!(event, Msg::CommandFailed { .. })
+    })
+    .await;
+    commands.send(Cmd::Quit).unwrap();
+    let report = tokio::time::timeout(Duration::from_secs(3), task)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(*report.end(), LoopEnd::CockpitClosed);
+    assert_eq!(report.iterations(), 0);
+    assert!(checkpoint(dir.path()).operations.records().is_empty());
 }

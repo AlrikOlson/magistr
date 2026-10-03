@@ -212,8 +212,11 @@ pub enum Command {
         gate_only: bool,
     },
 
-    /// Run continuous next iterations until spec is complete
+    /// Run ready roadmap work in fresh agent sessions
     NextLoop {
+        /// Loop only on this roadmap track (exact name or unambiguous fragment)
+        #[arg(long)]
+        track: Option<String>,
         #[command(flatten)]
         agent: crate::workflow_agent_options::WorkflowAgentOptions,
         /// Project directory (defaults to current directory)

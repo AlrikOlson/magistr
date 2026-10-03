@@ -12,6 +12,7 @@ use crate::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMod
 use crate::ship::domain::task::{Task, TaskStatus, TaskType};
 use crate::ship::persistence::Persistence;
 use crate::ship::receipt_ledger::ReceiptLedger;
+use crate::ship::saved_cycle::SavedCycle;
 
 pub struct ShipEngine {
     pub objective: Option<Objective>,
@@ -19,6 +20,8 @@ pub struct ShipEngine {
     pub project_id: String,
     pub(crate) execution: ExecutionIdentity,
     next_action_id: u32,
+    saved_cycles: Vec<SavedCycle>,
+    selection_revision: u64,
     persistence: Option<Persistence>,
     /// The stamp of the store file this memory was last read from or
     /// written to; `None` while there is no file or after a failed write.
@@ -51,6 +54,8 @@ impl ShipEngine {
             project_id,
             execution: ExecutionIdentity::fresh(),
             next_action_id: 1,
+            saved_cycles: Vec::new(),
+            selection_revision: 0,
             persistence: None,
             stamp: None,
             receipts: ReceiptLedger::in_memory(),
@@ -279,13 +284,8 @@ impl ShipEngine {
         // The stamp before the read, so a write landing between the two
         // costs one spurious re-read later and never a missed one.
         self.stamp = persistence.stamp(&self.project_id).ok().flatten();
-        if let Some((obj, tasks, next_id, execution)) =
-            persistence.load_with_identity(&self.project_id)
-        {
-            self.objective = obj;
-            self.tasks = tasks;
-            self.next_action_id = next_id;
-            self.execution = execution;
+        if let Ok((Some(state), _)) = persistence.current_stamped(&self.project_id) {
+            self.adopt_current(Some(state));
             eprintln!("ship: loaded {} task(s) from disk", self.tasks.len());
         }
         self.receipts = persistence.receipt_ledger(&self.project_id);
@@ -315,7 +315,20 @@ impl ShipEngine {
         if self.objective.is_none() {
             return Err("Set an objective before clearing old check history.".into());
         }
-        self.receipts.compact(&self.execution.run_id, retained)
+        let saved_receipts: std::collections::BTreeSet<_> = self
+            .saved_cycles
+            .iter()
+            .map(|cycle| self.receipts.for_run(&cycle.execution.run_id))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .map(|receipt| receipt.id)
+            .collect();
+        self.receipts.compact(&self.execution.run_id, || {
+            let mut ids = retained()?;
+            ids.extend(saved_receipts);
+            Ok(ids)
+        })
     }
 
     /// The revision of the current objective's acceptance, `None` without one.
@@ -341,11 +354,16 @@ impl ShipEngine {
             &self.tasks,
             self.next_action_id,
             &self.execution,
+            &self.saved_cycles,
+            self.selection_revision,
         ) else {
             return;
         };
         match written.merged {
-            Some(merged) if merged.cycle_stamp() == self.cycle_stamp() => {
+            Some(merged)
+                if merged.cycle_stamp() == self.cycle_stamp()
+                    && merged.selection_revision == self.selection_revision =>
+            {
                 self.adopt_current(Some(merged));
                 self.stamp = written.stamp;
             }
@@ -362,6 +380,13 @@ impl ShipEngine {
             .and_then(|objective| objective.created_at.as_deref())
     }
 
+    fn advance_selection(&mut self) {
+        self.selection_revision = self
+            .selection_revision
+            .saturating_add(1)
+            .max(Utc::now().timestamp_micros() as u64);
+    }
+
     /// Define the objective for a development cycle. Returns the number of
     /// stale tasks cleared.
     ///
@@ -370,8 +395,9 @@ impl ShipEngine {
     /// objective never inherits the prior cycle's `explore`/`implement`/`verify`
     /// tasks. That bleed corrupted a real run once — a new
     /// objective piled tasks onto a completed objective, and
-    /// reused task ids then collided. While an objective is still in flight
-    /// (`Defined`/`Active`) overwriting it preserves tasks, as documented.
+    /// reused task ids then collided. Updating the current scope preserves
+    /// its tasks; choosing another scope saves the unfinished plan and restores
+    /// that scope's saved plan, or starts a new one.
     pub fn set_objective(
         &mut self,
         description: String,
@@ -396,27 +422,79 @@ impl ShipEngine {
         scope: String,
         verification: VerificationMode,
     ) -> usize {
+        let mut cleared = 0;
+        if self.objective.is_none() {
+            self.advance_selection();
+        }
+        let switching = self
+            .objective
+            .as_ref()
+            .is_some_and(|objective| objective.scope != scope);
+        if switching {
+            if let Some(objective) = self.objective.take() {
+                let tasks = std::mem::take(&mut self.tasks);
+                if matches!(
+                    objective.status,
+                    ObjectiveStatus::Defined | ObjectiveStatus::Active
+                ) {
+                    self.saved_cycles.push(SavedCycle {
+                        objective,
+                        tasks,
+                        next_action_id: self.next_action_id,
+                        execution: self.execution.clone(),
+                    });
+                } else {
+                    cleared = tasks.len();
+                }
+            }
+            self.advance_selection();
+            if let Some(index) = self.saved_cycles.iter().position(|cycle| {
+                cycle.objective.scope == scope
+                    && matches!(
+                        cycle.objective.status,
+                        ObjectiveStatus::Defined | ObjectiveStatus::Active
+                    )
+            }) {
+                let saved = self.saved_cycles.remove(index);
+                self.objective = Some(saved.objective);
+                self.tasks = saved.tasks;
+                self.next_action_id = saved.next_action_id;
+                self.execution = saved.execution;
+            } else {
+                self.next_action_id = 1;
+                self.execution = ExecutionIdentity::fresh();
+            }
+        }
         let prior_finished = matches!(
             self.objective.as_ref().map(|o| &o.status),
             Some(ObjectiveStatus::Completed) | Some(ObjectiveStatus::Abandoned)
         );
-        let mut cleared = 0;
         if prior_finished {
             cleared = self.tasks.len();
+            self.selection_revision += 1;
             self.next_action_id = 1;
             self.tasks.clear();
             self.execution = ExecutionIdentity::fresh();
         }
-        let now = Utc::now().to_rfc3339();
+        let created_at = self
+            .objective
+            .as_ref()
+            .filter(|_| !prior_finished)
+            .and_then(|objective| objective.created_at.clone())
+            .unwrap_or_else(|| Utc::now().to_rfc3339());
         self.objective = Some(Objective {
             description,
             acceptance_criteria,
             constraints,
             scope,
             verification,
-            status: ObjectiveStatus::Defined,
+            status: self
+                .objective
+                .as_ref()
+                .filter(|_| !prior_finished)
+                .map_or(ObjectiveStatus::Defined, |objective| objective.status),
             project_id: self.project_id.clone(),
-            created_at: Some(now),
+            created_at: Some(created_at),
             completed_at: None,
         });
         self.persist();
@@ -796,6 +874,8 @@ impl ShipEngine {
         self.stamp = None;
         self.objective = None;
         self.tasks.clear();
+        self.saved_cycles.clear();
+        self.selection_revision = 0;
         self.next_action_id = 1;
         self.execution = ExecutionIdentity::fresh();
         self.broadcast(BroadcastFrame::Cleared);

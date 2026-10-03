@@ -17,9 +17,27 @@ use super::place::Place;
 pub struct Palette {
     query: String,
     chosen: usize,
+    choosing_track: bool,
 }
 
 impl Palette {
+    pub(crate) fn tracks() -> Self {
+        Self {
+            choosing_track: true,
+            ..Self::default()
+        }
+    }
+
+    /// The purpose shown by every renderer.
+    #[must_use]
+    pub const fn title(&self) -> &'static str {
+        if self.choosing_track {
+            "Choose a track"
+        } else {
+            "Commands"
+        }
+    }
+
     /// Results the list is cut to — enough to choose from, few enough
     /// that ↑↓ stays a gesture rather than a scroll.
     const CUT: usize = 8;
@@ -72,6 +90,34 @@ impl Palette {
             return Vec::new();
         };
         let query = palette.query();
+        if palette.choosing_track {
+            let mut rows: Vec<_> = model
+                .roadmap
+                .loop_tracks()
+                .into_iter()
+                .map(|track| {
+                    let mut row = PaletteRow::place(
+                        track.clone(),
+                        PaletteGo::Launch(super::LaunchAction::Loop(super::LoopScope::Track(
+                            track,
+                        ))),
+                    );
+                    row.verb = "Loop on".into();
+                    row
+                })
+                .chain(std::iter::once({
+                    let mut row = PaletteRow::place(
+                        "All tracks",
+                        PaletteGo::Launch(super::LaunchAction::Loop(super::LoopScope::AllTracks)),
+                    );
+                    row.verb = "Loop on".into();
+                    row
+                }))
+                .filter_map(|row| score(query, &row.haystack()).map(|score| (score, row)))
+                .collect();
+            rows.sort_by_key(|row| std::cmp::Reverse(row.0));
+            return rows.into_iter().map(|(_, row)| row).collect();
+        }
         let mut scored: Vec<(i32, usize, PaletteRow)> = Vec::new();
         let mut order = 0;
         let mut push = |row: PaletteRow| {
@@ -267,7 +313,7 @@ impl Palette {
             if *binding == Binding::NEXT {
                 row.go = PaletteGo::Launch(super::launch_action::LaunchAction::Next);
             } else if *binding == Binding::LOOP {
-                row.go = PaletteGo::Launch(super::launch_action::LaunchAction::Loop);
+                row.go = PaletteGo::ChooseLoop;
             } else if *binding == Binding::GATES {
                 row.go = PaletteGo::Launch(super::launch_action::LaunchAction::Gates);
             }

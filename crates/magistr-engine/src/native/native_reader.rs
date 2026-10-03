@@ -321,6 +321,26 @@ impl NativeReader {
         self.current_roadmap().next().cloned()
     }
 
+    /// The next ready chunk in one track; never falls through to another.
+    #[must_use]
+    pub fn roadmap_next_in_track(&self, track: &str) -> Option<Chunk> {
+        self.current_roadmap().next_in_group(track).cloned()
+    }
+
+    /// Track names as the roadmap owner stores them.
+    #[must_use]
+    pub fn roadmap_tracks(&self) -> Vec<String> {
+        self.current_roadmap().groups()
+    }
+
+    /// Resolve an exact track name or an unambiguous fragment without writing.
+    pub fn roadmap_resolve_track(&self, query: &str) -> Result<String, String> {
+        match self.current_roadmap().resolve_group(query) {
+            magistr_workflow::roadmap::engine::GroupResolution::Exact(name) => Ok(name),
+            refusal => Err(refusal.explain(query)),
+        }
+    }
+
     /// One chunk by id.
     #[must_use]
     pub fn roadmap_chunk(&self, id: &str) -> Option<Chunk> {

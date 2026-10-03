@@ -725,7 +725,11 @@ async fn an_idle_session_yields_a_start_to_its_host_with_the_commands_still_open
     let (inbox, mut events) = Inbox::channel();
     let (commands, mut receiver) = Commands::channel();
     let (session, _opening) = idle_session(inbox);
-    commands.send(Cmd::Launch(LaunchAction::Loop)).unwrap();
+    commands
+        .send(Cmd::Launch(LaunchAction::Loop(
+            magistr_cockpit::cockpit::LoopScope::AllTracks,
+        )))
+        .unwrap();
     commands.send(Cmd::Prompt("after the work".into())).unwrap();
     let exit = tokio::time::timeout(
         Duration::from_secs(2),
@@ -734,7 +738,12 @@ async fn an_idle_session_yields_a_start_to_its_host_with_the_commands_still_open
     .await
     .expect("the start ends the conversation phase");
     assert!(exit.open, "the cockpit is still there");
-    assert_eq!(exit.launch, Some(LaunchAction::Loop));
+    assert_eq!(
+        exit.launch,
+        Some(LaunchAction::Loop(
+            magistr_cockpit::cockpit::LoopScope::AllTracks
+        ))
+    );
     assert!(events.try_recv().is_err(), "a start is not a failure");
     assert_eq!(
         receiver.next().await,

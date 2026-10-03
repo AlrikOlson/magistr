@@ -106,6 +106,7 @@ pub struct LoopDriver {
     persist: bool,
     auto_pause: bool,
     keep_open: bool,
+    choosing_track: bool,
     session_active: bool,
     roadmap_request: Option<String>,
     goal: GoalMode,
@@ -299,6 +300,7 @@ impl LoopDriver {
             persist: true,
             auto_pause: true,
             keep_open: false,
+            choosing_track: false,
             session_active: false,
             roadmap_request: None,
             goal: GoalMode::Off,
@@ -445,6 +447,13 @@ impl LoopDriver {
         self
     }
 
+    /// Wait for the cockpit's track choice before any preflight or provider work.
+    #[must_use]
+    pub const fn choosing_track(mut self, choosing: bool) -> Self {
+        self.choosing_track = choosing;
+        self
+    }
+
     /// The observer for a tapped inbox: what a producer posts through
     /// `inbox.tap(driver.tap())` reaches the driver too — the entry
     /// point subscribes the engine feed this way so the driver counts the
@@ -476,6 +485,40 @@ impl LoopDriver {
             // has already been wound down by its session owner.
             if crate::utils::shutdown::Shutdown::is_requested() {
                 break LoopEnd::Aborted;
+            }
+            if self.choosing_track {
+                match self.wake(None, None).await {
+                    Wake::Cmd(Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Loop(scope))) => {
+                        let result = self.iter_loop.select_track(scope.track()).and_then(|()| {
+                            if self.persist {
+                                self.iter_loop.persist()
+                            } else {
+                                Ok(())
+                            }
+                        });
+                        match result {
+                            Ok(()) => self.choosing_track = false,
+                            Err(error) => {
+                                self.inbox.send(Msg::CommandFailed {
+                                    cmd: Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Loop(
+                                        scope,
+                                    )),
+                                    error: error.to_string(),
+                                });
+                            }
+                        }
+                    }
+                    Wake::Cmd(Cmd::Quit) | Wake::Closed => break LoopEnd::CockpitClosed,
+                    Wake::Cmd(Cmd::Loop(LoopCmd::Abort)) => break LoopEnd::Aborted,
+                    Wake::Cmd(cmd) => {
+                        self.inbox.send(Msg::CommandFailed {
+                            cmd,
+                            error: "Choose a track before starting the loop.".into(),
+                        });
+                    }
+                    _ => {}
+                }
+                continue;
             }
             let pre = match self.iter_loop.pre_iteration_check() {
                 Ok(pre) => pre,

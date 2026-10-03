@@ -34,10 +34,12 @@ pub fn native_spec_summary(engines: &NativeReader) -> SpecSummary {
 pub(crate) fn native_work_chunk(
     engines: &NativeReader,
     preferred: Option<&str>,
+    track: Option<&str>,
 ) -> Result<Option<Chunk>> {
     engines.reload_roadmap();
     engines.reload_ship();
     let chunks = engines.roadmap_chunks();
+    let in_track = |chunk: &&Chunk| track.is_none_or(|track| chunk.group.as_deref() == Some(track));
     let objective = engines.ship_objective().filter(|objective| {
         let settled_chunk = objective
             .scope
@@ -60,6 +62,14 @@ pub(crate) fn native_work_chunk(
         ));
     }
     if let Some(chunk) = saved
+        && matches!(chunk.status, ChunkStatus::Pending | ChunkStatus::InProgress)
+        && !in_track(&chunk)
+    {
+        return Err(MagistrError::Workflow(
+            "The saved work belongs to another track. Resume that run before choosing a different track.".into(),
+        ));
+    }
+    if let Some(chunk) = saved
         && matches!(chunk.status, ChunkStatus::Blocked | ChunkStatus::Backlog)
     {
         return Err(MagistrError::Workflow(format!(
@@ -78,16 +88,21 @@ pub(crate) fn native_work_chunk(
         .as_ref()
         .and_then(|objective| objective.scope.trim().strip_prefix("chunk:"))
         .and_then(|id| chunks.iter().find(|chunk| chunk.id == id.trim()))
-        .filter(|chunk| chunk.status == ChunkStatus::InProgress);
+        .filter(|chunk| chunk.status == ChunkStatus::InProgress)
+        .filter(in_track);
     let selected = match saved.or(objective_chunk) {
         Some(chunk) => Some(chunk.clone()),
         None => {
             let active: Vec<_> = chunks
                 .iter()
                 .filter(|chunk| chunk.status == ChunkStatus::InProgress)
+                .filter(in_track)
                 .collect();
             match active.as_slice() {
-                [] => engines.roadmap_next(),
+                [] => match track {
+                    Some(track) => engines.roadmap_next_in_track(track),
+                    None => engines.roadmap_next(),
+                },
                 [chunk] => Some((*chunk).clone()),
                 _ => {
                     return Err(MagistrError::Workflow(format!(
@@ -106,24 +121,6 @@ pub(crate) fn native_work_chunk(
         return Ok(None);
     };
     ensure_available(&chunk, &chunks)?;
-    if let Some(objective) = objective {
-        let scope = objective.scope.trim();
-        let unbound = scope.is_empty() || scope.eq_ignore_ascii_case("general");
-        let matches = scope
-            .strip_prefix("chunk:")
-            .is_some_and(|id| id.trim() == chunk.id);
-        if !unbound && !matches {
-            return Err(MagistrError::Workflow(format!(
-                "Cannot work on “{}” while “{}” is unfinished. Finish or stop that work first.",
-                work_name(&chunk),
-                if objective.description.trim().is_empty() {
-                    "the current objective"
-                } else {
-                    objective.description.trim()
-                },
-            )));
-        }
-    }
     Ok(Some(chunk))
 }
 
@@ -170,8 +167,9 @@ fn work_name(chunk: &Chunk) -> &str {
 pub(crate) fn native_work_summary(
     engines: &NativeReader,
     preferred: Option<&str>,
+    track: Option<&str>,
 ) -> Result<SpecSummary> {
-    let chunk = native_work_chunk(engines, preferred)?;
+    let chunk = native_work_chunk(engines, preferred, track)?;
     let progress = engines.roadmap_progress();
     let unchecked_items: Vec<_> = chunk
         .into_iter()

@@ -17,6 +17,7 @@ use crate::workflow::iteration::IterationLoop;
 pub async fn cmd_next_loop_cockpit(
     dir: &Path,
     max_iterations: u32,
+    scope: Option<&magistr_cockpit::cockpit::LoopScope>,
     backend: Backend,
     profile: crate::permissions::PermissionProfile,
     inputs: &crate::config::inputs::ProjectInputs,
@@ -33,9 +34,26 @@ pub async fn cmd_next_loop_cockpit(
         .with_native(native.as_ref().map(NativeEngines::reader));
     let mut iter_loop =
         IterationLoop::start_or_recover(&dir, &wf.spec_path, max_iterations, native).suggest()?;
+    let choose_track = scope.is_none() && wf.is_native() && !iter_loop.is_recovered();
+    if let Some(scope) = scope {
+        iter_loop.select_track(scope.track()).suggest()?;
+    }
     if let Some(selection) = inputs.session_selection() {
         iter_loop.bind_session_selection(selection.clone())?;
     }
     iter_loop.persist().suggest()?;
-    super::run_cockpit_loop(&dir, wf, iter_loop, backend, true, profile, &inputs).await
+    super::run_cockpit_loop(
+        &dir,
+        wf,
+        iter_loop,
+        backend,
+        if choose_track {
+            super::CockpitRun::ChooseTrack
+        } else {
+            super::CockpitRun::Loop
+        },
+        profile,
+        &inputs,
+    )
+    .await
 }

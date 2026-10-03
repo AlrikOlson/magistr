@@ -446,7 +446,7 @@ fn the_rails_rows_and_raise_resolve_to_their_widgets_and_click_through() {
 #[test]
 fn the_conversation_heading_starts_work_while_idle_and_steers_the_loop_while_live() {
     use crate::comp_workspace::WorkspaceComposition;
-    use magistr_cockpit::cockpit::{Cmd, LaunchAction, LoopCmd};
+    use magistr_cockpit::cockpit::{Cmd, LoopCmd};
     let mut idle = Fixture::rail_idle(Size::new(120, 40));
     let root = RootComposition::el(&idle, Medium::Night, CELL, VIEWPORT, &clock());
     for (widget, label) in [
@@ -461,10 +461,8 @@ fn the_conversation_heading_starts_work_while_idle_and_steers_the_loop_while_liv
         &root,
         WorkspaceComposition::id(Widget::LoopAbort.id())
     ));
-    assert_eq!(
-        update(&mut idle, click_target(Widget::LaunchLoop.id())),
-        vec![Cmd::Launch(LaunchAction::Loop)]
-    );
+    assert!(update(&mut idle, click_target(Widget::LaunchLoop.id())).is_empty());
+    assert_eq!(idle.palette().unwrap().title(), "Choose a track");
     assert_eq!(
         RootComposition::target_of(&idle, crate::work_controls::WorkControls::NEXT),
         Some(Widget::LaunchNext.id())

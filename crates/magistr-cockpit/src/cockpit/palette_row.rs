@@ -44,6 +44,8 @@ pub(crate) enum PaletteGo {
     Search,
     /// Open keyboard help without changing the draft.
     Help,
+    /// Choose which roadmap track to loop on.
+    ChooseLoop,
     /// Start an existing host command.
     Launch(super::launch_action::LaunchAction),
     /// Open a terminal tab.

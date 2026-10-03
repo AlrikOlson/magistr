@@ -105,7 +105,9 @@ fn palette(model: &Model, style: &FlightStyle) -> Node {
     style
         .outlined(
             Node::column()
-                .child(style.section_heading("Commands", style.label("Esc to close", style.muted)))
+                .child(
+                    style.section_heading(state.title(), style.label("Esc to close", style.muted)),
+                )
                 .child(style.inset(body, 12.0, 12.0)),
             style.panel,
             style.line,

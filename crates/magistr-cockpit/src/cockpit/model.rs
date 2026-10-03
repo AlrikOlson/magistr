@@ -738,6 +738,14 @@ impl Model {
         self
     }
 
+    /// Open the loop's first choice inside this hosted session.
+    #[must_use]
+    pub fn with_loop_track_picker(mut self) -> Self {
+        self.hosted_work = true;
+        self.palette = Some(super::Palette::tracks());
+        self
+    }
+
     /// Whether a start is carried out in place by the session's host.
     #[must_use]
     pub const fn hosts_work(&self) -> bool {

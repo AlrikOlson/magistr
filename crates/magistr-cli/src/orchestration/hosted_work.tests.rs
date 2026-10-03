@@ -93,7 +93,10 @@ async fn a_host_that_only_attached_refuses_both_starts_in_words_and_stays_open()
     assert!(attached.writer().is_none());
 
     let mut host = hosted(dir.path(), attached);
-    for action in [LaunchAction::Loop, LaunchAction::Next] {
+    for action in [
+        LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllTracks),
+        LaunchAction::Next,
+    ] {
         host.commands.send(Cmd::Launch(action.clone())).unwrap();
         let error = refusal(&mut host.events, &action).await;
         assert!(
@@ -119,8 +122,16 @@ async fn a_held_loop_owner_lock_refuses_the_loop_in_words_and_stays_open() {
 
     let mut host = hosted(dir.path(), engines);
     for _ in 0..2 {
-        host.commands.send(Cmd::Launch(LaunchAction::Loop)).unwrap();
-        let error = refusal(&mut host.events, &LaunchAction::Loop).await;
+        host.commands
+            .send(Cmd::Launch(LaunchAction::Loop(
+                magistr_cockpit::cockpit::LoopScope::AllTracks,
+            )))
+            .unwrap();
+        let error = refusal(
+            &mut host.events,
+            &LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllTracks),
+        )
+        .await;
         assert!(error.contains("A loop is already running"), "{error}");
     }
     assert!(!dir.path().join(".magistr/loop-state.json").exists());

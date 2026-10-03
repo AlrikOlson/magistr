@@ -939,6 +939,7 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
             model.sheet_viewport = Viewport::at_top();
             Vec::new()
         }
+        PaletteGo::ChooseLoop => choose_loop(model),
         PaletteGo::Launch(action) => launch(model, action),
         PaletteGo::Tab(tab) => {
             model.show(tab);
@@ -1484,7 +1485,7 @@ fn launcher_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     if model.launcher().is_some() && key.mods == Modifiers::ALT && model.moment().is_none() {
         return match key.code {
             KeyCode::Char('n') => Some(launch(model, LaunchAction::Next)),
-            KeyCode::Char('l') => Some(launch(model, LaunchAction::Loop)),
+            KeyCode::Char('l') => Some(choose_loop(model)),
             KeyCode::Char('g') => Some(launch(model, LaunchAction::Gates)),
             _ => None,
         };
@@ -1492,7 +1493,7 @@ fn launcher_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     if model.hosted_work && key.mods == Modifiers::ALT && model.moment().is_none() {
         return match key.code {
             KeyCode::Char('n') => Some(launch(model, LaunchAction::Next)),
-            KeyCode::Char('l') => Some(launch(model, LaunchAction::Loop)),
+            KeyCode::Char('l') => Some(choose_loop(model)),
             _ => None,
         };
     }
@@ -1501,7 +1502,7 @@ fn launcher_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
     }
     match key.code {
         KeyCode::Char('n') => Some(launch(model, LaunchAction::Next)),
-        KeyCode::Char('l') => Some(launch(model, LaunchAction::Loop)),
+        KeyCode::Char('l') => Some(choose_loop(model)),
         KeyCode::Char('g') => Some(launch(model, LaunchAction::Gates)),
         KeyCode::Char('m') => {
             model.show(StageTab::Roadmap);
@@ -1556,6 +1557,19 @@ fn resume_session(model: &mut Model, index: usize) -> Vec<Cmd> {
     }
 }
 
+/// Open the track picker before giving a loop request to the host.
+fn choose_loop(model: &mut Model) -> Vec<Cmd> {
+    if model.loop_is_live() {
+        model
+            .session
+            .turn
+            .push_note("Work is already running. Pause or stop it first.");
+    } else {
+        model.palette = Some(Palette::tracks());
+    }
+    Vec::new()
+}
+
 /// Record the launcher's ask and quit — the entry point reads
 /// [`Model::launch`] once the terminal is handed back and starts the
 /// asked-for command.
@@ -1563,7 +1577,7 @@ fn launch(model: &mut Model, action: LaunchAction) -> Vec<Cmd> {
     // A hosted session starts work in place: its host takes the command
     // and the session stays. One run at a time — a start while work is
     // live says so and sends nothing.
-    if model.hosted_work && matches!(action, LaunchAction::Next | LaunchAction::Loop) {
+    if model.hosted_work && matches!(action, LaunchAction::Next | LaunchAction::Loop(_)) {
         if model.loop_is_live() {
             model
                 .session
@@ -2437,7 +2451,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 }
                 Some(Widget::ReportTrace) => return report_trace(model),
                 Some(Widget::LaunchNext) => return launch(model, LaunchAction::Next),
-                Some(Widget::LaunchLoop) => return launch(model, LaunchAction::Loop),
+                Some(Widget::LaunchLoop) => return choose_loop(model),
                 Some(Widget::LaunchGates) => return launch(model, LaunchAction::Gates),
                 // `＋ New project` is Birth F1's door:
                 // the camera moves to the ground.

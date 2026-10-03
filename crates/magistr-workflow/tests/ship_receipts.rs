@@ -992,3 +992,48 @@ fn a_settlement_without_the_witness_compares_digests_not_generations() {
         })
     );
 }
+
+#[test]
+fn receipt_compaction_keeps_the_checks_of_saved_unfinished_plans() {
+    let temp = tempfile::tempdir().unwrap();
+    let world = world();
+    let cases = stored(temp.path(), &world);
+    planned(&cases);
+    let verified = run(
+        &cases,
+        "test",
+        "cargo test",
+        CheckExecution::Exited { code: 0 },
+    );
+    let evidence =
+        serde_json::to_value(cases.verify_completion("chunk:c1", None).unwrap()).unwrap();
+    cases
+        .set_objective("Other work".into(), vec![], vec![], "chunk:c2".into())
+        .unwrap();
+    let report = cases.compact_receipts().unwrap();
+    assert_eq!(report.removed, 0);
+    assert_eq!(report.retained_referenced, 1);
+    let reopened = stored(temp.path(), &world);
+    reopened
+        .set_objective(
+            "Current run".into(),
+            vec!["it works".into()],
+            vec![],
+            "chunk:c1".into(),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(reopened.verify_completion("chunk:c1", None).unwrap()).unwrap(),
+        evidence
+    );
+    assert!(
+        reopened
+            .engine()
+            .lock()
+            .unwrap()
+            .receipts()
+            .get(&verified.receipt().id)
+            .unwrap()
+            .is_some()
+    );
+}

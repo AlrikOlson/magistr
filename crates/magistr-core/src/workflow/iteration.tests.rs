@@ -691,6 +691,7 @@ fn state_serializes_to_json() {
         operations: OperationLedger::new(),
         attempt_started: None,
         native_chunk_id: None,
+        native_track: None,
         session_selection: None,
         last_commit_sha: Some("abc1234".to_string()),
         last_status: IterationStatus::Committed,
@@ -1154,4 +1155,126 @@ fn agent_settings_are_persisted_and_cannot_change_during_recovery() {
     assert!(recovered.bind_session_selection(changed).is_err());
     recovered.bind_session_selection(saved.clone()).unwrap();
     assert_eq!(recovered.state().session_selection.as_ref(), Some(&saved));
+}
+
+#[test]
+fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
+    let (dir, spec_path) = setup_project("- [x] Done\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "previous", 1, &[]);
+    add_native_chunk(&engines, "ready", 2, &[]);
+    let mut previous =
+        IterationLoop::open(dir.path(), &spec_path, 1, Some(engines.clone())).unwrap();
+    previous.pre_iteration_check().unwrap();
+    engines
+        .roadmap_set_status("previous", magistr_engine::native::ChunkStatus::Blocked)
+        .unwrap();
+    previous.stop(StopReason::Failed);
+    previous.persist().unwrap();
+    let before = engines.snapshot();
+
+    let mut next =
+        IterationLoop::start_or_recover(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    assert_eq!(
+        next.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    assert_eq!(next.state().native_chunk_id.as_deref(), Some("ready"));
+    assert_eq!(engines.snapshot(), before, "blocked work remains unchanged");
+}
+
+#[test]
+fn track_loop_keeps_its_scope_after_recovery_and_stops_when_it_is_empty() {
+    let (dir, spec_path) = setup_project("- [x] Done\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "chosen", 100, &[]);
+    add_native_chunk(&engines, "elsewhere", 1, &[]);
+    engines
+        .roadmap_set_group("chosen", Some("Surface work".into()))
+        .unwrap();
+    engines
+        .roadmap_set_group("elsewhere", Some("Other work".into()))
+        .unwrap();
+    let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    first.select_track(Some("surface")).unwrap();
+    assert_eq!(first.track(), Some("Surface work"));
+    assert_eq!(
+        first.pre_iteration_check().unwrap(),
+        PreCheckResult::Continue
+    );
+    assert_eq!(first.state().native_chunk_id.as_deref(), Some("chosen"));
+    first.persist().unwrap();
+
+    let mut recovered =
+        IterationLoop::recover_with(dir.path(), &spec_path, Some(engines.clone())).unwrap();
+    recovered.select_track(Some("Surface work")).unwrap();
+    let before = recovered.state().clone();
+    assert!(recovered.select_track(Some("Other work")).is_err());
+    assert_eq!(recovered.state(), &before);
+    engines
+        .roadmap_set_status("chosen", magistr_engine::native::ChunkStatus::Obsoleted)
+        .unwrap();
+    assert_eq!(
+        recovered.pre_iteration_check().unwrap(),
+        PreCheckResult::NoReadyChunk
+    );
+    assert_eq!(
+        engines.roadmap_chunk("elsewhere").unwrap().status,
+        magistr_engine::native::ChunkStatus::Pending
+    );
+}
+
+#[test]
+fn track_loop_ignores_unrelated_blocked_and_in_progress_items() {
+    let (dir, spec_path) = setup_project("- [x] Done\n");
+    let engines = native_engines(&dir);
+    for (id, group) in [
+        ("ready", "Chosen"),
+        ("blocked", "Other"),
+        ("unfinished", "Other"),
+    ] {
+        add_native_chunk(&engines, id, 1, &[]);
+        engines.roadmap_set_group(id, Some(group.into())).unwrap();
+    }
+    engines.roadmap_start_chunk("unfinished").unwrap();
+    engines
+        .roadmap_set_status("blocked", magistr_engine::native::ChunkStatus::Blocked)
+        .unwrap();
+    let before = engines.snapshot();
+    let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    run.select_track(Some("Chosen")).unwrap();
+    assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
+    assert_eq!(run.state().native_chunk_id.as_deref(), Some("ready"));
+    assert_eq!(engines.snapshot(), before);
+}
+
+#[test]
+fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_item() {
+    let (dir, spec_path) = setup_project("- [x] Done\n");
+    let engines = native_engines(&dir);
+    add_native_chunk(&engines, "dependency", 1, &[]);
+    add_native_chunk(&engines, "waiting", 2, &["dependency"]);
+    add_native_chunk(&engines, "blocked", 3, &[]);
+    for id in ["waiting", "blocked"] {
+        engines
+            .roadmap_set_group(id, Some("Chosen".into()))
+            .unwrap();
+    }
+    engines
+        .roadmap_set_blocked_by(
+            "blocked",
+            magistr_engine::native::BlockerKind::External,
+            "Waiting for input".into(),
+            None,
+        )
+        .unwrap();
+    let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.clone())).unwrap();
+    let before = run.state().clone();
+    assert!(run.select_track(Some("Missing")).is_err());
+    assert_eq!(run.state(), &before);
+    run.select_track(Some("Chosen")).unwrap();
+    assert_eq!(
+        run.pre_iteration_check().unwrap(),
+        PreCheckResult::NoReadyChunk
+    );
 }

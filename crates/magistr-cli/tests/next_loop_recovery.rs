@@ -305,11 +305,26 @@ async fn entry_fixture_child() {
     let inputs = ProjectInputs::from_lookup(&dir, |_| None).with_session_selection(selection());
     let profile = PermissionProfile::Cautious;
     let result = match entry.as_str() {
-        "interactive" => cmd_next_loop(&dir, 8, Backend::Acp, profile, &inputs).await,
+        "interactive" => {
+            cmd_next_loop(
+                &dir,
+                magistr::commands::next::LoopRequest {
+                    max_iterations: 8,
+                    track: None,
+                },
+                Backend::Acp,
+                profile,
+                &inputs,
+            )
+            .await
+        }
         "headless" => {
             cmd_next_loop_headless(
                 &dir,
-                8,
+                magistr::commands::next::LoopRequest {
+                    max_iterations: 8,
+                    track: None,
+                },
                 Backend::Acp,
                 HeadlessFormat::Json,
                 None,
@@ -318,7 +333,7 @@ async fn entry_fixture_child() {
             )
             .await
         }
-        "cockpit" => cmd_next_loop_cockpit(&dir, 8, Backend::Acp, profile, &inputs).await,
+        "cockpit" => cmd_next_loop_cockpit(&dir, 8, None, Backend::Acp, profile, &inputs).await,
         _ => panic!("unknown fixture entry"),
     };
     let result = result.map_or_else(|error| format!("{error:#}"), |()| "ok".into());
