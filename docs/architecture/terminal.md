@@ -244,7 +244,11 @@ are restored; unrelated cached images stay on screen. Kitty keeps its placement
 deletes and does not require cell repair. The terminal
 driver negotiates physical mouse reports where supported and
 registers the same pixel rectangles used for drawing. A terminal that reports
-only cells resolves the cell center against that registry. Window input carries
+only cells resolves the measured pixel footprint of the reported cell against
+that registry. Visible children take precedence over their containing surfaces;
+adjacent controls use the greatest overlap, while overlays retain paint order.
+This admits visible control edges that lie outside a cell's center. Drag coordinates
+still use cell centers when exact pixels are unavailable. Window input carries
 physical positions directly. Plain terminals retain the cell damage renderer
 and screen-reader sessions retain flat output.
 
