@@ -137,3 +137,43 @@ fn the_root_floats_the_palette_with_no_scrim_and_routes_its_rows() {
         Some(Widget::palette_row(3)),
     );
 }
+
+#[test]
+fn every_track_remains_visible_and_clickable_past_the_native_row_id_window() {
+    use magistr_cockpit::cockpit::{Cmd, LaunchAction, LoopScope};
+    use magistr_cockpit::harness::fixtures;
+    use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+    let mut model = Model::new(Size::new(120, 40))
+        .with_surface(Surface::Native)
+        .with_snapshot(&magistr_workflow_contracts::NativeSnapshot {
+            chunks: (0..50)
+                .map(|n| {
+                    fixtures::chunk_from(serde_json::json!({
+                        "id":format!("work-{n}"),"name":format!("Work {n}"),"status":"pending",
+                        "group":format!("Track {n:02}")
+                    }))
+                })
+                .collect(),
+            ..Default::default()
+        })
+        .with_loop_track_picker();
+    for _ in 0..48 {
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Down)));
+    }
+    let float = PaletteComposition::el(&model, Medium::Night).unwrap();
+    assert!(texts(&float).contains(&"Track 48".to_owned()));
+    let target = RootComposition::target_of(&model, ElementId(PaletteComposition::ROWS + 7));
+    assert_eq!(target, Some(Widget::palette_row(48)));
+    let commands = update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target,
+        },
+    );
+    assert!(
+        commands.contains(&Cmd::Launch(LaunchAction::Loop(LoopScope::Track(
+            "Track 48".into()
+        ))))
+    );
+}

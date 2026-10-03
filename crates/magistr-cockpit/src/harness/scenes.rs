@@ -31,6 +31,31 @@ fn agent(m: &mut Model, event: AgentEvent) {
 }
 
 impl Scenes {
+    /// The hosted loop's first choice, seeded from the live roadmap shape.
+    pub fn loop_track_picker(size: Size) -> Model {
+        let mut model = Self::roadmapped(size).with_tab(StageTab::Turn);
+        for (index, track) in [
+            "Identity and sessions",
+            "Interface",
+            "Workspace tools",
+            "Verification",
+        ]
+        .iter()
+        .enumerate()
+        {
+            Self::engine_frame(
+                &mut model,
+                "roadmap",
+                "chunk_added",
+                serde_json::json!({
+                    "chunk":{"id":format!("picker-{index}"),"name":format!("Next {track} task"),
+                        "title":format!("Next {track} task"),"status":"pending","priority":100,"group":track}
+                }),
+            );
+        }
+        model.with_loop_track_picker()
+    }
+
     /// Shared navigation corpus for terminal and native adapter journeys.
     /// Sparse identities, recorded evidence, a journal and a nonempty draft
     /// ensure a journey cannot pass by comparing two empty screens.

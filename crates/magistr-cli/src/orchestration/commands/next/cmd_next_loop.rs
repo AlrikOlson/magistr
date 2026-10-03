@@ -7,7 +7,7 @@ use color_eyre::eyre;
 
 pub async fn cmd_next_loop(
     dir: &std::path::Path,
-    max_iterations: u32,
+    request: super::LoopRequest<'_>,
     backend: agent::Backend,
     profile: crate::permissions::PermissionProfile,
     inputs: &crate::config::inputs::ProjectInputs,
@@ -25,10 +25,11 @@ pub async fn cmd_next_loop(
     let mut iter_loop = IterationLoop::start_or_recover(
         &dir,
         &wf.spec_path,
-        max_iterations,
+        request.max_iterations,
         crate::roadmap::admit_native_host(&dir)?,
     )
     .suggest()?;
+    super::select_loop_track(&mut iter_loop, request.track, true)?;
     if let Some(selection) = inputs.session_selection() {
         iter_loop.bind_session_selection(selection.clone())?;
     }

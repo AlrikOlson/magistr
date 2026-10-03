@@ -56,6 +56,8 @@ pub struct IterationState {
     /// carry one; recovery can then use an unambiguous unfinished item.
     #[serde(default)]
     pub native_chunk_id: Option<String>,
+    /// Track selected for this run, retained across iteration sessions and recovery.
+    pub native_track: Option<String>,
     /// Agent settings frozen when this run began. Missing on older checkpoints.
     #[serde(default)]
     pub session_selection: Option<crate::config::session_selection::SessionSelection>,
@@ -227,6 +229,7 @@ impl IterationLoop {
             operations: OperationLedger::new(),
             attempt_started: None,
             native_chunk_id: None,
+            native_track: None,
             session_selection: None,
             last_commit_sha: git_head_sha(&project_dir),
             last_status: IterationStatus::None,
@@ -295,9 +298,16 @@ impl IterationLoop {
             max_iterations,
             recovered.native.clone(),
         )?;
-        // A new request gets a new run budget, but unfinished roadmap work
-        // still belongs to the item the user was working on.
-        fresh.state.native_chunk_id = recovered.state.native_chunk_id.clone();
+        // Retain an unfinished item only while it can actually be continued.
+        // A blocked or deferred target belongs to the ended request, not this one.
+        fresh.state.native_chunk_id = recovered.state.native_chunk_id.clone().filter(|id| {
+            recovered.native.as_ref().is_some_and(|engines| {
+                engines.roadmap_chunk(id).is_some_and(|chunk| {
+                    chunk.status == magistr_engine::native::ChunkStatus::InProgress
+                        && chunk.blocked_by.is_none()
+                })
+            })
+        });
         // Encode the opaque identity rather than treating it as a path.
         let key: String = recovered
             .state
@@ -372,6 +382,43 @@ impl IterationLoop {
             self.state.run.mode = mode;
         }
         self
+    }
+
+    /// Select the track before a new run starts. Recovery keeps its original scope.
+    pub fn select_track(&mut self, track: Option<&str>) -> Result<()> {
+        let Some(track) = track else {
+            return Ok(());
+        };
+        let engines = self
+            .native
+            .as_ref()
+            .ok_or_else(|| MagistrError::Workflow("Tracks require a native roadmap.".into()))?;
+        let track = engines
+            .roadmap_resolve_track(track)
+            .map_err(MagistrError::Workflow)?;
+        if self.state.native_track.as_ref() == Some(&track) {
+            return Ok(());
+        }
+        if self.recovered || !self.state.operations.records().is_empty() {
+            return Err(MagistrError::Workflow(
+                "This run already has its work selected. Resume it before choosing a different track.".into(),
+            ));
+        }
+        self.state.native_chunk_id = None;
+        self.state.native_track = Some(track);
+        Ok(())
+    }
+
+    /// Whether the run resumed an unfinished checkpoint.
+    #[must_use]
+    pub const fn is_recovered(&self) -> bool {
+        self.recovered
+    }
+
+    /// The track this run is confined to; None selects across the roadmap.
+    #[must_use]
+    pub fn track(&self) -> Option<&str> {
+        self.state.native_track.as_deref()
     }
 
     /// Canonical counters, limits, observations and terminal state.
@@ -449,7 +496,11 @@ impl IterationLoop {
     /// Host admission and operation reconciliation still guard dispatch.
     pub fn next_native_chunk(&self) -> Result<Option<magistr_engine::native::Chunk>> {
         self.native.as_ref().map_or(Ok(None), |engines| {
-            super::native_summary::native_work_chunk(engines, self.state.native_chunk_id.as_deref())
+            super::native_summary::native_work_chunk(
+                engines,
+                self.state.native_chunk_id.as_deref(),
+                self.track(),
+            )
         })
     }
 
@@ -642,6 +693,7 @@ impl IterationLoop {
             return super::native_summary::native_work_summary(
                 engines,
                 self.state.native_chunk_id.as_deref(),
+                self.track(),
             );
         }
         spec::spec_summary_from_project(&self.project_dir, &self.spec_path)

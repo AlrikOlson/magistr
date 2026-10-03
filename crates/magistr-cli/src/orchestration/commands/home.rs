@@ -38,11 +38,19 @@ pub async fn cmd_home(
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
             super::next::cmd_next_tui(&root, backend, profile, env, inputs).await
         }
-        Some(LaunchAction::Loop) => {
+        Some(LaunchAction::Loop(scope)) => {
             let backend = super::resolve_backend(crate::cli::BackendFlag::Auto, inputs)?;
             let profile = super::run::resolve_permission_profile(&root, None)?;
-            super::next::cmd_next_loop_tui(&root, LOOP_ITERATIONS, backend, profile, env, inputs)
-                .await
+            super::next::cmd_next_loop_tui(
+                &root,
+                LOOP_ITERATIONS,
+                Some(&scope),
+                backend,
+                profile,
+                env,
+                inputs,
+            )
+            .await
         }
         Some(LaunchAction::Gates) => super::validate::cmd_validate(&root).await,
         Some(LaunchAction::Resume(session_id)) => {

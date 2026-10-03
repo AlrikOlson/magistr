@@ -19,3 +19,5 @@ pub mod report;
 
 pub use application::ShipUseCases;
 pub use mcp::service::ShipService;
+
+mod saved_cycle;

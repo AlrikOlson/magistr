@@ -200,7 +200,13 @@ process must not write directly to the screen. Shutdown restores the terminal;
 integration tests exercise session startup, cancellation, and cleanup.
 
 An explicit `next-loop` request archives a fully settled previous run before
-starting a new one. Unfinished runs retain their limits and recovery state;
+starting a new one. The terminal cockpit opens a searchable track choice before
+preflight or provider work; an explicit `--track` supplies that choice directly.
+The selected track is stored with the loop and constrains every new session.
+Blocked items elsewhere do not prevent it. Selecting another objective scope
+saves the unfinished execution plan in the owning Ship store; returning to that
+scope restores its identities, tasks, actions, and checks.
+Unfinished runs retain their limits and recovery state;
 unknown operation outcomes cannot authorize another agent. Crash recovery
 continues to preserve terminal outcomes. Loop status reaches the interface even
 when work stops before the first agent starts, so the conversation shows the

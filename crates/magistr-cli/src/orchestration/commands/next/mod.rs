@@ -49,3 +49,13 @@ fn canonicalize_dir(dir: &std::path::Path) -> color_eyre::eyre::Result<std::path
 }
 mod workflow_inputs;
 use workflow_inputs::workflow_inputs;
+
+mod select_loop_track;
+use select_loop_track::select_loop_track;
+
+mod loop_request;
+pub use loop_request::LoopRequest;
+#[cfg(feature = "terminal")]
+mod cockpit_run;
+#[cfg(feature = "terminal")]
+pub(crate) use cockpit_run::CockpitRun;

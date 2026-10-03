@@ -8,7 +8,7 @@ pub enum LaunchAction {
     /// One `magistr next` iteration.
     Next,
     /// The autonomous iteration loop (`magistr next-loop`).
-    Loop,
+    Loop(super::LoopScope),
     /// The quality gates (`magistr validate`).
     Gates,
     /// A recent session, continued: the agent's session id as the

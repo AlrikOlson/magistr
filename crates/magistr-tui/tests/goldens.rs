@@ -762,3 +762,14 @@ fn every_filmstrip_under_reduced_motion_is_the_still_frame() {
         assert_eq!(model.ticks(), before, "{name}: no step was taken");
     }
 }
+
+#[test]
+fn shot_loop_track_picker() {
+    let failures = render_shots(
+        "loop-track-picker",
+        Scenes::loop_track_picker,
+        magistr_tui::screenshot::Profile::Kitty,
+        true,
+    );
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

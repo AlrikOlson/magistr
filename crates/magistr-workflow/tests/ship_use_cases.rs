@@ -323,7 +323,7 @@ fn editing_an_inflight_objective_keeps_its_run_and_admission() {
             "Clarified objective".into(),
             vec![],
             vec![],
-            "new scope".into(),
+            "chunk:test".into(),
         )
         .unwrap();
     assert_eq!(cases.admit_task(None).unwrap(), admission.target);
@@ -384,4 +384,124 @@ async fn approval_defaults_and_refusals_match_the_mcp_adapter() {
         .unwrap();
     assert_eq!(wire_error["error_kind"], typed_error.kind);
     assert_eq!(wire_error["message"], typed_error.message);
+}
+
+#[test]
+fn switching_scopes_restores_the_exact_unfinished_plan_across_restart() {
+    let temp = tempfile::tempdir().unwrap();
+    let cases = stored(temp.path());
+    planned(&cases);
+    let admitted = cases.admit_check(request()).unwrap();
+    cases.settle_check(admitted, outcome()).unwrap();
+    cases
+        .block_task("verify", "Waiting for an answer".into())
+        .unwrap();
+    let original = serde_json::to_value(cases.snapshot().unwrap()).unwrap();
+
+    cases
+        .set_objective("Other work".into(), vec![], vec![], "chunk:other".into())
+        .unwrap();
+    assert!(cases.snapshot().unwrap().tasks.is_empty());
+    cases
+        .add_task(
+            "verify".into(),
+            "Other verification".into(),
+            TaskType::Test,
+            None,
+            None,
+        )
+        .unwrap();
+    cases.start_task("verify").unwrap();
+    let other = serde_json::to_value(cases.snapshot().unwrap()).unwrap();
+
+    let reopened = stored(temp.path());
+    reopened
+        .set_objective("Current run".into(), vec![], vec![], "chunk:test".into())
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(reopened.snapshot().unwrap()).unwrap(),
+        original
+    );
+    reopened
+        .set_objective("Other work".into(), vec![], vec![], "chunk:other".into())
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(reopened.snapshot().unwrap()).unwrap(),
+        other
+    );
+}
+
+#[test]
+fn stale_writers_cannot_reselect_a_saved_plan_or_erase_its_latest_tasks() {
+    let temp = tempfile::tempdir().unwrap();
+    let current = stored(temp.path());
+    planned(&current);
+    let mut stale =
+        ShipEngine::new("project".into()).with_persistence(Persistence::new(&PersistenceConfig {
+            enabled: true,
+            data_dir: temp.path().into(),
+        }));
+    current
+        .add_task(
+            "latest".into(),
+            "Latest acknowledged task".into(),
+            TaskType::Implement,
+            None,
+            None,
+        )
+        .unwrap();
+    current
+        .set_objective("Other".into(), vec![], vec![], "chunk:other".into())
+        .unwrap();
+    stale.add_task(
+        "stale".into(),
+        "Stale mutation".into(),
+        TaskType::Implement,
+        None,
+        None,
+    );
+    let reopened = stored(temp.path());
+    assert_eq!(
+        reopened.snapshot().unwrap().objective.unwrap().scope,
+        "chunk:other"
+    );
+    reopened
+        .set_objective("Current run".into(), vec![], vec![], "chunk:test".into())
+        .unwrap();
+    let ids: Vec<_> = reopened
+        .snapshot()
+        .unwrap()
+        .tasks
+        .into_iter()
+        .map(|task| task.id)
+        .collect();
+    assert_eq!(ids, ["verify", "latest"]);
+}
+
+#[test]
+fn a_reset_run_cannot_be_replaced_by_a_stale_track_selection() {
+    let temp = tempfile::tempdir().unwrap();
+    let cases = stored(temp.path());
+    planned(&cases);
+    cases
+        .set_objective("Other".into(), vec![], vec![], "chunk:other".into())
+        .unwrap();
+    let mut stale =
+        ShipEngine::new("project".into()).with_persistence(Persistence::new(&PersistenceConfig {
+            enabled: true,
+            data_dir: temp.path().into(),
+        }));
+    cases.reset().unwrap();
+    planned(&cases);
+    let run = cases.snapshot().unwrap().run_id;
+    stale.add_task(
+        "stale".into(),
+        "Stale task".into(),
+        TaskType::Test,
+        None,
+        None,
+    );
+    let actual = stored(temp.path()).snapshot().unwrap();
+    assert_eq!(actual.run_id, run);
+    assert_eq!(actual.tasks.len(), 1);
 }

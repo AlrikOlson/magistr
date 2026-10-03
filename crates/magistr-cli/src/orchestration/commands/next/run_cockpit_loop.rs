@@ -41,10 +41,12 @@ pub(crate) async fn run_cockpit_loop(
     wf: WorkflowConfig,
     iter_loop: IterationLoop,
     backend: Backend,
-    persist: bool,
+    mode: super::CockpitRun,
     profile: crate::permissions::PermissionProfile,
     inputs: &crate::config::inputs::ProjectInputs,
 ) -> eyre::Result<()> {
+    let persist = mode != super::CockpitRun::Single;
+    let choose_track = mode == super::CockpitRun::ChooseTrack;
     // Served before raw mode so its refusal is readable; dropped after the
     // runtime, before the loop's writer.
     let owner_endpoint = crate::roadmap::serve_owner_endpoint(iter_loop.native()).await?;
@@ -87,6 +89,7 @@ pub(crate) async fn run_cockpit_loop(
     )
     .with_inputs(inputs)
     .permission_profile(profile)
+    .choosing_track(choose_track)
     .keep_open(true)
     .persisting(persist)
     .auto_pause(auto_pause)
@@ -127,6 +130,9 @@ pub(crate) async fn run_cockpit_loop(
         );
     if let Some(seed) = &seed {
         model = model.with_snapshot(seed);
+    }
+    if choose_track {
+        model = model.with_loop_track_picker();
     }
     // The rail is governed the way the driver's sessions are: the
     // project's profile under workflow mode — the terminal draws none

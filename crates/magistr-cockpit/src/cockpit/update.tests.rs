@@ -4299,7 +4299,6 @@ fn a_launcher_job_populates_the_cards() {
 fn terminal_launch_actions_dispatch_from_footer_palette_and_chords() {
     for (index, c, query, action) in [
         (0, 'n', "next", LaunchAction::Next),
-        (1, 'l', "continue work", LaunchAction::Loop),
         (2, 'g', "run checks", LaunchAction::Gates),
     ] {
         for tab in StageTab::ALL {
@@ -4352,8 +4351,14 @@ fn launcher_buttons_click() {
     assert_eq!(m.launch(), Some(&LaunchAction::Next));
 
     let mut m = model().with_tab(StageTab::Roadmap);
-    assert_eq!(update(&mut m, click(Widget::LaunchLoop)), vec![Cmd::Quit]);
-    assert_eq!(m.launch(), Some(&LaunchAction::Loop));
+    assert!(update(&mut m, click(Widget::LaunchLoop)).is_empty());
+    assert_eq!(m.palette().unwrap().title(), "Choose a track");
+    type_text(&mut m, "All tracks");
+    assert_eq!(update(&mut m, key(KeyCode::Enter)), vec![Cmd::Quit]);
+    assert_eq!(
+        m.launch(),
+        Some(&LaunchAction::Loop(crate::cockpit::LoopScope::AllTracks))
+    );
 
     let mut m = model().with_tab(StageTab::Roadmap);
     assert_eq!(update(&mut m, click(Widget::LaunchGates)), vec![Cmd::Quit]);
@@ -4372,10 +4377,8 @@ fn a_hosted_session_starts_work_in_place_from_chord_palette_and_widget() {
         event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 10),
         target: Some(widget.id()),
     };
-    for (c, query, widget, action) in [
-        ('n', "next", Widget::LaunchNext, LaunchAction::Next),
-        ('l', "continue work", Widget::LaunchLoop, LaunchAction::Loop),
-    ] {
+    {
+        let (c, query, widget, action) = ('n', "next", Widget::LaunchNext, LaunchAction::Next);
         let mut m = model().with_hosted_work();
         assert_eq!(
             update(
@@ -4432,7 +4435,7 @@ fn a_refused_start_is_said_on_the_stage() {
     let cmds = update(
         &mut m,
         Msg::CommandFailed {
-            cmd: Cmd::Launch(LaunchAction::Loop),
+            cmd: Cmd::Launch(LaunchAction::Loop(crate::cockpit::LoopScope::AllTracks)),
             error: "Another Magistr session is running this project's work.".to_owned(),
         },
     );
@@ -9376,4 +9379,69 @@ fn inspector_tab_cycles_panes_and_control_tab_changes_views() {
         Msg::Key(KeyEvent::new(KeyCode::Tab).with(Modifiers::SHIFT)),
     );
     assert_eq!(m.pane(), Pane::Rail, "Shift-Tab reverses the pane cycle");
+}
+
+#[test]
+fn every_loop_start_opens_a_searchable_track_picker_before_dispatch() {
+    for hosted in [false, true] {
+        for trigger in 0..3 {
+            let mut m = crate::harness::Scenes::launcher(Size::new(120, 40));
+            if hosted {
+                m = m.with_hosted_work();
+            }
+            type_text(&mut m, "Keep this draft");
+            let commands = match trigger {
+                0 => change_click(&mut m, Widget::LaunchLoop.id()),
+                1 => update(
+                    &mut m,
+                    Msg::Key(KeyEvent::new(KeyCode::Char('l')).with(Modifiers::ALT)),
+                ),
+                _ => {
+                    update(&mut m, ctrl('p'));
+                    type_text(&mut m, "continue work");
+                    update(&mut m, key(KeyCode::Enter))
+                }
+            };
+            assert!(commands.is_empty(), "the picker never starts work");
+            assert_eq!(m.launch(), None);
+            assert!(!m.quit_requested());
+            assert_eq!(m.palette().unwrap().title(), "Choose a track");
+            crate::harness::Scenes::engine_frame(
+                &mut m,
+                "roadmap",
+                "chunk_added",
+                serde_json::json!({"chunk": {"id":"chosen", "title":"Chosen work", "name":"Chosen work", "status":"pending", "priority":1, "group":"Chosen track"}}),
+            );
+            let tracks = m.roadmap.loop_tracks();
+            assert!(!tracks.is_empty(), "the fixture has live tracks");
+            type_text(&mut m, &tracks[0]);
+            let commands = update(&mut m, key(KeyCode::Enter));
+            let action = LaunchAction::Loop(crate::cockpit::LoopScope::Track(tracks[0].clone()));
+            if hosted {
+                assert_eq!(commands, vec![Cmd::Launch(action)]);
+                assert!(!m.quit_requested());
+            } else {
+                assert_eq!(commands, vec![Cmd::Quit]);
+                assert_eq!(m.launch(), Some(&action));
+            }
+            assert_eq!(m.prompt().text(), "Keep this draft");
+        }
+    }
+}
+
+#[test]
+fn cancelling_track_choice_leaves_the_session_and_draft_intact() {
+    let mut m = model().with_hosted_work();
+    type_text(&mut m, "Keep this draft");
+    assert!(
+        update(
+            &mut m,
+            Msg::Key(KeyEvent::new(KeyCode::Char('l')).with(Modifiers::ALT))
+        )
+        .is_empty()
+    );
+    assert!(update(&mut m, key(KeyCode::Esc)).is_empty());
+    assert!(m.palette().is_none());
+    assert!(!m.quit_requested());
+    assert_eq!(m.prompt().text(), "Keep this draft");
 }

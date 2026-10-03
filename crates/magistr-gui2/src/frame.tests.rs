@@ -1091,12 +1091,6 @@ fn the_starts_answer_pointer_keyboard_and_accessibility_and_yield_to_the_loops_v
             "Start next item",
             Cmd::Launch(LaunchAction::Next),
         ),
-        (
-            false,
-            Widget::LaunchLoop,
-            "Start loop",
-            Cmd::Launch(LaunchAction::Loop),
-        ),
         (true, Widget::LoopStep, "Step", Cmd::Loop(LoopCmd::Step)),
         (true, Widget::LoopAbort, "Abort", Cmd::Loop(LoopCmd::Abort)),
     ];

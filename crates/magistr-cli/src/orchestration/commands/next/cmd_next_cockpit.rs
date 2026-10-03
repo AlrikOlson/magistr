@@ -38,5 +38,14 @@ pub async fn cmd_next_cockpit(
     let iter_loop = IterationLoop::open(&dir, &wf.spec_path, 1, native)
         .suggest()?
         .with_run_mode(magistr_engine::workflow::RunMode::OneChunk);
-    super::run_cockpit_loop(&dir, wf, iter_loop, backend, false, profile, &inputs).await
+    super::run_cockpit_loop(
+        &dir,
+        wf,
+        iter_loop,
+        backend,
+        super::CockpitRun::Single,
+        profile,
+        &inputs,
+    )
+    .await
 }

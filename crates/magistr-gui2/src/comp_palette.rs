@@ -31,6 +31,16 @@ impl PaletteComposition {
     /// its list to.
     pub const ROWS_END: u64 = 432;
 
+    const VISIBLE: usize = 8;
+
+    pub fn row_index(model: &Model, slot: usize) -> Option<usize> {
+        (slot < Self::VISIBLE).then(|| {
+            model.palette().map_or(0, |palette| {
+                (palette.chosen() + 1).saturating_sub(Self::VISIBLE)
+            }) + slot
+        })
+    }
+
     /// The card's measure and seat in the capture: view 01's popover
     /// is 400px wide with its top edge 107px under the window's.
     const WIDTH: f32 = 400.0;
@@ -66,14 +76,21 @@ impl PaletteComposition {
         let mut card = Card::popover(lex.base, Self::PAD_X, Self::PAD_Y, &lex)
             .width(Self::WIDTH)
             .child(header(palette, glass, &lex));
-        for (index, row) in Palette::rows(model).into_iter().enumerate() {
+        let first = Self::row_index(model, 0).unwrap_or(0);
+        for (slot, row) in Palette::rows(model)
+            .into_iter()
+            .skip(first)
+            .take(Self::VISIBLE)
+            .enumerate()
+        {
+            let index = first + slot;
             let chosen = index == palette.chosen();
             let act = chosen.then(|| row.act.clone()).flatten();
             card = card.child(CmdkRow::el(
                 content(&row, chosen, &lex),
                 chosen,
                 glass,
-                ElementId(Self::ROWS + index as u64),
+                ElementId(Self::ROWS + slot as u64),
                 &lex,
             ));
             if let Some(act) = act {
@@ -126,12 +143,17 @@ fn header(palette: &Palette, glass: Srgba, lex: &Lexicon) -> Element {
                                     ..Voice::SLOT
                                 },
                                 lex.tx,
-                                palette.query(),
+                                if palette.query().is_empty() && palette.title() == "Choose a track"
+                                {
+                                    palette.title()
+                                } else {
+                                    palette.query()
+                                },
                             )
                             .claim(Component::Field)
                             .min_width(12.0)
                             .id(PaletteComposition::QUERY)
-                            .label("Commands")
+                            .label(palette.title())
                             .focusable()
                             .focus_ring(lex.mauve)
                             .nowrap(),

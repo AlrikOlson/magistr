@@ -251,7 +251,15 @@ pub(super) fn finish(mut root: Node, model: &Model, pen: &Pen, footer: bool) -> 
                     .drawn(model.has_pixels()),
             )
             .child(segment(
-                &format!("Search · {}", palette.query()),
+                &format!(
+                    "{} · {}",
+                    if palette.title() == "Commands" {
+                        "Search"
+                    } else {
+                        palette.title()
+                    },
+                    palette.query()
+                ),
                 pen.heading.clone(),
             ))
             .children(rows.iter().enumerate().map(|(index, row)| {

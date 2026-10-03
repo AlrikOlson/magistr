@@ -246,11 +246,14 @@ fn prepare(dir: &Path, engines: &EngineClient, action: &LaunchAction) -> Result<
                 _lease: None,
             })
         }
-        LaunchAction::Loop => {
+        LaunchAction::Loop(scope) => {
             let lease = LoopLease::acquire(dir).map_err(|error| error.to_string())?;
-            let iter_loop =
+            let mut iter_loop =
                 IterationLoop::start_or_recover(dir, &wf.spec_path, LOOP_ITERATIONS, native)
                     .map_err(|error| error.to_string())?;
+            iter_loop
+                .select_track(scope.track())
+                .map_err(|error| error.to_string())?;
             iter_loop.persist().map_err(|error| error.to_string())?;
             Ok(Prepared {
                 wf,

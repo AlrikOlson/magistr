@@ -190,10 +190,14 @@ impl ShipEngine {
                 self.objective = state.objective;
                 self.tasks = state.tasks;
                 self.next_action_id = state.next_action_id;
+                self.saved_cycles = state.saved_cycles;
+                self.selection_revision = state.selection_revision;
             }
             None if self.objective.is_some() || !self.tasks.is_empty() => {
                 self.objective = None;
                 self.tasks.clear();
+                self.saved_cycles.clear();
+                self.selection_revision = 0;
                 self.next_action_id = 1;
                 self.execution = ExecutionIdentity::fresh();
             }
