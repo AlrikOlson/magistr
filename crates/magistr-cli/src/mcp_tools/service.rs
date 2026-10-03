@@ -33,7 +33,6 @@ use magistr_engine::native::{
 };
 
 use crate::application::AdmittedCheck;
-use magistr_core::evidence::writer_config_from_env;
 use magistr_engine::{GateOutput, MagistrFrame, ShipGuardState, WorkflowPhase};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use magistr_workflow::infra::Family;
@@ -80,20 +79,6 @@ pub struct MagistrService {
 }
 
 impl MagistrService {
-    /// Open the project owner with environment-derived identity and store.
-    ///
-    /// On Unix, request the project's default live-feed socket. Other platforms
-    /// keep their existing no-feed default; an explicit unsupported socket errors.
-    /// Returns an error when the project is already owned or a requested feed
-    /// cannot be bound. No engines are opened after failed admission.
-    pub async fn for_project(project_root: PathBuf) -> std::io::Result<Self> {
-        let project_root = project_root.canonicalize()?;
-        let tas = writer_config_from_env(&project_root);
-        #[cfg(unix)]
-        let tas = tas.with_project_socket_default();
-        Self::new(project_root, &tas).await
-    }
-
     /// Open one owner on an explicit configuration. Clones share the same engines
     /// and lease. Independent instances must acquire ownership before loading state.
     /// A configuration without the project's evidence capability is refused
@@ -527,6 +512,9 @@ impl ServerHandler for MagistrService {
     fn get_info(&self) -> ServerInfo {
         let mut info = self.unified.get_info();
         info.server_info = Implementation::new("magistr", env!("CARGO_PKG_VERSION"));
+        if let Some(tools) = info.capabilities.tools.as_mut() {
+            tools.list_changed = Some(true);
+        }
         // The version a client that requested an unknown era falls back to,
         // and the newest this server owns up to anywhere.
         info.protocol_version = rmcp::model::ProtocolVersion::V_2025_06_18;

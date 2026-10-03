@@ -1,20 +1,12 @@
-//! One client, one durable identity, whichever owner is reachable.
-//!
-//! Every `magistr workspace serve` is this bridge. Its client speaks MCP on
-//! the bridge's stdio; the bridge speaks the same frames to an owner — the
-//! service this process admitted, or the one another process welcomed it on.
-//! When an attached owner goes away — or none was reachable when the bridge
-//! started — calls in flight are answered with the typed `ENGINE_UNAVAILABLE`
-//! refusal, `initialize` and the tool listing keep answering from the shared
-//! capability definition, and the next request reconnects within the bounded
-//! window: attaching to the owner that admitted meanwhile, or admitting the
-//! workspace itself. Nothing is replayed against a new owner except the
-//! client's own `initialize`.
+//! Client lifetime and reconnection shared by both MCP surfaces.
+
+#[cfg(test)]
+#[path = "bridge.tests.rs"]
+mod tests;
 
 use std::time::Duration;
 
 use color_eyre::eyre;
-use magistr_workspace::service::WorkspaceOpenOptions;
 use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
@@ -22,37 +14,33 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 /// leaves; after that the link is closed regardless.
 const DRAIN_DEADLINE: Duration = Duration::from_secs(5);
 
-use super::{
-    bridge_link::Link,
-    bridge_session::{ClientSession, Inbound},
-    capability::Capability,
-};
+use super::{BridgeLink, ClientSession, Inbound, SessionPolicy};
 
-pub(super) struct Bridge {
-    options: WorkspaceOpenOptions,
-    session: ClientSession,
-    link: Option<Link>,
+pub(crate) struct Bridge<L: BridgeLink, P: SessionPolicy> {
+    options: L::Options,
+    session: ClientSession<P>,
+    link: Option<L>,
     /// Why the last reconnect did not reach an owner.
     unreachable: String,
 }
 
-impl Bridge {
+impl<L: BridgeLink, P: SessionPolicy> Bridge<L, P> {
     /// A bridge over the owner startup reached, or — when startup was
     /// refused for a reason a later request can outlive — over none yet,
     /// with that refusal as the reason every local answer names.
-    pub(super) fn new(
-        options: WorkspaceOpenOptions,
+    pub(crate) fn new(
+        options: L::Options,
         identity: String,
-        link: Result<Link, String>,
+        policy: P,
+        link: Result<L, String>,
     ) -> Self {
-        let capability = Capability::new(options.offers_script());
         let (link, unreachable) = match link {
             Ok(link) => {
                 tracing::info!(
                     generation = link.generation(),
                     embedded = link.is_embedded(),
                     identity = identity.as_str(),
-                    "workspace bridge linked"
+                    "MCP bridge linked"
                 );
                 (Some(link), String::new())
             }
@@ -60,14 +48,14 @@ impl Bridge {
                 tracing::warn!(
                     reason = reason.as_str(),
                     identity = identity.as_str(),
-                    "workspace bridge started without an owner; discovery is served locally and the next request reconnects"
+                    "MCP bridge started without an owner; discovery is served locally and the next request reconnects"
                 );
                 (None, reason)
             }
         };
         Self {
             options,
-            session: ClientSession::new(identity, capability),
+            session: ClientSession::new(identity, policy),
             link,
             unreachable,
         }
@@ -75,7 +63,7 @@ impl Bridge {
 
     /// Relay until the client closes its side. An embedded owner is then shut
     /// down in order; an attached socket is dropped.
-    pub(super) async fn run(mut self) -> eyre::Result<()> {
+    pub(crate) async fn run(mut self) -> eyre::Result<()> {
         let (stdin, mut stdout) = stdio()?;
         let mut client = BufReader::new(stdin).lines();
         loop {
@@ -115,10 +103,6 @@ impl Bridge {
                 };
                 if link.send(&frame).await.is_err() {
                     self.owner_lost(stdout).await?;
-                    let answer = self
-                        .session
-                        .answer_unavailable(&serde_json::from_str(&frame)?, &self.unreachable);
-                    write_line(stdout, &answer.to_string()).await?;
                 }
             }
             Inbound::Unanswered(request) => {
@@ -177,11 +161,11 @@ impl Bridge {
         };
         if link.is_embedded() {
             link.close().await?;
-            eyre::bail!("the embedded workspace session ended before its client");
+            eyre::bail!("The Magistr connection ended unexpectedly.");
         }
         drop(link);
         self.unreachable = "the owner ended its session".to_owned();
-        tracing::warn!("workspace owner lost; in-flight calls refused, next call reconnects");
+        tracing::warn!("MCP owner lost; in-flight calls refused, next call reconnects");
         for answer in self.session.owner_lost(&self.unreachable) {
             write_line(stdout, &answer.to_string()).await?;
         }
@@ -192,11 +176,11 @@ impl Bridge {
     /// the workspace meanwhile, or admit it here. On success the recorded
     /// `initialize` is replayed so the new owner knows this client.
     async fn relink(&mut self, stdout: &mut (impl AsyncWriteExt + Unpin)) -> eyre::Result<()> {
-        let mut link = match Link::open(&self.options).await {
+        let mut link = match L::open(&self.options).await {
             Ok(link) => link,
             Err(error) => {
                 self.unreachable = error.to_string();
-                tracing::warn!(error = %self.unreachable, "workspace owner still unreachable");
+                tracing::warn!(error = %self.unreachable, "MCP owner still unreachable");
                 return Ok(());
             }
         };
@@ -211,7 +195,7 @@ impl Bridge {
                 }
                 Err(error) => {
                     self.unreachable = error.to_string();
-                    tracing::warn!(error = %self.unreachable, "workspace owner did not accept the replay");
+                    tracing::warn!(error = %self.unreachable, "MCP owner did not accept the replay");
                     link.close().await?;
                     return Ok(());
                 }
@@ -221,14 +205,17 @@ impl Bridge {
             generation = link.generation(),
             embedded = link.is_embedded(),
             identity = self.session.identity(),
-            "workspace bridge relinked"
+            "MCP bridge relinked"
         );
         self.link = Some(link);
+        if let Some(notification) = self.session.tools_changed() {
+            write_line(stdout, &notification.to_string()).await?;
+        }
         Ok(())
     }
 }
 
-async fn owner_line(link: Option<&mut Link>) -> Option<String> {
+async fn owner_line<L: BridgeLink>(link: Option<&mut L>) -> Option<String> {
     match link {
         Some(link) => link.next_line().await,
         None => std::future::pending().await,

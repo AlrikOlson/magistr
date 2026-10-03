@@ -231,9 +231,14 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     let lock_inode = std::fs::metadata(&lock_path).expect("owner lock").ino();
     owner.child.kill().await.expect("kill owner");
     owner.child.wait().await.expect("owner reaped");
-    // The attached server ends with the owner rather than taking over.
-    let ended = late.rejection().await;
-    assert!(ended.contains("owner ended its session"), "{ended}");
+    // The existing client remains connected and admits the next owner on its
+    // next call. Its acknowledged mutations are read from the same store.
+    let survived = late.call("roadmap_get", json!({"ids":["attached"]})).await;
+    assert_eq!(survived["records"][0]["id"], "attached", "{survived}");
+    assert!(
+        tmp.path().join("late.sock").exists(),
+        "survivor owns generation two"
+    );
     let mut restarted = Server::spawn(tmp.path(), &data, &tmp.path().join("restart.sock")).await;
     assert!(
         restarted.response().await.is_some(),
@@ -253,8 +258,96 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
         status["version"], "0.1.0",
         "the served status reports the first-party workflow crate's version: {status}"
     );
-    restarted.child.kill().await.expect("stop server");
-    restarted.child.wait().await.expect("reap server");
+    // Orderly owner EOF is survived as well as a crash, with no client restart.
+    late.disconnect().await;
+    let after_eof = restarted
+        .call("roadmap_get", json!({"ids":["attached"]}))
+        .await;
+    assert_eq!(after_eof["records"][0]["id"], "attached");
+    assert!(tmp.path().join("restart.sock").exists());
+    restarted.disconnect().await;
+}
+
+#[tokio::test]
+async fn owner_crash_during_a_check_refuses_once_and_does_not_replay_the_command() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    identity(tmp.path());
+    native_project(tmp.path());
+    let data = tmp.path().join("data");
+    let mut owner = Server::spawn(tmp.path(), &data, &tmp.path().join("owner.sock")).await;
+    assert!(owner.response().await.is_some());
+    owner.initialized().await;
+    owner
+        .call(
+            "ship_set_objective",
+            json!({"description":"interruption fixture","verification":"focused"}),
+        )
+        .await;
+    owner
+        .call(
+            "ship_plan",
+            json!({"action":"add","task_id":"interrupted","title":"Wait for a check"}),
+        )
+        .await;
+    owner
+        .call("ship_start", json!({"task_id":"interrupted"}))
+        .await;
+    let mut survivor = Server::spawn(tmp.path(), &data, &tmp.path().join("survivor.sock")).await;
+    assert!(survivor.response().await.is_some());
+    survivor.initialized().await;
+    let started = tmp.path().join("invocations");
+    let script = tmp.path().join("once.sh");
+    std::fs::write(
+        &script,
+        format!("printf 'invoked\\n' >> '{}'; sleep 1\n", started.display()),
+    )
+    .expect("script");
+    survivor
+        .send(json!({"jsonrpc":"2.0","id":77,"method":"tools/call",
+        "params":{"name":"ship_check","arguments":{"type":"test","name":"interrupted-check",
+            "command":format!("sh '{}'", script.display())}}}))
+        .await;
+    timeout(Duration::from_secs(10), async {
+        while !started.exists() {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("check actually began");
+    owner.child.kill().await.expect("kill fixture owner");
+    owner.child.wait().await.expect("reap fixture owner");
+    let interrupted = survivor
+        .response()
+        .await
+        .expect("interrupted call answered");
+    assert_eq!(interrupted["id"], 77, "{interrupted}");
+    assert_eq!(interrupted["result"]["isError"], true, "{interrupted}");
+    assert_eq!(
+        interrupted["result"]["structuredContent"]["effect"],
+        "unknown"
+    );
+    assert_eq!(
+        interrupted["result"]["structuredContent"]["recovery"]["action"],
+        "read_back"
+    );
+    let recovered = survivor.call("ship_status", json!({})).await;
+    assert_eq!(recovered["active_task"]["id"], "interrupted");
+    assert!(
+        recovered["checks"].as_array().unwrap().is_empty(),
+        "{recovered}"
+    );
+    // A duplicate answer for 77 would be the next line, instead of this ping.
+    survivor
+        .send(json!({"jsonrpc":"2.0","id":78,"method":"ping"}))
+        .await;
+    let ping = survivor.response().await.expect("connection stays open");
+    assert_eq!(ping["id"], 78, "{ping}");
+    assert_eq!(
+        std::fs::read_to_string(&started).unwrap(),
+        "invoked\n",
+        "no automatic mutation replay"
+    );
+    survivor.disconnect().await;
 }
 
 #[tokio::test]

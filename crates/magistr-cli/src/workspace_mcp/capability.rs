@@ -52,6 +52,9 @@ impl Capability {
         .with_instructions(tool_surface::INSTRUCTIONS)
         .with_server_info(Implementation::new("magistr", env!("CARGO_PKG_VERSION")));
         info.protocol_version = ProtocolVersion::V_2025_06_18;
+        if let Some(tools) = info.capabilities.tools.as_mut() {
+            tools.list_changed = Some(true);
+        }
         info
     }
 

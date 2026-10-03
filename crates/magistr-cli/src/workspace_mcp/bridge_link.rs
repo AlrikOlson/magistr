@@ -1,34 +1,22 @@
 //! The bridge's side of one owner: an in-process service over a duplex, or
 //! the socket a running owner welcomed this process on.
 
-use std::{pin::Pin, sync::Arc, time::Duration};
+use std::sync::Arc;
 
+use crate::mcp_bridge::Frames;
 use color_eyre::eyre;
 use magistr_workspace::service::{WorkspaceOpenOptions, WorkspaceService};
 use rmcp::{ServiceExt, service::ServerInitializeError};
-use serde_json::Value;
-use tokio::{
-    io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader, Lines},
-    task::JoinHandle,
-};
+use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
 use super::{WorkspaceMcpService, connection::WorkspaceConnection};
 use crate::mcp_tools::protocol_cap::ProtocolCap;
 
-/// How long a replayed `initialize` may take a new owner.
-const REPLAY_DEADLINE: Duration = Duration::from_secs(5);
-
-type Reader = Lines<BufReader<Pin<Box<dyn AsyncRead + Send>>>>;
-type Writer = Pin<Box<dyn AsyncWrite + Send>>;
-
 /// One reachable owner. Lines go in and out exactly as MCP frames them; the
 /// bridge never reorders or batches them.
 pub(super) struct Link {
-    reader: Reader,
-    /// `None` once the client's side has been half-closed: the owner sees
-    /// EOF, finishes what is in flight and closes its side in turn.
-    writer: Option<Writer>,
+    frames: Frames,
     embedded: Option<Embedded>,
     generation: u64,
 }
@@ -60,16 +48,11 @@ impl Link {
         match connection {
             WorkspaceConnection::Owner(service) => Self::embed(service).await,
             #[cfg(any(unix, windows))]
-            WorkspaceConnection::Attached { generation, stream } => {
-                let (read, write) = tokio::io::split(stream);
-                Ok(Self {
-                    reader: BufReader::new(Box::pin(read) as Pin<Box<dyn AsyncRead + Send>>)
-                        .lines(),
-                    writer: Some(Box::pin(write)),
-                    embedded: None,
-                    generation: generation.get(),
-                })
-            }
+            WorkspaceConnection::Attached { generation, stream } => Ok(Self {
+                frames: Frames::new(stream),
+                embedded: None,
+                generation: generation.get(),
+            }),
         }
     }
 
@@ -112,11 +95,9 @@ impl Link {
                 Err(error) => Err(eyre::Report::from(error)),
             }
         });
-        let (client_read, client_write) = tokio::io::split(client_side);
         let generation = service.generation().get();
         Ok(Self {
-            reader: BufReader::new(Box::pin(client_read) as Pin<Box<dyn AsyncRead + Send>>).lines(),
-            writer: Some(Box::pin(client_write)),
+            frames: Frames::new(client_side),
             embedded: Some(Embedded {
                 service,
                 #[cfg(any(unix, windows))]
@@ -140,20 +121,12 @@ impl Link {
 
     /// The next owner line; `None` once the owner is gone.
     pub(super) async fn next_line(&mut self) -> Option<String> {
-        self.reader.next_line().await.ok().flatten()
+        self.frames.next_line().await
     }
 
     /// Send one client line to the owner.
     pub(super) async fn send(&mut self, line: &str) -> std::io::Result<()> {
-        let Some(writer) = self.writer.as_mut() else {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "the client's side of the link is closed",
-            ));
-        };
-        writer.write_all(line.as_bytes()).await?;
-        writer.write_all(b"\n").await?;
-        writer.flush().await
+        self.frames.send(line).await
     }
 
     /// The client is gone: stop sending, so the owner sees EOF and answers
@@ -162,43 +135,8 @@ impl Link {
     /// attached owner there keeps its side open and the caller must stop
     /// reading once its last answer is in.
     pub(super) async fn half_close(&mut self) -> bool {
-        if let Some(mut writer) = self.writer.take() {
-            // A split duplex retains the stream through its read half; dropping
-            // only the writer does not deliver EOF. A lost peer is already closed.
-            let _ = writer.shutdown().await;
-        }
+        self.frames.half_close().await;
         self.embedded.is_some() || cfg!(unix)
-    }
-
-    /// Initialize this owner on the client's behalf: send the recorded
-    /// `initialize`, wait for its answer (owner lines that are not that answer
-    /// are handed back for the client), then send `initialized`.
-    pub(super) async fn replay(
-        &mut self,
-        id: &Value,
-        initialize: &Value,
-        initialized: &Value,
-    ) -> eyre::Result<Vec<String>> {
-        self.send(&initialize.to_string()).await?;
-        let mut passthrough = Vec::new();
-        let answered = tokio::time::timeout(REPLAY_DEADLINE, async {
-            while let Some(line) = self.next_line().await {
-                let message: Value = serde_json::from_str(&line).unwrap_or(Value::Null);
-                if message.get("id") == Some(id) && message.get("method").is_none() {
-                    return message.get("error").is_none();
-                }
-                passthrough.push(line);
-            }
-            false
-        })
-        .await;
-        match answered {
-            Ok(true) => {}
-            Ok(false) => eyre::bail!("the owner refused the replayed initialize"),
-            Err(_) => eyre::bail!("the owner did not answer the replayed initialize in time"),
-        }
-        self.send(&initialized.to_string()).await?;
-        Ok(passthrough)
     }
 
     /// End the link: an attached socket is simply closed; an embedded owner
@@ -206,13 +144,9 @@ impl Link {
     /// workspace down in the order the service requires.
     pub(super) async fn close(self) -> eyre::Result<()> {
         let Self {
-            reader,
-            writer,
-            embedded,
-            ..
+            frames, embedded, ..
         } = self;
-        drop(reader);
-        drop(writer);
+        drop(frames);
         let Some(owner) = embedded else {
             return Ok(());
         };
@@ -240,3 +174,28 @@ async fn shutdown_service(service: Arc<WorkspaceService>) -> eyre::Result<()> {
 #[cfg(test)]
 #[path = "bridge_link.tests.rs"]
 mod tests;
+
+impl crate::mcp_bridge::BridgeLink for Link {
+    type Options = WorkspaceOpenOptions;
+    async fn open(options: &Self::Options) -> Result<Self, String> {
+        Self::open(options).await.map_err(|e| e.to_string())
+    }
+    fn generation(&self) -> u64 {
+        self.generation()
+    }
+    fn is_embedded(&self) -> bool {
+        self.is_embedded()
+    }
+    async fn next_line(&mut self) -> Option<String> {
+        self.next_line().await
+    }
+    async fn send(&mut self, line: &str) -> std::io::Result<()> {
+        self.send(line).await
+    }
+    async fn half_close(&mut self) -> bool {
+        self.half_close().await
+    }
+    async fn close(self) -> eyre::Result<()> {
+        self.close().await
+    }
+}

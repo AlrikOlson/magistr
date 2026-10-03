@@ -11,14 +11,11 @@ use super::attach_refusal::AttachRefusal;
 /// compiled, so it is independent of the package version alone, of any
 /// workspace source snapshot and of the owner generation an admission mints.
 ///
-/// Admission requires an exact build: every field equal. Two binaries
-/// compiled from one source tree at one profile for one target carry the
-/// same identity wherever and whenever they were built, so a copied install
-/// attaches to a running owner of the same build; a rebuilt tree, another
-/// checkout, or the other profile of the same tree is refused with both
-/// identities named. There is no equal-version relaxation: widening what
-/// attaches is a deliberate change to the wire, made by editing this rule
-/// under a new protocol version, never by an ambient override.
+/// Typed command and probe admission requires every field to be equal.
+/// These clients decode native records from their own compiled contract.
+/// MCP attachments instead forward opaque frames to the owner's discovered
+/// tool definitions and handlers; the proxy's build does not define those
+/// operations. Protocol, identity and peer-user checks still apply.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BuildIdentity {
     package: String,

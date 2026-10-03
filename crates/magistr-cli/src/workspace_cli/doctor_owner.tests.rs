@@ -7,6 +7,34 @@ use super::*;
 
 const WAIT: Duration = Duration::from_secs(5);
 
+#[test]
+fn a_different_build_limits_diagnostics_without_reporting_a_broken_connection() {
+    let served = BuildIdentity::new(
+        "0.1.0",
+        "1111111111111111",
+        "release",
+        "aarch64-apple-darwin",
+    );
+    let offered = BuildIdentity::new("0.1.0", "2222222222222222", "debug", "aarch64-apple-darwin");
+    let liveness = OwnerLiveness::Refused(AttachRefusal::Build {
+        served: Box::new(served),
+        offered: Box::new(offered),
+    });
+    let mut findings = Vec::new();
+    probe_findings(&liveness, "fixture", Some(1), &mut findings);
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].severity, DoctorSeverity::Info);
+    assert!(
+        findings[0].remediation.is_none(),
+        "do not tell users to end working sessions"
+    );
+    assert!(
+        findings[0]
+            .symptom
+            .contains("does not determine whether MCP tools can connect")
+    );
+}
+
 fn acceptor() -> McpAcceptor {
     Arc::new(|stream: tokio::net::UnixStream, cancel| {
         Box::pin(async move {

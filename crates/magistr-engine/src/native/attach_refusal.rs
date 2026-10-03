@@ -21,11 +21,10 @@ pub enum AttachRefusal {
         /// What the client asked for.
         offered: u32,
     },
-    /// The client is another build of Magistr; only the exact build is
-    /// served ([`BuildIdentity::admits`]), so the client waits for this
-    /// owner's session to end rather than mix two contracts across one
-    /// workspace. Both identities are named so the difference — another
-    /// checkout, the other profile, a stale install — is visible.
+    /// A typed command or probe client is another build of Magistr.
+    /// These native records require an exact build ([`BuildIdentity::admits`]).
+    /// Opaque MCP sessions are defined entirely by the owner and do not use
+    /// this refusal. Both identities are named for diagnostics.
     Build {
         /// The owner's build.
         served: Box<BuildIdentity>,

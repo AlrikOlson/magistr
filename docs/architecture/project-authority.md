@@ -300,7 +300,7 @@ whatever else it carries — that refusal has had the same shape since
 version 3 — while a line that is no `Hello` at all gets no greeting. It then
 checks the peer credential of the socket — the connecting process must be
 the owner's own user, which the socket's file mode also enforces — and then
-the build, identity and offered kind, answering `Welcome` with its
+the native build for typed commands/probes, identity and offered kind, answering `Welcome` with its
 generation and pid or `Refused` with the reason. The caller identity is
 kept for diagnostics — it is what the owner's report names for each live
 session — and the credential is the proof.
@@ -336,17 +336,18 @@ generation an admission mints. It has four fields:
 | `profile` | `debug` or `release` |
 | `target` | The target triple |
 
-Admission requires an exact build: an owner serves a client only when all
-four fields are equal (`BuildIdentity::admits`), and `AttachRefusal::Build`
-names both identities so the difference — another checkout, a rebuilt tree,
-the other profile, a stale install on `PATH` — is visible in the refusal.
-Two binaries compiled from one source tree at one profile for one target
-carry the same identity wherever and whenever they were built, so a copied
-install attaches to a running owner of the same build. There is no
-equal-version relaxation and no ambient override: widening what attaches is
-a deliberate change to the rule under a new protocol version. Version 3
-carried the package version alone and could not tell two builds of one
-version apart; version 4 carries the identity, and version 5 keeps it.
+Typed command and probe attachments require all four fields to be equal
+(`BuildIdentity::admits`), because those clients decode native records using
+their compiled types. A refusal names both identities.
+
+MCP attachments carry opaque JSON-RPC frames. The owner supplies the complete
+tool definitions and executes every handler; a proxy opens no engine and
+does not interpret native command or reply records. Its source digest and
+build profile therefore do not govern MCP attachment. Protocol, peer-user,
+project/root identity and offered attachment checks still apply. Rebuilding
+or reinstalling Magistr does not require existing agent sessions to close.
+There is one admitted owner and one served implementation at a time; no
+old-API adaptation or second writer is introduced.
 
 ### What an owner serves
 
@@ -355,12 +356,15 @@ version apart; version 4 carries the identity, and version 5 keeps it.
 | Cockpit `run`, cockpit `next` / `next-loop`, plain and headless `next-loop` (Host) | `OwnerEndpoint::serve` over the writer: typed `OwnerCommand`s — every `NativeEngines` verb, carried out by `NativeEngines::apply` on the host's own writer. | A second `magistr run` on the project: `EngineClient::admit_or_attach` attaches when the host lease is held and its `AttachedEnginePort` sends each cockpit verb to the running host. Reads still come from the attached cockpit's own `NativeReader`, the feed and the re-seed timer. |
 | `magistr mcp-serve` (Service) | `OwnerEndpoint::serve_mcp` over the bare admission: an rmcp session of the same `MagistrService`, under the same protocol cap, on every welcomed socket. Typed commands are refused at the handshake. | A second `magistr mcp-serve` on the project: refused the Service lease, it attaches as `mcp` and proxies its stdio to the owner's session, so a second agent session in one project gets the full tool set through the one admitted writer. |
 
-`magistr workspace serve` also uses the MCP endpoint with
-`OwnerIdentity::Workspace`, and unlike the workflow proxy its attached
-invocation is a bridge that outlives the owner: it answers in-flight calls
-with a typed refusal and reconnects — attaching or admitting — on its next
-request. Its admission, policy and process lifetime are described in the
-[workspace guide](workspace-owner.md).
+Both workflow and workspace MCP invocations use the shared CLI `mcp_bridge`
+for client lifetime, JSON-RPC request tracking and initialize-only replay.
+Each surface supplies its own admission, shutdown and refusal presentation.
+A bridge outlives an attached owner: it answers in-flight calls exactly once
+with a refusal naming unknown effects, retains discovery, and reconnects —
+attaching or admitting — on its next request. It never replays a tool call.
+A successful reconnect emits `notifications/tools/list_changed` when the
+negotiated tools capability supports it, so clients discover the new owner's
+current tools. The workspace's policy is described in the [workspace guide](workspace-owner.md).
 
 `next` and `next-loop` on a held host stay refused: execution cycles are
 serialized per project by design, and a loop that cannot be the host is not
@@ -393,8 +397,9 @@ Nothing an attached client does keeps the owner alive, and the owner never
 waits for a client. Attached surfaces see EOF: the attached cockpit's port
 reports the owner gone and reconnects on its next verb (to whoever owns the
 project next, refusing once when the generation changed); the attached
-`mcp-serve` ends with an error telling the client to start a new server, which
-then takes the lease itself.
+`mcp-serve` bridge keeps the client's stdio connection open, answers any
+interrupted request with a read-back refusal, and attaches or admits on the
+next request. The client's initialize is the only replayed request.
 
 ### Detach
 

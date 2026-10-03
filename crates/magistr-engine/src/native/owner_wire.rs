@@ -39,9 +39,8 @@ pub const OWNER_PROTOCOL_VERSION: u32 = 5;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Hello {
     pub(crate) protocol: u32,
-    /// The client's build; an owner serves only its exact build
-    /// ([`BuildIdentity::admits`]), so a session never mixes two contracts
-    /// across one workspace.
+    /// The client's build. Typed commands and probe records require exact
+    /// equality; opaque MCP connections use the owner's tool contract.
     pub(crate) build: BuildIdentity,
     pub(crate) identity: OwnerIdentity,
     pub(crate) attach: AttachKind,
