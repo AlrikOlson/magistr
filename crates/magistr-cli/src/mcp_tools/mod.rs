@@ -29,6 +29,8 @@ pub(crate) mod gate;
 pub(crate) mod hooks;
 mod init;
 mod owner_attach;
+mod owner_link;
+pub(crate) mod owner_policy;
 #[cfg(unix)]
 pub(crate) mod owner_stdio;
 pub mod protocol_cap;
@@ -456,8 +458,6 @@ fn normalize_path(path: &Path) -> PathBuf {
 ///
 /// This is the entry point for `magistr mcp-serve`.
 pub async fn run_stdio_server(project_root: PathBuf) -> eyre::Result<()> {
-    use rmcp::ServiceExt;
-
     // Validate required executables at startup; stderr is the log channel of
     // a stdio MCP server, stdout carries only the transport.
     for warning in validate_project_executables(&project_root) {
@@ -470,33 +470,26 @@ pub async fn run_stdio_server(project_root: PathBuf) -> eyre::Result<()> {
         tracing::warn!(target: "magistr::mcp", "could not enter {}: {e}", project_root.display());
     }
 
-    // The project's service owner — or, when another `magistr mcp-serve`
-    // already owns it, a proxy on that owner's endpoint: a second agent
-    // session in the same project gets the same tools through the one
-    // admitted writer, and this process holds no lease of its own.
-    let service = match MagistrService::for_project(project_root.clone()).await {
-        Ok(service) => service,
-        Err(refusal) if refusal.kind() == std::io::ErrorKind::WouldBlock => {
-            return owner_attach::proxy_to_owner(&project_root, &refusal).await;
-        }
-        Err(error) => return Err(error.into()),
+    // Capture one writer configuration for admission and every later reconnect.
+    let config = magistr_core::evidence::writer_config_from_env(&project_root);
+    #[cfg(unix)]
+    let config = config.with_project_socket_default();
+    let options = owner_link::Options {
+        root: project_root,
+        config,
     };
-    // Served for the stdio session and dropped with it, so attached
-    // sessions end when the owner does.
-    let owner_endpoint = service.serve_owner_endpoint().await?;
-    // Cap the negotiated MCP protocol below 2026-07-28 — the Claude Agent
-    // SDK's bundled CLI rejects that era's SEP-2322 result shapes and kills
-    // the server after three failed tools/list attempts (see `protocol_cap`).
-    let transport = protocol_cap::ProtocolCap::new(
-        &service,
-        rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport(
-            rmcp::transport::stdio(),
-        ),
-    );
-    let running = service.serve(transport).await?;
-    running.waiting().await?;
-    drop(owner_endpoint);
-    Ok(())
+    use crate::mcp_bridge::{Bridge, BridgeLink};
+    let link = owner_link::Link::open(&options)
+        .await
+        .map_err(|e| eyre::eyre!("{e}"))?;
+    Bridge::new(
+        options,
+        "workflow".to_owned(),
+        owner_policy::Policy,
+        Ok(link),
+    )
+    .run()
+    .await
 }
 
 #[cfg(test)]

@@ -5,8 +5,9 @@ use magistr_workspace::{
     service::{WorkspaceOpenError, WorkspaceOpenOptions, mint_session_identity},
 };
 
-use super::{bridge::Bridge, bridge_link::Link};
+use super::{bridge_link::Link, capability::Capability};
 use crate::config::inputs::ProjectInputs;
+use crate::mcp_bridge::Bridge;
 
 /// Pinned interpreter embedded in the shipping binary.
 const QJS_WASI: &[u8] =
@@ -47,7 +48,8 @@ pub async fn run_workspace_stdio_server(
         Some(named) => named.to_owned(),
         None => mint_session_identity("bridge").map_err(|error| eyre::eyre!("{error}"))?,
     };
-    Bridge::new(options, identity, link).run().await
+    let capability = Capability::new(options.offers_script());
+    Bridge::new(options, identity, capability, link).run().await
 }
 
 /// The open options every Magistr owner of the captured project composes —

@@ -1,6 +1,8 @@
 use super::*;
 
-fn session() -> ClientSession {
+use crate::mcp_bridge::{ClientSession, Inbound};
+
+fn session() -> ClientSession<Capability> {
     ClientSession::new("bridge-test".to_owned(), Capability::new(true))
 }
 

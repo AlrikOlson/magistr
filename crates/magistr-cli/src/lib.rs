@@ -34,6 +34,7 @@ pub mod codex_launch;
 pub mod context;
 pub mod cost;
 pub mod headless;
+mod mcp_bridge;
 pub mod mcp_target;
 pub mod mcp_tools;
 pub mod memory;

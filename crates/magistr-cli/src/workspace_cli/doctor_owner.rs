@@ -162,11 +162,10 @@ fn probe_findings(
             }
         }
         OwnerLiveness::Refused(AttachRefusal::Build { served, offered }) => {
-            findings.push(DoctorFinding::unhealthy(
+            findings.push(DoctorFinding::info(
                 "owner",
                 DoctorDataClass::NotApplicable,
-                format!("a live owner at {endpoint} is another build: it is {served}, this binary is {offered}; its generation and sessions are not readable from here"),
-                "end that owner's session before this binary serves the workspace, or run the doctor from the owner's own build",
+                format!("Magistr is running at {endpoint} as {served}; this installation is {offered}. Detailed session information is unavailable from this build. This diagnostic does not determine whether MCP tools can connect."),
             ));
         }
         OwnerLiveness::Refused(refusal) => {

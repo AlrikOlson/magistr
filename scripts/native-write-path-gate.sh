@@ -206,7 +206,7 @@ while IFS= read -r f; do
     case "$f" in
         crates/magistr-engine/src/native/*) continue ;;
         crates/magistr-cli/src/application/workflow_client/client.rs) continue ;;
-        crates/magistr-cli/src/mcp_tools/owner_attach.rs) continue ;;
+        crates/magistr-cli/src/mcp_tools/owner_link.rs) continue ;;
         crates/magistr-cli/src/workspace_mcp/connection.rs) continue ;;
     esac
     hits=$(grep -nE 'OwnerClient::attach(_project|_with|_mcp|_workspace)?\(' "$f" | grep -vE '^[0-9]+:\s*//' || true)

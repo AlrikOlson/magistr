@@ -408,7 +408,12 @@
 				"src/protocol/workspace.ts"
 			],
 			"native_outputs": [
-				"crates/magistr-cli/src/workspace_mcp/bridge.rs",
+				"crates/magistr-cli/src/mcp_bridge.rs",
+				"crates/magistr-cli/src/mcp_bridge/bridge.rs",
+				"crates/magistr-cli/src/mcp_bridge/frames.rs",
+				"crates/magistr-cli/src/mcp_bridge/link.rs",
+				"crates/magistr-cli/src/mcp_bridge/session.rs",
+				"crates/magistr-cli/src/mcp_bridge/session_policy.rs",
 				"crates/magistr-cli/src/workspace_mcp/bridge_link.rs",
 				"crates/magistr-cli/src/workspace_mcp/bridge_session.rs",
 				"crates/magistr-cli/src/workspace_mcp/serve.rs",

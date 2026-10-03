@@ -1,13 +1,12 @@
 use super::*;
-use tokio::io::AsyncReadExt;
+use std::time::Duration;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[tokio::test]
 async fn half_close_delivers_eof_while_preserving_the_response_reader() {
     let (client, mut server) = tokio::io::duplex(64);
-    let (read, write) = tokio::io::split(client);
     let mut link = Link {
-        reader: BufReader::new(Box::pin(read) as Pin<Box<dyn AsyncRead + Send>>).lines(),
-        writer: Some(Box::pin(write)),
+        frames: Frames::new(client),
         embedded: None,
         generation: 1,
     };

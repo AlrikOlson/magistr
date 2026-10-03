@@ -43,11 +43,12 @@ project identity, store and writer roles. Aliases resolve to the same owner;
 distinct roots, including separate worktrees, have independent services and
 journals. The shared [project owner protocol](project-authority.md#handshake-and-identity)
 uses `Hello` version 5, which carries a
-[`BuildIdentity`](project-authority.md#build-identity): an owner serves only
-clients of its exact build — package version, contract digest, profile and
-target — and refuses any other with `AttachRefusal::Build` naming both
-identities, so one workspace never mixes two contracts even when their
-package versions are equal. Workspace endpoints accept MCP connections, not
+[`BuildIdentity`](project-authority.md#build-identity) for diagnostics and typed
+native attachment. MCP connections are opaque proxies: the owner alone supplies
+the tool definitions and runs their handlers, so a rebuilt proxy attaches to
+the running owner without opening another service. Exact protocol, canonical
+root and peer-user checks still apply. Typed command and probe connections
+retain exact build admission. Workspace endpoints accept MCP connections, not
 workflow commands. Socket peer credentials restrict attachment to the owner's
 operating-system user.
 
@@ -183,9 +184,11 @@ nothing admitted, minted, marked or written.
   bridges and the cockpit's port, `commands` for a workflow client); the
   embedded owner's own client speaks over an in-process duplex and is not
   a socket session, so a lone `magistr run` reports zero. A durable counter
-  that disagrees with the live owner, a live owner of another build (named
-  with both identities), a refused probe and a listener that accepts but
-  never greets are unhealthy findings; no endpoint, or an endpoint file
+  that disagrees with the live owner, a refused identity/user probe and a
+  listener that accepts but never greets are unhealthy findings. A probe
+  refused on build equality is informational: it names the running build
+  and the diagnostic limitation without judging MCP attachment or telling
+  the user to close a working session; no endpoint, or an endpoint file
   nothing answers on, is reported as *no owner reachable* with the counter
   named as the last admission, never as a live owner. A legacy or
   unrecognized record is the migration finding.

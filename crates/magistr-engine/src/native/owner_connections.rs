@@ -214,7 +214,13 @@ impl OwnerConnections {
         self.admit_peer(stream)?;
         // The protocol version was decided when the line was parsed
         // (`Hello::parse`); a `Hello` that reaches here speaks this one.
-        self.build.admits(&hello.build)?;
+        // MCP peers forward opaque frames to this owner's tool definitions and
+        // handlers. Their source build does not define the served behavior.
+        // Typed commands and diagnostic records cross the native contract and
+        // still require an exact build.
+        if hello.attach != AttachKind::Mcp {
+            self.build.admits(&hello.build)?;
+        }
         self.identity.admit(&hello.identity)?;
         let offered = match hello.attach {
             AttachKind::Mcp => self.mcp.is_some(),
