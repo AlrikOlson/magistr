@@ -61,11 +61,12 @@ impl MagistrService {
         let acceptor: McpAcceptor = Arc::new(move |stream: tokio::net::UnixStream, cancel| {
             let service = service.clone();
             Box::pin(async move {
-                let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<
-                    rmcp::service::RoleServer,
-                    io::Error,
-                    _,
-                >::into_transport(stream));
+                let transport = ProtocolCap::new(
+                    &service,
+                    rmcp::transport::IntoTransport::<rmcp::service::RoleServer, io::Error, _>::into_transport(
+                        stream,
+                    ),
+                );
                 match service.serve_with_ct(transport, cancel).await {
                     Ok(running) => {
                         let _ = running.waiting().await;

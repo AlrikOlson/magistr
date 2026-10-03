@@ -168,7 +168,7 @@ fn all_covers_every_stack_and_custom_gates_once() {
 }
 
 #[test]
-fn an_archetype_with_empty_commands_contributes_nothing() {
+fn an_archetype_with_empty_commands_keeps_its_unconfigured_required_gate() {
     let cfg = base_config(json!([
         archetype(
             "app",
@@ -181,7 +181,15 @@ fn an_archetype_with_empty_commands_contributes_nothing() {
     ]));
 
     let specs = resolve_gates(&cfg, "test").unwrap();
-    assert_eq!(specs.len(), 1);
+    assert_eq!(specs.len(), 2);
+    assert_eq!(specs[0].name, "test");
+    assert_eq!(specs[0].command, "cargo nextest run --workspace");
+    assert_eq!(specs[1].name, "test:docs");
+    assert!(specs[1].command.is_empty());
+    assert!(
+        specs[1].required,
+        "missing checks cannot disappear from required coverage"
+    );
 }
 
 /// `magistr_gate`'s own documentation says "'all' runs standard + required

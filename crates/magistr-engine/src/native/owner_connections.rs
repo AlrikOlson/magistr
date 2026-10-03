@@ -9,18 +9,46 @@ use std::{
     time::Duration,
 };
 
+#[cfg(unix)]
+use tokio::net::UnixListener;
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    net::{UnixListener, UnixStream},
     task::JoinSet,
 };
 use tokio_util::sync::CancellationToken;
 
+#[cfg(windows)]
+use super::owner_pipe::PipeListener;
 use super::owner_wire::{ClientFrame, CommandRefusal, Greeting, Hello, ReplyFrame};
 use super::{
-    AttachKind, AttachRefusal, BuildIdentity, McpAcceptor, NativeEngines, OwnerConnectionRecord,
-    OwnerGeneration, OwnerIdentity, OwnerReport, ProjectAuthority,
+    AttachKind, AttachRefusal, BuildIdentity, LocalStream, McpAcceptor, NativeEngines,
+    OwnerConnectionRecord, OwnerGeneration, OwnerIdentity, OwnerReport, ProjectAuthority,
 };
+
+/// Who the owner runs as, the user every connecting peer must be: a uid.
+#[cfg(unix)]
+pub(super) type OwnerUser = u32;
+/// Who the owner runs as, the user every connecting peer must be: a
+/// string SID.
+#[cfg(windows)]
+pub(super) type OwnerUser = String;
+
+/// Where connections arrive: a bound Unix socket.
+#[cfg(unix)]
+pub(super) type Listener = UnixListener;
+/// Where connections arrive: the owner's pipe.
+#[cfg(windows)]
+pub(super) type Listener = PipeListener;
+
+#[cfg(unix)]
+async fn accept(listener: &mut Listener) -> io::Result<LocalStream> {
+    listener.accept().await.map(|(stream, _)| stream)
+}
+
+#[cfg(windows)]
+async fn accept(listener: &mut Listener) -> io::Result<LocalStream> {
+    listener.accept().await.map(LocalStream::Server)
+}
 
 /// The admitted service and writer guard. Connection tasks only retain this
 /// value while checking admission or executing a typed command. MCP futures
@@ -31,7 +59,7 @@ pub(super) struct OwnerConnections {
     engines: Option<NativeEngines>,
     generation: OwnerGeneration,
     build: BuildIdentity,
-    uid: u32,
+    user: OwnerUser,
     mcp: Option<McpAcceptor>,
     /// Every welcomed `mcp` or `commands` session still running, keyed so
     /// its guard removes exactly itself. Probes are answered and closed
@@ -64,7 +92,7 @@ impl OwnerConnections {
         authority: Option<Arc<ProjectAuthority>>,
         engines: Option<NativeEngines>,
         generation: OwnerGeneration,
-        uid: u32,
+        user: OwnerUser,
         mcp: Option<McpAcceptor>,
     ) -> Self {
         Self {
@@ -73,7 +101,7 @@ impl OwnerConnections {
             engines,
             generation,
             build: BuildIdentity::this_build(),
-            uid,
+            user,
             mcp,
             sessions: Mutex::new(Vec::new()),
             next_session: AtomicU64::new(1),
@@ -116,15 +144,15 @@ impl OwnerConnections {
 
     const CONNECTION_LIMIT: usize = 128;
 
-    pub(super) async fn serve(listener: UnixListener, shared: Weak<Self>, stop: CancellationToken) {
+    pub(super) async fn serve(mut listener: Listener, shared: Weak<Self>, stop: CancellationToken) {
         let mut connections = JoinSet::new();
         loop {
             tokio::select! {
                 biased;
                 _ = stop.cancelled() => break,
                 Some(_) = connections.join_next(), if !connections.is_empty() => {},
-                accepted = listener.accept() => match accepted {
-                    Ok((stream, _)) => {
+                accepted = accept(&mut listener) => match accepted {
+                    Ok(stream) => {
                         if connections.len() >= Self::CONNECTION_LIMIT {
                             // Admission counts idle handshakes and live sessions
                             // together. Refuse excess peers without spawning work.
@@ -148,16 +176,42 @@ impl OwnerConnections {
         while connections.join_next().await.is_some() {}
     }
 
-    fn admit(&self, stream: &UnixStream, hello: &Hello) -> Result<(), AttachRefusal> {
+    /// Refuse a peer that is not the owner's user.
+    #[cfg(unix)]
+    fn admit_peer(&self, stream: &LocalStream) -> Result<(), AttachRefusal> {
         let peer = stream
             .peer_cred()
             .map_err(|error| AttachRefusal::Caller(error.to_string()))?;
-        if peer.uid() != self.uid {
+        if peer.uid() != self.user {
             return Err(AttachRefusal::Caller(format!(
                 "uid {} is not the owner's user",
                 peer.uid()
             )));
         }
+        Ok(())
+    }
+
+    /// Refuse a peer that is not the owner's user, read from the client's
+    /// own token.
+    #[cfg(windows)]
+    fn admit_peer(&self, stream: &LocalStream) -> Result<(), AttachRefusal> {
+        let LocalStream::Server(pipe) = stream else {
+            return Err(AttachRefusal::Caller(
+                "not a connection this owner accepted".to_owned(),
+            ));
+        };
+        let peer = super::user_sid::client_user(pipe)
+            .map_err(|error| AttachRefusal::Caller(error.to_string()))?;
+        if peer != self.user {
+            return Err(AttachRefusal::Caller(format!(
+                "{peer} is not the owner's user"
+            )));
+        }
+        Ok(())
+    }
+
+    fn admit(&self, stream: &LocalStream, hello: &Hello) -> Result<(), AttachRefusal> {
+        self.admit_peer(stream)?;
         // The protocol version was decided when the line was parsed
         // (`Hello::parse`); a `Hello` that reaches here speaks this one.
         self.build.admits(&hello.build)?;
@@ -175,7 +229,7 @@ impl OwnerConnections {
 }
 
 async fn serve_connection(
-    mut stream: UnixStream,
+    mut stream: LocalStream,
     shared: Weak<OwnerConnections>,
     stop: CancellationToken,
 ) {
@@ -247,7 +301,7 @@ async fn serve_connection(
 }
 
 /// Read exactly the handshake line, without consuming the MCP bytes after it.
-async fn read_hello_line(stream: &mut UnixStream) -> io::Result<Vec<u8>> {
+async fn read_hello_line(stream: &mut LocalStream) -> io::Result<Vec<u8>> {
     const MAX_HELLO: usize = 64 * 1024;
     let mut line = Vec::new();
     let mut byte = [0_u8; 1];
@@ -277,8 +331,8 @@ async fn write_line<T: serde::Serialize>(
     writer.flush().await
 }
 
-async fn command_loop(stream: UnixStream, shared: Weak<OwnerConnections>) -> io::Result<()> {
-    let (read, mut write) = stream.into_split();
+async fn command_loop(stream: LocalStream, shared: Weak<OwnerConnections>) -> io::Result<()> {
+    let (read, mut write) = tokio::io::split(stream);
     let mut lines = BufReader::new(read).lines();
     while let Some(line) = lines.next_line().await? {
         let frame: ClientFrame = serde_json::from_str(&line)

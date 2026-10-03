@@ -24,11 +24,12 @@ pub(crate) async fn serve(service: Arc<WorkspaceService>) -> io::Result<OwnerEnd
                 }
             };
             let complete = handler.completion();
-            let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<
-                rmcp::service::RoleServer,
-                io::Error,
-                _,
-            >::into_transport(stream));
+            let transport = ProtocolCap::new(
+                &handler,
+                rmcp::transport::IntoTransport::<rmcp::service::RoleServer, io::Error, _>::into_transport(
+                    stream,
+                ),
+            );
             match handler.serve_with_ct(transport, cancel).await {
                 Ok(running) => {
                     let _ = running.waiting().await;

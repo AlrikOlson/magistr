@@ -92,6 +92,7 @@ pub struct ProjectInputs {
     /// `MAGISTR_GITHUB_CLIENT_ID`, the GitHub OAuth app for `magistr login`.
     github_client_id: Option<String>,
     agent_backend: Option<String>,
+    session_selection: Option<crate::config::session_selection::SessionSelection>,
     claude_api_key: bool,
     plugin_index_url: Option<String>,
     workspace_env: BTreeMap<String, String>,
@@ -274,6 +275,7 @@ impl ProjectInputs {
             budget_requested,
             github_client_id,
             agent_backend,
+            session_selection: None,
             claude_api_key,
             plugin_index_url,
             workspace_env,
@@ -376,6 +378,21 @@ impl ProjectInputs {
         self.sources
             .insert("session.budget_requested", InputSource::Explicit);
         self
+    }
+
+    /// Freeze the same non-secret agent settings for every session in this run.
+    #[must_use]
+    pub fn with_session_selection(
+        mut self,
+        selection: crate::config::session_selection::SessionSelection,
+    ) -> Self {
+        self.session_selection = Some(selection);
+        self
+    }
+
+    #[must_use]
+    pub fn session_selection(&self) -> Option<&crate::config::session_selection::SessionSelection> {
+        self.session_selection.as_ref()
     }
 
     // ── Captured values ──────────────────────────────────────────────

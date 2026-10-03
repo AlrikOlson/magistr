@@ -5,6 +5,23 @@ use cli_test_support::parse_cli;
 use super::*;
 
 #[test]
+fn terminal_view_requires_a_supported_platform_even_with_terminal_stdio() {
+    assert_eq!(should_use_tui(false, true, true), cfg!(unix));
+}
+
+#[test]
+fn terminal_view_respects_explicit_plain_output() {
+    assert!(!should_use_tui(true, true, true));
+}
+
+#[test]
+fn terminal_view_requires_both_input_and_output_terminals() {
+    for (stdin_terminal, stdout_terminal) in [(false, true), (true, false), (false, false)] {
+        assert!(!should_use_tui(false, stdin_terminal, stdout_terminal));
+    }
+}
+
+#[test]
 fn sanitize_prefix_basic() {
     assert_eq!(utils::slug::sanitize_prefix("My Project"), "my-project");
 }
@@ -606,7 +623,8 @@ fn cli_budget_flags_default_to_none() {
 fn cli_parses_model_flag() {
     let cli = parse_cli(["magistr", "run", "--model", "sonnet", "fix the bug"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { model, .. } => {
+        cli::Command::Run { agent, .. } => {
+            let model = agent.model;
             assert_eq!(model.as_deref(), Some("sonnet"));
         }
         _ => panic!("expected Run command"),
@@ -617,7 +635,8 @@ fn cli_parses_model_flag() {
 fn cli_parses_model_flag_short() {
     let cli = parse_cli(["magistr", "run", "-m", "opus", "refactor this"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { model, .. } => {
+        cli::Command::Run { agent, .. } => {
+            let model = agent.model;
             assert_eq!(model.as_deref(), Some("opus"));
         }
         _ => panic!("expected Run command"),
@@ -628,7 +647,8 @@ fn cli_parses_model_flag_short() {
 fn cli_run_model_defaults_to_none() {
     let cli = parse_cli(["magistr", "run", "hello"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { model, .. } => {
+        cli::Command::Run { agent, .. } => {
+            let model = agent.model;
             assert!(model.is_none());
         }
         _ => panic!("expected Run command"),

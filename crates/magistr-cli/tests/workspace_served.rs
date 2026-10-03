@@ -30,13 +30,14 @@ use rmcp::{
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
-const CORE_TOOLS: [&str; 9] = [
+const CORE_TOOLS: [&str; 10] = [
     "workbench_status",
     "map",
     "read",
     "search",
     "edit",
     "files",
+    "write",
     "undo",
     "script",
     "run",
@@ -695,6 +696,100 @@ async fn red_team_the_allowlist_cannot_be_self_amended_or_shelled_over_the_wire(
     let ran = call(&client, "run", json!({"command": "list"})).await;
     assert_eq!(ran["ok"], true, "{ran}");
     assert!(ran.to_string().contains("hi"), "{ran}");
+    close(client, server, service).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn write_creates_a_file_with_content_and_replaces_one_behind_the_same_gate() {
+    let big: String = (0..300)
+        .map(|i| {
+            format!(
+                "// line {i}
+"
+            )
+        })
+        .collect();
+    let dir = workspace(&[("src/app.ts", APP_TS)]);
+    let root = dir.path();
+    let service = open(root, &[]).await;
+    let (client, server) = serve(&service, TestClient::plain()).await;
+
+    let created = call(
+        &client,
+        "write",
+        json!({"path": "src/fresh.ts", "content": "export const fresh = 1;
+"}),
+    )
+    .await;
+    assert_eq!(created["ok"], true, "{created}");
+    assert_eq!(
+        read(root, "src/fresh.ts"),
+        "export const fresh = 1;
+"
+    );
+
+    let stale = call(
+        &client,
+        "write",
+        json!({"path": "src/fresh.ts", "content": "export const fresh = 2;
+", "expectedHash": "sha256:nope"}),
+    )
+    .await;
+    assert_eq!(error_code(&stale), "STALE_ANCHOR");
+    let broken = call(
+        &client,
+        "write",
+        json!({"path": "src/fresh.ts", "content": "export const fresh = ;;(
+"}),
+    )
+    .await;
+    assert_eq!(error_code(&broken), "PARSE_REJECTED");
+    assert_eq!(
+        read(root, "src/fresh.ts"),
+        "export const fresh = 1;
+"
+    );
+
+    // Over the line limit the default mode asks, and the token applies.
+    let args = json!({"path": "src/big.ts", "content": big});
+    let gated = call(&client, "write", args.clone()).await;
+    assert_eq!(error_code(&gated), "CONFIRM_REQUIRED");
+    assert!(!root.join("src/big.ts").exists());
+    let mut confirmed = args;
+    confirmed["confirm"] = gated["error"]["confirmToken"].clone();
+    let applied = call(&client, "write", confirmed).await;
+    assert_eq!(applied["ok"], true, "{applied}");
+    assert_eq!(read(root, "src/big.ts"), big);
+
+    let undone = call(&client, "undo", json!({})).await;
+    assert_eq!(undone["ok"], true, "{undone}");
+    assert!(!root.join("src/big.ts").exists(), "a write is undoable");
+    close(client, server, service).await;
+
+    // Token mode: the agent's large single-file writes land on the first call.
+    let dir = workspace(&[("src/app.ts", APP_TS)]);
+    let root = dir.path();
+    let service = open(root, &[("edit.confirm_mode", json!("token"))]).await;
+    let (client, server) = serve(&service, TestClient::plain()).await;
+    let applied = call(
+        &client,
+        "write",
+        json!({"path": "src/big.ts", "content": big}),
+    )
+    .await;
+    assert_eq!(applied["ok"], true, "{applied}");
+    assert_eq!(read(root, "src/big.ts"), big);
+    let edited = call(
+        &client,
+        "edit",
+        json!({"op": "replace_text", "file": "src/big.ts", "old": "// line", "new": "// row"}),
+    )
+    .await;
+    assert_eq!(edited["ok"], true, "{edited}");
+    assert!(read(root, "src/big.ts").starts_with(
+        "// row 0
+"
+    ));
     close(client, server, service).await;
 }
 

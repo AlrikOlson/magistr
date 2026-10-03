@@ -16,7 +16,7 @@ pub async fn cmd_next_loop(
 
     let dir = super::canonicalize_dir(dir)?;
     let _loop_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
-    let inputs = inputs.for_project(&dir);
+    let inputs = super::workflow_inputs(&inputs.for_project(&dir), true)?;
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
@@ -29,6 +29,9 @@ pub async fn cmd_next_loop(
         crate::roadmap::admit_native_host(&dir)?,
     )
     .suggest()?;
+    if let Some(selection) = inputs.session_selection() {
+        iter_loop.bind_session_selection(selection.clone())?;
+    }
     let max_iterations = iter_loop.max_iterations();
     iter_loop.persist().suggest()?;
     // The host's owner endpoint, for a cockpit opened beside this loop;
@@ -82,7 +85,7 @@ pub async fn cmd_next_loop(
                     .iter()
                     .map(|record| format!("{} {}", record.kind, record.target))
                     .collect();
-                if let Err(err) = workspace.shutdown().await {
+                if let Err(err) = workspace.release(source).await {
                     eprintln!("magistr: workspace shutdown: {err}");
                 }
                 return Err(eyre::eyre!(
@@ -129,6 +132,7 @@ pub async fn cmd_next_loop(
             backend,
             profile,
             source.clone(),
+            &inputs,
             |pid| {
                 iter_loop
                     .start_operation(
@@ -156,7 +160,7 @@ pub async fn cmd_next_loop(
             iter_loop.advance();
             iter_loop.mark_failed();
             iter_loop.persist().suggest()?;
-            if let Err(err) = workspace.shutdown().await {
+            if let Err(err) = workspace.release(source).await {
                 eprintln!("magistr: workspace shutdown: {err}");
             }
             return Err(error);
@@ -186,7 +190,7 @@ pub async fn cmd_next_loop(
 
     // Clean up
     iter_loop.persist().suggest()?;
-    if let Err(err) = workspace.shutdown().await {
+    if let Err(err) = workspace.release(source).await {
         eprintln!("magistr: workspace shutdown: {err}");
     }
     eprintln!(

@@ -18,3 +18,17 @@ pub enum SessionConfigSource {
     /// Loaded from the selected project's configuration file.
     ProjectFile,
 }
+
+impl SessionConfigSource {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Explicit => "command option",
+            Self::UserDefault => "personal settings",
+            Self::AutoDetected => "automatic selection",
+            Self::RuntimeDefault => "agent default",
+            Self::RuntimeResume => "saved conversation",
+            Self::ProjectPolicy => "project policy",
+            Self::ProjectFile => "project settings",
+        }
+    }
+}

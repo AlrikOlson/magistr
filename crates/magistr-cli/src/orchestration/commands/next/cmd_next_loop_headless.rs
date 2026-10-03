@@ -29,7 +29,7 @@ pub async fn cmd_next_loop_headless(
 ) -> eyre::Result<()> {
     let dir = super::canonicalize_dir(dir)?;
     let _loop_lease = magistr_core::workflow::loop_lease::LoopLease::acquire(&dir).suggest()?;
-    let inputs = inputs.for_project(&dir);
+    let inputs = super::workflow_inputs(&inputs.for_project(&dir), true)?;
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
@@ -40,6 +40,9 @@ pub async fn cmd_next_loop_headless(
         crate::roadmap::admit_native_host(&dir)?,
     )
     .suggest()?;
+    if let Some(selection) = inputs.session_selection() {
+        iter_loop.bind_session_selection(selection.clone())?;
+    }
     let max_iterations = iter_loop.max_iterations();
     iter_loop.set_budget_limit(max_cost).suggest()?;
     let max_cost = iter_loop.run_state().budget_limit_usd;
@@ -138,6 +141,7 @@ pub async fn cmd_next_loop_headless(
         // Run one iteration
         let prompt = iter_loop.next_prompt(&wf.project_config)?;
         let config = super::cmd_next_headless::workflow_agent_config(&prompt, &dir, backend)
+            .with_inputs(&inputs)
             .permission_profile(profile);
 
         // The dispatch, durable before the launch. An outcome already
@@ -175,7 +179,7 @@ pub async fn cmd_next_loop_headless(
                     iter_loop.advance();
                     iter_loop.mark_failed();
                     iter_loop.persist().suggest()?;
-                    release_workspace(workspace).await;
+                    release_workspace(workspace, source).await;
                     return Err(error);
                 }
             };
@@ -232,7 +236,7 @@ pub async fn cmd_next_loop_headless(
                 iter_loop.advance();
                 iter_loop.mark_failed();
                 iter_loop.persist().suggest()?;
-                release_workspace(workspace).await;
+                release_workspace(workspace, source).await;
                 return Err(error);
             }
         };
@@ -327,14 +331,18 @@ pub async fn cmd_next_loop_headless(
 
     iter_loop.persist().suggest()?;
     // Released before the exit code below can end the process.
-    release_workspace(workspace).await;
+    release_workspace(workspace, source).await;
     finish_loop(final_outcome)
 }
 
-/// Release the loop's workspace admission, reporting a refused shutdown on
-/// stderr rather than turning it into the loop's outcome.
-async fn release_workspace(workspace: crate::application::WorkspaceAdmission) {
-    if let Err(err) = workspace.shutdown().await {
+/// Release the loop's workspace admission and its source route, reporting
+/// a refused shutdown on stderr rather than turning it into the loop's
+/// outcome.
+async fn release_workspace(
+    workspace: crate::application::WorkspaceAdmission,
+    source: magistr_application::effects::SourceRoute,
+) {
+    if let Err(err) = workspace.release(source).await {
         eprintln!("magistr: workspace shutdown: {err}");
     }
 }

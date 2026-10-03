@@ -59,7 +59,7 @@ fn the_driver_is_spawned_before_the_run_on_a_tapped_feed_and_reported_after() {
 
 #[test]
 fn the_judge_is_the_shared_no_authority_one_and_the_loop_has_one_live_connector() {
-    position("session_judge_for(goal, native, dir, backend)");
+    position("session_judge_for(goal, native, dir, backend, inputs)");
     assert_eq!(
         SOURCE.matches("Connector::live(").count(),
         1,

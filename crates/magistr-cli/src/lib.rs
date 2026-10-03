@@ -59,3 +59,4 @@ pub(crate) mod cli_test_support;
 #[cfg(test)]
 #[path = "../tests/support/in_env.rs"]
 pub(crate) mod in_env;
+pub mod workflow_agent_options;

@@ -97,6 +97,7 @@ pub struct LoopDriver {
     iter_loop: IterationLoop,
     wf: WorkflowConfig,
     backend: Backend,
+    inputs: Option<crate::config::inputs::ProjectInputs>,
     permission_profile: Option<PermissionProfile>,
     inbox: Inbox,
     commands: Commands,
@@ -291,6 +292,7 @@ impl LoopDriver {
             wf,
             backend,
             permission_profile: None,
+            inputs: None,
             inbox,
             commands,
             connector,
@@ -870,12 +872,22 @@ impl LoopDriver {
         ))
     }
 
+    /// Carry the command's frozen selection to every fresh session.
+    #[must_use]
+    pub fn with_inputs(mut self, inputs: &crate::config::inputs::ProjectInputs) -> Self {
+        self.inputs = Some(inputs.clone());
+        self
+    }
+
     fn agent_config(&self, prompt: &str, cwd: &Path) -> AgentConfig {
         let mut config = AgentConfig::new(prompt, cwd)
             .backend(self.backend)
             .allowed_tools(ToolPermissions::for_workflow().into_strings())
             .workflow_permissions(true)
             .with_project_context(cwd);
+        if let Some(inputs) = &self.inputs {
+            config = config.with_inputs(inputs);
+        }
         config.permission_profile = self.permission_profile;
         config
     }

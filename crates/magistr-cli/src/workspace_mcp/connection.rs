@@ -1,21 +1,21 @@
 //! Admission is workspace-wide, independent of workflow writer roles.
 use std::sync::Arc;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use std::time::Duration;
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use magistr_engine::native::{AttachError, CallerIdentity, OwnerClient};
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use magistr_workspace::contracts::{ErrorKind, WorkspaceError};
 use magistr_workspace::service::{WorkspaceOpenError, WorkspaceOpenOptions, WorkspaceService};
 
 /// Startup either owns the native service or holds only a welcomed transport.
 pub(super) enum WorkspaceConnection {
     Owner(Arc<WorkspaceService>),
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     Attached {
         generation: magistr_engine::native::OwnerGeneration,
-        stream: tokio::net::UnixStream,
+        stream: magistr_engine::native::LocalStream,
     },
 }
 
@@ -24,7 +24,7 @@ impl WorkspaceConnection {
     /// A migration refusal never grants permission to contact an endpoint.
     /// Overrides against a live owner are a policy refusal, not contention:
     /// waiting cannot make them admissible.
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     pub(super) async fn open(options: WorkspaceOpenOptions) -> Result<Self, WorkspaceOpenError> {
         let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
         loop {
@@ -79,7 +79,7 @@ impl WorkspaceConnection {
             }
         }
     }
-    #[cfg(not(unix))]
+    #[cfg(not(any(unix, windows)))]
     pub(super) async fn open(options: WorkspaceOpenOptions) -> Result<Self, WorkspaceOpenError> {
         WorkspaceService::open(options)
             .await

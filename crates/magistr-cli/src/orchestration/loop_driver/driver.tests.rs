@@ -3946,7 +3946,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     );
     let scripted = Arc::clone(&judge);
     let work = HostedWork::new(config, connector, inbox, client, tapped).judged_by(Box::new(
-        move |_, native, _, _| native.then(|| Arc::clone(&scripted) as Arc<dyn Judge>),
+        move |_, native, _, _, _| native.then(|| Arc::clone(&scripted) as Arc<dyn Judge>),
     ));
     let task = tokio::spawn(work.run(session, receiver));
 

@@ -113,6 +113,18 @@ async fn dispatch(
             .await;
             answer(response, version)
         }
+        "write" => {
+            let input = arguments::write_input(args)?;
+            let response = gated(service, context, |confirm| {
+                let mut input = input.clone();
+                if confirm.is_some() {
+                    input.confirm = confirm;
+                }
+                async move { service.write(&input, session).await }
+            })
+            .await;
+            answer(response, version)
+        }
         "undo" => match arguments::undo_request(args)? {
             UndoRequest::Rewind(input) => answer(service.undo(&input, session).await, version),
             UndoRequest::List(input) => {

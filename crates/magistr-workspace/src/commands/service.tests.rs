@@ -25,7 +25,16 @@ struct Harness {
 
 impl Harness {
     fn new() -> Self {
+        Self::with_config("")
+    }
+
+    /// A workspace whose project layer is `workbench_toml`; empty keeps the
+    /// defaults.
+    fn with_config(workbench_toml: &str) -> Self {
         let root = tempfile::tempdir().unwrap();
+        if !workbench_toml.is_empty() {
+            fs::write(root.path().join("workbench.toml"), workbench_toml).unwrap();
+        }
         let policy = WorkspacePolicy::resolve(&ResolveOptions::new(root.path())).unwrap();
         let worker =
             WorkerSupervisor::new("/unavailable-worker".into(), WorkerOptions::default()).unwrap();
@@ -340,6 +349,52 @@ async fn large_edits_are_confirm_gated_with_the_prepared_token_and_dry_runs_touc
     let (rows, _) = ok(h.commands("s").edit(&confirmed).await);
     assert!(rows[0].applied);
     assert!(h.read("notes/big.txt").unwrap().starts_with(b"row 0\n"));
+}
+
+const TOKEN_MODE: &str = "[edit]\nconfirm_mode = \"token\"\n";
+
+#[tokio::test]
+async fn token_mode_applies_a_large_single_file_edit_and_keeps_multi_file_verbs_gated() {
+    let mut h = Harness::with_config(TOKEN_MODE);
+    let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
+    h.write("notes/big.txt", &big);
+    let (rows, _) = ok(h
+        .commands("s")
+        .edit(&replace_text("notes/big.txt", "line", "row"))
+        .await);
+    assert_eq!(rows.len(), 1);
+    assert!(rows[0].applied);
+    assert!(h.read("notes/big.txt").unwrap().starts_with(b"row 0\n"));
+    assert_eq!(h.journal.list(0).unwrap().len(), 1);
+
+    // The agent confirming its own diff is still asked for the verbs whose
+    // reach is wider than the one file it named.
+    h.write("notes/a.txt", "alpha\n");
+    let (kind, _) = refused(
+        h.commands("s")
+            .files(&files(
+                FilesOp::Move,
+                Some("notes/a.txt"),
+                Some("notes/b.txt"),
+            ))
+            .await,
+    );
+    assert!(matches!(kind, ErrorKind::ConfirmRequired { .. }));
+    assert_eq!(h.read("notes/a.txt").unwrap(), b"alpha\n");
+}
+
+#[tokio::test]
+async fn force_confirm_keeps_the_line_gate_in_token_mode() {
+    let mut h = Harness::with_config("[edit]\nconfirm_mode = \"token\"\nforce_confirm = true\n");
+    let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
+    h.write("notes/big.txt", &big);
+    let (kind, _) = refused(
+        h.commands("s")
+            .edit(&replace_text("notes/big.txt", "line", "row"))
+            .await,
+    );
+    assert!(matches!(kind, ErrorKind::ConfirmRequired { .. }));
+    assert_eq!(h.read("notes/big.txt").unwrap(), big.as_bytes());
 }
 
 #[tokio::test]
@@ -870,4 +925,57 @@ async fn small_budgets_keep_every_settled_row_across_files_dry_runs_and_undo() {
     );
     assert_eq!(rows.len(), 2);
     assert_eq!(h.read("src/a.txt").unwrap(), b"content a\n");
+}
+
+/// A write as the served tool decodes it: nothing authorized it yet.
+fn served_write(path: &str, content: &str) -> WriteInput {
+    serde_json::from_value(serde_json::json!({"path": path, "content": content})).unwrap()
+}
+
+#[tokio::test]
+async fn a_served_write_takes_the_gate_a_host_write_is_authorized_past() {
+    let mut h = Harness::new();
+    let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
+
+    // Small new files land on the first call.
+    let (rows, _) = ok(h
+        .commands("s")
+        .write(&served_write("src/a.txt", "one\n"))
+        .await);
+    assert_eq!(rows[0].action, WriteAction::Created);
+    assert_eq!(h.read("src/a.txt").unwrap(), b"one\n");
+
+    // Over the line limit, elicit mode asks; the token then applies the
+    // identical call.
+    let input = served_write("src/big.txt", &big);
+    let (kind, _) = refused(h.commands("s").write(&input).await);
+    let ErrorKind::ConfirmRequired { confirm_token } = kind else {
+        panic!("gated");
+    };
+    assert_eq!(h.read("src/big.txt"), None);
+
+    let mut preview = input.clone();
+    preview.dry_run = true;
+    let (rows, _) = ok(h.commands("s").write(&preview).await);
+    assert!(!rows[0].applied);
+    assert_eq!(h.read("src/big.txt"), None);
+
+    let mut confirmed = input.clone();
+    confirmed.confirm = Some(confirm_token);
+    let (rows, _) = ok(h.commands("s").write(&confirmed).await);
+    assert!(rows[0].applied);
+    assert_eq!(h.read("src/big.txt").unwrap(), big.as_bytes());
+}
+
+#[tokio::test]
+async fn token_mode_lands_a_large_served_write_on_the_first_call() {
+    let mut h = Harness::with_config(TOKEN_MODE);
+    let big: String = (0..300).map(|i| format!("line {i}\n")).collect();
+    let (rows, _) = ok(h
+        .commands("s")
+        .write(&served_write("src/big.txt", &big))
+        .await);
+    assert_eq!(rows[0].action, WriteAction::Created);
+    assert!(rows[0].applied);
+    assert_eq!(h.read("src/big.txt").unwrap(), big.as_bytes());
 }

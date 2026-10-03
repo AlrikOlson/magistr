@@ -1,0 +1,48 @@
+name: Claude adapter contracts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/magistr/**'
+      - '.claude-plugin/**'
+      - 'docs/architecture/claude-mod.md'
+      - 'docs/architecture/overview.md'
+      - 'docs/architecture/clients.md'
+      - 'docs/reference/claude-mod-verification.md'
+      - '.github/workflows/claude-mod.yml'
+  pull_request:
+    paths:
+      - 'plugins/magistr/**'
+      - '.claude-plugin/**'
+      - 'docs/architecture/**'
+      - 'docs/reference/claude-mod-verification.md'
+      - '.github/workflows/claude-mod.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claude-mod-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Independent contracts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check JavaScript formatting
+        run: npx --yes prettier@3.9.9 --check "plugins/magistr/hooks/*.js" "plugins/magistr/tests/*.{js,mjs,ts}"
+      - name: Run decoder, renderer and handler contracts
+        run: node --test plugins/magistr/tests/wire.contract.mjs plugins/magistr/tests/interaction.contract.mjs
+      # Official host tests require an enabled, authenticated Claude installation.
+      # Independent contracts do not establish live Claude or Desktop compatibility.

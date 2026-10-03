@@ -20,15 +20,19 @@ pub(crate) fn session_judge_for(
     native: bool,
     dir: &Path,
     backend: Backend,
+    inputs: &crate::config::inputs::ProjectInputs,
 ) -> Option<Arc<dyn Judge>> {
     match goal {
         GoalMode::Off => None,
         GoalMode::Native | GoalMode::Extension | GoalMode::Command | GoalMode::Auto if native => {
-            Some(Arc::new(SessionJudge::new(
-                Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
-                dir,
-                backend,
-            )))
+            Some(Arc::new(
+                SessionJudge::new(
+                    Connector::live(SourceRoute::Refused(SourceRefusal::NoAuthority)),
+                    dir,
+                    backend,
+                )
+                .with_inputs(inputs),
+            ))
         }
         _ => None,
     }

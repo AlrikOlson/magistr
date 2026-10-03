@@ -5,7 +5,7 @@ use crate::native::{CallerIdentity, OwnerClient, OwnerEndpoint};
 #[tokio::test]
 async fn workspace_connection_admission_counts_every_live_session() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let acceptor: McpAcceptor = Arc::new(|stream: UnixStream, cancel| {
+    let acceptor: McpAcceptor = Arc::new(|stream: LocalStream, cancel| {
         Box::pin(async move {
             cancel.cancelled().await;
             drop(stream);

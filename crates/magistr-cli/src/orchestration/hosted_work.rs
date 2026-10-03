@@ -33,8 +33,14 @@ use crate::workflow::iteration::IterationLoop;
 const LOOP_ITERATIONS: u32 = 10;
 
 /// Who judges a started run: the goal mode, and whether the project is native.
-pub(crate) type JudgeSource =
-    dyn Fn(GoalMode, bool, &Path, Backend) -> Option<Arc<dyn Judge>> + Send;
+pub(crate) type JudgeSource = dyn Fn(
+        GoalMode,
+        bool,
+        &Path,
+        Backend,
+        &crate::config::inputs::ProjectInputs,
+    ) -> Option<Arc<dyn Judge>>
+    + Send;
 
 /// The phases of one hosted session.
 pub(crate) struct HostedWork {
@@ -175,11 +181,12 @@ impl HostedWork {
             commands,
             self.connector.clone(),
         )
+        .with_inputs(&inputs)
         .persisting(prepared.persist)
         .auto_pause(auto_pause)
         .goal(
             goal,
-            (self.judge)(goal, native, &dir, self.backend),
+            (self.judge)(goal, native, &dir, self.backend, &inputs),
             goal_note,
         )
         .checkpoints(Box::new(SpinePort::at(

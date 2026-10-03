@@ -37,7 +37,7 @@ pub(super) struct Link {
 /// bridges attach to and the rmcp session serving this bridge's own client.
 struct Embedded {
     service: Arc<WorkspaceService>,
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     endpoint: Option<magistr_engine::native::OwnerEndpoint>,
     complete: CancellationToken,
     serving: JoinHandle<eyre::Result<()>>,
@@ -59,9 +59,9 @@ impl Link {
     async fn from_connection(connection: WorkspaceConnection) -> eyre::Result<Self> {
         match connection {
             WorkspaceConnection::Owner(service) => Self::embed(service).await,
-            #[cfg(unix)]
+            #[cfg(any(unix, windows))]
             WorkspaceConnection::Attached { generation, stream } => {
-                let (read, write) = stream.into_split();
+                let (read, write) = tokio::io::split(stream);
                 Ok(Self {
                     reader: BufReader::new(Box::pin(read) as Pin<Box<dyn AsyncRead + Send>>)
                         .lines(),
@@ -74,7 +74,7 @@ impl Link {
     }
 
     async fn embed(service: Arc<WorkspaceService>) -> eyre::Result<Self> {
-        #[cfg(unix)]
+        #[cfg(any(unix, windows))]
         let endpoint = match super::endpoint::serve(Arc::clone(&service)).await {
             Ok(endpoint) => endpoint,
             Err(error) => {
@@ -85,7 +85,7 @@ impl Link {
         let handler = match WorkspaceMcpService::new(Arc::clone(&service)) {
             Ok(handler) => handler,
             Err(error) => {
-                #[cfg(unix)]
+                #[cfg(any(unix, windows))]
                 endpoint.shutdown().await?;
                 shutdown_service(service).await?;
                 return Err(eyre::eyre!("{error}"));
@@ -95,14 +95,13 @@ impl Link {
         let (client_side, server_side) = tokio::io::duplex(64 * 1024);
         let (server_read, server_write) = tokio::io::split(server_side);
         let serving = tokio::spawn(async move {
-            let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<
-                rmcp::service::RoleServer,
-                std::io::Error,
-                _,
-            >::into_transport((
-                server_read,
-                server_write,
-            )));
+            let transport = ProtocolCap::new(
+                &handler,
+                rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport((
+                    server_read,
+                    server_write,
+                )),
+            );
             match handler.serve(transport).await {
                 Ok(running) => running
                     .waiting()
@@ -120,7 +119,7 @@ impl Link {
             writer: Some(Box::pin(client_write)),
             embedded: Some(Embedded {
                 service,
-                #[cfg(unix)]
+                #[cfg(any(unix, windows))]
                 endpoint: Some(endpoint),
                 complete,
                 serving,
@@ -158,13 +157,17 @@ impl Link {
     }
 
     /// The client is gone: stop sending, so the owner sees EOF and answers
-    /// what is still in flight before it closes its side.
-    pub(super) async fn half_close(&mut self) {
+    /// what is still in flight before it closes its side. Returns whether
+    /// the owner will see that EOF: a Windows pipe has no half-close, so an
+    /// attached owner there keeps its side open and the caller must stop
+    /// reading once its last answer is in.
+    pub(super) async fn half_close(&mut self) -> bool {
         if let Some(mut writer) = self.writer.take() {
             // A split duplex retains the stream through its read half; dropping
             // only the writer does not deliver EOF. A lost peer is already closed.
             let _ = writer.shutdown().await;
         }
+        self.embedded.is_some() || cfg!(unix)
     }
 
     /// Initialize this owner on the client's behalf: send the recorded
@@ -215,7 +218,7 @@ impl Link {
         };
         let served = owner.serving.await.map_err(eyre::Report::from)?;
         owner.complete.cancelled().await;
-        #[cfg(unix)]
+        #[cfg(any(unix, windows))]
         if let Some(endpoint) = owner.endpoint {
             endpoint.shutdown().await?;
         }

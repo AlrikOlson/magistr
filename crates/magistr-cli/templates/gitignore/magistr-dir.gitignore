@@ -3,3 +3,4 @@
 !.gitignore
 !project.json
 !roadmap.yaml
+!agents.toml

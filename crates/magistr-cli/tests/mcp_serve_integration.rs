@@ -535,11 +535,12 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
         .await
         .expect("project owner");
     let (server_tx, client_tx) = tokio::io::duplex(1 << 16);
-    let transport = ProtocolCap::new(rmcp::transport::IntoTransport::<
-        rmcp::service::RoleServer,
-        std::io::Error,
-        _,
-    >::into_transport(server_tx));
+    let transport = ProtocolCap::new(
+        &service,
+        rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport(
+            server_tx,
+        ),
+    );
     let server = tokio::spawn(async move {
         let running = service.serve(transport).await.expect("server.serve");
         let _ = running.waiting().await;
@@ -626,6 +627,95 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
         "no modern era on offer: {advertised}"
     );
     assert!(advertised.contains("2025-06-18"), "{advertised}");
+
+    server.abort();
+}
+
+/// Claude Code opens with `server/discover`, is offered only the capped
+/// eras, and falls back to `initialize`. rmcp holds a session whose first
+/// message was not `initialize` to per-request `_meta` for good, so the cap
+/// answers that opening discover itself; the legacy requests that follow
+/// must be served.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_client_that_discovers_before_initialize_still_lists_tools() {
+    use magistr::mcp_tools::protocol_cap::ProtocolCap;
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("proj");
+    std::fs::create_dir_all(&root).expect("root");
+    write_fixture(&root);
+    let data_dir = tmp.path().join("data");
+
+    let tas = magistr_core::evidence::writer_config(&root, |_| None).with_data_dir(&data_dir);
+    let service = MagistrService::new(root.clone(), &tas)
+        .await
+        .expect("project owner");
+    let (server_tx, client_tx) = tokio::io::duplex(1 << 16);
+    let transport = ProtocolCap::new(
+        &service,
+        rmcp::transport::IntoTransport::<rmcp::service::RoleServer, std::io::Error, _>::into_transport(
+            server_tx,
+        ),
+    );
+    let server = tokio::spawn(async move {
+        let running = service.serve(transport).await.expect("server.serve");
+        let _ = running.waiting().await;
+    });
+
+    let (read, mut write) = tokio::io::split(client_tx);
+    let mut lines = BufReader::new(read).lines();
+    let mut replies = Vec::new();
+    for request in [
+        json!({"jsonrpc": "2.0", "id": 0, "method": "server/discover", "params": {"_meta": {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientInfo": {"name": "discover-first", "version": "0"},
+            "io.modelcontextprotocol/clientCapabilities": {}
+        }}}),
+        json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "discover-first", "version": "0"}
+        }}),
+        json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+        json!({"jsonrpc": "2.0", "id": 3, "method": "ping"}),
+    ] {
+        write
+            .write_all(
+                format!(
+                    "{request}
+"
+                )
+                .as_bytes(),
+            )
+            .await
+            .expect("write");
+        let reply = lines
+            .next_line()
+            .await
+            .expect("read")
+            .expect("a response line");
+        replies.push(serde_json::from_str::<Value>(&reply).expect("response json"));
+    }
+
+    let advertised = serde_json::to_string(&replies[0]["result"]).expect("discover json");
+    assert!(advertised.contains("2025-06-18"), "{advertised}");
+    assert!(!advertised.contains("2026-07-28"), "{advertised}");
+    assert_eq!(replies[1]["result"]["protocolVersion"], "2025-06-18");
+    let names: Vec<&str> = replies[2]["result"]["tools"]
+        .as_array()
+        .unwrap_or_else(|| panic!("tools/list is served: {}", replies[2]))
+        .iter()
+        .filter_map(|t| t["name"].as_str())
+        .collect();
+    for expected in ["magistr_gate", "roadmap_next", "ship_check"] {
+        assert!(names.contains(&expected), "{expected} in {names:?}");
+    }
+    assert!(
+        replies[3].get("error").is_none(),
+        "the legacy ping is served: {}",
+        replies[3]
+    );
 
     server.abort();
 }
@@ -956,4 +1046,99 @@ async fn a_direct_gate_streams_its_bytes_on_the_feed_socket() {
 
     let _ = client.cancel().await;
     server.abort();
+}
+
+#[tokio::test]
+async fn context_reads_owner_phase_and_canonical_evidence_without_mutation() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("project");
+    std::fs::create_dir_all(&root).expect("root");
+    write_fixture(&root);
+    let (client, server) = pair(&root, &tmp.path().join("data")).await;
+    let listed = client.peer().list_all_tools().await.expect("tools");
+    assert!(listed.iter().any(|t| t.name == "magistr_context"));
+    let before = text_json(&call(&client, "ship_status", json!({})).await);
+    let empty = text_json(&call(&client, "magistr_context", json!({})).await);
+    assert_eq!(empty["version"], 1);
+    assert_eq!(
+        empty["project_root"],
+        root.canonicalize().unwrap().to_string_lossy().as_ref()
+    );
+    assert!(empty["phase"].is_null());
+    assert!(
+        empty["owner_epoch"]
+            .as_str()
+            .unwrap()
+            .parse::<u64>()
+            .is_ok()
+    );
+    assert_eq!(
+        before,
+        text_json(&call(&client, "ship_status", json!({})).await)
+    );
+    assert!(
+        empty["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|g| g["key"] == "diag")
+    );
+    call(
+        &client,
+        "ship_set_objective",
+        json!({"description": "Inspect evidence", "verification": "focused"}),
+    )
+    .await;
+    call(
+        &client,
+        "ship_plan",
+        json!({"action": "add", "task_id": "inspect", "title": "Inspect"}),
+    )
+    .await;
+    call(&client, "ship_start", json!({"task_id": "inspect"})).await;
+    call(&client, "magistr_set_phase", json!({"phase": "verify"})).await;
+    let context = text_json(
+        &call(
+            &client,
+            "magistr_context",
+            json!({"task_id": "inspect", "receipt_id": "absent"}),
+        )
+        .await,
+    );
+    assert_eq!(context["phase"], "verifying");
+    assert_eq!(context["phase_task"], "inspect");
+    assert_eq!(context["task"]["record"]["id"], "inspect");
+    assert_eq!(context["task"]["detail_limit"], 6000);
+    assert!(context["receipt"].is_null());
+    // Clearing the cycle invalidates its observation, even if a task id is reused.
+    call(
+        &client,
+        "ship_set_objective",
+        json!({"description": "Another cycle", "verification": "focused"}),
+    )
+    .await;
+    let changed = text_json(&call(&client, "magistr_context", json!({})).await);
+    assert!(changed["phase"].is_null());
+    client.cancel().await.expect("cancel");
+    server.await.expect("stopped");
+}
+
+#[tokio::test]
+async fn context_refuses_malformed_and_unknown_task_requests_over_mcp() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("project");
+    std::fs::create_dir_all(&root).expect("root");
+    write_fixture(&root);
+    let (client, server) = pair(&root, &tmp.path().join("data")).await;
+    for args in [
+        json!({"task_id": 1}),
+        json!({"run": true}),
+        json!({"task_id": "absent"}),
+    ] {
+        let mut request = CallToolRequestParams::new("magistr_context");
+        request.arguments = args.as_object().cloned();
+        assert!(client.peer().call_tool(request).await.is_err(), "{args}");
+    }
+    client.cancel().await.expect("cancel");
+    server.await.expect("stopped");
 }
