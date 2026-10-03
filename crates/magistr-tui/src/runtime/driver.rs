@@ -257,21 +257,56 @@ impl Driver {
         self.apply(msg, Activity::Message);
     }
 
-    /// Fold everything already queued on either channel, so a burst or a
-    /// resize storm costs one paint.
+    /// Fold a bounded batch from both channels, coalescing small bursts
+    /// while leaving time for drawing and shutdown under continuous input.
     fn drain(
         &mut self,
         rx: &mut UnboundedReceiver<InputEvent>,
         inbox: &mut UnboundedReceiver<Msg>,
     ) {
-        while !self.quit {
-            if let Ok(event) = rx.try_recv() {
-                self.event(event);
-            } else if let Ok(msg) = inbox.try_recv() {
-                self.message(msg);
-            } else {
+        // Leave most of the interactive frame budget for painting. The count
+        // also bounds cheap events and runs with Tokio's clock paused.
+        let deadline = Instant::now() + super::tier::Tier::Interactive.period() / 4;
+        let mut motion = None;
+        for _ in 0..64 {
+            if self.quit {
                 break;
             }
+            let mut handled = false;
+            if let Ok(event) = rx.try_recv() {
+                if matches!(&event, InputEvent::Event(Event::Mouse(mouse))
+                    if mouse.kind == magistr_cockpit::input::MouseKind::Move)
+                {
+                    // Only the latest unpainted hover position matters. Flush
+                    // before every other input, so clicks, drags and keys keep
+                    // their order and coordinates.
+                    motion = Some(event);
+                } else {
+                    if let Some(event) = motion.take() {
+                        self.event(event);
+                    }
+                    self.event(event);
+                }
+                handled = true;
+            }
+            // A busy input source must not starve the model's producers.
+            if !self.quit
+                && let Ok(msg) = inbox.try_recv()
+            {
+                if let Some(event) = motion.take() {
+                    self.event(event);
+                }
+                self.message(msg);
+                handled = true;
+            }
+            if !handled || Instant::now() >= deadline {
+                break;
+            }
+        }
+        if !self.quit
+            && let Some(event) = motion
+        {
+            self.event(event);
         }
     }
 
@@ -512,8 +547,8 @@ impl Driver {
     /// interrupt is treated exactly like a closed input: the core is not
     /// asked, the loop just ends and the session leaves as it always
     /// does. A closed inbox only stops being polled. A frame is painted
-    /// only after both channels are drained, so a message that reached
-    /// the inbox before the tick is in the frame the tick paints.
+    /// after a bounded batch from both channels, so ready messages reach
+    /// the next frame without waiting for a busy input source to stop.
     pub(crate) async fn run<T: Terminal>(
         &mut self,
         terminal: &mut T,
@@ -546,14 +581,9 @@ impl Driver {
                     None => producers = false,
                 },
                 _ = ticks.tick(), if self.scheduler.wants_frame() => {
-                    // Everything already on either channel is folded
-                    // before this frame is painted. `select!` polls its
-                    // branches in a random order, so a due tick can win
-                    // over a message that reached the inbox first — and
-                    // a frame painted around that message would break the
-                    // one-frame promise (a permission request is on the
-                    // very next frame) on exactly the runs where the
-                    // machine is loaded and the tick is overdue.
+                    // Service both channels before painting: a due tick can
+                    // win select! over an already queued message. Keep this
+                    // batch bounded so ongoing input cannot prevent the frame.
                     self.drain(rx, inbox);
                     if self.quit {
                         break;

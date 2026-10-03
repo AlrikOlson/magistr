@@ -5,6 +5,71 @@ use serde_json::json;
 use super::*;
 
 #[test]
+fn viewport_clones_share_graph_geometry_without_changing_model_equality() {
+    let roadmap = seeded();
+    let untouched = roadmap.clone();
+    let mut pixels = roadmap.clone();
+    pixels.set_pixel_viewport(Some((1200.0, 700.0)), 30.0);
+    let nodes = pixels.dag_nodes_at(0.0);
+    let geometry = pixels.geometry() as *const Geometry;
+    let mut resized = roadmap.clone();
+    resized.set_pixel_viewport(Some((800.0, 500.0)), 24.0);
+    let _ = resized.dag_paths_at(0.0);
+    assert!(std::ptr::eq(resized.geometry(), geometry));
+    assert_eq!(roadmap, untouched, "warming geometry is not a model change");
+    assert!(!nodes.is_empty());
+    assert_ne!(
+        nodes,
+        resized.dag_nodes_at(0.0),
+        "each viewport transforms the shared geometry"
+    );
+}
+
+#[test]
+fn seed_and_chunk_events_refresh_geometry_but_identical_seeds_keep_it() {
+    let chunks = [
+        chunk("base", "done", 100, "Core", &[]),
+        chunk("next", "pending", 200, "Views", &["base"]),
+    ];
+    let mut roadmap = Roadmap::default();
+    roadmap.seed(&chunks, &[]);
+    let first = roadmap.dag_nodes();
+    let old = roadmap.clone();
+    let geometry = roadmap.geometry() as *const Geometry;
+    roadmap.seed(&chunks, &[]);
+    assert!(std::ptr::eq(roadmap.geometry(), geometry));
+
+    let changed = [
+        chunk("base", "done", 100, "Core", &[]),
+        chunk("next", "pending", 200, "Views", &[]),
+    ];
+    roadmap.seed(&changed, &[]);
+    assert!(!std::ptr::eq(roadmap.geometry(), geometry));
+    assert_ne!(roadmap.dag_nodes(), first);
+    assert_eq!(
+        old.dag_nodes(),
+        first,
+        "a prior snapshot keeps its geometry"
+    );
+
+    roadmap.apply(
+        &frame(
+            "roadmap",
+            "chunk_changed",
+            "chunk",
+            chunk_json("next", "pending", 200, "Views", &["base"]),
+        ),
+        0.0,
+        false,
+    );
+    assert_eq!(
+        roadmap.dag_nodes(),
+        first,
+        "the event owner refreshes dependency geometry"
+    );
+}
+
+#[test]
 fn table_sort_and_status_filter_keep_identity_and_do_not_filter_proposals() {
     let mut roadmap = seeded();
     roadmap.select("ui", 0.0, false);

@@ -1,5 +1,7 @@
 //! The Roadmap tab's state.
 
+use std::sync::{Arc, OnceLock};
+
 use super::RoadmapSort;
 use magistr_workflow_contracts::{Chunk, Signal};
 use magistr_workflow_contracts::{NativeEvent, RoadmapFrame, SignalFrame};
@@ -68,13 +70,14 @@ const FOCUS_ZOOM: f32 = 1.0;
 /// card is open, the hover, and the tech-tree's camera.
 ///
 /// Pure state: the store's snapshot arrives through [`Roadmap::seed`],
-/// events through [`Roadmap::apply`]; nothing here talks to an engine. The
-/// tech-tree layout is derived, not stored: dependency depth is the
-/// column, connected nodes are aligned by alternating barycentre sweeps,
-/// and workstream identity remains node metadata.
+/// events through [`Roadmap::apply`]; nothing here talks to an engine.
+/// Derived graph geometry is shared by clones and retained until chunk
+/// data changes. Camera, viewport, hover and selection transform that
+/// geometry without rerunning the dependency layout.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Roadmap {
     chunks: Vec<RoadmapChunk>,
+    geometry: GraphGeometry,
     signals: Vec<SignalRow>,
     selected: Option<String>,
     hovered: Option<String>,
@@ -102,10 +105,27 @@ pub struct Roadmap {
     shipped_log: Vec<String>,
 }
 
-/// What a completion left behind for the sky to draw: the chunk that
-/// shipped, the chunks its shipping made ready, and the step it landed
-/// at. Kept by id rather than by graph index because the graph is
-/// derived on every read and a later frame can renumber it.
+/// Lazy, immutable geometry shared by viewport projections of one snapshot.
+#[derive(Clone, Debug, Default)]
+struct GraphGeometry {
+    full: Arc<OnceLock<Geometry>>,
+    frontier: Arc<OnceLock<Geometry>>,
+}
+
+// Warming a derived cache does not change the roadmap's semantic state.
+impl PartialEq for GraphGeometry {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+#[derive(Debug)]
+struct Geometry {
+    layout: DagLayout,
+    placed: Vec<(f32, f32, usize)>,
+}
+
+/// A completion and the items it unlocked, kept by id across graph changes.
 #[derive(Clone, Debug, Default, PartialEq)]
 struct Shipped {
     chunk: String,
@@ -166,7 +186,11 @@ impl Roadmap {
     /// Selection, pan and zoom stay: a re-seed must not move the tab
     /// under the human looking at it.
     pub fn seed(&mut self, chunks: &[Chunk], signals: &[Signal]) {
-        self.chunks = chunks.iter().map(RoadmapChunk::from_chunk).collect();
+        let chunks: Vec<_> = chunks.iter().map(RoadmapChunk::from_chunk).collect();
+        if self.chunks != chunks {
+            self.chunks = chunks;
+            self.geometry = GraphGeometry::default();
+        }
         self.signals = signals.iter().map(SignalRow::from_signal).collect();
     }
 
@@ -208,11 +232,15 @@ impl Roadmap {
                 let was = match self.chunks.iter_mut().find(|c| c.id == chunk.id) {
                     Some(existing) => {
                         let was = existing.is_in_progress();
-                        *existing = chunk;
+                        if *existing != chunk {
+                            *existing = chunk;
+                            self.geometry = GraphGeometry::default();
+                        }
                         was
                     }
                     None => {
                         self.chunks.push(chunk);
+                        self.geometry = GraphGeometry::default();
                         false
                     }
                 };
@@ -477,10 +505,10 @@ impl Roadmap {
         let (cols, rows) = self.viewport?;
         let graph = self.graph_chunks();
         let at = graph.iter().position(|c| c.id == id)?;
-        let placed = place(&graph);
+        let placed = &self.geometry().placed;
         let (gx, gy, _) = placed[at];
         let zoom = self.camera.zoom().max(FOCUS_ZOOM);
-        let (sx, sy) = self.scale_with(&placed, self.camera.zoom());
+        let (sx, sy) = self.scale_with(placed, self.camera.zoom());
         let (pan_x, pan_y) = self.camera.pan();
         let margin = self.margin();
         let (x, y) = (margin + gx * sx - pan_x, margin + gy * sy - pan_y);
@@ -489,7 +517,7 @@ impl Roadmap {
         if inside(x, cols) && inside(y, rows) && zoom <= self.camera.zoom() {
             return None;
         }
-        let (sx, sy) = self.scale_with(&placed, zoom);
+        let (sx, sy) = self.scale_with(placed, zoom);
         let (cx, cy) = (cols / 2.0, rows / 2.0);
         let (max_x, max_y) = self.pan_limits_with(zoom);
         Some((
@@ -771,13 +799,13 @@ impl Roadmap {
     #[must_use]
     pub fn dag_nodes_at(&self, now: f32) -> Vec<DagNode> {
         let graph = self.graph_chunks();
-        let placed = place(&graph);
-        let (sx, sy) = self.scale_with(&placed, self.camera.zoom_at(now));
+        let placed = &self.geometry().placed;
+        let (sx, sy) = self.scale_with(placed, self.camera.zoom_at(now));
         let (pan_x, pan_y) = self.camera.pan_at(now);
         graph
             .iter()
             .zip(placed)
-            .map(|(chunk, (x, y, region))| DagNode {
+            .map(|(chunk, &(x, y, region))| DagNode {
                 x: self.margin() + x * sx - pan_x,
                 y: self.margin() + y * sy - pan_y,
                 state: star_state(&graph, chunk),
@@ -792,14 +820,14 @@ impl Roadmap {
     /// Routed dependency paths, transformed by the same fit and camera as nodes.
     #[must_use]
     pub fn dag_paths_at(&self, now: f32) -> Vec<DagPath> {
-        let graph = self.graph_chunks();
-        let layout = graph_layout(&graph);
-        let placed: Vec<_> = layout.points.iter().map(|&(x, y)| (x, y, 0)).collect();
-        let (sx, sy) = self.scale_with(&placed, self.camera.zoom_at(now));
+        let geometry = self.geometry();
+        let (sx, sy) = self.scale_with(&geometry.placed, self.camera.zoom_at(now));
         let (pan_x, pan_y) = self.camera.pan_at(now);
-        layout
+        geometry
+            .layout
             .paths
-            .into_iter()
+            .iter()
+            .cloned()
             .map(|mut path| {
                 for (x, y) in &mut path.points {
                     *x = self.margin() + *x * sx - pan_x;
@@ -908,6 +936,21 @@ impl Roadmap {
     #[must_use]
     pub fn graph_chunk(&self, index: usize) -> Option<&RoadmapChunk> {
         self.graph_chunks().get(index).copied()
+    }
+
+    /// Retain topology geometry independently of camera and viewport transforms.
+    fn geometry(&self) -> &Geometry {
+        let slot = if self.full_graph || self.pixel_line.is_some() {
+            &self.geometry.full
+        } else {
+            &self.geometry.frontier
+        };
+        slot.get_or_init(|| {
+            let graph = self.graph_chunks();
+            let layout = graph_layout(&graph);
+            let placed = place_layout(&graph, &layout);
+            Geometry { layout, placed }
+        })
     }
 
     /// The graph's chunks in store order — the index space `dag_nodes`
@@ -1188,10 +1231,9 @@ impl Roadmap {
     /// focus clamps its target against, since the zoom it is gliding to
     /// changes the room the pan has.
     fn pan_limits_with(&self, zoom: f32) -> (f32, f32) {
-        let graph = self.graph_chunks();
-        let placed = place(&graph);
-        let (sx, sy) = self.scale_with(&placed, zoom);
-        let (span_x, span_y) = raw_span(&placed);
+        let placed = &self.geometry().placed;
+        let (sx, sy) = self.scale_with(placed, zoom);
+        let (span_x, span_y) = raw_span(placed);
         match self.viewport {
             Some((cols, rows)) => (
                 (span_x * sx - (cols - 2.0 * self.margin())).max(0.0),
@@ -1294,6 +1336,10 @@ fn status_rank(chunk: &RoadmapChunk) -> usize {
 /// layer by its neighbours and align connected nodes while maintaining
 /// a minimum row gap. Workstreams identify regions without fixing rows.
 fn place(graph: &[&RoadmapChunk]) -> Vec<(f32, f32, usize)> {
+    place_layout(graph, &graph_layout(graph))
+}
+
+fn place_layout(graph: &[&RoadmapChunk], layout: &DagLayout) -> Vec<(f32, f32, usize)> {
     let mut bands: Vec<(&str, u32)> = Vec::new();
     for chunk in graph {
         let group = chunk.group.as_deref().unwrap_or("");
@@ -1303,9 +1349,10 @@ fn place(graph: &[&RoadmapChunk]) -> Vec<(f32, f32, usize)> {
         }
     }
     bands.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(b.0)));
-    graph_layout(graph)
+    layout
         .points
-        .into_iter()
+        .iter()
+        .copied()
         .enumerate()
         .map(|(at, (x, y))| {
             let group = graph.get(at).and_then(|c| c.group.as_deref()).unwrap_or("");
