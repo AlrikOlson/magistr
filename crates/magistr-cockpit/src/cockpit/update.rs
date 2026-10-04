@@ -2078,6 +2078,13 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
         && matches!(event.kind, MouseKind::ScrollUp | MouseKind::ScrollDown)
     {
         let down = event.kind == MouseKind::ScrollDown;
+        if target == Some(Widget::RoadmapOverview.id())
+            || (model.tab() != StageTab::Roadmap
+                && target.and_then(Widget::sky_star_index).is_some())
+        {
+            model.scroll_roadmap_overview(down);
+            return Vec::new();
+        }
         let conversation = target == Some(Widget::Stage.id())
             || target.and_then(Widget::stage_row_index).is_some();
         if conversation && pane_under(model, target, None).is_none() {

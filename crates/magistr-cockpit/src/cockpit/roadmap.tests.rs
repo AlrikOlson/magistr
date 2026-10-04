@@ -1311,3 +1311,85 @@ fn the_filtered_skys_edges_never_dangle_and_the_frontiers_ground_rides_as_contex
         "the dep the ready chunk stands on is shown"
     );
 }
+
+#[test]
+fn readiness_and_overview_use_the_whole_snapshot_and_explain_unavailable_dependencies() {
+    let mut chunks: Vec<_> = (0..30)
+        .map(|n| chunk(&format!("done-{n}"), "done", n, "Storage", &[]))
+        .collect();
+    chunks.extend([
+        chunk("working", "in_progress", 100, "Identity", &["done-0"]),
+        chunk("ready", "pending", 200, "Interface", &["done-1"]),
+        chunk("missing", "pending", 300, "Workspace", &["missing-record"]),
+        chunk("waiting", "pending", 400, "Identity", &["working"]),
+        chunk("later", "backlog", 500, "Identity", &[]),
+        fixtures::chunk_from(
+            json!({"id":"blocked","name":"Verification","status":"pending","priority":10,
+            "blocked_by":{"kind":"awaiting_human","reason":"Pilot credentials are needed."}}),
+        ),
+    ]);
+    let mut roadmap = Roadmap::default();
+    roadmap.seed(&chunks, &[]);
+    assert_eq!(roadmap.next_ready().unwrap().id, "ready");
+    assert_eq!(roadmap.star_state("ready"), Some(StarState::Ready));
+    assert_eq!(roadmap.star_state("missing"), Some(StarState::Pending));
+    assert_eq!(roadmap.star_state("blocked"), Some(StarState::Blocked));
+    assert!(!roadmap.can_start(roadmap.chunk("later").unwrap()));
+    assert_eq!(
+        roadmap.progress_detail(roadmap.chunk("missing").unwrap()),
+        "Waiting for an unavailable work item"
+    );
+    assert_eq!(
+        roadmap.progress_detail(roadmap.chunk("waiting").unwrap()),
+        "Waiting for working"
+    );
+    assert_eq!(
+        roadmap.progress_detail(roadmap.chunk("blocked").unwrap()),
+        "Blocked: Pilot credentials are needed."
+    );
+    assert_eq!(
+        roadmap.progress_detail(roadmap.chunk("later").unwrap()),
+        "Planned for later"
+    );
+    assert_eq!(
+        roadmap.overview_summary(),
+        "1 working · 1 ready · 1 blocked · 2 waiting · 1 planned"
+    );
+    let ids = |roadmap: &Roadmap| {
+        roadmap
+            .overview_items()
+            .iter()
+            .map(|(_, c)| c.id.clone())
+            .collect::<Vec<_>>()
+    };
+    let before = ids(&roadmap);
+    assert_eq!(
+        before,
+        ["working", "ready", "blocked", "missing", "waiting", "later"]
+    );
+    roadmap.cycle_filter();
+    roadmap.sort_by(RoadmapSort::Name);
+    assert_eq!(
+        ids(&roadmap),
+        before,
+        "the panel keeps work across all tracks"
+    );
+    for (index, chunk) in roadmap.overview_items() {
+        assert_eq!(roadmap.graph_chunk(index).unwrap().id, chunk.id);
+    }
+    let previous = roadmap.clone();
+    let blocked = fixtures::chunk_from(
+        json!({"id":"ready","name":"ready","status":"pending","deps":["done-1"],
+        "blocked_by":{"kind":"awaiting_human","reason":"Waiting for review."}}),
+    );
+    roadmap.apply(&chunk_frame("chunk_changed", blocked), 0.0, false);
+    assert!(
+        roadmap.next_ready().is_none(),
+        "an event invalidates cached readiness"
+    );
+    assert_eq!(
+        previous.next_ready().unwrap().id,
+        "ready",
+        "an earlier snapshot stays intact"
+    );
+}

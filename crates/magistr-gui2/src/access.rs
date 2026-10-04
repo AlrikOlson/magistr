@@ -515,7 +515,7 @@ fn role_of(widget: Widget) -> Role {
         | Widget::TraceGraph
         | Widget::RoadmapGraph => Role::Image,
         Widget::Iteration | Widget::Elapsed | Widget::Chunk | Widget::Gates => Role::Label,
-        Widget::Stage | Widget::Undock => Role::ScrollView,
+        Widget::Stage | Widget::Undock | Widget::RoadmapOverview => Role::ScrollView,
         Widget::Header | Widget::Footer | Widget::Status => Role::Toolbar,
         Widget::Rail | Widget::Dock => Role::Group,
         // The altitude path: each crumb navigates, which is what `Link` means; the

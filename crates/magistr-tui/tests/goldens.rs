@@ -773,3 +773,65 @@ fn shot_loop_track_picker() {
     );
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+#[test]
+fn shot_roadmap_overview() {
+    shots_on(
+        "roadmap-overview",
+        Scenes::roadmap_overview,
+        magistr_tui::screenshot::Profile::Kitty,
+        true,
+    );
+}
+
+#[test]
+fn shot_roadmap_overview_waiting_and_large_font() {
+    use magistr_cockpit::cockpit::Widget;
+    use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+    use magistr_cockpit::pixel::CellSize;
+    use magistr_tui::screenshot::{Profile, frame};
+    let mut failures = Vec::new();
+    for (name, theme) in [("mocha", ThemeMode::Dark), ("latte", ThemeMode::Light)] {
+        let mut model =
+            Scenes::roadmap_overview(Size::new(144, 50)).with_theme(Theme::forced(theme));
+        update(
+            &mut model,
+            Msg::Mode(magistr_cockpit::capability::Mode::Graphics {
+                pointer_shapes: true,
+            }),
+        );
+        update(
+            &mut model,
+            Msg::CellSize(Some(CellSize {
+                width: 16,
+                height: 33,
+            })),
+        );
+        for _ in 0..3 {
+            update(
+                &mut model,
+                Msg::Mouse {
+                    event: MouseEvent::new(MouseKind::ScrollDown, 0, 0),
+                    target: Some(Widget::RoadmapOverview.id()),
+                },
+            );
+        }
+        let selected = model.roadmap().overview_items()[3].0;
+        update(
+            &mut model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::sky_star(selected)),
+            },
+        );
+        Scenes::settle(&mut model);
+        let pixmap = frame(&model, &clock(), Profile::Kitty).expect("layout");
+        if let Err(error) = screens().check(
+            &format!("roadmap-overview-waiting-{name}-144x50-16x33-kitty"),
+            &pixmap,
+        ) {
+            failures.push(error.to_string());
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

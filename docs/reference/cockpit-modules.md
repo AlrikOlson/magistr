@@ -261,7 +261,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/flight_panels.rs` | Session proportions and captured mouse/keyboard panel resizing | `magistr-cockpit/src/cockpit/flight_panels.tests.rs` · `magistr-tui/tests/panel_resize.rs` |
 | `magistr-cockpit/src/cockpit/flight_recorder.rs` | Bounded dynamic reasoning graph, recorded question summaries, and selection controls | `magistr-cockpit/src/cockpit/flight_recorder.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_records.rs` | Recorded-work and roadmap lists with shared physical row geometry | `magistr-cockpit/src/cockpit/update.tests.rs` |
-| `magistr-cockpit/src/cockpit/flight_roadmap.rs` | Readable roadmap neighborhood with shared physical points, labels, and hit targets | `magistr-cockpit/src/cockpit/flight_roadmap.tests.rs` |
+| `magistr-cockpit/src/cockpit/flight_roadmap.rs` | Scrollable work overview across tracks, readiness and waiting reasons, with nearby dependencies when space allows | `magistr-cockpit/src/cockpit/flight_roadmap.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_roadmap_graph.rs` | Complete dependency graph with measured labels, physical pointer targets, and camera navigation | `magistr-cockpit/src/cockpit/flight_roadmap_graph.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_requests.rs` | Measured request history projected from real conversation source ranges, with independent scrolling | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/flight_roadmap_page.rs` | Dedicated roadmap page with work list, selected details, and preserved conversation state | `magistr-cockpit/src/cockpit/view.tests.rs` |
@@ -286,6 +286,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/kill_cmd.rs` | Cancellation requests for an ACP terminal by ID or a running gate by name | `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/loop_cmd.rs` | What the user asks of the iteration loop | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/loop_event.rs` | What the iteration-loop driver reports | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
+| `magistr-cockpit/src/cockpit/loop_scope.rs` | The track choice retained by a loop launch | `magistr-cockpit/src/cockpit/update.tests.rs` · `magistr-cockpit/tests/purity.rs` |
 | `magistr-cockpit/src/cockpit/loop_stage.rs` | Where the loop driver stands within an iteration | `magistr-cockpit/src/cockpit/loop_stage.tests.rs` · `magistr-cockpit/src/cockpit/bad_day.tests.rs` |
 | `magistr-cockpit/src/cockpit/loop_status.rs` | Where the iteration loop stands | `magistr-cockpit/src/cockpit/loop_status.tests.rs` |
 | `magistr-cockpit/src/cockpit/loop_verdict.rs` | Iteration review outcome | `magistr-cockpit/src/cockpit/loop_verdict.tests.rs` |

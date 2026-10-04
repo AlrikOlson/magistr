@@ -39,13 +39,21 @@ use crate::widget_id::WidgetId;
 /// Missing chunks leave navigation unchanged. A blocked decision may be
 /// recalled, but opening work never answers it. Reports are explicit destinations.
 pub(super) fn open_chunk(model: &mut Model, id: &str) -> bool {
+    if !inspect_chunk(model, id) {
+        return false;
+    }
+    model.show(StageTab::Roadmap);
+    true
+}
+
+/// Select the shared work details without changing the surrounding view.
+fn inspect_chunk(model: &mut Model, id: &str) -> bool {
     let (now, animate) = glide(model);
     if !model.roadmap.select(id, now, animate) {
         return false;
     }
     model.inspect(Selected::Chunk(id.to_owned()));
     model.roadmap_requests_open = false;
-    model.show(StageTab::Roadmap);
     if model
         .roadmap
         .chunk(id)
@@ -104,9 +112,10 @@ pub(super) fn sky_star_click(model: &mut Model, index: usize) -> Vec<Cmd> {
     else {
         return Vec::new();
     };
-    open_chunk(model, &id);
-    if model.uses_flight_recorder() {
-        model.pane = Pane::Inspector;
+    if model.uses_flight_recorder() && model.tab() != StageTab::Roadmap {
+        inspect_chunk(model, &id);
+    } else {
+        open_chunk(model, &id);
     }
     shelf_collect(model)
 }

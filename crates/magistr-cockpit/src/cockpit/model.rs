@@ -2344,6 +2344,24 @@ impl Model {
         }
     }
 
+    /// First work card in the independent roadmap overview.
+    #[must_use]
+    pub fn roadmap_overview_top(&self) -> usize {
+        self.flight_panels
+            .roadmap_overview_top
+            .min(self.roadmap.overview_items().len().saturating_sub(1))
+    }
+
+    pub(super) fn scroll_roadmap_overview(&mut self, down: bool) {
+        let top = self.roadmap_overview_top();
+        self.flight_panels.roadmap_overview_top = if down {
+            top.saturating_add(1)
+                .min(self.roadmap.overview_items().len().saturating_sub(1))
+        } else {
+            top.saturating_sub(1)
+        };
+    }
+
     /// The Roadmap tab's scrolling body: how many rows it has and how
     /// many of them fit under the pinned heading and tech-tree block.
     /// The window the view paints and the one the scroll keys and the

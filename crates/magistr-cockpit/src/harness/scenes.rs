@@ -56,6 +56,35 @@ impl Scenes {
         model.with_loop_track_picker()
     }
 
+    /// Work across several tracks, with ready, waiting and blocked items.
+    pub fn roadmap_overview(size: Size) -> Model {
+        use magistr_workflow_contracts::NativeSnapshot;
+        use serde_json::json;
+        let mut chunks = fixtures::chunks_from(vec![
+            json!({"id":"foundation","name":"Invitation storage","status":"done","priority":100,"group":"Identity"}),
+            json!({"id":"sessions","name":"Password and TOTP sessions","status":"in_progress","priority":100,"group":"Identity","deps":["foundation"],
+                "description":"Keep recovery codes independent and check every signed-in session."}),
+            json!({"id":"pointer","name":"Reliable mouse targeting","status":"pending","priority":100,"group":"Interface",
+                "description":"Keep controls easy to select after changing the font or window size."}),
+            json!({"id":"overview","name":"A useful roadmap overview","status":"pending","priority":200,"group":"Interface",
+                "description":"Show the next work and explain what is waiting."}),
+            json!({"id":"verification","name":"Verify the production entry points","status":"blocked","priority":100,"group":"Verification",
+                "blocked_by":{"kind":"awaiting_human","reason":"The paired pilot needs its credentials."}}),
+            json!({"id":"passkeys","name":"Passkeys and sign-in checks","status":"pending","priority":300,"group":"Identity","deps":["sessions"]}),
+            json!({"id":"notifications","name":"Email invitations","status":"backlog","priority":400,"group":"Identity"}),
+        ]);
+        chunks.extend((0..12).map(|n| fixtures::chunk_from(json!({
+            "id":format!("workspace-{n}"),"name":format!("Workspace recovery check {}",n+1),"status":"pending",
+            "priority":500+n,"group":"Workspace tools","deps":["verification"]
+        }))));
+        Model::new(size)
+            .with_tab(StageTab::Turn)
+            .with_snapshot(&NativeSnapshot {
+                chunks,
+                ..NativeSnapshot::default()
+            })
+    }
+
     /// Shared navigation corpus for terminal and native adapter journeys.
     /// Sparse identities, recorded evidence, a journal and a nonempty draft
     /// ensure a journey cannot pass by comparing two empty screens.
