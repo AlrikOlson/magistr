@@ -1,6 +1,8 @@
 //! The turn's lines and rows, kept current as the agent streams.
 
 use super::ConversationLayout;
+#[path = "stream_tables.rs"]
+mod tables;
 use super::accent::Accent;
 use super::anchor::Anchor;
 use super::highlight::Highlight;
@@ -527,10 +529,14 @@ impl Turn {
         if delta.is_empty() {
             return;
         }
+        let from = self.lines.len().saturating_sub(1);
         let pieces: Vec<&str> = delta.split('\n').collect();
         let last = pieces.len() - 1;
         for (i, piece) in pieces.into_iter().enumerate() {
             if i > 0 {
+                if let Some(line) = self.lines.last_mut() {
+                    line.terminated = true;
+                }
                 self.close();
                 if i == last && piece.is_empty() {
                     break;
@@ -538,6 +544,7 @@ impl Turn {
             }
             self.append(voice, piece);
         }
+        self.refresh_tables(from);
     }
 
     /// A tool call announced: one new line, collapsed.
@@ -1039,6 +1046,7 @@ impl Turn {
             let tail_open = self.open && Some(i) == last;
             self.lines[i].row_start = self.rows.len();
             let in_fence = self.fence.is_some();
+            self.lines[i].fenced = in_fence;
             let columns = self.columns_for(&self.lines[i].kind, in_fence);
             let highlight = if tail_open { None } else { self.fence.as_mut() };
             let line = &self.lines[i];
@@ -1060,6 +1068,7 @@ impl Turn {
         }
         self.layout = self.layout.wrapping_add(1);
         self.rebuilt = self.rows.len();
+        self.refresh_tables(0);
     }
 
     /// Wrap line `index` again on its own and splice its rows in place
@@ -1207,6 +1216,8 @@ impl Turn {
         self.lines.push(Line {
             kind,
             text: text.to_owned(),
+            terminated: false,
+            fenced: self.fence.is_some(),
             title: None,
             row_start,
             source,

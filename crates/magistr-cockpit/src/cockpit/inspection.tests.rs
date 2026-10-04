@@ -217,6 +217,27 @@ fn table_links_resolve_to_named_records() {
         && l.target == RecordTarget::Record(Selected::Chunk("b".into()))));
 }
 #[test]
+fn titles_format_authored_names_and_keep_tool_paths_literal() {
+    let mut model = model();
+    let mut card = Inspection::blank();
+    card.title = "**Review** the result".into();
+    model.inspect(Selected::Step(1));
+    let rich = card.title_document(&model);
+    assert_eq!(rich.blocks()[0].row.text, "Review the result");
+    assert!(!rich.blocks()[0].row.spans.is_empty());
+    card.title = "src/a_b_c.rs".into();
+    model.inspect(Selected::Tool("read".into()));
+    let literal = card.title_document(&model);
+    assert_eq!(literal.blocks()[0].row.text, card.title);
+    assert!(
+        literal.blocks()[0]
+            .row
+            .spans
+            .iter()
+            .all(|span| matches!(span.style, crate::turn::SpanStyle::Fg(_)))
+    );
+}
+#[test]
 fn dependency_completion_refreshes_available_actions() {
     let mut model = model();
     let chunks = |status| {

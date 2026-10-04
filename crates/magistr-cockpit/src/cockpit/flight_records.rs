@@ -164,8 +164,10 @@ fn card(
         s.inset(
             Node::column()
                 .child(
-                    s.label(
-                        fit(model, &title, width - 56.0),
+                    summary(
+                        model,
+                        &title,
+                        width - 56.0,
                         if selected { s.accent } else { s.ink },
                     )
                     .height(Length::Px(line))
@@ -185,6 +187,24 @@ fn card(
     .id(id)
     .height(Length::Px(FlightRecords::row_height(model)))
     .shrink(0.0)
+}
+pub(super) fn summary(model: &Model, text: &str, width: f32, ink: crate::render::Color) -> Node {
+    let doc = crate::turn::TextDocument::markdown(text, model.theme().mode());
+    document_summary(model, &doc, width, ink)
+}
+pub(super) fn document_summary(
+    model: &Model,
+    doc: &crate::turn::TextDocument,
+    width: f32,
+    ink: crate::render::Color,
+) -> Node {
+    let mut face = crate::pixel::Typography::default();
+    face.set_cell(model.cell_size());
+    let row = doc.summary(width.max(1.0), &mut |text, role| face.advance(text, role));
+    let pen = crate::theme::Pen::for_theme(&model.theme());
+    let mut node = super::view::stage_row(&row, model, &pen, None);
+    node.restyle_all(&|style| style.clone().fg(ink));
+    node
 }
 fn fit(model: &Model, text: &str, width: f32) -> String {
     use crate::layout::TextRole;

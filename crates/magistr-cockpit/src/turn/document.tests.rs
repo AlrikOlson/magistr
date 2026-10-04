@@ -1,6 +1,31 @@
 use super::*;
 
 #[test]
+fn compact_preview_keeps_spans_and_signals_full_content() {
+    let doc = TextDocument::markdown("**Saved** result\nMore findings", ThemeMode::Dark);
+    let row = doc.summary(20.0, &mut |text, _| text.chars().count() as f32);
+    assert_eq!(row.text, "Saved result…");
+    assert!(row.spans.iter().any(|span| span.style == SpanStyle::Bold));
+    assert_eq!(doc.source(), "**Saved** result\nMore findings");
+}
+
+#[test]
+fn incomplete_syntax_and_indented_code_remain_copyable() {
+    for source in [
+        "# Finding\n**unfinished",
+        "```rust\n    let result = 7;",
+        "[unfinished](https://example.com",
+    ] {
+        let doc = TextDocument::markdown(source, ThemeMode::Light);
+        assert_eq!(doc.source(), source);
+        assert!(
+            !doc.rows(10.0, &mut |text, _| text.chars().count() as f32)
+                .is_empty()
+        );
+    }
+}
+
+#[test]
 fn markdown_keeps_source_and_styles_and_maps_wrapped_text_to_source() {
     let source = "# Findings\n\n**Keep** the `receipt` and [docs](https://example.com).\n> A quoted result\n1. A numbered requirement that wraps across several rows\n- [x] An actual checklist value\n\n```rust\n    let receipt = 7;\n```\n```diff\n-old\n+new\n```";
     let doc = TextDocument::markdown(source, ThemeMode::Dark);

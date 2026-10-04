@@ -1,4 +1,44 @@
 use super::*;
+
+#[test]
+fn rich_tables_match_documents_in_streamed_conversation() {
+    let source = "| Check | Result |\n| --- | --- |\n| Recovery | **Passed** |\n";
+    let mut turn = Turn::new(16);
+    for piece in source.as_bytes().chunks(3) {
+        turn.push_text(Voice::Agent, std::str::from_utf8(piece).unwrap());
+    }
+    let expected = crate::turn::TextDocument::markdown(source, ThemeMode::Dark)
+        .rows(16.0, &mut |s, _| crate::render::width(s) as f32);
+    assert!(
+        turn.rows()
+            .iter()
+            .any(|row| row.text.contains("Result: Passed"))
+    );
+    assert!(
+        turn.rows()
+            .iter()
+            .any(|row| row.spans.iter().any(|span| span.style == SpanStyle::Bold))
+    );
+    for row in expected.iter().filter(|row| !row.row.text.is_empty()) {
+        assert!(
+            turn.rows().iter().any(|actual| actual.text == row.row.text),
+            "{:?}",
+            turn.rows()
+        );
+    }
+    assert_eq!(
+        turn.lines()
+            .iter()
+            .map(|line| format!(
+                "{}{}",
+                line.text(),
+                if line.has_newline() { "\n" } else { "" }
+            ))
+            .collect::<String>(),
+        source
+    );
+}
+
 use crate::theme::ThemeMode;
 use crate::turn::MAX_IMAGE_ROWS;
 use crate::turn::{RowKind, SpanStyle};

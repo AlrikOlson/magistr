@@ -143,7 +143,15 @@ impl Inspector {
         let body = Node::column()
             .grow(1.0)
             .min_height(Length::Px(0.0))
-            .child(style.heading(&card.title).id(Widget::InspectorTitle.id()))
+            .child(
+                crate::cockpit::flight_records::document_summary(
+                    model,
+                    &card.title_document(model),
+                    (width - 34.0).max(1.0),
+                    style.ink,
+                )
+                .id(Widget::InspectorTitle.id()),
+            )
             .child(style.label(format!("{} · {}", card.status, card.metadata), style.muted))
             .child(fields)
             .child(actions.height(Length::Px(style.line_height)).shrink(0.0));

@@ -120,7 +120,9 @@ impl ConversationLayout {
                 });
                 layout.height = layout.height.saturating_add(height);
             }
-            previous_voice = voice;
+            if start < end {
+                previous_voice = voice;
+            }
         }
         layout
     }

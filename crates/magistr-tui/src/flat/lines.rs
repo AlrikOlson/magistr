@@ -55,6 +55,17 @@ pub(super) fn session_lines(model: &Model) -> Vec<FlatLine> {
 
 pub(super) fn detail_lines(model: &Model) -> Vec<FlatLine> {
     let mut out = Vec::new();
+    if model.tab() == magistr_cockpit::cockpit::StageTab::Roadmap && model.roadmap_requests_open() {
+        let history = magistr_cockpit::cockpit::RequestHistory::of(model);
+        out.push(FlatLine::settled(Some(Role::Note), "Requests"));
+        out.extend(
+            history
+                .original()
+                .split('\n')
+                .map(|text| FlatLine::settled(None, text)),
+        );
+        return out;
+    }
     if let Some(card) = magistr_cockpit::cockpit::Inspection::of(model) {
         out.push(FlatLine::settled(
             Some(Role::Note),

@@ -630,6 +630,11 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
         return cmds;
     }
     if key.code == KeyCode::Tab {
+        if model.moment().is_none()
+            && let Some(cmds) = super::RequestHistory::key(model, key)
+        {
+            return cmds;
+        }
         // A Moment is modal: the stage behind it is not navigable, and
         // `⇥` is the way into its conditional register.
         if model.moment().is_some() {
@@ -1194,7 +1199,12 @@ fn sheet_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 
 /// Terminal object navigation. Modal and prompt input has already had priority.
 fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if let Some(cmds) = Inspector::key(model, key) {
+    if let Some(cmds) = super::RequestHistory::key(model, key) {
+        return Some(cmds);
+    }
+    if !(model.tab() == StageTab::Roadmap && model.roadmap_requests_open())
+        && let Some(cmds) = Inspector::key(model, key)
+    {
         return Some(cmds);
     }
     if model.uses_flight_recorder()
@@ -2410,7 +2420,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     return Vec::new();
                 }
                 Some(Widget::RequestLatest) => {
-                    model.roadmap_request_scroll = usize::MAX;
+                    super::RequestHistory::latest(model);
                     model.pane = Pane::Inspector;
                     return Vec::new();
                 }
@@ -2565,6 +2575,9 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             }
             if let Some(number) = target.and_then(Widget::trace_chunk_step) {
                 return work::chunk_jump(model, number);
+            }
+            if let Some(cmds) = target.and_then(|id| super::RequestHistory::activate(model, id)) {
+                return cmds;
             }
             if let Some(cmds) = target.and_then(|id| Inspector::activate(model, id)) {
                 return cmds;

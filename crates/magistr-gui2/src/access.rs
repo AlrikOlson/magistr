@@ -598,6 +598,18 @@ fn indexed_role(id: WidgetId) -> (Role, String) {
     if Widget::roadmap_track_index(id).is_some() {
         return (Role::Button, "Track".into());
     }
+    if Widget::request_link_index(id).is_some() {
+        return (Role::Link, "Copy link".into());
+    }
+    if Widget::request_tool_index(id).is_some() {
+        return (Role::Button, "Open details".into());
+    }
+    if id == Widget::request_copy()
+        || id == Widget::request_jump(0)
+        || id == Widget::request_jump(1)
+    {
+        return (Role::Button, "Requests".into());
+    }
     if Widget::detail_link_index(id).is_some() {
         return (Role::Link, "Related record".into());
     }

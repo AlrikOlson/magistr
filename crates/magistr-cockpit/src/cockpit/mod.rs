@@ -73,6 +73,8 @@ pub mod ground;
 pub mod ground_field;
 pub mod hover;
 pub mod hover_role;
+mod request_history;
+pub use request_history::{RequestHistory, RequestSection};
 mod inspection;
 pub use inspection::{
     Inspection, ReadingPosition, ReadingRow, RecordLink, RecordSection, RecordTarget,

@@ -1,4 +1,22 @@
 use super::*;
+
+#[test]
+fn rich_requests_have_a_complete_linear_capture() {
+    let model = magistr_cockpit::harness::Scenes::rich_requests(SIZE);
+    let lines = crate::flat::lines(&model)
+        .iter()
+        .map(FlatLine::render)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(lines.contains("Requests"));
+    assert!(
+        magistr_cockpit::harness::Scenes::RICH_BODY
+            .lines()
+            .all(|source| lines.contains(source))
+    );
+    insta::assert_snapshot!(lines);
+}
+
 use crate::flat::lines;
 use magistr_application::sessions::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
 use magistr_cockpit::cockpit::{Msg, Size, update};

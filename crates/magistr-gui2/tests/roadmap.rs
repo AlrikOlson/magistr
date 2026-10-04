@@ -1,6 +1,161 @@
 //! Native roadmap controls and navigation retain shared session state.
 
 #[test]
+fn rich_requests_keep_semantics_copy_and_source_position_in_the_placed_native_view() {
+    use magistr_cockpit::cockpit::{Cmd, RequestHistory};
+    use magistr_cockpit::golden::Golden;
+    use magistr_cockpit::theme::{Theme, ThemeMode};
+    let golden =
+        Golden::new(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/screens"));
+    let mut failures = Vec::new();
+    for mode in [ThemeMode::Dark, ThemeMode::Light] {
+        for (width, height) in [(1200, 600), (700, 600)] {
+            let mut model = Scenes::rich_requests(Size::new(120, 40))
+                .with_surface(Surface::Native)
+                .with_theme(Theme::forced(mode));
+            let mut frame = Frame::new().unwrap();
+            let clock = FrameClock::new(0, std::time::Duration::ZERO);
+            let head = frame.still(&mut model, &clock, width, height).unwrap();
+            let words = says(&frame)
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            assert!(words.contains("Delivery findings"), "{words}");
+            assert!(!words.contains("**Keep**"), "{words}");
+            assert!(words.contains("receipt"), "{words}");
+            if let Err(error) = golden.check(
+                &format!("requests-rich-head-{mode:?}-{width}x{height}"),
+                &head,
+            ) {
+                failures.push(error.to_string());
+            }
+            let draft = model.prompt().clone();
+            let commands = update(&mut model, hit(&frame, Widget::request_copy()));
+            assert!(
+                matches!(commands.as_slice(), [Cmd::Clipboard(text)] if text.contains(Scenes::RICH_BODY))
+            );
+            let before = model
+                .turn()
+                .lines()
+                .iter()
+                .map(|line| (line.text().to_owned(), line.has_newline()))
+                .collect::<Vec<_>>();
+            for _ in 0..2 {
+                update(
+                    &mut model,
+                    Msg::Mouse {
+                        event: MouseEvent::new(MouseKind::ScrollDown, 0, 0),
+                        target: Some(Widget::RequestBody.id()),
+                    },
+                );
+            }
+            frame.still(&mut model, &clock, width, height).unwrap();
+            let held = model.roadmap_request_scroll();
+            update(&mut model, Msg::Resize(Size::new(100, 34)));
+            frame.still(&mut model, &clock, width - 60, height).unwrap();
+            assert_eq!(
+                model
+                    .turn()
+                    .lines()
+                    .iter()
+                    .map(|line| (line.text().to_owned(), line.has_newline()))
+                    .collect::<Vec<_>>(),
+                before
+            );
+            assert!(model.roadmap_request_scroll() < usize::MAX);
+            assert!(held > 0);
+            assert_eq!(model.prompt(), &draft);
+            update(&mut model, hit(&frame, Widget::RequestLatest.id()));
+            assert_eq!(model.roadmap_request_scroll(), usize::MAX);
+            let tail = frame.still(&mut model, &clock, width, height).unwrap();
+            assert!(says(&frame).contains("Needs"), "{}", says(&frame));
+            let commands = RequestHistory::activate(&mut model, Widget::request_link(0)).unwrap();
+            assert!(
+                matches!(commands.as_slice(), [Cmd::Clipboard(text)] if text == "https://example.com/guide")
+            );
+            if let Err(error) = golden.check(
+                &format!("requests-rich-tail-{mode:?}-{width}x{height}"),
+                &tail,
+            ) {
+                failures.push(error.to_string());
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
+fn recorded_rich_content_uses_the_shared_native_reader() {
+    use magistr_cockpit::golden::Golden;
+    use magistr_cockpit::theme::{Theme, ThemeMode};
+    let golden =
+        Golden::new(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/screens"));
+    let mut failures = Vec::new();
+    for mode in [ThemeMode::Dark, ThemeMode::Light] {
+        for width in [1200, 700] {
+            let mut model = Scenes::rich_recorded_details(Size::new(120, 40))
+                .with_surface(Surface::Native)
+                .with_theme(Theme::forced(mode));
+            let mut frame = Frame::new().unwrap();
+            let clock = FrameClock::new(0, std::time::Duration::ZERO);
+            let still = frame.still(&mut model, &clock, width, 900).unwrap();
+            let words = says(&frame)
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            assert!(words.contains("Delivery findings"), "{words}");
+            assert!(!words.contains("**Keep**"), "{words}");
+            assert!(words.contains("receipt"), "{words}");
+            if let Err(error) = golden.check(&format!("recorded-rich-{mode:?}-{width}x900"), &still)
+            {
+                failures.push(error.to_string());
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+#[test]
+fn rich_request_input_and_stream_paint_stay_responsive() {
+    use magistr_cockpit::input::{KeyCode, KeyEvent};
+    use std::time::{Duration, Instant};
+    let mut model = Model::new(Size::new(120, 40))
+        .with_surface(Surface::Native)
+        .with_tab(StageTab::Roadmap);
+    update(&mut model, Msg::Paste("Review delivery".into()));
+    update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+    update(&mut model, Msg::RoadmapRequestStarted);
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text(Scenes::RICH_BODY.repeat(12))),
+    );
+    let mut frame = Frame::new().unwrap();
+    let clock = FrameClock::new(0, Duration::ZERO);
+    for _ in 0..4 {
+        frame.build(&mut model, &clock, 1100, 900).unwrap();
+    }
+    let mut samples = Vec::new();
+    for _ in 0..40 {
+        let started = Instant::now();
+        update(
+            &mut model,
+            Msg::Agent(AgentEvent::Text("A **saved** result.\n".into())),
+        );
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Char('x'))));
+        frame.build(&mut model, &clock, 1100, 900).unwrap();
+        samples.push(started.elapsed());
+    }
+    samples.sort_unstable();
+    let worst = *samples.last().unwrap();
+    let bound = Duration::from_millis(if cfg!(debug_assertions) { 60 } else { 20 });
+    eprintln!(
+        "rich request stream+input+paint: median={:?} worst={worst:?} bound={bound:?}",
+        samples[samples.len() / 2]
+    );
+    assert!(worst <= bound, "{worst:?} exceeds {bound:?}");
+    assert_eq!(model.prompt().text(), "x".repeat(40));
+}
+
+#[test]
 fn roadmap_targets_follow_shared_links_actions_filters_and_graph_selection() {
     use magistr_cockpit::cockpit::{Cmd, Selected};
     use magistr_gui2::fixture::Fixture;
@@ -327,7 +482,10 @@ fn queued_planning_routes_to_its_owner_and_never_borrows_implementation_output()
         Msg::Agent(AgentEvent::Text("LATER IMPLEMENTATION".into())),
     );
     paint(&mut frame, &mut model);
-    let text = says(&frame);
+    let text = says(&frame)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
     assert!(text.contains("Recovery work is now planned."));
     let access = frame.access();
     let value = access
@@ -401,7 +559,13 @@ fn requests_and_details_hold_independent_offsets_at_every_scale() {
         click(&frame, &mut model, Widget::RequestLatest);
         paint(&mut frame, &mut model);
         assert_eq!(model.roadmap_request_scroll(), usize::MAX);
-        assert!(says(&frame).contains("NEW REPLY"));
+        assert!(
+            says(&frame)
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .contains("NEW REPLY")
+        );
     }
 }
 

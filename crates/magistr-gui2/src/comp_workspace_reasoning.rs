@@ -60,7 +60,9 @@ impl ReasoningComposition {
                 .height(38.0)
                 .no_shrink()
                 .justify_center()
-                .child(Element::text(Voice::LEDGER_NAME, lex.tx, &label).nowrap())
+                .child(crate::rich_text::RichText::summary(
+                    &label, model, lex.tx, lex,
+                ))
                 .child(
                     Element::text(
                         Voice::HINT,

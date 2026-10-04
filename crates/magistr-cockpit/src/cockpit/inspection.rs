@@ -114,6 +114,19 @@ impl Inspection {
         Some(card)
     }
 
+    /// Authored names keep formatting; tool labels and paths keep their literal bytes.
+    #[must_use]
+    pub fn title_document(&self, model: &Model) -> TextDocument {
+        if matches!(
+            model.selected(),
+            Some(super::Selected::Tool(_) | super::Selected::Change(_) | super::Selected::Run(_))
+        ) {
+            TextDocument::code(&self.title, "", model.theme().mode())
+        } else {
+            TextDocument::markdown(&self.title, model.theme().mode())
+        }
+    }
+
     pub(super) fn blank() -> Self {
         Self {
             title: String::new(),

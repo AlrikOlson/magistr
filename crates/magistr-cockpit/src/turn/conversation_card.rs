@@ -57,7 +57,7 @@ impl ConversationCard {
                 },
                 turn.diff_stats(id).map_or_else(
                     || status_label(*status).to_owned(),
-                    |(added, removed)| format!("+{added} −{removed}"),
+                    |(added, removed)| format!("{} · +{added} −{removed}", status_label(*status)),
                 ),
                 *status == ToolStatus::Failed,
                 matches!(status, ToolStatus::Pending | ToolStatus::InProgress),
@@ -119,3 +119,7 @@ fn status_label(status: ToolStatus) -> &'static str {
         ToolStatus::Failed => "Failed",
     }
 }
+
+#[cfg(test)]
+#[path = "conversation_card.tests.rs"]
+mod tests;

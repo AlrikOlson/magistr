@@ -1421,9 +1421,7 @@ fn trace_head(
     if let Some(confidence) = step.confidence {
         text.push_str(&format!("  {confidence:.2}"));
     }
-    let mut line = Marked::new(model, pen)
-        .icon(Icon::fold(selected))
-        .text(&text);
+    let mut line = Marked::new(model, pen).icon(Icon::fold(selected));
     if step.pinned {
         line = line.text(" ").icon(Icon::Pinned);
     }
@@ -1435,7 +1433,17 @@ fn trace_head(
     } else {
         pen.note.clone()
     };
-    line.node()
+    let doc = crate::turn::TextDocument::markdown(&text, model.theme().mode());
+    let row = doc.summary(
+        f32::from(model.trace_width().saturating_sub(4)),
+        &mut |s, _| f32::from(crate::render::width(s)),
+    );
+    Node::row()
+        .child(
+            line.node()
+                .width(Length::Cells(if step.pinned { 3 } else { 1 })),
+        )
+        .child(stage_row(&row, model, pen, None).grow(1.0))
         .style(style)
         .height(Length::Cells(1))
         .min_width(Length::Px(0.0))
@@ -1463,10 +1471,19 @@ fn moment_row(moment: &crate::cockpit::ShipMoment, model: &Model, pen: &Pen) -> 
             if let Some(task) = model.rail().ship().task(task_id) {
                 text.push_str(&format!(" ({})", task.title));
             }
-            Marked::new(model, pen)
-                .icon(Icon::InProgress)
-                .text(&text)
-                .node()
+            let doc = crate::turn::TextDocument::markdown(&text, model.theme().mode());
+            let row = doc.summary(
+                f32::from(model.trace_width().saturating_sub(4)),
+                &mut |s, _| f32::from(crate::render::width(s)),
+            );
+            Node::row()
+                .child(
+                    Marked::new(model, pen)
+                        .icon(Icon::InProgress)
+                        .node()
+                        .width(Length::Cells(1)),
+                )
+                .child(stage_row(&row, model, pen, None).grow(1.0))
                 .style(pen.row(RowKind::Event).clone())
                 .height(Length::Cells(1))
         }

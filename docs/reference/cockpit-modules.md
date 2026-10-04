@@ -316,6 +316,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/project_seed.rs` | What a host knows about a project before its session starts, as data the surface builds its model from | `magistr-cockpit/src/cockpit/project_seed.tests.rs` · `magistr-cockpit/src/cockpit/project_switch.tests.rs` |
 | `magistr-cockpit/src/cockpit/project_switch.rs` | Opening another project in the same window: the ask, the refusal in words and the swap that keeps what the window owns | `magistr-cockpit/src/cockpit/project_switch.tests.rs` |
 | `magistr-cockpit/src/cockpit/projection.rs` | How the model stands to the store: freshness and the last delivery folded | `magistr-cockpit/src/cockpit/projection.tests.rs` |
+| `magistr-cockpit/src/cockpit/request_history.rs` | Rich request documents derived from admitted conversation ranges, source anchors and controls | `magistr-cockpit/src/cockpit/request_history.tests.rs` · `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/request_phase.rs` | Typed waiting, queued, active and terminal request states | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/prompt.rs` | The prompt: a multi-line editor with history | `magistr-cockpit/src/cockpit/prompt.tests.rs` |
 | `magistr-cockpit/src/cockpit/proposal.rs` | Proposed roadmap items and workstreams, including ordering and names | `magistr-cockpit/src/cockpit/proposal.tests.rs` |
@@ -559,6 +560,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/turn/row_kind.rs` | How a row is styled, and which voice it is set in | `magistr-cockpit/src/turn/row_kind.tests.rs` |
 | `magistr-cockpit/src/turn/span.rs` | One styled run within a row's text | `magistr-tui/tests/turn_harness.rs` |
 | `magistr-cockpit/src/turn/span_style.rs` | How an inline run is styled | `magistr-tui/tests/turn_harness.rs` |
+| `magistr-cockpit/src/turn/stream_tables.rs` | Incremental conversation tables measured by the shared rich document owner | `magistr-cockpit/src/turn/stream_tables.tests.rs` |
 | `magistr-cockpit/src/turn/stream.rs` | The turn's lines and rows, kept current as the agent streams | `magistr-cockpit/src/turn/stream.tests.rs` |
 | `magistr-cockpit/src/turn/viewport.rs` | Which rows of the turn the stage shows | `magistr-cockpit/src/turn/viewport.tests.rs` |
 | `magistr-cockpit/src/turn/voice.rs` | Who a prose line is from | `magistr-tui/tests/turn_harness.rs` |

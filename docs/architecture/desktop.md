@@ -246,6 +246,17 @@ the first project still open. Accessibility, keyboard and pointer switches then 
 between two projects with the draft kept, the second project's host answers a
 message, and after close every project's owner opens again.
 
+## Rich requests and recorded work
+
+RequestsComposition consumes the cockpit's RequestHistory documents and admitted
+response ranges. RichText paints shared spans, code, markers and labeled table cells.
+Native layout reports source word positions so resizing and later responses retain
+the request reader's anchor. Copy, named links, section movement and Latest reply
+use shared commands; unsent drafts and selected details retain independent state.
+ReasoningComposition renders rich compact titles; selecting them opens the full
+Inspection. TraceComposition uses TextDocument for its authored body. Files,
+diffs, recorded output and verdicts retain their original source and evidence.
+
 ## Shared navigation
 
 The host supplies the current project's name and directory before opening the

@@ -657,6 +657,36 @@ impl Widget {
         Self::index_in(Self::SIGNAL_ROW_BASE, id)
     }
 
+    /// Request reading links and source markers.
+    #[must_use]
+    pub const fn request_link(index: usize) -> WidgetId {
+        Self::indexed(0x2E_0000, index)
+    }
+    #[must_use]
+    pub const fn request_link_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(0x2E_0000, id)
+    }
+    #[must_use]
+    pub const fn request_jump(index: usize) -> WidgetId {
+        Self::indexed(0x31_0000, index)
+    }
+    #[must_use]
+    pub const fn request_tool(index: usize) -> WidgetId {
+        Self::indexed(0x32_0000, index)
+    }
+    #[must_use]
+    pub const fn request_tool_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(0x32_0000, id)
+    }
+    #[must_use]
+    pub const fn request_copy() -> WidgetId {
+        WidgetId::new(0x2F_0000)
+    }
+    #[must_use]
+    pub const fn request_block(index: usize) -> WidgetId {
+        Self::indexed(0x30_0000, index)
+    }
+
     /// Selected-document links and individual section disclosures.
     #[must_use]
     pub const fn detail_link(index: usize) -> WidgetId {
