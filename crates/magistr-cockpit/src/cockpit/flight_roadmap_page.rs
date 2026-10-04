@@ -49,7 +49,7 @@ impl FlightRoadmapPage {
         if model.flight_layout().compact {
             row = row
                 .child(tab(
-                    "Plan",
+                    "Back to roadmap",
                     Widget::TabRoadmap,
                     !requests && model.pane() == Pane::Stage,
                 ))
@@ -95,15 +95,18 @@ impl FlightRoadmapPage {
             plan = plan.child(Self::navigation(model));
         }
         if graph_height > 0.0 {
-            plan = plan
-                .child(FlightRoadmapGraph::view(model, l.left_width, graph_height))
-                .child(D::Graph.view(model));
+            plan = plan.child(FlightRoadmapGraph::view(model, l.left_width, graph_height));
+            if l.graph_list_height > 0.0 {
+                plan = plan.child(D::Graph.view(model));
+            }
         }
-        plan = plan.child(
-            FlightRecords::view(model, l.left_width, Self::list_height(model))
-                .height(Length::Px(Self::list_height(model)))
-                .shrink(0.0),
-        );
+        if l.graph_list_height > 0.0 {
+            plan = plan.child(
+                FlightRecords::view(model, l.left_width, Self::list_height(model))
+                    .height(Length::Px(Self::list_height(model)))
+                    .shrink(0.0),
+            );
+        }
         let mut body = Node::row()
             .height(Length::Px(l.body_height))
             .min_height(Length::Px(0.0))

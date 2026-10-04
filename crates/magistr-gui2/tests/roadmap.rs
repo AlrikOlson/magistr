@@ -18,6 +18,8 @@ fn roadmap_targets_follow_shared_links_actions_filters_and_graph_selection() {
     );
     paint(&mut frame, &mut model);
     assert!(frame.rect_of(W::id(Widget::RoadmapStart.id())).is_none());
+    click(&frame, &mut model, Widget::RoadmapDependencies);
+    paint(&mut frame, &mut model);
     let star = model
         .roadmap()
         .graph_ids()
@@ -26,7 +28,19 @@ fn roadmap_targets_follow_shared_links_actions_filters_and_graph_selection() {
         .unwrap();
     update(&mut model, hit(&frame, Widget::sky_star(star)));
     paint(&mut frame, &mut model);
-    update(&mut model, hit(&frame, Widget::detail_link(1)));
+    let link = magistr_cockpit::cockpit::Inspection::of(&model)
+        .unwrap()
+        .links()
+        .into_iter()
+        .find(|link| {
+            link.target == magistr_cockpit::cockpit::RecordTarget::Record(Selected::Step(701))
+        })
+        .unwrap()
+        .widget;
+    click(&frame, &mut model, Widget::RoadmapDetails);
+    update(&mut model, key(magistr_cockpit::input::KeyCode::End));
+    paint(&mut frame, &mut model);
+    update(&mut model, hit(&frame, link));
     assert_eq!(model.tab(), StageTab::Session);
     assert_eq!(model.selected(), Some(&Selected::Step(701)));
     paint(&mut frame, &mut model);
@@ -178,12 +192,12 @@ fn full_roadmap_keeps_conversation_draft_and_reading_position() {
         .map(|(s, _)| s)
         .collect::<Vec<_>>()
         .join("\n");
-    for label in ["Work items", "Requests", "Item details"] {
+    for label in ["Tracks", "Requests", "Item details"] {
         assert!(says.contains(label), "missing {label}");
     }
     assert!(
         frame
-            .rect_of(magistr_gui2::comp_sky::SkyComposition::FIELD)
+            .rect_of(magistr_gui2::comp_roadmap::RoadmapComposition::LIST)
             .is_some()
     );
     click(&frame, &mut model, Widget::RoadmapRequests);
@@ -424,9 +438,110 @@ fn compact_plan_can_return_from_requests_and_details_without_losing_its_draft() 
         assert!(frame.rect_of(R::LIST).is_some());
         assert!(
             frame
-                .rect_of(magistr_gui2::comp_sky::SkyComposition::FIELD)
+                .rect_of(magistr_gui2::comp_roadmap::RoadmapComposition::LIST)
                 .is_some()
         );
         assert_eq!(model.prompt(), &draft);
+    }
+}
+
+#[test]
+fn native_track_headings_focus_search_and_activation_share_selected_work() {
+    use magistr_cockpit::cockpit::{Selected, TrackFocus, TrackRow};
+    use magistr_cockpit::input::{KeyCode, KeyEvent};
+    use magistr_cockpit::theme::{MotionMode, Theme, ThemeMode};
+    use magistr_gui2::fixture::Fixture;
+    for mode in [ThemeMode::Dark, ThemeMode::Light] {
+        for (width, height) in [(1100, 760), (620, 640)] {
+            let mut model = Fixture::roadmap(Size::new(120, 40))
+                .with_theme(Theme::forced(mode).with_motion(MotionMode::Reduced));
+            let mut frame = Frame::new().unwrap();
+            let mut draw = |model: &mut Model| {
+                frame
+                    .still(
+                        model,
+                        &FrameClock::new(0, std::time::Duration::ZERO),
+                        width,
+                        height,
+                    )
+                    .unwrap();
+            };
+            // Start in the track list on either layout.
+            update(
+                &mut model,
+                Msg::Mouse {
+                    event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                    target: Some(Widget::TabRoadmap.id()),
+                },
+            );
+            draw(&mut model);
+            let heading = model.roadmap().track_rows()[0].widget(0);
+            let commands = update(&mut model, hit(&frame, heading));
+            assert!(commands.is_empty());
+            assert!(matches!(
+                model.roadmap().track_focus(),
+                Some(TrackFocus::Track(_))
+            ));
+            assert_eq!(
+                model.selected(),
+                Some(&Selected::Chunk("delivery-running".into()))
+            );
+            assert!(!model.roadmap().is_selected_visible());
+            frame
+                .still(
+                    &mut model,
+                    &FrameClock::new(0, std::time::Duration::ZERO),
+                    width,
+                    height,
+                )
+                .unwrap();
+            assert_eq!(
+                frame
+                    .access()
+                    .nodes()
+                    .iter()
+                    .find(|node| node.target == Some(heading))
+                    .unwrap()
+                    .value
+                    .as_deref(),
+                Some("Collapsed")
+            );
+            update(&mut model, key(KeyCode::Right));
+            update(&mut model, key(KeyCode::Right));
+            assert!(matches!(
+                model.roadmap().track_focus(),
+                Some(TrackFocus::Item(_))
+            ));
+            assert!(update(&mut model, key(KeyCode::Enter)).is_empty());
+            assert_eq!(
+                model.selected(),
+                Some(&Selected::Chunk("delivery-running".into()))
+            );
+            update(&mut model, key(KeyCode::Esc));
+            frame
+                .still(
+                    &mut model,
+                    &FrameClock::new(0, std::time::Duration::ZERO),
+                    width,
+                    height,
+                )
+                .unwrap();
+            click(&frame, &mut model, Widget::RoadmapSearch);
+            update(&mut model, Msg::Paste("Keep delivery attempts".into()));
+            assert!(
+                model
+                    .roadmap()
+                    .track_rows()
+                    .iter()
+                    .any(|r| matches!(r,TrackRow::Item(c,_) if c.id=="delivery-base"))
+            );
+            update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Esc)));
+            assert!(model.roadmap().track_query().is_empty());
+            assert_eq!(
+                model.selected(),
+                Some(&Selected::Chunk("delivery-running".into()))
+            );
+            assert!(model.roadmap().is_selected_visible());
+        }
     }
 }

@@ -364,7 +364,15 @@ the same pixel text, backgrounds, and boundaries as the workspace.
 The compact roadmap shows readable nearby dependencies around current work.
 Its points, labels, and hit targets use the same physical geometry and global
 work-item identities. Open Roadmap provides the complete graph and list on its own
-page. Graph labels and pointer targets share the physical camera coordinates.
+page. Tracks is the default: collapsible headings derive from existing group membership,
+including Unassigned, and count complete-snapshot readiness. Arrow focus is distinct
+from selected work; Work owns keyboard and pointer activation. Search spans all
+tracks and history, restoring collapse and scroll on clear. Dependencies exposes
+the full graph and named immediate dependencies/dependents without changing
+execution focus. Small views open details with Back to roadmap; larger views pair
+the list and reader. Track rendering constructs only visible rows, live updates
+anchor the list by record identity, and list browsing does not warm graph geometry.
+Graph labels and pointer targets share the physical camera coordinates.
 Alt-F cycles its status filter, Alt-S cycles sort columns, and Alt-R reverses
 sorting; selection survives filtering and sorting. At small sizes the list uses
 the available space and selected details open within the same page. Plain terminals

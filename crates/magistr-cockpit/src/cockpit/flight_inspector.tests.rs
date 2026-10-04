@@ -40,7 +40,7 @@ fn every_page_uses_complete_requirements_and_named_record_links() {
     model.pixels = true;
     model.roadmap.seed(&[fixtures::chunk_from(json!({"id":"source","title":"Saved retry limits",
         "description":"Remember the schedule.","acceptance":["Keep the delay.","Separate each limit."],
-        "deps":["receipts","missing"]})),fixtures::chunk_from(json!({"id":"receipts","title":"Receipt storage"}))],&[]);
+        "deps":["receipts","missing"]})),fixtures::chunk_from(json!({"id":"receipts","title":"Receipt storage","group":"Storage"}))],&[]);
     model.inspect(Selected::Chunk("source".into()));
     for tab in StageTab::ALL {
         model.tab = tab;
@@ -48,7 +48,7 @@ fn every_page_uses_complete_requirements_and_named_record_links() {
         let out = text(&view);
         assert!(out.contains("Keep the delay."), "{out}");
         assert!(out.contains("Separate each limit."));
-        assert!(out.contains("Receipt storage →"));
+        assert!(out.contains("Receipt storage · Storage →"));
         assert!(out.contains("This record is no longer available."));
         assert!(!has(&view, Widget::InspectorDetail.id()));
         assert!(has(&view, Widget::detail_link(0)));

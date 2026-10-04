@@ -268,7 +268,11 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.remember(Msg::PromptReplace(text));
         }
         Msg::Paste(text) => {
-            session::paste(model, &text);
+            if model.tab() == StageTab::Roadmap && model.roadmap.is_track_search_editing() {
+                work::search_query(model, format!("{}{}", model.roadmap.track_query(), text));
+            } else {
+                session::paste(model, &text);
+            }
             model.remember(Msg::Paste(text));
         }
         Msg::Decision(intent) => return decision::apply(model, intent),
@@ -368,7 +372,11 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.dock.apply(&event);
             model.trace.apply(&event);
             let animate = model.theme.motion().is_full();
+            let anchor = matches!(event, NativeEvent::Roadmap(_) | NativeEvent::Signal(_))
+                .then(|| work::browse_anchor(model))
+                .flatten();
             model.roadmap.apply(&event, model.now(), animate);
+            work::restore_browse_anchor(model, anchor);
             session::turn_event(model, &event);
             // The screen-reader channel: each card the event queued and
             // the phase it moved, as plain lines for the runtime to speak.
@@ -717,6 +725,9 @@ fn key_press(model: &mut Model, key: KeyEvent) -> Vec<Cmd> {
             return Vec::new();
         }
     }
+    if let Some(cmds) = work::track_key(model, key) {
+        return cmds;
+    }
     if let Some(cmds) = inspector_key(model, key) {
         return cmds;
     }
@@ -919,6 +930,10 @@ fn palette_confirm(model: &mut Model, row: PaletteRow, act: bool) -> Vec<Cmd> {
     match row.go {
         PaletteGo::ResizePanels => {
             super::flight_panels::FlightPanels::begin_keyboard(model);
+            Vec::new()
+        }
+        PaletteGo::RoadmapControl(widget) => {
+            work::browse_control(model, widget);
             Vec::new()
         }
         PaletteGo::ResetPanels => {
@@ -1270,35 +1285,6 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         }
         KeyCode::Up | KeyCode::Down if model.pane == Pane::Inspector => {
             detail_scroll(model, if key.code == KeyCode::Down { 1 } else { -1 });
-        }
-        KeyCode::Up | KeyCode::Down if model.tab == StageTab::Roadmap => {
-            let chunks = model.roadmap.rows();
-            let offset = chunks.len().max(1);
-            let mut selections: Vec<_> = chunks
-                .iter()
-                .enumerate()
-                .map(|(i, chunk)| (Selected::Chunk(chunk.id.clone()), i))
-                .collect();
-            selections.extend(
-                model
-                    .roadmap
-                    .signals()
-                    .iter()
-                    .enumerate()
-                    .map(|(i, signal)| (Selected::Signal(signal.id.clone()), offset + i)),
-            );
-            let current = selections
-                .iter()
-                .position(|(selected, _)| Some(selected) == model.selected());
-            let at = selection_index(current, selections.len(), key.code == KeyCode::Down)?;
-            let (selected, row) = selections.swap_remove(at);
-            model.inspect(selected);
-            let (total, height) = model.roadmap_window();
-            model.roadmap_viewport.hold(
-                row.saturating_add(1).saturating_sub(height),
-                total,
-                height,
-            );
         }
         KeyCode::Up | KeyCode::Down
             if model.tab == StageTab::Turn && matches!(model.selected, Some(Selected::Tool(_))) =>
@@ -2112,6 +2098,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
         let list = (model.tab() == StageTab::Roadmap
             && (target == Some(Widget::RoadmapTable.id())
                 || target.and_then(Widget::roadmap_row_index).is_some()
+                || target.and_then(Widget::roadmap_track_index).is_some()
                 || target.and_then(Widget::signal_row_index).is_some()))
             || (model.pane() == Pane::Stage
                 && model.tab() == StageTab::Session
@@ -2397,6 +2384,17 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     model.pane = Pane::Inspector;
                     return Vec::new();
                 }
+                Some(
+                    widget @ (Widget::RoadmapTracks
+                    | Widget::RoadmapDependencies
+                    | Widget::RoadmapTrackFilter
+                    | Widget::RoadmapSearch
+                    | Widget::RoadmapSearchClear
+                    | Widget::RoadmapReveal),
+                ) => {
+                    work::browse_control(model, widget);
+                    return Vec::new();
+                }
                 Some(Widget::RoadmapFilter) => {
                     work::filter_click(model);
                     return Vec::new();
@@ -2587,18 +2585,16 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 model.birth.drag_from(index);
                 return Vec::new();
             }
+            if let Some(index) = target.and_then(Widget::roadmap_track_index) {
+                work::track_click(model, index);
+                return Vec::new();
+            }
             if let Some(index) = target.and_then(Widget::roadmap_row_index) {
                 work::row_click(model, index);
                 return Vec::new();
             }
             if let Some(index) = target.and_then(Widget::signal_row_index) {
-                if let Some(signal) = model.roadmap.signals().get(index) {
-                    let selected = Selected::Signal(signal.id.clone());
-                    model.inspect(selected);
-                    if !model.uses_flight_recorder() {
-                        model.pane = Pane::Stage;
-                    }
-                }
+                work::signal_click(model, index);
                 return Vec::new();
             }
             if let Some(index) = target.and_then(Widget::proposal_accept_index) {

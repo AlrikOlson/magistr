@@ -264,6 +264,12 @@ pub enum Widget {
     /// Roadmap table and its filter and sortable column headers.
     RoadmapTable,
     RoadmapFilter,
+    RoadmapTracks,
+    RoadmapDependencies,
+    RoadmapTrackFilter,
+    RoadmapSearch,
+    RoadmapSearchClear,
+    RoadmapReveal,
     RoadmapSortName,
     RoadmapSortStatus,
     RoadmapSortPriority,
@@ -308,7 +314,7 @@ pub enum Widget {
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 120] = [
+    pub const ALL: [Self; 126] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -405,6 +411,12 @@ impl Widget {
         Self::ToolUndo,
         Self::RoadmapTable,
         Self::RoadmapFilter,
+        Self::RoadmapTracks,
+        Self::RoadmapDependencies,
+        Self::RoadmapTrackFilter,
+        Self::RoadmapSearch,
+        Self::RoadmapSearchClear,
+        Self::RoadmapReveal,
         Self::RoadmapSortName,
         Self::RoadmapSortStatus,
         Self::RoadmapSortPriority,
@@ -539,6 +551,7 @@ impl Widget {
     const TRACE_LINK_BASE: u32 = 0xB_0000;
     /// A Roadmap-tab chunk row, by its index in the list.
     const ROADMAP_ROW_BASE: u32 = 0xC_0000;
+    const ROADMAP_TRACK_BASE: u32 = 0x30_0000;
     /// A proposal row's \[Accept\] button, by the proposal's index.
     const PROPOSAL_ACCEPT_BASE: u32 = 0xD_0000;
     /// A proposal row's \[Reject\] button, likewise.
@@ -1042,6 +1055,16 @@ impl Widget {
         Self::index_in(Self::ROADMAP_ROW_BASE, id)
     }
 
+    #[must_use]
+    pub const fn roadmap_track(index: usize) -> WidgetId {
+        Self::indexed(Self::ROADMAP_TRACK_BASE, index)
+    }
+
+    #[must_use]
+    pub const fn roadmap_track_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(Self::ROADMAP_TRACK_BASE, id)
+    }
+
     /// The id of the \[Accept\] button on the proposal at `index`.
     #[must_use]
     pub const fn proposal_accept(index: usize) -> WidgetId {
@@ -1301,6 +1324,12 @@ impl Widget {
             Self::RoadmapGraph => "Dependencies",
             Self::RoadmapTable => "work items",
             Self::RoadmapFilter => "filter status",
+            Self::RoadmapTracks => "Tracks",
+            Self::RoadmapDependencies => "Dependencies",
+            Self::RoadmapTrackFilter => "Choose a track",
+            Self::RoadmapSearch => "Search the whole roadmap",
+            Self::RoadmapSearchClear => "Clear roadmap search",
+            Self::RoadmapReveal => "Reveal selected item",
             Self::RoadmapSortName => "sort name",
             Self::RoadmapSortStatus => "sort status",
             Self::RoadmapSortPriority => "sort priority",

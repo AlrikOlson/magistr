@@ -36,6 +36,7 @@ pub struct PaletteRow {
 pub(crate) enum PaletteGo {
     /// Open application preferences.
     Settings,
+    RoadmapControl(super::Widget),
     /// Adjust visible panel boundaries with the keyboard.
     ResizePanels,
     /// Restore initial panel sizes.

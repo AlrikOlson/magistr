@@ -40,6 +40,8 @@ const INFRASTRUCTURE: &[&str] = &[
     "sigil",
     "svg_path",
     "text",
+    // Shared-span painting and word wrapping are text machinery used by the exhibits.
+    "rich_text",
     "type_scale",
     "type_set",
     "ui_faces",

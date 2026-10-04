@@ -40,7 +40,7 @@ fn golden() -> Golden {
 
 /// `element` rasterized at its natural height over [`WIDTH`], on the
 /// medium's own ground.
-fn still(element: Element, medium: Medium, name: &str, golden: &Golden) {
+fn still(element: Element, medium: Medium, name: &str, golden: &Golden) -> Result<(), String> {
     let mut text = TextEngine::embedded();
     let wrapped = Element::surface().align_start().child(element);
     #[allow(clippy::cast_precision_loss)]
@@ -51,7 +51,9 @@ fn still(element: Element, medium: Medium, name: &str, golden: &Golden) {
     let height = ((y + h).ceil() as u32).max(1);
     let pixmap = atom_still(&wrapped, &ElementState::default(), medium, WIDTH, height)
         .expect("the still renders");
-    golden.assert_matches(name, &pixmap);
+    golden
+        .check(name, &pixmap)
+        .map_err(|error| error.to_string())
 }
 
 /// A window opened after hours away, its Brief's deal landed.
@@ -89,6 +91,12 @@ fn resting() -> Model {
 #[test]
 fn every_composition_is_a_golden_in_both_media() {
     let golden = golden();
+    let mut failures = Vec::new();
+    let mut capture = |element, medium, name: &str, golden: &Golden| {
+        if let Err(error) = still(element, medium, name, golden) {
+            failures.push(error);
+        }
+    };
     let mut session = Fixture::mock("05", SIZE).expect("view 05");
     session.set_surface(Surface::Native);
     // The rail with the pointer resting on cp-3's row — the hit registry's target on
@@ -141,51 +149,51 @@ fn every_composition_is_a_golden_in_both_media() {
             Medium::Night => "night",
             Medium::Day => "day",
         };
-        still(
+        capture(
             HeaderComposition::el(&session, medium),
             medium,
             &format!("header-{tag}"),
             &golden,
         );
-        still(
+        capture(
             RailComposition::el(&session, medium, CELL.0),
             medium,
             &format!("rail-{tag}"),
             &golden,
         );
-        still(
+        capture(
             RailComposition::el(&revealed, medium, CELL.0),
             medium,
             &format!("rail-revealed-{tag}"),
             &golden,
         );
         // The idle rail: the two starts where the running rail wears the loop's verbs.
-        still(
+        capture(
             RailComposition::el(&idle, medium, CELL.0),
             medium,
             &format!("rail-idle-{tag}"),
             &golden,
         );
-        still(
+        capture(
             RailComposition::el(&offered, medium, CELL.0),
             medium,
             &format!("rail-offer-{tag}"),
             &golden,
         );
-        still(
+        capture(
             ComposerComposition::el(&typed, medium).width(WIDTH as f32),
             medium,
             &format!("composer-{tag}"),
             &golden,
         );
-        still(
+        capture(
             FeedComposition::el(&turn, medium, CELL),
             medium,
             &format!("feed-{tag}"),
             &golden,
         );
         // Every card open: one detail per verb.
-        still(
+        capture(
             FeedComposition::el(&cards, medium, CELL),
             medium,
             &format!("cards-{tag}"),
@@ -202,7 +210,7 @@ fn every_composition_is_a_golden_in_both_media() {
             ("killing", &killing),
             ("killed", &killed),
         ] {
-            still(
+            capture(
                 FeedComposition::el(model, medium, CELL),
                 medium,
                 &format!("pane-{state}-{tag}"),
@@ -212,14 +220,14 @@ fn every_composition_is_a_golden_in_both_media() {
         // The terminal dock: the same run's screen raised a third of the stage, and
         // maximized.
         for (state, model) in [("dock", &docked), ("dock-max", &maximized)] {
-            still(
+            capture(
                 TermDockComposition::el(model, medium).expect("raised"),
                 medium,
                 &format!("{state}-{tag}"),
                 &golden,
             );
         }
-        still(
+        capture(
             Element::surface()
                 .height(220.0)
                 .child(SkyComposition::el(&resting, medium)),
@@ -227,7 +235,7 @@ fn every_composition_is_a_golden_in_both_media() {
             &format!("sky-rest-{tag}"),
             &golden,
         );
-        still(
+        capture(
             Element::surface()
                 .height(140.0)
                 .child(SkyComposition::el(&shipped, medium)),
@@ -238,7 +246,7 @@ fn every_composition_is_a_golden_in_both_media() {
         // The whole Sky at the still's width: the card is pinned off the
         // field's right edge, so the field has to be as wide as the page.
         #[allow(clippy::cast_precision_loss)]
-        still(
+        capture(
             Element::surface()
                 .width(WIDTH as f32)
                 .height(460.0)
@@ -250,7 +258,7 @@ fn every_composition_is_a_golden_in_both_media() {
         // The Report (view 09) on the same model: the header's verbs
         // over the chapter and the rail, at the still's width.
         #[allow(clippy::cast_precision_loss)]
-        still(
+        capture(
             Element::surface()
                 .width(WIDTH as f32)
                 .align_start()
@@ -275,7 +283,7 @@ fn every_composition_is_a_golden_in_both_media() {
             ("interview", &interviewed),
             ("charting", &charted),
         ] {
-            still(
+            capture(
                 Element::surface()
                     .width(WIDTH as f32)
                     .height(560.0)
@@ -290,23 +298,28 @@ fn every_composition_is_a_golden_in_both_media() {
                 &golden,
             );
         }
-        still(
+        capture(
             BriefComposition::el(&briefed, medium).expect("news"),
             medium,
             &format!("brief-{tag}"),
             &golden,
         );
-        still(
+        capture(
             MomentComposition::el(&asked, medium).expect("the ask"),
             medium,
             &format!("moment-ask-{tag}"),
             &golden,
         );
-        still(
+        capture(
             MomentComposition::el(&reviewing, medium).expect("the review"),
             medium,
             &format!("moment-review-{tag}"),
             &golden,
         );
     }
+    assert!(
+        failures.is_empty(),
+        "Review candidates: {}",
+        failures.join("\n")
+    );
 }

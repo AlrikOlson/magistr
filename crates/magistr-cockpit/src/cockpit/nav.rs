@@ -81,6 +81,16 @@ pub fn esc(model: &mut Model) -> Option<Vec<Cmd>> {
     {
         return Some(Vec::new());
     }
+    if model.place == Place::Sky {
+        if model.roadmap.is_track_search_editing() {
+            super::work::browse_control(model, super::Widget::RoadmapSearchClear);
+            return Some(Vec::new());
+        }
+        if model.pane == super::Pane::Inspector {
+            model.pane = super::Pane::Stage;
+            return Some(Vec::new());
+        }
+    }
     if let Some(up) = model.place.up() {
         model.show_place(up);
     }

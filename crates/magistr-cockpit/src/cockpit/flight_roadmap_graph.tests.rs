@@ -122,6 +122,7 @@ fn full_graph_keeps_all_sixty_six_items_and_focuses_old_completed_work() {
 #[test]
 fn dense_overview_names_never_cover_another_work_items_point() {
     let mut model = model(66, false);
+    model.roadmap.browse.dependencies = true;
     let width = 900.0;
     let height = 280.0;
     let root = FlightRoadmapGraph::view(&model, width, height);
@@ -154,6 +155,7 @@ fn dense_overview_names_never_cover_another_work_items_point() {
 #[test]
 fn panned_nodes_never_capture_header_list_or_composer_clicks() {
     let mut model = model(66, false);
+    model.roadmap.browse.dependencies = true;
     let clock = crate::cockpit::FrameClock::new(0, std::time::Duration::ZERO);
     let mut typography = Typography::default();
     let mut tree = LayoutTree::new();

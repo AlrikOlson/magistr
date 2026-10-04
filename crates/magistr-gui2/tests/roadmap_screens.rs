@@ -10,6 +10,34 @@ fn scene(name: &str, size: Size) -> Model {
         "empty" => Model::new(size)
             .with_surface(Surface::Native)
             .with_tab(StageTab::Roadmap),
+        "tracks" => {
+            use magistr_cockpit::{engine::EngineEvent, harness::fixtures};
+            use magistr_workflow_contracts::NativeSnapshot;
+            let mut model = Model::new(size)
+                .with_surface(Surface::Native)
+                .with_tab(StageTab::Roadmap);
+            update(&mut model,Msg::Engine(EngineEvent::Seed(NativeSnapshot {
+                chunks:fixtures::chunks_from((0..900).map(|n|serde_json::json!({
+                    "id":format!("work-{n:03}"), "name":format!("A long readable task name for area {n:03}"),
+                    "status":if n==1 { "in_progress" } else if n%3==0 { "done" } else { "pending" },
+                    "priority":100+n, "group":if n<5 { None } else { Some(format!("Area {:02}", n%90)) },
+                    "deps":if n==2 { vec!["missing"] } else { vec![] },
+                    "blocked_by":if n==4 { Some(serde_json::json!({"kind":"external","reason":"Needs access."})) } else { None },
+                })).collect()),..NativeSnapshot::default()
+            })));
+            model
+        }
+        "dependencies" => {
+            let mut model = Fixture::roadmap(size);
+            update(
+                &mut model,
+                Msg::Mouse {
+                    event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                    target: Some(Widget::RoadmapDependencies.id()),
+                },
+            );
+            model
+        }
         "readiness" => {
             magistr_cockpit::harness::Scenes::roadmap_readiness(size).with_surface(Surface::Native)
         }
@@ -33,6 +61,8 @@ fn roadmap_state_matrix_has_stable_frames_and_usable_controls() {
         ] {
             for name in [
                 "empty",
+                "tracks",
+                "dependencies",
                 "plan",
                 "readiness",
                 "waiting",
@@ -90,6 +120,10 @@ fn reviewed_roadmap_goldens() {
     for (theme, mode) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
         for (name, layout, w, h) in [
             ("plan", "wide", 1100, 760),
+            ("tracks", "wide", 1100, 760),
+            ("tracks", "compact", 620, 640),
+            ("dependencies", "wide", 1100, 760),
+            ("dependencies", "compact", 620, 640),
             ("readiness", "wide", 1100, 760),
             ("readiness", "compact", 620, 640),
             ("complete", "wide", 1100, 760),

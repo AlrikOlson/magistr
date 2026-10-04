@@ -1,4 +1,9 @@
-//! The Roadmap tab's state.
+//! Roadmap records and derived browsing projections share snapshot, selection and
+//! dependency authority; the retained geometry and tracks change with those records.
+
+#[path = "roadmap_tracks.rs"]
+mod tracks;
+pub use tracks::{TrackCounts, TrackFocus, TrackRow};
 
 use std::collections::BTreeSet;
 use std::sync::{Arc, OnceLock};
@@ -85,6 +90,7 @@ pub struct Roadmap {
     hovered: Option<String>,
     filter: Option<ChunkState>,
     sort: RoadmapSort,
+    pub(super) browse: tracks::TrackBrowser,
     descending: bool,
     camera: Camera,
     viewport: Option<(f32, f32)>,
@@ -280,6 +286,7 @@ impl Roadmap {
             Some(ChunkState::Pending) => Some(ChunkState::Blocked),
             Some(ChunkState::Blocked) => Some(ChunkState::Backlog),
             Some(ChunkState::Backlog) => Some(ChunkState::Done),
+            Some(ChunkState::Done) => Some(ChunkState::Obsoleted),
             _ => None,
         };
     }
@@ -418,10 +425,27 @@ impl Roadmap {
         let mut rows: Vec<_> = self
             .chunks
             .iter()
-            .filter(|c| match self.filter {
-                None => c.is_active() && !c.state.is_done(),
-                Some(ChunkState::InProgress) => c.state.is_working(),
-                Some(state) => c.state == state,
+            .filter(|c| {
+                if !self.browse.query.is_empty() {
+                    let query = self.browse.query.to_lowercase();
+                    format!(
+                        "{} {} {} {}",
+                        c.name,
+                        c.title,
+                        c.description,
+                        self.track_of(c)
+                    )
+                    .to_lowercase()
+                    .contains(&query)
+                } else {
+                    self.browse.track.as_deref().is_none_or(|track| {
+                        c.group.as_deref().map(str::trim).unwrap_or("") == track
+                    }) && match self.filter {
+                        None => c.is_active() && !c.state.is_done(),
+                        Some(ChunkState::InProgress) => c.state.is_working(),
+                        Some(state) => c.state == state,
+                    }
+                }
             })
             .collect();
         rows.sort_by(|a, b| {
@@ -730,7 +754,7 @@ impl Roadmap {
     /// pinned, and selected object fields/actions occupy the inspector.
     #[must_use]
     pub fn body_rows(&self, _width: u16) -> usize {
-        self.rows().len().max(1) + self.signals().len()
+        self.track_rows().len().max(1)
     }
 
     /// One line per workstream in tier order — what the tech-tree block
@@ -1085,7 +1109,7 @@ impl Roadmap {
 
     /// Retain topology geometry independently of camera and viewport transforms.
     fn geometry(&self) -> &Geometry {
-        let slot = if self.full_graph || self.pixel_line.is_some() {
+        let slot = if self.full_graph || self.browse.dependencies || self.pixel_line.is_some() {
             &self.geometry.full
         } else {
             &self.geometry.frontier

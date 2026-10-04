@@ -262,12 +262,7 @@ fn idle_roadmap_keeps_navigation_and_request_controls() {
     }
     assert!(model.sky_at_rest(), "view 03 is at rest");
     let root = RootComposition::el(&model, Medium::Night, CELL, VIEWPORT, &clock());
-    for label in [
-        "projects",
-        "Work items",
-        "Requests",
-        "Request roadmap changes",
-    ] {
+    for label in ["projects", "Tracks", "Requests", "Request roadmap changes"] {
         assert!(has(&root, label), "idle Roadmap retains {label}");
     }
 }

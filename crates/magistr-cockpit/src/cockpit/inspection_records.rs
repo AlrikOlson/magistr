@@ -45,6 +45,13 @@ pub(super) fn fingerprint(model: &Model) -> Option<u64> {
                 .iter()
                 .chain(&chunk.cross_refs)
                 .cloned()
+                .chain(
+                    model
+                        .roadmap()
+                        .dependents(id)
+                        .iter()
+                        .map(|dependent| dependent.id.clone()),
+                )
                 .collect()
         }
         Selected::Step(number) => {
@@ -142,6 +149,9 @@ pub(super) fn fingerprint(model: &Model) -> Option<u64> {
         }
     };
     for reference in references {
+        if let Some(chunk) = model.roadmap().chunk(&reference) {
+            write(format!("{chunk:?}"));
+        }
         write(format!(
             "{:?}",
             Inspector::work_reference(model, &reference)
@@ -255,7 +265,17 @@ pub(super) fn build(model: &Model) -> Option<Inspection> {
                 .collect::<Vec<_>>()
                 .join("\n");
             card.section(model, "Acceptance criteria", &requirements, false);
-            card.references(model, "Dependencies", &chunk.deps);
+            card.references(model, "Depends on", &chunk.deps);
+            card.references(
+                model,
+                "Needed by",
+                &model
+                    .roadmap()
+                    .dependents(id)
+                    .iter()
+                    .map(|dependent| dependent.id.clone())
+                    .collect::<Vec<_>>(),
+            );
             card.references(model, "Related work", &chunk.cross_refs);
             card.section(model, "Context", &chunk.notes, true);
             for (index, (owner, kind, suggestion, reason)) in
@@ -807,3 +827,12 @@ fn selection_reference(selected: &Selected) -> String {
 #[cfg(test)]
 #[path = "inspection_records.tests.rs"]
 mod tests;
+
+pub(super) fn with_track_label(model: &Model, mut link: RecordLink) -> RecordLink {
+    if let RecordTarget::Record(Selected::Chunk(id)) = &link.target
+        && let Some(chunk) = model.roadmap().chunk(id)
+    {
+        link.label = format!("{} · {}", link.label, model.roadmap().track_of(chunk));
+    }
+    link
+}

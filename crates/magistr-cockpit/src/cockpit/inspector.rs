@@ -27,7 +27,11 @@ impl Inspector {
                     .title_style(pen.heading.clone())
                     .drawn(model.has_pixels()),
             );
-        panel = if model.inspector_stacked() {
+        panel = if model.is_roadmap_drilldown() {
+            panel
+                .grow(1.0)
+                .child(line("Back to roadmap (Esc)", &pen.link).id(Widget::TabRoadmap.id()))
+        } else if model.inspector_stacked() {
             panel
                 .height(Length::Cells(model.inspector_stack_rows()))
                 .shrink(0.0)
@@ -365,7 +369,9 @@ impl Inspector {
     }
 
     fn field_height(model: &Model) -> usize {
-        if model.inspector_stacked() {
+        if model.is_roadmap_drilldown() {
+            model.stage_rows().saturating_sub(5)
+        } else if model.inspector_stacked() {
             usize::from(model.inspector_stack_rows()).saturating_sub(6)
         } else {
             model

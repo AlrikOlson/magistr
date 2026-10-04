@@ -42,6 +42,15 @@ fn prepared(widget: Widget, cell: (u16, u16)) -> Model {
             },
         );
     }
+    if widget == Widget::PanelGraph {
+        update(
+            &mut m,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::RoadmapDependencies.id()),
+            },
+        );
+    }
     update(&mut m, Msg::Paste("Keep my draft".into()));
     m
 }
@@ -158,6 +167,13 @@ fn shot_panel_resize_default_dragging_and_compact_in_both_themes() {
             Msg::Mode(Mode::Graphics {
                 pointer_shapes: true,
             }),
+        );
+        update(
+            &mut m,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::RoadmapDependencies.id()),
+            },
         );
         let clock = FrameClock::new(0, Duration::ZERO);
         for stage in ["default", "dragging", "keyboard", "compact"] {

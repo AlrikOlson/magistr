@@ -2,7 +2,6 @@
 
 use super::animation::Animation;
 use super::binding::Binding;
-use super::chunk_state::ChunkState;
 use super::copy::Copy;
 use super::dock_item::DockItem;
 use super::frame_clock::FrameClock;
@@ -140,7 +139,17 @@ pub fn view(model: &Model, clock: &FrameClock) -> Node {
     // A viewport itself: the rail's content must never push the prompt
     // line and the footer off a short screen.
     let inspector = Inspector::view(model, &pen);
-    let workspace = if model.inspector_stacked() {
+    let workspace = if model.is_roadmap_drilldown() {
+        Node::column()
+            .grow(1.0)
+            .min_width(Length::Cells(0))
+            .viewport()
+            .child(if model.pane() == Pane::Inspector {
+                inspector
+            } else {
+                stage
+            })
+    } else if model.inspector_stacked() {
         Node::column()
             .grow(1.0)
             .min_width(Length::Cells(0))
@@ -1215,181 +1224,168 @@ pub(super) fn roadmap_rows(model: &Model, pen: &Pen) -> Vec<Node> {
     rows
 }
 
-/// Column widths are shared by header hit targets and body cells.
-fn roadmap_columns(model: &Model) -> [u16; 4] {
-    let flexible = model.roadmap_table_width().saturating_sub(18);
-    let name = flexible * 3 / 5;
-    [name, 10, 5, flexible.saturating_sub(name)]
-}
-
 pub(super) fn roadmap_table(model: &Model, pen: &Pen) -> Node {
-    use super::RoadmapSort;
     let roadmap = model.roadmap();
-    let widths = roadmap_columns(model);
-    let direction = if roadmap.descending() { "↓" } else { "↑" };
-    let headers = RoadmapSort::ALL.into_iter().zip(widths).fold(
-        Node::row()
-            .gap(Space::TIGHT)
-            .height(Length::Cells(1))
-            .shrink(0.0),
-        |row, (column, width)| {
-            let label = format!(
-                "{}{}",
-                column.label(),
-                if roadmap.sort() == column {
-                    direction
-                } else {
-                    ""
-                }
-            );
-            row.child(
-                Node::text(label)
-                    .id(column.widget().id())
-                    .width(Length::Cells(width))
-                    .shrink(0.0)
-                    .viewport()
-                    .style(pen.heading.clone()),
-            )
-        },
-    );
-    let filter = Node::row()
+    let link = |label: String, widget: Widget| {
+        let active = widget == Widget::RoadmapTracks && !roadmap.is_dependencies_view()
+            || widget == Widget::RoadmapDependencies && roadmap.is_dependencies_view();
+        Node::text(label).id(widget.id()).style(if active {
+            pen.heading.clone()
+        } else {
+            pen.link.clone()
+        })
+    };
+    let controls = Node::row()
         .height(Length::Cells(1))
         .shrink(0.0)
-        .child(
-            Marked::new(model, pen)
-                .text(&format!("Status: {} ", roadmap.filter_label()))
-                .icon(Icon::FoldOpen)
-                .node()
-                .id(Widget::RoadmapFilter.id())
-                .style(pen.link.clone()),
-        )
-        .child(
-            Node::text(roadmap.scale_label().map_or_else(
-                || format!(" · {}", roadmap.rows().len()),
-                |scale| format!(" · {scale}"),
-            ))
-            .style(pen.note.clone()),
-        );
-    let (total, height) = model.roadmap_window();
-    let top = model.roadmap_top().min(total);
+        .child(link("Tracks ".into(), Widget::RoadmapTracks))
+        .child(link("Dependencies ".into(), Widget::RoadmapDependencies))
+        .child(link(
+            format!("{} ", roadmap.track_filter_label()),
+            Widget::RoadmapTrackFilter,
+        ))
+        .child(link(
+            format!("Status: {} ", roadmap.filter_label()),
+            Widget::RoadmapFilter,
+        ));
+    let mut search = Node::row()
+        .height(Length::Cells(1))
+        .shrink(0.0)
+        .child(link(
+            if roadmap.track_query().is_empty() {
+                "Search roadmap (Alt+/) ".into()
+            } else {
+                format!("Search: {} ", roadmap.track_query())
+            },
+            Widget::RoadmapSearch,
+        ))
+        .child(link("Clear ".into(), Widget::RoadmapSearchClear));
+    if !roadmap.is_selected_visible() {
+        search = search.child(link("Reveal selected item".into(), Widget::RoadmapReveal));
+    }
+    let (_, height) = model.roadmap_window();
+    let mut sort = Node::row().height(Length::Cells(1)).shrink(0.0).children(
+        super::RoadmapSort::ALL
+            .into_iter()
+            .filter(|c| *c != super::RoadmapSort::Workstream)
+            .map(|column| {
+                let suffix = if roadmap.sort() == column {
+                    if roadmap.descending() {
+                        " descending"
+                    } else {
+                        " ascending"
+                    }
+                } else {
+                    ""
+                };
+                link(format!("{}{suffix}  ", column.label()), column.widget())
+            }),
+    );
+    if roadmap.is_dependencies_view()
+        && let Some(scale) = roadmap.scale_label()
+    {
+        sort = sort.child(link(format!("{scale}  Reset"), Widget::RoadmapReset));
+    }
     Node::column()
         .id(Widget::RoadmapTable.id())
         .viewport()
         .min_width(Length::Cells(0))
-        .height(Length::Cells(u16::try_from(height + 2).unwrap_or(u16::MAX)))
+        .height(Length::Cells(
+            u16::try_from(height * 3 + 3).unwrap_or(u16::MAX),
+        ))
         .shrink(0.0)
-        .child(filter)
-        .child(headers)
-        .children(roadmap_body(model, pen).into_iter().skip(top).take(height))
+        .child(controls)
+        .child(search)
+        .child(sort)
+        .children(roadmap_body(model, pen))
 }
 
-/// A compact table: status is a column, proposals belong to the selected card.
+/// Track headings and work retain the same three-row navigation allocation.
 fn roadmap_body(model: &Model, pen: &Pen) -> Vec<Node> {
+    let (_, height) = model.roadmap_window();
+    use super::{ChunkState, TrackRow};
     let roadmap = model.roadmap();
-    let mut rows: Vec<_> = roadmap
-        .rows()
+    roadmap
+        .track_rows()
         .into_iter()
         .enumerate()
-        .map(|(index, chunk)| {
-            let selected = matches!(model.selected(), Some(Selected::Chunk(id)) if id == &chunk.id);
-            roadmap_head(chunk, index, selected, model, pen)
-        })
-        .collect();
-    if rows.is_empty() {
-        rows.push(
-            Node::text("No matching work items")
-                .style(pen.note.clone())
-                .height(Length::Cells(1))
-                .shrink(0.0),
-        );
-    }
-    for (index, signal) in roadmap.signals().into_iter().enumerate() {
-        rows.push(
-            Marked::new(model, pen)
-                .icon(Icon::Signal)
-                .text(&format!(" {}", signal.title()))
+        .skip(model.roadmap_top())
+        .take(height)
+        .map(|(index, row)| {
+            let focused = Some(&row.focus()) == roadmap.track_focus();
+            let (icon, title, notes, selected, working) = match &row {
+                TrackRow::Heading {
+                    expanded, counts, ..
+                } => (
+                    Icon::fold(*expanded),
+                    row.label().to_owned(),
+                    counts.lines().to_vec(),
+                    false,
+                    false,
+                ),
+                TrackRow::Item(chunk, _) => {
+                    let icon = match chunk.state {
+                        ChunkState::InProgress => Icon::InProgress,
+                        ChunkState::Stuck | ChunkState::Blocked => Icon::Blocked,
+                        ChunkState::Done => Icon::Done,
+                        ChunkState::Backlog => Icon::Planned,
+                        _ => Icon::Pending,
+                    };
+                    (
+                        icon,
+                        format!(" {}", chunk.name),
+                        vec![format!(
+                            "{} · {}",
+                            roadmap.status_label(chunk),
+                            chunk.band()
+                        )],
+                        model.selected() == Some(&Selected::Chunk(chunk.id.clone())),
+                        chunk.is_in_progress(),
+                    )
+                }
+                TrackRow::Signal(_, signal) => (
+                    Icon::Signal,
+                    signal.title().into(),
+                    vec!["Feedback".into()],
+                    model.selected() == Some(&Selected::Signal(signal.id.clone())),
+                    false,
+                ),
+            };
+            let base = if index.is_multiple_of(2) {
+                &pen.code
+            } else {
+                &pen.stage
+            };
+            let mut style = if selected {
+                pen.raise(base)
+            } else if focused {
+                pen.link.clone()
+            } else {
+                base.clone()
+            };
+            if working && let Some((_, now)) = in_motion(model) {
+                style = pen.pulse(&style, Motion::glow_phase(now));
+            }
+            let title = Marked::new(model, pen)
+                .text(if focused { "> " } else { "" })
+                .icon(icon)
+                .text(&format!(" {title}"))
                 .node()
-                .id(Widget::signal_row(index))
-                .style(
-                    if model.selected() == Some(&Selected::Signal(signal.id.clone())) {
-                        pen.raise(&pen.code)
-                    } else {
-                        pen.code.clone()
-                    },
-                )
                 .height(Length::Cells(1))
-                .shrink(0.0),
-        );
-    }
-    rows
-}
-
-/// A row background, status glyph and aligned cells, with stable identity on selection.
-fn roadmap_head(
-    chunk: &crate::cockpit::RoadmapChunk,
-    index: usize,
-    selected: bool,
-    model: &Model,
-    pen: &Pen,
-) -> Node {
-    let base = if index.is_multiple_of(2) {
-        &pen.code
-    } else {
-        &pen.stage
-    };
-    let style = if selected {
-        pen.raise(base)
-    } else {
-        base.clone()
-    };
-    let style = if chunk.is_in_progress() {
-        in_motion(model).map_or(style.clone(), |(_, now)| {
-            pen.pulse(&style, Motion::glow_phase(now))
+                .viewport();
+            Node::column()
+                .height(Length::Cells(3))
+                .shrink(0.0)
+                .id(row.widget(index))
+                .style(style)
+                .child(title)
+                .children(
+                    notes
+                        .into_iter()
+                        .map(|note| Node::text(note).height(Length::Cells(1)).viewport()),
+                )
         })
-    } else {
-        style
-    };
-    let icon = match chunk.state {
-        ChunkState::InProgress => Icon::InProgress,
-        ChunkState::Blocked | ChunkState::Stuck => Icon::Blocked,
-        ChunkState::Done => Icon::Done,
-        ChunkState::Backlog => Icon::Planned,
-        ChunkState::Pending | ChunkState::Obsoleted => Icon::Pending,
-    };
-    let status = model.roadmap().status_label(chunk);
-    let widths = roadmap_columns(model);
-    let name = Marked::new(model, pen)
-        .icon(icon)
-        .text(&format!(
-            " {}",
-            clip(&chunk.name, usize::from(widths[0].saturating_sub(2)))
-        ))
-        .node()
-        .width(Length::Cells(widths[0]))
-        .shrink(0.0)
-        .viewport();
-    let values = [
-        status.to_owned(),
-        chunk.priority.to_string(),
-        chunk.group.clone().unwrap_or_default(),
-    ];
-    values.into_iter().zip(widths.into_iter().skip(1)).fold(
-        Node::row()
-            .id(Widget::roadmap_row(index))
-            .height(Length::Cells(1))
-            .shrink(0.0)
-            .gap(Space::TIGHT)
-            .style(style)
-            .child(name),
-        |row, (value, width)| {
-            row.child(
-                Node::text(clip(&value, usize::from(width)))
-                    .width(Length::Cells(width))
-                    .shrink(0.0)
-                    .viewport(),
-            )
-        },
-    )
+        .collect()
 }
 
 /// One step's compact row: the fold marker, the number, the purpose,

@@ -45,10 +45,10 @@ note: Details: Save delivery results · In progress
   1. Keep the original result and its recorded command.
   2. Preserve reading position when the window changes.
 
-  ## Dependencies
+  ## Depends on
 
 
-  [Receipt storage](storage)
+  [Receipt storage · Unassigned](storage)
 
   ## Context
 

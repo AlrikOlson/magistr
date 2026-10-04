@@ -42,6 +42,14 @@ impl AccessTree {
         for node in &mut self.nodes {
             let Some(target) = node.target else { continue };
             node.identity.push_str(&identity(model, target));
+            if let Some(index) = Widget::roadmap_track_index(target)
+                && let Some(magistr_cockpit::cockpit::TrackRow::Heading {
+                    expanded, counts, ..
+                }) = model.roadmap().track_rows().get(index)
+            {
+                node.value = Some(if *expanded { "Expanded" } else { "Collapsed" }.into());
+                node.label = format!("{} · {}", node.label, counts.summary());
+            }
             if target == Widget::OverlayQuery.id() {
                 node.value = model
                     .palette()
@@ -308,7 +316,20 @@ fn subtree_text(element: &Element) -> String {
 fn identity(model: &magistr_cockpit::cockpit::Model, target: WidgetId) -> String {
     use magistr_cockpit::cockpit::{Palette, Search};
     if let Some(index) = Widget::roadmap_row_index(target) {
-        return format!("{:?}", model.roadmap().rows().get(index).map(|c| &c.id));
+        return format!(
+            "{:?}",
+            model.roadmap().rows().get(index).map(|chunk| &chunk.id)
+        );
+    }
+    if let Some(index) = Widget::roadmap_track_index(target) {
+        return format!(
+            "{:?}",
+            model
+                .roadmap()
+                .track_rows()
+                .get(index)
+                .map(|row| row.focus())
+        );
     }
     if let Some(index) = Widget::sky_star_index(target) {
         return format!("{:?}", model.roadmap().graph_chunk(index).map(|c| &c.id));
@@ -497,7 +518,7 @@ fn role_of(widget: Widget) -> Role {
         | Widget::InspectorFields => Role::Group,
         Widget::InspectorTitle | Widget::InspectorStatus => Role::Label,
         Widget::RoadmapTable => Role::Table,
-        Widget::RoadmapFilter => Role::Button,
+        Widget::RoadmapFilter | Widget::RoadmapTracks | Widget::RoadmapDependencies | Widget::RoadmapTrackFilter | Widget::RoadmapSearch | Widget::RoadmapSearchClear | Widget::RoadmapReveal => Role::Button,
         Widget::OverlayQuery => Role::TextInput,
         Widget::PanelColumns | Widget::PanelRoadmap | Widget::PanelReasoning
         | Widget::PanelGraph => Role::Splitter,
@@ -574,6 +595,9 @@ type Space = (fn(WidgetId) -> bool, &'static str);
 /// and not added here lands on the generic group rather than vanishing
 /// from the tree.
 fn indexed_role(id: WidgetId) -> (Role, String) {
+    if Widget::roadmap_track_index(id).is_some() {
+        return (Role::Button, "Track".into());
+    }
     if Widget::detail_link_index(id).is_some() {
         return (Role::Link, "Related record".into());
     }

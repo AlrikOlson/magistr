@@ -131,6 +131,21 @@ impl Palette {
                 order += 1;
             }
         };
+        let roadmap = model.tab() == super::StageTab::Roadmap
+            && model.place().is_none_or(|place| place == super::Place::Sky)
+            && !model.is_launcher();
+        if roadmap {
+            for (label, widget) in [
+                ("Browse tracks", super::Widget::RoadmapTracks),
+                ("Explore dependencies", super::Widget::RoadmapDependencies),
+                ("Filter roadmap by track", super::Widget::RoadmapTrackFilter),
+                ("Search the whole roadmap", super::Widget::RoadmapSearch),
+                ("Reveal selected item", super::Widget::RoadmapReveal),
+                ("Clear roadmap search", super::Widget::RoadmapSearchClear),
+            ] {
+                push(PaletteRow::place(label, PaletteGo::RoadmapControl(widget)));
+            }
+        }
         if model.has_pixels() || model.surface().is_native() {
             push(PaletteRow::place("Settings", PaletteGo::Settings));
             push(PaletteRow::place("Search recorded work", PaletteGo::Search));
@@ -280,6 +295,19 @@ impl Palette {
         }
         let paused = model.loop_status().is_some_and(LoopStatus::is_paused);
         for binding in Binding::ALL {
+            if !roadmap
+                && matches!(
+                    *binding,
+                    Binding::TRACK_SEARCH
+                        | Binding::TRACK_FILTER
+                        | Binding::TRACK_VIEW
+                        | Binding::TRACK_REVEAL
+                        | Binding::TRACK_BRANCH
+                        | Binding::TRACK_FOCUS
+                )
+            {
+                continue;
+            }
             // Kill is press-and-hold: a row is a press
             // with no release, and a hold nobody lets go of would
             // complete on the timer — so the sheet lists it and the

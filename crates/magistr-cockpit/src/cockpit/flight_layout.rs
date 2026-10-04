@@ -1,7 +1,7 @@
 //! Pixel allocations shared by the production view and its model viewports.
 
 use super::{
-    FlightComposer, FlightRecorder, Model, flight_divider::FlightDivider as D,
+    FlightComposer, FlightRecorder, FlightRecords, Model, flight_divider::FlightDivider as D,
     flight_panels::FlightPanels,
 };
 
@@ -98,16 +98,25 @@ impl FlightLayout {
         );
         let detail_height = (stack - roadmap_height).max(0.0);
         let nav = if compact { line + 12.0 } else { 0.0 };
-        let graph_stack = (body_height - nav - row_gap).max(0.0);
-        let graph_min = D::Graph.minimums(line);
-        let graph_height = if graph_stack < graph_min.0 + graph_min.1 || left_width < 360.0 {
-            0.0
+        let content = (body_height - nav).max(0.0);
+        let graph_stack = (content - row_gap).max(0.0);
+        let track_min = (line + 14.0).max(34.0)
+            + 22.0
+            + (line + 4.0) * if compact { 2.0 } else { 3.0 }
+            + 12.0
+            + FlightRecords::track_row_height(model) * 2.0;
+        let (graph_height, graph_list_height) = if !model.roadmap().is_dependencies_view() {
+            (0.0, content)
+        } else if graph_stack >= D::Graph.minimums(line).0 + track_min {
+            let graph = FlightPanels::split(
+                graph_stack,
+                panels.fraction(D::Graph, 0.55),
+                (D::Graph.minimums(line).0, track_min),
+            );
+            (graph, graph_stack - graph)
         } else {
-            FlightPanels::split(graph_stack, panels.fraction(D::Graph, 0.55), graph_min)
+            (content, 0.0)
         };
-        let graph_list_height =
-            (body_height - nav - graph_height - if graph_height > 0.0 { row_gap } else { 0.0 })
-                .max(0.0);
         Self {
             screen_width,
             screen_height,

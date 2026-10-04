@@ -58,6 +58,7 @@ impl HoverRole {
             || Widget::trace_row_index(id).is_some()
             || Widget::session_row_index(id).is_some()
             || Widget::roadmap_row_index(id).is_some()
+            || Widget::roadmap_track_index(id).is_some()
             || Widget::signal_row_index(id).is_some()
             || Widget::completion_index(id).is_some()
             || Widget::palette_row_index(id).is_some()
@@ -141,6 +142,12 @@ impl HoverRole {
             | Widget::ToolOpen
             | Widget::ToolUndo
             | Widget::InspectorDetail
+            | Widget::RoadmapTracks
+            | Widget::RoadmapDependencies
+            | Widget::RoadmapTrackFilter
+            | Widget::RoadmapSearch
+            | Widget::RoadmapSearchClear
+            | Widget::RoadmapReveal
             | Widget::RoadmapFilter
             | Widget::RoadmapSortName
             | Widget::RoadmapSortStatus

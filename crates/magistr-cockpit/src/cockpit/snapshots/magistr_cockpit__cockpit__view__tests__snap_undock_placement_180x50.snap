@@ -19,13 +19,17 @@ Turn     depth=5 x=30 y=3 w=4 h=1
 Session  depth=5 x=36 y=3 w=7 h=1
 Roadmap  depth=5 x=45 y=3 w=7 h=1
 stage    depth=4 x=30 y=4 w=111 h=42
-Dependencies depth=6 x=30 y=5 w=37 h=41
-work items depth=6 x=69 y=5 w=72 h=41
-filter status depth=8 x=69 y=5 w=16 h=1
-sort name depth=8 x=69 y=6 w=32 h=1
-sort status depth=8 x=102 y=6 w=10 h=1
-sort priority depth=8 x=113 y=6 w=5 h=1
-Sort by group depth=8 x=119 y=6 w=22 h=1
+Dependencies depth=5 x=0 y=0 w=0 h=0
+work items depth=5 x=30 y=5 w=111 h=39
+Tracks   depth=7 x=30 y=5 w=7 h=1
+Dependencies depth=7 x=37 y=5 w=13 h=1
+Choose a track depth=7 x=50 y=5 w=11 h=1
+filter status depth=7 x=61 y=5 w=15 h=1
+Search the whole roadmap depth=7 x=30 y=6 w=23 h=1
+Clear roadmap search depth=7 x=53 y=6 w=6 h=1
+sort name depth=7 x=30 y=7 w=6 h=1
+sort status depth=7 x=36 y=7 w=18 h=1
+sort priority depth=7 x=54 y=7 w=5 h=1
 inspector depth=3 x=144 y=2 w=36 h=45
 dock     depth=1 x=0 y=47 w=180 h=1
 prompt   depth=1 x=0 y=48 w=180 h=1

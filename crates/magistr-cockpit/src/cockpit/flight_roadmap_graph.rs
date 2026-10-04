@@ -144,6 +144,10 @@ impl FlightRoadmapGraph {
                         "Dependencies",
                         Node::row()
                             .align_items(crate::layout::Align::Center)
+                            .children((model.flight_layout().graph_list_height == 0.0).then(|| {
+                                s.chip("Tracks", s.accent, s.raised)
+                                    .id(Widget::RoadmapTracks.id())
+                            }))
                             .child(s.label(scale, s.muted))
                             .child(FlightStyle::hspace(12.0))
                             .child(

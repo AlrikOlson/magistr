@@ -678,6 +678,21 @@ fn the_still_is_the_viewport_and_every_pixel_is_opaque() {
 fn a_still_leaves_the_field_report_settled() {
     let (_, mut frame, mut model) = still_of("03", ThemeMode::Dark);
     assert!(
+        model.roadmap_graph_rect().is_none(),
+        "Tracks leaves graph geometry lazy"
+    );
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::RoadmapDependencies.id()),
+        },
+    );
+    let (width, height) = Fixture::CAPTURE;
+    frame
+        .still(&mut model, &clock(), width, height)
+        .expect("dependencies render");
+    assert!(
         model.roadmap_graph_rect().is_some(),
         "the sky field is reported"
     );

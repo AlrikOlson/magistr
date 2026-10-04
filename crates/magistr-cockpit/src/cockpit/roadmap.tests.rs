@@ -5,6 +5,77 @@ use serde_json::json;
 use super::*;
 
 #[test]
+fn track_projection_keeps_unassigned_counts_and_selection_separate() {
+    let mut roadmap = Roadmap::default();
+    roadmap.seed(
+        &[
+            chunk("working", "in_progress", 400, "Core", &[]),
+            chunk("ready", "pending", 10, "Core", &[]),
+            chunk("waiting", "pending", 20, "Core", &["missing"]),
+            chunk("later", "backlog", 30, "Core", &[]),
+            chunk("unassigned", "pending", 10, "", &[]),
+        ],
+        &[],
+    );
+    roadmap.select("ready", 0.0, false);
+    let rows = roadmap.track_rows();
+    assert_eq!(rows[0].label(), "Unassigned");
+    let core = rows
+        .iter()
+        .find(|row| row.label() == "Core")
+        .expect("Core heading");
+    assert_eq!(
+        core.counts().expect("heading").summary(),
+        "Ready 1 · In progress 1 · Waiting 1 · Blocked 0 · Backlog 1"
+    );
+    let labels: Vec<_> = rows.iter().map(|row| row.label()).collect();
+    assert!(
+        labels
+            .iter()
+            .position(|name| *name == "working")
+            .expect("working")
+            < labels
+                .iter()
+                .position(|name| *name == "ready")
+                .expect("ready")
+    );
+    roadmap.focus_track_row(2);
+    roadmap.toggle_focused_track();
+    assert_eq!(
+        roadmap.selected().expect("selected details retained").id,
+        "ready"
+    );
+    assert!(!roadmap.is_selected_visible());
+    assert!(roadmap.reveal_selected());
+    assert!(roadmap.is_selected_visible());
+}
+
+#[test]
+fn track_search_covers_history_and_restores_collapse_and_focus() {
+    let mut roadmap = seeded();
+    roadmap.focus_track_row(0);
+    roadmap.toggle_focused_track();
+    let before = roadmap.track_focus().cloned();
+    let collapsed: Vec<_> = roadmap
+        .track_rows()
+        .iter()
+        .map(|r| r.label().to_owned())
+        .collect();
+    roadmap.set_track_query("base".into());
+    assert!(roadmap.track_rows().iter().any(|r| r.label() == "base"));
+    roadmap.set_track_query(String::new());
+    assert_eq!(roadmap.track_focus(), before.as_ref());
+    assert_eq!(
+        roadmap
+            .track_rows()
+            .iter()
+            .map(|r| r.label().to_owned())
+            .collect::<Vec<_>>(),
+        collapsed
+    );
+}
+
+#[test]
 fn viewport_clones_share_graph_geometry_without_changing_model_equality() {
     let roadmap = seeded();
     let untouched = roadmap.clone();
@@ -624,10 +695,10 @@ fn eyeball_a_hundred_chunk_tree() {
 }
 
 #[test]
-fn the_body_rows_count_only_table_items_and_signals() {
+fn the_body_rows_count_track_headings_items_and_signals() {
     let roadmap = seeded();
     // Two work items and one signal; controls are pinned and cards live elsewhere.
-    assert_eq!(roadmap.body_rows(80), 3);
+    assert_eq!(roadmap.body_rows(80), 5);
 }
 
 #[test]
@@ -677,13 +748,13 @@ fn an_empty_roadmap_bodies_to_its_one_note() {
 }
 
 #[test]
-fn a_signal_only_table_has_an_empty_work_item_note_and_one_signal_row() {
+fn a_signal_only_table_has_one_feedback_row() {
     let mut roadmap = Roadmap::default();
     roadmap.seed(&[], &[signal("s1", "researched")]);
     assert_eq!(
         roadmap.body_rows(80),
-        2,
-        "the empty work item note and signal; actions live in the inspector"
+        1,
+        "feedback remains reachable without counting as work"
     );
 }
 
