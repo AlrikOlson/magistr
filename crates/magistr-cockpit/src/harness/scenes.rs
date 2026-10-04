@@ -162,7 +162,42 @@ impl Scenes {
         m
     }
 
-    /// A completed edit selected by its call identity in the shared inspector.
+    /// Ready, waiting and blocked work from one complete snapshot.
+    pub fn roadmap_readiness(size: Size) -> Model {
+        use magistr_workflow_contracts::NativeSnapshot;
+        use serde_json::json;
+        let chunks = fixtures::chunks_from(vec![
+            json!({"id":"ground","name":"Saved foundation","title":"Store delivery requirements","status":"done","priority":50,"group":"Delivery"}),
+            json!({"id":"active","name":"Active foundation","title":"Check delivery evidence","status":"in_progress","priority":90,"group":"Delivery","deps":["ground"]}),
+            json!({"id":"z-first","name":"Send invitations","title":"Send invitations with saved requirements","status":"pending","priority":100,"group":"Delivery","deps":["ground"]}),
+            json!({"id":"a-second","name":"Review invitations","title":"Review invitation receipts","status":"pending","priority":100,"group":"Delivery","deps":["ground"]}),
+            json!({"id":"waiting","name":"Publish invitations","title":"Publish invitations after verification","status":"pending","priority":10,"group":"Delivery","deps":["active","absent"],
+                "description":"Wait until delivery checks finish and the missing requirements are available."}),
+            json!({"id":"blocked","name":"Connect delivery","title":"Connect the delivery account","status":"pending","priority":1,"group":"Delivery",
+                "blocked_by":{"kind":"awaiting_human","reason":"An access key is needed."}}),
+        ]);
+        let mut model = Model::new(size)
+            .with_snapshot(&NativeSnapshot {
+                chunks,
+                ..NativeSnapshot::default()
+            })
+            .with_tab(StageTab::Roadmap);
+        let index = model
+            .roadmap()
+            .rows()
+            .iter()
+            .position(|c| c.id == "waiting")
+            .expect("fixture work");
+        update(
+            &mut model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::roadmap_row(index)),
+            },
+        );
+        model
+    }
+
     /// A selected document with formatted findings and ordinary requirements.
     pub fn rich_record(size: Size) -> Model {
         use magistr_workflow_contracts::NativeSnapshot;

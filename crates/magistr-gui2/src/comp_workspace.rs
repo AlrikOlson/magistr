@@ -234,7 +234,7 @@ fn nearby(model: &Model, height: f32, lex: &Lexicon) -> Element {
                     .nowrap(),
             )
             .child(
-                Element::text(Voice::HINT, lex.sb0, chunk.state.word().replace('_', " ")).nowrap(),
+                Element::text(Voice::HINT, lex.sb0, model.roadmap().status_label(chunk)).nowrap(),
             )
             .id(WorkspaceComposition::id(Widget::roadmap_row(index)))
             .focusable()

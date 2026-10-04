@@ -2,8 +2,10 @@
 
 mod frame;
 mod name;
+mod readiness;
 mod records;
 pub use name::{NAME_BUDGET, derive, fits, repair_collisions, why_unfit};
+pub use readiness::{Readiness, WaitingDependency, assess_readiness, next_ready};
 
 pub use frame::RoadmapFrame;
 pub use records::{

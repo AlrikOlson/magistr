@@ -25,9 +25,10 @@ pub(super) fn fingerprint(model: &Model) -> Option<u64> {
         Selected::Chunk(id) => {
             let chunk = model.roadmap().chunk(id)?;
             write(format!(
-                "{chunk:?}:{}:{}",
+                "{chunk:?}:{}:{}:{}",
                 model.roadmap().can_start(chunk),
-                model.roadmap().can_complete(chunk)
+                model.roadmap().can_complete(chunk),
+                model.roadmap().progress_detail(chunk)
             ));
             write(format!(
                 "{:?}",
@@ -214,16 +215,7 @@ pub(super) fn build(model: &Model) -> Option<Inspection> {
         Selected::Chunk(id) => {
             let chunk = model.roadmap().chunk(id)?;
             card.title = work_name(&chunk.title, &chunk.name);
-            card.status = match chunk.state {
-                ChunkState::Done => "Completed",
-                ChunkState::InProgress => "In progress",
-                ChunkState::Pending => "Waiting",
-                ChunkState::Stuck => "Needs attention",
-                ChunkState::Blocked => "Blocked",
-                ChunkState::Backlog => "Backlog",
-                ChunkState::Obsoleted => "Obsoleted",
-            }
-            .into();
+            card.status = model.roadmap().status_label(chunk).into();
             card.icon = match chunk.state {
                 ChunkState::Done => Icon::Done,
                 ChunkState::InProgress => Icon::InProgress,
@@ -237,6 +229,19 @@ pub(super) fn build(model: &Model) -> Option<Inspection> {
             );
             if let Some(reason) = &chunk.blocker {
                 card.section(model, "Blocked", reason, false);
+            } else if matches!(
+                model.roadmap().readiness(chunk),
+                magistr_workflow_contracts::roadmap::Readiness::Waiting(_)
+                    | magistr_workflow_contracts::roadmap::Readiness::Inactive(
+                        magistr_workflow_contracts::ChunkStatus::Blocked
+                    )
+            ) {
+                card.section(
+                    model,
+                    model.roadmap().status_label(chunk),
+                    &model.roadmap().progress_detail(chunk),
+                    false,
+                );
             }
             structured(&mut card, model, chunk.content.as_ref());
             if !represented(&card, &chunk.description) {

@@ -1,8 +1,6 @@
 //! Browsable recorded work and roadmap items beside the conversation.
 use super::session_item::SessionItem;
-use super::{
-    ChunkState, FlightStyle as S, Model, RoadmapSort, Selected, ShipMoment, StageTab, Widget,
-};
+use super::{FlightStyle as S, Model, RoadmapSort, Selected, ShipMoment, StageTab, Widget};
 use crate::layout::{Align, Length, Node};
 
 /// Pixel list rows share their height with keyboard and wheel navigation.
@@ -207,14 +205,7 @@ fn work(model: &Model, s: &S, width: f32) -> Vec<Node> {
         .into_iter()
         .enumerate()
         .map(|(index, item)| {
-            let status = match item.state {
-                ChunkState::InProgress => "In progress",
-                ChunkState::Done => "Done",
-                ChunkState::Blocked | ChunkState::Stuck => "Blocked",
-                ChunkState::Backlog => "Planned",
-                ChunkState::Obsoleted => "Replaced",
-                ChunkState::Pending => "Ready",
-            };
+            let status = model.roadmap().status_label(item);
             let note = item
                 .group
                 .as_ref()

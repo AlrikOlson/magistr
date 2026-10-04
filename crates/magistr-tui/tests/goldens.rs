@@ -86,6 +86,22 @@ fn clock() -> FrameClock {
     FrameClock::new(0, Duration::ZERO)
 }
 #[test]
+fn shot_roadmap_readiness() {
+    shots_on(
+        "readiness",
+        Scenes::roadmap_readiness,
+        magistr_tui::screenshot::Profile::Cells,
+        false,
+    );
+    shots_on(
+        "readiness",
+        Scenes::roadmap_readiness,
+        magistr_tui::screenshot::Profile::Kitty,
+        false,
+    );
+}
+
+#[test]
 fn shot_rich_selected_record() {
     shots_on(
         "record",

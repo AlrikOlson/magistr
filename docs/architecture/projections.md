@@ -20,6 +20,17 @@ storage facade. It parses supplied wire bytes and timestamps without reading a
 clock. Native readers, broadcasters, report-file parsing and owner-lock generation
 allocation remain with their effectful owners.
 
+Roadmap readiness is a pure policy in `magistr-workflow-contracts::roadmap`.
+It assesses pending work, recorded blockers and dependencies against one complete
+snapshot; only a completed dependency satisfies a requirement. Workflow queries,
+group reports and new-work admission consume the same assessment as the cockpit's
+cached ready set, work labels, Status sorting and selected explanations. Lowest priority wins,
+with equal priorities retaining canonical insertion order. A saved view grants no
+authority: the writer assesses current records when Start or a start-status
+proposal reaches it. Revoking completion of an existing session remains distinct
+from scheduling a new start, and owner-generation/freshness fences remain in the
+admitted command path.
+
 The cockpit's `DisplayPhase` is an inference used for presentation. It cannot
 advance an objective or grant workflow authority. Application session events and
 permission policy remain in `magistr-application::sessions`.

@@ -243,3 +243,77 @@ fn dependency_completion_refreshes_available_actions() {
             .any(|(label, _)| *label == "Start")
     );
 }
+#[test]
+fn work_readiness_labels_reasons_and_start_actions_agree() {
+    let mut model = model();
+    let chunks = fixtures::chunks_from(vec![
+        json!({"id":"ground","name":"Saved foundation","status":"done"}),
+        json!({"id":"active","name":"Active foundation","status":"in_progress"}),
+        json!({"id":"ready","status":"pending","deps":["ground"]}),
+        json!({"id":"waiting","status":"pending","deps":["active","absent"]}),
+        json!({"id":"blocked","status":"pending","blocked_by":{"kind":"awaiting_human","reason":"Access is needed."}}),
+    ]);
+    model.roadmap.seed(&chunks, &[]);
+    for (id, label, reason, can_start) in [
+        ("ready", "Ready", "", true),
+        (
+            "waiting",
+            "Waiting",
+            "Waiting for Active foundation, an unavailable work item",
+            false,
+        ),
+        ("blocked", "Blocked", "Access is needed.", false),
+    ] {
+        model.inspect(Selected::Chunk(id.into()));
+        let card = Inspection::of(&model).unwrap();
+        assert_eq!(card.status, label, "{id}");
+        assert!(body(&card).contains(reason), "{id}: {}", body(&card));
+        assert_eq!(
+            card.actions.iter().any(|(label, _)| *label == "Start"),
+            can_start
+        );
+    }
+}
+
+#[test]
+fn partial_dependency_completion_refreshes_waiting_reasons_before_work_is_ready() {
+    let mut model = crate::harness::Scenes::roadmap_readiness(Size::new(144, 50));
+    let first = Inspection::of(&model).unwrap();
+    assert!(body(&first).contains("Active foundation"));
+    let changed = fixtures::frame(
+        "roadmap",
+        "chunk_changed",
+        json!({"chunk":{"id":"active","name":"Active foundation","status":"done"}}),
+    );
+    model.roadmap.apply(&changed, 0.0, false);
+    let second = Inspection::of(&model).unwrap();
+    assert!(!Rc::ptr_eq(&first, &second));
+    assert_eq!(second.status, "Waiting");
+    let waiting = second
+        .sections
+        .iter()
+        .find(|section| section.heading == "Waiting")
+        .unwrap();
+    assert_eq!(
+        waiting.text.source(),
+        "Waiting for an unavailable work item"
+    );
+    assert!(!second.actions.iter().any(|(label, _)| *label == "Start"));
+}
+
+#[test]
+fn stale_projection_keeps_snapshot_readiness_and_its_freshness_visible() {
+    use crate::cockpit::Freshness;
+    use magistr_workflow_contracts::FeedStatus;
+    let mut model = crate::harness::Scenes::roadmap_readiness(Size::new(144, 50));
+    model.projection.feed(FeedStatus::Disconnected);
+    assert_eq!(model.projection().freshness(), Freshness::Stale);
+    assert_eq!(model.roadmap().next_ready().unwrap().id, "z-first");
+    let card = Inspection::of(&model).unwrap();
+    assert_eq!(card.status, "Waiting");
+    assert_eq!(
+        model.projection().freshness(),
+        Freshness::Stale,
+        "reading readiness never marks a stale snapshot current"
+    );
+}

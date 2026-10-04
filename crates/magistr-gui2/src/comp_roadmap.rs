@@ -240,11 +240,7 @@ fn work_list(model: &Model, height: f32, lex: &Lexicon) -> Element {
         let selected = model.selected() == Some(&Selected::Chunk(chunk.id.clone()));
         let status = format!(
             "{} · {}{}",
-            if chunk.blocker.is_some() {
-                "blocked".to_owned()
-            } else {
-                chunk.state.word().replace('_', " ")
-            },
+            roadmap.status_label(chunk),
             chunk.band(),
             if chunk.proposals.is_empty() {
                 ""

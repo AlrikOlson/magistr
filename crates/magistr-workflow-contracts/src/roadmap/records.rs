@@ -138,7 +138,7 @@ pub fn validate_lane(lane: &str) -> Result<String, String> {
 pub enum ChunkStatus {
     /// Un-prioritized idea; not yet on the critical path.
     Backlog,
-    /// Ready to be worked, ordered by `priority`.
+    /// Prioritized work; readiness also requires no blocker and completed dependencies.
     Pending,
     /// Currently being implemented (typically by a linked ship objective).
     InProgress,

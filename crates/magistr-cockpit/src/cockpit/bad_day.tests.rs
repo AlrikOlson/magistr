@@ -124,6 +124,8 @@ fn the_missing_agent_blocks_and_rings_the_chunk_on_the_rail() {
         .find(|c| c.id == "e6b")
         .expect("seeded");
     assert_eq!(model.star_state(e6b), StarState::Blocked);
+    assert_eq!(model.star_status_label(e6b), "Blocked");
+    assert_eq!(model.roadmap().status_label(e6b), "In progress");
     let ids = model.roadmap().graph_ids();
     let nodes = model.sky_nodes(0.0);
     let at = ids.iter().position(|id| *id == "e6b").expect("placed");

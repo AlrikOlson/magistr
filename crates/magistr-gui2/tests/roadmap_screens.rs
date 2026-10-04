@@ -10,6 +10,9 @@ fn scene(name: &str, size: Size) -> Model {
         "empty" => Model::new(size)
             .with_surface(Surface::Native)
             .with_tab(StageTab::Roadmap),
+        "readiness" => {
+            magistr_cockpit::harness::Scenes::roadmap_readiness(size).with_surface(Surface::Native)
+        }
         "waiting" => Fixture::roadmap_request(size, RequestPhase::Waiting),
         "queued" => Fixture::roadmap_request(size, RequestPhase::Queued),
         "running" => Fixture::roadmap_request(size, RequestPhase::Working),
@@ -29,7 +32,15 @@ fn roadmap_state_matrix_has_stable_frames_and_usable_controls() {
             ("scaled", 1650, 1140, 1.5),
         ] {
             for name in [
-                "empty", "plan", "waiting", "queued", "running", "failed", "stopped", "complete",
+                "empty",
+                "plan",
+                "readiness",
+                "waiting",
+                "queued",
+                "running",
+                "failed",
+                "stopped",
+                "complete",
             ] {
                 let mut frame = Frame::new().unwrap();
                 frame.rescale(scale).unwrap();
@@ -79,6 +90,8 @@ fn reviewed_roadmap_goldens() {
     for (theme, mode) in [("dark", ThemeMode::Dark), ("light", ThemeMode::Light)] {
         for (name, layout, w, h) in [
             ("plan", "wide", 1100, 760),
+            ("readiness", "wide", 1100, 760),
+            ("readiness", "compact", 620, 640),
             ("complete", "wide", 1100, 760),
             ("failed", "compact", 620, 640),
         ] {
@@ -99,6 +112,73 @@ fn reviewed_roadmap_goldens() {
         }
     }
     assert!(mismatches.is_empty(), "Review candidates: {mismatches:#?}");
+}
+
+#[test]
+fn readiness_rows_details_and_start_controls_agree_in_both_themes() {
+    use magistr_cockpit::cockpit::{Cmd, Inspection};
+    for mode in [ThemeMode::Dark, ThemeMode::Light] {
+        let mut model = magistr_cockpit::harness::Scenes::roadmap_readiness(Size::new(120, 40))
+            .with_surface(Surface::Native)
+            .with_theme(Theme::forced(mode).with_motion(MotionMode::Reduced));
+        assert_eq!(model.roadmap().next_ready().unwrap().id, "z-first");
+        for (id, label, reason, can_start) in [
+            ("waiting", "Waiting", "an unavailable work item", false),
+            ("blocked", "Blocked", "An access key is needed.", false),
+            ("z-first", "Ready", "", true),
+        ] {
+            let index = model
+                .roadmap()
+                .rows()
+                .iter()
+                .position(|c| c.id == id)
+                .unwrap();
+            update(
+                &mut model,
+                Msg::Mouse {
+                    event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                    target: Some(Widget::roadmap_row(index)),
+                },
+            );
+            let mut frame = Frame::new().unwrap();
+            frame
+                .still(
+                    &mut model,
+                    &FrameClock::new(0, std::time::Duration::ZERO),
+                    1100,
+                    900,
+                )
+                .unwrap();
+            let card = Inspection::of(&model).unwrap();
+            assert_eq!(card.status, label);
+            let text = frame
+                .says()
+                .into_iter()
+                .map(|(s, _)| s)
+                .collect::<Vec<_>>()
+                .concat();
+            assert!(text.contains(reason), "{text}");
+            assert!(!text.contains("z-first"));
+            assert_eq!(
+                frame.access().find(Widget::RoadmapStart).is_some(),
+                can_start
+            );
+            let commands = update(
+                &mut model,
+                Msg::Mouse {
+                    event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                    target: Some(Widget::RoadmapStart.id()),
+                },
+            );
+            if can_start {
+                assert!(
+                    matches!(commands.as_slice(), [Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::StartChunk { id })] if id == "z-first")
+                );
+            } else {
+                assert!(commands.is_empty());
+            }
+        }
+    }
 }
 
 #[test]

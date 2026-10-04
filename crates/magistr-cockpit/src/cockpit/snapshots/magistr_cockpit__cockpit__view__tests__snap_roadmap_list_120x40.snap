@@ -11,8 +11,8 @@ Saved retry limits  Research▸Plan▸Execute▸Verify
 │▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«Storage» 1/1                                      │  │                                  │
 │▲ Saved retry limits      │ │Status: Active ▾ · 2                               │  │                                  │
 │1 before · 1 after        │ │Name                Status↑    Pri   Stream        │  │                                  │
-│signals 1                 │ │▸ Saved retry limi… working    100   Retry recovery│  │                                  │
-│                          │ │○ Recovery checks   pending    200   Retry recovery│  │                                  │
+│signals 1                 │ │▸ Saved retry limi… In progre… 100   Retry recovery│  │                                  │
+│                          │ │○ Recovery checks   Waiting    200   Retry recovery│  │                                  │
 │                          │ │◆ make startup faster                              │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
