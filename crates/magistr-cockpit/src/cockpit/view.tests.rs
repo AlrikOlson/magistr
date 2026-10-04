@@ -276,7 +276,7 @@ fn turn_inspector_renders_live_records_diffs_and_scrolling_in_both_profiles() {
         let pen = Pen::for_theme(&model.theme());
         let mut content = Vec::new();
         texts(&Inspector::view(&model, &pen), &mut content);
-        let joined = content.join("\n");
+        let joined = content.join("");
         for expected in [
             "focused checks passed",
             "Completed",
@@ -284,7 +284,7 @@ fn turn_inspector_renders_live_records_diffs_and_scrolling_in_both_profiles() {
             "Input",
             "Output",
             "17",
-            "16000 bytes",
+            "16000",
         ] {
             assert!(joined.contains(expected), "{expected}: {joined}");
         }
@@ -737,7 +737,8 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
     let trace_only = |w: &Widget| {
         matches!(
             w,
-            Widget::Checkpoint
+            Widget::RoadmapOverview
+                | Widget::Checkpoint
                 | Widget::PromptAction
                 | Widget::TraceDetail
                 | Widget::InspectorTitle
@@ -2549,43 +2550,26 @@ fn snap_trace_step_expanded_120x40() {
             target: Some(Widget::trace_row(0)),
         },
     );
-    assert!(m.trace().is_expanded(1));
-    let brief = screen(&m);
-    for field in [
-        "▾  1  hypothesis  0.62 ★",
-        "hypothesis",
-        "Step 1 · Main investigation",
-        "Unsave",
-        "More",
-        "Reasoning · Saved receipts",
-        "Result · The remaining budget",
-        "Next · Save each retry",
-    ] {
-        assert!(brief.contains(field), "{field} missing:\n{brief}");
-    }
-    for hidden in ["context", "rationale", "uncertainty", "task:trace-state"] {
-        assert!(
-            !brief.contains(hidden),
-            "the brief card hides {hidden}:\n{brief}"
-        );
-    }
+    let card = crate::cockpit::Inspection::of(&m).unwrap();
+    assert_eq!(card.sections[0].heading, "Result");
+    assert!(card.original().contains("The remaining budget"));
+    assert!(card.original().contains("Save each retry"));
+    let context = card
+        .sections
+        .iter()
+        .position(|s| s.heading == "Context")
+        .unwrap();
     update(
         &mut m,
         Msg::Mouse {
-            event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 9),
-            target: Some(Widget::InspectorDetail.id()),
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::detail_section(context)),
         },
     );
+    assert!(card.is_expanded(&m, &card.sections[context]));
     let screen = screen(&m);
-    for field in [
-        "Less",
-        "Context · worker recovery",
-        "Why · The receipt and budget",
-        "Still uncertain · The tenant",
-        "Confidence · 62%",
-    ] {
-        assert!(screen.contains(field), "{field} missing:\n{screen}");
-    }
+    assert!(screen.contains("Context"), "{screen}");
+    assert!(!placed_ids(&m).contains(&Widget::InspectorDetail.id()));
     insta::assert_snapshot!(screen);
 }
 
@@ -2633,9 +2617,28 @@ fn session_receipts_and_reports_share_the_inspector() {
         assert!(card(&m).contains(expected));
     }
     let detail = card(&m);
-    assert!(detail.contains("Exit code · 101"), "{detail}");
-    assert!(detail.contains("Duration · 800 ms"), "{detail}");
-    assert!(detail.contains("2026-09-15T12:01:00Z"), "{detail}");
+    assert!(
+        detail.replace('\n', "").contains("Exit code: 101"),
+        "{detail}"
+    );
+    assert!(
+        detail.replace('\n', "").contains("Duration: 800 ms"),
+        "{detail}"
+    );
+    let document = super::super::Inspection::of(&m).expect("selected receipt");
+    let recorded = document
+        .sections
+        .iter()
+        .position(|s| s.heading == "Recorded")
+        .expect("recorded time");
+    update(
+        &mut m,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::detail_section(recorded)),
+        },
+    );
+    assert!(document.original().contains("2026-09-15T12:01:00Z"));
     let timeline = m.session_window();
     update(
         &mut m,
@@ -2768,7 +2771,6 @@ fn snap_roadmap_list_120x40() {
 #[test]
 fn snap_roadmap_detail_120x40() {
     let mut m = Scenes::roadmapped(Size::new(120, 40));
-    // Row 1 in list order is the pending proposal-carrying chunk.
     update(
         &mut m,
         Msg::Mouse {
@@ -2777,22 +2779,30 @@ fn snap_roadmap_detail_120x40() {
         },
     );
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Enter)));
-    let screen = screen(&m);
-    for needle in [
-        "○ Recovery checks",
-        "priority → 100 · sooner",
-        "Accept",
-        "Reject",
-        "Title · Recover delivery",
-        "Description · Resume saved",
-        "Success condition 1 · saved",
-        "Success condition 2 · tenant",
-        "Depends on · Saved retry limits",
-        "Related work · Unavailable work",
+    let card = super::super::Inspection::of(&m).expect("selected chunk");
+    let source = card.original();
+    for expected in [
+        "Recover delivery retries after restart",
+        "Acceptance criteria",
+        "1. saved",
+        "2. tenant",
     ] {
-        assert!(screen.contains(needle), "{needle} missing:\n{screen}");
+        assert!(source.contains(expected), "{expected}: {source}");
     }
-    insta::assert_snapshot!(screen);
+    let proposals = card.sections.iter().flat_map(|section| &section.actions);
+    assert!(proposals.clone().any(|(label, _)| *label == "Accept"));
+    assert!(proposals.clone().any(|(label, _)| *label == "Reject"));
+    assert!(
+        card.links()
+            .iter()
+            .any(|link| link.label.contains("Saved retry limits"))
+    );
+    assert!(
+        card.links()
+            .iter()
+            .any(|link| link.target == super::super::RecordTarget::Unavailable)
+    );
+    insta::assert_snapshot!(screen(&m));
 }
 
 #[test]
@@ -3833,7 +3843,7 @@ fn a_settled_gate_a_completed_task_and_a_completed_chunk_each_pop_once() {
     ship(
         &mut m,
         "task_completed",
-        serde_json::json!({"task_id": "wire the view"}),
+        serde_json::json!({"task": crate::harness::fixtures::task_from(serde_json::json!({"id":"wire the view","title":"wire the view","status":"completed"}))}),
     );
     let task = row_of(&m, "wire the view");
     let rest = cell_style(&m, 4, task);
@@ -4865,39 +4875,20 @@ fn placed_ids(m: &Model) -> Vec<crate::WidgetId> {
 }
 
 #[test]
-fn an_execution_ref_that_names_a_chunk_is_a_link_and_one_that_names_none_is_not() {
-    let mut linked = traced_with_chunk(Size::new(120, 40));
-    expand_first_step(&mut linked);
-    assert!(
-        placed_ids(&linked).contains(&Widget::trace_chunk(1)),
-        "the resolving ref carries the jump"
-    );
-
-    // The same fixture with no roadmap at all: the ref names nothing the
-    // tab knows, so the brief card offers no jump and the full card's
-    // ref row stays plain text.
+fn related_work_uses_named_record_links_and_explains_missing_targets() {
     let mut plain = Scenes::traced(Size::new(120, 40));
     expand_first_step(&mut plain);
-    assert!(!placed_ids(&plain).contains(&Widget::trace_chunk(1)));
+    let card = crate::cockpit::Inspection::of(&plain).unwrap();
     assert!(
-        !screen(&plain).contains("task:trace-state"),
-        "the brief card keeps the ref out of the way: {}",
-        screen(&plain)
+        card.links()
+            .iter()
+            .any(|link| link.target == crate::cockpit::RecordTarget::Unavailable)
     );
-    update(
-        &mut plain,
-        Msg::Mouse {
-            event: MouseEvent::new(MouseKind::Down(Button::Left), 10, 9),
-            target: Some(Widget::InspectorDetail.id()),
-        },
-    );
-    assert!(plain.inspector_open(), "More opened the full card");
-    assert!(!placed_ids(&plain).contains(&Widget::trace_chunk(1)));
-    assert!(
-        !screen(&plain).contains("task:trace-state"),
-        "Missing linked work never exposes an internal reference: {}",
-        screen(&plain)
-    );
+    assert!(!card.links().iter().any(|link| matches!(
+        link.target,
+        crate::cockpit::RecordTarget::Record(crate::cockpit::Selected::Chunk(_))
+    )));
+    assert!(!screen(&plain).contains("task:trace-state"));
 }
 
 #[test]

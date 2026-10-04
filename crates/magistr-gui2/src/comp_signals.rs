@@ -129,6 +129,13 @@ impl SignalsComposition {
     #[must_use]
     pub fn el(model: &Model, medium: Medium, clock: &FrameClock) -> Element {
         let lex = Lexicon::of(medium);
+        if model.selected().is_some() {
+            let height = (f32::from(model.size().rows) * f32::from(model.cell_size().height)
+                - Self::HEADER_HEIGHT)
+                .max(1.0);
+            return crate::comp_workspace_details::DetailsComposition::el(model, height, &lex)
+                .grow(1.0);
+        }
         let now = clock.epoch_secs().and_then(|secs| i64::try_from(secs).ok());
         let open = model.roadmap().signals();
         let mut column = Element::surface()

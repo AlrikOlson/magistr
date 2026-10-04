@@ -8,37 +8,37 @@ Research▸Plan▸Execute▸Verify
 │◂                         │ │Turn  Session  Roadmap                             │  │ hypothesis                       │
 │no objective yet          │ │session · 5 steps · 1 branch · 1 pinned · 0 changes│  │ ★ Recorded                       │
 │roadmap 0/0 done          │ │Main reasoning · 3 steps                           │  │ Step 1 · Main investigation      │
-│signals 0                 │ │└─ Share retry budgets? (Findings used) after 2 · 2│  │ Unsave Checkpoint Less           │
-│                          │ │time unknown ▾  1  hypothesis  0.62 ★              │  │ Step · hypothesis                │
-│                          │ │time unknown ▸  2  analysis · revised by 5  0.70   │  │ Context · worker recovery        │
-│                          │ │time unknown ▸  3  hypothesis (Share retry         │  │ Reasoning · Saved receipts can   │
-│                          │ │time unknown ▸  4  validation (Share retry         │  │ preserve retry budgets after     │
-│                          │ │time unknown ▸  5  correction                      │  │ restart.                         │
-│                          │ │time unknown ▸ code · Saved retry budgets with     │  │ Result · The remaining budget    │
-│                          │ │time unknown ✓ test · exit 0 · 5.4s                │  │ survives a restart.              │
-│                          │ │time unknown ✗ lint · exit 101 · 900ms             │  │ Next · Save each retry with its  │
+│signals 0                 │ │└─ Share retry budgets? (Findings used) after 2 · 2│  │ Unsave Checkpoint Copy           │
+│                          │ │time unknown ▾  1  hypothesis  0.62 ★              │  │ Saved receipts can preserve      │
+│                          │ │time unknown ▸  2  analysis · revised by 5  0.70   │  │ retry budgets after restart.     │
+│                          │ │time unknown ▸  3  hypothesis (Share retry         │  │                                  │
+│                          │ │time unknown ▸  4  validation (Share retry         │  │ Why                              │
+│                          │ │time unknown ▸  5  correction                      │  │ The receipt and budget commit in │
+│                          │ │time unknown ▸ code · Saved retry budgets with     │  │ the same transaction.            │
+│                          │ │time unknown ✓ test · exit 0 · 5.4s                │  │                                  │
+│                          │ │time unknown ✗ lint · exit 101 · 900ms             │  │ Next                             │
+│                          │ │                                                   │  │ Save each retry with its         │
 │                          │ │                                                   │  │ receipt.                         │
-│                          │ │                                                   │  │ Why · The receipt and budget     │
-│                          │ │                                                   │  │ commit in the same transaction.  │
-│                          │ │                                                   │  │ Confidence · 62%                 │
-│                          │ │                                                   │  │ Still uncertain · The tenant     │
-│                          │ │                                                   │  │ isolation check is still         │
-│                          │ │                                                   │  │ pending.                         │
-│                          │ │                                                   │  │ Expected steps · 4               │
-│                          │ │                                                   │  │ Related steps · 7, 9             │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Context · Hide                   │
+│                          │ │                                                   │  │ worker recovery                  │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Uncertainty · Show               │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Confidence · Show                │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Evidence                         │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ This record is no longer         │
+│                          │ │                                                   │  │ available.                       │
+│                          │ │                                                   │  │ This record is no longer         │
+│                          │ │                                                   │  │ available.                       │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Related work                     │
 │                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ This record is no longer         │
+│                          │ │                                                   │  │ available.                       │
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  scroll   enter  detail   esc  less detail   tab / shift-tab  move focus
+ ↑↓  scroll   enter  detail   esc  back   tab / shift-tab  move focus

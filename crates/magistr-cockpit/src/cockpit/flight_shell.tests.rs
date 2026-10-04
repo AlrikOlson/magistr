@@ -472,7 +472,17 @@ fn records_and_roadmap_open_details_without_moving_the_conversation_or_draft() {
     click(&mut model, Widget::session_row(0));
     assert_eq!(model.selected(), Some(&Selected::Step(17)));
     assert_eq!(model.pane(), Pane::Inspector);
-    click(&mut model, Widget::LinkedWork.id());
+    let link = super::super::Inspection::of(&model)
+        .expect("selected step")
+        .links()
+        .into_iter()
+        .find(|link| {
+            link.target
+                == super::super::RecordTarget::Record(Selected::Task("internal-task".into()))
+        })
+        .expect("named task link")
+        .widget;
+    click(&mut model, link);
     assert_eq!(
         model.selected(),
         Some(&Selected::Task("internal-task".into()))

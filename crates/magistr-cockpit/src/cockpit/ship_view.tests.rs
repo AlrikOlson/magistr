@@ -96,7 +96,10 @@ fn folds_an_objective_and_its_tasks_from_events() {
     });
     view.apply(&check_recorded("t1", true));
     view.apply(&ShipFrame::TaskCompleted {
-        task_id: "t1".to_owned(),
+        task: fixtures::task_from(json!({"id":"t1","title":"first","status":"completed",
+            "completed_at":"2026-10-04T01:00:00Z",
+            "checks":[{"name":"check","passed":true}],
+            "artifacts":[{"type":"file","ref":"report.txt","description":"Saved report"}]})),
     });
     view.apply(&ShipFrame::TaskBlocked {
         task_id: "t2".to_owned(),
@@ -106,6 +109,14 @@ fn folds_an_objective_and_its_tasks_from_events() {
     assert_eq!(view.scope(), Some("chunk:x"));
     assert_eq!(view.tasks()[0].state, TaskState::Completed);
     assert_eq!(view.tasks()[0].checks_passed, 1);
+    assert_eq!(
+        view.tasks()[0].artifacts,
+        vec![("report.txt".into(), "Saved report".into())]
+    );
+    assert_eq!(
+        view.tasks()[0].completed_at.as_deref(),
+        Some("2026-10-04T01:00:00Z")
+    );
     assert_eq!(view.tasks()[1].state, TaskState::Blocked);
 }
 

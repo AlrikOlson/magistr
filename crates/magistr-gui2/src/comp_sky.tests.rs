@@ -57,10 +57,14 @@ fn intent_brings_the_chrome_back_and_stands_the_murmur_down() {
     let (done, total) = model.rail().progress();
     assert!(texts.iter().any(|t| *t == done.to_string()), "the counter");
     assert!(texts.iter().any(|t| *t == format!(" / {total}")));
-    assert_eq!(
-        texts.iter().filter(|t| t.as_str() == "Executing").count(),
-        1,
-        "only the selected item shows its status; the resting status row is gone"
+    assert!(
+        !texts.iter().any(|t| t == "Executing"),
+        "the resting status row is gone"
+    );
+    let card = magistr_cockpit::cockpit::Inspection::of(&model).expect("selected record");
+    assert!(
+        texts.contains(&card.status),
+        "the selected record carries its current status"
     );
     assert!(model.roadmap().selected().is_some());
 }
@@ -122,12 +126,17 @@ fn a_selected_star_tells_its_chunk_and_offers_the_engines_verb() {
     let sky = SkyComposition::el(&model, Medium::Night);
     assert!(texts(&sky).contains(&chunk_id), "the id is on the card");
     assert!(
-        texts(&sky).iter().any(|t| t.starts_with("Start ")),
-        "a claimable chunk offers Start, naming the chunk"
+        texts(&sky).iter().any(|t| t == "Start"),
+        "a claimable chunk offers Start beside its title"
     );
     let start = |root: &Element| {
         let mut found = false;
-        root.each(&mut |_, element| found |= element.id == Some(SkyComposition::START));
+        root.each(&mut |_, element| {
+            found |= element.id
+                == Some(crate::comp_workspace::WorkspaceComposition::id(
+                    Widget::RoadmapStart.id(),
+                ))
+        });
         found
     };
     assert!(start(&sky), "the verb wears its id");

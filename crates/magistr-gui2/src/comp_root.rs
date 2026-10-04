@@ -380,8 +380,6 @@ impl RootComposition {
             SkyComposition::FIELD => Some(Widget::RoadmapGraph.id()),
             GalaxyComposition::FIELD => Some(Widget::GalaxyField.id()),
             GalaxyComposition::NEW => Some(Widget::GalaxyNew.id()),
-            SkyComposition::START => Some(Widget::RoadmapStart.id()),
-            SkyComposition::COMPLETE => Some(Widget::RoadmapComplete.id()),
             ShelfComposition::EXPORT => Some(Widget::ShelfExport.id()),
             ReportComposition::SHARE => Some(Widget::ShelfShare.id()),
             ReportComposition::COMMIT => Some(Widget::ReportCommit.id()),

@@ -15,6 +15,12 @@ use super::span_style::SpanStyle;
 /// literal), and a code span's content is never re-read for markers.
 #[must_use]
 pub fn parse_inline(text: &str) -> (String, Vec<Span>) {
+    let (display, spans, _) = parse_inline_mapped(text);
+    (display, spans)
+}
+
+pub(super) fn parse_inline_mapped(text: &str) -> (String, Vec<Span>, Vec<usize>) {
+    let mut origins = Vec::with_capacity(text.len());
     let mut display = String::with_capacity(text.len());
     let mut spans = Vec::new();
     let mut rest = text;
@@ -22,6 +28,8 @@ pub fn parse_inline(text: &str) -> (String, Vec<Span>) {
     while !rest.is_empty() {
         if let Some(token) = token(rest, prev) {
             let start = display.len();
+            let source_at = token.content.as_ptr() as usize - text.as_ptr() as usize;
+            origins.extend(source_at..source_at + token.content.len());
             display.push_str(token.content);
             spans.push(Span::new(start, display.len(), token.style));
             rest = &rest[token.consumed..];
@@ -29,11 +37,14 @@ pub fn parse_inline(text: &str) -> (String, Vec<Span>) {
             continue;
         }
         let c = rest.chars().next().expect("rest is not empty");
+        let source_at = rest.as_ptr() as usize - text.as_ptr() as usize;
+        origins.extend(source_at..source_at + c.len_utf8());
         display.push(c);
         rest = &rest[c.len_utf8()..];
         prev = Some(c);
     }
-    (display, spans)
+    origins.push(text.len());
+    (display, spans, origins)
 }
 
 /// A matched marker pair at the head of `rest`.

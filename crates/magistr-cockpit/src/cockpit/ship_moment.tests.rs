@@ -28,6 +28,9 @@ fn an_action_keeps_its_task_kind_description_ordinal_and_files() {
             description: "wired the port".to_owned(),
             id: 198,
             files: vec!["src/port.rs".to_owned()],
+            result: action.result.clone(),
+            tools: Vec::new(),
+            think_step: None,
         }
     );
 }
@@ -50,6 +53,9 @@ fn a_check_keeps_its_exit_code_and_the_reports_duration() {
             verified: true,
             exit_code: Some(101),
             duration_ms: Some(5400),
+            command: None,
+            details: check.details.clone(),
+            required: check.required,
         }
     );
 }

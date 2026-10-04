@@ -1,6 +1,6 @@
 ---
 source: crates/magistr-cockpit/src/cockpit/view.tests.rs
-expression: screen
+expression: screen(&m)
 ---
 ▲ magistr  idle                                                                                                    00:01
 Saved retry limits  Research▸Plan▸Execute▸Verify
@@ -8,32 +8,32 @@ Saved retry limits  Research▸Plan▸Execute▸Verify
 │◂                         │ │Turn  Session  Roadmap                             │  │ Recover delivery retries after   │
 │no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlo…│  │ ○ Waiting                        │
 │▲ Saved retry limits · 1/3│ │«Retry recovery» 0/2                               │  │ high · Retry recovery            │
-│▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«Storage» 1/1                                      │  │ Less                             │
-│▲ Saved retry limits      │ │Status: Active ▾ · 2                               │  │ priority → 100 · sooner          │
-│1 before · 1 after        │ │Name                Status↑    Pri   Stream        │  │ Accept Reject                    │
-│signals 1                 │ │▸ Saved retry limi… working    100   Retry recovery│  │ Title · Recover delivery retries │
-│                          │ │○ Recovery checks   pending    200   Retry recovery│  │ after restart                    │
-│                          │ │◆ make startup faster                              │  │ Description · Resume saved       │
-│                          │ │                                                   │  │ retries and check that each      │
-│                          │ │                                                   │  │ tenant keeps its own budget.     │
-│                          │ │                                                   │  │ Success condition 1 · saved      │
-│                          │ │                                                   │  │ retries resume after restart     │
-│                          │ │                                                   │  │ Success condition 2 · tenant     │
-│                          │ │                                                   │  │ budgets stay separate            │
-│                          │ │                                                   │  │ Depends on · Saved retry limits  │
-│                          │ │                                                   │  │ Related work · Unavailable work  │
-│                          │ │                                                   │  │ item                             │
+│▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«Storage» 1/1                                      │  │ Request a change Copy            │
+│▲ Saved retry limits      │ │Status: Active ▾ · 2                               │  │ Proposed work                    │
+│1 before · 1 after        │ │Name                Status↑    Pri   Stream        │  │ Resume saved retries and check   │
+│signals 1                 │ │▸ Saved retry limi… working    100   Retry recovery│  │ that each tenant keeps its own   │
+│                          │ │○ Recovery checks   pending    200   Retry recovery│  │ budget.                          │
+│                          │ │◆ make startup faster                              │  │                                  │
+│                          │ │                                                   │  │ Acceptance criteria              │
+│                          │ │                                                   │  │ 1. saved retries resume after    │
+│                          │ │                                                   │  │    restart                       │
+│                          │ │                                                   │  │ 2. tenant budgets stay separate  │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Dependencies                     │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Saved retry limits →             │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Related work                     │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ This record is no longer         │
+│                          │ │                                                   │  │ available.                       │
 │                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ Suggested change                 │
+│                          │ │                                                   │  │ priority → 100                   │
 │                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ sooner                           │
+│                          │ │                                                   │  │ Accept                           │
+│                          │ │                                                   │  │ Reject                           │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
@@ -41,4 +41,4 @@ Saved retry limits  Research▸Plan▸Execute▸Verify
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
 ›
- ↑↓  select   alt-f  filter   alt-s  sort   enter  detail
+ ↑↓  scroll   enter  detail   esc  back   tab / shift-tab  move focus

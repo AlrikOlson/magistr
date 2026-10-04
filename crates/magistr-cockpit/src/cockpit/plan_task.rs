@@ -16,4 +16,10 @@ pub struct PlanTask {
     pub checks_passed: u32,
     /// Quality gates recorded on this task that failed.
     pub checks_failed: u32,
+    /// Named artifacts from the owning task snapshot.
+    pub artifacts: Vec<(String, String)>,
+    pub blocked_reason: Option<String>,
+    pub estimate: Option<String>,
+    pub started_at: Option<String>,
+    pub completed_at: Option<String>,
 }

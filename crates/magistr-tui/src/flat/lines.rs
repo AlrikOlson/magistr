@@ -33,6 +33,12 @@ use magistr_cockpit::turn::{Line, LineKind, Voice};
 /// are content and arrive as they were written.
 #[must_use]
 pub fn lines(model: &Model) -> Vec<FlatLine> {
+    let mut out = session_lines(model);
+    out.extend(detail_lines(model));
+    out
+}
+
+pub(super) fn session_lines(model: &Model) -> Vec<FlatLine> {
     let mut out = vec![FlatLine::settled(Some(Role::Session), opening(model))];
     if let Some(banner) = model.banner() {
         out.push(FlatLine::settled(Some(Role::Note), plain(banner)));
@@ -43,6 +49,20 @@ pub fn lines(model: &Model) -> Vec<FlatLine> {
     for (index, line) in turn.lines().iter().enumerate() {
         let settled = !streaming || is_settled(line.kind(), Some(index) == last);
         push(&mut out, line, settled, streaming);
+    }
+    out
+}
+
+pub(super) fn detail_lines(model: &Model) -> Vec<FlatLine> {
+    let mut out = Vec::new();
+    if let Some(card) = magistr_cockpit::cockpit::Inspection::of(model) {
+        out.push(FlatLine::settled(
+            Some(Role::Note),
+            format!("Details: {} · {}", plain(&card.title), plain(&card.status)),
+        ));
+        for text in card.original().split('\n').skip(2) {
+            out.push(FlatLine::settled(None, text.to_owned()));
+        }
     }
     out
 }

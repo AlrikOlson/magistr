@@ -77,6 +77,41 @@ mod oracle {
 }
 
 impl Lexicon {
+    /// Resolve a shared text color in this native palette.
+    pub(crate) fn text_color(&self, color: magistr_cockpit::render::Color) -> Option<Srgba> {
+        use magistr_cockpit::render::Color;
+        let rgb = |c: magistr_theme::ThemeColor| {
+            Srgba::new(
+                f32::from(c.r) / 255.0,
+                f32::from(c.g) / 255.0,
+                f32::from(c.b) / 255.0,
+                1.0,
+            )
+        };
+        match color {
+            Color::Default => None,
+            Color::Indexed(n) if n < 16 => Some(self.ansi[usize::from(n)]),
+            Color::Indexed(n) => Some(rgb(magistr_theme::xterm256(n))),
+            Color::Rgb(r, g, b) => Some(rgb(magistr_theme::ThemeColor::new(r, g, b))),
+        }
+    }
+    /// Keep authored text colors readable against their native surface.
+    pub(crate) fn readable(ink: Srgba, on: Srgba, minimum: f64) -> Srgba {
+        let rgb = |c: Srgba| {
+            magistr_theme::ThemeColor::new(
+                (c.r * 255.0).round() as u8,
+                (c.g * 255.0).round() as u8,
+                (c.b * 255.0).round() as u8,
+            )
+        };
+        let c = magistr_theme::math::ensure_contrast(rgb(ink), rgb(on), minimum);
+        Srgba::new(
+            f32::from(c.r) / 255.0,
+            f32::from(c.g) / 255.0,
+            f32::from(c.b) / 255.0,
+            1.0,
+        )
+    }
     /// `tint` composited onto `ground` **in sRGB bytes** — the space
     /// the browser blends the volume's translucent tokens in.
     ///

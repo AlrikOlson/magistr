@@ -48,7 +48,7 @@ fn text(frame: &Frame) -> String {
         .into_iter()
         .map(|(s, _)| s)
         .collect::<Vec<_>>()
-        .join("\n")
+        .join("")
 }
 fn step(model: &mut Model, number: u32) {
     update(
@@ -115,7 +115,22 @@ fn inspection_and_arrivals_preserve_the_draft_disclosure_and_reading_position() 
     click(&mut frame, &mut model, Widget::TraceNext.id());
     assert_eq!(model.selected(), Some(&Selected::Step(950)));
     paint(&mut frame, &mut model, size);
-    click(&mut frame, &mut model, Widget::LinkedWork.id());
+    let link = magistr_cockpit::cockpit::Inspection::of(&model)
+        .expect("step document")
+        .links()
+        .into_iter()
+        .find(|l| {
+            l.target
+                == magistr_cockpit::cockpit::RecordTarget::Record(Selected::Chunk(
+                    "retry-work".into(),
+                ))
+        })
+        .expect("named work link")
+        .widget;
+    click(&mut frame, &mut model, Widget::InspectorTitle.id());
+    update(&mut model, Msg::Key(KeyEvent::new(KeyCode::End)));
+    paint(&mut frame, &mut model, size);
+    click(&mut frame, &mut model, link);
     assert_eq!(
         model.selected(),
         Some(&Selected::Chunk("retry-work".into()))

@@ -19,6 +19,8 @@ pub mod anchor;
 pub mod conversation_card;
 pub mod conversation_layout;
 pub mod conversation_row;
+mod document;
+pub use document::{DocumentAnchor, DocumentBlock, DocumentRow, TextDocument};
 pub mod diff;
 pub mod diff_kind;
 pub mod highlight;

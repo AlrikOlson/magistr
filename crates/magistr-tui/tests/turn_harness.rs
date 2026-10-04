@@ -353,10 +353,10 @@ async fn a_tool_row_expands_by_click_and_enter_opens_its_inspector() {
     );
     let detail = screen_before(&capture, instants[3]);
     assert!(
-        detail.contains("Less"),
+        detail.contains("Copy") && detail.contains("Running"),
         "the inspector opened its detail:\n{detail}"
     );
-    assert!(model.inspector_open());
+    assert_eq!(model.pane(), magistr_cockpit::cockpit::Pane::Inspector);
     assert_eq!(
         model.selected(),
         Some(&magistr_cockpit::cockpit::Selected::Tool("c1".to_owned()))

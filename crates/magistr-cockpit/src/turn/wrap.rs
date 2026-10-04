@@ -5,7 +5,6 @@ use unicode_segmentation::UnicodeSegmentation;
 use super::diff_kind::diff_kind;
 use super::highlight::Highlight;
 use super::image::StreamImage;
-use super::inline::parse_inline;
 use super::line_kind::LineKind;
 use super::row::Row;
 use super::row_kind::RowKind;
@@ -291,32 +290,29 @@ fn prose(
         let spans = highlight.map_or_else(Vec::new, |block| block.line(text));
         return hard(RowKind::Code, text, &spans, columns);
     }
-    if let Some(title) = heading(text) {
-        let (display, spans) = parse_inline(title);
-        return words(RowKind::Heading, &display, &spans, columns);
-    }
-    if let Some((marker, rest)) = list_item(text, icons) {
-        let indent = width(&marker);
-        if indent < columns {
-            let pad = " ".repeat(usize::from(indent));
-            let (display, spans) = parse_inline(rest);
-            return words(RowKind::Bullet, &display, &spans, columns - indent)
-                .into_iter()
-                .enumerate()
-                .map(|(i, row)| {
-                    let lead = if i == 0 {
-                        marker.as_str()
-                    } else {
-                        pad.as_str()
-                    };
-                    let spans = row.spans.iter().map(|s| s.shifted(lead.len())).collect();
-                    Row::styled(RowKind::Bullet, format!("{lead}{}", row.text), spans)
-                })
-                .collect();
+    let (parsed, marker, _) = super::document::parse_line(text, voice, icons);
+    if let Some(marker) = marker {
+        if width(&marker) >= columns {
+            let (text, spans) = super::inline::parse_inline(text);
+            return words(RowKind::Prose(voice), &text, &spans, columns);
         }
+        let indent = width(&marker);
+        let pad = " ".repeat(usize::from(indent));
+        return words(parsed.kind, &parsed.text, &parsed.spans, columns - indent)
+            .into_iter()
+            .enumerate()
+            .map(|(index, row)| {
+                let lead = if index == 0 {
+                    marker.as_str()
+                } else {
+                    pad.as_str()
+                };
+                let spans = row.spans.iter().map(|s| s.shifted(lead.len())).collect();
+                Row::styled(row.kind, format!("{lead}{}", row.text), spans)
+            })
+            .collect();
     }
-    let (display, spans) = parse_inline(text);
-    words(RowKind::Prose(voice), &display, &spans, columns)
+    words(parsed.kind, &parsed.text, &parsed.spans, columns)
 }
 
 /// The unwrapped paragraph shared by proportional wrapping. Aligned markdown
@@ -328,11 +324,7 @@ pub(super) fn paragraph(kind: &LineKind, text: &str, icons: &Icons) -> Option<Ro
             if opens_fence(text) || list_item(text, icons).is_some() {
                 return None;
             }
-            let (kind, text) = heading(text).map_or((RowKind::Prose(*voice), text), |title| {
-                (RowKind::Heading, title)
-            });
-            let (display, spans) = parse_inline(text);
-            Some(Row::styled(kind, display, spans))
+            Some(super::document::parse_line(text, *voice, icons).0)
         }
         LineKind::Note => Some(Row::new(RowKind::Note, text)),
         LineKind::Error => Some(Row::new(RowKind::Error, text)),
@@ -341,7 +333,7 @@ pub(super) fn paragraph(kind: &LineKind, text: &str, icons: &Icons) -> Option<Ro
 }
 
 /// `# Title` through `###### Title` → `Title`.
-fn heading(text: &str) -> Option<&str> {
+pub(super) fn heading(text: &str) -> Option<&str> {
     let hashes = text.len() - text.trim_start_matches('#').len();
     if hashes == 0 || hashes > 6 {
         return None;
@@ -357,6 +349,9 @@ fn heading(text: &str) -> Option<&str> {
 /// A list item's marker (as shown) and its text.
 pub(super) fn list_item<'a>(text: &'a str, icons: &Icons) -> Option<(String, &'a str)> {
     let trimmed = text.trim_start();
+    if let Some(rest) = trimmed.strip_prefix("> ") {
+        return Some(("│ ".into(), rest));
+    }
     for marker in ["- ", "* ", "+ "] {
         if let Some(rest) = trimmed.strip_prefix(marker) {
             return Some((format!("{} ", icons.bullet), rest));

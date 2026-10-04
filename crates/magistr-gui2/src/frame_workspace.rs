@@ -73,6 +73,19 @@ impl Frame {
         let requests = rect(R::REQUESTS)
             .zip(rect(R::REQUEST_CONTENT))
             .map(|(view, content)| (content[3].ceil() as usize, view[3].floor() as usize));
+        if let Some(content) = rect(W::DETAIL_CONTENT) {
+            let positions = crate::comp_workspace_details::DetailsComposition::positions(model)
+                .into_iter()
+                .enumerate()
+                .filter_map(|(index, position)| {
+                    rect(W::id(magistr_cockpit::cockpit::Widget::detail_block(index)))
+                        .map(|r| (position, (r[1] - content[1]).max(0.0).round() as usize))
+                })
+                .collect();
+            magistr_cockpit::cockpit::inspector::Inspector::report_native_positions(
+                model, positions,
+            );
+        }
         let roadmap_changed = model.report_native_roadmap(rows, requests);
         model.report_native_workspace(panels, stage, details) || roadmap_changed
     }

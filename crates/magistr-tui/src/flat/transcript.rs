@@ -1,7 +1,7 @@
 //! The high-water mark: what the flat cockpit has already said.
 
 use super::flat_line::FlatLine;
-use super::lines::lines;
+use super::lines::{detail_lines, session_lines};
 use magistr_cockpit::cockpit::Model;
 
 /// How far into the flat rendering the terminal has been written, so a
@@ -20,32 +20,46 @@ use magistr_cockpit::cockpit::Model;
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Transcript {
     emitted: usize,
+    details: Vec<String>,
 }
 
 impl Transcript {
     /// A transcript that has said nothing yet.
     #[must_use]
     pub const fn new() -> Self {
-        Self { emitted: 0 }
+        Self {
+            emitted: 0,
+            details: Vec::new(),
+        }
     }
 
     /// The lines that have settled since the last call, rendered, in
     /// order. Empty when nothing new has settled — which is most frames,
     /// and is why a flat cockpit writes nothing while it thinks.
     pub fn advance(&mut self, model: &Model) -> Vec<String> {
-        let lines = lines(model);
+        let lines = session_lines(model);
         let settled = lines
             .iter()
             .position(|line| !line.is_settled())
             .unwrap_or(lines.len());
-        if settled <= self.emitted {
-            return Vec::new();
-        }
-        let fresh = lines[self.emitted..settled]
+        let mut fresh = if settled > self.emitted {
+            let fresh = lines[self.emitted..settled]
+                .iter()
+                .map(FlatLine::render)
+                .collect::<Vec<_>>();
+            self.emitted = settled;
+            fresh
+        } else {
+            Vec::new()
+        };
+        let details = detail_lines(model)
             .iter()
             .map(FlatLine::render)
-            .collect();
-        self.emitted = settled;
+            .collect::<Vec<_>>();
+        if details != self.details {
+            fresh.extend(details.iter().cloned());
+            self.details = details;
+        }
         fresh
     }
 

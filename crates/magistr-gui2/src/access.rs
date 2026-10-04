@@ -343,15 +343,24 @@ fn identity(model: &magistr_cockpit::cockpit::Model, target: WidgetId) -> String
     {
         return format!("{:?}", model.roadmap().proposals().get(index));
     }
-    if let Some(index) = Widget::roadmap_dependency_index(target) {
-        let chunk = match model.selected() {
-            Some(magistr_cockpit::cockpit::Selected::Chunk(id)) => model.roadmap().chunk(id),
-            _ => None,
-        };
-        return format!(
-            "{:?}",
-            chunk.and_then(|c| c.deps.iter().chain(&c.cross_refs).nth(index))
-        );
+    if Widget::detail_link_index(target).is_some() {
+        return magistr_cockpit::cockpit::Inspection::of(model)
+            .and_then(|card| {
+                card.links()
+                    .into_iter()
+                    .find(|link| link.widget == target)
+                    .map(|link| link.label.clone())
+            })
+            .unwrap_or_default();
+    }
+    if let Some(index) = Widget::detail_section_index(target) {
+        return magistr_cockpit::cockpit::Inspection::of(model)
+            .and_then(|card| {
+                card.sections
+                    .get(index)
+                    .map(|section| section.heading.clone())
+            })
+            .unwrap_or_default();
     }
     if Widget::spine_row_index(target).is_some()
         || Widget::spine_restore_index(target).is_some()
@@ -565,6 +574,15 @@ type Space = (fn(WidgetId) -> bool, &'static str);
 /// and not added here lands on the generic group rather than vanishing
 /// from the tree.
 fn indexed_role(id: WidgetId) -> (Role, String) {
+    if Widget::detail_link_index(id).is_some() {
+        return (Role::Link, "Related record".into());
+    }
+    if id == Widget::detail_copy() || Widget::detail_section_index(id).is_some() {
+        return (Role::Button, "Details".into());
+    }
+    if Widget::detail_block_index(id).is_some() {
+        return (Role::Label, String::new());
+    }
     let buttons: [Space; 15] = [
         // A checkpoint row's revealed verbs, and a charter offer's Delegate.
         (|id| Widget::spine_restore_index(id).is_some(), "restore"),

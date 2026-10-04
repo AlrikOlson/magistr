@@ -49,7 +49,7 @@ impl HoverRole {
         }
         if Widget::trace_link_step(id).is_some()
             || Widget::trace_chunk_step(id).is_some()
-            || Widget::roadmap_dependency_index(id).is_some()
+            || Widget::detail_link_index(id).is_some()
         {
             return Self::Link;
         }
@@ -71,7 +71,9 @@ impl HoverRole {
         {
             return Self::Surface;
         }
-        if Widget::edit_open_index(id).is_some()
+        if id == Widget::detail_copy()
+            || Widget::detail_section_index(id).is_some()
+            || Widget::edit_open_index(id).is_some()
             || Widget::edit_undo_index(id).is_some()
             || Widget::change_open_index(id).is_some()
             || Widget::change_undo_index(id).is_some()

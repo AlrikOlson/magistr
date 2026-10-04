@@ -1,4 +1,5 @@
 use super::*;
+use crate::flat::lines;
 use magistr_application::sessions::{AgentEvent, ToolStatus, ToolVerb, TurnEnd};
 use magistr_cockpit::cockpit::{Msg, Size, update};
 
@@ -146,4 +147,74 @@ fn a_transport_error_settles_the_interrupted_call_before_the_error() {
         transcript.advance(&model).is_empty(),
         "a late status does not replay announced lines"
     );
+}
+
+#[test]
+fn selected_documents_emit_once_during_streaming_and_refresh_without_losing_text() {
+    use magistr_cockpit::cockpit::Widget;
+    use magistr_cockpit::engine::EngineEvent;
+    use magistr_cockpit::harness::fixtures;
+    use magistr_cockpit::input::{Button, MouseEvent, MouseKind};
+    use magistr_engine::NativeSnapshot;
+    let mut model = Model::new(SIZE);
+    let mut transcript = Transcript::new();
+    transcript.advance(&model);
+    agent(
+        &mut model,
+        AgentEvent::Text("Unfinished conversation".into()),
+    );
+    let seed = |description: &str| {
+        Msg::Engine(EngineEvent::Seed(NativeSnapshot {
+            chunks: vec![fixtures::chunk_from(serde_json::json!({
+                "id":"record", "title":"Saved delivery", "description":description,
+                "acceptance":["Keep every requirement", "Keep original bytes"]
+            }))],
+            ..NativeSnapshot::default()
+        }))
+    };
+    update(&mut model, seed("**Original** source"));
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+            target: Some(Widget::roadmap_row(0)),
+        },
+    );
+    let said = transcript.advance(&model).join("\n");
+    assert!(said.contains("**Original** source"), "{said}");
+    assert!(said.contains("2. Keep original bytes"), "{said}");
+    assert!(transcript.advance(&model).is_empty());
+    update(&mut model, seed("Updated source"));
+    assert!(
+        transcript
+            .advance(&model)
+            .join("\n")
+            .contains("Updated source")
+    );
+    agent(&mut model, AgentEvent::TurnEnded(TurnEnd::EndTurn));
+    assert_eq!(
+        transcript.advance(&model),
+        ["agent: Unfinished conversation"]
+    );
+}
+
+#[test]
+fn rich_selected_document_has_a_complete_linear_capture() {
+    let model = magistr_cockpit::harness::Scenes::rich_record(SIZE);
+    let capture = super::super::lines::detail_lines(&model)
+        .iter()
+        .map(FlatLine::render)
+        .collect::<Vec<_>>()
+        .join("\n");
+    for text in [
+        "1. Keep the original result",
+        "2. Preserve reading position",
+        "- [x] Recovery checked",
+        "- [ ] Isolation review",
+        "    let receipt = saved_result;",
+        "Receipt storage",
+    ] {
+        assert!(capture.contains(text), "{text}: {capture}");
+    }
+    insta::assert_snapshot!(capture);
 }

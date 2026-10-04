@@ -1,6 +1,6 @@
 //! Typed mutation records; emission belongs to the workflow host.
 
-use super::{Action, Check, Objective};
+use super::{Action, Check, Objective, Task};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -11,7 +11,7 @@ pub enum ShipFrame {
     TaskStarted { task_id: String },
     ActionRecorded { task_id: String, action: Action },
     CheckRecorded { task_id: String, check: Check },
-    TaskCompleted { task_id: String },
+    TaskCompleted { task: Task },
     TaskBlocked { task_id: String, reason: String },
     ObjectiveShipped { warnings: Vec<String> },
     Cleared,

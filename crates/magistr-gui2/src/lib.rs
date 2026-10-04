@@ -114,6 +114,7 @@ pub mod radar;
 pub mod receipt_row;
 pub mod region;
 pub mod region_verdict;
+mod rich_text;
 pub mod roadmap_layout;
 pub mod route;
 pub mod scope_chip;

@@ -11,7 +11,7 @@ fn roadmap_targets_follow_shared_links_actions_filters_and_graph_selection() {
     assert!(
         matches!(commands.as_slice(), [Cmd::Engine(magistr_cockpit::cockpit::engine_cmd::EngineCmd::CompleteChunk { id })] if id == "delivery-running")
     );
-    update(&mut model, hit(&frame, Widget::roadmap_dependency(0)));
+    update(&mut model, hit(&frame, Widget::detail_link(0)));
     assert_eq!(
         model.selected(),
         Some(&Selected::Chunk("delivery-base".into()))
@@ -26,26 +26,23 @@ fn roadmap_targets_follow_shared_links_actions_filters_and_graph_selection() {
         .unwrap();
     update(&mut model, hit(&frame, Widget::sky_star(star)));
     paint(&mut frame, &mut model);
-    update(&mut model, hit(&frame, Widget::roadmap_dependency(1)));
+    update(&mut model, hit(&frame, Widget::detail_link(1)));
     assert_eq!(model.tab(), StageTab::Session);
     assert_eq!(model.selected(), Some(&Selected::Step(701)));
     paint(&mut frame, &mut model);
-    let receipt =
-        magistr_gui2::ElementId(magistr_gui2::comp_trace::TraceComposition::RECEIPTS + 701);
-    let [x, y, w, h] = frame
-        .rect_of(receipt)
-        .expect("related step opens with its work link");
-    let target = frame
-        .hits()
-        .hit_at(f64::from(x + w / 2.0), f64::from(y + h / 2.0));
-    assert_eq!(target, Some(Widget::trace_chunk(701)));
-    update(
-        &mut model,
-        Msg::Mouse {
-            event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
-            target,
-        },
-    );
+    let card = magistr_cockpit::cockpit::Inspection::of(&model).unwrap();
+    let target = card
+        .links()
+        .into_iter()
+        .find(|l| {
+            l.target
+                == magistr_cockpit::cockpit::RecordTarget::Record(Selected::Chunk(
+                    "delivery-running".into(),
+                ))
+        })
+        .unwrap()
+        .widget;
+    update(&mut model, hit(&frame, target));
     paint(&mut frame, &mut model);
     assert_eq!(model.tab(), StageTab::Roadmap);
     assert_eq!(
@@ -59,7 +56,7 @@ fn roadmap_targets_follow_shared_links_actions_filters_and_graph_selection() {
 
 #[test]
 fn missing_related_record_never_resolves_back_to_the_chunk_that_names_it() {
-    use magistr_cockpit::cockpit::inspector::Inspector;
+    use magistr_cockpit::cockpit::{Inspection, RecordTarget};
     use magistr_cockpit::{engine::EngineEvent, harness::fixtures};
     use magistr_workflow_contracts::NativeSnapshot;
     let mut model = Model::new(Size::new(120, 40))
@@ -83,12 +80,13 @@ fn missing_related_record_never_resolves_back_to_the_chunk_that_names_it() {
             target: Some(Widget::roadmap_row(0)),
         },
     );
-    let links = Inspector::roadmap_links(&model);
+    let card = Inspection::of(&model).unwrap();
+    let links = card.links();
     assert_eq!(links.len(), 2);
     assert!(
         links
             .iter()
-            .all(|(name, target)| name.contains("unavailable") && target.is_none())
+            .all(|link| link.target == RecordTarget::Unavailable)
     );
 }
 

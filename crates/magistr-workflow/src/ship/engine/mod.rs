@@ -169,7 +169,6 @@ impl ShipEngine {
             },
             BroadcastFrame::TaskAdded { task_id, .. }
             | BroadcastFrame::TaskStarted { task_id }
-            | BroadcastFrame::TaskCompleted { task_id }
             | BroadcastFrame::TaskBlocked { task_id, .. } => {
                 match self.tasks.iter().find(|t| t.id == *task_id) {
                     Some(task) => crate::cloud::build::from_task(
@@ -180,6 +179,9 @@ impl ShipEngine {
                     ),
                     None => return,
                 }
+            }
+            BroadcastFrame::TaskCompleted { task } => {
+                crate::cloud::build::from_task(&self.project_id, &cycle, &cycle_created, task)
             }
             BroadcastFrame::CheckRecorded { task_id, check } => {
                 // Identity = the check's append-only index within its task;
@@ -231,9 +233,11 @@ impl ShipEngine {
             ),
             BroadcastFrame::TaskAdded { task_id, .. }
             | BroadcastFrame::TaskStarted { task_id }
-            | BroadcastFrame::TaskCompleted { task_id }
             | BroadcastFrame::TaskBlocked { task_id, .. } => {
                 ("task", task_payload(task_id), vec![], false)
+            }
+            BroadcastFrame::TaskCompleted { task } => {
+                ("task", task_payload(&task.id), vec![], false)
             }
             BroadcastFrame::ActionRecorded { action, .. } => {
                 let model_id = std::env::var("THINK_AND_SHIP_MODEL_ID")
@@ -662,7 +666,7 @@ impl ShipEngine {
         task.artifacts.extend(artifacts);
         self.persist();
         self.broadcast(BroadcastFrame::TaskCompleted {
-            task_id: self.tasks[idx].id.clone(),
+            task: self.tasks[idx].clone(),
         });
         Ok(&self.tasks[idx])
     }

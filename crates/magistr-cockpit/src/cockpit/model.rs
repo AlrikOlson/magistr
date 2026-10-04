@@ -186,9 +186,9 @@ pub struct Model {
     pub(super) tab_explicit: bool,
     pub(super) selected: Option<Selected>,
     pub(super) pane: Pane,
-    pub(super) inspector_open: bool,
     pub(super) reasoning_expanded: bool,
     pub(super) inspector_scroll: usize,
+    pub(super) inspection_state: std::cell::RefCell<super::inspection::InspectionState>,
     /// Where the window's camera is — the native
     /// surface's own navigation, never derived from [`Model::tab`]: a
     /// window shows [`Place::tab`], a terminal shows its tab and has no
@@ -535,18 +535,12 @@ impl Model {
         self.pane
     }
 
-    /// Whether the inspector reveals all fields.
-    #[must_use]
-    pub const fn inspector_open(&self) -> bool {
-        self.inspector_open
-    }
-
     /// Select by identity; the per-view cursors remain navigation history.
     /// Repeating a selection preserves the object, disclosure and scroll.
     pub(super) fn inspect(&mut self, selected: Selected) {
         if self.selected.as_ref() != Some(&selected) {
-            self.inspector_open = false;
             self.inspector_scroll = 0;
+            self.inspection_state.borrow_mut().reset_reading();
         }
         match &selected {
             Selected::Chunk(id) => {
@@ -638,9 +632,9 @@ impl Model {
             tab_explicit: false,
             selected: None,
             pane: Pane::Stage,
-            inspector_open: false,
             reasoning_expanded: false,
             inspector_scroll: 0,
+            inspection_state: std::cell::RefCell::default(),
             place: Place::Session,
             frames: 0,
             ticks: 0,

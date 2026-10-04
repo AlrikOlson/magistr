@@ -345,6 +345,26 @@ native dispatch tests additionally check explicit stale/unsupported refusals.
 No screen capture or screen-reader process is required. Spoken announcements
 are outside this check; CPU screenshots and GPU readback remain separate gates.
 
+## Selected records
+
+The shared cockpit derives `Inspection` from every selected record. Its sections
+retain authored `TextDocument` blocks, stored checklist values, numbered requirements,
+named record links and exact output. Chunk and signal projections retain structured
+content; action and check projections retain their recorded evidence. A completed
+task frame carries the owner's completed task, including artifacts and timestamps.
+
+Selected records and conversation share inline spans, Markdown line classification
+and highlighting. Reading state uses a stable section and original source byte
+position. Content parsing is cached by relevant record and theme data; terminal row
+geometry is cached by width, ruler and expansion. Hover and model ticks do not
+invalidate either cache. Secondary sections expand individually. Copy includes the
+original source; external addresses are revealed and copied, never executed.
+
+`DetailsComposition` paints these blocks with native rich text and reports actual word
+positions after layout. Frame clipping governs painting, pointer hits and accessibility.
+The native renderer remains independent of terminal protocols and `magistr-tui`.
+`tests/rich_records.rs` covers wide/narrow light/dark frames and reading across resize.
+
 ## Conversation workspace
 
 `WorkspaceComposition` keeps the conversation and initially collapsed reasoning
