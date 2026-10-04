@@ -544,8 +544,11 @@ impl Model {
     /// Repeating a selection preserves the object, disclosure and scroll.
     pub(super) fn inspect(&mut self, selected: Selected) {
         if self.selected.as_ref() != Some(&selected) {
-            self.inspector_scroll = 0;
-            self.inspection_state.borrow_mut().reset_reading();
+            self.inspection_state.borrow_mut().select(
+                self.selected.as_ref(),
+                &selected,
+                &mut self.inspector_scroll,
+            );
         }
         match &selected {
             Selected::Chunk(id) => {

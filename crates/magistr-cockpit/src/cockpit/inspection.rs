@@ -4,7 +4,7 @@ use super::{Model, Selected, Widget};
 use crate::pixel::Icon;
 use crate::turn::{DocumentAnchor, TextDocument};
 use crate::widget_id::WidgetId;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
@@ -70,6 +70,7 @@ pub struct ReadingRow {
 #[derive(Clone, Debug, Default)]
 pub(super) struct InspectionState {
     cache: Option<(u64, Rc<Inspection>)>,
+    saved: HashMap<Selected, ReadingBookmark>,
     pub expanded: HashSet<String>,
     pub anchor: Option<ReadingPosition>,
     pub focused_link: Option<usize>,
@@ -78,11 +79,31 @@ pub(super) struct InspectionState {
     pub builds: usize,
 }
 
+/// Source reading belongs to record identity; measured surface positions do not.
+#[derive(Clone, Debug, Default)]
+struct ReadingBookmark {
+    expanded: HashSet<String>,
+    anchor: Option<ReadingPosition>,
+    focused_link: Option<usize>,
+    offset: usize,
+}
+
 impl InspectionState {
-    pub fn reset_reading(&mut self) {
-        self.expanded.clear();
-        self.anchor = None;
-        self.focused_link = None;
+    pub fn select(&mut self, previous: Option<&Selected>, next: &Selected, offset: &mut usize) {
+        let leaving = ReadingBookmark {
+            expanded: std::mem::take(&mut self.expanded),
+            anchor: self.anchor.take(),
+            focused_link: self.focused_link.take(),
+            offset: std::mem::take(offset),
+        };
+        if let Some(previous) = previous {
+            self.saved.insert(previous.clone(), leaving);
+        }
+        let returning = self.saved.remove(next).unwrap_or_default();
+        self.expanded = returning.expanded;
+        self.anchor = returning.anchor;
+        self.focused_link = returning.focused_link;
+        *offset = returning.offset;
         self.native_positions.clear();
     }
 }
@@ -92,7 +113,17 @@ impl Inspection {
     /// Frame ticks, pointer motion and viewport geometry are not content revisions.
     #[must_use]
     pub fn of(model: &Model) -> Option<Rc<Self>> {
-        let key = records::fingerprint(model)?;
+        let key = records::fingerprint(model).or_else(|| {
+            let selected = model.selected()?;
+            let mut hash = std::collections::hash_map::DefaultHasher::new();
+            (
+                "unavailable",
+                selected,
+                format!("{:?}", model.theme().mode()),
+            )
+                .hash(&mut hash);
+            Some(hash.finish())
+        })?;
         let mut state = model.inspection_state.borrow_mut();
         if let Some((cached, card)) = &state.cache
             && *cached == key
@@ -105,7 +136,18 @@ impl Inspection {
         {
             return Some(Rc::clone(card));
         }
-        let card = Rc::new(records::build(model)?);
+        let card = Rc::new(records::build(model).unwrap_or_else(|| {
+            let mut card = Self::blank();
+            card.title = "Item unavailable".into();
+            card.status = "Unavailable".into();
+            card.section(
+                model,
+                "Unavailable",
+                "This item is no longer available. Choose another item to continue.",
+                false,
+            );
+            card
+        }));
         state.cache = Some((key, Rc::clone(&card)));
         #[cfg(test)]
         {

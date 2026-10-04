@@ -2,7 +2,7 @@
 
 /// One selection shared by the roadmap, reasoning and changes views.
 /// Identities survive sorting and reseeding; rows are only hit targets.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Selected {
     Chunk(String),
     /// A planned task, even before its first action or check.

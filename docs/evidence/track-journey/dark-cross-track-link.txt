@@ -1,0 +1,40 @@
+▲ magistr  Delivery planning  idle                                                                                 00:00
+Receipt storage  Research▸Plan▸Execute▸Verify                                                                           
+Plain-text mode: this terminal shows text only. Use Ghostty, kitty, WezTerm or iTerm2 3.5 or later to show graphics.    
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │ Receipt storage                  │
+│no objective yet          │ │roadmap   333 done · 1 active · 666 pending · 0 ba…│  │ ▸ In progress                    │
+│▲ Receipt… · 333/1000     │ │Tracks Dependencies All tracks Status: Active      │  │ critical · Storage               │
+│▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ 333/1000│ │Search roadmap (Alt+/) Clear                       │  │ Complete Request a change Copy   │
+│▲ Receipt storage         │ │Name  Status ascending  Pri                        │  │ Proposed work                    │
+│0 before · 98 after       │ │▾ Delivery                                         │  │ Keep each saved receipt          │
+│signals 0                 │ │Ready 1 · In progress 0 · Waiting 1                │  │ independent.                     │
+│                          │ │Blocked 1 · Backlog 0                              │  │                                  │
+│                          │ │○  Review invitations                              │  │ Needed by                        │
+│                          │ │Ready · critical                                   │  │                                  │
+│                          │ │                                                   │  │ Publish invitations · Delivery → │
+│                          │ │○  Connect delivery                                │  │ Saved work 0007 · Track 07 →     │
+│                          │ │Blocked · critical                                 │  │ Saved work 0014 · Track 14 →     │
+│                          │ │                                                   │  │ Saved work 0021 · Track 21 →     │
+│                          │ │> ○  Publish invitations                           │  │ Saved work 0028 · Track 28 →     │
+│                          │ │Waiting · critical                                 │  │ Saved work 0035 · Track 35 →     │
+│                          │ │                                                   │  │ Saved work 0042 · Track 42 →     │
+│                          │ │▾ Storage                                          │  │ Saved work 0049 · Track 49 →     │
+│                          │ │Ready 0 · In progress 1 · Waiting 0                │  │ Saved work 0056 · Track 56 →     │
+│                          │ │Blocked 0 · Backlog 0                              │  │ Saved work 0063 · Track 63 →     │
+│                          │ │▸  Receipt storage                                 │  │ Saved work 0070 · Track 70 →     │
+│                          │ │In progress · critical                             │  │ Saved work 0077 · Track 77 →     │
+│                          │ │                                                   │  │ Saved work 0084 · Track 04 →     │
+│                          │ │▸ Track 00                                         │  │ Saved work 0091 · Track 11 →     │
+│                          │ │Ready 7 · In progress 0 · Waiting 1                │  │ Saved work 0098 · Track 18 →     │
+│                          │ │Blocked 0 · Backlog 0                              │  │ Saved work 0105 · Track 25 →     │
+│                          │ │▾ Track 01                                         │  │ Saved work 0112 · Track 32 →     │
+│                          │ │Ready 6 · In progress 0 · Waiting 2                │  │ Saved work 0119 · Track 39 →     │
+│                          │ │Blocked 0 · Backlog 0                              │  │ Saved work 0126 · Track 46 →     │
+│                          │ │○  Saved work 0241                                 │  │ Saved work 0133 · Track 53 →     │
+│                          │ │Ready · low                                        │  │ Saved work 0140 · Track 60 →     │
+│                          │ │                                                   │  │ Saved work 0147 · Track 67 →     │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+›                                                                                                                       
+ ↑↓  move focus   enter  detail   ← / →  collapse / expand track   alt-/  search the whole roadmap                      

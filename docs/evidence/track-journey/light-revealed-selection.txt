@@ -1,0 +1,40 @@
+▲ magistr  Delivery planning  idle                                                                                 00:00
+Receipt storage  Research▸Plan▸Execute▸Verify                                                                           
+Plain-text mode: this terminal shows text only. Use Ghostty, kitty, WezTerm or iTerm2 3.5 or later to show graphics.    
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │ Publish invitations              │
+│no objective yet          │ │roadmap   333 done · 1 active · 666 pending · 0 ba…│  │ ○ Waiting                        │
+│▲ Receipt… · 333/1000     │ │Tracks Dependencies All tracks Status: Active      │  │ critical · Delivery              │
+│▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ 333/1000│ │Search roadmap (Alt+/) Clear                       │  │ Request a change Copy            │
+│▲ Receipt storage         │ │Name  Status ascending  Pri                        │  │ Waiting                          │
+│0 before · 98 after       │ │▾ Delivery                                         │  │ Waiting for Receipt storage      │
+│signals 0                 │ │Ready 1 · In progress 0 · Waiting 1                │  │                                  │
+│                          │ │Blocked 1 · Backlog 0                              │  │ Proposed work                    │
+│                          │ │○  Review invitations                              │  │ Delivery findings                │
+│                          │ │Ready · critical                                   │  │                                  │
+│                          │ │                                                   │  │ Keep each receipt and read the   │
+│                          │ │○  Connect delivery                                │  │ guide.                           │
+│                          │ │Blocked · critical                                 │  │ │ A completed delivery keeps its │
+│                          │ │                                                   │  │   result.                        │
+│                          │ │> ○  Publish invitations                           │  │ 1. Preserve the original result. │
+│                          │ │Waiting · critical                                 │  │ 2. Keep failed checks visible.   │
+│                          │ │                                                   │  │                                  │
+│                          │ │▾ Storage                                          │  │ rust                             │
+│                          │ │Ready 0 · In progress 1 · Waiting 0                │  │     let receipt = 7;             │
+│                          │ │Blocked 0 · Backlog 0                              │  │     assert_eq!(receipt, 7);      │
+│                          │ │▸  Receipt storage                                 │  │                                  │
+│                          │ │In progress · critical                             │  │                                  │
+│                          │ │                                                   │  │ Check    | Result                │
+│                          │ │▸ Track 00                                         │  │ Recovery | Passed                │
+│                          │ │Ready 7 · In progress 0 · Waiting 1                │  │ Restart  | Needs work            │
+│                          │ │Blocked 0 · Backlog 0                              │  │                                  │
+│                          │ │▾ Track 01                                         │  │ Reading checkpoint 000. Each     │
+│                          │ │Ready 6 · In progress 0 · Waiting 2                │  │ customer keeps its own saved     │
+│                          │ │Blocked 0 · Backlog 0                              │  │ receipt.                         │
+│                          │ │○  Saved work 0241                                 │  │                                  │
+│                          │ │Ready · low                                        │  │ Reading checkpoint 001. Each     │
+│                          │ │                                                   │  │ customer keeps its own saved     │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+›                                                                                                                       
+ ↑↓  move focus   enter  detail   ← / →  collapse / expand track   alt-/  search the whole roadmap                      

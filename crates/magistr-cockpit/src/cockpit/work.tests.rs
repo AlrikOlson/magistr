@@ -422,6 +422,20 @@ fn track_focus_selection_search_and_draft_survive_browsing_on_both_surfaces() {
 }
 
 #[test]
+fn revealing_selected_work_finishes_search_and_focuses_the_selected_row() {
+    let mut model = seeded(Surface::Terminal, None).with_tab(StageTab::Roadmap);
+    row_click(&mut model, 0);
+    browse_control(&mut model, Widget::RoadmapSearch);
+    search_query(&mut model, "shipped".into());
+    assert!(model.roadmap.is_track_search_editing());
+    browse_control(&mut model, Widget::RoadmapReveal);
+    assert!(!model.roadmap.is_track_search_editing());
+    assert!(model.roadmap.track_query().is_empty());
+    assert!(model.roadmap.is_selected_visible());
+    assert_eq!(model.pane(), Pane::Stage);
+}
+
+#[test]
 fn live_tracks_keep_list_anchor_selected_reading_and_search_return_position() {
     use crate::cockpit::{Inspection, TrackFocus};
     use serde_json::json;
