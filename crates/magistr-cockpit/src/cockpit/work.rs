@@ -483,6 +483,7 @@ pub(super) fn browse_control(model: &mut Model, widget: Widget) {
         }
         Widget::RoadmapReveal => {
             search_query(model, String::new());
+            model.roadmap.browse.editing = false;
             model.roadmap.reveal_selected();
             reveal_track_focus(model);
             model.pane = Pane::Stage;

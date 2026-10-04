@@ -16,6 +16,76 @@ fn body(card: &Inspection) -> String {
 }
 
 #[test]
+fn returning_from_a_named_record_restores_its_reading_on_both_surfaces() {
+    use crate::cockpit::{Msg, Surface, update};
+    for surface in [Surface::Terminal, Surface::Native] {
+        let mut model =
+            crate::harness::Scenes::rich_record(Size::new(144, 50)).with_surface(surface);
+        let selected = model.selected().cloned().unwrap();
+        let card = Inspection::of(&model).unwrap();
+        let section = card
+            .sections
+            .iter()
+            .find(|section| section.heading == "Findings")
+            .unwrap();
+        let reading = ReadingPosition {
+            section: section.key.clone(),
+            source: Some(DocumentAnchor { line: 2, byte: 3 }),
+        };
+        model.inspector_scroll = 17;
+        {
+            let mut state = model.inspection_state.borrow_mut();
+            state.expanded.insert(section.key.clone());
+            state.anchor = Some(reading.clone());
+            state.focused_link = Some(1);
+            state.native_positions.push((reading.clone(), 350));
+        }
+        super::super::nav::open_record(&mut model, Selected::Chunk("storage".into()));
+        assert!(model.inspection_state.borrow().anchor.is_none());
+        assert_eq!(model.inspector_offset(), 0);
+        update(&mut model, Msg::Resize(Size::new(80, 24)));
+        super::super::nav::open_record(&mut model, selected);
+        let state = model.inspection_state.borrow();
+        assert_eq!(
+            state.anchor,
+            Some(reading),
+            "return to the original source position"
+        );
+        assert!(state.expanded.contains(&section.key));
+        assert_eq!(state.focused_link, Some(1));
+        assert!(
+            state.native_positions.is_empty(),
+            "surface geometry is remeasured"
+        );
+        assert_eq!(model.inspector_offset(), 17);
+        assert_eq!(model.prompt().text(), "Keep this draft");
+    }
+}
+
+#[test]
+fn a_deleted_selected_record_explains_its_absence_without_selecting_other_work() {
+    let mut model = crate::harness::Scenes::rich_record(Size::new(120, 40));
+    let selection = model.selected().cloned();
+    assert!(Inspection::of(&model).is_some());
+    model.roadmap.seed(&[], &[]);
+    let card = Inspection::of(&model).expect("deleted selection remains explicit");
+    assert_eq!(model.selected(), selection.as_ref());
+    assert_eq!(card.status, "Unavailable");
+    assert!(card.original().contains("no longer available"));
+    assert!(card.actions.is_empty());
+    assert!(Inspection::of(&Model::new(Size::new(120, 40))).is_none());
+    let Some(Selected::Chunk(id)) = selection else {
+        panic!("chunk fixture")
+    };
+    model.roadmap.seed(&[fixtures::chunk_from(json!({
+        "id":id, "name":"Restored delivery", "title":"Restored delivery", "description":"Updated original record."
+    }))], &[]);
+    let restored = Inspection::of(&model).expect("restored selected source");
+    assert_eq!(restored.title, "Restored delivery");
+    assert!(restored.original().contains("Updated original record."));
+}
+
+#[test]
 fn requirements_are_numbered_and_only_stored_checklists_have_boxes_on_every_page() {
     let mut model = model();
     model.roadmap.seed(&[fixtures::chunk_from(json!({

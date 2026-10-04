@@ -342,7 +342,12 @@ and command-palette navigation retain the draft.
 
 One `Selected` identity names a chunk, tool call, decision, change, receipt, run,
 or signal. Selecting recorded work updates the detail area while conversation and
-draft stay in place. Long details scroll independently. Step details show
+draft stay in place. Long details scroll independently. The shared inspection owner
+keeps source anchors, section disclosure and link focus by record identity, so
+following another record and returning restores reading while each surface
+remeasures its geometry. A deleted selection stays selected and explains that
+the item is unavailable. Reveal clears search editing before returning focus to
+the list. Step details show
 the recorded result, Why, Next, revisions, and linked work; missing confidence
 stays absent. Linked work navigates to its resolved item. Return to latest changes
 the reasoning selection and never creates a checkpoint.
@@ -477,6 +482,10 @@ The real session harness lives in `magistr-cli/tests/session_harness.rs`, where
 it can construct the shared supervisor and drive the actual terminal renderer
 without making the terminal crate depend on its application host.
 Release-only latency tests measure full-frame and pixel-output budgets.
+`magistr-tui/tests/track_journey.rs` drives a 1,000-record combined journey on
+real PTYs with keyboard, mouse and winsize changes. Its retained
+[terminal journey evidence](../evidence/track-journey/README.md) includes decoded
+Kitty output, cell captures, complete flat transcripts and measured conditions.
 
 The [module reference](../reference/cockpit-modules.md) contains the complete
 source/test index and invariant table. `architecture_doc.rs` checks inventory

@@ -749,3 +749,4 @@ renderer. Both desktop workspaces remain outside the root workspace.
 ## Additional test references
 
 - `magistr-tui/tests/flat_pty.rs`
+- `magistr-tui/tests/track_journey.rs`

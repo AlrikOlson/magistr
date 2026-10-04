@@ -1,0 +1,40 @@
+▲ magistr  Delivery planning  awaiting input                                                             ▇█▇█▇█▇▂  00:00
+Research▸Plan▸Execute▸Verify                                                                                            
+Plain-text mode: this terminal shows text only. Use Ghostty, kitty, WezTerm or iTerm2 3.5 or later to show graphics.    
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │ Item unavailable                 │
+│no objective yet          │ │roadmap   334 done · 0 active · 665 pending · 0 ba…│  │ ○ Unavailable                    │
+│roadmap 334/999 done      │ │Tracks Dependencies All tracks Status: Active      │  │                                  │
+│▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ 334/999│ │Search roadmap (Alt+/) Clear Reveal selected item  │  │ Copy                             │
+│▲ nothing in progress     │ │Name  Status ascending  Pri                        │  │ Unavailable                      │
+│665 pending               │ │▾ Delivery                                         │  │ This item is no longer           │
+│signals 0                 │ │Ready 1 · In progress 0 · Waiting 0                │  │ available. Choose another item   │
+│                          │ │Blocked 1 · Backlog 0                              │  │ to continue.                     │
+│                          │ │○  Review invitations                              │  │                                  │
+│                          │ │Ready · critical                                   │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │○  Connect delivery                                │  │                                  │
+│                          │ │Blocked · critical                                 │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │▸ Track 00                                         │  │                                  │
+│                          │ │Ready 8 · In progress 0 · Waiting 0                │  │                                  │
+│                          │ │Blocked 0 · Backlog 0                              │  │                                  │
+│                          │ │▾ Track 01                                         │  │                                  │
+│                          │ │Ready 8 · In progress 0 · Waiting 0                │  │                                  │
+│                          │ │Blocked 0 · Backlog 0                              │  │                                  │
+│                          │ │○  Saved work 0161                                 │  │                                  │
+│                          │ │Ready · medium                                     │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │○  Saved work 0241                                 │  │                                  │
+│                          │ │Ready · low                                        │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │○  Saved work 0401                                 │  │                                  │
+│                          │ │Ready · low                                        │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │○  Saved work 0481                                 │  │                                  │
+│                          │ │Ready · low                                        │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+› Keep this unsent draft.                                                                                               
+ enter  send   ↑↓  history   ctrl-d  quit                                                                               

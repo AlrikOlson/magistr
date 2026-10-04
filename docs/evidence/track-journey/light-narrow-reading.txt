@@ -1,0 +1,24 @@
+▲ magistr  Delivery planning  idle                                         00:01
+Receipt storage  Research▸Plan▸Execute▸Verify                                   
+Plain-text mode: this terminal shows text only. Use Ghostty, kitty, WezTerm or  
+╭─ plan ───────────────────╮ ╭─ Details ───────────────────────────────────────╮
+│◂                         │ │Back to roadmap (Esc)                            │
+│no objective yet          │ │ Publish invitations                             │
+│▲ Receipt… · 333/1000     │ │ ○ Waiting                                       │
+│▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ 333/1000│ │ critical · Delivery                             │
+│▲ Receipt storage         │ │ Request a change Copy                           │
+│0 before · 98 after       │ │ Reading checkpoint 002. Each customer keeps its │
+│signals 0                 │ │ own saved receipt.                              │
+│                          │ │                                                 │
+│                          │ │ Reading checkpoint 003. Each customer keeps its │
+│                          │ │ own saved receipt.                              │
+│                          │ │                                                 │
+│                          │ │ Reading checkpoint 004. Each customer keeps its │
+│                          │ │ own saved receipt.                              │
+│                          │ │                                                 │
+│                          │ │ Reading checkpoint 005. Each customer keeps its │
+│                          │ │                                                 │
+╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────
+›                                                                               
+ ↑↓  scroll   enter  detail   esc  back   tab / shift-tab  move focus           

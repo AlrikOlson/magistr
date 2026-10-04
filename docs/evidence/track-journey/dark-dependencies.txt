@@ -1,0 +1,40 @@
+▲ magistr  Delivery planning  idle                                                                                 00:00
+Receipt storage  Research▸Plan▸Execute▸Verify                                                                           
+Plain-text mode: this terminal shows text only. Use Ghostty, kitty, WezTerm or iTerm2 3.5 or later to show graphics.    
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │ Publish invitations              │
+│no objective yet          │ │roadmap   333 done · 1 active · 666 pending · 0 ba…│  │ ○ Waiting                        │
+│▲ Receipt… · 333/1000     │ │Tracks Dependencies All tracks Status: Active      │  │ critical · Delivery              │
+│▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ 333/1000│ │Search roadmap (Alt+/) Clear                       │  │ Request a change Copy            │
+│▲ Receipt storage         │ │Name  Status ascending  Pri                        │  │                                  │
+│0 before · 98 after       │ │▾ Delivery                                         │  │ Reading checkpoint 078. Each     │
+│signals 0                 │ │Ready 1 · In progress 0 · Waiting 1                │  │ customer keeps its own saved     │
+│                          │ │Blocked 1 · Backlog 0                              │  │ receipt.                         │
+│                          │ │○  Review invitations                              │  │                                  │
+│                          │ │Ready · critical                                   │  │ Reading checkpoint 079. Each     │
+│                          │ │                                                   │  │ customer keeps its own saved     │
+│                          │ │○  Connect delivery                                │  │ receipt.                         │
+│                          │ │Blocked · critical                                 │  │                                  │
+│                          │ │                                                   │  │                                  │
+│                          │ │> ○  Publish invitations                           │  │ the guide ·                      │
+│                          │ │Waiting · critical                                 │  │ https://example.com/guide · Copy │
+│                          │ │                                                   │  │ link                             │
+│                          │ │▾ Storage                                          │  │                                  │
+│                          │ │Ready 0 · In progress 1 · Waiting 0                │  │ Acceptance criteria              │
+│                          │ │Blocked 0 · Backlog 0                              │  │ 1. Keep the original receipt and │
+│                          │ │▸  Receipt storage                                 │  │    command.                      │
+│                          │ │In progress · critical                             │  │ 2. Preserve reading position and │
+│                          │ │                                                   │  │    unsent requests.              │
+│                          │ │▸ Track 00                                         │  │                                  │
+│                          │ │Ready 7 · In progress 0 · Waiting 1                │  │ Depends on                       │
+│                          │ │Blocked 0 · Backlog 0                              │  │                                  │
+│                          │ │▾ Track 01                                         │  │ Receipt storage · Storage →      │
+│                          │ │Ready 6 · In progress 0 · Waiting 2                │  │                                  │
+│                          │ │Blocked 0 · Backlog 0                              │  │ Related work                     │
+│                          │ │○  Saved work 0241                                 │  │                                  │
+│                          │ │Ready · low                                        │  │ Step 917 — Review delivery       │
+│                          │ │                                                   │  │ findings →                       │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+›                                                                                                                       
+ ↑↓  move focus   enter  detail   ← / →  collapse / expand track   alt-/  search the whole roadmap                      

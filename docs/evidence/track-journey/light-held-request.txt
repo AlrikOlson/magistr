@@ -1,0 +1,40 @@
+▲ magistr  Delivery planning  ● streaming                                                                ████████  00:02
+Receipt storage  Research▸Plan▸Execute▸Verify                                                                           
+Plain-text mode: this terminal shows text only. Use Ghostty, kitty, WezTerm or iTerm2 3.5 or later to show graphics.    
+╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Requests ───────────────────────╮
+│◂                         │ │Turn  Session  Roadmap                             │  │Copy Previous Next Latest         │
+│no objective yet          │ │roadmap   333 done · 1 active · 666 pending · 0 ba…│  │You                               │
+│▲ Receipt… · 333/1000     │ │Tracks Dependencies All tracks Status: Active      │  │Review the invitation delivery    │
+│▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ 333/1000│ │Search roadmap (Alt+/) Clear                       │  │plan                              │
+│▲ Receipt storage         │ │Name  Status ascending  Pri                        │  │Magistr · Updating roadmap        │
+│0 before · 98 after       │ │▾ Delivery                                         │  │                                  │
+│signals 0                 │ │Ready 1 · In progress 0 · Waiting 1                │  │Delivery findings                 │
+│                          │ │Blocked 1 · Backlog 0                              │  │                                  │
+│                          │ │○  Review invitations                              │  │Keep each receipt and read the    │
+│                          │ │Ready · critical                                   │  │guide.                            │
+│                          │ │                                                   │  ││ A completed delivery keeps its  │
+│                          │ │○  Connect delivery                                │  │  result.                         │
+│                          │ │Blocked · critical                                 │  │1. Preserve the original result.  │
+│                          │ │                                                   │  │2. Keep failed checks visible.    │
+│                          │ │> ○  Publish invitations                           │  │                                  │
+│                          │ │Waiting · critical                                 │  │rust                              │
+│                          │ │                                                   │  │    let receipt = 7;              │
+│                          │ │▾ Storage                                          │  │    assert_eq!(receipt, 7);       │
+│                          │ │Ready 0 · In progress 1 · Waiting 0                │  │                                  │
+│                          │ │Blocked 0 · Backlog 0                              │  │                                  │
+│                          │ │▸  Receipt storage                                 │  │Check    | Result                 │
+│                          │ │In progress · critical                             │  │Recovery | Passed                 │
+│                          │ │                                                   │  │Restart  | Needs work             │
+│                          │ │▸ Track 00                                         │  │Streaming receipt 000.            │
+│                          │ │Ready 7 · In progress 0 · Waiting 1                │  │Streaming receipt 001.            │
+│                          │ │Blocked 0 · Backlog 0                              │  │Streaming receipt 002.            │
+│                          │ │▾ Track 01                                         │  │Streaming receipt 003.            │
+│                          │ │Ready 6 · In progress 0 · Waiting 2                │  │Streaming receipt 004.            │
+│                          │ │Blocked 0 · Backlog 0                              │  │                                  │
+│                          │ │○  Saved work 0241                                 │  │                                  │
+│                          │ │Ready · low                                        │  │                                  │
+│                          │ │                                                   │  │                                  │
+╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
+── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────
+› Keep this unsent draft.                                                                                               
+ ctrl-c  cancel   ctrl-d  quit                                                                                          
