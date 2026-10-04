@@ -1,4 +1,4 @@
-use magistr_cockpit::cockpit::{FrameClock, Model, SignalRow, StateWord};
+use magistr_cockpit::cockpit::{FrameClock, Model, SignalRow};
 use qs_gpu::color::Srgba;
 
 use crate::action::Action;
@@ -329,22 +329,21 @@ fn card(
 }
 
 /// The promoted card's line: the star it became and that star's
-/// status as the roadmap reads it now — `Promoted to: <chunk> (Done)`.
+/// status as the roadmap reads it now — `Promoted to: <work> (Completed)`.
 fn promoted_line(model: &Model, signal: &SignalRow) -> String {
     let Some(chunk) = signal.promoted_to.as_deref() else {
         return "Promoted".to_owned();
     };
-    // The one state vocabulary: the graph's reading of the star when it draws one, the
-    // wire status alone otherwise.
+    // Read the promoted work through the same readiness label as every work row.
     match model.roadmap().chunk_for_ref(&format!("chunk:{chunk}")) {
         Some(star) => {
-            let word = model.roadmap().star_state(&star.id).map_or_else(
-                || StateWord::of_state(star.state, false),
-                StateWord::of_star,
-            );
-            format!("Promoted to: {chunk} ({})", word.word())
+            format!(
+                "Promoted to: {} ({})",
+                star.name,
+                model.roadmap().status_label(star)
+            )
         }
-        None => format!("Promoted to: {chunk}"),
+        None => "Promoted work is unavailable".to_owned(),
     }
 }
 

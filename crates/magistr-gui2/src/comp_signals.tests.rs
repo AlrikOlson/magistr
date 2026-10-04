@@ -88,7 +88,7 @@ fn the_cards_read_the_captures_states_words_and_verbs() {
          (gui2-accesskit-actions). Estimated effort: 1 chunk.",
         "Promoted \u{b7} 7 d",
         "Loop pause does not survive a machine change",
-        "Promoted to: e10c-session-migration (Done)",
+        "Promoted to: session migration (Completed)",
     ] {
         assert!(texts.iter().any(|t| t == expected), "{expected}: {texts:?}");
     }
@@ -170,7 +170,7 @@ fn the_root_routes_the_signals_place_to_the_inbox() {
     assert!(
         texts
             .iter()
-            .any(|t| t == "Promoted to: e10c-session-migration (Done)"),
+            .any(|t| t == "Promoted to: session migration (Completed)"),
         "{texts:?}"
     );
     let ids = ids(&root);

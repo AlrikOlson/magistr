@@ -1,7 +1,7 @@
 //! copy laws over the blessed views: every text run on the window belongs to a
-//! component, no run says a metaphor word or a `$`, every state word is one of the
-//! seven, money is spelled the one way, a scope is named by an identity row, and a
-//! control names its chunk id.
+//! component, no run says a metaphor word or a `$`, state labels come from their
+//! shared owner, money has consistent units, scopes have identity rows, and
+//! work controls name the selected work.
 //!
 //! The vocabulary is the cockpit's (`Copy`, `StateWord`) and the stamp is the element
 //! layer's (`Component`, `Element::claim`); what this suite pins is the *reading* of
@@ -156,27 +156,32 @@ fn no_copy_says_a_metaphor_word_and_no_run_wears_a_dollar_sign() {
     assert!(offences.is_empty(), "{}", offences.join("\n"));
 }
 
-/// one state vocabulary: a run that is a state word is one of the seven, and never one
-/// of the synonyms a view reaches for by hand. The sky's card and the murmur both print
-/// one, so the check is not vacuous.
+/// State chips use StateWord; roadmap rows use the shared readiness reader.
+/// Neither surface invents a lifecycle synonym at the drawing site.
 #[test]
-fn every_state_word_is_one_of_the_seven() {
+fn state_labels_use_their_shared_presentation_owner() {
     let mut impostors = Vec::new();
     let mut seen = 0;
     for (name, model) in windows() {
+        let roadmap_words: Vec<_> = model
+            .roadmap()
+            .rows()
+            .into_iter()
+            .map(|chunk| model.roadmap().status_label(chunk))
+            .collect();
         for run in runs(&model, medium_of(&name)) {
             let text = run.text.trim();
-            if StateWord::IMPOSTORS.contains(&text) {
+            if StateWord::IMPOSTORS.contains(&text) && !roadmap_words.contains(&text) {
                 impostors.push(format!("{name}: {text:?}"));
             }
-            if StateWord::parse(text).is_some() {
+            if StateWord::parse(text).is_some() || roadmap_words.contains(&text) {
                 seen += 1;
             }
         }
     }
     assert!(
         impostors.is_empty(),
-        "state words outside the seven:\n{}",
+        "state labels outside their shared owner:\n{}",
         impostors.join("\n")
     );
     assert!(

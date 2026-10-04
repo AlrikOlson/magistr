@@ -4,7 +4,8 @@ use std::collections::BTreeSet;
 use std::sync::{Arc, OnceLock};
 
 use super::RoadmapSort;
-use magistr_workflow_contracts::{Chunk, Signal};
+use magistr_workflow_contracts::roadmap::{Readiness, assess_readiness, next_ready};
+use magistr_workflow_contracts::{Chunk, ChunkStatus, Signal};
 use magistr_workflow_contracts::{NativeEvent, RoadmapFrame, SignalFrame};
 
 use super::camera::Camera;
@@ -187,60 +188,76 @@ impl Roadmap {
         items
     }
 
+    /// Assess a projected record against this complete snapshot.
+    #[must_use]
+    pub fn readiness<'a>(&self, chunk: &'a RoadmapChunk) -> Readiness<'a> {
+        assess_readiness(
+            chunk.state.status(),
+            chunk.blocker.as_deref(),
+            &chunk.deps,
+            |id| self.chunk(id).map(|dep| dep.state.status()),
+        )
+    }
+
+    /// Plain labels shared by work lists and selected documents.
+    #[must_use]
+    pub fn status_label(&self, chunk: &RoadmapChunk) -> &'static str {
+        match self.readiness(chunk) {
+            Readiness::Ready => "Ready",
+            Readiness::Blocked(_) => "Blocked",
+            Readiness::Waiting(_) => "Waiting",
+            Readiness::Inactive(status) => match status {
+                ChunkStatus::Backlog => "Planned",
+                ChunkStatus::InProgress => "In progress",
+                ChunkStatus::Blocked => "Blocked",
+                ChunkStatus::Done => "Completed",
+                ChunkStatus::Obsoleted => "Replaced",
+                ChunkStatus::Pending => "Waiting",
+            },
+        }
+    }
+
     /// Plain-language progress and the recorded reason an item is waiting.
     #[must_use]
     pub fn progress_detail(&self, chunk: &RoadmapChunk) -> String {
-        if let Some(reason) = &chunk.blocker {
-            return format!("Blocked: {reason}");
+        match self.readiness(chunk) {
+            Readiness::Ready => "Ready to start".into(),
+            Readiness::Blocked(reason) => format!("Blocked: {reason}"),
+            Readiness::Waiting(deps) => format!(
+                "Waiting for {}",
+                deps.iter()
+                    .map(|dep| {
+                        self.chunk(dep.id)
+                            .map_or("an unavailable work item", |c| c.name.as_str())
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            Readiness::Inactive(status) => match status {
+                ChunkStatus::Blocked => "Needs attention. Open this work item for details.",
+                ChunkStatus::InProgress => "Work is underway",
+                ChunkStatus::Backlog => "Planned for later",
+                ChunkStatus::Done => "Completed",
+                ChunkStatus::Obsoleted => "Replaced",
+                ChunkStatus::Pending => "Waiting",
+            }
+            .into(),
         }
-        if chunk.state == ChunkState::Blocked {
-            return "Needs attention. Open this work item for details.".into();
-        }
-        if chunk.state.is_working() {
-            return "Work is underway".into();
-        }
-        if self.can_start(chunk) {
-            return "Ready to start".into();
-        }
-        if chunk.state == ChunkState::Backlog {
-            return "Planned for later".into();
-        }
-        if chunk.state.is_done() {
-            return "Completed".into();
-        }
-        let waiting: Vec<_> = chunk
-            .deps
-            .iter()
-            .filter(|id| !self.chunk(id).is_some_and(|dep| dep.state.is_done()))
-            .map(|id| {
-                self.chunk(id)
-                    .map_or("an unavailable work item", |dep| dep.name.as_str())
-            })
-            .collect();
-        format!("Waiting for {}", waiting.join(", "))
     }
 
     #[must_use]
     pub fn overview_summary(&self) -> String {
-        let items = self.overview_items();
-        let ready = items.iter().filter(|(_, c)| self.can_start(c)).count();
-        let working = items
-            .iter()
-            .filter(|(_, c)| c.state == ChunkState::InProgress)
-            .count();
-        let blocked = items
-            .iter()
-            .filter(|(_, c)| {
-                c.blocker.is_some() || matches!(c.state, ChunkState::Blocked | ChunkState::Stuck)
-            })
-            .count();
-        let planned = items
-            .iter()
-            .filter(|(_, c)| c.state == ChunkState::Backlog && c.blocker.is_none())
-            .count();
-        let waiting = items
-            .len()
-            .saturating_sub(ready + working + blocked + planned);
+        let (mut working, mut ready, mut blocked, mut waiting, mut planned) = (0, 0, 0, 0, 0);
+        for (_, chunk) in self.overview_items() {
+            match self.readiness(chunk) {
+                Readiness::Ready => ready += 1,
+                Readiness::Blocked(_) | Readiness::Inactive(ChunkStatus::Blocked) => blocked += 1,
+                Readiness::Waiting(_) | Readiness::Inactive(ChunkStatus::Pending) => waiting += 1,
+                Readiness::Inactive(ChunkStatus::InProgress) => working += 1,
+                Readiness::Inactive(ChunkStatus::Backlog) => planned += 1,
+                Readiness::Inactive(ChunkStatus::Done | ChunkStatus::Obsoleted) => {}
+            }
+        }
         [
             (working, "working"),
             (ready, "ready"),
@@ -324,7 +341,7 @@ impl Roadmap {
     /// ([`Roadmap::ship_run`]): the chunks whose every dependency has
     /// *now* shipped and which were not ready before are what the
     /// completion unlocked, so the edge-run's targets are read off the
-    /// same [`is_ready`] predicate the constellation's own
+    /// same [`assess_readiness`] predicate the constellation's own
     /// [`StarState`] is derived through — the light cannot run to a
     /// star the sky draws as still waiting.
     ///
@@ -410,7 +427,9 @@ impl Roadmap {
         rows.sort_by(|a, b| {
             let order = match self.sort {
                 RoadmapSort::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-                RoadmapSort::Status => status_rank(a).cmp(&status_rank(b)),
+                RoadmapSort::Status => {
+                    readiness_rank(&self.readiness(a)).cmp(&readiness_rank(&self.readiness(b)))
+                }
                 RoadmapSort::Priority => a.priority.cmp(&b.priority),
                 RoadmapSort::Workstream => a.group.cmp(&b.group),
             }
@@ -450,10 +469,11 @@ impl Roadmap {
     /// launcher's `next` line.
     #[must_use]
     pub fn next_ready(&self) -> Option<&RoadmapChunk> {
-        self.chunks
-            .iter()
-            .filter(|chunk| self.can_start(chunk))
-            .min_by_key(|chunk| chunk.priority)
+        next_ready(
+            &self.chunks,
+            |chunk| self.can_start(chunk),
+            |chunk| chunk.priority,
+        )
     }
 
     /// Whether the selected work can ask to start from the current snapshot.
@@ -471,7 +491,12 @@ impl Roadmap {
                     .collect();
                 self.chunks
                     .iter()
-                    .filter(|c| is_ready(&done, c))
+                    .filter(|c| {
+                        assess_readiness(c.state.status(), c.blocker.as_deref(), &c.deps, |id| {
+                            done.contains(id).then_some(ChunkStatus::Done)
+                        })
+                        .is_ready()
+                    })
                     .map(|c| c.id.clone())
                     .collect()
             })
@@ -1191,7 +1216,8 @@ impl Roadmap {
                 .filter(|(_, point)| point.0 == rank)
                 .map(|(index, _)| index)
                 .collect();
-            members.sort_by_key(|&index| (status_rank(graph[index]), graph[index].priority, index));
+            members
+                .sort_by_key(|&index| (activity_rank(graph[index]), graph[index].priority, index));
             members.truncate(per_rank);
             selected.extend(members);
         }
@@ -1414,8 +1440,8 @@ fn mini_set(graph: &[&RoadmapChunk]) -> Vec<usize> {
         None => {
             let mut ranked: Vec<usize> = (0..graph.len()).collect();
             ranked.sort_by(|&a, &b| {
-                status_rank(graph[a])
-                    .cmp(&status_rank(graph[b]))
+                activity_rank(graph[a])
+                    .cmp(&activity_rank(graph[b]))
                     .then(graph[a].priority.cmp(&graph[b].priority))
                     .then(graph[a].id.cmp(&graph[b].id))
             });
@@ -1440,13 +1466,26 @@ fn neighbours(graph: &[&RoadmapChunk], at: usize) -> Vec<usize> {
         .collect()
 }
 
-/// List order of a status: the working set first.
-fn status_rank(chunk: &RoadmapChunk) -> usize {
+/// Graph visibility keeps the working set first, independently of table sorting.
+fn activity_rank(chunk: &RoadmapChunk) -> usize {
     match chunk.state {
         ChunkState::InProgress => 0,
         ChunkState::Pending => 1,
         ChunkState::Blocked => 2,
         ChunkState::Stuck | ChunkState::Backlog | ChunkState::Done | ChunkState::Obsoleted => 3,
+    }
+}
+
+/// List order follows displayed readiness, with underway work first.
+fn readiness_rank(readiness: &Readiness<'_>) -> usize {
+    match readiness {
+        Readiness::Inactive(ChunkStatus::InProgress) => 0,
+        Readiness::Ready => 1,
+        Readiness::Blocked(_) | Readiness::Inactive(ChunkStatus::Blocked) => 2,
+        Readiness::Waiting(_) | Readiness::Inactive(ChunkStatus::Pending) => 3,
+        Readiness::Inactive(ChunkStatus::Backlog) => 4,
+        Readiness::Inactive(ChunkStatus::Done) => 5,
+        Readiness::Inactive(ChunkStatus::Obsoleted) => 6,
     }
 }
 
@@ -1565,13 +1604,6 @@ fn star_state(chunk: &RoadmapChunk, ready: bool) -> StarState {
     } else {
         StarState::of(chunk.state, ready)
     }
-}
-
-/// Readiness uses the complete snapshot, including completed items outside the graph.
-fn is_ready(done: &BTreeSet<&str>, chunk: &RoadmapChunk) -> bool {
-    chunk.state == ChunkState::Pending
-        && chunk.blocker.is_none()
-        && chunk.deps.iter().all(|dep| done.contains(dep.as_str()))
 }
 
 #[cfg(test)]

@@ -33,8 +33,12 @@ fn the_resting_sky_is_the_field_and_the_murmur() {
     assert!(model.sky_at_rest());
     let sky = SkyComposition::el(&model, Medium::Night);
     let texts = texts(&sky);
-    assert!(texts.iter().any(|t| t == "gui2-2a"), "the working chunk");
-    assert!(texts.iter().any(|t| t == "Executing"), "in its own state");
+    let chunk = model.roadmap().chunk("gui2-2a").expect("working item");
+    assert!(texts.contains(&chunk.name), "the working item's title");
+    assert!(
+        texts.iter().any(|t| t == model.star_status_label(chunk)),
+        "in its current state"
+    );
     assert!(
         !texts.iter().any(|t| t == "211"),
         "the counter is awake chrome, not rest's"
@@ -57,10 +61,11 @@ fn intent_brings_the_chrome_back_and_stands_the_murmur_down() {
     let (done, total) = model.rail().progress();
     assert!(texts.iter().any(|t| *t == done.to_string()), "the counter");
     assert!(texts.iter().any(|t| *t == format!(" / {total}")));
-    assert!(
-        !texts.iter().any(|t| t == "Executing"),
-        "the resting status row is gone"
-    );
+    let mut resting_row = false;
+    sky.each(&mut |_, element| {
+        resting_row |= element.owner == Some(crate::component::Component::StatusRow);
+    });
+    assert!(!resting_row, "the resting status row is gone");
     let card = magistr_cockpit::cockpit::Inspection::of(&model).expect("selected record");
     assert!(
         texts.contains(&card.status),

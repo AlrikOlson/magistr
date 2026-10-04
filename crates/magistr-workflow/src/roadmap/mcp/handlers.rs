@@ -619,7 +619,7 @@ impl RoadmapService {
 
     #[tool(
         name = "roadmap_start_chunk",
-        description = "Begin work on a chunk: marks it in_progress and returns the `chunk:<id>` backref. Wire that backref into ship_set_objective (as the objective's scope/ref) and into a think step's execution_ref, then roadmap_link the resulting task:/think: refs back to close the loop.\n\nInputs: id (required).\n\nReturns: { chunk, backref, hint }.\n\nPitfalls: only Pending/Blocked chunks can start.",
+        description = "Begin work on a chunk: marks it in_progress and returns the `chunk:<id>` backref. Wire that backref into ship_set_objective (as the objective's scope/ref) and into a think step's execution_ref, then roadmap_link the resulting task:/think: refs back to close the loop.\n\nInputs: id (required).\n\nReturns: { chunk, backref, hint }.\n\nPitfalls: only pending work with no recorded blocker and all dependencies completed can start. The writer rechecks current records.",
         annotations(
             title = "Start chunk",
             read_only_hint = false,

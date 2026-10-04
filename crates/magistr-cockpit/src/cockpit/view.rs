@@ -1356,10 +1356,7 @@ fn roadmap_head(
         ChunkState::Backlog => Icon::Planned,
         ChunkState::Pending | ChunkState::Obsoleted => Icon::Pending,
     };
-    let status = match chunk.state {
-        ChunkState::InProgress => "working",
-        state => state.word(),
-    };
+    let status = model.roadmap().status_label(chunk);
     let widths = roadmap_columns(model);
     let name = Marked::new(model, pen)
         .icon(icon)

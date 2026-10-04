@@ -1,4 +1,4 @@
-use magistr_cockpit::cockpit::{Fault, Model, StateWord};
+use magistr_cockpit::cockpit::{Fault, Model};
 
 use crate::action::Action;
 use crate::action_row::ActionRow;
@@ -240,8 +240,8 @@ fn murmur(model: &Model, lex: &Lexicon) -> Element {
         rows = rows.child(
             StatusRow::el(
                 dot,
-                &chunk.id,
-                (StateWord::of_star(state).word(), state_ink),
+                &chunk.name,
+                (model.star_status_label(chunk), state_ink),
                 &note,
                 false,
                 lex.base,

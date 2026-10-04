@@ -1355,6 +1355,15 @@ fn readiness_and_overview_use_the_whole_snapshot_and_explain_unavailable_depende
         roadmap.overview_summary(),
         "1 working · 1 ready · 1 blocked · 2 waiting · 1 planned"
     );
+    assert_eq!(
+        roadmap
+            .rows()
+            .iter()
+            .map(|c| c.id.as_str())
+            .collect::<Vec<_>>(),
+        ["working", "ready", "blocked", "missing", "waiting", "later"],
+        "Status sorting separates the displayed readiness states"
+    );
     let ids = |roadmap: &Roadmap| {
         roadmap
             .overview_items()
@@ -1392,4 +1401,33 @@ fn readiness_and_overview_use_the_whole_snapshot_and_explain_unavailable_depende
         "ready",
         "an earlier snapshot stays intact"
     );
+}
+
+#[test]
+fn readiness_cache_and_priority_ties_follow_the_complete_current_snapshot() {
+    let mut roadmap = Roadmap::default();
+    roadmap.seed(
+        &[
+            chunk("z-first", "pending", 100, "Delivery", &[]),
+            chunk("a-second", "pending", 100, "Delivery", &[]),
+            chunk("missing", "pending", 1, "Delivery", &["absent"]),
+        ],
+        &[],
+    );
+    assert_eq!(roadmap.next_ready().unwrap().id, "z-first");
+    assert_eq!(
+        roadmap.status_label(roadmap.chunk("missing").unwrap()),
+        "Waiting"
+    );
+    let earlier = roadmap.clone();
+    let changed = fixtures::chunk_from(json!({"id":"z-first","status":"pending","priority":100,
+        "blocked_by":{"kind":"external","reason":"Access was revoked."}}));
+    roadmap.apply(&chunk_frame("chunk_changed", changed), 0.0, false);
+    assert_eq!(roadmap.next_ready().unwrap().id, "a-second");
+    assert!(!roadmap.can_start(roadmap.chunk("z-first").unwrap()));
+    assert_eq!(
+        roadmap.status_label(roadmap.chunk("z-first").unwrap()),
+        "Blocked"
+    );
+    assert_eq!(earlier.next_ready().unwrap().id, "z-first");
 }

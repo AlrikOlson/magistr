@@ -876,7 +876,19 @@ impl Model {
         {
             return StarState::Blocked;
         }
-        StarState::of(chunk.state, false)
+        self.roadmap
+            .star_state(&chunk.id)
+            .unwrap_or(StarState::Ghost)
+    }
+
+    /// The roadmap label, with a live fault shown on the affected star.
+    #[must_use]
+    pub fn star_status_label(&self, chunk: &super::roadmap_chunk::RoadmapChunk) -> &'static str {
+        if self.star_state(chunk) == StarState::Blocked {
+            "Blocked"
+        } else {
+            self.roadmap.status_label(chunk)
+        }
     }
 
     /// The murmur's note for `chunk`, when a fault rings it —

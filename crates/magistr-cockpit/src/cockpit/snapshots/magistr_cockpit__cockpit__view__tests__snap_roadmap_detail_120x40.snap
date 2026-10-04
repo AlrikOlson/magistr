@@ -9,11 +9,14 @@ Saved retry limits  Research▸Plan▸Execute▸Verify
 │no objective yet          │ │roadmap   1 done · 1 active · 1 pending · 0 backlo…│  │ ○ Waiting                        │
 │▲ Saved retry limits · 1/3│ │«Retry recovery» 0/2                               │  │ high · Retry recovery            │
 │▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 1/3│ │«Storage» 1/1                                      │  │ Request a change Copy            │
-│▲ Saved retry limits      │ │Status: Active ▾ · 2                               │  │ Proposed work                    │
-│1 before · 1 after        │ │Name                Status↑    Pri   Stream        │  │ Resume saved retries and check   │
-│signals 1                 │ │▸ Saved retry limi… working    100   Retry recovery│  │ that each tenant keeps its own   │
-│                          │ │○ Recovery checks   pending    200   Retry recovery│  │ budget.                          │
-│                          │ │◆ make startup faster                              │  │                                  │
+│▲ Saved retry limits      │ │Status: Active ▾ · 2                               │  │ Waiting                          │
+│1 before · 1 after        │ │Name                Status↑    Pri   Stream        │  │ Waiting for Saved retry limits   │
+│signals 1                 │ │▸ Saved retry limi… In progre… 100   Retry recovery│  │                                  │
+│                          │ │○ Recovery checks   Waiting    200   Retry recovery│  │ Proposed work                    │
+│                          │ │◆ make startup faster                              │  │ Resume saved retries and check   │
+│                          │ │                                                   │  │ that each tenant keeps its own   │
+│                          │ │                                                   │  │ budget.                          │
+│                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │ Acceptance criteria              │
 │                          │ │                                                   │  │ 1. saved retries resume after    │
 │                          │ │                                                   │  │    restart                       │
@@ -34,9 +37,6 @@ Saved retry limits  Research▸Plan▸Execute▸Verify
 │                          │ │                                                   │  │ sooner                           │
 │                          │ │                                                   │  │ Accept                           │
 │                          │ │                                                   │  │ Reject                           │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 ╰──────────────────────────╯ ╰───────────────────────────────────────────────────╯  ╰──────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────────────────────────────────────────────

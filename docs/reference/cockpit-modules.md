@@ -34,6 +34,7 @@ remain in the engine crate, where they also exercise the real publisher.
 | `magistr-workflow-contracts/src/roadmap/frame.rs` | Typed family mutation events | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/roadmap/mod.rs` | Public family facade | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/roadmap/name.rs` | Short work-item names | `magistr-workflow-contracts/src/roadmap/name.tests.rs` |
+| `magistr-workflow-contracts/src/roadmap/readiness.rs` | Recorded blockers, dependency readiness and deterministic next-work selection | `magistr-workflow-contracts/src/roadmap/readiness.tests.rs`, `magistr-workflow/tests/roadmap_readiness.rs` |
 | `magistr-workflow-contracts/src/roadmap/records.rs` | Family records and deterministic merge rules | `magistr-workflow-contracts/src/roadmap/records.tests.rs` |
 | `magistr-workflow-contracts/src/roadmap_progress.rs` | Aggregate completion values | `magistr-engine/tests/workflow_contracts.rs` |
 | `magistr-workflow-contracts/src/ship/action.rs` | Recorded action and kind | `magistr-workflow-contracts/src/ship/action.tests.rs` |

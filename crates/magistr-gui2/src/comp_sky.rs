@@ -1,4 +1,4 @@
-use magistr_cockpit::cockpit::{Model, StateWord};
+use magistr_cockpit::cockpit::Model;
 use magistr_cockpit::theme::Severity;
 
 use crate::comp_signals::SignalsComposition;
@@ -120,8 +120,8 @@ fn murmur(model: &Model, lex: &Lexicon) -> Element {
             .map(|status| status.elapsed_text());
         rows = rows.child(StatusRow::el(
             dot,
-            &chunk.id,
-            (StateWord::of_star(state).word(), state_ink),
+            &chunk.name,
+            (model.star_status_label(chunk), state_ink),
             metric.as_deref().unwrap_or(""),
             false,
             lex.base,

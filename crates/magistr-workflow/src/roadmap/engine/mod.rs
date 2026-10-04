@@ -7,6 +7,9 @@
 //! and `crate::infra` (persistence) — never the reverse (DIP).
 
 mod proposal_resolution;
+mod readiness;
+
+use magistr_workflow_contracts::roadmap::{Readiness, next_ready};
 
 use chrono::Utc;
 
@@ -616,6 +619,13 @@ impl RoadmapEngine {
     pub fn set_status(&mut self, id: &str, to: ChunkStatus) -> Result<&Chunk, String> {
         let idx = self.index_of(id)?;
         let from = self.roadmap.chunks[idx].status;
+        // Starting scheduled work requires readiness. Done -> InProgress is
+        // completion revocation for an existing session, not a new start.
+        if to == ChunkStatus::InProgress
+            && matches!(from, ChunkStatus::Pending | ChunkStatus::Blocked)
+        {
+            self.require_ready(&self.roadmap.chunks[idx])?;
+        }
         if !from.allows(to) {
             return Err(format!(
                 "illegal transition for chunk '{id}': {from:?} -> {to:?}"
@@ -1052,14 +1062,14 @@ impl RoadmapEngine {
     /// this workstream", never "look elsewhere". Callers are expected to stop.
     #[must_use]
     pub fn next_in_group(&self, group: &str) -> Option<&Chunk> {
-        self.roadmap
-            .chunks
-            .iter()
-            .filter(|c| c.group.as_deref() == Some(group))
-            .filter(|c| {
-                c.status == ChunkStatus::Pending && c.blocked_by.is_none() && self.deps_satisfied(c)
-            })
-            .min_by_key(|c| c.priority)
+        next_ready(
+            self.roadmap
+                .chunks
+                .iter()
+                .filter(|c| c.group.as_deref() == Some(group)),
+            |c| self.readiness(c).is_ready(),
+            |c| c.priority,
+        )
     }
 
     /// A focused frontier report for one group: counts, what is ready, what is
@@ -1079,9 +1089,7 @@ impl RoadmapEngine {
         let count = |s: ChunkStatus| members.iter().filter(|c| c.status == s).count();
         let ready: Vec<&&Chunk> = members
             .iter()
-            .filter(|c| {
-                c.status == ChunkStatus::Pending && c.blocked_by.is_none() && self.deps_satisfied(c)
-            })
+            .filter(|c| self.readiness(c).is_ready())
             .collect();
         // "Blocked" here is the reader's meaning, not the enum's: a chunk that
         // cannot be worked right now for ANY reason — a recorded blocker, an
@@ -1090,29 +1098,22 @@ impl RoadmapEngine {
         let blocked: Vec<serde_json::Value> = members
             .iter()
             .filter(|c| {
-                c.status == ChunkStatus::Blocked
-                    || c.blocked_by.is_some()
-                    || (c.status == ChunkStatus::Pending && !self.deps_satisfied(c))
+                matches!(
+                    self.readiness(c),
+                    Readiness::Blocked(_)
+                        | Readiness::Waiting(_)
+                        | Readiness::Inactive(ChunkStatus::Blocked)
+                )
             })
             .map(|c| {
                 let mut row = serde_json::json!({ "id": c.id, "name": c.name });
                 if let Some(b) = &c.blocked_by {
                     row["blocker_kind"] = serde_json::json!(b.kind.as_wire());
                     row["reason"] = serde_json::json!(b.reason);
-                } else if c.status == ChunkStatus::Pending {
-                    let unmet: Vec<&str> = c
-                        .deps
-                        .iter()
-                        .filter(|d| {
-                            !self
-                                .roadmap
-                                .chunks
-                                .iter()
-                                .any(|x| &&x.id == d && x.status == ChunkStatus::Done)
-                        })
-                        .map(String::as_str)
-                        .collect();
-                    row["unmet_deps"] = serde_json::json!(unmet);
+                } else if let Readiness::Waiting(deps) = self.readiness(c) {
+                    row["unmet_deps"] =
+                        serde_json::json!(deps.iter().map(|dep| dep.id).collect::<Vec<_>>());
+                    row["reason"] = serde_json::json!(self.waiting_reason(&deps));
                 }
                 row
             })
@@ -1366,10 +1367,12 @@ impl RoadmapEngine {
     // back the `chunk:<id>` backref for the agent to wire into ship/think. No
     // roadmap tool reaches into the ship or think engines.
 
-    /// Mark a chunk in progress (Pending/Blocked → InProgress). Returns the
+    /// Start eligible pending work; recheck its current blockers and dependencies. Returns the
     /// chunk; the caller derives the `chunk:<id>` backref to pass to
     /// `ship_set_objective` / a think `execution_ref`.
     pub fn start_chunk(&mut self, id: &str) -> Result<&Chunk, String> {
+        let idx = self.index_of(id)?;
+        self.require_ready(&self.roadmap.chunks[idx])?;
         self.set_status(id, ChunkStatus::InProgress)
     }
 
@@ -1974,17 +1977,6 @@ impl RoadmapEngine {
         Ok(())
     }
 
-    /// Whether every dependency of `chunk` is satisfied (exists and is `Done`).
-    /// An unknown dependency id is treated as unsatisfied (fail-safe).
-    fn deps_satisfied(&self, chunk: &Chunk) -> bool {
-        chunk.deps.iter().all(|dep| {
-            self.roadmap
-                .chunks
-                .iter()
-                .any(|c| &c.id == dep && c.status == ChunkStatus::Done)
-        })
-    }
-
     /// The next chunk to work: the lowest-`priority` `Pending` chunk that
     /// carries no blocker and whose dependencies are all `Done`. Ties break by
     /// insertion order. `None` when nothing is ready.
@@ -1997,13 +1989,11 @@ impl RoadmapEngine {
     /// its priority, its band and its place in [`Self::status`], and is simply
     /// never the answer to "what should I do next".
     pub fn next(&self) -> Option<&Chunk> {
-        self.roadmap
-            .chunks
-            .iter()
-            .filter(|c| {
-                c.status == ChunkStatus::Pending && c.blocked_by.is_none() && self.deps_satisfied(c)
-            })
-            .min_by_key(|c| c.priority)
+        next_ready(
+            &self.roadmap.chunks,
+            |c| self.readiness(c).is_ready(),
+            |c| c.priority,
+        )
     }
 
     /// A JSON snapshot: status counts, the next-ready chunk, and the **actionable**
@@ -4665,7 +4655,17 @@ mod tests {
             .map(|(id, ..)| *id)
             .expect("a blocked row");
 
-        e.start_chunk(victim).expect("pending starts");
+        let blocker = e
+            .roadmap
+            .chunks
+            .iter()
+            .find(|c| c.id == victim)
+            .and_then(|c| c.blocked_by.clone())
+            .expect("recorded blocker");
+        e.clear_blocked_by(victim).expect("resolve before starting");
+        e.start_chunk(victim).expect("ready pending work starts");
+        e.set_blocked_by(victim, blocker)
+            .expect("work becomes blocked after starting");
         e.complete_chunk(victim, None)
             .expect("in-progress completes");
 

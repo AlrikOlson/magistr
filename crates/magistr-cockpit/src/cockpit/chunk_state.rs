@@ -13,7 +13,7 @@ use magistr_workflow_contracts::{Chunk, ChunkStatus};
 pub enum ChunkState {
     /// An idea that is not on the critical path yet.
     Backlog,
-    /// Planned, ordered by priority; claimable once its deps ship.
+    /// Queued work; shared readiness determines whether it can start.
     Pending,
     /// A session is working it.
     InProgress,
@@ -54,6 +54,19 @@ impl ChunkState {
         }
     }
 
+    /// The canonical lifecycle status underlying this presentation state.
+    #[must_use]
+    pub const fn status(self) -> ChunkStatus {
+        match self {
+            Self::Backlog => ChunkStatus::Backlog,
+            Self::Pending => ChunkStatus::Pending,
+            Self::InProgress | Self::Stuck => ChunkStatus::InProgress,
+            Self::Blocked => ChunkStatus::Blocked,
+            Self::Done => ChunkStatus::Done,
+            Self::Obsoleted => ChunkStatus::Obsoleted,
+        }
+    }
+
     /// Whether the chunk still takes part in the plan.
     #[must_use]
     pub const fn is_active(self) -> bool {
@@ -73,8 +86,7 @@ impl ChunkState {
         matches!(self, Self::Done)
     }
 
-    /// The state in the roadmap's own spelling — what the list's
-    /// section headers and the table's status cell print.
+    /// The projected state's spelling for diagnostics and structured data.
     #[must_use]
     pub const fn word(self) -> &'static str {
         match self {
