@@ -1,76 +1,89 @@
-//! Bounded request transcripts use shared admission and completion ranges.
+//! Native request text uses shared documents; native layout supplies its source positions.
 use crate::comp_roadmap::RoadmapComposition as R;
-use crate::comp_workspace::{control, heading, panel};
+use crate::comp_workspace::{WorkspaceComposition as W, control, heading, panel};
+use crate::rich_text::RichText;
 use crate::{Element, Lexicon, Voice};
-use magistr_cockpit::cockpit::{Model, RequestPhase, Widget};
-use magistr_cockpit::turn::{ConversationCard, LineKind, Voice as TurnVoice};
+use magistr_cockpit::cockpit::{Model, ReadingPosition, RequestHistory, Widget};
 
 pub(crate) struct RequestsComposition;
 impl RequestsComposition {
     pub fn el(model: &Model, height: f32, lex: &Lexicon) -> Element {
-        let mut head = heading("Requests", lex).child(Element::row().grow(1.0));
-        if !model.roadmap_requests().is_empty() {
-            head = head.child(control("Latest reply", Widget::RequestLatest.id(), lex));
-        }
+        let head = heading("Requests", lex)
+            .child(Element::row().grow(1.0))
+            .child(control("Previous section", Widget::request_jump(0), lex))
+            .child(control("Next section", Widget::request_jump(1), lex))
+            .child(control("Copy", Widget::request_copy(), lex))
+            .child(control("Latest reply", Widget::RequestLatest.id(), lex));
         let mut content = Element::surface()
-            .gap(12.0)
+            .gap(8.0)
             .min_width(0.0)
             .no_shrink()
             .id(R::REQUEST_CONTENT);
-        if model.roadmap_requests().is_empty() {
-            content=content.child(Element::text(Voice::LEDGER_NAME,lex.tx,"What should change?"))
-                .child(prose("Ask to add work, change priorities, or revise the plan. Your requests and replies stay here.",lex))
-                .child(prose("Updating the roadmap does not start an item.",lex));
+        let history = RequestHistory::of(model);
+        if history.sections.is_empty() {
+            content = content.child(Element::text(Voice::LEDGER_NAME, lex.tx, "What should change?"))
+                .child(Element::text(Voice::STEER, lex.sb1, "Ask to add work, change priorities, or revise the plan. Your requests and replies stay here.").min_width(0.0));
         }
-        for request in model.roadmap_requests() {
-            let mut card = Element::surface()
-                .gap(10.0)
-                .pad_y(12.0)
-                .no_shrink()
-                .min_width(0.0)
-                .child(Element::text(Voice::LEDGER_NAME, lex.tx, "You"))
-                .child(prose(&request.text, lex))
-                .child(
-                    Element::text(
-                        Voice::LEDGER_NAME,
-                        lex.mauve,
-                        format!("Magistr · {}", request.phase.label()),
-                    )
-                    .min_width(0.0),
+        let mut at = 0;
+        for section in &history.sections {
+            if !section.heading.is_empty() {
+                content = content.child(
+                    Element::text(Voice::LEDGER_NAME, lex.tx, &section.heading)
+                        .min_width(0.0)
+                        .id(W::id(Widget::request_block(at))),
                 );
-            match request.phase {
-                RequestPhase::Queued => {
-                    card=card.child(prose("This request will start after the current work finishes. You can cancel it below.",lex));
-                }
-                RequestPhase::Waiting => {
-                    card = card.child(prose("Waiting for the agent to accept this request.", lex));
-                }
-                _ => {}
+                at += 1;
             }
-            for line in request.response(model.turn()) {
-                match line.kind() {
-                    LineKind::Prose(TurnVoice::User | TurnVoice::Thought) | LineKind::Event => {}
-                    LineKind::Tool { .. } | LineKind::Edit { .. } | LineKind::Check { .. } => {
-                        if let Some(tool) = ConversationCard::of(model.turn(), line) {
-                            card = card
-                                .child(
-                                    Element::text(Voice::LEDGER_NAME, lex.tx, tool.title)
-                                        .min_width(0.0),
-                                )
-                                .child(
-                                    Element::text(Voice::HINT, lex.sb0, tool.status).min_width(0.0),
-                                );
-                        }
+            for block in section.text.blocks() {
+                let root = at;
+                at += 1;
+                let mut body = Element::surface().min_width(0.0).no_shrink();
+                if block.cells.is_some() {
+                    for (label, value) in block.cell_rows() {
+                        body = body.child(RichText::cell(label, value, lex));
                     }
-                    _ => {
-                        card = card.child(prose(line.text(), lex));
-                    }
+                } else {
+                    let text = RichText::marked(&block.row, lex.tx, lex, &mut |_| {
+                        let id = W::id(Widget::request_block(at));
+                        at += 1;
+                        Some(id)
+                    });
+                    body = if let Some(marker) = &block.marker {
+                        Element::row()
+                            .min_width(0.0)
+                            .child(Element::text(Voice::STEER, lex.sb1, marker).no_shrink())
+                            .child(text.grow(1.0).min_width(0.0))
+                    } else {
+                        body.child(text)
+                    };
                 }
+                if block.row.text.is_empty() && block.cells.is_none() {
+                    body = body.height(8.0);
+                }
+                content = content.child(body.id(W::id(Widget::request_block(root))));
             }
-            if let Some(error) = &request.error {
-                card = card.child(Element::text(Voice::STEER, lex.red, error).min_width(0.0));
+        }
+        for section in &history.sections {
+            if let Some(target) = section.action {
+                content = content.child(
+                    control(&format!("{} · Open details", section.heading), target, lex)
+                        .min_width(0.0),
+                );
             }
-            content = content.child(card);
+        }
+        for (index, (label, address)) in history.links.iter().enumerate() {
+            let focused = RequestHistory::is_focused_link(model, Widget::request_link(index));
+            content = content.child(
+                control(
+                    &format!(
+                        "{}{label} · {address} · Copy link",
+                        if focused { "› " } else { "" }
+                    ),
+                    Widget::request_link(index),
+                    lex,
+                )
+                .min_width(0.0),
+            );
         }
         panel(height, lex)
             .child(head)
@@ -84,9 +97,34 @@ impl RequestsComposition {
             )
             .claim(crate::Component::Prose)
     }
-}
-fn prose(text: &str, lex: &Lexicon) -> Element {
-    Element::text(Voice::STEER, lex.sb1, text)
-        .min_width(0.0)
-        .claim(crate::Component::Prose)
+
+    pub(crate) fn positions(model: &Model) -> Vec<ReadingPosition> {
+        let history = RequestHistory::of(model);
+        let mut positions = Vec::new();
+        for section in &history.sections {
+            if !section.heading.is_empty() {
+                positions.push(ReadingPosition {
+                    section: section.key.clone(),
+                    source: None,
+                });
+            }
+            for block in section.text.blocks() {
+                positions.push(ReadingPosition {
+                    section: section.key.clone(),
+                    source: Some(block.anchor),
+                });
+                if block.cells.is_none() {
+                    let mut byte = 0;
+                    for word in block.row.text.split_inclusive(' ') {
+                        positions.push(ReadingPosition {
+                            section: section.key.clone(),
+                            source: Some(block.source_position(byte)),
+                        });
+                        byte += word.len();
+                    }
+                }
+            }
+        }
+        positions
+    }
 }

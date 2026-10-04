@@ -13,7 +13,7 @@ expression: screen(&edit)
     Magistr
     Updating the retry limit.
 
-      edit src/retry.rs                                                        +1
+      edit src/retry.rs                                                    Done ·
       src/retry.rs
 
       Open  Undo

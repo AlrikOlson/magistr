@@ -5,6 +5,60 @@ use qs_gpu::color::Srgba;
 
 pub(crate) struct RichText;
 impl RichText {
+    pub(crate) fn document(
+        document: &magistr_cockpit::turn::TextDocument,
+        ink: Srgba,
+        lex: &Lexicon,
+    ) -> Element {
+        let mut content = Element::surface().min_width(0.0).no_shrink();
+        for block in document.blocks() {
+            if block.cells.is_some() {
+                for (label, value) in block.cell_rows() {
+                    content = content.child(Self::cell(label, value, lex));
+                }
+            } else {
+                let text = Self::row(&block.row, ink, lex);
+                content = content.child(if let Some(marker) = &block.marker {
+                    Element::row()
+                        .min_width(0.0)
+                        .child(Element::text(Voice::STEER, ink, marker).no_shrink())
+                        .child(text.grow(1.0).min_width(0.0))
+                } else {
+                    text
+                });
+            }
+        }
+        content
+    }
+    pub(crate) fn summary(
+        source: &str,
+        model: &magistr_cockpit::cockpit::Model,
+        ink: Srgba,
+        lex: &Lexicon,
+    ) -> Element {
+        let document = magistr_cockpit::turn::TextDocument::markdown(source, model.theme().mode());
+        Self::label(&document, ink, lex)
+    }
+    pub(crate) fn label(
+        document: &magistr_cockpit::turn::TextDocument,
+        ink: Srgba,
+        lex: &Lexicon,
+    ) -> Element {
+        Self::label_voice(document, Voice::LEDGER_NAME, ink, lex)
+    }
+    pub(crate) fn label_voice(
+        document: &magistr_cockpit::turn::TextDocument,
+        voice: Voice,
+        ink: Srgba,
+        lex: &Lexicon,
+    ) -> Element {
+        let row = document.summary(10_000.0, &mut |text, _| text.chars().count() as f32);
+        if row.spans.is_empty() {
+            Element::text(voice, ink, &row.text).min_width(0.0)
+        } else {
+            Self::marked_voice(&row, ink, lex, voice, &mut |_| None)
+        }
+    }
     pub(crate) fn cell(label: &Row, value: &Row, lex: &Lexicon) -> Element {
         let prefix = format!("{}: ", label.text);
         let mut spans = vec![magistr_cockpit::turn::Span::new(
@@ -49,7 +103,15 @@ impl RichText {
         lex: &Lexicon,
         mark: &mut impl FnMut(usize) -> Option<crate::ElementId>,
     ) -> Element {
-        let voice = Self::voice(row);
+        Self::marked_voice(row, ink, lex, Self::voice(row), mark)
+    }
+    fn marked_voice(
+        row: &Row,
+        ink: Srgba,
+        lex: &Lexicon,
+        voice: Voice,
+        mark: &mut impl FnMut(usize) -> Option<crate::ElementId>,
+    ) -> Element {
         let ink = Self::ink(row, ink, lex);
         let mut container = Element::row().wrap().min_width(0.0).stretch().no_shrink();
         let mut offset = 0;

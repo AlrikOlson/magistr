@@ -19,7 +19,7 @@ impl DetailsComposition {
         if let Some(card) = Inspection::of(model) {
             header = header
                 .child(
-                    Element::text(Voice::LEDGER_NAME, lex.tx, &card.title)
+                    RichText::label(&card.title_document(model), lex.tx, lex)
                         .min_width(0.0)
                         .id(W::id(Widget::InspectorTitle.id())),
                 )

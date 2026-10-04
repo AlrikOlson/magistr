@@ -6,7 +6,7 @@ use crate::theme::{Icons, ThemeMode};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A byte position in an original source line, independent of wrapping.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DocumentAnchor {
     pub line: usize,
     pub byte: usize,
@@ -42,6 +42,9 @@ pub struct TextDocument {
 }
 
 impl TextDocument {
+    pub(super) fn is_table_start(header: &str, separator: &str) -> bool {
+        table_cells(header).is_some_and(|cells| table_separator(separator, cells.len()))
+    }
     #[must_use]
     pub fn markdown(source: impl Into<String>, mode: ThemeMode) -> Self {
         let source = source.into();
@@ -263,6 +266,34 @@ impl TextDocument {
             }
         }
         out
+    }
+
+    /// A compact preview keeps semantic spans and offers an ellipsis when more follows.
+    pub fn summary(&self, width: f32, measure: &mut impl FnMut(&str, TextRole) -> f32) -> Row {
+        let rows = self.rows(width, measure);
+        let mut nonempty = rows.into_iter().filter(|row| !row.row.text.is_empty());
+        let Some(first) = nonempty.next() else {
+            return Row::new(RowKind::Prose(Voice::Agent), "");
+        };
+        let mut row = first.row;
+        if nonempty.next().is_some() {
+            let role = row.kind.text_role();
+            while !row.text.is_empty() && measure(&format!("{}…", row.text), role) > width {
+                let end = row
+                    .text
+                    .grapheme_indices(true)
+                    .next_back()
+                    .map_or(0, |(at, _)| at);
+                row.text.truncate(end);
+            }
+            row.spans = row
+                .spans
+                .iter()
+                .filter_map(|span| span.window(0, row.text.len()))
+                .collect();
+            row.text.push('…');
+        }
+        row
     }
 
     #[must_use]

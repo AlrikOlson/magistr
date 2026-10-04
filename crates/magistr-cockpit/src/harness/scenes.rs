@@ -31,6 +31,71 @@ fn agent(m: &mut Model, event: AgentEvent) {
 }
 
 impl Scenes {
+    /// One authored corpus shared by request, conversation and recorded readers.
+    pub const RICH_BODY: &'static str = "# Delivery findings\n\n**Keep** each `receipt` and read [the guide](https://example.com/guide).\n> A completed delivery keeps its result.\n1. Preserve the original result.\n2. Keep failed checks visible.\n\n```rust\n    let receipt = 7;\n    assert_eq!(receipt, 7);\n```\n\n| Check | Result |\n| --- | --- |\n| Recovery | **Passed** |\n| Restart | Needs work |\n";
+
+    pub fn rich_requests(size: Size) -> Model {
+        let mut model = Model::new(size).with_tab(StageTab::Roadmap);
+        update(
+            &mut model,
+            Msg::Paste("**Review** the delivery plan.".into()),
+        );
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        update(&mut model, Msg::RoadmapRequestStarted);
+        agent(&mut model, AgentEvent::Text(Self::RICH_BODY.into()));
+        agent(
+            &mut model,
+            AgentEvent::TurnEnded(magistr_application::sessions::TurnEnd::EndTurn),
+        );
+        update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Home)));
+        update(&mut model, Msg::Paste("Keep this unsent draft.".into()));
+        model
+    }
+
+    pub fn rich_requests_tail(size: Size) -> Model {
+        let mut model = Self::rich_requests(size);
+        super::super::cockpit::RequestHistory::latest(&mut model);
+        model
+    }
+
+    pub fn rich_recorded(size: Size) -> Model {
+        let mut model = Self::rich_requests(size).with_tab(StageTab::Session);
+        Self::engine_frame(
+            &mut model,
+            "think",
+            "step_appended",
+            serde_json::json!({
+                "step":{"step_number":901,"purpose":"**Review** the delivery findings","thought":Self::RICH_BODY,
+                    "outcome":"The recovery check **passed**.","next_action":"Read the restart result."}
+            }),
+        );
+        let index = model
+            .trace()
+            .steps()
+            .iter()
+            .position(|step| step.number == 901)
+            .expect("fixture step");
+        update(
+            &mut model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::trace_row(index)),
+            },
+        );
+        model
+    }
+    pub fn rich_recorded_details(size: Size) -> Model {
+        let mut model = Self::rich_recorded(size);
+        update(
+            &mut model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::TraceDetail.id()),
+            },
+        );
+        model
+    }
+
     /// The hosted loop's first choice, seeded from the live roadmap shape.
     pub fn loop_track_picker(size: Size) -> Model {
         let mut model = Self::roadmapped(size).with_tab(StageTab::Turn);

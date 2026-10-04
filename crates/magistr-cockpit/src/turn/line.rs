@@ -10,6 +10,8 @@ use magistr_application::sessions::ToolRecord;
 pub struct Line {
     pub(super) kind: LineKind,
     pub(super) text: String,
+    pub(super) terminated: bool,
+    pub(super) fenced: bool,
     pub(super) title: Option<String>,
     pub(super) row_start: usize,
     /// The tool call this line came from and the position of the block
@@ -29,6 +31,12 @@ pub struct Line {
 }
 
 impl Line {
+    /// Whether the author sent a newline after this source line.
+    #[must_use]
+    pub const fn has_newline(&self) -> bool {
+        self.terminated
+    }
+
     /// The line's kind.
     #[must_use]
     pub const fn kind(&self) -> &LineKind {

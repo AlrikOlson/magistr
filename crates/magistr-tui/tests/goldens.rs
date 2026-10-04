@@ -82,6 +82,23 @@ fn shot_pixel_composer() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+#[test]
+fn shot_rich_workspace_readers() {
+    use magistr_tui::screenshot::Profile;
+    let mut failures = Vec::new();
+    for (name, make) in [
+        ("requests-rich", Scenes::rich_requests as fn(Size) -> Model),
+        ("requests-rich-tail", Scenes::rich_requests_tail),
+        ("recorded-rich", Scenes::rich_recorded),
+        ("recorded-rich-details", Scenes::rich_recorded_details),
+    ] {
+        for profile in [Profile::Cells, Profile::Kitty] {
+            failures.extend(render_shots(name, make, profile, false));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
 fn clock() -> FrameClock {
     FrameClock::new(0, Duration::ZERO)
 }

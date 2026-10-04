@@ -86,6 +86,19 @@ impl Frame {
                 model, positions,
             );
         }
+        if let Some(content) = rect(R::REQUEST_CONTENT) {
+            let positions = crate::comp_roadmap_requests::RequestsComposition::positions(model)
+                .into_iter()
+                .enumerate()
+                .filter_map(|(index, position)| {
+                    rect(W::id(magistr_cockpit::cockpit::Widget::request_block(
+                        index,
+                    )))
+                    .map(|r| (position, (r[1] - content[1]).max(0.0).round() as usize))
+                })
+                .collect();
+            magistr_cockpit::cockpit::RequestHistory::report_native_positions(model, positions);
+        }
         let roadmap_changed = model.report_native_roadmap(rows, requests);
         model.report_native_workspace(panels, stage, details) || roadmap_changed
     }

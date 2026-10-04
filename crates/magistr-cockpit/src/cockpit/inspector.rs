@@ -16,6 +16,9 @@ pub struct Inspector;
 impl Inspector {
     #[must_use]
     pub fn view(model: &Model, pen: &Pen) -> Node {
+        if model.tab() == super::StageTab::Roadmap && model.roadmap_requests_open() {
+            return super::FlightRequests::cell_view(model, pen);
+        }
         let mut panel = Node::column()
             .id(Widget::Inspector.id())
             .style(pen.stage.clone())
@@ -58,7 +61,20 @@ impl Inspector {
             .grow(1.0)
             .min_width(Length::Cells(0))
             .viewport()
-            .child(line(&card.title, &pen.heading).id(Widget::InspectorTitle.id()))
+            .child(
+                super::view::stage_row(
+                    &card
+                        .title_document(model)
+                        .summary(f32::from(model.inspector_width().max(1)), &mut |text, _| {
+                            f32::from(crate::render::width(text))
+                        }),
+                    model,
+                    pen,
+                    None,
+                )
+                .height(Length::Cells(1))
+                .id(Widget::InspectorTitle.id()),
+            )
             .child(
                 super::marked::Marked::new(model, pen)
                     .icon(card.icon)

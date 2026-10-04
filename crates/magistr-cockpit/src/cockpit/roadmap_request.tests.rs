@@ -1,4 +1,77 @@
 use super::*;
+
+#[test]
+fn rich_request_history_keeps_blocks_and_exact_copy() {
+    use crate::cockpit::RequestHistory;
+    use crate::turn::{RowKind, SpanStyle, TextDocument};
+    let source = "# Findings\n\n**Keep** the `receipt` and [docs](https://example.com).\n> Quoted result\n1. First requirement\n\n```rust\n    let receipt = 7;\n```\n| Check | Result |\n| --- | --- |\n| Recovery | **Passed** |";
+    let mut model = model();
+    submit(&mut model, "**Review** the plan");
+    update(&mut model, Msg::RoadmapRequestStarted);
+    update(&mut model, Msg::Agent(AgentEvent::Text(source.into())));
+    let history = RequestHistory::of(&model);
+    let reply = history
+        .sections
+        .iter()
+        .find(|section| section.key.starts_with("reply:"))
+        .unwrap();
+    let expected = TextDocument::markdown(source, model.theme().mode());
+    assert_eq!(reply.text.blocks(), expected.blocks());
+    assert!(
+        reply
+            .text
+            .blocks()
+            .iter()
+            .any(|block| block.row.kind == RowKind::Code && block.row.text.starts_with("    "))
+    );
+    assert!(reply.text.blocks().iter().any(|block| {
+        block
+            .row
+            .spans
+            .iter()
+            .any(|span| matches!(span.style, SpanStyle::Link(_)))
+    }));
+    assert!(
+        reply
+            .text
+            .blocks()
+            .iter()
+            .any(|block| block.cells.is_some())
+    );
+    assert!(history.original().contains(source));
+}
+
+#[test]
+fn rich_request_anchor_survives_rewrap_and_follow_is_explicit() {
+    use crate::cockpit::RequestHistory;
+    let mut model = model();
+    submit(&mut model, "Describe the plan");
+    update(&mut model, Msg::RoadmapRequestStarted);
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text(
+            "A **long** response line that wraps many times.\n".repeat(80),
+        )),
+    );
+    crate::cockpit::FlightRequests::scroll(&mut model, -8);
+    let held = model.request_reading.borrow().anchor.clone().unwrap();
+    update(
+        &mut model,
+        Msg::Agent(AgentEvent::Text("A later reply fragment.\n".repeat(20))),
+    );
+    update(&mut model, Msg::Resize(Size::new(100, 40)));
+    let rows =
+        RequestHistory::of(&model).rows(180.0, 0, &mut |s, _| s.chars().count() as f32 * 8.0);
+    let top = RequestHistory::top(&model, &rows, 8);
+    assert_eq!(rows[top].position.section, held.section);
+    assert_eq!(
+        rows[top].position.source.unwrap().line,
+        held.source.unwrap().line
+    );
+    click(&mut model, Widget::RequestLatest);
+    assert!(model.request_reading.borrow().anchor.is_none());
+}
+
 use crate::cockpit::{
     Animation, Cmd, LoopEvent, Model, Msg, Size, StageTab, TurnState, Widget, update,
 };

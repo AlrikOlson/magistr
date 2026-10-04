@@ -22,6 +22,33 @@ original source; external addresses are revealed and copied, never executed.
 The terminal measures and paints the shared document with its own cell or embedded-font
 ruler. Flat output announces changed selections independently of unfinished conversation.
 
+## Authored content readers
+
+Authored bodies have one text contract: `TextDocument` owns blocks, inline spans,
+labeled table cells, exact source and source byte positions. Turn keeps incremental
+conversation lines and delegates contextual tables to that same document owner.
+It records authored newline boundaries; wrapping and copying never reconstruct
+source bytes from painted rows.
+
+`RequestHistory` derives requests from admission ranges in Turn, preserves request
+outcomes and typed tool/check/edit summaries, and caches unchanged source documents
+and measured rows. It owns its reading anchor, link focus and Follow latest state
+separately from selected details and conversation. Each surface reports its ruler
+and geometry; a font or width change never turns an old row index into new content.
+Copy retains Markdown and code indentation. Named links reveal/copy their addresses,
+and Previous/Next section and Latest reply remain available.
+
+The consumer inventory is:
+- Conversation: Turn/ConversationLayout, FlightConversation and native FeedComposition.
+- Requests: RequestHistory, FlightRequests in cells/graphics, native RequestsComposition
+  and the flat transcript. Request drafts remain in the composer.
+- Recorded work: FlightRecords and cell session/trace rows render compact rich summaries;
+  selection opens the complete Inspection document. Native ReasoningComposition
+  uses the same summaries; native TraceComposition reads the complete authored body.
+- Selected details: Inspection, Inspector and native DetailsComposition.
+- Files, diffs, check output and program output remain exact source or code, with
+  recorded status and evidence origin; they are never reinterpreted as authored prose.
+
 ## Data flow
 
 ```text

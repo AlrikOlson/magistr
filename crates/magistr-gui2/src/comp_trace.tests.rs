@@ -56,6 +56,41 @@ fn selected_receipt_and_stale_identity_are_visible() {
         "{text}"
     );
 }
+#[test]
+fn pinned_authored_summaries_format_and_open_their_source_step() {
+    use magistr_cockpit::{
+        cockpit::{Msg, Selected, Surface, update},
+        engine::EngineEvent,
+        harness::{Scenes, fixtures},
+    };
+    let mut model = Scenes::rich_recorded(Size::new(120, 40)).with_surface(Surface::Native);
+    update(
+        &mut model,
+        Msg::Engine(EngineEvent::local(fixtures::frame(
+            "think",
+            "step_appended",
+            serde_json::json!({"step": {"step_number":901, "purpose":"**Review** the delivery findings", "thought":Scenes::RICH_BODY, "pinned":true}}),
+        ))),
+    );
+    let root = rail(&model, &Lexicon::of(Medium::Night));
+    let words = texts(&root).join(" ");
+    assert!(words.contains("Review"), "{words}");
+    assert!(!words.contains("**Review**"), "{words}");
+    let target = Widget::trace_link(901);
+    assert!(ids(&root).contains(&crate::comp_workspace::WorkspaceComposition::id(target)));
+    update(
+        &mut model,
+        Msg::Mouse {
+            event: magistr_cockpit::input::MouseEvent::new(
+                magistr_cockpit::input::MouseKind::Down(magistr_cockpit::input::Button::Left),
+                0,
+                0,
+            ),
+            target: Some(target),
+        },
+    );
+    assert_eq!(model.selected(), Some(&Selected::Step(901)));
+}
 
 #[test]
 fn opening_an_older_step_keeps_it_in_the_visible_trace_window() {

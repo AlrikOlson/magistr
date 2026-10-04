@@ -112,9 +112,6 @@ impl TraceComposition {
         line_height: 0.0,
         upper: false,
     };
-    /// The step's own words — the volume's sans 12.5, which the Steer
-    /// placeholder shares.
-    const BODY: Voice = Voice::STEER;
     /// The pinned list's voice — `mono 10.5px; line-height:2`.
     const PINNED_LINE: Voice = Voice {
         family: "mono",
@@ -357,9 +354,13 @@ fn card(
     // gives up flex's automatic minimum (`min_width(0)`) so it wraps to
     // the card's measure instead of running off it.
     let mut body = Element::row().stretch().align_end().child(
-        Element::text(TraceComposition::BODY, body_ink, words)
-            .claim(Component::Prose)
-            .min_width(0.0),
+        crate::rich_text::RichText::document(
+            &magistr_cockpit::turn::TextDocument::markdown(words, model.theme().mode()),
+            body_ink,
+            lex,
+        )
+        .claim(Component::Prose)
+        .min_width(0.0),
     );
     if live {
         body = body.child(
@@ -498,12 +499,21 @@ fn rail(model: &Model, lex: &Lexicon) -> Element {
             step.purpose.as_str()
         };
         column = column.child(
-            Element::text(
+            crate::rich_text::RichText::label_voice(
+                &magistr_cockpit::turn::TextDocument::markdown(
+                    format!("{} · {words}", step.number),
+                    model.theme().mode(),
+                ),
                 TraceComposition::PINNED_LINE,
                 lex.sb0,
-                format!("{} \u{b7} {words}", step.number),
+                lex,
             )
             .claim(Component::ListRow)
+            .id(crate::comp_workspace::WorkspaceComposition::id(
+                magistr_cockpit::cockpit::Widget::trace_link(step.number),
+            ))
+            .focusable()
+            .focus_ring(lex.mauve)
             .nowrap(),
         );
     }
