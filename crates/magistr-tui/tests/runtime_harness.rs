@@ -150,7 +150,8 @@ async fn graphics_startup_preserves_an_explicit_roadmap_entrypoint() {
                     StageTab::Turn
                 }
             );
-            assert_eq!(model.roadmap_graph_px().is_some(), explicit);
+            assert!(model.roadmap_graph_px().is_none(), "Tracks is the default");
+            assert!(!model.roadmap().is_dependencies_view());
             if status.is_some() {
                 assert_eq!(model.pane(), Pane::Stage);
                 if explicit {
@@ -326,6 +327,22 @@ async fn physical_roadmap_click_and_zoom_reach_the_live_graph_after_resize() {
             Profile::Kitty,
         )
         .unwrap();
+        let deps = placed.px(Widget::RoadmapDependencies.id()).unwrap();
+        let dep_x = (deps.x + deps.width / 2.0) as u32;
+        let dep_y = (deps.y + deps.height / 2.0) as u32;
+        update(
+            &mut expected,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::RoadmapDependencies.id()),
+            },
+        );
+        let placed = layout(
+            &expected,
+            &FrameClock::new(0, Duration::ZERO),
+            Profile::Kitty,
+        )
+        .unwrap();
         let rect = placed.px(Widget::RoadmapGraph.id()).unwrap();
         let nodes = FlightRoadmapGraph::nodes(&expected, rect.width, rect.height);
         let point = &nodes[1];
@@ -349,6 +366,16 @@ async fn physical_roadmap_click_and_zoom_reach_the_live_graph_after_resize() {
                 .resize(MS(80), resized)
                 .bytes(MS(80), format!("\x1b[6;{height};{width}t"))
                 .bytes(MS(180), open)
+                .bytes(
+                    MS(220),
+                    format!(
+                        "\x1b[<0;{};{}M\x1b[<0;{};{}m",
+                        dep_x + 1,
+                        dep_y + 1,
+                        dep_x + 1,
+                        dep_y + 1
+                    ),
+                )
                 .bytes(MS(260), click)
                 .bytes(MS(320), wheel)
                 .close(MS(480)),

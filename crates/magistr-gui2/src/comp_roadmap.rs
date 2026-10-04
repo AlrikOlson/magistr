@@ -7,7 +7,7 @@ use crate::comp_workspace_details::DetailsComposition;
 use crate::roadmap_layout::RoadmapLayout as L;
 use crate::{Component, Element, ElementId, Lexicon, Medium, Voice};
 use magistr_cockpit::cockpit::{
-    Model, Pane, Place, RoadmapSort, Selected, Widget, flight_divider::FlightDivider as D,
+    Model, Pane, Place, RoadmapSort, Selected, TrackRow, Widget, flight_divider::FlightDivider as D,
 };
 
 pub struct RoadmapComposition;
@@ -35,7 +35,7 @@ impl RoadmapComposition {
         let tabs = |compact| {
             let mut tabs = Element::row().height(36.0).no_shrink().center().gap(4.0);
             if compact {
-                tabs = tabs.child(control("Plan", Widget::TabRoadmap.id(), &lex));
+                tabs = tabs.child(control("Back to roadmap", Widget::TabRoadmap.id(), &lex));
             }
             for (label, widget, selected) in [
                 (
@@ -66,18 +66,24 @@ impl RoadmapComposition {
             }
         };
         let plan = |height, graph_height, list_height| {
-            Element::surface()
+            let mut plan = Element::surface()
                 .width(l.left)
                 .height(height)
                 .no_shrink()
                 .min_height(0.0)
-                .id(Self::PLAN)
-                .child(
+                .id(Self::PLAN);
+            if graph_height > 0.0 {
+                plan = plan.child(
                     panel(graph_height, &lex)
                         .id(Self::GRAPH)
                         .child(
                             heading("Dependencies", &lex)
                                 .child(Element::row().grow(1.0))
+                                .child(if list_height == 0.0 {
+                                    control("Tracks", Widget::RoadmapTracks.id(), &lex)
+                                } else {
+                                    Element::row()
+                                })
                                 .child(control("Reset view", Widget::RoadmapReset.id(), &lex)),
                         )
                         .child(graph_field(
@@ -87,17 +93,30 @@ impl RoadmapComposition {
                             ((l.left - 28.0).max(0.0), (graph_height - 36.0).max(0.0)),
                             &lex,
                         )),
-                )
-                .child(divider(model, D::Graph, &lex))
-                .child(work_list(model, list_height, &lex))
+                );
+                if list_height > 0.0 {
+                    plan = plan.child(divider(model, D::Graph, &lex));
+                }
+            }
+            if list_height == 0.0 {
+                return plan;
+            }
+            plan.child(work_list(
+                model,
+                if graph_height == 0.0 {
+                    height
+                } else {
+                    list_height
+                },
+                &lex,
+            ))
         };
         let body = if l.compact {
             let remaining = (l.body - 36.0).max(0.0);
             let content = if model.roadmap_requests_open() || model.pane() == Pane::Inspector {
                 detail(remaining)
             } else {
-                let graph = (l.graph - 18.0).max(0.0);
-                plan(remaining, graph, (remaining - L::GAP - graph).max(0.0))
+                plan(remaining, l.graph, l.list)
             };
             Element::surface().child(tabs(true)).child(content)
         } else {
@@ -191,7 +210,7 @@ fn graph_field(
 fn work_list(model: &Model, height: f32, lex: &Lexicon) -> Element {
     let roadmap = model.roadmap();
     let mut list = panel(height, lex).child(
-        heading("Work items", lex)
+        heading("Tracks", lex)
             .child(Element::row().grow(1.0))
             .child(control(
                 &format!("Status: {}", roadmap.filter_label()),
@@ -199,82 +218,135 @@ fn work_list(model: &Model, height: f32, lex: &Lexicon) -> Element {
                 lex,
             )),
     );
+    let tab = |label, widget: Widget, active| {
+        let button = control(label, widget.id(), lex);
+        if active {
+            Element::surface().fill(lex.s0).radius(5.0).child(button)
+        } else {
+            button
+        }
+    };
+    list = list.child(
+        Element::row()
+            .height(30.0)
+            .no_shrink()
+            .center()
+            .child(tab(
+                "Tracks",
+                Widget::RoadmapTracks,
+                !roadmap.is_dependencies_view(),
+            ))
+            .child(tab(
+                "Dependencies",
+                Widget::RoadmapDependencies,
+                roadmap.is_dependencies_view(),
+            ))
+            .child(control(
+                roadmap.track_filter_label(),
+                Widget::RoadmapTrackFilter.id(),
+                lex,
+            )),
+    );
     let mut sort = Element::row().height(30.0).no_shrink().center();
-    for column in RoadmapSort::ALL {
-        let name = match column {
-            RoadmapSort::Workstream => "Group",
-            _ => column.label(),
-        };
+    for column in RoadmapSort::ALL
+        .into_iter()
+        .filter(|c| *c != RoadmapSort::Workstream)
+    {
         let suffix = if roadmap.sort() == column {
             if roadmap.descending() { " ↓" } else { " ↑" }
         } else {
             ""
         };
-        sort = sort.child(control(&format!("{name}{suffix}"), column.widget().id(), lex).grow(1.0));
+        sort = sort.child(
+            control(
+                &format!("{}{suffix}", column.label()),
+                column.widget().id(),
+                lex,
+            )
+            .grow(1.0),
+        );
     }
-    list = list.child(sort);
+    list = list.child(sort).child(
+        Element::row()
+            .height(30.0)
+            .no_shrink()
+            .center()
+            .child(control(
+                &if roadmap.track_query().is_empty() {
+                    "Search roadmap…".into()
+                } else {
+                    format!("Search: {}", roadmap.track_query())
+                },
+                Widget::RoadmapSearch.id(),
+                lex,
+            ))
+            .child(control("Clear", Widget::RoadmapSearchClear.id(), lex)),
+    );
+    let hidden = !roadmap.is_selected_visible();
+    if hidden {
+        list = list.child(
+            control("Reveal selected item", Widget::RoadmapReveal.id(), lex)
+                .height(26.0)
+                .no_shrink(),
+        );
+    }
     let mut rows = Element::surface()
         .grow(1.0)
         .height(0.0)
         .min_height(0.0)
         .id(RoadmapComposition::LIST);
-    let chunks = roadmap.rows();
-    let total = chunks.len() + roadmap.signals().len();
-    if total == 0 {
+    let entries = roadmap.track_rows();
+    if entries.is_empty() {
         rows = rows.child(
-            Element::text(Voice::STEER, lex.sb0, "No work matches this status.").min_width(0.0),
+            Element::text(
+                Voice::STEER,
+                lex.sb0,
+                "No work matches. Change the status or search.",
+            )
+            .min_width(0.0),
         );
     }
-    let capacity = ((height - 66.0).max(0.0) / L::ROW).floor().max(1.0) as usize;
-    for (index, chunk) in chunks
+    let capacity = ((height - 126.0 - if hidden { 26.0 } else { 0.0 }).max(0.0) / L::ROW)
+        .floor()
+        .max(1.0) as usize;
+    for (index, entry) in entries
         .iter()
         .enumerate()
         .skip(model.roadmap_top())
         .take(capacity)
     {
-        let title = if !chunk.title.trim().is_empty() {
-            &chunk.title
-        } else {
-            &chunk.name
-        };
-        let selected = model.selected() == Some(&Selected::Chunk(chunk.id.clone()));
-        let status = format!(
-            "{} · {}{}",
-            roadmap.status_label(chunk),
-            chunk.band(),
-            if chunk.proposals.is_empty() {
-                ""
-            } else {
-                " · Suggested change"
+        let focused = Some(&entry.focus()) == roadmap.track_focus();
+        let (title, note, selected) = match entry {
+            TrackRow::Heading {
+                expanded, counts, ..
+            } => {
+                let lines = counts.lines();
+                (
+                    format!("{} {}", if *expanded { "▾" } else { "▸" }, entry.label()),
+                    format!("{}\n{}", lines[0], lines[1]),
+                    false,
+                )
             }
-        );
+            TrackRow::Item(chunk, _) => (
+                format!("  {}", chunk.name),
+                format!("{} · {}", roadmap.status_label(chunk), chunk.band()),
+                model.selected() == Some(&Selected::Chunk(chunk.id.clone())),
+            ),
+            TrackRow::Signal(_, signal) => (
+                signal.title().into(),
+                "Feedback".into(),
+                model.selected() == Some(&Selected::Signal(signal.id.clone())),
+            ),
+        };
         rows = rows.child(work_row(
-            title,
-            &status,
-            W::id(Widget::roadmap_row(index)),
+            &if focused {
+                format!("› {title}")
+            } else {
+                title
+            },
+            &note,
+            W::id(entry.widget(index)),
             selected,
-            lex,
-        ));
-    }
-    let start = model.roadmap_top().saturating_sub(chunks.len());
-    let available = capacity.saturating_sub(
-        chunks
-            .len()
-            .saturating_sub(model.roadmap_top())
-            .min(capacity),
-    );
-    for (index, signal) in roadmap
-        .signals()
-        .iter()
-        .enumerate()
-        .skip(start)
-        .take(available)
-    {
-        rows = rows.child(work_row(
-            signal.title(),
-            "Feedback",
-            W::id(Widget::signal_row(index)),
-            model.selected() == Some(&Selected::Signal(signal.id.clone())),
             lex,
         ));
     }
@@ -292,11 +364,13 @@ fn work_row(title: &str, status: &str, id: ElementId, selected: bool, lex: &Lexi
                 .nowrap()
                 .claim(Component::Title),
         )
-        .child(
-            Element::text(Voice::HINT, lex.sb0, status)
-                .claim(Component::Label)
-                .nowrap(),
-        )
+        .child(status.lines().fold(Element::surface(), |body, line| {
+            body.child(
+                Element::text(Voice::HINT, lex.sb0, line)
+                    .claim(Component::Label)
+                    .nowrap(),
+            )
+        }))
         .id(id)
         .focusable()
         .focus_ring(lex.mauve)

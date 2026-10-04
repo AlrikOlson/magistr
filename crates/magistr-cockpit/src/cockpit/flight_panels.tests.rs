@@ -58,6 +58,7 @@ fn model(tab: StageTab, cell: (u16, u16)) -> Model {
         .with_tab(tab)
         .with_theme(Theme::forced(crate::theme::ThemeMode::Dark).with_motion(MotionMode::Reduced));
     model.pixels = true;
+    model.roadmap.browse.dependencies = tab == StageTab::Roadmap;
     model.reasoning_expanded = true;
     model.session.prompt.insert("Keep my draft");
     update(
@@ -189,6 +190,7 @@ fn dragging_keeps_selection_draft_and_conversation_anchor_while_output_arrives()
 #[test]
 fn commands_open_keyboard_resizing_and_restore_initial_sizes() {
     let mut m = model(StageTab::Roadmap, (10, 20));
+    m.roadmap.browse.dependencies = true;
     let initial = m.flight_layout();
     let command = |m: &mut Model, query: &str| {
         update(

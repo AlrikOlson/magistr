@@ -367,6 +367,10 @@ impl Model {
 
     /// Whether the inspector fits beside the stage at its minimum readable width.
     #[must_use]
+    pub const fn is_roadmap_drilldown(&self) -> bool {
+        matches!(self.tab, StageTab::Roadmap) && self.inspector_stacked()
+    }
+
     pub const fn inspector_stacked(&self) -> bool {
         !self.uses_flight_recorder()
             && !self.surface.is_native()
@@ -379,7 +383,7 @@ impl Model {
     /// Outer height reserved below the stage, bounded on very short screens.
     #[must_use]
     pub fn inspector_stack_rows(&self) -> u16 {
-        if !self.inspector_stacked() {
+        if self.is_roadmap_drilldown() || !self.inspector_stacked() {
             return 0;
         }
         let available = self.body_stage_rows();
@@ -792,7 +796,9 @@ impl Model {
     /// reasoning model's state, and mark the projection current.
     pub(super) fn seed(&mut self, snapshot: &NativeSnapshot) {
         self.rail.seed(snapshot);
+        let anchor = super::work::browse_anchor(self);
         self.roadmap.seed(&snapshot.chunks, &snapshot.signals);
+        super::work::restore_browse_anchor(self, anchor);
         self.trace.seed(snapshot);
         self.projection.seeded();
     }
@@ -1797,7 +1803,7 @@ impl Model {
     /// Whether the native Sky owns launcher keyboard navigation.
     #[must_use]
     pub const fn is_launcher(&self) -> bool {
-        self.surface.is_native() && matches!(self.place, Place::Sky)
+        self.surface.is_native() && matches!(self.place, Place::Sky) && self.launcher.is_some()
     }
 
     /// Open the journal's desktop place or the terminal's unified session.
@@ -2298,11 +2304,11 @@ impl Model {
     /// when stacked. The pinned block also anchors the pixel surface.
     #[must_use]
     pub fn roadmap_graph_rows(&self) -> u16 {
+        if self.roadmap.is_empty() || !self.roadmap.is_dependencies_view() {
+            return 0;
+        }
         if self.surface.is_native() {
             return u16::try_from(self.stage_rows()).unwrap_or(u16::MAX);
-        }
-        if self.roadmap.is_empty() {
-            return 0;
         }
         let rows = self
             .stage_rows()
@@ -2331,6 +2337,7 @@ impl Model {
     pub fn roadmap_side_by_side(&self) -> bool {
         !self.uses_flight_recorder()
             && !self.surface.is_native()
+            && self.roadmap.is_dependencies_view()
             && self.size.cols >= 132
             && self.stage_width() >= 58
     }
@@ -2377,15 +2384,12 @@ impl Model {
         if self.surface.is_native()
             && let Some(rows) = self.flight_panels.native_roadmap_rows
         {
-            return (
-                self.roadmap.rows().len() + self.roadmap.signals().len(),
-                rows,
-            );
+            return (self.roadmap.track_rows().len(), rows);
         }
         if self.uses_flight_recorder() {
             let height = super::FlightRoadmapPage::list_height(self);
             return (
-                self.roadmap.rows().len() + self.roadmap.signals().len(),
+                self.roadmap.track_rows().len(),
                 super::FlightRecords::shown(self, height, true),
             );
         }
@@ -2396,8 +2400,11 @@ impl Model {
         };
         let height = self
             .stage_rows()
-            .saturating_sub(self.roadmap_heading_rows() + 2 + graph);
-        (self.roadmap.body_rows(self.roadmap_table_width()), height)
+            .saturating_sub(self.roadmap_heading_rows() + 3 + graph);
+        (
+            self.roadmap.body_rows(self.roadmap_table_width()),
+            height / 3,
+        )
     }
 
     /// The first visible row of the Roadmap tab's body.

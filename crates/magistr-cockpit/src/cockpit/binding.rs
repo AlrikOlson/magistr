@@ -481,6 +481,48 @@ impl Binding {
 
     /// Every accelerator, in sheet order — the sheet renders exactly
     /// this list, grouped by [`Binding::group`].
+    pub const TRACK_SEARCH: Self = Self::new(
+        "alt-/",
+        "search the whole roadmap",
+        "roadmap",
+        KeyCode::Char('/'),
+        Modifiers::ALT,
+    );
+    pub const TRACK_FILTER: Self = Self::new(
+        "alt-t",
+        "choose a track to browse",
+        "roadmap",
+        KeyCode::Char('t'),
+        Modifiers::ALT,
+    );
+    pub const TRACK_VIEW: Self = Self::new(
+        "alt-d",
+        "switch tracks / dependencies",
+        "roadmap",
+        KeyCode::Char('d'),
+        Modifiers::ALT,
+    );
+    pub const TRACK_REVEAL: Self = Self::new(
+        "alt-v",
+        "reveal selected item",
+        "roadmap",
+        KeyCode::Char('v'),
+        Modifiers::ALT,
+    );
+    pub const TRACK_BRANCH: Self = Self::new(
+        "← / →",
+        "collapse / expand track",
+        "roadmap",
+        KeyCode::Right,
+        Modifiers::NONE,
+    );
+    pub const TRACK_FOCUS: Self = Self::new(
+        "↑↓",
+        "move focus",
+        "roadmap",
+        KeyCode::Down,
+        Modifiers::NONE,
+    );
     pub const ALL: &'static [Self] = &[
         Self::TAB,
         Self::VIEWS,
@@ -497,6 +539,12 @@ impl Binding {
         Self::ROADMAP_FILTER,
         Self::ROADMAP_SORT,
         Self::ROADMAP_REVERSE,
+        Self::TRACK_SEARCH,
+        Self::TRACK_FILTER,
+        Self::TRACK_VIEW,
+        Self::TRACK_REVEAL,
+        Self::TRACK_BRANCH,
+        Self::TRACK_FOCUS,
         Self::ZOOM,
         Self::ZOOM_FIT,
         Self::SEND,
@@ -566,10 +614,10 @@ impl Binding {
         &[Self::OBJECT_SELECT, Self::OBJECT_DETAIL, Self::TAB];
     /// The roadmap's table controls, also listed in keyboard help.
     pub const HINT_ROADMAP: &'static [Self] = &[
-        Self::OBJECT_SELECT,
-        Self::ROADMAP_FILTER,
-        Self::ROADMAP_SORT,
+        Self::TRACK_FOCUS,
         Self::OBJECT_DETAIL,
+        Self::TRACK_BRANCH,
+        Self::TRACK_SEARCH,
     ];
     /// The footer while the inspector has keyboard focus.
     pub const HINT_INSPECTOR: &'static [Self] = &[

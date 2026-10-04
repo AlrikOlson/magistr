@@ -517,10 +517,14 @@ servers cannot open under a chat-only provider, so this fixture declares none.
 
 ## Roadmap planning
 
-`RoadmapComposition` keeps the complete dependency graph and filtered work list
-beside separate Requests and Item details views. Compact windows switch between
-Plan, Requests and Item details. Shared identities own graph/list selection,
-dependency and related-record links, proposals, blockers and available actions.
+`RoadmapComposition` opens a collapsible Tracks list derived from existing work
+membership. Headings show five readiness counts; filters and search include
+completed and replaced work. Dependencies opens the complete graph with the same
+selected item. Wide windows pair browsing with Item details; compact windows drill
+into details and return through Back to roadmap. The cockpit owns focus, expansion,
+search restoration, selected identities and named dependency/dependent links;
+the native renderer owns its own geometry and accessibility targets. Shared
+identities also own proposals, blockers and available actions.
 Start and Complete are requests to the workflow owner; the view rechecks known
 status and dependencies and never changes durable state itself.
 
@@ -533,7 +537,8 @@ drafts, attachments, reasoning and reading position survive a Roadmap visit.
 
 `tests/roadmap.rs` covers native targets, retained context, full graph history,
 related links and deterministic queued/admitted/cancelled producer sequences.
-`tests/roadmap_screens.rs` covers eight empty/request states, two themes, compact
+`tests/roadmap_screens.rs` covers empty/request states and 900 items across 90 tracks,
+two themes, compact
 and wide layouts, scaling, reduced motion and stable frames.
 
 For an interactive check:

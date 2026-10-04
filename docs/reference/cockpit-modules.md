@@ -324,6 +324,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/rail.rs` | Navigation and execution-plan rail state | `magistr-cockpit/src/cockpit/rail.tests.rs` |
 | `magistr-cockpit/src/cockpit/rail_mark.rs` | Terminal output timing markers derived from arrival ticks: second boundaries, pauses, and elapsed timestamps | `magistr-cockpit/src/cockpit/rail_mark.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap.rs` | Roadmap state and deterministic dependency-layer layout with connected-node alignment | `magistr-cockpit/src/cockpit/roadmap.tests.rs` |
+| `magistr-cockpit/src/cockpit/roadmap_tracks.rs` | Derived track headings, complete-snapshot counts, distinct focus, collapse, all-track search and browsing context | `magistr-cockpit/src/cockpit/roadmap_tracks.tests.rs` · `magistr-cockpit/src/cockpit/work.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_request.rs` | Submitted roadmap messages with admission, outcome and real reply source ranges | `magistr-cockpit/src/cockpit/roadmap_request.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_chunk.rs` | Roadmap item projection with typed ChunkState and stable chunk identity | `magistr-cockpit/src/cockpit/roadmap_chunk.tests.rs` |
 | `magistr-cockpit/src/cockpit/roadmap_sort.rs` | Sortable roadmap columns and their header targets | `magistr-cockpit/src/cockpit/roadmap.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |

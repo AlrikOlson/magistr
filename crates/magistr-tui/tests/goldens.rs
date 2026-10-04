@@ -102,6 +102,34 @@ fn shot_roadmap_readiness() {
 }
 
 #[test]
+fn shot_roadmap_tracks_at_full_history_scale() {
+    fn scene(size: Size) -> Model {
+        use magistr_cockpit::harness::fixtures;
+        let chunks = fixtures::chunks_from((0..900).map(|n| serde_json::json!({
+            "id":format!("work-{n:03}"), "name":format!("A long readable task name for area {n:03}"),
+            "status":if n==1 { "in_progress" } else if n%3==0 { "done" } else { "pending" },
+            "priority":100+n, "group":if n<5 { None } else { Some(format!("Area {:02}",n%90)) },
+            "deps":if n==2 { vec!["missing"] } else { vec![] },
+            "blocked_by":if n==4 { Some(serde_json::json!({"kind":"external","reason":"Needs access."})) } else { None },
+        })).collect());
+        Model::new(size).with_tab(StageTab::Roadmap).with_snapshot(
+            &magistr_engine::NativeSnapshot {
+                chunks,
+                ..Default::default()
+            },
+        )
+    }
+    let failures: Vec<_> = [
+        magistr_tui::screenshot::Profile::Cells,
+        magistr_tui::screenshot::Profile::Kitty,
+    ]
+    .into_iter()
+    .flat_map(|profile| render_shots("roadmap-tracks", scene, profile, false))
+    .collect();
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
 fn shot_rich_selected_record() {
     shots_on(
         "record",

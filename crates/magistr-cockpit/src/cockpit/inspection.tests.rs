@@ -317,3 +317,35 @@ fn stale_projection_keeps_snapshot_readiness_and_its_freshness_visible() {
         "reading readiness never marks a stale snapshot current"
     );
 }
+
+#[test]
+fn dependency_track_labels_reuse_the_document_and_refresh_when_membership_changes() {
+    let mut model = model();
+    let chunks = fixtures::chunks_from(vec![
+        json!({"id":"here","name":"Current work","status":"pending","group":"Views","deps":["base"]}),
+        json!({"id":"base","name":"Saved foundation","status":"done","group":"Core"}),
+        json!({"id":"later","name":"Following work","status":"pending","group":"Next","deps":["here"]}),
+    ]);
+    model.roadmap.seed(&chunks, &[]);
+    model.inspect(Selected::Chunk("here".into()));
+    let first = Inspection::of(&model).unwrap();
+    assert!(
+        first
+            .links()
+            .iter()
+            .any(|link| link.label == "Saved foundation · Core")
+    );
+    assert!(first.sections.iter().any(|s| s.heading == "Needed by"));
+    assert!(Rc::ptr_eq(&first, &Inspection::of(&model).unwrap()));
+    let mut changed = chunks;
+    changed[1].group = Some("Storage".into());
+    model.roadmap.seed(&changed, &[]);
+    let refreshed = Inspection::of(&model).unwrap();
+    assert!(!Rc::ptr_eq(&first, &refreshed));
+    assert!(
+        refreshed
+            .links()
+            .iter()
+            .any(|link| link.label == "Saved foundation · Storage")
+    );
+}

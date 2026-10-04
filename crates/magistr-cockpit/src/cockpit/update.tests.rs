@@ -220,7 +220,14 @@ fn roadmap_table_controls_preserve_selected_identity_and_keyboard_walks_visible_
     update(&mut m, left_click(Widget::RoadmapSortName.id()));
     assert_eq!(m.selected(), chosen.as_ref());
     assert_eq!(m.roadmap().rows()[0].id, "ui");
+    update(&mut m, key(KeyCode::Home));
     update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.selected(), chosen.as_ref(), "arrows move focus");
+    assert_eq!(
+        m.roadmap.track_focus(),
+        Some(&crate::cockpit::TrackFocus::Item("mid".into()))
+    );
+    update(&mut m, key(KeyCode::Enter));
     assert_eq!(m.selected(), Some(&Selected::Chunk("mid".into())));
     update(
         &mut m,
@@ -250,9 +257,14 @@ fn roadmap_signals_are_selectable_by_pointer_and_keyboard_without_changing_chunk
     let signal_id = m.roadmap().signals()[0].id.clone();
     update(&mut m, left_click(Widget::roadmap_row(1)));
     let chunk = m.roadmap().selected().expect("selected chunk").id.clone();
+    update(&mut m, key(KeyCode::Esc));
     update(&mut m, key(KeyCode::Down));
+    assert_eq!(m.selected(), Some(&Selected::Chunk(chunk.clone())));
+    update(&mut m, key(KeyCode::Enter));
     assert_eq!(m.selected(), Some(&Selected::Signal(signal_id.clone())));
+    update(&mut m, key(KeyCode::Esc));
     update(&mut m, key(KeyCode::Up));
+    update(&mut m, key(KeyCode::Enter));
     assert_eq!(m.selected(), Some(&Selected::Chunk(chunk.clone())));
     update(&mut m, left_click(Widget::signal_row(0)));
     assert_eq!(m.selected(), Some(&Selected::Signal(signal_id)));
@@ -4712,7 +4724,7 @@ fn the_roadmap_list_scrolls_with_the_wheel_and_the_page_keys() {
     assert_eq!(m.roadmap_top(), 0);
     update(&mut m, key(KeyCode::PageDown));
     settle(&mut m);
-    assert_eq!(m.roadmap_top(), height - 1);
+    assert_eq!(m.roadmap_top(), height.saturating_sub(1).max(1));
 
     // The turn's own window never moved while the tab scrolled.
     assert!(m.viewport().is_following());
@@ -9345,17 +9357,24 @@ fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
     );
 
     let mut roadmap = crate::harness::Scenes::roadmapped(Size::new(80, 24));
+    update(&mut roadmap, key(KeyCode::Down)); // track heading
+    assert!(roadmap.selected().is_none());
     update(&mut roadmap, key(KeyCode::Down));
+    update(&mut roadmap, key(KeyCode::Enter));
     assert_eq!(
         roadmap.selected(),
         Some(&Selected::Chunk("tui2-2-rail".into()))
     );
+    update(&mut roadmap, key(KeyCode::Esc));
     update(&mut roadmap, key(KeyCode::Down));
+    update(&mut roadmap, key(KeyCode::Enter));
     assert_eq!(
         roadmap.selected(),
         Some(&Selected::Chunk("tui2-3-roadmap".into()))
     );
+    update(&mut roadmap, key(KeyCode::Esc));
     update(&mut roadmap, key(KeyCode::Down));
+    update(&mut roadmap, key(KeyCode::Enter));
     assert!(matches!(roadmap.selected(), Some(Selected::Signal(_))));
     let selected = roadmap.selected().cloned();
     update(&mut roadmap, key(KeyCode::Down));

@@ -50,6 +50,7 @@ impl FlightDivider {
             Self::Graph => {
                 model.tab() == StageTab::Roadmap
                     && l.graph_height > 0.0
+                    && l.graph_list_height > 0.0
                     && (!l.compact
                         || (!model.roadmap_requests_open() && model.pane() == Pane::Stage))
             }

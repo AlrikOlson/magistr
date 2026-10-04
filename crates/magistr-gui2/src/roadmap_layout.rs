@@ -14,9 +14,9 @@ pub struct RoadmapLayout {
 impl RoadmapLayout {
     pub const GAP: f32 = 12.0;
     pub const NAV: f32 = 40.0;
-    pub const ROW: f32 = 56.0;
+    pub const ROW: f32 = 72.0;
     pub const COLUMNS_MIN: (f32, f32) = (360.0, 300.0);
-    pub const GRAPH_MIN: (f32, f32) = (120.0, 160.0);
+    pub const GRAPH_MIN: (f32, f32) = (120.0, 296.0);
     pub fn of(model: &Model, width: f32, height: f32) -> Self {
         let margin = if width < 780.0 { 12.0 } else { 20.0 };
         let width = (width - 2.0 * margin).max(1.0);
@@ -37,12 +37,20 @@ impl RoadmapLayout {
         } else {
             width - Self::GAP - left
         };
-        let available = (body - Self::GAP).max(0.0);
-        let graph = crate::workspace_layout::split(
-            available,
-            model.panel_fraction(D::Graph, 0.47),
-            Self::GRAPH_MIN,
-        );
+        let content = (body - if compact { 36.0 } else { 0.0 }).max(0.0);
+        let available = (content - Self::GAP).max(0.0);
+        let (graph, list) = if !model.roadmap().is_dependencies_view() {
+            (0.0, content)
+        } else if available >= Self::GRAPH_MIN.0 + Self::GRAPH_MIN.1 {
+            let graph = crate::workspace_layout::split(
+                available,
+                model.panel_fraction(D::Graph, 0.47),
+                Self::GRAPH_MIN,
+            );
+            (graph, available - graph)
+        } else {
+            (content, 0.0)
+        };
         Self {
             margin,
             body,
@@ -50,7 +58,7 @@ impl RoadmapLayout {
             left,
             right,
             graph,
-            list: available - graph,
+            list,
             compact,
         }
     }

@@ -43,6 +43,7 @@ pub(super) fn open_chunk(model: &mut Model, id: &str) -> bool {
         return false;
     }
     model.show(StageTab::Roadmap);
+    model.pane = Pane::Inspector;
     true
 }
 
@@ -151,11 +152,9 @@ pub(super) fn chunk_jump(model: &mut Model, number: u32) -> Vec<Cmd> {
 /// Select the chunk at a visible list row by stable identity.
 pub(super) fn row_click(model: &mut Model, index: usize) {
     if let Some(chunk) = model.roadmap.rows().get(index) {
-        let selected = Selected::Chunk(chunk.id.clone());
-        model.inspect(selected);
-        if !model.uses_flight_recorder() {
-            model.pane = Pane::Stage;
-        }
+        model.roadmap.browse.focus = Some(super::TrackFocus::Item(chunk.id.clone()));
+        activate_track_focus(model);
+        reveal_track_focus(model);
     }
 }
 
@@ -401,6 +400,198 @@ pub(super) fn graph_cell(model: &Model, event: &MouseEvent) -> Option<(f32, f32)
 /// The step every glide starts at and whether it animates at all.
 fn glide(model: &Model) -> (f32, bool) {
     (model.now(), model.theme.motion().is_full())
+}
+
+pub(super) fn signal_click(model: &mut Model, index: usize) {
+    if let Some(signal) = model.roadmap.signals().get(index) {
+        model.roadmap.browse.focus = Some(super::TrackFocus::Signal(signal.id.clone()));
+        activate_track_focus(model);
+        reveal_track_focus(model);
+    }
+}
+
+/// Keep a scrolled track list anchored to the same record across live updates.
+pub(super) fn browse_anchor(model: &Model) -> Option<super::TrackFocus> {
+    model
+        .roadmap
+        .track_rows()
+        .get(model.roadmap_top())
+        .map(super::TrackRow::focus)
+}
+
+pub(super) fn restore_browse_anchor(model: &mut Model, anchor: Option<super::TrackFocus>) {
+    if let Some(anchor) = anchor
+        && let Some(row) = model
+            .roadmap
+            .track_rows()
+            .iter()
+            .position(|row| row.focus() == anchor)
+    {
+        let (total, height) = model.roadmap_window();
+        let top = model.roadmap_top();
+        model.roadmap_viewport.scroll_by(
+            row as isize - top as isize,
+            total,
+            height,
+            model.now(),
+            false,
+        );
+    }
+}
+
+pub(super) fn track_click(model: &mut Model, index: usize) {
+    model.roadmap.focus_track_row(index);
+    model.roadmap.toggle_focused_track();
+    model.pane = Pane::Stage;
+}
+
+fn activate_track_focus(model: &mut Model) {
+    match model.roadmap.track_focus().cloned() {
+        Some(super::TrackFocus::Track(_)) => model.roadmap.toggle_focused_track(),
+        Some(super::TrackFocus::Item(id)) => {
+            inspect_chunk(model, &id);
+            model.pane = Pane::Inspector;
+        }
+        Some(super::TrackFocus::Signal(id)) => {
+            model.inspect(Selected::Signal(id));
+            model.pane = Pane::Inspector;
+        }
+        None => {}
+    }
+}
+
+pub(super) fn browse_control(model: &mut Model, widget: Widget) {
+    match widget {
+        Widget::RoadmapTracks => {
+            model.roadmap.browse.dependencies = false;
+            model.pane = Pane::Stage;
+        }
+        Widget::RoadmapDependencies => {
+            model.roadmap.browse.dependencies = true;
+            model.pane = Pane::Stage;
+        }
+        Widget::RoadmapTrackFilter => {
+            model.roadmap.cycle_track_filter();
+            model.roadmap_viewport = Viewport::at_top();
+        }
+        Widget::RoadmapSearch => {
+            model.roadmap.browse.editing = true;
+        }
+        Widget::RoadmapSearchClear => {
+            search_query(model, String::new());
+            model.roadmap.browse.editing = false;
+        }
+        Widget::RoadmapReveal => {
+            search_query(model, String::new());
+            model.roadmap.reveal_selected();
+            reveal_track_focus(model);
+            model.pane = Pane::Stage;
+        }
+        _ => {}
+    }
+}
+
+pub(super) fn search_query(model: &mut Model, query: String) {
+    if model.roadmap.track_query().is_empty() && !query.is_empty() {
+        model.roadmap.browse.saved_scroll = Some(model.roadmap_viewport);
+        model.roadmap_viewport = Viewport::at_top();
+    }
+    let cleared = !model.roadmap.track_query().is_empty() && query.is_empty();
+    model.roadmap.set_track_query(query);
+    if cleared && let Some(viewport) = model.roadmap.browse.saved_scroll.take() {
+        model.roadmap_viewport = viewport;
+    }
+}
+
+fn reveal_track_focus(model: &mut Model) {
+    if let Some(row) = model.roadmap.focused_track_index() {
+        let (total, height) = model.roadmap_window();
+        if height == 0 {
+            return;
+        }
+        let top = model.roadmap_top();
+        if row < top || row >= top.saturating_add(height) {
+            let next = if row < top {
+                row
+            } else {
+                row.saturating_add(1).saturating_sub(height)
+            };
+            model.roadmap_viewport.scroll_by(
+                next as isize - top as isize,
+                total,
+                height,
+                model.now(),
+                false,
+            );
+        }
+    }
+}
+
+/// Browsing receives input only while its list or search field has focus.
+pub(super) fn track_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    use crate::input::Modifiers;
+    if model.shown_tab() != StageTab::Roadmap || model.palette().is_some() || model.is_launcher() {
+        return None;
+    }
+    if key.mods == Modifiers::ALT {
+        let widget = match key.code {
+            KeyCode::Char('/') => Widget::RoadmapSearch,
+            KeyCode::Char('t') => Widget::RoadmapTrackFilter,
+            KeyCode::Char('d') => {
+                if model.roadmap.is_dependencies_view() {
+                    Widget::RoadmapTracks
+                } else {
+                    Widget::RoadmapDependencies
+                }
+            }
+            KeyCode::Char('v') => Widget::RoadmapReveal,
+            _ => return None,
+        };
+        browse_control(model, widget);
+        return Some(Vec::new());
+    }
+    if model.roadmap.is_track_search_editing() {
+        match key.code {
+            KeyCode::Char(c) if key.mods.is_empty() || key.mods == Modifiers::SHIFT => {
+                let mut query = model.roadmap.track_query().to_owned();
+                query.push(c);
+                search_query(model, query);
+            }
+            KeyCode::Backspace => {
+                let mut query = model.roadmap.track_query().to_owned();
+                query.pop();
+                search_query(model, query);
+            }
+            KeyCode::Esc => {
+                search_query(model, String::new());
+                model.roadmap.browse.editing = false;
+            }
+            KeyCode::Enter | KeyCode::Down => {
+                model.roadmap.browse.editing = false;
+                model.pane = Pane::Stage;
+                model.roadmap.move_track_focus(1);
+            }
+            _ => {}
+        }
+        return Some(Vec::new());
+    }
+    if model.pane != Pane::Stage || !key.mods.is_empty() || !model.session.prompt.is_empty() {
+        return None;
+    }
+    match key.code {
+        KeyCode::Up => model.roadmap.move_track_focus(-1),
+        KeyCode::Down => model.roadmap.move_track_focus(1),
+        KeyCode::Home => model.roadmap.move_track_focus(isize::MIN),
+        KeyCode::End => model.roadmap.move_track_focus(isize::MAX),
+        KeyCode::Left => model.roadmap.branch_track_focus(false),
+        KeyCode::Right => model.roadmap.branch_track_focus(true),
+        KeyCode::Enter | KeyCode::Char(' ') if model.roadmap.track_focus().is_some() => {
+            activate_track_focus(model)
+        }
+        _ => return None,
+    }
+    reveal_track_focus(model);
+    Some(Vec::new())
 }
 
 #[cfg(test)]

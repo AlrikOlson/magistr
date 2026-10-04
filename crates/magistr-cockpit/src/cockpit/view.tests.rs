@@ -84,6 +84,7 @@ fn roadmap_graph_and_table_share_a_wide_stage_and_stack_on_a_narrow_one() {
     for (cols, rows) in [(80, 24), (132, 42)] {
         for pixels in [false, true] {
             let mut m = Scenes::roadmapped(Size::new(cols, rows));
+            m.roadmap.browse.dependencies = true;
             if pixels {
                 update(
                     &mut m,
@@ -112,9 +113,9 @@ fn roadmap_graph_and_table_share_a_wide_stage_and_stack_on_a_narrow_one() {
                     })
                     .rect
             };
-            if pixels && crate::cockpit::FlightRoadmapPage::graph_height(&m) == 0.0 {
-                assert!(resolved.rect(Widget::RailGraph.id()).is_none());
-                assert!(rect(Widget::roadmap_row(0)).width > 0);
+            if pixels && crate::cockpit::FlightRoadmapPage::list_height(&m) == 0.0 {
+                assert!(rect(Widget::RoadmapGraph.id()).height > 0);
+                assert!(rect(Widget::RoadmapTracks.id()).width > 0);
                 assert!(resolved.rect(Widget::Stage.id()).is_none());
                 continue;
             }
@@ -180,6 +181,7 @@ fn the_dense_harbor_graph_spreads_its_columns_at_capture_size() {
                 },
             );
         }
+        m.roadmap.browse.dependencies = true;
         let resolved = layout_for(&m);
         let placed = resolved
             .placed()
@@ -476,7 +478,13 @@ fn roadmap_has_its_own_page_and_preserves_the_conversation_on_return() {
             .count();
         assert_eq!(
             shown,
-            model.roadmap_window().1.min(model.roadmap().rows().len())
+            model
+                .roadmap()
+                .track_rows()
+                .iter()
+                .take(model.roadmap_window().1)
+                .filter(|row| matches!(row, crate::cockpit::TrackRow::Item(..)))
+                .count()
         );
         page_pointer(
             &mut model,
@@ -509,7 +517,7 @@ fn roadmap_has_its_own_page_and_preserves_the_conversation_on_return() {
             MouseKind::Down(Button::Left),
         );
         assert_eq!(model.selected(), selected.as_ref());
-        assert_eq!(model.roadmap_window().0, model.roadmap().rows().len());
+        assert_eq!(model.roadmap_window().0, model.roadmap().track_rows().len());
         update(
             &mut model,
             Msg::Agent(AgentEvent::Text(" The worker resumed safely.".into())),
@@ -750,6 +758,12 @@ fn every_widget_is_laid_out_once_and_the_dock_buttons_only_on_the_front_card() {
                 | Widget::TraceGraph
                 | Widget::RoadmapGraph
                 | Widget::RoadmapTable
+                | Widget::RoadmapTracks
+                | Widget::RoadmapDependencies
+                | Widget::RoadmapTrackFilter
+                | Widget::RoadmapSearch
+                | Widget::RoadmapSearchClear
+                | Widget::RoadmapReveal
                 | Widget::RoadmapFilter
                 | Widget::RoadmapSortName
                 | Widget::RoadmapSortStatus
@@ -2746,15 +2760,14 @@ fn snap_roadmap_list_120x40() {
     let screen = screen(&m);
     for text in [
         "roadmap   1 done",
-        "«Storage» 1/1",
-        "«Retry recovery» 0/2",
+        "Retry recovery",
+        "In progress 1",
         "Status: Active",
         "Name",
-        "Status↑",
+        "Status ascending",
         "Pri",
-        "Stream",
-        "▸ Saved retry limi…",
-        "○ Recovery checks",
+        "Saved retry limit",
+        "Recovery checks",
         "◆ make startup faster",
     ] {
         assert!(screen.contains(text), "{text} missing: {screen}");
@@ -2830,6 +2843,7 @@ fn the_in_progress_detail_offers_complete_and_the_empty_tab_says_so() {
 #[test]
 fn a_hover_line_uses_the_pinned_roadmap_heading() {
     let mut m = Scenes::roadmapped(Size::new(120, 40));
+    m.roadmap.browse.dependencies = true;
     m.set_roadmap_graph_rect(Some(crate::layout::Rect::new(2, 4, 100, 12)));
     let nodes = m.roadmap().dag_nodes();
     let (col, row) = (
@@ -3414,7 +3428,7 @@ fn no_hover_puts_a_glyph_under_the_contrast_floor() {
 type Surface = fn(Size) -> Model;
 
 /// The six surfaces the goldens cover, by name.
-const SURFACES: [(&str, Surface); 11] = [
+const SURFACES: [(&str, Surface); 12] = [
     ("launcher", Scenes::launcher),
     // The terminal pane is the one surface whose hues are a program's
     // own: swept here so every cell of it still pays
@@ -3425,6 +3439,11 @@ const SURFACES: [(&str, Surface); 11] = [
     ("streaming", Scenes::streaming),
     ("permission", Scenes::permission),
     ("roadmap", Scenes::roadmapped),
+    ("dependencies", |size| {
+        let mut model = Scenes::roadmapped(size);
+        model.roadmap.browse.dependencies = true;
+        model
+    }),
     ("changes", Scenes::changed),
     ("trace", Scenes::traced),
     // The two native readings of the Sky. Swept here with the rest so
@@ -4357,11 +4376,14 @@ fn long_roadmap(size: Size) -> Model {
 }
 
 #[test]
-fn the_roadmap_body_scrolls_under_its_pinned_heading_and_tech_tree() {
+fn the_roadmap_body_scrolls_under_its_pinned_controls() {
     let mut m = long_roadmap(Size::new(80, 24));
     let head = screen(&m);
     assert!(head.contains("roadmap   0 done"), "the heading: {head}");
-    assert!(head.contains("«TUI rewrite» 0/110"), "the legend: {head}");
+    assert!(
+        head.contains("TUI rewrite") && head.contains("Ready 110"),
+        "the legend: {head}"
+    );
     assert!(head.contains("chunk-000"), "the head of the list: {head}");
     assert!(!head.contains("chunk-109"), "and not its tail: {head}");
 
@@ -4369,8 +4391,8 @@ fn the_roadmap_body_scrolls_under_its_pinned_heading_and_tech_tree() {
     Scenes::settle(&mut m);
     let tail = screen(&m);
     assert!(
-        tail.contains("roadmap   0 done") && tail.contains("«TUI rewrite» 0/110"),
-        "the heading and the tech-tree stayed pinned: {tail}"
+        tail.contains("roadmap   0 done") && tail.contains("Search roadmap"),
+        "the heading and the search stayed pinned: {tail}"
     );
     assert!(tail.contains("chunk-109"), "the tail of the list: {tail}");
     assert!(!tail.contains("chunk-000"), "the head scrolled off: {tail}");
@@ -4390,10 +4412,13 @@ fn a_detail_card_opened_at_the_far_end_paints_once_the_window_reaches_it() {
     Scenes::settle(&mut m);
     let screen = screen(&m);
     assert!(
-        screen.contains("○ chunk-109"),
+        screen.contains("the 109th claim"),
         "the selected item's row remains visible: {screen}"
     );
-    assert!(screen.contains("the 109th claim"), "and painted: {screen}");
+    assert!(
+        screen.contains("the 109th claim") && screen.contains("Back to roadmap"),
+        "the compact reader is open: {screen}"
+    );
 }
 
 /// A model whose turn holds one image: a 40×40 PNG, red on the left and
@@ -4772,6 +4797,8 @@ fn the_active_tab_is_the_one_wearing_a_rule() {
 #[test]
 fn the_scale_reads_beside_the_workstream_legend_once_the_tree_is_zoomed() {
     let mut m = Scenes::roadmapped(Size::new(120, 40));
+    m.roadmap.browse.dependencies = true;
+    m.roadmap.browse.dependencies = true;
     m.set_roadmap_graph_rect(Some(crate::layout::Rect::new(2, 4, 100, 12)));
     assert!(
         !screen(&m).contains("zoom "),
@@ -4783,8 +4810,7 @@ fn the_scale_reads_beside_the_workstream_legend_once_the_tree_is_zoomed() {
     assert!(zoomed.contains("zoom 150%"), "{zoomed}");
     // The bands keep their column, so the readout can never sit under
     // the pixel surface placed to the legend's right.
-    let band = m.roadmap().band_rows()[0].clone();
-    assert!(zoomed.contains(band.trim()), "{zoomed}");
+    assert!(zoomed.contains("Dependencies"), "{zoomed}");
     update(&mut m, Msg::Key(KeyEvent::new(KeyCode::Char('0'))));
     assert!(
         !screen(&m).contains("zoom "),
@@ -5288,6 +5314,13 @@ fn inspector_card_order_and_geometry_are_shared_by_all_object_kinds() {
                         .expect("pane exists")
                         .rect
                 };
+                if m.is_roadmap_drilldown() {
+                    assert_eq!(m.pane(), Pane::Inspector);
+                    assert!(resolved.rect(Widget::Stage.id()).is_none());
+                    assert!(rect(Widget::InspectorFields).height > 0);
+                    assert!(rect(Widget::TabRoadmap).width > 0);
+                    continue;
+                }
                 let stage = rect(Widget::Stage);
                 let inspector = rect(Widget::Inspector);
                 assert!(stage.width > 0 && stage.height > 0);
@@ -5401,7 +5434,8 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
                     );
                 } else {
                     assert!(
-                        pixels && m.flight_layout().compact && m.pane() == Pane::Stage,
+                        (pixels && m.flight_layout().compact || m.is_roadmap_drilldown())
+                            && m.pane() == Pane::Stage,
                         "{name}: only a compact main view may have closed details"
                     );
                     let main = match m.tab() {
@@ -5425,7 +5459,12 @@ fn every_surface_fits_its_screen_at_every_audited_size() {
                     assert!(main.y + main.height <= prompt.y);
                     assert!(main.x >= 0.0 && main.x + main.width <= m.flight_layout().screen_width);
                     if m.tab() == StageTab::Roadmap {
-                        assert!(resolved.rect(Widget::roadmap_row(0)).is_some());
+                        assert!(resolved.placed().iter().any(|p| {
+                            p.id.is_some_and(|id| {
+                                Widget::roadmap_track_index(id).is_some()
+                                    || Widget::roadmap_row_index(id).is_some()
+                            })
+                        }));
                         assert!(resolved.rect(Widget::TabTurn.id()).is_some());
                     }
                 }
@@ -5584,4 +5623,104 @@ fn three_tab_roadmap_footer_and_terminal_palette_are_hittable() {
         "{screen}"
     );
     insta::assert_snapshot!("terminal_command_palette", screen);
+}
+
+#[test]
+fn track_browsing_paints_history_at_cell_graphics_and_flat_sizes() {
+    use crate::capability::{Mode, TextReason};
+    use crate::cockpit::TrackRow;
+    use crate::harness::fixtures;
+    let chunks = fixtures::chunks_from((0..900).map(|n| serde_json::json!({
+        "id":format!("work-{n:03}"), "name":format!("Readable task {n:03} with a long title"),
+        "status":if n==1 { "in_progress" } else if n%3==0 { "done" } else { "pending" },
+        "priority":100+n, "group":if n<5 {None} else {Some(format!("Area {:02}",n%90))},
+    })).collect());
+    for mode in [ThemeMode::Dark, ThemeMode::Light] {
+        for size in [Size::new(80, 24), Size::new(144, 50)] {
+            for rendering in [
+                None,
+                Some(Mode::Graphics {
+                    pointer_shapes: true,
+                }),
+                Some(Mode::MinimalText(TextReason::ScreenReader)),
+            ] {
+                let mut model = Model::new(size)
+                    .with_tab(StageTab::Roadmap)
+                    .with_theme(Theme::forced(mode).with_motion(crate::theme::MotionMode::Reduced))
+                    .with_snapshot(&magistr_workflow_contracts::NativeSnapshot {
+                        chunks: chunks.clone(),
+                        ..Default::default()
+                    });
+                if let Some(rendering) = rendering {
+                    update(&mut model, Msg::Mode(rendering));
+                }
+                let initial = screen(&model);
+                let mut labels = Vec::new();
+                texts(
+                    &view(&model, &FrameClock::new(0, std::time::Duration::ZERO)),
+                    &mut labels,
+                );
+                assert!(
+                    labels.iter().any(|text| text.contains("Unassigned")),
+                    "{size:?} {rendering:?}: {labels:?}"
+                );
+                assert!(initial.contains("In progress"));
+                model.roadmap.set_track_query("Readable task 000".into());
+                assert!(
+                    model
+                        .roadmap
+                        .track_rows()
+                        .iter()
+                        .any(|row| matches!(row,TrackRow::Item(c,_) if c.state.is_done()))
+                );
+                let found = screen(&model);
+                assert!(found.contains("Readable task 000"), "{size:?}: {found}");
+                model.roadmap.set_track_query(String::new());
+                assert_eq!(screen(&model), initial);
+                assert!(
+                    model.roadmap_window().1 > 1,
+                    "a heading and an item fit at {size:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn compact_dependencies_show_the_graph_and_a_way_back_to_tracks() {
+    for size in [Size::new(80, 24), Size::new(120, 40)] {
+        let mut model = Scenes::roadmapped(size);
+        update(
+            &mut model,
+            Msg::Mode(crate::capability::Mode::Graphics {
+                pointer_shapes: true,
+            }),
+        );
+        update(
+            &mut model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::RoadmapDependencies.id()),
+            },
+        );
+        let placed = layout_for(&model);
+        assert!(
+            placed
+                .placed()
+                .iter()
+                .any(|p| p.id == Some(Widget::RoadmapGraph.id())
+                    && p.rect.width > 0
+                    && p.rect.height > 0)
+        );
+        assert!(
+            placed
+                .placed()
+                .iter()
+                .any(|p| p.id == Some(Widget::RoadmapTracks.id()) && p.rect.width > 0)
+        );
+        assert_eq!(
+            model.selected(),
+            Some(&Selected::Chunk("tui2-2-rail".into()))
+        );
+    }
 }

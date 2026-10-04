@@ -144,6 +144,18 @@ fn offered_bindings_are_reachable_and_a_verb_row_dispatches_its_key() {
             continue;
         }
         let mut model = seeded();
+        if matches!(
+            *binding,
+            Binding::TRACK_SEARCH
+                | Binding::TRACK_FILTER
+                | Binding::TRACK_VIEW
+                | Binding::TRACK_REVEAL
+                | Binding::TRACK_BRANCH
+                | Binding::TRACK_FOCUS
+        ) {
+            model.launcher = None;
+            model.show_place(Place::Sky);
+        }
         chord(&mut model);
         typed(&mut model, binding.does);
         let rows = Palette::rows(&model);
@@ -490,4 +502,17 @@ fn kill_is_never_a_palette_row() {
         rows.iter().any(|row| row.keys == Some(Binding::COPY.keys)),
         "Copy has its row: {rows:?}"
     );
+}
+
+#[test]
+fn track_commands_only_appear_on_the_roadmap() {
+    use crate::cockpit::{Place, StageTab};
+    for place in [Place::Galaxy, Place::Session, Place::Sky] {
+        let mut model = native().with_tab(StageTab::Roadmap).with_place(place);
+        chord(&mut model);
+        typed(&mut model, Binding::TRACK_VIEW.does);
+        let has = Palette::rows(&model).iter().any(|row| matches!(
+            row.go, PaletteGo::Key(code, mods) if code == Binding::TRACK_VIEW.code && mods == Binding::TRACK_VIEW.mods));
+        assert_eq!(has, place == Place::Sky);
+    }
 }

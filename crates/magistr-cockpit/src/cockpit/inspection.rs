@@ -98,7 +98,9 @@ impl Inspection {
             && *cached == key
             && card.links().iter().all(|link| {
                 let resolved = records::link(model, &link.reference, &link.label, 0);
-                resolved.label == link.label && resolved.target == link.target
+                resolved.target == link.target
+                    && (resolved.label == link.label
+                        || records::with_track_label(model, resolved).label == link.label)
             })
         {
             return Some(Rc::clone(card));
@@ -197,7 +199,10 @@ impl Inspection {
         let mut seen = HashSet::new();
         let mut links = Vec::new();
         for reference in references {
-            let link = records::link(model, reference, "", self.link_count() + links.len());
+            let mut link = records::link(model, reference, "", self.link_count() + links.len());
+            if matches!(heading, "Depends on" | "Needed by") {
+                link = records::with_track_label(model, link);
+            }
             if matches!(&link.target, RecordTarget::Record(selected) if Some(selected) == model.selected())
             {
                 continue;

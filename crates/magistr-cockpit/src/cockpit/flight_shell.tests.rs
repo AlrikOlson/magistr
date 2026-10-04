@@ -149,8 +149,10 @@ fn layout(model: &Model) -> Resolved {
 
 #[test]
 fn roadmap_space_grows_with_the_window() {
-    let normal = model(Size::new(132, 42));
-    let large = model(Size::new(180, 64));
+    let mut normal = model(Size::new(132, 42));
+    let mut large = model(Size::new(180, 64));
+    normal.roadmap.browse.dependencies = true;
+    large.roadmap.browse.dependencies = true;
     assert!(normal.flight_layout().roadmap_height > 148.0);
     assert!(large.flight_layout().roadmap_height > normal.flight_layout().roadmap_height);
     assert!(super::super::flight_roadmap_page::FlightRoadmapPage::graph_height(&normal) >= 240.0);

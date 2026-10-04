@@ -7,17 +7,17 @@ Worker recovery  Research▸Plan▸Execute▸Verify
 ╭─ plan ───────────────────╮ ╭───────────────────────────────────────────────────╮  ╭─ Details ────────────────────────╮
 │◂                         │ │Turn  Session  Roadmap                             │  │Select a record to see details.   │
 │no objective yet          │ │roadmap   2 done · 1 active · 1 pending · 0 backlog│  │                                  │
-│▲ Worker recovery · 2/4   │ │«ungrouped» 2/4                                    │  │                                  │
-│▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │Status: Active ▾ · 2                               │  │                                  │
-│▲ Worker recovery         │ │Name                Status↑    Pri   Stream        │  │                                  │
-│0 before · 1 after        │ │▸ Worker recovery   In progre… 200                 │  │                                  │
-│signals 0                 │ │○ Recovery checks   Waiting    300                 │  │                                  │
+│▲ Worker recovery · 2/4   │ │Tracks Dependencies All tracks Status: Active      │  │                                  │
+│▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱ 2/4│ │Search roadmap (Alt+/) Clear                       │  │                                  │
+│▲ Worker recovery         │ │Name  Status ascending  Pri                        │  │                                  │
+│0 before · 1 after        │ │▾ Unassigned                                       │  │                                  │
+│signals 0                 │ │Ready 0 · In progress 1 · Waiting 1                │  │                                  │
+│                          │ │Blocked 0 · Backlog 0                              │  │                                  │
+│                          │ │▸  Worker recovery                                 │  │                                  │
+│                          │ │In progress · high                                 │  │                                  │
 │                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
+│                          │ │○  Recovery checks                                 │  │                                  │
+│                          │ │Waiting · medium                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │╭─ commands ───────────────────────────────────────────────────╮                           │
 │                          ││                                                              │                           │

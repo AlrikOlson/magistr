@@ -370,3 +370,110 @@ fn the_filter_and_the_sort_reset_the_lists_window() {
     assert_eq!(w.roadmap().sort(), RoadmapSort::Name);
     assert_eq!(sort_column(Widget::RoadmapReset), None);
 }
+
+#[test]
+fn track_focus_selection_search_and_draft_survive_browsing_on_both_surfaces() {
+    use crate::cockpit::{TrackFocus, Widget};
+    use crate::input::Modifiers;
+    for surface in [Surface::Terminal, Surface::Native] {
+        let mut model = seeded(surface, None).with_tab(StageTab::Roadmap);
+        row_click(&mut model, 0);
+        let selection = model.selected().cloned();
+        model.inspector_scroll = 23;
+        model.pane = Pane::Stage;
+        model.roadmap.focus_track_row(0);
+        let commands = update(&mut model, Msg::Key(KeyEvent::new(KeyCode::Enter)));
+        assert!(commands.is_empty());
+        assert_eq!(model.selected(), selection.as_ref());
+        assert_eq!(model.inspector_scroll, 23);
+        assert!(matches!(
+            model.roadmap.track_focus(),
+            Some(TrackFocus::Track(_))
+        ));
+        model.session.prompt.insert("Keep this draft");
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('/')).with(Modifiers::ALT)),
+        );
+        update(&mut model, Msg::Paste("shipped".into()));
+        assert_eq!(model.roadmap.track_query(), "shipped");
+        assert!(
+            model
+                .roadmap
+                .track_rows()
+                .iter()
+                .any(|row| row.label() == "shipped")
+        );
+        assert_eq!(model.prompt().text(), "Keep this draft");
+        browse_control(&mut model, Widget::RoadmapSearchClear);
+        assert!(!model.roadmap.is_selected_visible());
+        browse_control(&mut model, Widget::RoadmapReveal);
+        assert!(model.roadmap.is_selected_visible());
+        assert_eq!(model.selected(), selection.as_ref());
+        assert_eq!(model.inspector_scroll, 23);
+        model.show(StageTab::Turn);
+        model.show(StageTab::Roadmap);
+        assert_eq!(model.selected(), selection.as_ref());
+        assert_eq!(model.prompt().text(), "Keep this draft");
+        browse_control(&mut model, Widget::RoadmapDependencies);
+        assert!(model.roadmap.is_dependencies_view());
+        assert_eq!(model.rail.chunk(), Some("here"));
+    }
+}
+
+#[test]
+fn live_tracks_keep_list_anchor_selected_reading_and_search_return_position() {
+    use crate::cockpit::{Inspection, TrackFocus};
+    use serde_json::json;
+    let chunks = crate::harness::fixtures::chunks_from(
+        (0..80)
+            .map(|n| {
+                json!({
+                    "id":format!("item-{n:03}"), "name":format!("Work {n:03}"), "status":"pending",
+                    "priority":100+n, "group":"Core", "description":"Keep the selected reader.",
+                })
+            })
+            .collect(),
+    );
+    let mut model = Model::new(Size::new(120, 40))
+        .with_tab(StageTab::Roadmap)
+        .with_snapshot(&magistr_workflow_contracts::NativeSnapshot {
+            chunks,
+            ..Default::default()
+        });
+    row_click(&mut model, 30);
+    model.pane = Pane::Stage;
+    model.inspector_scroll = 12;
+    let card = Inspection::of(&model).unwrap();
+    let section = card.sections[0].key.clone();
+    model
+        .inspection_state
+        .borrow_mut()
+        .expanded
+        .insert(section.clone());
+    model.session.prompt.insert("Preserve my draft");
+    model.roadmap_request_scroll = 7;
+    let before = browse_anchor(&model).unwrap();
+    let top = model.roadmap_top();
+    search_query(&mut model, "Work 079".into());
+    search_query(&mut model, String::new());
+    assert_eq!(model.roadmap_top(), top);
+    assert_eq!(
+        model.roadmap.track_focus(),
+        Some(&TrackFocus::Item("item-030".into()))
+    );
+    crate::harness::Scenes::engine_frame(
+        &mut model,
+        "roadmap",
+        "chunk_added",
+        json!({"chunk":{
+            "id":"new","name":"New work","status":"pending","priority":1,"group":"Earlier",
+        }}),
+    );
+    assert_eq!(browse_anchor(&model), Some(before));
+    assert_eq!(model.selected(), Some(&Selected::Chunk("item-030".into())));
+    assert_eq!(model.inspector_scroll, 12);
+    assert!(model.inspection_state.borrow().expanded.contains(&section));
+    assert_eq!(model.roadmap_request_scroll, 7);
+    assert_eq!(model.prompt().text(), "Preserve my draft");
+}
