@@ -134,6 +134,14 @@ for its full and frontier projections, shared by viewport clones. Chunk seed and
 event updates invalidate it when their data changes; selection, hover, pan, zoom
 and animation only transform the retained points and paths. Drawing and hit
 testing therefore share geometry without rerunning graph layout per interaction.
+The conversation's roadmap side panel projects all unfinished items from that
+same snapshot, independently of the full-page table's filters. Working and ready
+items lead, followed by blocked, waiting and future work; cards name their track
+and recorded blocker or unfinished dependencies. Readiness uses every stored
+dependency, including completed work outside the visible graph, and missing
+records cannot make work ready. The side panel's scroll is local interface state;
+its cards select the same chunk inspector as the graph and full work list. Small
+panels reserve their space for work cards; taller panels also show nearby edges.
 
 `cockpit::changes` owns the journal and its interaction. Expansion and review
 marks follow the journal's operation-and-path identity across refreshes and

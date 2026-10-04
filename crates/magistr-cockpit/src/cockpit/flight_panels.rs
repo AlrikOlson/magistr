@@ -7,6 +7,7 @@ use crate::widget_id::WidgetId;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FlightPanels {
     proportions: [Option<f32>; 4],
+    pub(super) roadmap_overview_top: usize,
     interaction: Option<Interaction>,
     pub(super) native: [Option<super::panel_allocation::PanelAllocation>; 4],
     pub(super) native_stage: Option<(u16, usize)>,

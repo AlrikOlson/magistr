@@ -302,11 +302,13 @@ pub enum Widget {
     PanelRoadmap,
     PanelReasoning,
     PanelGraph,
+    /// The independently scrollable work overview in the session side panel.
+    RoadmapOverview,
 }
 
 impl Widget {
     /// Every widget, in layout order.
-    pub const ALL: [Self; 119] = [
+    pub const ALL: [Self; 120] = [
         Self::Header,
         Self::HeaderBrand,
         Self::HeaderSpark,
@@ -426,6 +428,7 @@ impl Widget {
         Self::PanelRoadmap,
         Self::PanelReasoning,
         Self::PanelGraph,
+        Self::RoadmapOverview,
     ];
 
     /// The ledger head's verbs — laid out only on
@@ -1352,6 +1355,7 @@ impl Widget {
             Self::PanelColumns => "Resize columns",
             Self::PanelRoadmap => "Resize roadmap and details",
             Self::PanelReasoning => "Resize conversation and reasoning",
+            Self::RoadmapOverview => "Roadmap work",
             Self::PanelGraph => "Resize graph and list",
         }
     }

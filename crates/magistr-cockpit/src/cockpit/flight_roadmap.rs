@@ -1,9 +1,9 @@
-//! The live roadmap neighborhood, with shared pixel positions and meaningful labels.
+//! The live roadmap overview and its nearby dependencies.
 
-use super::{DagNode, FlightStyle, Model, Motion, Widget};
+use super::{DagNode, FlightStyle, Model, Motion, RoadmapChunk, Selected, Widget};
 use crate::layout::{Align, Inset, Length, Node, TextRole};
 use crate::pixel::{RoadmapDag, Typography};
-use crate::render::Color;
+use crate::render::{Attrs, Color};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// The upper-right roadmap panel in the Flight Recorder workspace.
@@ -16,12 +16,17 @@ impl FlightRoadmap {
         let graph_width = (width - 40.0).max(1.0);
         let graph_height = Self::graph_height(model, height);
         let (nodes, _) = model.roadmap().mini_pixels(graph_width, graph_height);
+        let items = model.roadmap().overview_items();
         let mut body = Node::column()
             .min_height(Length::Px(0.0))
             .child(FlightStyle::vspace(5.0));
-        if nodes.is_empty() {
-            body = body.child(s.prose("No work items yet. Open Roadmap to see your goals."));
-        } else {
+        if items.is_empty() {
+            body = body.child(s.prose(if model.roadmap().done_count() > 0 {
+                "No unfinished work. Open Roadmap to review completed and future work."
+            } else {
+                "No work items yet. Open Roadmap to add or review work."
+            }));
+        } else if !nodes.is_empty() && height >= s.line_height * 24.0 {
             let mut graph = Node::column()
                 .height(Length::Px(graph_height))
                 .shrink(0.0)
@@ -46,21 +51,98 @@ impl FlightRoadmap {
             body = body
                 .child(graph)
                 .child(FlightStyle::vspace(4.0))
-                .child(Self::labels(model, &s, &nodes, graph_width));
+                .child(Self::labels(model, &s, &nodes, graph_width))
+                .child(FlightStyle::vspace(10.0));
         }
+        if !items.is_empty() {
+            body = body
+                .child(
+                    s.prose(model.roadmap().overview_summary())
+                        .style(s.style(s.muted)),
+                )
+                .child(FlightStyle::vspace(8.0));
+            let mut cards = Node::column()
+                .grow(1.0)
+                .min_height(Length::Px(0.0))
+                .viewport()
+                .id(Widget::RoadmapOverview.id());
+            let top = model.roadmap_overview_top();
+            for (index, chunk) in items.iter().skip(top).take(12) {
+                cards = cards
+                    .child(Self::card(model, &s, *index, chunk, graph_width).shrink(0.0))
+                    .child(FlightStyle::vspace(8.0));
+            }
+            body = body.child(cards);
+            if items.len() > 1 {
+                body = body.child(FlightStyle::vspace(6.0)).child(
+                    s.label(
+                        format!("{} work items · scroll to browse", items.len()),
+                        s.muted,
+                    )
+                    .id(Widget::RoadmapOverview.id()),
+                );
+            }
+        }
+        let mut actions = Node::row();
+        if !model.agent_activity().active && !model.loop_is_live() {
+            actions = actions
+                .child(s.label("Loop…", s.accent).id(Widget::LaunchLoop.id()))
+                .child(FlightStyle::hspace(14.0));
+        }
+        actions = actions.child(s.label("Open →", s.accent).id(Widget::TabRoadmap.id()));
         s.outlined(
             Node::column()
                 .min_height(Length::Px(0.0))
-                .child(s.section_heading(
-                    "Roadmap",
-                    s.label("Open →", s.accent).id(Widget::TabRoadmap.id()),
-                ))
+                .child(s.section_heading("Roadmap", actions))
                 .child(s.inset(body, 19.0, 8.0).grow(1.0).viewport()),
             s.panel,
             s.line,
         )
         .height(Length::Px(height))
         .shrink(0.0)
+    }
+
+    fn card(
+        model: &Model,
+        s: &FlightStyle,
+        index: usize,
+        chunk: &RoadmapChunk,
+        width: f32,
+    ) -> Node {
+        let selected = matches!(model.selected(), Some(Selected::Chunk(id)) if id == &chunk.id);
+        let hovered = model.hovered() == Some(Widget::sky_star(index));
+        let ink = if model.roadmap().can_start(chunk) {
+            s.good
+        } else if chunk.state.is_working() {
+            s.accent
+        } else {
+            s.ink
+        };
+        let mut card = Node::column().min_width(Length::Px(0.0)).child(
+            s.prose(&chunk.name)
+                .style(s.style(s.ink).attrs(Attrs::BOLD)),
+        );
+        if let Some(track) = &chunk.group {
+            let mut typeface = Typography::default();
+            typeface.set_cell(model.cell_size());
+            card = card.child(s.label(
+                FlightStyle::fit_label(track, width - 20.0, &typeface),
+                s.muted,
+            ));
+        }
+        card = card.child(
+            s.prose(model.roadmap().progress_detail(chunk))
+                .style(s.style(ink)),
+        );
+        s.ground(
+            s.inset(card, 10.0, 6.0),
+            if selected || hovered {
+                s.selected
+            } else {
+                s.raised
+            },
+        )
+        .id(Widget::sky_star(index))
     }
 
     #[must_use]

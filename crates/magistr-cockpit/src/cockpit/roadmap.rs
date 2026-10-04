@@ -1,5 +1,6 @@
 //! The Roadmap tab's state.
 
+use std::collections::BTreeSet;
 use std::sync::{Arc, OnceLock};
 
 use super::RoadmapSort;
@@ -105,11 +106,13 @@ pub struct Roadmap {
     shipped_log: Vec<String>,
 }
 
-/// Lazy, immutable geometry shared by viewport projections of one snapshot.
+/// Lazy geometry and readiness shared by viewport projections of one snapshot.
 #[derive(Clone, Debug, Default)]
 struct GraphGeometry {
     full: Arc<OnceLock<Geometry>>,
     frontier: Arc<OnceLock<Geometry>>,
+    /// Node readiness and controls share one complete-snapshot projection.
+    ready: Arc<OnceLock<BTreeSet<String>>>,
 }
 
 // Warming a derived cache does not change the roadmap's semantic state.
@@ -150,6 +153,106 @@ impl Roadmap {
         tracks.sort();
         tracks.dedup();
         tracks
+    }
+
+    /// All unfinished work for the side panel, independent of table filters.
+    /// The indices use the graph's existing selection route.
+    #[must_use]
+    pub fn overview_items(&self) -> Vec<(usize, &RoadmapChunk)> {
+        let mut items: Vec<_> = self
+            .graph_chunks()
+            .into_iter()
+            .enumerate()
+            .filter(|(_, chunk)| chunk.is_active() && !chunk.state.is_done())
+            .collect();
+        let rank = |chunk: &RoadmapChunk| {
+            if chunk.state.is_working() {
+                0
+            } else if self.can_start(chunk) {
+                1
+            } else if chunk.blocker.is_some() || chunk.state == ChunkState::Blocked {
+                2
+            } else if chunk.state == ChunkState::Backlog {
+                4
+            } else {
+                3
+            }
+        };
+        items.sort_by(|(_, a), (_, b)| {
+            rank(a)
+                .cmp(&rank(b))
+                .then(a.priority.cmp(&b.priority))
+                .then(a.name.cmp(&b.name))
+        });
+        items
+    }
+
+    /// Plain-language progress and the recorded reason an item is waiting.
+    #[must_use]
+    pub fn progress_detail(&self, chunk: &RoadmapChunk) -> String {
+        if let Some(reason) = &chunk.blocker {
+            return format!("Blocked: {reason}");
+        }
+        if chunk.state == ChunkState::Blocked {
+            return "Needs attention. Open this work item for details.".into();
+        }
+        if chunk.state.is_working() {
+            return "Work is underway".into();
+        }
+        if self.can_start(chunk) {
+            return "Ready to start".into();
+        }
+        if chunk.state == ChunkState::Backlog {
+            return "Planned for later".into();
+        }
+        if chunk.state.is_done() {
+            return "Completed".into();
+        }
+        let waiting: Vec<_> = chunk
+            .deps
+            .iter()
+            .filter(|id| !self.chunk(id).is_some_and(|dep| dep.state.is_done()))
+            .map(|id| {
+                self.chunk(id)
+                    .map_or("an unavailable work item", |dep| dep.name.as_str())
+            })
+            .collect();
+        format!("Waiting for {}", waiting.join(", "))
+    }
+
+    #[must_use]
+    pub fn overview_summary(&self) -> String {
+        let items = self.overview_items();
+        let ready = items.iter().filter(|(_, c)| self.can_start(c)).count();
+        let working = items
+            .iter()
+            .filter(|(_, c)| c.state == ChunkState::InProgress)
+            .count();
+        let blocked = items
+            .iter()
+            .filter(|(_, c)| {
+                c.blocker.is_some() || matches!(c.state, ChunkState::Blocked | ChunkState::Stuck)
+            })
+            .count();
+        let planned = items
+            .iter()
+            .filter(|(_, c)| c.state == ChunkState::Backlog && c.blocker.is_none())
+            .count();
+        let waiting = items
+            .len()
+            .saturating_sub(ready + working + blocked + planned);
+        [
+            (working, "working"),
+            (ready, "ready"),
+            (blocked, "blocked"),
+            (waiting, "waiting"),
+            (planned, "planned"),
+        ]
+        .into_iter()
+        .filter(|(count, _)| *count > 0)
+        .map(|(count, label)| format!("{count} {label}"))
+        .collect::<Vec<_>>()
+        .join(" · ")
     }
 
     /// Restrict table rows by status without changing the graph or selection.
@@ -349,25 +452,30 @@ impl Roadmap {
     pub fn next_ready(&self) -> Option<&RoadmapChunk> {
         self.chunks
             .iter()
-            .filter(|c| c.state == ChunkState::Pending)
-            .filter(|c| {
-                c.deps
-                    .iter()
-                    .all(|dep| self.chunk(dep).is_none_or(|d| d.state.is_done()))
-            })
-            .min_by_key(|c| c.priority)
+            .filter(|chunk| self.can_start(chunk))
+            .min_by_key(|chunk| chunk.priority)
     }
 
     /// Whether the selected work can ask to start from the current snapshot.
     /// The command owner still validates permissions and freshness at execution.
     #[must_use]
     pub fn can_start(&self, chunk: &RoadmapChunk) -> bool {
-        chunk.state == ChunkState::Pending
-            && chunk.blocker.is_none()
-            && chunk
-                .deps
-                .iter()
-                .all(|id| self.chunk(id).is_none_or(|dep| dep.state.is_done()))
+        self.geometry
+            .ready
+            .get_or_init(|| {
+                let done: BTreeSet<_> = self
+                    .chunks
+                    .iter()
+                    .filter(|c| c.state.is_done())
+                    .map(|c| c.id.as_str())
+                    .collect();
+                self.chunks
+                    .iter()
+                    .filter(|c| is_ready(&done, c))
+                    .map(|c| c.id.clone())
+                    .collect()
+            })
+            .contains(&chunk.id)
     }
 
     /// Whether the selected work can ask to complete; verification remains authoritative.
@@ -407,13 +515,12 @@ impl Roadmap {
 
     /// The state the chunk's star wears — its status, with readiness
     /// derived from what it stands on — or `None` for a chunk the
-    /// graph does not draw. The same derivation the constellation's
-    /// nodes get, so a chapter's Unlocked list and the sky agree.
+    /// snapshot does not contain. The same complete-snapshot derivation
+    /// governs graph nodes, work cards and start controls.
     #[must_use]
     pub fn star_state(&self, id: &str) -> Option<StarState> {
-        let graph = self.graph_chunks();
-        let chunk = graph.iter().find(|c| c.id == id)?;
-        Some(star_state(&graph, chunk))
+        self.chunk(id)
+            .map(|chunk| star_state(chunk, self.can_start(chunk)))
     }
 
     /// The active chunks still to come that stand on `id` directly —
@@ -822,7 +929,7 @@ impl Roadmap {
             .map(|(chunk, &(x, y, region))| DagNode {
                 x: self.margin() + x * sx - pan_x,
                 y: self.margin() + y * sy - pan_y,
-                state: star_state(&graph, chunk),
+                state: star_state(chunk, self.can_start(chunk)),
                 status: chunk.state,
                 region,
                 here: chunk.is_in_progress(),
@@ -936,10 +1043,9 @@ impl Roadmap {
     /// the readiness [`StarState`] is derived through, taken as a set
     /// so a completion can be diffed across.
     fn ready_ids(&self) -> Vec<String> {
-        let graph = self.graph_chunks();
-        graph
+        self.chunks
             .iter()
-            .filter(|chunk| !chunk.state.is_done() && is_ready(&graph, chunk))
+            .filter(|chunk| self.can_start(chunk))
             .map(|chunk| chunk.id.clone())
             .collect()
     }
@@ -1037,7 +1143,7 @@ impl Roadmap {
             .map(|(chunk, &(x, y, region))| DagNode {
                 x: MARGIN + x * sx,
                 y: MARGIN + y * sy,
-                state: star_state(&graph, chunk),
+                state: star_state(chunk, self.can_start(chunk)),
                 status: chunk.state,
                 region,
                 here: chunk.is_in_progress(),
@@ -1123,7 +1229,7 @@ impl Roadmap {
                         } else {
                             height * 0.5
                         },
-                        state: star_state(&graph, chunk),
+                        state: star_state(chunk, self.can_start(chunk)),
                         status: chunk.state,
                         region,
                         here: chunk.is_in_progress(),
@@ -1453,22 +1559,19 @@ fn depths(graph: &[&RoadmapChunk]) -> Vec<usize> {
 }
 
 /// A recorded pending blocker overrides dependency readiness.
-fn star_state(graph: &[&RoadmapChunk], chunk: &RoadmapChunk) -> StarState {
+fn star_state(chunk: &RoadmapChunk, ready: bool) -> StarState {
     if chunk.state == ChunkState::Pending && chunk.blocker.is_some() {
         StarState::Blocked
     } else {
-        StarState::of(chunk.state, is_ready(graph, chunk))
+        StarState::of(chunk.state, ready)
     }
 }
 
-/// Dependencies absent from the snapshot do not hold work back; the command owner validates them.
-fn is_ready(graph: &[&RoadmapChunk], chunk: &RoadmapChunk) -> bool {
-    chunk.deps.iter().all(|dep| {
-        graph
-            .iter()
-            .find(|c| &c.id == dep)
-            .is_none_or(|c| c.state.is_done())
-    })
+/// Readiness uses the complete snapshot, including completed items outside the graph.
+fn is_ready(done: &BTreeSet<&str>, chunk: &RoadmapChunk) -> bool {
+    chunk.state == ChunkState::Pending
+        && chunk.blocker.is_none()
+        && chunk.deps.iter().all(|dep| done.contains(dep.as_str()))
 }
 
 #[cfg(test)]
