@@ -85,6 +85,21 @@ fn shot_pixel_composer() {
 fn clock() -> FrameClock {
     FrameClock::new(0, Duration::ZERO)
 }
+#[test]
+fn shot_rich_selected_record() {
+    shots_on(
+        "record",
+        Scenes::rich_record,
+        magistr_tui::screenshot::Profile::Cells,
+        false,
+    );
+    shots_on(
+        "record",
+        Scenes::rich_record,
+        magistr_tui::screenshot::Profile::Kitty,
+        false,
+    );
+}
 
 fn layout(root: &Node, size: Size) -> Resolved {
     LayoutTree::new()

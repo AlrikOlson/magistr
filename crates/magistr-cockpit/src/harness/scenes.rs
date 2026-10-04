@@ -163,6 +163,35 @@ impl Scenes {
     }
 
     /// A completed edit selected by its call identity in the shared inspector.
+    /// A selected document with formatted findings and ordinary requirements.
+    pub fn rich_record(size: Size) -> Model {
+        use magistr_workflow_contracts::NativeSnapshot;
+        use serde_json::json;
+        let mut model = Model::new(size).with_tab(StageTab::Roadmap).with_snapshot(&NativeSnapshot {
+            chunks: fixtures::chunks_from(vec![
+                json!({"id":"reading","title":"Save delivery results","status":"in_progress","priority":1,
+                    "description":"Keep each customer's **saved result** with its `receipt`.",
+                    "acceptance":["Keep the original result and its recorded command.", "Preserve reading position when the window changes."],
+                    "deps":["storage"],"notes":"Background notes stay available without hiding requirements.",
+                    "content":{"version":1,"summary":"Read the saved result, then follow its evidence.",
+                        "facts":[{"label":"Owner","value":"Delivery"},{"label":"State","value":"Saved"}],
+                        "sections":[{"heading":"Findings","prose":"## Recovery\nA **saved result** keeps *each delivery* independent. Use `receipt.id` to find it.\n> Restart keeps the remaining attempts.\n\n1. Read the saved command.\n2. Compare the recorded result.\n\n| Check | Result |\n| --- | --- |\n| Recovery | Passed |\n| Isolation | Needs review |\n\n```rust\n    let receipt = saved_result;\n```\n```diff\n-old_result\n+saved_result\n```",
+                            "list":[{"text":"Recovery checked","done":true},{"text":"Isolation review","done":false}]}]}
+                }),
+                json!({"id":"storage","title":"Receipt storage","status":"done","priority":2})
+            ]),
+            ..NativeSnapshot::default()
+        });
+        update(
+            &mut model,
+            Msg::Mouse {
+                event: MouseEvent::new(MouseKind::Down(Button::Left), 0, 0),
+                target: Some(Widget::roadmap_row(0)),
+            },
+        );
+        update(&mut model, Msg::Paste("Keep this draft".into()));
+        model
+    }
     pub fn inspected_edit(size: Size) -> Model {
         let mut model = Model::new(size).with_tab(StageTab::Turn);
         agent(

@@ -120,15 +120,19 @@ fn the_turn_rows_ride_in_their_kinds_voices() {
     let lex = Lexicon::of(Medium::Night);
     let feed = FeedComposition::el(&model, Medium::Night, CELL);
     let runs = runs(&feed);
-    assert!(!runs.is_empty(), "the turn is on the feed");
+    let text: String = runs.iter().map(|(s, ..)| s.as_str()).collect();
+    assert!(
+        text.contains("fn paint"),
+        "the highlighted code is on the feed"
+    );
     let code = runs
         .iter()
-        .find(|(text, ..)| text.contains("fn paint"))
-        .expect("the fenced block is on the feed");
-    assert!(code.2.is_mono(), "a code row is mono");
+        .find(|(s, ..)| s == "fn")
+        .expect("a keyword span");
+    assert!(code.2.is_mono(), "a code span is mono");
     let thought = runs
         .iter()
-        .find(|(text, ..)| text.contains("Read the roadmap"))
+        .find(|(s, ..)| s.contains("Read the roadmap"))
         .expect("the thought is on the feed");
     assert_eq!(thought.1, lex.ov0, "a thought is the faint ink");
 }

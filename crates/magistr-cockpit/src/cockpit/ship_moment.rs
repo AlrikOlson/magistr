@@ -25,6 +25,9 @@ pub enum ShipMoment {
         id: u64,
         /// The files the action touched, as recorded.
         files: Vec<String>,
+        result: String,
+        tools: Vec<String>,
+        think_step: Option<u32>,
     },
     /// One quality gate and how it went.
     Check {
@@ -44,6 +47,9 @@ pub enum ShipMoment {
         /// The runner-reported duration, when the check carried a
         /// parsed report.
         duration_ms: Option<u64>,
+        command: Option<String>,
+        details: String,
+        required: bool,
     },
 }
 
@@ -58,6 +64,9 @@ impl ShipMoment {
             description: action.description.clone(),
             id: u64::from(action.id),
             files: action.files_touched.clone(),
+            result: action.result.clone(),
+            tools: action.tools_used.clone(),
+            think_step: action.think_step,
         }
     }
 
@@ -72,6 +81,9 @@ impl ShipMoment {
             verified: check.verified,
             exit_code: check.exit_code.map(i64::from),
             duration_ms: check.results.as_ref().and_then(|r| r.duration_ms),
+            command: check.command.clone(),
+            details: check.details.clone(),
+            required: check.required,
         }
     }
 }

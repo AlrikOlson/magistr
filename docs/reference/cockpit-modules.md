@@ -291,7 +291,8 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/cockpit/loop_status.rs` | Where the iteration loop stands | `magistr-cockpit/src/cockpit/loop_status.tests.rs` |
 | `magistr-cockpit/src/cockpit/loop_verdict.rs` | Iteration review outcome | `magistr-cockpit/src/cockpit/loop_verdict.tests.rs` |
 | `magistr-cockpit/src/cockpit/marked.rs` | A line of text with vocabulary glyphs in it, built once for both kinds of terminal | `magistr-cockpit/src/cockpit/marked.tests.rs` |
-| `magistr-cockpit/src/cockpit/inspection.rs` | Renderer-neutral selected-record text and actions | `magistr-cockpit/src/cockpit/flight_inspector.tests.rs` · `magistr-gui2/tests/workspace.rs` |
+| `magistr-cockpit/src/cockpit/inspection.rs` | Selected-record sections, named links, source positions and cached reading geometry | `magistr-cockpit/src/cockpit/inspection.tests.rs` · `magistr-gui2/tests/rich_records.rs` |
+| `magistr-cockpit/src/cockpit/inspection_records.rs` | Typed recorded sources become complete semantic documents without a second store | `magistr-cockpit/src/cockpit/inspection_records.tests.rs` |
 | `magistr-cockpit/src/cockpit/panel_allocation.rs` | Bounded native panel measurements for shared resizing | `magistr-cockpit/src/cockpit/flight_panels.tests.rs` |
 | `magistr-cockpit/src/cockpit/inspector.rs` | Shared selected-record content, disclosure and field scrolling | `magistr-cockpit/src/cockpit/view.tests.rs` · `magistr-cockpit/src/cockpit/update.tests.rs` |
 | `magistr-cockpit/src/cockpit/pane.rs` | Terminal keyboard focus across rail, stage and inspector | `magistr-cockpit/src/cockpit/update.tests.rs` |
@@ -547,6 +548,7 @@ test. The section headings separate the crates and their module families.
 | `magistr-cockpit/src/turn/hunk_row.rs` | One line of a hunk: its side, its line numbers, its text in runs | `magistr-cockpit/src/turn/hunk.tests.rs` |
 | `magistr-cockpit/src/turn/hunk_span.rs` | One run of a diff row's text, by whether it is what changed | `magistr-cockpit/src/turn/hunk.tests.rs` |
 | `magistr-cockpit/src/turn/image.rs` | A decoded image block of the stream | `magistr-cockpit/src/turn/image.tests.rs` |
+| `magistr-cockpit/src/turn/document.rs` | Shared Markdown blocks, highlighted code, parsed table cells and authored source positions | `magistr-cockpit/src/turn/document.tests.rs` |
 | `magistr-cockpit/src/turn/inline.rs` | Inline markdown on one line: markers stripped, spans over what stays | `magistr-cockpit/src/turn/inline.tests.rs` |
 | `magistr-cockpit/src/turn/line.rs` | One source line of a turn | `magistr-tui/tests/turn_harness.rs` |
 | `magistr-cockpit/src/turn/line_kind.rs` | What a source line is | `magistr-tui/tests/turn_harness.rs` |

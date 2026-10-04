@@ -1,7 +1,7 @@
 //! One roadmap chunk as the Roadmap tab holds it.
 
 use crate::layout::TextMetrics;
-use magistr_workflow_contracts::Chunk;
+use magistr_workflow_contracts::{Chunk, StructuredContent};
 
 use super::chunk_state::ChunkState;
 use super::proposal_kind::ProposalKind;
@@ -30,6 +30,10 @@ pub struct RoadmapChunk {
     pub deps: Vec<String>,
     /// The plain-prose description.
     pub description: String,
+    /// Authored summary, facts and sections, retained from snapshots and events.
+    pub content: Option<StructuredContent>,
+    /// Additional authored context.
+    pub notes: String,
     /// The acceptance bullets.
     pub acceptance: Vec<String>,
     /// The `think:`/`task:`/… cross-refs.
@@ -64,6 +68,8 @@ impl RoadmapChunk {
             group: chunk.group.clone(),
             deps: chunk.deps.clone(),
             description: chunk.description.clone(),
+            content: chunk.content.clone(),
+            notes: chunk.notes.clone(),
             acceptance: chunk.acceptance.clone(),
             cross_refs: chunk.cross_refs.clone(),
             blocker: chunk

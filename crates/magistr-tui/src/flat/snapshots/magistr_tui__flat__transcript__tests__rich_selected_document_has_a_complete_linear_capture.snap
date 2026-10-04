@@ -1,0 +1,55 @@
+---
+source: crates/magistr-tui/src/flat/transcript.tests.rs
+expression: capture
+---
+note: Details: Save delivery results · In progress
+  ## Summary
+
+  Read the saved result, then follow its evidence.
+
+  ## Facts
+
+  **Owner:** Delivery
+  **State:** Saved
+
+  ## Findings
+
+  ## Recovery
+  A **saved result** keeps *each delivery* independent. Use `receipt.id` to find it.
+  > Restart keeps the remaining attempts.
+
+  1. Read the saved command.
+  2. Compare the recorded result.
+
+  | Check | Result |
+  | --- | --- |
+  | Recovery | Passed |
+  | Isolation | Needs review |
+
+  ```rust
+      let receipt = saved_result;
+  ```
+  ```diff
+  -old_result
+  +saved_result
+  ```
+  - [x] Recovery checked
+  - [ ] Isolation review
+
+  ## Proposed work
+
+  Keep each customer's **saved result** with its `receipt`.
+
+  ## Acceptance criteria
+
+  1. Keep the original result and its recorded command.
+  2. Preserve reading position when the window changes.
+
+  ## Dependencies
+
+
+  [Receipt storage](storage)
+
+  ## Context
+
+  Background notes stay available without hiding requirements.

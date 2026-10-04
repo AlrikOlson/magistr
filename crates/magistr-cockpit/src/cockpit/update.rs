@@ -400,7 +400,6 @@ fn fold(model: &mut Model, msg: Msg) -> Vec<Cmd> {
             model.trace.open_viewer(lines);
             model.show(StageTab::Session);
             model.pane = Pane::Inspector;
-            model.inspector_open = true;
             model.inspector_scroll = 0;
         }
         Msg::Engine(EngineEvent::PortFailed { cmd, what, error }) => {
@@ -1180,6 +1179,9 @@ fn sheet_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
 
 /// Terminal object navigation. Modal and prompt input has already had priority.
 fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
+    if let Some(cmds) = Inspector::key(model, key) {
+        return Some(cmds);
+    }
     if model.uses_flight_recorder()
         && model.tab() == StageTab::Turn
         && model.pane() == Pane::Rail
@@ -1201,11 +1203,14 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
         model.trace.close_viewer();
         model.changes.close_viewer();
         model.inspector_scroll = 0;
-        model.inspector_open = false;
+        return Some(Vec::new());
+    }
+    if key.code == KeyCode::Esc && model.pane() == Pane::Inspector {
+        model.pane = Pane::Stage;
         return Some(Vec::new());
     }
     if model.uses_flight_recorder() {
-        if key.code == KeyCode::Esc && model.pane() != Pane::Stage && !model.inspector_open {
+        if key.code == KeyCode::Esc && model.pane() != Pane::Stage {
             model.pane = Pane::Stage;
             return Some(Vec::new());
         }
@@ -1249,12 +1254,7 @@ fn inspector_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
                         && (matches!(model.tab, StageTab::Roadmap | StageTab::Session)
                             || matches!(model.selected, Some(Selected::Tool(_))))) =>
         {
-            model.inspector_open = !model.inspector_open;
-            model.inspector_scroll = 0;
-        }
-        KeyCode::Esc if model.inspector_open => {
-            model.inspector_open = false;
-            model.inspector_scroll = 0;
+            model.pane = Pane::Inspector;
         }
         KeyCode::Up | KeyCode::Down if model.pane == Pane::Rail => {}
         KeyCode::PageUp | KeyCode::PageDown | KeyCode::Home | KeyCode::End
@@ -1369,7 +1369,7 @@ fn native_trace_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Cmd>> {
             Some(Vec::new())
         }
         KeyCode::Enter if model.trace.selected().is_some() => {
-            model.trace.toggle_detail();
+            model.pane = Pane::Inspector;
             Some(Vec::new())
         }
         _ => None,
@@ -2368,13 +2368,8 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                 Some(Widget::ToolOpen) => return changes::selected_edit_click(model, false),
                 Some(Widget::ToolUndo) => return changes::selected_edit_click(model, true),
                 Some(Widget::InspectorDetail) => {
-                    if model.trace.viewer().is_some() || model.changes.viewer().is_some() {
-                        model.trace.close_viewer();
-                        model.changes.close_viewer();
-                        model.inspector_open = false;
-                    } else {
-                        model.inspector_open = !model.inspector_open;
-                    }
+                    model.trace.close_viewer();
+                    model.changes.close_viewer();
                     model.inspector_scroll = 0;
                     model.pane = Pane::Inspector;
                     return Vec::new();
@@ -2399,18 +2394,7 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
                     return Vec::new();
                 }
                 Some(Widget::TraceDetail) => {
-                    if model.surface().is_native() {
-                        model.trace.toggle_detail();
-                    } else {
-                        if model.trace.viewer().is_some() || model.changes.viewer().is_some() {
-                            model.trace.close_viewer();
-                            model.changes.close_viewer();
-                            model.inspector_open = false;
-                        } else {
-                            model.inspector_open = !model.inspector_open;
-                        }
-                        model.inspector_scroll = 0;
-                    }
+                    model.pane = Pane::Inspector;
                     return Vec::new();
                 }
                 Some(Widget::RoadmapFilter) => {
@@ -2584,15 +2568,8 @@ fn mouse(model: &mut Model, event: MouseEvent, target: Option<WidgetId>) -> Vec<
             if let Some(number) = target.and_then(Widget::trace_chunk_step) {
                 return work::chunk_jump(model, number);
             }
-            if let Some(index) = target.and_then(Widget::roadmap_dependency_index) {
-                if let Some(selected) = Inspector::roadmap_dependency(model, index) {
-                    if matches!(selected, Selected::Chunk(_)) {
-                        model.inspect(selected);
-                    } else {
-                        nav::open_record(model, selected);
-                    }
-                }
-                return Vec::new();
+            if let Some(cmds) = target.and_then(|id| Inspector::activate(model, id)) {
+                return cmds;
             }
             if let Some(index) = target.and_then(Widget::sky_star_index) {
                 return work::sky_star_click(model, index);

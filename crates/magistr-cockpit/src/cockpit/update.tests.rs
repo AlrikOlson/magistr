@@ -336,7 +336,7 @@ fn turn_tool_selection_opens_a_live_record_in_the_inspector() {
         Some(&crate::cockpit::Selected::Tool("inspect-call".into()))
     );
     update(&mut m, key(KeyCode::Enter));
-    assert!(m.inspector_open());
+    assert_eq!(m.pane(), crate::cockpit::Pane::Inspector);
 }
 
 #[test]
@@ -2640,8 +2640,8 @@ fn an_edit_tool_call_is_a_foldable_diff_card() {
     assert!(kinds.contains(&RowKind::DiffRemove), "{kinds:?}");
     update(&mut m, key(KeyCode::Enter));
     assert!(
-        m.inspector_open(),
-        "Enter opens the selected edit in detail"
+        m.pane() == crate::cockpit::Pane::Inspector,
+        "Enter focuses the selected edit"
     );
 }
 
@@ -3373,6 +3373,9 @@ fn ship_action_and_check_frames_join_the_timeline() {
             verified: true,
             exit_code: Some(0),
             duration_ms: Some(5400),
+            command: None,
+            details: String::new(),
+            required: true,
         }
     );
 }
@@ -9185,11 +9188,12 @@ fn the_arrows_walk_the_trace_selection_and_enter_turns_the_card() {
     );
     update(&mut m, key(KeyCode::Down));
     assert_eq!(m.trace().selected_index(), Some(1));
-    assert!(!m.inspector_open());
+    assert_eq!(m.pane(), crate::cockpit::Pane::Stage);
     update(&mut m, key(KeyCode::Enter));
-    assert!(m.inspector_open(), "Enter opens the full card");
+    assert_eq!(m.pane(), crate::cockpit::Pane::Inspector);
     update(&mut m, key(KeyCode::Enter));
-    assert!(!m.inspector_open(), "and folds it back to the brief cut");
+    assert_eq!(m.pane(), crate::cockpit::Pane::Inspector);
+    update(&mut m, key(KeyCode::Esc));
     assert!(m.prompt().is_empty(), "no Enter reached the prompt");
 
     // A letter in the prompt gives the keys back: Up is history again.
@@ -9229,19 +9233,24 @@ fn a_keyboard_selection_scrolls_its_row_into_the_window() {
 }
 
 #[test]
-fn the_more_button_turns_the_card_and_a_row_click_preserves_it() {
+fn selected_sections_replace_global_disclosure_and_row_clicks_keep_selection() {
     let mut m = model().with_tab(StageTab::Session);
     update(&mut m, think_step_frame(4, serde_json::json!({})));
     trace_click(&mut m, Widget::trace_row(0));
-    assert!(m.trace().is_expanded(4));
-    assert_eq!(trace_click(&mut m, Widget::InspectorDetail.id()), vec![]);
-    assert!(m.inspector_open());
-    trace_click(&mut m, Widget::trace_row(0));
-    assert!(m.trace().is_expanded(4), "the row retains its selection");
+    let card = crate::cockpit::Inspection::of(&m).unwrap();
     assert!(
-        m.inspector_open(),
-        "the disclosure is a preference, not part of the selection"
+        card.sections
+            .iter()
+            .any(|s| s.heading == "Result" && !s.secondary)
     );
+    assert!(
+        !card
+            .actions
+            .iter()
+            .any(|(_, id)| *id == Widget::InspectorDetail.id())
+    );
+    trace_click(&mut m, Widget::trace_row(0));
+    assert_eq!(m.selected(), Some(&crate::cockpit::Selected::Step(4)));
 }
 
 #[test]
@@ -9271,9 +9280,9 @@ fn inspector_selection_is_shared_across_views_and_survives_resize() {
     trace_click(&mut m, Widget::roadmap_row(0));
     assert_eq!(m.selected(), Some(&Selected::Chunk("a".to_owned())));
     update(&mut m, key(KeyCode::Enter));
-    assert!(m.inspector_open());
+    assert_eq!(m.pane(), crate::cockpit::Pane::Inspector);
     update(&mut m, key(KeyCode::Esc));
-    assert!(!m.inspector_open());
+    assert_eq!(m.pane(), crate::cockpit::Pane::Stage);
     assert_eq!(
         m.selected(),
         Some(&Selected::Chunk("a".to_owned())),
@@ -9301,8 +9310,7 @@ fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
         Some(&Selected::Change(m.changes().entries()[0].identity()))
     );
     update(&mut m, key(KeyCode::Enter));
-    assert!(m.inspector_open());
-    update(&mut m, key(KeyCode::Tab));
+    assert_eq!(m.pane(), crate::cockpit::Pane::Inspector);
     assert_eq!(m.pane(), Pane::Inspector);
     let list_top = m.session_top();
     update(&mut m, key(KeyCode::Down));
@@ -9323,9 +9331,10 @@ fn inspector_navigation_scrolls_its_fields_and_keeps_the_list_still() {
     assert_eq!(m.inspector_scroll, 0);
     update(&mut m, key(KeyCode::End));
     assert!(m.inspector_scroll > 0);
+    let held = m.inspector_scroll;
     update(&mut m, key(KeyCode::Esc));
-    assert!(!m.inspector_open());
-    assert_eq!(m.inspector_scroll, 0);
+    assert_eq!(m.pane(), Pane::Stage);
+    assert_eq!(m.inspector_scroll, held);
     update(&mut m, left_click(Widget::TabSession.id()));
     assert_eq!(m.pane(), Pane::Stage);
     update(&mut m, Msg::Paste("draft".into()));

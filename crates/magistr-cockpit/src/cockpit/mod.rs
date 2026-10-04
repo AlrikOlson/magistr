@@ -73,7 +73,10 @@ pub mod ground;
 pub mod ground_field;
 pub mod hover;
 pub mod hover_role;
-pub mod inspection;
+mod inspection;
+pub use inspection::{
+    Inspection, ReadingPosition, ReadingRow, RecordLink, RecordSection, RecordTarget,
+};
 pub mod inspector;
 pub mod interview;
 pub mod kill_cmd;

@@ -1,5 +1,4 @@
-use magistr_cockpit::cockpit::session_item::SessionItem;
-use magistr_cockpit::cockpit::{Model, Selected, ShipMoment, TraceStep};
+use magistr_cockpit::cockpit::{Model, Selected, TraceStep};
 use qs_gpu::color::Srgba;
 
 use crate::action::Action;
@@ -238,11 +237,25 @@ impl TraceComposition {
     #[must_use]
     pub fn el(model: &Model, medium: Medium) -> Element {
         let lex = Lexicon::of(medium);
-        Element::row()
-            .grow(1.0)
-            .min_height(0.0)
-            .child(feed(model, medium, &lex))
-            .child(rail(model, &lex))
+        let height = (f32::from(model.size().rows) * f32::from(model.cell_size().height)
+            - Self::HEADER_HEIGHT)
+            .max(1.0);
+        let selected = model.selected().is_some()
+            || model.trace().viewer().is_some()
+            || model.changes().viewer().is_some();
+        let content = if selected {
+            crate::comp_workspace_details::DetailsComposition::el(model, height, &lex)
+                .grow(1.0)
+                .min_width(0.0)
+        } else {
+            feed(model, medium, &lex)
+        };
+        let body = Element::row().grow(1.0).min_height(0.0).child(content);
+        if f32::from(model.size().cols) * f32::from(model.cell_size().width) < 700.0 {
+            body
+        } else {
+            body.child(rail(model, &lex))
+        }
     }
 }
 
@@ -255,10 +268,11 @@ fn feed(model: &Model, medium: Medium, lex: &Lexicon) -> Element {
         .stretch()
         .gap(TraceComposition::CARD_GAP)
         .align_start();
-    if let Some(record) = selected_record(model, lex) {
-        column = column.child(record.stretch());
-    }
+
     for (index, step) in window {
+        if model.selected() == Some(&Selected::Step(step.number)) {
+            continue;
+        }
         let live = newest == Some(step.number) && !step.is_final;
         column = column.child(card(model, index, step, live, medium, lex).stretch());
     }
@@ -269,79 +283,6 @@ fn feed(model: &Model, medium: Medium, lex: &Lexicon) -> Element {
         .pad_y(TraceComposition::FEED_PAD_Y)
         .align_start()
         .child(column)
-}
-
-/// Resolve selected evidence from the shared identities, including a removed record.
-/// The renderer owns only the text arrangement; it never changes selection.
-fn selected_record(model: &Model, lex: &Lexicon) -> Option<Element> {
-    let selected = model.selected()?;
-    let fields = match selected {
-        Selected::Receipt(_) => SessionItem::collect(model.trace(), model.changes())
-            .into_iter()
-            .find(|row| &row.selection() == selected)
-            .and_then(|row| match row {
-                SessionItem::Moment(
-                    _,
-                    ShipMoment::Check {
-                        name,
-                        passed,
-                        verified,
-                        timestamp,
-                        ..
-                    },
-                ) => Some(vec![
-                    name.clone(),
-                    if *passed { "Passed" } else { "Failed" }.into(),
-                    if *verified {
-                        "Executed by Magistr"
-                    } else {
-                        "Self-reported result"
-                    }
-                    .into(),
-                    timestamp.clone(),
-                ]),
-                SessionItem::Moment(
-                    _,
-                    ShipMoment::Action {
-                        description,
-                        files,
-                        timestamp,
-                        ..
-                    },
-                ) => Some(vec![
-                    description.clone(),
-                    files.join(", "),
-                    timestamp.clone(),
-                ]),
-                _ => None,
-            }),
-        Selected::Change(identity) => model
-            .changes()
-            .entries()
-            .iter()
-            .find(|entry| &entry.identity() == identity)
-            .map(|entry| vec![entry.path.clone(), entry.diff.clone()]),
-        Selected::Step(number) if model.trace().step(*number).is_none() => None,
-        _ => return None,
-    };
-    let fields = fields.unwrap_or_else(|| vec!["This record is unavailable.".into()]);
-    Some(
-        fields.into_iter().filter(|text| !text.is_empty()).fold(
-            Card::el(
-                TraceComposition::CARD_PAD_X,
-                TraceComposition::CARD_PAD_Y,
-                lex,
-            )
-            .gap(TraceComposition::HEAD_GAP),
-            |card, text| {
-                card.child(
-                    Element::text(TraceComposition::BODY, lex.sb1, text)
-                        .claim(Component::Prose)
-                        .min_width(0.0),
-                )
-            },
-        ),
-    )
 }
 
 /// One step's card: the head row (number and state, the refs), the

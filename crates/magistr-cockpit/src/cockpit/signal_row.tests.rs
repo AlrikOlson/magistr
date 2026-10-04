@@ -2,6 +2,8 @@ use serde_json::json;
 
 use super::*;
 use crate::harness::fixtures;
+#[path = "signal_document.tests.rs"]
+mod document;
 
 #[test]
 fn a_record_reads_and_takes_the_best_confidence() {

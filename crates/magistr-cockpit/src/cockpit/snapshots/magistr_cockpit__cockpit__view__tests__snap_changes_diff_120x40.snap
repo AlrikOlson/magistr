@@ -8,12 +8,12 @@ Research▸Plan▸Execute▸Verify
 │◂                         │ │Turn  Session  Roadmap                             │  │ src/lib.rs                       │
 │no objective yet          │ │session · 0 steps · 2 changes · UTC                │  │ ✓ Syntax checked                 │
 │roadmap 0/0 done          │ │time unknown ▾ src/lib.rs · +2 −1 · parse ok       │  │ 2 lines added · 1 removed        │
-│signals 0                 │ │time unknown ▸ src/parser.rs · +4 −0 · parse failed│  │ Open Undo Approve More           │
-│                          │ │                                                   │  │ File · src/lib.rs                │
+│signals 0                 │ │time unknown ▸ src/parser.rs · +4 −0 · parse failed│  │ Open Undo Approve Copy           │
+│                          │ │                                                   │  │ Changes                          │
 │                          │ │                                                   │  │ @@ -1,1 +1,2 @@                  │
 │                          │ │                                                   │  │ -fn old() {}                     │
-│                          │ │                                                   │  │                                  │
-│                          │ │                                                   │  │                                  │
+│                          │ │                                                   │  │ +fn renamed() {}                 │
+│                          │ │                                                   │  │ +pub use renamed as old;         │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │
 │                          │ │                                                   │  │                                  │

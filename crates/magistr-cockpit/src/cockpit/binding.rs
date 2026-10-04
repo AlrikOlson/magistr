@@ -61,14 +61,9 @@ impl Binding {
     /// Scroll the inspector's fields without changing its object.
     pub const INSPECTOR_SCROLL: Self =
         Self::new("↑↓", "scroll", "inspector", KeyCode::Down, Modifiers::NONE);
-    /// Return the inspector to its brief field set.
-    pub const INSPECTOR_CLOSE: Self = Self::new(
-        "esc",
-        "less detail",
-        "inspector",
-        KeyCode::Esc,
-        Modifiers::NONE,
-    );
+    /// Return keyboard focus to the selected record in the stage.
+    pub const INSPECTOR_CLOSE: Self =
+        Self::new("esc", "back", "inspector", KeyCode::Esc, Modifiers::NONE);
 
     /// Cycle the roadmap table's status filter.
     pub const ROADMAP_FILTER: Self = Self::new(

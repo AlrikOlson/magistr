@@ -624,19 +624,6 @@ impl Widget {
     const SIGNAL_ROW_BASE: u32 = 0x27_0000;
     /// An action/check/run row in the unified Session timeline.
     const SESSION_ROW_BASE: u32 = 0x28_0000;
-    /// A dependency of the work item currently shown in the inspector.
-    const ROADMAP_DEPENDENCY_BASE: u32 = 0x29_0000;
-
-    #[must_use]
-    pub const fn roadmap_dependency(index: usize) -> WidgetId {
-        Self::indexed(Self::ROADMAP_DEPENDENCY_BASE, index)
-    }
-
-    #[must_use]
-    pub const fn roadmap_dependency_index(id: WidgetId) -> Option<usize> {
-        Self::index_in(Self::ROADMAP_DEPENDENCY_BASE, id)
-    }
-
     #[must_use]
     pub const fn session_row(index: usize) -> WidgetId {
         Self::indexed(Self::SESSION_ROW_BASE, index)
@@ -655,6 +642,37 @@ impl Widget {
     #[must_use]
     pub const fn signal_row_index(id: WidgetId) -> Option<usize> {
         Self::index_in(Self::SIGNAL_ROW_BASE, id)
+    }
+
+    /// Selected-document links and individual section disclosures.
+    #[must_use]
+    pub const fn detail_link(index: usize) -> WidgetId {
+        Self::indexed(0x2A_0000, index)
+    }
+    #[must_use]
+    pub const fn detail_link_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(0x2A_0000, id)
+    }
+    #[must_use]
+    pub const fn detail_section(index: usize) -> WidgetId {
+        Self::indexed(0x2B_0000, index)
+    }
+    #[must_use]
+    pub const fn detail_section_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(0x2B_0000, id)
+    }
+    #[must_use]
+    pub const fn detail_copy() -> WidgetId {
+        WidgetId::new(0x2C_0000)
+    }
+    /// Source block positions, reported only as native reading geometry.
+    #[must_use]
+    pub const fn detail_block(index: usize) -> WidgetId {
+        Self::indexed(0x2D_0000, index)
+    }
+    #[must_use]
+    pub const fn detail_block_index(id: WidgetId) -> Option<usize> {
+        Self::index_in(0x2D_0000, id)
     }
 
     /// The id this widget carries through layout and hit-testing.

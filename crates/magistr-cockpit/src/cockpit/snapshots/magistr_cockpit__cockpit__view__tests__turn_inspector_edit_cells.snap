@@ -8,11 +8,11 @@ Research▸Plan▸Execute▸Verify
 │◂                         │ │Turn  Session  Roadmap                                         │  │ src/retry.rs                     │
 │no objective yet          │ │▎ Updating the retry limit.                                    │  │ ✓ Completed                      │
 │roadmap 0/0 done          │ │▎ ✓ edit   src/retry.rs · +1 −1                                │  │ File change                      │
-│signals 0                 │ │▎   [Open]  [Undo]                                             │  │ Open Undo Less                   │
-│                          │ │▎   @@ -1 +1 @@                                                │  │ @@ -1 +1 @@                      │
-│                          │ │▎   -const RETRIES: usize = 2;                                 │  │ -const RETRIES: usize = 2;       │
-│                          │ │▎   +const RETRIES: usize = 3;                                 │  │ +const RETRIES: usize = 3;       │
-│                          │ │                                                               │  │                                  │
+│signals 0                 │ │▎   [Open]  [Undo]                                             │  │ Open Undo Copy                   │
+│                          │ │▎   @@ -1 +1 @@                                                │  │ Changes                          │
+│                          │ │▎   -const RETRIES: usize = 2;                                 │  │ @@ -1 +1 @@                      │
+│                          │ │▎   +const RETRIES: usize = 3;                                 │  │ -const RETRIES: usize = 2;       │
+│                          │ │                                                               │  │ +const RETRIES: usize = 3;       │
 │                          │ │                                                               │  │                                  │
 │                          │ │                                                               │  │                                  │
 │                          │ │                                                               │  │                                  │

@@ -40,6 +40,38 @@ fn a_full_record_reads_every_field() {
 }
 
 #[test]
+fn structured_content_survives_projection_and_changed_events() {
+    let content = json!({
+        "version": 1, "summary": "Read the saved requirements.",
+        "facts": [{"label": "Owner", "value": "Delivery"}],
+        "sections": [{"heading": "Requirements", "prose": "**Keep** the receipt.",
+            "list": [{"text": "Recorded", "done": false}, {"text": "No verdict"}]}]
+    });
+    let source = fixtures::chunk_from(json!({"id": "rich", "content": content}));
+    let mut roadmap = crate::cockpit::Roadmap::default();
+    roadmap.seed(std::slice::from_ref(&source), &[]);
+    assert_eq!(roadmap.chunk("rich").unwrap().content, source.content);
+    let updated = fixtures::chunk_from(json!({"id": "rich", "content": {
+        "version": 1, "summary": "A changed result."
+    }}));
+    roadmap.apply(
+        &fixtures::frame("roadmap", "chunk_changed", json!({"chunk": updated})),
+        0.0,
+        false,
+    );
+    assert_eq!(
+        roadmap
+            .chunk("rich")
+            .unwrap()
+            .content
+            .as_ref()
+            .unwrap()
+            .summary,
+        "A changed result."
+    );
+}
+
+#[test]
 fn a_bare_record_uses_a_readable_name_without_exposing_its_id() {
     let chunk = RoadmapChunk::from_chunk(&fixtures::chunk_from(json!({"id": "internal-work-784"})));
     assert_eq!(chunk.name, "Untitled work item");

@@ -1,101 +1,120 @@
-//! Selected record text from the cockpit; native wrapping and scrolling stay here.
+//! Every selected record uses the shared document; native geometry stays here.
 use crate::comp_workspace::{WorkspaceComposition as W, control, heading, panel};
+use crate::rich_text::RichText;
 use crate::{Element, Lexicon, Voice};
-use magistr_cockpit::cockpit::{
-    Model, Selected, Widget, inspection::Inspection, inspector::Inspector,
-};
+use magistr_cockpit::cockpit::{Inspection, Model, ReadingPosition, RecordTarget, Widget};
 
 pub(crate) struct DetailsComposition;
-
 impl DetailsComposition {
     pub(crate) fn el(model: &Model, height: f32, lex: &Lexicon) -> Element {
         let head = heading("Details", lex)
             .child(Element::row().grow(1.0))
-            .child(control(
-                if model.inspector_open() {
-                    "Less"
-                } else {
-                    "More"
-                },
-                Widget::InspectorDetail.id(),
-                lex,
-            ));
+            .child(control("Copy", Widget::detail_copy(), lex));
+        let mut header = Element::surface().gap(4.0).no_shrink().child(head);
         let mut body = Element::surface()
             .gap(8.0)
             .min_width(0.0)
             .no_shrink()
             .id(W::DETAIL_CONTENT);
-        let card = Inspection::of(model);
-        if let Some(card) = card {
-            body = body
-                .child(Element::text(Voice::LEDGER_NAME, lex.tx, &card.title).min_width(0.0))
-                .child(Element::text(Voice::HINT, lex.mauve, &card.status).min_width(0.0))
-                .child(Element::text(Voice::HINT, lex.sb0, &card.metadata).min_width(0.0));
-            if let Some(Selected::Step(number)) = model.selected() {
-                body = body.child(
-                    if let Some((name, _)) = Inspector::linked_work(model, *number) {
-                        control(&format!("Work: {name}"), Widget::LinkedWork.id(), lex)
-                    } else {
-                        Element::text(
-                            Voice::HINT,
-                            lex.sb0,
-                            if model
-                                .trace()
-                                .step(*number)
-                                .is_some_and(|s| s.execution_ref.is_some())
-                            {
-                                "Linked work is no longer available."
-                            } else {
-                                "No linked work"
-                            },
-                        )
-                    },
+        if let Some(card) = Inspection::of(model) {
+            header = header
+                .child(
+                    Element::text(Voice::LEDGER_NAME, lex.tx, &card.title)
+                        .min_width(0.0)
+                        .id(W::id(Widget::InspectorTitle.id())),
+                )
+                .child(
+                    Element::text(Voice::HINT, lex.mauve, &card.status)
+                        .min_width(0.0)
+                        .id(W::id(Widget::InspectorStatus.id())),
+                )
+                .child(
+                    Element::text(Voice::HINT, lex.sb0, &card.metadata)
+                        .min_width(0.0)
+                        .id(W::id(Widget::InspectorMetadata.id())),
                 );
+            let mut actions = Element::row().wrap().gap(8.0).no_shrink();
+            for (label, target) in &card.actions {
+                actions = actions.child(control(label, *target, lex));
             }
-            if model.tab() == magistr_cockpit::cockpit::StageTab::Roadmap
-                && matches!(model.selected(), Some(Selected::Chunk(_)))
-            {
-                body = body.child(control(
-                    "Request a change",
-                    Widget::RoadmapRequest.id(),
-                    lex,
-                ));
-                for (label, target) in Inspector::roadmap_links(model) {
-                    let link = Element::text(Voice::STEER, lex.mauve, label).min_width(0.0);
-                    body = body.child(if let Some(target) = target {
-                        link.id(W::id(target)).focusable().focus_ring(lex.mauve)
+            if card.viewer {
+                actions = actions.child(control("Close", Widget::InspectorDetail.id(), lex));
+            }
+            header = header.child(actions);
+            let mut at = 0;
+            for (index, section) in card.sections.iter().enumerate() {
+                let open = card.is_expanded(model, section);
+                let label = format!(
+                    "{}{}",
+                    section.heading,
+                    if section.secondary {
+                        if open { " · Hide" } else { " · Show" }
                     } else {
-                        link.fill(lex.sb0)
+                        ""
+                    }
+                );
+                let title = if section.secondary {
+                    control(&label, Widget::detail_section(index), lex)
+                } else {
+                    Element::text(Voice::LEDGER_NAME, lex.tx, label).min_width(0.0)
+                };
+                body = body.child(
+                    Element::surface()
+                        .id(W::id(Widget::detail_block(at)))
+                        .child(title),
+                );
+                at += 1;
+                if !open {
+                    continue;
+                }
+                for block in section.text.blocks() {
+                    let root = at;
+                    at += 1;
+                    let mut content = Element::surface().min_width(0.0).no_shrink();
+                    if block.cells.is_some() {
+                        for (label, value) in block.cell_rows() {
+                            content = content.child(RichText::cell(label, value, lex));
+                        }
+                    } else {
+                        let mut text = RichText::marked(&block.row, lex.tx, lex, &mut |_| {
+                            let id = W::id(Widget::detail_block(at));
+                            at += 1;
+                            Some(id)
+                        });
+                        if block.heading > 0 {
+                            text = text.pad_y(if block.heading == 1 { 6.0 } else { 2.0 });
+                        }
+                        content = if let Some(marker) = &block.marker {
+                            Element::row()
+                                .min_width(0.0)
+                                .child(Element::text(Voice::STEER, lex.sb1, marker).no_shrink())
+                                .child(text.grow(1.0).min_width(0.0))
+                        } else {
+                            content.child(text)
+                        };
+                    }
+                    if block.row.text.is_empty() && block.cells.is_none() {
+                        content = content.height(8.0);
+                    }
+                    body = body.child(content.id(W::id(Widget::detail_block(root))));
+                }
+                for link in &section.links {
+                    let label = match &link.target {
+                        RecordTarget::Record(_) => format!("{} →", link.label),
+                        RecordTarget::Address(address) => {
+                            format!("{} · {address} · Copy link", link.label)
+                        }
+                        RecordTarget::Unavailable => "This record is no longer available.".into(),
+                    };
+                    body = body.child(if link.target == RecordTarget::Unavailable {
+                        Element::text(Voice::HINT, lex.sb0, label).min_width(0.0)
+                    } else {
+                        control(&label, link.widget, lex).min_width(0.0)
                     });
                 }
-            }
-            for (label, value) in card
-                .fields
-                .iter()
-                .filter(|(_, value)| !value.trim().is_empty())
-            {
-                body = body
-                    .child(Element::text(Voice::LEDGER_NAME, lex.tx, label))
-                    .child(Element::text(Voice::STEER, lex.sb1, value).min_width(0.0));
-            }
-            if let Some(diff) = &card.diff {
-                body = body.child(Element::text(Voice::DIFFLINE, lex.sb1, diff).min_width(0.0));
-            }
-            if let Some(lines) = &card.viewer {
-                body = body
-                    .child(Element::text(Voice::STEER, lex.sb1, lines.join("\n")).min_width(0.0));
-            }
-            for (label, target) in card.actions {
-                body = body.child(control(label, target, lex));
-            }
-            for (index, proposal) in card.proposals {
-                body = body
-                    .child(Element::text(Voice::STEER, lex.sb1, proposal))
-                    .child(
-                        Element::row()
-                            .child(control("Accept", Widget::proposal_accept(index), lex))
-                            .child(control("Reject", Widget::proposal_reject(index), lex)),
-                    );
+                for (label, target) in &section.actions {
+                    body = body.child(control(label, *target, lex));
+                }
             }
         } else {
             body = body.child(Element::text(
@@ -104,12 +123,12 @@ impl DetailsComposition {
                 if model.selected().is_some() {
                     "This record is no longer available."
                 } else {
-                    "Select a step or work item to see its details."
+                    "Select a record to see details."
                 },
             ));
         }
         panel(height, lex)
-            .child(head)
+            .child(header)
             .child(
                 Element::surface()
                     .grow(1.0)
@@ -119,5 +138,37 @@ impl DetailsComposition {
                     .child(body),
             )
             .claim(crate::Component::Prose)
+    }
+
+    pub(crate) fn positions(model: &Model) -> Vec<ReadingPosition> {
+        let Some(card) = Inspection::of(model) else {
+            return Vec::new();
+        };
+        let mut positions = Vec::new();
+        for section in &card.sections {
+            positions.push(ReadingPosition {
+                section: section.key.clone(),
+                source: None,
+            });
+            if card.is_expanded(model, section) {
+                for block in section.text.blocks() {
+                    positions.push(ReadingPosition {
+                        section: section.key.clone(),
+                        source: Some(block.anchor),
+                    });
+                    if block.cells.is_none() {
+                        let mut byte = 0;
+                        for word in block.row.text.split_inclusive(' ') {
+                            positions.push(ReadingPosition {
+                                section: section.key.clone(),
+                                source: Some(block.source_position(byte)),
+                            });
+                            byte += word.len();
+                        }
+                    }
+                }
+            }
+        }
+        positions
     }
 }

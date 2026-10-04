@@ -1079,8 +1079,8 @@ pub(super) fn turn_event(model: &mut Model, native: &NativeEvent) {
             let line = event(model, "task started", &title);
             model.session.turn.push_event(&line);
         }
-        NativeEvent::Ship(ShipFrame::TaskCompleted { task_id }) => {
-            let title = task_title(model, task_id);
+        NativeEvent::Ship(ShipFrame::TaskCompleted { task }) => {
+            let title = task.title.clone();
             let line = event(model, "task completed", &title);
             model.session.turn.push_event(&line);
         }

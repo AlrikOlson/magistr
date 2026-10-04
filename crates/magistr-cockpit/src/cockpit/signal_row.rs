@@ -1,6 +1,6 @@
 //! One stakeholder signal as the Roadmap tab's inbox holds it.
 
-use magistr_workflow_contracts::{Signal, SignalStatus};
+use magistr_workflow_contracts::{Signal, SignalStatus, StructuredContent};
 
 use super::copy::Copy;
 
@@ -16,6 +16,12 @@ pub struct SignalRow {
     pub from: String,
     /// What they said.
     pub body: String,
+    /// The complete authored body, including facts and checklist values.
+    pub content: Option<StructuredContent>,
+    /// Recorded evidence and promoted work references.
+    pub cross_refs: Vec<String>,
+    /// Every recorded investigation, retaining sources and attribution.
+    pub enrichment: Vec<magistr_workflow_contracts::Enrichment>,
     /// The one plain-language sentence a structured signal carries
     /// (`content.summary`) — what the Signals view titles the card
     /// with, the body being the stakeholder's own words under it.
@@ -49,6 +55,9 @@ impl SignalRow {
             kind: signal.kind.as_wire().to_owned(),
             from: signal.from.clone(),
             body: signal.body.clone(),
+            content: signal.content.clone(),
+            cross_refs: signal.cross_refs.clone(),
+            enrichment: signal.enrichment.clone(),
             summary: signal
                 .content
                 .as_ref()

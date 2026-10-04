@@ -230,7 +230,20 @@ impl Voice {
     /// Whether this voice is set in the mono family.
     #[must_use]
     pub fn is_mono(&self) -> bool {
-        self.family == "mono"
+        self.family == "mono" || self.family == "mono-italic"
+    }
+
+    pub(crate) fn italic(mut self) -> Self {
+        self.family = if self.is_mono() {
+            "mono-italic"
+        } else {
+            "sans-italic"
+        };
+        self
+    }
+
+    pub(crate) fn is_italic(&self) -> bool {
+        matches!(self.family, "mono-italic" | "sans-italic")
     }
 
     /// Whether this voice is set in the serif display family — the

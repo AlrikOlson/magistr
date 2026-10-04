@@ -1,3 +1,4 @@
+use crate::rich_text::RichText;
 use magistr_application::sessions::{ToolRecord, ToolStatus, ToolVerb};
 use magistr_cockpit::cockpit::{Model, Term};
 use magistr_cockpit::turn::{Line, LineKind, Receipt, Row, RowKind, Voice as TurnVoice, diff_kind};
@@ -203,7 +204,7 @@ impl FeedComposition {
                 match row.kind {
                     RowKind::Image => image_slot(model, at, cell),
                     RowKind::EditButtons => buttons(at, medium),
-                    _ => prose(row.kind, &row.text, &lex, fade, thinking),
+                    _ => prose(row, &lex, fade, thinking),
                 }
                 .no_shrink(),
             );
@@ -223,35 +224,37 @@ fn air(px: f32) -> Element {
 /// the model cut at spaces, so a single space between them is the text
 /// the agent sent.
 fn paragraph(rows: &[Row], lex: &Lexicon, fade: Option<f32>, thinking: Option<Breath>) -> Element {
-    let text = rows
-        .iter()
-        .map(|row| row.text.trim_end())
-        .collect::<Vec<_>>()
-        .join(" ");
-    prose(rows[0].kind, &text, lex, fade, thinking)
+    let mut text = String::new();
+    let mut spans = Vec::new();
+    for row in rows {
+        if !text.is_empty() {
+            text.push(' ');
+        }
+        let offset = text.len();
+        spans.extend(row.spans.iter().map(|span| span.shifted(offset)));
+        text.push_str(row.text.trim_end());
+    }
+    let row = Row::styled(rows[0].kind, text, spans);
+    let color = ink(row.kind, lex);
+    let color = thinking.map_or(color, |breath| breath.ink(color, lex.tx));
+    crate::rich_text::RichText::row(&row, arriving(color, lex, fade), lex)
 }
 
 /// One run of `text` in the voice its kind names and the ink its kind
 /// earns — [`RowKind::text_role`] is the one classifier, so the feed
 /// and the cell painter cannot disagree about what is mono.
-fn prose(
-    kind: RowKind,
-    text: &str,
-    lex: &Lexicon,
-    fade: Option<f32>,
-    thinking: Option<Breath>,
-) -> Element {
+fn prose(row: &Row, lex: &Lexicon, fade: Option<f32>, thinking: Option<Breath>) -> Element {
     // No `nowrap` here, deliberately: a run that overruns the measure
     // is re-broken by the shaper that is actually drawing it — which
     // for a joined paragraph is the whole point.
-    let ink = ink(kind, lex);
+    let ink = ink(row.kind, lex);
     // A thought being thought breathes between its faint pen and the
     // text pen: light, not movement, and nothing at the foot.
     let ink = match thinking {
         Some(breath) => breath.ink(ink, lex.tx),
         None => ink,
     };
-    Element::text(voice(kind), arriving(ink, lex, fade), text).claim(Component::Prose)
+    RichText::row(row, arriving(ink, lex, fade), lex).claim(Component::Prose)
 }
 
 /// Whether `line` is a tool or edit still running — the working thing
@@ -280,20 +283,6 @@ fn arriving(ink: Srgba, lex: &Lexicon, fade: Option<f32>) -> Srgba {
     match fade {
         Some(t) => crate::oklab::mix(ink, lex.sb0, t.clamp(0.0, 1.0)),
         None => ink,
-    }
-}
-
-/// The voice a row's role resolves to on this surface. The volume has
-/// no voice for the grid's own `Data` role — [`Voice::DATA`] is
-/// deliberately sizeless — so a data row (a fence, a tool head, an
-/// event) reads in the value voice, the mono the volume sets its data
-/// in.
-fn voice(kind: RowKind) -> Voice {
-    match kind.text_role() {
-        magistr_cockpit::layout::TextRole::Data => {
-            Voice::of(magistr_cockpit::layout::TextRole::Value)
-        }
-        role => Voice::of(role),
     }
 }
 

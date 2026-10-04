@@ -85,10 +85,7 @@ fn the_indexed_spaces_split_into_rows_buttons_and_one_link() {
         assert_eq!(HoverRole::of(id), HoverRole::Lift, "{id:?} is a button");
     }
     assert_eq!(HoverRole::of(Widget::trace_link(12)), HoverRole::Link);
-    assert_eq!(
-        HoverRole::of(Widget::roadmap_dependency(12)),
-        HoverRole::Link
-    );
+    assert_eq!(HoverRole::of(Widget::detail_link(12)), HoverRole::Link);
 }
 
 /// Structure stays quiet: tinting a whole panel because the pointer

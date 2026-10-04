@@ -135,7 +135,7 @@ fn selected_blocker_and_proposal_are_visible_in_item_details() {
             .into_iter()
             .map(|(s, _)| s)
             .collect::<Vec<_>>()
-            .join("\n");
+            .concat();
         assert!(says.contains(text), "{says}");
         assert!(frame.access().find(Widget::RoadmapStart).is_none());
         if id == "delivery-blocked" {

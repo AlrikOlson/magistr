@@ -431,8 +431,18 @@ pub(crate) fn shape_voice<'t>(
 /// display face for the one serif voice, the sans family breaking to
 /// its semibold cut at weight 600.
 pub(crate) fn set_of(voice: &Voice) -> TypeSet {
-    let font = if voice.is_mono() {
-        EmbeddedFonts::REGULAR
+    let font = if voice.is_italic() {
+        if voice.is_mono() {
+            EmbeddedFonts::MONO_ITALIC
+        } else {
+            EmbeddedFonts::UI_ITALIC
+        }
+    } else if voice.is_mono() {
+        if voice.weight >= 600 {
+            EmbeddedFonts::BOLD
+        } else {
+            EmbeddedFonts::REGULAR
+        }
     } else if voice.is_serif() {
         EmbeddedFonts::DISPLAY
     } else if voice.weight >= 600 {

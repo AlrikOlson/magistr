@@ -266,7 +266,6 @@ pub(super) fn fold(model: &mut Model, event: WorkbenchEvent) {
             model.trace.close_viewer();
             model.changes.open_viewer(&path, lines);
             model.pane = Pane::Inspector;
-            model.inspector_open = true;
             model.inspector_scroll = 0;
             model.show_changes();
         }
@@ -280,7 +279,6 @@ pub(super) fn fold(model: &mut Model, event: WorkbenchEvent) {
             model.trace.close_viewer();
             model.changes.open_viewer(&title, hits);
             model.pane = Pane::Inspector;
-            model.inspector_open = true;
             model.inspector_scroll = 0;
             model.show_changes();
         }
@@ -288,7 +286,6 @@ pub(super) fn fold(model: &mut Model, event: WorkbenchEvent) {
             model.trace.close_viewer();
             model.changes.open_viewer("map", lines);
             model.pane = Pane::Inspector;
-            model.inspector_open = true;
             model.inspector_scroll = 0;
             model.show_changes();
         }

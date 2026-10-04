@@ -116,18 +116,15 @@ fn a_chunk_link_has_its_own_space_beside_the_revision_links() {
 }
 
 #[test]
-fn roadmap_dependencies_round_trip_without_colliding_with_rows_or_step_links() {
+fn detail_links_round_trip_without_colliding_with_rows_or_step_links() {
     for index in [0, 1, 17, 0xFFFF] {
-        let id = Widget::roadmap_dependency(index);
-        assert_eq!(Widget::roadmap_dependency_index(id), Some(index));
+        let id = Widget::detail_link(index);
+        assert_eq!(Widget::detail_link_index(id), Some(index));
         assert_eq!(Widget::from_id(id), None);
         assert_eq!(Widget::roadmap_row_index(id), None);
         assert_eq!(Widget::trace_link_step(id), None);
         assert_eq!(Widget::session_row_index(id), None);
-        assert_eq!(
-            Widget::roadmap_dependency_index(Widget::roadmap_row(index)),
-            None
-        );
+        assert_eq!(Widget::detail_link_index(Widget::roadmap_row(index)), None);
     }
 }
 

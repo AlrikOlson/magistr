@@ -41,8 +41,20 @@ impl ShipView {
             ShipFrame::ObjectiveSet { objective } => self.begin_objective(objective),
             ShipFrame::TaskAdded { task_id, title } => self.add_task(task_id, title),
             ShipFrame::TaskStarted { task_id } => self.set_state(task_id, TaskState::Active),
-            ShipFrame::TaskCompleted { task_id } => self.set_state(task_id, TaskState::Completed),
-            ShipFrame::TaskBlocked { task_id, .. } => self.set_state(task_id, TaskState::Blocked),
+            ShipFrame::TaskCompleted { task } => {
+                let row = task_row(task);
+                if let Some(current) = self.task_mut(&task.id) {
+                    *current = row;
+                } else {
+                    self.tasks.push(row);
+                }
+            }
+            ShipFrame::TaskBlocked { task_id, reason } => {
+                self.set_state(task_id, TaskState::Blocked);
+                if let Some(task) = self.task_mut(task_id) {
+                    task.blocked_reason = Some(reason.clone());
+                }
+            }
             ShipFrame::CheckRecorded { task_id, check } => self.count_check(task_id, check.passed),
             ShipFrame::ObjectiveShipped { .. } => self.shipped = true,
             ShipFrame::Cleared => *self = Self::default(),
@@ -142,6 +154,15 @@ fn task_row(task: &Task) -> PlanTask {
         state: TaskState::from(task.status),
         checks_passed: u32::try_from(passed).unwrap_or(u32::MAX),
         checks_failed: u32::try_from(task.checks.len() - passed).unwrap_or(u32::MAX),
+        artifacts: task
+            .artifacts
+            .iter()
+            .map(|a| (a.reference.clone(), a.description.clone()))
+            .collect(),
+        blocked_reason: task.blocked_reason.clone(),
+        estimate: task.estimate.clone(),
+        started_at: task.started_at.clone(),
+        completed_at: task.completed_at.clone(),
     }
 }
 

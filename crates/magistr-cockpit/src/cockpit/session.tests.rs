@@ -269,7 +269,7 @@ fn enter_on_an_empty_draft_and_a_row_click_select_the_transcripts_card() {
     // With the call selected, Enter is the inspector's: it opens the
     // call's record rather than folding the card again.
     update(&mut by_key, key(KeyCode::Enter));
-    assert!(by_key.inspector_open());
+    assert_eq!(by_key.pane(), crate::cockpit::Pane::Inspector);
 
     let mut by_click = model();
     agent(

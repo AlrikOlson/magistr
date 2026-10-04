@@ -150,7 +150,7 @@ fn source_changes_are_readable_actionable_and_keep_failed_undo_visible() {
                     .value
                     .as_deref()
                     .unwrap()
-                    .contains("undo refused")
+                    .contains("The file has changed again.")
             );
             assert_eq!(model.changes().entries().len(), 1);
             image

@@ -20,8 +20,8 @@ Research▸Plan▸Execute▸Verify
 │                          │ │ src/main.rs                                     │
 │                          │ │ ✓ Completed                                     │
 │                          │ │ File change                                     │
-│                          │ │ Open Undo More                                  │
-│                          │ │ @@ -1,4 +1,4 @@                                 │
+│                          │ │ Open Undo Copy                                  │
+│                          │ │ Changes                                         │
 ╰──────────────────────────╯ ╰─────────────────────────────────────────────────╯
 ── nothing needs you ───────────────────────────────────────────────────────────
 ›

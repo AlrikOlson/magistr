@@ -4,6 +4,24 @@
 input, terminal graphics, and the runtime that displays that model. The native
 desktop renderer uses the shared model but has its own pixel layout.
 
+## Selected records
+
+The shared cockpit derives `Inspection` from every selected record. Its sections
+retain authored `TextDocument` blocks, stored checklist values, numbered requirements,
+named record links and exact output. Chunk and signal projections retain structured
+content; action and check projections retain their recorded evidence. A completed
+task frame carries the owner's completed task, including artifacts and timestamps.
+
+Selected records and conversation share inline spans, Markdown line classification
+and highlighting. Reading state uses a stable section and original source byte
+position. Content parsing is cached by relevant record and theme data; terminal row
+geometry is cached by width, ruler and expansion. Hover and model ticks do not
+invalidate either cache. Secondary sections expand individually. Copy includes the
+original source; external addresses are revealed and copied, never executed.
+
+The terminal measures and paints the shared document with its own cell or embedded-font
+ruler. Flat output announces changed selections independently of unfinished conversation.
+
 ## Data flow
 
 ```text

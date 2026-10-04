@@ -51,7 +51,10 @@ fn selected_receipt_and_stale_identity_are_visible() {
     );
     assert_eq!(model.selected(), selected.as_ref());
     let text = texts(&TraceComposition::el(&model, Medium::Night)).join("\n");
-    assert!(text.contains("This record is unavailable."), "{text}");
+    assert!(
+        text.contains("This record is no longer available."),
+        "{text}"
+    );
 }
 
 #[test]
@@ -118,40 +121,29 @@ fn the_chips_count_the_main_line_and_the_pins() {
 fn the_feed_shows_the_windows_cards_with_their_states_refs_and_verbs() {
     let model = view();
     let body = TraceComposition::el(&model, Medium::Night);
-    let texts = texts(&body);
+    let text = texts(&body).join("");
     for expected in [
-        "386",
-        "chunk:gui2-2-session-pane",
-        "388 \u{b7} Pinned",
-        "task:design-canvas",
-        "chunk:gui2-2a",
-        "Unpin",
-        "View receipts",
-        "389 \u{b7} In progress",
-        "Close gui2-2a: nine volumes, ten decisions, the catalog rule",
+        "open gui2-2a",
+        "Step 388",
+        "Result",
+        "No result recorded yet.",
+        "Findings",
+        "Related work",
+        "gui2-2a design",
+        "Unsave",
+        "Checkpoint",
     ] {
-        assert!(texts.iter().any(|t| t == expected), "{expected}: {texts:?}");
+        assert!(text.contains(expected), "{expected}: {text}");
     }
-    assert!(
-        !texts.iter().any(|t| t == "387"),
-        "the branch step is the rail's, not the feed's"
-    );
     let ids = ids(&body);
-    for (index, _) in TraceComposition::window(&model) {
-        assert!(
-            ids.contains(&ElementId(TraceComposition::CARDS + index as u64)),
-            "card {index} is hittable"
-        );
-    }
-    assert!(ids.contains(&ElementId(TraceComposition::PINS + 388)));
-    assert!(ids.contains(&ElementId(TraceComposition::RECEIPTS + 388)));
     assert!(
-        !ids.contains(&ElementId(TraceComposition::PINS + 386)),
-        "verbs only on the opened step"
+        ids.contains(&crate::comp_workspace::WorkspaceComposition::id(
+            Widget::trace_pin(388)
+        ))
     );
     assert!(
         ids.contains(&TraceComposition::GRAPH),
-        "the graph is reserved"
+        "the branch graph remains available"
     );
 }
 

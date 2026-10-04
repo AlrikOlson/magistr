@@ -1,8 +1,7 @@
 use magistr_cockpit::cockpit::{RailMark, Term, TermCell};
 use magistr_cockpit::render::{Attrs, Color};
-use magistr_cockpit::theme::{Icons, Pen};
+use magistr_cockpit::theme::Icons;
 use magistr_theme::ThemeColor;
-use magistr_theme::math::ensure_contrast;
 use qs_gpu::color::Srgba;
 
 use crate::component::Component;
@@ -255,23 +254,14 @@ impl TermPane {
     /// `ink` held to the terminal pen's floor against `on`.
     #[must_use]
     pub fn floor(ink: Srgba, on: Srgba) -> Srgba {
-        to_srgba(ensure_contrast(
-            to_theme(ink),
-            to_theme(on),
-            Pen::MIN_CONTRAST,
-        ))
+        Lexicon::readable(ink, on, magistr_cockpit::theme::Pen::MIN_CONTRAST)
     }
 
     /// A program's colour as the medium's: `None` for the terminal's
     /// default, an ANSI index through the lexicon's sixteen, the rest of
     /// the 256 through xterm's table, truecolor itself.
     fn color(color: Color, lex: &Lexicon) -> Option<Srgba> {
-        match color {
-            Color::Default => None,
-            Color::Indexed(n) if n < 16 => Some(lex.ansi[usize::from(n)]),
-            Color::Indexed(n) => Some(to_srgba(magistr_theme::xterm256(n))),
-            Color::Rgb(r, g, b) => Some(to_srgba(ThemeColor::new(r, g, b))),
-        }
+        lex.text_color(color)
     }
 
     /// The well's colour on `ground`.
