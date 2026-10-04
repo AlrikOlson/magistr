@@ -34,8 +34,10 @@ plans without resetting them.
    its in-progress work before selecting a pending chunk, following next's
    recovery contract. Keep its matching unfinished objective, plan, task
    statuses, actions, and checks; do not start the chunk again or reset its
-   objective. Preserve unrelated objectives and worktree changes, and report
-   ambiguous work within the chosen track instead of replacing it.
+   objective. If another scope is selected, use `ship_set_objective` to save
+   its unfinished work and restore the chosen `chunk:<id>` scope, then read
+   `ship_status` again. Preserve unrelated worktree changes and report
+   ambiguous work within the chosen track.
 2. Invoke exactly one complete `$next` workflow. When its stop rule is
    reached, end this loop invocation; the return is not permission to select
    another chunk in the same session. A recoverable gate or test failure stays

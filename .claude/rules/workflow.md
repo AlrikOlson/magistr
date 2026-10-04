@@ -33,8 +33,12 @@ Before choosing work, read `roadmap_status` and `ship_status` and follow the
 chunk selected by the current request or iteration prompt. Resume authorized
 in-progress work before selecting a pending chunk. Keep its matching unfinished
 objective, plan, task statuses, actions, checks, and reasoning. Do not call
-`roadmap_start_chunk` or `ship_set_objective` again to restart it. Preserve
-unrelated active work and report a conflict rather than replacing it. Re-read
+`roadmap_start_chunk` or `ship_set_objective` again to restart matching work.
+If another execution scope is selected, use `ship_set_objective` with the
+authorized `chunk:<id>` scope, then read `ship_status` again. Scope selection
+saves unrelated unfinished work and restores saved objectives and plans
+unchanged. An unrelated objective alone is not a blocker; never reset or
+finalize it to make room. Re-read
 actual code and saved evidence, then continue the first unfinished task or
 phase. The complete recovery contract is in `.claude/skills/next/SKILL.md`.
 
@@ -83,7 +87,7 @@ Keep your plan entry statuses up to date. The Magistr TUI sidebar shows your pla
    - `search mode:references` before modifying shared code — see all callers and importers
    - `read` (file, range, or symbol by name) for detailed code reading; built-in `Read` is ONLY for immediately before `Edit`
    - Follow `.claude/skills/workbench-routing/SKILL.md` for routing and error recovery
-2. **Recover or create the objective** — retain the matching unfinished objective. Call `ship_set_objective` with the chunk's title, acceptance criteria and scope (`chunk:<id>`) only when none exists and no unrelated objective is active.
+2. **Recover or create the objective** — select the authorized `chunk:<id>` scope with `ship_set_objective` when another scope is selected or no objective exists. Use the chunk's title, acceptance criteria and focused verification to seed a new scope. Read `ship_status` again and retain the restored objective, verification and plan; do not repeat setup on a matching unfinished scope.
 3. **Recover or extend the plan** — keep existing tasks, statuses, actions, and checks; use `ship_plan(action: "add", ...)` only for missing work.
 4. **Open the reasoning** — `think_record_step` (omit `step_number`) with the sub-plan and `execution_ref: "task:<id>"`; `roadmap_link(id, "think:<N>")`
 

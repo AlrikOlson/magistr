@@ -397,7 +397,8 @@ impl ShipEngine {
     /// objective piled tasks onto a completed objective, and
     /// reused task ids then collided. Updating the current scope preserves
     /// its tasks; choosing another scope saves the unfinished plan and restores
-    /// that scope's saved plan, or starts a new one.
+    /// that scope's saved objective and plan unchanged, or starts a new one.
+    /// Supplied details seed a new scope or update the current scope.
     pub fn set_objective(
         &mut self,
         description: String,
@@ -460,6 +461,8 @@ impl ShipEngine {
                 self.tasks = saved.tasks;
                 self.next_action_id = saved.next_action_id;
                 self.execution = saved.execution;
+                self.publish_objective();
+                return cleared;
             } else {
                 self.next_action_id = 1;
                 self.execution = ExecutionIdentity::fresh();
@@ -497,13 +500,17 @@ impl ShipEngine {
             created_at: Some(created_at),
             completed_at: None,
         });
+        self.publish_objective();
+        cleared
+    }
+
+    fn publish_objective(&mut self) {
         self.persist();
-        if let Some(obj) = &self.objective {
+        if let Some(objective) = &self.objective {
             self.broadcast(BroadcastFrame::ObjectiveSet {
-                objective: obj.clone(),
+                objective: objective.clone(),
             });
         }
-        cleared
     }
 
     pub fn add_task(

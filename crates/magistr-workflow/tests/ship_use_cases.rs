@@ -431,6 +431,88 @@ fn switching_scopes_restores_the_exact_unfinished_plan_across_restart() {
     );
 }
 
+#[tokio::test]
+async fn mcp_scope_recovery_preserves_blocked_work_and_saved_objective_metadata() {
+    use magistr_workflow::ship::domain::objective::VerificationMode;
+    use magistr_workflow::ship::mcp::handlers::SetObjectiveArgs;
+
+    let temp = tempfile::tempdir().unwrap();
+    let cases = stored(temp.path());
+    cases
+        .set_objective_with_verification(
+            "Finish the benchmark".into(),
+            vec!["Record every trial".into()],
+            vec!["Preserve original evidence".into()],
+            "benchmark".into(),
+            VerificationMode::Focused,
+        )
+        .unwrap();
+    cases
+        .add_task(
+            "trials".into(),
+            "Run trials".into(),
+            TaskType::Test,
+            None,
+            None,
+        )
+        .unwrap();
+    cases.start_task("trials").unwrap();
+    let admitted = cases.admit_check(request()).unwrap();
+    cases.settle_check(admitted, outcome()).unwrap();
+    cases
+        .block_task("trials", "Waiting for credentials".into())
+        .unwrap();
+    let benchmark = serde_json::to_value(cases.snapshot().unwrap()).unwrap();
+
+    cases
+        .set_objective_with_verification(
+            "Read selected records".into(),
+            vec!["Show all recorded content".into()],
+            vec![],
+            "chunk:rich-records".into(),
+            VerificationMode::Focused,
+        )
+        .unwrap();
+    cases
+        .add_task(
+            "render".into(),
+            "Render records".into(),
+            TaskType::Implement,
+            None,
+            None,
+        )
+        .unwrap();
+    cases.start_task("render").unwrap();
+    let selected = serde_json::to_value(cases.snapshot().unwrap()).unwrap();
+
+    // Recovery arguments seed only a new scope, never replace a saved objective.
+    let reopened = stored(temp.path());
+    let service = ShipService::from_use_cases(reopened.clone());
+    for (scope, expected) in [("benchmark", benchmark), ("chunk:rich-records", selected)] {
+        let answer = service
+            .ship_set_objective(Parameters(SetObjectiveArgs {
+                description: "Newly supplied description".into(),
+                acceptance_criteria: vec!["Newly supplied criterion".into()],
+                constraints: vec!["Newly supplied constraint".into()],
+                scope: scope.into(),
+                verification: VerificationMode::Full,
+            }))
+            .await
+            .unwrap()
+            .structured_content
+            .unwrap();
+        assert_eq!(answer, expected["objective"]);
+        assert_eq!(
+            serde_json::to_value(reopened.snapshot().unwrap()).unwrap(),
+            expected
+        );
+        assert_eq!(
+            serde_json::to_value(stored(temp.path()).snapshot().unwrap()).unwrap(),
+            expected
+        );
+    }
+}
+
 #[test]
 fn stale_writers_cannot_reselect_a_saved_plan_or_erase_its_latest_tasks() {
     let temp = tempfile::tempdir().unwrap();
