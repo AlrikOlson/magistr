@@ -31,13 +31,13 @@ steps below create only missing planning records.
    shared-interface callers with workbench `map`, `search`, and `read`.
    Research relevant current primary API documentation, prior art, and pitfalls
    with the host's web tools. Tie findings to the acceptance criteria.
-2. Announce `magistr_set_phase(phase: "plan")`. Only when no matching
-   unfinished objective exists and no unrelated objective is active, call
-   `ship_set_objective` with the chunk description, acceptance criteria, and
-   `chunk:<id>` scope. Select `verification: "focused"` for bounded changes,
-   including code; choose `full` only for an explicit full-suite request or a
-   concrete cross-cutting risk. Preserve the objective and its selected
-   verification on resume; do not call `ship_set_objective` to repeat setup.
+2. Announce `magistr_set_phase(phase: "plan")`. Select the authorized
+   `chunk:<id>` scope through the recovery contract above, then read
+   `ship_status` and retain any restored objective, verification and plan.
+   For a new scope, use the chunk description and acceptance criteria with
+   `verification: "focused"` for bounded changes, including code; choose
+   `full` only for an explicit full-suite request or concrete cross-cutting
+   risk. Do not call `ship_set_objective` again on a matching unfinished scope.
    Record the selected checks and their reason in the plan. Keep existing
    tasks and add only missing work with `ship_plan(action: "add", ...)`,
    using IDs prefixed by the chunk. Include a final `review`

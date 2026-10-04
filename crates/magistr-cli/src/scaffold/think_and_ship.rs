@@ -76,9 +76,9 @@ traces auto-correlate.
 
 ## Quick-start workflow
 
-First read `ship_status` and, for roadmap work, `roadmap_status`. Resume a matching unfinished objective and keep its plan, task statuses, actions, checks, and reasoning. Continue an already active task without starting it again; do not restart completed tasks. Preserve conflicting active work and report the conflict instead of resetting it. For `/next`, follow the selected chunk and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
+First read `ship_status` and, for roadmap work, `roadmap_status`. Resume a matching unfinished objective and keep its plan, task statuses, actions, checks, and reasoning. Continue an already active task without starting it again; do not restart completed tasks. Select the authorized scope with `ship_set_objective` when another scope is selected, then read `ship_status` again. Scope selection saves unrelated unfinished work and restores a saved objective and plan unchanged; never reset or finalize unrelated work to make room. For `/next`, follow the selected chunk and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
 
-1. `ship_set_objective` — define the goal only when no unfinished objective exists
+1. `ship_set_objective` — select the authorized scope or define a new goal; resume a matching unfinished scope without repeating setup
 2. `ship_plan` — keep existing tasks and add only missing work
 3. `think_record_step` — record the question, current evidence, and planned next check
 4. `ship_start` a pending task, or continue the active task; then `ship_record` → `ship_complete` — do the work, recording findings and changed conclusions as evidence arrives

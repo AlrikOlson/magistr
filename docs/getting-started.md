@@ -52,8 +52,9 @@ with a `/` prefix.
 
 After an interruption, invoke the same command again. Magistr resumes work
 already in progress before starting another item, keeping its plan, completed
-tasks, and check results. It reports conflicting active work instead of
-replacing it. The MCP tools `roadmap_status` and `ship_status` report progress.
+tasks, and check results. Unfinished work on another task stays saved while
+Magistr selects the requested work. Returning to that task restores its plan
+and evidence. The MCP tools `roadmap_status` and `ship_status` report progress.
 
 If `magistr next-loop` stops because an earlier agent's outcome is unknown,
 inspect it with `magistr workspace doctor . --json`. Check that the loop and

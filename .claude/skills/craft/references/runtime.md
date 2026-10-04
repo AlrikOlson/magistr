@@ -41,10 +41,14 @@ tooling.
   the checkout. Otherwise generate a roadmap view only when project policy
   requests it; a view never becomes the source of truth.
 - Recover existing work using `roadmap_status`, `ship_status`, relevant tasks,
-  checks, and reasoning before making a new objective. Resume only an objective
-  belonging to the requested work. Preserve another session's active work;
-  report a conflicting objective instead of resetting it to clear an error.
-  Take task IDs and references from live records.
+  checks and reasoning. Select only the scope authorized by the request;
+  roadmap work uses `chunk:<id>`. If another scope is selected, use
+  `ship_set_objective` to save its unfinished work and restore the authorized
+  scope, or seed a new objective when that scope has no saved work. Restoration
+  keeps objective details, verification and the complete plan unchanged. Read
+  `ship_status` again and take task IDs and references from those live records.
+  Resume a matching scope without repeating setup. An unrelated unfinished
+  objective alone is not a blocker; never reset or finalize it to make room.
 - `ship_plan` task types are `research`, `implement`, `test`, `review`,
   `config`, and `docs`. Change lifecycle with `ship_start` and `ship_complete`;
   keep only one task active. Record material actions with `ship_record`.

@@ -25,7 +25,9 @@ Use the skill matching the user’s request:
   select one ready chunk, through the native research, plan, execute, verify,
   completion, and commit lifecycle. Follow next's recovery contract: inspect
   `roadmap_status` and `ship_status`, keep a matching unfinished objective and
-  plan, and never restart completed tasks or replace conflicting active work.
+  plan, and never restart completed tasks. Select the authorized scope with
+  `ship_set_objective` if another scope is selected; saved objectives and plans
+  are restored unchanged. Preserve unrelated unfinished work without resetting it.
 - `/next-loop`: bounded fresh-session handoff; one complete chunk per
   agent session, then a new session before the next chunk. The native TUI
   loop owns automatic chaining.
