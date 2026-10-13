@@ -10,7 +10,7 @@ pub struct ChargebackRow {
     /// The dimension key charged — an identity, a project, a model.
     pub key: String,
     /// Money owed for this period.
-    pub cost_usd: f64,
+    pub cost_usd: Option<f64>,
     /// Agent turns metered.
     pub turns: u32,
     /// Sessions metered.
@@ -18,5 +18,5 @@ pub struct ChargebackRow {
     /// Tokens metered.
     pub tokens: TokenBreakdown,
     /// This key's fraction of *this period's* spend, in `0.0..=1.0`.
-    pub share: f64,
+    pub share: Option<f64>,
 }

@@ -1,6 +1,5 @@
 use crate::agent;
 use crate::cli::HeadlessFormat;
-use crate::cost::{SessionSpend, record_session};
 use crate::error::ResultExt;
 use color_eyre::eyre;
 use std::io::Write;
@@ -59,23 +58,14 @@ pub async fn cmd_run_headless(
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;
-    let model = session.resolved_model().map(str::to_owned);
 
     let budget_limit = inputs.budget_limit();
 
     let mut stdout = std::io::stdout().lock();
     let mut stderr = std::io::stderr().lock();
 
-    let mut spend = None;
-    let drained = drain_headless(
-        &mut session,
-        format,
-        budget_limit,
-        &mut stdout,
-        &mut stderr,
-        &mut spend,
-    )
-    .await;
+    let drained =
+        drain_headless(&mut session, format, budget_limit, &mut stdout, &mut stderr).await;
     let cleanup = session.terminate_session().await.suggest();
     drop(session);
     if let Err(err) = workspace.shutdown().await {
@@ -83,12 +73,6 @@ pub async fn cmd_run_headless(
     }
     let outcome = drained?;
 
-    // The ledger every budget scope is measured over. Written here
-    // rather than inside the drain so the drain stays a pure function of
-    // its writers and its tests never touch the real ledger.
-    if let Some(spend) = spend.map(|s| model.as_deref().map_or(s.clone(), |m| s.with_model(m))) {
-        record_session(inputs, &cwd, &spend);
-    }
     cleanup?;
 
     // Settled — the ledger row written, the workspace released — an
@@ -107,34 +91,24 @@ pub async fn cmd_run_headless(
 /// Writes output to the provided writers (testable). Returns the session outcome
 /// instead of calling `process::exit` directly.
 ///
-/// `spend` receives what the session's result message reported, for the
-/// caller to write to the cost ledger. It is an out-parameter rather
-/// than a return value because the drain already has a meaningful
-/// return, and because a drain that ends without a result message must
-/// leave it untouched rather than invent a zero row.
+/// The shared session owner saves spending independently of this output reader.
 pub(crate) async fn drain_headless(
     session: &mut agent::session::AgentSession,
     format: HeadlessFormat,
     budget_limit: Option<f64>,
     out: &mut dyn Write,
     err: &mut dyn Write,
-    spend: &mut Option<SessionSpend>,
 ) -> eyre::Result<HeadlessOutcome> {
-    drain_headless_observing(session, format, budget_limit, out, err, spend, &mut |_| {
-        Ok(())
-    })
-    .await
+    drain_headless_observing(session, format, budget_limit, out, err, &mut |_| Ok(())).await
 }
 
-/// Observe priced usage before output or termination so a loop can checkpoint
-/// reported spending even if no final ledger result arrives.
+/// Observe reported spending before output or termination for loop checkpoints.
 pub(crate) async fn drain_headless_observing(
     session: &mut agent::session::AgentSession,
     format: HeadlessFormat,
     budget_limit: Option<f64>,
     out: &mut dyn Write,
     err: &mut dyn Write,
-    spend: &mut Option<SessionSpend>,
     observe_cost: &mut dyn FnMut(f64) -> eyre::Result<()>,
 ) -> eyre::Result<HeadlessOutcome> {
     use crate::agent::message::{AgentMessage, ContentBlock};
@@ -207,20 +181,9 @@ pub(crate) async fn drain_headless_observing(
                     duration_ms,
                     total_cost_usd,
                     session_id,
-                    usage,
                     ..
                 } => {
                     let duration_secs = *duration_ms as f64 / 1000.0;
-                    *spend = Some(
-                        SessionSpend::new(session_id.as_str(), total_cost_usd.unwrap_or(0.0))
-                            .with_run(*num_turns, *duration_ms)
-                            .with_tokens(
-                                usage
-                                    .as_ref()
-                                    .map(SessionSpend::tokens_from_usage)
-                                    .unwrap_or_default(),
-                            ),
-                    );
                     match format {
                         HeadlessFormat::Plain => {
                             writeln!(out)?;

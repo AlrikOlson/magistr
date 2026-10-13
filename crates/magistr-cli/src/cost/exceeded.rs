@@ -101,14 +101,16 @@ impl BudgetExceededScreen {
     }
 
     /// Build from a `CostSummary` and budget limit (convenience for post-session reports).
-    pub fn from_summary(limit: f64, summary: &CostSummary, turn_costs: &[f64]) -> Self {
-        Self::new(
-            limit,
-            summary.total_cost,
-            summary.total_turns,
-            &summary.total_tokens,
-            turn_costs,
-        )
+    pub fn from_summary(limit: f64, summary: &CostSummary, turn_costs: &[f64]) -> Option<Self> {
+        summary.total_cost.map(|cost| {
+            Self::new(
+                limit,
+                cost,
+                summary.total_turns,
+                &summary.total_tokens,
+                turn_costs,
+            )
+        })
     }
 }
 

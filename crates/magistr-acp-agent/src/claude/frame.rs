@@ -242,8 +242,8 @@ pub(crate) struct ResultFrame {
     /// Per-model totals, cumulative over the session; the context window lives here.
     #[serde(rename = "modelUsage")]
     pub model_usage: BTreeMap<String, ModelUsage>,
-    /// Cumulative estimated cost in USD.
-    pub total_cost_usd: f64,
+    /// Cumulative estimated cost in USD, when the provider reported it.
+    pub total_cost_usd: Option<f64>,
     /// Tool calls the session denied this turn.
     pub permission_denials: Vec<Value>,
 }

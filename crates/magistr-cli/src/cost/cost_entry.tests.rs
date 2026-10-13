@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn a_pre_e6_ledger_line_still_loads_with_no_attribution() {
+fn current_entry_can_have_no_actor_or_model() {
     let json = r#"{
         "session_id": "s1",
         "project": "magistr",
@@ -43,7 +43,7 @@ fn an_unattributed_entry_omits_the_fields_when_written() {
         session_id: "s1".into(),
         project: "magistr".into(),
         timestamp: chrono::Utc::now(),
-        cost_usd: 0.5,
+        cost_usd: Some(0.5),
         tokens: TokenBreakdown::default(),
         turns: 1,
         duration_ms: 100,

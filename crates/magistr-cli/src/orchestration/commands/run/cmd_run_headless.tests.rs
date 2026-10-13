@@ -79,7 +79,6 @@ async fn plain_streams_text_to_stdout() {
         None,
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -103,7 +102,6 @@ async fn plain_tool_calls_go_to_stderr() {
         None,
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -127,7 +125,6 @@ async fn plain_summary_to_stderr() {
         None,
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -151,7 +148,6 @@ async fn plain_error_result_returns_agent_error() {
         None,
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -170,16 +166,9 @@ async fn json_streams_ndjson_text_events() {
 
     let mut out = Vec::new();
     let mut err = Vec::new();
-    let outcome = drain_headless(
-        &mut session,
-        HeadlessFormat::Json,
-        None,
-        &mut out,
-        &mut err,
-        &mut None,
-    )
-    .await
-    .unwrap();
+    let outcome = drain_headless(&mut session, HeadlessFormat::Json, None, &mut out, &mut err)
+        .await
+        .unwrap();
 
     assert_eq!(outcome, HeadlessOutcome::Ok);
 
@@ -207,16 +196,9 @@ async fn json_tool_use_events() {
 
     let mut out = Vec::new();
     let mut err = Vec::new();
-    drain_headless(
-        &mut session,
-        HeadlessFormat::Json,
-        None,
-        &mut out,
-        &mut err,
-        &mut None,
-    )
-    .await
-    .unwrap();
+    drain_headless(&mut session, HeadlessFormat::Json, None, &mut out, &mut err)
+        .await
+        .unwrap();
 
     let out_str = String::from_utf8(out).unwrap();
     let lines: Vec<&str> = out_str.trim().lines().collect();
@@ -234,16 +216,9 @@ async fn json_usage_events() {
 
     let mut out = Vec::new();
     let mut err = Vec::new();
-    drain_headless(
-        &mut session,
-        HeadlessFormat::Json,
-        None,
-        &mut out,
-        &mut err,
-        &mut None,
-    )
-    .await
-    .unwrap();
+    drain_headless(&mut session, HeadlessFormat::Json, None, &mut out, &mut err)
+        .await
+        .unwrap();
 
     let out_str = String::from_utf8(out).unwrap();
     let lines: Vec<&str> = out_str.trim().lines().collect();
@@ -269,7 +244,6 @@ async fn budget_exceeded_cancels_session() {
         Some(5.00),
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -294,7 +268,6 @@ async fn budget_not_exceeded_continues() {
         Some(5.00),
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -316,7 +289,6 @@ async fn json_budget_exceeded_emits_error_event() {
         Some(5.00),
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -347,7 +319,6 @@ async fn cancelled_returns_cancelled_outcome() {
         None,
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -365,16 +336,9 @@ async fn json_cancelled_emits_event() {
 
     let mut out = Vec::new();
     let mut err = Vec::new();
-    let outcome = drain_headless(
-        &mut session,
-        HeadlessFormat::Json,
-        None,
-        &mut out,
-        &mut err,
-        &mut None,
-    )
-    .await
-    .unwrap();
+    let outcome = drain_headless(&mut session, HeadlessFormat::Json, None, &mut out, &mut err)
+        .await
+        .unwrap();
 
     assert_eq!(outcome, HeadlessOutcome::Cancelled);
     let out_str = String::from_utf8(out).unwrap();
@@ -398,7 +362,6 @@ async fn empty_stream_returns_agent_error() {
         None,
         &mut out,
         &mut err,
-        &mut None,
     )
     .await
     .unwrap();
@@ -416,74 +379,48 @@ fn exit_codes_are_correct() {
     assert_eq!(HeadlessOutcome::BudgetExceeded.exit_code(), 2);
 }
 
-// ── the drain reports what to write to the ledger ──────────────────
-
 #[tokio::test]
-async fn the_result_message_is_reported_as_session_spend() {
+async fn completion_output_keeps_the_reported_price() {
     let (mut session, tx) = mock_session();
-    tx.send(Ok(AgentMessage::Result {
-        subtype: "result".to_string(),
-        duration_ms: 4_200,
-        duration_api_ms: 4_000,
-        is_error: false,
-        num_turns: 3,
-        session_id: SessionId::new("sess-ledger"),
-        total_cost_usd: Some(0.75),
-        usage: Some(serde_json::json!({
-            "input_tokens": 900,
-            "output_tokens": 150,
-            "cache_read_input_tokens": 4_000,
-        })),
-        result: None,
-    }))
-    .unwrap();
-
+    tx.send(Ok(result_msg(false, 3, Some(0.75)))).unwrap();
     let mut out = Vec::new();
-    let mut err = Vec::new();
-    let mut spend = None;
     drain_headless(
         &mut session,
-        HeadlessFormat::Plain,
+        HeadlessFormat::Json,
         None,
         &mut out,
-        &mut err,
-        &mut spend,
+        &mut Vec::new(),
     )
     .await
     .unwrap();
-
-    let spend = spend.expect("a result message reports spend");
-    assert_eq!(spend.session_id, "sess-ledger");
-    assert_eq!(spend.cost_usd, 0.75);
-    assert_eq!(spend.turns, 3);
-    assert_eq!(spend.duration_ms, 4_200);
-    assert_eq!(spend.tokens.input_tokens, 900);
-    assert_eq!(spend.tokens.output_tokens, 150);
-    assert_eq!(spend.tokens.cache_read_tokens, 4_000);
+    let rows: Vec<serde_json::Value> = String::from_utf8(out)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    let result = rows.iter().find(|row| row["type"] == "result").unwrap();
+    assert_eq!(result["total_cost_usd"], 0.75);
+    assert_eq!(result["num_turns"], 3);
 }
 
 #[tokio::test]
-async fn a_stream_with_no_result_message_reports_no_spend() {
+async fn a_stream_without_completion_reports_failure_without_a_result() {
     let (mut session, tx) = mock_session();
     tx.send(Ok(text_msg("no result follows"))).unwrap();
     drop(tx);
-
     let mut out = Vec::new();
-    let mut err = Vec::new();
-    let mut spend = None;
-    drain_headless(
+    let outcome = drain_headless(
         &mut session,
-        HeadlessFormat::Plain,
+        HeadlessFormat::Json,
         None,
         &mut out,
-        &mut err,
-        &mut spend,
+        &mut Vec::new(),
     )
     .await
     .unwrap();
-
-    assert!(
-        spend.is_none(),
-        "an unfinished session must not invent a zero ledger row"
-    );
+    assert_eq!(outcome, HeadlessOutcome::AgentError);
+    assert!(String::from_utf8(out).unwrap().lines().all(|line| {
+        let row: serde_json::Value = serde_json::from_str(line).unwrap();
+        row["type"] != "result"
+    }));
 }

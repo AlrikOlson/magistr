@@ -12,5 +12,5 @@ pub struct CostGroup {
     /// Summary statistics for the entries under this key.
     pub summary: CostSummary,
     /// This key's fraction of total spend, in `0.0..=1.0`.
-    pub share: f64,
+    pub share: Option<f64>,
 }

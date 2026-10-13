@@ -11,7 +11,7 @@ fn sample_entry(id: &str, project: &str, cost: f64) -> CostEntry {
         session_id: id.into(),
         project: project.into(),
         timestamp: Utc::now(),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown::default(),
         turns: 3,
         duration_ms: 15000,
@@ -52,8 +52,8 @@ fn append_and_load_round_trip() {
     assert_eq!(loaded.len(), 2);
     assert_eq!(loaded[0].session_id, "s1");
     assert_eq!(loaded[1].session_id, "s2");
-    assert_eq!(loaded[0].cost_usd, 1.50);
-    assert_eq!(loaded[1].cost_usd, 2.25);
+    assert_eq!(loaded[0].cost_usd, Some(1.50));
+    assert_eq!(loaded[1].cost_usd, Some(2.25));
 }
 
 #[test]

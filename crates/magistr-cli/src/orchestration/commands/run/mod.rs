@@ -1,9 +1,6 @@
-//! Run/agent commands: run, run TUI, and the ACP permission handler.
-
-use std::path::Path;
+//! Run commands read shared session observations and route permission handling.
 
 use crate::agent;
-use crate::cost::{SessionSpend, record_session};
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
@@ -11,17 +8,8 @@ use color_eyre::eyre;
 ///
 /// This is the full interactive loop used by `cmd_run` in no-TUI mode.
 ///
-/// Each completed turn is written to the cost ledger (found through the
-/// captured `inputs`), stamped with the resolved identity and `model` —
-/// this and the headless drain are the only two places the agent's
-/// result message is seen, so they are the only two places the ledger
-/// can be fed.
-async fn drain_session_interactive(
-    session: &mut agent::session::AgentSession,
-    dir: &Path,
-    inputs: &crate::config::inputs::ProjectInputs,
-    model: Option<&str>,
-) -> eyre::Result<()> {
+/// Spending observations are resolved and saved by the shared session owner.
+async fn drain_session_interactive(session: &mut agent::session::AgentSession) -> eyre::Result<()> {
     loop {
         // Drain messages until the turn completes (Result) or stream ends
         let mut turn_done = false;
@@ -41,23 +29,8 @@ async fn drain_session_interactive(
                         duration_ms,
                         total_cost_usd,
                         session_id,
-                        usage,
                         ..
                     } => {
-                        let mut spend =
-                            SessionSpend::new(session_id.as_str(), total_cost_usd.unwrap_or(0.0))
-                                .with_run(*num_turns, *duration_ms)
-                                .with_tokens(
-                                    usage
-                                        .as_ref()
-                                        .map(SessionSpend::tokens_from_usage)
-                                        .unwrap_or_default(),
-                                );
-                        if let Some(model) = model {
-                            spend = spend.with_model(model);
-                        }
-                        record_session(inputs, dir, &spend);
-
                         let duration_secs = *duration_ms as f64 / 1000.0;
                         let cost_str = total_cost_usd
                             .map(|c| format!("${c:.4}"))

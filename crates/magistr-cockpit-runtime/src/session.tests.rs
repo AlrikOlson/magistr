@@ -589,13 +589,15 @@ fn the_relay_stamps_elapsed_time_without_changing_other_tool_fields() {
         "a terminal tool update releases its clock"
     );
     let mut usage = AgentEvent::Usage {
-        used: 12,
-        size: 100,
+        context: Some(magistr_application::sessions::ContextUsage {
+            used: 12,
+            size: 100,
+        }),
         cost_cents: Some(4),
         elapsed_secs: None,
     };
     session.stamp(&mut usage);
     assert!(
-        matches!(usage, AgentEvent::Usage { elapsed_secs: Some(secs), used: 12, size: 100, cost_cents: Some(4) } if secs >= 9)
+        matches!(usage, AgentEvent::Usage { elapsed_secs: Some(secs), context: Some(magistr_application::sessions::ContextUsage { used: 12, size: 100 }), cost_cents: Some(4) } if secs >= 9)
     );
 }

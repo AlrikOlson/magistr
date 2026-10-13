@@ -25,9 +25,7 @@ impl Drop for OwnerState {
                 "Session owner stopped before a provider terminal response",
             );
         }
-        if let Some(history) = &state.history {
-            history.settle_detached(outcome(&state));
-        }
+        state.history.settle_detached(outcome(&state));
         state.messages = None;
         state.cockpit_events = None;
         state.snapshot.client_attached = false;
@@ -70,9 +68,7 @@ pub(super) async fn run(
         .expect("supervisor state lock poisoned")
         .history
         .clone();
-    if let Some(history) = history
-        && let Err(error) = history.settle(settled).await
-    {
+    if let Err(error) = history.settle(settled).await {
         crate::agent::persistence::warn_history(&error);
         let mut inner = state.lock().expect("supervisor state lock poisoned");
         inner.emit_cockpit(magistr_application::sessions::AgentEvent::Notice(
@@ -241,7 +237,7 @@ async fn run_loop(
                 let mut inner = state.lock().expect("supervisor state lock poisoned");
                 match event {
                     Some(Ok(event)) => {
-                        if let Some(history) = &inner.history { history.observe(&event); }
+                        inner.history.observe(&event);
                         if let AcpEvent::ExtensionResponse { request_id, result } = event {
                             permissions.drain();
                             match goal.take() {
@@ -257,8 +253,7 @@ async fn run_loop(
                         }
                         if let AcpEvent::Initialized { session_id: id, agent_capabilities, .. } = &event {
                             session_id = Some(id.clone());
-                            if options.is_none() && inner.snapshot.active_turn.is_some()
-                                && let Some(history) = &inner.history { history.begin_turn(); }
+                            if options.is_none() && inner.snapshot.active_turn.is_some() { inner.history.begin_turn(); }
                             inner.capabilities = Some((**agent_capabilities).clone());
                             if let Some(options) = options.take() {
                                 control = Some(Box::pin(super::opening::initialize(transport, event, options, state)));
@@ -303,7 +298,7 @@ async fn run_loop(
                             }
                             if let Some(turn_id) = inner.snapshot.active_turn.take() {
                                 inner.completed_turns += 1;
-                                if let Some(history) = &inner.history { history.finished_turn(); }
+                                inner.history.finished_turn();
                                 inner.snapshot.last_outcome = Some(TurnOutcome {
                                     turn_id, stop_reason: Some(response.stop_reason), error: None,
                                 });
@@ -400,9 +395,7 @@ fn start_next(
         permissions.drain();
         inner.snapshot.queued_turns = inner.queue.len();
         inner.snapshot.active_turn = Some(id);
-        if let Some(history) = &inner.history {
-            history.begin_turn();
-        }
+        inner.history.begin_turn();
         if let Err(error) = transport.prompt(&prompt) {
             fail(&mut inner, format!("Failed to send follow-up: {error}"));
             return false;

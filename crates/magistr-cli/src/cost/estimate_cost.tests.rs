@@ -9,7 +9,7 @@ fn sample_entry(cost: f64, turns: u32) -> CostEntry {
         session_id: format!("s-{cost}"),
         project: "test".into(),
         timestamp: Utc::now(),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown::default(),
         turns,
         duration_ms: 5000,

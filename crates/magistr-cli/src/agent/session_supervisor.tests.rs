@@ -13,6 +13,8 @@ use tokio::sync::{Notify, Semaphore, mpsc};
 mod goals;
 #[path = "session_supervisor/history.tests.rs"]
 mod history;
+#[path = "session_supervisor/spending.tests.rs"]
+mod spending;
 
 const DEADLINE: Duration = Duration::from_secs(3);
 
@@ -118,11 +120,22 @@ impl Provider for ControlledProvider {
                     () = turn.cancelled() => return Ok(StopReason::Cancelled),
                 }
             }
-            if text == "priced" {
+            {
                 use agent_client_protocol::schema::v1::{Cost, UsageUpdate};
-                turn.usage(UsageUpdate::new(4, 100).cost(Cost::new(0.25, "USD")))?;
+                let price = match text.as_str() {
+                    "priced" => Some(0.25),
+                    "zero" => Some(0.0),
+                    "higher" => Some(0.75),
+                    "priced fail" => Some(0.5),
+                    _ => None,
+                };
+                if let Some(price) = price {
+                    turn.usage(UsageUpdate::new(4, 100).cost(Cost::new(price, "USD")))?;
+                } else if text == "unpriced usage" {
+                    turn.usage(UsageUpdate::new(8, 100))?;
+                }
             }
-            if text == "fail" {
+            if text == "fail" || text == "priced fail" {
                 return Err(AgentError::provider("controlled turn failure"));
             }
             if text == "hold max tokens" {

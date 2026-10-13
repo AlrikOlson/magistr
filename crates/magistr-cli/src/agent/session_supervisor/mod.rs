@@ -45,7 +45,7 @@ type Policy = (
 
 struct Inner {
     snapshot: SessionSupervisorSnapshot,
-    history: Option<super::persistence::SessionHistory>,
+    history: super::persistence::SessionHistory,
     queue: VecDeque<(u64, String)>,
     next_turn: u64,
     completed_turns: u32,
@@ -64,7 +64,13 @@ struct Inner {
 }
 
 impl Inner {
-    fn emit(&mut self, message: Result<AgentMessage>) {
+    fn emit(&mut self, mut message: Result<AgentMessage>) {
+        let cost = self.history.reported_cost_usd();
+        match &mut message {
+            Ok(AgentMessage::Result { total_cost_usd, .. }) => *total_cost_usd = cost,
+            Ok(AgentMessage::UsageUpdate { cost_usd, .. }) => *cost_usd = cost,
+            _ => {}
+        }
         if let Err(error) = &message {
             self.emit_cockpit(AgentEvent::Error(error.to_string()));
         }
@@ -78,7 +84,14 @@ impl Inner {
         }
     }
 
-    fn emit_cockpit(&mut self, event: AgentEvent) {
+    fn emit_cockpit(&mut self, mut event: AgentEvent) {
+        let initialized = matches!(event, AgentEvent::Initialized { .. });
+        if let AgentEvent::Usage { cost_cents, .. } = &mut event {
+            *cost_cents = self
+                .history
+                .reported_cost_usd()
+                .map(super::translate::usd_cents);
+        }
         if self
             .cockpit_events
             .as_ref()
@@ -86,6 +99,13 @@ impl Inner {
         {
             self.cockpit_events = None;
             self.snapshot.client_attached = false;
+        }
+        if initialized && let Some(cost) = self.history.reported_cost_usd() {
+            self.emit_cockpit(AgentEvent::Usage {
+                context: None,
+                cost_cents: Some(super::translate::usd_cents(cost)),
+                elapsed_secs: None,
+            });
         }
     }
 
@@ -246,9 +266,8 @@ impl SessionSupervisor {
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
         let permissions = Permissions::new(transport.take_permission_rx(), policy);
         let opening = !prompt.trim().is_empty();
-        if let Some(history) = &history {
-            history.bind_transport(&transport);
-        }
+        let history = history.unwrap_or_else(super::persistence::SessionHistory::new);
+        history.bind_transport(&transport);
         if opening {
             transport
                 .prompt(prompt)
@@ -337,9 +356,8 @@ impl SessionSupervisor {
             cockpit_events.clone(),
         );
         let (commands, command_rx) = mpsc::unbounded_channel();
-        if let Some(history) = &history {
-            history.bind_transport(&transport);
-        }
+        let history = history.unwrap_or_else(super::persistence::SessionHistory::new);
+        history.bind_transport(&transport);
         let opening = options
             .opening_prompt
             .as_ref()

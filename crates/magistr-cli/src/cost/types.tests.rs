@@ -123,7 +123,7 @@ fn cost_entry_serialization_round_trip() {
         session_id: "sess-123".into(),
         project: "my-project".into(),
         timestamp: Utc::now(),
-        cost_usd: 1.2345,
+        cost_usd: Some(1.2345),
         tokens: TokenBreakdown {
             input_tokens: 1000,
             output_tokens: 500,
@@ -148,7 +148,7 @@ fn cost_entry_serialization_round_trip() {
 fn cost_summary_from_empty() {
     let summary = CostSummary::from_entries(&[]);
     assert_eq!(summary.entry_count, 0);
-    assert_eq!(summary.total_cost, 0.0);
+    assert_eq!(summary.total_cost, Some(0.0));
     assert_eq!(summary.total_turns, 0);
     assert!(summary.earliest.is_none());
     assert!(summary.latest.is_none());
@@ -163,7 +163,7 @@ fn cost_summary_from_entries() {
             session_id: "a".into(),
             project: "proj".into(),
             timestamp: t1,
-            cost_usd: 1.50,
+            cost_usd: Some(1.50),
             tokens: TokenBreakdown {
                 input_tokens: 100,
                 output_tokens: 50,
@@ -178,7 +178,7 @@ fn cost_summary_from_entries() {
             session_id: "b".into(),
             project: "proj".into(),
             timestamp: t2,
-            cost_usd: 2.25,
+            cost_usd: Some(2.25),
             tokens: TokenBreakdown {
                 input_tokens: 200,
                 output_tokens: 100,
@@ -193,7 +193,7 @@ fn cost_summary_from_entries() {
 
     let summary = CostSummary::from_entries(&entries);
     assert_eq!(summary.entry_count, 2);
-    assert!((summary.total_cost - 3.75).abs() < f64::EPSILON);
+    assert!((summary.total_cost.unwrap() - 3.75).abs() < f64::EPSILON);
     assert_eq!(summary.total_turns, 8);
     assert_eq!(summary.total_tokens.input_tokens, 300);
     assert_eq!(summary.total_tokens.output_tokens, 150);
@@ -204,7 +204,7 @@ fn cost_summary_from_entries() {
 #[test]
 fn cost_summary_display_small() {
     let summary = CostSummary {
-        total_cost: 0.005,
+        total_cost: Some(0.005),
         total_turns: 1,
         entry_count: 1,
         earliest: None,
@@ -217,7 +217,7 @@ fn cost_summary_display_small() {
 #[test]
 fn cost_summary_display_large() {
     let summary = CostSummary {
-        total_cost: 12.34,
+        total_cost: Some(12.34),
         total_turns: 10,
         entry_count: 5,
         earliest: None,

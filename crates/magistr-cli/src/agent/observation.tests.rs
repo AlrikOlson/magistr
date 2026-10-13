@@ -16,8 +16,7 @@ fn text(text: &str) -> AgentEvent {
 
 fn usage(used: u64) -> AgentEvent {
     AgentEvent::Usage {
-        used,
-        size: 100,
+        context: Some(magistr_application::sessions::ContextUsage { used, size: 100 }),
         cost_cents: None,
         elapsed_secs: None,
     }

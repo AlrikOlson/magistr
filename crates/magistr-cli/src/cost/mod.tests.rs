@@ -81,7 +81,7 @@ fn to_cost_entry_captures_state() {
     let entry = t.to_cost_entry("sess-abc", "my-project");
     assert_eq!(entry.session_id, "sess-abc");
     assert_eq!(entry.project, "my-project");
-    assert!((entry.cost_usd - 2.0).abs() < f64::EPSILON);
+    assert!((entry.cost_usd.unwrap() - 2.0).abs() < f64::EPSILON);
     assert_eq!(entry.turns, 2);
     assert_eq!(entry.duration_ms, 8000);
     assert_eq!(entry.tokens.input_tokens, 500);
