@@ -12,10 +12,10 @@
 #      reached through a public module path still exports at most one item.
 #      Each missing property is refused by name.
 #   2. No `#[cfg(test)] mod tests` blocks — tests go in {name}.tests.rs files
-#   3. Dependency direction: core ← detection ← agent ← orchestration ← tui
+#   3. Dependency direction: core ← detection ← agent ← orchestration
 #      No reverse imports allowed (e.g., core must not import from detection)
 #   4. Maximum function length (150 lines)
-#   5. The TUI crate (crates/magistr-tui) denies dead and unused code at
+#   5. The desktop crate (crates/magistr-desktop) denies dead and unused code at
 #      its root; no file under it may silence that with allow/expect
 #
 # Grandfathered files are in .magistr/lint-structure-allowlist.txt — a scoped
@@ -160,7 +160,7 @@ done < <(owned_sources)
 # Rule 3: Dependency direction enforcement
 #
 # Domain layer ordering (lower layers must not import from higher layers):
-#   core (0) ← detection (1) ← agent (2) ← orchestration (3) ← tui (4)
+#   core (0) ← detection (1) ← agent (2) ← orchestration (3)
 #
 # Re-exports in lib.rs (e.g., `use crate::error`) resolve to core;
 # this rule checks direct domain module imports.
@@ -169,10 +169,10 @@ done < <(owned_sources)
 # Returns forbidden higher-layer modules for a given domain.
 forbidden_for() {
     case "$1" in
-        core)          echo "detection agent orchestration tui" ;;
-        detection)     echo "agent orchestration tui" ;;
-        agent)         echo "orchestration tui" ;;
-        orchestration) echo "tui" ;;
+        core)          echo "detection agent orchestration" ;;
+        detection)     echo "agent orchestration" ;;
+        agent)         echo "orchestration" ;;
+        orchestration) echo "" ;;
     esac
 }
 
@@ -247,11 +247,11 @@ done < <(find "$PROJECT_ROOT/crates/" -type d -name target -prune -o -path "$PRO
 
 # Rule 5: No lint silencing under the cockpit crates
 #
-# crates/magistr-cockpit and crates/magistr-tui both carry
+# crates/magistr-cockpit and crates/magistr-desktop both carry
 # #![deny(dead_code, unused)]; an allow or expect for either lint anywhere
 # under them defeats the point (think:104). Dead code is deleted, not hidden.
 
-for HYGIENE_CRATE in "$PROJECT_ROOT/crates/magistr-cockpit" "$PROJECT_ROOT/crates/magistr-tui"; do
+for HYGIENE_CRATE in "$PROJECT_ROOT/crates/magistr-cockpit" "$PROJECT_ROOT/crates/magistr-desktop"; do
     [[ -d "$HYGIENE_CRATE" ]] || continue
     while IFS= read -r f; do
         rel="${f#"$PROJECT_ROOT/"}"

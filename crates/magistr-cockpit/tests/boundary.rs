@@ -59,7 +59,7 @@ fn terminal_names() -> Vec<String> {
 fn offenders(needles: &[String]) -> Vec<String> {
     let mut files = Vec::new();
     walk(&crate_root(), &mut files);
-    assert!(files.len() >= 100, "walked only {} files", files.len());
+    assert!(files.len() >= 40, "walked only {} files", files.len());
     let this_file = Path::new(file!()).file_name().map(|n| n.to_os_string());
     let mut out = Vec::new();
     for file in files {

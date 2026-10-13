@@ -67,7 +67,7 @@ pub(crate) fn opener(log: Log) -> Open<Hosted> {
                                 log.note(format!("{name} got {text}"));
                                 inbox.send(Msg::Agent(AgentEvent::Text(format!("{name}: {text}"))));
                                 if text == "ask" {
-                                    inbox.send(Msg::Agent(AgentEvent::PermissionRequest { id: 1, title: "Read".into(), choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)], edit: false, risk: magistr_domain::policy::RiskTier::Low, plan: None }));
+                                    inbox.send(Msg::Agent(AgentEvent::PermissionRequest { detail: String::new(), id: 1, title: "Read".into(), choices: vec![PermissionChoice::new("allow", PermissionKind::AllowOnce)], edit: false, risk: magistr_domain::policy::RiskTier::Low, plan: None }));
                                 }
                             }
                             Some(Cmd::Permission { id, option_id }) => {
@@ -299,5 +299,41 @@ async fn a_full_application_queue_returns_an_explicit_retry_without_losing_input
             .await
             .unwrap_err()
             .contains("busy")
+    );
+}
+
+#[tokio::test]
+async fn oversized_input_is_refused_before_entering_the_owner_queue() {
+    let (sender, mut receiver) = mpsc::channel(1);
+    let client = SessionClient { sender };
+    let address = SessionAddress {
+        project: "p".into(),
+        workspace: "w".into(),
+        session: "s".into(),
+    };
+    let text = "é".repeat(524_289);
+    assert!(
+        tokio::time::timeout(
+            Duration::from_millis(100),
+            client.draft(&address, text.clone())
+        )
+        .await
+        .expect("must refuse before posting")
+        .unwrap_err()
+        .contains("too long")
+    );
+    assert!(
+        tokio::time::timeout(
+            Duration::from_millis(100),
+            client.command(&address, Cmd::Prompt(text))
+        )
+        .await
+        .expect("must refuse before posting")
+        .unwrap_err()
+        .contains("too long")
+    );
+    assert!(
+        receiver.try_recv().is_err(),
+        "oversized data must not be retained"
     );
 }

@@ -69,10 +69,6 @@ const ECHO_TIMEOUT: Duration = Duration::from_secs(5);
 /// session is dropped.
 const CLEAR_GRACE: Duration = Duration::from_millis(300);
 
-/// How long the cockpit gets to ask for the boundary checkpoint it was
-/// told to mint — one fold and one command back, normally milliseconds.
-const LEDGER_ASK_GRACE: Duration = Duration::from_secs(2);
-
 /// How long a boundary checkpoint gets to land before the loop goes on
 /// without waiting — one `git status` on a large tree, not a hung one.
 const LEDGER_SAVE_GRACE: Duration = Duration::from_secs(10);
@@ -606,7 +602,11 @@ impl LoopDriver {
             self.post(LoopEvent::Failed(why.clone()));
         }
         if end != LoopEnd::CockpitClosed {
-            self.post(LoopEvent::Ended(end.to_string()));
+            self.post(LoopEvent::Ended(if matches!(end, LoopEnd::Failed(_)) {
+                String::new()
+            } else {
+                end.to_string()
+            }));
         }
         let retain = self.keep_open
             && end != LoopEnd::CockpitClosed
@@ -1010,24 +1010,11 @@ impl LoopDriver {
                 )
                 .collect(),
         });
-        let asked = tokio::time::sleep(LEDGER_ASK_GRACE);
-        tokio::pin!(asked);
-        loop {
-            tokio::select! {
-                wake = self.wake(None, None) => match wake {
-                    Wake::Ledger => break,
-                    Wake::Closed => return false,
-                    Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
-                    Wake::Tap(_) | Wake::Cmd(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Tick => {}
-                },
-                () = &mut asked => {
-                    self.note(format!(
-                        "checkpoint for iteration {iteration}: the cockpit did not ask for it in time"
-                    ));
-                    return true;
-                }
-            }
-        }
+        self.ledger(CheckpointCmd::Save {
+            id: format!("cp-{iteration}"),
+            reason: magistr_domain::workflow::CheckpointReason::Iteration,
+            label: format!("iteration {iteration}"),
+        });
         if let Some(save) = self.ledger.take()
             && tokio::time::timeout(LEDGER_SAVE_GRACE, save).await.is_err()
         {
@@ -2373,13 +2360,20 @@ impl LoopDriver {
     fn decide(&mut self, cmd: LoopCmd) {
         self.stepping = false;
         match cmd {
-            LoopCmd::Pause => self.paused = true,
+            LoopCmd::Pause => {
+                self.paused = true;
+                self.note("pausing at the end of this iteration");
+            }
             LoopCmd::Resume => self.paused = false,
             LoopCmd::Step => {
                 self.paused = false;
                 self.stepping = true;
+                self.note("stepping one iteration, then pausing");
             }
             LoopCmd::Skip | LoopCmd::Abort => {
+                if cmd == LoopCmd::Abort {
+                    self.note("aborting the loop");
+                }
                 self.paused = false;
                 self.pending = Some(cmd);
             }
@@ -2402,6 +2396,7 @@ impl LoopDriver {
             () = tick(ticks) => Wake::Tick,
         };
         match wake {
+            Wake::Cmd(Cmd::Quit) => Wake::Closed,
             Wake::Cmd(Cmd::Prompt(text)) if !self.session_active => {
                 let rejection = Msg::Agent(AgentEvent::PromptRejected {
                     text,

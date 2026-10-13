@@ -49,7 +49,7 @@
 - No `Box<dyn Any>` — use concrete types or proper trait objects.
 - No `unsafe` without a `// SAFETY:` comment justifying the invariant.
 - No wildcard imports (`use foo::*`) except in test modules and preludes.
-- No raw `println!` — use structured output, logging, or the TUI renderer.
+- No raw `println!` — use structured output, logging, or the interface renderer.
 - No `#[allow(clippy::...)]` without a comment explaining why the lint is wrong here.
 
 ## Dependencies

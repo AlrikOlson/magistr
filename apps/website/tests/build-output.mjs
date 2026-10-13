@@ -1,6 +1,6 @@
 /**
  * Post-build tests: the built site says what the product does, carries
- * the terminal screenshots at their full size, and keeps its metadata.
+ * the desktop screenshots at their full size, and keeps its metadata.
  * Run with: node tests/build-output.mjs (after `npm run build`)
  */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
@@ -44,10 +44,10 @@ assert(indexHtml.includes("0.1.0"), "the current development version is named");
 assert(!indexHtml.includes("cargo install magistr"), "no registry installation command");
 assert(!indexHtml.includes("feature-card") && !indexHtml.includes("walkthrough-step") && !indexHtml.includes("community-link") && !indexHtml.includes("changelog"), "no marketing card grids or changelog");
 const homeImages = [...indexHtml.matchAll(/src="\/screenshots\/([a-z-]+)\.png\?v=[a-f0-9]{12}"/g)].map((m) => m[1]);
-assert(new Set(homeImages).size === 8 && homeImages.length === 8, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
+assert(new Set(homeImages).size === 2 && homeImages.length === 2, `each screenshot appears once on the home page (${homeImages.join(", ")})`);
 const roadmapSection = indexHtml.match(/<section id="roadmap"[\s\S]*?<\/section>/)?.[0] ?? "";
-assert(roadmapSection.includes("Roadmap screen") && roadmapSection.includes("filter and sort"), "roadmap section describes the full plan on its own screen");
-assert(roadmapSection.includes("message draft and place in the conversation"), "returning from Roadmap preserves the draft and conversation position");
+assert(roadmapSection.includes("magistr next") && roadmapSection.includes("acceptance criteria"), "roadmap section describes the current command workflow");
+assert(!roadmapSection.includes("Roadmap screen"),"future desktop planning is not advertised");
 assert(!roadmapSection.includes("without leaving the conversation") && !roadmapSection.includes("actions beside the conversation"), "full Roadmap is not described as conversation details");
 
 console.log("\nNavigation and accessibility:");
@@ -68,42 +68,22 @@ const externalLinks = [...indexHtml.matchAll(/<a [^>]*target="_blank"[^>]*>/g)].
 assert(externalLinks.length > 0 && externalLinks.every((a) => a.includes('rel="noopener noreferrer"')), "every external link is rel=noopener noreferrer");
 assert(mainOf(indexHtml).split('target="_blank"').length - 1 === (mainOf(indexHtml).match(/opens in a new tab/g) || []).length, "every external link in the page body says it opens a new tab");
 
-console.log("\nTerminal screenshots:");
-const manifest = JSON.parse(readFileSync(resolve(distDir, "screenshots/captures.json"), "utf-8"));
-assert(manifest.renderer === "magistr-tui::screenshot::Preview::frame" && manifest.surface === "Terminal", "manifest names the terminal renderer");
-assert(manifest.state.includes("fixtures/harbor.json"), "manifest names the fixture it was rendered from");
-assert(manifest.annotations === false, "screenshots carry no annotations");
-assert(manifest.images.length === 8, "overview, roadmap, turn and session screenshots in both themes");
-for (const view of ["overview", "roadmap", "turn", "session"]) {
-  for (const theme of ["dark", "light"]) {
-    const capture = manifest.images.find(({ file }) => file === `terminal-${view}-${theme}.png`);
-    assert(Boolean(capture), `${view} has a ${theme} screenshot`);
-    assert(capture?.screen === (view === "roadmap" ? "roadmap" : "conversation"), `${view} ${theme} names the intended application screen`);
-  }
+console.log("\nDesktop screenshots:");
+const manifest=JSON.parse(readFileSync(resolve(distDir,"screenshots/captures.json"),"utf-8"));
+assert(manifest.renderer==="magistr-desktop" && manifest.surface==="Desktop","manifest names the current desktop");
+assert(manifest.annotations===false && manifest.images.length===2,"one unannotated conversation in both appearances");
+for(const theme of ["dark","light"]){
+ const capture=manifest.images.find(({file})=>file===`desktop-${theme}.png`);
+ assert(Boolean(capture),`desktop has a ${theme} image`);
+ const png=readFileSync(resolve(distDir,"screenshots",capture.file));
+ assert(createHash("sha256").update(png).digest("hex")===capture.sha256,"capture matches reviewed bytes");
+ assert(png.readUInt32BE(16)===capture.width && png.readUInt32BE(20)===capture.height,"capture keeps its full native viewport");
+ const url=`/screenshots/${capture.file}?v=${capture.sha256.slice(0,12)}`;
+ assert(indexHtml.includes(`src="${url}"`) && indexHtml.includes(`href="${url}"`),"image and full-size link use content hashes");
 }
-for (const capture of manifest.images) {
-  assert(/^terminal-(overview|roadmap|turn|session)-(dark|light)\.png$/.test(capture.file), `${capture.file} carries a public name`);
-  const url = `/screenshots/${capture.file}?v=${capture.sha256.slice(0, 12)}`;
-  assert(indexHtml.includes(`src="${url}"`) && indexHtml.includes(`href="${url}"`), capture.file + " image and full-size link use the current content hash");
-  const png = readFileSync(resolve(distDir, "screenshots", capture.file));
-  assert(png.readUInt32BE(16) === capture.width && png.readUInt32BE(20) === capture.height, capture.file + " keeps its full viewport");
-  assert(capture.width === manifest.columns * 10 && capture.height === manifest.rows * 20, capture.file + " is the whole terminal at its cell size");
-  assert(createHash("sha256").update(png).digest("hex") === capture.sha256, capture.file + " matches the built bytes");
-}
-for (const theme of ["dark", "light"]) {
-  const roadmap = manifest.images.find(({ file }) => file === `terminal-roadmap-${theme}.png`);
-  const conversation = manifest.images.filter(({ file }) => new RegExp(`^terminal-(overview|turn|session)-${theme}\\.png$`).test(file));
-  assert(conversation.length === 3 && conversation.every(({ sha256 }) => sha256 !== roadmap?.sha256), `Roadmap ${theme} has its own image, distinct from each conversation view`);
-}
-assert(!readdirSync(resolve(distDir, "screenshots")).some((name) => name.startsWith("tui2-")), "no stale screenshot files ship");
-assert((indexHtml.match(/width="1440" height="1000"/g) || []).length === 8, "every screenshot declares its native dimensions");
-const figures = [...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)].map(([figure]) => figure);
-assert(figures.length === 4 && figures.every((figure) => figure.includes("<figcaption>")), "four captioned figures");
-for (const view of ["overview", "roadmap", "turn", "session"]) {
-  const matching = figures.filter((figure) => figure.includes(`terminal-${view}-dark.png`) && figure.includes(`terminal-${view}-light.png`));
-  assert(matching.length === 1 && (matching[0].match(/<img\b/g) || []).length === 2, `${view} has one figure containing only its dark and light images`);
-}
-assert(!indexHtml.includes("/diagrams/") && !indexHtml.includes("/icons/"), "no decorative diagrams or icons");
+assert(!readdirSync(resolve(distDir,"screenshots")).some(name=>name.startsWith("terminal-")||name.startsWith("tui2-")),"retired captures are absent");
+const figures=[...indexHtml.matchAll(/<figure\b[\s\S]*?<\/figure>/g)];
+assert(figures.length===1 && figures[0][0].includes("<figcaption>"),"current desktop has one captioned figure");
 
 console.log("\nPublic language:");
 const jargon = /TUI2|GUI2|tui2|gui2|think:|ship:|chunk-id|chunk\b|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder|\b[Dd]ecisions?\b/;
@@ -126,10 +106,10 @@ for (const word of ["Roadmap", "Sessions", "Recorded work", "Verification", "Pro
   assert(conceptsHtml.includes(word), `concepts page covers ${word}`);
 }
 assert(conceptsHtml.includes("pinned") && conceptsHtml.includes("checkpoint"), "concepts page separates pin from checkpoint");
-assert(conceptsHtml.includes("separate screen with the full plan") && conceptsHtml.includes("roadmap summary"), "concepts distinguishes the full Roadmap from the conversation summary");
-assert(conceptsHtml.includes("preserves your message draft and place in the conversation"), "concepts explains returning to the same draft and conversation position");
-assert(conceptsHtml.includes("Requests") && conceptsHtml.includes("Updating roadmap") && conceptsHtml.includes("Cancel") && conceptsHtml.includes("after a work loop finishes"), "roadmap requests, activity, cancellation and post-loop messaging are explained");
-assert(roadmapSection.includes("follow the reply beside the plan") && roadmapSection.includes("queued"), "the public Roadmap description includes requests and delivery feedback");
+assert(conceptsHtml.includes("current desktop focuses on conversations"),"concepts states the current desktop scope");
+assert(conceptsHtml.includes("recover your draft"),"concepts explains resident drafts");
+assert(conceptsHtml.includes("Stop") && conceptsHtml.includes("Permission requests") && conceptsHtml.includes("Close session"),"current conversation actions are explained");
+assert(roadmapSection.includes("recorded plan"),"roadmap recovery is explained");
 for (const slug of ["installation", "concepts"]) {
   assert(installHtml.includes(`href="/docs/${slug}"`), `sidebar links ${slug}`);
 }
@@ -154,7 +134,7 @@ assert(existsSync(resolve(distDir, "favicon.svg")) && existsSync(resolve(distDir
 assert(indexHtml.includes("prefers-color-scheme") && indexHtml.includes("theme-toggle"), "theme detection and toggle");
 const css = readdirSync(resolve(distDir, "_astro")).filter((f) => f.endsWith(".css")).map((f) => readFileSync(resolve(distDir, "_astro", f), "utf-8")).join("\n");
 assert(css.includes("prefers-reduced-motion"), "reduced motion respected in the stylesheet");
-assert(css.includes("aspect-ratio:1440/1000") || css.includes("aspect-ratio: 1440 / 1000"), "screenshots reserve their aspect ratio");
+assert(css.includes("aspect-ratio:1280/832") || css.includes("aspect-ratio: 1280 / 832"), "screenshots reserve their aspect ratio");
 
 console.log("\nSitemap, robots and headers:");
 const sitemap = readFileSync(resolve(distDir, "sitemap-0.xml"), "utf-8");

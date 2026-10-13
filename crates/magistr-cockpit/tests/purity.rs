@@ -70,24 +70,12 @@ fn the_core_reaches_no_effect() {
     );
 }
 
-#[test]
-fn update_and_view_are_the_only_entry_points() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/cockpit");
-    for name in ["update.rs", "view.rs", "model.rs", "msg.rs", "cmd.rs"] {
-        assert!(root.join(name).is_file(), "src/cockpit/{name} missing");
-    }
-    let update = std::fs::read_to_string(root.join("update.rs")).expect("update.rs");
-    let view = std::fs::read_to_string(root.join("view.rs")).expect("view.rs");
-    assert!(update.contains("pub fn update(model: &mut Model, msg: Msg) -> Vec<Cmd>"));
-    assert!(view.contains("pub fn view(model: &Model, clock: &FrameClock) -> Node"));
-}
-
 /// Semantic effect ports and result values cannot execute runtime work.
 #[test]
 fn semantic_ports_and_results_own_no_runtime_effects() {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut files = Vec::new();
-    for module in ["job", "engine", "agent"] {
+    for module in ["job", "engine", "checkpoint", "workbench"] {
         walk(&src.join(module), &mut files);
     }
     assert!(files.len() >= 6, "walked only {} files", files.len());
@@ -267,19 +255,6 @@ fn names_command_handle(source: &str) -> bool {
 }
 
 #[test]
-fn command_copy_and_widget_variants_are_not_producer_handles() {
-    for source in [
-        r#"const LABEL: &str = "Commands"; // Commands menu"#,
-        "enum Widget { Commands } impl Widget { fn menu() -> Self { Self::Commands } }",
-        "fn menu() { let _ = crate::cockpit::Widget::Commands; }",
-        "use crate::cockpit::Widget::{Commands as Menu};",
-        r#"fn menu() { format!("Commands {:?}", Widget::Commands); }"#,
-    ] {
-        assert!(!names_command_handle(source), "{source}");
-    }
-}
-
-#[test]
 fn command_producer_paths_and_renamed_imports_remain_forbidden() {
     for source in [
         "fn run(commands: Commands) {}",
@@ -300,34 +275,7 @@ fn command_producer_paths_and_renamed_imports_remain_forbidden() {
     }
 }
 
-/// The theme is a value: its one read of the process environment is
-/// `Theme::from_os` (theme/decision.rs), and only the entry points call it.
-#[test]
-fn the_theme_reads_the_environment_in_one_place() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/theme");
-    let mut files = Vec::new();
-    walk(&root, &mut files);
-    assert!(files.len() >= 4, "walked only {} files", files.len());
-    let elsewhere: Vec<PathBuf> = files
-        .iter()
-        .filter(|f| f.file_name().is_some_and(|n| n != "decision.rs"))
-        .cloned()
-        .collect();
-    let offenders = offenders(&elsewhere, &["std::env", "std::io", "println!", "unsafe"]);
-    assert!(
-        offenders.is_empty(),
-        "effects in the theme:\n{}",
-        offenders.join("\n")
-    );
-    let theme = std::fs::read_to_string(root.join("decision.rs")).expect("decision.rs");
-    assert_eq!(
-        theme.matches("std::env").count(),
-        1,
-        "exactly one environment read, in from_os"
-    );
-}
-
-/// The core: the cockpit and the turn model it shows.
+/// Shared semantic conversation, workflow and session contracts.
 fn core_files() -> Vec<PathBuf> {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut files = Vec::new();

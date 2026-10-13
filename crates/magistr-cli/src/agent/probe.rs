@@ -1,6 +1,6 @@
 //! Zero-turn ACP session probe — extracts provider capabilities without conversation.
 //!
-//! Used by the settings TUI to discover each provider's available models at launch.
+//! Used by the provider settings to discover each provider's available models at launch.
 //! The probe connects to the agent, receives the `Initialized` event (which carries
 //! `config_options` from `session/new`), then immediately closes — no prompt is sent.
 

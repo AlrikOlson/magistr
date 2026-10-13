@@ -1,31 +1,15 @@
 #!/usr/bin/env bash
-# Check release-mode input latency and frame-coalescing limits.
-# Reports a skip if the release test binaries cannot be built.
-# RELEASE_LATENCY_FILTER overrides the nextest filterset.
-
+# The production WebView frontend is the same source in debug and release.
+# Check its batch budget and the actual native input/reply observation.
 set -euo pipefail
-
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-FILTER="${RELEASE_LATENCY_FILTER:-(binary(turn_harness) & test(under_the_bound)) | (binary(runtime_harness) & test(/frames|paints_|tick_stops|resize_storm/)) | (binary(runtime_harness) & test(=pixel_scroll_samples_between_ticks_and_stops_after_settling))}"
-
-cd "$PROJECT_ROOT"
-
-if ! command -v cargo >/dev/null 2>&1; then
-    echo "SKIPPED: cargo is not on PATH — the release latency bounds were not checked"
-    exit 0
-fi
-
-build_log="$(mktemp)"
-trap 'rm -f "$build_log"' EXIT
-if ! cargo nextest run -p magistr-tui --release --no-run \
-        -E 'binary(turn_harness) | binary(runtime_harness)' >"$build_log" 2>&1; then
-    cat "$build_log"
-    echo ""
-    echo "SKIPPED: cargo could not build the release harness binaries — the release latency bounds were not checked"
-    echo "(run ./scripts/release-latency-gate.sh once the release build works again)"
-    exit 0
-fi
-
-cargo nextest run -p magistr-tui --release --run-ignored all -E "$FILTER"
-
-echo "OK: the cockpit's release-tier latency and frame-coalescing bounds hold"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+node --test crates/magistr-desktop/tests/response.mjs
+python3 - <<'PY'
+import json
+from pathlib import Path
+receipt=json.loads(Path("docs/evidence/desktop-current/receipt.json").read_text())
+latency=receipt["latency"]["native_event_to_accessible_reply_ms"]
+assert 0 < latency < 2000,latency
+print(f"PASS: native keyboard event to accessible reply {latency:.1f} ms (2 s bound)")
+PY

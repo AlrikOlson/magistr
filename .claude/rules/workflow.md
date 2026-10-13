@@ -44,7 +44,7 @@ phase. The complete recovery contract is in `.claude/skills/next/SKILL.md`.
 
 ## Phase Tracking
 
-You MUST call `magistr_set_phase` at each workflow transition. This updates the magistr TUI progress indicator.
+You MUST call `magistr_set_phase` at each workflow transition. This records the current Magistr workflow phase.
 
 - Call `magistr_set_phase(phase: "research")` when you start researching
 - Call `magistr_set_phase(phase: "plan")` when you start exploring the codebase and planning
@@ -56,7 +56,7 @@ Call it proactively — don't wait to be asked. The very first thing you do in e
 
 ## Plan Entry Status
 
-Keep your plan entry statuses up to date. The Magistr TUI sidebar shows your plan as a live checklist.
+Keep your plan entry statuses up to date. The native execution plan retains the live task statuses.
 
 - Mark entries as `in_progress` when you start working on them
 - Mark entries as `completed` when you finish them

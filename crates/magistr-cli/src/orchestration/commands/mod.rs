@@ -8,19 +8,10 @@ use crate::agent;
 use crate::cli;
 
 pub mod archetypes;
-pub mod chrome;
-#[cfg(feature = "terminal")]
-pub mod cockpit;
-#[cfg(feature = "terminal")]
-pub mod cockpit_roadmap;
 pub mod config;
 mod config_agent_set;
 pub mod config_manage;
 pub(crate) mod galaxy_data;
-#[cfg(feature = "terminal")]
-pub mod home;
-#[cfg(feature = "terminal")]
-pub(crate) mod home_data;
 pub mod init;
 pub mod misc;
 pub mod models;

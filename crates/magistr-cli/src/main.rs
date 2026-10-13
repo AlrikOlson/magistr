@@ -46,12 +46,6 @@ async fn main() -> eyre::Result<()> {
     utils::sigterm_handler::install_sigterm_handler();
 
     let json_output = cli.json;
-    use std::io::IsTerminal;
-    let use_tui = should_use_tui(
-        cli.no_tui || cli.json,
-        std::io::stdin().is_terminal(),
-        std::io::stdout().is_terminal(),
-    );
     let renderer = output::create_renderer(json_output, false);
 
     // The project, preset, provider, plugin and workspace inputs, captured
@@ -80,10 +74,7 @@ async fn main() -> eyre::Result<()> {
     let command = match cli.command {
         Some(cmd) => cmd,
         None => {
-            if use_tui {
-                return commands::home::cmd_home(&env, &inputs).await;
-            }
-            // No TUI: print help and exit
+            // The command-line entry point shows the supported commands.
             use clap::CommandFactory;
             Cli::command().print_help()?;
             println!();
@@ -122,18 +113,14 @@ async fn main() -> eyre::Result<()> {
             } else if dry_run {
                 commands::init::cmd_init_dry_run(&dir, &*renderer, &agents, &inputs)
             } else if interactive {
-                if use_tui {
-                    commands::init::cmd_init_interactive_tui(&dir, force, &env, &inputs).await
-                } else {
-                    commands::init::cmd_init_interactive(&dir, force, &inputs).await
-                }
+                commands::init::cmd_init_interactive(&dir, force, &inputs).await
             } else if smart {
                 commands::init::cmd_init_smart(&dir, force, &agents, &inputs).await
             } else if yes {
                 commands::init::cmd_init_interview(&dir, force, true, &agents, &inputs).await
             } else if !agents.is_empty() {
                 commands::init::cmd_init(&dir, force, &agents, &inputs).await
-            } else if use_tui && std::io::IsTerminal::is_terminal(&std::io::stdin()) {
+            } else if std::io::IsTerminal::is_terminal(&std::io::stdin()) {
                 commands::init::cmd_init_interview(&dir, force, false, &agents, &inputs).await
             } else {
                 commands::init::cmd_init(&dir, force, &agents, &inputs).await
@@ -182,8 +169,6 @@ async fn main() -> eyre::Result<()> {
             if headless {
                 commands::run::cmd_run_headless(request, agent_backend, format, profile, &inputs)
                     .await
-            } else if use_tui {
-                commands::run::cmd_run_tui(request, agent_backend, profile, &env, &inputs).await
             } else {
                 commands::run::cmd_run(request, agent_backend, profile, &inputs).await
             }
@@ -213,8 +198,6 @@ async fn main() -> eyre::Result<()> {
                         .await
                 } else if continue_plan {
                     commands::next::cmd_next_continue(&dir, agent_backend, profile, &inputs).await
-                } else if use_tui {
-                    commands::next::cmd_next_tui(&dir, agent_backend, profile, &env, &inputs).await
                 } else {
                     commands::next::cmd_next(&dir, agent_backend, profile, &inputs).await
                 }
@@ -248,18 +231,6 @@ async fn main() -> eyre::Result<()> {
                     format,
                     max_cost,
                     profile,
-                    &inputs,
-                )
-                .await
-            } else if use_tui {
-                let scope = track.map(magistr_cockpit::cockpit::LoopScope::Track);
-                commands::next::cmd_next_loop_tui(
-                    &dir,
-                    max_iterations,
-                    scope.as_ref(),
-                    agent_backend,
-                    profile,
-                    &env,
                     &inputs,
                 )
                 .await
@@ -304,7 +275,7 @@ async fn main() -> eyre::Result<()> {
         }
         Command::ManPages { dir } => commands::misc::cmd_man_pages(&dir),
         Command::Config { action } => {
-            commands::config_manage::cmd_config(action, use_tui, &env, &inputs).await
+            commands::config_manage::cmd_config(action, &env, &inputs).await
         }
         Command::Archetypes { dir, detail, json } => {
             commands::archetypes::cmd_archetypes(&dir, detail, json)
@@ -452,12 +423,6 @@ fn parse_cli() -> Cli {
     })
 }
 
-/// The cockpit needs its Unix terminal backend and terminal input and output.
-/// Other environments use the plain command path before opening workflow state.
-fn should_use_tui(no_tui: bool, stdin_terminal: bool, stdout_terminal: bool) -> bool {
-    cfg!(unix) && !no_tui && stdin_terminal && stdout_terminal
-}
-
 /// Propagate CLI flags to environment variables for downstream consumption.
 ///
 /// Called once at startup before any threads are spawned.
@@ -471,24 +436,6 @@ fn propagate_env_flags(
 ) -> magistr_engine::cost::BudgetDecision {
     // SAFETY: This runs at startup in main() before any threads are spawned,
     // so there are no concurrent readers of these environment variables.
-
-    if let Some(ref theme_name) = cli.theme {
-        unsafe { std::env::set_var("MAGISTR_THEME", theme_name) };
-    }
-
-    if cli.no_mouse {
-        unsafe { std::env::set_var("MAGISTR_NO_MOUSE", "1") };
-    }
-    if cli.reduce_motion {
-        unsafe { std::env::set_var("REDUCE_MOTION", "1") };
-        unsafe { std::env::set_var("NO_ANIMATIONS", "1") };
-    }
-    if let Some(ref cvd) = cli.cvd {
-        unsafe { std::env::set_var("MAGISTR_CVD", cvd) };
-    }
-    if cli.screen_reader {
-        unsafe { std::env::set_var(magistr_cockpit::capability::Mode::SCREEN_READER_ENV, "1") };
-    }
 
     let decision;
 
@@ -540,38 +487,9 @@ fn propagate_env_flags(
         unsafe { std::env::set_var("MAGISTR_LOG", level) };
     }
 
-    if cli.splash {
-        eprintln!("{}", version_splash());
-    }
-
     decision
 }
 
-/// ASCII logo + version banner behind `--splash`.
-fn version_splash() -> String {
-    const LOGO: &str = r"
-     _ _
-    (_|_) __ _
-    | | |/ _` |
-    | | | (_| |
-   _/ |_|\__, |
-  |__/   |___/
-";
-    format!(
-        "{}\n  v{}\n  AI-powered development toolkit\n",
-        LOGO.trim(),
-        env!("CARGO_PKG_VERSION")
-    )
-}
-
-/// Initialize tracing subscriber when `--verbose` or `MAGISTR_LOG` is set.
-///
-/// Output goes to stderr so it doesn't interfere with TUI rendering or
-/// MCP stdio transport — or, when `MAGISTR_LOG_FILE` names a path, is
-/// appended to that file: the cockpit owns fd 2 for the life of its
-/// raw-mode session and replays it only on leave, so a run measured
-/// from outside (scripts/goal-loop-measure.py) needs the trace live in
-/// a file of its own. Only activates when explicitly requested.
 fn init_tracing(cli: &Cli) {
     // Only init if --verbose flag or MAGISTR_LOG env var is set
     let has_flag = cli.verbose.is_some();

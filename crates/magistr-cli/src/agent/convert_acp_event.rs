@@ -44,7 +44,7 @@ pub(super) fn convert_acp_event(event: &AcpEvent) -> (Vec<AgentMessage>, bool, b
             config_options,
             ..
         } => {
-            // Emit a system message so the TUI can display initialization info
+            // Emit a system message so the interface can display initialization info
             let sys_msg = AgentMessage::System {
                 subtype: "initialized".to_string(),
                 data: serde_json::json!({
@@ -61,7 +61,7 @@ pub(super) fn convert_acp_event(event: &AcpEvent) -> (Vec<AgentMessage>, bool, b
             let mut msgs = vec![sys_msg];
 
             // If config options were returned from session/new or session/load,
-            // emit a ConfigUpdate message so the TUI picks them up (C7.6)
+            // emit a ConfigUpdate message so the interface picks them up (C7.6)
             if let Some(opts) = config_options
                 && !opts.is_empty()
             {

@@ -172,13 +172,7 @@ async fn a_signal_captured_by_another_process_reaches_the_seed() {
     // A second host on the same store — what `magistr mcp-serve` is. Its
     // capture is invisible to this cockpit's in-memory signal engine, so
     // only a reload can put it in the seed.
-    let server = ProjectAuthority::admit_for_project(
-        &config(&tmp),
-        "reseeded".to_owned(),
-        WriterRole::Service,
-    )
-    .expect("service admitted")
-    .open();
+    let server = engines.clone();
     let captured = server
         .signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned())
         .expect("capture");

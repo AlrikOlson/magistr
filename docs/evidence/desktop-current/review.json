@@ -1,0 +1,16 @@
+{
+  "reviewed_on": "2026-10-13",
+  "images": {
+    "dark.png": "364063e41f5a82f2dbf26f96e13613bce98a7a78c1db7ad9b12fdf78bac70503",
+    "light.png": "adc56f9330b71ada58b26e182c81f1559092edd6b2170c1697ef9bc29aa46b55",
+    "narrow.png": "0cfa57465dce757ae6a95d0663cfbfd05d0b97f08c3c3576a9099c48fb0d81f8"
+  },
+  "accessibility": "51374320e3f5021f9d5a47739e89ff61f9d5c4f77b95d8f9236d7910eb119c60",
+  "findings": [
+    "Reviewed the actual light, dark and 800 x 680 native windows. Conversation and composer remain visible, text wraps, working-copy details remain readable and keyboard focus has a visible outline.",
+    "The narrow project rail scrolls to reach Appearance.",
+    "Light textarea and input placeholders use the palette muted color; disabled controls are distinct.",
+    "Native pointer, keyboard, clipboard, permission, draft and Quit outcomes are recorded in the receipt. Native IME activation limits and the earlier observed Kana draft are retained separately.",
+    "The last-session boundary now disables session actions and the same project reopens through its existing owner; the native receipt requires all five admitted histories."
+  ]
+}

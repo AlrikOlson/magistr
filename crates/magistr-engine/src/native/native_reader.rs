@@ -408,7 +408,7 @@ impl NativeReader {
     /// and checks whole — what [`Self::ship_status`] cannot give: its
     /// `recent_actions` is capped at five and drops the task each action
     /// belongs to, and its `checks` drop the exit code and the duration.
-    /// The TUI's trace seed reads the timeline off this.
+    /// The interface's trace seed reads the timeline off this.
     #[must_use]
     pub fn ship_tasks(&self) -> Vec<Task> {
         self.current_ship().tasks.clone()

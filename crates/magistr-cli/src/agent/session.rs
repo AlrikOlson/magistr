@@ -39,11 +39,11 @@ enum SessionBackend {
 
 /// A running agent session that streams messages from the ACP backend.
 ///
-/// Owns the backend directly (no trait object). The TUI and command handlers
+/// Owns the backend directly (no trait object). The interface and command handlers
 /// consume this type to receive agent messages.
 ///
 /// When dropped, the backend is aborted to ensure the agent process doesn't
-/// outlive the TUI.
+/// outlive the interface.
 pub struct AgentSession {
     /// The active backend.
     backend: SessionBackend,

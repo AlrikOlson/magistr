@@ -29,7 +29,7 @@ impl GateStatus {
         }
     }
 
-    /// Icon for TUI display.
+    /// Icon for display.
     pub fn icon(self) -> &'static str {
         match self {
             Self::Pending => "○",

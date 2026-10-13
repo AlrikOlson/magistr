@@ -74,7 +74,7 @@ pub use session::{
 };
 pub use spec::SpecSummary;
 // The library's own wire types behind the NativeEngines verbs, re-exported
-// so engine hosts (the TUI, the GUI) can drive them without depending on
+// so engine hosts (the interface, the GUI) can drive them without depending on
 // think-and-ship directly.
 pub use magistr_workflow::roadmap::domain::ChunkStatus;
 pub use magistr_workflow::ship::domain::action::ActionType;

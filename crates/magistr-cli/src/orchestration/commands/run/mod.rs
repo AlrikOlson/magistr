@@ -119,11 +119,7 @@ mod tests;
 
 mod admit_workspace;
 mod cmd_run;
-#[cfg(feature = "terminal")]
-mod cmd_run_cockpit;
 mod cmd_run_headless;
-#[cfg(feature = "terminal")]
-mod cmd_run_tui;
 mod cmd_run_workflow;
 mod cockpit_policy_for_project;
 mod collect_gate_commands;
@@ -136,12 +132,8 @@ mod seed_supervision;
 
 pub(crate) use admit_workspace::admit_workspace;
 pub use cmd_run::cmd_run;
-#[cfg(feature = "terminal")]
-pub use cmd_run_cockpit::cmd_run_cockpit;
 pub use cmd_run_headless::cmd_run_headless;
 pub(crate) use cmd_run_headless::{HeadlessOutcome, drain_headless, drain_headless_observing};
-#[cfg(feature = "terminal")]
-pub use cmd_run_tui::cmd_run_tui;
 pub use cmd_run_workflow::cmd_run_workflow;
 pub use cockpit_policy_for_project::cockpit_policy_for_project;
 pub use collect_gate_commands::collect_gate_commands;
@@ -150,4 +142,4 @@ pub use drain_session_turn::drain_session_turn;
 pub use protected_paths_for_project::protected_paths_for_project;
 pub use resolve_permission_profile::resolve_permission_profile;
 pub use run_request::RunRequest;
-pub use seed_supervision::{seed_supervision, supervision_seed};
+pub use seed_supervision::supervision_seed;

@@ -6,7 +6,7 @@ use super::session_status::SessionStatus;
 
 /// Events emitted by the engine session.
 ///
-/// These are the domain-level events that the TUI (or any other consumer)
+/// These are the domain-level events that the interface (or any other consumer)
 /// can subscribe to. They are produced by the infrastructure adapter
 /// translating protocol-specific messages into domain events.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -2,11 +2,9 @@
 
 use std::fmt;
 
-/// The loop driver's stage within an iteration, as it reports it
-/// ([`LoopEvent::Stage`](super::LoopEvent::Stage)): the window's stage
-/// cap reads it, and the between-agent stages are what keep
-/// [`Model::is_working`](super::Model::is_working) true while no turn
-/// is streaming.
+/// The loop driver's current phase, reported through
+/// [`LoopEvent::Stage`](super::LoopEvent::Stage), including intervals when
+/// no provider turn is streaming.
 ///
 /// The stages exist because the engine feed dies with every agent —
 /// its socket is bound by the agent's own `magistr mcp-serve` — so a

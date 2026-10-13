@@ -770,22 +770,22 @@ mod charter {
     fn a_delegated_scope_is_allowed_where_the_profile_would_ask() {
         let mut plain = cautious(Charter::default(), None);
         assert!(asks(plain.decide(&policy_request(&write_under(
-            "/repo/crates/magistr-tui/src/view.rs"
+            "/repo/crates/magistr-desktop/src/view.rs"
         )))));
 
         let mut charter = Charter::default();
         charter.delegate(PolicyRule::new(
-            "delegate:write:crates/magistr-tui",
+            "delegate:write:crates/magistr-desktop",
             PolicyCondition::all_of(vec![
                 PolicyCondition::tool("Write"),
-                PolicyCondition::path("*crates/magistr-tui/*"),
+                PolicyCondition::path("*crates/magistr-desktop/*"),
             ]),
             Effect::Allow,
         ));
         let mut under = cautious(charter, None);
         assert_eq!(
             under.decide(&policy_request(&write_under(
-                "/repo/crates/magistr-tui/src/view.rs"
+                "/repo/crates/magistr-desktop/src/view.rs"
             ))),
             PolicyDecision::Allow
         );

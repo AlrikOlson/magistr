@@ -396,7 +396,7 @@ fn write_is_not_gated_without_a_file_path() {
 #[test]
 fn write_allows_paths_outside_the_frozen_tree() {
     for path in [
-        "crates/magistr-tui/src/lib.rs",
+        "crates/magistr-desktop/src/lib.rs",
         // a sibling that merely shares the prefix
         "crates/magistr-gui-native/src/lib.rs",
         "src/main.rs",

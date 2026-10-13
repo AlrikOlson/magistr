@@ -8,6 +8,56 @@ fn address() -> SessionAddress {
     }
 }
 
+#[test]
+fn drafts_and_answers_advance_the_same_observation_sequence() {
+    let owner = std::sync::Arc::new(SessionObservation::new(address()));
+    let before = owner.snapshot().sequence;
+    owner.draft("draft".into());
+    assert!(owner.snapshot().sequence > before);
+    owner.send(Msg::Agent(AgentEvent::PermissionRequest {
+        detail: String::new(),
+        id: 7,
+        title: "Read".into(),
+        choices: Vec::new(),
+        edit: false,
+        risk: magistr_domain::policy::RiskTier::Low,
+        plan: None,
+    }));
+    let pending = owner.snapshot().sequence;
+    owner.permission_answered(7);
+    let snapshot = owner.snapshot();
+    assert!(snapshot.sequence > pending);
+    assert_eq!(snapshot.pending_requests().count(), 0);
+    owner.send(Msg::CommandFailed {
+        cmd: magistr_cockpit::cockpit::Cmd::Permission {
+            id: 7,
+            option_id: "allow".into(),
+        },
+        error: "delivery failed".into(),
+    });
+    assert_eq!(owner.snapshot().pending_requests().count(), 1);
+}
+
+#[test]
+fn current_session_facts_survive_retained_transcript_rotation() {
+    let owner = std::sync::Arc::new(SessionObservation::new(address()));
+    owner.send(Msg::Agent(AgentEvent::Initialized {
+        session_id: "provider".into(),
+        model: Some("known model".into()),
+    }));
+    owner.send(Msg::InputAccepted("hello".into()));
+    for _ in 0..MAX_MESSAGES + 5 {
+        owner.send(Msg::Agent(AgentEvent::Text("reply".into())));
+    }
+    let snapshot = owner.snapshot();
+    assert_eq!(snapshot.model.as_deref(), Some("known model"));
+    assert_eq!(snapshot.status, SessionStatus::Working);
+    owner.send(Msg::Agent(AgentEvent::TurnEnded(
+        magistr_application::sessions::TurnEnd::EndTurn,
+    )));
+    assert_eq!(owner.snapshot().status, SessionStatus::Finished);
+}
+
 #[tokio::test]
 async fn disconnected_readers_do_not_close_the_owner_and_reconnect_gets_a_reseed() {
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
@@ -34,6 +84,7 @@ async fn disconnected_readers_do_not_close_the_owner_and_reconnect_gets_a_reseed
 fn bounded_bytes_and_pending_permission_survive_transcript_rotation() {
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
     let request = Msg::Agent(AgentEvent::PermissionRequest {
+        detail: String::new(),
         id: 7,
         title: "Read a file".into(),
         choices: Vec::new(),
@@ -82,6 +133,7 @@ fn usage_survives_rotation_and_too_many_requests_have_a_bounded_explicit_outcome
     )));
     for id in 0..MAX_REQUESTS as u64 {
         assert!(owner.send(Msg::Agent(AgentEvent::PermissionRequest {
+            detail: String::new(),
             id,
             title: "Read".into(),
             choices: Vec::new(),
@@ -91,6 +143,7 @@ fn usage_survives_rotation_and_too_many_requests_have_a_bounded_explicit_outcome
         })));
     }
     assert!(!owner.send(Msg::Agent(AgentEvent::PermissionRequest {
+        detail: String::new(),
         id: MAX_REQUESTS as u64,
         title: "Too many".into(),
         choices: Vec::new(),

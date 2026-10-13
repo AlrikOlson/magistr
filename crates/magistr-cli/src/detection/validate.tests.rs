@@ -2,7 +2,7 @@ use super::*;
 
 // Pure type tests (gate_labels, gate_display, validation_result_*) now live
 // in magistr-core::validate::tests. This file tests CLI-specific behavior:
-// async execution, TUI extensions, and output truncation.
+// async execution, CLI extensions, and output truncation.
 
 #[test]
 fn gate_result_status_symbol_ext() {

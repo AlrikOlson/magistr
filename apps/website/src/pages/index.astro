@@ -5,7 +5,7 @@ import captures from "../../public/screenshots/captures.json";
 
 const screenshot = (name: string) => {
   const capture = captures.images.find(({ file }) => file === name);
-  if (!capture) throw new Error(`Missing terminal capture: ${name}`);
+  if (!capture) throw new Error(`Missing desktop image: ${name}`);
   return `/screenshots/${name}?v=${capture.sha256.slice(0, 12)}`;
 };
 
@@ -14,13 +14,8 @@ const jsonLd = [
   {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magistr","softwareVersion":"0.1.0","description":"Roadmap and workflow management for coding agents.","url":"https://magistr.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/AlrikOlson/magistr/releases","softwareRequirements":"Rust 1.95 or later","license":"https://github.com/AlrikOlson/magistr/blob/main/LICENSE"}
 ];
 
-/** The terminal interface in both themes. */
-const alt = {
-  overview: "The conversation with Reasoning closed, the roadmap and selected step beside it, and the message area below.",
-  roadmap: "The Roadmap screen shows work and dependencies beside a request to change the plan and Magistr’s reply.",
-  turn: "The conversation, retry test output and selected file changes, with a message draft and Stop button below.",
-  session: "The reasoning shows two explored questions, numbered steps and the selected step’s result, explanation and next action.",
-};
+/** The current desktop in both appearances. */
+const alt = {overview: "Magistr with projects and sessions at left, the agent conversation in the centre and working-copy details at right."};
 
 const docs = [
   {title:"Installation",text:"Install, initialize a project and connect an agent.",href:"/docs/installation"},
@@ -44,64 +39,39 @@ const docs = [
         <p class="hero-note">Runs locally · open source · no account</p>
       </div>
       <figure class="capture hero-capture">
-        <a class="capture-light" href={screenshot("terminal-overview-light.png")}><img src={screenshot("terminal-overview-light.png")} alt={alt.overview} width="1440" height="1000" fetchpriority="high" /></a>
-        <a class="capture-dark" href={screenshot("terminal-overview-dark.png")}><img src={screenshot("terminal-overview-dark.png")} alt={alt.overview} width="1440" height="1000" fetchpriority="high" /></a>
-        <figcaption>Keep the conversation, roadmap and reasoning together while work progresses.</figcaption>
+        <a class="capture-light" href={screenshot("desktop-light.png")}><img src={screenshot("desktop-light.png")} alt={alt.overview} width="2560" height="1664" fetchpriority="high" /></a>
+        <a class="capture-dark" href={screenshot("desktop-dark.png")}><img src={screenshot("desktop-dark.png")} alt={alt.overview} width="2560" height="1664" fetchpriority="high" /></a>
+        <figcaption>Switch between projects and sessions while keeping your conversation and draft.</figcaption>
       </figure>
     </section>
 
     <section id="roadmap" class="section-shell section-block story" aria-labelledby="roadmap-title">
       <div class="story-copy">
         <p class="eyebrow">The roadmap</p>
-        <h2 id="roadmap-title">Work items, their dependencies, and what is ready next.</h2>
+        <h2 id="roadmap-title">One focused work item at a time.</h2>
         <ul class="facts">
-          <li><strong>See the full plan.</strong> Open the Roadmap screen to filter and sort work items, follow their dependencies and see what is ready next.</li>
-          <li><strong>Select an item to see its context.</strong> Read its status, acceptance criteria and available actions alongside the plan.</li>
-          <li><strong>Ask for changes.</strong> Send a request from Roadmap and follow the reply beside the plan. See when it is queued, waiting for a response, or updating the roadmap.</li>
-          <li><strong>Return to your conversation.</strong> Your message draft and place in the conversation stay as you left them.</li>
-          <li><strong>One item at a time.</strong> The item in progress carries its acceptance criteria and its dependencies into the session that works on it.</li>
+          <li><strong>Keep the plan with the project.</strong> Work items carry their dependencies and acceptance criteria into the agent session.</li>
+          <li><strong>Continue unfinished work.</strong> The agent recovers the recorded plan before choosing another item.</li>
+          <li><strong>Keep the evidence.</strong> Findings, actions and checks explain how the work progressed.</li>
         </ul>
       </div>
-      <figure class="capture">
-        <a class="capture-light" href={screenshot("terminal-roadmap-light.png")}><img src={screenshot("terminal-roadmap-light.png")} alt={alt.roadmap} loading="lazy" width="1440" height="1000" /></a>
-        <a class="capture-dark" href={screenshot("terminal-roadmap-dark.png")}><img src={screenshot("terminal-roadmap-dark.png")} alt={alt.roadmap} loading="lazy" width="1440" height="1000" /></a>
-        <figcaption>Review the full plan and request changes without leaving Roadmap.</figcaption>
-      </figure>
+      <div class="code-panel"><pre><code>magistr next
+magistr next-loop --max-iterations 5
+magistr validate</code></pre></div>
     </section>
 
-    <section id="turn" class="section-shell section-block story story-flip" aria-labelledby="turn-title">
+    <section class="section-shell section-block story story-flip" aria-labelledby="conversation-title">
       <div class="story-copy">
-        <p class="eyebrow">The conversation</p>
-        <h2 id="turn-title">Follow the agent's work and inspect each tool call.</h2>
+        <p class="eyebrow">The desktop</p>
+        <h2 id="conversation-title">A conversation in each working copy.</h2>
         <ul class="facts">
-          <li><strong>The conversation in context.</strong> Read messages and tool calls with the roadmap beside them. Open Reasoning when you want to follow the steps.</li>
-          <li><strong>Command output where it happens.</strong> Expand a run to see its terminal output alongside the conversation.</li>
-          <li><strong>Inspect a change.</strong> Select an edit to read the changes, open the file or undo that edit.</li>
-          <li><strong>Give the next direction.</strong> Write a message, add files and send when ready. Stop the current work while keeping your draft.</li>
+          <li><strong>Open a project.</strong> Switch between its working copies and keep separate agent sessions.</li>
+          <li><strong>Stay in control.</strong> Read the reply as it arrives, answer permission requests or stop the current turn.</li>
+          <li><strong>Keep your draft.</strong> Move between sessions and return to your unsent message.</li>
+          <li><strong>Choose your appearance.</strong> Use light, dark or the system setting, with native text editing and clipboard support.</li>
         </ul>
       </div>
-      <figure class="capture">
-        <a class="capture-light" href={screenshot("terminal-turn-light.png")}><img src={screenshot("terminal-turn-light.png")} alt={alt.turn} loading="lazy" width="1440" height="1000" /></a>
-        <a class="capture-dark" href={screenshot("terminal-turn-dark.png")}><img src={screenshot("terminal-turn-dark.png")} alt={alt.turn} loading="lazy" width="1440" height="1000" /></a>
-        <figcaption>Read command output and file changes alongside your conversation.</figcaption>
-      </figure>
-    </section>
-
-    <section class="section-shell section-block story" aria-labelledby="trace-title">
-      <div class="story-copy">
-        <p class="eyebrow">Reasoning and recorded work</p>
-        <h2 id="trace-title">The reasoning and checks stay with the project.</h2>
-        <ul class="facts">
-          <li><strong>Follow each question.</strong> See where an investigation began, the steps it contains and where its findings were used.</li>
-          <li><strong>Understand the reasoning.</strong> Select a step to read what Magistr considered, its conclusion, what comes next and the work linked to it. Return to the latest step whenever you’re ready.</li>
-          <li><strong>Actions and checks.</strong> Open Records to review reasoning, actions, checks and file changes in time order.</li>
-        </ul>
-      </div>
-      <figure class="capture">
-        <a class="capture-light" href={screenshot("terminal-session-light.png")}><img src={screenshot("terminal-session-light.png")} alt={alt.session} loading="lazy" width="1440" height="1000" /></a>
-        <a class="capture-dark" href={screenshot("terminal-session-dark.png")}><img src={screenshot("terminal-session-dark.png")} alt={alt.session} loading="lazy" width="1440" height="1000" /></a>
-        <figcaption>Select a step to follow its explanation and related work. Your conversation and draft stay in place.</figcaption>
-      </figure>
+      <p>The current desktop focuses on conversations. Roadmap planning, recorded work and project setup are available through the command line and the connected agent's tools.</p>
     </section>
 
     <section id="install" class="section-shell section-block install" aria-labelledby="install-title">
@@ -117,7 +87,7 @@ magistr --version</code></pre>
           <p class="card-eyebrow">Then, in your project</p>
           <ol>
             <li><code>magistr init .</code> detects the stack and writes the project file and the agent setup.</li>
-            <li><code>magistr</code> opens the terminal interface.</li>
+            <li><code>magistr --help</code> lists commands. Build <code>magistr-desktop</code> to open the desktop.</li>
             <li><code>magistr next</code> resumes an interrupted work item or starts the next ready one; <code>magistr next-loop</code> continues through fresh sessions.</li>
           </ol>
           <a href="/docs/installation">Full installation guide →</a>

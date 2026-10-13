@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Magistr</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div class="shell">
+<aside class="rail" aria-label="Projects and sessions">
+  <header class="brand"><img class="mark" src="icon.png" alt=""><strong>Magistr</strong></header>
+  <button id="open-project">Open project<span aria-hidden="true">⌘ O</span></button>
+  <h2>Projects</h2><nav id="projects" aria-label="Projects"></nav>
+  <h2>Sessions</h2><nav id="sessions" aria-label="Sessions"></nav>
+  <button id="new-session" disabled>New session</button>
+  <footer><label for="theme">Appearance</label><select id="theme"><option value="auto">System</option><option value="dark">Dark</option><option value="light">Light</option></select></footer>
+</aside>
+<main>
+  <header class="work-header"><div><p id="project-name">Opening project…</p><h1>Conversation</h1></div><p id="status" role="status" aria-live="polite">Connecting</p></header>
+  <p id="error" class="error" role="alert" hidden></p>
+  <div class="workspace">
+    <section class="conversation" aria-label="Conversation">
+      <div id="transcript" class="transcript" tabindex="0" aria-label="Messages">
+        <div class="empty"><h2>What would you like to work on?</h2><p>Send a message to start a conversation in this working copy.</p></div>
+      </div>
+      <button id="latest" hidden>Latest reply ↓</button>
+      <form id="composer"><label for="draft">Message the agent</label><textarea id="draft" disabled rows="4" placeholder="Describe the work…" maxlength="1048576"></textarea><div class="composer-actions"><span>Return to send · Shift Return for a new line</span><button id="stop" type="button" disabled>Stop</button><button id="send" type="submit" disabled>Send</button></div></form>
+    </section>
+    <aside class="detail" aria-label="Session details">
+      <h2>Working copy</h2><p id="workspace-path" class="path"></p><label for="working-copy">Working copy</label><select id="working-copy"></select>
+      <h2>Agent</h2><p id="model">Model information is unavailable.</p><p id="usage"></p>
+      <section id="requests" aria-label="Requests waiting for you"></section>
+      <div class="session-actions"><button id="copy" disabled>Copy conversation</button><button id="close-session" disabled>Close session</button></div>
+    </aside>
+  </div>
+</main>
+</div>
+<dialog id="project-picker" aria-labelledby="picker-title"><form id="project-form"><h2 id="picker-title">Open a project</h2><p>Choose a folder that has Magistr set up.</p><label for="project-folder">Project folder</label><input id="project-folder" name="directory" required placeholder="/path/to/project"><p id="picker-error" class="error" role="alert" hidden></p><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button type="submit">Open</button></div></form></dialog>
+<script type="module" src="app.mjs"></script>
+</body></html>

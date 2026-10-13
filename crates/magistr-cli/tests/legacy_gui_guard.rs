@@ -242,7 +242,7 @@ fn writes_outside_the_frozen_tree_pass() {
     let project = Project::new(true);
     project.set_objective("chunk:unrelated");
     for rel in [
-        "crates/magistr-tui/src/lib.rs",
+        "crates/magistr-desktop/src/lib.rs",
         // a sibling that merely shares the prefix
         "crates/magistr-gui-native/src/lib.rs",
         "src/main.rs",

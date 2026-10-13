@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use agent_client_protocol::schema::v1::StopReason;
 use magistr_acp::AcpTransport;
-use magistr_tui::harness::{AcpObserved, FakeAcpAgent};
+use magistr_acp::test_support::{AcpObserved, FakeAcpAgent};
 
 use super::*;
 use crate::error::MagistrError;

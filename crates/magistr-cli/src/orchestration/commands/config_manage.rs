@@ -17,11 +17,9 @@ use crate::utils::format as fmt;
 
 /// Dispatch a `magistr config` subcommand.
 ///
-/// A bare `magistr config` validates the configuration (`check`) — the
-/// standalone settings TUI was pruned with the legacy Settings surface.
+/// A bare `magistr config` validates the current configuration (`check`).
 pub async fn cmd_config(
     action: Option<cli::ConfigAction>,
-    _use_tui: bool,
     _env: &MagistrEnv,
     inputs: &ProjectInputs,
 ) -> eyre::Result<()> {

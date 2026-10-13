@@ -25,6 +25,7 @@ use tokio::{
 };
 
 const CAPACITY: usize = 32;
+const MAX_INPUT_BYTES: usize = 1024 * 1024;
 const MAX_SESSIONS: usize = 64;
 const CLOSE_GRACE: Duration = Duration::from_secs(8);
 static INSTANCE: AtomicU64 = AtomicU64::new(1);
@@ -102,6 +103,12 @@ impl SessionClient {
     }
 
     pub async fn command(&self, address: &SessionAddress, command: Cmd) -> Result<(), String> {
+        if let Cmd::Prompt(text) = &command {
+            if text.trim().is_empty() {
+                return Err("Write a message before sending.".into());
+            }
+            check_input(text)?;
+        }
         let (reply, result) = oneshot::channel();
         self.post(Request::Command {
             address: address.clone(),
@@ -147,6 +154,7 @@ impl SessionClient {
     }
 
     pub async fn draft(&self, address: &SessionAddress, text: String) -> Result<(), String> {
+        check_input(&text)?;
         let (reply, result) = oneshot::channel();
         self.post(Request::Draft {
             address: address.clone(),
@@ -165,6 +173,14 @@ impl SessionClient {
             }
             mpsc::error::TrySendError::Closed(_) => "The application connection closed.".into(),
         })
+    }
+}
+
+fn check_input(text: &str) -> Result<(), String> {
+    if text.len() > MAX_INPUT_BYTES {
+        Err("This message is too long. Send a smaller part.".into())
+    } else {
+        Ok(())
     }
 }
 
@@ -432,10 +448,7 @@ impl<H: Settle> Serving<H> {
     }
 
     fn command(&self, address: &SessionAddress, command: Cmd) -> Result<(), String> {
-        if matches!(
-            command,
-            Cmd::Quit | Cmd::OpenProject(_) | Cmd::Session { .. }
-        ) {
+        if matches!(command, Cmd::Quit) {
             return Err("Choose a session action or close the addressed session.".into());
         }
         let resident = self.sessions.get(address).ok_or_else(gone)?;

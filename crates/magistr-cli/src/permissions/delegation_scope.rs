@@ -8,12 +8,12 @@ use magistr_engine::policy::PolicyCondition;
 use super::resolve_against::glob_spelling;
 
 /// The scope of one ask, as the charter keys it: a tool over a path
-/// prefix (`Edit · crates/magistr-tui`), a tool over a shell program
+/// prefix (`Edit · crates/magistr-desktop`), a tool over a shell program
 /// (`Bash · cargo`), or the bare tool — with the [`PolicyCondition`] a
 /// rule over that scope carries.
 ///
 /// The grain is the design's example: "allowed 14 of 14 edit asks
-/// under crates/magistr-tui". A path scopes to its first two
+/// under crates/magistr-desktop". A path scopes to its first two
 /// directories under the project root, which is a crate in a
 /// workspace and a module in a flat tree; a command scopes to its
 /// program, `cd … &&` skipped the way the risk classifier skips it.

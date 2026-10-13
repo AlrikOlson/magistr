@@ -17,6 +17,32 @@ const MAX_MESSAGES: usize = 512;
 const MAX_BYTES: usize = 1024 * 1024;
 const MAX_REQUESTS: usize = 64;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SessionStatus {
+    #[default]
+    Ready,
+    Working,
+    Finished,
+    Stopped,
+    Declined,
+    LimitReached,
+    Failed,
+}
+impl SessionStatus {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Ready => "Ready",
+            Self::Working => "Working",
+            Self::Finished => "Finished",
+            Self::Stopped => "Stopped",
+            Self::Declined => "Declined",
+            Self::LimitReached => "Limit reached",
+            Self::Failed => "Connection lost",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionSnapshot {
     pub address: SessionAddress,
@@ -26,6 +52,8 @@ pub struct SessionSnapshot {
     pub pending: BTreeMap<u64, Msg>,
     pub dropped: u64,
     pub closed: bool,
+    pub status: SessionStatus,
+    pub model: Option<String>,
     bytes: usize,
     retained_from: u64,
     answered: std::collections::BTreeSet<u64>,
@@ -34,6 +62,17 @@ pub struct SessionSnapshot {
 }
 
 impl SessionSnapshot {
+    /// Offered requests exclude accepted answers until a failed delivery restores them.
+    pub fn pending_requests(&self) -> impl Iterator<Item = &Msg> {
+        self.pending
+            .iter()
+            .filter(|(id, _)| !self.answered.contains(id))
+            .map(|(_, request)| request)
+    }
+    #[must_use]
+    pub fn latest_usage(&self) -> Option<&Msg> {
+        self.usage.as_ref()
+    }
     /// A complete bounded observation, with pending requests retained separately.
     #[must_use]
     pub fn replay(&self) -> Vec<Msg> {
@@ -78,6 +117,30 @@ impl SessionSnapshot {
     fn record(&mut self, message: Msg) {
         self.sequence = self.sequence.saturating_add(1);
         match &message {
+            Msg::InputAccepted(text) => {
+                self.status = SessionStatus::Working;
+                if self.seed.draft.as_ref() == Some(text) {
+                    self.seed.draft = Some(String::new());
+                }
+            }
+            Msg::PromptReplace(text) => self.seed.draft = Some(text.clone()),
+            Msg::Agent(AgentEvent::Initialized { model, .. }) => self.model = model.clone(),
+            Msg::Agent(
+                AgentEvent::Text(_) | AgentEvent::Thought(_) | AgentEvent::ToolCall { .. },
+            ) => self.status = SessionStatus::Working,
+            Msg::Agent(AgentEvent::TurnEnded(end)) => {
+                self.status = match end {
+                    magistr_application::sessions::TurnEnd::EndTurn => SessionStatus::Finished,
+                    magistr_application::sessions::TurnEnd::Cancelled => SessionStatus::Stopped,
+                    magistr_application::sessions::TurnEnd::Refusal => SessionStatus::Declined,
+                    magistr_application::sessions::TurnEnd::MaxTokens
+                    | magistr_application::sessions::TurnEnd::MaxTurnRequests => {
+                        SessionStatus::LimitReached
+                    }
+                    magistr_application::sessions::TurnEnd::Other => SessionStatus::Finished,
+                }
+            }
+            Msg::Agent(AgentEvent::Error(_)) => self.status = SessionStatus::Failed,
             Msg::Agent(AgentEvent::PromptRejected { text, .. })
             | Msg::CommandFailed {
                 cmd:
@@ -147,6 +210,8 @@ impl SessionObservation {
                 pending: BTreeMap::new(),
                 dropped: 0,
                 closed: false,
+                status: SessionStatus::Ready,
+                model: None,
                 bytes: 0,
                 retained_from: 1,
                 answered: std::collections::BTreeSet::new(),
@@ -165,8 +230,11 @@ impl SessionObservation {
         self.state.send_modify(|state| state.seed = seed);
     }
     pub(super) fn draft(&self, text: String) {
-        self.state
-            .send_modify(|state| state.seed.draft = Some(text));
+        self.state.send_modify(|state| {
+            if state.seed.draft.as_ref() != Some(&text) {
+                state.record(Msg::PromptReplace(text));
+            }
+        });
     }
     pub(super) fn snapshot(&self) -> SessionSnapshot {
         self.state.borrow().clone()
@@ -188,7 +256,9 @@ impl SessionObservation {
     }
     pub(super) fn permission_answered(&self, id: u64) {
         self.state.send_modify(|state| {
-            state.answered.insert(id);
+            if state.answered.insert(id) {
+                state.sequence = state.sequence.saturating_add(1);
+            }
         });
     }
     pub(super) fn stop(&self) {

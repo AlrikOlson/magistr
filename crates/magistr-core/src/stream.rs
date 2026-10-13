@@ -1,6 +1,6 @@
 //! Frontend-agnostic stream content types.
 //!
-//! These types represent streaming agent output in a way that both TUI and GUI
+//! These types represent streaming agent output in a way that both desktop and command-line consumers
 //! frontends can consume. No rendering framework dependencies — pure data.
 //!
 //! # Types
