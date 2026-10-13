@@ -603,7 +603,7 @@ mod tests {
 
     #[tokio::test]
     async fn command_runner_captures_a_real_pass() {
-        let out = run_check_command("exit 0").await;
+        let out = run_check_command("exit 0", None).await;
         assert!(out.passed);
         assert_eq!(out.exit_code, Some(0));
     }
@@ -618,7 +618,7 @@ mod tests {
         let cmd = "echo boom 1>&2 & exit 7";
         #[cfg(not(windows))]
         let cmd = "echo boom >&2; exit 7";
-        let out = run_check_command(cmd).await;
+        let out = run_check_command(cmd, None).await;
         assert!(!out.passed);
         assert_eq!(out.exit_code, Some(7));
         assert!(out.output_tail.contains("boom"));

@@ -111,7 +111,10 @@ still matched (`SourceFreshness`) and how the workflow settled it.
 
 The evidence capability is the workflow's `EvidencePort`: `observe()`
 answers a `SourceWitness` — held in the admitting process until the check
-settles, consumed once to validate — and `required_gates()` answers the
+settles, consumed once to validate. Each admission captures anew; re-running
+a named gate allocates a new receipt and attempt over the current selected
+bytes. Direct workflow commands use that observation's workspace as their
+working directory and resolve relative reports there. `required_gates()` answers the
 `GateContract`s the project requires now. Magistr composes exactly one
 implementation, `magistr_core::evidence::WorkspaceEvidence`, from the
 workspace's lock-free `SourceSnapshot` under its default selection policy

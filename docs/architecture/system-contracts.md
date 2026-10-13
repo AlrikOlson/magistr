@@ -202,9 +202,14 @@ capability at initialize. There is no direct file write in the ACP host
 
 `magistr_gate` or `ship_check` (agent) and the loop driver's gate set (host) →
 `AdmittedCheck::admit` names the task and captures a lock-free
-`SourceSnapshot` → the command runs once on the pty runner → settlement
-records exit code, identities and a durable receipt on that task, or `Stale`
-when the objective rolled over or the source moved. The loop's set is
+`SourceSnapshot` → the command runs once through `OwnedProcess` (a pty for
+named gates, pipes for direct workflow checks) in the observed project →
+settlement records exit code, identities and a durable receipt on that task,
+or `Stale` when the admitted run or task was superseded. Source changes retain
+the execution result with changed freshness and refuse completion. Re-running
+a gate captures the current source and allocates a new attempt; direct
+workflow checks also resolve relative reports in that admitted workspace.
+The loop's set is
 `WorkspaceEvidence::required_gates` for the project root. `magistr validate`
 runs the same commands and records nothing. Guides:
 [receipts](project-authority.md#receipts-and-the-evidence-capability),

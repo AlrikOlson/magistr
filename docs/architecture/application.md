@@ -232,8 +232,12 @@ workflow — the concrete task instance the check belongs to, refused before any
 byte is hashed when there is no task — which publishes the durable receipt and
 observes the workspace through the evidence capability the writer was admitted
 with; an unobservable workspace refuses the admission, so an unobservable gate
-is never recorded as evidence. The command runs outside every lock with the
-owner's edits still flowing. `settle(engines, execution, details)` takes the
+is never recorded as evidence. Named gates run in the selected project root;
+server-executed `ship_check` commands run in the workspace named by their
+admitted source observation, and relative report paths resolve there too.
+The process directory never selects a different tree for that receipt.
+The command runs outside every lock with the owner's edits still flowing.
+`settle(engines, execution, details)` takes the
 run's `CheckExecution` (an exit code, a timeout, a cancel — a flake is its
 passing retry's exit) and settles the check under the captured admission: the
 workflow re-observes the source first, then `SettledCheck` carries the
