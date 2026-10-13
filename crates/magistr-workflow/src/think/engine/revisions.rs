@@ -42,7 +42,7 @@ impl ReasoningServer {
         }
         if let Some(&idx) = self.step_index.get(&revises) {
             self.history.steps[idx].revised_by = Some(step.step_number);
-            eprintln!(
+            tracing::debug!(
                 "📝 Revising step {revises}: {}",
                 step.revision_reason
                     .as_deref()

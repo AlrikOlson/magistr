@@ -28,7 +28,7 @@ fn counts_chunks_and_names_the_next_ready_one() {
     add(&e, "second", 200, &["first"]);
 
     let s = native_spec_summary(&e);
-    assert_eq!((s.total, s.checked, s.unchecked), (2, 0, 1));
+    assert_eq!((s.total, s.checked, s.unchecked), (2, 0, 2));
     assert_eq!(s.unchecked_items, vec!["first — Chunk first".to_string()]);
     assert!(!s.all_done());
 
@@ -50,7 +50,7 @@ fn resumes_one_active_item_before_higher_priority_pending_work_without_writes() 
     let summary = native_work_summary(&e, None, None).unwrap();
     assert_eq!(
         (summary.total, summary.checked, summary.unchecked),
-        (2, 0, 1)
+        (2, 0, 2)
     );
     assert_eq!(
         summary.unchecked_items,
@@ -266,8 +266,19 @@ fn active_dependencies_are_checked_again_and_missing_work_is_not_invented() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "storage", 100, &[]);
-    add(&e, "recovery", 200, &["storage"]);
+    add(&e, "recovery", 200, &[]);
     e.roadmap_start_chunk("recovery").unwrap();
+    // An authored dependency can change after work has started.
+    e.roadmap_update_chunk(
+        "recovery",
+        None,
+        None,
+        None,
+        None,
+        Some(vec!["storage".into()]),
+        None,
+    )
+    .unwrap();
     let before = e.snapshot();
     let error = native_work_chunk(&e, None, None).unwrap_err().to_string();
     assert!(
@@ -342,13 +353,14 @@ fn empty_and_non_actionable_roadmaps_return_no_work() {
 }
 
 #[test]
-fn nothing_ready_reads_as_all_done() {
+fn unfinished_work_is_not_reported_as_complete_when_nothing_is_ready() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "only", 100, &[]);
     e.roadmap_start_chunk("only").unwrap();
-    // In progress, not done: no chunk is ready, so the loop must stop.
+    // Availability and completion are independent facts.
     let s = native_spec_summary(&e);
-    assert_eq!((s.total, s.checked, s.unchecked), (1, 0, 0));
-    assert!(s.all_done());
+    assert_eq!((s.total, s.checked, s.unchecked), (1, 0, 1));
+    assert!(s.unchecked_items.is_empty());
+    assert!(!s.all_done());
 }

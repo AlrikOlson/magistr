@@ -11,79 +11,38 @@ use color_eyre::eyre;
 /// Spending observations are resolved and saved by the shared session owner.
 async fn drain_session_interactive(session: &mut agent::session::AgentSession) -> eyre::Result<()> {
     loop {
-        // Drain messages until the turn completes (Result) or stream ends
-        let mut turn_done = false;
-        while let Some(msg_result) = session.next_message().await {
-            match msg_result {
-                Ok(msg) => match &msg {
-                    crate::agent::message::AgentMessage::Assistant { message, .. } => {
-                        for block in &message.content {
-                            if let crate::agent::message::ContentBlock::Text { text } = block {
-                                print!("{text}");
-                            }
-                        }
-                    }
-                    crate::agent::message::AgentMessage::Result {
-                        is_error,
-                        num_turns,
-                        duration_ms,
-                        total_cost_usd,
-                        session_id,
-                        ..
-                    } => {
-                        let duration_secs = *duration_ms as f64 / 1000.0;
-                        let cost_str = total_cost_usd
-                            .map(|c| format!("${c:.4}"))
-                            .unwrap_or_else(|| "unknown".into());
-                        eprintln!();
-                        if *is_error {
-                            eprintln!("{}", fmt::error("Agent ended with error"));
-                        } else {
-                            eprintln!(
-                                "{}",
-                                fmt::success(&format!(
-                                    "Done — {num_turns} turns, {duration_secs:.1}s, cost: {cost_str}"
-                                ))
-                            );
-                            eprintln!(
-                                "  {}",
-                                fmt::dim(&format!(
-                                    "Provider conversation: {}",
-                                    session_id.as_str()
-                                ))
-                            );
-                        }
-                        turn_done = true;
-                        break;
-                    }
-                    crate::agent::message::AgentMessage::Cancelled { reason, .. } => {
-                        return Err(eyre::eyre!("Agent turn cancelled: {reason}"));
-                    }
-                    _ => {}
-                },
-                Err(e) => {
-                    return Err(eyre::eyre!("Agent stream error: {e}"));
-                }
-            }
-        }
-
-        if !turn_done {
-            return Err(eyre::eyre!(
-                "Agent stream ended without a terminal response"
-            ));
-        }
-
-        // Prompt for follow-up input
+        drain_session_plain_turn(session).await?;
+        // Follow-up input belongs only to the interactive run command.
         eprint!("{} Follow up (empty to quit): ", fmt::cyan("→"));
         let mut input = String::new();
         if std::io::stdin().read_line(&mut input).is_err() || input.trim().is_empty() {
             break;
         }
-
         session.send_followup(input.trim())?;
     }
-
     Ok(())
+}
+
+/// Workflow commands finish after one turn; the orchestrator owns continuation.
+async fn drain_session_plain_turn(session: &mut agent::session::AgentSession) -> eyre::Result<()> {
+    let mut out = std::io::stdout().lock();
+    let mut err = std::io::stderr().lock();
+    match drain_headless(
+        session,
+        crate::cli::HeadlessFormat::Plain,
+        None,
+        &mut out,
+        &mut err,
+    )
+    .await?
+    {
+        HeadlessOutcome::Ok => Ok(()),
+        HeadlessOutcome::Cancelled => Err(eyre::eyre!("Agent turn cancelled")),
+        HeadlessOutcome::AgentError => Err(eyre::eyre!(
+            "Agent ended with error or stream ended without a terminal response"
+        )),
+        HeadlessOutcome::BudgetExceeded => Err(eyre::eyre!("Spending limit reached")),
+    }
 }
 
 #[cfg(test)]
@@ -98,6 +57,8 @@ mod cockpit_policy_for_project;
 mod collect_gate_commands;
 mod drain_result;
 mod drain_session_turn;
+mod plain_output;
+mod plain_renderer;
 mod protected_paths_for_project;
 mod resolve_permission_profile;
 mod run_request;

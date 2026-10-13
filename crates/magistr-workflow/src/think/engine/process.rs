@@ -70,7 +70,7 @@ impl ReasoningServer {
         }
 
         self.invalidate_branch_depth_cache();
-        eprintln!(
+        tracing::debug!(
             "📋 History trimmed to {} steps (removed {} old steps)",
             max,
             removed_step_numbers.len()
@@ -133,7 +133,7 @@ impl ReasoningServer {
                 )));
             }
         } else if !self.validate_purpose(&step.purpose) {
-            eprintln!("⚠️ Using custom purpose: {}", step.purpose);
+            tracing::debug!("⚠️ Using custom purpose: {}", step.purpose);
         }
 
         step.timestamp = Some(Utc::now().to_rfc3339());
@@ -239,10 +239,10 @@ impl ReasoningServer {
         let uncertainty_notes = step.uncertainty_notes.clone();
 
         let formatted = self.format_output(&step);
-        eprintln!("{formatted}");
+        tracing::debug!("{formatted}");
         if low_confidence {
             let pct = (confidence.unwrap_or(0.0) * 100.0).round() as i32;
-            eprintln!(
+            tracing::debug!(
                 "⚠️ Low confidence ({pct}%): {}",
                 uncertainty_notes
                     .as_deref()

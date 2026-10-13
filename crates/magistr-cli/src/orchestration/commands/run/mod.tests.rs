@@ -3,6 +3,21 @@ use crate::agent::message::{AgentMessage, AssistantContent, ContentBlock, Sessio
 use crate::agent::mock::mock_session;
 use crate::permissions::PermissionProfile;
 
+#[tokio::test]
+async fn workflow_turn_returns_without_reading_followup_or_waiting_for_eof() {
+    let (mut session, tx, followups) =
+        crate::agent::session::AgentSession::from_channel_with_followups();
+    tx.send(Ok(result_msg("workflow", 1, None))).unwrap();
+    tokio::time::timeout(
+        std::time::Duration::from_millis(100),
+        drain_session_plain_turn(&mut session),
+    )
+    .await
+    .expect("the loop owns continuation")
+    .unwrap();
+    assert!(followups.lock().unwrap().is_empty());
+}
+
 fn assistant_msg(text: &str) -> AgentMessage {
     AgentMessage::Assistant {
         parent_tool_use_id: None,

@@ -43,11 +43,10 @@
 //! half; and the risk is bounded by requiring `TARGET_FENCE` and WARN+. The
 //! `otel-eprintln-to-tracing` chunk has since moved 34 of those `eprintln!`
 //! sites — every one that reports a failure of our own side effects — onto
-//! `tracing::warn!`, so the Layer now sees them. The rest stayed deliberately:
-//! CLI output, and a third population of SUCCESS NARRATION that `info!` would
-//! delete twice over (below the default `EnvFilter("warn")` on stderr, below
-//! this fence for OTLP). `tests/log_lane_boundary.rs` states that rule and
-//! holds the boundary in both directions.
+//! `tracing::warn!`, so the Layer now sees them. Routine library narration
+//! uses opt-in debug tracing; clients present findings and outcomes from the
+//! native records and replies. It stays below this failure-only OTLP fence.
+//! `tests/log_lane_boundary.rs` holds the library/presentation boundary.
 //!
 //! target fence also structurally excludes reqwest/hyper/rustls, whose debug
 //! logs carry URLs with credentials in them — and stops this module's own HTTP

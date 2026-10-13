@@ -203,7 +203,7 @@ pub async fn ask_propose_consent(
         );
         return AskOutcome::Unanswered(Unanswered::ClientCannotAsk);
     }
-    eprintln!("[think-and-ship] asking the human whether background sweeps may propose.");
+    tracing::debug!("[think-and-ship] asking the human whether background sweeps may propose.");
     // Part 3. `wait` is never `None`, because it cannot be.
     match peer
         .elicit_with_timeout::<ProposeConsentAnswer>(propose_consent_prompt(), Some(wait))

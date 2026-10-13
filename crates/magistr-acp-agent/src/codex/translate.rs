@@ -13,6 +13,7 @@ use std::collections::{HashMap, HashSet};
 pub(crate) struct Translator {
     streamed: HashSet<String>,
     thought_streamed: HashSet<String>,
+    command_output: HashMap<String, String>,
     pub items: HashMap<String, Value>,
 }
 
@@ -42,10 +43,13 @@ impl Translator {
             "item/commandExecution/outputDelta" => {
                 let id = required(params, "itemId")?;
                 let delta = required(params, "delta")?;
+                let output = self.command_output.entry(id.to_owned()).or_default();
+                output.push_str(delta);
                 Ok(vec![SessionUpdate::ToolCallUpdate(ToolCallUpdate::new(
                     id.to_owned(),
-                    ToolCallUpdateFields::new()
-                        .content(vec![ContentBlock::Text(TextContent::new(delta)).into()]),
+                    ToolCallUpdateFields::new().content(vec![
+                        ContentBlock::Text(TextContent::new(output.clone())).into(),
+                    ]),
                 ))])
             }
             "thread/tokenUsage/updated" => {
@@ -145,7 +149,7 @@ impl Translator {
                         ToolCall::new(id.to_owned(), title(item))
                             .kind(tool_kind(kind))
                             .status(ToolCallStatus::InProgress)
-                            .raw_input(item.clone())
+                            .raw_input(item.get("arguments").unwrap_or(item).clone())
                             .locations(locations(item)),
                     ));
                 }
@@ -153,20 +157,54 @@ impl Translator {
                 if completed {
                     let failed = matches!(item["status"].as_str(), Some("failed" | "declined"))
                         || item["exitCode"].as_i64().is_some_and(|exit| exit != 0)
-                        || !item["error"].is_null();
+                        || !item["error"].is_null()
+                        || item["success"].as_bool() == Some(false);
                     let mut fields = ToolCallUpdateFields::new()
                         .status(if failed {
                             ToolCallStatus::Failed
                         } else {
                             ToolCallStatus::Completed
                         })
-                        .raw_output(item.clone());
-                    let text = item["aggregatedOutput"]
-                        .as_str()
-                        .filter(|text| !text.is_empty());
-                    if let Some(text) = text {
-                        fields =
-                            fields.content(vec![ContentBlock::Text(TextContent::new(text)).into()]);
+                        .raw_output(if kind == "mcpToolCall" {
+                            if item["error"].is_null() {
+                                item["result"].clone()
+                            } else {
+                                item["error"].clone()
+                            }
+                        } else {
+                            item.clone()
+                        });
+                    let texts: Vec<String> = match kind {
+                        "mcpToolCall" => item["result"]["content"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(|block| block["text"].as_str().map(str::to_owned))
+                            .collect(),
+                        "dynamicToolCall" => item["contentItems"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(|block| block["text"].as_str().map(str::to_owned))
+                            .collect(),
+                        "commandExecution" => {
+                            let streamed = self.command_output.remove(id);
+                            item["aggregatedOutput"]
+                                .as_str()
+                                .map(str::to_owned)
+                                .or(streamed)
+                                .into_iter()
+                                .collect()
+                        }
+                        _ => Vec::new(),
+                    };
+                    if !texts.is_empty() {
+                        fields = fields.content(
+                            texts
+                                .into_iter()
+                                .map(|text| ContentBlock::Text(TextContent::new(text)).into())
+                                .collect::<Vec<_>>(),
+                        );
                     }
                     updates.push(SessionUpdate::ToolCallUpdate(ToolCallUpdate::new(
                         id.to_owned(),
@@ -209,6 +247,10 @@ fn title(item: &Value) -> String {
             item["server"].as_str().unwrap_or_default(),
             item["tool"].as_str().unwrap_or_default()
         ),
+        Some("dynamicToolCall") => match item["namespace"].as_str() {
+            Some(namespace) => format!("{namespace}.{}", item["tool"].as_str().unwrap_or("Tool")),
+            None => item["tool"].as_str().unwrap_or("Tool").into(),
+        },
         Some("webSearch") => format!("Search: {}", item["query"].as_str().unwrap_or_default()),
         Some(kind) => kind.into(),
         None => "Tool".into(),
