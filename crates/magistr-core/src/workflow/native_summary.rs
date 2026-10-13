@@ -8,10 +8,9 @@ use magistr_engine::native::{Chunk, ChunkStatus, ObjectiveStatus};
 use super::spec::SpecSummary;
 use crate::error::{MagistrError, Result};
 
-/// Chunk progress as a spec summary: `total`/`checked` count chunks, and the
-/// single unchecked item is the chunk `roadmap_next` would hand an agent —
-/// so `all_done()` means "no ready chunk". Re-reads the roadmap first: the
-/// agent's `magistr mcp-serve` writes it between turns.
+/// Progress counts all unfinished chunks; the item list selects the next
+/// ready chunk for the prompt. Availability never means completion.
+/// Re-reads the roadmap because the admitted writer may update it between turns.
 #[must_use]
 pub fn native_spec_summary(engines: &NativeReader) -> SpecSummary {
     engines.reload_roadmap();
@@ -20,7 +19,7 @@ pub fn native_spec_summary(engines: &NativeReader) -> SpecSummary {
         .roadmap_next()
         .map(|c| vec![format!("{} — {}", c.id, c.title)])
         .unwrap_or_default();
-    let unchecked = unchecked_items.len();
+    let unchecked = progress.total_tasks.saturating_sub(progress.checked_tasks) as usize;
     SpecSummary {
         total: progress.total_tasks as usize,
         checked: progress.checked_tasks as usize,
@@ -185,7 +184,7 @@ pub(crate) fn native_work_summary(
     Ok(SpecSummary {
         total: progress.total_tasks as usize,
         checked: progress.checked_tasks as usize,
-        unchecked: unchecked_items.len(),
+        unchecked: progress.total_tasks.saturating_sub(progress.checked_tasks) as usize,
         unchecked_items,
     })
 }

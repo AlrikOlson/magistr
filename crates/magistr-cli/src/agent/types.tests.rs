@@ -1,4 +1,35 @@
 use super::*;
+
+#[test]
+fn the_first_tool_observation_preserves_an_already_finished_result() {
+    let call = AcpToolCall::new(ToolCallId::new("finished"), "Read file")
+        .status(ToolCallStatus::Failed)
+        .raw_output(serde_json::json!("Permission denied"));
+    let messages = messages_from_session_update(&SessionUpdate::ToolCall(call), &test_session_id());
+    assert!(matches!(&messages[0], AgentMessage::Assistant { .. }));
+    let AgentMessage::StreamEvent { event, .. } = &messages[1] else {
+        panic!("status and output")
+    };
+    assert_eq!(event["status"], "Failed");
+    assert_eq!(event["raw_output"], "Permission denied");
+}
+
+#[test]
+fn tool_output_is_available_before_completion_without_a_duplicate_result() {
+    let call = AcpToolCall::new(ToolCallId::new("stream-output"), "cargo check")
+        .status(ToolCallStatus::InProgress)
+        .content(vec![
+            AcpContentBlock::Text(TextContent::new("Checking workspace")).into(),
+        ]);
+    let update = SessionUpdate::ToolCallUpdate(ToolCallUpdate::from(call));
+    let messages = messages_from_session_update(&update, &test_session_id());
+    assert_eq!(messages.len(), 1);
+    let AgentMessage::StreamEvent { event, .. } = &messages[0] else {
+        panic!("stream event")
+    };
+    assert_eq!(event["content"], "Checking workspace");
+}
+
 use agent_client_protocol::schema::v1::{
     Content, ContentChunk, PlanEntry, PlanEntryPriority, PlanEntryStatus, TextContent, ToolCallId,
 };

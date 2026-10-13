@@ -386,14 +386,29 @@ pub fn messages_from_session_update(
 
         SessionUpdate::ToolCall(tc) => {
             let block = tool_use_from_acp(tc);
-            vec![AgentMessage::Assistant {
+            let mut messages = vec![AgentMessage::Assistant {
                 parent_tool_use_id: None,
                 message: AssistantContent {
                     model: String::new(),
                     content: vec![block],
                 },
                 session_id: Some(session_id.clone()),
-            }]
+            }];
+            // A provider can report output and a terminal status in its first
+            // observation; retain those facts just as for a later update.
+            if !tc.content.is_empty()
+                || tc.raw_output.is_some()
+                || matches!(
+                    tc.status,
+                    ToolCallStatus::Completed | ToolCallStatus::Failed
+                )
+            {
+                messages.extend(tool_call_update_to_messages(
+                    &ToolCallUpdate::from(tc.clone()),
+                    session_id,
+                ));
+            }
+            messages
         }
 
         SessionUpdate::ToolCallUpdate(tcu) => tool_call_update_to_messages(tcu, session_id),
@@ -526,6 +541,15 @@ fn tool_call_update_to_messages(tcu: &ToolCallUpdate, session_id: &SessionId) ->
         "diffs": diffs_json,
         "terminal_ids": terminal_ids,
     });
+
+    // Keep output available while a tool runs, independently of its terminal
+    // result block. Presentation decides how much to display.
+    if let Some(content) = &tcu.fields.content {
+        event["content"] = serde_json::Value::String(tool_call_content_to_string(content));
+    }
+    if let Some(output) = &tcu.fields.raw_output {
+        event["raw_output"] = output.clone();
+    }
 
     // Propagate raw_input so the handler can push input lines for late-arriving inputs
     if let Some(ref input) = tcu.fields.raw_input {

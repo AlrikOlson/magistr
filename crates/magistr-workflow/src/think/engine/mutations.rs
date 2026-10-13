@@ -30,7 +30,7 @@ impl ReasoningServer {
         last.estimated_total = new_estimate;
         let last_n = last.step_number;
         self.history.updated_at = Some(Utc::now().to_rfc3339());
-        eprintln!(
+        tracing::debug!(
             "📐 estimated_total revised: {previous} → {new_estimate} (last step is #{last_n}, {len} total)"
         );
         self.persist_active();
@@ -165,6 +165,6 @@ impl ReasoningServer {
         if let Some(b) = &self.broadcaster {
             b.emit(BroadcastFrame::Cleared);
         }
-        eprintln!("🔄 Deliberation history cleared");
+        tracing::debug!("🔄 Deliberation history cleared");
     }
 }

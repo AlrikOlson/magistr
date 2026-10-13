@@ -185,7 +185,7 @@ impl Persistence {
         if let Err(e) = locked_write(&path, &merged, MergeMode::Merge) {
             tracing::warn!("Failed to adopt legacy default history: {e}");
         } else {
-            eprintln!(
+            tracing::debug!(
                 "think-and-ship: adopted {adopted_count} step(s) for {} from the legacy _default history",
                 self.stem
             );

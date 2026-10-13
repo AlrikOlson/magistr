@@ -115,7 +115,7 @@ impl SignalEngine {
     pub fn with_persistence(mut self, persistence: Persistence) -> Self {
         match persistence.load_stamped::<Signals>(&self.project_id) {
             Ok((Some(loaded), stamp)) => {
-                eprintln!(
+                tracing::debug!(
                     "think-and-ship: loaded {} signal(s) from disk",
                     loaded.signals.len()
                 );

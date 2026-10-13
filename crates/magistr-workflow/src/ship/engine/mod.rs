@@ -306,7 +306,7 @@ impl ShipEngine {
         self.stamp = persistence.stamp(&self.project_id).ok().flatten();
         if let Ok((Some(state), _)) = persistence.current_stamped(&self.project_id) {
             self.adopt_current(Some(state));
-            eprintln!("ship: loaded {} task(s) from disk", self.tasks.len());
+            tracing::debug!("ship: loaded {} task(s) from disk", self.tasks.len());
         }
         self.receipts = persistence.receipt_ledger(&self.project_id);
         self.persistence = Some(persistence);

@@ -1,78 +1,57 @@
-//! The boundary between what we PRINT and what we SEND.
+//! Workflow libraries never own a terminal presentation.
 //!
-//! The OTLP log lane shipped in `e533fd1` forwards `tracing` events to a
-//! backend. An `eprintln!` never reaches a `tracing` subscriber, so the spelling
-//! of a diagnostic decides whether it stays on this machine or leaves it. That
-//! makes the split load-bearing in a way it never was before, and these tests
-//! are the only thing holding it.
-//!
-//! # The rule, stated once so it is checkable instead of tasteful
-//!
-//! > Convert an `eprintln!` to `tracing::warn!` **if and only if** it is a
-//! > FAILURE REPORT: it is emitted on a branch reached because one of *our own*
-//! > side effects did not happen, or because an input was refused. Everything
-//! > else stays `eprintln!`.
-//!
-//! It is a rule about what the line REPORTS, not about where the line LIVES. A
-//! module-path rule ("everything outside `src/cli/` is operational") was tried
-//! first and is simply false here — see below.
-//!
-//! # The three populations — one more than the obvious split
-//!
-//! **(A) Failure reports.** `"Failed to persist session {id}"`, `"could not
-//! create data dir"`, `"Refusing to persist session with unsafe id"`,
-//! `"Skipping {} — schema version"`. 34 sites. These are what the log lane
-//! exists for, and they are now `tracing::warn!`.
-//!
-//! **(B) Success narration.** `"🌿 Created branch"`, `"📐 estimated_total
-//! revised"`, `"🔄 Deliberation history cleared"`, `"loaded {n} signal(s) from
-//! disk"`, and `process.rs`'s `eprintln!("{formatted}")` — the whole rendered
-//! step. These sit in the SAME engine modules as (A), interleaved line by line,
-//! which is what kills the module-path rule.
-//!
-//! **(C) CLI output for a human.** The standalone binary's `src/cli/` and
-//! `src/main.rs`, retired with that binary; nothing in this crate prints for a
-//! terminal any more.
-//!
-//! **(D) Library narration on an embedder's hot path.** The roadmap engine's
-//! `with_persistence` — the load banner and its one-time repairs. This is the
-//! one narration site that runs inside a process this crate does not own: an
-//! in-process host (Magistr's cockpit) re-opens the roadmap between agent turns
-//! while its terminal is in raw mode on the alternate screen, and an
-//! unconditional `eprintln!` there is not a diagnostic, it is a screen
-//! scribble the host cannot opt out of. So it goes through `tracing` (`info!`
-//! for the load, `warn!` for the repairs) and the MCP binary's operator sees
-//! the load again with `RUST_LOG=info`. `library_load_narration_stays_on_tracing`
-//! holds that decision the way the (B) test holds its opposite.
-//!
-//! # Why (B) stays `eprintln!` — the trap that is specific to this crate
-//!
-//! Narration is INFO-shaped, so the obvious move is `tracing::info!`. That
-//! would DELETE it twice. `init_tracing` installs
-//! `EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("warn"))`, so an
-//! `info!` does not reach stderr unless the operator set `RUST_LOG`; and
-//! [`passes_fence`] admits WARN and above, so it does not reach the backend
-//! either. A line that prints unconditionally today would print nowhere at all
-//! — the operator loses the diagnostic they had and gains nothing. Promoting it
-//! to `warn!` instead would lie about severity and fill a warning stream with
-//! `"loaded 3 signal(s) from disk"`. Both options are worse than leaving it, so
-//! narration keeps its `eprintln!` and `narration_is_never_demoted_…` holds
-//! that decision down.
-//!
-//! # Why there is no "src/cli contains no tracing::warn!" test
-//!
-//! Because it would have been red before this conversion touched anything.
-//! `cli/mod.rs` already carried four `tracing::warn!` calls — a failed v0.1.x
-//! migration and three `Err(e) =>` arms — beside its 26 `eprintln!` calls. The
-//! rule above is not imposed by this conversion; it is the convention the one
-//! revisited module already followed, and the engines simply predate it. So the
-//! CLI side is pinned by a FLOOR on its `eprintln!` count instead: conversion
-//! only ever removes an `eprintln!`, so a floor goes red the moment user output
-//! is converted, while leaving new CLI output free to be added.
-//!
-//! [`passes_fence`]: magistr_workflow::otel_logs::passes_fence
+//! Routine narration and capability negotiation use opt-in debug tracing.
+//! Findings, plans and gate results remain in native records and tool replies;
+//! terminal clients render them from their ordered session stream. Genuine
+//! effect failures still use warn tracing and reach the operational log lane.
+//! Protocol stdout stays reserved for protocol frames.
 
 use std::path::{Path, PathBuf};
+
+#[test]
+fn routine_reasoning_records_do_not_write_to_the_hosts_stderr() {
+    const CHILD: &str = "MAGISTR_TERMINAL_LOG_TEST_CHILD";
+    if std::env::var_os(CHILD).is_some() {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::WARN)
+            .with_writer(std::io::stderr)
+            .without_time()
+            .init();
+        let mut config = magistr_workflow::think::config::ThinkConfig::default();
+        config.system.max_history_size = 1;
+        let mut owner = magistr_workflow::think::engine::core::ReasoningServer::new(config);
+        for _ in 0..3 {
+            let step = serde_json::from_value(serde_json::json!({
+                "estimated_total":6,"purpose":"Record a material finding",
+                "context":"Observed session output","thought":"The shared owner retains the current facts.",
+                "outcome":"The result is available to every current reader.",
+                "rationale":"The contract is exercised through the actual reasoning owner.",
+                "next_action":"Verify the terminal presentation"
+            })).unwrap();
+            owner.process_step_native(step).unwrap();
+        }
+        return;
+    }
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "routine_reasoning_records_do_not_write_to_the_hosts_stderr",
+            "--nocapture",
+        ])
+        .env(CHILD, "1")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    assert!(
+        output.stderr.is_empty(),
+        "routine records polluted stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
 
 fn src(rel: &str) -> String {
     let path: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(rel);
@@ -95,8 +74,7 @@ fn call_lines(text: &str, macro_name: &str) -> Vec<usize> {
         .collect()
 }
 
-/// Every module that holds the operational population. `src/cli/` and
-/// `src/main.rs` are deliberately absent: they are population (C).
+/// Workflow owners and their protocol adapters.
 const OPERATIONAL: &[&str] = &[
     "infra/persistence.rs",
     "think/persistence.rs",
@@ -156,45 +134,19 @@ fn every_failure_report_outside_the_cli_reaches_the_subscriber() {
     );
 }
 
-/// The trap half: narration must not be demoted to a level that BOTH the
-/// default `EnvFilter("warn")` and the OTLP fence discard. Named messages
-/// rather than a blanket ban, so ordinary `debug!` logging stays available.
+/// An embedded workflow engine must not print into its host's terminal.
 #[test]
-fn narration_is_never_demoted_to_a_level_the_default_filter_deletes() {
-    for (rel, needle) in [
-        ("think/engine/branching.rs", "Created branch"),
-        ("think/engine/mutations.rs", "Deliberation history cleared"),
-        ("think/engine/mutations.rs", "estimated_total revised"),
-        ("think/engine/sessions.rs", "expired and removed"),
-        ("think/engine/process.rs", "History trimmed to"),
-        ("think/engine/numbering.rs", "Renumbered"),
-        ("signal/engine.rs", "signal(s) from disk"),
-        ("ship/engine/mod.rs", "task(s) from disk"),
-        ("think/persistence.rs", "from the legacy _default history"),
-    ] {
+fn workflow_libraries_do_not_print_routine_narration() {
+    for rel in OPERATIONAL {
         let text = src(rel);
-        let lines: Vec<&str> = text.lines().collect();
-        // Skip comments: `numbering.rs` documents "Renumbered clones" in a doc
-        // comment 300 lines above the call that actually emits it, and matching
-        // the prose made this test red for the wrong reason.
-        let at = lines
-            .iter()
-            .position(|l| l.contains(needle) && !l.trim_start().starts_with("//"))
-            .unwrap_or_else(|| panic!("{rel} no longer contains {needle:?} outside a comment"));
-        // The macro is on this line or just above it (multi-line call).
-        let site = lines[at.saturating_sub(2)..=at].join(" ");
         assert!(
-            site.contains("eprintln!"),
-            "{rel} emits {needle:?} through something other than eprintln!. If it \
-             became info!/debug! it now prints NOWHERE: below EnvFilter(\"warn\") \
-             on stderr and below the WARN+ fence for OTLP. If it became warn! it \
-             is being reported to the operator as a problem."
+            call_lines(&text, "eprintln").is_empty(),
+            "{rel} prints directly; use tracing for diagnostics and return user-visible facts through native records"
         );
     }
 }
 
-/// Population (D): the roadmap load runs inside an embedder's process and must
-/// never print on stderr directly — the reverse pin of the narration test.
+/// Loads and repairs keep their actual severity in tracing.
 #[test]
 fn library_load_narration_stays_on_tracing() {
     let text = src("roadmap/engine/mod.rs");
@@ -214,8 +166,7 @@ fn library_load_narration_stays_on_tracing() {
         assert!(
             site.contains(level) && !site.contains("eprintln!"),
             "roadmap/engine/mod.rs emits {needle:?} through something other than \
-             {level}. An in-process host reloads the roadmap with its terminal in \
-             raw mode; an eprintln! there scribbles the alternate screen."
+             {level}. The embedding client owns terminal presentation."
         );
     }
 }
@@ -242,8 +193,7 @@ fn the_fence_admits_a_converted_site_and_rejects_the_level_narration_would_use()
         );
         assert!(
             !passes_fence(target, &Level::INFO),
-            "{target} at INFO must NOT reach the lane; this is exactly why the \
-             narration population was left on eprintln!"
+            "{target} at INFO is routine diagnostic data and must not reach the failure lane"
         );
     }
     assert!(

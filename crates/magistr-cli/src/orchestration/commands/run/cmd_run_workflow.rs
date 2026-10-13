@@ -37,7 +37,7 @@ pub async fn cmd_run_workflow(
         let _ = session.terminate_session().await;
         return Err(error);
     }
-    let outcome = super::drain_session_interactive(&mut session).await;
+    let outcome = super::drain_session_plain_turn(&mut session).await;
     let cleanup = session.terminate_session().await.suggest();
     outcome.and(cleanup)
 }

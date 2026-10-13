@@ -282,7 +282,7 @@ pub fn dedupe_project_clones(
         }
     }
 
-    eprintln!(
+    tracing::debug!(
         "🧹 Dropped {} renumbered step clone(s) across {} session(s) in project '{project_id}' ({} steps remain)",
         report.clones_dropped,
         member_keys.len(),
@@ -430,7 +430,7 @@ pub(crate) fn renumber_project_for_uniqueness(
         }
     }
 
-    eprintln!(
+    tracing::debug!(
         "📐 Renumbered {} steps across {} session(s) in project '{project_id}' for project-wide step_number uniqueness",
         total_steps,
         member_keys.len()

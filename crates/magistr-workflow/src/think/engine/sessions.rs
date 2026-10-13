@@ -170,7 +170,7 @@ impl ReasoningServer {
             .collect();
         for id in expired {
             self.sessions.remove(&id);
-            eprintln!("🗑️ Session {id} expired and removed");
+            tracing::debug!("🗑️ Session {id} expired and removed");
         }
     }
 }

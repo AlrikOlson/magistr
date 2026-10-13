@@ -508,7 +508,9 @@ impl IterationLoop {
     /// before selecting a new ready item.
     pub fn next_prompt(&self, config: &ProjectConfig) -> Result<String> {
         let summary = self.spec_summary()?;
-        if summary.all_done() {
+        if self.native.is_some() && summary.unchecked_items.is_empty()
+            || self.native.is_none() && summary.all_done()
+        {
             return Err(MagistrError::Detection(
                 "Nothing to do: no ready roadmap chunk / spec items complete.".into(),
             ));
@@ -534,7 +536,9 @@ impl IterationLoop {
         self.state.spec_checked = summary.checked;
         self.state.spec_total = summary.total;
 
-        if summary.all_done() {
+        if self.native.is_some() && summary.unchecked_items.is_empty()
+            || self.native.is_none() && summary.all_done()
+        {
             let reason = if self.native.is_some() {
                 StopReason::NoReadyChunk
             } else {

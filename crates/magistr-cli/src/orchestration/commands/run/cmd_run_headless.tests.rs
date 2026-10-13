@@ -3,6 +3,141 @@ use crate::agent::message::{AgentMessage, AssistantContent, ContentBlock, Sessio
 use crate::agent::mock::mock_session;
 use crate::cli::HeadlessFormat;
 
+#[tokio::test]
+async fn partial_tool_output_survives_an_interrupted_turn() {
+    let (mut session, tx) = mock_session();
+    tx.send(Ok(tool_use_msg("Check"))).unwrap();
+    tx.send(Ok(AgentMessage::StreamEvent { uuid:"tool-1".into(),session_id:SessionId::new("partial"),
+        parent_tool_use_id:None,event:serde_json::json!({"type":"tool_call_update","tool_call_id":"tool-1","content":"compiler stopped before a newline","status":""}) })).unwrap();
+    tx.send(Err(crate::error::MagistrError::Other(
+        "connection lost".into(),
+    )))
+    .unwrap();
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    assert!(
+        drain_headless(
+            &mut session,
+            HeadlessFormat::Plain,
+            None,
+            &mut out,
+            &mut err
+        )
+        .await
+        .unwrap_err()
+        .to_string()
+        .contains("connection lost")
+    );
+    let activity = String::from_utf8(err).unwrap();
+    assert!(
+        activity.contains("compiler stopped before a newline"),
+        "{activity}"
+    );
+    assert!(
+        !activity.contains("[done]"),
+        "interruption never invents successful tool completion"
+    );
+}
+
+#[tokio::test]
+async fn json_keeps_tool_updates_user_results_and_terminal_bytes() {
+    use agent_client_protocol::schema::v1::{
+        SessionUpdate, ToolCall, ToolCallStatus, ToolCallUpdate,
+    };
+    let (mut session, tx) = mock_session();
+    let call = ToolCall::new("tool-json", "Read file")
+        .status(ToolCallStatus::Completed)
+        .raw_output(serde_json::json!("contents"));
+    for message in crate::agent::types::messages_from_session_update(
+        &SessionUpdate::ToolCallUpdate(ToolCallUpdate::from(call)),
+        &SessionId::new("terminal"),
+    ) {
+        tx.send(Ok(message)).unwrap();
+    }
+    tx.send(Ok(AgentMessage::System {
+        subtype: "terminal_output".into(),
+        data: serde_json::json!({"terminal_id":"terminal","bytes":b"raw output"}),
+    }))
+    .unwrap();
+    tx.send(Ok(result_msg(false, 1, None))).unwrap();
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    drain_headless(&mut session, HeadlessFormat::Json, None, &mut out, &mut err)
+        .await
+        .unwrap();
+    let text = String::from_utf8(out).unwrap();
+    let records: Vec<serde_json::Value> = text
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| record["type"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["tool_update", "tool_result", "terminal_output", "result"]
+    );
+    assert_eq!(records[1]["content"], "contents");
+    assert_eq!(
+        records[2]["data"]["bytes"],
+        serde_json::json!(b"raw output")
+    );
+    assert!(err.is_empty(), "protocol output belongs on stdout");
+}
+
+#[tokio::test]
+async fn plain_tool_updates_show_command_output_and_gate_outcome() {
+    use agent_client_protocol::schema::v1::{
+        SessionUpdate, ToolCall, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
+    };
+    let (mut session, tx) = mock_session();
+    tx.send(Ok(text_msg("I’m checking the change."))).unwrap();
+    let call = SessionUpdate::ToolCall(
+        ToolCall::new("gate", "mcp__magistr__ship_check")
+            .raw_input(serde_json::json!({"name":"check","command":"cargo check"})),
+    );
+    let update = SessionUpdate::ToolCallUpdate(ToolCallUpdate::new("gate",
+        ToolCallUpdateFields::new().status(ToolCallStatus::Completed).raw_output(
+            serde_json::json!({"content":[],"structuredContent":{"name":"check","passed":true,"exit_code":0,"details":"workspace compiled"}}))));
+    for event in [call, update] {
+        for message in
+            crate::agent::types::messages_from_session_update(&event, &SessionId::new("terminal"))
+        {
+            tx.send(Ok(message)).unwrap();
+        }
+    }
+    tx.send(Ok(text_msg("The checks passed."))).unwrap();
+    tx.send(Ok(result_msg(false, 1, None))).unwrap();
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    assert_eq!(
+        drain_headless(
+            &mut session,
+            HeadlessFormat::Plain,
+            None,
+            &mut out,
+            &mut err
+        )
+        .await
+        .unwrap(),
+        HeadlessOutcome::Ok
+    );
+    let text = String::from_utf8(out).unwrap();
+    let activity = String::from_utf8(err).unwrap();
+    assert!(text.contains("I’m checking the change.\n"), "{text}");
+    assert!(activity.contains("cargo check"), "{activity}");
+    assert!(
+        activity.contains("Check check: passed (exit 0)"),
+        "{activity}"
+    );
+    assert!(activity.contains("workspace compiled"), "{activity}");
+    assert_eq!(
+        activity.matches("workspace compiled").count(),
+        1,
+        "one result, not both projections"
+    );
+}
+
 fn text_msg(text: &str) -> AgentMessage {
     AgentMessage::Assistant {
         parent_tool_use_id: None,

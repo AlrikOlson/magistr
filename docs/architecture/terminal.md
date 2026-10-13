@@ -5,6 +5,20 @@ help. `run`, `next` and `next-loop` stream progress to standard output;
 `--headless` provides noninteractive execution. Commands never take over the
 terminal, negotiate graphics, enable mouse tracking or enter an alternate screen.
 
+The CLI owns one plain-text renderer for the shared session stream. It flushes
+assistant text before tool activity, reports commands and tool outcomes, and
+shows concise findings, phases and check results. Long tool results have bounded
+previews that retain the beginning and end and identify omitted lines. JSON
+execution emits tool updates and results as separate protocol records. Workflow
+commands drain one turn; the loop owns continuation, while interactive `run`
+alone asks for follow-up input.
+
+Workflow libraries return facts through native records and tool replies.
+Routine retention, findings and capability diagnostics use opt-in debug tracing;
+genuine failures retain their warning severity. They never print directly into
+a host's terminal. Progress counts unfinished work separately from the single
+candidate selected for an iteration.
+
 The desktop has one independent launch route, described in
 [desktop architecture](desktop.md). Presentation owns no provider, workspace
 or workflow service lifetime.
