@@ -266,6 +266,92 @@ fn permission_observation_carries_the_action_the_user_is_answering() {
 }
 
 #[tokio::test]
+async fn incomplete_shell_requests_wait_for_an_offered_user_choice() {
+    use crate::permissions::{PermissionProfile, SessionPermissionPolicy};
+    use magistr_engine::policy::RiskTier;
+
+    for profile in [
+        PermissionProfile::Cautious,
+        PermissionProfile::Standard,
+        PermissionProfile::Trusted,
+    ] {
+        for input in [
+            serde_json::Value::Null,
+            serde_json::json!({}),
+            serde_json::json!({"command": ""}),
+            serde_json::json!({"command": " \t\n"}),
+            serde_json::json!({"command": 42}),
+        ] {
+            let state = state();
+            let policy = SessionPermissionPolicy::new(profile, vec![], vec![], vec![], false);
+            let (events, mut receiver) = crate::agent::observation::channel(
+                crate::agent::observation::ObservationCapacity::DEFAULT,
+            );
+            let mut permissions = Permissions::interactive(None, Box::new(policy), events);
+            let (mut request, mut reply) = request(&[
+                ("deny", AcpPermissionOptionKind::RejectOnce),
+                ("allow", AcpPermissionOptionKind::AllowOnce),
+            ]);
+            request.tool_title = "Bash".into();
+            request.tool_kind = Some(agent_client_protocol::schema::v1::ToolKind::Execute);
+            let expected_detail = input.to_string();
+            request.tool_input = input;
+            permissions.answer(Some(request), &state);
+
+            let AgentEvent::PermissionRequest {
+                id,
+                title,
+                detail,
+                choices,
+                risk,
+                ..
+            } = receiver.try_recv().expect("incomplete command must ask")
+            else {
+                panic!("expected a permission request");
+            };
+            assert_eq!(title, "Bash");
+            assert_eq!(detail, expected_detail);
+            assert_eq!(risk, RiskTier::High);
+            assert_eq!(choices.len(), 2);
+            assert_eq!(choices[0].option_id, "deny");
+            assert_eq!(choices[1].option_id, "allow");
+            assert!(
+                matches!(
+                    reply.try_recv(),
+                    Err(tokio::sync::oneshot::error::TryRecvError::Empty)
+                ),
+                "must await the user's choice: {profile} {expected_detail}"
+            );
+            permissions.reply(id, "allow".into(), &state);
+            assert!(matches!(
+                reply.await,
+                Ok(AcpPermissionResponse::Selected(id)) if id == "allow"
+            ));
+            assert!(permissions.pending.is_empty());
+        }
+    }
+}
+
+#[tokio::test]
+async fn unattended_incomplete_shell_requests_are_refused() {
+    for input in [
+        serde_json::Value::Null,
+        serde_json::json!({}),
+        serde_json::json!({"command": ""}),
+        serde_json::json!({"command": " \t\n"}),
+        serde_json::json!({"command": false}),
+    ] {
+        let (mut permissions, _sender) = permissions(NoninteractivePolicy::Refuse);
+        let (mut request, reply) = request(&[("allow", AcpPermissionOptionKind::AllowOnce)]);
+        request.tool_title = "Bash".into();
+        request.tool_kind = Some(agent_client_protocol::schema::v1::ToolKind::Execute);
+        request.tool_input = input;
+        permissions.answer(Some(request), &state());
+        assert!(matches!(reply.await, Ok(AcpPermissionResponse::Cancelled)));
+    }
+}
+
+#[tokio::test]
 async fn interactive_always_answer_does_not_bypass_the_next_policy_ask() {
     use magistr_acp::AcpPermissionOptionKind as Kind;
     use magistr_application::sessions::{AgentEvent, PermissionKind};

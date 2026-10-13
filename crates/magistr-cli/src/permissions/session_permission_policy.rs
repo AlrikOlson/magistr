@@ -619,14 +619,14 @@ fn is_shell_command(req: &RequestData) -> bool {
 /// Check if a shell command is safe enough to auto-approve outside
 /// workflow mode.
 fn is_safe_shell_command(tool_input: &serde_json::Value) -> bool {
-    let command = tool_input
+    let Some(command) = tool_input
         .get("command")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
-    if command.is_empty() {
-        return true;
-    }
+        .and_then(serde_json::Value::as_str)
+        .filter(|command| !command.trim().is_empty())
+    else {
+        // No command details means no evidence for a safe-operation allowance.
+        return false;
+    };
 
     let effective_cmd = strip_cd_prefix(command);
 
