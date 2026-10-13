@@ -1,11 +1,9 @@
 //! Admit this process as the host of a project whose `.magistr/project.json`
 //! selects the native roadmap backend, and open its writer.
 //!
-//! The loops and the cockpit mutate the store — gates recorded, chunks
-//! started and completed, blockers set — so they take the host lease before
-//! raw mode. One host per project and store: a second `next-loop` or cockpit
-//! on the same project is refused here with the lease's own reason, while
-//! the agent's `magistr mcp-serve` is the other role and coexists.
+//! The loops and cockpit mutate the shared store, so they take the project
+//! lease before raw mode. One writer owns the project; other surfaces and
+//! agent clients attach to that owner instead of opening another writer.
 
 use std::path::Path;
 
@@ -16,13 +14,13 @@ use magistr_engine::{NativeConfig, NativeEngines, ProjectAuthority, WriterRole};
 use super::open_native_reader::roadmap_backend_of;
 
 /// The admitted writer for `dir`, `None` when the project runs the YAML
-/// roadmap (or has no `.magistr/project.json`). Store location and
+/// roadmap. Store location and
 /// persistence come from the process environment (`THINK_AND_SHIP_*`); the
 /// writer carries the project's evidence capability, so the gates it
 /// records are bound to the source and its completions are governed.
 ///
 /// # Errors
-/// The host lease is held by another cockpit or loop on this project and
+/// Current project settings are invalid, the host lease is held by another session on this project and
 /// store, or its lock file cannot be taken.
 pub fn admit_native_host(dir: &Path) -> eyre::Result<Option<NativeEngines>> {
     admit_with_configuration(dir, || writer_config_from_env(dir))
@@ -42,7 +40,7 @@ fn admit_with_configuration(
     dir: &Path,
     configure: impl FnOnce() -> NativeConfig,
 ) -> eyre::Result<Option<NativeEngines>> {
-    if !roadmap_backend_of(dir).is_native() {
+    if !roadmap_backend_of(dir)?.is_native() {
         return Ok(None);
     }
     let authority = ProjectAuthority::admit(&configure(), WriterRole::Host)

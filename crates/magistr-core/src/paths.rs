@@ -8,20 +8,12 @@
 //! - **`.magistr/`** — Magistr-owned state (config, plans, memory, session state)
 //! - **`.claude/`** — Claude Code native config (settings, rules, skills)
 //!
-//! ## Migration
-//!
-//! Legacy `.jig/` directories are detected and migrated automatically via
-//! [`migrate_jig_dir`].
-
 use std::path::{Path, PathBuf};
 
 // ── Directory names ─────────────────────────────────────────────────────────
 
 /// Magistr's own state directory. All Magistr-managed files live here.
 pub const MAGISTR_DIR: &str = ".magistr";
-
-/// Legacy directory name (pre-rebrand). Used for migration detection.
-pub const LEGACY_JIG_DIR: &str = ".jig";
 
 /// Claude Code's config directory. Rules, settings, skills live here.
 pub const CLAUDE_DIR: &str = ".claude";
@@ -40,9 +32,6 @@ pub const PLUGINS_DIR_NAME: &str = "plugins";
 
 /// Roadmap YAML filename (lives at repo root, not inside `.magistr/`).
 pub const ROADMAP_YAML: &str = ".magistr-roadmap.yml";
-
-/// Legacy roadmap YAML filename (inside `.magistr/`).
-pub const LEGACY_ROADMAP_YAML: &str = "roadmap.yaml";
 
 // ── Claude-owned subdirectories ─────────────────────────────────────────────
 
@@ -107,11 +96,6 @@ pub fn plugins_dir(project_dir: &Path) -> PathBuf {
 /// `.magistr-roadmap.yml` — canonical roadmap YAML at repo root.
 pub fn roadmap_yaml(project_dir: &Path) -> PathBuf {
     project_dir.join(ROADMAP_YAML)
-}
-
-/// `.magistr/roadmap.yaml` — legacy roadmap YAML inside `.magistr/`.
-pub fn legacy_roadmap_yaml(project_dir: &Path) -> PathBuf {
-    magistr_dir(project_dir).join(LEGACY_ROADMAP_YAML)
 }
 
 // ── Path constructors (Claude Code native → .claude/) ───────────────────────
@@ -220,12 +204,6 @@ impl ProjectPaths {
         roadmap_yaml(&self.root)
     }
 
-    /// `.magistr/roadmap.yaml` — legacy roadmap YAML inside `.magistr/`.
-    #[must_use]
-    pub fn legacy_roadmap_yaml(&self) -> PathBuf {
-        legacy_roadmap_yaml(&self.root)
-    }
-
     /// `.claude/` directory.
     #[must_use]
     pub fn claude_dir(&self) -> PathBuf {
@@ -275,30 +253,6 @@ impl AsRef<Path> for ProjectPaths {
     fn as_ref(&self) -> &Path {
         &self.root
     }
-}
-
-// ── Migration ───────────────────────────────────────────────────────────────
-
-/// Migrate a legacy `.jig/` directory to `.magistr/`.
-///
-/// If `.jig/` exists and `.magistr/` does not, renames the directory.
-/// Returns `true` if migration was performed.
-pub fn migrate_jig_dir(project_dir: &Path) -> std::io::Result<bool> {
-    let legacy = project_dir.join(LEGACY_JIG_DIR);
-    let new = project_dir.join(MAGISTR_DIR);
-
-    if legacy.is_dir() && !new.exists() {
-        std::fs::rename(&legacy, &new)?;
-        return Ok(true);
-    }
-    Ok(false)
-}
-
-/// Check if a legacy `.jig/` directory exists that needs migration.
-pub fn has_legacy_jig_dir(project_dir: &Path) -> bool {
-    let legacy = project_dir.join(LEGACY_JIG_DIR);
-    let new = project_dir.join(MAGISTR_DIR);
-    legacy.is_dir() && !new.exists()
 }
 
 // ── Next-loop state (in /tmp, not project-local) ────────────────────────────

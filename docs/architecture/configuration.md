@@ -14,6 +14,29 @@ captured object, the admitted project ID and native persistence. It does not
 call the workflow's ambient loader again. The native publisher owns the
 socket, so the think engine receives no broadcast path.
 
+## Current project settings
+
+Core's `config::read_project_settings` reads the full current
+`ProjectConfig` at the path resolved by `paths::project_json`. Linked Git
+working copies use the main project's declaration, including its backend,
+commands and export policy. Validation, captured project inputs, CLI settings
+views and setup preflight use that reader. Reading never runs stack detection
+or writes settings; setup is responsible for detecting and declaring the stack.
+
+An explicit `roadmap_backend` selects `think-and-ship` or `yaml`. An omitted
+field, or an absent settings file when only a backend is requested, selects
+`think-and-ship`. Other files and `spec.file` do not select a backend.
+Commands that require configured projects still refuse missing settings.
+Existing settings must satisfy the current typed contract: malformed JSON,
+invalid values, unreadable files and invalid Git membership refuse with the
+settings path or link error. Setup checks these before writing scaffold files.
+
+Configuration and roadmap format migrations are absent. YAML reads use
+`.magistr-roadmap.yml`; creation starts an empty roadmap instead of converting
+surrounding files. Setup generates project and host configuration through its
+administrative plan; it does not author a roadmap through an extra file write.
+The default project template selects the native roadmap and omits a spec file.
+
 ## Current input precedence
 
 These names and on-disk locations describe the current resolver. The
@@ -272,7 +295,7 @@ agent session's source writes never reach it, because they take the
 admitted workspace's [source route](clients.md) or are refused, and the
 `native-write-path` gate (rule 13) keeps every other file under the scaffold
 module from writing the filesystem at all. Human-owned `workbench.toml`
-`[commands]` tables, source policy, the legacy `.magistr`/`.jig` state
+`[commands]` tables, source policy, the `.magistr` state
 namespaces and the roadmap export denials are outside every plan and stay
 untouched.
 

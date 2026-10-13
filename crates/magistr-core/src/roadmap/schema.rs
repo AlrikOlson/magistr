@@ -1,7 +1,7 @@
 //! YAML-serializable roadmap document type.
 //!
 //! The `Roadmap` struct defines the top-level document schema for
-//! `.magistr/roadmap.yaml`. Individual types (`Phase`, `Task`, `PhaseStatus`)
+//! `.magistr-roadmap.yml`. Individual types (`Phase`, `Task`, `PhaseStatus`)
 //! live in their own modules.
 
 use serde::{Deserialize, Serialize};

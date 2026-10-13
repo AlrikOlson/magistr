@@ -265,7 +265,6 @@ async fn main() -> eyre::Result<()> {
             &reason,
             confirm_stopped,
         ),
-        Command::Migrate { dir } => commands::config::cmd_migrate(&dir),
         Command::Completions { shell, install } => {
             if install {
                 commands::misc::cmd_completions_install(shell)

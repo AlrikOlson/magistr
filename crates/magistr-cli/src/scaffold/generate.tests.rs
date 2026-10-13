@@ -32,8 +32,15 @@ pub(super) fn test_vars() -> HashMap<String, String> {
 fn roadmap_exports_policy_survives_reinitialization_without_recreating_a_view() {
     let root = tempfile::tempdir().expect("project");
     std::fs::create_dir(root.path().join(".magistr")).expect("config directory");
-    let config = r#"{"roadmap_backend":"think-and-ship","roadmap_exports":false}"#;
-    std::fs::write(root.path().join(".magistr/project.json"), config).expect("policy");
+    let config = serde_json::json!({
+    "project": {"name": "settings-test", "type": "cli"},
+    "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
+    "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+    "format": {"command": "", "extensions": []},
+    "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
+    "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+}).to_string();
+    std::fs::write(root.path().join(".magistr/project.json"), &config).expect("policy");
     let overrides = HashMap::from([("ROADMAP.md".to_owned(), "unrequested view".to_owned())]);
     generate_with_result(
         root.path(),
@@ -753,4 +760,74 @@ fn a_setup_with_one_failed_write_reports_the_partial_outcome() {
             .contains(&".claude/rules/tools.md".to_owned())
     );
     assert_eq!(result.manifest, ManifestOutcome::Saved);
+}
+
+#[test]
+fn current_settings_setup_refuses_invalid_declarations_before_any_write() {
+    for invalid in [
+        serde_json::json!(null),
+        serde_json::json!("invalid"),
+        serde_json::json!(42),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let mut config = serde_json::json!({
+            "project": {"name": "settings-test", "type": "cli"},
+            "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
+            "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+            "format": {"command": "", "extensions": []},
+            "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
+            "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+        });
+        config["roadmap_backend"] = invalid;
+        std::fs::create_dir(root.path().join(".magistr")).unwrap();
+        let path = root.path().join(".magistr/project.json");
+        let original = config.to_string();
+        std::fs::write(&path, &original).unwrap();
+        let result = generate_with_result(
+            root.path(),
+            &test_vars(),
+            &HashMap::new(),
+            &crate::scaffold::SetupSeeds::default(),
+        );
+        assert!(result.is_err(), "invalid settings must refuse setup");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+        assert!(!root.path().join(".claude").exists());
+        assert!(!root.path().join(".mcp.json").exists());
+        assert!(!root.path().join("workbench.toml").exists());
+    }
+}
+
+#[test]
+fn current_yaml_setup_preserves_settings_without_reconstructing_a_roadmap() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = serde_json::json!({
+        "project": {"name": "settings-test", "type": "cli"},
+        "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
+        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "format": {"command": "", "extensions": []},
+        "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
+        "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+    });
+    config["roadmap_backend"] = "yaml".into();
+    std::fs::create_dir(root.path().join(".magistr")).unwrap();
+    std::fs::write(
+        root.path().join(".magistr/project.json"),
+        config.to_string(),
+    )
+    .unwrap();
+    let overrides = HashMap::from([(
+        ".magistr-roadmap.yml".to_owned(),
+        "title: Current Project\n".to_owned(),
+    )]);
+    let result = generate_with_result(
+        root.path(),
+        &test_vars(),
+        &overrides,
+        &crate::scaffold::SetupSeeds::default(),
+    )
+    .unwrap();
+    assert!(!root.path().join(".magistr-roadmap.yml").exists());
+    assert!(!result.created.contains(&".magistr-roadmap.yml".to_owned()));
+    assert!(!root.path().join("ROADMAP.md").exists());
+    assert!(!root.path().join(".magistr/roadmap.yaml").exists());
 }

@@ -42,7 +42,7 @@ impl YamlStore {
         Ok(Self { yaml_path, index })
     }
 
-    /// Create a store from an in-memory roadmap (for migration/creation).
+    /// Create a store from an in-memory roadmap (for creation).
     pub fn from_roadmap(yaml_path: impl AsRef<Path>, roadmap: Roadmap) -> Result<Self> {
         roadmap.validate()?;
         let index = RoadmapIndex::new(roadmap);
@@ -54,13 +54,7 @@ impl YamlStore {
         Ok(store)
     }
 
-    /// Load existing YAML, or create an empty roadmap if none exists.
-    ///
-    /// Migration order:
-    /// 1. Try `.magistr-roadmap.yml` (current canonical path)
-    /// 2. Try `.magistr/roadmap.yaml` (legacy path) → migrate to new path
-    /// 3. Try `ROADMAP.md` (legacy markdown) → parse and migrate
-    /// 4. Create an empty roadmap with the given title
+    /// Load the current YAML file, or create an empty roadmap if it is absent.
     pub fn load_or_create(yaml_path: impl AsRef<Path>, title: &str) -> Result<Self> {
         let yaml_path = yaml_path.as_ref();
 
@@ -69,32 +63,6 @@ impl YamlStore {
             return Self::load(yaml_path);
         }
 
-        // Derive project root from the yaml path
-        // .magistr-roadmap.yml is at the project root, so parent is the root
-        let project_root = yaml_path.parent().unwrap_or(Path::new("."));
-
-        // 2. Legacy .magistr/roadmap.yaml — migrate to new path
-        let legacy_path = super::yaml_path::legacy_yaml_path(project_root);
-        if legacy_path.exists() {
-            let store = Self::load(&legacy_path)?;
-            let mut migrated = Self {
-                yaml_path: yaml_path.to_path_buf(),
-                index: store.index,
-            };
-            migrated.save()?;
-            return Ok(migrated);
-        }
-
-        // 3. Legacy ROADMAP.md — parse and migrate
-        let md_path = project_root.join("ROADMAP.md");
-        if md_path.exists() {
-            let roadmap = super::parse_markdown_file::parse_markdown_file(&md_path)?;
-            let mut store = Self::from_roadmap(yaml_path, roadmap)?;
-            store.save()?;
-            return Ok(store);
-        }
-
-        // 4. Nothing exists — create empty roadmap
         let roadmap = Roadmap {
             title: title.to_string(),
             preamble: String::new(),
@@ -103,47 +71,6 @@ impl YamlStore {
             phases: vec![],
             epilogue: String::new(),
         };
-        let mut store = Self::from_roadmap(yaml_path, roadmap)?;
-        store.save()?;
-        Ok(store)
-    }
-
-    /// Load from YAML, or auto-migrate from ROADMAP.md if YAML doesn't exist.
-    ///
-    /// This is the preferred entry point for code that should transparently
-    /// handle legacy (pre-YAML) projects. If the YAML file exists, it loads
-    /// normally. If not, it looks for a `ROADMAP.md` in the project root
-    /// and migrates it.
-    pub fn load_or_migrate(yaml_path: impl AsRef<Path>) -> Result<Self> {
-        let yaml_path = yaml_path.as_ref();
-        if yaml_path.exists() {
-            return Self::load(yaml_path);
-        }
-
-        // Derive project root from the yaml path
-        let project_root = yaml_path.parent().unwrap_or(Path::new("."));
-
-        // Check legacy .magistr/roadmap.yaml path
-        let legacy_path = super::yaml_path::legacy_yaml_path(project_root);
-        if legacy_path.exists() {
-            let store = Self::load(&legacy_path)?;
-            let mut migrated = Self {
-                yaml_path: yaml_path.to_path_buf(),
-                index: store.index,
-            };
-            migrated.save()?;
-            return Ok(migrated);
-        }
-
-        let md_path = project_root.join("ROADMAP.md");
-        if !md_path.exists() {
-            return Err(MagistrError::Config(format!(
-                "no roadmap found: {} does not exist and no ROADMAP.md to migrate from",
-                yaml_path.display()
-            )));
-        }
-
-        let roadmap = super::parse_markdown_file::parse_markdown_file(&md_path)?;
         let mut store = Self::from_roadmap(yaml_path, roadmap)?;
         store.save()?;
         Ok(store)

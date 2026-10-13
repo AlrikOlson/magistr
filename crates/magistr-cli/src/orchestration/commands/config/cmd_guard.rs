@@ -45,7 +45,7 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
     input.workbench = workbench_declared(&dir);
     input.project_dir = Some(dir.clone());
 
-    match crate::roadmap::open_native_reader(&dir) {
+    match crate::roadmap::open_native_reader(&dir)? {
         Some(engines) => {
             apply_engine_state(
                 &mut input,

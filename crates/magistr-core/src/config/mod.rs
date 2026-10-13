@@ -1,4 +1,4 @@
-//! Configuration system — preset loading, migration, and validation.
+//! Configuration system — current project settings, presets, and validation.
 //!
 //! Presets are layered: built-in → framework → package-manager → database →
 //! CI/CD → deployment → project-local → user override. Each layer is a TOML
@@ -7,8 +7,8 @@
 pub mod agent_preferences;
 pub mod fallback_preset;
 pub mod inputs;
-pub mod migration;
-pub mod migration_check;
+mod project_settings;
+pub use project_settings::read_project_settings;
 pub mod preset;
 pub mod preset_fragment;
 pub mod preset_framework;
