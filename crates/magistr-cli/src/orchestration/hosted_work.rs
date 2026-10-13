@@ -145,6 +145,7 @@ impl HostedWork {
     fn conversation(&self) -> AgentConfig {
         let mut config = self.config.clone();
         config.prompt.clear();
+        config.history = crate::agent::persistence::SessionHistory::new();
         config.resume = None;
         config.continue_conversation = false;
         config

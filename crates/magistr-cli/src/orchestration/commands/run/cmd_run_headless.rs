@@ -48,7 +48,7 @@ pub async fn cmd_run_headless(
     let cwd = inputs.project_root().to_path_buf();
 
     let config = request
-        .apply(agent::AgentConfig::new(request.prompt, &cwd).with_inputs(inputs))
+        .apply(agent::AgentConfig::new(request.prompt, &cwd).with_inputs(inputs))?
         .backend(backend)
         .permission_profile(profile)
         .with_project_context(&cwd);
@@ -235,7 +235,7 @@ pub(crate) async fn drain_headless_observing(
                             } else {
                                 writeln!(
                                     err,
-                                    "done: {num_turns} turns, {duration_secs:.1}s, cost: {cost_str}, session: {}",
+                                    "done: {num_turns} turns, {duration_secs:.1}s, cost: {cost_str}, provider conversation: {}",
                                     session_id.as_str()
                                 )?;
                             }

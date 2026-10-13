@@ -2,7 +2,7 @@
 //!
 //! The supervisor serializes turn admission, permission replies and cancellation.
 //! Its task owns the transport across turns; detaching observation never changes
-//! provider execution. Both legacy headless facades delegate lifecycle here.
+//! provider execution. Interactive and headless facades delegate lifecycle here.
 
 mod command;
 mod control;
@@ -45,6 +45,7 @@ type Policy = (
 
 struct Inner {
     snapshot: SessionSupervisorSnapshot,
+    history: Option<super::persistence::SessionHistory>,
     queue: VecDeque<(u64, String)>,
     next_turn: u64,
     completed_turns: u32,
@@ -174,6 +175,7 @@ impl SessionSupervisor {
         before_spawn: impl FnOnce() -> Result<()>,
     ) -> Result<(Self, Messages)> {
         let max_turns = spec.max_turns();
+        let history = spec.history();
         let transport = spec.connect_transport_checkpointed(before_spawn).await?;
         let prompt = spec.prompt().to_owned();
         let (policy, handling) = spec.into_permission_policy();
@@ -183,11 +185,13 @@ impl SessionSupervisor {
             Some((Box::new(policy), handling)),
             ObservationCapacity::DEFAULT,
             max_turns,
+            Some(history),
         )
         .await
     }
 
     /// Adopt an already connected transport without resolving settings again.
+    #[cfg(test)]
     pub(crate) async fn start_connected(
         prompt: &str,
         transport: AcpTransport,
@@ -196,15 +200,34 @@ impl SessionSupervisor {
         Self::start_connected_bounded(prompt, transport, policy, ObservationCapacity::DEFAULT).await
     }
 
+    pub(crate) async fn start_connected_history(
+        prompt: &str,
+        transport: AcpTransport,
+        policy: Option<Policy>,
+        history: super::persistence::SessionHistory,
+    ) -> Result<(Self, Messages)> {
+        Self::start_connected_bounded_with_limit(
+            prompt,
+            transport,
+            policy,
+            ObservationCapacity::DEFAULT,
+            None,
+            Some(history),
+        )
+        .await
+    }
+
     /// [`SessionSupervisor::start_connected`] under an explicit observation
     /// bound — the production default, or a fixture's.
+    #[cfg(test)]
     pub(crate) async fn start_connected_bounded(
         prompt: &str,
         transport: AcpTransport,
         policy: Option<Policy>,
         capacity: ObservationCapacity,
     ) -> Result<(Self, Messages)> {
-        Self::start_connected_bounded_with_limit(prompt, transport, policy, capacity, None).await
+        Self::start_connected_bounded_with_limit(prompt, transport, policy, capacity, None, None)
+            .await
     }
 
     async fn start_connected_bounded_with_limit(
@@ -213,6 +236,7 @@ impl SessionSupervisor {
         policy: Option<Policy>,
         capacity: ObservationCapacity,
         max_turns: Option<u32>,
+        history: Option<super::persistence::SessionHistory>,
     ) -> Result<(Self, Messages)> {
         let provider_pid = u32::try_from(transport.child_pgid())
             .ok()
@@ -222,6 +246,9 @@ impl SessionSupervisor {
             .ok_or_else(|| acp_error("ACP event channel not available"))?;
         let permissions = Permissions::new(transport.take_permission_rx(), policy);
         let opening = !prompt.trim().is_empty();
+        if let Some(history) = &history {
+            history.bind_transport(&transport);
+        }
         if opening {
             transport
                 .prompt(prompt)
@@ -242,6 +269,7 @@ impl SessionSupervisor {
             next_turn: if opening { 2 } else { 1 },
             completed_turns: 0,
             max_turns,
+            history,
             closing: false,
             draining: false,
             legacy_cancel: false,
@@ -278,7 +306,13 @@ impl SessionSupervisor {
         options: SessionOptions,
         policy: Box<dyn SessionPolicy>,
     ) -> Result<(Self, ObservationReceiver<AgentEvent>)> {
-        Self::start_interactive_bounded(transport, options, policy, ObservationCapacity::DEFAULT)
+        Self::start_interactive_bounded(
+            transport,
+            options,
+            policy,
+            ObservationCapacity::DEFAULT,
+            None,
+        )
     }
 
     /// [`SessionSupervisor::start_interactive`] under an explicit observation
@@ -288,6 +322,7 @@ impl SessionSupervisor {
         options: SessionOptions,
         policy: Box<dyn SessionPolicy>,
         capacity: ObservationCapacity,
+        history: Option<super::persistence::SessionHistory>,
     ) -> Result<(Self, ObservationReceiver<AgentEvent>)> {
         let provider_pid = u32::try_from(transport.child_pgid())
             .ok()
@@ -302,6 +337,9 @@ impl SessionSupervisor {
             cockpit_events.clone(),
         );
         let (commands, command_rx) = mpsc::unbounded_channel();
+        if let Some(history) = &history {
+            history.bind_transport(&transport);
+        }
         let opening = options
             .opening_prompt
             .as_ref()
@@ -322,6 +360,7 @@ impl SessionSupervisor {
             next_turn: if opening.is_some() { 2 } else { 1 },
             completed_turns: 0,
             max_turns: options.max_turns,
+            history,
             closing: false,
             draining: false,
             legacy_cancel: false,

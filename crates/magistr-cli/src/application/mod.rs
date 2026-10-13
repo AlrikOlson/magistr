@@ -41,6 +41,7 @@
 mod admitted_check;
 mod check_evidence_error;
 mod check_identities;
+mod history_feed;
 mod hosted_workspace;
 mod interactive_host;
 mod project_window;

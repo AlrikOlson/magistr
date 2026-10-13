@@ -68,13 +68,15 @@ impl Desktop {
     /// The session the window opens with: the project, the first message and
     /// the resume choices given on the command line.
     pub(crate) fn config(&self) -> eyre::Result<AgentConfig> {
-        Ok(self
-            .project(&self.dir, self.prompt.as_deref().unwrap_or(""))?
-            .with_run_args(
-                self.model.as_deref(),
-                self.resume.as_deref(),
-                self.continue_conversation,
-            ))
+        self.session_choices(self.project(&self.dir, self.prompt.as_deref().unwrap_or(""))?)
+    }
+
+    fn session_choices(&self, config: AgentConfig) -> eyre::Result<AgentConfig> {
+        Ok(config.with_run_args(
+            self.model.as_deref(),
+            self.resume.as_deref(),
+            self.continue_conversation,
+        )?)
     }
 
     /// A project the window switches to: the same provider, model and
@@ -82,7 +84,7 @@ impl Desktop {
     pub(crate) fn config_for(&self, dir: &Path) -> eyre::Result<AgentConfig> {
         Ok(self
             .project(dir, "")?
-            .with_run_args(self.model.as_deref(), None, false))
+            .with_run_args(self.model.as_deref(), None, false)?)
     }
 
     fn project(&self, dir: &Path, prompt: &str) -> eyre::Result<AgentConfig> {

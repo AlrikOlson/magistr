@@ -182,6 +182,10 @@ impl ResolvedSessionSpec {
         self
     }
 
+    pub(crate) fn history(&self) -> super::persistence::SessionHistory {
+        self.config.history.clone()
+    }
+
     /// Project root supplied to transport, MCP discovery, and permission policy.
     #[must_use]
     pub fn cwd(&self) -> &Path {
@@ -282,6 +286,15 @@ impl ResolvedSessionSpec {
         &self,
         before_spawn: impl FnOnce() -> Result<()>,
     ) -> Result<AcpTransport> {
+        self.config
+            .history
+            .begin(
+                self.config.inputs(),
+                self.cwd(),
+                self.runtime.provider_id(),
+                self.model(),
+            )
+            .await?;
         let translated =
             super::translate_tools_for_runtime(&self.config.allowed_tools, &self.runtime.auth);
         let mut args = self.runtime.args.clone();
@@ -305,14 +318,26 @@ impl ResolvedSessionSpec {
         .session_system_prompt(self.config.system_prompt.clone())
         .local_effects(self.source.clone())
         .execution_id(self.config.execution_id.clone());
-        transport
+        if let Err(error) = transport
             .connect_checkpointed(|| {
                 before_spawn().map_err(|error| magistr_acp::AcpError::connection(error.to_string()))
             })
             .await
-            .map_err(|error| {
-                MagistrError::Acp(format!("Failed to connect ACP transport: {error}"))
-            })?;
+        {
+            // Failed setup has already settled its process. Saving history never
+            // replaces that startup outcome.
+            if let Err(save_error) = self
+                .config
+                .history
+                .settle(super::persistence::session_outcome::SessionOutcome::Failed)
+                .await
+            {
+                super::persistence::warn_history(&save_error);
+            }
+            return Err(MagistrError::Acp(format!(
+                "Failed to connect ACP transport: {error}"
+            )));
+        }
         Ok(transport)
     }
 

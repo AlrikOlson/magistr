@@ -28,8 +28,25 @@ impl CockpitSession {
             model: None,
             max_turns: spec.max_turns(),
         };
+        let history = spec.history();
         let (policy, _) = spec.into_permission_policy();
-        Self::start_connected(transport, options, Box::new(policy))
+        Self::start_owned(transport, options, Box::new(policy), history)
+    }
+
+    pub(crate) fn start_owned(
+        transport: AcpTransport,
+        options: SessionOptions,
+        policy: Box<dyn SessionPolicy>,
+        history: super::persistence::SessionHistory,
+    ) -> Result<Self> {
+        let (supervisor, events) = SessionSupervisor::start_interactive_bounded(
+            transport,
+            options,
+            policy,
+            ObservationCapacity::DEFAULT,
+            Some(history),
+        )?;
+        Ok(Self { supervisor, events })
     }
 
     /// Adopt an already connected transport, including real channel fixtures.
@@ -51,8 +68,9 @@ impl CockpitSession {
         policy: Box<dyn SessionPolicy>,
         capacity: ObservationCapacity,
     ) -> Result<Self> {
-        let (supervisor, events) =
-            SessionSupervisor::start_interactive_bounded(transport, options, policy, capacity)?;
+        let (supervisor, events) = SessionSupervisor::start_interactive_bounded(
+            transport, options, policy, capacity, None,
+        )?;
         Ok(Self { supervisor, events })
     }
 

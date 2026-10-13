@@ -72,9 +72,12 @@ The loop judge uses an explicit override or the common provider default; it no
 longer silently chooses a different model after startup.
 
 A request to continue an unspecified last conversation is rejected with guidance
-to provide a runtime-owned resume ID. An unsupported load is an error; it never
-opens a new empty conversation as a fallback. The legacy options now have an
-explicit contract:
+to choose a saved conversation with `--resume`. That flag names the Magistr ID
+listed by `magistr sessions`; admission resolves its recorded provider, working
+copy and provider conversation ID. An unsupported load is an error and never
+opens a new conversation. Internal reconnection uses the already observed
+provider ID through `AgentConfig::resume`. The session options have an explicit
+contract:
 
 | AgentConfig option | Execution contract |
 | --- | --- |
@@ -450,3 +453,33 @@ API sessions send their accumulated conversation history to the configured
 service. External runtimes use their own authentication and storage. Local
 records can contain prompts, paths, and outputs; see
 [running agents](../development.md#running-agents).
+
+## Saved session history
+
+The resident `SessionSupervisor` is the writer for interactive sessions,
+headless runs, loop attempts and judges. It gathers facts directly from the
+ordered provider stream and saves after transport cleanup. Its forced-close guard
+schedules the same writer; ordinary shutdown awaits it while the runtime lives.
+This does not promise recovery after killing the application or a machine crash.
+
+One Magistr conversation ID survives reconnection. Separate conversation/planning
+contexts and loop attempts receive separate IDs. Canonical project authority and
+working-copy directories are retained, alongside the optional provider ID,
+negotiated loading capability, selected model, local attribution, terminal outcome,
+observed turns, reported USD cost and bounded last-response summary. Missing price
+or model stays absent. Retries update one row without overwriting tags or a handoff.
+
+The current SQLite schema is initialized atomically. Unsupported formats are
+refused directly; there are no older-format migrations or invented provider IDs.
+Storage failure is a separate diagnostic, preserving terminal outcome and process
+cleanup. Native project projections observe database commits through SQLite data
+versions away from the UI thread, coalesce to the latest value and retry refused
+delivery. CLI history and handoff read this same store. Resume admission resolves
+the saved ID to its original provider and working copy, then the transport checks
+that provider's current loading capability.
+
+Evidence: the persistence and supervisor history companion suites,
+`application/history_feed.tests.rs`, the home/desktop saved-resume tests and
+`tests/resident_session_process.py`. The process fixture reopens history after
+three actual resident providers, then checks successful and failed headless runs
+and refuses an unsupported saved resume without another inference request.

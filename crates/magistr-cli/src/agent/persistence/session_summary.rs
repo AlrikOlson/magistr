@@ -11,6 +11,9 @@ pub struct SessionSummary {
     pub count: usize,
     /// Total cost across all sessions.
     pub total_cost: f64,
+    /// Sessions that did not report a price.
+    pub unknown_cost_sessions: usize,
+    pub unknown_turn_sessions: usize,
     /// Total turns across all sessions.
     pub total_turns: u32,
     /// Total files changed (may include duplicates across sessions).
@@ -27,6 +30,8 @@ impl SessionSummary {
         let mut summary = Self {
             count: records.len(),
             total_cost: 0.0,
+            unknown_cost_sessions: 0,
+            unknown_turn_sessions: 0,
             total_turns: 0,
             total_files: 0,
             earliest: None,
@@ -34,8 +39,14 @@ impl SessionSummary {
         };
 
         for r in records {
-            summary.total_cost += r.cost_usd;
-            summary.total_turns += r.turns;
+            match r.cost_usd {
+                Some(cost) => summary.total_cost += cost,
+                None => summary.unknown_cost_sessions += 1,
+            }
+            match r.turns {
+                Some(turns) => summary.total_turns += turns,
+                None => summary.unknown_turn_sessions += 1,
+            }
             summary.total_files += r.files_changed.len();
 
             match summary.earliest {

@@ -41,15 +41,14 @@ impl WorkflowAgentOptions {
             self.check_recovery(&saved)?;
             inputs = inputs.with_session_selection(saved);
         }
-        let mut config = AgentConfig::new("", inputs.project_root())
-            .with_inputs(&inputs)
-            .with_run_args(self.model.as_deref(), resume, continuing);
+        let mut config = AgentConfig::new("", inputs.project_root()).with_inputs(&inputs);
         if let Some(agent) = &self.agent {
             config = config.provider(agent);
         }
         if let Some(effort) = &self.effort {
             config = config.effort(effort);
         }
+        let config = config.with_run_args(self.model.as_deref(), resume, continuing)?;
         let spec = config.resolve()?;
         let mut selection = spec.selection();
         if let Some(saved) = inputs.session_selection() {

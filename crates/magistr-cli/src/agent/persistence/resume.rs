@@ -13,6 +13,51 @@ use chrono::{DateTime, Utc};
 use super::commit_info::CommitInfo;
 use super::session_record::SessionRecord;
 
+/// Admit a saved conversation through the provider that actually owns it.
+pub(crate) fn saved_config(
+    mut config: crate::agent::AgentConfig,
+    id: &str,
+) -> crate::error::Result<crate::agent::AgentConfig> {
+    use crate::error::MagistrError;
+    let path = super::storage::sessions_db_path(config.inputs()).ok_or_else(|| {
+        MagistrError::Config("No directory is available for saved sessions.".into())
+    })?;
+    let conn = super::storage::open_db(&path)?;
+    let record = super::storage::get_session(&conn, id)?
+        .ok_or_else(|| MagistrError::Config(format!("Saved session {id} was not found.")))?;
+    let root = config
+        .cwd
+        .canonicalize()
+        .map_err(|error| MagistrError::io(&config.cwd, error))?;
+    if root != Path::new(&record.workspace) {
+        return Err(MagistrError::Config(format!(
+            "Open {} to resume this conversation.",
+            record.workspace
+        )));
+    }
+    if !record.can_resume() {
+        return Err(MagistrError::Config(format!(
+            "{} cannot resume this saved conversation.",
+            record.provider
+        )));
+    }
+    if config
+        .provider
+        .as_ref()
+        .is_some_and(|provider| provider != &record.provider)
+    {
+        return Err(MagistrError::Config(format!(
+            "This conversation belongs to {}. Resume it with that agent.",
+            record.provider
+        )));
+    }
+    config.resume.clone_from(&record.provider_session_id);
+    config.provider = Some(record.provider.clone());
+    config.model.clone_from(&record.model);
+    config.history = super::SessionHistory::from_record(record);
+    Ok(config)
+}
+
 /// Context for resuming a previous session.
 ///
 /// Built from the last session record and current git state,
@@ -72,12 +117,12 @@ impl ResumeContext {
         let mut lines = Vec::new();
 
         lines.push(format!("Session: {}", truncate_id(&s.session_id)));
-        lines.push(format!("Project: {}", s.project));
+        lines.push(format!("Project: {}", s.workspace));
         lines.push(format!(
             "Duration: {} | Cost: {} | Turns: {}",
             s.duration_display(),
             s.cost_display(),
-            s.turns
+            s.turns_display()
         ));
 
         if !s.files_changed.is_empty() {

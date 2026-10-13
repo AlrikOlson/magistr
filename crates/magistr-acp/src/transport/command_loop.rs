@@ -69,12 +69,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         },
     )
     .await;
-    let AcpHandshake {
-        session_id,
-        agent_capabilities,
-        config_options,
-        agent_meta,
-    } = match handshake {
+    let handshake = match handshake {
         Ok(handshake) => handshake,
         Err(e) => {
             let _ = handshake_tx.send(Err(e));
@@ -83,6 +78,12 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         }
     };
 
+    let AcpHandshake {
+        session_id,
+        agent_capabilities,
+        config_options,
+        agent_meta,
+    } = handshake.clone();
     let images = agent_capabilities.prompt_capabilities.image;
     effects.bind_session(session_id.to_string());
     let _ = event_tx.send(Ok(AcpEvent::Initialized {
@@ -92,7 +93,7 @@ pub(crate) async fn run(cx: ConnectionTo<Agent>, inputs: ConnectionInputs) {
         agent_meta,
     }));
     ready.store(true, Ordering::SeqCst);
-    let _ = handshake_tx.send(Ok(()));
+    let _ = handshake_tx.send(Ok(handshake));
 
     let mut session = Session {
         images,
@@ -304,4 +305,4 @@ async fn kill(child: &mut Option<Child>) {
 }
 
 /// Keep the oneshot type local to this module's callers.
-pub(crate) type HandshakeSender = oneshot::Sender<Result<()>>;
+pub(crate) type HandshakeSender = oneshot::Sender<Result<AcpHandshake>>;

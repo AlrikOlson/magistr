@@ -12,6 +12,7 @@ const INSTRUCTIONS: &str = "You are updating the project's roadmap in response t
 pub(crate) fn config(base: &AgentConfig) -> AgentConfig {
     let mut config = base.clone();
     config.prompt.clear();
+    config.history = crate::agent::persistence::SessionHistory::new();
     config.resume = None;
     config.continue_conversation = false;
     config.workflow_permissions = false;

@@ -194,6 +194,8 @@ pub enum AgentEvent {
         /// The file or validation problem the user can fix.
         error: String,
     },
+    /// A nonfatal session diagnostic; it does not change the run outcome.
+    Notice(String),
     /// The transport failed.
     Error(String),
 }

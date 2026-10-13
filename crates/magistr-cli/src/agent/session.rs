@@ -53,7 +53,7 @@ pub struct AgentSession {
     session_id: Option<SessionId>,
     /// The frozen initial model selection; None retains the runtime's model.
     resolved_model: Option<String>,
-    /// Compatibility test-channel lifecycle; real lifecycle belongs to the supervisor.
+    /// Test-channel lifecycle; real lifecycle belongs to the supervisor.
     #[cfg(test)]
     channel_closed: bool,
 }

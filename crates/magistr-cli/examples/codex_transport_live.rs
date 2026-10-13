@@ -177,7 +177,7 @@ async fn exercise_detach(cwd: &Path) -> eyre::Result<()> {
 
     let config = AgentConfig::new("Do not use any tools. Reply exactly DETACHED_DONE.", cwd)
         .provider("codex")
-        .with_run_args(Some(MODEL), None, false);
+        .with_run_args(Some(MODEL), None, false)?;
     let mut session =
         tokio::time::timeout(WAIT, CockpitSession::start(config.resolve()?)).await??;
     let result = tokio::time::timeout(WAIT, async {

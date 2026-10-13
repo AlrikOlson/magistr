@@ -1,5 +1,6 @@
 use super::*;
 use crate::permissions::load_entries;
+use crate::session::session_outcome::SessionOutcome as HistoryOutcome;
 use crate::session::session_record::SessionRecord;
 use chrono::TimeZone;
 use std::path::PathBuf;
@@ -25,15 +26,20 @@ fn seed_session(conn: &rusqlite::Connection, id: &str, owner: Option<&str>) {
     let record = SessionRecord {
         session_id: id.to_string(),
         project: "proj".to_string(),
+        workspace: "proj".to_string(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: HistoryOutcome::Completed,
         started_at: chrono::Utc.with_ymd_and_hms(2026, 3, 10, 9, 0, 0).unwrap(),
         ended_at: chrono::Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
-        cost_usd: 1.0,
-        turns: 3,
+        cost_usd: Some(1.0),
+        turns: Some(3),
         duration_ms: 1_800_000,
         files_changed: vec![],
         tags: vec![],
         summary: None,
-        model: String::new(),
+        model: None,
         owner: owner.map(String::from),
     };
     session::insert_session(conn, &record).unwrap();

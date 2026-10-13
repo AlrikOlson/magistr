@@ -1,4 +1,4 @@
-//! Compatibility ACP facade backed by the reusable resident session supervisor.
+//! Headless ACP observation backed by the resident session supervisor.
 
 use tracing::instrument;
 

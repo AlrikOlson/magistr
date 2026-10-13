@@ -158,7 +158,7 @@ pub enum Command {
         /// The prompt to send to the agent
         prompt: String,
 
-        /// Resume a previous session by ID
+        /// Resume a saved session ID from magistr sessions
         #[arg(long)]
         resume: Option<String>,
 

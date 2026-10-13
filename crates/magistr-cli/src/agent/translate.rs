@@ -135,7 +135,7 @@ fn session_update(update: &SessionUpdate) -> AgentEvent {
 /// the current value of the `Model`-category select among the
 /// session's config options. `None` when the agent advertises no
 /// model option, or one that is not a select.
-fn current_model(options: Option<&[SessionConfigOption]>) -> Option<String> {
+pub(super) fn current_model(options: Option<&[SessionConfigOption]>) -> Option<String> {
     options?
         .iter()
         .find(|option| option.category == Some(SessionConfigOptionCategory::Model))

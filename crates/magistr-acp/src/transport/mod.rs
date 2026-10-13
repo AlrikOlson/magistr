@@ -59,6 +59,7 @@ pub struct AcpTransport {
     mcp_servers: Vec<McpServer>,
     session_meta: Option<Meta>,
     ready: Arc<AtomicBool>,
+    initialization: Option<handshake::AcpHandshake>,
     cmd_tx: Option<mpsc::UnboundedSender<AcpCommand>>,
     event_rx: Option<mpsc::UnboundedReceiver<Result<AcpEvent>>>,
     perm_rx: Option<mpsc::UnboundedReceiver<AcpPermissionRequest>>,
@@ -105,6 +106,7 @@ impl AcpTransport {
             mcp_servers: Vec::new(),
             session_meta: None,
             ready: Arc::new(AtomicBool::new(false)),
+            initialization: None,
             cmd_tx: None,
             event_rx: None,
             perm_rx: None,
@@ -288,6 +290,7 @@ impl AcpTransport {
         let (perm_tx, perm_rx) = mpsc::unbounded_channel();
         // The handshake outcome travels on its own channel so connect() never
         // drains event_rx — consumers expect the Initialized event there.
+        self.initialization = None;
         let (handshake_tx, handshake_rx) = oneshot::channel();
 
         let cwd = match &self.cwd {
@@ -334,7 +337,10 @@ impl AcpTransport {
         self.connection = Some(tokio::spawn(connection::run_connection(component, inputs)));
 
         let error = match tokio::time::timeout(HANDSHAKE_TIMEOUT, handshake_rx).await {
-            Ok(Ok(Ok(()))) => None,
+            Ok(Ok(Ok(initialization))) => {
+                self.initialization = Some(initialization);
+                None
+            }
             Ok(Ok(Err(e))) => Some(e),
             Ok(Err(_task_gone)) => Some(AcpError::connection(self.stderr_tail.append_to(
                 "ACP connection task exited before the agent handshake completed".to_string(),
@@ -355,6 +361,30 @@ impl AcpTransport {
         }
 
         Ok(())
+    }
+
+    /// The provider identity accepted by the last successful handshake,
+    /// independent of whether a viewer consumed its initialization event.
+    pub fn session_id(&self) -> Option<&str> {
+        self.initialization
+            .as_ref()
+            .map(|facts| facts.session_id.0.as_ref())
+    }
+
+    /// Capabilities accepted with that provider identity.
+    pub fn agent_capabilities(
+        &self,
+    ) -> Option<&agent_client_protocol::schema::v1::AgentCapabilities> {
+        self.initialization
+            .as_ref()
+            .map(|facts| &facts.agent_capabilities)
+    }
+
+    /// Validated configuration accepted during session setup.
+    pub fn session_config_options(&self) -> Option<&[SessionConfigOption]> {
+        self.initialization
+            .as_ref()
+            .and_then(|facts| facts.config_options.as_deref())
     }
 
     /// Whether the handshake has completed and the session is live.

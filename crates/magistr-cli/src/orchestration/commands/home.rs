@@ -57,7 +57,7 @@ pub async fn cmd_home(
             let backend = super::resolve_backend(crate::cli::BackendFlag::Auto, inputs)?;
             let profile = super::run::resolve_permission_profile(&root, None)
                 .unwrap_or(crate::permissions::PermissionProfile::Standard);
-            super::run::cmd_run_cockpit(resume_config(inputs, session_id, backend), profile).await
+            super::run::cmd_run_cockpit(resume_config(inputs, session_id, backend)?, profile).await
         }
         // Birth is the window's flow; a terminal never
         // raises the ask, but were it to, the claim is one iteration on
@@ -84,8 +84,8 @@ pub async fn cmd_home(
 
 /// The agent config a resumed session row asks for: no opening prompt —
 /// the cockpit comes up on the continued conversation waiting for the
-/// next turn — and `session_id` as the ACP transport's `session/load`.
-/// An id the agent no longer holds fails the handshake, which
+/// next turn. The saved Magistr ID resolves the recorded provider and its
+/// own conversation ID. A provider that no longer holds it fails the handshake, which
 /// [`cmd_run_cockpit`] reports on stdout rather than panicking.
 ///
 /// [`cmd_run_cockpit`]: super::run::cmd_run_cockpit
@@ -93,13 +93,13 @@ fn resume_config(
     inputs: &crate::config::inputs::ProjectInputs,
     session_id: String,
     backend: agent::Backend,
-) -> agent::AgentConfig {
+) -> crate::error::Result<agent::AgentConfig> {
     let root: &Path = inputs.project_root();
     agent::AgentConfig::new("", root)
         .with_inputs(inputs)
         .backend(backend)
-        .resume(session_id)
         .with_project_context(root)
+        .with_run_args(None, Some(&session_id), false)
 }
 
 #[cfg(test)]

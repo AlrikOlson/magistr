@@ -20,6 +20,7 @@ use crate::{AcpError, AcpSessionMode, Result};
 const REAP_GRACE: Duration = Duration::from_millis(200);
 
 /// What the handshake yields once the agent has accepted a session.
+#[derive(Clone)]
 pub(crate) struct AcpHandshake {
     pub session_id: SessionId,
     pub agent_capabilities: AgentCapabilities,
