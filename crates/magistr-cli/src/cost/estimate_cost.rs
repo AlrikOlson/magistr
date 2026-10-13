@@ -11,19 +11,19 @@ use super::estimate::CostEstimate;
 ///
 /// Returns `None` if there's insufficient historical data (< 3 sessions).
 pub fn estimate_cost(history: &[CostEntry], estimated_turns: Option<u32>) -> Option<CostEstimate> {
-    if history.len() < 3 {
-        return None;
-    }
-
-    let mut costs_per_turn: Vec<f64> = history
+    let samples: Vec<_> = history
         .iter()
-        .filter(|e| e.turns > 0)
-        .map(|e| e.cost_usd / f64::from(e.turns))
+        .filter(|entry| entry.turns > 0)
+        .filter_map(|entry| entry.cost_usd.map(|cost| (cost, entry.turns)))
         .collect();
-
-    if costs_per_turn.is_empty() {
+    if samples.len() < 3 {
         return None;
     }
+
+    let mut costs_per_turn: Vec<f64> = samples
+        .iter()
+        .map(|(cost, turns)| cost / f64::from(*turns))
+        .collect();
 
     costs_per_turn.sort_by(|a, b| a.total_cmp(b));
 
@@ -35,8 +35,11 @@ pub fn estimate_cost(history: &[CostEntry], estimated_turns: Option<u32>) -> Opt
 
     // Estimate turns from prompt or use historical average
     let turns = estimated_turns.unwrap_or_else(|| {
-        let avg_turns: f64 =
-            history.iter().map(|e| f64::from(e.turns)).sum::<f64>() / history.len() as f64;
+        let avg_turns: f64 = samples
+            .iter()
+            .map(|(_, turns)| f64::from(*turns))
+            .sum::<f64>()
+            / samples.len() as f64;
         avg_turns.round() as u32
     });
 
@@ -47,7 +50,7 @@ pub fn estimate_cost(history: &[CostEntry], estimated_turns: Option<u32>) -> Opt
         high: p75 * turns_f64,
         estimated_turns: turns,
         avg_cost_per_turn,
-        sample_size: history.len(),
+        sample_size: samples.len(),
     })
 }
 

@@ -926,8 +926,10 @@ async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
             driver
                 .tap()
                 .send(Msg::Agent(AgentEvent::Usage {
-                    used: 100,
-                    size: 1000,
+                    context: Some(magistr_application::sessions::ContextUsage {
+                        used: 100,
+                        size: 1000,
+                    }),
                     cost_cents: Some(cents),
                     elapsed_secs: None,
                 }))
@@ -942,6 +944,7 @@ async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
         );
     }
 
+    drop(driver);
     let recovered = IterationLoop::recover(dir.path(), &spec).unwrap();
     assert_eq!(recovered.run_state().budget_total_usd, 2.0);
     assert_eq!(

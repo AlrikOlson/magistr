@@ -406,3 +406,29 @@ fn failures_and_limits_map_to_the_turn_end() {
     assert_eq!(ends(&steps), [&TurnEnd::Stop(StopReason::MaxTokens)]);
     assert_eq!(usages(&steps)[0].size, TurnTranslator::DEFAULT_WINDOW);
 }
+
+#[test]
+fn terminal_usage_keeps_an_omitted_price_distinct_from_reported_zero() {
+    for (frame, expected) in [
+        (r#"{"type":"result","subtype":"success"}"#, None),
+        (
+            r#"{"type":"result","subtype":"success","total_cost_usd":0.0}"#,
+            Some(0.0),
+        ),
+        (
+            r#"{"type":"result","subtype":"error_during_execution","is_error":true}"#,
+            None,
+        ),
+    ] {
+        let mut translator = TurnTranslator::new();
+        let steps = translator.translate(&Frame::parse(frame));
+        let usage = usages(&steps);
+        assert_eq!(usage.len(), 1);
+        assert_eq!(
+            usage[0].cost.as_ref().map(|cost| cost.amount),
+            expected,
+            "{frame}"
+        );
+        assert_eq!(ends(&steps).len(), 1);
+    }
+}

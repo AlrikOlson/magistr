@@ -95,10 +95,8 @@ pub enum AgentEvent {
     /// Context-window usage — and, when the agent prices its work, the
     /// session's spend so far.
     Usage {
-        /// Tokens in the window.
-        used: u64,
-        /// The window's size.
-        size: u64,
+        /// Current token counts, when the agent has reported its context.
+        context: Option<super::ContextUsage>,
         /// The session's cumulative cost in cents, when the agent put a
         /// dollar figure on the update. This is
         /// the one metering message: the in-binary agent prices it from

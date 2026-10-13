@@ -4,7 +4,7 @@ use crate::cost::storage::load_entries;
 use crate::cost::types::TokenBreakdown;
 
 fn spend() -> SessionSpend {
-    SessionSpend::new("sess-42", 1.25)
+    SessionSpend::new("sess-42", Some(1.25))
         .with_run(3, 12_000)
         .with_model("claude-opus-5")
         .with_tokens(TokenBreakdown {
@@ -39,7 +39,7 @@ fn a_finished_session_lands_in_the_ledger_stamped_with_actor_and_model() {
     let entry = &entries[0];
     assert_eq!(entry.session_id, "sess-42");
     assert_eq!(entry.project, "magistr");
-    assert_eq!(entry.cost_usd, 1.25);
+    assert_eq!(entry.cost_usd, Some(1.25));
     assert_eq!(entry.turns, 3);
     assert_eq!(entry.duration_ms, 12_000);
     assert_eq!(entry.tokens.total(), 1_050);
@@ -59,7 +59,7 @@ fn an_empty_session_writes_nothing() {
         &ledger,
         dir.path(),
         &inputs(dir.path()),
-        &SessionSpend::new("sess-0", 0.0)
+        &SessionSpend::default()
     ));
     assert!(
         !ledger.exists(),
@@ -77,12 +77,12 @@ fn entries_accumulate_rather_than_replace() {
         &ledger,
         dir.path(),
         &inputs,
-        &SessionSpend::new("sess-43", 0.5)
+        &SessionSpend::new("sess-43", Some(0.5))
     ));
 
     let entries = load_entries(&ledger).expect("ledger loads");
     assert_eq!(entries.len(), 2);
-    let total: f64 = entries.iter().map(|e| e.cost_usd).sum();
+    let total: f64 = entries.iter().filter_map(|e| e.cost_usd).sum();
     assert!((total - 1.75).abs() < 1e-9);
 }
 

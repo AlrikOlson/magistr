@@ -9,7 +9,7 @@ fn entry_at(id: &str, project: &str, cost: f64, ts: chrono::DateTime<Utc>) -> Co
         session_id: id.into(),
         project: project.into(),
         timestamp: ts,
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown::default(),
         turns: 1,
         duration_ms: 1000,
@@ -34,9 +34,9 @@ fn summarize_daily_groups_by_date() {
     let buckets = summarize_by_period(&entries, TimePeriod::Daily);
     assert_eq!(buckets.len(), 2);
     assert_eq!(buckets[0].label, "2026-03-10");
-    assert!((buckets[0].summary.total_cost - 3.0).abs() < f64::EPSILON);
+    assert!((buckets[0].summary.total_cost.unwrap() - 3.0).abs() < f64::EPSILON);
     assert_eq!(buckets[1].label, "2026-03-11");
-    assert!((buckets[1].summary.total_cost - 3.0).abs() < f64::EPSILON);
+    assert!((buckets[1].summary.total_cost.unwrap() - 3.0).abs() < f64::EPSILON);
 }
 
 #[test]

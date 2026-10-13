@@ -116,8 +116,10 @@ fn bounded_bytes_and_pending_permission_survive_transcript_rotation() {
 fn usage_survives_rotation_and_too_many_requests_have_a_bounded_explicit_outcome() {
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
     owner.send(Msg::Agent(AgentEvent::Usage {
-        used: 100,
-        size: 1000,
+        context: Some(magistr_application::sessions::ContextUsage {
+            used: 100,
+            size: 1000,
+        }),
         cost_cents: Some(42),
         elapsed_secs: Some(10),
     }));
@@ -188,4 +190,35 @@ async fn checking_closure_does_not_consume_unread_observations() {
     assert_eq!(snapshot.sequence, 1);
     owner.stop();
     assert!(reader.is_closed());
+}
+
+#[test]
+fn finished_and_closed_sessions_keep_reported_spending_for_reconnected_readers() {
+    let owner = std::sync::Arc::new(SessionObservation::new(address()));
+    owner.send(Msg::Agent(AgentEvent::Usage {
+        context: Some(magistr_application::sessions::ContextUsage { used: 8, size: 100 }),
+        cost_cents: Some(25),
+        elapsed_secs: None,
+    }));
+    owner.send(Msg::Agent(AgentEvent::TurnEnded(
+        magistr_application::sessions::TurnEnd::EndTurn,
+    )));
+    assert!(matches!(
+        owner.snapshot().latest_usage(),
+        Some(Msg::Agent(AgentEvent::Usage {
+            cost_cents: Some(25),
+            ..
+        }))
+    ));
+    owner.stop();
+    let mut reader = owner.subscribe();
+    let snapshot = reader.snapshot();
+    assert!(snapshot.closed);
+    assert!(matches!(
+        snapshot.latest_usage(),
+        Some(Msg::Agent(AgentEvent::Usage {
+            cost_cents: Some(25),
+            ..
+        }))
+    ));
 }

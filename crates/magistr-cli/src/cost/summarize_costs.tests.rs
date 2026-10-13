@@ -8,7 +8,7 @@ fn sample_entry(id: &str, project: &str, cost: f64) -> CostEntry {
         session_id: id.into(),
         project: project.into(),
         timestamp: Utc::now(),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown::default(),
         turns: 3,
         duration_ms: 15000,
@@ -23,6 +23,6 @@ fn summarize_computes_totals() {
 
     let summary = summarize(&entries);
     assert_eq!(summary.entry_count, 2);
-    assert!((summary.total_cost - 4.0).abs() < f64::EPSILON);
+    assert!((summary.total_cost.unwrap() - 4.0).abs() < f64::EPSILON);
     assert_eq!(summary.total_turns, 6);
 }

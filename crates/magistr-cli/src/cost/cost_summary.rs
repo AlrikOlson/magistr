@@ -8,8 +8,8 @@ use super::types::TokenBreakdown;
 /// Summary statistics for a set of cost entries.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CostSummary {
-    /// Total cost across all entries.
-    pub total_cost: f64,
+    /// Total cost when every entry has a reported amount.
+    pub total_cost: Option<f64>,
     /// Total turns across all entries.
     pub total_turns: u32,
     /// Number of entries.
@@ -25,14 +25,16 @@ pub struct CostSummary {
 impl CostSummary {
     /// Build a summary from a slice of cost entries.
     pub fn from_entries(entries: &[CostEntry]) -> Self {
-        let mut total_cost = 0.0;
+        let mut total_cost = Some(0.0);
         let mut total_turns = 0u32;
         let mut earliest: Option<DateTime<Utc>> = None;
         let mut latest: Option<DateTime<Utc>> = None;
         let mut total_tokens = TokenBreakdown::default();
 
         for entry in entries {
-            total_cost += entry.cost_usd;
+            total_cost = total_cost
+                .zip(entry.cost_usd)
+                .map(|(total, cost)| total + cost);
             total_turns += entry.turns;
             total_tokens.accumulate(&entry.tokens);
 
@@ -60,6 +62,8 @@ impl CostSummary {
 
     /// Human-readable cost string.
     pub fn cost_display(&self) -> String {
-        crate::utils::typography::format_cost(self.total_cost)
+        self.total_cost
+            .map(crate::utils::typography::format_cost)
+            .unwrap_or_else(|| "unknown".into())
     }
 }

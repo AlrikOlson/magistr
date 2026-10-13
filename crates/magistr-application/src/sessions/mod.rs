@@ -5,6 +5,7 @@ pub use prompt_files::prompt_file_references;
 
 mod ask_everything;
 mod ask_plan;
+mod context_usage;
 mod edit_diff;
 mod event;
 mod image_block;
@@ -28,6 +29,7 @@ mod turn_end;
 
 pub use ask_everything::AskEverything;
 pub use ask_plan::AskPlan;
+pub use context_usage::ContextUsage;
 pub use edit_diff::EditDiff;
 pub use event::AgentEvent;
 pub use image_block::ImageBlock;

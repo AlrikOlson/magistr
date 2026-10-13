@@ -8,7 +8,7 @@ fn sample_entry(id: &str, project: &str, cost: f64) -> CostEntry {
         session_id: id.into(),
         project: project.into(),
         timestamp: Utc::now(),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown::default(),
         turns: 3,
         duration_ms: 15000,

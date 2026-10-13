@@ -29,7 +29,7 @@ fn entry(project: &str, cost: f64) -> CostEntry {
         session_id: "past".into(),
         project: project.into(),
         timestamp: Utc::now(),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown::default(),
         turns: 1,
         duration_ms: 1,

@@ -117,8 +117,10 @@ fn session_update(update: &SessionUpdate) -> AgentEvent {
                 .count(),
         },
         SessionUpdate::UsageUpdate(usage) => AgentEvent::Usage {
-            used: usage.used,
-            size: usage.size,
+            context: Some(magistr_application::sessions::ContextUsage {
+                used: usage.used,
+                size: usage.size,
+            }),
             cost_cents: usage.cost.as_ref().and_then(cost_cents),
             // The wire carries no clock; the session stamps its own.
             elapsed_secs: None,
@@ -236,9 +238,16 @@ fn image_block(block: &ContentBlock) -> Option<ImageBlock> {
 /// keeps, so two frames of one spend can never differ by a float's
 /// residue. Only dollars count: the cap is in USD, and a figure in any
 /// other currency would fill the meter in the wrong unit.
+pub(super) fn reported_usd(cost: &Cost) -> Option<f64> {
+    (cost.currency == "USD" && cost.amount.is_finite() && cost.amount >= 0.0).then_some(cost.amount)
+}
+
 fn cost_cents(cost: &Cost) -> Option<u64> {
-    (cost.currency == "USD" && cost.amount.is_finite() && cost.amount >= 0.0)
-        .then(|| (cost.amount * 100.0).round() as u64)
+    reported_usd(cost).map(usd_cents)
+}
+
+pub(super) fn usd_cents(amount: f64) -> u64 {
+    (amount * 100.0).round() as u64
 }
 
 fn system(subtype: &str) -> AgentEvent {

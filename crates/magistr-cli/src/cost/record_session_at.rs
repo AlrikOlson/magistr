@@ -1,15 +1,7 @@
-//! The production writer for the cost ledger, against an explicit path.
-//!
-//! Before this existed, `CostEntry` had exactly one caller — the
-//! integration tests — so every windowed budget scope resolved against
-//! an empty file and a `daily` or `monthly` cap could never actually
-//! bind. A governance hierarchy that nothing feeds is arithmetic, not
-//! enforcement. This closes that loop.
-//!
-//! Every failure here is swallowed on purpose. Book-keeping must never
-//! be the reason a finished session reports an error to the user: the
-//! work is already done, and the worst outcome of a missed write is a
-//! slightly generous cap next window.
+//! The session settlement adapter for the existing cost ledger.
+//! It stamps captured project attribution and stores one cumulative conversation
+//! entry. A write failure is reported separately and cannot change the outcome
+//! the provider actually returned.
 
 use std::path::Path;
 

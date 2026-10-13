@@ -7,7 +7,7 @@ fn entry(actor: &str, cost: f64, turns: u32) -> CostEntry {
         session_id: format!("s-{actor}-{cost}"),
         project: "magistr".into(),
         timestamp: Utc::now(),
-        cost_usd: cost,
+        cost_usd: Some(cost),
         tokens: TokenBreakdown {
             input_tokens: 100,
             output_tokens: 50,
@@ -35,7 +35,7 @@ fn spend_is_summed_per_key() {
     let groups = summarize_by_dimension(&entries, CostDimension::Actor);
     assert_eq!(groups.len(), 2);
     assert_eq!(groups[0].key, "ada");
-    assert_eq!(groups[0].summary.total_cost, 4.0);
+    assert_eq!(groups[0].summary.total_cost, Some(4.0));
     assert_eq!(groups[0].summary.total_turns, 3);
     assert_eq!(groups[0].summary.entry_count, 2);
     assert_eq!(groups[0].summary.total_tokens.input_tokens, 200);
@@ -57,8 +57,8 @@ fn groups_come_back_biggest_spender_first() {
 fn share_is_the_fraction_of_total_spend() {
     let entries = vec![entry("ada", 3.0, 1), entry("bob", 1.0, 1)];
     let groups = summarize_by_dimension(&entries, CostDimension::Actor);
-    assert!((groups[0].share - 0.75).abs() < 1e-9);
-    assert!((groups[1].share - 0.25).abs() < 1e-9);
+    assert!((groups[0].share.unwrap() - 0.75).abs() < 1e-9);
+    assert!((groups[1].share.unwrap() - 0.25).abs() < 1e-9);
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn a_zero_cost_ledger_shares_out_at_zero_rather_than_dividing_by_zero() {
     let entries = vec![entry("ada", 0.0, 1), entry("bob", 0.0, 1)];
     let groups = summarize_by_dimension(&entries, CostDimension::Actor);
     assert_eq!(groups.len(), 2);
-    assert!(groups.iter().all(|g| g.share == 0.0));
+    assert!(groups.iter().all(|g| g.share == Some(0.0)));
 }
 
 #[test]

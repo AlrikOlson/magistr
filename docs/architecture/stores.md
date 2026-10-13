@@ -30,7 +30,9 @@ Today that runtime is SQLite 3.53.2 (`rusqlite` 0.40.2, `libsqlite3-sys`
 | Plugin storage | Caller-named path | `WAL`, set per operation | `SqliteStorage` opens one short-lived connection per store, load, list or delete | That connection | None besides those operations | Outside as used: no production composition opens it; exercised by its own tests only |
 
 Not SQLite: the cost ledger is a JSON file rewritten whole by
-`cost::append_entry`; native workflow state (roadmap, reasoning, execution,
+`cost::append_entry` during shared session settlement; each logical conversation
+has one entry with its latest cumulative reported USD amount, or an unknown price.
+Native workflow state (roadmap, reasoning, execution,
 signals) is the workflow engine's own store; `.magistr/loop-state.json` is a
 JSON checkpoint. A `.magistr/roadmap.db` left by the retired standalone
 workflow server is not opened by any current code.

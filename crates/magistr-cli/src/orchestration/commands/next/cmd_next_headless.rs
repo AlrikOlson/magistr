@@ -59,25 +59,14 @@ pub async fn cmd_next_headless(
     let mut stdout = std::io::stdout().lock();
     let mut stderr = std::io::stderr().lock();
 
-    let mut spend = None;
-    let drained = drain_headless(
-        &mut session,
-        format,
-        budget_limit,
-        &mut stdout,
-        &mut stderr,
-        &mut spend,
-    )
-    .await;
+    let drained =
+        drain_headless(&mut session, format, budget_limit, &mut stdout, &mut stderr).await;
     let cleanup = session.terminate_session().await.suggest();
     drop(session);
     if let Err(err) = workspace.shutdown().await {
         eprintln!("magistr: workspace shutdown: {err}");
     }
     let outcome = drained?;
-    if let Some(spend) = spend {
-        crate::cost::record_session(&inputs, &dir, &spend);
-    }
     cleanup?;
 
     let duration = start.elapsed();

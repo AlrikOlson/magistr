@@ -45,9 +45,22 @@ struct Choice {
 }
 #[derive(Serialize)]
 pub(crate) struct Usage {
-    used: u64,
-    size: u64,
+    used: Option<u64>,
+    size: Option<u64>,
     cost_cents: Option<u64>,
+}
+
+impl Usage {
+    fn from_report(
+        context: Option<magistr_application::sessions::ContextUsage>,
+        cost_cents: Option<u64>,
+    ) -> Self {
+        Self {
+            used: context.map(|context| context.used),
+            size: context.map(|context| context.size),
+            cost_cents,
+        }
+    }
 }
 
 impl Frame {
@@ -68,15 +81,10 @@ impl Frame {
         let model = snapshot.model.clone();
         let usage = match snapshot.latest_usage() {
             Some(Msg::Agent(AgentEvent::Usage {
-                used,
-                size,
+                context,
                 cost_cents,
                 ..
-            })) => Some(Usage {
-                used: *used,
-                size: *size,
-                cost_cents: *cost_cents,
-            }),
+            })) => Some(Usage::from_report(*context, *cost_cents)),
             _ => None,
         };
         if snapshot.pending_requests().next().is_some() {

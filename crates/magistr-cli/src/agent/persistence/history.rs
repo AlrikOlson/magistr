@@ -35,6 +35,8 @@ struct State {
     started: Option<Instant>,
     active_turn: bool,
     summary: String,
+    reported_cost_usd: Option<f64>,
+    inputs: Option<ProjectInputs>,
 }
 
 impl SessionHistory {
@@ -51,6 +53,8 @@ impl SessionHistory {
             started: None,
             active_turn: false,
             summary: String::new(),
+            reported_cost_usd: None,
+            inputs: None,
         })))
     }
 
@@ -59,6 +63,7 @@ impl SessionHistory {
         {
             let mut state = history.0.lock().expect("history state lock poisoned");
             state.id = record.session_id.clone();
+            state.reported_cost_usd = record.cost_usd;
             state.record = Some(record);
         }
         history
@@ -71,6 +76,7 @@ impl SessionHistory {
         provider: &str,
         model: Option<&str>,
     ) -> Result<()> {
+        let captured_inputs = inputs.clone();
         let inputs = inputs.clone();
         let root = cwd.to_path_buf();
         let (project, workspace, owner, path) = tokio::task::spawn_blocking(move || {
@@ -119,6 +125,7 @@ impl SessionHistory {
             });
         }
         state.path = path;
+        state.inputs = Some(captured_inputs);
         state.started = Some(Instant::now());
         state.active_turn = false;
         state.summary.clear();
@@ -158,8 +165,25 @@ impl SessionHistory {
         }
     }
 
+    /// The latest reported cumulative USD amount, including a reported zero.
+    pub(crate) fn reported_cost_usd(&self) -> Option<f64> {
+        self.0
+            .lock()
+            .expect("history state lock poisoned")
+            .reported_cost_usd
+    }
+
     pub(crate) fn observe(&self, event: &AcpEvent) {
         let mut state = self.0.lock().expect("history state lock poisoned");
+        if let AcpEvent::SessionUpdate { update, .. } = event
+            && let SessionUpdate::UsageUpdate(usage) = &**update
+            && let Some(cost) = usage
+                .cost
+                .as_ref()
+                .and_then(crate::agent::translate::reported_usd)
+        {
+            state.reported_cost_usd = Some(cost);
+        }
         if state.record.is_none() {
             return;
         }
@@ -186,15 +210,6 @@ impl SessionHistory {
                         state.summary.extend(text.text.chars().take(remaining));
                     }
                 }
-                SessionUpdate::UsageUpdate(usage) => {
-                    if let Some(cost) = &usage.cost
-                        && cost.currency == "USD"
-                        && cost.amount.is_finite()
-                        && cost.amount >= 0.0
-                    {
-                        state.record.as_mut().expect("record checked").cost_usd = Some(cost.amount);
-                    }
-                }
                 SessionUpdate::ConfigOptionUpdate(update) => {
                     if let Some(model) =
                         crate::agent::translate::current_model(Some(&update.config_options))
@@ -214,25 +229,31 @@ impl SessionHistory {
         }
     }
 
-    fn settlement(&self, outcome: SessionOutcome) -> Option<(Option<PathBuf>, SessionRecord)> {
+    fn settlement(
+        &self,
+        outcome: SessionOutcome,
+    ) -> Option<(Option<PathBuf>, SessionRecord, Option<ProjectInputs>)> {
         let mut state = self.0.lock().expect("history state lock poisoned");
         let started = state.started.take()?;
         let path = state.path.clone();
+        let inputs = state.inputs.clone();
+        let cost = state.reported_cost_usd;
         keep_summary(&mut state);
         let record = state.record.as_mut()?;
         record.ended_at = Utc::now();
+        record.cost_usd = cost;
         record.duration_ms = record
             .duration_ms
             .saturating_add(u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX));
         record.outcome = outcome;
-        Some((path, record.clone()))
+        Some((path, record.clone(), inputs))
     }
 
     pub(crate) async fn settle(&self, outcome: SessionOutcome) -> Result<()> {
-        let Some((path, record)) = self.settlement(outcome) else {
+        let Some((path, record, inputs)) = self.settlement(outcome) else {
             return Ok(());
         };
-        tokio::task::spawn_blocking(move || save(path, &record))
+        tokio::task::spawn_blocking(move || save(path, &record, inputs.as_ref()))
             .await
             .map_err(|error| {
                 MagistrError::Other(format!("Could not save session history: {error}"))
@@ -242,12 +263,12 @@ impl SessionHistory {
     /// Forced task cancellation still schedules the same writer. Normal
     /// termination awaits it; callers keep the runtime alive through cleanup.
     pub(crate) fn settle_detached(&self, outcome: SessionOutcome) {
-        let Some((path, record)) = self.settlement(outcome) else {
+        let Some((path, record, inputs)) = self.settlement(outcome) else {
             return;
         };
         if let Ok(runtime) = tokio::runtime::Handle::try_current() {
             runtime.spawn_blocking(move || {
-                if let Err(error) = save(path, &record) {
+                if let Err(error) = save(path, &record, inputs.as_ref()) {
                     warn(&error);
                 }
             });
@@ -259,7 +280,19 @@ impl SessionHistory {
     }
 }
 
-fn save(path: Option<PathBuf>, record: &SessionRecord) -> Result<()> {
+fn save(
+    path: Option<PathBuf>,
+    record: &SessionRecord,
+    inputs: Option<&ProjectInputs>,
+) -> Result<()> {
+    if let Some(inputs) = inputs {
+        let mut spend = crate::cost::SessionSpend::new(&record.session_id, record.cost_usd)
+            .with_run(record.turns.unwrap_or_default(), record.duration_ms);
+        if let Some(model) = &record.model {
+            spend = spend.with_model(model);
+        }
+        crate::cost::record_session(inputs, Path::new(&record.workspace), &spend);
+    }
     let path = path.ok_or_else(|| {
         MagistrError::Config("No directory is available for saved sessions.".into())
     })?;

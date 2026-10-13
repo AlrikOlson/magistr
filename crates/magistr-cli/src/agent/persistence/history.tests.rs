@@ -129,3 +129,31 @@ async fn text_is_bounded_and_prior_connection_replay_does_not_duplicate_summary(
         SUMMARY_CHARS
     );
 }
+
+#[test]
+fn missing_foreign_and_invalid_prices_cannot_erase_a_reported_amount() {
+    use agent_client_protocol::schema::v1::{Cost, UsageUpdate};
+    let history = SessionHistory::new();
+    let observe = |cost| {
+        history.observe(&AcpEvent::SessionUpdate {
+            session_id: "provider".into(),
+            update: Box::new(SessionUpdate::UsageUpdate(
+                UsageUpdate::new(5, 100).cost(cost),
+            )),
+        });
+    };
+    assert_eq!(history.reported_cost_usd(), None);
+    observe(Some(Cost::new(0.25, "USD")));
+    for cost in [
+        None,
+        Some(Cost::new(10.0, "EUR")),
+        Some(Cost::new(-1.0, "USD")),
+        Some(Cost::new(f64::NAN, "USD")),
+        Some(Cost::new(f64::INFINITY, "USD")),
+    ] {
+        observe(cost);
+        assert_eq!(history.reported_cost_usd(), Some(0.25));
+    }
+    observe(Some(Cost::new(0.0, "USD")));
+    assert_eq!(history.reported_cost_usd(), Some(0.0));
+}

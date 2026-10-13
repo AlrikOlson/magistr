@@ -465,6 +465,17 @@ negotiated loading capability, selected model, local attribution, terminal outco
 observed turns, reported USD cost and bounded last-response summary. Missing price
 or model stays absent. Retries update one row without overwriting tags or a handoff.
 
+ACP prices are cumulative conversation snapshots. The shared session context keeps
+its latest valid reported USD amount across turns, reconnects and saved resumes;
+unpriced usage and terminal responses cannot clear it. A reported zero stays known.
+The owner publishes this same fact through live usage and completion observations,
+including restored spending before a new turn. Context token counts remain absent
+until the provider reports them, independently of the known spending amount.
+After cleanup, the shared settlement writer also updates the existing cost ledger by Magistr conversation ID. Success,
+failure and forced close use that writer; drains only read observations. Unreported
+ledger prices and aggregate totals remain unknown, and estimates exclude unpriced
+samples.
+
 The current SQLite schema is initialized atomically. Unsupported formats are
 refused directly; there are no older-format migrations or invented provider IDs.
 Storage failure is a separate diagnostic, preserving terminal outcome and process

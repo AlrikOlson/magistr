@@ -433,7 +433,7 @@ pub fn messages_from_session_update(
 
         // Usage/cost update — feed into magistr's cost tracking (C7.15)
         SessionUpdate::UsageUpdate(usage) => {
-            let cost_usd = usage.cost.as_ref().map(|c| c.amount);
+            let cost_usd = usage.cost.as_ref().and_then(super::translate::reported_usd);
             vec![AgentMessage::UsageUpdate {
                 context_tokens_used: usage.used,
                 context_window_size: usage.size,

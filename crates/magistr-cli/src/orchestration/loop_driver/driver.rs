@@ -2453,13 +2453,17 @@ impl LoopDriver {
             // ACP's `UsageUpdate.used` is the context's level; the
             // highest level of the turn is what the turn put in context.
             Msg::Agent(AgentEvent::Usage {
-                used,
-                size,
+                context,
                 cost_cents,
                 ..
             }) => {
-                tracing::info!(target: "magistr::loop", used, size, "usage");
-                self.tokens_seen = Some(self.tokens_seen.map_or(*used, |seen| seen.max(*used)));
+                if let Some(context) = context {
+                    tracing::info!(target: "magistr::loop", used = context.used, size = context.size, "usage");
+                    self.tokens_seen = Some(
+                        self.tokens_seen
+                            .map_or(context.used, |seen| seen.max(context.used)),
+                    );
+                }
                 if let Some(cents) = cost_cents {
                     self.iter_loop
                         .observe_budget(self.iteration_cost_base + *cents as f64 / 100.0);

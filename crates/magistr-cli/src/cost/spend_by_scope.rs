@@ -7,7 +7,8 @@ use super::cost_entry::CostEntry;
 use super::spend_context::SpendContext;
 
 /// Total the ledger against every `(scope, window)` pair the policy
-/// actually constrains.
+/// actually constrains. Unreported prices do not contribute; these sums are
+/// lower bounds on spending, rather than claims that unpriced runs were free.
 ///
 /// Only pairs belonging to a rule that sets a threshold are computed —
 /// an inert rule costs no work — and a `Session` window contributes zero
@@ -34,7 +35,7 @@ pub fn spend_by_scope(
             .iter()
             .filter(|e| context.in_scope(e, rule.scope))
             .filter(|e| since.is_none_or(|start| e.timestamp >= start))
-            .map(|e| e.cost_usd)
+            .filter_map(|e| e.cost_usd)
             .sum();
         spend.insert(key, total);
     }

@@ -7,7 +7,7 @@ fn entry(session: &str, project: &str, actor: Option<&str>, model: Option<&str>)
         session_id: session.into(),
         project: project.into(),
         timestamp: Utc::now(),
-        cost_usd: 1.0,
+        cost_usd: Some(1.0),
         tokens: TokenBreakdown::default(),
         turns: 1,
         duration_ms: 1000,
