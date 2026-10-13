@@ -112,8 +112,8 @@ fn backend_summary() -> String {
 
 /// The last few sessions for this project from the session database,
 /// pre-formatted; an unopenable database is an empty list, not an error.
-/// A record the database kept no session id for carries none here
-/// either — the launcher draws it and refuses to resume it.
+/// Only a saved conversation with a provider ID and negotiated load capability
+/// supplies a resume action; every settled conversation remains visible.
 fn recent_sessions(dir: &Path, inputs: &ProjectInputs) -> Vec<LauncherSession> {
     let Some(db_path) = crate::session::storage::sessions_db_path(inputs) else {
         return Vec::new();
@@ -122,7 +122,12 @@ fn recent_sessions(dir: &Path, inputs: &ProjectInputs) -> Vec<LauncherSession> {
         return Vec::new();
     };
     let filter = crate::session::session_filter::SessionFilter::new()
-        .with_project(super::galaxy_data::directory_name(dir))
+        .with_workspace(
+            dir.canonicalize()
+                .unwrap_or_else(|_| dir.to_path_buf())
+                .display()
+                .to_string(),
+        )
         .with_limit(RECENT_SESSIONS);
     let Ok(records) = crate::session::storage::query_sessions(&conn, &filter) else {
         return Vec::new();
@@ -130,12 +135,15 @@ fn recent_sessions(dir: &Path, inputs: &ProjectInputs) -> Vec<LauncherSession> {
     records
         .into_iter()
         .map(|record| {
-            let outcome = if record.tags.iter().any(|t| t == "cancelled") {
-                SessionOutcome::Cancelled
-            } else if record.tags.iter().any(|t| t == "error") {
-                SessionOutcome::Error
-            } else {
-                SessionOutcome::Success
+            let outcome = match record.outcome {
+                crate::session::session_outcome::SessionOutcome::Completed => {
+                    SessionOutcome::Success
+                }
+                crate::session::session_outcome::SessionOutcome::Failed => SessionOutcome::Error,
+                crate::session::session_outcome::SessionOutcome::Cancelled
+                | crate::session::session_outcome::SessionOutcome::Stopped => {
+                    SessionOutcome::Cancelled
+                }
             };
             let preview: String = record
                 .summary
@@ -145,7 +153,7 @@ fn recent_sessions(dir: &Path, inputs: &ProjectInputs) -> Vec<LauncherSession> {
                 .take(60)
                 .collect();
             LauncherSession {
-                id: (!record.session_id.is_empty()).then(|| record.session_id.clone()),
+                id: record.can_resume().then(|| record.session_id.clone()),
                 when: record.started_at.format("%b %d %H:%M").to_string(),
                 duration: record.duration_display(),
                 outcome,

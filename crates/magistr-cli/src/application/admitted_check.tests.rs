@@ -164,12 +164,14 @@ fn a_timeout_and_a_cancel_are_recorded_as_what_they_were() {
 fn an_unobservable_root_is_a_source_refusal_at_admission() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let absent = tmp.path().join("absent");
+    std::fs::create_dir(&absent).expect("root exists for host admission");
     let config = magistr_core::evidence::writer_config(&absent, |_| None)
         .with_data_dir(tmp.path().join("store"));
     let engines = ProjectAuthority::admit_for_project(&config, "absent".into(), WriterRole::Host)
         .expect("host admitted")
         .open();
     objective(&engines, "verify");
+    std::fs::remove_dir_all(&absent).expect("root disappears after host admission");
     let refused = AdmittedCheck::admit(&engines, &absent, None, "test", "true".into(), true)
         .expect_err("missing root");
     assert!(

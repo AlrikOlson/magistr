@@ -12,7 +12,7 @@ pub async fn cmd_run_tui(
 ) -> eyre::Result<()> {
     let cwd = inputs.project_root().to_path_buf();
     let config = request
-        .apply(agent::AgentConfig::new(request.prompt, &cwd).with_inputs(inputs))
+        .apply(agent::AgentConfig::new(request.prompt, &cwd).with_inputs(inputs))?
         .backend(backend)
         .with_project_context(&cwd);
 

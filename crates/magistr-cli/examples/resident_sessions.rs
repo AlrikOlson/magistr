@@ -132,6 +132,14 @@ async fn exercise(parent: PathBuf) -> eyre::Result<()> {
         .map_err(|error| eyre::eyre!(error))?;
     text(&mut third, "third active").await?;
     client.close(&b).await.map_err(|error| eyre::eyre!(error))?;
+    let inputs = magistr::config::inputs::ProjectInputs::from_env(&first);
+    let history_path = magistr::session::storage::sessions_db_path(&inputs)
+        .ok_or_else(|| eyre::eyre!("isolated history directory"))?;
+    let history = magistr::session::storage::open_db(&history_path)?;
+    ensure!(
+        magistr::session::storage::count_sessions(&history)? == 1,
+        "closing the actual second provider session must save its history"
+    );
     ensure!(
         client.command(&b, Cmd::Cancel).await.is_err(),
         "removed session must reject controls"

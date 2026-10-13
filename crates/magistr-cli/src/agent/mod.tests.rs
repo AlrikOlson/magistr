@@ -222,21 +222,22 @@ fn agent_config_resume_and_continue() {
 // ── with_run_args tests ────────────────────────────────────
 
 #[test]
-fn with_run_args_all_set() {
-    let config = AgentConfig::new("test", "/tmp/project").with_run_args(
-        Some("opus"),
-        Some("sess-123"),
-        true,
-    );
-
-    assert_eq!(config.model.as_deref(), Some("opus"));
-    assert_eq!(config.resume.as_deref(), Some("sess-123"));
-    assert!(config.continue_conversation);
+fn with_run_args_refuses_a_missing_saved_conversation() {
+    let directory = tempfile::tempdir().unwrap();
+    let inputs = ProjectInputs::from_lookup(directory.path(), |key| {
+        (key == "XDG_DATA_HOME").then(|| directory.path().join("data").display().to_string())
+    });
+    let result = AgentConfig::new("test", directory.path())
+        .with_inputs(&inputs)
+        .with_run_args(Some("opus"), Some("missing"), false);
+    assert!(result.is_err());
 }
 
 #[test]
 fn with_run_args_none() {
-    let config = AgentConfig::new("test", "/tmp/project").with_run_args(None, None, false);
+    let config = AgentConfig::new("test", "/tmp/project")
+        .with_run_args(None, None, false)
+        .unwrap();
 
     assert!(config.model.is_none());
     assert!(config.resume.is_none());
@@ -245,8 +246,9 @@ fn with_run_args_none() {
 
 #[test]
 fn with_run_args_partial() {
-    let config =
-        AgentConfig::new("test", "/tmp/project").with_run_args(Some("sonnet"), None, false);
+    let config = AgentConfig::new("test", "/tmp/project")
+        .with_run_args(Some("sonnet"), None, false)
+        .unwrap();
 
     assert_eq!(config.model.as_deref(), Some("sonnet"));
     assert!(config.resume.is_none());

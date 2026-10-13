@@ -920,6 +920,7 @@ pub(super) fn agent(model: &mut Model, event: AgentEvent) -> Vec<Cmd> {
             model.terminals.push(&terminal_id, &bytes, tick);
             sync_strip(model, &terminal_id);
         }
+        AgentEvent::Notice(text) => model.session.turn.push_note(&text),
         AgentEvent::Plan { .. } | AgentEvent::System { .. } => {}
     }
     if edited {

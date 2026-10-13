@@ -150,6 +150,11 @@ impl InteractiveHost {
         let (feed_tap, tapped) = tokio::sync::mpsc::unbounded_channel();
         let feed = OwnedTask(resources.engines.subscribe(inbox.tap(feed_tap)));
         let reseed = OwnedTask(resources.engines.reseed(inbox.clone(), seed.cursor));
+        let history_feed = OwnedTask(super::history_feed::follow(
+            config.cwd.clone(),
+            config.inputs().as_ref().clone(),
+            inbox.clone(),
+        ));
         let connector = sessions(source);
         let session = interactive_session(
             config.clone(),
@@ -172,6 +177,7 @@ impl InteractiveHost {
             let result = serve(commands, forward, stopped, relay, inbox).await;
             feed.abort_and_join().await;
             reseed.abort_and_join().await;
+            history_feed.abort_and_join().await;
             let cleanup = resources.close().await;
             let result = combine(result, cleanup);
             if let Err(error) = &result {

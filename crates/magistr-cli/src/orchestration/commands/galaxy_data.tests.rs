@@ -1,19 +1,25 @@
 use super::*;
+use crate::session::session_outcome::SessionOutcome as HistoryOutcome;
 use chrono::{Duration, TimeZone};
 
 fn record(project: &str, started: DateTime<Utc>, cost_usd: f64) -> SessionRecord {
     SessionRecord {
         session_id: format!("{project}-{started}"),
         project: project.to_owned(),
+        workspace: project.to_owned(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: HistoryOutcome::Completed,
         started_at: started,
         ended_at: started,
-        cost_usd,
-        turns: 1,
+        cost_usd: Some(cost_usd),
+        turns: Some(1),
         duration_ms: 1,
         files_changed: Vec::new(),
         tags: Vec::new(),
         summary: None,
-        model: String::new(),
+        model: None,
         owner: None,
     }
 }

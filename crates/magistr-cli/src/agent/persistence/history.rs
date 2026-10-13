@@ -1,0 +1,297 @@
+//! One logical conversation's history facts and settlement writer change together.
+//! Cloned configuration carries this context across provider reconnections; a
+//! separate conversation gets a fresh context. Only its session owner saves it.
+
+use std::{
+    path::{Path, PathBuf},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
+    time::Instant,
+};
+
+use agent_client_protocol::schema::v1::{ContentBlock, SessionUpdate, ToolCallContent};
+use chrono::Utc;
+use magistr_acp::AcpEvent;
+
+use super::{session_outcome::SessionOutcome, session_record::SessionRecord, storage};
+use crate::{
+    config::inputs::ProjectInputs,
+    error::{MagistrError, Result},
+};
+
+const SUMMARY_CHARS: usize = 2048;
+const FILE_LIMIT: usize = 512;
+static ISSUED: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Clone)]
+pub(crate) struct SessionHistory(Arc<Mutex<State>>);
+
+struct State {
+    id: String,
+    record: Option<SessionRecord>,
+    path: Option<PathBuf>,
+    started: Option<Instant>,
+    active_turn: bool,
+    summary: String,
+}
+
+impl SessionHistory {
+    pub(crate) fn new() -> Self {
+        Self(Arc::new(Mutex::new(State {
+            id: format!(
+                "{}-{}-{}",
+                std::process::id(),
+                Utc::now().timestamp_nanos_opt().unwrap_or_default(),
+                ISSUED.fetch_add(1, Ordering::Relaxed)
+            ),
+            record: None,
+            path: None,
+            started: None,
+            active_turn: false,
+            summary: String::new(),
+        })))
+    }
+
+    pub(crate) fn from_record(record: SessionRecord) -> Self {
+        let history = Self::new();
+        {
+            let mut state = history.0.lock().expect("history state lock poisoned");
+            state.id = record.session_id.clone();
+            state.record = Some(record);
+        }
+        history
+    }
+
+    pub(crate) async fn begin(
+        &self,
+        inputs: &ProjectInputs,
+        cwd: &Path,
+        provider: &str,
+        model: Option<&str>,
+    ) -> Result<()> {
+        let inputs = inputs.clone();
+        let root = cwd.to_path_buf();
+        let (project, workspace, owner, path) = tokio::task::spawn_blocking(move || {
+            let location = magistr_engine::native::ProjectLocation::resolve(&root)
+                .map_err(|error| MagistrError::io(&root, error))?;
+            Ok::<_, MagistrError>((
+                location.authority_root.display().to_string(),
+                location.working_copy.display().to_string(),
+                crate::team::Identity::resolve(&root, &inputs)
+                    .id()
+                    .to_owned(),
+                storage::sessions_db_path(&inputs),
+            ))
+        })
+        .await
+        .map_err(|error| {
+            MagistrError::Other(format!("Could not prepare session history: {error}"))
+        })??;
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        if let Some(record) = &state.record
+            && (record.workspace != workspace || record.provider != provider)
+        {
+            return Err(MagistrError::Config(
+                "The saved conversation belongs to another project or agent.".into(),
+            ));
+        }
+        if state.record.is_none() {
+            state.record = Some(SessionRecord {
+                session_id: state.id.clone(),
+                project,
+                workspace,
+                provider: provider.to_owned(),
+                provider_session_id: None,
+                resume_supported: false,
+                started_at: Utc::now(),
+                ended_at: Utc::now(),
+                outcome: SessionOutcome::Stopped,
+                cost_usd: None,
+                turns: Some(0),
+                duration_ms: 0,
+                files_changed: Vec::new(),
+                tags: Vec::new(),
+                summary: None,
+                model: model.map(str::to_owned),
+                owner: Some(owner),
+            });
+        }
+        state.path = path;
+        state.started = Some(Instant::now());
+        state.active_turn = false;
+        state.summary.clear();
+        Ok(())
+    }
+
+    pub(crate) fn bind_transport(&self, transport: &magistr_acp::AcpTransport) {
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        if let Some(record) = &mut state.record {
+            record.provider_session_id = transport
+                .session_id()
+                .filter(|id| !id.is_empty())
+                .map(str::to_owned);
+            record.resume_supported = transport
+                .agent_capabilities()
+                .is_some_and(|caps| caps.load_session);
+            if let Some(model) =
+                crate::agent::translate::current_model(transport.session_config_options())
+            {
+                record.model = Some(model);
+            }
+        }
+    }
+
+    pub(crate) fn begin_turn(&self) {
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        state.active_turn = true;
+        state.summary.clear();
+    }
+
+    pub(crate) fn finished_turn(&self) {
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        state.active_turn = false;
+        keep_summary(&mut state);
+        if let Some(record) = &mut state.record {
+            record.turns = record.turns.map(|turns| turns.saturating_add(1));
+        }
+    }
+
+    pub(crate) fn observe(&self, event: &AcpEvent) {
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        if state.record.is_none() {
+            return;
+        }
+        match event {
+            AcpEvent::Initialized {
+                session_id,
+                agent_capabilities,
+                config_options,
+                ..
+            } => {
+                let record = state.record.as_mut().expect("record checked");
+                record.provider_session_id = (!session_id.is_empty()).then(|| session_id.clone());
+                record.resume_supported = agent_capabilities.load_session;
+                if let Some(model) =
+                    crate::agent::translate::current_model(config_options.as_deref())
+                {
+                    record.model = Some(model);
+                }
+            }
+            AcpEvent::SessionUpdate { update, .. } => match &**update {
+                SessionUpdate::AgentMessageChunk(chunk) if state.active_turn => {
+                    if let ContentBlock::Text(text) = &chunk.content {
+                        let remaining = SUMMARY_CHARS.saturating_sub(state.summary.chars().count());
+                        state.summary.extend(text.text.chars().take(remaining));
+                    }
+                }
+                SessionUpdate::UsageUpdate(usage) => {
+                    if let Some(cost) = &usage.cost
+                        && cost.currency == "USD"
+                        && cost.amount.is_finite()
+                        && cost.amount >= 0.0
+                    {
+                        state.record.as_mut().expect("record checked").cost_usd = Some(cost.amount);
+                    }
+                }
+                SessionUpdate::ConfigOptionUpdate(update) => {
+                    if let Some(model) =
+                        crate::agent::translate::current_model(Some(&update.config_options))
+                    {
+                        state.record.as_mut().expect("record checked").model = Some(model);
+                    }
+                }
+                SessionUpdate::ToolCall(call) => files(&mut state, &call.content),
+                SessionUpdate::ToolCallUpdate(update) => {
+                    if let Some(content) = &update.fields.content {
+                        files(&mut state, content);
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
+    fn settlement(&self, outcome: SessionOutcome) -> Option<(Option<PathBuf>, SessionRecord)> {
+        let mut state = self.0.lock().expect("history state lock poisoned");
+        let started = state.started.take()?;
+        let path = state.path.clone();
+        keep_summary(&mut state);
+        let record = state.record.as_mut()?;
+        record.ended_at = Utc::now();
+        record.duration_ms = record
+            .duration_ms
+            .saturating_add(u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX));
+        record.outcome = outcome;
+        Some((path, record.clone()))
+    }
+
+    pub(crate) async fn settle(&self, outcome: SessionOutcome) -> Result<()> {
+        let Some((path, record)) = self.settlement(outcome) else {
+            return Ok(());
+        };
+        tokio::task::spawn_blocking(move || save(path, &record))
+            .await
+            .map_err(|error| {
+                MagistrError::Other(format!("Could not save session history: {error}"))
+            })?
+    }
+
+    /// Forced task cancellation still schedules the same writer. Normal
+    /// termination awaits it; callers keep the runtime alive through cleanup.
+    pub(crate) fn settle_detached(&self, outcome: SessionOutcome) {
+        let Some((path, record)) = self.settlement(outcome) else {
+            return;
+        };
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            runtime.spawn_blocking(move || {
+                if let Err(error) = save(path, &record) {
+                    warn(&error);
+                }
+            });
+        } else {
+            tracing::warn!(
+                "Session history could not be saved because the application runtime ended."
+            );
+        }
+    }
+}
+
+fn save(path: Option<PathBuf>, record: &SessionRecord) -> Result<()> {
+    let path = path.ok_or_else(|| {
+        MagistrError::Config("No directory is available for saved sessions.".into())
+    })?;
+    let conn = storage::open_db(&path)?;
+    storage::insert_session(&conn, record)
+}
+
+pub(crate) fn warn(error: &MagistrError) {
+    tracing::warn!(%error, "The session ended, but its history could not be saved.");
+}
+
+fn keep_summary(state: &mut State) {
+    let summary = std::mem::take(&mut state.summary);
+    if !summary.is_empty()
+        && let Some(record) = &mut state.record
+    {
+        record.summary = Some(summary);
+    }
+}
+
+fn files(state: &mut State, content: &[ToolCallContent]) {
+    let record = state.record.as_mut().expect("record checked by observer");
+    for item in content {
+        if let ToolCallContent::Diff(diff) = item {
+            let path = diff.path.display().to_string();
+            if record.files_changed.len() < FILE_LIMIT && !record.files_changed.contains(&path) {
+                record.files_changed.push(path);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "history.tests.rs"]
+mod tests;

@@ -957,8 +957,9 @@ impl LoopDriver {
         if send_opening {
             options = options.opening_prompt(spec.prompt());
         }
+        let history = spec.history();
         let (policy, _) = spec.into_permission_policy();
-        let handle = CockpitSession::start_connected(transport, options, Box::new(policy))
+        let handle = CockpitSession::start_owned(transport, options, Box::new(policy), history)
             .map_err(|error| error.to_string())?;
         let control = handle.control();
         let session = spawn_session(

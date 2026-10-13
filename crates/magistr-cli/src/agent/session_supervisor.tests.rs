@@ -11,6 +11,8 @@ use tokio::sync::{Notify, Semaphore, mpsc};
 
 #[path = "session_supervisor/goal.tests.rs"]
 mod goals;
+#[path = "session_supervisor/history.tests.rs"]
+mod history;
 
 const DEADLINE: Duration = Duration::from_secs(3);
 
@@ -116,6 +118,10 @@ impl Provider for ControlledProvider {
                     () = turn.cancelled() => return Ok(StopReason::Cancelled),
                 }
             }
+            if text == "priced" {
+                use agent_client_protocol::schema::v1::{Cost, UsageUpdate};
+                turn.usage(UsageUpdate::new(4, 100).cost(Cost::new(0.25, "USD")))?;
+            }
             if text == "fail" {
                 return Err(AgentError::provider("controlled turn failure"));
             }
@@ -168,6 +174,18 @@ impl Fixture {
         capacity: crate::agent::observation::ObservationCapacity,
         max_turns: Option<u32>,
     ) -> Self {
+        Self::start_recording(prompt, capacity, max_turns, None).await
+    }
+
+    async fn start_recording(
+        prompt: &str,
+        capacity: crate::agent::observation::ObservationCapacity,
+        max_turns: Option<u32>,
+        recording: Option<(
+            super::super::persistence::SessionHistory,
+            crate::config::inputs::ProjectInputs,
+        )>,
+    ) -> Self {
         let (client, agent) = agent_client_protocol::Channel::duplex();
         let (started, receiver) = mpsc::unbounded_channel();
         let observed = Arc::new(Observed {
@@ -183,16 +201,36 @@ impl Fixture {
             let _ = magistr_acp_agent::serve(provider, agent).await;
         });
         let directory = tempfile::tempdir().expect("session directory");
+        let root = recording
+            .as_ref()
+            .map(|(_, inputs)| inputs.project_root())
+            .unwrap_or(directory.path());
+        if let Some((history, inputs)) = &recording {
+            history
+                .begin(
+                    inputs,
+                    root,
+                    "supervisor-test",
+                    Some(ScriptedProvider::SLOW),
+                )
+                .await
+                .unwrap();
+        }
         let mut transport = magistr_acp::AcpTransport::new_with_args(
             std::path::PathBuf::from("unused-in-process-agent"),
             Vec::new(),
-            Some(directory.path().to_path_buf()),
+            Some(root.to_path_buf()),
         )
         .expect("transport")
         .session_model(Some(ScriptedProvider::SLOW.into()));
         transport.connect_over(client).await.expect("ACP handshake");
         let (supervisor, messages) = SessionSupervisor::start_connected_bounded_with_limit(
-            prompt, transport, None, capacity, max_turns,
+            prompt,
+            transport,
+            None,
+            capacity,
+            max_turns,
+            recording.map(|(history, _)| history),
         )
         .await
         .expect("supervisor startup");

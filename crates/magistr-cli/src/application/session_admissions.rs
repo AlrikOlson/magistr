@@ -148,9 +148,6 @@ impl SessionRegistry {
                 opening
                     .observation
                     .set_reader(resources.engines.reader().clone());
-                let dir = config.cwd.clone();
-                let inputs = config.inputs().clone();
-                let inbox = opening.inbox.clone();
                 let opened = InteractiveHost::open_admitted(
                     config,
                     resources,
@@ -159,18 +156,6 @@ impl SessionRegistry {
                 )
                 .await
                 .map_err(|error| format!("{error:#}"))?;
-                tokio::spawn(async move {
-                    if let Ok(data) = tokio::task::spawn_blocking(move || {
-                        crate::commands::galaxy_data::collect(&dir, &inputs)
-                    })
-                    .await
-                    {
-                        inbox.send(magistr_cockpit::cockpit::Msg::Job {
-                            id: magistr_cockpit::job::JobId::new(u64::MAX),
-                            output: magistr_cockpit::job::JobOutput::Galaxy(Box::new(data)),
-                        });
-                    }
-                });
                 Ok(opened)
             })
         });

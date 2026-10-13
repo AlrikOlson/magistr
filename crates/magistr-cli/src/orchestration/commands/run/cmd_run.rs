@@ -13,7 +13,7 @@ pub async fn cmd_run(
     let cwd = inputs.project_root().to_path_buf();
     let prompt = request.prompt;
     let config = request
-        .apply(agent::AgentConfig::new(prompt, &cwd).with_inputs(inputs))
+        .apply(agent::AgentConfig::new(prompt, &cwd).with_inputs(inputs))?
         .backend(backend)
         .permission_profile(profile)
         .with_project_context(&cwd);

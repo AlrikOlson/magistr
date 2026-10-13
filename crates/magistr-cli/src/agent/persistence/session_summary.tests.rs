@@ -1,20 +1,26 @@
 use super::SessionRecord;
 use super::*;
+use crate::session::session_outcome::SessionOutcome as HistoryOutcome;
 use chrono::TimeZone;
 
 fn sample_record(id: &str, project: &str, cost: f64, turns: u32) -> SessionRecord {
     SessionRecord {
         session_id: id.to_string(),
         project: project.to_string(),
+        workspace: project.to_string(),
+        provider: "scripted".into(),
+        provider_session_id: Some("provider-fixture".into()),
+        resume_supported: true,
+        outcome: HistoryOutcome::Completed,
         started_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 0, 0).unwrap(),
         ended_at: Utc.with_ymd_and_hms(2026, 3, 10, 9, 30, 0).unwrap(),
-        cost_usd: cost,
-        turns,
+        cost_usd: Some(cost),
+        turns: Some(turns),
         duration_ms: 1_800_000,
         files_changed: vec!["src/main.rs".into(), "src/lib.rs".into()],
         tags: vec![],
         summary: None,
-        model: String::new(),
+        model: None,
         owner: None,
     }
 }

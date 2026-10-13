@@ -371,3 +371,24 @@ fn supervisor_outcomes_are_consumed_by_reference() {
     );
     assert!(m.term("t1").is_some(), "the bytes live with the terminals");
 }
+
+#[test]
+fn a_history_storage_notice_preserves_the_finished_turn_and_draft() {
+    let mut m = model();
+    agent(
+        &mut m,
+        AgentEvent::Initialized {
+            session_id: "provider".into(),
+            model: None,
+        },
+    );
+    type_text(&mut m, "unsent");
+    agent(&mut m, AgentEvent::TurnEnded(TurnEnd::EndTurn));
+    let state = m.turn_state();
+    agent(
+        &mut m,
+        AgentEvent::Notice("The session ended, but its history could not be saved.".into()),
+    );
+    assert_eq!(m.turn_state(), state);
+    assert_eq!(m.prompt().text(), "unsent");
+}

@@ -202,12 +202,10 @@ fn host(config: &NativeConfig, project_id: &str) -> NativeEngines {
         .open()
 }
 
-/// A second writer on the same store, in the role the agent's own
-/// `magistr mcp-serve` process holds beside the loop.
-fn agent_side(config: &NativeConfig, project_id: &str) -> NativeEngines {
-    ProjectAuthority::admit_for_project(config, project_id.to_owned(), WriterRole::Service)
-        .expect("service admitted")
-        .open()
+/// The simulated agent uses the same admitted authority as the host,
+/// as production MCP requests do; it never admits another project writer.
+fn agent_side(engines: &NativeEngines) -> NativeEngines {
+    engines.clone()
 }
 
 /// The real ledger over `engines` and the project at `dir` — attached to
@@ -1501,7 +1499,7 @@ fn the_driver_runs_gates_only_through_jobs_and_spawns_nothing_itself() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_native_iteration_re_seeds_the_signals_another_process_captured() {
+async fn a_native_iteration_re_seeds_the_signals_the_agent_captured() {
     let dir = project("true", "true", "true");
     let config = NativeConfig::from_lookup(dir.path().to_path_buf(), |_| None)
         .with_data_dir(dir.path().join("tas-data"));
@@ -1524,7 +1522,7 @@ async fn a_native_iteration_re_seeds_the_signals_another_process_captured() {
     // The agent's `magistr mcp-serve` captures a signal after the loop's
     // engines were opened, with no broadcast feed attached — so only the
     // iteration's own re-seed can put it in front of the cockpit.
-    let server = agent_side(&config, "loop-signal");
+    let server = agent_side(&engines);
     let captured = server
         .signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned())
         .expect("capture");
@@ -1675,7 +1673,7 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     let judge = Scripted::new([Verdict::met("never asked")]);
-    let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+    let agent_side = agent_side(&engines);
     let (inner, seen) =
         fake_connector(FakeAcpAgent::new().reply("blocked: the framework repo does not exist"));
     let inner = Arc::new(inner);
@@ -2718,7 +2716,7 @@ async fn a_red_gate_reopens_the_chunk_the_agent_completed_itself() {
     let engines = engines_with_work(dir.path());
     // The agent's own process, completing the chunk inside its turn the
     // way the /next workflow mandates.
-    let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+    let agent_side = agent_side(&engines);
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);
     let root = dir.path().to_path_buf();
@@ -2768,7 +2766,7 @@ async fn a_red_gate_reopens_the_chunk_the_agent_completed_itself() {
 async fn green_gates_leave_a_self_completed_chunk_done() {
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
-    let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+    let agent_side = agent_side(&engines);
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);
     let root = dir.path().to_path_buf();
@@ -2834,7 +2832,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
         let dir = project(command, command, command);
         std::fs::write(dir.path().join("work.txt"), "verified work").unwrap();
         let engines = engines_with_work(dir.path());
-        let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+        let agent_side = agent_side(&engines);
         let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("Work finished."));
         let root = dir.path().to_path_buf();
         let connector = Connector::new(move |config| {
@@ -3013,7 +3011,7 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
     let unexpected = "echo unexpected > unexpected-gate; exit 9";
     let dir = project(unexpected, unexpected, unexpected);
     let engines = engines_with_work(dir.path());
-    let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+    let agent_side = agent_side(&engines);
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("Shipped the first part."));
     let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
@@ -3115,7 +3113,7 @@ async fn a_flake_never_reopens_a_chunk() {
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
     let engines = engines_with_work(dir.path());
-    let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+    let agent_side = agent_side(&engines);
     let (inner, seen) = fake_connector(FakeAcpAgent::new());
     let inner = Arc::new(inner);
     let root = dir.path().to_path_buf();
@@ -3220,7 +3218,7 @@ async fn the_carry_is_appended_once_and_never_accumulated() {
 async fn a_self_completed_chunk_over_a_red_gate_reaches_the_authority_rule() {
     let dir = project("true", "true", "exit 3");
     let engines = engines_with_work(dir.path());
-    let agent_side = agent_side(&work_config(dir.path()), "loop-goal");
+    let agent_side = agent_side(&engines);
     let judge = Scripted::new([Verdict::met("I shipped it")]);
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("shipped it"));
     let inner = Arc::new(inner);

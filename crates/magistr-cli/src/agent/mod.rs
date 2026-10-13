@@ -160,6 +160,7 @@ pub struct AgentConfig {
     /// process environment again.
     inputs: Arc<ProjectInputs>,
     pub(crate) execution_id: Option<String>,
+    pub(crate) history: persistence::SessionHistory,
 }
 
 impl AgentConfig {
@@ -189,6 +190,7 @@ impl AgentConfig {
             backend: Backend::default(),
             allowed_tools: ToolPermissions::base().into_strings(),
             execution_id: None,
+            history: persistence::SessionHistory::new(),
         }
     }
 
@@ -340,26 +342,22 @@ impl AgentConfig {
 
     /// Apply common CLI run arguments in one call.
     ///
-    /// Consolidates the repeated pattern of conditionally setting model,
-    /// resume, and continue flags from optional CLI args. Equivalent to
-    /// chaining `.model()`, `.resume()`, and `.continue_conversation()`
-    /// individually but avoids duplicating the `if let Some` boilerplate.
+    /// A resume ID names a saved Magistr conversation. Its recorded provider
+    /// and provider-session ID are admitted together before startup.
     pub fn with_run_args(
         mut self,
         model: Option<&str>,
         resume: Option<&str>,
         continue_conversation: bool,
-    ) -> Self {
-        if let Some(m) = model {
-            self.model = Some(m.into());
+    ) -> crate::error::Result<Self> {
+        if let Some(id) = resume {
+            self = persistence::resume::saved_config(self, id)?;
         }
-        if let Some(sid) = resume {
-            self.resume = Some(sid.into());
+        if let Some(model) = model {
+            self.model = Some(model.into());
         }
-        if continue_conversation {
-            self.continue_conversation = true;
-        }
-        self
+        self.continue_conversation = continue_conversation;
+        Ok(self)
     }
 
     /// Replace the entire allowed-tools list.

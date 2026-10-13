@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "args_history.tests.rs"]
+mod history;
+
 #[test]
 fn worker_role_is_exact_and_never_opens_a_window() {
     let argv = |args: &[&str]| args.iter().map(OsString::from).collect::<Vec<_>>();
@@ -59,8 +62,6 @@ fn selected_project_and_session_choices_reach_the_shared_config() {
         "codex",
         "--model",
         "chosen-model",
-        "--resume",
-        "saved-thread",
         "--trust",
         "cautious",
         "hello",
@@ -71,7 +72,7 @@ fn selected_project_and_session_choices_reach_the_shared_config() {
     assert_eq!(config.inputs().project_root(), config.cwd);
     assert_eq!(config.provider.as_deref(), Some("codex"));
     assert_eq!(config.model.as_deref(), Some("chosen-model"));
-    assert_eq!(config.resume.as_deref(), Some("saved-thread"));
+    assert_eq!(config.resume, None);
     assert_eq!(config.prompt, "hello");
     assert!(!config.continue_conversation);
     assert_eq!(
@@ -94,8 +95,6 @@ fn a_switched_project_keeps_the_choices_and_drops_the_first_sessions_opening() {
         "codex",
         "--model",
         "chosen-model",
-        "--resume",
-        "saved-thread",
         "--trust",
         "cautious",
         "hello",

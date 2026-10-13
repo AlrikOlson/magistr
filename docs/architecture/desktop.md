@@ -71,7 +71,9 @@ binary.
 
 An optional positional message starts the first turn. `--model`, `--resume`,
 `--continue`, `--trust` and `--reduce-motion` select the session and presentation
-choices; `--resume` and `--continue` cannot be combined. With no message, the
+choices; `--resume` takes the saved Magistr ID listed by `magistr sessions`,
+selects its recorded provider and verifies loading support. It cannot be combined
+with `--continue`, which requires an explicit conversation. With no message, the
 session opens idle. Invalid project paths and permission choices fail before
 admission; provider startup errors are reported before a window opens.
 
@@ -243,9 +245,11 @@ a further eight seconds. Cleanup failures are returned after attempting every
 owner. Dropping a handle requests the same close; callers must keep the runtime
 alive and await shutdown. This does not provide background survival after app quit.
 
-The home page still reads recorded project directories through
-`commands/galaxy_data.rs`. Session history has no production writer yet;
-`rust-gui-session-history` owns that next repair. The Tauri foundation remains
+The home page reads settled conversations through `commands/galaxy_data.rs`.
+The shared session supervisor writes history after transport cleanup. A native
+host-owned feed watches SQLite data versions, including commits by headless or
+loop processes, and refreshes the existing project projection off the window
+thread. Refused delivery retains the latest projection for retry. The Tauri foundation remains
 a fixture. The renderer replacement will register typed Tauri commands and
 ordered IPC channels over this registry and its subscriptions, without taking
 over provider lifetime or adding global token events.

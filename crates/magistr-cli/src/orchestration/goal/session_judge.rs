@@ -93,15 +93,16 @@ impl SessionJudge {
         // The connector resolves the provider, the model and its
         // governance for this session; the permission policy it resolved
         // is not the judge's — the judge refuses everything.
-        let (transport, _spec) = self
+        let (transport, spec) = self
             .connector
             .connect(config)
             .await
             .map_err(|e| format!("the judge's agent could not be started: {e}"))?;
-        let (mut owner, mut messages) = SessionSupervisor::start_connected(
+        let (mut owner, mut messages) = SessionSupervisor::start_connected_history(
             prompt,
             transport,
             Some((Box::new(NoTools), NoninteractivePolicy::Refuse)),
+            spec.history(),
         )
         .await
         .map_err(|e| format!("the judge's session could not be opened: {e}"))?;

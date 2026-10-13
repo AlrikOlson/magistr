@@ -74,7 +74,10 @@ async fn drain_session_interactive(
                             );
                             eprintln!(
                                 "  {}",
-                                fmt::dim(&format!("Session: {}", session_id.as_str()))
+                                fmt::dim(&format!(
+                                    "Provider conversation: {}",
+                                    session_id.as_str()
+                                ))
                             );
                         }
                         turn_done = true;

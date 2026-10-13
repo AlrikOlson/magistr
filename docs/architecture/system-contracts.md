@@ -159,10 +159,10 @@ through an admitted workspace or are refused. Evidence: `main.tests.rs`
 
 ### Resume
 
-`--resume <id>` or `--continue` → session configuration resolves the provider
-and model before any turn → the transport selects ACP Load only for an
-explicit id and only when the provider advertises loading → the provider
-replays history. A provider that cannot restore refuses; Magistr does not
+`--resume <saved-id>` → the session store resolves the original provider,
+working copy, model and provider conversation ID → the transport selects ACP
+Load only when that provider currently advertises loading → the provider replays
+history. An unspecified `--continue` is refused before startup. A provider that cannot restore refuses; Magistr does not
 start over silently (the chat API adapters, Ollama included, refuse loading;
 Codex and Claude restore).
 In the desktop a failed connection returns the request to the editor with the

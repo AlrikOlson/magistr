@@ -35,19 +35,19 @@ pub(crate) fn collect(here: &Path, inputs: &ProjectInputs) -> GalaxyData {
 fn from_records(here: &Path, records: &[SessionRecord], now: DateTime<Utc>) -> GalaxyData {
     let here = here.canonicalize().unwrap_or_else(|_| here.to_path_buf());
     let mut records: Vec<&SessionRecord> = records.iter().collect();
-    records.sort_by_key(|record| std::cmp::Reverse(record.started_at));
+    records.sort_by_key(|record| std::cmp::Reverse(record.ended_at));
     let mut projects = vec![project(&here, true, None)];
     let mut seen = vec![here.clone()];
     let mut spent_cents = 0u64;
     for record in records {
-        let Some(dir) = recorded_project(&record.project) else {
+        let Some(dir) = recorded_project(&record.workspace) else {
             continue;
         };
         let known = seen.contains(&dir);
         if !known && seen.len() > RECENT_PROJECTS {
             continue;
         }
-        spent_cents += cents(record.cost_usd);
+        spent_cents += record.cost_usd.map(cents).unwrap_or(0);
         if dir == here {
             let idle = &mut projects[0].idle_secs;
             *idle = idle.or_else(|| idle_secs(record, now));
@@ -107,7 +107,7 @@ fn project(dir: &Path, here: bool, idle_secs: Option<u64>) -> GalaxyProject {
 }
 
 fn idle_secs(record: &SessionRecord, now: DateTime<Utc>) -> Option<u64> {
-    u64::try_from((now - record.started_at).num_seconds()).ok()
+    u64::try_from((now - record.ended_at).num_seconds()).ok()
 }
 
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // a session's cost is small and never negative once clamped
