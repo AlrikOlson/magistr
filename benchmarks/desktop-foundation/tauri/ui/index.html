@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Magistr</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" type="module"></script>
+  </head>
+  <body>
+    <aside aria-label="Projects and sessions">
+      <div class="brand">M <strong>Magistr</strong></div>
+      <div class="aside-head">
+        Workspaces <button id="open" aria-label="Open workspace">+</button>
+      </div>
+      <button class="workspace selected" id="workspace-main">
+        <strong>Magistr</strong><span>Main branch</span>
+      </button>
+      <button class="workspace" id="workspace-review">
+        <strong>Source review</strong><span>Review branch</span>
+      </button>
+      <div class="aside-head">Sessions <span id="stream-count">8</span></div>
+      <div id="sessions"></div>
+      <div class="aside-footer">
+        <button id="theme">Change theme</button
+        ><button id="motion" aria-pressed="true">Reduce motion</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <strong id="workspace-title">Magistr</strong
+          ><span id="branch">main</span>
+        </div>
+        <div>
+          <button id="start">Start work</button
+          ><button id="stop" disabled>Stop</button
+          ><span
+            id="marker"
+            role="img"
+            aria-label="Main branch selected"
+          ></span>
+        </div>
+      </header>
+      <section class="body">
+        <section class="conversation" aria-label="Conversation">
+          <div class="heading">
+            <div>
+              <h1>Keep sessions running across workspaces</h1>
+              <p id="status" role="status" aria-live="polite">Ready to start</p>
+            </div>
+          </div>
+          <div class="request" id="request">
+            <strong>Waiting for you</strong>
+            <p>Allow the test command to run?</p>
+            <button id="allow">Allow once</button
+            ><button id="deny">Deny</button>
+          </div>
+          <div
+            id="conversation"
+            class="scroller"
+            tabindex="0"
+            aria-label="Conversation history"
+          >
+            <div id="messages"></div>
+          </div>
+          <div id="live" role="log" aria-label="Agent reply"></div>
+          <form id="composer">
+            <label for="draft">Message</label
+            ><textarea
+              id="draft"
+              placeholder="Ask about this work…"
+              rows="3"
+            ></textarea>
+            <div class="composer-bottom">
+              <span>Shift + Return for a new line</span
+              ><button id="send" type="submit">Send</button>
+            </div>
+          </form>
+        </section>
+        <section class="review" aria-label="Changes and evidence">
+          <nav aria-label="Review">
+            <button id="changes" class="selected">Changes</button
+            ><button id="roadmap">Roadmap</button>
+          </nav>
+          <div id="change-pane">
+            <div class="file-head">
+              <strong>src/session.rs</strong><span>+2,667 −2,667</span>
+            </div>
+            <div
+              id="diff"
+              class="scroller mono"
+              tabindex="0"
+              aria-label="Source changes"
+            >
+              <div id="diff-lines"></div>
+            </div>
+          </div>
+          <div id="roadmap-pane" hidden>
+            <div class="file-head">
+              <strong>Planned work</strong><span>1,000 items</span>
+            </div>
+            <div
+              id="items"
+              class="scroller"
+              tabindex="0"
+              aria-label="Planned work"
+            >
+              <div id="item-lines"></div>
+            </div>
+            <section id="details">
+              <h2>Requirements and evidence</h2>
+              <p id="item-title">Select an item to read its requirements.</p>
+              <p>Sessions keep running when you select another workspace.</p>
+              <p>Read the checks and source changes saved with this work.</p>
+              <a href="https://example.org/evidence/1">Recorded check</a>
+            </section>
+          </div>
+        </section>
+      </section>
+      <footer>
+        <span id="counts">1,000 items · 160 messages · 8,000 diff lines</span
+        ><span
+          ><span
+            id="input-marker"
+            role="img"
+            aria-label="Message empty"
+            style="
+              display: inline-block;
+              width: 12px;
+              height: 12px;
+              border-radius: 3px;
+              background: #83b2ff;
+              margin-right: 8px;
+            "
+          ></span
+          ><span id="input-state">0 characters</span></span
+        >
+      </footer>
+    </main>
+    <dialog id="workspace-picker">
+      <form method="dialog">
+        <h2>Open workspace</h2>
+        <button id="choose-main" value="main">Magistr · Main branch</button
+        ><button id="choose-review" value="review">
+          Source review · Review branch</button
+        ><button value="cancel">Cancel</button>
+      </form>
+    </dialog>
+  </body>
+</html>

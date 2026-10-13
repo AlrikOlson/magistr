@@ -1,0 +1,6 @@
+{
+  "caption" : "× Agent 8 • Ready • 0, button",
+  "image" : "walk-15.png",
+  "observation" : "OCR of the actual VoiceOver caption panel",
+  "voiceover_pid" : 98278
+}

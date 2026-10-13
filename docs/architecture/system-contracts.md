@@ -76,6 +76,12 @@ Regenerate the root rows with `cargo metadata --format-version 1 --no-deps
 --locked` (normal dependencies whose name starts with `magistr`); the two
 desktop rows come from their own manifests.
 
+The [desktop foundation decision](desktop-foundation.md), added 12 October 2026,
+selects a Tauri Rust host and OS WebView using a separate bounded native fixture.
+These dependency/runtime rows continue to describe the delivered components.
+The target reuses their admitted application, session, workflow and source ports;
+the decision identifies the owner repairs required before the renderer cutover.
+
 Rules the view carries: `magistr-domain` has no effectful dependency;
 `magistr-gui2` never depends on `magistr-tui`; the desktop launcher reaches the
 host library with the `terminal` feature off; `experimental-peer` is never

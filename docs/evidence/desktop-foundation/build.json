@@ -1,0 +1,68 @@
+{
+  "recorded_utc": "2026-10-12T21:28:22.667835+00:00",
+  "git_base": "cfd1132cb41b37581ae923a96e6c7483c588cb71",
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: aarch64-apple-darwin\nrelease: 1.99.0\nLLVM version: 23.1.1",
+  "toolchains": [
+    "stable-aarch64-apple-darwin (active, default)",
+    "nightly-aarch64-apple-darwin",
+    "1.82.0-aarch64-apple-darwin",
+    "1.87.0-aarch64-apple-darwin",
+    "1.88-aarch64-apple-darwin",
+    "1.88.0-aarch64-apple-darwin",
+    "1.89-aarch64-apple-darwin",
+    "1.90-aarch64-apple-darwin",
+    "1.93.1-aarch64-apple-darwin",
+    "1.95.0-aarch64-apple-darwin",
+    "1.96.0-aarch64-apple-darwin",
+    "1.97.1-aarch64-apple-darwin",
+    "1.99.0-aarch64-apple-darwin"
+  ],
+  "hardware": {
+    "cpu": "Apple M5 Max",
+    "cores": 18,
+    "memory_bytes": 51539607552,
+    "model": "Mac17,6"
+  },
+  "macos": "26.5.2",
+  "os_build": "25F84",
+  "webkit": {
+    "CFBundleShortVersionString": "21624",
+    "CFBundleVersion": "21624.2.5.11.8"
+  },
+  "gpui_commit": "c66312b200d113694fca08c1d468669028a09a0e",
+  "sources_sha256": {
+    ".gitignore": "635514137c414fe259dfd8dc36968d48acd0fe957accc1379173f737acbd315f",
+    "Cargo.lock": "e60413eb8073f76f5f852fb0f0f3da7dc70377884eae22c407e4d182e53936a1",
+    "Cargo.toml": "9cb1611fd275ab6f94058b9168ed5d53bfb89d0fb9f93261c58f3409046cdab6",
+    "assets/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
+    "collect.py": "51ffc4768e8616b4902e7f4feedbb42a81fe3616b1b6baa53f437af8302c8771",
+    "gpui/Cargo.toml": "dc225d17e5ada1a4a489f9f87b06679d6f281add6b3ba3e64b1d06abc05125a2",
+    "gpui/src/input.rs": "177a96c136de428f49ec89a0088738119a7016153cf7acef2f0e24088d92952a",
+    "gpui/src/input.tests.rs": "4edae3dd60eceeba2c104e1c761fddc7ce096dae50233ec4944638c16e4596b9",
+    "gpui/src/main.rs": "36f44d966215e691e2967bf07752b0f41f6d0ceb052b2edf8fbefdba02d9ed84",
+    "journeys.py": "7a81797599a6efbe45b6bea02983f47857910be4bf48750880c7a9c7f29b71b9",
+    "measure.py": "4b078ba737084b6c410d032ac87588e0ce9a29d7ce9946a8a7d441b3b7e726c7",
+    "native.swift": "09333c258fcd7ae42c1ab50da82f2b9f9f94a5f293447d9c673d09774e959ee2",
+    "protocol.md": "75aa2cfba90143864ee9b551042a1c2bc6f53ce08187dc26f1ed6ab37f91e6b8",
+    "tauri/Cargo.toml": "f057d8e2470cb3a29e8d13d8ae28ba793cc68647040e1fa16658a74733ea199d",
+    "tauri/build.rs": "cd0ac1f2fb0555a110a0298f504469b11502fe59744a2c7e6b1b2aa4aac425df",
+    "tauri/gen/schemas/acl-manifests.json": "bdc3ced2ae416f11b23bc9c9b62341a3a59aa7bb5322f04f197bb08cb610409f",
+    "tauri/gen/schemas/capabilities.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "tauri/gen/schemas/desktop-schema.json": "4a946fe48fbb0c7c535ea53e6070bd8276f3f3d74f96efbaa6d85bd7b53b0f05",
+    "tauri/gen/schemas/macOS-schema.json": "4a946fe48fbb0c7c535ea53e6070bd8276f3f3d74f96efbaa6d85bd7b53b0f05",
+    "tauri/src/main.rs": "dc01b8c21300fd86b37592f510c81b0db8835f855db1a92f9312f5afe93fd3ea",
+    "tauri/tauri.conf.json": "0e6f27ff6c8e8b634b68e539f23533e7c26d54023b8916f4c94249fcdc5c9e2f",
+    "tauri/ui/app.js": "6ba3219fcc0fb5cd350b8d7e403f740b987b46fa6f81f705d8ed03c33dcea22e",
+    "tauri/ui/index.html": "9a8f419ac42714fa2843c67502abd316a090597a94a21ec31ebebae1e9a354a3",
+    "tauri/ui/style.css": "47ca37b0b92ec2ff878ca24f8fc7996ad50d5e8b24fc670b44ee5651a4a2cef6",
+    "workload/Cargo.toml": "6cf5a7d9efe3e7acb85ccab50d7a09f7df9ebb81ed9f5de79bf504fe4b7d570b",
+    "workload/src/lib.rs": "9a1fdd21fd86df75986ebc2be47b61f90ae437f64752821c59f26e559f88a49d",
+    "workload/src/workload.rs": "1c8e022cfd37e7df857241e6a229f2d90ec81e42fb9b54c5458b814b80d32544",
+    "workload/src/workload.tests.rs": "4c7bac7422d2259ea1ae2ff4094436fce8bd91f791608bfbfd86208fd63fefd1"
+  },
+  "release_binaries_sha256": {
+    "tauri": "596a708cd0325d940dfb937b4deef01567ed4715b5753106c528750f792d0937",
+    "gpui": "ef29ba507d57b91f4de30a97a4bbc536ddcb786d06eeed76ad939f022efde270"
+  },
+  "archive_sha256": "969a4e9a1d6649a1223fdccb780cf13ae9c4617354bb077f7a415a31a27bb0b0"
+}
