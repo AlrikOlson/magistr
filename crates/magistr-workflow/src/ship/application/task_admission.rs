@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TaskAdmission {
     pub project_id: String,
+    pub execution: Option<super::ExecutionBinding>,
     pub run_id: String,
     pub task_id: String,
     pub task_instance: String,

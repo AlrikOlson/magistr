@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use super::AttachRefusal;
 use super::WriterRole;
 
-/// Workflow ownership follows project/store identity and role; workspace
+/// Workflow ownership follows shared project/store identity; workspace
 /// ownership follows a canonical directory, so linked worktrees never share
 /// their files, index or journal merely because their workflow identity does.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,23 +30,17 @@ impl OwnerIdentity {
             (
                 Self::Workflow {
                     project_id: expected,
-                    role: expected_role,
+                    role: _,
                 },
                 Self::Workflow {
                     project_id: offered,
-                    role: offered_role,
+                    role: _,
                 },
             ) => {
                 if expected != offered {
                     return Err(AttachRefusal::Project {
                         expected: expected.clone(),
                         offered: offered.clone(),
-                    });
-                }
-                if expected_role != offered_role {
-                    return Err(AttachRefusal::Role {
-                        expected: *expected_role,
-                        offered: *offered_role,
                     });
                 }
                 Ok(())

@@ -68,7 +68,7 @@ fn from_records(here: &Path, records: &[SessionRecord], now: DateTime<Utc>) -> G
 /// or — without one, or with an empty one — the directory's own.
 pub(crate) fn project_name(dir: &Path) -> String {
     crate::paths::project_json(dir)
-        .exists()
+        .is_ok_and(|path| path.exists())
         .then(|| crate::validate::load_project_config(dir).ok())
         .flatten()
         .map(|c| c.project.name)
@@ -90,7 +90,10 @@ fn recorded_project(recorded: &str) -> Option<PathBuf> {
         return None;
     }
     let dir = path.canonicalize().ok()?;
-    crate::paths::project_json(&dir).is_file().then_some(dir)
+    crate::paths::project_json(&dir)
+        .ok()?
+        .is_file()
+        .then_some(dir)
 }
 
 fn project(dir: &Path, here: bool, idle_secs: Option<u64>) -> GalaxyProject {

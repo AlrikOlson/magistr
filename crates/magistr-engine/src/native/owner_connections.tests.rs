@@ -5,7 +5,7 @@ use crate::native::{CallerIdentity, OwnerClient, OwnerEndpoint};
 #[tokio::test]
 async fn workspace_connection_admission_counts_every_live_session() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let acceptor: McpAcceptor = Arc::new(|stream: LocalStream, cancel| {
+    let acceptor: McpAcceptor = Arc::new(|stream: LocalStream, cancel, _context| {
         Box::pin(async move {
             cancel.cancelled().await;
             drop(stream);
@@ -47,7 +47,7 @@ async fn mcp_attachment_uses_the_owner_contract_across_rebuilds() {
     };
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
     let tmp = tempfile::tempdir().expect("tempdir");
-    let acceptor: McpAcceptor = Arc::new(|mut stream: LocalStream, _cancel| {
+    let acceptor: McpAcceptor = Arc::new(|mut stream: LocalStream, _cancel, _context| {
         Box::pin(async move {
             let _ = stream.write_all(b"served-by-owner\n").await;
         })
@@ -60,7 +60,7 @@ async fn mcp_attachment_uses_the_owner_contract_across_rebuilds() {
     let engines = ProjectAuthority::admit(&config, WriterRole::Service)
         .expect("writer")
         .open();
-    let workflow = OwnerEndpoint::serve_mcp(engines.shared_authority(), acceptor)
+    let workflow = OwnerEndpoint::serve_with(engines, Some(acceptor))
         .await
         .expect("workflow endpoint");
     let build = BuildIdentity::this_build();
@@ -87,7 +87,7 @@ async fn mcp_attachment_uses_the_owner_contract_across_rebuilds() {
     for (path, identity) in identities {
         let mut stream = tokio::net::UnixStream::connect(path).await.expect("client");
         let hello = serde_json::json!({"protocol":OWNER_PROTOCOL_VERSION, "build":rebuilt,
-            "identity":identity,"attach":"mcp","caller":{"pid":std::process::id(),"surface":"rebuilt-proxy"}});
+            "identity":identity,"context":config.execution_context(),"attach":"mcp","caller":{"pid":std::process::id(),"surface":"rebuilt-proxy"}});
         stream
             .write_all(format!("{hello}\n").as_bytes())
             .await

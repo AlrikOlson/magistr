@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use super::attach_kind::AttachKind;
 use super::build_identity::BuildIdentity;
 use super::owner_identity::OwnerIdentity;
-use super::writer_role::WriterRole;
 
 /// The owner's answer to a `Hello` it will not serve. Each is a fact about
 /// the pairing, not about the store: nothing was opened, and the client
@@ -38,13 +37,6 @@ pub enum AttachRefusal {
         /// The client's.
         offered: String,
     },
-    /// The client asked for another writer role than this endpoint serves.
-    Role {
-        /// The endpoint's role.
-        expected: WriterRole,
-        /// The client's.
-        offered: WriterRole,
-    },
     /// The client named another workspace or a different ownership domain.
     Identity {
         expected: OwnerIdentity,
@@ -70,12 +62,6 @@ impl std::fmt::Display for AttachRefusal {
             ),
             Self::Project { expected, offered } => {
                 write!(f, "owner holds project {expected}, client named {offered}")
-            }
-            Self::Role { expected, offered } => {
-                write!(
-                    f,
-                    "endpoint serves the {expected:?} role, client asked for {offered:?}"
-                )
             }
             Self::Identity { expected, offered } => {
                 write!(f, "owner identity {expected:?} does not match {offered:?}")

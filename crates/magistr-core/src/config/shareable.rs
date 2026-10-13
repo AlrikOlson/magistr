@@ -385,7 +385,7 @@ pub fn load_from_file(path: &Path) -> Result<ShareablePreset> {
 
 /// Export a preset from a project directory by reading `.magistr/project.json`.
 pub fn export_preset(dir: &Path) -> Result<ShareablePreset> {
-    let project_json = crate::paths::project_json(dir);
+    let project_json = crate::paths::project_json(dir)?;
     if !project_json.exists() {
         return Err(MagistrError::Config(
             "no .magistr/project.json found — run `magistr init` first".into(),

@@ -57,6 +57,7 @@ pub struct Broadcaster {
     /// Which incarnation of the publishing owner this is, when the
     /// publisher declared one ([`Broadcaster::with_epoch`]).
     epoch: Option<u64>,
+    execution_key: Option<String>,
 }
 
 impl Broadcaster {
@@ -99,6 +100,7 @@ impl Broadcaster {
             subscribers,
             sequence: Arc::new(AtomicU64::new(0)),
             epoch: None,
+            execution_key: None,
         })
     }
 
@@ -109,6 +111,13 @@ impl Broadcaster {
     #[must_use]
     pub fn with_epoch(mut self, epoch: u64) -> Self {
         self.epoch = Some(epoch);
+        self
+    }
+
+    /// Bind execution-specific events while retaining the shared publisher sequence.
+    #[must_use]
+    pub fn with_execution(mut self, key: String) -> Self {
+        self.execution_key = Some(key);
         self
     }
 
@@ -149,6 +158,12 @@ impl Broadcaster {
         obj.insert(SEQ_KEY.to_string(), serde_json::Value::from(seq));
         if let Some(epoch) = self.epoch {
             obj.insert(EPOCH_KEY.to_string(), serde_json::Value::from(epoch));
+        }
+        if let Some(key) = &self.execution_key {
+            obj.insert(
+                "execution_key".into(),
+                serde_json::Value::String(key.clone()),
+            );
         }
         let line = serde_json::to_string(&value).map_err(EmitError::Encode)?;
         self.tx.send(line).map_err(|_| EmitError::Closed)

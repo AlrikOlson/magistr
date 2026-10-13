@@ -12,7 +12,10 @@ pub async fn print_post_scaffold_validation(dir: &std::path::Path) {
 
     // Validate the commands the project actually keeps after reinitialization.
     // Read without load_project_config's write-back migration.
-    let configured = std::fs::read(crate::paths::project_json(dir))
+    let configured = crate::paths::project_json(dir)
+        .and_then(|path| {
+            std::fs::read(&path).map_err(|error| crate::error::MagistrError::io(&path, error))
+        })
         .ok()
         .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
         .and_then(|doc| doc.get("quality_gate").cloned())

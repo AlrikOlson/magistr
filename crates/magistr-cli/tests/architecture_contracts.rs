@@ -43,7 +43,7 @@ fn objective_with_task(engines: &NativeEngines, scope: &str, task: &str) {
 }
 
 #[test]
-fn a_project_shares_its_selected_objective_and_preserves_other_scopes() {
+fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let config = config(&tmp);
     let owner = host(&config, "project-a");
@@ -75,13 +75,15 @@ fn a_project_shares_its_selected_objective_and_preserves_other_scopes() {
     assert!(owner.ship_status()["active_task"].is_null());
     assert!(owner.ship_tasks().is_empty());
 
-    // Reopening the same project in the other admitted role reads the
-    // persisted shared objective and task. This sequential observation is
-    // not a concurrent-writer guarantee.
-    let reopened =
+    // Other clients reuse the admitted writer. A second writer role still
+    // cannot acquire this project's authority while its owner is alive.
+    assert_eq!(
         ProjectAuthority::admit_for_project(&config, "project-a".into(), WriterRole::Service)
-            .expect("service admitted")
-            .open();
+            .expect_err("one project owner")
+            .kind(),
+        std::io::ErrorKind::WouldBlock
+    );
+    let reopened = owner.clone();
     assert_eq!(reopened.ship_status()["objective"]["scope"], "chunk:second");
     assert!(reopened.ship_start_task("second-verify").is_err());
     objective_with_task(&reopened, "chunk:second", "second-scope-verify");
@@ -95,7 +97,11 @@ fn a_project_shares_its_selected_objective_and_preserves_other_scopes() {
     assert_eq!(reopened.ship_status()["active_task"]["id"], "first-verify");
     assert_eq!(reopened.ship_tasks().len(), 2);
 
-    let independent = host(&config, "project-b");
+    let independent_root = tmp.path().join("project-b");
+    std::fs::create_dir(&independent_root).expect("independent project");
+    let independent_config = NativeConfig::from_lookup(independent_root, |_| None)
+        .with_data_dir(tmp.path().join("native-store"));
+    let independent = host(&independent_config, "project-b");
     assert!(independent.ship_status()["objective"].is_null());
     objective_with_task(&independent, "chunk:independent", "independent-verify");
     assert_eq!(

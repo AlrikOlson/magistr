@@ -24,7 +24,8 @@ migration requirement.
 | Setting | Resolution |
 | --- | --- |
 | Project root | Explicit host input. Hosts should supply an absolute root. |
-| Project identity | Captured, sanitized `THINK_AND_SHIP_PROJECT_NAME`, then the nearest `.think-and-ship/project.json`, then the canonical path-derived ID. An explicitly admitted project ID remains authoritative. |
+| Execution | Captured `MAGISTR_EXECUTION_ID`, default `default`, or an explicit `with_execution_id` input. Ship state and receipts are partitioned by canonical source root plus execution id. |
+| Project identity | Linked Git worktrees resolve the corresponding main project directory. Captured, sanitized `THINK_AND_SHIP_PROJECT_NAME`, then the nearest `.think-and-ship/project.json`, then the canonical path-derived ID. An explicitly admitted project ID remains authoritative. |
 | Store root | First nonblank value: `THINK_AND_SHIP_DATA_DIR`; `XDG_DATA_HOME/think-and-ship`; `HOME/.local/share/think-and-ship`; `APPDATA/think-and-ship`; `USERPROFILE/AppData/Roaming/think-and-ship`; then the captured platform temporary directory plus `think-and-ship`. |
 | Native persistence | On by default. Trimmed `THINK_AND_SHIP_PERSIST=false` (case insensitive) or `0` disables it. |
 | Publisher socket | Nonblank, trimmed `THINK_AND_SHIP_BROADCAST_PATH`, otherwise the existing project socket default when requested. |
@@ -85,9 +86,14 @@ workspace's organization policy and user layer (the paths
 `ResolveOptions::external_layer_paths` resolves from the captured
 [workspace inputs](#project-inputs) — `WORKBENCH_ORG_POLICY`,
 `WORKBENCH_USER_CONFIG` or the platform defaults) govern command admission
-and policy without touching a byte inside the tree. The workspace's own
-`workbench.toml` and `.magistr/project.json` are source inputs of the
-snapshot's selection policy, not external layers.
+and policy without touching a byte inside the tree. `WorkspaceEvidence` also
+observes the shared project's `.magistr/project.json` as workspace configuration,
+resolved through `ProjectLocation` by the central settings path owner. A linked
+copy uses the main project's settings, including its gate commands and export
+policy. Settings readers, hook writes and setup use that same path. Invalid Git
+membership refuses resolution. `workbench.toml` remains specific to each source
+copy. The snapshot also selects either configuration file when it is inside
+that copy.
 
 [ConfigDigest](../../crates/magistr-workspace/src/config/config_digest.rs)
 observes those layers lock-free: per layer, whether a file stood at its
@@ -108,7 +114,7 @@ layer names when a layer moved while the bytes did not.
 | Source revision (`SourceObservation::revision`) | The workspace snapshot's name for an observation: scheme, canonical root, owner generation, selection-policy digest and manifest digest. | Any of its parts moves, including a new owner of the same bytes. | Recorded and displayed, not compared: its parts are judged one by one. |
 | Source digest (`source_digest`) | The selected bytes under the policy (the manifest digest). | A selected file is added, removed or modified — `.magistr/project.json` and `workbench.toml` included. | Yes — "the source changed since the gate ran". |
 | Selection policy (`policy_digest`) | What the snapshot selects: version, ceiling, explicit inputs. | The policy is changed. | Yes — "the selection policy changed". |
-| Configuration digest (`config_digest`) | The applicable external layers by content. | An organization policy or user layer appears, disappears or changes. | Yes — "the applicable external configuration changed". |
+| Configuration digest (`config_digest`) | Applicable policy layers and shared project settings by content. | Organization policy, user configuration or shared project settings appear, disappear or change. | Yes — the applicable configuration changed. |
 | Acceptance revision (`CheckReceipt::acceptance_revision`) | The objective's description, acceptance criteria, constraints and scope. | An in-flight `ship_set_objective`. | Yes — "the objective's acceptance changed". |
 | Owner generation (`workspace_generation`) | Which authority incarnation was durable ([workspace owner](workspace-owner.md)). | Every admission of a workspace owner; never a write. | No — a new owner of the same bytes is not a change of source. |
 | Workflow store stamp (`StoreStamp`) | Where a family's store file stands on disk (inode, mtime, length), a cache-freshness hint. | Any writer lands a store file. | No — it orders nothing and names no content. |
@@ -150,7 +156,8 @@ prescribes.
 | Input | Resolution |
 | --- | --- |
 | User configuration directory | `XDG_CONFIG_HOME/magistr`, else `HOME/.config/magistr`, else unlocated. `config.toml`, `presets/`, `models.toml`, `plugins/` and `org-plugins.json` derive from it. |
-| Project files | `<root>/.magistr/project.json` and `<root>/.magistr/presets`. |
+| Project settings | `.magistr/project.json` under the corresponding main project directory; linked copies share its reader and writer path. |
+| Project presets | `<source-root>/.magistr/presets`, versioned with that source copy. |
 | Provider | `MAGISTR_AGENT_BACKEND` (trimmed); `ANTHROPIC_API_KEY` recorded as present or absent only. |
 | Plugin index | `MAGISTR_PLUGIN_INDEX_URL` overrides the index URL in `org-plugins.json`. |
 | Workspace | The six keys the workspace's `ResolveOptions` reads (`WORKBENCH_ORG_POLICY`, `WORKBENCH_USER_CONFIG`, `ProgramData`, `XDG_CONFIG_HOME`, `HOME`, `USERPROFILE`), `WORKBENCH_NETWORK_FS` and `WORKBENCH_SESSION_ID`; the host builds `WorkspaceOpenOptions` from them. |

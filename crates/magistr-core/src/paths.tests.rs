@@ -11,8 +11,12 @@ fn magistr_dir_path() {
 
 #[test]
 fn project_json_path() {
-    let dir = Path::new("/tmp/test");
-    assert_eq!(project_json(dir), dir.join(MAGISTR_DIR).join(PROJECT_JSON));
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().canonicalize().unwrap();
+    assert_eq!(
+        project_json(&root).unwrap(),
+        root.join(MAGISTR_DIR).join(PROJECT_JSON)
+    );
 }
 
 #[test]
@@ -87,11 +91,13 @@ fn loop_state_path() {
 // ── Safety invariants ───────────────────────────────────────────────────────
 
 #[test]
-fn all_paths_are_children_of_project_dir() {
-    let dir = Path::new("/home/user/project");
+fn paths_for_a_standalone_project_stay_in_its_directory() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().canonicalize().unwrap();
+    let dir = root.as_path();
     let paths = [
         magistr_dir(dir),
-        project_json(dir),
+        project_json(dir).unwrap(),
         plan(dir),
         task(dir),
         iteration_log(dir),
@@ -117,10 +123,12 @@ fn all_paths_are_children_of_project_dir() {
 
 #[test]
 fn no_path_contains_traversal() {
-    let dir = Path::new("/home/user/project");
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().canonicalize().unwrap();
+    let dir = root.as_path();
     let paths = [
         magistr_dir(dir),
-        project_json(dir),
+        project_json(dir).unwrap(),
         plan(dir),
         claude_dir(dir),
         rules_dir(dir),

@@ -64,9 +64,8 @@ impl NativeReader {
     /// Observe the store under an explicit project id. No lease is taken.
     #[must_use]
     pub fn open_for_project(config: &NativeConfig, project_id: String) -> Self {
-        // The socket, if any, belongs to the publishing service; a host
-        // subscribes to it (see `spawn_broadcast_subscriber`) rather than
-        // bind a second.
+        // Event publication belongs to the admitted project writer. An
+        // observer opens no publisher and never acquires a write lease.
         let (think, ship, roadmap, signal) = open_engines(config, project_id.clone(), None);
         Self::from_engines(project_id, config.clone(), think, ship, roadmap, signal)
     }

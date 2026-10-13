@@ -94,6 +94,8 @@ impl ShipEngine {
         };
         let stale = if admission.target.project_id != self.project_id {
             Some("the admitted project is not this project".to_owned())
+        } else if admission.target.execution != self.binding {
+            Some("the admitted working copy or owner generation has changed".to_owned())
         } else if let Some(persistence) = &self.persistence
             && persistence.enabled()
         {
@@ -184,9 +186,7 @@ impl ShipEngine {
     pub(super) fn adopt_current(&mut self, current: Option<PersistedState>) {
         match current {
             Some(state) => {
-                self.execution = state.execution.unwrap_or_else(|| {
-                    ExecutionIdentity::legacy(&self.project_id, &state.objective, &state.tasks)
-                });
+                self.execution = state.execution;
                 self.objective = state.objective;
                 self.tasks = state.tasks;
                 self.next_action_id = state.next_action_id;

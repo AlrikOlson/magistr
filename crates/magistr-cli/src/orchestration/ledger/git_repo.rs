@@ -50,6 +50,60 @@ impl GitRepo {
             .join(format!("{name}-{safe}"))
     }
 
+    /// Git's registered working copies, including locked and unavailable paths.
+    pub fn working_copies(&self) -> Result<String, String> {
+        self.run(&["worktree", "list", "--porcelain", "-z"])
+    }
+
+    pub fn create_working_copy(&self, path: &Path, branch: &str, head: &str) -> Result<(), String> {
+        let path = path
+            .to_str()
+            .ok_or_else(|| "The working-copy path must be valid text.".to_owned())?;
+        self.run(&["worktree", "add", "-b", branch, "--", path, head])
+            .map(|_| ())
+    }
+
+    pub fn archive_working_copy(&self, path: &Path) -> Result<(), String> {
+        let path = path
+            .to_str()
+            .ok_or_else(|| "The working-copy path must be valid text.".to_owned())?;
+        self.run(&[
+            "worktree",
+            "lock",
+            "--reason",
+            magistr_engine::native::ProjectLocation::ARCHIVE_REASON,
+            "--",
+            path,
+        ])
+        .map(|_| ())
+    }
+
+    pub fn reopen_working_copy(&self, path: &Path) -> Result<(), String> {
+        let path = path
+            .to_str()
+            .ok_or_else(|| "The working-copy path must be valid text.".to_owned())?;
+        self.run(&["worktree", "unlock", "--", path]).map(|_| ())
+    }
+
+    pub fn changes(&self) -> Result<(u32, u32), String> {
+        // Runtime coordination and journal files are owned state, not source changes.
+        // Project configuration remains part of the status.
+        let status = self.run(&[
+            "status",
+            "--porcelain=v2",
+            "--untracked-files=all",
+            "--",
+            ".",
+            ":(exclude).workbench/**",
+            ":(exclude).magistr/working-copy.lock",
+            ":(exclude).magistr/workflow-owner.lock",
+            ":(exclude).magistr/project-owner.lock",
+        ])?;
+        let dirty = status.lines().filter(|line| !line.is_empty()).count() as u32;
+        let conflicts = status.lines().filter(|line| line.starts_with("u ")).count() as u32;
+        Ok((dirty, conflicts))
+    }
+
     fn run(&self, args: &[&str]) -> Result<String, String> {
         let output = Command::new("git")
             .args(args)
@@ -113,9 +167,11 @@ impl Repo for GitRepo {
 
     fn fork(&self, branch: &str, head: &str) -> Result<String, String> {
         let path = self.fork_path(branch);
-        let path = path.to_string_lossy().into_owned();
-        self.run(&["worktree", "add", "-b", branch, &path, head])?;
-        Ok(path)
+        crate::application::WorkingCopies::at(&self.root)
+            .map_err(|error| error.to_string())?
+            .create(&path, branch, head)
+            .map_err(|error| error.to_string())?;
+        Ok(path.to_string_lossy().into_owned())
     }
 
     /// `git merge --no-ff --no-edit <branch>`, then the head it landed

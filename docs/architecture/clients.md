@@ -5,16 +5,15 @@ store or the workspace reaches one canonical capability. This document is
 the audit of those surfaces (`arch-14f3-client-audit-consistency`): which
 capability each one holds, how it is admitted, and which test proves it;
 how duplicate ownership is refused; why the owner-command vocabulary was
-not extended; and the consistency model across the Host writer, the Service
-writer, attached clients and readers — as it actually behaves, not as an
-ideal.
+served; and the consistency model across the project owner, working-copy
+executions, attached clients and readers.
 
 The capabilities are those of the [project authority](project-authority.md)
 and the [workspace owner](workspace-owner.md):
 
 | Store | Write | Read | Attached |
 | --- | --- | --- | --- |
-| Workflow (think-and-ship families) | `NativeEngines`, one per `WriterRole` (`Host`, `Service`) per project and store, only from `ProjectAuthority::open`/`serve` | `NativeReader`, no lease | `OwnerClient` on the role's endpoint: typed commands (`commands`) or an MCP session (`mcp`); no lease, no engine |
+| Workflow (think-and-ship families) | `NativeEngines`, one admitted project authority, with execution-bound views, only from `ProjectAuthority::open`/`serve` | `NativeReader`, no lease | `OwnerClient` on the project endpoint: typed commands (`commands`) or an MCP session (`mcp`); no lease, no engine |
 | Workspace (one checkout) | the admitted `WorkspaceService`, one per canonical root, only from `WorkspaceService::open` | lock-free readers: `SourceSnapshot::capture`, `JournalInspection`, `DoctorRun` | a bridge attached over `OwnerClient::attach_workspace` (`mcp`), speaking the owner's tool surface |
 
 ## Client inventory
@@ -26,9 +25,9 @@ names the test that exercises the row's admission. Paths are under
 | Client | Workflow capability | Workspace capability | Admission path | Evidence |
 | --- | --- | --- | --- | --- |
 | `magistr mcp-serve <root>` and its alias `magistr mcp-launch magistr` — the agent's tools from `.mcp.json`, the temporary config `tools/server.rs` writes, and Codex's `config.toml` | `NativeEngines`, `Service` role; `ProjectAuthority::serve` hands the same family services to the MCP wire and the writer to `MagistrService` | `WorkspaceEvidence` (lock-free `SourceSnapshot` + gate resolver) attached to the writer config in the constructor; `magistr_gate` admits and settles through `AdmittedCheck`; no owner | `mcp_tools/service.rs` `MagistrService::new` | `tests/mcp_service_owner.rs`, `tests/mcp_project_owner.rs`, `tests/mcp_serve_integration.rs::one_server_serves_both_surfaces_and_records_gates_through_ship`, `::a_green_gate_run_is_the_only_check_the_done_phase_needs` |
-| A second `magistr mcp-serve` on a project whose Service lease is held | attached `OwnerClient` (`mcp`): its stdio is proxied to the owner's rmcp session; no lease, no engine; reconnects on the next request after owner loss | none | `mcp_tools/owner_link.rs` through the shared `mcp_bridge` after the lease refusal | `tests/mcp_project_owner.rs::simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart`, `magistr-engine` `tas/owner_endpoint.tests.rs::an_mcp_attachment_hands_the_socket_to_the_acceptor_after_the_welcome`, `::an_mcp_only_owner_refuses_typed_commands_at_the_handshake` |
+| A second `magistr mcp-serve` on a project whose project lease is held | attached `OwnerClient` (`mcp`): its stdio is proxied to the owner's rmcp session; no lease, no engine; reconnects on the next request after owner loss | none | `mcp_tools/owner_link.rs` through the shared `mcp_bridge` after the lease refusal | `tests/mcp_project_owner.rs::simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart`, `magistr-engine` `tas/owner_endpoint.tests.rs::an_mcp_attachment_hands_the_socket_to_the_acceptor_after_the_welcome`, `::the_handshake_is_validated_before_anything_is_served` |
 | `magistr run` (cockpit) and the `magistr-desktop` executable (both compose `application/interactive_host.rs` `InteractiveHost::start`; the desktop's launch evidence is in [desktop](desktop.md#launch-evidence-and-platforms)) | `NativeEngines`, `Host` role, serving its `OwnerEndpoint` for the run | `WorkspaceAdmission::admit` (`HostedWorkspace`): the checkout's owner for the run, endpoint served, `WorkspaceSourceWriter` as the session's `SourceRoute`; the cockpit's `McpWorkbench` port spawns the `.mcp.json` bridge, which attaches to this host; the journal model reads `magistr workspace journal` | `magistr-cli` `application/workflow_client/client.rs` `EngineClient::admit_or_attach_config` on `writer_config` (refusing a config without evidence), then `commands/run/cmd_run_cockpit.rs` `admit_workspace` | `cmd_run_cockpit.tests.rs::the_engines_and_the_agent_come_before_the_terminal_and_their_failures_are_printed`, `magistr-cli` `application/workflow_client/client.tests.rs::a_second_host_on_the_same_project_is_refused_until_the_first_is_gone`, `::a_writer_config_without_evidence_is_refused_before_the_lease`, `tests/source_pipeline_routing.rs::an_authorized_write_lands_through_the_pipeline_with_a_journal_intent_and_a_receipt` |
-| A second `magistr run` on a project whose Host lease is held | attached `OwnerClient` (`commands`) behind `AttachedEnginePort`: every cockpit verb is carried out by the running host's writer; reads come from the cockpit's own `NativeReader`, the feed and the re-seed timer | `WorkspaceAdmission::Refused(OwnerElsewhere)` (a live owner holds the lock): nothing admitted, nothing attached for writing; the session advertises no write capability and refuses `fs/write_text_file`; its bridge attaches to whoever owns the root | `EngineClient::admit_or_attach_config` after `WouldBlock`; `admit_workspace` | `application/workflow_client/client.tests.rs::a_second_cockpit_attaches_to_the_running_host_and_acts_through_it`, `::a_held_host_without_an_endpoint_fails_closed`, `::an_attached_port_reports_a_gone_owner_and_opens_nothing`, `tests/workflow_consistency.rs::an_attached_command_is_current_on_the_owner_and_stale_on_the_other_role_until_it_reloads`, `tests/source_pipeline_routing.rs::a_held_workspace_refuses_the_second_hosts_writes_and_invents_no_receipt`, `tests/effect_capabilities.rs::a_held_workspace_refuses_the_write_without_asking_and_the_read_goes_on` |
+| A second `magistr run` on a project whose project lease is held | attached `OwnerClient` (`commands`) behind `AttachedEnginePort`: every cockpit verb is carried out by the running host's writer; reads come from the cockpit's own `NativeReader`, the feed and the re-seed timer | `WorkspaceAdmission::Refused(OwnerElsewhere)` (a live owner holds the lock): nothing admitted, nothing attached for writing; the session advertises no write capability and refuses `fs/write_text_file`; its bridge attaches to whoever owns the root | `EngineClient::admit_or_attach_config` after `WouldBlock`; `admit_workspace` | `application/workflow_client/client.tests.rs::a_second_cockpit_attaches_to_the_running_host_and_acts_through_it`, `::a_held_host_without_an_endpoint_fails_closed`, `::an_attached_port_reports_a_gone_owner_and_opens_nothing`, `tests/workflow_consistency.rs::an_attached_command_is_current_on_the_owner_and_stale_on_the_other_role_until_it_reloads`, `tests/source_pipeline_routing.rs::a_held_workspace_refuses_the_second_hosts_writes_and_invents_no_receipt`, `tests/effect_capabilities.rs::a_held_workspace_refuses_the_write_without_asking_and_the_read_goes_on` |
 | `magistr next` and `magistr next-loop` in the cockpit | `NativeEngines`, `Host` role, handed to `IterationLoop`; the cockpit attaches to that writer in-process (`EngineClient::attach`), never a second one; every gate through `AdmittedCheck`; the judge completes through the same writer | `WorkspaceAdmission::admit` per loop run in `run_cockpit_loop`, so the agent's bridge and the cockpit's port attach to the loop and every iteration's session shares one `SourceRoute`; gates observe through `WorkspaceEvidence` | `orchestration/roadmap/admit_native_host.rs` from `cmd_next_cockpit` / `cmd_next_loop_cockpit` | `commands/next/run_cockpit_loop.tests.rs::the_loops_admitted_writer_is_attached_before_the_terminal_and_never_re_admitted`, `orchestration/loop_driver/driver.tests.rs::every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check`, `::a_judged_completion_names_the_task_its_gates_were_recorded_on`, `tests/application_composition.rs` |
 | `magistr next-loop` plain and `--headless` | `NativeEngines`, `Host` role, via `admit_native_host`; a loop opened without a writer admits the host itself (`magistr-core` `workflow/iteration.rs` `auto_native`) | `WorkspaceAdmission::admit` once per loop (`admit_workspace`), the route handed to every iteration's session and released before the loop's exit; a refusal means the sessions' source writes are refused; gates observe through `WorkspaceEvidence` | `cmd_next_loop.rs`, `cmd_next_loop_headless.rs` → `IterationLoop::open_or_recover` | `commands/next/cmd_next_loop_headless.tests.rs`, `orchestration/roadmap/open_native_reader.tests.rs::native_project_admits_one_host_and_readers_on_the_configured_store`, `native-write-path` gate rules 8 and 10 |
 | `magistr next` plain, `--headless` and `--continue` (one iteration) | `NativeReader` for the progress summary (`WorkflowConfig::engines`); the writer is the agent's own `magistr mcp-serve` (first row) | `WorkspaceAdmission::admit` for the one run (`cmd_next`, `cmd_next_continue`, `cmd_next_headless`), released after the session; the agent's bridge attaches to it | `magistr-core` `workflow/mod.rs` `WorkflowConfig::engines` → `NativeReader::open` | `commands/next/cmd_next_headless.tests.rs::workflow_session_uses_selected_project_for_execution_and_context`, `tests/next_iteration_integration.rs::headless_iteration_is_guarded_on_ship_state_and_cross_referenced` |
@@ -103,12 +102,12 @@ in [integration verification](../reference/claude-mod-verification.md).
 
 ## Duplicate ownership is refused
 
-- **A second writer of a role.** `ProjectAuthority::admit` takes the role's
-  exclusive OS lock before any engine opens; a second admission of the same
-  role — in another process or in the same one — is `WouldBlock` with the
-  role's own words, and a clone keeps the lease while a reader never holds
-  it. Evidence: `magistr-engine` `native/project_authority.tests.rs::one_writer_per_role_is_admitted_and_the_roles_coexist`,
-  `tests/workflow_consistency.rs::a_second_writer_of_a_role_is_refused_in_process_and_the_lease_ends_with_the_last_clone`,
+- **A second project writer.** `ProjectAuthority::admit` takes the shared
+  project and store locks before any engine opens. Another host or MCP
+  writer receives `WouldBlock`; it attaches to the existing owner when an
+  endpoint is available. Clones retain the lease; readers hold none.
+  Evidence: `native/project_authority.tests.rs::one_project_writer_is_admitted_across_host_and_service_roles`,
+  `tests/workflow_consistency.rs::a_second_project_writer_is_refused_in_process_and_the_lease_ends_with_the_last_clone`,
   `tests/mcp_service_owner.rs`, `application/workflow_client/client.tests.rs::a_second_host_on_the_same_project_is_refused_until_the_first_is_gone`.
 - **A second workspace owner.** `WorkspaceService::open` holds
   `.workbench/server.lock`; `Locked` makes the bridge attach and makes the
@@ -129,120 +128,58 @@ in [integration verification](../reference/claude-mod-verification.md).
   a refusal. A production file that opens, admits, attaches or writes
   anywhere else fails the required gate with its line.
 
+## Working-copy clients
+
+`magistr workspace working-copy` dispatches create/list/open/archive through
+`application::WorkingCopies`, using Git's existing registry. The service owns
+the lifecycle decisions and returns typed dirty/conflicted/active/unavailable
+outcomes. CLI and future desktop callers use the same service.
+[Project authority](project-authority.md#working-copy-lifecycle) defines archive
+and reopen, including preservation of files, branch, journal and history.
+
 ## Owner commands
 
-The typed vocabulary an owner endpoint serves is `OwnerCommand`: every
-`NativeEngines` verb (sixteen roadmap, three think, seven ship, five
-signal commands), carried out by `NativeEngines::apply` on the owner's own
-writer. The inventory has exactly one producer of typed commands: the
-attached cockpit's `AttachedEnginePort`, which sends `StartChunk`,
-`CompleteChunk`, the three proposal resolutions, `ClearBlockedBy`,
-`PinStep`, `Checkpoint`, `Promote`, `Ignore` and `Snooze` — every verb the
-cockpit's `EnginePort` has. The `mcp-serve` proxy and the workspace bridge
-relay MCP frames and send no typed command. No consumer needs a command
-that does not exist, so none was added; the retired
-[typed attachment on the Service owner](project-authority.md#typed-attachment-on-the-service-owner-retired)
-stays retired. A future one-shot writer attaches through the Host's
-existing `OwnerEndpoint::serve` path and uses the verbs above.
+`OwnerCommand` carries the typed workflow verbs implemented by
+`NativeEngines::apply`. `AttachedEnginePort` supplies them for cockpit actions.
+The MCP bridge forwards MCP frames to the same owner. The CLI's
+`MagistrService::serve_owner_endpoint` composes both routes with `serve_with`
+for either host kind. The owner admits a canonical working copy and execution
+id before welcoming a connection and passes the bound view to its MCP adapter.
 
 ## Workflow consistency model
 
-The vocabulary is the client-centric one from
-[Jepsen's consistency models](https://jepsen.io/consistency/models):
-*read-your-writes* (a process sees its own earlier write) and *monotonic
-reads* (a process never sees an older state after a newer one). Magistr's
-workflow store gives read-your-writes and monotonic reads per family
-across every role and reader on one machine: each family's engine
-observes its file before it answers or acts, as stated below. What it does
-not give is atomicity across the four families, and a write racing inside
-one family's read-to-save window resolves by that family's merge rule.
+One project writer owns the shared roadmap, reasoning and signals. Its registry
+owns ship engines per canonical working-copy root and execution id. Identical
+live contexts share handles; different contexts retain their own selected
+objective, tasks, checks and receipts. Persistence reopens the same context
+without replacing another context's selected scope. This is an ownership
+contract, not a timestamp-based merge between competing workflow writers.
 
-### The store and its merge
+Every family persists atomically under its data partition. Ship is partitioned
+under `ship/executions/<context-key>`; project planning stays under its existing
+project identity. Family use cases hold their engine locks while validating and
+mutating. A long-running check captures root, execution, workflow generation,
+run and task instance before running and settles against that admission.
+Source freshness comes from the independent source owner's observation.
 
-Each family persists one JSON file per project under the store's data root
-(`roadmap/sessions`, `ship/sessions`, `think/sessions`, `signal/…`),
-written atomically (temp file, rename). Every save takes the exclusive lock
-on the sibling `.lock` file, re-reads the file, merges it into the saving
-process's memory with the family's policy, and writes the result — so a
-process holding stale memory never erases what another process already
-acknowledged. The policies:
+Readers observe each family's store stamp (inode, modification time and length)
+before answering. Changed stamps cause reads, unchanged stamps reuse memory.
+Derived readers share the writer's handles; lease-free external readers observe
+the persisted files. Snapshots are consistent per family, not across families.
 
-| Family | Merge on save | Conflict on one record |
-| --- | --- | --- |
-| roadmap | chunks union by id; refresh notes, note sections, tracker links union; the preamble keeps memory unless empty | the copy with the newest `updated_at` wins whole |
-| ship | a newer cycle (`objective.created_at`) wins outright; within one cycle tasks union by id and `next_action_id` takes the max | memory wins per shared task (last writer wins) |
-| think | steps union by number or by content identity, so a renumbered trace is recognized rather than duplicated | none: steps are append-only |
-| signal | signals union by id | the furthest lifecycle rank wins (`Promoted` outranks `Dismissed`); equal rank is last writer wins |
+The project event feed has one shared sequence and epoch. Task and phase/gate
+events carry an execution key. A client advances its cursor for every decoded
+frame, then delivers execution-specific events only to the selected execution.
+Shared planning events reach every client. Reconnection requests a contextual
+snapshot; owner loss never replays a possibly applied mutation.
 
-### Read-through: the store stamp
-
-Each persisted family's engine remembers the *store stamp* of the file it
-last read or wrote — the inode, modification time and length, as
-`StoreStamp` in `magistr-workflow` `infra/store_stamp.rs` defines it.
-Before any query or mutation the engine `stat`s its file and compares:
-an unchanged stamp answers memory, a moved stamp re-reads the file whole
-and replaces memory (every mutation persists at once, so the file is the
-merged truth of everything acknowledged; a missing file is the empty
-family). A save hands the merged file back to the writer's memory together
-with the stamp taken under the lock after the rename, so an own write
-leaves memory equal to disk and the next access is a `stat`. The stamp is
-per family and orders nothing — no revision is built over the four files.
-Every Magistr writer renames a fresh temporary over the store, so a write
-always moves the inode; the known gap is an editor rewriting the file in
-place inside one timestamp tick at the same length, which is the direct
-edit the audit already excludes.
-
-| Family | Mutation | Query | Explicit reload |
-| --- | --- | --- | --- |
-| roadmap | observes the store (`refresh_if_stale` under the use-case lock), validates the transition against the current record, merges on save and adopts the merged file | observes the store, then answers memory (`NativeReader` queries, `roadmap_status`, the MCP resources) | `NativeReader::reload_roadmap` — the same re-read, forced |
-| ship | observes the store before every use case (the former unconditional per-verb re-read, now the stamp gate); check settlement compares identity and appends under the file lock and adopts the written stamp | observes the store (`ship_status`, `ship_tasks`, `ship_active_task_id`, `ship_objective`) | `reload_ship` |
-| think | appends; the archive on disk is the record | `think_steps_from_store` reads the archive directly; the pinned view and `think_step` read the live trace | none needed for the archive; the live trace answers what this process recorded |
-| signal | observes the store, validates against the current record, merges on save and adopts the merged file; promotion observes the roadmap before it reads or creates the chunk | observes the store (`signal_list`, `signal_status`, `signal`; the pending count on `roadmap_status`) | `reload_signal` |
-
-The published `NativeSnapshot` observes each of the three families under
-its own lock before reading it, so a snapshot is one consistent state per
-family, never across them. A store that cannot be stated or read refuses
-the mutation or the use-case query (`RoadmapError::Store`,
-`SignalError::Store`, the ship use case's error) and is logged on a
-`NativeReader` query, which answers memory — a query has no refusal to give.
-An explicit reload is the engine's own re-read: the wiring (broadcaster,
-mirror, cloud, receipts) stays and no load banner prints.
-`tests/workflow_consistency.rs`, `magistr-workflow`
-`tests/store_freshness.rs` and `magistr-engine`
-`native/native_engines.tests.rs::two_writers_merge_without_data_loss`,
-`::reload_picks_up_another_writers_changes`, `::reload_signal_picks_up_another_writers_capture`
-and `::think_steps_from_store_sees_another_writers_steps_without_reopening`
-are the executable statements of this table.
-
-### Conflicting transitions
-
-A transition validates against the record as the store holds it at the
-moment of the call, so two roles acting in turn see each other's outcome:
-the Host cannot start a chunk the Service just obsoleted, and a second
-promotion of a signal another role promoted creates nothing. Two writes
-that both land inside one family's window between a read and its save —
-a stat, a mutation, a locked merge-write — are not serialized; the
-family's merge rule decides the record and the loser observes the winner
-on its next access:
-
-| Family | Both roles wrote one record in the window | Outcome |
-| --- | --- | --- |
-| roadmap | any two mutations of one chunk | the copy with the newest `updated_at` wins whole, the other mutation is superseded (`store_freshness.rs::a_conflicting_roadmap_transition_resolves_by_the_newest_record_and_the_loser_observes_it`) |
-| signal | any two mutations of one signal | the further lifecycle rank wins, then the larger enrichment count, then the last writer (`::a_conflicting_signal_write_resolves_by_lifecycle_rank_not_by_who_wrote_last`) |
-| ship | two writes in one cycle | tasks union by id, memory wins per shared task, `next_action_id` takes the max; a newer cycle on disk wins the file and the stale writer re-reads it on its next verb (`::a_ship_engine_re_reads_only_when_the_store_stamp_moved`) |
-| think | two appends | steps union by number or content identity; nothing is superseded |
-
-No timestamp, generation or source revision is promoted into a global
-revision to arbitrate these: the rule is the family's, on the record.
-
-### What attachment and the roles make coherent
-
-| Pair | Coherent | Not coherent |
-| --- | --- | --- |
-| One process: a writer and the readers derived from it (`NativeEngines::reader`, the cockpit loop's `EngineClient::attach`) | read-your-writes and monotonic reads: the same engines behind one lock | — |
-| Owner and an attached client (a second `magistr run`) | the command runs on the owner's engines, so the owner's own views are current at once and the reply carries the record; the client's own `NativeReader` observes the store on its next query, so it reads its write back without the feed; a stale generation is refused until the client reconnects | the feed and the re-seed timer decide when the client *repaints*, not what it reads: a view painted from an earlier snapshot shows that snapshot until the next seed |
-| Host and Service writers (the cockpit or a loop, and the agent's `mcp-serve`) | nothing acknowledged is lost (merge on save); every family's queries and verbs observe the store, so each role reads the other's acknowledged writes and validates its transitions against them; a settled check lands on the task instance it was admitted for or settles `Stale`; the Service's feed carries its frames to a cockpit that holds the socket | one record written by both roles inside one family's read-to-save window resolves by the family's rule above, not by refusal; the four families are four files with four locks, so a query across them can see one family's write and not another's; the owner generation fences attached clients of a role, not the other role |
-| Readers (`magistr roadmap status`, the observer cockpit, the guard) | every query observes the merged file; a reload is the same read, forced | the cockpit re-seeds only when the store cursor moved past the snapshot it was seeded with and stands down while the feed holds the socket — a snapshot the feed asked for over an unchanged store is confirmed, not re-read, and that confirmation is what returns a projection marked stale by a hangup, a gap or a new owner to current; the loop reloads the roadmap and re-seeds signals at each iteration boundary — both keep their cost, since an unchanged store is a `stat` |
+`tests/workflow_consistency.rs` covers attached commands, shared views and
+lease lifetime. Engine context tests cover independent scopes and persistence.
+`tests/mcp_project_owner.rs` runs real concurrent linked-worktree processes,
+including source edits, approval refusal across roots, actual checks,
+independent receipt freshness, owner exit and bounded recovery. The feed
+companion suite proves that foreign task events do not replace the selected
+task or create sequence gaps.
 
 ### Workspace consistency
 

@@ -15,4 +15,5 @@ pub struct OwnerConnectionRecord {
     pub attach: AttachKind,
     /// The attaching process as it named itself.
     pub caller: CallerIdentity,
+    pub context: Option<super::ExecutionContext>,
 }

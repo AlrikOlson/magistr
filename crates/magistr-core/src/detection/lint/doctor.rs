@@ -167,7 +167,17 @@ fn check_settings_valid(dir: &Path) -> DoctorCheck {
 
 /// Check: Does .claude/project.json exist?
 fn check_project_json(dir: &Path) -> DoctorCheck {
-    let path = crate::paths::project_json(dir);
+    let path = match crate::paths::project_json(dir) {
+        Ok(path) => path,
+        Err(error) => {
+            return DoctorCheck {
+                name: "project-json",
+                description: "Cannot locate the project settings".into(),
+                status: CheckStatus::Fail,
+                detail: Some(error.to_string()),
+            };
+        }
+    };
     if !path.exists() {
         return DoctorCheck {
             name: "project-json",

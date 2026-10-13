@@ -27,11 +27,11 @@ identity table with types and change rules is the
 
 | Object | What it is | Owner (the only writer) | Identity | Guide |
 | --- | --- | --- | --- | --- |
-| Project | One native workflow store and its configuration | `ProjectAuthority` admission per `WriterRole` | `project_id` | [project authority](project-authority.md) |
-| Writer role | `Host` (cockpit, loops, desktop) or `Service` (the agent's MCP server); the two coexist, a second of either is refused | the OS lock the role's lease holds | `OwnerGeneration` (feed `epoch`) | [roles](project-authority.md#roles) |
-| Native writer | `NativeEngines`: every roadmap, ship, think and signal mutation, by calling the library's own tool handler | constructed only by `ProjectAuthority::open`/`serve` | the role's generation | [one write path](project-authority.md#one-write-path) |
+| Project | One native workflow store and its configuration | one `ProjectAuthority` across host kinds and linked copies | `project_id` | [project authority](project-authority.md) |
+| Writer role | `Host` (cockpit, loops, desktop) or `Service` (the agent's MCP server); descriptive identity sharing one project lease | the project's OS-held lease | `OwnerGeneration` (feed `epoch`) | [capabilities](project-authority.md#capabilities) |
+| Native writer | `NativeEngines`: every roadmap, ship, think and signal mutation, by calling the library's own tool handler | constructed only by `ProjectAuthority::open`/`serve` | the project generation and execution context | [one write path](project-authority.md#one-write-path) |
 | Reader | `NativeReader`: lease-free, cannot mutate | anyone | none | [capabilities](project-authority.md#capabilities) |
-| Owner endpoint / attached client | A Unix socket an admitted owner serves; `OwnerClient` acts through the owner instead of opening a second writer | the admitted owner's invocation | protocol version, peer credential, exact build identity, project, role, generation | [attachment](project-authority.md#attachment) |
+| Owner endpoint / attached client | A Unix socket an admitted owner serves; `OwnerClient` acts through the owner instead of opening a second writer | the admitted owner's invocation | protocol version, peer credential, exact build identity for typed commands/probes, project, execution context, generation | [attachment](project-authority.md#attachment) |
 | Chunk, signal, reasoning step, objective, task | Native workflow records | the four family engines behind the native writer | record ids; `run_id`, `task_id`, `task_instance` | [clients](clients.md#workflow-consistency-model) |
 | Run and attempt | One loop execution and one retry of one command in it | `IterationLoop` with the domain `RunState` and operation ledger, in `.magistr/loop-state.json` | run id; `AttemptId` | [durability](durability.md) |
 | Operation record | Intent written before an effect and settled after it | the loop checkpoint | command plus attempt number | [records and outcomes](durability.md#records-and-outcomes) |

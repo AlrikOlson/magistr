@@ -23,7 +23,7 @@ async fn refused(root: &Path, config: &NativeConfig) -> io::Error {
 }
 
 #[tokio::test]
-async fn last_clone_releases_a_stable_owner_lock_and_distinct_stores_are_independent() {
+async fn last_clone_releases_a_stable_owner_lock_and_store_changes_cannot_bypass_it() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("project");
     let cfg = config(&root, &tmp.path().join("data"), "lease");
@@ -31,16 +31,18 @@ async fn last_clone_releases_a_stable_owner_lock_and_distinct_stores_are_indepen
         .await
         .expect("owner");
     let clone = owner.clone();
-    let lock = cfg.data_dir().join("roadmap/sessions/lease.mcp-owner.lock");
+    let lock = cfg
+        .data_dir()
+        .join("roadmap/sessions/lease.project-owner.lock");
     assert!(lock.is_file());
     drop(owner);
     assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
 
     let other_store = cfg.clone().with_data_dir(tmp.path().join("other-data"));
-    let independent = MagistrService::new(root.clone(), &other_store)
-        .await
-        .expect("other store");
-    drop(independent);
+    assert_eq!(
+        refused(&root, &other_store).await.kind(),
+        io::ErrorKind::WouldBlock
+    );
     drop(clone);
     assert!(lock.is_file(), "never unlink the lock inode on release");
     let reopened = MagistrService::new(root, &cfg)
@@ -137,54 +139,94 @@ async fn explicit_unix_feed_is_refused_on_unsupported_platforms() {
     );
 }
 
-#[tokio::test]
-async fn a_host_writer_is_admitted_beside_the_service_owner_and_readers_see_both() {
-    use magistr_engine::native::{ChunkStatus, NativeReader, ProjectAuthority, WriterRole};
-    let tmp = tempfile::tempdir().expect("tempdir");
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_host_started_owner_publishes_existing_execution_views() {
+    use magistr::application::workflow_client::EngineClient;
+    use magistr_workflow::ship::domain::task::TaskType;
+    use tokio::io::{AsyncBufReadExt as _, BufReader};
+    use tokio::time::{Duration, timeout};
+
+    let tmp = tempfile::tempdir().expect("temporary");
+    let root = tmp.path().join("project");
+    let cfg = config(&root, &tmp.path().join("data"), "host-feed")
+        .with_broadcast_path(Some(tmp.path().join("feed.sock")));
+    let host = EngineClient::with_config(cfg.clone()).expect("host owner");
+    let writer = host.writer().expect("writer");
+    let task_view = writer
+        .for_working_copy(&root, "task")
+        .expect("execution before serving");
+    let endpoint = host.serve_owner().await.expect("serve").expect("supported");
+    let stream = tokio::net::UnixStream::connect(cfg.feed_socket_path())
+        .await
+        .expect("host feed");
+    assert!(
+        writer
+            .authority()
+            .feed()
+            .expect("publisher")
+            .wait_for_subscribers(1, Duration::from_secs(2))
+            .await
+    );
+    task_view
+        .ship_set_objective("A task".into(), vec![], vec![], "task".into())
+        .expect("objective");
+    task_view
+        .ship_add_task(
+            "verify".into(),
+            "Verify changes".into(),
+            TaskType::Test,
+            None,
+        )
+        .expect("task");
+    let mut lines = BufReader::new(stream).lines();
+    let frame: serde_json::Value = serde_json::from_str(
+        &timeout(Duration::from_secs(2), lines.next_line())
+            .await
+            .expect("bounded event")
+            .expect("read")
+            .expect("frame"),
+    )
+    .expect("frame JSON");
+    assert_eq!(frame["family"], "ship");
+    assert_eq!(
+        frame["execution_key"],
+        task_view.config().execution_context().key()
+    );
+    assert_eq!(
+        frame["epoch"].as_u64(),
+        Some(writer.authority().generation().get())
+    );
+    endpoint.shutdown().await.expect("bounded endpoint cleanup");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_host_attaches_to_the_service_owner_and_reads_shared_state() {
+    use magistr::application::workflow_client::EngineClient;
+    use magistr_engine::native::{NativeReader, ProjectAuthority, WriterRole};
+    let tmp = tempfile::tempdir().expect("temporary");
     let root = tmp.path().join("project");
     let cfg = config(&root, &tmp.path().join("data"), "beside");
     let owner = MagistrService::new(root.clone(), &cfg)
         .await
-        .expect("service owner");
-    // The cockpit or loop is the other role: admitted beside the service.
-    let host = ProjectAuthority::admit(&cfg, WriterRole::Host)
-        .expect("host beside the service")
-        .open();
-    assert_eq!(host.project_id(), "beside");
-    host.roadmap_add_chunk(
-        "from-host".into(),
-        "Host mutation".into(),
-        String::new(),
-        ChunkStatus::Pending,
-        100,
-        String::new(),
-        vec![],
-        vec![],
-        None,
-        None,
-    )
-    .expect("host writes under its lease");
-    // Neither role admits a second of itself while the first is alive.
-    assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
+        .expect("owner");
+    let endpoint = owner
+        .serve_owner_endpoint()
+        .await
+        .expect("endpoint")
+        .expect("supported");
     assert_eq!(
         ProjectAuthority::admit(&cfg, WriterRole::Host)
-            .expect_err("second host")
+            .expect_err("one writer")
             .kind(),
         io::ErrorKind::WouldBlock
     );
-    // A reader needs no lease and sees the host's write on the shared store.
-    let observer = NativeReader::open(&cfg);
-    assert!(observer.roadmap_chunk("from-host").is_some());
-    assert!(
-        cfg.data_dir()
-            .join("roadmap/sessions/beside.host-owner.lock")
-            .is_file(),
-        "the host holds its own lock file beside the service's"
-    );
+    let host = EngineClient::admit_or_attach_config(cfg.clone()).expect("attached host");
+    assert!(host.reader().roadmap_chunks().is_empty());
     drop(host);
-    ProjectAuthority::admit(&cfg, WriterRole::Host).expect("host released independently");
+    assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
+    assert!(NativeReader::open(&cfg).roadmap_chunks().is_empty());
+    endpoint.shutdown().await.expect("bounded cleanup");
     drop(owner);
-    MagistrService::new(root, &cfg)
-        .await
-        .expect("service released independently");
+    ProjectAuthority::admit(&cfg, WriterRole::Host).expect("released project");
 }

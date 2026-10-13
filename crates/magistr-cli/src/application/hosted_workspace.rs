@@ -43,10 +43,22 @@ impl HostedWorkspace {
     /// # Errors
     /// As [`Self::admit`].
     pub async fn admit_with(
-        options: magistr_workspace::service::WorkspaceOpenOptions,
+        mut options: magistr_workspace::service::WorkspaceOpenOptions,
     ) -> Result<Option<Self>, WorkspaceOpenError> {
+        magistr_engine::native::ProjectLocation::require_open(&options.root)?;
+        let root = options.root.clone();
+        options.lifecycle_lock = Some(
+            magistr_engine::native::ProjectLocation::working_copy_root(&root)?
+                .join(".magistr/working-copy.lock"),
+        );
         let service = match WorkspaceService::open(options).await {
-            Ok(service) => Arc::new(service),
+            Ok(service) => {
+                if let Err(error) = magistr_engine::native::ProjectLocation::require_open(&root) {
+                    let _ = service.shutdown().await;
+                    return Err(error.into());
+                }
+                Arc::new(service)
+            }
             Err(WorkspaceOpenError::Locked(_)) => return Ok(None),
             Err(error) => return Err(error),
         };

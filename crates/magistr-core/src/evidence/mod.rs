@@ -8,10 +8,10 @@
 //! default selection policy (which hashes `.magistr/project.json` as a
 //! config input, so a gate-configuration edit moves the revision too), the
 //! workspace's [`ConfigDigest`](magistr_workspace::config::ConfigDigest) over
-//! the external configuration layers the captured project inputs name (the
-//! organization policy and the user layer, by content only — so a policy
-//! edited outside the tree moves the evidence with every source byte
-//! unchanged) and the same gate resolver `magistr_gate all` runs. There is
+//! captured external policy layers and the shared project's settings. A linked
+//! working copy resolves settings from its main project directory; changing
+//! them moves its configuration evidence with its source bytes unchanged.
+//! Gate contracts use the same settings path and resolver `magistr_gate all` runs. There is
 //! no second scanner: a receipt's source revision is the snapshot's and its
 //! configuration digest is the layers'.
 //!

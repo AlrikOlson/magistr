@@ -33,7 +33,7 @@ use super::owner_reply::OwnerReply;
 /// [`BuildIdentity`] and refuses on it exactly; 5 adds the `probe`
 /// attachment, answered with a welcome and one
 /// [`OwnerReport`](super::OwnerReport) line before the owner closes.
-pub const OWNER_PROTOCOL_VERSION: u32 = 5;
+pub const OWNER_PROTOCOL_VERSION: u32 = 6;
 
 /// The first line a client sends.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +45,7 @@ pub(crate) struct Hello {
     pub(crate) identity: OwnerIdentity,
     pub(crate) attach: AttachKind,
     pub(crate) caller: CallerIdentity,
+    pub(crate) context: Option<super::ExecutionContext>,
 }
 
 impl Hello {

@@ -25,11 +25,26 @@ impl WorkspaceConnection {
     /// Overrides against a live owner are a policy refusal, not contention:
     /// waiting cannot make them admissible.
     #[cfg(any(unix, windows))]
-    pub(super) async fn open(options: WorkspaceOpenOptions) -> Result<Self, WorkspaceOpenError> {
+    pub(super) async fn open(
+        mut options: WorkspaceOpenOptions,
+    ) -> Result<Self, WorkspaceOpenError> {
+        magistr_engine::native::ProjectLocation::require_open(&options.root)?;
+        options.lifecycle_lock = Some(
+            magistr_engine::native::ProjectLocation::working_copy_root(&options.root)?
+                .join(".magistr/working-copy.lock"),
+        );
         let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
         loop {
             match WorkspaceService::open(options.clone()).await {
-                Ok(service) => return Ok(Self::Owner(Arc::new(service))),
+                Ok(service) => {
+                    if let Err(error) =
+                        magistr_engine::native::ProjectLocation::require_open(&options.root)
+                    {
+                        let _ = service.shutdown().await;
+                        return Err(error.into());
+                    }
+                    return Ok(Self::Owner(Arc::new(service)));
+                }
                 Err(WorkspaceOpenError::Locked(refusal)) => {
                     if !options.session_flags.is_empty() {
                         return Err(WorkspaceOpenError::Policy(WorkspaceError::new(
@@ -80,9 +95,20 @@ impl WorkspaceConnection {
         }
     }
     #[cfg(not(any(unix, windows)))]
-    pub(super) async fn open(options: WorkspaceOpenOptions) -> Result<Self, WorkspaceOpenError> {
-        WorkspaceService::open(options)
-            .await
-            .map(|service| Self::Owner(Arc::new(service)))
+    pub(super) async fn open(
+        mut options: WorkspaceOpenOptions,
+    ) -> Result<Self, WorkspaceOpenError> {
+        magistr_engine::native::ProjectLocation::require_open(&options.root)?;
+        options.lifecycle_lock = Some(
+            magistr_engine::native::ProjectLocation::working_copy_root(&options.root)?
+                .join(".magistr/working-copy.lock"),
+        );
+        let root = options.root.clone();
+        let service = WorkspaceService::open(options).await?;
+        if let Err(error) = magistr_engine::native::ProjectLocation::require_open(&root) {
+            let _ = service.shutdown().await;
+            return Err(error.into());
+        }
+        Ok(Self::Owner(Arc::new(service)))
     }
 }

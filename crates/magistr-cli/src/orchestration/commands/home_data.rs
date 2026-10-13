@@ -15,7 +15,7 @@ const RECENT_SESSIONS: usize = 5;
 /// The launcher's card data for the project at `dir`; the session
 /// database is found through the captured `inputs`.
 pub(crate) fn collect(dir: &Path, inputs: &ProjectInputs) -> LauncherData {
-    let has_config = crate::paths::project_json(dir).exists();
+    let has_config = crate::paths::project_json(dir).is_ok_and(|path| path.exists());
     let config = has_config
         .then(|| crate::validate::load_project_config(dir).ok())
         .flatten();

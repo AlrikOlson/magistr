@@ -19,6 +19,8 @@ pub struct WorkspaceOpenOptions {
     /// `WORKBENCH_NETWORK_FS`: "1" forces network, "0" forces local.
     pub network_override: Option<String>,
     pub formatter: FormatterOptions,
+    /// Stable shared lock retained while this source owner keeps its containing working copy open.
+    pub lifecycle_lock: Option<PathBuf>,
     /// The retained QuickJS-ng interpreter; absent, the script verb is not offered.
     #[cfg(feature = "sandbox")]
     pub interpreter: Option<crate::commands::ScriptInterpreter>,
@@ -36,6 +38,7 @@ impl WorkspaceOpenOptions {
             session_flags: serde_json::Map::new(),
             network_override: None,
             formatter: FormatterOptions::default(),
+            lifecycle_lock: None,
             #[cfg(feature = "sandbox")]
             interpreter: None,
         }

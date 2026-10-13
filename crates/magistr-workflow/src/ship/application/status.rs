@@ -14,6 +14,8 @@ use super::ShipSnapshot;
 #[derive(Debug, Clone, Serialize)]
 pub struct ShipStatus {
     project_id: String,
+    execution: Option<super::ExecutionBinding>,
+    run_id: String,
     objective: Option<Objective>,
     tasks: StatusCounts,
     task_list: Vec<TaskSummary>,
@@ -35,6 +37,8 @@ impl ShipStatus {
         };
         Self {
             project_id: snapshot.project_id.clone(),
+            execution: snapshot.execution.clone(),
+            run_id: snapshot.run_id.clone(),
             objective: snapshot.objective.clone(),
             tasks: StatusCounts {
                 planned: count(TaskStatus::Planned),

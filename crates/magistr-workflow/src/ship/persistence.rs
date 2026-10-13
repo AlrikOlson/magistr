@@ -20,15 +20,21 @@ pub(crate) struct PersistedState {
     pub(crate) objective: Option<Objective>,
     pub(crate) tasks: Vec<Task>,
     pub(crate) next_action_id: u32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) execution: Option<ExecutionIdentity>,
-    #[serde(default)]
+    pub(crate) execution: ExecutionIdentity,
     pub(crate) selection_revision: u64,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) saved_cycles: Vec<SavedCycle>,
 }
 
 impl PersistedState {
+    fn is_complete(&self) -> bool {
+        self.execution.has_task_instances(&self.tasks)
+            && self
+                .saved_cycles
+                .iter()
+                .all(|cycle| cycle.execution.has_task_instances(&cycle.tasks))
+    }
+
     /// The identity of the cycle: the objective's `created_at`.
     pub(crate) fn cycle_stamp(&self) -> Option<&str> {
         self.objective
@@ -81,28 +87,28 @@ fn merge_states(memory: &PersistedState, disk: PersistedState) -> PersistedState
 }
 
 fn merge_same_cycle(memory: &PersistedState, disk: PersistedState) -> PersistedState {
-    let memory_identity = memory.execution.clone().unwrap_or_else(|| {
-        ExecutionIdentity::legacy(&memory.project_id, &memory.objective, &memory.tasks)
-    });
-    let disk_identity = disk.execution.clone().unwrap_or_else(|| {
-        ExecutionIdentity::legacy(&disk.project_id, &disk.objective, &disk.tasks)
-    });
-    let mut identity = memory_identity.clone();
+    if !memory.is_complete() || !disk.is_complete() {
+        tracing::warn!("Ship state is incomplete; the write was refused");
+        return disk;
+    }
+    let memory_identity = &memory.execution;
+    let disk_identity = &disk.execution;
+    let mut identity = memory.execution.clone();
     identity
         .removed_instances
         .extend(disk_identity.removed_instances.iter().cloned());
     identity.tasks.clear();
     let mut tasks: Vec<Task> = Vec::new();
     for (source, identities) in [
-        (&memory.tasks, &memory_identity),
-        (&disk.tasks, &disk_identity),
+        (&memory.tasks, memory_identity),
+        (&disk.tasks, disk_identity),
     ] {
         for task in source {
             let instance = identities
                 .tasks
                 .get(&task.id)
-                .cloned()
-                .unwrap_or_else(|| format!("legacy:task:{}", task.id));
+                .expect("complete state has an instance for every task")
+                .clone();
             if identity.removed_instances.contains(&instance)
                 || tasks.iter().any(|saved| saved.id == task.id)
             {
@@ -120,7 +126,7 @@ fn merge_same_cycle(memory: &PersistedState, disk: PersistedState) -> PersistedS
         next_action_id: memory.next_action_id.max(disk.next_action_id),
         saved_cycles: memory.saved_cycles.clone(),
         selection_revision: memory.selection_revision,
-        execution: Some(identity),
+        execution: identity,
     }
 }
 
@@ -164,16 +170,27 @@ impl Persistence {
     ) -> std::io::Result<(Option<PersistedState>, Option<StoreStamp>)> {
         let path = self.sessions_dir.join(format!("{project_id}.json"));
         let stamp = StoreStamp::of(&path)?;
-        let bytes = match fs::read(path) {
+        let bytes = match fs::read(&path) {
             Ok(bytes) => bytes,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok((None, None)),
             Err(error) => return Err(error),
         };
-        let state: PersistedState =
-            serde_json::from_slice(&bytes).map_err(std::io::Error::other)?;
+        let state: PersistedState = serde_json::from_slice(&bytes).map_err(|error| {
+            tracing::warn!(path = %path.display(), %error, "Cannot read saved work");
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "The saved work is incomplete or invalid.",
+            )
+        })?;
         if state.schema_version != SCHEMA_VERSION || state.project_id != project_id {
             return Err(std::io::Error::other(
                 "Ship state schema or project identity does not match",
+            ));
+        }
+        if !state.is_complete() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "The saved work is incomplete or invalid.",
             ));
         }
         Ok((Some(state), stamp))
@@ -220,9 +237,7 @@ impl Persistence {
             let Some(mut state) = current else {
                 return Ok((None, false, None));
             };
-            let identity = state.execution.clone().unwrap_or_else(|| {
-                ExecutionIdentity::legacy(&target.project_id, &state.objective, &state.tasks)
-            });
+            let identity = &state.execution;
             let matches = identity.run_id == target.run_id
                 && identity.tasks.get(&target.task_id) == Some(&target.task_instance);
             let index = state
@@ -239,7 +254,6 @@ impl Persistence {
                 return Ok((Some(state), false, stamp));
             };
             state.tasks[index].checks.push(check.clone());
-            state.execution = Some(identity);
             let path = self
                 .sessions_dir
                 .join(format!("{}.json", target.project_id));
@@ -271,6 +285,17 @@ impl Persistence {
             enabled: cfg.enabled,
             sessions_dir,
         }
+    }
+
+    /// Each execution owns its selected cycle and receipt ledger within the project store.
+    #[must_use]
+    pub fn for_execution(mut self, key: &str) -> Self {
+        let ship = self
+            .sessions_dir
+            .parent()
+            .expect("ship sessions have a parent");
+        self.sessions_dir = ship.join("executions").join(key).join("sessions");
+        self
     }
 
     pub fn enabled(&self) -> bool {
@@ -305,9 +330,7 @@ impl Persistence {
             let state = current.filter(|s| s.objective.is_some()).ok_or_else(|| {
                 std::io::Error::other("Set an objective before clearing old check history.")
             })?;
-            let identity = state.execution.unwrap_or_else(|| {
-                ExecutionIdentity::legacy(project_id, &state.objective, &state.tasks)
-            });
+            let identity = state.execution;
             let ledger = self.receipt_ledger(project_id);
             let saved_receipts: std::collections::BTreeSet<_> = state
                 .saved_cycles
@@ -329,20 +352,7 @@ impl Persistence {
         })
     }
 
-    /// Persist the cycle under the locked merge-on-save discipline (see
-    /// `merge_states`) so a concurrent process's acked tasks — or its newer
-    /// cycle — are never erased by a stale writer.
-    pub fn save(
-        &self,
-        project_id: &str,
-        objective: &Option<Objective>,
-        tasks: &[Task],
-        next_action_id: u32,
-    ) {
-        self.save_state(project_id, objective, tasks, next_action_id, None, &[], 0);
-    }
-
-    /// [`Self::save`] with the run identity, answering what landed on disk
+    /// Persist the complete execution record, answering what landed on disk
     /// and the stamp of the written file; `None` when persistence is off
     /// or the write failed (logged).
     // These required fields describe one atomic plan selection; the private
@@ -363,7 +373,7 @@ impl Persistence {
             objective,
             tasks,
             next_action_id,
-            Some(execution.clone()),
+            execution.clone(),
             saved_cycles,
             selection_revision,
         )
@@ -378,7 +388,7 @@ impl Persistence {
         objective: &Option<Objective>,
         tasks: &[Task],
         next_action_id: u32,
-        execution: Option<ExecutionIdentity>,
+        execution: ExecutionIdentity,
         saved_cycles: &[SavedCycle],
         selection_revision: u64,
     ) -> Option<MergedWrite<PersistedState>> {
@@ -395,6 +405,10 @@ impl Persistence {
             saved_cycles: saved_cycles.to_vec(),
             selection_revision,
         };
+        if !state.is_complete() {
+            tracing::warn!("Ship state is incomplete; the write was refused");
+            return None;
+        }
         let path = self.sessions_dir.join(format!("{project_id}.json"));
         match crate::infra::persistence::locked_merge_write_stamped(&path, &state, merge_states) {
             Ok(written) => Some(written),
@@ -428,9 +442,10 @@ impl Persistence {
             );
             return None;
         }
-        let execution = state.execution.unwrap_or_else(|| {
-            ExecutionIdentity::legacy(project_id, &state.objective, &state.tasks)
-        });
+        if state.project_id != project_id || !state.is_complete() {
+            return None;
+        }
+        let execution = state.execution;
         Some((
             state.objective,
             state.tasks,

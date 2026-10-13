@@ -93,7 +93,7 @@ pub fn gate_command(qg: &QualityGate, gate: Gate) -> &str {
 /// finds real values (e.g. because `magistr init` ran before source code existed),
 /// the config file is silently updated on disk.
 pub fn load_project_config(dir: &Path) -> Result<ProjectConfig> {
-    let config_path = crate::paths::project_json(dir);
+    let config_path = crate::paths::project_json(dir)?;
     if !config_path.exists() {
         return Err(MagistrError::Config(format!(
             "no .magistr/project.json found in {}",
