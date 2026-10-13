@@ -79,9 +79,9 @@ async fn run_gates_with_config_partial_fail() {
 }
 
 #[test]
-fn load_config_missing_dir() {
-    let dir = std::path::PathBuf::from("/tmp/nonexistent-magistr-test-dir");
-    let err = load_project_config(&dir).unwrap_err();
+fn load_config_missing_settings() {
+    let dir = tempfile::tempdir().unwrap();
+    let err = load_project_config(dir.path()).unwrap_err();
     assert!(err.to_string().contains("no .magistr/project.json"));
 }
 

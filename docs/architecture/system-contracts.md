@@ -66,7 +66,7 @@ tests for the first group are in the [client inventory](clients.md#client-invent
 | `magistr codex-launch`, `magistr codex-remove` | none in the wrapper | none | the external runtime; removal is an administrative plan |
 | `magistr guard` | reader | none | none |
 | `magistr validate` | none; runs gates and records nothing | none | none |
-| `magistr init`, `magistr reset`, `magistr migrate`, `magistr import`, `magistr export`, `magistr preset`, `magistr plugins` | none | none | interactive `init` starts an `AgentSession` with an admitted workspace |
+| `magistr init`, `magistr reset`, `magistr import`, `magistr export`, `magistr preset`, `magistr plugins` | none | none | interactive `init` starts an `AgentSession` with an admitted workspace |
 | `magistr detect`, `magistr lint`, `magistr doctor`, `magistr config`, `magistr archetypes`, `magistr policy`, `magistr team` | none | none | none |
 | `magistr models` | none | none | a zero-turn provider probe |
 | `magistr learn`, `magistr memory`, `magistr plans`, `magistr sessions`, `magistr costs`, `magistr permissions` | none; machine-local and project-local records | none | none |

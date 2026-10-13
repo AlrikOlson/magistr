@@ -1,7 +1,7 @@
 //! Observe the in-process think-and-ship store for a project directory when
 //! its `.magistr/project.json` selects the native roadmap backend.
 //!
-//! The flag is read as plain JSON (no stack re-detection side effects), so
+//! Current settings are read without changing them, so
 //! this is safe to call from any command. Reading needs no admission, so a
 //! one-shot command answers beside a running cockpit or `magistr mcp-serve`.
 //! Call it BEFORE entering raw mode: `RoadmapEngine::with_persistence` and
@@ -13,39 +13,35 @@ use std::path::Path;
 use magistr_engine::{NativeConfig, NativeReader, RoadmapBackend};
 
 /// The reader for `dir`, or `None` when the project runs the YAML roadmap
-/// (or has no `.magistr/project.json`). Store location and persistence come
+/// store. Store location and persistence come
 /// from the process environment (`THINK_AND_SHIP_*`).
-#[must_use]
-pub fn open_native_reader(dir: &Path) -> Option<NativeReader> {
+pub fn open_native_reader(dir: &Path) -> crate::error::Result<Option<NativeReader>> {
     open_with_configuration(dir, || NativeConfig::from_env(dir))
 }
 
 /// Same as [`open_native_reader`] with an injected environment lookup, so
 /// tests can point the store at a temp directory.
 #[cfg(test)]
-#[must_use]
 pub(crate) fn open_native_reader_with(
     dir: &Path,
     lookup: impl Fn(&str) -> Option<String>,
-) -> Option<NativeReader> {
+) -> crate::error::Result<Option<NativeReader>> {
     open_with_configuration(dir, || NativeConfig::from_lookup(dir, lookup))
 }
 
 fn open_with_configuration(
     dir: &Path,
     configure: impl FnOnce() -> NativeConfig,
-) -> Option<NativeReader> {
-    if !roadmap_backend_of(dir).is_native() {
-        return None;
+) -> crate::error::Result<Option<NativeReader>> {
+    if !roadmap_backend_of(dir)?.is_native() {
+        return Ok(None);
     }
-    Some(NativeReader::open(&configure()))
+    Ok(Some(NativeReader::open(&configure())))
 }
 
 /// The backend a project effectively runs: the declared `roadmap_backend`,
-/// or the inference for projects that predate the key
-/// (`magistr_core::roadmap::backend_for`).
-#[must_use]
-pub(crate) fn roadmap_backend_of(dir: &Path) -> RoadmapBackend {
+/// or the native default (`magistr_core::roadmap::backend_for`).
+pub(crate) fn roadmap_backend_of(dir: &Path) -> crate::error::Result<RoadmapBackend> {
     magistr_core::roadmap::backend_for(dir)
 }
 

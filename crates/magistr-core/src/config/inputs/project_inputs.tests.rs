@@ -1,5 +1,6 @@
 use super::*;
 use crate::config::inputs::InputOrigin;
+use crate::error::MagistrError;
 
 fn lookup(vars: Vec<(&'static str, &'static str)>) -> impl Fn(&str) -> Option<String> {
     move |key| {
@@ -123,7 +124,7 @@ fn project_config_distinguishes_absent_loaded_and_invalid() {
     std::fs::write(&path, "{ not json").unwrap();
     assert!(matches!(
         inputs.project_config(),
-        Err(MagistrError::Config(msg)) if msg.contains("invalid project config")
+        Err(MagistrError::Config(msg)) if msg.contains("Invalid project settings")
     ));
 }
 

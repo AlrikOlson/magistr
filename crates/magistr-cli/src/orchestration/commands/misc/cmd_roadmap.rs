@@ -22,7 +22,6 @@ pub async fn cmd_roadmap(
         Some(cli::RoadmapAction::Next { ref dir }) => cmd_roadmap_next(dir, renderer),
         Some(cli::RoadmapAction::Status { ref dir }) => cmd_roadmap_status(dir, renderer),
         Some(cli::RoadmapAction::Export { dir }) => cmd_roadmap_export(&dir),
-        Some(cli::RoadmapAction::Migrate { dir }) => cmd_roadmap_migrate(&dir),
         Some(cli::RoadmapAction::Generate { goal, dir, backend }) => {
             let backend = crate::commands::resolve_backend(backend, inputs)?;
             cmd_roadmap_generate(&goal, &dir, backend, inputs).await
@@ -62,7 +61,7 @@ fn show_native(
 /// `next`: the chunk `roadmap_next` would hand an agent.
 fn cmd_roadmap_next(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
-    let Some(engines) = crate::roadmap::open_native_reader(&dir) else {
+    let Some(engines) = crate::roadmap::open_native_reader(&dir)? else {
         eyre::bail!("{NATIVE_REQUIRED}");
     };
     let next = engines.roadmap_next();
@@ -84,7 +83,7 @@ fn cmd_roadmap_next(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyr
 /// human snapshot.
 fn cmd_roadmap_status(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
-    let Some(engines) = crate::roadmap::open_native_reader(&dir) else {
+    let Some(engines) = crate::roadmap::open_native_reader(&dir)? else {
         eyre::bail!("{NATIVE_REQUIRED}");
     };
     if renderer.is_machine_readable() {
@@ -98,7 +97,7 @@ fn cmd_roadmap_status(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> e
 
 fn cmd_roadmap_show(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
-    if let Some(engines) = crate::roadmap::open_native_reader(&dir) {
+    if let Some(engines) = crate::roadmap::open_native_reader(&dir)? {
         return show_native(&engines, renderer);
     }
 
@@ -181,7 +180,7 @@ fn cmd_roadmap_show(dir: &std::path::Path, renderer: &dyn OutputRenderer) -> eyr
 fn cmd_roadmap_export(dir: &std::path::Path) -> eyre::Result<()> {
     let dir = canonical_dir(dir)?;
     magistr_core::roadmap::ensure_file_export_allowed(&dir)?;
-    if let Some(engines) = crate::roadmap::open_native_reader(&dir) {
+    if let Some(engines) = crate::roadmap::open_native_reader(&dir)? {
         let md_path = dir.join("ROADMAP.md");
         let markdown = engines.roadmap_export("markdown");
         magistr_core::roadmap::ensure_file_export_allowed(&dir)?;
@@ -215,127 +214,6 @@ fn cmd_roadmap_export(dir: &std::path::Path) -> eyre::Result<()> {
         ))
     );
     Ok(())
-}
-
-fn cmd_roadmap_migrate(dir: &std::path::Path) -> eyre::Result<()> {
-    let dir = dir
-        .canonicalize()
-        .map_err(|e| error::MagistrError::io(dir, e))
-        .suggest()?;
-
-    if crate::roadmap::backend_for(&dir).is_native() {
-        eprintln!(
-            "{}",
-            fmt::warning(
-                "This project runs the think-and-ship roadmap: ROADMAP.md is a generated view \
-                 (`magistr roadmap export`), not a source to migrate. Import a legacy file \
-                 with `think-and-ship import --file <ROADMAP.md|.magistr-roadmap.yml>`.",
-            )
-        );
-        return Ok(());
-    }
-
-    let yaml_path = crate::roadmap::yaml_path(&dir);
-
-    if yaml_path.exists() {
-        eprintln!(
-            "{}",
-            fmt::warning(
-                "YAML roadmap already exists at .magistr-roadmap.yml — no migration needed.",
-            )
-        );
-        // Still patch project.json if it references the old spec file
-        patch_project_json_spec_file(&dir);
-        return Ok(());
-    }
-
-    // Check for legacy .magistr/roadmap.yaml
-    let legacy_path = crate::roadmap::legacy_yaml_path(&dir);
-    if legacy_path.exists() {
-        eprintln!(
-            "{}",
-            fmt::info("Migrating .magistr/roadmap.yaml → .magistr-roadmap.yml")
-        );
-
-        let store = crate::roadmap::YamlStore::load(&legacy_path).suggest()?;
-        let stats = store.index().stats();
-        let mut migrated =
-            crate::roadmap::YamlStore::from_roadmap(&yaml_path, store.index().roadmap().clone())
-                .suggest()?;
-        migrated.save().suggest()?;
-
-        patch_project_json_spec_file(&dir);
-
-        eprintln!(
-            "{}",
-            fmt::success(&format!(
-                "Migration complete: {} phases, {}/{} tasks done.",
-                stats.total_phases, stats.checked_tasks, stats.total_tasks,
-            ))
-        );
-        return Ok(());
-    }
-
-    // Look for ROADMAP.md to migrate
-    let md_path = dir.join("ROADMAP.md");
-    if !md_path.exists() {
-        eyre::bail!(
-            "No ROADMAP.md found in {}. Nothing to migrate.",
-            dir.display()
-        );
-    }
-
-    eprintln!(
-        "{}",
-        fmt::info(&format!(
-            "Migrating {} → .magistr-roadmap.yml",
-            md_path.display()
-        ))
-    );
-
-    let roadmap = crate::roadmap::parse_markdown_file(&md_path).suggest()?;
-    let stats_before = roadmap.phases.iter().fold((0usize, 0usize), |(t, c), p| {
-        (t + p.total_tasks(), c + p.checked_tasks())
-    });
-
-    let mut store = crate::roadmap::YamlStore::from_roadmap(&yaml_path, roadmap).suggest()?;
-    store.save().suggest()?;
-
-    patch_project_json_spec_file(&dir);
-
-    eprintln!(
-        "{}",
-        fmt::success(&format!(
-            "Migration complete: {} phases, {}/{} tasks done.",
-            store.index().stats().total_phases,
-            stats_before.1,
-            stats_before.0,
-        ))
-    );
-    Ok(())
-}
-
-/// Patch `spec.file` in `.magistr/project.json` from `"ROADMAP.md"` to `".magistr-roadmap.yml"`.
-fn patch_project_json_spec_file(dir: &std::path::Path) {
-    let Ok(config_path) = crate::paths::project_json(dir) else {
-        return;
-    };
-    if !config_path.exists() {
-        return;
-    }
-    let Ok(content) = std::fs::read_to_string(&config_path) else {
-        return;
-    };
-    if !content.contains("\"ROADMAP.md\"") {
-        return;
-    }
-    let patched = content.replace("\"ROADMAP.md\"", "\".magistr-roadmap.yml\"");
-    if std::fs::write(&config_path, patched).is_ok() {
-        eprintln!(
-            "  {}",
-            fmt::dim("Updated .magistr/project.json: spec.file → .magistr-roadmap.yml")
-        );
-    }
 }
 
 async fn cmd_roadmap_generate(

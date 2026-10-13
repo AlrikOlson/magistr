@@ -236,13 +236,6 @@ pub enum Command {
         confirm_stopped: bool,
     },
 
-    /// Check for and report Bash-era config migration needs
-    Migrate {
-        /// Project directory (defaults to current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-    },
-
     /// Generate shell completions for bash, zsh, or fish
     Completions {
         /// Shell to generate completions for
@@ -898,15 +891,7 @@ pub enum RoadmapAction {
     },
 
     /// Regenerate ROADMAP.md from the roadmap store (think-and-ship export, or the YAML source)
-    #[command(alias = "sync")]
     Export {
-        /// Project directory (defaults to current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-    },
-
-    /// Migrate an existing ROADMAP.md to YAML-canonical format (.magistr/roadmap.yaml)
-    Migrate {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
@@ -1010,13 +995,6 @@ pub enum ConfigAction {
 
     /// Print effective configuration (all sources merged, defaults applied)
     Show {
-        /// Project directory (defaults to current directory)
-        #[arg(default_value = ".")]
-        dir: PathBuf,
-    },
-
-    /// Auto-upgrade old config formats to current schema
-    Migrate {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,

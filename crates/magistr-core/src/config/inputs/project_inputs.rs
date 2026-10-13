@@ -8,7 +8,7 @@ use crate::config::preset_full::LayerOptions;
 use crate::config::project_preset::{PROJECT_PRESET_DIR, PresetInfo, list_presets_in_dir};
 use crate::config::user_config::{self, UserConfig, UserConfigError};
 use crate::config::user_preset::load_user_override_from_dir;
-use crate::error::{MagistrError, Result};
+use crate::error::Result;
 use crate::types::{Language, PresetOverride, ProjectConfig};
 
 const XDG_CONFIG_HOME: &str = "XDG_CONFIG_HOME";
@@ -597,19 +597,14 @@ impl ProjectInputs {
         Ok(CapturedInput::loaded(value, path))
     }
 
-    /// The project's `.magistr/project.json` as written, without the
-    /// detection-driven rewrite `validate::load_project_config` performs.
+    /// The current shared project settings, read without changing them.
     /// `None` when the file is absent; an unreadable or invalid file is an error.
     pub fn project_config(&self) -> Result<CapturedInput<Option<ProjectConfig>>> {
         let path = self.project_json()?;
-        if !path.is_file() {
-            return Ok(CapturedInput::absent(None, path));
+        match crate::config::read_project_settings(&path)? {
+            Some(config) => Ok(CapturedInput::loaded(Some(config), path)),
+            None => Ok(CapturedInput::absent(None, path)),
         }
-        let content = std::fs::read_to_string(&path).map_err(|e| MagistrError::io(&path, e))?;
-        let config = serde_json::from_str(&content).map_err(|e| {
-            MagistrError::Config(format!("invalid project config at {}: {e}", path.display()))
-        })?;
-        Ok(CapturedInput::loaded(Some(config), path))
     }
 
     /// The user's override for `lang`, when the preset directory is located

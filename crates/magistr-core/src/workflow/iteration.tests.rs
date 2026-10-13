@@ -9,6 +9,13 @@ pub(in crate::workflow) fn setup_project(spec_content: &str) -> (tempfile::TempD
     // Initialize git repo so HEAD SHA checks work
     let magistr_dir = dir.path().join(".magistr");
     std::fs::create_dir_all(&magistr_dir).unwrap();
+    let mut config = project_config();
+    config.roadmap_backend = magistr_engine::RoadmapBackend::Yaml;
+    std::fs::write(
+        magistr_dir.join("project.json"),
+        serde_json::to_string(&config).unwrap(),
+    )
+    .unwrap();
 
     std::process::Command::new("git")
         .args(["init", "--initial-branch=main"])
@@ -57,9 +64,9 @@ fn new_creates_initial_state() {
 
 #[test]
 fn new_with_missing_spec_errors() {
-    let dir = tempfile::TempDir::new().unwrap();
+    let (dir, _) = setup_project("");
     let spec_path = dir.path().join("NONEXISTENT.md");
-    let result = IterationLoop::with_max(dir.path(), &spec_path, 5);
+    let result = IterationLoop::open(dir.path(), &spec_path, 5, None);
     assert!(result.is_err());
 }
 
@@ -782,12 +789,6 @@ pub(in crate::workflow) fn native_engines(tmp: &tempfile::TempDir) -> NativeEngi
     admitted(tmp, magistr_engine::WriterRole::Host)
 }
 
-/// The other admitted role on the same store — what the agent's own
-/// `magistr mcp-serve` is to the loop.
-pub(in crate::workflow) fn agent_engines(tmp: &tempfile::TempDir) -> NativeEngines {
-    admitted(tmp, magistr_engine::WriterRole::Service)
-}
-
 /// A source that never moves and a project that configures no gates: the
 /// evidence capability every writer here is admitted with, so a recorded
 /// gate certifies a source and a chunk can complete on it.
@@ -930,8 +931,8 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
     );
     assert_eq!(il.state().spec_total, 2);
 
-    // Another process (the agent's mcp-serve) completes the chunk.
-    let writer = agent_engines(&dir);
+    // Another client of the admitted project owner completes the chunk.
+    let writer = engines.clone();
     writer.roadmap_start_chunk("first").unwrap();
     complete_native_chunk(&writer, "first");
 
@@ -1103,7 +1104,7 @@ fn interrupted_native_item_does_not_bypass_a_live_or_unknown_dispatch() {
 }
 
 #[test]
-fn spec_mode_is_unchanged_without_engines() {
+fn explicitly_declared_yaml_uses_its_spec_without_engines() {
     let (dir, spec_path) = setup_project("- [x] Done\n- [ ] Todo\n");
     let mut il = IterationLoop::with_max(dir.path(), &spec_path, 5).unwrap();
     assert!(!il.is_native());
@@ -1120,7 +1121,7 @@ fn open_on_a_native_project_needs_no_spec_file() {
     std::fs::create_dir_all(&magistr).unwrap();
     std::fs::write(
         magistr.join("project.json"),
-        r#"{"roadmap_backend":"think-and-ship"}"#,
+        serde_json::to_string(&project_config()).unwrap(),
     )
     .unwrap();
     let engines = native_engines(&dir);

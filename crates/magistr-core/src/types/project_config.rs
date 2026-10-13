@@ -48,10 +48,8 @@ pub struct ProjectConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lifecycle_hooks: Vec<magistr_engine::LifecycleHook>,
     /// Which store backs the roadmap: `think-and-ship` (the native in-process
-    /// engines, the default) or `yaml` (the legacy `.magistr-roadmap.yml`).
-    /// Always written so a flip is visible in the file; a missing key is
-    /// resolved by `validate::load_project_config` through
-    /// `roadmap::backend_for` (legacy projects with a YAML roadmap stay yaml).
+    /// engines, the default) or `yaml` (`.magistr-roadmap.yml`).
+    /// An omitted field uses the native default, regardless of other files.
     #[serde(default)]
     pub roadmap_backend: RoadmapBackend,
     /// Whether generated roadmap files may be exported. Native reads remain available.

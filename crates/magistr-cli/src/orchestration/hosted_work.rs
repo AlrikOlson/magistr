@@ -222,6 +222,7 @@ fn prepare(dir: &Path, engines: &EngineClient, action: &LaunchAction) -> Result<
             .to_owned()
     })?;
     let native = magistr_core::roadmap::backend_for(dir)
+        .map_err(|error| error.to_string())?
         .is_native()
         .then_some(writer);
     let wf = WorkflowConfig::load(dir)

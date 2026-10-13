@@ -1,9 +1,10 @@
-//! YAML-backed roadmap management.
+//! Current roadmap backend selection and explicit YAML persistence.
 //!
-//! The canonical source of truth is `.magistr-roadmap.yml` at the repo root.
+//! Shared project settings select the backend; the default is native
+//! think-and-ship. An explicit YAML project uses `.magistr-roadmap.yml`.
 //! All mutations go through [`YamlStore`] which owns a [`RoadmapIndex`]
 //! for queries and mutations. No markdown is auto-generated — use
-//! `magistr roadmap sync` for explicit opt-in export.
+//! `magistr roadmap export` for explicit opt-in export.
 //!
 //! # Architecture
 //!
@@ -11,7 +12,6 @@
 //! - `index.rs` — In-memory query/mutation API (`RoadmapIndex`)
 //! - `yaml_store.rs` — Persistence layer (load/save YAML atomically)
 //! - `markdown_gen.rs` — YAML → Markdown renderer (opt-in export)
-//! - `migrate.rs` — Markdown → YAML migration parser
 //!
 //! # Usage
 //!
@@ -28,8 +28,6 @@ mod ensure_file_export_allowed;
 pub mod file_lock;
 pub mod index;
 pub mod markdown_gen;
-pub mod migrate;
-mod parse_markdown_file;
 pub mod phase;
 pub mod phase_status;
 pub mod schema;
@@ -40,11 +38,10 @@ pub mod task_match;
 mod yaml_path;
 pub mod yaml_store;
 
-pub use backend_for::{backend_for, backend_for_declared, declared_backend};
+pub use backend_for::backend_for;
 pub use ensure_file_export_allowed::ensure_file_export_allowed;
 pub use index::InsertPosition;
 pub use index::RoadmapIndex;
-pub use parse_markdown_file::parse_markdown_file;
 pub use phase::Phase;
 pub use phase_status::PhaseStatus;
 pub use schema::Roadmap;
@@ -52,5 +49,5 @@ pub use stats::RoadmapStats;
 pub use task::Task;
 pub use task_id::task_id;
 pub use task_match::TaskMatch;
-pub use yaml_path::{legacy_yaml_path, yaml_path};
+pub use yaml_path::yaml_path;
 pub use yaml_store::YamlStore;

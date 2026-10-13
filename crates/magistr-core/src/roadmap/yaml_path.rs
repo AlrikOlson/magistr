@@ -10,12 +10,3 @@ use std::path::{Path, PathBuf};
 pub fn yaml_path(project_dir: &Path) -> PathBuf {
     project_dir.join(".magistr-roadmap.yml")
 }
-
-/// Legacy YAML path used before the repo-root migration.
-///
-/// Checked by [`super::yaml_store::YamlStore::load_or_create`] for
-/// transparent migration of existing projects.
-#[must_use]
-pub fn legacy_yaml_path(project_dir: &Path) -> PathBuf {
-    project_dir.join(".magistr").join("roadmap.yaml")
-}
