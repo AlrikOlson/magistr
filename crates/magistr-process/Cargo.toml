@@ -21,6 +21,9 @@ libc = "0.2"
 # openpt/grantpt/unlockpt/ptsname, the window size and the non-blocking master.
 rustix = { version = "1", features = ["fs", "pty", "termios"] }
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp"] }
+
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread"] }
