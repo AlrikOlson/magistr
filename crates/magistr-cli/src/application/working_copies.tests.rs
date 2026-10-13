@@ -27,6 +27,34 @@ fn project() -> (tempfile::TempDir, PathBuf) {
 }
 
 #[test]
+fn ordinary_folders_open_without_git_and_cannot_create_git_copies() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().canonicalize().unwrap();
+    let service = WorkingCopies::at(&root).unwrap();
+    let copies = service.list().unwrap();
+    assert_eq!(copies.len(), 1);
+    assert_eq!(copies[0].path, root);
+    assert_eq!(copies[0].state, WorkingCopyState::Unversioned);
+    assert!(copies[0].is_main);
+    assert_eq!(
+        service.open(&root).unwrap().state,
+        WorkingCopyState::Unversioned
+    );
+    assert!(
+        service
+            .create(&root.join("copy"), "copy", "HEAD")
+            .unwrap_err()
+            .to_string()
+            .contains("does not use Git")
+    );
+    assert!(matches!(
+        service.archive(&root),
+        Err(WorkingCopyError::Main)
+    ));
+    assert!(!root.join(".git").exists());
+}
+
+#[test]
 fn lifecycle_from_a_nested_project_still_recognizes_the_main_git_copy() {
     let (temp, main) = project();
     let nested = main.join("app");

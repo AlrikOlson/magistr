@@ -5,17 +5,20 @@ use magistr::application::SessionRegistry;
 use std::future::Future;
 
 pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
-    let config = cli.config()?;
-    let root = config.cwd.clone();
-    let inputs = config.inputs().as_ref().clone();
+    let directory = cli.dir.clone();
+    let inputs =
+        magistr::config::inputs::ProjectInputs::from_env(directory.clone().unwrap_or_default());
+    let session_inputs = inputs.clone();
     let reduce_motion = cli.reduce_motion;
-    let registry = SessionRegistry::start(config, move |dir| cli.config_for(dir));
+    let mut initial = true;
+    let registry = SessionRegistry::start(move |dir| {
+        let config = cli.config_for(dir, &session_inputs, initial)?;
+        initial = false;
+        Ok(config)
+    });
     let client = registry.client();
-    let initial = match client.open(&root).await {
-        Ok(address) => address,
-        Err(error) => return finish::<()>(Err(eyre::eyre!(error)), registry.shutdown()).await,
-    };
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .menu(|app| {
             use tauri::menu::{Menu, MenuItem, Submenu};
             let quit = MenuItem::with_id(app, "quit", "Quit Magistr", true, Some("CmdOrCtrl+Q"))?;
@@ -52,14 +55,18 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
         .manage(DesktopState {
             client,
             streams: Streams::default(),
-            initial,
-            root,
+            directory,
+            projects: std::sync::Arc::default(),
             inputs,
             reduce_motion,
         })
         .invoke_handler(tauri::generate_handler![
             crate::commands::overview,
             crate::commands::working_copies,
+            crate::commands::pick_folder,
+            crate::commands::preview_project,
+            crate::commands::apply_setup,
+            crate::commands::discard_setup,
             crate::commands::open_session,
             crate::commands::subscribe_session,
             crate::commands::acknowledge,
@@ -67,7 +74,7 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
             crate::commands::save_draft,
             crate::commands::close_session
         ])
-        .build(tauri::generate_context!());
+        .build(context());
     let app = match app {
         Ok(app) => app,
         Err(error) => return finish::<()>(Err(eyre::eyre!(error)), registry.shutdown()).await,
@@ -107,6 +114,10 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
     )
     .await
 }
+fn context() -> tauri::Context<tauri::Wry> {
+    tauri::generate_context!()
+}
+
 async fn finish<T>(
     surface: eyre::Result<T>,
     shutdown: impl Future<Output = Result<(), String>>,

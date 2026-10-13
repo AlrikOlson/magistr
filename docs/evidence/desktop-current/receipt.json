@@ -9,7 +9,7 @@
         "width": 1728
       }
     ],
-    "front_pid": 33459,
+    "front_pid": 685,
     "input_source": "com.apple.keylayout.US",
     "input_sources": [
       "com.apple.keylayout.US",
@@ -336,8 +336,21 @@
     "voiceover_running": false
   },
   "checks": {
+    "clean launch opens a usable chooser": true,
+    "chooser launches no provider and creates no history": true,
+    "invalid directory stays in the chooser": true,
+    "new project previews real setup with refusal": true,
+    "declined setup returns to the chooser": true,
+    "setup can be reviewed again": true,
+    "partial setup stays visible without a session": true,
+    "partial setup gets a fresh plan": true,
+    "successful setup opens the agent in the same window": true,
+    "setup preserves user instructions and project identity": true,
+    "setup session closes back to chooser": true,
+    "native folder selector opened": true,
+    "native folder selection opens the prepared project": true,
     "real window opened": true,
-    "closing the last session disables session actions": true,
+    "closing the last session returns to chooser with session actions unavailable": true,
     "project reopens after the last session closes": true,
     "native Unicode and multiline editing": true,
     "native clipboard exact bytes": true,
@@ -359,23 +372,37 @@
     "resident project appears before history settlement": true,
     "second project streams independently": true,
     "Copy conversation uses native clipboard": true,
-    "IME commit keeps unsent draft": true,
     "closed session returns to another resident": true,
     "quit settles providers and releases owner": true,
-    "session history written by application": true
+    "session history written by application": true,
+    "invalid current settings keep the window usable": true,
+    "invalid current settings keep the window usable returns to chooser": true,
+    "explicit invalid folder keeps the window usable": true,
+    "explicit invalid folder keeps the window usable returns to chooser": true,
+    "explicit new folder previews setup before provider startup": true,
+    "explicit new folder previews setup before provider startup returns to chooser": true,
+    "unavailable provider keeps the window usable": true,
+    "unavailable provider keeps the window usable returns to chooser": true,
+    "rejected launches preserve settings and create no session history": true
   },
-  "launch_to_window_ms": 801.2744999723509,
+  "launch_to_window_ms": 496.830415999284,
   "latency": {
-    "native_event_to_accessible_reply_ms": 81.37437491677701
+    "native_event_to_accessible_reply_ms": 80.52399999905901
   },
   "ime": {
     "source": "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
     "committed": [
-      "ミニくらみ"
+      ""
     ],
-    "native_composition": true
+    "native_composition": false,
+    "reason": "The reported Japanese source delivered Latin preedit; conversion automation is unavailable."
   },
   "history": [
+    {
+      "workspace": "new",
+      "turns": 0,
+      "outcome": "stopped"
+    },
     {
       "workspace": "first",
       "turns": 0,
@@ -392,34 +419,36 @@
       "outcome": "cancelled"
     },
     {
-      "workspace": "feature",
+      "workspace": "first",
       "turns": 0,
       "outcome": "stopped"
     },
     {
-      "workspace": "first",
+      "workspace": "feature",
       "turns": 0,
       "outcome": "stopped"
     }
   ],
   "source_hashes": {
-    "crates/magistr-desktop/Cargo.lock": "8eba13321e69b3183d4881e7f4017df6e620332458dd82fe6e4916b68f489e39",
-    "crates/magistr-desktop/Cargo.toml": "63e68546e47da570a5a2074a268f371798fcca06943005afb0defa3547f567ff",
+    "crates/magistr-desktop/Cargo.lock": "4db40e85a99ada4bde8ebed0c773f4fd1265adc6bb3c1dc15d93de009df7bbe8",
+    "crates/magistr-desktop/Cargo.toml": "ab1f41c500d0fc2f197493651873e5411b12c5b3d76d2e0c1b5f489c5aa8c445",
     "crates/magistr-desktop/build.rs": "6aeeab41bc35efde4e3c2b644a6248f7fc06d24ae30b75c0d33491cbb0c1fa31",
-    "crates/magistr-desktop/src/args.rs": "695434be6874fda4551a6f3901a80ce348d4c6de343084c75ddb25052429636a",
-    "crates/magistr-desktop/src/commands.rs": "7d8ce9f719f4a1513cc4a594c411f5a929571b114666c74d6816ed619aa5cc53",
+    "crates/magistr-desktop/src/args.rs": "c9c9e1abe0416cca1323a5070c67e1514ac3380aea4a510bf36975395210f086",
+    "crates/magistr-desktop/src/commands.rs": "9fb1395ab0d46327ac84d8ffee46ccf886a8077d61f2107a94c671362eeb59f4",
     "crates/magistr-desktop/src/credit.rs": "f6eef88941d7965449d236cdefd1d0100cb34015f1d1260a23d93a37911e9932",
-    "crates/magistr-desktop/src/launch.rs": "473b8c095ee9d95c1d73a9d62086db11f8a0827ed56b7099964ba358e45177ed",
-    "crates/magistr-desktop/src/main.rs": "bed2f410d1cb5abbad52fba772081ca22af74a3a6eb70c982f9a5c35db3fee28",
+    "crates/magistr-desktop/src/launch.rs": "9e920e152864ac36e83c97ce5d921e1ede82330f1720565451462d77cd7afbbe",
+    "crates/magistr-desktop/src/main.rs": "412efc2126a77e915b773893a817945b5e1fb31106793663f39fb528ea6e7ddf",
+    "crates/magistr-desktop/src/projects.rs": "bae44c4ace2504d2eadffddf123ae694d97393864c4b6f839c6a3709951032cd",
     "crates/magistr-desktop/src/streams.rs": "54eb9731705ac3b1b4e02f95e10ce68c72be32cfbeb274214427f0633f715f6e",
     "crates/magistr-desktop/src/wire.rs": "4c31670c0babc18e0a36bcbc7ec4151300540eb8fb35e1b8d8eb09d78b6e329b",
     "crates/magistr-desktop/tauri.conf.json": "1821dcb23fcae5c08dbed913845b2939539fd8a7d966249b1a0777c1d9d8ff4f",
-    "crates/magistr-desktop/ui/app.mjs": "aba24b1637726203b19ccd362b64927161ea6abc2e8ce236899d3c4d77ad5cbe",
+    "crates/magistr-desktop/ui/app.mjs": "da6545f288ecfe7072e468b8f9ab07753418c59361b21916c50eca5d531e3277",
     "crates/magistr-desktop/ui/composer.mjs": "9accf554a6a2f6e7c029f4972fa4221e40d755546693c8343cbd528ef2a00bc0",
     "crates/magistr-desktop/ui/conversation.mjs": "acb565a6601b7c2d90a99b74dac5f463c06fcc5b19deaa987a39a171b84a83f3",
     "crates/magistr-desktop/ui/icon.png": "392002a92fdd8dc81923944cd5abd170d0867fe8eb3701d71d4df4aea083dd10",
-    "crates/magistr-desktop/ui/index.html": "7f6df53831193c50d5f770cb0d44f5f9918e55455a432f41060d99dbc9205be8",
-    "crates/magistr-desktop/ui/selection.mjs": "4d6c5b03e1a88cc31b863d1db3612f4fabc3be20cdac1df5ba4c2479b756ec32",
-    "crates/magistr-desktop/ui/style.css": "59f58bc85fb6578cfd39003cff57504800d85a0a796dbcf0001a81cb5c98e9ab"
+    "crates/magistr-desktop/ui/index.html": "74dd38b1475012ff34475fbb5e265112959546ffb932a821a30ecf5d15f4d99d",
+    "crates/magistr-desktop/ui/projects.mjs": "e19f9be0696a2e21d082561403a2188e1b55cedb898539a7a5ae7280b8807031",
+    "crates/magistr-desktop/ui/selection.mjs": "fd844d9e146a9c5e1fb9ab6e2fc72c0273da66d4f59a70ce639877a87aff05fc",
+    "crates/magistr-desktop/ui/style.css": "2a27e21548fe065280ead4b115a098054bf26516dd377002bf209a05916aafc8"
   }
 }

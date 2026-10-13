@@ -4,11 +4,16 @@ The desktop is `magistr-desktop`: a Rust Tauri 2.12 host with the operating
 system's WebView and semantic HTML/CSS. Its only launch route is:
 
 ```sh
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+# Optionally open a particular folder after the window is ready:
 cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project
 ```
 
-The directory must be a configured Magistr project. The initial conversation
-uses the selected provider, model and permission profile. `--resume` and
+The window opens before project or provider admission. With no directory it
+shows a project chooser and reads existing session history without creating a
+project, database or provider. A requested directory is inspected after the
+window is ready; invalid settings and unavailable agents remain visible there.
+The initial conversation uses the selected provider, model and permission profile. `--resume` and
 `--continue` use application-owned session history. Later conversations open
 through the same admission path.
 
@@ -19,7 +24,8 @@ through the same admission path.
 | `application::SessionRegistry` | Resident sessions, admission, addressed controls, bounded observation and ordered shutdown |
 | `InteractiveHost` and `ProjectResources` | Provider, workflow attachment, source workspace and their child lifetimes |
 | `SessionObservation` | Retained messages, current status/model/usage, requests and drafts |
-| Desktop commands | Typed translation from window actions to the application client |
+| `ProjectFolder`, `ProjectSetup`, `ScaffoldPipeline` and `AdminService` | Read-only readiness, detected setup plan, exact approved writes, ownership and per-path receipts |
+| Desktop commands | Typed translation from window actions to the application client; ephemeral single-use setup review handles |
 | Desktop streams | One window subscription, batching and acknowledgement credit |
 | WebView | Native editing, accessible controls, focus, layout and bounded conversation presentation |
 
@@ -49,9 +55,21 @@ Send, Stop, Allow/Deny, Copy conversation and Close session call real owners.
 Appearance selects System, Light or Dark. Motion is absent; native reduced-motion
 preferences and `--reduce-motion` are honored.
 
-Roadmap editing, supervision, detailed file review, project setup and settings
-are later desktop work. These remain available through the CLI and agent tools;
-the current window does not offer unfinished controls.
+Open project accepts a native folder selection or an entered path. Prepared
+projects use the existing session admission authority. Other folders show the
+actual setup plan: each file's action, ownership, refusal and exact contents or
+diff. Approval applies the retained plan through the administrative writer;
+stale bytes or ownership refuse before writes, and subsequent failures retain
+per-path receipts. Declined, refused and partial setup never opens an agent.
+Review again creates a fresh plan; cancel discards only the review. Setup in a
+linked working copy uses its shared project owner. Project identity, settings,
+customized files and unrelated shared-file entries remain with their owners.
+Folders without Git open as the project's sole source directory; Git-only working-copy creation explicitly requires a repository. Recent histories from linked copies resolve to their shared project. After the last session closes, the same window returns to its chooser.
+
+The desktop opens conversations and prepares projects. The CLI retains
+headless runs, initialization, validation and administrative commands; MCP
+roles serve workflow and source tools. Roadmap editing, supervision, detailed
+file review and settings remain later desktop work.
 
 ## Verification
 
@@ -63,8 +81,10 @@ renderer dependencies.
 
 `tests/native_window.py` builds a disposable signed macOS app around the real
 binary. It uses native keyboard, pointer and accessibility input with a controlled
-ACP peer, isolated projects and state. It exercises independent sessions and
-working copies, streamed replies, permissions, cancellation, drafts, native
+ACP peer, isolated projects and state. The fixture preserves the real macOS home for WebKit and isolates application state with XDG and Magistr paths. It exercises independent sessions and
+working copies, clean and explicit launch, native folder selection,
+reviewed setup (declined, refused and partial), invalid paths/settings,
+unavailable agents, streamed replies, permissions, cancellation, drafts, native
 clipboard, light/dark/narrow views and orderly Quit. It retains screenshots,
 an accessibility tree and a receipt tied to source hashes.
 Run it after rebuilding the desktop:

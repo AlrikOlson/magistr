@@ -18,9 +18,9 @@ const RECENT_SESSIONS: usize = 500;
 
 /// The home page's projects for a window rooted on `here`; an unlocated or
 /// unopenable session database lists this project alone, never an error.
-pub(crate) fn collect(here: &Path, inputs: &ProjectInputs) -> GalaxyData {
+pub(crate) fn collect(here: Option<&Path>, inputs: &ProjectInputs) -> GalaxyData {
     let records = crate::session::storage::sessions_db_path(inputs)
-        .and_then(|path| crate::session::storage::open_db(&path).ok())
+        .and_then(|path| crate::session::storage::open_readonly_db(&path).ok())
         .and_then(|conn| {
             let filter = SessionFilter::new().with_limit(RECENT_SESSIONS);
             crate::session::storage::query_sessions(&conn, &filter).ok()
@@ -32,23 +32,27 @@ pub(crate) fn collect(here: &Path, inputs: &ProjectInputs) -> GalaxyData {
 /// `records` as the project list at `now`: the open project leads, then each
 /// recorded directory that still holds a Magistr project, once, by its
 /// latest session, newest first.
-fn from_records(here: &Path, records: &[SessionRecord], now: DateTime<Utc>) -> GalaxyData {
-    let here = here.canonicalize().unwrap_or_else(|_| here.to_path_buf());
+fn from_records(here: Option<&Path>, records: &[SessionRecord], now: DateTime<Utc>) -> GalaxyData {
+    let here = here.map(|path| {
+        magistr_engine::native::ProjectLocation::resolve(path)
+            .map(|location| location.authority_root)
+            .unwrap_or_else(|_| path.to_path_buf())
+    });
     let mut records: Vec<&SessionRecord> = records.iter().collect();
     records.sort_by_key(|record| std::cmp::Reverse(record.ended_at));
-    let mut projects = vec![project(&here, true, None)];
-    let mut seen = vec![here.clone()];
+    let mut projects: Vec<_> = here.iter().map(|path| project(path, true, None)).collect();
+    let mut seen: Vec<_> = here.iter().cloned().collect();
     let mut spent_cents = 0u64;
     for record in records {
         let Some(dir) = recorded_project(&record.workspace) else {
             continue;
         };
         let known = seen.contains(&dir);
-        if !known && seen.len() > RECENT_PROJECTS {
+        if !known && seen.len() >= RECENT_PROJECTS + usize::from(here.is_some()) {
             continue;
         }
         spent_cents += record.cost_usd.map(cents).unwrap_or(0);
-        if dir == here {
+        if Some(&dir) == here.as_ref() {
             let idle = &mut projects[0].idle_secs;
             *idle = idle.or_else(|| idle_secs(record, now));
         } else if !known {
@@ -89,7 +93,9 @@ fn recorded_project(recorded: &str) -> Option<PathBuf> {
     if !path.is_absolute() {
         return None;
     }
-    let dir = path.canonicalize().ok()?;
+    let dir = magistr_engine::native::ProjectLocation::resolve(path)
+        .ok()?
+        .authority_root;
     crate::paths::project_json(&dir)
         .ok()?
         .is_file()

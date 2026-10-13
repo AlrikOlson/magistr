@@ -36,7 +36,9 @@ current sources.
 ## Desktop
 
 ```sh
-cargo run --manifest-path crates/magistr-desktop/Cargo.toml -- --dir /path/to/project
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+# Or choose an initial folder:
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project
 python3 crates/magistr-desktop/tests/native_window.py crates/magistr-desktop/target/debug/magistr-desktop
 ```
 

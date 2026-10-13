@@ -1,16 +1,23 @@
 {
   "reviewed_on": "2026-10-13",
   "images": {
-    "dark.png": "364063e41f5a82f2dbf26f96e13613bce98a7a78c1db7ad9b12fdf78bac70503",
-    "light.png": "adc56f9330b71ada58b26e182c81f1559092edd6b2170c1697ef9bc29aa46b55",
-    "narrow.png": "0cfa57465dce757ae6a95d0663cfbfd05d0b97f08c3c3576a9099c48fb0d81f8"
+    "dark.png": "b80962e98a460548586bf884260f923e21961e0875a3681fe56a9d02ed0065ca",
+    "light.png": "d91bac1b7d1a2e9cad074f3f29b5c4d757b1259e42ffc64835d713fdd094c569",
+    "narrow.png": "9a3244492558fc08fc2e250c350749ace0dfab4676bf33417943d292081c2c9e",
+    "chooser-dark.png": "0ad6606f65a7a93243430b51f32a03f37d6db7e7c7b850ac7a98e09e3084af43",
+    "chooser-light.png": "840e2c94a67aed8a5df810d4c2eb54aae193a73375c071c126942e3db5625b17",
+    "setup-review.png": "dcbb2f82bfe54479aeef3c2c3da3901aee0fa51e9f00fe4475f22b2316e5aed3",
+    "setup-partial.png": "5d5210083fa12c3ea562f5f8c70cea3f1286a03c4ed8ff63c33e487ea4695b3f",
+    "provider-unavailable.png": "96f4006f22b1b8a45a06541714986939b79bea5b9edcf4d289ee08798e5ad288"
   },
-  "accessibility": "51374320e3f5021f9d5a47739e89ff61f9d5c4f77b95d8f9236d7910eb119c60",
+  "accessibility": "4c0a7fc6a4292109dbcf9d3ca8af1aee7e2d461bbfd66683798774ea54f957ec",
+  "chooser_accessibility": "0a37f7a2c94d5744f95ca21a8ba9c27191b7b7920fde2e9efc1f467cc3cf5ac0",
   "findings": [
-    "Reviewed the actual light, dark and 800 x 680 native windows. Conversation and composer remain visible, text wraps, working-copy details remain readable and keyboard focus has a visible outline.",
-    "The narrow project rail scrolls to reach Appearance.",
-    "Light textarea and input placeholders use the palette muted color; disabled controls are distinct.",
-    "Native pointer, keyboard, clipboard, permission, draft and Quit outcomes are recorded in the receipt. Native IME activation limits and the earlier observed Kana draft are retained separately.",
-    "The last-session boundary now disables session actions and the same project reopens through its existing owner; the native receipt requires all five admitted histories."
+    "Reviewed the real light, dark and 800 x 680 conversation windows: text wraps, the composer and session actions remain visible, and keyboard focus is outlined. The narrow project rail scrolls to Appearance.",
+    "Both chooser appearances show native folder selection and path entry without a project or agent. The native accessibility tree exposes both actions and the disabled New session control.",
+    "Setup review shows per-file selection and content disclosure. The long file list scrolls separately from the fully visible Apply and Cancel buttons. Partial results retain the actual refusal and declined files with visible Review again and Cancel actions.",
+    "A supported Copilot selection with no executable remains in the same usable window and shows the application's installation guidance. The capture was taken after native activation settled.",
+    "The receipt verifies clean and explicit startup, invalid settings and paths, native folder selection, partial/refused/canceled setup, same-window admission and reopening, six admitted histories, provider cleanup and owner release.",
+    "Current IME activation reported Japanese but delivered Latin preedit; this run does not prove conversion. The retained earlier positive observation and the existing native IME roadmap item remain separate."
   ]
 }

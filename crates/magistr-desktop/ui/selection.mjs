@@ -2,6 +2,7 @@ import { Conversation } from "./conversation.mjs";
 // Navigation intentions begin before any asynchronous draft or IPC work.
 export class Selection {
   constructor() { this.generation=0; this.current=null; }
+  clear() {++this.generation;this.current=null;}
   async open(address,{save,subscribe,commit,receive}) {
     const generation=++this.generation;
     await save();

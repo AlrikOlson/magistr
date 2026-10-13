@@ -5,6 +5,7 @@ mod args;
 mod commands;
 mod credit;
 mod launch;
+mod projects;
 mod streams;
 mod wire;
 

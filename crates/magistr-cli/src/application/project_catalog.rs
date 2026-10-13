@@ -10,12 +10,8 @@ pub struct RecentProject {
     pub directory: String,
 }
 
-pub fn recent_projects(
-    root: &Path,
-    inputs: &ProjectInputs,
-    active: &[PathBuf],
-) -> Vec<RecentProject> {
-    let mut projects: Vec<_> = crate::commands::galaxy_data::collect(root, inputs)
+pub fn recent_projects(inputs: &ProjectInputs, active: &[PathBuf]) -> Vec<RecentProject> {
+    let mut projects: Vec<_> = crate::commands::galaxy_data::collect(None, inputs)
         .projects
         .into_iter()
         .filter_map(|project| {

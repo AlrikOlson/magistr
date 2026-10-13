@@ -543,17 +543,11 @@ fn gone() -> String {
 }
 
 fn prepared(dir: &Path) -> Result<(String, PathBuf), String> {
-    let root = dir
-        .canonicalize()
-        .ok()
-        .filter(|root| root.is_dir())
-        .ok_or_else(|| format!("{} is not a directory.", dir.display()))?;
-    if !crate::paths::project_json(&root)
-        .map_err(|error| error.to_string())?
-        .is_file()
-    {
+    let folder = super::ProjectFolder::inspect(dir).map_err(|error| error.to_string())?;
+    let root = folder.directory;
+    if !folder.prepared {
         return Err(format!(
-            "{} has no Magistr setup yet. Run `magistr init` there, then open it again.",
+            "{} needs Magistr setup. Review setup in the desktop or run `magistr init` in that folder.",
             root.display()
         ));
     }

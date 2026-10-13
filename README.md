@@ -43,15 +43,19 @@ Install the [OS WebView prerequisites](https://v2.tauri.app/start/prerequisites/
 then build and open the desktop from this repository:
 
 ```sh
-cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked -- --dir /path/to/project
+cargo run --manifest-path crates/magistr-desktop/Cargo.toml --locked
 ```
+
+Choose a folder in the window, or pass `--dir /path/to/project` when launching.
+If the folder needs setup, review each file and apply the changes you select.
+Invalid folders and unavailable agents leave the chooser open so you can recover.
 
 Open projects and working copies, keep separate agent conversations, answer
 permission requests and stop work while keeping your draft. Use native text
 editing and clipboard, with System, Light and Dark appearances.
 
-The current window focuses on conversations. Roadmap planning, detailed recorded
-work, file review, setup and settings use the CLI and agent tools.
+Roadmap planning, detailed recorded work, file review and settings use the CLI
+and agent tools. The CLI also supports headless runs, initialization and checks.
 
 ## Run and verify work
 

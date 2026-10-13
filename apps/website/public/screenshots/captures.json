@@ -8,14 +8,14 @@
     {
       "file": "desktop-dark.png",
       "screen": "conversation",
-      "sha256": "364063e41f5a82f2dbf26f96e13613bce98a7a78c1db7ad9b12fdf78bac70503",
+      "sha256": "b80962e98a460548586bf884260f923e21961e0875a3681fe56a9d02ed0065ca",
       "width": 2560,
       "height": 1664
     },
     {
       "file": "desktop-light.png",
       "screen": "conversation",
-      "sha256": "adc56f9330b71ada58b26e182c81f1559092edd6b2170c1697ef9bc29aa46b55",
+      "sha256": "d91bac1b7d1a2e9cad074f3f29b5c4d757b1259e42ffc64835d713fdd094c569",
       "width": 2560,
       "height": 1664
     }

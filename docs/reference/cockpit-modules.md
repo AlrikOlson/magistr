@@ -82,6 +82,9 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/src/credit.rs`
 - `crates/magistr-desktop/src/launch.rs`
 - `crates/magistr-desktop/src/main.rs`
+- `crates/magistr-desktop/src/projects.rs`
+- `crates/magistr-desktop/tests/projects.mjs`
+- `crates/magistr-desktop/ui/projects.mjs`
 - `crates/magistr-desktop/src/streams.rs`
 - `crates/magistr-desktop/src/wire.rs`
 - `crates/magistr-desktop/tests/composer.mjs`
