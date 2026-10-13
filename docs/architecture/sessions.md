@@ -259,17 +259,13 @@ runtime alive through cleanup. Startup failure releases source references
 before closing the workspace, and failed command forwarding returns the
 undelivered action to the surface.
 
-The `magistr-cli` package exposes the `magistr` host library with
-`default-features = false`. Its normal dependency graph then excludes
-`magistr-tui`; the default `terminal` feature enables terminal commands and
-the CLI binary. Provider and workspace implementations remain in the host,
-not the neutral runtime or desktop renderer. Test harnesses may still depend
-on the terminal crate.
+The `magistr-cli` package exposes the `magistr` host library and plain CLI
+without a terminal-renderer feature or dependency. Provider and workspace
+implementations remain in the host, independent of desktop presentation.
 
 A new executable must also supply the host's existing process entry roles:
 provider startup can invoke the executable's ACP-agent command, and workspace
-workers invoke its private worker role. Disabling terminal features alone does
-not provide that dispatch. The separate `magistr-desktop` executable provides
+workers invoke its private worker role. The separate `magistr-desktop` executable provides
 these roles and both native MCP launch targets, preserving the renderer's
 dependency boundary. Its main thread runs the native window and awaits this
 host's shutdown on every returned window outcome. See the desktop guide for

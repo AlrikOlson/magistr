@@ -666,12 +666,6 @@ async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work(
         None,
         None,
     );
-    let mut model =
-        magistr_cockpit::cockpit::Model::new(magistr_cockpit::cockpit::Size::new(80, 24));
-    magistr_cockpit::cockpit::update(
-        &mut model,
-        Msg::Agent(AgentEvent::Text("Still working".into())),
-    );
     for cmd in [
         Cmd::Cancel,
         Cmd::Permission {
@@ -695,11 +689,6 @@ async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work(
             .unwrap();
         assert!(
             matches!(&event, Msg::CommandFailed { cmd: refused, error } if refused == &cmd && !error.is_empty())
-        );
-        magistr_cockpit::cockpit::update(&mut model, event);
-        assert!(
-            model.agent_activity().active,
-            "an action refusal cannot finish unrelated work"
         );
     }
     drop(commands_tx);

@@ -10,7 +10,7 @@ pub fn install_sigterm_handler() {
         use tokio::signal::unix::{SignalKind, signal};
         if let Ok(mut sig) = signal(SignalKind::terminate()) {
             sig.recv().await;
-            super::panic::emergency_restore_terminal();
+            super::child_guard::kill_all_children();
             // Exit with standard SIGTERM code (128 + 15)
             std::process::exit(143);
         }

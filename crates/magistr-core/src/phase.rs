@@ -4,7 +4,7 @@
 ///
 /// Tracks the high-level state of the Magistr session from initial stack
 /// detection through agent execution to completion. Frontend renderers
-/// (TUI, GUI) map these variants to visual indicators.
+/// (desktop, CLI) map these variants to visual indicators.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Phase {
     /// Detecting project stack

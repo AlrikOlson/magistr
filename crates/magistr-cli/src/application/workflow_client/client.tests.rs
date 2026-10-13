@@ -106,7 +106,10 @@ fn a_second_host_on_the_same_project_is_refused_until_the_first_is_gone() {
         matches!(err, EngineError::Admission { root: ref refused, .. } if *refused == root),
         "{err}"
     );
-    assert!(err.to_string().contains("project host owner"), "{err}");
+    assert!(
+        matches!(&err, EngineError::Admission { source, .. } if source.kind() == io::ErrorKind::WouldBlock),
+        "{err}"
+    );
     assert!(std::error::Error::source(&err).is_some());
 
     // A cockpit beside a loop attaches to the loop's admitted writer rather

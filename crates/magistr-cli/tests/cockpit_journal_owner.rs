@@ -12,7 +12,7 @@ use magistr_application::effects::{
     EffectAuthorizer, EffectFuture, EffectPort, EffectRequest, EffectResponse, SourceRoute,
 };
 use magistr_cockpit::{
-    cockpit::{Model, Msg, Size, WorkbenchCmd, WorkbenchEvent, update},
+    cockpit::{WorkbenchCmd, WorkbenchEvent},
     workbench,
 };
 use magistr_workspace::{service::WorkspaceOpenOptions, snapshot::MutationStatus};
@@ -60,13 +60,13 @@ async fn agent_write(
         .expect("the agent's write event")
 }
 
-async fn cockpit_call(mut port: McpWorkbench, cmd: WorkbenchCmd) -> (McpWorkbench, WorkbenchEvent) {
+async fn source_call(mut port: McpWorkbench, cmd: WorkbenchCmd) -> (McpWorkbench, WorkbenchEvent) {
     tokio::task::spawn_blocking(move || {
         let event = workbench::apply(&mut port, &cmd);
         (port, event)
     })
     .await
-    .expect("bounded cockpit operation")
+    .expect("bounded source operation")
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -98,10 +98,9 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
         vec![("WORKBENCH_NETWORK_FS".into(), "0".into())],
     )
     .with_workspace(&root);
-    let mut model = Model::new(Size::new(100, 30));
 
     let event;
-    (port, event) = cockpit_call(port, WorkbenchCmd::Journal).await;
+    (port, event) = source_call(port, WorkbenchCmd::Journal).await;
     let WorkbenchEvent::Journal { entries } = &event else {
         panic!("owner journal: {event:?}");
     };
@@ -109,10 +108,9 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
     assert_eq!(entries[0].id, first.to_string());
     assert_eq!(entries[0].path, "notes.txt");
     assert!(entries[0].diff.contains("+agent change"));
-    update(&mut model, Msg::Workbench(event));
 
     let event;
-    (port, event) = cockpit_call(
+    (port, event) = source_call(
         port,
         WorkbenchCmd::Undo {
             id: first.to_string(),
@@ -123,8 +121,6 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
         matches!(&event, WorkbenchEvent::Undone { id } if id == &first.to_string()),
         "{event:?}"
     );
-    update(&mut model, Msg::Workbench(event));
-    assert!(model.changes().entries().is_empty());
     assert_eq!(
         std::fs::read_to_string(&target).expect("rewound"),
         "original\n"
@@ -132,23 +128,19 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
 
     let second = agent_write(&agent, &mut received, &target, "second agent change\n").await;
     let event;
-    (port, event) = cockpit_call(port, WorkbenchCmd::Journal).await;
+    (port, event) = source_call(port, WorkbenchCmd::Journal).await;
     assert!(
         matches!(&event, WorkbenchEvent::Journal { .. }),
         "{event:?}"
     );
-    update(&mut model, Msg::Workbench(event));
     assert!(
-        model
-            .changes()
-            .entries()
-            .iter()
-            .any(|row| row.id == second.to_string())
+        matches!(&event, WorkbenchEvent::Journal {entries} if entries.iter().any(|row|row.id==second.to_string())),
+        "{event:?}"
     );
 
     std::fs::write(&target, "external edit\n").expect("an external editor");
     let event;
-    (port, event) = cockpit_call(
+    (port, event) = source_call(
         port,
         WorkbenchCmd::Undo {
             id: second.to_string(),
@@ -161,8 +153,6 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
     } if id == &second.to_string() && error.contains("notes.txt")),
         "{event:?}"
     );
-    update(&mut model, Msg::Workbench(event));
-    assert!(model.changes().refusal(&second.to_string()).is_some());
     assert_eq!(
         std::fs::read_to_string(&target).expect("preserved"),
         "external edit\n"
@@ -185,7 +175,7 @@ async fn journal_and_undo_share_the_agents_owner_and_preserve_external_edits() {
         assert_eq!(receipt.status, MutationStatus::Applied);
         assert_eq!(receipt.generation, Some(generation));
     }
-    let (port, event) = cockpit_call(port, WorkbenchCmd::Journal).await;
+    let (port, event) = source_call(port, WorkbenchCmd::Journal).await;
     let WorkbenchEvent::Journal { entries } = event else {
         panic!("journal after conflict: {event:?}");
     };

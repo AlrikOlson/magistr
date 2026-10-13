@@ -1,7 +1,12 @@
 //! Desktop composition and current-executable child roles.
+#![deny(dead_code, unused)]
 
 mod args;
+mod commands;
+mod credit;
 mod launch;
+mod streams;
+mod wire;
 
 use args::{Child, Desktop};
 use clap::Parser;
@@ -48,5 +53,6 @@ fn main() -> eyre::Result<()> {
         .init();
     // block_on polls this future on the calling (main) thread. The native loop
     // stays here while the multithread scheduler services the admitted host.
+    tauri::async_runtime::set(runtime.handle().clone());
     runtime.block_on(launch::run(cli))
 }

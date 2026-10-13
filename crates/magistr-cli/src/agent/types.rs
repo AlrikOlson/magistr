@@ -2,7 +2,7 @@
 //!
 //! The `agent-client-protocol` crate defines the standard message types for
 //! editor↔agent communication. This module maps those types to magistr's internal
-//! `AgentMessage` enum so the TUI and handler code remain backend-agnostic.
+//! `AgentMessage` enum so the interface and handler code remain backend-agnostic.
 //!
 //! ## Mapping Summary
 //!

@@ -112,6 +112,7 @@ impl Permissions {
         let id = self.next_id;
         self.next_id += 1;
         let event = AgentEvent::PermissionRequest {
+            detail: request.tool_input.to_string(),
             id,
             title: request.tool_title.clone(),
             choices: request

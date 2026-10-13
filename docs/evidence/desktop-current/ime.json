@@ -1,0 +1,6880 @@
+{
+  "actual_source" : "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese",
+  "committed" : [
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXApplication",
+      "AXTitle" : "Magistr Journey"
+    },
+    {
+      "actions" : [
+        "AXRaise"
+      ],
+      "AXRole" : "AXWindow",
+      "AXSubrole" : "AXStandardWindow",
+      "AXTitle" : "Magistr",
+      "focused" : false,
+      "rect" : [
+        224,
+        159,
+        800,
+        680
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenuBar",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        0,
+        1728,
+        33
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        224,
+        159,
+        800,
+        680
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress"
+      ],
+      "AXRole" : "AXButton",
+      "AXSubrole" : "AXCloseButton",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        232,
+        167,
+        16,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXZoomWindow",
+        "AXShowMenu"
+      ],
+      "AXHelp" : "this button also has an action to zoom the window",
+      "AXRole" : "AXButton",
+      "AXSubrole" : "AXFullScreenButton",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        278,
+        167,
+        16,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress"
+      ],
+      "AXRole" : "AXButton",
+      "AXSubrole" : "AXMinimizeButton",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        255,
+        167,
+        16,
+        16
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXStaticText",
+      "AXValue" : "Magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        306,
+        167,
+        54,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuBarItem",
+      "AXTitle" : "Apple",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        10,
+        0,
+        34,
+        33
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuBarItem",
+      "AXTitle" : "Magistr Journey",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        44,
+        0,
+        126,
+        33
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuBarItem",
+      "AXTitle" : "Edit",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        170,
+        0,
+        44,
+        33
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "focused" : false,
+      "rect" : [
+        224,
+        159,
+        800,
+        680
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "focused" : false,
+      "rect" : [
+        279,
+        168,
+        14,
+        14
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXScrollArea",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : true,
+      "rect" : [
+        224,
+        191,
+        800,
+        648
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "focused" : false,
+      "rect" : [
+        279,
+        168,
+        14,
+        14
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "About This Mac",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "System Information",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "System Settings…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "App Store",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Recent Items",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Force Quit…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Force Quit Magistr Journey",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Sleep",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Restart…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Restart",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Shut Down…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Shut Down",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Lock Screen",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Log Out Alrik Olson…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Log Out Alrik Olson",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Quit Magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Undo",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Redo",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Cut",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Copy",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Paste",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Select All",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Writing Tools",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "AutoFill",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Start Dictation…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Emoji & Symbols",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Magistr",
+      "AXHelp" : "",
+      "AXRole" : "AXWebArea",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : true,
+      "rect" : [
+        224,
+        191,
+        800,
+        648
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Projects and sessions",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkComplementary",
+      "AXTitle" : "Projects and sessions",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        224,
+        191,
+        180,
+        648
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkMain",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        191,
+        620,
+        648
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Applications",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "ChatGPT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “ChatGPT” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "DaisyDisk",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “DaisyDisk” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Magistr Journey",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Magistr Journey” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "MagistrFoundation-gpui",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “MagistrFoundation-gpui” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "MagistrFoundation-tauri",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “MagistrFoundation-tauri” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Preview",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Preview” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Realpaint",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Realpaint” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Telegram",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Telegram” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Terminal",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Terminal” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Visual Studio Code",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Visual Studio Code” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Documents",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "browser-dark.png",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “browser-dark.png” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "cleri-alrik-finance",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “cleri-alrik-finance” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "docuwarrant",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “docuwarrant” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "epic-acceptance-research-20260913.md",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “epic-acceptance-research-20260913.md” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "flora-overhaul-2026-09-06.md",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “flora-overhaul-2026-09-06.md” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "hands-free-games",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “hands-free-games” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “magistr” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "procgenfart",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “procgenfart” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "realpaint",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “realpaint” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "wow-ai",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “wow-ai” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Servers",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Macintosh HD",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Clear Menu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show Writing Tools",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Proofread",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Rewrite",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Friendly",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Professional",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Concise",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Summarize",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Create Key Points",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make List",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Table",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Compose…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Contact…",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Passwords…",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Credit Card…",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXSectionHeader",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        213,
+        155,
+        32
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Open project",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        271,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "PROJECTS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        334,
+        155,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Projects",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkNavigation",
+      "AXTitle" : "Projects",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        364,
+        155,
+        83
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "SESSIONS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        471,
+        155,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Sessions",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkNavigation",
+      "AXTitle" : "Sessions",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        501,
+        155,
+        235
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "New session",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        748,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXSectionFooter",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        799,
+        155,
+        72
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXSectionHeader",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        191,
+        620,
+        91
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Conversation",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkRegion",
+      "AXTitle" : "Conversation",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        282,
+        380,
+        557
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Session details",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkComplementary",
+      "AXTitle" : "Session details",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        784,
+        282,
+        240,
+        557
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        278,
+        215,
+        69,
+        28
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "PROJECTS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        335,
+        70,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        364,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Second project",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        408,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "SESSIONS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        472,
+        68,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "First project session 4",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project session 4",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        501,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "First project session 2",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project session 2",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        561,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "First project session 3",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project session 3",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        621,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Second project session 5",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Second project session 5",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        681,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Appearance",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        820,
+        155,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXPopUpButton",
+      "AXTitle" : "Appearance",
+      "AXValue" : "Light",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        849,
+        155,
+        22
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        211,
+        135,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "Conversation",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        233,
+        135,
+        28
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXApplicationStatus",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        947,
+        226,
+        51,
+        20
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Messages",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "Messages",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        282,
+        380,
+        332
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkForm",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        614,
+        380,
+        225
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "WORKING COPY",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        302,
+        211,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        332,
+        211,
+        76
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Working copy",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        420,
+        211,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXPopUpButton",
+      "AXTitle" : "Working copy",
+      "AXValue" : "main · Main",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        450,
+        211,
+        22
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        494,
+        211,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        524,
+        211,
+        19
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        555,
+        211,
+        19
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Requests waiting for you",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXEmptyGroup",
+      "AXTitle" : "Requests waiting for you",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        784,
+        282,
+        240,
+        10
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Copy conversation",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        733,
+        211,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Close session",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        780,
+        211,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        278,
+        218,
+        70,
+        22
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Appearance",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        822,
+        78,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Second project",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        212,
+        86,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Conversation",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        234,
+        136,
+        26
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Finished",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        947,
+        227,
+        51,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "YOU",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXDocumentArticle",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        308,
+        344,
+        76
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "THINKING",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXDocumentArticle",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        408,
+        344,
+        44
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "AGENT",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXDocumentArticle",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        476,
+        344,
+        46
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Message the agent",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        631,
+        344,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXTextArea",
+      "AXSelectedText" : "ミニ",
+      "AXTitle" : "Message the agent",
+      "AXValue" : "ミニくらみ",
+      "enabled" : true,
+      "focused" : true,
+      "rect" : [
+        422,
+        656,
+        344,
+        110
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Return to send · Shift Return for a new line",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        784,
+        168,
+        30
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Stop",
+      "AXValue" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        627,
+        780,
+        55,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Send",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        689,
+        780,
+        78,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "WORKING COPY",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        303,
+        106,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-k2cvnajj\/second",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        334,
+        208,
+        72
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Working copy",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        421,
+        78,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        495,
+        46,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "scripted-fast",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        525,
+        79,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "23 \/ 200,000 context tokens",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        556,
+        171,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "YOU",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        323,
+        310,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        348,
+        310,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "THINKING",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        408,
+        344,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        433,
+        344,
+        19
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        476,
+        344,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        501,
+        344,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Message the agent",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        632,
+        108,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        435,
+        669,
+        318,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "YOU",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        324,
+        29,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "second project response\n",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        350,
+        160,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "THINKING",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        409,
+        66,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "considering: second project response",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        434,
+        229,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        477,
+        46,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "[scripted-fast] echo: second project response",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        503,
+        298,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "ミニくらみ",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        435,
+        671,
+        65,
+        17
+      ]
+    }
+  ],
+  "front_pid" : 33659,
+  "native_preedit" : true,
+  "preedit" : [
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXApplication",
+      "AXTitle" : "Magistr Journey"
+    },
+    {
+      "actions" : [
+        "AXRaise"
+      ],
+      "AXRole" : "AXWindow",
+      "AXSubrole" : "AXStandardWindow",
+      "AXTitle" : "Magistr",
+      "focused" : false,
+      "rect" : [
+        224,
+        159,
+        800,
+        680
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenuBar",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        0,
+        1728,
+        33
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        224,
+        159,
+        800,
+        680
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress"
+      ],
+      "AXRole" : "AXButton",
+      "AXSubrole" : "AXCloseButton",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        232,
+        167,
+        16,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXZoomWindow",
+        "AXShowMenu"
+      ],
+      "AXHelp" : "this button also has an action to zoom the window",
+      "AXRole" : "AXButton",
+      "AXSubrole" : "AXFullScreenButton",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        278,
+        167,
+        16,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress"
+      ],
+      "AXRole" : "AXButton",
+      "AXSubrole" : "AXMinimizeButton",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        255,
+        167,
+        16,
+        16
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXStaticText",
+      "AXValue" : "Magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        306,
+        167,
+        54,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuBarItem",
+      "AXTitle" : "Apple",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        10,
+        0,
+        34,
+        33
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuBarItem",
+      "AXTitle" : "Magistr Journey",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        44,
+        0,
+        126,
+        33
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuBarItem",
+      "AXTitle" : "Edit",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        170,
+        0,
+        44,
+        33
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "focused" : false,
+      "rect" : [
+        224,
+        159,
+        800,
+        680
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "focused" : false,
+      "rect" : [
+        279,
+        168,
+        14,
+        14
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXScrollArea",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : true,
+      "rect" : [
+        224,
+        191,
+        800,
+        648
+      ]
+    },
+    {
+      "actions" : [
+
+      ],
+      "AXRole" : "AXGroup",
+      "focused" : false,
+      "rect" : [
+        279,
+        168,
+        14,
+        14
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "About This Mac",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "System Information",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "System Settings…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "App Store",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Recent Items",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Force Quit…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Force Quit Magistr Journey",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Sleep",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Restart…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Restart",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Shut Down…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Shut Down",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Lock Screen",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Log Out Alrik Olson…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Log Out Alrik Olson",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Quit Magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Undo",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Redo",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Cut",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Copy",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Paste",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Select All",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Writing Tools",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "AutoFill",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Start Dictation…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Emoji & Symbols",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Magistr",
+      "AXHelp" : "",
+      "AXRole" : "AXWebArea",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : true,
+      "rect" : [
+        224,
+        191,
+        800,
+        648
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel"
+      ],
+      "AXRole" : "AXMenu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Projects and sessions",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkComplementary",
+      "AXTitle" : "Projects and sessions",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        224,
+        191,
+        180,
+        648
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkMain",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        191,
+        620,
+        648
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Applications",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "ChatGPT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “ChatGPT” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "DaisyDisk",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “DaisyDisk” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Magistr Journey",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Magistr Journey” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "MagistrFoundation-gpui",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “MagistrFoundation-gpui” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "MagistrFoundation-tauri",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “MagistrFoundation-tauri” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Preview",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Preview” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Realpaint",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Realpaint” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Telegram",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Telegram” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Terminal",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Terminal” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Visual Studio Code",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “Visual Studio Code” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Documents",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "browser-dark.png",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “browser-dark.png” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "cleri-alrik-finance",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “cleri-alrik-finance” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "docuwarrant",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “docuwarrant” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "epic-acceptance-research-20260913.md",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “epic-acceptance-research-20260913.md” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "flora-overhaul-2026-09-06.md",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “flora-overhaul-2026-09-06.md” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "hands-free-games",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “hands-free-games” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “magistr” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "procgenfart",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “procgenfart” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "realpaint",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “realpaint” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "wow-ai",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show “wow-ai” in Finder",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Servers",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Macintosh HD",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Clear Menu",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Show Writing Tools",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Proofread",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Rewrite",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Friendly",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Professional",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Concise",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Summarize",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Create Key Points",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make List",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Make Table",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Compose…",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Contact…",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Passwords…",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXCancel",
+        "AXPress",
+        "AXPick"
+      ],
+      "AXRole" : "AXMenuItem",
+      "AXTitle" : "Credit Card…",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        0,
+        1117,
+        0,
+        0
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXSectionHeader",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        213,
+        155,
+        32
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Open project",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        271,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "PROJECTS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        334,
+        155,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Projects",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkNavigation",
+      "AXTitle" : "Projects",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        364,
+        155,
+        83
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "SESSIONS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        471,
+        155,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Sessions",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkNavigation",
+      "AXTitle" : "Sessions",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        501,
+        155,
+        235
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "New session",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        748,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXSectionFooter",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        799,
+        155,
+        72
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXSectionHeader",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        191,
+        620,
+        91
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Conversation",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkRegion",
+      "AXTitle" : "Conversation",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        282,
+        380,
+        557
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Session details",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkComplementary",
+      "AXTitle" : "Session details",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        784,
+        282,
+        240,
+        557
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        278,
+        215,
+        69,
+        28
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "PROJECTS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        335,
+        70,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        364,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Second project",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        408,
+        155,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "SESSIONS",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        472,
+        68,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "First project session 4",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project session 4",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        501,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "First project session 2",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project session 2",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        561,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "First project session 3",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "First project session 3",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        621,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Second project session 5",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Second project session 5",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        681,
+        155,
+        55
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Appearance",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        820,
+        155,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXPopUpButton",
+      "AXTitle" : "Appearance",
+      "AXValue" : "Light",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        849,
+        155,
+        22
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        211,
+        135,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "Conversation",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        233,
+        135,
+        28
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXApplicationStatus",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        947,
+        226,
+        51,
+        20
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Messages",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "Messages",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        282,
+        380,
+        332
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXLandmarkForm",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        404,
+        614,
+        380,
+        225
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "WORKING COPY",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        302,
+        211,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        332,
+        211,
+        76
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Working copy",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        420,
+        211,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXPopUpButton",
+      "AXTitle" : "Working copy",
+      "AXValue" : "main · Main",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        450,
+        211,
+        22
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        494,
+        211,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        524,
+        211,
+        19
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        555,
+        211,
+        19
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "Requests waiting for you",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXEmptyGroup",
+      "AXTitle" : "Requests waiting for you",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        784,
+        282,
+        240,
+        10
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Copy conversation",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        733,
+        211,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Close session",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        780,
+        211,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Magistr",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        278,
+        218,
+        70,
+        22
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Appearance",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        236,
+        822,
+        78,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Second project",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        212,
+        86,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Conversation",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        430,
+        234,
+        136,
+        26
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Finished",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        947,
+        227,
+        51,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "YOU",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXDocumentArticle",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        308,
+        344,
+        76
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "THINKING",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXDocumentArticle",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        408,
+        344,
+        44
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "AGENT",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXSubrole" : "AXDocumentArticle",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        476,
+        344,
+        46
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Message the agent",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        631,
+        344,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXTextArea",
+      "AXSelectedText" : "",
+      "AXTitle" : "Message the agent",
+      "AXValue" : "ミニくらみ",
+      "enabled" : true,
+      "focused" : true,
+      "rect" : [
+        422,
+        656,
+        344,
+        110
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Return to send · Shift Return for a new line",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        784,
+        168,
+        30
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Stop",
+      "AXValue" : "",
+      "enabled" : false,
+      "focused" : false,
+      "rect" : [
+        627,
+        780,
+        55,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXPress",
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXButton",
+      "AXTitle" : "Send",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        689,
+        780,
+        78,
+        39
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "WORKING COPY",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        303,
+        106,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "\/private\/var\/folders\/ml\/51b226t50rxf09jwljnq7tn00000gn\/T\/magistr-desktop-journey-k2cvnajj\/second",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        334,
+        208,
+        72
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Working copy",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        421,
+        78,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        495,
+        46,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "scripted-fast",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        525,
+        79,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "23 \/ 200,000 context tokens",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        799,
+        556,
+        171,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "YOU",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        323,
+        310,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        348,
+        310,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "THINKING",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        408,
+        344,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        433,
+        344,
+        19
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXHeading",
+      "AXTitle" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        476,
+        344,
+        18
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        501,
+        344,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "Message the agent",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        632,
+        108,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXGroup",
+      "AXTitle" : "",
+      "AXValue" : "",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        435,
+        669,
+        318,
+        21
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "YOU",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        324,
+        29,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "second project response\n",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        439,
+        350,
+        160,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "THINKING",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        409,
+        66,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "considering: second project response",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        434,
+        229,
+        16
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "AGENT",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        477,
+        46,
+        15
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "[scripted-fast] echo: second project response",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        422,
+        503,
+        298,
+        17
+      ]
+    },
+    {
+      "actions" : [
+        "AXShowMenu",
+        "AXScrollToVisible"
+      ],
+      "AXDescription" : "",
+      "AXHelp" : "",
+      "AXRole" : "AXStaticText",
+      "AXTitle" : "",
+      "AXValue" : "ミニくらみ",
+      "enabled" : true,
+      "focused" : false,
+      "rect" : [
+        435,
+        671,
+        65,
+        17
+      ]
+    }
+  ],
+  "source" : "com.apple.inputmethod.Kotoeri.KanaTyping.Japanese"
+}

@@ -60,11 +60,11 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--color-accent); o
 .button-quiet:hover { border-color:var(--color-border-hover); color:var(--color-text); }
 .hero-note { margin-top:1rem; color:var(--color-text-muted); font:500 .75rem var(--font-mono); }
 
-/* Captures: the real terminal frames, never squashed */
+/* Captures: the current desktop windows, never squashed */
 .capture { margin:0; min-width:0; }
 .capture a { display:block; border:1px solid var(--color-border); border-radius:.65rem; overflow:hidden; background:var(--color-surface); }
 .capture a:focus-visible { outline-offset:2px; }
-.capture img { display:block; width:100%; height:auto; aspect-ratio:1440 / 1000; }
+.capture img { display:block; width:100%; height:auto; aspect-ratio:1280 / 832; }
 .capture figcaption { margin-top:.6rem; color:var(--color-text-muted); font-size:.82rem; }
 .capture a.capture-light { display:block; }
 .capture a.capture-dark { display:none; }

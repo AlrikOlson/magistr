@@ -2,7 +2,7 @@
 name = "magistr-core"
 version = "0.1.0"
 edition = "2024"
-description = "Frontend-agnostic domain types for Magistr — shared between TUI, GUI, and remote-attach consumers. Zero ratatui dependencies."
+description = "Frontend-agnostic domain types for Magistr — shared between desktop, CLI, and remote-attach consumers. Zero ratatui dependencies."
 license = "MIT"
 
 [dependencies]

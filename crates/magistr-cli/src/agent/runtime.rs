@@ -10,7 +10,7 @@
 //!
 //! [`AgentRuntime::detect`] resolves the best available runtime in one pass:
 //!
-//! 0. User's `[session] default_provider` preference (from config TUI or config.toml)
+//! 0. User's `[session] default_provider` preference (from configuration or config.toml)
 //! 1. `claude` on PATH with direct auth (API key or CLI login) — served by
 //!    magistr's own ACP agent (`magistr acp-agent --provider claude`,
 //!    `crates/magistr-acp-agent`), which drives that `claude` — preferred
@@ -52,7 +52,7 @@ impl AgentRuntime {
         &self.provider
     }
 
-    /// Human-readable provider name for display in the settings TUI.
+    /// Human-readable provider name for display in the provider settings.
     #[must_use]
     pub fn provider_label(&self) -> &str {
         match self.provider.as_str() {
@@ -309,7 +309,7 @@ impl AgentRuntime {
 
     /// Detect all available agent runtimes (not just the best one).
     ///
-    /// Returns one runtime per distinct provider. Used by the settings TUI
+    /// Returns one runtime per distinct provider. Used by the provider settings
     /// to probe each provider's model list independently.
     #[must_use]
     pub fn detect_all_for(inputs: &ProjectInputs) -> Vec<Self> {

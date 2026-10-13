@@ -17,16 +17,7 @@ pub async fn cmd_roadmap(
 ) -> eyre::Result<()> {
     let default_dir = std::path::PathBuf::from(".");
     match action {
-        None => {
-            #[cfg(feature = "terminal")]
-            if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-                return crate::commands::cockpit_roadmap::cmd_cockpit_roadmap(
-                    inputs.project_root(),
-                )
-                .await;
-            }
-            cmd_roadmap_show(&default_dir, renderer)
-        }
+        None => cmd_roadmap_show(&default_dir, renderer),
         Some(cli::RoadmapAction::Show { ref dir }) => cmd_roadmap_show(dir, renderer),
         Some(cli::RoadmapAction::Next { ref dir }) => cmd_roadmap_next(dir, renderer),
         Some(cli::RoadmapAction::Status { ref dir }) => cmd_roadmap_status(dir, renderer),

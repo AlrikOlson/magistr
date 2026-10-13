@@ -40,6 +40,6 @@ async fn a_missing_root_is_not_admitted_rather_than_an_error() {
             admission.report()
         );
     };
-    assert!(reason.contains("does not exist"), "{reason}");
+    assert!(reason.contains("No such file or directory"), "{reason}");
     assert!(!admission.source_route().is_admitted());
 }

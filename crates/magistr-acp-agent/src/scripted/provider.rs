@@ -130,7 +130,12 @@ async fn ask_permission(turn: &Turn) -> Result<StopReason, AgentError> {
     turn.tool_call(ToolCall::new(CALL, "Bash").kind(ToolKind::Execute))?;
     let outcome = turn
         .request_permission(
-            ToolCallUpdate::new(CALL, ToolCallUpdateFields::new().title("Bash".to_owned())),
+            ToolCallUpdate::new(
+                CALL,
+                ToolCallUpdateFields::new()
+                    .title("Bash".to_owned())
+                    .raw_input(serde_json::json!({"command":"scripted-action"})),
+            ),
             vec![
                 PermissionOption::new("allow", "Allow", PermissionOptionKind::AllowOnce),
                 PermissionOption::new("reject", "Reject", PermissionOptionKind::RejectOnce),

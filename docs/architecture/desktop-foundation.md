@@ -197,7 +197,7 @@ renderer presents semantic documents rather than maintaining a second history.
 | Resident sessions and cancellation | Application `SessionRegistry` / admitted [interactive host](../../crates/magistr-cli/src/application/interactive_host.rs); addressed subscriptions separate selection from provider lifetime | Keep application-owned sessions alive independently of the selected view in `rust-gui-session-lifetime`; typed events and correlated controls reach the actual session |
 | Saved session history | [History reader](../../crates/magistr-cli/src/orchestration/commands/galaxy_data.rs) queries saved sessions, but storage's insert_session has no production writer | Add authoritative session metadata/checkpoint writing at the session owner in `rust-gui-session-history`, then make the reader consume those records; no UI-only database or invented history |
 | Workflow and source | `EngineClient`, admitted native engines and one `WorkspaceService` per canonical root | Reuse [project authority](project-authority.md), [workspace owner](workspace-owner.md), typed [projections](projections.md) and verified source transactions |
-| Retained reading, selection and drafts | Shared `TextDocument`/`RequestHistory` and per-session presentation state | Reuse semantic rich-document ownership; DOM owns native text interaction, application owns durable session/draft records. No localStorage workflow/history authority |
+| Retained reading, selection and drafts | Application `SessionObservation` and per-session native presentation state | Reuse semantic rich-document ownership; DOM owns native text interaction, application owns durable session/draft records. No localStorage workflow/history authority |
 | Product launch and process lifetime | [magistr-desktop launch](../../crates/magistr-desktop/src/launch.rs), terminal-free host composition and `magistr-process` | Replace the renderer through this composition after the owner prerequisites; `rust-gui-delete-old-interfaces` removes GUI2/TUI entry paths and updates every current caller together |
 
 The target composition is Rust application/host → existing session/workflow/source
@@ -206,8 +206,8 @@ The WebView cannot open SQLite, spawn a competing workflow/workspace server or
 decide policy. IPC carries typed requests/results, with bounded payloads and
 owned cancellation. Rust owns durable data and subprocess settlement; the
 renderer owns native window text/focus/layout and presentation caches.
-The cockpit stays independent of terminal protocols and the desktop independent
-of `magistr-tui`. Any needed extraction belongs at the existing owner and updates
+Shared session contracts stay independent of terminal protocols; native
+editing and layout belong to the desktop. Any needed extraction belongs at the existing owner and updates
 all current callers in one finished change.
 
 The ordered owner items already cover the verified selection/lifetime/history

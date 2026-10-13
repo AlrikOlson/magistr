@@ -108,7 +108,7 @@ fn a_runners_report_lists_its_failures_ahead_of_the_verdict() {
             "summary": "1 failed, 41 passed",
             "failures": [{
                 "testName": "workbench::mcp_workbench::tests::a_read",
-                "file": "crates/magistr-tui/src/workbench/mcp_workbench.tests.rs",
+                "file": "crates/magistr-desktop/src/workbench/mcp_workbench.tests.rs",
                 "assertion": "assertion `left == right` failed",
                 "trace": "",
             }],

@@ -40,7 +40,7 @@ pub struct SpecializedRole {
     pub model_fallback: Vec<String>,
     /// Behavior constraints.
     pub constraints: RoleConstraints,
-    /// Icon character for TUI display.
+    /// Icon character for display.
     pub icon: char,
     /// Color index into theme palette for TUI color-coding.
     pub color_index: u8,

@@ -23,7 +23,7 @@ use magistr_cockpit_runtime::channel::Inbox;
 /// The project's think-and-ship engines, in-process, and the socket their
 /// live feed attaches to.
 ///
-/// Open it before the terminal is taken over (magistr-tui's `RealTerminal::stdio`):
+/// Open it before the terminal is taken over (magistr-desktop's `RealTerminal::stdio`):
 /// opening reads the store and may fail, and that must happen on a normal
 /// terminal, never inside the alternate screen. [`EngineClient::with_config`]
 /// admits this process as the project's host and holds the writer — one

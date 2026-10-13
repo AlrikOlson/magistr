@@ -5,36 +5,11 @@
 
 use std::path::Path;
 
-use magistr_cockpit::cockpit::{
-    Budget, CharterOffer, CharterRule, Model, RuleMode, SupervisionSeed,
-};
+use magistr_cockpit::cockpit::{Budget, CharterOffer, CharterRule, RuleMode, SupervisionSeed};
 use magistr_engine::cost::BudgetConfig;
 use magistr_engine::policy::{PolicyEffect, PolicyRule};
 
 use crate::permissions::{CharterStore, PermissionProfile, ProfileAction, RiskLevel};
-
-/// Populate the supervision rail from the session's policy and budget.
-///
-/// Governance rules provide the charter rows. Without explicit rules, rows
-/// show the permission profile's defaults for editing, running tests, and
-/// pushing changes. User charter rules and supported delegation offers follow.
-///
-/// The budget combines team policy, recorded spend, and the requested limit.
-/// When policy imposes a lower cap, the meter marks it within the requested
-/// range. The mode label is workflow mode or the selected permission profile.
-///
-/// Usage and timing arrive later through [`AgentEvent::Usage`] and turn events.
-///
-/// [`AgentEvent::Usage`]: magistr_application::sessions::AgentEvent::Usage
-pub fn seed_supervision(
-    model: Model,
-    project_dir: &Path,
-    profile: PermissionProfile,
-    workflow: bool,
-    inputs: &crate::config::inputs::ProjectInputs,
-) -> Model {
-    supervision_seed(project_dir, profile, workflow, inputs).seed(model)
-}
 
 /// What [`seed_supervision`] seeds, as data a host can send to the surface.
 #[must_use]
@@ -51,20 +26,6 @@ pub fn supervision_seed(
         workflow,
         requested_limit(inputs),
     )
-}
-
-/// [`seed_supervision`] with the ledger and the developer's requested
-/// limit given rather than captured — the seam the tests bind through.
-#[cfg(test)]
-fn seed_with(
-    model: Model,
-    project_dir: &Path,
-    ledger: Option<&Path>,
-    profile: PermissionProfile,
-    workflow: bool,
-    requested: Option<f64>,
-) -> Model {
-    derive(project_dir, ledger, profile, workflow, requested).seed(model)
 }
 
 fn derive(

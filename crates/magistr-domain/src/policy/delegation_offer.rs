@@ -38,7 +38,7 @@ impl DelegationOffer {
         }
     }
 
-    /// The offer as one line: `Edit · crates/magistr-tui · allowed 14 of
+    /// The offer as one line: `Edit · crates/magistr-desktop · allowed 14 of
     /// 14 — delegate?`.
     #[must_use]
     pub fn line(&self) -> String {

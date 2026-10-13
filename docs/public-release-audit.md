@@ -4,6 +4,9 @@ Historical readiness assessment, not a release declaration. Magistr remains
 unreleased; the owner has not declared an official public release. The
 [pre-release policy](../AGENTS.md#before-public-release) supersedes any inferred
 compatibility obligation from version numbers or release wording in this audit.
+This assessment predates the desktop cutover. Use the current [desktop guide](architecture/desktop.md)
+and [release inventory](release-inventory.md) for interface and packaging requirements;
+the checks below describe the audit date rather than the current commit.
 
 **Audit date:** 2026-09-14  
 **Scope:** the v0.1.0 source release, host package, documentation website, public links, contributor intake, and the visual explanation of Magistr's product model.

@@ -19,8 +19,7 @@ must hand off explicitly instead of chaining in the current context.
 
 Choose the requested roadmap track before selecting work. If none was supplied,
 ask which track to loop on, offering the current track names and all tracks.
-The native command opens this choice inside TUI2 and accepts `--track` for
-a direct selection. Keep the chosen track in every fresh-session handoff.
+The native command accepts `--track` for a direct selection. Keep the chosen track in every fresh-session handoff.
 Resume unfinished work only within that scope; blocked work in other tracks
 does not prevent selection. A recovered run keeps its saved track and unfinished
 operations. A new run does not inherit a blocked target from an ended run.

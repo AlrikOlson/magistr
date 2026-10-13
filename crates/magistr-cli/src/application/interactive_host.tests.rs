@@ -1,7 +1,7 @@
 use super::*;
 use magistr_application::effects::SourceRoute;
 use magistr_application::sessions::AgentEvent;
-use magistr_cockpit::cockpit::{Msg, Size};
+use magistr_cockpit::cockpit::Msg;
 use magistr_engine::NativeConfig;
 use magistr_workspace::service::WorkspaceOpenOptions;
 use std::pin::Pin;
@@ -141,18 +141,8 @@ async fn started(
     )
     .await
     .unwrap();
-    let model = seed.seed(Model::new(Size::new(80, 24)));
-    assert!(
-        model.hosts_work(),
-        "the host runs started work in place, so the model offers the starts"
-    );
-    assert_eq!(model.galaxy().home(), Some(0));
-    assert_eq!(model.galaxy().projects()[0].name, "project");
-    assert_eq!(
-        model.galaxy().projects()[0].dir.as_deref(),
-        Some(root.as_str())
-    );
-    assert!(model.galaxy().data().is_none(), "discovery has not run");
+    assert_eq!(seed.name, "project");
+    assert_eq!(seed.dir, root);
     (host, sender, events)
 }
 

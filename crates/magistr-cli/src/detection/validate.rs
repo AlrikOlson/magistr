@@ -22,7 +22,7 @@ pub use magistr_core::validate::{
     Gate, GateResult, ValidationResult, gate_command, load_project_config,
 };
 
-// ── TUI extensions for core types ───────────────────────────────────────────
+// ── CLI extensions for core types ───────────────────────────────────────────
 
 /// TUI-specific extensions for `GateResult`.
 pub trait GateResultExt {

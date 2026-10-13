@@ -7,7 +7,7 @@
 
 pub use magistr_core::workflow::*;
 
-// ── CLI-only modules (async runtime, TUI deps) ─────────────────────────────
+// ── CLI-only modules (async runtime, runtime dependencies) ─────────────────────────────
 
 pub mod gate_runner;
 pub mod hook_dispatch;

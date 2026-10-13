@@ -124,6 +124,8 @@ pub enum AgentEvent {
         id: u64,
         /// What the agent wants to run.
         title: String,
+        /// The requested action's input, kept with the owner-correlated request.
+        detail: String,
         /// The options offered.
         choices: Vec<PermissionChoice>,
         /// Whether the tool is an edit — shown as a diff approval.

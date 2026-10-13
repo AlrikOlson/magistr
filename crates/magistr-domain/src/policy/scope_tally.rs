@@ -15,9 +15,9 @@ use super::policy_condition::PolicyCondition;
 /// are what the offer reads back ("allowed 14 of 14").
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScopeTally {
-    /// The scope's stable key, e.g. `edit:crates/magistr-tui`.
+    /// The scope's stable key, e.g. `edit:crates/magistr-desktop`.
     pub key: String,
-    /// The scope in the reader's words, e.g. `Edit · crates/magistr-tui`.
+    /// The scope in the reader's words, e.g. `Edit · crates/magistr-desktop`.
     pub subject: String,
     /// The condition a rule written for this scope carries.
     pub condition: PolicyCondition,

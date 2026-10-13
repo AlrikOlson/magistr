@@ -4,15 +4,15 @@ use super::*;
 
 use crate::policy::PolicyEngine;
 
-const KEY: &str = "edit:crates/magistr-tui";
-const SUBJECT: &str = "Edit \u{b7} crates/magistr-tui";
+const KEY: &str = "edit:crates/magistr-desktop";
+const SUBJECT: &str = "Edit \u{b7} crates/magistr-desktop";
 
 fn scope() -> PolicyCondition {
     PolicyCondition::all_of(vec![
         PolicyCondition::tool("Edit"),
         PolicyCondition::any_of(vec![
-            PolicyCondition::path("crates/magistr-tui/*"),
-            PolicyCondition::path("*/crates/magistr-tui/*"),
+            PolicyCondition::path("crates/magistr-desktop/*"),
+            PolicyCondition::path("*/crates/magistr-desktop/*"),
         ]),
     ])
 }
@@ -48,16 +48,16 @@ fn a_delegated_allow_lowers_an_ask_under_its_scope_and_names_itself() {
 
     let inside = charter.apply(
         PolicyEffect::RequireApproval,
-        &edit("/repo/crates/magistr-tui/src/view.rs"),
+        &edit("/repo/crates/magistr-desktop/src/view.rs"),
     );
     assert_eq!(inside.effect, PolicyEffect::Allow);
     assert_eq!(
         inside.binding.as_deref(),
-        Some("delegate:edit:crates/magistr-tui")
+        Some("delegate:edit:crates/magistr-desktop")
     );
     // The agent's relative spelling of the same place.
     assert_eq!(
-        allowed(&charter, &edit("crates/magistr-tui/src/view.rs")),
+        allowed(&charter, &edit("crates/magistr-desktop/src/view.rs")),
         PolicyEffect::Allow
     );
     // Outside the scope the profile's ask stands.
@@ -68,7 +68,7 @@ fn a_delegated_allow_lowers_an_ask_under_its_scope_and_names_itself() {
     assert_eq!(
         allowed(
             &charter,
-            &PolicyRequest::tool("Bash").with_command("rm -rf crates/magistr-tui")
+            &PolicyRequest::tool("Bash").with_command("rm -rf crates/magistr-desktop")
         ),
         PolicyEffect::RequireApproval,
         "a scope is a tool over a path, not the path alone"
@@ -80,7 +80,7 @@ fn the_tightest_delegation_wins_whatever_order_they_were_written_in() {
     let mut charter = Charter::default();
     charter.delegate(PolicyRule::new("delegate:x", scope(), PolicyEffect::Allow));
     charter.delegate(PolicyRule::new("refuse:x", scope(), PolicyEffect::Deny));
-    let request = edit("crates/magistr-tui/src/view.rs");
+    let request = edit("crates/magistr-desktop/src/view.rs");
     let decision = charter.apply(PolicyEffect::Allow, &request);
     assert_eq!(decision.effect, PolicyEffect::Deny);
     assert_eq!(decision.binding.as_deref(), Some("refuse:x"));
@@ -98,7 +98,10 @@ fn a_written_condition_raises_the_profiles_allow_to_an_ask() {
         PolicyRule::new("ask:x", scope(), PolicyEffect::RequireApproval)
             .describe("allow, stop if other rows change"),
     );
-    let decision = charter.apply(PolicyEffect::Allow, &edit("crates/magistr-tui/src/view.rs"));
+    let decision = charter.apply(
+        PolicyEffect::Allow,
+        &edit("crates/magistr-desktop/src/view.rs"),
+    );
     assert_eq!(decision.effect, PolicyEffect::RequireApproval);
     assert_eq!(
         charter.delegation("ask:x").map(|r| r.description.as_str()),
@@ -214,13 +217,13 @@ fn accepting_an_offer_writes_the_allow_rule_the_scope_is_then_decided_by() {
         charter.record(KEY, SUBJECT, &scope(), true);
     }
     let rule = charter.accept(KEY).expect("an accepted offer");
-    assert_eq!(rule.id, "delegate:edit:crates/magistr-tui");
+    assert_eq!(rule.id, "delegate:edit:crates/magistr-desktop");
     assert_eq!(rule.description, SUBJECT);
     assert_eq!(rule.effect, PolicyEffect::Allow);
     assert_eq!(rule.condition, scope());
     assert_eq!(charter.delegation(&rule.id), Some(&rule));
     assert_eq!(
-        allowed(&charter, &edit("crates/magistr-tui/src/view.rs")),
+        allowed(&charter, &edit("crates/magistr-desktop/src/view.rs")),
         PolicyEffect::Allow
     );
     assert!(

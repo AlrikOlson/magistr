@@ -252,6 +252,19 @@ async fn interactive_fabricated_and_expired_options_never_become_remembered_gran
     assert!(permissions.pending.is_empty());
 }
 
+#[test]
+fn permission_observation_carries_the_action_the_user_is_answering() {
+    let state = state();
+    let (mut permissions, mut events, _) = interactive();
+    let (mut request, _reply) = request(&[("allow", AcpPermissionOptionKind::AllowOnce)]);
+    request.tool_input = serde_json::json!({"command":"remove selected.txt"});
+    permissions.answer(Some(request), &state);
+    let AgentEvent::PermissionRequest { detail, .. } = events.try_recv().unwrap() else {
+        panic!("interactive request must be observable");
+    };
+    assert!(detail.contains("remove selected.txt"), "{detail}");
+}
+
 #[tokio::test]
 async fn interactive_always_answer_does_not_bypass_the_next_policy_ask() {
     use magistr_acp::AcpPermissionOptionKind as Kind;

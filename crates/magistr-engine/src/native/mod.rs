@@ -141,7 +141,7 @@ pub use workspace_socket_path::workspace_socket_path;
 pub use writer_role::WriterRole;
 
 // The library types the typed commands speak, re-exported so consumers
-// (magistr-core, the GUI, the TUI) never name the `magistr_workflow` crate.
+// (magistr-core, the GUI, the interface) never name the `magistr_workflow` crate.
 pub use magistr_workflow::content::{
     ContentFact, ContentListItem, ContentSection, StructuredContent,
 };

@@ -2,7 +2,7 @@
 
 /// An offer on the native rail's charter panel: a
 /// scope the reader has allowed every ask under, often enough that the
-/// charter proposes to stop asking — `Edit · crates/magistr-tui ·
+/// charter proposes to stop asking — `Edit · crates/magistr-desktop ·
 /// allowed 14 of 14`, with `Delegate` at its edge.
 ///
 /// Data the seeder derives from the policy's own charter, the way

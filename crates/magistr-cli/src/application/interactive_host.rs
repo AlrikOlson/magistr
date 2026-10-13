@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use color_eyre::eyre::{self, Context as _};
 use magistr_application::sessions::SessionHandle;
-use magistr_cockpit::cockpit::{Cmd, Model, ProjectSeed};
+use magistr_cockpit::cockpit::{Cmd, ProjectSeed};
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
 use magistr_engine::OwnerEndpoint;
 use tokio::sync::oneshot;
@@ -32,20 +32,6 @@ pub struct InteractiveHost {
 }
 
 impl InteractiveHost {
-    /// [`Self::open`], with the interface's `model` seeded on the caller's thread.
-    ///
-    /// # Errors
-    /// As [`Self::open`].
-    pub async fn start(
-        config: AgentConfig,
-        model: Model,
-        inbox: Inbox,
-        commands: Commands,
-    ) -> eyre::Result<(Self, Model)> {
-        let (host, seed) = Self::open(config, inbox, commands).await?;
-        Ok((host, seed.seed(model)))
-    }
-
     /// Admit or attach to the project and start the configured provider. The
     /// interface's seed comes back as data: a model cannot cross threads, so
     /// whoever owns the surface builds it. No terminal or window is opened here.
@@ -124,7 +110,6 @@ impl InteractiveHost {
                 return Err(startup_error(error.into(), cleanup));
             }
         };
-        let (title, debug) = crate::commands::chrome::chrome(spec.cwd(), Some("acp"), spec.model());
         let project = crate::commands::galaxy_data::project_name(spec.cwd());
         let dir = spec.cwd().display().to_string();
         let supervision = crate::commands::run::supervision_seed(
@@ -193,8 +178,6 @@ impl InteractiveHost {
             ProjectSeed {
                 name: project,
                 dir,
-                title,
-                debug,
                 supervision,
                 snapshot: seed,
                 workspace_files,

@@ -1,6 +1,5 @@
 //! Exercise the real loop command handlers with isolated saved progress.
-//! The cockpit child has piped input: startup persists before terminal admission,
-//! while real ACP launch and rendering are covered by the loop-driver harness.
+//! The current streamed and machine-readable commands preserve admitted run state.
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -8,7 +7,7 @@ use std::time::Duration;
 
 use magistr::agent::Backend;
 use magistr::cli::HeadlessFormat;
-use magistr::commands::next::{cmd_next_loop, cmd_next_loop_cockpit, cmd_next_loop_headless};
+use magistr::commands::next::{cmd_next_loop, cmd_next_loop_headless};
 use magistr::config::inputs::ProjectInputs;
 use magistr::permissions::PermissionProfile;
 use magistr_core::workflow::iteration::{
@@ -16,7 +15,7 @@ use magistr_core::workflow::iteration::{
 };
 use magistr_engine::workflow::StopReason;
 
-const ENTRIES: [&str; 3] = ["interactive", "headless", "cockpit"];
+const ENTRIES: [&str; 2] = ["interactive", "headless"];
 
 fn selection() -> magistr::config::session_selection::SessionSelection {
     magistr::config::session_selection::SessionSelection {
@@ -333,7 +332,6 @@ async fn entry_fixture_child() {
             )
             .await
         }
-        "cockpit" => cmd_next_loop_cockpit(&dir, 8, None, Backend::Acp, profile, &inputs).await,
         _ => panic!("unknown fixture entry"),
     };
     let result = result.map_or_else(|error| format!("{error:#}"), |()| "ok".into());
@@ -352,11 +350,7 @@ async fn settled_cancellation_archives_and_starts_with_the_requested_limit() {
         // Nothing can dispatch: the fixture's work is already complete.
         std::fs::write(dir.path().join("spec.md"), "- [x] saved work\n").unwrap();
         let result = invoke(entry, dir.path()).await;
-        if entry == "cockpit" {
-            assert!(result.contains("open Magistr in a terminal"), "{result}");
-        } else {
-            assert_eq!(result, "ok", "{entry}");
-        }
+        assert_eq!(result, "ok", "{entry}");
         let fresh = saved(dir.path());
         assert_ne!(fresh.run_id, previous.state().run_id, "{entry}");
         assert_eq!(fresh.run.max_iterations, 8, "{entry}");
@@ -384,11 +378,7 @@ async fn paused_and_unfinished_runs_keep_identity_limits_and_context() {
             // Finish the spec externally so the non-paused command cannot launch.
             std::fs::write(dir.path().join("spec.md"), "- [x] saved work\n").unwrap();
             let result = invoke(entry, dir.path()).await;
-            if entry == "cockpit" {
-                assert!(result.contains("open Magistr in a terminal"), "{result}");
-            } else {
-                assert_eq!(result, "ok", "{entry}");
-            }
+            assert_eq!(result, "ok", "{entry}");
             let recovered = saved(dir.path());
             assert_eq!(recovered.run_id, previous.state().run_id, "{entry}");
             assert_eq!(recovered.run.max_iterations, 3, "{entry}");

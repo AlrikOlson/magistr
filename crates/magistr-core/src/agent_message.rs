@@ -1,6 +1,6 @@
 //! Agent message types — the protocol-agnostic message stream.
 //!
-//! The ACP backend emits `AgentMessage` values, decoupling the TUI
+//! The ACP backend emits `AgentMessage` values, decoupling the interface
 //! and GUI consumers from the `agent-client-protocol` crate.
 
 use crate::agent_types::{AcpConfigOption, AcpPlanEntry, AgentCommand};

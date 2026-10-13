@@ -52,13 +52,10 @@ jobs:
           set -euo pipefail
           for asset in \
             apps/website/public/favicon.svg \
-            apps/website/public/diagrams/magistr-conversation.svg \
-            apps/website/public/diagrams/magistr-modes.svg \
-            apps/website/public/diagrams/magistr-next.svg \
-            apps/website/public/diagrams/magistr-state.svg \
-            apps/website/public/diagrams/roadmap.svg \
-            apps/website/public/diagrams/workflow.svg \
-            apps/website/public/diagrams/verification.svg; do
+            apps/website/public/screenshots/desktop-dark.png \
+            apps/website/public/screenshots/desktop-light.png \
+            apps/website/public/screenshots/captures.json \
+            crates/magistr-desktop/ui/icon.png; do
             git ls-files --error-unmatch "$asset" >/dev/null
             if git check-ignore --no-index -q "$asset"; then
               echo "Tracked public asset is still ignored: $asset" >&2
@@ -67,9 +64,49 @@ jobs:
           done
           ! grep -R -n '/logo\.png' apps/website/src
 
+  desktop:
+    name: Desktop gates (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install Linux WebView dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Format desktop
+        run: cargo fmt --manifest-path crates/magistr-desktop/Cargo.toml -- --check
+      - name: Check desktop
+        run: cargo check --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked
+      - name: Build desktop
+        run: cargo build --manifest-path crates/magistr-desktop/Cargo.toml --locked
+      - name: Lint desktop
+        run: cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Test desktop and protocol roles
+        run: cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked
+      - name: Test desktop input and stream contracts
+        run: node --test crates/magistr-desktop/tests/*.mjs
+      - name: Check current visual evidence, contrast and icon
+        run: ./scripts/screenshot-gate.sh
+
   package:
     name: Package and verify (${{ matrix.os }})
-    needs: quality
+    needs: [quality, desktop]
     strategy:
       fail-fast: false
       matrix:

@@ -78,8 +78,8 @@ new evidence or a relevant correction. Keep this policy in the canonical workflo
 templates as well as generated skills so `magistr init` and repair preserve it.
 Scope changes and commits to the requested task; preserve other sessions' work.
 
-Keep the cockpit independent of terminal protocols and the desktop independent
-of `magistr-tui`. Motion must use model ticks and respect reduced motion.
+Keep shared session and workflow contracts independent of terminal protocols.
+The desktop owns native editing and layout. Motion respects reduced motion.
 Preserve contrast, icon, screenshot, and architecture-index checks. Update
 goldens only for intended visual changes. The `crates/magistr-gui` ratchet may
 only decrease; changes require a `legacy-gui` or `delete` objective.
