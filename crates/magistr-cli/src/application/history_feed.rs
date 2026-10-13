@@ -33,7 +33,7 @@ impl Projection {
             return None;
         }
         self.version = version;
-        Some(crate::commands::galaxy_data::collect(root, inputs))
+        Some(crate::commands::galaxy_data::collect(Some(root), inputs))
     }
 }
 

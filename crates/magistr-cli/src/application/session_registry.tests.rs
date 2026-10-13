@@ -105,7 +105,18 @@ pub(crate) fn projects() -> tempfile::TempDir {
     let tmp = tempfile::tempdir().unwrap();
     for name in ["first", "second", "held", "broken-close"] {
         std::fs::create_dir_all(tmp.path().join(name).join(".magistr")).unwrap();
-        std::fs::write(tmp.path().join(name).join(".magistr/project.json"), "{}").unwrap();
+        std::fs::write(
+            tmp.path().join(name).join(".magistr/project.json"),
+            serde_json::json!({
+ "project": {"name": "fixture", "type": "cli"},
+ "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
+ "quality_gate": {"check": "", "test": "", "lint": ""},
+ "format": {"command": "", "extensions": []},
+ "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
+ "reference_repos": [], "state_prefix": "fixture", "roadmap_exports": false
+}).to_string(),
+        )
+        .unwrap();
     }
     std::fs::create_dir(tmp.path().join("bare")).unwrap();
     tmp

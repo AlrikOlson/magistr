@@ -30,10 +30,21 @@ func children(_ element: AXUIElement) -> [AXUIElement] {
 }
 func nodes(_ root: AXUIElement) -> [AXUIElement] {
     var result: [AXUIElement] = [], queue = [root]
-    var seen = Set<CFHashCode>()
+    // Modal focus can be exposed separately from the window's child list.
+    if string(root,"AXRole") == "AXApplication", let raw=attr(root,"AXFocusedUIElement"),
+       CFGetTypeID(raw) == AXUIElementGetTypeID() {
+        var focus=raw as! AXUIElement
+        for _ in 0..<20 {
+            queue.append(focus)
+            if string(focus,"AXRole") == "AXApplication" {break}
+            guard let parent=attr(focus,"AXParent"), CFGetTypeID(parent) == AXUIElementGetTypeID() else {break}
+            focus=parent as! AXUIElement
+        }
+    }
+    var seen = Set<AXUIElement>()
     while !queue.isEmpty && result.count < 10_000 {
         let node = queue.removeFirst()
-        if !seen.insert(CFHash(node)).inserted { continue }
+        if !seen.insert(node).inserted { continue }
         result.append(node); queue.append(contentsOf: children(node))
     }
     return result
@@ -195,24 +206,19 @@ func configuration(_ window: SCWindow) -> SCStreamConfiguration {
                   "display":NSScreen.screens.map {["width":$0.frame.width,"height":$0.frame.height,"scale":$0.backingScaleFactor,"max_fps":$0.maximumFramesPerSecond]}])
         return
     }
-    if mode=="launch" {
-        try require(args.count==3,"launch bundle output")
-        let options=NSWorkspace.OpenConfiguration()
-        let launch=try JSONSerialization.jsonObject(with:Data(contentsOf:URL(fileURLWithPath:args[2]))) as! [String:Any]
-        options.arguments=launch["arguments"] as? [String] ?? []
-        options.environment=launch["environment"] as? [String:String] ?? [:]
-        options.createsNewApplicationInstance=true
-        let started=CACurrentMediaTime()
-        let application=try await NSWorkspace.shared.openApplication(at:URL(fileURLWithPath:args[1]),configuration:options)
-        try emit(["pid":application.processIdentifier,"launch_return_ms":(CACurrentMediaTime()-started)*1000])
-        return
-    }
     if mode=="restore-front" {
         if let pid=Int32(args[1]) {NSRunningApplication(processIdentifier:pid)?.activate(options:[])}
         return
     }
     try require(args.count>=2,"An owned fixture PID is required")
-    let pid=Int32(args[1])!;_ = try app(pid)
+    let pid=Int32(args[1])!
+    if mode=="activate" {
+        for _ in 0..<60 {
+            if (try? app(pid)) != nil {break}
+            try await pause(0.05)
+        }
+    }
+    _ = try app(pid)
     if mode=="ax" {
         let tree=nodes(AXUIElementCreateApplication(pid)).map{row($0)}
         if args.count==3 {try save(tree,args[2])} else {try emit(tree)}
@@ -220,6 +226,7 @@ func configuration(_ window: SCWindow) -> SCStreamConfiguration {
     }
     if mode=="quit" {try await focus(pid);key(12,.maskCommand);try await pause(0.2);return}
     try await focus(pid)
+    if mode=="activate" {return}
     if mode=="press" {try await press(pid,args[2]);return}
     if mode=="click" {
         let element=try await find(pid,args[2]);guard let rect=rectangle(element) else {throw Failure.message("Button has no bounds")}
@@ -247,6 +254,15 @@ func configuration(_ window: SCWindow) -> SCStreamConfiguration {
             if let rect=rectangle(element) {click(CGPoint(x:rect.midX,y:rect.midY))}
         }
         try await pause(0.2);return
+    }
+    if mode=="folder" {
+        try require(nodes(AXUIElementCreateApplication(pid)).contains(where:{string($0,"AXRole")=="AXSheet"}),
+                    "A native folder dialog must be open")
+        let saved=clipboardSaved();defer{restoreClipboard(saved)}
+        key(5,[.maskCommand,.maskShift]);try await pause(0.25)
+        NSPasteboard.general.clearContents();NSPasteboard.general.setString(args[2],forType:.string)
+        key(9,.maskCommand);try await pause(0.25);key(36);try await pause(0.3)
+        key(36);try await pause(0.2);return
     }
     if mode=="paste" {
         let saved=clipboardSaved();defer{restoreClipboard(saved)}

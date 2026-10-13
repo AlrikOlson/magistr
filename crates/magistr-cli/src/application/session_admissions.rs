@@ -111,22 +111,21 @@ impl SessionRegistry {
     /// away from the surface; provider lifetime remains in InteractiveHost.
     #[must_use]
     pub fn start(
-        first: AgentConfig,
-        configure: impl Fn(&Path) -> eyre::Result<AgentConfig> + Send + Sync + 'static,
+        configure: impl FnMut(&Path) -> eyre::Result<AgentConfig> + Send + 'static,
     ) -> Self {
         let pool = Arc::new(Mutex::new(Admissions::default()));
-        let configure = Arc::new(configure);
-        let mut first = Some(first);
+        let configure = Arc::new(std::sync::Mutex::new(configure));
         let admissions = Arc::clone(&pool);
         let open: Open<InteractiveHost> = Box::new(move |opening: Opening| {
-            let first = first.take();
             let configure = Arc::clone(&configure);
             let admissions = Arc::clone(&admissions);
             Box::pin(async move {
                 let root = PathBuf::from(&opening.address.workspace);
-                let mut config = tokio::task::spawn_blocking(move || match first {
-                    Some(config) => Ok(config),
-                    None => configure(&root),
+                let mut config = tokio::task::spawn_blocking(move || {
+                    let mut configure = configure
+                        .lock()
+                        .map_err(|_| eyre::eyre!("The session settings could not be read."))?;
+                    configure(&root)
                 })
                 .await
                 .map_err(|error| error.to_string())?

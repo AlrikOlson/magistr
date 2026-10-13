@@ -1,18 +1,18 @@
 # Current native desktop evidence
 
 The real Tauri window is exercised with disposable Git projects, working copies,
-a signed app bundle and a controlled ACP peer. The screenshots contain the live
+a signed app bundle and a controlled ACP peer. Application state uses temporary XDG and Magistr directories; the real macOS home is preserved for WebKit's renderer. The screenshots contain the live
 window; no annotations or simulated terminal rendering are added.
 
 The receipt records keyboard and pointer actions, accessible controls, Unicode
 and multiline editing, clipboard round trips, permissions with requested action
 details, cancellation, retained drafts, separate sessions and working copies,
 and ordered native Quit. It closes the last session and reopens its project before
-the main conversation journey. Close and Quit must save all five admitted histories,
+the main conversation journey. The chooser opens without a project or provider; native folder selection, refused and partial setup, cancellation, and recovery all use the actual application owners. Close and Quit must save all six admitted histories,
 release the project owner and leave no provider process. Reopening the source endpoint proves
 its owner can be admitted again.
 
-Light, dark and narrow screenshots and the accessibility tree are reviewed
+Light, dark and narrow conversation screenshots, chooser appearances, setup review, partial results, unavailable-agent guidance and accessibility trees are reviewed
 against their hashes in `review.json`. The receipt names interface source hashes.
 The screenshot gate rejects changed source or images until the native journey
 and review are renewed. It also checks text/control contrast, the selected icon,

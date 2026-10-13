@@ -13,7 +13,7 @@ name = "magistr-desktop"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
-description = "Native desktop sessions for Magistr"
+description = "Open projects, review setup and work with agents in Magistr"
 license = "MIT"
 publish = false
 
@@ -24,6 +24,7 @@ magistr = { package = "magistr-cli", path = "../magistr-cli" }
 magistr-cockpit = { path = "../magistr-cockpit" }
 magistr-domain = { path = "../magistr-domain" }
 magistr-application = { path = "../magistr-application" }
+tauri-plugin-dialog = "2"
 tauri = { version = "=2.12.0", default-features = false, features = ["wry", "compression", "dynamic-acl"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

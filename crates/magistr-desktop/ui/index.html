@@ -11,9 +11,14 @@
   <footer><label for="theme">Appearance</label><select id="theme"><option value="auto">System</option><option value="dark">Dark</option><option value="light">Light</option></select></footer>
 </aside>
 <main>
-  <header class="work-header"><div><p id="project-name">Opening project…</p><h1>Conversation</h1></div><p id="status" role="status" aria-live="polite">Connecting</p></header>
+  <header class="work-header"><div><p id="project-name">Magistr</p><h1 id="view-title">Projects</h1></div><p id="status" role="status" aria-live="polite">Ready</p></header>
   <p id="error" class="error" role="alert" hidden></p>
-  <div class="workspace">
+  <section id="welcome" class="welcome" aria-label="Open a project">
+    <h2>Open a project</h2><p>Choose a folder to start working. If it needs Magistr setup, you can review the files before making changes.</p>
+    <div class="welcome-actions"><button id="welcome-open">Choose a folder…</button><button id="welcome-path">Enter a folder path</button></div>
+    <p id="welcome-note" role="status" hidden></p>
+  </section>
+  <div id="workspace" class="workspace" hidden>
     <section class="conversation" aria-label="Conversation">
       <div id="transcript" class="transcript" tabindex="0" aria-label="Messages">
         <div class="empty"><h2>What would you like to work on?</h2><p>Send a message to start a conversation in this working copy.</p></div>
@@ -30,6 +35,21 @@
   </div>
 </main>
 </div>
-<dialog id="project-picker" aria-labelledby="picker-title"><form id="project-form"><h2 id="picker-title">Open a project</h2><p>Choose a folder that has Magistr set up.</p><label for="project-folder">Project folder</label><input id="project-folder" name="directory" required placeholder="/path/to/project"><p id="picker-error" class="error" role="alert" hidden></p><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button type="submit">Open</button></div></form></dialog>
+<dialog id="project-picker" aria-labelledby="picker-title">
+  <form id="project-form"><div id="picker-content"><h2 id="picker-title">Open a project</h2>
+    <p>Choose a folder or enter its path. You can review setup here if it is needed.</p>
+    <button id="browse-folder" type="button">Choose folder…</button>
+    <label for="project-folder">Project folder</label><input id="project-folder" name="directory" required placeholder="/path/to/project">
+    <p id="picker-status" role="status" aria-live="polite" hidden></p>
+    <p id="picker-error" class="error" role="alert" hidden></p>
+    <section id="setup-preview" aria-label="Project setup" hidden><h3>Review project setup</h3>
+      <p id="setup-root" class="path"></p><p>Select the files you want to change. Your own settings and edited files are kept.</p>
+      <div class="setup-selection"><button id="select-files" type="button">Select all</button><button id="clear-files" type="button">Clear selection</button></div>
+      <div id="setup-files"></div>
+    </section>
+    <section id="setup-result" aria-label="Setup results" hidden><h3 id="setup-result-title"></h3><p id="setup-record"></p><ul id="setup-outcomes"></ul></section>
+    </div><div class="dialog-actions"><button id="picker-cancel" type="button">Cancel</button><button id="picker-submit" type="submit">Open</button></div>
+  </form>
+</dialog>
 <script type="module" src="app.mjs"></script>
 </body></html>

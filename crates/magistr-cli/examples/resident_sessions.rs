@@ -49,7 +49,7 @@ async fn text(reader: &mut SessionSubscription, expected: &str) -> eyre::Result<
 }
 async fn exercise(parent: PathBuf) -> eyre::Result<()> {
     let first = parent.join("first");
-    let registry = SessionRegistry::start(configuration(&first)?, configuration);
+    let registry = SessionRegistry::start(configuration);
     let client = registry.client();
     let a = client
         .open(&first)

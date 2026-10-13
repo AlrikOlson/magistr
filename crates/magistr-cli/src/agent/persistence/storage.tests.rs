@@ -3,6 +3,20 @@ use crate::session::session_outcome::SessionOutcome as HistoryOutcome;
 use chrono::TimeZone;
 use tempfile::TempDir;
 
+#[test]
+fn readonly_history_never_creates_or_writes_a_database() {
+    let dir = TempDir::new().unwrap();
+    let missing = dir.path().join("missing/sessions.db");
+    assert!(open_readonly_db(&missing).is_err());
+    assert!(!dir.path().join("missing").exists());
+    let path = dir.path().join("sessions.db");
+    let writer = open_db(&path).unwrap();
+    insert_session(&writer, &sample_record("saved", "project")).unwrap();
+    let reader = open_readonly_db(&path).unwrap();
+    assert_eq!(count_sessions(&reader).unwrap(), 1);
+    assert!(insert_session(&reader, &sample_record("forbidden", "project")).is_err());
+}
+
 fn test_db() -> (TempDir, Connection) {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("test.db");

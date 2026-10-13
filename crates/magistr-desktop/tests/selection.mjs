@@ -21,6 +21,16 @@ test("late subscription replies and frames cannot replace the current session",a
  subscribed.resolve(1);assert.equal(await old,false);
  assert.deepEqual(commits,["new"]);assert.deepEqual(frames,["new"]);
 });
+test("returning to the chooser invalidates pending navigation and late frames",async()=>{
+ const selection=new Selection(),subscribed=deferred();
+ let receive;
+ const pending=selection.open(address("closed"),{
+  save:async()=>{},subscribe:async(a,n,callback)=>{receive=callback;return subscribed.promise;},
+  commit:()=>assert.fail("a closed session became visible"),receive:()=>assert.fail("a closed frame rendered")
+ });
+ await Promise.resolve();selection.clear();receive({address:address("closed")});subscribed.resolve(1);
+ assert.equal(await pending,false);assert.equal(selection.current,null);
+});
 test("an initial frame arriving before subscribe returns is applied after admission",async()=>{
  const selection=new Selection(),events=[];
  await selection.open(address("a"),{save:async()=>{},subscribe:async(a,n,receive)=>{receive({address:a});return n;},commit:(view,frame)=>events.push(["commit",view.address.session,frame.address.session]),receive:()=>assert.fail("frame applied before admission")});

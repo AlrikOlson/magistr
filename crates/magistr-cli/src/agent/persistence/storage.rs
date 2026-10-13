@@ -35,9 +35,12 @@ pub fn sessions_db_path(inputs: &ProjectInputs) -> Option<PathBuf> {
     inputs.data_dir().map(|dir| dir.join(DB_FILENAME))
 }
 
-/// Open (or create) the session database at the given path.
-///
-/// Creates parent directories and initializes the schema if needed.
+/// Open existing session history without creating or updating its schema.
+pub fn open_readonly_db(path: &Path) -> Result<Connection> {
+    Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|error| MagistrError::sqlite("read session history", error))
+}
+/// Open or create the session database, including its parent directories and schema.
 pub fn open_db(path: &Path) -> Result<Connection> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| MagistrError::io(parent, e))?;
