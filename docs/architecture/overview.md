@@ -135,6 +135,13 @@ connected MCP tools; native services retain every workflow and source authority.
 provenance, and licenses remain beside
 the files they document.
 
+The [desktop foundation decision](desktop-foundation.md), recorded 12 October 2026,
+selects a Tauri Rust host and OS WebView from native performance, editing and
+VoiceOver evidence. It names the existing workspace/session/history owner repairs
+and the atomic production renderer cutover. Its bounded proof lives in
+`benchmarks/desktop-foundation`; the component rows above describe the currently
+delivered application.
+
 [Desktop development](desktop.md) is maintained in `crates/magistr-gui2` and
 `crates/magistr-desktop` on `main`. The session launcher uses the shared admitted
 host. Process and native-window checks with controlled providers verify its

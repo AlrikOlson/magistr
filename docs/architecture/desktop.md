@@ -1,6 +1,12 @@
 # Desktop interface
 
-The maintained desktop renderer lives in `crates/magistr-gui2` on `main`.
+The [12 October 2026 foundation decision](desktop-foundation.md) selects Tauri's
+Rust host and OS WebView for the replacement desktop. It records the measured
+prototype, five journeys and the workspace/session/history prerequisites for one
+atomic renderer cutover. This guide describes the currently delivered desktop
+and its executable checks; production replacement is owned by that ordered track.
+
+The current desktop renderer lives in `crates/magistr-gui2` on `main`.
 Its [provenance](../../crates/magistr-gui2/PROVENANCE.md) records the reviewed
 source commit, licenses, assets and pinned renderer dependency.
 

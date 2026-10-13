@@ -1,0 +1,16 @@
+[package]
+name = "magistr-foundation-tauri"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2" }
+
+[dependencies]
+tauri = { version = "=2.12.0", default-features = false, features = ["wry", "compression", "dynamic-acl"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+magistr-foundation-workload = { path = "../workload" }
