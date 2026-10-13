@@ -97,10 +97,16 @@ impl OwnedProcess {
             });
         }
         let started = Instant::now();
+        #[cfg(not(windows))]
         let mut child = crate::ReapingChild::new(command.spawn()?);
+        #[cfg(windows)]
+        let (mut child, owned_group) = ProcessGroup::spawn(&mut command)?;
         let pid = child.id();
         // SAFETY: pre_exec created an isolated session/group for this child.
+        #[cfg(not(windows))]
         let group = pid.map(|pid| unsafe { ProcessGroup::from_spawned_pid(pid) });
+        #[cfg(windows)]
+        let group = Some(owned_group);
         #[cfg(unix)]
         let streams = match pty {
             Some(pty) => {
@@ -508,3 +514,7 @@ async fn reap_group(child: &mut Child, mut group: Option<&mut ProcessGroup>) -> 
 #[cfg(test)]
 #[path = "owned_process.tests.rs"]
 mod tests;
+
+#[cfg(all(test, windows))]
+#[path = "owned_process_windows.tests.rs"]
+mod windows_tests;

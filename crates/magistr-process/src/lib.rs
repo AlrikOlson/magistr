@@ -29,6 +29,10 @@ mod output_mode;
 mod owned_process;
 #[cfg(windows)]
 mod posix_shell;
+#[cfg(not(windows))]
+mod process_group;
+#[cfg(windows)]
+#[path = "process_group_windows.rs"]
 mod process_group;
 mod process_outcome;
 mod process_spec;
