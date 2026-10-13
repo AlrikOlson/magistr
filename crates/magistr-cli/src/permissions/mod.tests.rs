@@ -186,9 +186,9 @@ fn classify_bash_unknown_as_medium() {
 }
 
 #[test]
-fn classify_bash_empty_as_low() {
+fn classify_bash_empty_as_unknown_risk() {
     let input = serde_json::json!({"command": ""});
-    assert_eq!(classify_risk("Bash", &input), RiskLevel::Low);
+    assert_eq!(classify_risk("Bash", &input), RiskLevel::High);
 }
 
 #[test]

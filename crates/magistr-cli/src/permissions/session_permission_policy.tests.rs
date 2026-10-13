@@ -384,6 +384,61 @@ fn a_safe_shell_command_is_auto_approved_outside_workflow() {
     assert_eq!(decision, PolicyDecision::Allow, "safe prefix behind a cd");
 }
 
+fn incomplete_shell_inputs() -> [serde_json::Value; 13] {
+    [
+        serde_json::Value::Null,
+        serde_json::json!({}),
+        serde_json::json!({"description": "Run the build"}),
+        serde_json::json!("git status"),
+        serde_json::json!(["git status"]),
+        serde_json::json!({"command": null}),
+        serde_json::json!({"command": false}),
+        serde_json::json!({"command": 0}),
+        serde_json::json!({"command": ["git", "status"]}),
+        serde_json::json!({"command": {"command": "git status"}}),
+        serde_json::json!({"command": ""}),
+        serde_json::json!({"command": " \t\r\n"}),
+        serde_json::json!({"command": "\u{2003}\u{00a0}"}),
+    ]
+}
+
+#[test]
+fn incomplete_shell_input_cannot_receive_a_safe_command_allowance() {
+    for input in incomplete_shell_inputs() {
+        assert!(!is_safe_shell_command(&input), "{input}");
+    }
+}
+
+#[test]
+fn incomplete_shell_input_uses_profile_authority() {
+    for profile in PermissionProfile::all() {
+        for input in incomplete_shell_inputs() {
+            for (title, kind) in [
+                ("Bash", None),
+                ("Bash", Some(ToolKind::Execute)),
+                ("Run the build", Some(ToolKind::Execute)),
+                ("shell", None),
+            ] {
+                let mut policy = policy(*profile, false);
+                let request = request(title, input.clone(), kind);
+                let resolution = policy.evaluate_request(&request);
+                let (outcome, decision) = match profile {
+                    PermissionProfile::Yolo => (PermissionOutcome::Allow, PolicyDecision::Allow),
+                    _ => (PermissionOutcome::Ask, PolicyDecision::Ask(RiskTier::High)),
+                };
+                assert_eq!(resolution.risk, RiskTier::High, "{profile} {title} {input}");
+                assert_eq!(resolution.source, PermissionSource::Profile, "{input}");
+                assert_eq!(resolution.outcome, outcome, "{profile} {title} {input}");
+                assert_eq!(
+                    policy.decide(&policy_request(&request)),
+                    decision,
+                    "{input}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn a_gate_command_is_batch_approved_by_evaluate() {
     let mut policy = CockpitPolicy::new(
